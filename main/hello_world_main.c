@@ -13,6 +13,7 @@
 #include "esp_system.h"
 #include "esp_spi_flash.h"
 #include "led.h"
+#include "btn.h"
 
 void app_main(void)
 {
@@ -35,6 +36,7 @@ void app_main(void)
     printf("Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
 
     initLeds();
+    initButtons();
     
     for (int i = 10; i >= 0; i--) {
         printf("Restarting in %d seconds...\n", i);
