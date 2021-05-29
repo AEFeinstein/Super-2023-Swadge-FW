@@ -5,16 +5,22 @@ Intro text to come later
 ## Configuring Your Environment
 
 I recommend following [the official ESP32-C3 Get Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/get-started/index.html).
-I recommend using Linux. I tried Windows and could not get it working properly. Use Windows or OSX at your own risk!
 
-1. For "**Step 1. Install prerequisites**" do it. Copied below
+For all OSes, I recommend using the Visual Studio Code IDE.
+
+If you have a Windows machine, I recommend using WSL1 (aka Linux). I tried to set up the IDF on Windows natively and could not get it working properly.
+
+If you have a Linux machine, you're good. Follow the guide and ignore anything about WSL.
+
+If you have an OSX machine, good luck. If you can get everything working, write down how.
+
+### Setup Notes for WSL1
+
+1. For "**Step 1. Install prerequisites**" do it. Also note that [WSL has extra prerequisites](https://github.com/espressif/vscode-esp-idf-extension/blob/master/docs/WSL.md), specifically `python3-venv`. The combined Linux & WSL prerequisites are listed below, but you should probably copy the installation commands from Espressif's latest guides instead.
     ```bash
-    sudo apt install git wget flex bison gperf python3 python3-pip python3-setuptools cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0
+    sudo apt install git wget flex bison gperf python3 python3-pip python3-venv python3-setuptools cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0
     ```
-1. For "**Step 2. Get ESP-IDF**" and "Step 3. Set up the tools" don't do the manual setup, instead install the vscode extension and do the guided setup.
-use all the default paths.
-install the master repo
-https://github.com/espressif/vscode-esp-idf-extension/blob/master/docs/tutorial/install.md
+1. For "**Step 2. Get ESP-IDF**" and "Step 3. Set up the tools" don't do the manual setup, instead [install the vscode extension and do the guided setup](https://github.com/espressif/vscode-esp-idf-extension/blob/master/docs/tutorial/install.md). Make sure to use all the default paths for installation. Make sure to install the `master` repository. The current releases don't support ESP32-C3.
 1. For "**Step 3. Set up the tools**" the vscode extension should also automatically install the tools
 The "Download Tools" button acted strangely for me. I had to click it repeatedly until the download started. Manually creating the tools dir first may help.
 1. For "**Step 4. Set up the environment variables**" I recommend adding this to the end of your `~/.profile` file so that the IDF environment variables get set each time you log in and/or start WSL. You can run the command right now for it to take effect, or restart your shell.
@@ -22,7 +28,7 @@ The "Download Tools" button acted strangely for me. I had to click it repeatedly
     # Set up IDF
     . $HOME/esp/esp-idf/export.sh
     ```
-1. For "**Step 5. Start a Project**" you can clone this repo and open it in vscode.
+1. For "**Step 5. Start a Project**" you can clone this repo instead of copying the hello world example, and open it in vscode.
     ```
     cd ~/
     git clone https://github.com/AEFeinstein/esp32-c3-playground.git
