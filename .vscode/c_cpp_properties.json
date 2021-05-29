@@ -228,7 +228,8 @@
                 "${env:IDF_PATH}/components/xtensa/esp32s2/include",
                 "${env:IDF_PATH}/components/xtensa/esp32s3/include",
                 "${env:IDF_PATH}/components/xtensa/include"
-            ]
+            ],
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
         }
     ],
     "version": 4
