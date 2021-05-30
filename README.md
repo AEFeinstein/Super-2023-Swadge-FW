@@ -1,52 +1,54 @@
-# Hello World Example
+# Welcome
 
-Starts a FreeRTOS task to print "Hello World".
+Intro text to come later
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+## Configuring Your Environment
 
-## How to use example
+I recommend following [the official ESP32-C3 Get Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/get-started/index.html).
 
-Follow detailed instructions provided specifically for this example. 
+For all OSes, I recommend using the Visual Studio Code IDE.
 
-Select the instructions depending on Espressif chip installed on your development board:
+If you have a Windows machine, I recommend using WSL1 (aka Linux). I tried to set up the IDF on Windows natively and could not get it working properly.
 
-- [ESP32 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/stable/get-started/index.html)
-- [ESP32-S2 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/get-started/index.html)
+If you have a Linux machine, you're good. Follow the guide and ignore anything about WSL.
 
+If you have an OSX machine, good luck. If you can get everything working, write down how.
 
-## Example folder contents
+### Setup Notes for WSL1
 
-The project **hello_world** contains one source file in C language [hello_world_main.c](main/hello_world_main.c). The file is located in folder [main](main).
-
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt` files that provide set of directives and instructions describing the project's source files and targets (executable, library, or both). 
-
-Below is short explanation of remaining files in the project folder.
-
-```
-├── CMakeLists.txt
-├── example_test.py            Python script used for automated example testing
-├── main
-│   ├── CMakeLists.txt
-│   ├── component.mk           Component make file
-│   └── hello_world_main.c
-├── Makefile                   Makefile used by legacy GNU Make
-└── README.md                  This is the file you are currently reading
-```
-
-For more information on structure and contents of ESP-IDF projects, please refer to Section [Build System](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/build-system.html) of the ESP-IDF Programming Guide.
+1. For "**Step 1. Install prerequisites**" do it. Also note that [WSL has extra prerequisites](https://github.com/espressif/vscode-esp-idf-extension/blob/master/docs/WSL.md), specifically `python3-venv`. The combined Linux & WSL prerequisites are listed below, but you should probably copy the installation commands from Espressif's latest guides instead.
+    ```bash
+    sudo apt install git wget flex bison gperf python3 python3-pip python3-venv python3-setuptools cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0
+    ```
+1. For "**Step 2. Get ESP-IDF**" and "Step 3. Set up the tools" don't do the manual setup, instead [install the vscode extension and do the guided setup](https://github.com/espressif/vscode-esp-idf-extension/blob/master/docs/tutorial/install.md). Make sure to use all the default paths for installation. Make sure to install the `master` repository. The current releases don't support ESP32-C3.
+1. For "**Step 3. Set up the tools**" the vscode extension should also automatically install the tools
+The "Download Tools" button acted strangely for me. I had to click it repeatedly until the download started. Manually creating the tools dir first may help.
+1. For "**Step 4. Set up the environment variables**" I recommend adding this to the end of your `~/.profile` file so that the IDF environment variables get set each time you log in and/or start WSL. You can run the command right now for it to take effect, or restart your shell.
+    ```bash
+    # Set up IDF
+    . $HOME/esp/esp-idf/export.sh
+    ```
+1. For "**Step 5. Start a Project**" you can clone this repo instead of copying the hello world example, and open it in vscode.
+    ```
+    cd ~/
+    git clone https://github.com/AEFeinstein/esp32-c3-playground.git
+    code esp32-c3-playground
+    ```
+1. For "**Step 6. Connect Your Device**" set the following environment variables in `~/.bashrc`. Note this is for WSL, and the port number should be replaced with the port on your machine. Restart your shell afterwards for these to take effect.
+    ```bash
+    export ESP32_C3_PORT=/dev/ttyS3
+    export ESP32_C3_PORT_WIN=COM3
+    ```
+1. For "**Step 7. Configure**" this should already be done. You can do it again if you want to.
+1. For "**Step 8. Build the Project**" just click "ctrl+b" in vscode. The default build task should do its thing.
+1. For "**Step 9. Flash onto the Device**" the default build task should have already done this for you! The build task also runs `putty.exe` to open up a serial monitor, so I recommend installing putty on Windows. I've found the baud 2000000 is the fastest it will program at, but you may need to slow it down in `burn-dbg.sh`
 
 ## Troubleshooting
 
-* Program upload failure
+Reread the [Get Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/get-started/index.html), then google your issue, then ask me about it. All troubleshooting issues should be written down here for posterity.
 
-    * Hardware connection is not correct: run `idf.py -p PORT monitor`, and reboot your board to see if there are any output logs.
-    * The baud rate for downloading is too high: lower your baud rate in the `menuconfig` menu, and try again.
+## Tips
 
-## Technical support and feedback
+To add more source files, they either need to be in the `main` folder, and added to the `CMakeLists.txt` file there, or in a subdirectory of the `components` folder with it's own `CMakeLists.txt`. The folder names are specific. You can read up on the [Build System](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/build-system.html) if you're curious.
 
-Please use the following feedback channels:
-
-* For technical queries, go to the [esp32.com](https://esp32.com/) forum
-* For a feature request or bug report, create a [GitHub issue](https://github.com/espressif/esp-idf/issues)
-
-We will get back to you as soon as possible.
+There are a lot of example projects in the IDF that are worth looking at.
