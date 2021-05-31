@@ -47,11 +47,25 @@ void app_main(void)
     ESP_ERROR_CHECK(leds->set_pixel(leds, 0, 0x00, 0x00, 0x10));
     ESP_ERROR_CHECK(leds->refresh(leds, 100));
 
-    for (int i = 10; i >= 0; i--) {
-        printf("Restarting in %d seconds...\n", i);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    bool cycle = false;
+    while(1) {
+        if(true == cycle) {
+            cycle = false;
+            ESP_ERROR_CHECK(leds->set_pixel(leds, 0, 0x00, 0x00, 0x10));
+            ESP_ERROR_CHECK(leds->refresh(leds, 100));
+        } else {
+            cycle = true;
+            ESP_ERROR_CHECK(leds->set_pixel(leds, 0, 0x10, 0x00, 0x00));
+            ESP_ERROR_CHECK(leds->refresh(leds, 100));
+        }
+        vTaskDelay(1000 / portTICK_RATE_MS);
     }
-    printf("Restarting now.\n");
-    fflush(stdout);
-    esp_restart();
+
+    // for (int i = 10; i >= 0; i--) {
+    //     printf("Restarting in %d seconds...\n", i);
+    //     vTaskDelay(1000 / portTICK_PERIOD_MS);
+    // }
+    // printf("Restarting now.\n");
+    // fflush(stdout);
+    // esp_restart();
 }
