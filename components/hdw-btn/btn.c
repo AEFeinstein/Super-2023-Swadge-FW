@@ -19,7 +19,8 @@
  * Structs
  ******************************************************************************/
 
-typedef struct {
+typedef struct
+{
     gpio_num_t gpioNum;
     gpio_config_t gpioConf;
 }  gpio_config_plus_t;
@@ -115,8 +116,10 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
 static void gpio_task_example(void* arg)
 {
     uint32_t io_num;
-    while(1) {
-        if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
+    while(1)
+    {
+        if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY))
+        {
             printf("GPIO[%d] intr, val: %d\n", io_num, gpio_get_level(io_num));
         }
     }

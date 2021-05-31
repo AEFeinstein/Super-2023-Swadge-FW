@@ -9,7 +9,7 @@
  * Wiki: https://en.wikipedia.org/wiki/HSL_and_HSV
  *
  */
-void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t *r, uint32_t *g, uint32_t *b)
+void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t* r, uint32_t* g, uint32_t* b)
 {
     h %= 360; // h -> [0,360]
     uint32_t rgb_max = v * 2.55f;
@@ -21,50 +21,51 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t *r, uint32_t
     // RGB adjustment amount by hue
     uint32_t rgb_adj = (rgb_max - rgb_min) * diff / 60;
 
-    switch (i) {
-    case 0:
-        *r = rgb_max;
-        *g = rgb_min + rgb_adj;
-        *b = rgb_min;
-        break;
-    case 1:
-        *r = rgb_max - rgb_adj;
-        *g = rgb_max;
-        *b = rgb_min;
-        break;
-    case 2:
-        *r = rgb_min;
-        *g = rgb_max;
-        *b = rgb_min + rgb_adj;
-        break;
-    case 3:
-        *r = rgb_min;
-        *g = rgb_max - rgb_adj;
-        *b = rgb_max;
-        break;
-    case 4:
-        *r = rgb_min + rgb_adj;
-        *g = rgb_min;
-        *b = rgb_max;
-        break;
-    default:
-        *r = rgb_max;
-        *g = rgb_min;
-        *b = rgb_max - rgb_adj;
-        break;
+    switch (i)
+    {
+        case 0:
+            *r = rgb_max;
+            *g = rgb_min + rgb_adj;
+            *b = rgb_min;
+            break;
+        case 1:
+            *r = rgb_max - rgb_adj;
+            *g = rgb_max;
+            *b = rgb_min;
+            break;
+        case 2:
+            *r = rgb_min;
+            *g = rgb_max;
+            *b = rgb_min + rgb_adj;
+            break;
+        case 3:
+            *r = rgb_min;
+            *g = rgb_max - rgb_adj;
+            *b = rgb_max;
+            break;
+        case 4:
+            *r = rgb_min + rgb_adj;
+            *g = rgb_min;
+            *b = rgb_max;
+            break;
+        default:
+            *r = rgb_max;
+            *g = rgb_min;
+            *b = rgb_max - rgb_adj;
+            break;
     }
 }
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @param gpioNum      8
  * @param rmtTxChannel RMT_CHANNEL_0
  * @param numLeds      1
- * @return true 
- * @return false 
+ * @return true
+ * @return false
  */
-led_strip_t * initLeds(gpio_num_t gpioNum, rmt_channel_t rmtTxChannel, uint16_t numLeds)
+led_strip_t* initLeds(gpio_num_t gpioNum, rmt_channel_t rmtTxChannel, uint16_t numLeds)
 {
     rmt_config_t config = RMT_DEFAULT_CONFIG_TX(gpioNum, rmtTxChannel);
     // set counter clock to 40MHz
@@ -75,8 +76,9 @@ led_strip_t * initLeds(gpio_num_t gpioNum, rmt_channel_t rmtTxChannel, uint16_t 
 
     // install ws2812 driver
     led_strip_config_t strip_config = LED_STRIP_DEFAULT_CONFIG(numLeds, (led_strip_dev_t)config.channel);
-    led_strip_t *strip = led_strip_new_rmt_ws2812(&strip_config);
-    if (!strip) {
+    led_strip_t* strip = led_strip_new_rmt_ws2812(&strip_config);
+    if (!strip)
+    {
         printf("install WS2812 driver failed");
         return NULL;
     }

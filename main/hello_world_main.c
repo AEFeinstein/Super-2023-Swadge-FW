@@ -41,19 +41,23 @@ void app_main(void)
 
     printf("Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
 
-    led_strip_t * leds = initLeds(GPIO_NUM_8, RMT_CHANNEL_0, 1);
+    led_strip_t* leds = initLeds(GPIO_NUM_8, RMT_CHANNEL_0, 1);
     initButtons();
 
     ESP_ERROR_CHECK(leds->set_pixel(leds, 0, 0x00, 0x00, 0x10));
     ESP_ERROR_CHECK(leds->refresh(leds, 100));
 
     bool cycle = false;
-    while(1) {
-        if(true == cycle) {
+    while(1)
+    {
+        if(true == cycle)
+        {
             cycle = false;
             ESP_ERROR_CHECK(leds->set_pixel(leds, 0, 0x00, 0x00, 0x10));
             ESP_ERROR_CHECK(leds->refresh(leds, 100));
-        } else {
+        }
+        else
+        {
             cycle = true;
             ESP_ERROR_CHECK(leds->set_pixel(leds, 0, 0x10, 0x00, 0x00));
             ESP_ERROR_CHECK(leds->refresh(leds, 100));
