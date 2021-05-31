@@ -40,8 +40,8 @@ The "Download Tools" button acted strangely for me. I had to click it repeatedly
     export ESP32_C3_PORT_WIN=COM3
     ```
 1. For "**Step 7. Configure**" this should already be done. You can do it again if you want to.
-1. For "**Step 8. Build the Project**" just click "ctrl+b" in vscode. The default build task should do its thing.
-1. For "**Step 9. Flash onto the Device**" the default build task should have already done this for you! The build task also runs `putty.exe` to open up a serial monitor, so I recommend installing putty on Windows. I've found the baud 2000000 is the fastest it will program at, but you may need to slow it down in `burn-dbg.sh`
+1. For "**Step 8. Build the Project**" just click "ctrl+shift+b" in vscode. The default build task should do its thing.
+1. For "**Step 9. Flash onto the Device**" the default build task should have already done this for you! The build task also runs `putty.exe` to open up a serial monitor, so I recommend installing putty on Windows and adding it to the PATH. I've found the baud 2000000 is the fastest it will program at, but you may need to slow it down in `burn-dbg.sh`
 
 ## Troubleshooting
 
