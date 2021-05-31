@@ -47,22 +47,17 @@ void app_main(void)
     ESP_ERROR_CHECK(leds->set_pixel(leds, 0, 0x00, 0x00, 0x10));
     ESP_ERROR_CHECK(leds->refresh(leds, 100));
 
-    bool cycle = false;
+    uint16_t hue = 0;
     while(1)
     {
-        if(true == cycle)
-        {
-            cycle = false;
-            ESP_ERROR_CHECK(leds->set_pixel(leds, 0, 0x00, 0x00, 0x10));
-            ESP_ERROR_CHECK(leds->refresh(leds, 100));
-        }
-        else
-        {
-            cycle = true;
-            ESP_ERROR_CHECK(leds->set_pixel(leds, 0, 0x10, 0x00, 0x00));
-            ESP_ERROR_CHECK(leds->refresh(leds, 100));
-        }
-        vTaskDelay(1000 / portTICK_RATE_MS);
+        uint32_t r, g, b;
+        led_strip_hsv2rgb(hue, 100, 3, &r, &g, &b);
+        hue = (hue + 1) % 360;
+
+        ESP_ERROR_CHECK(leds->set_pixel(leds, 0, r, g, b));
+        ESP_ERROR_CHECK(leds->refresh(leds, 100));
+
+        vTaskDelay(10 / portTICK_RATE_MS);
     }
 
     // for (int i = 10; i >= 0; i--) {
