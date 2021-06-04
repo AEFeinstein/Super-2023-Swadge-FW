@@ -20,6 +20,7 @@
 
 #include "led.h"
 #include "btn.h"
+#include "oled.h"
 
 void app_main(void)
 {
@@ -41,21 +42,24 @@ void app_main(void)
 
     printf("Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
 
-    led_strip_t* leds = initLeds(GPIO_NUM_8, RMT_CHANNEL_0, 1);
+    led_strip_t* leds = initLeds(GPIO_NUM_19, RMT_CHANNEL_0, 6);
     initButtons();
 
-    ESP_ERROR_CHECK(leds->set_pixel(leds, 0, 0x00, 0x00, 0x10));
-    ESP_ERROR_CHECK(leds->refresh(leds, 100));
+    initOled();
 
     uint16_t hue = 0;
     while(1)
     {
-        uint32_t r, g, b;
-        led_strip_hsv2rgb(hue, 100, 3, &r, &g, &b);
-        hue = (hue + 1) % 360;
-
-        ESP_ERROR_CHECK(leds->set_pixel(leds, 0, r, g, b));
+        for(int i = 0; i < 6; i++)
+        {
+            uint16_t tmpHue = (hue + (60 * i)) % 360;
+            uint32_t r, g, b;
+            led_strip_hsv2rgb(tmpHue, 100, 3, &r, &g, &b);
+            ESP_ERROR_CHECK(leds->set_pixel(leds, i, r, g, b));
+        }
         ESP_ERROR_CHECK(leds->refresh(leds, 100));
+
+        hue = (hue + 1) % 360;
 
         vTaskDelay(10 / portTICK_RATE_MS);
     }
