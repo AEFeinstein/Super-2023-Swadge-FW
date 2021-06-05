@@ -20,7 +20,8 @@
 
 #include "led.h"
 #include "btn.h"
-#include "oled.h"
+#include "i2c.h"
+#include "ssd1306.h"
 
 void app_main(void)
 {
@@ -43,9 +44,22 @@ void app_main(void)
     printf("Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
 
     led_strip_t* leds = initLeds(GPIO_NUM_19, RMT_CHANNEL_0, 6);
+
     initButtons();
 
-    initOled();
+    i2c_master_init();
+    initOLED(true);
+
+    for(int16_t w = 0; w < OLED_WIDTH; w++)
+    {
+        for(int16_t h = 0; h < OLED_HEIGHT; h++)
+        {
+            if((w % 2) == (h % 2))
+            {
+                drawPixel(w, h, WHITE);
+            }
+        }
+    }
 
     uint16_t hue = 0;
     while(1)
@@ -60,6 +74,8 @@ void app_main(void)
         ESP_ERROR_CHECK(leds->refresh(leds, 100));
 
         hue = (hue + 1) % 360;
+
+        updateOLED(true);
 
         vTaskDelay(10 / portTICK_RATE_MS);
     }

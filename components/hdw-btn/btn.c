@@ -39,28 +39,40 @@ static void IRAM_ATTR gpio_isr_handler(void* arg);
 
 gpio_config_plus_t gpioConfP[] =
 {
+    // {
+    //     .gpioNum = GPIO_NUM_4,
+    //     .savedBit = BIT0,
+    //     .gpioConf =
+    //     {
+    //         .pin_bit_mask = GPIO_SEL_4,
+    //         .mode         = GPIO_MODE_INPUT,
+    //         .pull_up_en   = GPIO_PULLUP_ENABLE,
+    //         .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    //         .intr_type    = GPIO_INTR_ANYEDGE,
+    //     }
+    // },
+    // {
+    //     .gpioNum = GPIO_NUM_5,
+    //     .savedBit = BIT1,
+    //     .gpioConf =
+    //     {
+    //         .pin_bit_mask = GPIO_SEL_5,
+    //         .mode         = GPIO_MODE_INPUT,
+    //         .pull_up_en   = GPIO_PULLUP_ENABLE,
+    //         .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    //         .intr_type    = GPIO_INTR_ANYEDGE,
+    //     }
+    // },
     {
         .gpioNum = GPIO_NUM_4,
-        .savedBit = BIT0,
+        .savedBit = 0,
         .gpioConf =
         {
             .pin_bit_mask = GPIO_SEL_4,
-            .mode         = GPIO_MODE_INPUT,
+            .mode         = GPIO_MODE_OUTPUT,
             .pull_up_en   = GPIO_PULLUP_ENABLE,
             .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type    = GPIO_INTR_ANYEDGE,
-        }
-    },
-    {
-        .gpioNum = GPIO_NUM_5,
-        .savedBit = BIT1,
-        .gpioConf =
-        {
-            .pin_bit_mask = GPIO_SEL_5,
-            .mode         = GPIO_MODE_INPUT,
-            .pull_up_en   = GPIO_PULLUP_ENABLE,
-            .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type    = GPIO_INTR_ANYEDGE,
+            .intr_type    = GPIO_INTR_DISABLE,
         }
     }
 };
@@ -97,8 +109,16 @@ void initButtons(void)
     // Configure interrupts
     for(uint8_t i = 0; i < ARRAY_SIZE(gpioConfP); i++)
     {
-        gpio_isr_handler_add(gpioConfP[i].gpioNum, gpio_isr_handler, (gpio_config_plus_t*) &gpioConfP[i]);
+        if(GPIO_INTR_DISABLE != gpioConfP[i].gpioConf.intr_type)
+        {
+            gpio_isr_handler_add(gpioConfP[i].gpioNum, gpio_isr_handler, (gpio_config_plus_t*) &gpioConfP[i]);
+        }
     }
+}
+
+void setOledResetOn(bool on)
+{
+    gpio_set_level(GPIO_NUM_4, on ? 1 : 0);
 }
 
 /**
