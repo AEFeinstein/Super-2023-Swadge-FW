@@ -523,7 +523,16 @@ bool initOLED(bool reset)
         setOledResetOn(true);  // VDD goes high at start
         usleep(1000);          // pause for 1 ms
         setOledResetOn(false); // Bring reset low
-        usleep(10000);         // Wait 10 ms
+        usleep(1000);          // pause for 1 ms
+        usleep(1000);          // pause for 1 ms
+        usleep(1000);          // pause for 1 ms
+        usleep(1000);          // pause for 1 ms
+        usleep(1000);          // pause for 1 ms
+        usleep(1000);          // pause for 1 ms
+        usleep(1000);          // pause for 1 ms
+        usleep(1000);          // pause for 1 ms
+        usleep(1000);          // pause for 1 ms
+        usleep(1000);          // pause for 1 ms
         setOledResetOn(true);  // Bring out of reset
     }
 
