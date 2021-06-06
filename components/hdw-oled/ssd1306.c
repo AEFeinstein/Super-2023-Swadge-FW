@@ -12,7 +12,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "i2c.h"
+#include "driver/i2c.h"
+
+#include "i2c-conf.h"
 #include "btn.h"
 #include "ssd1306.h"
 
@@ -566,7 +568,7 @@ bool setOLEDparams(bool turnOnOff)
 
 int updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t maxPage )
 {
-    uint8_t encountered_error = false;
+    esp_err_t encountered_error = ESP_OK;
     uint8_t x, page;
 
     uint8_t displayRangeUpdate[] =
@@ -577,9 +579,11 @@ int updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t 
     };
     processDisplayCommands( displayRangeUpdate, PCD_FLAGS_EXECUTE_ALL );
 
-    uint8_t data[ 1 + ((1 + (maxX - minX)) * (1 + (maxPage - minPage)))];
-    uint16_t dataIdx = 0;
-    data[dataIdx++] = SSD1306_DATA;
+    i2c_cmd_handle_t cmdHandle = i2c_cmd_link_create();
+    i2c_master_start(cmdHandle);
+
+    i2c_master_write_byte(cmdHandle, OLED_ADDRESS << 1, false);
+    i2c_master_write_byte(cmdHandle, SSD1306_DATA, false);
 
     for( x = minX; x <= maxX; x++ )
     {
@@ -589,12 +593,15 @@ int updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t 
 
         for( page = minPage; page <= maxPage; page++ )
         {
-            data[dataIdx++] = ( *(prior++) = *(cur++) );
+            i2c_master_write_byte(cmdHandle, ( *(prior++) = *(cur++) ), false);
         }
     }
 
-    i2cMasterSend(OLED_ADDRESS << 1, data, sizeof(data));
-    return encountered_error ? FRAME_NOT_DRAWN : FRAME_DRAWN;
+    i2c_master_stop(cmdHandle);
+    encountered_error = i2c_master_cmd_begin(I2C_MASTER_NUM, cmdHandle, 0);
+    i2c_cmd_link_delete(cmdHandle);
+
+    return (ESP_OK == encountered_error) ? FRAME_DRAWN : FRAME_NOT_DRAWN;
 }
 
 /**
@@ -751,16 +758,21 @@ int processDisplayCommands( const uint8_t* buffer, uint8_t flags )
         if( ( cmd & 0xf8 ) == 0xf0 )
         {
             uint8_t numParams = (cmd & 3);
-            uint8_t data[2 + numParams];
-            uint16_t dataIdx = 0;
 
-            data[dataIdx++] = SSD1306_CMD;
-            data[dataIdx++] = buffer[offset++];
+            i2c_cmd_handle_t cmdHandle = i2c_cmd_link_create();
+            i2c_master_start(cmdHandle);
+
+            i2c_master_write_byte(cmdHandle, OLED_ADDRESS << 1, false);
+            i2c_master_write_byte(cmdHandle, SSD1306_CMD, false);
+            i2c_master_write_byte(cmdHandle, buffer[offset++], false);
             while(numParams--)
             {
-                data[dataIdx++] = buffer[offset++];
+                i2c_master_write_byte(cmdHandle, buffer[offset++], false);
             }
-            i2cMasterSend(OLED_ADDRESS << 1, data, dataIdx);
+
+            i2c_master_stop(cmdHandle);
+            i2c_master_cmd_begin(I2C_MASTER_NUM, cmdHandle, 0);
+            i2c_cmd_link_delete(cmdHandle);
         }
         else
         {

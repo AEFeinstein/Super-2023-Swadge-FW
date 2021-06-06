@@ -1,7 +1,8 @@
 {
     "files.associations": {
         "i2c.h": "c",
-        "led.h": "c"
+        "led.h": "c",
+        "i2c-conf.h": "c"
     },
     "python.pythonPath": "/usr/bin/python"
 }

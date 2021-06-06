@@ -7,6 +7,7 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 #include <stdio.h>
+#include <unistd.h>
 
 #include "sdkconfig.h"
 
@@ -20,7 +21,7 @@
 
 #include "led.h"
 #include "btn.h"
-#include "i2c.h"
+#include "i2c-conf.h"
 #include "ssd1306.h"
 
 void app_main(void)
@@ -49,17 +50,9 @@ void app_main(void)
 
     i2c_master_init();
     initOLED(true);
+    clearDisplay();
 
-    for(int16_t w = 0; w < OLED_WIDTH; w++)
-    {
-        for(int16_t h = 0; h < OLED_HEIGHT; h++)
-        {
-            if((w % 2) == (h % 2))
-            {
-                drawPixel(w, h, WHITE);
-            }
-        }
-    }
+    int16_t pxidx = 0;
 
     uint16_t hue = 0;
     while(1)
@@ -75,9 +68,25 @@ void app_main(void)
 
         hue = (hue + 1) % 360;
 
+        switch(getPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH))
+        {
+            default:
+            case BLACK:
+            {
+                drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, WHITE);
+                break;
+            }
+            case WHITE:
+            {
+                drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, BLACK);
+                break;
+            }
+        }
+        pxidx = (pxidx + 1) % (OLED_WIDTH * OLED_HEIGHT);
+
         updateOLED(true);
 
-        vTaskDelay(10 / portTICK_RATE_MS);
+        usleep(1);
     }
 
     // for (int i = 10; i >= 0; i--) {
