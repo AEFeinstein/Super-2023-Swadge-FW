@@ -60,7 +60,7 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r, uint8_t* 
 
 /**
  * @brief TODO
- * 
+ *
  */
 void initLeds(void)
 {
@@ -69,11 +69,11 @@ void initLeds(void)
 
 /**
  * TODO
- * 
- * @param leds 
- * @param numLeds 
+ *
+ * @param leds
+ * @param numLeds
  */
-void setLeds(led_t * leds, uint8_t numLeds)
+void setLeds(led_t* leds, uint8_t numLeds)
 {
     if(numLeds > NUM_LEDS)
     {
