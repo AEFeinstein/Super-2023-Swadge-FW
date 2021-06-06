@@ -1,7 +1,9 @@
 #include <stdio.h>
-#include "led.h"
+#include "led_util.h"
 
 #define RMT_TX_CHANNEL RMT_CHANNEL_0
+
+led_strip_t* ledStrip = NULL;
 
 /**
  * @brief Simple helper function, converting HSV color space to RGB color space
@@ -9,7 +11,7 @@
  * Wiki: https://en.wikipedia.org/wiki/HSL_and_HSV
  *
  */
-void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t* r, uint32_t* g, uint32_t* b)
+void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r, uint8_t* g, uint8_t* b)
 {
     h %= 360; // h -> [0,360]
     uint32_t rgb_max = v * 2.55f;
@@ -57,33 +59,30 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t* r, uint32_t
 }
 
 /**
- * @brief
- *
- * @param gpioNum      8
- * @param rmtTxChannel RMT_CHANNEL_0
- * @param numLeds      1
- * @return true
- * @return false
+ * @brief TODO
+ * 
  */
-led_strip_t* initLeds(gpio_num_t gpioNum, rmt_channel_t rmtTxChannel, uint16_t numLeds)
+void initLeds(void)
 {
-    rmt_config_t config = RMT_DEFAULT_CONFIG_TX(gpioNum, rmtTxChannel);
-    // set counter clock to 40MHz
-    config.clk_div = 2;
+    ledStrip = led_strip_init(LED_RMT_CHANNEL, LED_GPIO, NUM_LEDS);
+}
 
-    ESP_ERROR_CHECK(rmt_config(&config));
-    ESP_ERROR_CHECK(rmt_driver_install(config.channel, 0, 0));
-
-    // install ws2812 driver
-    led_strip_config_t strip_config = LED_STRIP_DEFAULT_CONFIG(numLeds, (led_strip_dev_t)config.channel);
-    led_strip_t* strip = led_strip_new_rmt_ws2812(&strip_config);
-    if (!strip)
+/**
+ * TODO
+ * 
+ * @param leds 
+ * @param numLeds 
+ */
+void setLeds(led_t * leds, uint8_t numLeds)
+{
+    if(numLeds > NUM_LEDS)
     {
-        printf("install WS2812 driver failed");
-        return NULL;
+        numLeds = NUM_LEDS;
     }
 
-    // Clear LED strip (turn off all LEDs)
-    ESP_ERROR_CHECK(strip->clear(strip, 100));
-    return strip;
+    for(int i = 0; i < numLeds; i++)
+    {
+        ledStrip->set_pixel(ledStrip, i, leds[i].r, leds[i].g, leds[i].b);
+    }
+    ledStrip->refresh(ledStrip, 100);
 }
