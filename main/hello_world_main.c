@@ -24,6 +24,8 @@
 #include "i2c-conf.h"
 #include "ssd1306.h"
 
+#include "QMA6981.h"
+
 void app_main(void)
 {
     printf("Hello world!\n");
@@ -52,6 +54,8 @@ void app_main(void)
     i2c_master_init();
     initOLED(true);
     clearDisplay();
+
+    QMA6981_setup();
 
     int16_t pxidx = 0;
 
@@ -83,6 +87,10 @@ void app_main(void)
         pxidx = (pxidx + 1) % (OLED_WIDTH * OLED_HEIGHT);
 
         updateOLED(true);
+
+        accel_t accel = {0};
+        QMA6981_poll(&accel);
+        printf("%4d %4d %4d\n", accel.x, accel.y, accel.z);
 
         usleep(1);
     }
