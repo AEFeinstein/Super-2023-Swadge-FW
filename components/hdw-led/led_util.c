@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include "led_util.h"
 
-#define RMT_TX_CHANNEL RMT_CHANNEL_0
-
 led_strip_t* ledStrip = NULL;
 
 /**

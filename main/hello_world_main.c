@@ -26,6 +26,34 @@
 
 #include "QMA6981.h"
 
+#include "musical_buzzer.h"
+
+/**
+ * @brief Musical Notation: Beethoven's Ode to joy
+ */
+static const musical_buzzer_notation_t notation[] =
+{
+    {740, 400}, {740, 600}, {784, 400}, {880, 400},
+    {880, 400}, {784, 400}, {740, 400}, {659, 400},
+    {587, 400}, {587, 400}, {659, 400}, {740, 400},
+    {740, 400}, {740, 200}, {659, 200}, {659, 800},
+
+    {740, 400}, {740, 600}, {784, 400}, {880, 400},
+    {880, 400}, {784, 400}, {740, 400}, {659, 400},
+    {587, 400}, {587, 400}, {659, 400}, {740, 400},
+    {659, 400}, {659, 200}, {587, 200}, {587, 800},
+
+    {659, 400}, {659, 400}, {740, 400}, {587, 400},
+    {659, 400}, {740, 200}, {784, 200}, {740, 400}, {587, 400},
+    {659, 400}, {740, 200}, {784, 200}, {740, 400}, {659, 400},
+    {587, 400}, {659, 400}, {440, 400}, {440, 400},
+
+    {740, 400}, {740, 600}, {784, 400}, {880, 400},
+    {880, 400}, {784, 400}, {740, 400}, {659, 400},
+    {587, 400}, {587, 400}, {659, 400}, {740, 400},
+    {659, 400}, {659, 200}, {587, 200}, {587, 800},
+};
+
 void app_main(void)
 {
     printf("Hello world!\n");
@@ -52,14 +80,18 @@ void app_main(void)
     initButtons();
 
     i2c_master_init();
+
     initOLED(true);
     clearDisplay();
 
     QMA6981_setup();
 
-    int16_t pxidx = 0;
+    buzzer_init(GPIO_NUM_18, RMT_CHANNEL_1);
+    buzzer_play(notation, sizeof(notation) / sizeof(notation[0]));
 
+    int16_t pxidx = 0;
     uint16_t hue = 0;
+
     while(1)
     {
         for(int i = 0; i < NUM_LEDS; i++)
@@ -91,6 +123,8 @@ void app_main(void)
         accel_t accel = {0};
         QMA6981_poll(&accel);
         printf("%4d %4d %4d\n", accel.x, accel.y, accel.z);
+
+        buzzer_check_next_note();
 
         usleep(1);
     }

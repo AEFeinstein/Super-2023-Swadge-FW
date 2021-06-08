@@ -218,7 +218,8 @@ bool QMA6981_readreg(QMA6981_reg_addr addr, uint8_t len, uint8_t* data)
     esp_err_t err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmdHandle, 100); // Hanging on second poll???
     i2c_cmd_link_delete(cmdHandle);
 
-    if(ESP_OK != err){
+    if(ESP_OK != err)
+    {
         return false;
     }
 
