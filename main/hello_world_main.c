@@ -18,6 +18,7 @@
 #include "esp_spi_flash.h"
 #include "hal/gpio_types.h"
 #include "driver/rmt.h"
+#include "esp_timer.h"
 
 #include "led_util.h"
 #include "btn.h"
@@ -28,31 +29,34 @@
 
 #include "musical_buzzer.h"
 
+#include "swadgeMode.h"
+#include "mode_snake.h"
+
 /**
  * @brief Musical Notation: Beethoven's Ode to joy
  */
-static const musical_buzzer_notation_t notation[] =
-{
-    {740, 400}, {740, 600}, {784, 400}, {880, 400},
-    // {880, 400}, {784, 400}, {740, 400}, {659, 400},
-    // {587, 400}, {587, 400}, {659, 400}, {740, 400},
-    // {740, 400}, {740, 200}, {659, 200}, {659, 800},
+// static const musicalNote_t notation[] =
+// {
+//     {740, 400}, {740, 600}, {784, 400}, {880, 400},
+//     // {880, 400}, {784, 400}, {740, 400}, {659, 400},
+//     // {587, 400}, {587, 400}, {659, 400}, {740, 400},
+//     // {740, 400}, {740, 200}, {659, 200}, {659, 800},
 
-    // {740, 400}, {740, 600}, {784, 400}, {880, 400},
-    // {880, 400}, {784, 400}, {740, 400}, {659, 400},
-    // {587, 400}, {587, 400}, {659, 400}, {740, 400},
-    // {659, 400}, {659, 200}, {587, 200}, {587, 800},
+//     // {740, 400}, {740, 600}, {784, 400}, {880, 400},
+//     // {880, 400}, {784, 400}, {740, 400}, {659, 400},
+//     // {587, 400}, {587, 400}, {659, 400}, {740, 400},
+//     // {659, 400}, {659, 200}, {587, 200}, {587, 800},
 
-    // {659, 400}, {659, 400}, {740, 400}, {587, 400},
-    // {659, 400}, {740, 200}, {784, 200}, {740, 400}, {587, 400},
-    // {659, 400}, {740, 200}, {784, 200}, {740, 400}, {659, 400},
-    // {587, 400}, {659, 400}, {440, 400}, {440, 400},
+//     // {659, 400}, {659, 400}, {740, 400}, {587, 400},
+//     // {659, 400}, {740, 200}, {784, 200}, {740, 400}, {587, 400},
+//     // {659, 400}, {740, 200}, {784, 200}, {740, 400}, {659, 400},
+//     // {587, 400}, {659, 400}, {440, 400}, {440, 400},
 
-    // {740, 400}, {740, 600}, {784, 400}, {880, 400},
-    // {880, 400}, {784, 400}, {740, 400}, {659, 400},
-    // {587, 400}, {587, 400}, {659, 400}, {740, 400},
-    // {659, 400}, {659, 200}, {587, 200}, {587, 800},
-};
+//     // {740, 400}, {740, 600}, {784, 400}, {880, 400},
+//     // {880, 400}, {784, 400}, {740, 400}, {659, 400},
+//     // {587, 400}, {587, 400}, {659, 400}, {740, 400},
+//     // {659, 400}, {659, 200}, {587, 200}, {587, 800},
+// };
 
 void app_main(void)
 {
@@ -74,8 +78,9 @@ void app_main(void)
 
     printf("Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
 
+    esp_timer_init();
+
     initLeds();
-    led_t leds[NUM_LEDS] = {0};
 
     initButtons();
 
@@ -87,50 +92,63 @@ void app_main(void)
     QMA6981_setup();
 
     buzzer_init(GPIO_NUM_18, RMT_CHANNEL_1);
-    buzzer_play(notation, sizeof(notation) / sizeof(notation[0]));
+    // buzzer_play(notation, sizeof(notation) / sizeof(notation[0]));
 
-    int16_t pxidx = 0;
-    uint16_t hue = 0;
+    // led_t leds[NUM_LEDS] = {0};
+    // int16_t pxidx = 0;
+    // uint16_t hue = 0;
+
+    snakeMode.fnEnterMode();
 
     while(1)
     {
-        uint64_t cTimeUs = esp_timer_get_time();
-
-        checkButtonQueue();
-
-        for(int i = 0; i < NUM_LEDS; i++)
+        buttonEvt_t bEvt = {0};
+        if(checkButtonQueue(&bEvt))
         {
-            uint16_t tmpHue = (hue + (60 * i)) % 360;
-            led_strip_hsv2rgb(tmpHue, 100, 3, &leds[i].r, &leds[i].g, &leds[i].b);
-        }
-        hue = (hue + 1) % 360;
-        setLeds(leds, NUM_LEDS);
-
-        switch(getPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH))
-        {
-            default:
-            case BLACK:
+            if(NULL != snakeMode.fnButtonCallback)
             {
-                drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, WHITE);
-                break;
-            }
-            case WHITE:
-            {
-                drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, BLACK);
-                break;
+                snakeMode.fnButtonCallback(bEvt.state, bEvt.button, bEvt.down);
             }
         }
-        pxidx = (pxidx + 1) % (OLED_WIDTH * OLED_HEIGHT);
+
+        // for(int i = 0; i < NUM_LEDS; i++)
+        // {
+        //     uint16_t tmpHue = (hue + (60 * i)) % 360;
+        //     led_strip_hsv2rgb(tmpHue, 100, 3, &leds[i].r, &leds[i].g, &leds[i].b);
+        // }
+        // hue = (hue + 1) % 360;
+        // setLeds(leds, NUM_LEDS);
+
+        // switch(getPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH))
+        // {
+        //     default:
+        //     case BLACK:
+        //     {
+        //         drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, WHITE);
+        //         break;
+        //     }
+        //     case WHITE:
+        //     {
+        //         drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, BLACK);
+        //         break;
+        //     }
+        // }
+        // pxidx = (pxidx + 1) % (OLED_WIDTH * OLED_HEIGHT);
 
         updateOLED(true);
 
-        static uint64_t lastAccelPrint = 0;
         accel_t accel = {0};
         QMA6981_poll(&accel);
-        if(cTimeUs - lastAccelPrint >= 1000000)
+        // uint64_t cTimeUs = esp_timer_get_time();
+        // static uint64_t lastAccelPrint = 0;
+        // if(cTimeUs - lastAccelPrint >= 1000000)
+        // {
+        //     lastAccelPrint = cTimeUs;
+        //     printf("%4d %4d %4d\n", accel.x, accel.y, accel.z);
+        // }
+        if(NULL != snakeMode.fnAccelerometerCallback)
         {
-            lastAccelPrint = cTimeUs;
-            printf("%4d %4d %4d\n", accel.x, accel.y, accel.z);
+            snakeMode.fnAccelerometerCallback(&accel);
         }
 
         buzzer_check_next_note();

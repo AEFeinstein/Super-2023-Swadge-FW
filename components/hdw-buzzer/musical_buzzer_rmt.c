@@ -13,9 +13,8 @@ typedef struct
 {
     rmt_channel_t channel;
     uint32_t counter_clk_hz;
-    const musical_buzzer_notation_t* notation;
-    uint32_t notation_length;
-    uint32_t notation_index;
+    const song_t* song;
+    uint32_t note_index;
     int64_t start_time;
 } rmt_buzzer_t;
 
@@ -65,12 +64,11 @@ bool buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
  * @param notation_length
  * @return bool
  */
-bool buzzer_play(const musical_buzzer_notation_t* notation, uint32_t notation_length)
+bool buzzer_play(const song_t* song)
 {
     // update notation with the new one
-    rmt_buzzer.notation = notation;
-    rmt_buzzer.notation_index = 0;
-    rmt_buzzer.notation_length = notation_length;
+    rmt_buzzer.song = song;
+    rmt_buzzer.note_index = 0;
     rmt_buzzer.start_time = esp_timer_get_time();
 
     // Play the first note
@@ -89,23 +87,23 @@ bool buzzer_check_next_note(void)
     // Get the current time
     int64_t cTime = esp_timer_get_time();
 
-    if(NULL != rmt_buzzer.notation && rmt_buzzer.notation_index < rmt_buzzer.notation_length)
+    if(NULL != rmt_buzzer.song && rmt_buzzer.note_index < rmt_buzzer.song->numNotes)
     {
         // Check if it's time to play the next note
-        if(cTime - rmt_buzzer.start_time >= (1000 * rmt_buzzer.notation[rmt_buzzer.notation_index].note_duration_ms))
+        if(cTime - rmt_buzzer.start_time >= (1000 * rmt_buzzer.song->notes[rmt_buzzer.note_index].timeMs))
         {
             // Move to the next note
-            rmt_buzzer.notation_index++;
+            rmt_buzzer.note_index++;
             rmt_buzzer.start_time = cTime;
 
             // Play the note
-            if(rmt_buzzer.notation_index < rmt_buzzer.notation_length)
+            if(rmt_buzzer.note_index < rmt_buzzer.song->numNotes)
             {
                 play_note();
             }
             else
             {
-                rmt_tx_stop(rmt_buzzer.channel);
+                buzzer_stop();
             }
         }
     }
@@ -120,24 +118,34 @@ bool buzzer_check_next_note(void)
  */
 static void play_note(void)
 {
-    rmt_item32_t notation_code =
+    static rmt_item32_t notation_code =
     {
         .level0 = 1,
         .duration0 = 1,
         .level1 = 0,
         .duration1 = 1
     };
-    const musical_buzzer_notation_t* notation = &rmt_buzzer.notation[rmt_buzzer.notation_index];
+    const musicalNote_t* notation = &rmt_buzzer.song->notes[rmt_buzzer.note_index];
 
-    // convert frequency to RMT item format
-    notation_code.duration0 = rmt_buzzer.counter_clk_hz / notation->note_freq_hz / 2;
-    notation_code.duration1 = notation_code.duration0;
+    if(SILENCE == notation->note)
+    {
+        notation_code.level0 = 0;
+        notation_code.duration0 = 1;
+        notation_code.duration1 = 1;
+    }
+    else
+    {
+        notation_code.level0 = 1;
+        // convert frequency to RMT item format
+        notation_code.duration0 = rmt_buzzer.counter_clk_hz / notation->note / 2;
+        notation_code.duration1 = notation_code.duration0;
+    }
 
     // convert duration to RMT loop count
-    rmt_set_tx_loop_count(rmt_buzzer.channel, notation->note_duration_ms * notation->note_freq_hz / 1000);
+    rmt_set_tx_loop_count(rmt_buzzer.channel, notation->timeMs * notation->note / 1000);
 
     // start TX
-    rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false);
+    rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false); // This is halting sometimes whyyyyy
 }
 
 /**
@@ -147,6 +155,21 @@ static void play_note(void)
  */
 bool buzzer_stop(void)
 {
-    rmt_tx_stop(rmt_buzzer.channel);
+    // Don't actually stop RMT, which seems to cause problems
+    // Instead just have it play silence
+    static rmt_item32_t notation_code =
+    {
+        .level0 = 0,
+        .duration0 = 1,
+        .level1 = 0,
+        .duration1 = 1
+    };
+    rmt_set_tx_loop_count(rmt_buzzer.channel, 1);
+    rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false);
+
+    rmt_buzzer.song = NULL;
+    rmt_buzzer.note_index = 0;
+    rmt_buzzer.start_time = 0;
+
     return true;
 }

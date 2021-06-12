@@ -51,20 +51,8 @@ gpio_config_plus_t gpioConfP[] =
         }
     },
     {
-        .gpioNum = GPIO_NUM_2, // MODE
-        .savedBit = BIT1,
-        .gpioConf =
-        {
-            .pin_bit_mask = GPIO_SEL_2,
-            .mode         = GPIO_MODE_INPUT,
-            .pull_up_en   = GPIO_PULLUP_ENABLE,
-            .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type    = GPIO_INTR_ANYEDGE,
-        }
-    },
-    {
         .gpioNum = GPIO_NUM_3, // RIGHT
-        .savedBit = BIT2,
+        .savedBit = BIT1,
         .gpioConf =
         {
             .pin_bit_mask = GPIO_SEL_3,
@@ -75,7 +63,19 @@ gpio_config_plus_t gpioConfP[] =
         }
     },
     {
-        .gpioNum = GPIO_NUM_4,
+        .gpioNum = GPIO_NUM_2, // MODE
+        .savedBit = BIT2,
+        .gpioConf =
+        {
+            .pin_bit_mask = GPIO_SEL_2,
+            .mode         = GPIO_MODE_INPUT,
+            .pull_up_en   = GPIO_PULLUP_ENABLE,
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type    = GPIO_INTR_ANYEDGE,
+        }
+    },
+    {
+        .gpioNum = GPIO_NUM_4, // OLED RST OUTPUT
         .savedBit = 0,
         .gpioConf =
         {
@@ -168,11 +168,11 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
  * @brief TODO
  *
  */
-void checkButtonQueue(void)
+bool checkButtonQueue(buttonEvt_t* evt)
 {
     uint32_t gpio_evt;
     // Check if there's an event to dequeue from the ISR
-    while (xQueueReceive(gpio_evt_queue, &gpio_evt, 0))
+    if (xQueueReceive(gpio_evt_queue, &gpio_evt, 0))
     {
         // Save the old button states
         uint32_t oldButtonStates = buttonStates;
@@ -191,10 +191,15 @@ void checkButtonQueue(void)
         // If there was a change in states, print it
         if(oldButtonStates != buttonStates)
         {
-            printf("Bit 0x%02x went %s, buttonStates is %02x\n",
-                   gpio_evt & (~BIT31),
-                   (gpio_evt & BIT31) ? "high" : "low ",
-                   buttonStates);
+            evt->button = gpio_evt & (~BIT31);
+            evt->down = !(gpio_evt & BIT31);
+            evt->state = buttonStates;
+            // printf("Bit 0x%02x went %s, buttonStates is %02x\n",
+            //        gpio_evt & (~BIT31),
+            //        (gpio_evt & BIT31) ? "high" : "low ",
+            //        buttonStates);
+            return true;
         }
     }
+    return false;
 }

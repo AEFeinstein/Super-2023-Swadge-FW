@@ -1,5 +1,5 @@
 /*
- * oled.h
+ * ssd1306.h
  *
  *  Created on: Mar 16, 2019
  *      Author: adam, CNLohr
@@ -42,5 +42,6 @@ bool setOLEDparams(bool turnOnOff);
 int updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t maxPage );
 oledResult_t updateOLED(bool drawDifference);
 void clearDisplay(void);
+void fillDisplayArea(int16_t x1, int16_t y1, int16_t x2, int16_t y2, color c);
 
 #endif /* _SSD1306_H_ */

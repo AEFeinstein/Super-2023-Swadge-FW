@@ -3,8 +3,15 @@
 
 #include <stdbool.h>
 
+typedef struct
+{
+    uint16_t state;
+    uint8_t button;
+    bool down;
+} buttonEvt_t;
+
 void initButtons(void);
-void checkButtonQueue(void);
+bool checkButtonQueue(buttonEvt_t*);
 void setOledResetOn(bool on);
 
 #endif
