@@ -89,16 +89,27 @@ bool buzzer_check_next_note(void)
     // Get the current time
     int64_t cTime = esp_timer_get_time();
 
-    // Check if it's time to play the next note
-    if(cTime - rmt_buzzer.start_time >= (1000 * rmt_buzzer.notation[rmt_buzzer.notation_index].note_duration_ms))
+    if(NULL != rmt_buzzer.notation && rmt_buzzer.notation_index < rmt_buzzer.notation_length)
     {
-        // Move to the next note
-        rmt_buzzer.notation_index++;
-        rmt_buzzer.start_time = cTime;
+        // Check if it's time to play the next note
+        if(cTime - rmt_buzzer.start_time >= (1000 * rmt_buzzer.notation[rmt_buzzer.notation_index].note_duration_ms))
+        {
+            // Move to the next note
+            rmt_buzzer.notation_index++;
+            rmt_buzzer.start_time = cTime;
 
-        // Play the note
-        play_note();
+            // Play the note
+            if(rmt_buzzer.notation_index < rmt_buzzer.notation_length)
+            {
+                play_note();
+            }
+            else
+            {
+                rmt_tx_stop(rmt_buzzer.channel);
+            }
+        }
     }
+
     return true;
 }
 
