@@ -2,7 +2,14 @@
     "files.associations": {
         "i2c.h": "c",
         "led.h": "c",
-        "i2c-conf.h": "c"
+        "i2c-conf.h": "c",
+        "mem.h": "c",
+        "sprite.h": "c",
+        "ssd1306.h": "c",
+        "stdint.h": "c",
+        "mode_snake.h": "c",
+        "esp_random.h": "c",
+        "esp_spi_flash.h": "c"
     },
     "python.pythonPath": "/usr/bin/python"
 }
