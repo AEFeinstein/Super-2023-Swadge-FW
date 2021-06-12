@@ -30,7 +30,6 @@ typedef struct
  * Prototypes
  ******************************************************************************/
 
-static void gpio_task_example(void* arg);
 static void IRAM_ATTR gpio_isr_handler(void* arg);
 
 /*******************************************************************************
@@ -39,30 +38,42 @@ static void IRAM_ATTR gpio_isr_handler(void* arg);
 
 gpio_config_plus_t gpioConfP[] =
 {
-    // {
-    //     .gpioNum = GPIO_NUM_4,
-    //     .savedBit = BIT0,
-    //     .gpioConf =
-    //     {
-    //         .pin_bit_mask = GPIO_SEL_4,
-    //         .mode         = GPIO_MODE_INPUT,
-    //         .pull_up_en   = GPIO_PULLUP_ENABLE,
-    //         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-    //         .intr_type    = GPIO_INTR_ANYEDGE,
-    //     }
-    // },
-    // {
-    //     .gpioNum = GPIO_NUM_5,
-    //     .savedBit = BIT1,
-    //     .gpioConf =
-    //     {
-    //         .pin_bit_mask = GPIO_SEL_5,
-    //         .mode         = GPIO_MODE_INPUT,
-    //         .pull_up_en   = GPIO_PULLUP_ENABLE,
-    //         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-    //         .intr_type    = GPIO_INTR_ANYEDGE,
-    //     }
-    // },
+    {
+        .gpioNum = GPIO_NUM_0, // LEFT
+        .savedBit = BIT0,
+        .gpioConf =
+        {
+            .pin_bit_mask = GPIO_SEL_0,
+            .mode         = GPIO_MODE_INPUT,
+            .pull_up_en   = GPIO_PULLUP_ENABLE,
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type    = GPIO_INTR_ANYEDGE,
+        }
+    },
+    {
+        .gpioNum = GPIO_NUM_2, // MODE
+        .savedBit = BIT1,
+        .gpioConf =
+        {
+            .pin_bit_mask = GPIO_SEL_2,
+            .mode         = GPIO_MODE_INPUT,
+            .pull_up_en   = GPIO_PULLUP_ENABLE,
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type    = GPIO_INTR_ANYEDGE,
+        }
+    },
+    {
+        .gpioNum = GPIO_NUM_3, // RIGHT
+        .savedBit = BIT2,
+        .gpioConf =
+        {
+            .pin_bit_mask = GPIO_SEL_3,
+            .mode         = GPIO_MODE_INPUT,
+            .pull_up_en   = GPIO_PULLUP_ENABLE,
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type    = GPIO_INTR_ANYEDGE,
+        }
+    },
     {
         .gpioNum = GPIO_NUM_4,
         .savedBit = 0,
@@ -95,13 +106,17 @@ void initButtons(void)
     for(uint8_t i = 0; i < ARRAY_SIZE(gpioConfP); i++)
     {
         gpio_config(&(gpioConfP[i].gpioConf));
+        if(GPIO_MODE_INPUT == gpioConfP[i].gpioConf.mode)
+        {
+            if(gpio_get_level(gpioConfP[i].gpioNum))
+            {
+                buttonStates |= gpioConfP[i].savedBit;
+            }
+        }
     }
 
     // create a queue to handle gpio event from isr
     gpio_evt_queue = xQueueCreate(10, sizeof(gpio_config_plus_t*));
-
-    // start gpio task
-    xTaskCreate(gpio_task_example, "gpio_task_example", 2048, NULL, 10, NULL);
 
     // install gpio isr service
     gpio_install_isr_service(0); // See ESP_INTR_FLAG_*
@@ -116,6 +131,11 @@ void initButtons(void)
     }
 }
 
+/**
+ * @brief TODO
+ *
+ * @param on
+ */
 void setOledResetOn(bool on)
 {
     gpio_set_level(GPIO_NUM_4, on ? 1 : 0);
@@ -147,38 +167,34 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
 /**
  * @brief TODO
  *
- * @param arg
  */
-static void gpio_task_example(void* arg)
+void checkButtonQueue(void)
 {
     uint32_t gpio_evt;
-    while(1)
+    // Check if there's an event to dequeue from the ISR
+    while (xQueueReceive(gpio_evt_queue, &gpio_evt, 0))
     {
-        // Check if there's an event to dequeue from the ISR
-        if(xQueueReceive(gpio_evt_queue, &gpio_evt, portMAX_DELAY))
+        // Save the old button states
+        uint32_t oldButtonStates = buttonStates;
+
+        // Set or clear the corresponding bit for this event.
+        // BIT31 indicates rising or falling edge
+        if(gpio_evt & BIT31)
         {
-            // Save the old button states
-            uint32_t oldButtonStates = buttonStates;
+            buttonStates |= (gpio_evt & (~BIT31));
+        }
+        else
+        {
+            buttonStates &= ~(gpio_evt & (~BIT31));
+        }
 
-            // Set or clear the corresponding bit for this event.
-            // BIT31 indicates rising or falling edge
-            if(gpio_evt & BIT31)
-            {
-                buttonStates |= (gpio_evt & (~BIT31));
-            }
-            else
-            {
-                buttonStates &= ~(gpio_evt & (~BIT31));
-            }
-
-            // If there was a change in states, print it
-            if(oldButtonStates != buttonStates)
-            {
-                printf("Bit 0x%02x went %s, buttonStates is %02x\n",
-                       gpio_evt & (~BIT31),
-                       (gpio_evt & BIT31) ? "high" : "low ",
-                       buttonStates);
-            }
+        // If there was a change in states, print it
+        if(oldButtonStates != buttonStates)
+        {
+            printf("Bit 0x%02x went %s, buttonStates is %02x\n",
+                   gpio_evt & (~BIT31),
+                   (gpio_evt & BIT31) ? "high" : "low ",
+                   buttonStates);
         }
     }
 }

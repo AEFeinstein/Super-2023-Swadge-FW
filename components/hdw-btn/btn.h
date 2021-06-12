@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 void initButtons(void);
+void checkButtonQueue(void);
 void setOledResetOn(bool on);
 
 #endif
