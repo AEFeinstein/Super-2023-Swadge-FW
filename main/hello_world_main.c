@@ -29,6 +29,8 @@
 
 #include "musical_buzzer.h"
 
+#include "nvs_manager.h"
+
 #include "swadgeMode.h"
 #include "mode_snake.h"
 
@@ -94,6 +96,17 @@ void app_main(void)
     buzzer_init(GPIO_NUM_18, RMT_CHANNEL_1);
     // buzzer_play(notation, sizeof(notation) / sizeof(notation[0]));
 
+    initNvs(true);
+
+#define MAGIC_VAL 0x01
+    int32_t magicVal = 0;
+    if((false == readNvs32("magicVal", &magicVal)) || (MAGIC_VAL != magicVal))
+    {
+        printf("Writing magic val\n");
+        writeNvs32("magicVal", 0x01);
+        writeNvs32("testVal", 0x01);
+    }
+
     // led_t leds[NUM_LEDS] = {0};
     // int16_t pxidx = 0;
     // uint16_t hue = 0;
@@ -102,6 +115,18 @@ void app_main(void)
 
     while(1)
     {
+        int32_t write = 0xAEF;
+        int32_t read = 0;
+        if(readNvs32("testVal", &read))
+        {
+            if (read != write)
+            {
+                printf("nvs read  %04x\n", read);
+                printf("nvs write %04x\n", write);
+                writeNvs32("testVal", write);
+            }
+        }
+
         buttonEvt_t bEvt = {0};
         if(checkButtonQueue(&bEvt))
         {
