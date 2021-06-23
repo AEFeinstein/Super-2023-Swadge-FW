@@ -21,6 +21,7 @@
 #include "bresenham.h"
 #include "font.h"
 #include "led_util.h"
+#include "nvs_manager.h"
 
 #include "mode_snake.h"
 
@@ -607,6 +608,15 @@ void snakeInit(void)
     // os_timer_setfn(&snake.timerHandleSnakeLogic, (os_timer_func_t*)snakeProcessGame, NULL);
     // os_timer_setfn(&snake.timerHandeleSnakeBlink, (os_timer_func_t*)snakeBlinkField, NULL);
 
+    // Init high scores if they can't be read
+    int32_t hs;
+    if(false == readNvs32("snakehs0", &hs))
+    {
+        writeNvs32("snakehs0", 0);
+        writeNvs32("snakehs1", 0);
+        writeNvs32("snakehs2", 0);
+    }
+
     // Draw the border
     snakeDrawBackground();
 
@@ -649,97 +659,97 @@ void snakeButtonCallback(uint8_t state __attribute__((unused)),
 {
     switch(snake.mode)
     {
-        case MODE_MENU:
+    case MODE_MENU:
+    {
+        if(down)
         {
-            if(down)
+            switch(button)
             {
-                switch(button)
-                {
-                    // Left button
-                    case 1:
-                    {
-                        // Move the cursor, then draw the menu
-                        snake.cursorPos = (snake.cursorPos + 1) % NUM_DIFFICULTIES;
-                        snakeDrawMenu();
-                        break;
-                    }
-                    // Right button
-                    case 2:
-                    {
-                        // Stop the buzzer, just in case
-                        buzzer_stop();
-
-                        // Request responsive buttons
-                        // enableDebounce(false);
-
-                        // Redraw the background to clear button funcs
-                        snakeDrawBackground();
-
-                        // Start the game
-                        snake.mode = MODE_GAME;
-                        snakeResetGame();
-
-                        // Set the score multiplier based on difficulty
-                        snake.scoreMultiplier = snakeDifficulties[snake.cursorPos][1];
-
-                        // randomly place food
-                        snakePlaceFood();
-
-                        // Draw the frame
-                        snakeProcessGame(NULL);
-
-                        // Start a software timer to run at some interval, based on the difficult
-                        esp_timer_stop(snake.timerHandleSnakeLogic);
-                        esp_timer_start_periodic(snake.timerHandleSnakeLogic, snakeDifficulties[snake.cursorPos][0]);
-                        // os_timer_arm(&snake.timerHandleSnakeLogic, snakeDifficulties[snake.cursorPos][0], 1);
-                        break;
-                    }
-                    default:
-                    {
-                        // No other buttons to handle
-                        break;
-                    }
-                }
-            }
-            break;
-        }
-        case MODE_GAME:
-        {
-            if(down)
+            // Left button
+            case 1:
             {
-                switch(button)
-                {
-                    // Left Button
-                    case 1:
-                    {
-                        if(0 == snake.dir)
-                        {
-                            snake.dir += S_NUM_DIRECTIONS;
-                        }
-                        snake.dir--;
-                        break;
-                    }
-                    // Right Button
-                    case 2:
-                    {
-                        snake.dir = (snake.dir + 1) % S_NUM_DIRECTIONS;
-                        break;
-                    }
-                    default:
-                    {
-                        // No other buttons to handle
-                        break;
-                    }
-                }
+                // Move the cursor, then draw the menu
+                snake.cursorPos = (snake.cursorPos + 1) % NUM_DIFFICULTIES;
+                snakeDrawMenu();
+                break;
             }
-            break;
+            // Right button
+            case 2:
+            {
+                // Stop the buzzer, just in case
+                buzzer_stop();
+
+                // Request responsive buttons
+                // enableDebounce(false);
+
+                // Redraw the background to clear button funcs
+                snakeDrawBackground();
+
+                // Start the game
+                snake.mode = MODE_GAME;
+                snakeResetGame();
+
+                // Set the score multiplier based on difficulty
+                snake.scoreMultiplier = snakeDifficulties[snake.cursorPos][1];
+
+                // randomly place food
+                snakePlaceFood();
+
+                // Draw the frame
+                snakeProcessGame(NULL);
+
+                // Start a software timer to run at some interval, based on the difficult
+                esp_timer_stop(snake.timerHandleSnakeLogic);
+                esp_timer_start_periodic(snake.timerHandleSnakeLogic, snakeDifficulties[snake.cursorPos][0]);
+                // os_timer_arm(&snake.timerHandleSnakeLogic, snakeDifficulties[snake.cursorPos][0], 1);
+                break;
+            }
+            default:
+            {
+                // No other buttons to handle
+                break;
+            }
+            }
         }
-        case MODE_GAME_OVER_BLINK:
-        default:
+        break;
+    }
+    case MODE_GAME:
+    {
+        if(down)
         {
-            // Nothing to do here
-            break;
+            switch(button)
+            {
+            // Left Button
+            case 1:
+            {
+                if(0 == snake.dir)
+                {
+                    snake.dir += S_NUM_DIRECTIONS;
+                }
+                snake.dir--;
+                break;
+            }
+            // Right Button
+            case 2:
+            {
+                snake.dir = (snake.dir + 1) % S_NUM_DIRECTIONS;
+                break;
+            }
+            default:
+            {
+                // No other buttons to handle
+                break;
+            }
+            }
         }
+        break;
+    }
+    case MODE_GAME_OVER_BLINK:
+    default:
+    {
+        // Nothing to do here
+        break;
+    }
     }
 }
 
@@ -979,8 +989,22 @@ void snakeMoveSnake(void)
             buzzer_play(&snakeDeathSfx);
         }
 
-        // // Save the high score
-        // setSnakeHighScore(snake.cursorPos, snake.score);
+        // Save the high score
+        char key[] = "snakehs0";
+        key[7] += snake.cursorPos;
+
+        int32_t oldHs;
+        if(readNvs32(key, &oldHs))
+        {
+            if (snake.score > oldHs)
+            {
+                writeNvs32(key, snake.score);
+            }
+        }
+        else
+        {
+            writeNvs32(key, snake.score);
+        }
 
         // // If all three high scores are at least 500, unlock the gallery img
         // uint32_t* snakeHS = getSnakeHighScores();
@@ -1250,31 +1274,31 @@ void snakeMoveSnakePos(pos_t* pos, dir_t dir)
 {
     switch(dir)
     {
-        case S_UP:
-        {
-            pos->y = wrapIdx(pos->y, -SPRITE_DIM, SNAKE_FIELD_HEIGHT);
-            break;
-        }
-        case S_DOWN:
-        {
-            pos->y = wrapIdx(pos->y, SPRITE_DIM, SNAKE_FIELD_HEIGHT);
-            break;
-        }
-        case S_LEFT:
-        {
-            pos->x = wrapIdx(pos->x, -SPRITE_DIM, SNAKE_FIELD_WIDTH);
-            break;
-        }
-        case S_RIGHT:
-        {
-            pos->x = wrapIdx(pos->x, SPRITE_DIM, SNAKE_FIELD_WIDTH);
-            break;
-        }
-        case S_NUM_DIRECTIONS:
-        default:
-        {
-            break;
-        }
+    case S_UP:
+    {
+        pos->y = wrapIdx(pos->y, -SPRITE_DIM, SNAKE_FIELD_HEIGHT);
+        break;
+    }
+    case S_DOWN:
+    {
+        pos->y = wrapIdx(pos->y, SPRITE_DIM, SNAKE_FIELD_HEIGHT);
+        break;
+    }
+    case S_LEFT:
+    {
+        pos->x = wrapIdx(pos->x, -SPRITE_DIM, SNAKE_FIELD_WIDTH);
+        break;
+    }
+    case S_RIGHT:
+    {
+        pos->x = wrapIdx(pos->x, SPRITE_DIM, SNAKE_FIELD_WIDTH);
+        break;
+    }
+    case S_NUM_DIRECTIONS:
+    default:
+    {
+        break;
+    }
     }
 }
 
@@ -1521,12 +1545,17 @@ void snakeDrawMenu(void)
     char tmp[8];
     for(uint8_t i = 0; i < 3; i++)
     {
-        // snprintf(tmp, sizeof(tmp), "%4d", getSnakeHighScores()[i]);
-        snprintf(tmp, sizeof(tmp), "%4d", 6969);
-        plotText(42 + SNAKE_FIELD_OFFSET_X + 1,
-                 SNAKE_FIELD_OFFSET_Y + 3 + i * (FONT_HEIGHT_IBMVGA8 + 3),
-                 tmp,
-                 IBM_VGA_8, WHITE);
+        char key[] = "snakehs0";
+        key[7] += i;
+        int32_t snakeHs = 0;
+        if(readNvs32(key, &snakeHs))
+        {
+            snprintf(tmp, sizeof(tmp), "%4d", snakeHs);
+            plotText(42 + SNAKE_FIELD_OFFSET_X + 1,
+                     SNAKE_FIELD_OFFSET_Y + 3 + i * (FONT_HEIGHT_IBMVGA8 + 3),
+                     tmp,
+                     IBM_VGA_8, WHITE);
+        }
     }
 
     // Draw cursor
@@ -1564,37 +1593,37 @@ void snakeSetLeds(void)
         }*/
         switch(snake.dir)
         {
-            case S_UP:
-            {
-                //leds[0].g = 4;
-                leds[1].g = 4;
-                //leds[2].g = 4;
-                break;
-            }
-            case S_RIGHT:
-            {
-                leds[0].g = 4;
-                leds[5].g = 4;
-                break;
-            }
-            case S_DOWN:
-            {
-                //leds[3].g = 4;
-                leds[4].g = 4;
-                //leds[5].g = 4;
-                break;
-            }
-            case S_LEFT:
-            {
-                leds[2].g = 4;
-                leds[3].g = 4;
-                break;
-            }
-            default:
-            case S_NUM_DIRECTIONS:
-            {
-                break;
-            }
+        case S_UP:
+        {
+            //leds[0].g = 4;
+            leds[1].g = 4;
+            //leds[2].g = 4;
+            break;
+        }
+        case S_RIGHT:
+        {
+            leds[0].g = 4;
+            leds[5].g = 4;
+            break;
+        }
+        case S_DOWN:
+        {
+            //leds[3].g = 4;
+            leds[4].g = 4;
+            //leds[5].g = 4;
+            break;
+        }
+        case S_LEFT:
+        {
+            leds[2].g = 4;
+            leds[3].g = 4;
+            break;
+        }
+        default:
+        case S_NUM_DIRECTIONS:
+        {
+            break;
+        }
         }
     }
     setLeds(leds, sizeof(leds));
