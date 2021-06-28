@@ -31,6 +31,8 @@
 
 #include "nvs_manager.h"
 
+#include "espNowUtils.h"
+
 #include "swadgeMode.h"
 #include "mode_snake.h"
 
@@ -106,6 +108,8 @@ void app_main(void)
         writeNvs32("magicVal", 0x01);
         writeNvs32("testVal", 0x01);
     }
+
+    espNowInit();
 
     // led_t leds[NUM_LEDS] = {0};
     // int16_t pxidx = 0;
