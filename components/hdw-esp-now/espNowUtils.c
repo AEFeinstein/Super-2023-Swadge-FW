@@ -26,6 +26,9 @@
 /// This is the MAC address to transmit to for broadcasting
 const uint8_t espNowBroadcastMac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
+hostEspNowRecvCb_t hostEspNowRecvCb = NULL;
+hostEspNowSendCb_t hostEspNowSendCb = NULL;
+
 /*============================================================================
  * Prototypes
  *==========================================================================*/
@@ -40,8 +43,11 @@ void espNowSendCb(const uint8_t *mac_addr, esp_now_send_status_t status);
 /**
  * Initialize ESP-NOW and attach callback functions
  */
-void espNowInit(void)
+void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
 {
+    hostEspNowRecvCb = recvCb;
+    hostEspNowSendCb = sendCb;
+
     esp_err_t err;
 
     wifi_init_config_t conf = WIFI_INIT_CONFIG_DEFAULT();
@@ -50,8 +56,6 @@ void espNowInit(void)
         printf("Couldn't init wifi\n");
         return;
     }
-
-    // TODO need to start wifi?
 
     // Set up all the wifi softAP mode configs
     if(ESP_OK != (err = esp_wifi_set_mode(WIFI_MODE_AP)))
@@ -82,24 +86,18 @@ void espNowInit(void)
         return;
     }
 
-    if(ESP_OK != (err = esp_wifi_start()))
-    {
-        printf("Couldn't start wifi %s\n", esp_err_to_name(err));
-        return;
-    }
-
+    // TODO no equivalent?
     // if(false == wifi_softap_dhcps_stop())
     // {
     //     printf("Couldn't stop dhcp\n");
     //     return;
     // }
 
-    // TODO this fails
-    // if(ESP_OK != (err = esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_11G)))
-    // {
-    //     printf("Couldn't set protocol %s\n", esp_err_to_name(err));
-    //     return;
-    // }
+    if(ESP_OK != (err = esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_11B|WIFI_PROTOCOL_11G|WIFI_PROTOCOL_11N)))
+    {
+        printf("Couldn't set protocol %s\n", esp_err_to_name(err));
+        return;
+    }
 
     wifi_country_t usa =
     {
@@ -115,13 +113,19 @@ void espNowInit(void)
         return;
     }
 
+    if(ESP_OK != (err = esp_wifi_start()))
+    {
+        printf("Couldn't start wifi %s\n", esp_err_to_name(err));
+        return;
+    }
+
     // Set the channel
     if(ESP_OK != (err = esp_wifi_set_channel( SOFTAP_CHANNEL, WIFI_SECOND_CHAN_BELOW )))
     {
         printf("Couldn't set channel\n");
         return;
     }
-
+    
     if(ESP_OK == (err = esp_now_init()))
     {
         printf("ESP NOW init!\n");
@@ -182,7 +186,7 @@ void espNowRecvCb(const uint8_t *mac_addr, const uint8_t *data, int data_len)
            rssi,
            dbg);
 
-    // swadgeModeEspNowRecvCb(mac_addr, data, data_len, rssi); TODO this
+    hostEspNowRecvCb(mac_addr, data, data_len, rssi);
 }
 
 /**
@@ -235,7 +239,7 @@ void espNowSendCb(const uint8_t *mac_addr, esp_now_send_status_t status)
     }
     }
 
-    // swadgeModeEspNowSendCb(mac_addr, status); TODO this
+    hostEspNowSendCb(mac_addr, status);
 }
 
 /**

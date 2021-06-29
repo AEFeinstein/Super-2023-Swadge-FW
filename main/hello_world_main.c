@@ -32,9 +32,12 @@
 #include "nvs_manager.h"
 
 #include "espNowUtils.h"
+#include "p2pConnection.h"
 
 #include "swadgeMode.h"
 #include "mode_snake.h"
+
+p2pInfo p;
 
 /**
  * @brief Musical Notation: Beethoven's Ode to joy
@@ -61,6 +64,39 @@
 //     // {587, 400}, {587, 400}, {659, 400}, {740, 400},
 //     // {659, 400}, {659, 200}, {587, 200}, {587, 800},
 // };
+
+void testConCbFn(p2pInfo* p2p, connectionEvt_t evt)
+{
+    printf("%s :: %d\n", __func__, evt);
+}
+
+void testMsgRxCbFn(p2pInfo* p2p, const char* msg, const uint8_t* payload, uint8_t len)
+{
+    printf("%s :: %d\n", __func__, len);
+}
+
+void testMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
+{
+    printf("%s :: %d\n", __func__, status);
+}
+
+/**
+ * Callback from ESP NOW to the current Swadge mode whenever a packet is received
+ * It routes through user_main.c, which knows what the current mode is
+ */
+void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, uint8_t rssi)
+{
+    p2pRecvCb(&p, mac_addr, data, len, rssi);
+}
+
+/**
+ * Callback from ESP NOW to the current Swadge mode whenever a packet is sent
+ * It routes through user_main.c, which knows what the current mode is
+ */
+void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
+{
+    p2pSendCb(&p, mac_addr, status);
+}
 
 void app_main(void)
 {
@@ -109,7 +145,10 @@ void app_main(void)
         writeNvs32("testVal", 0x01);
     }
 
-    espNowInit();
+    espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb);
+
+    p2pInitialize(&p, "tst", testConCbFn, testMsgRxCbFn, 0);
+    p2pStartConnection(&p);
 
     // led_t leds[NUM_LEDS] = {0};
     // int16_t pxidx = 0;
@@ -168,13 +207,13 @@ void app_main(void)
 
         accel_t accel = {0};
         QMA6981_poll(&accel);
-        // uint64_t cTimeUs = esp_timer_get_time();
-        // static uint64_t lastAccelPrint = 0;
-        // if(cTimeUs - lastAccelPrint >= 1000000)
-        // {
-        //     lastAccelPrint = cTimeUs;
-        //     printf("%4d %4d %4d\n", accel.x, accel.y, accel.z);
-        // }
+        uint64_t cTimeUs = esp_timer_get_time();
+        static uint64_t lastAccelPrint = 0;
+        if(cTimeUs - lastAccelPrint >= 1000000)
+        {
+            lastAccelPrint = cTimeUs;
+            printf("%4d %4d %4d\n", accel.x, accel.y, accel.z);
+        }
         if(NULL != snakeMode.fnAccelerometerCallback)
         {
             snakeMode.fnAccelerometerCallback(&accel);

@@ -65,7 +65,7 @@ typedef struct _swadgeMode
     //  * @param mac_addr The MAC address which the data was sent to
     //  * @param status   The status of the transmission
     //  */
-    // void (*fnEspNowSendCb)(uint8_t* mac_addr, mt_tx_status status);
+    // void (*fnEspNowSendCb)(uint8_t* mac_addr, esp_now_send_status_t status);
     /**
      * This function is called periodically with the current acceleration
      * vector.
