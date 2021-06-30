@@ -53,7 +53,7 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
     wifi_init_config_t conf = WIFI_INIT_CONFIG_DEFAULT();
     if (ESP_OK != (err = esp_wifi_init(&conf)))
     {
-        printf("Couldn't init wifi\n");
+        printf("Couldn't init wifi %s\n", esp_err_to_name(err));
         return;
     }
 
@@ -147,6 +147,20 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
         {
             printf("sendCb NOT registered\n");
         }
+
+        esp_now_peer_info_t broadcastPeer =
+        {
+            .peer_addr = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF},
+            .lmk = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},
+            .channel = SOFTAP_CHANNEL,
+            .ifidx = ESP_IF_WIFI_AP,
+            .encrypt = 0,
+            .priv = NULL
+        };
+        if(ESP_OK != (err = esp_now_add_peer(&broadcastPeer)))
+        {
+            printf("peer NOT added\n");
+        }
     }
     else
     {
@@ -163,6 +177,12 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
  */
 void espNowRecvCb(const uint8_t *mac_addr, const uint8_t *data, int data_len)
 {
+    /* TODO
+     * The receiving callback function also runs from the Wi-Fi task. So, do not
+     * do lengthy operations in the callback function. Instead, post the
+     * necessary data to a queue and handle it from a lower priority task.
+     */
+
     // Buried in a header, goes from 1 (far away) to 91 (practically touching)
     uint8_t rssi = data[-51]; // TODO test this
 

@@ -120,19 +120,19 @@ void app_main(void)
 
     esp_timer_init();
 
-    initLeds();
+//     initLeds();
 
-    initButtons();
+//     initButtons();
 
-    i2c_master_init();
+//     i2c_master_init();
 
-    initOLED(true);
-    clearDisplay();
+//     initOLED(true);
+//     clearDisplay();
 
-    QMA6981_setup();
+//     QMA6981_setup();
 
-    buzzer_init(GPIO_NUM_18, RMT_CHANNEL_1);
-    // buzzer_play(notation, sizeof(notation) / sizeof(notation[0]));
+//     buzzer_init(GPIO_NUM_18, RMT_CHANNEL_1);
+//     // buzzer_play(notation, sizeof(notation) / sizeof(notation[0]));
 
     initNvs(true);
 
@@ -154,72 +154,72 @@ void app_main(void)
     // int16_t pxidx = 0;
     // uint16_t hue = 0;
 
-    snakeMode.fnEnterMode();
+    // snakeMode.fnEnterMode();
 
     while(1)
     {
-        int32_t write = 0xAEF;
-        int32_t read = 0;
-        if(readNvs32("testVal", &read))
-        {
-            if (read != write)
-            {
-                printf("nvs read  %04x\n", read);
-                printf("nvs write %04x\n", write);
-                writeNvs32("testVal", write);
-            }
-        }
-
-        buttonEvt_t bEvt = {0};
-        if(checkButtonQueue(&bEvt))
-        {
-            if(NULL != snakeMode.fnButtonCallback)
-            {
-                snakeMode.fnButtonCallback(bEvt.state, bEvt.button, bEvt.down);
-            }
-        }
-
-        // for(int i = 0; i < NUM_LEDS; i++)
+        // int32_t write = 0xAEF;
+        // int32_t read = 0;
+        // if(readNvs32("testVal", &read))
         // {
-        //     uint16_t tmpHue = (hue + (60 * i)) % 360;
-        //     led_strip_hsv2rgb(tmpHue, 100, 3, &leds[i].r, &leds[i].g, &leds[i].b);
-        // }
-        // hue = (hue + 1) % 360;
-        // setLeds(leds, NUM_LEDS);
-
-        // switch(getPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH))
-        // {
-        //     default:
-        //     case BLACK:
+        //     if (read != write)
         //     {
-        //         drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, WHITE);
-        //         break;
-        //     }
-        //     case WHITE:
-        //     {
-        //         drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, BLACK);
-        //         break;
+        //         printf("nvs read  %04x\n", read);
+        //         printf("nvs write %04x\n", write);
+        //         writeNvs32("testVal", write);
         //     }
         // }
-        // pxidx = (pxidx + 1) % (OLED_WIDTH * OLED_HEIGHT);
 
-        updateOLED(true);
+        // buttonEvt_t bEvt = {0};
+        // if(checkButtonQueue(&bEvt))
+        // {
+        //     if(NULL != snakeMode.fnButtonCallback)
+        //     {
+        //         snakeMode.fnButtonCallback(bEvt.state, bEvt.button, bEvt.down);
+        //     }
+        // }
 
-        accel_t accel = {0};
-        QMA6981_poll(&accel);
-        uint64_t cTimeUs = esp_timer_get_time();
-        static uint64_t lastAccelPrint = 0;
-        if(cTimeUs - lastAccelPrint >= 1000000)
-        {
-            lastAccelPrint = cTimeUs;
-            printf("%4d %4d %4d\n", accel.x, accel.y, accel.z);
-        }
-        if(NULL != snakeMode.fnAccelerometerCallback)
-        {
-            snakeMode.fnAccelerometerCallback(&accel);
-        }
+        // // for(int i = 0; i < NUM_LEDS; i++)
+        // // {
+        // //     uint16_t tmpHue = (hue + (60 * i)) % 360;
+        // //     led_strip_hsv2rgb(tmpHue, 100, 3, &leds[i].r, &leds[i].g, &leds[i].b);
+        // // }
+        // // hue = (hue + 1) % 360;
+        // // setLeds(leds, NUM_LEDS);
 
-        buzzer_check_next_note();
+        // // switch(getPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH))
+        // // {
+        // //     default:
+        // //     case BLACK:
+        // //     {
+        // //         drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, WHITE);
+        // //         break;
+        // //     }
+        // //     case WHITE:
+        // //     {
+        // //         drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, BLACK);
+        // //         break;
+        // //     }
+        // // }
+        // // pxidx = (pxidx + 1) % (OLED_WIDTH * OLED_HEIGHT);
+
+        // updateOLED(true);
+
+        // accel_t accel = {0};
+        // QMA6981_poll(&accel);
+        // uint64_t cTimeUs = esp_timer_get_time();
+        // static uint64_t lastAccelPrint = 0;
+        // if(cTimeUs - lastAccelPrint >= 1000000)
+        // {
+        //     lastAccelPrint = cTimeUs;
+        //     printf("%4d %4d %4d\n", accel.x, accel.y, accel.z);
+        // }
+        // if(NULL != snakeMode.fnAccelerometerCallback)
+        // {
+        //     snakeMode.fnAccelerometerCallback(&accel);
+        // }
+
+        // buzzer_check_next_note();
 
         usleep(1);
     }

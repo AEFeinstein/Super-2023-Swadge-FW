@@ -501,8 +501,8 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
 {
 #ifdef P2P_DEBUG_PRINT
     char* dbgMsg = (char*)malloc(sizeof(char) * (len + 1));
-    memset(dbgMsg, 0, sizeof(sizeof(char) * (len + 1)));
     memcpy(dbgMsg, data, len);
+    dbgMsg[len] = 0;
     p2p_printf("%s: %s\n", __func__, dbgMsg);
     free(dbgMsg);
 #endif
