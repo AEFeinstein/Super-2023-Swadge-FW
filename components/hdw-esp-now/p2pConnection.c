@@ -54,9 +54,9 @@ end
 
 #define P2P_DEBUG_PRINT
 #ifdef P2P_DEBUG_PRINT
-#define p2p_printf(...) printf(__VA_ARGS__)
+    #define p2p_printf(...) printf(__VA_ARGS__)
 #else
-#define p2p_printf(...)
+    #define p2p_printf(...)
 #endif
 
 // The time we'll spend retrying messages
@@ -276,7 +276,7 @@ void p2pConnectionTimeout(void* arg)
     uint32_t timeoutUs = 1000 * (100 * (5 + (esp_random() % 11)));
 
     // Start the timer again
-    p2p_printf("retry broadcast in %dis\n", timeoutUs);
+    p2p_printf("retry broadcast in %dus\n", timeoutUs);
     esp_timer_start_once(p2p->tmr.Connection, timeoutUs);
 }
 
@@ -449,7 +449,7 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
 #ifdef P2P_DEBUG_PRINT
     char* dbgMsg = (char*)malloc(sizeof(char) * (len + 1));
     memcpy(dbgMsg, msg, len);
-    dbgMsg[len]=0;
+    dbgMsg[len] = 0;
     p2p_printf("%s: %s\n", __func__, dbgMsg);
     free(dbgMsg);
 #endif
@@ -487,18 +487,55 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
 }
 
 /**
- * This is must be called whenever an ESP NOW packet is received
+ * This function must be called whenever RSSI data is received for a promiscuous
+ * packet. The packet must be scanned for the conMsg to see if it's for p2p.
+ *
+ * @param p2p The p2pInfo struct with all the state information
+ * @param pkt The promiscuous packet, including payload and RSSI information
+ */
+void p2pRssiCb(p2pInfo* p2p, const wifi_promiscuous_pkt_t* pkt)
+{
+    // TODO ESP-NOW payload starts at pkt->payload[39]. Always like that??
+    if(NULL != memmem(pkt->payload, pkt->rx_ctrl.sig_len, p2p->conMsg, strlen(p2p->conMsg)))
+    {
+        // TODO WIFI find and save MAC if RSSI is good
+        printf("RSSI %d from [%02X:%02X:%02X:%02X:%02X:%02X]\n", pkt->rx_ctrl.rssi,
+               pkt->payload[10],
+               pkt->payload[11],
+               pkt->payload[12],
+               pkt->payload[13],
+               pkt->payload[14],
+               pkt->payload[15]);
+
+        // char dbg[512] = {0};
+        // snprintf(dbg, sizeof(dbg) - 1, "RSSI %d ~~ ", pkt->rx_ctrl.rssi);
+
+        // char tmp[16] = {0};
+        // for(int i = 0; i < pkt->rx_ctrl.sig_len; i++)
+        // {
+        //     snprintf(tmp, sizeof(tmp) - 1, "%02X ", pkt->payload[i]);
+        //     strncat(dbg, tmp, sizeof(dbg) - strlen(dbg) - 1);
+        // }
+        // printf("%s\n", dbg);
+    }
+}
+
+/**
+ * This function must be called whenever an ESP NOW packet is received
  *
  * @param p2p      The p2pInfo struct with all the state information
  * @param mac_addr The MAC of the swadge that sent the data
  * @param data     The data
  * @param len      The length of the data
- * @param rssi     The RSSI of th received message, a proxy for distance
  * @return false if the message was processed here,
  *         true if the message should be processed by the swadge mode
  */
-void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8_t len, uint8_t rssi)
+void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8_t len)
 {
+    // TODO WIFI holy moly this works???
+    wifi_pkt_rx_ctrl_t* pkt = (wifi_pkt_rx_ctrl_t*)&data[-sizeof(wifi_pkt_rx_ctrl_t) - 39];
+    printf(" ~~ RSSI %d\n", pkt->rssi);
+
 #ifdef P2P_DEBUG_PRINT
     char* dbgMsg = (char*)malloc(sizeof(char) * (len + 1));
     memcpy(dbgMsg, data, len);
@@ -597,7 +634,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
     {
         // Received another broadcast, Check if this RSSI is strong enough
         if(!p2p->cnc.broadcastReceived &&
-                rssi > p2p->connectionRssi &&
+                // rssi > p2p->connectionRssi && // TODO WIFI check RSSI
                 strlen(p2p->conMsg) == len &&
                 0 == memcmp(data, p2p->conMsg, len))
         {
@@ -706,35 +743,35 @@ void p2pProcConnectionEvt(p2pInfo* p2p, connectionEvt_t event)
 
     switch(event)
     {
-    case RX_GAME_START_MSG:
-    {
-        // Already received the ack, become the client
-        if(!p2p->cnc.rxGameStartMsg && p2p->cnc.rxGameStartAck)
+        case RX_GAME_START_MSG:
         {
-            p2p->cnc.playOrder = GOING_SECOND;
+            // Already received the ack, become the client
+            if(!p2p->cnc.rxGameStartMsg && p2p->cnc.rxGameStartAck)
+            {
+                p2p->cnc.playOrder = GOING_SECOND;
+            }
+            // Mark this event
+            p2p->cnc.rxGameStartMsg = true;
+            break;
         }
-        // Mark this event
-        p2p->cnc.rxGameStartMsg = true;
-        break;
-    }
-    case RX_GAME_START_ACK:
-    {
-        // Already received the msg, become the server
-        if(!p2p->cnc.rxGameStartAck && p2p->cnc.rxGameStartMsg)
+        case RX_GAME_START_ACK:
         {
-            p2p->cnc.playOrder = GOING_FIRST;
+            // Already received the msg, become the server
+            if(!p2p->cnc.rxGameStartAck && p2p->cnc.rxGameStartMsg)
+            {
+                p2p->cnc.playOrder = GOING_FIRST;
+            }
+            // Mark this event
+            p2p->cnc.rxGameStartAck = true;
+            break;
         }
-        // Mark this event
-        p2p->cnc.rxGameStartAck = true;
-        break;
-    }
-    case CON_STARTED:
-    case CON_ESTABLISHED:
-    case CON_LOST:
-    default:
-    {
-        break;
-    }
+        case CON_STARTED:
+        case CON_ESTABLISHED:
+        case CON_LOST:
+        default:
+        {
+            break;
+        }
     }
 
     if(NULL != p2p->conCbFn)
@@ -814,46 +851,46 @@ void p2pRestart(void* arg)
  * @param mac_addr unused
  * @param status   Whether the transmission succeeded or failed
  */
-void p2pSendCb(p2pInfo* p2p, const uint8_t *mac_addr, esp_now_send_status_t status)
+void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr, esp_now_send_status_t status)
 {
     p2p_printf("%s\n", __func__);
 
     switch(status)
     {
-    case ESP_NOW_SEND_SUCCESS:
-    {
-        if(0 != p2p->ack.timeSentUs)
+        case ESP_NOW_SEND_SUCCESS:
         {
-            uint32_t transmissionTimeUs = esp_timer_get_time() - p2p->ack.timeSentUs;
-            p2p_printf("Transmission time %dus\n", transmissionTimeUs);
-            // The timers are all millisecond, so make sure that
-            // transmissionTimeUs is at least 1ms
-            if(transmissionTimeUs < 1000)
+            if(0 != p2p->ack.timeSentUs)
             {
-                transmissionTimeUs = 1000;
+                uint32_t transmissionTimeUs = esp_timer_get_time() - p2p->ack.timeSentUs;
+                p2p_printf("Transmission time %dus\n", transmissionTimeUs);
+                // The timers are all millisecond, so make sure that
+                // transmissionTimeUs is at least 1ms
+                if(transmissionTimeUs < 1000)
+                {
+                    transmissionTimeUs = 1000;
+                }
+
+                // Round it to the nearest Ms, add 69ms (the measured worst case)
+                // then add some randomness [0ms to 15ms random]
+                uint32_t waitTimeUs = 1000 * (((transmissionTimeUs + 500) / 1000) + 69 + (esp_random() & 0b1111));
+
+                // Start the timer
+                p2p_printf("ack timer set for %dus\n", waitTimeUs);
+                esp_timer_start_once(p2p->tmr.TxRetry, waitTimeUs);
             }
-
-            // Round it to the nearest Ms, add 69ms (the measured worst case)
-            // then add some randomness [0ms to 15ms random]
-            uint32_t waitTimeUs = 1000 * (((transmissionTimeUs + 500) / 1000) + 69 + (esp_random() & 0b1111));
-
-            // Start the timer
-            p2p_printf("ack timer set for %dus\n", waitTimeUs);
-            esp_timer_start_once(p2p->tmr.TxRetry, waitTimeUs);
+            break;
         }
-        break;
-    }
-    default:
-    case ESP_NOW_SEND_FAIL:
-    {
-        // If a message is stored
-        if(p2p->ack.msgToAckLen > 0)
+        default:
+        case ESP_NOW_SEND_FAIL:
         {
-            // try again in 1ms
-            esp_timer_start_once(p2p->tmr.TxRetry, 1000);
+            // If a message is stored
+            if(p2p->ack.msgToAckLen > 0)
+            {
+                // try again in 1ms
+                esp_timer_start_once(p2p->tmr.TxRetry, 1000);
+            }
+            break;
         }
-        break;
-    }
     }
 }
 

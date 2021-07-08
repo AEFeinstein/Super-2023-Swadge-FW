@@ -84,9 +84,9 @@ void testMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
  * Callback from ESP NOW to the current Swadge mode whenever a packet is received
  * It routes through user_main.c, which knows what the current mode is
  */
-void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, uint8_t rssi)
+void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len)
 {
-    p2pRecvCb(&p, mac_addr, data, len, rssi);
+    p2pRecvCb(&p, mac_addr, data, len);
 }
 
 /**
@@ -96,6 +96,16 @@ void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_
 void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
     p2pSendCb(&p, mac_addr, status);
+}
+
+/**
+ * Callback from ESP NOW to the current Swadge mode whenever an RSSI for a
+ * packet is received
+ * It routes through user_main.c, which knows what the current mode is
+ */
+void swadgeModeEspNowRssiCb(const wifi_promiscuous_pkt_t* pkt)
+{
+    p2pRssiCb(&p, pkt);
 }
 
 void app_main(void)
@@ -120,19 +130,19 @@ void app_main(void)
 
     esp_timer_init();
 
-//     initLeds();
+    //     initLeds();
 
-//     initButtons();
+    //     initButtons();
 
-//     i2c_master_init();
+    //     i2c_master_init();
 
-//     initOLED(true);
-//     clearDisplay();
+    //     initOLED(true);
+    //     clearDisplay();
 
-//     QMA6981_setup();
+    //     QMA6981_setup();
 
-//     buzzer_init(GPIO_NUM_18, RMT_CHANNEL_1);
-//     // buzzer_play(notation, sizeof(notation) / sizeof(notation[0]));
+    //     buzzer_init(GPIO_NUM_18, RMT_CHANNEL_1);
+    //     // buzzer_play(notation, sizeof(notation) / sizeof(notation[0]));
 
     initNvs(true);
 
@@ -145,7 +155,7 @@ void app_main(void)
         writeNvs32("testVal", 0x01);
     }
 
-    espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb);
+    espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb, &swadgeModeEspNowRssiCb);
 
     p2pInitialize(&p, "tst", testConCbFn, testMsgRxCbFn, 0);
     p2pStartConnection(&p);
@@ -221,6 +231,7 @@ void app_main(void)
 
         // buzzer_check_next_note();
 
-        usleep(1);
+        // usleep(1);
+        vTaskDelay(1); // TODO task-ify this loop?
     }
 }

@@ -14,10 +14,11 @@
 
 #include <esp_now.h>
 
-typedef void (*hostEspNowRecvCb_t)(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, uint8_t rssi);
+typedef void (*hostEspNowRecvCb_t)(const uint8_t* mac_addr, const uint8_t* data, uint8_t len);
 typedef void (*hostEspNowSendCb_t)(const uint8_t* mac_addr, esp_now_send_status_t status);
+typedef void (*hostEspNowRssiCb_t)(const wifi_promiscuous_pkt_t* pkt);
 
-void espNowInit(hostEspNowRecvCb_t, hostEspNowSendCb_t);
+void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb, hostEspNowRssiCb_t rssiCb);
 void espNowDeinit(void);
 
 void espNowSend(const uint8_t* data, uint8_t len);

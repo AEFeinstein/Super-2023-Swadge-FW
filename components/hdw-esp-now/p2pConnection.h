@@ -89,15 +89,16 @@ typedef struct _p2pInfo
 } p2pInfo;
 
 void p2pInitialize(p2pInfo* p2p, char* msgId,
-                                     p2pConCbFn conCbFn,
-                                     p2pMsgRxCbFn msgRxCbFn, uint8_t connectionRssi);
+                   p2pConCbFn conCbFn,
+                   p2pMsgRxCbFn msgRxCbFn, uint8_t connectionRssi);
 void p2pDeinit(p2pInfo* p2p);
 
 void p2pStartConnection(p2pInfo* p2p);
 
 void p2pSendMsg(p2pInfo* p2p, char* msg, char* payload, uint16_t len, p2pMsgTxCbFn msgTxCbFn);
-void p2pSendCb(p2pInfo* p2p, const uint8_t *mac_addr, esp_now_send_status_t status);
-void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8_t len, uint8_t rssi);
+void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr, esp_now_send_status_t status);
+void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8_t len);
+void p2pRssiCb(p2pInfo* p2p, const wifi_promiscuous_pkt_t* pkt);
 
 playOrder_t p2pGetPlayOrder(p2pInfo* p2p);
 void p2pSetPlayOrder(p2pInfo* p2p, playOrder_t order);
