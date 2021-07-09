@@ -115,8 +115,8 @@ void p2pModeMsgFailure(void* arg);
  * @param msgRxCbFn A function pointer which will be called when a packet
  *                      is received for the swadge mode
  * @param connectionRssi The strength needed to start a connection with another
- *                      swadge, 0 is first one to see around 55 the swadges need
- *                      to be right next to eachother.
+ *                      swadge. A positive value means swadges are quite close.
+ *                      I've seen RSSI go as low as -70
  */
 void p2pInitialize(p2pInfo* p2p, char* msgId,
                    p2pConCbFn conCbFn,
