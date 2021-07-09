@@ -17,6 +17,10 @@
 
 #include "espNowUtils.h"
 
+/*============================================================================
+ * Defines
+ *==========================================================================*/
+
 #define SOFTAP_CHANNEL 11
 
 /*============================================================================
@@ -28,7 +32,6 @@ const uint8_t espNowBroadcastMac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 hostEspNowRecvCb_t hostEspNowRecvCb = NULL;
 hostEspNowSendCb_t hostEspNowSendCb = NULL;
-hostEspNowRssiCb_t hostEspNowRssiCb = NULL;
 
 /*============================================================================
  * Prototypes
@@ -36,7 +39,6 @@ hostEspNowRssiCb_t hostEspNowRssiCb = NULL;
 
 void espNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, int data_len);
 void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
-void wifiPromiscuousCb(void* buf, wifi_promiscuous_pkt_type_t type);
 
 /*============================================================================
  * Functions
@@ -44,12 +46,14 @@ void wifiPromiscuousCb(void* buf, wifi_promiscuous_pkt_type_t type);
 
 /**
  * Initialize ESP-NOW and attach callback functions
+ * 
+ * @param recvCb A callback to call when data is sent
+ * @param sendCb A callback to call when data is received
  */
-void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb, hostEspNowRssiCb_t rssiCb)
+void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
 {
     hostEspNowRecvCb = recvCb;
     hostEspNowSendCb = sendCb;
-    hostEspNowRssiCb = rssiCb;
 
     esp_err_t err;
 
@@ -89,13 +93,6 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb, hostEspNow
         return;
     }
 
-    // TODO WIFI no equivalent?
-    // if(false == wifi_softap_dhcps_stop())
-    // {
-    //     printf("Couldn't stop dhcp\n");
-    //     return;
-    // }
-
     if(ESP_OK != (err = esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N)))
     {
         printf("Couldn't set protocol %s\n", esp_err_to_name(err));
@@ -116,6 +113,12 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb, hostEspNow
         return;
     }
 
+    if(ESP_OK != (err = esp_wifi_config_espnow_rate(ESP_IF_WIFI_AP, WIFI_PHY_RATE_54M)))
+    {
+        printf("Couldn't set PHY rate %s\n", esp_err_to_name(err));
+        return;
+    }
+
     if(ESP_OK != (err = esp_wifi_start()))
     {
         printf("Couldn't start wifi %s\n", esp_err_to_name(err));
@@ -126,28 +129,6 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb, hostEspNow
     if(ESP_OK != (err = esp_wifi_set_channel( SOFTAP_CHANNEL, WIFI_SECOND_CHAN_BELOW )))
     {
         printf("Couldn't set channel\n");
-        return;
-    }
-
-    if(ESP_OK != esp_wifi_set_promiscuous_rx_cb(wifiPromiscuousCb))
-    {
-        printf("Couldn't set promiscuous cb\n");
-        return;
-    }
-
-    wifi_promiscuous_filter_t filter =
-    {
-        .filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT
-    };
-    if(ESP_OK != esp_wifi_set_promiscuous_ctrl_filter(&filter))
-    {
-        printf("Couldn't set promiscuous filter\n");
-        return;
-    }
-
-    if(ESP_OK != esp_wifi_set_promiscuous(true))
-    {
-        printf("Couldn't set promiscuous cb\n");
         return;
     }
 
@@ -186,34 +167,6 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb, hostEspNow
 }
 
 /**
- * A callback for any packet received in promiscuous mode
- *
- * @param buf  Data received. Type of data in buffer (wifi_promiscuous_pkt_t or
- *             wifi_pkt_rx_ctrl_t) indicated by ‘type’ parameter.
- * @param type promiscuous packet type
- */
-void wifiPromiscuousCb(void* buf, wifi_promiscuous_pkt_type_t type)
-{
-    switch (type)
-    {
-        // ESP-NOW sends WIFI_PKT_MGMT packets
-        case WIFI_PKT_MGMT:
-        {
-            hostEspNowRssiCb((wifi_promiscuous_pkt_t*)buf);
-            return;
-        }
-        // Don't care about these packets
-        case WIFI_PKT_CTRL:
-        case WIFI_PKT_DATA:
-        case WIFI_PKT_MISC:
-        default:
-        {
-            return;
-        }
-    }
-}
-
-/**
  * This callback function is called whenever an ESP-NOW packet is received
  *
  * @param mac_addr The MAC address of the sender
@@ -227,6 +180,12 @@ void espNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, int data_len)
      * do lengthy operations in the callback function. Instead, post the
      * necessary data to a queue and handle it from a lower priority task.
      */
+
+    // Negative index to get the ESP NOW header
+    espNowHeader_t * hdr = (espNowHeader_t *)&data[-sizeof(espNowHeader_t)];
+    // Negative index further to get the WIFI header
+    wifi_pkt_rx_ctrl_t* pkt = (wifi_pkt_rx_ctrl_t*)&data[-sizeof(espNowHeader_t) - sizeof(wifi_pkt_rx_ctrl_t)];
+    printf(" ~~ RSSI %d\n", pkt->rssi);
 
     // Debug print the received payload
     char dbg[256] = {0};
@@ -247,7 +206,7 @@ void espNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, int data_len)
            mac_addr[5],
            dbg);
 
-    hostEspNowRecvCb(mac_addr, data, data_len);
+    hostEspNowRecvCb(mac_addr, data, data_len, pkt->rssi);
 }
 
 /**
@@ -259,10 +218,6 @@ void espNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, int data_len)
  */
 void espNowSend(const uint8_t* data, uint8_t len)
 {
-    // TODO WIFI set fixed rate?
-    // Call this before each transmission to set the wifi speed
-    // wifi_set_user_fixed_rate(FIXED_RATE_MASK_ALL, PHY_RATE_54);
-
     // Send a packet
     esp_now_send((uint8_t*)espNowBroadcastMac, (uint8_t*)data, len);
 }

@@ -120,7 +120,7 @@ void p2pModeMsgFailure(void* arg);
  */
 void p2pInitialize(p2pInfo* p2p, char* msgId,
                    p2pConCbFn conCbFn,
-                   p2pMsgRxCbFn msgRxCbFn, uint8_t connectionRssi)
+                   p2pMsgRxCbFn msgRxCbFn, int8_t connectionRssi)
 {
     p2p_printf("%s\n", __func__);
     // Make sure everything is zero!
@@ -487,55 +487,18 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
 }
 
 /**
- * This function must be called whenever RSSI data is received for a promiscuous
- * packet. The packet must be scanned for the conMsg to see if it's for p2p.
- *
- * @param p2p The p2pInfo struct with all the state information
- * @param pkt The promiscuous packet, including payload and RSSI information
- */
-void p2pRssiCb(p2pInfo* p2p, const wifi_promiscuous_pkt_t* pkt)
-{
-    // TODO ESP-NOW payload starts at pkt->payload[39]. Always like that??
-    if(NULL != memmem(pkt->payload, pkt->rx_ctrl.sig_len, p2p->conMsg, strlen(p2p->conMsg)))
-    {
-        // TODO WIFI find and save MAC if RSSI is good
-        printf("RSSI %d from [%02X:%02X:%02X:%02X:%02X:%02X]\n", pkt->rx_ctrl.rssi,
-               pkt->payload[10],
-               pkt->payload[11],
-               pkt->payload[12],
-               pkt->payload[13],
-               pkt->payload[14],
-               pkt->payload[15]);
-
-        // char dbg[512] = {0};
-        // snprintf(dbg, sizeof(dbg) - 1, "RSSI %d ~~ ", pkt->rx_ctrl.rssi);
-
-        // char tmp[16] = {0};
-        // for(int i = 0; i < pkt->rx_ctrl.sig_len; i++)
-        // {
-        //     snprintf(tmp, sizeof(tmp) - 1, "%02X ", pkt->payload[i]);
-        //     strncat(dbg, tmp, sizeof(dbg) - strlen(dbg) - 1);
-        // }
-        // printf("%s\n", dbg);
-    }
-}
-
-/**
  * This function must be called whenever an ESP NOW packet is received
  *
  * @param p2p      The p2pInfo struct with all the state information
  * @param mac_addr The MAC of the swadge that sent the data
  * @param data     The data
  * @param len      The length of the data
+ * @param rssi     The rssi of the received data
  * @return false if the message was processed here,
  *         true if the message should be processed by the swadge mode
  */
-void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8_t len)
+void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi)
 {
-    // TODO WIFI holy moly this works???
-    wifi_pkt_rx_ctrl_t* pkt = (wifi_pkt_rx_ctrl_t*)&data[-sizeof(wifi_pkt_rx_ctrl_t) - 39];
-    printf(" ~~ RSSI %d\n", pkt->rssi);
-
 #ifdef P2P_DEBUG_PRINT
     char* dbgMsg = (char*)malloc(sizeof(char) * (len + 1));
     memcpy(dbgMsg, data, len);
@@ -634,7 +597,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
     {
         // Received another broadcast, Check if this RSSI is strong enough
         if(!p2p->cnc.broadcastReceived &&
-                // rssi > p2p->connectionRssi && // TODO WIFI check RSSI
+                rssi > p2p->connectionRssi &&
                 strlen(p2p->conMsg) == len &&
                 0 == memcmp(data, p2p->conMsg, len))
         {

@@ -84,9 +84,9 @@ void testMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
  * Callback from ESP NOW to the current Swadge mode whenever a packet is received
  * It routes through user_main.c, which knows what the current mode is
  */
-void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len)
+void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi)
 {
-    p2pRecvCb(&p, mac_addr, data, len);
+    p2pRecvCb(&p, mac_addr, data, len, rssi);
 }
 
 /**
@@ -96,16 +96,6 @@ void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_
 void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
     p2pSendCb(&p, mac_addr, status);
-}
-
-/**
- * Callback from ESP NOW to the current Swadge mode whenever an RSSI for a
- * packet is received
- * It routes through user_main.c, which knows what the current mode is
- */
-void swadgeModeEspNowRssiCb(const wifi_promiscuous_pkt_t* pkt)
-{
-    p2pRssiCb(&p, pkt);
 }
 
 void app_main(void)
@@ -155,9 +145,9 @@ void app_main(void)
         writeNvs32("testVal", 0x01);
     }
 
-    espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb, &swadgeModeEspNowRssiCb);
+    espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb);
 
-    p2pInitialize(&p, "tst", testConCbFn, testMsgRxCbFn, 0);
+    p2pInitialize(&p, "tst", testConCbFn, testMsgRxCbFn, -10);
     p2pStartConnection(&p);
 
     // led_t leds[NUM_LEDS] = {0};
