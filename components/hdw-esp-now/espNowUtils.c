@@ -14,8 +14,10 @@
 #include <esp_wifi.h>
 #include <esp_now.h>
 #include <esp_err.h>
+#include <freertos/queue.h>
 
 #include "espNowUtils.h"
+#include "p2pConnection.h"
 
 /*============================================================================
  * Defines
@@ -33,6 +35,8 @@ const uint8_t espNowBroadcastMac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 hostEspNowRecvCb_t hostEspNowRecvCb = NULL;
 hostEspNowSendCb_t hostEspNowSendCb = NULL;
 
+static xQueueHandle esp_now_queue = NULL;
+
 /*============================================================================
  * Prototypes
  *==========================================================================*/
@@ -46,7 +50,7 @@ void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 
 /**
  * Initialize ESP-NOW and attach callback functions
- * 
+ *
  * @param recvCb A callback to call when data is sent
  * @param sendCb A callback to call when data is received
  */
@@ -54,6 +58,9 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
 {
     hostEspNowRecvCb = recvCb;
     hostEspNowSendCb = sendCb;
+
+    // Create a queue to move packets from the receive callback to the main task
+    esp_now_queue = xQueueCreate(10, sizeof(p2pPacket_t));
 
     esp_err_t err;
 
@@ -175,38 +182,66 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
  */
 void espNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, int data_len)
 {
-    /* TODO WIFI move to queue
-     * The receiving callback function also runs from the Wi-Fi task. So, do not
+    // Negative index to get the ESP NOW header
+    // espNowHeader_t * hdr = (espNowHeader_t *)&data[-sizeof(espNowHeader_t)];
+
+    // Negative index further to get the WIFI header
+    wifi_pkt_rx_ctrl_t* pkt = (wifi_pkt_rx_ctrl_t*)&data[-sizeof(espNowHeader_t) - sizeof(wifi_pkt_rx_ctrl_t)];
+
+    /* The receiving callback function also runs from the Wi-Fi task. So, do not
      * do lengthy operations in the callback function. Instead, post the
      * necessary data to a queue and handle it from a lower priority task.
      */
+    p2pPacket_t packet;
 
-    // Negative index to get the ESP NOW header
-    espNowHeader_t * hdr = (espNowHeader_t *)&data[-sizeof(espNowHeader_t)];
-    // Negative index further to get the WIFI header
-    wifi_pkt_rx_ctrl_t* pkt = (wifi_pkt_rx_ctrl_t*)&data[-sizeof(espNowHeader_t) - sizeof(wifi_pkt_rx_ctrl_t)];
-    printf(" ~~ RSSI %d\n", pkt->rssi);
+    // Copy the MAC
+    memcpy(&packet.mac, mac_addr, sizeof(uint8_t) * 6);
 
-    // Debug print the received payload
-    char dbg[256] = {0};
-    char tmp[8] = {0};
-    int i;
-    for (i = 0; i < data_len; i++)
+    // Make sure the data fits, then copy it
+    if(data_len > sizeof(packet.data))
     {
-        sprintf(tmp, "%02X ", data[i]);
-        strcat(dbg, tmp);
+        data_len = sizeof(packet.data);
     }
-    printf("%s, MAC [%02X:%02X:%02X:%02X:%02X:%02X], Bytes [%s]\n",
-           __func__,
-           mac_addr[0],
-           mac_addr[1],
-           mac_addr[2],
-           mac_addr[3],
-           mac_addr[4],
-           mac_addr[5],
-           dbg);
+    packet.len = data_len;
+    memcpy(&packet.data, data, data_len);
 
-    hostEspNowRecvCb(mac_addr, data, data_len, pkt->rssi);
+    // Copy the RSSI
+    packet.rssi = pkt->rssi;
+
+    // Queue this packet
+    xQueueSendFromISR(esp_now_queue, &packet, NULL);
+}
+
+/**
+ * Check the ESP NOW receive queue. If there are any received packets, send
+ * them to hostEspNowRecvCb()
+ */
+void checkEspNowRxQueue(void)
+{
+    p2pPacket_t packet;
+    if (xQueueReceive(esp_now_queue, &packet, 0))
+    {
+        // Debug print the received payload
+        // char dbg[256] = {0};
+        // char tmp[8] = {0};
+        // int i;
+        // for (i = 0; i < packet.len; i++)
+        // {
+        //     sprintf(tmp, "%02X ", packet.data[i]);
+        //     strcat(dbg, tmp);
+        // }
+        // printf("%s, MAC [%02X:%02X:%02X:%02X:%02X:%02X], Bytes [%s]\n",
+        //        __func__,
+        //        packet.mac[0],
+        //        packet.mac[1],
+        //        packet.mac[2],
+        //        packet.mac[3],
+        //        packet.mac[4],
+        //        packet.mac[5],
+        //        dbg);
+
+        hostEspNowRecvCb(packet.mac, packet.data, packet.len, packet.rssi);
+    }
 }
 
 /**

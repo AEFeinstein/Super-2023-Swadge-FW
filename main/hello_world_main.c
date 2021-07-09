@@ -158,6 +158,8 @@ void app_main(void)
 
     while(1)
     {
+        checkEspNowRxQueue();
+
         // int32_t write = 0xAEF;
         // int32_t read = 0;
         // if(readNvs32("testVal", &read))

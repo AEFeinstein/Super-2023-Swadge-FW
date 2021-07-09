@@ -347,7 +347,7 @@ void p2pSendMsg(p2pInfo* p2p, char* msg, char* payload,
 {
     p2p_printf("%s\n", __func__);
 
-    char builtMsg[64] = {0};
+    char builtMsg[P2P_MAX_MSG_LEN] = {0};
 
     if(NULL == payload || len == 0)
     {

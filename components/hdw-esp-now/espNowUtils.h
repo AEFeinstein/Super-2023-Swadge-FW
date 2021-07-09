@@ -29,7 +29,8 @@ typedef struct __attribute__((packed))
     uint8_t organizationIdentifier_2[3];
     uint8_t type;
     uint8_t version;
-} espNowHeader_t;
+}
+espNowHeader_t;
 
 /*============================================================================
  * Prototypes
@@ -42,5 +43,6 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb);
 void espNowDeinit(void);
 
 void espNowSend(const uint8_t* data, uint8_t len);
+void checkEspNowRxQueue(void);
 
 #endif /* USER_ESPNOWUTILS_H_ */

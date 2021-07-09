@@ -8,6 +8,8 @@
 #include <esp_timer.h>
 #include <esp_now.h>
 
+#define P2P_MAX_MSG_LEN 64
+
 typedef enum
 {
     NOT_SET,
@@ -56,7 +58,7 @@ typedef struct _p2pInfo
     struct
     {
         bool isWaitingForAck;
-        char msgToAck[64];
+        char msgToAck[P2P_MAX_MSG_LEN];
         uint16_t msgToAckLen;
         uint32_t timeSentUs;
         void (*SuccessFn)(void*);
@@ -87,6 +89,16 @@ typedef struct _p2pInfo
         esp_timer_handle_t Reinit;
     } tmr;
 } p2pInfo;
+
+// All the information for a packet to store between the receive callback and
+// the task it's actually processed in
+typedef struct
+{
+    int8_t rssi;
+    uint8_t mac[6];
+    uint8_t len;
+    uint8_t data[P2P_MAX_MSG_LEN];
+} p2pPacket_t;
 
 void p2pInitialize(p2pInfo* p2p, char* msgId,
                    p2pConCbFn conCbFn,
