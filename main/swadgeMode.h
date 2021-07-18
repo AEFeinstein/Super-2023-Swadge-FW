@@ -2,7 +2,13 @@
 #define _SWADGE_MODE_H_
 
 #include <stdint.h>
+#include <esp_now.h>
 #include "QMA6981.h"
+
+typedef enum __attribute__((packed))
+{
+    NO_WIFI    
+} wifiMode_t;
 
 /**
  * A struct of all the function pointers necessary for a swadge mode. If a mode
@@ -39,33 +45,33 @@ typedef struct _swadgeMode
      * @param down 1 if the button was pressed, 0 if it was released
      */
     void (*fnButtonCallback)(uint8_t state, int button, int down);
-    // /**
-    //  * This is a setting, not a function pointer. Set it to one of these
-    //  * values to have the system configure the swadge's WiFi
-    //  * NO_WIFI - Don't use WiFi at all. This saves power.
-    //  * SOFT_AP - Become a WiFi access point serving up the colorchord
-    //  *           configuration website
-    //  * ESP_NOW - Send and receive packets to and from all swadges in range
-    //  */
-    // wifiMode_t wifiMode;
-    // /**
-    //  * This function is called whenever an ESP NOW packet is received.
-    //  *
-    //  * @param mac_addr The MAC address which sent this data
-    //  * @param data     A pointer to the data received
-    //  * @param len      The length of the data received
-    //  * @param rssi     The RSSI for this packet, from 1 (weak) to ~90 (touching)
-    //  */
-    // void (*fnEspNowRecvCb)(uint8_t* mac_addr, uint8_t* data, uint8_t len, uint8_t rssi);
-    // /**
-    //  * This function is called whenever an ESP NOW packet is sent.
-    //  * It is just a status callback whether or not the packet was actually sent.
-    //  * This will be called after calling espNowSend()
-    //  *
-    //  * @param mac_addr The MAC address which the data was sent to
-    //  * @param status   The status of the transmission
-    //  */
-    // void (*fnEspNowSendCb)(uint8_t* mac_addr, esp_now_send_status_t status);
+    /**
+     * This is a setting, not a function pointer. Set it to one of these
+     * values to have the system configure the swadge's WiFi
+     * NO_WIFI - Don't use WiFi at all. This saves power.
+     * SOFT_AP - Become a WiFi access point serving up the colorchord
+     *           configuration website
+     * ESP_NOW - Send and receive packets to and from all swadges in range
+     */
+    wifiMode_t wifiMode;
+    /**
+     * This function is called whenever an ESP NOW packet is received.
+     *
+     * @param mac_addr The MAC address which sent this data
+     * @param data     A pointer to the data received
+     * @param len      The length of the data received
+     * @param rssi     The RSSI for this packet, from 1 (weak) to ~90 (touching)
+     */
+    void (*fnEspNowRecvCb)(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi);
+    /**
+     * This function is called whenever an ESP NOW packet is sent.
+     * It is just a status callback whether or not the packet was actually sent.
+     * This will be called after calling espNowSend()
+     *
+     * @param mac_addr The MAC address which the data was sent to
+     * @param status   The status of the transmission
+     */
+    void (*fnEspNowSendCb)(const uint8_t* mac_addr, esp_now_send_status_t status);
     /**
      * This function is called periodically with the current acceleration
      * vector.

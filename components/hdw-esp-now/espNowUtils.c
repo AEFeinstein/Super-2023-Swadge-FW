@@ -64,10 +64,28 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
 
     esp_err_t err;
 
+    if (ESP_OK != (err = esp_netif_init()))
+    {
+        printf("Couldn't init netif %s\n", esp_err_to_name(err));
+        return;
+    }
+
+    if (ESP_OK != (err = esp_event_loop_create_default()))
+    {
+        printf("Couldn't create event loop %s\n", esp_err_to_name(err));
+        return;
+    }
+
     wifi_init_config_t conf = WIFI_INIT_CONFIG_DEFAULT();
     if (ESP_OK != (err = esp_wifi_init(&conf)))
     {
         printf("Couldn't init wifi %s\n", esp_err_to_name(err));
+        return;
+    }
+
+    if (ESP_OK != (err = esp_wifi_set_storage(WIFI_STORAGE_RAM)))
+    {
+        printf("Couldn't set wifi storage %s\n", esp_err_to_name(err));
         return;
     }
 

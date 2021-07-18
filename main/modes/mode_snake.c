@@ -532,9 +532,9 @@ swadgeMode snakeMode =
     .fnEnterMode = snakeInit,
     .fnExitMode = snakeDeinit,
     .fnButtonCallback = snakeButtonCallback,
-    // .wifiMode = NO_WIFI,
-    // .fnEspNowRecvCb = NULL,
-    // .fnEspNowSendCb = NULL,
+    .wifiMode = NO_WIFI,
+    .fnEspNowRecvCb = NULL,
+    .fnEspNowSendCb = NULL,
     // .menuImageData = mnu_snake_0,
     // .menuImageLen = sizeof(mnu_snake_0)
 };
