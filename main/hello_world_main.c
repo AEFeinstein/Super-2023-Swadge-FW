@@ -120,19 +120,19 @@ void app_main(void)
 
     esp_timer_init();
 
-    //     initLeds();
+    initLeds();
 
-    //     initButtons();
+    initButtons();
 
-    //     i2c_master_init();
+    i2c_master_init();
 
-    //     initOLED(true);
-    //     clearDisplay();
+    initOLED(true);
+    clearDisplay();
 
-    //     QMA6981_setup();
+    QMA6981_setup();
 
-    //     buzzer_init(GPIO_NUM_18, RMT_CHANNEL_1);
-    //     // buzzer_play(notation, sizeof(notation) / sizeof(notation[0]));
+    // buzzer_init(GPIO_NUM_18, RMT_CHANNEL_1);
+    // buzzer_play(notation, sizeof(notation) / sizeof(notation[0]));
 
     initNvs(true);
 
@@ -154,32 +154,49 @@ void app_main(void)
     // int16_t pxidx = 0;
     // uint16_t hue = 0;
 
-    // snakeMode.fnEnterMode();
+    snakeMode.fnEnterMode();
 
     while(1)
     {
         checkEspNowRxQueue();
 
-        // int32_t write = 0xAEF;
-        // int32_t read = 0;
-        // if(readNvs32("testVal", &read))
-        // {
-        //     if (read != write)
-        //     {
-        //         printf("nvs read  %04x\n", read);
-        //         printf("nvs write %04x\n", write);
-        //         writeNvs32("testVal", write);
-        //     }
-        // }
+        int32_t write = 0xAEF;
+        int32_t read = 0;
+        if(readNvs32("testVal", &read))
+        {
+            if (read != write)
+            {
+                printf("nvs read  %04x\n", read);
+                printf("nvs write %04x\n", write);
+                writeNvs32("testVal", write);
+            }
+        }
 
-        // buttonEvt_t bEvt = {0};
-        // if(checkButtonQueue(&bEvt))
-        // {
-        //     if(NULL != snakeMode.fnButtonCallback)
-        //     {
-        //         snakeMode.fnButtonCallback(bEvt.state, bEvt.button, bEvt.down);
-        //     }
-        // }
+        buttonEvt_t bEvt = {0};
+        if(checkButtonQueue(&bEvt))
+        {
+            if(NULL != snakeMode.fnButtonCallback)
+            {
+                snakeMode.fnButtonCallback(bEvt.state, bEvt.button, bEvt.down);
+            }
+        }
+
+        static int64_t tLastCallUs = 0;
+        if(0 == tLastCallUs)
+        {
+            tLastCallUs = esp_timer_get_time();
+        }
+        else
+        {
+            int64_t tNowUs = esp_timer_get_time();
+            int64_t tElapsedUs = tNowUs - tLastCallUs;
+            tLastCallUs = tNowUs;
+
+            if(NULL != snakeMode.fnMainLoop)
+            {
+                snakeMode.fnMainLoop(tElapsedUs);
+            }
+        }
 
         // // for(int i = 0; i < NUM_LEDS; i++)
         // // {
@@ -205,7 +222,7 @@ void app_main(void)
         // // }
         // // pxidx = (pxidx + 1) % (OLED_WIDTH * OLED_HEIGHT);
 
-        // updateOLED(true);
+        updateOLED(true);
 
         // accel_t accel = {0};
         // QMA6981_poll(&accel);

@@ -493,6 +493,7 @@ const char snakeGameOver[] = "Game Over %d";
 
 // Swadge mode callbacks
 void snakeInit(void);
+void snakeMainLoop(int64_t elapsedUs);
 void snakeDeinit(void);
 void snakeButtonCallback(uint8_t state, int button, int down);
 
@@ -531,6 +532,7 @@ swadgeMode snakeMode =
     .modeName = "Snake",
     .fnEnterMode = snakeInit,
     .fnExitMode = snakeDeinit,
+    .fnMainLoop = snakeMainLoop,
     .fnButtonCallback = snakeButtonCallback,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
@@ -560,7 +562,6 @@ struct
     uint8_t critterTimerCount;
     uint32_t score;
     uint16_t scoreMultiplier;
-    esp_timer_handle_t timerHandleSnakeLogic;
     uint8_t ledBlinkCountdown;
 
     // Blinking State
@@ -585,16 +586,6 @@ void snakeInit(void)
     snakeResetGame();
 
     // Set up timers
-    esp_timer_create_args_t logicArgs =
-    {
-        .callback = snakeProcessGame,
-        .arg = NULL,
-        .dispatch_method = ESP_TIMER_TASK,
-        .name = "sn_logic",
-        .skip_unhandled_events = false,
-    };
-    esp_timer_create(&logicArgs, &snake.timerHandleSnakeLogic);
-
     esp_timer_create_args_t blinkArgs =
     {
         .callback = snakeBlinkField,
@@ -603,10 +594,7 @@ void snakeInit(void)
         .name = "sn_blink",
         .skip_unhandled_events = false,
     };
-    esp_timer_create(&blinkArgs, &snake.timerHandeleSnakeBlink);
-
-    // os_timer_setfn(&snake.timerHandleSnakeLogic, (os_timer_func_t*)snakeProcessGame, NULL);
-    // os_timer_setfn(&snake.timerHandeleSnakeBlink, (os_timer_func_t*)snakeBlinkField, NULL);
+    if(ESP_OK != esp_timer_create(&blinkArgs, &snake.timerHandeleSnakeBlink)){printf("tmr err %d\n", __LINE__);}
 
     // Init high scores if they can't be read
     int32_t hs;
@@ -634,8 +622,7 @@ void snakeInit(void)
  */
 void snakeDeinit(void)
 {
-    esp_timer_stop(snake.timerHandleSnakeLogic);
-    esp_timer_stop(snake.timerHandeleSnakeBlink);
+    if(ESP_OK != esp_timer_stop(snake.timerHandeleSnakeBlink)){printf("tmr err %d\n", __LINE__);}
 
     snakeNode_t* snakePtr = snake.snakeList;
     while(NULL != snakePtr)
@@ -643,6 +630,39 @@ void snakeDeinit(void)
         snakeNode_t* nextPtr = snakePtr->nextSegment;
         free(snakePtr);
         snakePtr = nextPtr;
+    }
+}
+
+/**
+ * @brief TODO
+ * 
+ */
+void snakeMainLoop(int64_t elapsedUs)
+{
+    switch(snake.mode)
+    {
+        case MODE_MENU:
+        {
+            break;
+        }
+        case MODE_GAME:
+        {
+            // Start a software timer to run at some interval, based on the difficult
+            // if(ESP_OK != esp_timer_stop(snake.timerHandleSnakeLogic)){printf("tmr err %d\n", __LINE__);}
+            // esp_timer_start_periodic(snake.timerHandleSnakeLogic, snakeDifficulties[snake.cursorPos][0]);
+            static int64_t totalElapsedUs = 0;
+            totalElapsedUs += elapsedUs;
+            while (totalElapsedUs >= snakeDifficulties[snake.cursorPos][0])
+            {
+                totalElapsedUs -= snakeDifficulties[snake.cursorPos][0];
+                snakeProcessGame(NULL);
+            }
+            break;
+        }
+        case MODE_GAME_OVER_BLINK:
+        {
+            break;
+        }
     }
 }
 
@@ -677,7 +697,7 @@ void snakeButtonCallback(uint8_t state __attribute__((unused)),
                     case 2:
                     {
                         // Stop the buzzer, just in case
-                        buzzer_stop();
+                        // buzzer_stop();
 
                         // Request responsive buttons
                         // enableDebounce(false);
@@ -698,10 +718,6 @@ void snakeButtonCallback(uint8_t state __attribute__((unused)),
                         // Draw the frame
                         snakeProcessGame(NULL);
 
-                        // Start a software timer to run at some interval, based on the difficult
-                        esp_timer_stop(snake.timerHandleSnakeLogic);
-                        esp_timer_start_periodic(snake.timerHandleSnakeLogic, snakeDifficulties[snake.cursorPos][0]);
-                        // os_timer_arm(&snake.timerHandleSnakeLogic, snakeDifficulties[snake.cursorPos][0], 1);
                         break;
                     }
                     default:
@@ -784,8 +800,7 @@ void snakeResetGame(void)
     snake.foodEaten = 0;
     snake.lastCritterAt = 0;
     snake.critterTimerCount = 0;
-    esp_timer_stop(snake.timerHandleSnakeLogic);
-    esp_timer_stop(snake.timerHandeleSnakeBlink);
+    if(ESP_OK != esp_timer_stop(snake.timerHandeleSnakeBlink)){printf("tmr err %d\n", __LINE__);}
 
     // Build the snake
     uint8_t i;
@@ -908,7 +923,7 @@ void snakeMoveSnake(void)
         snake.ledBlinkCountdown = 4;
 
         // Play a jingle
-        buzzer_play(&foodSfx);
+        // buzzer_play(&foodSfx);
 
         // Draw a new food somewhere else
         snakePlaceFood();
@@ -926,7 +941,7 @@ void snakeMoveSnake(void)
         // Start the LED blinker countdown
         snake.ledBlinkCountdown = 4;
         // Play a jingle
-        buzzer_play(&critterSfx);
+        // buzzer_play(&critterSfx);
         // Clear the criter
         snake.critterTimerCount = 0;
         snake.posCritter.x = -1;
@@ -973,20 +988,18 @@ void snakeMoveSnake(void)
     if(isOccupiedBySnake(newHead->pos.x, newHead->pos.y, snake.snakeList->nextSegment, false))
     {
         // Collided with self, game over
-        esp_timer_stop(snake.timerHandleSnakeLogic);
-
         // Stop the song. Losers don't get music
-        buzzer_stop();
+        // buzzer_stop();
 
         // If they're on hard mode and scored a lot
         if(snake.cursorPos == 2 && snake.score >= 500)
         {
             // Give 'em a reward
-            buzzer_play(&MetalGear);
+            // buzzer_play(&MetalGear);
         }
         else
         {
-            buzzer_play(&snakeDeathSfx);
+            // buzzer_play(&snakeDeathSfx);
         }
 
         // Save the high score
@@ -1325,7 +1338,7 @@ void snakeBlinkField(void* arg __attribute__((unused)))
     {
         snake.printUnlock = false;
         snake.numBlinks = 0;
-        esp_timer_stop(snake.timerHandeleSnakeBlink);
+        if(ESP_OK != esp_timer_stop(snake.timerHandeleSnakeBlink)){printf("tmr err %d\n", __LINE__);}
         snake.mode = MODE_MENU;
         snakeDrawMenu();
     }
