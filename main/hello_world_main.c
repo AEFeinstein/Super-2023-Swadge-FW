@@ -19,6 +19,7 @@
 #include "hal/gpio_types.h"
 #include "driver/rmt.h"
 #include "esp_timer.h"
+#include "esp_efuse.h"
 
 #include "led_util.h"
 #include "btn.h"
@@ -36,6 +37,13 @@
 
 #include "swadgeMode.h"
 #include "mode_snake.h"
+
+#define MAIN_DEBUG_PRINT
+#ifdef MAIN_DEBUG_PRINT
+    #define main_printf(...) printf(__VA_ARGS__)
+#else
+    #define main_printf(...)
+#endif
 
 p2pInfo p;
 
@@ -67,17 +75,17 @@ p2pInfo p;
 
 void testConCbFn(p2pInfo* p2p, connectionEvt_t evt)
 {
-    printf("%s :: %d\n", __func__, evt);
+    main_printf("%s :: %d\n", __func__, evt);
 }
 
 void testMsgRxCbFn(p2pInfo* p2p, const char* msg, const uint8_t* payload, uint8_t len)
 {
-    printf("%s :: %d\n", __func__, len);
+    main_printf("%s :: %d\n", __func__, len);
 }
 
 void testMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
 {
-    printf("%s :: %d\n", __func__, status);
+    main_printf("%s :: %d\n", __func__, status);
 }
 
 /**
@@ -100,23 +108,37 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
 
 void app_main(void)
 {
-    printf("Hello world!\n");
+    main_printf("Hello world!\n");
 
     /* Print chip information */
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
-    printf("This is %s chip with %d CPU core(s), WiFi%s%s, ",
+    main_printf("This is %s chip with %d CPU core(s), WiFi%s%s, ",
            CONFIG_IDF_TARGET,
            chip_info.cores,
            (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
            (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
 
-    printf("silicon revision %d, ", chip_info.revision);
+    main_printf("silicon revision %d, ", chip_info.revision);
 
-    printf("%dMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
+    main_printf("%dMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
            (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
 
-    printf("Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
+    main_printf("Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
+
+    /* The ESP32-C3 can enumerate as a USB CDC device using pins 18 and 19
+     * https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/api-guides/usb-serial-jtag-console.html
+     *
+     * This is enabled or disabled with idf.py menuconfig -> "Channel for console output"
+     * 
+     * When USB JTAG is enabled, the ESP32-C3 will halt and wait for a reception
+     * any time it tries to transmit bytes on the UART. This means a program
+     * won't run if a console isn't open, because the IDF tries to print stuff
+     * on boot.
+     * To get around this, use the efuse bit to permanently disable logging
+     */
+    // esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_OFF);
+    esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_ON);
 
     esp_timer_init();
 
@@ -131,7 +153,7 @@ void app_main(void)
 
     QMA6981_setup();
 
-    // buzzer_init(GPIO_NUM_18, RMT_CHANNEL_1);
+    // buzzer_init(GPIO_NUM_9, RMT_CHANNEL_1);
     // buzzer_play(notation, sizeof(notation) / sizeof(notation[0]));
 
     initNvs(true);
@@ -140,7 +162,7 @@ void app_main(void)
     int32_t magicVal = 0;
     if((false == readNvs32("magicVal", &magicVal)) || (MAGIC_VAL != magicVal))
     {
-        printf("Writing magic val\n");
+        main_printf("Writing magic val\n");
         writeNvs32("magicVal", 0x01);
         writeNvs32("testVal", 0x01);
     }
@@ -166,8 +188,8 @@ void app_main(void)
         {
             if (read != write)
             {
-                printf("nvs read  %04x\n", read);
-                printf("nvs write %04x\n", write);
+                main_printf("nvs read  %04x\n", read);
+                main_printf("nvs write %04x\n", write);
                 writeNvs32("testVal", write);
             }
         }
@@ -231,7 +253,7 @@ void app_main(void)
         // if(cTimeUs - lastAccelPrint >= 1000000)
         // {
         //     lastAccelPrint = cTimeUs;
-        //     printf("%4d %4d %4d\n", accel.x, accel.y, accel.z);
+        //     main_printf("%4d %4d %4d\n", accel.x, accel.y, accel.z);
         // }
         // if(NULL != snakeMode.fnAccelerometerCallback)
         // {
