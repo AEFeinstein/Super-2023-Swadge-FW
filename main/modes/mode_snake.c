@@ -594,7 +594,7 @@ void snakeInit(void)
         .name = "sn_blink",
         .skip_unhandled_events = false,
     };
-    if(ESP_OK != esp_timer_create(&blinkArgs, &snake.timerHandeleSnakeBlink)){printf("tmr err %d\n", __LINE__);}
+    esp_timer_create(&blinkArgs, &snake.timerHandeleSnakeBlink);
 
     // Init high scores if they can't be read
     int32_t hs;
@@ -622,7 +622,7 @@ void snakeInit(void)
  */
 void snakeDeinit(void)
 {
-    if(ESP_OK != esp_timer_stop(snake.timerHandeleSnakeBlink)){printf("tmr err %d\n", __LINE__);}
+    esp_timer_stop(snake.timerHandeleSnakeBlink);
 
     snakeNode_t* snakePtr = snake.snakeList;
     while(NULL != snakePtr)
@@ -648,7 +648,7 @@ void snakeMainLoop(int64_t elapsedUs)
         case MODE_GAME:
         {
             // Start a software timer to run at some interval, based on the difficult
-            // if(ESP_OK != esp_timer_stop(snake.timerHandleSnakeLogic)){printf("tmr err %d\n", __LINE__);}
+            // esp_timer_stop(snake.timerHandleSnakeLogic);
             // esp_timer_start_periodic(snake.timerHandleSnakeLogic, snakeDifficulties[snake.cursorPos][0]);
             static int64_t totalElapsedUs = 0;
             totalElapsedUs += elapsedUs;
@@ -800,7 +800,7 @@ void snakeResetGame(void)
     snake.foodEaten = 0;
     snake.lastCritterAt = 0;
     snake.critterTimerCount = 0;
-    if(ESP_OK != esp_timer_stop(snake.timerHandeleSnakeBlink)){printf("tmr err %d\n", __LINE__);}
+    esp_timer_stop(snake.timerHandeleSnakeBlink);
 
     // Build the snake
     uint8_t i;
@@ -1338,7 +1338,7 @@ void snakeBlinkField(void* arg __attribute__((unused)))
     {
         snake.printUnlock = false;
         snake.numBlinks = 0;
-        if(ESP_OK != esp_timer_stop(snake.timerHandeleSnakeBlink)){printf("tmr err %d\n", __LINE__);}
+        esp_timer_stop(snake.timerHandeleSnakeBlink);
         snake.mode = MODE_MENU;
         snakeDrawMenu();
     }

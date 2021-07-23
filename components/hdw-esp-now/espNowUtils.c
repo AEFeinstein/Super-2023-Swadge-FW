@@ -23,6 +23,12 @@
  * Defines
  *==========================================================================*/
 
+#ifdef ESP_NOW_DEBUG_PRINT
+    #define espnow_printf(...) printf(__VA_ARGS__)
+#else
+    #define espnow_printf(...)
+#endif
+
 #define SOFTAP_CHANNEL 11
 
 /*============================================================================
@@ -66,33 +72,33 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
 
     if (ESP_OK != (err = esp_netif_init()))
     {
-        printf("Couldn't init netif %s\n", esp_err_to_name(err));
+        espnow_printf("Couldn't init netif %s\n", esp_err_to_name(err));
         return;
     }
 
     if (ESP_OK != (err = esp_event_loop_create_default()))
     {
-        printf("Couldn't create event loop %s\n", esp_err_to_name(err));
+        espnow_printf("Couldn't create event loop %s\n", esp_err_to_name(err));
         return;
     }
 
     wifi_init_config_t conf = WIFI_INIT_CONFIG_DEFAULT();
     if (ESP_OK != (err = esp_wifi_init(&conf)))
     {
-        printf("Couldn't init wifi %s\n", esp_err_to_name(err));
+        espnow_printf("Couldn't init wifi %s\n", esp_err_to_name(err));
         return;
     }
 
     if (ESP_OK != (err = esp_wifi_set_storage(WIFI_STORAGE_RAM)))
     {
-        printf("Couldn't set wifi storage %s\n", esp_err_to_name(err));
+        espnow_printf("Couldn't set wifi storage %s\n", esp_err_to_name(err));
         return;
     }
 
     // Set up all the wifi softAP mode configs
     if(ESP_OK != (err = esp_wifi_set_mode(WIFI_MODE_AP)))
     {
-        printf("Could not set as station mode\n");
+        espnow_printf("Could not set as station mode\n");
         return;
     }
 
@@ -114,13 +120,13 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
     };
     if(ESP_OK != (err = esp_wifi_set_config(ESP_IF_WIFI_AP, &config)))
     {
-        printf("Couldn't set softap config\n");
+        espnow_printf("Couldn't set softap config\n");
         return;
     }
 
     if(ESP_OK != (err = esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N)))
     {
-        printf("Couldn't set protocol %s\n", esp_err_to_name(err));
+        espnow_printf("Couldn't set protocol %s\n", esp_err_to_name(err));
         return;
     }
 
@@ -134,41 +140,41 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
     };
     if(ESP_OK != (err = esp_wifi_set_country(&usa)))
     {
-        printf("Couldn't set country\n");
+        espnow_printf("Couldn't set country\n");
         return;
     }
 
     if(ESP_OK != (err = esp_wifi_config_espnow_rate(ESP_IF_WIFI_AP, WIFI_PHY_RATE_54M)))
     {
-        printf("Couldn't set PHY rate %s\n", esp_err_to_name(err));
+        espnow_printf("Couldn't set PHY rate %s\n", esp_err_to_name(err));
         return;
     }
 
     if(ESP_OK != (err = esp_wifi_start()))
     {
-        printf("Couldn't start wifi %s\n", esp_err_to_name(err));
+        espnow_printf("Couldn't start wifi %s\n", esp_err_to_name(err));
         return;
     }
 
     // Set the channel
     if(ESP_OK != (err = esp_wifi_set_channel( SOFTAP_CHANNEL, WIFI_SECOND_CHAN_BELOW )))
     {
-        printf("Couldn't set channel\n");
+        espnow_printf("Couldn't set channel\n");
         return;
     }
 
     if(ESP_OK == (err = esp_now_init()))
     {
-        printf("ESP NOW init!\n");
+        espnow_printf("ESP NOW init!\n");
 
         if(ESP_OK != (err = esp_now_register_recv_cb(espNowRecvCb)))
         {
-            printf("recvCb NOT registered\n");
+            espnow_printf("recvCb NOT registered\n");
         }
 
         if(ESP_OK != (err = esp_now_register_send_cb(espNowSendCb)))
         {
-            printf("sendCb NOT registered\n");
+            espnow_printf("sendCb NOT registered\n");
         }
 
         esp_now_peer_info_t broadcastPeer =
@@ -182,12 +188,12 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
         };
         if(ESP_OK != (err = esp_now_add_peer(&broadcastPeer)))
         {
-            printf("peer NOT added\n");
+            espnow_printf("peer NOT added\n");
         }
     }
     else
     {
-        printf("esp now fail (%s)\n", esp_err_to_name(err));
+        espnow_printf("esp now fail (%s)\n", esp_err_to_name(err));
     }
 }
 
@@ -245,10 +251,10 @@ void checkEspNowRxQueue(void)
         // int i;
         // for (i = 0; i < packet.len; i++)
         // {
-        //     sprintf(tmp, "%02X ", packet.data[i]);
+        //     sespnow_printf(tmp, "%02X ", packet.data[i]);
         //     strcat(dbg, tmp);
         // }
-        // printf("%s, MAC [%02X:%02X:%02X:%02X:%02X:%02X], Bytes [%s]\n",
+        // espnow_printf("%s, MAC [%02X:%02X:%02X:%02X:%02X:%02X], Bytes [%s]\n",
         //        __func__,
         //        packet.mac[0],
         //        packet.mac[1],
@@ -286,7 +292,7 @@ void espNowSend(const uint8_t* data, uint8_t len)
  */
 void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
-    printf("SEND MAC %02X:%02X:%02X:%02X:%02X:%02X\n",
+    espnow_printf("SEND MAC %02X:%02X:%02X:%02X:%02X:%02X\n",
            mac_addr[0],
            mac_addr[1],
            mac_addr[2],
@@ -298,13 +304,13 @@ void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
     {
         case ESP_NOW_SEND_SUCCESS:
         {
-            // printf("ESP NOW MT_TX_STATUS_OK\n");
+            // espnow_printf("ESP NOW MT_TX_STATUS_OK\n");
             break;
         }
         default:
         case ESP_NOW_SEND_FAIL:
         {
-            printf("ESP NOW MT_TX_STATUS_FAILED\n");
+            espnow_printf("ESP NOW MT_TX_STATUS_FAILED\n");
             break;
         }
     }

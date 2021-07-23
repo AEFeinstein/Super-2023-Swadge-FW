@@ -16,6 +16,16 @@
 #include "btn.h"
 
 /*******************************************************************************
+ * Defines
+ ******************************************************************************/
+
+#ifdef BTN_DEBUG_PRINT
+    #define btn_printf(...) printf(__VA_ARGS__)
+#else
+    #define btn_printf(...)
+#endif
+
+/*******************************************************************************
  * Structs
  ******************************************************************************/
 
@@ -100,7 +110,7 @@ uint32_t buttonStates = 0;
  */
 void initButtons(void)
 {
-    printf("initializing buttons\n");
+    btn_printf("initializing buttons\n");
 
     // Configure GPIOs
     for(uint8_t i = 0; i < ARRAY_SIZE(gpioConfP); i++)
@@ -194,7 +204,7 @@ bool checkButtonQueue(buttonEvt_t* evt)
             evt->button = gpio_evt & (~BIT31);
             evt->down = !(gpio_evt & BIT31);
             evt->state = buttonStates;
-            // printf("Bit 0x%02x went %s, buttonStates is %02x\n",
+            // btn_printf("Bit 0x%02x went %s, buttonStates is %02x\n",
             //        gpio_evt & (~BIT31),
             //        (gpio_evt & BIT31) ? "high" : "low ",
             //        buttonStates);

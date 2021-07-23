@@ -6,6 +6,12 @@
 
 #define PARTITION_NAME "storage"
 
+#ifdef NVS_DEBUG_PRINT
+    #define nvs_printf(...) printf(__VA_ARGS__)
+#else
+    #define nvs_printf(...)
+#endif
+
 /**
  * @brief TODO
  *
@@ -100,7 +106,7 @@ bool writeNvs32(const char* key, int32_t val)
                 case ESP_ERR_NVS_NOT_ENOUGH_SPACE:
                 case ESP_ERR_NVS_REMOVE_FAILED:
                 {
-                    printf("%s err %s\n", __func__, esp_err_to_name(writeErr));
+                    nvs_printf("%s err %s\n", __func__, esp_err_to_name(writeErr));
                     break;
                 }
             }
@@ -116,7 +122,7 @@ bool writeNvs32(const char* key, int32_t val)
         case ESP_ERR_NVS_INVALID_NAME:
         case ESP_ERR_NO_MEM:
         {
-            printf("%s openErr %s\n", __func__, esp_err_to_name(openErr));
+            nvs_printf("%s openErr %s\n", __func__, esp_err_to_name(openErr));
             return false;
         }
     }
@@ -156,7 +162,7 @@ bool readNvs32(const char* key, int32_t* outVal)
                 case ESP_ERR_NVS_INVALID_NAME:
                 case ESP_ERR_NVS_INVALID_LENGTH:
                 {
-                    printf("%s readErr %s\n", __func__, esp_err_to_name(readErr));
+                    nvs_printf("%s readErr %s\n", __func__, esp_err_to_name(readErr));
                     break;
                 }
             }
@@ -171,7 +177,7 @@ bool readNvs32(const char* key, int32_t* outVal)
         case ESP_ERR_NVS_INVALID_NAME:
         case ESP_ERR_NO_MEM:
         {
-            printf("%s openErr %s\n", __func__, esp_err_to_name(openErr));
+            nvs_printf("%s openErr %s\n", __func__, esp_err_to_name(openErr));
             return false;
         }
     }

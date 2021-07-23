@@ -6,7 +6,7 @@
 #include "driver/rmt.h"
 #include "led_strip.h"
 
-#define LED_GPIO        GPIO_NUM_19
+#define LED_GPIO        GPIO_NUM_8
 #define LED_RMT_CHANNEL RMT_CHANNEL_0
 #define NUM_LEDS        6
 

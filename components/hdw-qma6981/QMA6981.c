@@ -21,6 +21,12 @@
 #define QMA6981_ADDR 0x12
 #define QMA6981_FREQ  400
 
+#ifdef ACL_DEBUG_PRINT
+    #define acl_printf(...) printf(__VA_ARGS__)
+#else
+    #define acl_printf(...)
+#endif
+
 /*============================================================================
  * Register addresses and definitions
  *==========================================================================*/
@@ -297,7 +303,7 @@ void QMA6981_poll(accel_t* currentAccel)
     uint8_t raw_data[6];
     if(false == QMA6981_readreg(QMA6981_DATA, 6, raw_data))
     {
-        printf("read xyz error!!!\n");
+        acl_printf("read xyz error!!!\n");
         // Try reinitializing, then return last known value
         QMA6981_setup();
     }

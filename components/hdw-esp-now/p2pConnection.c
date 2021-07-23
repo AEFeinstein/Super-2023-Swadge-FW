@@ -52,7 +52,6 @@ end
  * Defines
  *==========================================================================*/
 
-#define P2P_DEBUG_PRINT
 #ifdef P2P_DEBUG_PRINT
     #define p2p_printf(...) printf(__VA_ARGS__)
 #else
