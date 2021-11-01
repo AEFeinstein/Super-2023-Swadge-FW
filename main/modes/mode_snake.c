@@ -923,7 +923,7 @@ void snakeMoveSnake(void)
         snake.ledBlinkCountdown = 4;
 
         // Play a jingle
-        // buzzer_play(&foodSfx);
+        buzzer_play(&foodSfx);
 
         // Draw a new food somewhere else
         snakePlaceFood();
@@ -941,7 +941,7 @@ void snakeMoveSnake(void)
         // Start the LED blinker countdown
         snake.ledBlinkCountdown = 4;
         // Play a jingle
-        // buzzer_play(&critterSfx);
+        buzzer_play(&critterSfx);
         // Clear the criter
         snake.critterTimerCount = 0;
         snake.posCritter.x = -1;
@@ -995,11 +995,11 @@ void snakeMoveSnake(void)
         if(snake.cursorPos == 2 && snake.score >= 500)
         {
             // Give 'em a reward
-            // buzzer_play(&MetalGear);
+            buzzer_play(&MetalGear);
         }
         else
         {
-            // buzzer_play(&snakeDeathSfx);
+            buzzer_play(&snakeDeathSfx);
         }
 
         // Save the high score

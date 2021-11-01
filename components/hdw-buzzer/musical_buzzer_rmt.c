@@ -145,7 +145,7 @@ static void play_note(void)
     rmt_set_tx_loop_count(rmt_buzzer.channel, notation->timeMs * notation->note / 1000);
 
     // start TX
-    rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false); // This is halting sometimes whyyyyy
+    rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false); // TODO This is halting sometimes whyyyyy
 }
 
 /**

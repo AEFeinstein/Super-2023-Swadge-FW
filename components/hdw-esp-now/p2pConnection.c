@@ -137,7 +137,7 @@ void p2pInitialize(p2pInfo* p2p, char* msgId,
     p2p->connectionRssi = connectionRssi;
 
     // Set the three character message ID
-    strncpy(p2p->msgId, msgId, sizeof(p2p->msgId));
+    memcpy(p2p->msgId, msgId, sizeof(p2p->msgId));
 
     // Get and save the string form of our MAC address
     uint8_t mymac[6];
