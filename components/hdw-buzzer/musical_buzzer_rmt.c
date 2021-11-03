@@ -42,6 +42,7 @@ bool buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
 {
     // Apply default RMT configuration
     rmt_config_t dev_config = RMT_DEFAULT_CONFIG_TX(gpio, rmt);
+    // TODO disabling loop mode fixes halts, but notes end up being clicks
     dev_config.tx_config.loop_en = true; // Enable loop mode
 
     // Install RMT driver
@@ -53,6 +54,9 @@ bool buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
 
     // Fill in counter clock frequency
     rmt_get_counter_clock(rmt_buzzer.channel, &rmt_buzzer.counter_clk_hz);
+
+    // TODO this magically fixes halting, but why?
+    rmt_enable_tx_loop_autostop(rmt, true);
 
     return true;
 }
@@ -95,6 +99,10 @@ bool buzzer_check_next_note(void)
             // Move to the next note
             rmt_buzzer.note_index++;
             rmt_buzzer.start_time = cTime;
+
+            // TODO these don't help halting
+            // rmt_tx_stop(rmt_buzzer.channel);
+            // rmt_tx_memory_reset(rmt_buzzer.channel);
 
             // Play the note
             if(rmt_buzzer.note_index < rmt_buzzer.song->numNotes)
