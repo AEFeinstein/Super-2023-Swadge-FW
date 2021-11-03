@@ -145,7 +145,10 @@ static void play_note(void)
     rmt_set_tx_loop_count(rmt_buzzer.channel, notation->timeMs * notation->note / 1000);
 
     // start TX
-    rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false); // TODO This is halting sometimes whyyyyy
+    // TODO This is halting sometimes, but only when espnow is used
+    // Note, commenting this out kills sound but does NOT fix the halt
+    // Commenting out both calls to rmt_write_items() seems to fix it
+    rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false);
 }
 
 /**
@@ -165,6 +168,7 @@ bool buzzer_stop(void)
         .duration1 = 1
     };
     rmt_set_tx_loop_count(rmt_buzzer.channel, 1);
+    // TODO this can also cause halts
     rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false);
 
     rmt_buzzer.song = NULL;

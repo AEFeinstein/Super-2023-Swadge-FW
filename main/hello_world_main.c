@@ -86,6 +86,7 @@ static const musicalNote_t notation[] =
 // Functions
 /******************************************************************************/
 
+#define TEST_ESP_NOW
 #ifdef TEST_ESP_NOW
 p2pInfo p;
 
@@ -180,7 +181,7 @@ void app_main(void)
 
     // Create a task for the swadge, then return
     TaskHandle_t xHandle = NULL;
-    xTaskCreate(mainSwadgeTask, "SWADGE", 2048, NULL, tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, xHandle);
+    xTaskCreate(mainSwadgeTask, "SWADGE", 4096, NULL, tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, xHandle);
 }
 
 /**
@@ -239,9 +240,18 @@ void mainSwadgeTask(void * arg)
     /* Loop forever! */
     while(1)
     {
-    /*************************
-     * Looped tests
-     ************************/
+        // Print the word "loop" every five seconds
+        uint64_t dbgTimeUs = esp_timer_get_time();
+        static uint64_t lastDbg = 0;
+        if(dbgTimeUs - lastDbg >= 5000000)
+        {
+            lastDbg = dbgTimeUs;
+            main_printf("loop\n");
+        }
+
+        /*************************
+         * Looped tests
+         ************************/
 #ifdef TEST_ESP_NOW
         checkEspNowRxQueue();
 #endif

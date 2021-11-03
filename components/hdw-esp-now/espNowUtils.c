@@ -278,7 +278,10 @@ void checkEspNowRxQueue(void)
 void espNowSend(const uint8_t* data, uint8_t len)
 {
     // Send a packet
+    printf("calling esp_now_send\n");
+    // TODO this is halting sometimes, but only when the buzzer is used
     esp_now_send((uint8_t*)espNowBroadcastMac, (uint8_t*)data, len);
+    printf("esp_now_send returned\n");
 }
 
 /**

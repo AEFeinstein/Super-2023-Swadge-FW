@@ -15,7 +15,9 @@
         "nvs_manager.h": "c",
         "esp_now.h": "c",
         "espnowutils.h": "c",
-        "p2pconnection.h": "c"
+        "p2pconnection.h": "c",
+        "musical_buzzer.h": "c",
+        "esp_timer.h": "c"
     },
     "python.pythonPath": "/usr/bin/python"
 }

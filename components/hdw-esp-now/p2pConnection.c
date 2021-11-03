@@ -52,6 +52,7 @@ end
  * Defines
  *==========================================================================*/
 
+#define P2P_DEBUG_PRINT
 #ifdef P2P_DEBUG_PRINT
     #define p2p_printf(...) printf(__VA_ARGS__)
 #else
@@ -482,7 +483,10 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
         // started in p2pSendCb()
         p2p->ack.timeSentUs = esp_timer_get_time();
     }
+    p2p_printf("calling espNowSend\n", __func__);
+    // TODO this is halting sometimes, but only when the buzzer is used
     espNowSend((const uint8_t*)msg, len);
+    p2p_printf("espNowSend returned\n", __func__);
 }
 
 /**
