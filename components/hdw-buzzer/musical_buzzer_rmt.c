@@ -168,20 +168,24 @@ bool buzzer_stop(void)
 {
     // Don't actually stop RMT, which seems to cause problems
     // Instead just have it play silence
-    static rmt_item32_t notation_code =
-    {
-        .level0 = 0,
-        .duration0 = 1,
-        .level1 = 0,
-        .duration1 = 1
-    };
-    rmt_set_tx_loop_count(rmt_buzzer.channel, 1);
-    // TODO this can also cause halts
-    rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false);
+    // static rmt_item32_t notation_code =
+    // {
+    //     .level0 = 0,
+    //     .duration0 = 1,
+    //     .level1 = 0,
+    //     .duration1 = 1
+    // };
+    // rmt_set_tx_loop_count(rmt_buzzer.channel, 1);
+    // // TODO this can also cause halts
+    // rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false);
 
-    rmt_buzzer.song = NULL;
-    rmt_buzzer.note_index = 0;
-    rmt_buzzer.start_time = 0;
+    // rmt_buzzer.song = NULL;
+    // rmt_buzzer.note_index = 0;
+    // rmt_buzzer.start_time = 0;
+
+    // This seems to work just fine
+    rmt_tx_stop(rmt_buzzer.channel);
+    rmt_tx_memory_reset(rmt_buzzer.channel);
 
     return true;
 }

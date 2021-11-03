@@ -485,10 +485,10 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
         // started in p2pSendCb()
         p2p->ack.timeSentUs = esp_timer_get_time();
     }
-    p2p_printf("calling espNowSend\n", __func__);
+    p2p_printf("calling espNowSend\n");
     // TODO this is halting sometimes, but only when the buzzer is used
     espNowSend((const uint8_t*)msg, len);
-    p2p_printf("espNowSend returned\n", __func__);
+    p2p_printf("espNowSend returned\n");
 }
 
 /**
