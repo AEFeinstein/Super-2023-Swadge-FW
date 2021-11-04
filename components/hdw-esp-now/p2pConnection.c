@@ -270,8 +270,6 @@ void p2pConnectionTimeout(void* arg)
 
     p2pInfo* p2p = (p2pInfo*)arg;
     // Send a connection broadcast
-    // TODO this is halting when the buzzer plays.
-    // Note, moving it out of a timer callback and into the main loop does nothing
     p2pSendMsgEx(p2p, p2p->conMsg, strlen(p2p->conMsg), false, NULL, NULL);
 
     // esp_random returns a 32 bit number, so this is [500ms,1500ms]
@@ -485,10 +483,7 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
         // started in p2pSendCb()
         p2p->ack.timeSentUs = esp_timer_get_time();
     }
-    p2p_printf("calling espNowSend\n");
-    // TODO this is halting sometimes, but only when the buzzer is used
     espNowSend((const uint8_t*)msg, len);
-    p2p_printf("espNowSend returned\n");
 }
 
 /**

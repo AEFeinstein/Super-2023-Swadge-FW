@@ -38,27 +38,24 @@ rmt_buzzer_t rmt_buzzer;
  * @brief TOOD
  *
  */
-bool buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
+void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
 {
-    // Apply default RMT configuration
+    // Start with the default RMT configuration
     rmt_config_t dev_config = RMT_DEFAULT_CONFIG_TX(gpio, rmt);
-    // TODO disabling loop mode fixes halts, but notes end up being clicks
-    dev_config.tx_config.loop_en = true; // Enable loop mode
+
+    // Enable looping
+    dev_config.tx_config.loop_en = true;
 
     // Install RMT driver
     rmt_config(&dev_config);
     rmt_driver_install(rmt, 0, 0);
 
-    // Install buzzer driver
-    rmt_buzzer.channel = rmt;
-
-    // Fill in counter clock frequency
-    rmt_get_counter_clock(rmt_buzzer.channel, &rmt_buzzer.counter_clk_hz);
-
-    // TODO this magically fixes halting, but why?
+    // Enable autostopping when the loop count hits the threshold
     rmt_enable_tx_loop_autostop(rmt, true);
 
-    return true;
+    // Save the channel and clock frequency
+    rmt_buzzer.channel = rmt;
+    rmt_get_counter_clock(rmt, &rmt_buzzer.counter_clk_hz);
 }
 
 /**
@@ -68,7 +65,7 @@ bool buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
  * @param notation_length
  * @return bool
  */
-bool buzzer_play(const song_t* song)
+void buzzer_play(const song_t* song)
 {
     // update notation with the new one
     rmt_buzzer.song = song;
@@ -77,8 +74,6 @@ bool buzzer_play(const song_t* song)
 
     // Play the first note
     play_note();
-
-    return true;
 }
 
 /**
@@ -86,37 +81,41 @@ bool buzzer_play(const song_t* song)
  *
  * @return bool
  */
-bool buzzer_check_next_note(void)
+void buzzer_check_next_note(void)
 {
-    // Get the current time
-    int64_t cTime = esp_timer_get_time();
-
-    if(NULL != rmt_buzzer.song && rmt_buzzer.note_index < rmt_buzzer.song->numNotes)
+    // Check if there is a song and there are still notes
+    if((NULL != rmt_buzzer.song) &&
+        (rmt_buzzer.note_index < rmt_buzzer.song->numNotes))
     {
+        // Get the current time
+        int64_t cTime = esp_timer_get_time();
+        
         // Check if it's time to play the next note
-        if(cTime - rmt_buzzer.start_time >= (1000 * rmt_buzzer.song->notes[rmt_buzzer.note_index].timeMs))
+        if (cTime - rmt_buzzer.start_time >= (1000 * rmt_buzzer.song->notes[rmt_buzzer.note_index].timeMs))
         {
-            // Move to the next note
-            rmt_buzzer.note_index++;
-            rmt_buzzer.start_time = cTime;
-
-            // TODO these don't help halting
-            // rmt_tx_stop(rmt_buzzer.channel);
-            // rmt_tx_memory_reset(rmt_buzzer.channel);
-
-            // Play the note
-            if(rmt_buzzer.note_index < rmt_buzzer.song->numNotes)
+            // Make sure RMT is idle
+            uint32_t status;
+            rmt_get_status(rmt_buzzer.channel, &status);
+            if(0 == (status & RMT_TX_START_CH1))
             {
-                play_note();
-            }
-            else
-            {
-                buzzer_stop();
+                // Move to the next note
+                rmt_buzzer.note_index++;
+                rmt_buzzer.start_time = cTime;
+
+                // If there is a note
+                if(rmt_buzzer.note_index < rmt_buzzer.song->numNotes)
+                {
+                    // Play the note
+                    play_note();
+                }
+                else
+                {
+                    // Song is over
+                    buzzer_stop();
+                }
             }
         }
     }
-
-    return true;
 }
 
 /**
@@ -126,37 +125,28 @@ bool buzzer_check_next_note(void)
  */
 static void play_note(void)
 {
-    static rmt_item32_t notation_code =
-    {
-        .level0 = 1,
-        .duration0 = 1,
-        .level1 = 0,
-        .duration1 = 1
-    };
     const musicalNote_t* notation = &rmt_buzzer.song->notes[rmt_buzzer.note_index];
 
     if(SILENCE == notation->note)
     {
-        notation_code.level0 = 0;
-        notation_code.duration0 = 1;
-        notation_code.duration1 = 1;
+        buzzer_stop();
     }
     else
     {
+        static rmt_item32_t notation_code;
         notation_code.level0 = 1;
         // convert frequency to RMT item format
         notation_code.duration0 = rmt_buzzer.counter_clk_hz / notation->note / 2;
+        notation_code.level1 = 0,
+        // Copy RMT item format
         notation_code.duration1 = notation_code.duration0;
+
+        // convert duration to RMT loop count
+        rmt_set_tx_loop_count(rmt_buzzer.channel, notation->timeMs * notation->note / 1000);
+
+        // start TX
+        rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false);
     }
-
-    // convert duration to RMT loop count
-    rmt_set_tx_loop_count(rmt_buzzer.channel, notation->timeMs * notation->note / 1000);
-
-    // start TX
-    // TODO This is halting sometimes, but only when espnow is used
-    // Note, commenting this out kills sound but does NOT fix the halt
-    // Commenting out both calls to rmt_write_items() seems to fix it
-    rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false);
 }
 
 /**
@@ -164,28 +154,9 @@ static void play_note(void)
  *
  * @return bool
  */
-bool buzzer_stop(void)
+void buzzer_stop(void)
 {
-    // Don't actually stop RMT, which seems to cause problems
-    // Instead just have it play silence
-    // static rmt_item32_t notation_code =
-    // {
-    //     .level0 = 0,
-    //     .duration0 = 1,
-    //     .level1 = 0,
-    //     .duration1 = 1
-    // };
-    // rmt_set_tx_loop_count(rmt_buzzer.channel, 1);
-    // // TODO this can also cause halts
-    // rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false);
-
-    // rmt_buzzer.song = NULL;
-    // rmt_buzzer.note_index = 0;
-    // rmt_buzzer.start_time = 0;
-
-    // This seems to work just fine
+    // Stop transmitting and reset memory
     rmt_tx_stop(rmt_buzzer.channel);
     rmt_tx_memory_reset(rmt_buzzer.channel);
-
-    return true;
 }

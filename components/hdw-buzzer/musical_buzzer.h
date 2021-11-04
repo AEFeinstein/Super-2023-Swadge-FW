@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "hal/gpio_types.h"
 #include "driver/rmt.h"
+#include "soc/rmt_reg.h"
 
 // These counts (essential period of notes) are (5,000,000 / (2 * frequency))
 // Negative values n are used by mode_music.c to play the current selected note
@@ -136,7 +137,7 @@ typedef struct
     musicalNote_t notes[];
 } song_t;
 
-bool buzzer_init(gpio_num_t gpio, rmt_channel_t rmt);
-bool buzzer_play(const song_t* song);
-bool buzzer_check_next_note(void);
-bool buzzer_stop(void);
+void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt);
+void buzzer_play(const song_t* song);
+void buzzer_check_next_note(void);
+void buzzer_stop(void);
