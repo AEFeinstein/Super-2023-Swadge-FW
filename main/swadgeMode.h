@@ -5,6 +5,8 @@
 #include <esp_now.h>
 #include "QMA6981.h"
 
+#define NUM_LEDS 6
+
 typedef enum __attribute__((packed))
 {
     NO_WIFI    

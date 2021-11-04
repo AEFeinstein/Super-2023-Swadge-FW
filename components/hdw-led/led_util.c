@@ -2,6 +2,7 @@
 #include "led_util.h"
 
 led_strip_t* ledStrip = NULL;
+uint16_t maxNumLeds = 0;
 
 /**
  * @brief Simple helper function, converting HSV color space to RGB color space
@@ -60,9 +61,10 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r, uint8_t* 
  * @brief TODO
  *
  */
-void initLeds(void)
+void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds)
 {
-    ledStrip = led_strip_init(LED_RMT_CHANNEL, LED_GPIO, NUM_LEDS);
+    ledStrip = led_strip_init(rmt, gpio, numLeds);
+    maxNumLeds = numLeds;
 }
 
 /**
@@ -73,9 +75,9 @@ void initLeds(void)
  */
 void setLeds(led_t* leds, uint8_t numLeds)
 {
-    if(numLeds > NUM_LEDS)
+    if(numLeds > maxNumLeds)
     {
-        numLeds = NUM_LEDS;
+        numLeds = maxNumLeds;
     }
 
     for(int i = 0; i < numLeds; i++)

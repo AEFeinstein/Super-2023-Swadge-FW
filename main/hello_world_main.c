@@ -194,8 +194,8 @@ void mainSwadgeTask(void * arg)
     initNvs(true);
 
     /* Initialize non-i2c hardware peripherals */
-    initLeds();
     initButtons();
+    initLeds   (GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
     buzzer_init(GPIO_NUM_9, RMT_CHANNEL_1);
 
     /* Initialize i2c peripherals */
