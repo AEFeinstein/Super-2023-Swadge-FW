@@ -194,13 +194,13 @@ void mainSwadgeTask(void * arg)
     initNvs(true);
 
     /* Initialize non-i2c hardware peripherals */
-    initButtons();
+    initButtons(); // TODO GPIOs in args somehow
     initLeds   (GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
     buzzer_init(GPIO_NUM_9, RMT_CHANNEL_1);
 
     /* Initialize i2c peripherals */
-    i2c_master_init();
-    initOLED(true);
+    i2c_master_init(GPIO_NUM_5, GPIO_NUM_6, GPIO_PULLUP_DISABLE, 1000000);
+    initOLED(true); // TODO reset GPIO in arg?
     QMA6981_setup();
 
     /*************************
@@ -223,7 +223,6 @@ void mainSwadgeTask(void * arg)
 
 #ifdef TEST_ESP_NOW
     espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb);
-
     p2pInitialize(&p, "tst", testConCbFn, testMsgRxCbFn, -10);
     p2pStartConnection(&p);
 #endif
