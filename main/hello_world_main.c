@@ -32,6 +32,9 @@
 
 #include "esp_temperature_sensor.h"
 
+#include "tinyusb.h"
+#include "tusb_hid_gamepad.h"
+
 #include "nvs_manager.h"
 
 #include "espNowUtils.h"
@@ -42,9 +45,9 @@
 
 #define MAIN_DEBUG_PRINT
 #ifdef MAIN_DEBUG_PRINT
-    #define main_printf(...) printf(__VA_ARGS__)
+#define main_printf(...) printf(__VA_ARGS__)
 #else
-    #define main_printf(...)
+#define main_printf(...)
 #endif
 
 /******************************************************************************/
@@ -129,14 +132,14 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
 /**
  * After all other components are initialized, the main task is created and the
  * FreeRTOS scheduler starts running.
- * 
+ *
  * After doing some more initialization tasks (that require the scheduler to
  * have started), the main task runs the application-provided function app_main
  * in the firmware.
- * 
+ *
  * The main task that runs app_main has a fixed RTOS priority (one higher than
  * the minimum) and a configurable stack size.
- * 
+ *
  * Unlike normal FreeRTOS tasks (or embedded C main functions), the app_main
  * task is allowed to return. If this happens, The task is cleaned up and the
  * system will continue running with other RTOS tasks scheduled normally.
@@ -151,15 +154,15 @@ void app_main(void)
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
     main_printf("This is %s chip with %d CPU core(s), WiFi%s%s, ",
-           CONFIG_IDF_TARGET,
-           chip_info.cores,
-           (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
-           (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
+                CONFIG_IDF_TARGET,
+                chip_info.cores,
+                (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
+                (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
 
     main_printf("silicon revision %d, ", chip_info.revision);
 
     main_printf("%dMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
-           (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
+                (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
 
     main_printf("Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
 #endif
@@ -168,7 +171,7 @@ void app_main(void)
      * https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/api-guides/usb-serial-jtag-console.html
      *
      * This is enabled or disabled with idf.py menuconfig -> "Channel for console output"
-     * 
+     *
      * When USB JTAG is enabled, the ESP32-C3 will halt and wait for a reception
      * any time it tries to transmit bytes on the UART. This means a program
      * won't run if a console isn't open, because the IDF tries to print stuff
@@ -187,11 +190,46 @@ void app_main(void)
 }
 
 /**
+ * @brief TODO
+ *
+ * @param itf
+ * @param report_id
+ * @param report_type
+ * @param buffer
+ * @param reqlen
+ * @return uint16_t
+ */
+uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id,
+                               hid_report_type_t report_type, uint8_t* buffer,
+                               uint16_t reqlen)
+{
+    // TODO figure it out
+    return 0;
+}
+
+/**
+ * @brief TODO
+ *
+ * @param itf
+ * @param report_id
+ * @param report_type
+ * @param buffer
+ * @param bufsize
+ */
+void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
+                           hid_report_type_t report_type, uint8_t const* buffer,
+                           uint16_t bufsize)
+{
+    // TODO figure it out
+}
+
+
+/**
  * This is the task for the swadge. It sets up all peripherals and runs the
  * firmware in a while(1) loop
  */
 void mainSwadgeTask(void * arg)
-{  
+{
     /* Initialize internal NVS */
     initNvs(true);
 
@@ -202,9 +240,17 @@ void mainSwadgeTask(void * arg)
     initTemperatureSensor();
 
     /* Initialize i2c peripherals */
+#ifdef I2C_ENABLED
     i2c_master_init(GPIO_NUM_5, GPIO_NUM_6, GPIO_PULLUP_DISABLE, 1000000);
     initOLED(true); // TODO reset GPIO in arg?
     QMA6981_setup();
+#endif
+
+    /* the configuration using default values */
+    tinyusb_config_t tusb_cfg = {};
+    /* This calls tusb_init() and sets up a task to spin tud_task() */
+    tinyusb_driver_install(&tusb_cfg);
+
 
     /*************************
      * One-time tests
@@ -251,6 +297,40 @@ void mainSwadgeTask(void * arg)
             main_printf("loop\n");
         }
 
+        /* Twice a second push out some USB data */
+        uint64_t usbTimeUs = esp_timer_get_time();
+        static uint64_t lastUsb = 0;
+        if(usbTimeUs - lastUsb >= 500000)
+        {
+            lastUsb = usbTimeUs;
+
+            // Static variables to track button and hat position
+            static hid_gamepad_button_bm_t btnPressed = GAMEPAD_BUTTON_A;
+            static hid_gamepad_hat_t hatDir = GAMEPAD_HAT_CENTERED;
+
+            // Build and send the state over USB
+            hid_gamepad_report_t report =
+            {
+                .buttons = btnPressed,
+                .hat = hatDir
+            };
+            tud_gamepad_report(&report);
+
+            // Move to the next button
+            btnPressed <<= 1;
+            if(btnPressed > GAMEPAD_BUTTON_THUMBR)
+            {
+                btnPressed = GAMEPAD_BUTTON_A;
+            }
+
+            // Move to the next hat dir
+            hatDir++;
+            if(hatDir > GAMEPAD_HAT_UP_LEFT)
+            {
+                hatDir = GAMEPAD_HAT_CENTERED;
+            }
+        }
+
         /*************************
          * Looped tests
          ************************/
@@ -295,22 +375,22 @@ void mainSwadgeTask(void * arg)
 #ifdef TEST_OLED
         switch(getPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH))
         {
-            default:
-            case BLACK:
-            {
-                drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, WHITE);
-                break;
-            }
-            case WHITE:
-            {
-                drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, BLACK);
-                break;
-            }
+        default:
+        case BLACK:
+        {
+            drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, WHITE);
+            break;
+        }
+        case WHITE:
+        {
+            drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, BLACK);
+            break;
+        }
         }
         pxidx = (pxidx + 1) % (OLED_WIDTH * OLED_HEIGHT);
 #endif
 
-#ifdef TEST_ACCEL
+#if defined(I2C_ENABLED) && defined(TEST_ACCEL)
         accel_t accel = {0};
         QMA6981_poll(&accel);
         uint64_t cTimeUs = esp_timer_get_time();
@@ -355,7 +435,9 @@ void mainSwadgeTask(void * arg)
         }
 
         // Update outputs
+#ifdef I2C_ENABLED
         updateOLED(true);
+#endif
         buzzer_check_next_note();
 
         // Yield to let the rest of the RTOS run

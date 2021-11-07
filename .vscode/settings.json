@@ -21,7 +21,16 @@
         "rmt_reg.h": "c",
         "swadgemode.h": "c",
         "stdio.h": "c",
-        "sdkconfig.h": "c"
+        "sdkconfig.h": "c",
+        "tusb.h": "c",
+        "tinyusb.h": "c",
+        "tusb_tasks.h": "c",
+        "tusb_cdc_acm.h": "c",
+        "esp_temperature_sensor.h": "c",
+        "tusb_hid.h": "c",
+        "hid_device.h": "c",
+        "descriptors_control.h": "c",
+        "tusb_hid_gamepad.h": "c"
     },
     "python.pythonPath": "/usr/bin/python"
 }
