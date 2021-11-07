@@ -30,6 +30,8 @@
 
 #include "musical_buzzer.h"
 
+#include "esp_temperature_sensor.h"
+
 #include "nvs_manager.h"
 
 #include "espNowUtils.h"
@@ -197,6 +199,7 @@ void mainSwadgeTask(void * arg)
     initButtons(); // TODO GPIOs in args somehow
     initLeds   (GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
     buzzer_init(GPIO_NUM_9, RMT_CHANNEL_1);
+    initTemperatureSensor();
 
     /* Initialize i2c peripherals */
     i2c_master_init(GPIO_NUM_5, GPIO_NUM_6, GPIO_PULLUP_DISABLE, 1000000);
@@ -251,6 +254,16 @@ void mainSwadgeTask(void * arg)
         /*************************
          * Looped tests
          ************************/
+#ifdef TEST_TEMPERATURE
+        uint64_t tempTimeUs = esp_timer_get_time();
+        static uint64_t lastTmp = 0;
+        if(tempTimeUs - lastTmp >= 1000000)
+        {
+            lastTmp = tempTimeUs;
+            main_printf("temperature %fc\n", readTemperatureSensor());
+        }
+#endif
+
 #ifdef TEST_ESP_NOW
         checkEspNowRxQueue();
 #endif
