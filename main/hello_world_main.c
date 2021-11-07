@@ -251,7 +251,6 @@ void mainSwadgeTask(void * arg)
     /* This calls tusb_init() and sets up a task to spin tud_task() */
     tinyusb_driver_install(&tusb_cfg);
 
-
     /*************************
      * One-time tests
      ************************/
@@ -300,7 +299,8 @@ void mainSwadgeTask(void * arg)
         /* Twice a second push out some USB data */
         uint64_t usbTimeUs = esp_timer_get_time();
         static uint64_t lastUsb = 0;
-        if(usbTimeUs - lastUsb >= 500000)
+        /* Don't send until USB is ready */
+        if(tud_ready() && usbTimeUs - lastUsb >= 500000)
         {
             lastUsb = usbTimeUs;
 
