@@ -30,7 +30,10 @@
         "tusb_hid.h": "c",
         "hid_device.h": "c",
         "descriptors_control.h": "c",
-        "tusb_hid_gamepad.h": "c"
+        "tusb_hid_gamepad.h": "c",
+        "esp_err.h": "c",
+        "esp_spiffs.h": "c",
+        "spiffs_manager.h": "c"
     },
     "python.pythonPath": "/usr/bin/python"
 }

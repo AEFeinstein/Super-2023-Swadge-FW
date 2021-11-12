@@ -13,7 +13,7 @@
  */
 void initTemperatureSensor(void)
 {
-    // Initialize touch pad peripheral, it will start a timer to run a filter
+    // Initialize temperature sensor peripheral
     temp_sensor_config_t temp_sensor = TSENS_CONFIG_DEFAULT();
     temp_sensor_get_config(&temp_sensor);
     temp_sensor.dac_offset = TSENS_DAC_DEFAULT; // DEFAULT: range:-10℃ ~  80℃, error < 1℃.

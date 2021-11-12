@@ -20,7 +20,6 @@
 #include "driver/rmt.h"
 #include "esp_timer.h"
 #include "esp_efuse.h"
-#include "esp_spiffs.h"
 
 #include "led_util.h"
 #include "btn.h"
@@ -37,12 +36,26 @@
 #include "tusb_hid_gamepad.h"
 
 #include "nvs_manager.h"
+#include "spiffs_manager.h"
 
 #include "espNowUtils.h"
 #include "p2pConnection.h"
 
 #include "swadgeMode.h"
 #include "mode_snake.h"
+
+/******************************************************************************/
+// Defines
+/******************************************************************************/
+
+// #define TEST_ACCEL
+// #define TEST_BZR
+// #define TEST_ESP_NOW
+// #define TEST_LEDS
+// #define TEST_NVR
+// #define TEST_OLED
+#define TEST_SPIFFS
+// #define TEST_TEMPERATURE
 
 #define MAIN_DEBUG_PRINT
 #ifdef MAIN_DEBUG_PRINT
@@ -92,7 +105,6 @@ static const musicalNote_t notation[] =
 // Functions
 /******************************************************************************/
 
-#define TEST_ESP_NOW
 #ifdef TEST_ESP_NOW
 p2pInfo p;
 
@@ -225,71 +237,6 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
 }
 
 /**
- * @brief TODO move to component
- *
- */
-static void spiffs_test(void)
-{
-    /* Initialize SPIFFS */
-    esp_vfs_spiffs_conf_t conf = {
-        .base_path = "/spiffs",
-        .partition_label = NULL,
-        .max_files = 5,
-        .format_if_mount_failed = false
-    };
-    // Use settings defined above to initialize and mount SPIFFS filesystem.
-    // Note: esp_vfs_spiffs_register is an all-in-one convenience function.
-    esp_err_t ret = esp_vfs_spiffs_register(&conf);
-
-    if (ret != ESP_OK) {
-        if (ret == ESP_FAIL) {
-            main_printf("Failed to mount or format filesystem\n");
-        } else if (ret == ESP_ERR_NOT_FOUND) {
-            main_printf("Failed to find SPIFFS partition\n");
-        } else {
-            main_printf("Failed to initialize SPIFFS (%s)\n", esp_err_to_name(ret));
-        }
-        return;
-    }
-
-    size_t total = 0, used = 0;
-    ret = esp_spiffs_info(NULL, &total, &used);
-    if (ret != ESP_OK) {
-        main_printf("Failed to get SPIFFS partition information (%s)\n", esp_err_to_name(ret));
-    } else {
-        main_printf("Partition size: total: %d, used: %d\n", total, used);
-    }
-
-    /* The following calls demonstrate reading files from the generated SPIFFS
-     * image. The images should contain the same files and contents as the spiffs_image directory.
-     */
-
-    // Read and display the contents of a small text file (hello.txt)
-    main_printf("Reading text.txt\n");
-
-    // Open for reading text.txt
-    FILE* f = fopen("/spiffs/text.txt", "r");
-    if (f == NULL) {
-        main_printf("Failed to open text.txt\n");
-        return;
-    }
-
-    fseek(f, 0L, SEEK_END);
-    long sz = ftell(f);
-    fseek(f, 0L, SEEK_SET);
-
-    char buf[sz];
-    memset(buf, 0, sizeof(buf));
-    fread(buf, sz, 1, f);
-    fclose(f);
-
-    // Display the read contents from the file
-    main_printf("Read from text.txt: %ld bytes: %s\n", sz, buf);
-
-    esp_vfs_spiffs_unregister(conf.partition_label);
-}
-
-/**
  * This is the task for the swadge. It sets up all peripherals and runs the
  * firmware in a while(1) loop
  */
@@ -298,8 +245,8 @@ void mainSwadgeTask(void * arg)
     /* Initialize internal NVS */
     initNvs(true);
 
-    /* Test SPIFFS */
-    spiffs_test();
+    /* Initialize SPIFFS */
+    initSpiffs();
 
     /* Initialize non-i2c hardware peripherals */
     initButtons(); // TODO GPIOs in args somehow
@@ -348,6 +295,10 @@ void mainSwadgeTask(void * arg)
     led_t leds[NUM_LEDS] = {0};
     int16_t pxidx = 0;
     uint16_t hue = 0;
+#endif
+
+#ifdef TEST_SPIFFS
+    spiffsTest();
 #endif
 
     /* Enter the swadge mode */
