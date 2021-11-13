@@ -254,7 +254,11 @@ void mainSwadgeTask(void * arg)
     initLeds   (GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
     buzzer_init(GPIO_NUM_9, RMT_CHANNEL_1);
     initTemperatureSensor();
-    initTouchSensor();
+
+    touch_pad_t touchPads[] = {TOUCH_PAD_NUM12};
+    float touchPadSensitivities[] = {0.2f};
+    initTouchSensor(sizeof(touchPads) / sizeof(touchPads[0]), touchPads,
+        touchPadSensitivities, true, TOUCH_PAD_MAX);
 
     /* Initialize i2c peripherals */
 #define I2C_ENABLED
@@ -438,7 +442,7 @@ void mainSwadgeTask(void * arg)
             }
         }
 
-        tp_example_read_task();
+        checkTouchSensor();
 
         // Run the mode's event loop
         static int64_t tLastCallUs = 0;

@@ -33,7 +33,9 @@
         "tusb_hid_gamepad.h": "c",
         "esp_err.h": "c",
         "esp_spiffs.h": "c",
-        "spiffs_manager.h": "c"
+        "spiffs_manager.h": "c",
+        "sens_periph.h": "c",
+        "sens_struct.h": "c"
     },
     "python.pythonPath": "/usr/bin/python"
 }
