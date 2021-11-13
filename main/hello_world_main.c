@@ -23,6 +23,7 @@
 
 #include "led_util.h"
 #include "btn.h"
+#include "touch_sensor.h"
 #include "i2c-conf.h"
 #include "ssd1306.h"
 
@@ -253,6 +254,7 @@ void mainSwadgeTask(void * arg)
     initLeds   (GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
     buzzer_init(GPIO_NUM_9, RMT_CHANNEL_1);
     initTemperatureSensor();
+    initTouchSensor();
 
     /* Initialize i2c peripherals */
 #define I2C_ENABLED
@@ -435,6 +437,8 @@ void mainSwadgeTask(void * arg)
                 snakeMode.fnButtonCallback(bEvt.state, bEvt.button, bEvt.down);
             }
         }
+
+        tp_example_read_task();
 
         // Run the mode's event loop
         static int64_t tLastCallUs = 0;
