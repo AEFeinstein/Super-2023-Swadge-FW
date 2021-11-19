@@ -26,6 +26,7 @@
 #include "touch_sensor.h"
 #include "i2c-conf.h"
 #include "ssd1306.h"
+#include "hdw-tft.h"
 
 #include "QMA6981.h"
 
@@ -268,6 +269,8 @@ void mainSwadgeTask(void * arg)
     QMA6981_setup();
 #endif
 
+    initTFT(GPIO_NUM_38, GPIO_NUM_37, GPIO_NUM_36, GPIO_NUM_39, GPIO_NUM_40, GPIO_NUM_41);
+
     /* the configuration using default values */
     tinyusb_config_t tusb_cfg = {};
     /* This calls tusb_init() and sets up a task to spin tud_task() */
@@ -466,6 +469,7 @@ void mainSwadgeTask(void * arg)
 #ifdef I2C_ENABLED
         updateOLED(true);
 #endif
+        draw_frame();
         buzzer_check_next_note();
 
         // Yield to let the rest of the RTOS run

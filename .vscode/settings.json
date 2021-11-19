@@ -35,7 +35,10 @@
         "esp_spiffs.h": "c",
         "spiffs_manager.h": "c",
         "sens_periph.h": "c",
-        "sens_struct.h": "c"
+        "sens_struct.h": "c",
+        "task.h": "c",
+        "gpio.h": "c",
+        "freertos.h": "c"
     },
     "python.pythonPath": "/usr/bin/python"
 }
