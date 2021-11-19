@@ -26,105 +26,171 @@ static uint16_t *s_lines[2] = {0};
 
 /**
  * @brief TODO
+ * 
+ * @param h 
+ * @param s 
+ * @param v 
+ * @param px 
+ */
+void hsv2rgb(uint16_t h, float s, float v, tft_pixel_t *px)
+{
+	float hh, p, q, t, ff;
+	uint16_t i;
+
+    hh = (h % 360) / 60.0f;
+    i = (uint16_t)hh;
+    ff = hh - i;
+    p = v * (1.0 - s);
+    q = v * (1.0 - (s * ff));
+    t = v * (1.0 - (s * (1.0 - ff)));
+
+	switch (i)
+	{
+		case 0:
+			px->c.r = v * 0x1F;
+			px->c.g = t * 0x3F;
+			px->c.b = p * 0x1F;
+			break;
+		case 1:
+			px->c.r = q * 0x1F;
+			px->c.g = v * 0x3F;
+			px->c.b = p * 0x1F;
+			break;
+		case 2:
+			px->c.r = p * 0x1F;
+			px->c.g = v * 0x3F;
+			px->c.b = t * 0x1F;
+			break;
+
+		case 3:
+			px->c.r = p * 0x1F;
+			px->c.g = q * 0x3F;
+			px->c.b = v * 0x1F;
+			break;
+		case 4:
+			px->c.r = t * 0x1F;
+			px->c.g = p * 0x3F;
+			px->c.b = v * 0x1F;
+			break;
+		case 5:
+		default:
+			px->c.r = v * 0x1F;
+			px->c.g = p * 0x3F;
+			px->c.b = q * 0x1F;
+			break;
+	}
+}
+
+/**
+ * @brief TODO
  *
  */
 void initTFT(gpio_num_t sclk, gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs,
-             gpio_num_t rst, gpio_num_t backlight)
+			 gpio_num_t rst, gpio_num_t backlight)
 {
-    gpio_config_t bk_gpio_config = {
-        .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = 1ULL << backlight
-    };
-    // Initialize the GPIO of backlight
-    ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
+	gpio_config_t bk_gpio_config =
+	{
+		.mode = GPIO_MODE_OUTPUT,
+		.pin_bit_mask = 1ULL << backlight
+	};
+	// Initialize the GPIO of backlight
+	ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
 
-    spi_bus_config_t buscfg = {
-        .sclk_io_num = sclk,
-        .mosi_io_num = mosi,
-        .miso_io_num = -1,
-        .quadwp_io_num = -1,
-        .quadhd_io_num = -1,
-        .max_transfer_sz = PARALLEL_LINES * EXAMPLE_LCD_H_RES * 2 + 8
-    };
+	spi_bus_config_t buscfg =
+	{
+		.sclk_io_num = sclk,
+		.mosi_io_num = mosi,
+		.miso_io_num = -1,
+		.quadwp_io_num = -1,
+		.quadhd_io_num = -1,
+		.max_transfer_sz = PARALLEL_LINES * EXAMPLE_LCD_H_RES * 2 + 8
+	};
 
-    // Initialize the SPI bus
-    ESP_ERROR_CHECK(spi_bus_initialize(LCD_HOST, &buscfg, SPI_DMA_CH_AUTO));
+	// Initialize the SPI bus
+	ESP_ERROR_CHECK(spi_bus_initialize(LCD_HOST, &buscfg, SPI_DMA_CH_AUTO));
 
-    esp_lcd_panel_io_handle_t io_handle = NULL;
-    esp_lcd_panel_io_spi_config_t io_config = {
-        .dc_gpio_num = dc,
-        .cs_gpio_num = cs,
-        .pclk_hz = EXAMPLE_LCD_PIXEL_CLOCK_HZ,
-        .lcd_cmd_bits = EXAMPLE_LCD_CMD_BITS,
-        .lcd_param_bits = EXAMPLE_LCD_PARAM_BITS,
-        .spi_mode = ESP_IMAGE_SPI_MODE_QIO,
-        .trans_queue_depth = 10,
-    };
+	esp_lcd_panel_io_handle_t io_handle = NULL;
+	esp_lcd_panel_io_spi_config_t io_config =
+	{
+		.dc_gpio_num = dc,
+		.cs_gpio_num = cs,
+		.pclk_hz = EXAMPLE_LCD_PIXEL_CLOCK_HZ,
+		.lcd_cmd_bits = EXAMPLE_LCD_CMD_BITS,
+		.lcd_param_bits = EXAMPLE_LCD_PARAM_BITS,
+		.spi_mode = ESP_IMAGE_SPI_MODE_QIO,
+		.trans_queue_depth = 10,
+	};
 
-    // Attach the LCD to the SPI bus
-    ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)LCD_HOST, &io_config, &io_handle));
+	// Attach the LCD to the SPI bus
+	ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)LCD_HOST, &io_config, &io_handle));
 
-    esp_lcd_panel_dev_config_t panel_config = {
-        .reset_gpio_num = rst,
-        .color_space = ESP_LCD_COLOR_SPACE_RGB,
-        .bits_per_pixel = 16,
-    };
-    // Initialize the LCD configuration
+	esp_lcd_panel_dev_config_t panel_config =
+	{
+		.reset_gpio_num = rst,
+		.color_space = ESP_LCD_COLOR_SPACE_RGB,
+		.bits_per_pixel = 16,
+	};
+	// Initialize the LCD configuration
 
 #if defined(_0_96)
-    ESP_ERROR_CHECK(esp_lcd_new_panel_st7735(io_handle, &panel_config, &panel_handle));
+	ESP_ERROR_CHECK(esp_lcd_new_panel_st7735(io_handle, &panel_config, &panel_handle));
 #elif defined(_1_14) || defined(_1_3)
-    ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_config, &panel_handle));
+	ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_config, &panel_handle));
 #else
 #error "Please pick a screen size"
 #endif
 
-    // Turn off backlight to avoid unpredictable display on the LCD screen while initializing
-    // the LCD panel driver. (Different LCD screens may need different levels)
-    ESP_ERROR_CHECK(gpio_set_level(backlight, EXAMPLE_LCD_BK_LIGHT_OFF_LEVEL));
+	// Turn off backlight to avoid unpredictable display on the LCD screen while initializing
+	// the LCD panel driver. (Different LCD screens may need different levels)
+	ESP_ERROR_CHECK(gpio_set_level(backlight, EXAMPLE_LCD_BK_LIGHT_OFF_LEVEL));
 
-    // Reset the display
-    ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
+	// Reset the display
+	ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
 
-    // Initialize LCD panel
-    ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
+	// Initialize LCD panel
+	ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
 
-    // Turn on backlight (Different LCD screens may need different levels)
-    ESP_ERROR_CHECK(gpio_set_level(backlight, EXAMPLE_LCD_BK_LIGHT_ON_LEVEL));
+	// Turn on backlight (Different LCD screens may need different levels)
+	ESP_ERROR_CHECK(gpio_set_level(backlight, EXAMPLE_LCD_BK_LIGHT_ON_LEVEL));
 
-    // Allocate memory for the pixel buffers
-    for (int i = 0; i < 2; i++) {
-        s_lines[i] = heap_caps_malloc(EXAMPLE_LCD_H_RES * PARALLEL_LINES * sizeof(uint16_t), MALLOC_CAP_DMA);
-        assert(s_lines[i] != NULL);
-    }
+	// Allocate memory for the pixel buffers
+	for (int i = 0; i < 2; i++)
+	{
+		s_lines[i] = heap_caps_malloc(EXAMPLE_LCD_H_RES * PARALLEL_LINES * sizeof(uint16_t), MALLOC_CAP_DMA);
+		assert(s_lines[i] != NULL);
+	}
 
-    // Config the TFT
-    esp_lcd_panel_swap_xy(panel_handle, SWAP_XY);
-    esp_lcd_panel_mirror(panel_handle, MIRROR_X, MIRROR_Y);
-    esp_lcd_panel_set_gap(panel_handle, X_OFFSET, Y_OFFSET);
-    esp_lcd_panel_invert_color(panel_handle, true);
+	// Config the TFT
+	esp_lcd_panel_swap_xy(panel_handle, SWAP_XY);
+	esp_lcd_panel_mirror(panel_handle, MIRROR_X, MIRROR_Y);
+	esp_lcd_panel_set_gap(panel_handle, X_OFFSET, Y_OFFSET);
+	esp_lcd_panel_invert_color(panel_handle, true);
 
-    printf("sizeof: %d\n", sizeof(tft_pixel_t));
+	printf("sizeof: %d\n", sizeof(tft_pixel_t));
 
-    for(int y = 0; y < EXAMPLE_LCD_V_RES; y++) {
-        for(int x = 0; x < EXAMPLE_LCD_H_RES; x++) {
-            if(x < EXAMPLE_LCD_H_RES / 3) {
-                pixels[y][x].c.r = 0x1F;
-                pixels[y][x].c.g = 0x00;
-                pixels[y][x].c.b = 0x00;
-            }
-            else if (x < (2*EXAMPLE_LCD_H_RES)/3) {
-                pixels[y][x].c.r = 0x00;
-                pixels[y][x].c.g = 0x3F;
-                pixels[y][x].c.b = 0x00;
-            }
-            else {
-                pixels[y][x].c.r = 0x00;
-                pixels[y][x].c.g = 0x00;
-                pixels[y][x].c.b = 0x1F;
-            }
-        }
-    }
+	for (int y = 0; y < EXAMPLE_LCD_V_RES; y++)
+	{
+		for (int x = 0; x < EXAMPLE_LCD_H_RES; x++)
+		{
+			hsv2rgb((x * 360) / EXAMPLE_LCD_H_RES, y / (float)(EXAMPLE_LCD_V_RES-1), 1, &pixels[y][x]);
+
+			// if(x < EXAMPLE_LCD_H_RES / 3) {
+			//     pixels[y][x].c.r = 0x1F;
+			//     pixels[y][x].c.g = 0x00;
+			//     pixels[y][x].c.b = 0x00;
+			// }
+			// else if (x < (2*EXAMPLE_LCD_H_RES)/3) {
+			//     pixels[y][x].c.r = 0x00;
+			//     pixels[y][x].c.g = 0x3F;
+			//     pixels[y][x].c.b = 0x00;
+			// }
+			// else {
+			//     pixels[y][x].c.r = 0x00;
+			//     pixels[y][x].c.g = 0x00;
+			//     pixels[y][x].c.b = 0x1F;
+			// }
+		}
+	}
 }
 
 // Simple routine to generate some patterns and send them to the LCD. Because the
@@ -132,49 +198,52 @@ void initTFT(gpio_num_t sclk, gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs,
 // while the previous one is being sent.
 void draw_frame(void)
 {
-    static int framesDrawn = 0;
-    static uint64_t tFpsStart = 0;
-    if(0 == tFpsStart)
-    {
-        tFpsStart = esp_timer_get_time();
-    }
+	static int framesDrawn = 0;
+	static uint64_t tFpsStart = 0;
+	if (0 == tFpsStart)
+	{
+		tFpsStart = esp_timer_get_time();
+	}
 
-    // Limit drawing to 60fps
-    static uint64_t tLastDraw = 0;
-    uint64_t tNow = esp_timer_get_time();
-    if(tNow - tLastDraw > 16666)
-    {
-        tLastDraw = tNow;
+	// Limit drawing to 60fps
+	static uint64_t tLastDraw = 0;
+	uint64_t tNow = esp_timer_get_time();
+	if (tNow - tLastDraw > 16666)
+	{
+		tLastDraw = tNow;
 
-        // Indexes of the line currently being sent to the LCD and the line we're calculating
-        int sending_line = 0;
-        int calc_line = 0;
+		// Indexes of the line currently being sent to the LCD and the line we're calculating
+		int sending_line = 0;
+		int calc_line = 0;
 
-        // Send the frame, ping ponging the send buffer
-        for (int y = 0; y < EXAMPLE_LCD_V_RES; y += PARALLEL_LINES) {
-            // Calculate a line
-            int destIdx = 0;
-            for (int yp = y; yp < y + PARALLEL_LINES; yp++) {
-                for (int x = 0; x < EXAMPLE_LCD_H_RES; x++) {
+		// Send the frame, ping ponging the send buffer
+		for (int y = 0; y < EXAMPLE_LCD_V_RES; y += PARALLEL_LINES)
+		{
+			// Calculate a line
+			int destIdx = 0;
+			for (int yp = y; yp < y + PARALLEL_LINES; yp++)
+			{
+				for (int x = 0; x < EXAMPLE_LCD_H_RES; x++)
+				{
 #define SWAP(x) ((x>>8)|(x<<8))
-                    s_lines[calc_line][destIdx++] = SWAP(pixels[yp][x].val);
-                }
-            }
+					s_lines[calc_line][destIdx++] = SWAP(pixels[yp][x].val);
+				}
+			}
 
-            sending_line = calc_line;
-            calc_line = !calc_line;
+			sending_line = calc_line;
+			calc_line = !calc_line;
 
-            // Send the calculated data
-            esp_lcd_panel_draw_bitmap(panel_handle, 0, y, 0 + EXAMPLE_LCD_H_RES, y + PARALLEL_LINES, s_lines[sending_line]);
-        }
+			// Send the calculated data
+			esp_lcd_panel_draw_bitmap(panel_handle, 0, y, 0 + EXAMPLE_LCD_H_RES, y + PARALLEL_LINES, s_lines[sending_line]);
+		}
 
-        framesDrawn++;
-        if(framesDrawn == 120)
-        {
-            uint64_t tFpsEnd = esp_timer_get_time();
-            printf("%f FPS\n", 120 / ((tFpsEnd - tFpsStart) / 1000000.0f));
-            tFpsStart = tFpsEnd;
-            framesDrawn = 0;
-        }
-    }
+		framesDrawn++;
+		if (framesDrawn == 120)
+		{
+			uint64_t tFpsEnd = esp_timer_get_time();
+			printf("%f FPS\n", 120 / ((tFpsEnd - tFpsStart) / 1000000.0f));
+			tFpsStart = tFpsEnd;
+			framesDrawn = 0;
+		}
+	}
 }

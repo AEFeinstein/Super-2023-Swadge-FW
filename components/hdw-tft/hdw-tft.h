@@ -5,9 +5,9 @@
 
 typedef union {
     struct __attribute__((packed)) {
-        int r:5;
-        int g:6;
-        int b:5;
+        unsigned int r:5;
+        unsigned int g:6;
+        unsigned int b:5;
     } c;
     uint16_t val;
 } tft_pixel_t;
