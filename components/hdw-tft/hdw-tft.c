@@ -102,7 +102,7 @@ void initTFT(gpio_num_t sclk, gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs,
     esp_lcd_panel_swap_xy(panel_handle, SWAP_XY);
     esp_lcd_panel_mirror(panel_handle, MIRROR_X, MIRROR_Y);
     esp_lcd_panel_set_gap(panel_handle, X_OFFSET, Y_OFFSET);
-    esp_lcd_panel_invert_color(panel_handle, false);
+    esp_lcd_panel_invert_color(panel_handle, true);
 
     printf("sizeof: %d\n", sizeof(tft_pixel_t));
 
@@ -110,11 +110,17 @@ void initTFT(gpio_num_t sclk, gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs,
         for(int x = 0; x < EXAMPLE_LCD_H_RES; x++) {
             if(x < EXAMPLE_LCD_H_RES / 3) {
                 pixels[y][x].c.r = 0x1F;
+                pixels[y][x].c.g = 0x00;
+                pixels[y][x].c.b = 0x00;
             }
             else if (x < (2*EXAMPLE_LCD_H_RES)/3) {
+                pixels[y][x].c.r = 0x00;
                 pixels[y][x].c.g = 0x3F;
+                pixels[y][x].c.b = 0x00;
             }
             else {
+                pixels[y][x].c.r = 0x00;
+                pixels[y][x].c.g = 0x00;
                 pixels[y][x].c.b = 0x1F;
             }
         }
@@ -150,7 +156,8 @@ void draw_frame(void)
             int destIdx = 0;
             for (int yp = y; yp < y + PARALLEL_LINES; yp++) {
                 for (int x = 0; x < EXAMPLE_LCD_H_RES; x++) {
-                    s_lines[calc_line][destIdx++] = pixels[yp][x].val;
+#define SWAP(x) ((x>>8)|(x<<8))
+                    s_lines[calc_line][destIdx++] = SWAP(pixels[yp][x].val);
                 }
             }
 
