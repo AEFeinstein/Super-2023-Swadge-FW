@@ -269,7 +269,7 @@ void mainSwadgeTask(void * arg)
     QMA6981_setup();
 #endif
 
-    initTFT(GPIO_NUM_38, GPIO_NUM_37, GPIO_NUM_36, GPIO_NUM_39, GPIO_NUM_40, GPIO_NUM_41);
+    initTFT(SPI2_HOST, GPIO_NUM_38, GPIO_NUM_37, GPIO_NUM_36, GPIO_NUM_39, GPIO_NUM_40, GPIO_NUM_41);
 
     /* the configuration using default values */
     tinyusb_config_t tusb_cfg = {};
