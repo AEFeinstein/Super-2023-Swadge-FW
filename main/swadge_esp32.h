@@ -1,5 +1,5 @@
-#ifndef _HELLO_WORLD_MAIN_H_
-#define _HELLO_WORLD_MAIN_H_
+#ifndef _SWADGE_ESP32_H_
+#define _SWADGE_ESP32_H_
 
 #define IS_ARRAY(arr)   ((void*)&(arr) == &(arr)[0])
 #define STATIC_EXP(e)   (0 * sizeof (struct { int ARRAY_SIZE_FAILED:(2 * (e) - 1);}))

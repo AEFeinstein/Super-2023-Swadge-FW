@@ -6,46 +6,63 @@ Intro text to come later
 
 I recommend following [the official ESP32-C3 Get Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/get-started/index.html).
 
-For all OSes, I recommend using the Visual Studio Code IDE.
+For all OSes, I recommend setting up native tools.
 
-If you have a Windows machine, I recommend using WSL1 (aka Linux). I tried to set up the IDF on Windows natively and could not get it working properly.
+As of writing, this project requires a modified IDF which can be found at [https://github.com/AEFeinstein/esp-idf.git]. Do not `git clone` Espressif's official IDF. The modifications add support for USB HID device mode and more TFT driver chips.
 
-If you have a Linux machine, you're good. Follow the guide and ignore anything about WSL.
+- Windows (Powershell)
+```
+mkdir $HOME/esp
+cd $HOME/esp
+git clone --recursive https://github.com/AEFeinstein/esp-idf.git
+cd $HOME/esp/esp-idf
+./install.ps1
+./export.ps1
+```
+- Linux
+```
+mkdir $HOME/esp
+cd $HOME/esp
+git clone --recursive https://github.com/AEFeinstein/esp-idf.git
+cd $HOME/esp/esp-idf
+git submodule update --init --recursive
+./install.sh
+. ./export.sh
+```
+- Mac OS
+```
+TBD
+```
 
-If you have an OSX machine, good luck. If you can get everything working, write down how.
+## Building and Flashing
 
-### Setup Notes for WSL1
+1. Make sure the IDF symbols are exported. This example is for Windows, so the actual command may be different for your OS
+```
+cd $HOME/esp/esp-idf
+./export.ps1
+```
+1. Clone this repository
+```
+cd $HOME
+git clone https://github.com/AEFeinstein/esp32-c3-playground.git
+cd esp32-c3-playground
+```
+1. Build, flash, and monitor with a single command. Note in this example the ESP is connected to `COM8`, and the serial port will likely be different on your system
+```
+idf.py -p COM8 -b 2000000 build flash monitor
+```
 
-1. For "**Step 1. Install prerequisites**" do it. Also note that [WSL has extra prerequisites](https://github.com/espressif/vscode-esp-idf-extension/blob/master/docs/WSL.md), specifically `python3-venv`. The combined Linux & WSL prerequisites are listed below, but you should probably copy the installation commands from Espressif's latest guides instead.
-    ```bash
-    sudo apt install git wget flex bison gperf python3 python3-pip python3-venv python3-setuptools cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0
-    ```
-1. For "**Step 2. Get ESP-IDF**" and "Step 3. Set up the tools" don't do the manual setup, instead [install the vscode extension and do the guided setup](https://github.com/espressif/vscode-esp-idf-extension/blob/master/docs/tutorial/install.md). Make sure to use all the default paths for installation. Make sure to install the `master` repository. The current releases don't support ESP32-C3.
-1. For "**Step 3. Set up the tools**" the vscode extension should also automatically install the tools
-The "Download Tools" button acted strangely for me. I had to click it repeatedly until the download started. Manually creating the tools dir first may help.
-1. For "**Step 4. Set up the environment variables**" I recommend adding this to the end of your `~/.profile` file so that the IDF environment variables get set each time you log in and/or start WSL. You can run the command right now for it to take effect, or restart your shell.
-    ```bash
-    # Set up IDF
-    . $HOME/esp/esp-idf/export.sh
-    ```
-1. For "**Step 5. Start a Project**" you can clone this repo instead of copying the hello world example, and open it in vscode.
-    ```
-    cd ~/
-    git clone https://github.com/AEFeinstein/esp32-c3-playground.git
-    code esp32-c3-playground
-    ```
-1. For "**Step 6. Connect Your Device**" set the following environment variables in `~/.bashrc`. Note this is for WSL, and the port number should be replaced with the port on your machine. Restart your shell afterwards for these to take effect.
-    ```bash
-    export ESP32_C3_PORT=/dev/ttyS3
-    export ESP32_C3_PORT_WIN=COM3
-    ```
-1. For "**Step 7. Configure**" this should already be done. You can do it again if you want to.
-1. For "**Step 8. Build the Project**" just click "ctrl+shift+b" in vscode. The default build task should do its thing.
-1. For "**Step 9. Flash onto the Device**" the default build task should have already done this for you! The build task also runs `putty.exe` to open up a serial monitor, so I recommend installing putty on Windows and adding it to the PATH. I've found the baud 2000000 is the fastest it will program at, but you may need to slow it down in `burn-dbg.sh`
+## Configuring VSCode
+
+For all OSes, I recommend using the Visual Studio Code IDE and the [Espressif Extension](https://marketplace.visualstudio.com/items?itemName=espressif.esp-idf-extension).
+
+If you've already configured your environment, which you should have, then when setting up the extension for the first time, point the extension at the existing IDF and tools rather than installing new ones. Remember that the IDF should exist in `$HOME/esp/esp-idf` and the tools should exist in `$HOME/.espressif/`
 
 ## Troubleshooting
 
 Reread the [Get Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/get-started/index.html), then google your issue, then ask me about it. All troubleshooting issues should be written down here for posterity.
+
+If VSCode isn't finding IDF symbols, try running the `export` script from a terminal, then launching `code` from that same session.
 
 ## Tips
 
