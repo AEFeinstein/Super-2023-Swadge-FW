@@ -78,15 +78,17 @@ bool deinitSpiffs(void)
  * @return true 
  * @return false 
  */
-bool spiffsTest(void)
+bool spiffsReadFile(char * fname)
 {
-    // Read and display the contents of a small text file (hello.txt)
-    spiffs_printf("Reading text.txt\n");
+    // Read and display the contents of a small text file
+    spiffs_printf("Reading %s\n", fname);
 
-    // Open for reading text.txt
-    FILE* f = fopen("/spiffs/text.txt", "r");
+    // Open for reading the given file
+    char fnameFull[128] = "/spiffs/";
+    strcat(fnameFull, fname);
+    FILE* f = fopen(fnameFull, "r");
     if (f == NULL) {
-        spiffs_printf("Failed to open text.txt\n");
+        spiffs_printf("Failed to open %s\n", fnameFull);
         return false;
     }
 
@@ -96,14 +98,22 @@ bool spiffsTest(void)
     fseek(f, 0L, SEEK_SET);
 
     // Read the file into an array
-    char buf[sz];
+    char buf[sz + 1];
     memset(buf, 0, sizeof(buf));
     fread(buf, sz, 1, f);
+    buf[sz] = 0;
 
     // Close the file
     fclose(f);
 
     // Display the read contents from the file
-    spiffs_printf("Read from text.txt: %ld bytes: %s\n", sz, buf);
+    spiffs_printf("Read from %s: %ld bytes: %s\n", fname, sz, buf);
+    return true;
+}
+
+bool spiffsTest(void)
+{
+    spiffsReadFile("text.txt");
+    spiffsReadFile("autogen.txt");
     return true;
 }
