@@ -4,35 +4,35 @@ Intro text to come later
 
 ## Configuring Your Environment
 
-I recommend following [the official ESP32-C3 Get Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/get-started/index.html).
+I recommend reading through [the official ESP32-C3 Get Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/get-started/index.html), but always doing setup and installation via a terminal.
 
 For all OSes, I recommend setting up native tools.
 
 As of writing, this project requires a modified IDF which can be found at https://github.com/AEFeinstein/esp-idf.git. Do not `git clone` Espressif's official IDF. The modifications add support for USB HID device mode and more TFT driver chips.
 
-- Windows (Powershell)
-    ```
-    mkdir $HOME/esp
-    cd $HOME/esp
-    git clone --recursive https://github.com/AEFeinstein/esp-idf.git
-    cd $HOME/esp/esp-idf
-    ./install.ps1
-    ./export.ps1
-    ```
-- Linux
-    ```
-    mkdir $HOME/esp
-    cd $HOME/esp
-    git clone --recursive https://github.com/AEFeinstein/esp-idf.git
-    cd $HOME/esp/esp-idf
-    git submodule update --init --recursive
-    ./install.sh
-    . ./export.sh
-    ```
-- Mac OS
-    ```
-    TBD
-    ```
+### Windows (Powershell)
+```
+mkdir $HOME/esp
+cd $HOME/esp
+git clone --recursive https://github.com/AEFeinstein/esp-idf.git
+cd $HOME/esp/esp-idf
+./install.ps1
+./export.ps1
+```
+### Linux
+```
+mkdir $HOME/esp
+cd $HOME/esp
+git clone --recursive https://github.com/AEFeinstein/esp-idf.git
+cd $HOME/esp/esp-idf
+git submodule update --init --recursive
+./install.sh
+. ./export.sh
+```
+### Mac OS
+```
+TBD
+```
 
 ## Building and Flashing
 
