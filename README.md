@@ -8,7 +8,7 @@ I recommend following [the official ESP32-C3 Get Started Guide](https://docs.esp
 
 For all OSes, I recommend setting up native tools.
 
-As of writing, this project requires a modified IDF which can be found at [https://github.com/AEFeinstein/esp-idf.git]. Do not `git clone` Espressif's official IDF. The modifications add support for USB HID device mode and more TFT driver chips.
+As of writing, this project requires a modified IDF which can be found at https://github.com/AEFeinstein/esp-idf.git. Do not `git clone` Espressif's official IDF. The modifications add support for USB HID device mode and more TFT driver chips.
 
 - Windows (Powershell)
     ```
