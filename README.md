@@ -11,46 +11,47 @@ For all OSes, I recommend setting up native tools.
 As of writing, this project requires a modified IDF which can be found at [https://github.com/AEFeinstein/esp-idf.git]. Do not `git clone` Espressif's official IDF. The modifications add support for USB HID device mode and more TFT driver chips.
 
 - Windows (Powershell)
-```
-mkdir $HOME/esp
-cd $HOME/esp
-git clone --recursive https://github.com/AEFeinstein/esp-idf.git
-cd $HOME/esp/esp-idf
-./install.ps1
-./export.ps1
-```
+    ```
+    mkdir $HOME/esp
+    cd $HOME/esp
+    git clone --recursive https://github.com/AEFeinstein/esp-idf.git
+    cd $HOME/esp/esp-idf
+    ./install.ps1
+    ./export.ps1
+    ```
 - Linux
-```
-mkdir $HOME/esp
-cd $HOME/esp
-git clone --recursive https://github.com/AEFeinstein/esp-idf.git
-cd $HOME/esp/esp-idf
-git submodule update --init --recursive
-./install.sh
-. ./export.sh
-```
+    ```
+    mkdir $HOME/esp
+    cd $HOME/esp
+    git clone --recursive https://github.com/AEFeinstein/esp-idf.git
+    cd $HOME/esp/esp-idf
+    git submodule update --init --recursive
+    ./install.sh
+    . ./export.sh
+    ```
 - Mac OS
-```
-TBD
-```
+    ```
+    TBD
+    ```
 
 ## Building and Flashing
 
-1. Make sure the IDF symbols are exported. This example is for Windows, so the actual command may be different for your OS
-```
-cd $HOME/esp/esp-idf
-./export.ps1
-```
-1. Clone this repository
-```
-cd $HOME
-git clone https://github.com/AEFeinstein/esp32-c3-playground.git
-cd esp32-c3-playground
-```
-1. Build, flash, and monitor with a single command. Note in this example the ESP is connected to `COM8`, and the serial port will likely be different on your system
-```
-idf.py -p COM8 -b 2000000 build flash monitor
-```
+1. Make sure the IDF symbols are exported. This example is for Windows, so the actual command may be different for your OS.
+    ```
+    cd $HOME/esp/esp-idf
+    ./export.ps1
+    ```
+1. Clone this repository.
+    ```
+    cd $HOME
+    git clone https://github.com/AEFeinstein/esp32-c3-playground.git
+    cd esp32-c3-playground
+    ```
+1. Build, flash, and monitor with a single command. Note in this example the ESP is connected to `COM8`, and the serial port will likely be different on your system.
+    ```
+    idf.py -p COM8 -b 2000000 build flash monitor
+    ```
+1. Close the monitor with `ctrl` + `]`
 
 ## Configuring VSCode
 
