@@ -1,0 +1,3 @@
+[submodule "spiffs_file_preprocessor/qoi"]
+	path = spiffs_file_preprocessor/qoi
+	url = https://github.com/phoboslab/qoi.git
