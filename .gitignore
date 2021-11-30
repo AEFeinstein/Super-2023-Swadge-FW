@@ -56,3 +56,4 @@ build
 sdkconfig.old
 *.log
 spiffs_image/autogen.txt
+spiffs_file_preprocessor/test.png
