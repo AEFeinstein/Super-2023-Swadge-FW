@@ -1,6 +1,3 @@
-[submodule "spiffs_file_preprocessor/qoi"]
-	path = spiffs_file_preprocessor/qoi
-	url = https://github.com/phoboslab/qoi.git
 [submodule "spiffs_file_preprocessor/zopfli"]
 	path = spiffs_file_preprocessor/zopfli
 	url = https://github.com/google/zopfli.git
