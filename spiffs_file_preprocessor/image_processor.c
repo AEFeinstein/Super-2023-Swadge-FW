@@ -9,8 +9,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-#define QOI_IMPLEMENTATION
-#include "qoi.h"
+#include "zopflipng_lib.h"
 
 #include "spiffs_file_preprocessor.h"
 #include "image_processor.h"
@@ -218,66 +217,116 @@ void process_image(const char *infile, const char *outdir)
 			}
 		}
 
-		/* Write QOI */
-		qoi_desc qd =
-		{
-			.width = (unsigned int)w,
-			.height = (unsigned int)h,
-			.channels = 4,
-			.colorspace = QOI_SRGB
-		};
-		qoi_write("test.qoi", pixBuf, &qd);
-
 		/* Write PNG */
+		// TODO write to internal bytes
 		stbi_write_png_compression_level = 16;
 		stbi_write_png("test.png", w, h, 4, pixBuf, w * 4);
 
-		/* Write custom BMP
-		 * Open the output file
-		 */
+		/* Read PNG bytes */
+		// TODO read from internal bytes
+		size_t pre_zopfli_sz = getFileSize("test.png");
+		unsigned char pre_zopfli[pre_zopfli_sz];
+
+		FILE *zopfliIn = fopen("test.png", "rb");
+		fread(pre_zopfli, pre_zopfli_sz, 1, zopfliIn);
+		fclose(zopfliIn);
+
+		/* Set up zopfli defaults */
+		// --iterations=500 --filters=01234mepb --lossy_8bit --lossy_transparent
+		enum ZopfliPNGFilterStrategy filters[] =
+		{
+			kStrategyZero,
+			kStrategyOne,
+			kStrategyTwo,
+			kStrategyThree,
+			kStrategyFour,
+			kStrategyMinSum,
+			kStrategyEntropy,
+			kStrategyPredefined,
+			kStrategyBruteForce
+		};
+		CZopfliPNGOptions zopfliOpts =
+		{
+			.lossy_transparent = true,
+			.lossy_8bit = true,
+			.filter_strategies = filters,
+			.num_filter_strategies = sizeof(filters) / sizeof(filters[0]),
+			.auto_filter_strategy = false,
+			.keepchunks = NULL,
+			.num_keepchunks = 0,
+			.use_zopfli = true,
+			.num_iterations = 500,
+			.num_iterations_large = 500,
+			.block_split_strategy = 0,
+		};
+
+		/* Compress as best as we can */
+		unsigned char *resultpng;
+		size_t resultpng_size;
+		CZopfliPNGOptimize(pre_zopfli,
+						   pre_zopfli_sz,
+						   &zopfliOpts,
+						   1, // int verbose,
+						   &resultpng,
+						   &resultpng_size);
+
+		/* Write zopfli compressed png to a file */
 		char outFilePath[128] = {0};
 		strcat(outFilePath, outdir);
 		strcat(outFilePath, "/");
 		strcat(outFilePath, get_filename(infile));
-		FILE *fp = fopen(outFilePath, "wb+");
+		FILE *zopfliOut = fopen(outFilePath, "wb+");
+		fwrite(resultpng, resultpng_size, 1, zopfliOut);
+		fclose(zopfliOut);
 
-		/* Write the output dimensions */
-		putc(HI_BYTE(w), fp);
-		putc(LO_BYTE(w), fp);
-		putc(HI_BYTE(h), fp);
-		putc(LO_BYTE(h), fp);
+		/* free zopfli memory */
+		free(resultpng);
 
-		/* Write the output pixels */
-		for (int y = 0; y < h; y++)
-		{
-			for (int x = 0; x < w; x++)
-			{
-				uint16_t rgb555 = ((image16b[y][x].r & 0x1F) << 10) |
-								  ((image16b[y][x].g & 0x1F) <<  5) |
-								  ((image16b[y][x].b & 0x1F) <<  0);
-				if (image16b[y][x].a < 0x0F)
-				{
-					rgb555 |= 0x8000;
-				}
-				putc(HI_BYTE(rgb555), fp);
-				putc(LO_BYTE(rgb555), fp);
-			}
-		}
+		// /* Write custom BMP */
+		// char outFilePath[128] = {0};
+		// strcat(outFilePath, outdir);
+		// strcat(outFilePath, "/");
+		// strcat(outFilePath, get_filename(infile));
+		// FILE *fp = fopen(outFilePath, "wb+");
 
-		/* Close the file */
-		fclose(fp);
+		// /* Write the output dimensions */
+		// putc(HI_BYTE(w), fp);
+		// putc(LO_BYTE(w), fp);
+		// putc(HI_BYTE(h), fp);
+		// putc(LO_BYTE(h), fp);
 
-		/* Free memory */
+		// /* Write the output pixels */
+		// for (int y = 0; y < h; y++)
+		// {
+		// 	for (int x = 0; x < w; x++)
+		// 	{
+		// 		uint16_t rgb555 = ((image16b[y][x].r & 0x1F) << 10) |
+		// 						  ((image16b[y][x].g & 0x1F) <<  5) |
+		// 						  ((image16b[y][x].b & 0x1F) <<  0);
+		// 		if (image16b[y][x].a < 0x0F)
+		// 		{
+		// 			rgb555 |= 0x8000;
+		// 		}
+		// 		putc(HI_BYTE(rgb555), fp);
+		// 		putc(LO_BYTE(rgb555), fp);
+		// 	}
+		// }
+
+		// /* Close the file */
+		// fclose(fp);
+
+		/* Free dithering memory */
 		for (int y = 0; y < h; y++)
 		{
 			free(image16b[y]);
 		}
 		free(image16b);
+
+		/* Free stbi memory */
 		stbi_image_free(data);
 
 		printf("Source file size: %ld\n", getFileSize(infile));
-		printf("QOI file size: %ld\n", getFileSize("test.qoi"));
 		printf("STBI file size: %ld\n", getFileSize("test.png"));
-		printf("BMP file size: %ld\n", getFileSize(outFilePath));
+		printf("Zopfli file size: %ld\n", getFileSize(outFilePath));
 	}
 }

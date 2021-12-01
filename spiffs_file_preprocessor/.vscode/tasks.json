@@ -19,7 +19,8 @@
             "label": "clean",
             "type": "shell",
             "command": "make clean",
-            "group": "none"
+            "group": "none",
+            "problemMatcher": []
         }
     ]
 }

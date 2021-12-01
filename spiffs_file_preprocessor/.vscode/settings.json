@@ -3,6 +3,7 @@
         "image_processor.h": "c",
         "spiffs_file_preprocessor.h": "c",
         "stb_image.h": "c",
-        "qoi.h": "c"
+        "qoi.h": "c",
+        "zopflipng_lib.h": "c"
     }
 }
