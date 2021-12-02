@@ -30,5 +30,6 @@ typedef union {
 void initTFT(spi_host_device_t spiHost, gpio_num_t sclk, gpio_num_t mosi,
              gpio_num_t dc, gpio_num_t cs, gpio_num_t rst, gpio_num_t backlight);
 void draw_frame(void);
+void drawPng(tft_pixel_t * png, uint16_t w, uint16_t h, uint16_t xOff, uint16_t yOff);
 
 #endif

@@ -37,28 +37,28 @@
 
 /* Screen-specific configurations */
 #if defined(CONFIG_ST7735_160x80)
-	#define LCD_PIXEL_CLOCK_HZ (40 * 1000*1000)
-	#define X_OFFSET            1
-	#define Y_OFFSET           26
-	#define SWAP_XY          true
-	#define MIRROR_X        false
-	#define MIRROR_Y         true
+#define LCD_PIXEL_CLOCK_HZ (40 * 1000*1000)
+#define X_OFFSET            1
+#define Y_OFFSET           26
+#define SWAP_XY          true
+#define MIRROR_X        false
+#define MIRROR_Y         true
 #elif defined(CONFIG_ST7789_240x135)
-	#define LCD_PIXEL_CLOCK_HZ (80 * 1000 * 1000)
-	#define X_OFFSET           40
-	#define Y_OFFSET           52
-	#define SWAP_XY          true
-	#define MIRROR_X        false
-	#define MIRROR_Y         true
+#define LCD_PIXEL_CLOCK_HZ (80 * 1000 * 1000)
+#define X_OFFSET           40
+#define Y_OFFSET           52
+#define SWAP_XY          true
+#define MIRROR_X        false
+#define MIRROR_Y         true
 #elif defined(CONFIG_ST7789_240x240)
-	#define LCD_PIXEL_CLOCK_HZ (80 * 1000 * 1000)
-	#define X_OFFSET            0
-	#define Y_OFFSET            0
-	#define SWAP_XY         false
-	#define MIRROR_X        false
-	#define MIRROR_Y        false
+#define LCD_PIXEL_CLOCK_HZ (80 * 1000 * 1000)
+#define X_OFFSET            0
+#define Y_OFFSET            0
+#define SWAP_XY         false
+#define MIRROR_X        false
+#define MIRROR_Y        false
 #else
-	#error "Please pick a screen size"
+#error "Please pick a screen size"
 #endif
 
 //==============================================================================
@@ -72,6 +72,26 @@ static uint16_t *s_lines[2] = {0};
 //==============================================================================
 // Functions
 //==============================================================================
+
+/**
+ * @brief TODO
+ *
+ * @param png
+ * @param w
+ * @param h
+ * @param xOff
+ * @param yOff
+ */
+void drawPng(tft_pixel_t * png, uint16_t w, uint16_t h, uint16_t xOff, uint16_t yOff)
+{
+    for(int y = 0; y < h; y++)
+    {
+        for(int x = 0; x < w; x++)
+        {
+            pixels[y + yOff][x + xOff] = png[(y * w) + x];
+        }
+    }
+}
 
 /**
  * @brief TODO
@@ -95,49 +115,49 @@ void hsv2rgb(uint16_t h, float s, float v, tft_pixel_t *px)
 
     switch (i)
     {
-		case 0:
-		{
-			px->c.r = v * 0x1F;
-			px->c.g = t * 0x3F;
-			px->c.b = p * 0x1F;
-			break;
-		}
-		case 1:
-		{
-			px->c.r = q * 0x1F;
-			px->c.g = v * 0x3F;
-			px->c.b = p * 0x1F;
-			break;
-		}
-		case 2:
-		{
-			px->c.r = p * 0x1F;
-			px->c.g = v * 0x3F;
-			px->c.b = t * 0x1F;
-			break;
-		}
-		case 3:
-		{
-			px->c.r = p * 0x1F;
-			px->c.g = q * 0x3F;
-			px->c.b = v * 0x1F;
-			break;
-		}
-		case 4:
-		{
-			px->c.r = t * 0x1F;
-			px->c.g = p * 0x3F;
-			px->c.b = v * 0x1F;
-			break;
-		}
-		case 5:
-		default:
-		{
-			px->c.r = v * 0x1F;
-			px->c.g = p * 0x3F;
-			px->c.b = q * 0x1F;
-			break;
-		}
+    case 0:
+    {
+        px->c.r = v * 0x1F;
+        px->c.g = t * 0x3F;
+        px->c.b = p * 0x1F;
+        break;
+    }
+    case 1:
+    {
+        px->c.r = q * 0x1F;
+        px->c.g = v * 0x3F;
+        px->c.b = p * 0x1F;
+        break;
+    }
+    case 2:
+    {
+        px->c.r = p * 0x1F;
+        px->c.g = v * 0x3F;
+        px->c.b = t * 0x1F;
+        break;
+    }
+    case 3:
+    {
+        px->c.r = p * 0x1F;
+        px->c.g = q * 0x3F;
+        px->c.b = v * 0x1F;
+        break;
+    }
+    case 4:
+    {
+        px->c.r = t * 0x1F;
+        px->c.g = p * 0x3F;
+        px->c.b = v * 0x1F;
+        break;
+    }
+    case 5:
+    default:
+    {
+        px->c.r = v * 0x1F;
+        px->c.g = p * 0x3F;
+        px->c.b = q * 0x1F;
+        break;
+    }
     }
 }
 
@@ -204,7 +224,7 @@ void initTFT(spi_host_device_t spiHost, gpio_num_t sclk, gpio_num_t mosi,
 #elif defined(CONFIG_ST7789_240x135) || defined(CONFIG_ST7789_240x240)
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_config, &panel_handle));
 #else
-	#error "Please pick a screen size"
+#error "Please pick a screen size"
 #endif
 
     // Turn off backlight to avoid unpredictable display on the LCD screen while initializing
@@ -269,7 +289,7 @@ void draw_frame(void)
         int sending_line = 0;
         int calc_line = 0;
 
-		static int xOffset=0, yOffset=0;
+        static int xOffset=0, yOffset=0;
 
         // Send the frame, ping ponging the send buffer
         for (int y = 0; y < TFT_HEIGHT; y += PARALLEL_LINES)
@@ -293,8 +313,8 @@ void draw_frame(void)
                                       s_lines[sending_line]);
         }
 
-		xOffset = (xOffset + 1) % TFT_WIDTH;
-		yOffset = (yOffset + 1) % TFT_HEIGHT;
+        xOffset = (xOffset + 1) % TFT_WIDTH;
+        yOffset = (yOffset + 1) % TFT_HEIGHT;
 
         framesDrawn++;
         if (framesDrawn == 120)

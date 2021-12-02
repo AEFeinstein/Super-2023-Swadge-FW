@@ -254,7 +254,7 @@ void mainSwadgeTask(void * arg)
         touchPadSensitivities, true, TOUCH_PAD_MAX);
 
     /* Initialize i2c peripherals */
-#define I2C_ENABLED
+// #define I2C_ENABLED
 #ifdef I2C_ENABLED
     i2c_master_init(GPIO_NUM_5, GPIO_NUM_6, GPIO_PULLUP_DISABLE, 1000000);
     initOLED(true); // TODO reset GPIO in arg?
@@ -301,6 +301,10 @@ void mainSwadgeTask(void * arg)
 #ifdef TEST_SPIFFS
     spiffsTest();
 #endif
+    tft_pixel_t * dq = NULL;
+    uint16_t w=0, h=0;
+    loadPng("dq.png", &dq, &w, &h);
+    drawPng(dq, w, h, 0, 0);
 
     /* Enter the swadge mode */
     snakeMode.fnEnterMode();

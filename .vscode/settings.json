@@ -40,7 +40,11 @@
         "gpio.h": "c",
         "freertos.h": "c",
         "cstdio": "c",
-        "fstream": "c"
+        "fstream": "c",
+        "image_processor.h": "c",
+        "stb_image.h": "c",
+        "stdbool.h": "c",
+        "xiosbase": "c"
     },
     "python.pythonPath": "/usr/bin/python"
 }
