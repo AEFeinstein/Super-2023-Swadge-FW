@@ -301,7 +301,7 @@ void mainSwadgeTask(void * arg)
 #ifdef TEST_SPIFFS
     spiffsTest();
 #endif
-    tft_pixel_t * dq = NULL;
+    rgba_pixel_t * dq = NULL;
     uint16_t w=0, h=0;
     loadPng("dq.png", &dq, &w, &h);
     drawPng(dq, w, h, 0, 0);

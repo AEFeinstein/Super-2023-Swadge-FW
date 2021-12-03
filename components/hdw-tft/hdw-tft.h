@@ -20,16 +20,21 @@
 
 typedef union {
     struct __attribute__((packed)) {
-        unsigned int r:5;
-        unsigned int g:6;
-        unsigned int b:5;
+        uint8_t r:5;
+        uint8_t g:6;
+        uint8_t b:5;
     } c;
     uint16_t val;
-} tft_pixel_t;
+} rgb_pixel_t;
+
+typedef struct __attribute__((packed)) {
+    rgb_pixel_t rgb;
+    uint8_t a;
+} rgba_pixel_t;
 
 void initTFT(spi_host_device_t spiHost, gpio_num_t sclk, gpio_num_t mosi,
              gpio_num_t dc, gpio_num_t cs, gpio_num_t rst, gpio_num_t backlight);
 void draw_frame(void);
-void drawPng(tft_pixel_t * png, uint16_t w, uint16_t h, uint16_t xOff, uint16_t yOff);
+void drawPng(rgba_pixel_t * png, uint16_t w, uint16_t h, uint16_t xOff, uint16_t yOff);
 
 #endif

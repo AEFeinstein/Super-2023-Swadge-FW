@@ -132,7 +132,7 @@ bool spiffsTest(void)
     return true;
 }
 
-tft_pixel_t ** g_pxOut;
+rgba_pixel_t ** g_pxOut;
 uint16_t * g_w;
 uint16_t * g_h;
 
@@ -153,12 +153,13 @@ void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t 
         *g_w = pngle_get_width(pngle);
         *g_h = pngle_get_height(pngle);
 
-        *g_pxOut = (tft_pixel_t*)malloc(sizeof(tft_pixel_t) * (*g_w) * (*g_h));
+        *g_pxOut = (rgba_pixel_t*)malloc(sizeof(rgba_pixel_t) * (*g_w) * (*g_h));
     }
 
-    (*g_pxOut)[((y * (*g_w)) + x)].c.r = (127 + (rgba[2] * 31)) / 255;
-    (*g_pxOut)[((y * (*g_w)) + x)].c.g = (127 + (rgba[1] * 63)) / 255;
-    (*g_pxOut)[((y * (*g_w)) + x)].c.b = (127 + (rgba[0] * 31)) / 255;
+    (*g_pxOut)[((y * (*g_w)) + x)].a = rgba[3];
+    (*g_pxOut)[((y * (*g_w)) + x)].rgb.c.r = (127 + (rgba[2] * 31)) / 255;
+    (*g_pxOut)[((y * (*g_w)) + x)].rgb.c.g = (127 + (rgba[1] * 63)) / 255;
+    (*g_pxOut)[((y * (*g_w)) + x)].rgb.c.b = (127 + (rgba[0] * 31)) / 255;
 }
 
 /**
@@ -171,7 +172,7 @@ void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t 
  * @return true
  * @return false
  */
-bool loadPng(char * name, tft_pixel_t ** pxOut, uint16_t * w, uint16_t * h)
+bool loadPng(char * name, rgba_pixel_t ** pxOut, uint16_t * w, uint16_t * h)
 {
     if(NULL != *pxOut)
     {

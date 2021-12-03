@@ -7,6 +7,6 @@
 bool initSpiffs(void);
 bool deinitSpiffs(void);
 bool spiffsTest(void);
-bool loadPng(char * name, tft_pixel_t ** pxOut, uint16_t * w, uint16_t * h);
+bool loadPng(char * name, rgba_pixel_t ** pxOut, uint16_t * w, uint16_t * h);
 
 #endif
