@@ -92,12 +92,15 @@ void process_font(const char *infile, const char *outdir)
     *(strrchr(outFilePath, '.')) = 0;
     FILE *fp = fopen(outFilePath, "wb+");
 
+    int charsWritten = 0;
+
     /* Write the output height, excluding spacing row */
     putc(h - 2, fp);
 
     /* Start scanning the PNG for charcters */
     int charStartX = 0;
     int charEndX = 0;
+    bool isCountingChar = false;
     char ch = ' ';
     for(int x = 0; x < w; x++)
     {
@@ -106,18 +109,21 @@ void process_font(const char *infile, const char *outdir)
         case 0: {
             /* black px */
             charEndX = x;
+            isCountingChar = true;
             break;
         }
         default: {
             /* white px (not black) */
-            if(charStartX != charEndX)
+            if(isCountingChar)
             {
                 appendCharToFile(fp, data, w, h, charStartX, charEndX);
+                charsWritten++;
                 /* Increment the char (dbg) */
                 ch++;
             }
             charStartX = x + 1;
             charEndX = x + 1;
+            isCountingChar = false;
             break;
         }
         }
@@ -127,6 +133,13 @@ void process_font(const char *infile, const char *outdir)
     if(charStartX != charEndX)
     {
         appendCharToFile(fp, data, w, h, charStartX, charEndX);
+        charsWritten++;
+    }
+
+    /* Error check */
+    if(95 != charsWritten)
+    {
+        fprintf(stderr, "ERROR: font %s isnt 95 chars (%d chars)\n", infile, charsWritten);
     }
 
     /* Cleanup */
