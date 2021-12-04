@@ -1,4 +1,4 @@
-SRC_FILES = spiffs_file_preprocessor.c image_processor.c
+SRC_FILES = spiffs_file_preprocessor.c image_processor.c font_processor.c
 CFLAGS = -Wall -Wextra -Wno-missing-field-initializers -g -std=c++98
 INC_FLAGS = -I. -I./zopfli/src/zopflipng/
 LIB_FLAGS = -L./zopfli/ -lm -lzopflipng -lzopfli
