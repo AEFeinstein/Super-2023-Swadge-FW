@@ -55,6 +55,5 @@ dkms.conf
 build
 sdkconfig.old
 *.log
-spiffs_image/autogen.txt
-spiffs_file_preprocessor/test.png
-spiffs_file_preprocessor/test.qoi
+spiffs_image/*.png
+spiffs_image/*.font

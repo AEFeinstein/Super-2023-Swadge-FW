@@ -44,7 +44,8 @@
         "image_processor.h": "c",
         "stb_image.h": "c",
         "stdbool.h": "c",
-        "xiosbase": "c"
+        "xiosbase": "c",
+        "hdw-tft.h": "c"
     },
     "python.pythonPath": "/usr/bin/python"
 }

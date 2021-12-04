@@ -193,7 +193,7 @@ void app_main(void)
 
     // Create a task for the swadge, then return
     TaskHandle_t xHandle = NULL;
-    xTaskCreate(mainSwadgeTask, "SWADGE", 4096, NULL, tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, xHandle);
+    xTaskCreate(mainSwadgeTask, "SWADGE", 8192, NULL, tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, xHandle);
 }
 
 /**
@@ -251,7 +251,7 @@ void mainSwadgeTask(void * arg)
     touch_pad_t touchPads[] = {TOUCH_PAD_NUM12};
     float touchPadSensitivities[] = {0.2f};
     initTouchSensor(sizeof(touchPads) / sizeof(touchPads[0]), touchPads,
-        touchPadSensitivities, true, TOUCH_PAD_MAX);
+                    touchPadSensitivities, true, TOUCH_PAD_MAX);
 
     /* Initialize i2c peripherals */
 // #define I2C_ENABLED
@@ -301,10 +301,38 @@ void mainSwadgeTask(void * arg)
 #ifdef TEST_SPIFFS
     spiffsTest();
 #endif
+
     rgba_pixel_t * dq = NULL;
     uint16_t w=0, h=0;
     loadPng("dq.png", &dq, &w, &h);
     drawPng(dq, w, h, 0, 0);
+
+    font_t tom_thumb;
+    loadFont("tom_thumb.font", &tom_thumb);
+    font_t ibm_vga8;
+    loadFont("ibm_vga8.font", &ibm_vga8);
+    font_t radiostars;
+    loadFont("radiostars.font", &radiostars);
+
+    rgba_pixel_t textColor = {
+        .a = 0xFF,
+        .rgb.c.r = 0x00,
+        .rgb.c.g = 0x00,
+        .rgb.c.b = 0x00,
+    };
+
+    textColor.rgb.c.r = 0x1F;
+    drawText(&textColor, "hello TFT", &tom_thumb, 10, 64);
+    textColor.rgb.c.r = 0x00;
+    textColor.rgb.c.g = 0x3F;
+    drawText(&textColor, "hello TFT", &ibm_vga8, 10, 84);
+    textColor.rgb.c.g = 0x00;
+    textColor.rgb.c.b = 0x1F;
+    drawText(&textColor, "hello TFT", &radiostars, 10, 104);
+
+    freeFont(&tom_thumb);
+    freeFont(&ibm_vga8);
+    freeFont(&radiostars);
 
     /* Enter the swadge mode */
     snakeMode.fnEnterMode();

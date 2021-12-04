@@ -79,7 +79,7 @@ bool deinitSpiffs(void)
  * @return true
  * @return false
  */
-bool spiffsReadFile(char * fname, uint8_t ** output, size_t * outsize)
+bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
 {
     if(NULL != *output)
     {
@@ -125,10 +125,6 @@ bool spiffsTest(void)
     free(buf);
     buf = NULL;
 
-    spiffsReadFile("autogen.txt", &buf, &sz);
-    free(buf);
-    buf = NULL;
-
     return true;
 }
 
@@ -138,13 +134,13 @@ uint16_t * g_h;
 
 /**
  * @brief TODO
- * 
- * @param pngle 
- * @param x 
- * @param y 
- * @param w 
- * @param h 
- * @param rgba 
+ *
+ * @param pngle
+ * @param x
+ * @param y
+ * @param w
+ * @param h
+ * @param rgba
  */
 void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t rgba[4])
 {
@@ -156,10 +152,10 @@ void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t 
         *g_pxOut = (rgba_pixel_t*)malloc(sizeof(rgba_pixel_t) * (*g_w) * (*g_h));
     }
 
-    (*g_pxOut)[((y * (*g_w)) + x)].a = rgba[3];
-    (*g_pxOut)[((y * (*g_w)) + x)].rgb.c.r = (127 + (rgba[2] * 31)) / 255;
+    (*g_pxOut)[((y * (*g_w)) + x)].rgb.c.r = (127 + (rgba[0] * 31)) / 255;
     (*g_pxOut)[((y * (*g_w)) + x)].rgb.c.g = (127 + (rgba[1] * 63)) / 255;
-    (*g_pxOut)[((y * (*g_w)) + x)].rgb.c.b = (127 + (rgba[0] * 31)) / 255;
+    (*g_pxOut)[((y * (*g_w)) + x)].rgb.c.b = (127 + (rgba[2] * 31)) / 255;
+    (*g_pxOut)[((y * (*g_w)) + x)].a = rgba[3];
 }
 
 /**
@@ -198,4 +194,61 @@ bool loadPng(char * name, rgba_pixel_t ** pxOut, uint16_t * w, uint16_t * h)
     free(buf);
 
     return true;
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param name 
+ * @param font 
+ * @return true 
+ * @return false 
+ */
+bool loadFont(const char * name, font_t * font)
+{
+    // Read font from file
+    uint8_t * buf = NULL;
+    size_t bufIdx = 0;
+    size_t sz;
+    spiffsReadFile(name, &buf, &sz);
+
+    // Read the data into a font struct
+    font->h = buf[bufIdx++];
+
+    // Read each char
+    for(char ch = ' '; ch <= '~'; ch++)
+    {
+        // Get an easy refence to this character
+        font_ch_t * this = &font->chars[ch - ' '];
+
+        // Read the width
+        this->w = buf[bufIdx++];
+
+        // Figure out what size the char is
+        int pixels = font->h * this->w;
+        int bytes = (pixels / 8) + ((pixels % 8 == 0) ? 0 : 1);
+
+        // Allocate space for this char and copy it over
+        this->bitmap = (uint8_t *) malloc(sizeof(uint8_t) * bytes);
+        memcpy(this->bitmap, &buf[bufIdx], bytes);
+        bufIdx += bytes;
+    }
+
+    // Free the SPIFFS data
+    free(buf);
+
+    return true;
+}
+
+/**
+ * @brief TODO
+ *
+ * @param font
+ */
+void freeFont(font_t * font)
+{
+    for(char ch = ' '; ch <= '~'; ch++)
+    {
+        free(font->chars[ch - ' '].bitmap);
+    }
 }
