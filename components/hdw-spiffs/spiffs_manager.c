@@ -117,18 +117,6 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
     return true;
 }
 
-bool spiffsTest(void)
-{
-    uint8_t * buf = NULL;
-    size_t sz;
-
-    spiffsReadFile("text.txt", &buf, &sz);
-    free(buf);
-    buf = NULL;
-
-    return true;
-}
-
 /**
  * @brief
  *
@@ -158,7 +146,7 @@ bool loadPng(char * name, rgba_pixel_t ** pxOut, uint16_t * w, uint16_t * h)
     // Validate the format
     if(UPNG_RGB8 != format && UPNG_RGBA8 != format)
     {
-        ESP_LOGE("SPIFFS", "Invalid PNG format %s", name);
+        ESP_LOGE("SPIFFS", "Invalid PNG format %s (%d)", name, format);
         return false;
     }
 

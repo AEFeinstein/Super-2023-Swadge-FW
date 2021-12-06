@@ -48,7 +48,6 @@
 // #define TEST_LEDS
 // #define TEST_NVR
 // #define TEST_OLED
-#define TEST_SPIFFS
 // #define TEST_TEMPERATURE
 
 #define MAIN_DEBUG_PRINT
@@ -296,10 +295,6 @@ void mainSwadgeTask(void * arg)
     led_t leds[NUM_LEDS] = {0};
     int16_t pxidx = 0;
     uint16_t hue = 0;
-#endif
-
-#ifdef TEST_SPIFFS
-    spiffsTest();
 #endif
 
     rgba_pixel_t * dq = NULL;

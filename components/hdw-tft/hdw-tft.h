@@ -20,9 +20,9 @@
 
 typedef union {
     struct __attribute__((packed)) {
-        uint8_t b:5;
-        uint8_t g:6;
-        uint8_t r:5;
+        uint16_t b:5;
+        uint16_t g:6;
+        uint16_t r:5;
     } c;
     uint16_t val;
 } rgb_pixel_t;
