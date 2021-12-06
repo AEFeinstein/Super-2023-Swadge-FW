@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <limits.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -121,11 +123,49 @@ long getFileSize(const char *fname)
 /**
  * @brief TODO
  *
+ * @param fname
+ * @return true
+ * @return false
+ */
+bool doesFileExist(const char *fname)
+{
+	int fd = open(fname, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+	if (fd < 0)
+	{
+		/* failure */
+		if (errno == EEXIST)
+		{
+			/* the file already existed */
+			close(fd);
+			return true;
+		}
+	}
+
+	/* File does not exist */
+	close(fd);
+	return false;
+}
+
+/**
+ * @brief TODO
+ *
  * @param infile
  * @param outdir
  */
 void process_image(const char *infile, const char *outdir)
 {
+	/* Determine if the output file already exists */
+	char outFilePath[128] = {0};
+	strcat(outFilePath, outdir);
+	strcat(outFilePath, "/");
+	strcat(outFilePath, get_filename(infile));
+
+	if(doesFileExist(outFilePath))
+	{
+		printf("Output for %s already exists\n", infile);
+		return;
+	}
+
 	/* Load the source PNG */
 	int w,h,n;
 	unsigned char *data = stbi_load(infile, &w, &h, &n, 4);
@@ -274,10 +314,6 @@ void process_image(const char *infile, const char *outdir)
 						   &resultpng_size);
 
 		/* Write zopfli compressed png to a file */
-		char outFilePath[128] = {0};
-		strcat(outFilePath, outdir);
-		strcat(outFilePath, "/");
-		strcat(outFilePath, get_filename(infile));
 		FILE *zopfliOut = fopen(outFilePath, "wb+");
 		fwrite(resultpng, resultpng_size, 1, zopfliOut);
 		fclose(zopfliOut);
