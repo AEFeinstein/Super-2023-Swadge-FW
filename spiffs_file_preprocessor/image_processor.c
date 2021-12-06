@@ -295,6 +295,7 @@ void process_image(const char *infile, const char *outdir)
 			.filter_strategies = filters,
 			.num_filter_strategies = sizeof(filters) / sizeof(filters[0]),
 			.auto_filter_strategy = false,
+			.keep_colortype = true,
 			.keepchunks = NULL,
 			.num_keepchunks = 0,
 			.use_zopfli = true,
