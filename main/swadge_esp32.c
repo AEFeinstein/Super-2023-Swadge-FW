@@ -193,7 +193,7 @@ void app_main(void)
 
     // Create a task for the swadge, then return
     TaskHandle_t xHandle = NULL;
-    xTaskCreate(mainSwadgeTask, "SWADGE", 8192, NULL, tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, xHandle);
+    xTaskCreate(mainSwadgeTask, "SWADGE", 16384, NULL, tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, xHandle);
 }
 
 /**

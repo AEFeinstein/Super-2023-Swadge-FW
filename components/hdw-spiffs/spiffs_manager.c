@@ -4,7 +4,8 @@
 #include "esp_err.h"
 #include "esp_spiffs.h"
 #include "spiffs_manager.h"
-#include "pngle.h"
+#include "upng.h"
+#include "spiffs_config.h"
 
 #define SPIFFS_DEBUG_PRINT
 #ifdef SPIFFS_DEBUG_PRINT
@@ -128,36 +129,6 @@ bool spiffsTest(void)
     return true;
 }
 
-rgba_pixel_t ** g_pxOut;
-uint16_t * g_w;
-uint16_t * g_h;
-
-/**
- * @brief TODO
- *
- * @param pngle
- * @param x
- * @param y
- * @param w
- * @param h
- * @param rgba
- */
-void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t rgba[4])
-{
-    if(NULL == *g_pxOut)
-    {
-        *g_w = pngle_get_width(pngle);
-        *g_h = pngle_get_height(pngle);
-
-        *g_pxOut = (rgba_pixel_t*)malloc(sizeof(rgba_pixel_t) * (*g_w) * (*g_h));
-    }
-
-    (*g_pxOut)[((y * (*g_w)) + x)].rgb.c.r = (127 + (rgba[0] * 31)) / 255;
-    (*g_pxOut)[((y * (*g_w)) + x)].rgb.c.g = (127 + (rgba[1] * 63)) / 255;
-    (*g_pxOut)[((y * (*g_w)) + x)].rgb.c.b = (127 + (rgba[2] * 31)) / 255;
-    (*g_pxOut)[((y * (*g_w)) + x)].a = rgba[3];
-}
-
 /**
  * @brief
  *
@@ -170,39 +141,61 @@ void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t 
  */
 bool loadPng(char * name, rgba_pixel_t ** pxOut, uint16_t * w, uint16_t * h)
 {
-    if(NULL != *pxOut)
+    // Concatenate the file name
+    char fnameFull[128] = "/spiffs/";
+    strcat(fnameFull, name);
+
+    // Read the PNG from the file
+    upng_t * png = upng_new_from_file(fnameFull);
+    upng_decode(png);
+
+    // Local variables for PNG metadata
+    unsigned int width  = upng_get_width(png);
+    unsigned int height = upng_get_height(png);
+    unsigned int depth  = upng_get_bpp(png) / 8;
+    upng_format format  = upng_get_format(png);
+
+    // Validate the format
+    if(UPNG_RGB8 != format && UPNG_RGBA8 != format)
     {
+        ESP_LOGE("SPIFFS", "Invalid PNG format %s", name);
         return false;
     }
 
-    // Read PNG from file
-    uint8_t * buf = NULL;
-    size_t sz;
-    spiffsReadFile(name, &buf, &sz);
+    // Return data through parameters
+    *w = width;
+    *h = height;
+    (*pxOut) = (rgba_pixel_t*)malloc(sizeof(rgba_pixel_t) * width * height);
 
-    // save global vars
-    g_w = w;
-    g_h = h;
-    g_pxOut = pxOut;
+    // Convert the PNG to 565 color
+    for(int y = 0; y < height; y++)
+    {
+        for(int x = 0; x < width; x++)
+        {
+            (*pxOut)[(y * width) + x].rgb.c.r = (127 + (upng_get_buffer(png)[depth * ((y * width) + x) + 0]) * 31) / 255;
+            (*pxOut)[(y * width) + x].rgb.c.g = (127 + (upng_get_buffer(png)[depth * ((y * width) + x) + 1]) * 63) / 255;
+            (*pxOut)[(y * width) + x].rgb.c.b = (127 + (upng_get_buffer(png)[depth * ((y * width) + x) + 2]) * 31) / 255;
+            if(UPNG_RGBA8 == format)
+            {
+                (*pxOut)[(y * width) + x].a = upng_get_buffer(png)[depth * ((y * width) + x) + 3];
+            }
+        }
+    }
 
-    // Decode the PNG
-    pngle_t *pngle = pngle_new();
-    pngle_set_draw_callback(pngle, pngle_on_draw);
-    pngle_feed(pngle, buf, sz);
-    pngle_destroy(pngle);
+    // Free the upng data
+    upng_free(png);
 
-    free(buf);
-
+    // All done
     return true;
 }
 
 /**
  * @brief TODO
- * 
- * @param name 
- * @param font 
- * @return true 
- * @return false 
+ *
+ * @param name
+ * @param font
+ * @return true
+ * @return false
  */
 bool loadFont(const char * name, font_t * font)
 {
