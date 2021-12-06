@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <time.h>
+#include <limits.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -125,6 +126,7 @@ long getFileSize(const char *fname)
  */
 void process_image(const char *infile, const char *outdir)
 {
+	/* Load the source PNG */
 	int w,h,n;
 	unsigned char *data = stbi_load(infile, &w, &h, &n, 4);
 
@@ -159,15 +161,15 @@ void process_image(const char *infile, const char *outdir)
 			unsigned char sourceB = data[(y * (w * 4)) + (x * 4) + 2];
 			unsigned char sourceA = data[(y * (w * 4)) + (x * 4) + 3];
 
-			/* Find the quantized value, use rounding, 5 bits per channel */
+			/* Find the bit-reduced value, use rounding, 5655 for RGBA */
 			image16b[y][x].r = (127 + ((sourceR + image16b[y][x].eR) * 31)) / 255;
-			image16b[y][x].g = (127 + ((sourceG + image16b[y][x].eG) * 31)) / 255;
+			image16b[y][x].g = (127 + ((sourceG + image16b[y][x].eG) * 63)) / 255;
 			image16b[y][x].b = (127 + ((sourceB + image16b[y][x].eB) * 31)) / 255;
 			image16b[y][x].a = (127 + ((sourceA + image16b[y][x].eA) * 31)) / 255;
 
 			/* Find the total error, 8 bits per channel */
 			int teR = sourceR - ((image16b[y][x].r * 255) / 31);
-			int teG = sourceG - ((image16b[y][x].g * 255) / 31);
+			int teG = sourceG - ((image16b[y][x].g * 255) / 63);
 			int teB = sourceB - ((image16b[y][x].b * 255) / 31);
 			int teA = sourceA - ((image16b[y][x].a * 255) / 31);
 
@@ -203,6 +205,9 @@ void process_image(const char *infile, const char *outdir)
 			image16b[y][x].isDrawn = true;
 		}
 
+		/* Free stbi memory */
+		stbi_image_free(data);
+
 		/* Convert to a pixel buffer */
 		unsigned char pixBuf[w*h*4];
 		int pixBufIdx = 0;
@@ -211,25 +216,23 @@ void process_image(const char *infile, const char *outdir)
 			for (int x = 0; x < w; x++)
 			{
 				pixBuf[pixBufIdx++] = (image16b[y][x].r * 255) / 31;
-				pixBuf[pixBufIdx++] = (image16b[y][x].g * 255) / 31;
+				pixBuf[pixBufIdx++] = (image16b[y][x].g * 255) / 63;
 				pixBuf[pixBufIdx++] = (image16b[y][x].b * 255) / 31;
 				pixBuf[pixBufIdx++] = (image16b[y][x].a * 255) / 31;
 			}
 		}
 
-		/* Write PNG */
-		// TODO write to internal bytes
-		stbi_write_png_compression_level = 16;
-		stbi_write_png("test.png", w, h, 4, pixBuf, w * 4);
+		/* Free dithering memory */
+		for (int y = 0; y < h; y++)
+		{
+			free(image16b[y]);
+		}
+		free(image16b);
 
-		/* Read PNG bytes */
-		// TODO read from internal bytes
-		size_t pre_zopfli_sz = getFileSize("test.png");
-		unsigned char pre_zopfli[pre_zopfli_sz];
-
-		FILE *zopfliIn = fopen("test.png", "rb");
-		fread(pre_zopfli, pre_zopfli_sz, 1, zopfliIn);
-		fclose(zopfliIn);
+		/* Write PNG to RAM */
+		stbi_write_png_compression_level = INT_MAX;
+		int pngOutLen = 0;
+		const unsigned char *pngBytes = stbi_write_png_to_mem(pixBuf, w * 4, w, h, 4, &pngOutLen);
 
 		/* Set up zopfli defaults */
 		// --iterations=500 --filters=01234mepb --lossy_8bit --lossy_transparent
@@ -263,8 +266,8 @@ void process_image(const char *infile, const char *outdir)
 		/* Compress as best as we can */
 		unsigned char *resultpng;
 		size_t resultpng_size;
-		CZopfliPNGOptimize(pre_zopfli,
-						   pre_zopfli_sz,
+		CZopfliPNGOptimize(pngBytes,
+						   pngOutLen,
 						   &zopfliOpts,
 						   1, // int verbose,
 						   &resultpng,
@@ -282,51 +285,11 @@ void process_image(const char *infile, const char *outdir)
 		/* free zopfli memory */
 		free(resultpng);
 
-		// /* Write custom BMP */
-		// char outFilePath[128] = {0};
-		// strcat(outFilePath, outdir);
-		// strcat(outFilePath, "/");
-		// strcat(outFilePath, get_filename(infile));
-		// FILE *fp = fopen(outFilePath, "wb+");
-
-		// /* Write the output dimensions */
-		// putc(HI_BYTE(w), fp);
-		// putc(LO_BYTE(w), fp);
-		// putc(HI_BYTE(h), fp);
-		// putc(LO_BYTE(h), fp);
-
-		// /* Write the output pixels */
-		// for (int y = 0; y < h; y++)
-		// {
-		// 	for (int x = 0; x < w; x++)
-		// 	{
-		// 		uint16_t rgb555 = ((image16b[y][x].r & 0x1F) << 10) |
-		// 						  ((image16b[y][x].g & 0x1F) <<  5) |
-		// 						  ((image16b[y][x].b & 0x1F) <<  0);
-		// 		if (image16b[y][x].a < 0x0F)
-		// 		{
-		// 			rgb555 |= 0x8000;
-		// 		}
-		// 		putc(HI_BYTE(rgb555), fp);
-		// 		putc(LO_BYTE(rgb555), fp);
-		// 	}
-		// }
-
-		// /* Close the file */
-		// fclose(fp);
-
-		/* Free dithering memory */
-		for (int y = 0; y < h; y++)
-		{
-			free(image16b[y]);
-		}
-		free(image16b);
-
-		/* Free stbi memory */
-		stbi_image_free(data);
-
-		printf("Source file size: %ld\n", getFileSize(infile));
-		printf("STBI file size: %ld\n", getFileSize("test.png"));
-		printf("Zopfli file size: %ld\n", getFileSize(outFilePath));
+		/* Print results */
+		printf("%s:\n  Source file size: %ld\n  STBI   file size: %d\n  Zopfli file size: %ld\n",
+			   infile,
+			   getFileSize(infile),
+			   pngOutLen,
+			   getFileSize(outFilePath));
 	}
 }
