@@ -302,6 +302,17 @@ void mainSwadgeTask(void * arg)
     loadPng("dq.png", &dq, &w, &h);
     drawPng(dq, w, h, 0, 0);
 
+    rgba_pixel_t* megaman[9];
+    loadPng("run-1.png", &megaman[0], &w, &h);
+    loadPng("run-2.png", &megaman[1], &w, &h);
+    loadPng("run-3.png", &megaman[2], &w, &h);
+    loadPng("run-4.png", &megaman[3], &w, &h);
+    loadPng("run-5.png", &megaman[4], &w, &h);
+    loadPng("run-6.png", &megaman[5], &w, &h);
+    loadPng("run-7.png", &megaman[6], &w, &h);
+    loadPng("run-8.png", &megaman[7], &w, &h);
+    loadPng("run-9.png", &megaman[8], &w, &h);
+
     font_t tom_thumb;
     loadFont("tom_thumb.font", &tom_thumb);
     font_t ibm_vga8;
@@ -344,11 +355,22 @@ void mainSwadgeTask(void * arg)
             main_printf("loop\n");
         }
 
+        uint64_t megaTimeUs = esp_timer_get_time();
+        static uint64_t lastMega = 0;
+        if(megaTimeUs - lastMega >= 100000)
+        {
+            lastMega = megaTimeUs;
+            static int megaIdx = 0;
+            clearTFT();
+            drawPng(megaman[megaIdx], w, h, 50, 50);
+            megaIdx = (megaIdx + 1) % 9;
+        }
+
         /* Twice a second push out some USB data */
         uint64_t usbTimeUs = esp_timer_get_time();
         static uint64_t lastUsb = 0;
         /* Don't send until USB is ready */
-        if(tud_ready() && usbTimeUs - lastUsb >= 500000)
+        if(tud_ready() && usbTimeUs - lastUsb >= 250000)
         {
             lastUsb = usbTimeUs;
 

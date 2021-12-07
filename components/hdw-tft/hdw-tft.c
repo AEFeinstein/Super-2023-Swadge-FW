@@ -75,6 +75,15 @@ static uint16_t *s_lines[2] = {0};
 
 /**
  * @brief TODO
+ * 
+ */
+void clearTFT(void)
+{
+    memset(&(pixels[0][0]), 0, sizeof(rgb_pixel_t) * TFT_HEIGHT * TFT_WIDTH);
+}
+
+/**
+ * @brief TODO
  *
  * @param png
  * @param w
@@ -368,8 +377,6 @@ void draw_frame(void)
         int sending_line = 0;
         int calc_line = 0;
 
-        static int xOffset=0, yOffset=0;
-
         // Send the frame, ping ponging the send buffer
         for (int y = 0; y < TFT_HEIGHT; y += PARALLEL_LINES)
         {
@@ -379,7 +386,7 @@ void draw_frame(void)
             {
                 for (int x = 0; x < TFT_WIDTH; x++)
                 {
-                    s_lines[calc_line][destIdx++] = SWAP(pixels[(yp + yOffset) % TFT_HEIGHT][(x + xOffset) % TFT_WIDTH].val);
+                    s_lines[calc_line][destIdx++] = SWAP(pixels[yp][x].val);
                 }
             }
 
@@ -391,9 +398,6 @@ void draw_frame(void)
                                       TFT_WIDTH, y + PARALLEL_LINES,
                                       s_lines[sending_line]);
         }
-
-        xOffset = (xOffset + 1) % TFT_WIDTH;
-        yOffset = (yOffset + 1) % TFT_HEIGHT;
 
         framesDrawn++;
         if (framesDrawn == 120)
