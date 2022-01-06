@@ -260,7 +260,13 @@ void mainSwadgeTask(void * arg)
     QMA6981_setup();
 #endif
 
-    initTFT(SPI2_HOST, GPIO_NUM_38, GPIO_NUM_37, GPIO_NUM_36, GPIO_NUM_39, GPIO_NUM_40, GPIO_NUM_41);
+    initTFT(SPI2_HOST,
+            GPIO_NUM_37,  // sclk
+            GPIO_NUM_38,  // mosi
+            GPIO_NUM_41,  // dc
+            GPIO_NUM_39,  // cs
+            GPIO_NUM_40,  // rst
+            GPIO_NUM_42); // backlight
 
     /* the configuration using default values */
     tinyusb_config_t tusb_cfg = {};

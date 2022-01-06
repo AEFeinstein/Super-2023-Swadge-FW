@@ -47,5 +47,4 @@
         "xiosbase": "c",
         "hdw-tft.h": "c"
     },
-    "python.pythonPath": "/usr/bin/python"
 }
