@@ -62,6 +62,12 @@
 #endif
 
 //==============================================================================
+// Prototypes
+//==============================================================================
+
+void drawPxTft(int16_t x, int16_t y, rgba_pixel_t px);
+
+//==============================================================================
 // Variables
 //==============================================================================
 
@@ -80,105 +86,6 @@ static uint16_t *s_lines[2] = {0};
 void clearTFT(void)
 {
     memset(&(pixels[0][0]), 0, sizeof(rgb_pixel_t) * TFT_HEIGHT * TFT_WIDTH);
-}
-
-/**
- * @brief TODO
- *
- * @param png
- * @param w
- * @param h
- * @param xOff
- * @param yOff
- */
-void drawPng(rgba_pixel_t *png, uint16_t w, uint16_t h, uint16_t xOff, uint16_t yOff)
-{
-    for (int y = 0; y < h; y++)
-    {
-        for (int x = 0; x < w; x++)
-        {
-            if (png[(y * w) + x].a)
-            {
-                pixels[y + yOff][x + xOff] = png[(y * w) + x].rgb;
-            }
-        }
-    }
-}
-
-/**
- * @brief TODO
- *
- * @param color
- * @param h
- * @param ch
- * @param xOff
- * @param yOff
- */
-void drawChar(rgba_pixel_t * color, uint16_t h, font_ch_t * ch, uint16_t xOff, uint16_t yOff)
-{
-    uint16_t byteIdx = 0;
-    uint8_t bitIdx = 0;
-    // Iterate over the character bitmap
-    for (int y = 0; y < h; y++)
-    {
-        for (int x = 0; x < ch->w; x++)
-        {
-            // Figure out where to draw
-            int drawX = x + xOff;
-            int drawY = y + yOff;
-            // If there is a pixel
-            if (ch->bitmap[byteIdx] & (1 << bitIdx))
-            {
-                // Draw the pixel, but only if it's on screen
-                if(0 <= drawY && drawY < TFT_HEIGHT &&
-                        0 <= drawX && drawX < TFT_WIDTH)
-                {
-                    pixels[drawY][drawX] = color->rgb;
-                }
-            }
-
-            // Iterate over the bit data
-            bitIdx++;
-            if(8 == bitIdx) {
-                bitIdx = 0;
-                byteIdx++;
-            }
-        }
-    }
-}
-
-/**
- * @brief TODO
- *
- * @param color
- * @param text
- * @param font
- * @param xOff
- * @param yOff
- */
-void drawText(rgba_pixel_t * color, const char * text, font_t * font, uint16_t xOff, uint16_t yOff)
-{
-    while(*text != 0)
-    {
-        if(xOff >= TFT_WIDTH)
-        {
-            // Off screen right, finish drawing
-            break;
-        }
-        else
-        {
-            // Only draw if the char is on the screen
-            if (xOff + font->chars[(*text) - ' '].w >= 0)
-            {
-                // Draw char
-                drawChar(color, font->h, &font->chars[(*text) - ' '], xOff, yOff);
-            }
-
-            // Move to the next char
-            xOff += (font->chars[(*text) - ' '].w + 1);
-            text++;
-        }
-    }
 }
 
 /**
@@ -251,17 +158,19 @@ void hsv2rgb(uint16_t h, float s, float v, rgb_pixel_t *px)
 
 /**
  * @brief TODO
- *
- * @param spiHost
- * @param sclk
- * @param mosi
- * @param dc
- * @param cs
- * @param rst
- * @param backlight
+ * 
+ * @param disp 
+ * @param spiHost 
+ * @param sclk 
+ * @param mosi 
+ * @param dc 
+ * @param cs 
+ * @param rst 
+ * @param backlight 
  */
-void initTFT(spi_host_device_t spiHost, gpio_num_t sclk, gpio_num_t mosi,
-             gpio_num_t dc, gpio_num_t cs, gpio_num_t rst, gpio_num_t backlight)
+void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
+            gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
+            gpio_num_t backlight)
 {
     gpio_config_t bk_gpio_config =
     {
@@ -348,6 +257,24 @@ void initTFT(spi_host_device_t spiHost, gpio_num_t sclk, gpio_num_t mosi,
             hsv2rgb((x * 360) / TFT_WIDTH, y / (float)(TFT_HEIGHT-1), 1, &pixels[y][x]);
         }
     }
+
+    disp->h = TFT_HEIGHT;
+    disp->w = TFT_WIDTH;
+    disp->drawPx = drawPxTft;
+}
+
+/**
+ * @brief TODO
+ * 
+ * TODO handle transparency
+ * 
+ * @param x 
+ * @param y 
+ * @param px 
+ */
+void drawPxTft(int16_t x, int16_t y, rgba_pixel_t px)
+{
+    pixels[y][x] = px.rgb;
 }
 
 /**

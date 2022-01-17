@@ -1,6 +1,5 @@
-idf_component_register(SRCS "swadge_esp32.c" "modes/mode_snake.c"
-                    INCLUDE_DIRS "." "../components/hdw-buzzer/" "../components/hdw-qma6981/" "../components/hdw-oled/" "modes")
-
+idf_component_register(SRCS "swadge_esp32.c" "display/display.c" "display/bresenham.c" "display/upng.c"
+                    INCLUDE_DIRS "." "../components/hdw-buzzer/" "../components/hdw-qma6981/" "../components/hdw-oled/" "modes" "display")
 
 function(spiffs_file_preprocessor)
     add_custom_target(spiffs_preprocessor ALL

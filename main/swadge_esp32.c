@@ -36,7 +36,8 @@
 #include "p2pConnection.h"
 
 #include "swadgeMode.h"
-#include "mode_snake.h"
+
+#include "display.h"
 
 /******************************************************************************/
 // Defines
@@ -260,7 +261,9 @@ void mainSwadgeTask(void * arg)
     QMA6981_setup();
 #endif
 
-    initTFT(SPI2_HOST,
+    display_t tftDisp;
+    initTFT(&tftDisp,
+            SPI2_HOST,
             GPIO_NUM_37,  // sclk
             GPIO_NUM_38,  // mosi
             GPIO_NUM_41,  // dc
@@ -303,21 +306,20 @@ void mainSwadgeTask(void * arg)
     uint16_t hue = 0;
 #endif
 
-    rgba_pixel_t * dq = NULL;
-    uint16_t w=0, h=0;
-    loadPng("dq.png", &dq, &w, &h);
-    drawPng(dq, w, h, 0, 0);
+    png_t dq;
+    loadPng("dq.png", &dq);
+    drawPng(&tftDisp, &dq, 0, 0);
 
-    rgba_pixel_t* megaman[9];
-    loadPng("run-1.png", &megaman[0], &w, &h);
-    loadPng("run-2.png", &megaman[1], &w, &h);
-    loadPng("run-3.png", &megaman[2], &w, &h);
-    loadPng("run-4.png", &megaman[3], &w, &h);
-    loadPng("run-5.png", &megaman[4], &w, &h);
-    loadPng("run-6.png", &megaman[5], &w, &h);
-    loadPng("run-7.png", &megaman[6], &w, &h);
-    loadPng("run-8.png", &megaman[7], &w, &h);
-    loadPng("run-9.png", &megaman[8], &w, &h);
+    png_t megaman[9];
+    loadPng("run-1.png", &megaman[0]);
+    loadPng("run-2.png", &megaman[1]);
+    loadPng("run-3.png", &megaman[2]);
+    loadPng("run-4.png", &megaman[3]);
+    loadPng("run-5.png", &megaman[4]);
+    loadPng("run-6.png", &megaman[5]);
+    loadPng("run-7.png", &megaman[6]);
+    loadPng("run-8.png", &megaman[7]);
+    loadPng("run-9.png", &megaman[8]);
 
     font_t tom_thumb;
     loadFont("tom_thumb.font", &tom_thumb);
@@ -334,20 +336,20 @@ void mainSwadgeTask(void * arg)
     };
 
     textColor.rgb.c.r = 0x1F;
-    drawText(&textColor, "hello TFT", &tom_thumb, 10, 64);
+    drawText(&tftDisp, &tom_thumb, textColor, "hello TFT", 10, 64);
     textColor.rgb.c.r = 0x00;
     textColor.rgb.c.g = 0x3F;
-    drawText(&textColor, "hello TFT", &ibm_vga8, 10, 84);
+    drawText(&tftDisp, &ibm_vga8, textColor, "hello TFT", 10, 84);
     textColor.rgb.c.g = 0x00;
     textColor.rgb.c.b = 0x1F;
-    drawText(&textColor, "hello TFT", &radiostars, 10, 104);
+    drawText(&tftDisp, &radiostars, textColor, "hello TFT", 10, 104);
 
     freeFont(&tom_thumb);
     freeFont(&ibm_vga8);
     freeFont(&radiostars);
 
     /* Enter the swadge mode */
-    snakeMode.fnEnterMode();
+    // snakeMode.fnEnterMode();
 
     /* Loop forever! */
     while(1)
@@ -368,7 +370,7 @@ void mainSwadgeTask(void * arg)
             lastMega = megaTimeUs;
             static int megaIdx = 0;
             clearTFT();
-            drawPng(megaman[megaIdx], w, h, 50, 50);
+            drawPng(&tftDisp, &megaman[megaIdx], 50, 50);
             megaIdx = (megaIdx + 1) % 9;
         }
 
@@ -476,20 +478,20 @@ void mainSwadgeTask(void * arg)
             lastAccelPrint = cTimeUs;
             main_printf("%4d %4d %4d\n", accel.x, accel.y, accel.z);
         }
-        if(NULL != snakeMode.fnAccelerometerCallback)
-        {
-            snakeMode.fnAccelerometerCallback(&accel);
-        }
+        // if(NULL != snakeMode.fnAccelerometerCallback)
+        // {
+        //     snakeMode.fnAccelerometerCallback(&accel);
+        // }
 #endif
 
         // Process button presses
         buttonEvt_t bEvt = {0};
         if(checkButtonQueue(&bEvt))
         {
-            if(NULL != snakeMode.fnButtonCallback)
-            {
-                snakeMode.fnButtonCallback(bEvt.state, bEvt.button, bEvt.down);
-            }
+            // if(NULL != snakeMode.fnButtonCallback)
+            // {
+            //     snakeMode.fnButtonCallback(bEvt.state, bEvt.button, bEvt.down);
+            // }
         }
 
         checkTouchSensor();
@@ -506,10 +508,10 @@ void mainSwadgeTask(void * arg)
             int64_t tElapsedUs = tNowUs - tLastCallUs;
             tLastCallUs = tNowUs;
 
-            if(NULL != snakeMode.fnMainLoop)
-            {
-                snakeMode.fnMainLoop(tElapsedUs);
-            }
+            // if(NULL != snakeMode.fnMainLoop)
+            // {
+            //     snakeMode.fnMainLoop(tElapsedUs);
+            // }
         }
 
         // Update outputs

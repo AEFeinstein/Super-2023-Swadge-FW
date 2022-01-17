@@ -20,7 +20,7 @@
 
 // #define assert(x) if(false == (x)) {  return;  }
 
-void plotLine(int x0, int y0, int x1, int y1, color col)
+void plotLine(display_t * disp, int x0, int y0, int x1, int y1, rgba_pixel_t col)
 {
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
@@ -28,7 +28,7 @@ void plotLine(int x0, int y0, int x1, int y1, color col)
 
     for (;;)   /* loop */
     {
-        drawPixel(x0, y0, col);
+        disp->drawPx(x0, y0, col);
         e2 = 2 * err;
         if (e2 >= dy)   /* e_xy+e_x > 0 */
         {
@@ -51,27 +51,27 @@ void plotLine(int x0, int y0, int x1, int y1, color col)
     }
 }
 
-void plotRect(int x0, int y0, int x1, int y1, color col)
+void plotRect(display_t * disp, int x0, int y0, int x1, int y1, rgba_pixel_t col)
 {
     // Vertical lines
-    plotLine(x0, y0, x0, y1, col);
-    plotLine(x1, y0, x1, y1, col);
+    plotLine(disp, x0, y0, x0, y1, col);
+    plotLine(disp, x1, y0, x1, y1, col);
     // Horizontal lines
-    plotLine(x0, y0, x1, y0, col);
-    plotLine(x0, y1, x1, y1, col);
+    plotLine(disp, x0, y0, x1, y0, col);
+    plotLine(disp, x0, y1, x1, y1, col);
 }
 
-void plotEllipse(int xm, int ym, int a, int b, color col)
+void plotEllipse(display_t * disp, int xm, int ym, int a, int b, rgba_pixel_t col)
 {
     int x = -a, y = 0; /* II. quadrant from bottom left to top right */
     long e2 = (long) b * b, err = (long) x * (2 * e2 + x) + e2; /* error of 1.step */
 
     do
     {
-        drawPixel(xm - x, ym + y, col); /*   I. Quadrant */
-        drawPixel(xm + x, ym + y, col); /*  II. Quadrant */
-        drawPixel(xm + x, ym - y, col); /* III. Quadrant */
-        drawPixel(xm - x, ym - y, col); /*  IV. Quadrant */
+        disp->drawPx(xm - x, ym + y, col); /*   I. Quadrant */
+        disp->drawPx(xm + x, ym + y, col); /*  II. Quadrant */
+        disp->drawPx(xm + x, ym - y, col); /* III. Quadrant */
+        disp->drawPx(xm - x, ym - y, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 >= (x * 2 + 1) * (long) b * b) /* e_xy+e_x > 0 */
         {
@@ -85,12 +85,12 @@ void plotEllipse(int xm, int ym, int a, int b, color col)
 
     while (y++ < b)   /* too early stop of flat ellipses a=1, */
     {
-        drawPixel(xm, ym + y, col); /* -> finish tip of ellipse */
-        drawPixel(xm, ym - y, col);
+        disp->drawPx(xm, ym + y, col); /* -> finish tip of ellipse */
+        disp->drawPx(xm, ym - y, col);
     }
 }
 
-void plotOptimizedEllipse(int xm, int ym, int a, int b, color col)
+void plotOptimizedEllipse(display_t * disp, int xm, int ym, int a, int b, rgba_pixel_t col)
 {
     long x = -a, y = 0; /* II. quadrant from bottom left to top right */
     long e2 = b, dx = (1 + 2 * x) * e2 * e2; /* error increment  */
@@ -98,10 +98,10 @@ void plotOptimizedEllipse(int xm, int ym, int a, int b, color col)
 
     do
     {
-        drawPixel(xm - x, ym + y, col); /*   I. Quadrant */
-        drawPixel(xm + x, ym + y, col); /*  II. Quadrant */
-        drawPixel(xm + x, ym - y, col); /* III. Quadrant */
-        drawPixel(xm - x, ym - y, col); /*  IV. Quadrant */
+        disp->drawPx(xm - x, ym + y, col); /*   I. Quadrant */
+        disp->drawPx(xm + x, ym + y, col); /*  II. Quadrant */
+        disp->drawPx(xm + x, ym - y, col); /* III. Quadrant */
+        disp->drawPx(xm - x, ym - y, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 >= dx)
         {
@@ -117,20 +117,20 @@ void plotOptimizedEllipse(int xm, int ym, int a, int b, color col)
 
     while (y++ < b)   /* too early stop for flat ellipses with a=1, */
     {
-        drawPixel(xm, ym + y, col); /* -> finish tip of ellipse */
-        drawPixel(xm, ym - y, col);
+        disp->drawPx(xm, ym + y, col); /* -> finish tip of ellipse */
+        disp->drawPx(xm, ym - y, col);
     }
 }
 
-void plotCircle(int xm, int ym, int r, color col)
+void plotCircle(display_t * disp, int xm, int ym, int r, rgba_pixel_t col)
 {
     int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
     do
     {
-        drawPixel(xm - x, ym + y, col); /*   I. Quadrant +x +y */
-        drawPixel(xm - y, ym - x, col); /*  II. Quadrant -x +y */
-        drawPixel(xm + x, ym - y, col); /* III. Quadrant -x -y */
-        drawPixel(xm + y, ym + x, col); /*  IV. Quadrant +x -y */
+        disp->drawPx(xm - x, ym + y, col); /*   I. Quadrant +x +y */
+        disp->drawPx(xm - y, ym - x, col); /*  II. Quadrant -x +y */
+        disp->drawPx(xm + x, ym - y, col); /* III. Quadrant -x -y */
+        disp->drawPx(xm + y, ym + x, col); /*  IV. Quadrant +x -y */
         r = err;
         if (r <= y)
         {
@@ -143,8 +143,8 @@ void plotCircle(int xm, int ym, int r, color col)
     } while (x < 0);
 }
 
-void plotEllipseRect(int x0, int y0, int x1,
-                     int y1, color col)   /* rectangular parameter enclosing the ellipse */
+void plotEllipseRect(display_t * disp, int x0, int y0, int x1,
+                     int y1, rgba_pixel_t col)   /* rectangular parameter enclosing the ellipse */
 {
     long a = abs(x1 - x0), b = abs(y1 - y0), b1 = b & 1; /* diameter */
     double dx = 4 * (1.0 - a) * b * b, dy = 4 * (b1 + 1) * a * a; /* error increment */
@@ -166,10 +166,10 @@ void plotEllipseRect(int x0, int y0, int x1,
 
     do
     {
-        drawPixel(x1, y0, col); /*   I. Quadrant */
-        drawPixel(x0, y0, col); /*  II. Quadrant */
-        drawPixel(x0, y1, col); /* III. Quadrant */
-        drawPixel(x1, y1, col); /*  IV. Quadrant */
+        disp->drawPx(x1, y0, col); /*   I. Quadrant */
+        disp->drawPx(x0, y0, col); /*  II. Quadrant */
+        disp->drawPx(x0, y1, col); /* III. Quadrant */
+        disp->drawPx(x1, y1, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 <= dy)
         {
@@ -187,15 +187,15 @@ void plotEllipseRect(int x0, int y0, int x1,
 
     while (y0 - y1 <= b)   /* too early stop of flat ellipses a=1 */
     {
-        drawPixel(x0 - 1, y0, col); /* -> finish tip of ellipse */
-        drawPixel(x1 + 1, y0++, col);
-        drawPixel(x0 - 1, y1, col);
-        drawPixel(x1 + 1, y1--, col);
+        disp->drawPx(x0 - 1, y0, col); /* -> finish tip of ellipse */
+        disp->drawPx(x1 + 1, y0++, col);
+        disp->drawPx(x0 - 1, y1, col);
+        disp->drawPx(x1 + 1, y1--, col);
     }
 }
 
-void plotQuadBezierSeg(int x0, int y0, int x1, int y1, int x2,
-                       int y2, color col)   /* plot a limited quadratic Bezier segment */
+void plotQuadBezierSeg(display_t * disp, int x0, int y0, int x1, int y1, int x2,
+                       int y2, rgba_pixel_t col)   /* plot a limited quadratic Bezier segment */
 {
     int sx = x2 - x1, sy = y2 - y1;
     long xx = x0 - x1, yy = y0 - y1, xy; /* relative values for checks */
@@ -234,7 +234,7 @@ void plotQuadBezierSeg(int x0, int y0, int x1, int y1, int x2,
         err = dx + dy + xy; /* error 1st step */
         do
         {
-            drawPixel(x0, y0, col); /* plot curve */
+            disp->drawPx(x0, y0, col); /* plot curve */
             if (x0 == x2 && y0 == y2)
             {
                 return;    /* last pixel -> curve finished */
@@ -254,11 +254,11 @@ void plotQuadBezierSeg(int x0, int y0, int x1, int y1, int x2,
             } /* y step */
         } while (dy < 0 && dx > 0); /* gradient negates -> algorithm fails */
     }
-    plotLine(x0, y0, x2, y2, col); /* plot remaining part to end */
+    plotLine(disp, x0, y0, x2, y2, col); /* plot remaining part to end */
 }
 
-void plotQuadBezier(int x0, int y0, int x1, int y1, int x2,
-                    int y2, color col)   /* plot any quadratic Bezier curve */
+void plotQuadBezier(display_t * disp, int x0, int y0, int x1, int y1, int x2,
+                    int y2, rgba_pixel_t col)   /* plot any quadratic Bezier curve */
 {
     int x = x0 - x1, y = y0 - y1;
     double t = x0 - 2 * x1 + x2, r;
@@ -279,7 +279,7 @@ void plotQuadBezier(int x0, int y0, int x1, int y1, int x2,
         x = floor(t + 0.5);
         y = floor(r + 0.5);
         r = (y1 - y0) * (t - x0) / (x1 - x0) + y0; /* intersect P3 | P0 P1 */
-        plotQuadBezierSeg(x0, y0, x, floor(r + 0.5), x, y, col);
+        plotQuadBezierSeg(disp, x0, y0, x, floor(r + 0.5), x, y, col);
         r = (y1 - y2) * (t - x2) / (x1 - x2) + y2; /* intersect P4 | P1 P2 */
         x0 = x1 = x;
         y0 = y;
@@ -294,17 +294,17 @@ void plotQuadBezier(int x0, int y0, int x1, int y1, int x2,
         x = floor(r + 0.5);
         y = floor(t + 0.5);
         r = (x1 - x0) * (t - y0) / (y1 - y0) + x0; /* intersect P6 | P0 P1 */
-        plotQuadBezierSeg(x0, y0, floor(r + 0.5), y, x, y, col);
+        plotQuadBezierSeg(disp, x0, y0, floor(r + 0.5), y, x, y, col);
         r = (x1 - x2) * (t - y2) / (y1 - y2) + x2; /* intersect P7 | P1 P2 */
         x0 = x;
         x1 = floor(r + 0.5);
         y0 = y1 = y; /* P0 = P6, P1 = P7 */
     }
-    plotQuadBezierSeg(x0, y0, x1, y1, x2, y2, col); /* remaining part */
+    plotQuadBezierSeg(disp, x0, y0, x1, y1, x2, y2, col); /* remaining part */
 }
 
-void plotQuadRationalBezierSeg(int x0, int y0, int x1, int y1, int x2, int y2,
-                               float w, color col)   /* plot a limited rational Bezier segment, squared weight */
+void plotQuadRationalBezierSeg(display_t * disp, int x0, int y0, int x1, int y1, int x2, int y2,
+                               float w, rgba_pixel_t col)   /* plot a limited rational Bezier segment, squared weight */
 {
     int sx = x2 - x1, sy = y2 - y1; /* relative values for checks */
     double dx = x0 - x2, dy = y0 - y2, xx = x0 - x1, yy = y0 - y1;
@@ -347,16 +347,16 @@ void plotQuadRationalBezierSeg(int x0, int y0, int x1, int y1, int x2, int y2,
             sy = floor((y0 + 2.0 * w * y1 + y2) * xy / 2.0 + 0.5);
             dx = floor((w * x1 + x0) * xy + 0.5);
             dy = floor((y1 * w + y0) * xy + 0.5);
-            plotQuadRationalBezierSeg(x0, y0, dx, dy, sx, sy, cur, col);/* plot separately */
+            plotQuadRationalBezierSeg(disp, x0, y0, dx, dy, sx, sy, cur, col);/* plot separately */
             dx = floor((w * x1 + x2) * xy + 0.5);
             dy = floor((y1 * w + y2) * xy + 0.5);
-            plotQuadRationalBezierSeg(sx, sy, dx, dy, x2, y2, cur, col);
+            plotQuadRationalBezierSeg(disp, sx, sy, dx, dy, x2, y2, cur, col);
             return;
         }
         err = dx + dy - xy; /* error 1.step */
         do
         {
-            drawPixel(x0, y0, col); /* plot curve */
+            disp->drawPx(x0, y0, col); /* plot curve */
             if (x0 == x2 && y0 == y2)
             {
                 return;    /* last pixel -> curve finished */
@@ -377,11 +377,11 @@ void plotQuadRationalBezierSeg(int x0, int y0, int x1, int y1, int x2, int y2,
             }/* x step */
         } while (dy <= xy && dx >= xy); /* gradient negates -> algorithm fails */
     }
-    plotLine(x0, y0, x2, y2, col); /* plot remaining needle to end */
+    plotLine(disp, x0, y0, x2, y2, col); /* plot remaining needle to end */
 }
 
-void plotQuadRationalBezier(int x0, int y0, int x1, int y1, int x2, int y2,
-                            float w, color col)   /* plot any quadratic rational Bezier curve */
+void plotQuadRationalBezier(display_t * disp, int x0, int y0, int x1, int y1, int x2, int y2,
+                            float w, rgba_pixel_t col)   /* plot any quadratic rational Bezier curve */
 {
     int x = x0 - 2 * x1 + x2, y = y0 - 2 * y1 + y2;
     double xx = x0 - x1, yy = y0 - y1, ww, t, q;
@@ -425,7 +425,7 @@ void plotQuadRationalBezier(int x0, int y0, int x1, int y1, int x2, int y2,
         x = floor(xx + 0.5);
         y = floor(yy + 0.5); /* P4 */
         yy = (xx - x0) * (y1 - y0) / (x1 - x0) + y0; /* intersect P3 | P0 P1 */
-        plotQuadRationalBezierSeg(x0, y0, x, floor(yy + 0.5), x, y, ww, col);
+        plotQuadRationalBezierSeg(disp, x0, y0, x, floor(yy + 0.5), x, y, ww, col);
         yy = (xx - x2) * (y1 - y2) / (x1 - x2) + y2; /* intersect P4 | P1 P2 */
         y1 = floor(yy + 0.5);
         x0 = x1 = x;
@@ -460,17 +460,17 @@ void plotQuadRationalBezier(int x0, int y0, int x1, int y1, int x2, int y2,
         x = floor(xx + 0.5);
         y = floor(yy + 0.5); /* P6 */
         xx = (x1 - x0) * (yy - y0) / (y1 - y0) + x0; /* intersect P6 | P0 P1 */
-        plotQuadRationalBezierSeg(x0, y0, floor(xx + 0.5), y, x, y, ww, col);
+        plotQuadRationalBezierSeg(disp, x0, y0, floor(xx + 0.5), y, x, y, ww, col);
         xx = (x1 - x2) * (yy - y2) / (y1 - y2) + x2; /* intersect P7 | P1 P2 */
         x1 = floor(xx + 0.5);
         x0 = x;
         y0 = y1 = y; /* P0 = P6, P1 = P7 */
     }
-    plotQuadRationalBezierSeg(x0, y0, x1, y1, x2, y2, w * w, col); /* remaining */
+    plotQuadRationalBezierSeg(disp, x0, y0, x1, y1, x2, y2, w * w, col); /* remaining */
 }
 
-void plotRotatedEllipse(int x, int y, int a, int b,
-                        float angle, color col)   /* plot ellipse rotated by angle (radian) */
+void plotRotatedEllipse(display_t * disp, int x, int y, int a, int b,
+                        float angle, rgba_pixel_t col)   /* plot ellipse rotated by angle (radian) */
 {
     float xd = (long) a * a, yd = (long) b * b;
     float s = sin(angle), zd = (xd - yd) * s; /* ellipse rotation */
@@ -478,18 +478,18 @@ void plotRotatedEllipse(int x, int y, int a, int b,
     a = xd + 0.5;
     b = yd + 0.5;
     zd = zd * a * b / (xd * yd); /* scale to integer */
-    plotRotatedEllipseRect(x - a, y - b, x + a, y + b,
+    plotRotatedEllipseRect(disp, x - a, y - b, x + a, y + b,
                            (long) (4 * zd * cos(angle)), col);
 }
 
-void plotRotatedEllipseRect(int x0, int y0, int x1, int y1,
-                            long zd, color col)   /* rectangle enclosing the ellipse, integer rotation angle */
+void plotRotatedEllipseRect(display_t * disp, int x0, int y0, int x1, int y1,
+                            long zd, rgba_pixel_t col)   /* rectangle enclosing the ellipse, integer rotation angle */
 {
     int xd = x1 - x0, yd = y1 - y0;
     float w = xd * (long) yd;
     if (zd == 0)
     {
-        return plotEllipseRect(x0, y0, x1, y1, col);    /* looks nicer */
+        return plotEllipseRect(disp, x0, y0, x1, y1, col);    /* looks nicer */
     }
     if (w != 0.0)
     {
@@ -498,14 +498,14 @@ void plotRotatedEllipseRect(int x0, int y0, int x1, int y1,
     assert(w <= 1.0 && w >= 0.0); /* limit angle to |zd|<=xd*yd */
     xd = floor(xd * w + 0.5);
     yd = floor(yd * w + 0.5); /* snap xe,ye to int */
-    plotQuadRationalBezierSeg(x0, y0 + yd, x0, y0, x0 + xd, y0, 1.0 - w, col);
-    plotQuadRationalBezierSeg(x0, y0 + yd, x0, y1, x1 - xd, y1, w, col);
-    plotQuadRationalBezierSeg(x1, y1 - yd, x1, y1, x1 - xd, y1, 1.0 - w, col);
-    plotQuadRationalBezierSeg(x1, y1 - yd, x1, y0, x0 + xd, y0, w, col);
+    plotQuadRationalBezierSeg(disp, x0, y0 + yd, x0, y0, x0 + xd, y0, 1.0 - w, col);
+    plotQuadRationalBezierSeg(disp, x0, y0 + yd, x0, y1, x1 - xd, y1, w, col);
+    plotQuadRationalBezierSeg(disp, x1, y1 - yd, x1, y1, x1 - xd, y1, 1.0 - w, col);
+    plotQuadRationalBezierSeg(disp, x1, y1 - yd, x1, y0, x0 + xd, y0, w, col);
 }
 
-void plotCubicBezierSeg(int x0, int y0, float x1, float y1, float x2, float y2,
-                        int x3, int y3, color col)   /* plot limited cubic Bezier segment */
+void plotCubicBezierSeg(display_t * disp, int x0, int y0, float x1, float y1, float x2, float y2,
+                        int x3, int y3, rgba_pixel_t col)   /* plot limited cubic Bezier segment */
 {
     int f, fx, fy, leg = 1;
     int sx = x0 < x3 ? 1 : -1, sy = y0 < y3 ? 1 : -1; /* step direction */
@@ -527,7 +527,7 @@ void plotCubicBezierSeg(int x0, int y0, float x1, float y1, float x2, float y2,
     {
         sx = floor((3 * x1 - x0 + 1) / 2);
         sy = floor((3 * y1 - y0 + 1) / 2); /* new midpoint */
-        return plotQuadBezierSeg(x0, y0, sx, sy, x3, y3, col);
+        return plotQuadBezierSeg(disp, x0, y0, sx, sy, x3, y3, col);
     }
     x1 = (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + 1; /* line lengths */
     x2 = (x2 - x3) * (x2 - x3) + (y2 - y3) * (y2 - y3) + 1;
@@ -582,7 +582,7 @@ void plotCubicBezierSeg(int x0, int y0, float x1, float y1, float x2, float y2,
 
         for (pxy = &xy, fx = fy = f; x0 != x3 && y0 != y3;)
         {
-            drawPixel(x0, y0, col); /* plot curve */
+            disp->drawPx(x0, y0, col); /* plot curve */
             do   /* move sub-steps of one pixel */
             {
                 if (dx > *pxy || dy < *pxy)
@@ -636,11 +636,11 @@ exit:
         yb = -yb;
         x1 = x2;
     } while (leg--); /* try other end */
-    plotLine(x0, y0, x3, y3, col); /* remaining part in case of cusp or crunode */
+    plotLine(disp, x0, y0, x3, y3, col); /* remaining part in case of cusp or crunode */
 }
 
-void plotCubicBezier(int x0, int y0, int x1, int y1, int x2, int y2, int x3,
-                     int y3, color col)   /* plot any cubic Bezier curve */
+void plotCubicBezier(display_t * disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
+                     int y3, rgba_pixel_t col)   /* plot any cubic Bezier curve */
 {
     int n = 0, i = 0;
     long xc = x0 + x1 - x2 - x3, xa = xc - 4 * (x1 - x2);
@@ -729,7 +729,7 @@ void plotCubicBezier(int x0, int y0, int x1, int y1, int x2, int y2, int x3,
             fy2 *= fy0;
         }
         if (x0 != x3 || y0 != y3) /* segment t1 - t2 */
-            plotCubicBezierSeg(x0, y0, x0 + fx1, y0 + fy1, x0 + fx2, y0 + fy2,
+            plotCubicBezierSeg(disp, x0, y0, x0 + fx1, y0 + fy1, x0 + fx2, y0 + fy2,
                                x3, y3, col);
         x0 = x3;
         y0 = y3;
@@ -739,8 +739,8 @@ void plotCubicBezier(int x0, int y0, int x1, int y1, int x2, int y2, int x3,
     }
 }
 
-void plotQuadSpline(int n, int x[], int y[],
-                    color col)   /* plot quadratic spline, destroys input arrays x,y */
+void plotQuadSpline(display_t * disp, int n, int x[], int y[],
+                    rgba_pixel_t col)   /* plot quadratic spline, destroys input arrays x,y */
 {
 #define M_MAX 6
     float mi = 1, m[M_MAX]; /* diagonal constants of matrix */
@@ -771,17 +771,17 @@ void plotQuadSpline(int n, int x[], int y[],
         }
         x0 = floor((x[i] - x1) * mi + 0.5); /* next corner */
         y0 = floor((y[i] - y1) * mi + 0.5);
-        plotQuadBezier((x0 + x1) / 2, (y0 + y1) / 2, x1, y1, x2, y2, col);
+        plotQuadBezier(disp, (x0 + x1) / 2, (y0 + y1) / 2, x1, y1, x2, y2, col);
         x2 = (x0 + x1) / 2;
         x1 = x0;
         y2 = (y0 + y1) / 2;
         y1 = y0;
     }
-    plotQuadBezier(x[0], y[0], x1, y1, x2, y2, col);
+    plotQuadBezier(disp, x[0], y[0], x1, y1, x2, y2, col);
 }
 
-void plotCubicSpline(int n, int x[], int y[],
-                     color col)   /* plot cubic spline, destroys input arrays x,y */
+void plotCubicSpline(display_t * disp, int n, int x[], int y[],
+                     rgba_pixel_t col)   /* plot cubic spline, destroys input arrays x,y */
 {
 #define M_MAX 6
     float mi = 0.25, m[M_MAX]; /* diagonal constants of matrix */
@@ -804,7 +804,7 @@ void plotCubicSpline(int n, int x[], int y[],
     }
     x2 = floor((x0 - 3 * x4) / (7 - 4 * mi) + 0.5); /* correct last row */
     y2 = floor((y0 - 3 * y4) / (7 - 4 * mi) + 0.5);
-    plotCubicBezier(x3, y3, (x2 + x4) / 2, (y2 + y4) / 2, x4, y4, x4, y4, col);
+    plotCubicBezier(disp, x3, y3, (x2 + x4) / 2, (y2 + y4) / 2, x4, y4, x4, y4, col);
 
     if (n - 3 < M_MAX)
     {
@@ -822,7 +822,7 @@ void plotCubicSpline(int n, int x[], int y[],
         y0 = floor((y[i] - 2 * y1) * mi + 0.5);
         x4 = floor((x0 + 4 * x1 + x2 + 3) / 6.0); /* reconstruct P[i] */
         y4 = floor((y0 + 4 * y1 + y2 + 3) / 6.0);
-        plotCubicBezier(x4, y4, floor((2 * x1 + x2) / 3 + 0.5),
+        plotCubicBezier(disp, x4, y4, floor((2 * x1 + x2) / 3 + 0.5),
                         floor((2 * y1 + y2) / 3 + 0.5), floor((x1 + 2 * x2) / 3 + 0.5),
                         floor((y1 + 2 * y2) / 3 + 0.5), x3, y3, col);
         x3 = x4;
@@ -836,8 +836,8 @@ void plotCubicSpline(int n, int x[], int y[],
     x4 = floor((3 * x0 + 7 * x1 + 2 * x2 + 6) / 12.0); /* reconstruct P[1] */
     y0 = y[0];
     y4 = floor((3 * y0 + 7 * y1 + 2 * y2 + 6) / 12.0);
-    plotCubicBezier(x4, y4, floor((2 * x1 + x2) / 3 + 0.5),
+    plotCubicBezier(disp, x4, y4, floor((2 * x1 + x2) / 3 + 0.5),
                     floor((2 * y1 + y2) / 3 + 0.5), floor((x1 + 2 * x2) / 3 + 0.5),
                     floor((y1 + 2 * y2) / 3 + 0.5), x3, y3, col);
-    plotCubicBezier(x0, y0, x0, y0, (x0 + x1) / 2, (y0 + y1) / 2, x4, y4, col);
+    plotCubicBezier(disp, x0, y0, x0, y0, (x0 + x1) / 2, (y0 + y1) / 2, x4, y4, col);
 }

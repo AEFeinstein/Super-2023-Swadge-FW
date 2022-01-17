@@ -45,6 +45,12 @@
         "stb_image.h": "c",
         "stdbool.h": "c",
         "xiosbase": "c",
-        "hdw-tft.h": "c"
+        "hdw-tft.h": "c",
+        "display.h": "c",
+        "random": "c",
+        "queue": "c",
+        "stack": "c",
+        "cmath": "c"
     },
+    "idf.adapterTargetName": "esp32s2",
 }
