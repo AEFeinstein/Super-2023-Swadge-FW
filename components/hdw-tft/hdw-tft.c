@@ -274,7 +274,10 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
  */
 void drawPxTft(int16_t x, int16_t y, rgba_pixel_t px)
 {
-    pixels[y][x] = px.rgb;
+    if(0 <= x && x <= TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
+    {
+        pixels[y][x] = px.rgb;
+    }
 }
 
 /**

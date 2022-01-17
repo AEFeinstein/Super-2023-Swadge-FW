@@ -369,8 +369,14 @@ void mainSwadgeTask(void * arg)
         {
             lastMega = megaTimeUs;
             static int megaIdx = 0;
+            static int megaPos = 0;
             clearTFT();
-            drawPng(&tftDisp, &megaman[megaIdx], 50, 50);
+            drawPng(&tftDisp, &megaman[megaIdx], megaPos, 50);
+            megaPos += 4;
+            if(megaPos >= tftDisp.w)
+            {
+                megaPos = -megaman[0].w;
+            }
             megaIdx = (megaIdx + 1) % 9;
         }
 
