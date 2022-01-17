@@ -144,16 +144,6 @@ void initButtons(void)
 /**
  * @brief TODO
  *
- * @param on
- */
-void setOledResetOn(bool on)
-{
-    gpio_set_level(GPIO_NUM_4, on ? 1 : 0);
-}
-
-/**
- * @brief TODO
- *
  * @param arg
  */
 static void IRAM_ATTR gpio_isr_handler(void* arg)

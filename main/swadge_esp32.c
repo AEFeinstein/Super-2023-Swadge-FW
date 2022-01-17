@@ -254,10 +254,11 @@ void mainSwadgeTask(void * arg)
                     touchPadSensitivities, true, TOUCH_PAD_MAX);
 
     /* Initialize i2c peripherals */
-// #define I2C_ENABLED
+#define I2C_ENABLED
 #ifdef I2C_ENABLED
-    i2c_master_init(GPIO_NUM_5, GPIO_NUM_6, GPIO_PULLUP_DISABLE, 1000000);
-    initOLED(true); // TODO reset GPIO in arg?
+    display_t oledDisp;
+    i2c_master_init(GPIO_NUM_33, GPIO_NUM_34, GPIO_PULLUP_DISABLE, 1000000); // 34 (SCL), 33 (SDA), 21 (RST)
+    initOLED(&oledDisp, true, GPIO_NUM_21);
     QMA6981_setup();
 #endif
 
@@ -370,8 +371,14 @@ void mainSwadgeTask(void * arg)
             lastMega = megaTimeUs;
             static int megaIdx = 0;
             static int megaPos = 0;
-            clearTFT();
-            drawPng(&tftDisp, &megaman[megaIdx], megaPos, 50);
+
+            tftDisp.clearPx();
+            drawPng(&tftDisp, &megaman[megaIdx], megaPos, (tftDisp.h-megaman[0].h)/2);
+
+#ifdef I2C_ENABLED
+            oledDisp.clearPx();
+            drawPng(&oledDisp, &megaman[megaIdx], megaPos, (oledDisp.h-megaman[0].h)/2);
+#endif
             megaPos += 4;
             if(megaPos >= tftDisp.w)
             {
@@ -503,28 +510,28 @@ void mainSwadgeTask(void * arg)
         checkTouchSensor();
 
         // Run the mode's event loop
-        static int64_t tLastCallUs = 0;
-        if(0 == tLastCallUs)
-        {
-            tLastCallUs = esp_timer_get_time();
-        }
-        else
-        {
-            int64_t tNowUs = esp_timer_get_time();
-            int64_t tElapsedUs = tNowUs - tLastCallUs;
-            tLastCallUs = tNowUs;
+        // static int64_t tLastCallUs = 0;
+        // if(0 == tLastCallUs)
+        // {
+        //     tLastCallUs = esp_timer_get_time();
+        // }
+        // else
+        // {
+        //     int64_t tNowUs = esp_timer_get_time();
+        //     int64_t tElapsedUs = tNowUs - tLastCallUs;
+        //     tLastCallUs = tNowUs;
 
-            // if(NULL != snakeMode.fnMainLoop)
-            // {
-            //     snakeMode.fnMainLoop(tElapsedUs);
-            // }
-        }
+        //     if(NULL != snakeMode.fnMainLoop)
+        //     {
+        //         snakeMode.fnMainLoop(tElapsedUs);
+        //     }
+        // }
 
         // Update outputs
 #ifdef I2C_ENABLED
-        updateOLED(true);
+        oledDisp.drawDisplay(true);
 #endif
-        draw_frame();
+        tftDisp.drawDisplay(true);
         buzzer_check_next_note();
 
         // Yield to let the rest of the RTOS run

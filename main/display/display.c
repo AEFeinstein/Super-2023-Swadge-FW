@@ -6,6 +6,35 @@
 
 #include "../../components/hdw-spiffs/spiffs_manager.h"
 
+#define CLAMP(x,l,u) ((x) < l ? l : ((x) > u ? u : (x)))
+
+/**
+ * @brief TODO
+ * 
+ * @param disp 
+ * @param x1 
+ * @param y1 
+ * @param x2 
+ * @param y2 
+ * @param c 
+ */
+void fillDisplayArea(display_t * disp, int16_t x1, int16_t y1, int16_t x2,
+    int16_t y2, rgba_pixel_t c)
+{
+    int16_t xMin = CLAMP(x1, 0, disp->w);
+    int16_t xMax = CLAMP(x2, 0, disp->w);
+    int16_t yMin = CLAMP(y1, 0, disp->h);
+    int16_t yMax = CLAMP(y2, 0, disp->h);
+    
+    for (int y = yMin; y < yMax; y++)
+    {
+        for (int x = xMin; x < xMax; x++)
+        {
+            disp->setPx(x, y, c);
+        }
+    }
+}
+
 /**
  * @brief TODO
  * 
@@ -81,7 +110,6 @@ void freePng(png_t * png)
     free(png->px);
 }
 
-
 /**
  * @brief TODO
  * 
@@ -90,15 +118,22 @@ void freePng(png_t * png)
  * @param xOff 
  * @param yOff 
  */
-void drawPng(display_t * disp, png_t *png, uint16_t xOff, uint16_t yOff)
+void drawPng(display_t * disp, png_t *png, int16_t xOff, int16_t yOff)
 {
-    for (int y = 0; y < png->h; y++)
+    int16_t xMin = CLAMP(xOff, 0, disp->w);
+    int16_t xMax = CLAMP(xOff + png->w, 0, disp->w);
+    int16_t yMin = CLAMP(yOff, 0, disp->h);
+    int16_t yMax = CLAMP(yOff + png->h, 0, disp->h);
+    
+    for (int y = yMin; y < yMax; y++)
     {
-        for (int x = 0; x < png->w; x++)
+        for (int x = xMin; x < xMax; x++)
         {
-            if (png->px[(y * png->w) + x].a)
+            int16_t pngX = x - xOff;
+            int16_t pngY = y - yOff;
+            if (png->px[(pngY * png->w) + pngX].a)
             {
-                disp->drawPx(x + xOff, y + yOff, png->px[(y * png->w) + x]);
+                disp->setPx(x, y, png->px[(pngY * png->w) + pngX]);
             }
         }
     }
@@ -176,7 +211,7 @@ void freeFont(font_t * font)
  * @param xOff 
  * @param yOff 
  */
-void drawChar(display_t * disp, rgba_pixel_t color, uint16_t h, font_ch_t * ch, uint16_t xOff, uint16_t yOff)
+void drawChar(display_t * disp, rgba_pixel_t color, uint16_t h, font_ch_t * ch, int16_t xOff, int16_t yOff)
 {
     uint16_t byteIdx = 0;
     uint8_t bitIdx = 0;
@@ -192,7 +227,7 @@ void drawChar(display_t * disp, rgba_pixel_t color, uint16_t h, font_ch_t * ch, 
             if (ch->bitmap[byteIdx] & (1 << bitIdx))
             {
                 // Draw the pixel
-                disp->drawPx(drawX, drawY, color);
+                disp->setPx(drawX, drawY, color);
             }
 
             // Iterate over the bit data
@@ -217,7 +252,7 @@ void drawChar(display_t * disp, rgba_pixel_t color, uint16_t h, font_ch_t * ch, 
  * @param xOff 
  * @param yOff 
  */
-void drawText(display_t * disp, font_t * font, rgba_pixel_t color, const char * text, uint16_t xOff, uint16_t yOff)
+void drawText(display_t * disp, font_t * font, rgba_pixel_t color, const char * text, int16_t xOff, int16_t yOff)
 {
     while(*text != 0)
     {

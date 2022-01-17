@@ -22,6 +22,9 @@
 // Defines and Enums
 //==============================================================================
 
+#define OLED_WIDTH 128
+#define OLED_HEIGHT 64
+
 #define OLED_ADDRESS (0x78 >> 1)
 //#define OLED_FREQ 800
 #define OLED_HIGH_SPEED 1
@@ -355,7 +358,15 @@ static /*const*/ uint8_t displayInitStartCommands[] =
 #define PCD_FLAGS_EXECUTE_CONDITION 0x02
 #define PCD_FAIL_DEVICE -1
 #define PCD_FAIL_COMMANDS -2
+
 int processDisplayCommands( const uint8_t* buffer, uint8_t flags );
+bool setOLEDparams(bool turnOnOff);
+void updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t maxPage );
+
+void setPxOled(int16_t x, int16_t y, rgba_pixel_t c);
+rgb_pixel_t getPxOled(int16_t x, int16_t y);
+void clearPxOled(void);
+void drawDisplayOled(bool drawDifference);
 
 //==============================================================================
 // Variables
@@ -371,137 +382,36 @@ bool fbChanges = false;
 //==============================================================================
 
 /**
- * Clear the display.
- */
-void clearDisplay(void)
-{
-    memset(currentFb, 0, (OLED_WIDTH * (OLED_HEIGHT / 8)) );
-    fbChanges = true;
-}
-
-/**
- * TODO
- *
- * @param x1
- * @param y1
- * @param x2
- * @param y2
- * @param c
- */
-void fillDisplayArea(int16_t x1, int16_t y1, int16_t x2, int16_t y2, color c)
-{
-    int16_t x, y;
-    for (x = x1; x <= x2; x++)
-    {
-        for (y = y1; y <= y2; y++)
-        {
-            drawPixel(x, y, c);
-        }
-    }
-}
-
-/**
  * Set/clear/invert a single pixel.
  *
  * This intentionally does not have because it may be called often
  *
  * @param x Column of display, 0 is at the left
  * @param y Row of the display, 0 is at the top
- * @param c Pixel color, one of: BLACK, WHITE or INVERT
+ * @param c Pixel color
  */
-void drawPixel(int16_t x, int16_t y, color c)
+void setPxOled(int16_t x, int16_t y, rgba_pixel_t c)
 {
-    if (c != TRANSPARENT_COLOR &&
-            c != WHITE_F_TRANSPARENT_B &&
-            (0 <= x) && (x < OLED_WIDTH) &&
-            (0 <= y) && (y < OLED_HEIGHT))
+    // Don't draw transparent pixels
+    if(c.a > 0x80)
     {
-        fbChanges = true;
-        uint8_t* addy = &currentFb[(y + x * OLED_HEIGHT) / 8];
-        uint8_t mask = 1 << (y & 7);
-        switch (c)
+        // Make sure it's in bounds
+        if(0 <= x && x < OLED_WIDTH && 0 <= y && y < OLED_HEIGHT)
         {
-            case WHITE:
-                *addy |= mask;
-                break;
-            case BLACK:
-                *addy &= ~mask;
-                break;
-            case INVERSE:
-                *addy ^= mask;
-                break;
-            case WHITE_F_TRANSPARENT_B:
-            case TRANSPARENT_COLOR:
-            default:
+            fbChanges = true;
+            uint8_t* addy = &currentFb[(y + x * OLED_HEIGHT) / 8];
+            uint8_t mask = 1 << (y & 7);
+            if(c.rgb.val == 0x0000)
             {
-                break;
+                // 'black' clears a pixel
+                *addy &= ~mask;
+            }
+            else
+            {
+                // 'white' sets a pixel
+                *addy |= mask;
             }
         }
-    }
-}
-
-/**
- * Set a single pixel unsafely but quickly.
- *
- * This intentionally does not have because it may be called often
- *
- * @param x Column of display, 0 is at the left
- * @param y Row of the display, 0 is at the top
- */
-void drawPixelUnsafe( int x, int y )
-{
-    uint8_t* addy = &currentFb[(y + x * OLED_HEIGHT) / 8];
-    uint8_t mask = 1 << (y & 7);
-    *addy |= mask;
-}
-
-/**
- * Set a single black pixel unsafely but quickly.
- *
- * This intentionally does not have because it may be called often
- *
- * @param x Column of display, 0 is at the left
- * @param y Row of the display, 0 is at the top
- */
-void drawPixelUnsafeBlack( int x, int y )
-{
-    uint8_t* addy = &currentFb[(y + x * OLED_HEIGHT) / 8];
-    uint8_t mask = ~(1 << (y & 7));
-    *addy &= mask;
-}
-
-/**
- * Draw a single pixel unsafely but quickly.
- *
- * This intentionally does not have because it may be called often
- *
- * @param x Column of display, 0 is at the left
- * @param y Row of the display, 0 is at the top
- * @param c Color of pixel to draw.
- */
-void drawPixelUnsafeC( int x, int y, color c )
-{
-    //Ugh, I know this looks weird, but it's faster than saying
-    //addy = &currentFb[(y+x*OLED_HEIGHT)/8], and produces smaller code.
-    //Found by looking at image.lst.
-    uint8_t* addy = currentFb;
-    addy = addy + (y + x * OLED_HEIGHT) / 8;
-    uint8_t mask = 1 << (y & 7);
-    uint8_t reads = *addy;
-    if( c <= WHITE )    //TIL this 'if' tree is slightly faster than a switch.
-    {
-        if( c == WHITE )
-        {
-            *addy = reads | mask;
-        }
-        else
-        {
-            *addy = reads & ( ~mask );
-        }
-    }
-    else if( c == INVERSE )
-    {
-        *addy = reads ^ mask;
     }
 }
 
@@ -512,51 +422,72 @@ void drawPixelUnsafeC( int x, int y, color c )
  * @param y Row of the display, 0 is at the top
  * @return either BLACK or WHITE
  */
-color getPixel(int16_t x, int16_t y)
+rgb_pixel_t getPxOled(int16_t x, int16_t y)
 {
     if ((0 <= x) && (x < OLED_WIDTH) &&
             (0 <= y) && (y < OLED_HEIGHT))
     {
         if(currentFb[(y + x * OLED_HEIGHT) / 8] & (1 << (y & 7)))
         {
-            return WHITE;
+            rgb_pixel_t white = {.val = 0xFFFF};
+            return white;
         }
         else
         {
-            return BLACK;
+            rgb_pixel_t black = {.val = 0x0000};
+            return black;
         }
     }
-    return BLACK;
+    rgb_pixel_t black = {.val = 0x0000};
+    return black;
+}
+
+/**
+ * @brief TODO
+ * 
+ */
+void clearPxOled(void)
+{
+    memset(currentFb, 0, sizeof(currentFb));
+    fbChanges = true;
 }
 
 /**
  * Initialize the SSD1306 OLED
  *
+ * @param disp TODO
  * @param reset true to reset the OLED using the RST line, false to leave it alone
+ * @param rst_gpio TODO
  * @return true if it initialized, false if it failed
  */
-bool initOLED(bool reset)
+bool initOLED(display_t * disp, bool reset, gpio_num_t rst_gpio)
 {
+    disp->h = OLED_HEIGHT;
+    disp->w = OLED_WIDTH;
+    disp->setPx = setPxOled;
+    disp->getPx = getPxOled;
+    disp->clearPx = clearPxOled;
+    disp->drawDisplay = drawDisplayOled;
+
     // Clear the RAM
-    clearDisplay();
+    clearPxOled();
 
     // Reset SSD1306 if requested and reset pin specified in constructor
     if (reset)
     {
-        setOledResetOn(true);  // VDD goes high at start
-        usleep(1000);          // pause for 1 ms
-        setOledResetOn(false); // Bring reset low
-        usleep(1000);          // pause for 1 ms
-        usleep(1000);          // pause for 1 ms
-        usleep(1000);          // pause for 1 ms
-        usleep(1000);          // pause for 1 ms
-        usleep(1000);          // pause for 1 ms
-        usleep(1000);          // pause for 1 ms
-        usleep(1000);          // pause for 1 ms
-        usleep(1000);          // pause for 1 ms
-        usleep(1000);          // pause for 1 ms
-        usleep(1000);          // pause for 1 ms
-        setOledResetOn(true);  // Bring out of reset
+        // Initialize the RST GPIO
+        gpio_config_t rest_gpio_config =
+        {
+            .mode = GPIO_MODE_OUTPUT,
+            .pin_bit_mask = 1ULL << rst_gpio
+        };
+        ESP_ERROR_CHECK(gpio_config(&rest_gpio_config));
+
+        ESP_ERROR_CHECK(gpio_set_level(rst_gpio, 1)); // VDD goes high at start
+        usleep(1000);                                 // pause for 1 ms
+        ESP_ERROR_CHECK(gpio_set_level(rst_gpio, 0)); // Bring reset low
+        usleep(10000);                                // pause for 10 ms
+        ESP_ERROR_CHECK(gpio_set_level(rst_gpio, 1)); // Bring out of reset
     }
 
     // Set the OLED's parameters
@@ -566,7 +497,9 @@ bool initOLED(bool reset)
     }
 
     // Also clear the display's RAM on boot
-    return updateOLED(false);
+    drawDisplayOled(false);
+
+    return true;
 }
 
 /**
@@ -587,9 +520,8 @@ bool setOLEDparams(bool turnOnOff)
     }
 }
 
-int updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t maxPage )
+void updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t maxPage )
 {
-    esp_err_t encountered_error = ESP_OK;
     uint8_t x, page;
 
     uint8_t displayRangeUpdate[] =
@@ -619,10 +551,8 @@ int updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t 
     }
 
     i2c_master_stop(cmdHandle);
-    encountered_error = i2c_master_cmd_begin(I2C_MASTER_NUM, cmdHandle, 0);
+    i2c_master_cmd_begin(I2C_MASTER_NUM, cmdHandle, 0);
     i2c_cmd_link_delete(cmdHandle);
-
-    return (ESP_OK == encountered_error) ? FRAME_DRAWN : FRAME_NOT_DRAWN;
 }
 
 /**
@@ -630,10 +560,8 @@ int updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t 
  *
  * @param drawDifference true to only draw differences from the prior frame
  *                       false to draw the entire frame
- * @return true  the data was sent
- *         false there was some I2C error
  */
-oledResult_t updateOLED(bool drawDifference)
+void drawDisplayOled(bool drawDifference)
 {
     //Before sending the actual data, we do housekeeping. This can take between 57 and 200 uS
     //But ensures the visual data stays consistent.
@@ -673,7 +601,7 @@ oledResult_t updateOLED(bool drawDifference)
     if(true == drawDifference && false == fbChanges)
     {
         // We know nothing happened, just return
-        return NOTHING_TO_DO;
+        return;
     }
     else
     {
@@ -724,16 +652,12 @@ oledResult_t updateOLED(bool drawDifference)
 
         if( maxX >= minX && maxPage >= minPage )
         {
-            return updateOLEDScreenRange( minX, maxX, minPage, maxPage );
-        }
-        else
-        {
-            return NOTHING_TO_DO;
+            updateOLEDScreenRange( minX, maxX, minPage, maxPage );
         }
     }
     else
     {
-        return updateOLEDScreenRange( 0, OLED_WIDTH - 1, 0, SSD1306_NUM_PAGES - 1 );
+        updateOLEDScreenRange( 0, OLED_WIDTH - 1, 0, SSD1306_NUM_PAGES - 1 );
     }
 }
 

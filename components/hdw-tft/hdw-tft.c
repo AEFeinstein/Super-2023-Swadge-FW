@@ -19,6 +19,20 @@
 // Defines
 //==============================================================================
 
+// The pixel number in horizontal and vertical
+#if defined(CONFIG_ST7735_160x80)
+    #define TFT_WIDTH  160
+    #define TFT_HEIGHT  80
+#elif defined(CONFIG_ST7789_240x135)
+    #define TFT_WIDTH  240
+    #define TFT_HEIGHT 135
+#elif defined(CONFIG_ST7789_240x240)
+    #define TFT_WIDTH  240
+    #define TFT_HEIGHT 240
+#else
+    #error "Please pick a screen size"
+#endif
+
 #define SWAP(x) ((x>>8)|(x<<8))
 
 /* To speed up transfers, every SPI transfer sends a bunch of lines. This define
@@ -65,7 +79,10 @@
 // Prototypes
 //==============================================================================
 
-void drawPxTft(int16_t x, int16_t y, rgba_pixel_t px);
+void setPxTft(int16_t x, int16_t y, rgba_pixel_t px);
+rgb_pixel_t getPxTft(int16_t x, int16_t y);
+void clearPxTft(void);
+void drawDisplayTft(bool drawDiff);
 
 //==============================================================================
 // Variables
@@ -78,15 +95,6 @@ static uint16_t *s_lines[2] = {0};
 //==============================================================================
 // Functions
 //==============================================================================
-
-/**
- * @brief TODO
- * 
- */
-void clearTFT(void)
-{
-    memset(&(pixels[0][0]), 0, sizeof(rgb_pixel_t) * TFT_HEIGHT * TFT_WIDTH);
-}
 
 /**
  * @brief TODO
@@ -260,7 +268,10 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
 
     disp->h = TFT_HEIGHT;
     disp->w = TFT_WIDTH;
-    disp->drawPx = drawPxTft;
+    disp->setPx = setPxTft;
+    disp->getPx = getPxTft;
+    disp->clearPx = clearPxTft;
+    disp->drawDisplay = drawDisplayTft;
 }
 
 /**
@@ -272,7 +283,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
  * @param y 
  * @param px 
  */
-void drawPxTft(int16_t x, int16_t y, rgba_pixel_t px)
+void setPxTft(int16_t x, int16_t y, rgba_pixel_t px)
 {
     if(0 <= x && x <= TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
@@ -282,12 +293,40 @@ void drawPxTft(int16_t x, int16_t y, rgba_pixel_t px)
 
 /**
  * @brief TODO
+ * 
+ * @param x 
+ * @param y 
+ * @return rgb_pixel_t 
+ */
+rgb_pixel_t getPxTft(int16_t x, int16_t y)
+{
+    if(0 <= x && x <= TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
+    {
+        return pixels[y][x];
+    }
+    rgb_pixel_t black = {.val = 0x0000};
+    return black;
+}
+
+/**
+ * @brief TODO
+ * 
+ */
+void clearPxTft(void)
+{
+    memset(&(pixels[0][0]), 0, sizeof(rgb_pixel_t) * TFT_HEIGHT * TFT_WIDTH);
+}
+
+/**
+ * @brief TODO
  *
  * Simple routine to generate some patterns and send them to the LCD. Because
  * the SPI driver handles transactions in the background, we can calculate the
  * next line while the previous one is being sent.
+ * 
+ * @param drawDiff unused
  */
-void draw_frame(void)
+void drawDisplayTft(bool drawDiff __attribute__((unused)))
 {
     static int framesDrawn = 0;
     static uint64_t tFpsStart = 0;

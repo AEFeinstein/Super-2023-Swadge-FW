@@ -28,7 +28,7 @@ void plotLine(display_t * disp, int x0, int y0, int x1, int y1, rgba_pixel_t col
 
     for (;;)   /* loop */
     {
-        disp->drawPx(x0, y0, col);
+        disp->setPx(x0, y0, col);
         e2 = 2 * err;
         if (e2 >= dy)   /* e_xy+e_x > 0 */
         {
@@ -68,10 +68,10 @@ void plotEllipse(display_t * disp, int xm, int ym, int a, int b, rgba_pixel_t co
 
     do
     {
-        disp->drawPx(xm - x, ym + y, col); /*   I. Quadrant */
-        disp->drawPx(xm + x, ym + y, col); /*  II. Quadrant */
-        disp->drawPx(xm + x, ym - y, col); /* III. Quadrant */
-        disp->drawPx(xm - x, ym - y, col); /*  IV. Quadrant */
+        disp->setPx(xm - x, ym + y, col); /*   I. Quadrant */
+        disp->setPx(xm + x, ym + y, col); /*  II. Quadrant */
+        disp->setPx(xm + x, ym - y, col); /* III. Quadrant */
+        disp->setPx(xm - x, ym - y, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 >= (x * 2 + 1) * (long) b * b) /* e_xy+e_x > 0 */
         {
@@ -85,8 +85,8 @@ void plotEllipse(display_t * disp, int xm, int ym, int a, int b, rgba_pixel_t co
 
     while (y++ < b)   /* too early stop of flat ellipses a=1, */
     {
-        disp->drawPx(xm, ym + y, col); /* -> finish tip of ellipse */
-        disp->drawPx(xm, ym - y, col);
+        disp->setPx(xm, ym + y, col); /* -> finish tip of ellipse */
+        disp->setPx(xm, ym - y, col);
     }
 }
 
@@ -98,10 +98,10 @@ void plotOptimizedEllipse(display_t * disp, int xm, int ym, int a, int b, rgba_p
 
     do
     {
-        disp->drawPx(xm - x, ym + y, col); /*   I. Quadrant */
-        disp->drawPx(xm + x, ym + y, col); /*  II. Quadrant */
-        disp->drawPx(xm + x, ym - y, col); /* III. Quadrant */
-        disp->drawPx(xm - x, ym - y, col); /*  IV. Quadrant */
+        disp->setPx(xm - x, ym + y, col); /*   I. Quadrant */
+        disp->setPx(xm + x, ym + y, col); /*  II. Quadrant */
+        disp->setPx(xm + x, ym - y, col); /* III. Quadrant */
+        disp->setPx(xm - x, ym - y, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 >= dx)
         {
@@ -117,8 +117,8 @@ void plotOptimizedEllipse(display_t * disp, int xm, int ym, int a, int b, rgba_p
 
     while (y++ < b)   /* too early stop for flat ellipses with a=1, */
     {
-        disp->drawPx(xm, ym + y, col); /* -> finish tip of ellipse */
-        disp->drawPx(xm, ym - y, col);
+        disp->setPx(xm, ym + y, col); /* -> finish tip of ellipse */
+        disp->setPx(xm, ym - y, col);
     }
 }
 
@@ -127,10 +127,10 @@ void plotCircle(display_t * disp, int xm, int ym, int r, rgba_pixel_t col)
     int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
     do
     {
-        disp->drawPx(xm - x, ym + y, col); /*   I. Quadrant +x +y */
-        disp->drawPx(xm - y, ym - x, col); /*  II. Quadrant -x +y */
-        disp->drawPx(xm + x, ym - y, col); /* III. Quadrant -x -y */
-        disp->drawPx(xm + y, ym + x, col); /*  IV. Quadrant +x -y */
+        disp->setPx(xm - x, ym + y, col); /*   I. Quadrant +x +y */
+        disp->setPx(xm - y, ym - x, col); /*  II. Quadrant -x +y */
+        disp->setPx(xm + x, ym - y, col); /* III. Quadrant -x -y */
+        disp->setPx(xm + y, ym + x, col); /*  IV. Quadrant +x -y */
         r = err;
         if (r <= y)
         {
@@ -166,10 +166,10 @@ void plotEllipseRect(display_t * disp, int x0, int y0, int x1,
 
     do
     {
-        disp->drawPx(x1, y0, col); /*   I. Quadrant */
-        disp->drawPx(x0, y0, col); /*  II. Quadrant */
-        disp->drawPx(x0, y1, col); /* III. Quadrant */
-        disp->drawPx(x1, y1, col); /*  IV. Quadrant */
+        disp->setPx(x1, y0, col); /*   I. Quadrant */
+        disp->setPx(x0, y0, col); /*  II. Quadrant */
+        disp->setPx(x0, y1, col); /* III. Quadrant */
+        disp->setPx(x1, y1, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 <= dy)
         {
@@ -187,10 +187,10 @@ void plotEllipseRect(display_t * disp, int x0, int y0, int x1,
 
     while (y0 - y1 <= b)   /* too early stop of flat ellipses a=1 */
     {
-        disp->drawPx(x0 - 1, y0, col); /* -> finish tip of ellipse */
-        disp->drawPx(x1 + 1, y0++, col);
-        disp->drawPx(x0 - 1, y1, col);
-        disp->drawPx(x1 + 1, y1--, col);
+        disp->setPx(x0 - 1, y0, col); /* -> finish tip of ellipse */
+        disp->setPx(x1 + 1, y0++, col);
+        disp->setPx(x0 - 1, y1, col);
+        disp->setPx(x1 + 1, y1--, col);
     }
 }
 
@@ -234,7 +234,7 @@ void plotQuadBezierSeg(display_t * disp, int x0, int y0, int x1, int y1, int x2,
         err = dx + dy + xy; /* error 1st step */
         do
         {
-            disp->drawPx(x0, y0, col); /* plot curve */
+            disp->setPx(x0, y0, col); /* plot curve */
             if (x0 == x2 && y0 == y2)
             {
                 return;    /* last pixel -> curve finished */
@@ -356,7 +356,7 @@ void plotQuadRationalBezierSeg(display_t * disp, int x0, int y0, int x1, int y1,
         err = dx + dy - xy; /* error 1.step */
         do
         {
-            disp->drawPx(x0, y0, col); /* plot curve */
+            disp->setPx(x0, y0, col); /* plot curve */
             if (x0 == x2 && y0 == y2)
             {
                 return;    /* last pixel -> curve finished */
@@ -582,7 +582,7 @@ void plotCubicBezierSeg(display_t * disp, int x0, int y0, float x1, float y1, fl
 
         for (pxy = &xy, fx = fy = f; x0 != x3 && y0 != y3;)
         {
-            disp->drawPx(x0, y0, col); /* plot curve */
+            disp->setPx(x0, y0, col); /* plot curve */
             do   /* move sub-steps of one pixel */
             {
                 if (dx > *pxy || dy < *pxy)

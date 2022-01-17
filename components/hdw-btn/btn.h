@@ -12,6 +12,5 @@ typedef struct
 
 void initButtons(void);
 bool checkButtonQueue(buttonEvt_t*);
-void setOledResetOn(bool on);
 
 #endif
