@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "esp_log.h"
 #include "driver/i2c.h"
 #include "i2c-conf.h"
 #include "QMA6981.h"
@@ -21,15 +22,9 @@
 #define QMA6981_ADDR 0x12
 #define QMA6981_FREQ  400
 
-#ifdef ACL_DEBUG_PRINT
-    #define acl_printf(...) printf(__VA_ARGS__)
-#else
-    #define acl_printf(...)
-#endif
-
-/*============================================================================
- * Register addresses and definitions
- *==========================================================================*/
+//==============================================================================
+// Register addresses and definitions
+//==============================================================================
 
 /* For the bandwidth register */
 
@@ -155,23 +150,23 @@ typedef enum
     QMA6981_FIFO_CONF    = 0x3E,
 } QMA6981_reg_addr;
 
-/*============================================================================
- * Function prototypes
- *==========================================================================*/
+//==============================================================================
+// Function prototypes
+//==============================================================================
 
 bool QMA6981_writereg(QMA6981_reg_addr addr, uint8_t data);
 bool QMA6981_readreg(QMA6981_reg_addr addr, uint8_t len, uint8_t* data);
 int16_t convertTwosComplement10bit(uint16_t in);
 
-/*============================================================================
- * Variables
- *==========================================================================*/
+//==============================================================================
+// Variables
+//==============================================================================
 
 accel_t lastKnownAccel = {0};
 
-/*============================================================================
- * Functions
- *==========================================================================*/
+//==============================================================================
+// Functions
+//==============================================================================
 
 /**
  * @brief Write a single byte of data to the given QMA6981 register
@@ -303,7 +298,7 @@ void QMA6981_poll(accel_t* currentAccel)
     uint8_t raw_data[6];
     if(false == QMA6981_readreg(QMA6981_DATA, 6, raw_data))
     {
-        acl_printf("read xyz error!!!\n");
+        ESP_LOGE("ACCEL", "read xyz error!!!\n");
         // Try reinitializing, then return last known value
         QMA6981_setup();
     }

@@ -39,9 +39,9 @@
 
 #include "display.h"
 
-/******************************************************************************/
+//==============================================================================
 // Defines
-/******************************************************************************/
+//==============================================================================
 
 // #define TEST_ACCEL
 // #define TEST_BZR
@@ -51,21 +51,14 @@
 // #define TEST_OLED
 // #define TEST_TEMPERATURE
 
-#define MAIN_DEBUG_PRINT
-#ifdef MAIN_DEBUG_PRINT
-#define main_printf(...) printf(__VA_ARGS__)
-#else
-#define main_printf(...)
-#endif
-
-/******************************************************************************/
+//==============================================================================
 // Function Prototypes
-/******************************************************************************/
+//==============================================================================
 void mainSwadgeTask(void * arg);
 
-/******************************************************************************/
+//==============================================================================
 // Variables
-/******************************************************************************/
+//==============================================================================
 
 #ifdef TEST_BZR
 /**
@@ -95,26 +88,26 @@ static const musicalNote_t notation[] =
 };
 #endif
 
-/******************************************************************************/
+//==============================================================================
 // Functions
-/******************************************************************************/
+//==============================================================================
 
 #ifdef TEST_ESP_NOW
 p2pInfo p;
 
 void testConCbFn(p2pInfo* p2p, connectionEvt_t evt)
 {
-    main_printf("%s :: %d\n", __func__, evt);
+    ESP_LOGD("MAIN", "%s :: %d\n", __func__, evt);
 }
 
 void testMsgRxCbFn(p2pInfo* p2p, const char* msg, const uint8_t* payload, uint8_t len)
 {
-    main_printf("%s :: %d\n", __func__, len);
+    ESP_LOGD("MAIN", "%s :: %d\n", __func__, len);
 }
 
 void testMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
 {
-    main_printf("%s :: %d\n", __func__, status);
+    ESP_LOGD("MAIN", "%s :: %d\n", __func__, status);
 }
 
 /**
@@ -160,18 +153,18 @@ void app_main(void)
     /* Print chip information */
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
-    main_printf("This is %s chip with %d CPU core(s), WiFi%s%s, ",
+    ESP_LOGD("MAIN", "This is %s chip with %d CPU core(s), WiFi%s%s, ",
                 CONFIG_IDF_TARGET,
                 chip_info.cores,
                 (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
                 (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
 
-    main_printf("silicon revision %d, ", chip_info.revision);
+    ESP_LOGD("MAIN", "silicon revision %d, ", chip_info.revision);
 
-    main_printf("%dMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
+    ESP_LOGD("MAIN", "%dMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
                 (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
 
-    main_printf("Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
+    ESP_LOGD("MAIN", "Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
 #endif
 
     /* The ESP32-C3 can enumerate as a USB CDC device using pins 18 and 19
@@ -197,7 +190,12 @@ void app_main(void)
 }
 
 /**
- * @brief TODO
+ * Invoked when received GET_REPORT control request
+ * Application must fill buffer report's content and return its length.
+ * Return zero will cause the stack to STALL request
+ * 
+ * Unimplemented, and seemingly never called. Arguments are unclear.
+ * Providing this function is necessary for compilation
  *
  * @param itf
  * @param report_id
@@ -210,12 +208,15 @@ uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id,
                                hid_report_type_t report_type, uint8_t* buffer,
                                uint16_t reqlen)
 {
-    // TODO figure it out
     return 0;
 }
 
 /**
- * @brief TODO
+ * Invoked when received SET_REPORT control request or
+ * received data on OUT endpoint ( Report ID = 0, Type = 0 )
+ * 
+ * Unimplemented, and seemingly never called. Arguments are unclear.
+ * Providing this function is necessary for compilation
  *
  * @param itf
  * @param report_id
@@ -227,7 +228,7 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
                            hid_report_type_t report_type, uint8_t const* buffer,
                            uint16_t bufsize)
 {
-    // TODO figure it out
+    ;
 }
 
 /**
@@ -244,20 +245,18 @@ void mainSwadgeTask(void * arg)
 
     /* Initialize non-i2c hardware peripherals */
     initButtons(); // TODO GPIOs in args somehow
-    initLeds   (GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
+    initLeds(GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
     buzzer_init(GPIO_NUM_9, RMT_CHANNEL_1);
     initTemperatureSensor();
 
     touch_pad_t touchPads[] = {TOUCH_PAD_NUM12};
-    float touchPadSensitivities[] = {0.2f};
-    initTouchSensor(sizeof(touchPads) / sizeof(touchPads[0]), touchPads,
-                    touchPadSensitivities, true, TOUCH_PAD_MAX);
+    initTouchSensor(sizeof(touchPads) / sizeof(touchPads[0]), touchPads, 0.2f, true);
 
     /* Initialize i2c peripherals */
 #define I2C_ENABLED
 #ifdef I2C_ENABLED
     display_t oledDisp;
-    i2c_master_init(GPIO_NUM_33, GPIO_NUM_34, GPIO_PULLUP_DISABLE, 1000000); // 34 (SCL), 33 (SDA), 21 (RST)
+    i2c_master_init(GPIO_NUM_33, GPIO_NUM_34, GPIO_PULLUP_DISABLE, 1000000);
     initOLED(&oledDisp, true, GPIO_NUM_21);
     QMA6981_setup();
 #endif
@@ -289,7 +288,7 @@ void mainSwadgeTask(void * arg)
     int32_t magicVal = 0;
     if((false == readNvs32("magicVal", &magicVal)) || (MAGIC_VAL != magicVal))
     {
-        main_printf("Writing magic val\n");
+        ESP_LOGD("MAIN", "Writing magic val\n");
         writeNvs32("magicVal", 0x01);
         writeNvs32("testVal", 0x01);
     }
@@ -355,15 +354,6 @@ void mainSwadgeTask(void * arg)
     /* Loop forever! */
     while(1)
     {
-        // Print the word "loop" every five seconds
-        uint64_t dbgTimeUs = esp_timer_get_time();
-        static uint64_t lastDbg = 0;
-        if(dbgTimeUs - lastDbg >= 5000000)
-        {
-            lastDbg = dbgTimeUs;
-            main_printf("loop\n");
-        }
-
         uint64_t megaTimeUs = esp_timer_get_time();
         static uint64_t lastMega = 0;
         if(megaTimeUs - lastMega >= 100000)
@@ -431,7 +421,7 @@ void mainSwadgeTask(void * arg)
         if(tempTimeUs - lastTmp >= 1000000)
         {
             lastTmp = tempTimeUs;
-            main_printf("temperature %fc\n", readTemperatureSensor());
+            ESP_LOGD("MAIN", "temperature %fc\n", readTemperatureSensor());
         }
 #endif
 
@@ -446,8 +436,8 @@ void mainSwadgeTask(void * arg)
         {
             if (read != write)
             {
-                main_printf("nvs read  %04x\n", read);
-                main_printf("nvs write %04x\n", write);
+                ESP_LOGD("MAIN", "nvs read  %04x\n", read);
+                ESP_LOGD("MAIN", "nvs write %04x\n", write);
                 writeNvs32("testVal", write);
             }
         }
@@ -489,7 +479,7 @@ void mainSwadgeTask(void * arg)
         if(cTimeUs - lastAccelPrint >= 1000000)
         {
             lastAccelPrint = cTimeUs;
-            main_printf("%4d %4d %4d\n", accel.x, accel.y, accel.z);
+            ESP_LOGD("MAIN", "%4d %4d %4d\n", accel.x, accel.y, accel.z);
         }
         // if(NULL != snakeMode.fnAccelerometerCallback)
         // {
@@ -536,6 +526,6 @@ void mainSwadgeTask(void * arg)
 
         // Yield to let the rest of the RTOS run
         taskYIELD();
-        // TODO note, the RTOS tick rate can be changed in idf.py menuconfig (100hz by default)
+        // Note, the RTOS tick rate can be changed in idf.py menuconfig (100hz by default)
     }
 }

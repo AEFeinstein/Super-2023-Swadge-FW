@@ -1,16 +1,35 @@
+//==============================================================================
+// Includes
+//==============================================================================
+
 #include <stdio.h>
 #include "led_util.h"
 
+//==============================================================================
+// Variables
+//==============================================================================
+
 led_strip_t* ledStrip = NULL;
 uint16_t maxNumLeds = 0;
+
+//==============================================================================
+// Functions
+//==============================================================================
 
 /**
  * @brief Simple helper function, converting HSV color space to RGB color space
  *
  * Wiki: https://en.wikipedia.org/wiki/HSL_and_HSV
  *
+ * @param h The input hue
+ * @param s The input saturation
+ * @param v The input value
+ * @param r The output red
+ * @param g The output green
+ * @param b The output blue
  */
-void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r, uint8_t* g, uint8_t* b)
+void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r,
+    uint8_t* g, uint8_t* b)
 {
     h %= 360; // h -> [0,360]
     uint32_t rgb_max = v * 2.55f;
@@ -58,8 +77,11 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r, uint8_t* 
 }
 
 /**
- * @brief TODO
- *
+ * @brief Initialize a strip of RGB LEDs
+ * 
+ * @param gpio    The GPIO the LEDs are connect to
+ * @param rmt     The RMT channel to control the LEDs with
+ * @param numLeds The maximum number of LEDs in the strip
  */
 void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds)
 {
@@ -68,21 +90,25 @@ void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds)
 }
 
 /**
- * TODO
+ * @brief Set the color for an LED strip
  *
- * @param leds
- * @param numLeds
+ * @param leds    The color of the LEDs 
+ * @param numLeds The number of LEDs to set
  */
 void setLeds(led_t* leds, uint8_t numLeds)
 {
+    // Make sure the number of LEDs is in bounds
     if(numLeds > maxNumLeds)
     {
         numLeds = maxNumLeds;
     }
 
+    // Set each LED
     for(int i = 0; i < numLeds; i++)
     {
         ledStrip->set_pixel(ledStrip, i, leds[i].r, leds[i].g, leds[i].b);
     }
+
+    // Push the data to the strip
     ledStrip->refresh(ledStrip, 100);
 }

@@ -5,7 +5,7 @@
 #include "driver/touch_pad.h"
 
 void initTouchSensor(uint8_t numTouchPads, touch_pad_t * touchPads,
-    float * touchPadSensitivities, bool denoiseEnable, touch_pad_t waterproofPad);
+    float touchPadSensitivity, bool denoiseEnable);
 void checkTouchSensor(void);
 
 #endif /* _TOUCH_SENSOR_H_ */

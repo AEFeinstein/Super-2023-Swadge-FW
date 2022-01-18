@@ -1,30 +1,30 @@
 #include "sdkconfig.h"
-#include "esp_err.h"
-#include "esp_temperature_sensor.h"
 
 /* Note: ESP32 don't support temperature sensor */
-
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32C3
+
+#include "esp_err.h"
+#include "esp_temperature_sensor.h"
 #include "driver/temp_sensor.h"
 
 /**
- * @brief TODO
- *
+ * @brief Initialize the ESP's onboard temperature sensor
  */
 void initTemperatureSensor(void)
 {
     // Initialize temperature sensor peripheral
     temp_sensor_config_t temp_sensor = TSENS_CONFIG_DEFAULT();
-    temp_sensor_get_config(&temp_sensor);
-    temp_sensor.dac_offset = TSENS_DAC_DEFAULT; // DEFAULT: range:-10℃ ~  80℃, error < 1℃.
-    temp_sensor_set_config(temp_sensor);
-    temp_sensor_start();
+    ESP_ERROR_CHECK(temp_sensor_get_config(&temp_sensor));
+    // DEFAULT: range:-10℃ ~  80℃, error < 1℃.
+    temp_sensor.dac_offset = TSENS_DAC_DEFAULT;
+    ESP_ERROR_CHECK(temp_sensor_set_config(temp_sensor));
+    ESP_ERROR_CHECK(temp_sensor_start());
 }
 
 /**
- * @brief TODO
+ * @brief Get a temperature reading from the ESP's onboard temperature sensor
  *
- * @return float
+ * @return A floating point temperature
  */
 float readTemperatureSensor(void)
 {
@@ -39,8 +39,7 @@ float readTemperatureSensor(void)
 #else
 
 /**
- * @brief TODO
- *
+ * @brief Dummy function for ESPs that don't have a temperature sensor
  */
 void initTemperatureSensor(void)
 {
@@ -48,9 +47,9 @@ void initTemperatureSensor(void)
 }
 
 /**
- * @brief TODO
+ * @brief Dummy function for ESPs that don't have a temperature sensor
  *
- * @return float
+ * @return always 0
  */
 float readTemperatureSensor(void)
 {

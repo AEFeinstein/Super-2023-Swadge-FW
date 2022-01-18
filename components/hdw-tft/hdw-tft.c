@@ -11,6 +11,7 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_heap_caps.h"
 #include "esp_app_format.h"
+#include "esp_log.h"
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "hdw-tft.h"
@@ -18,20 +19,6 @@
 //==============================================================================
 // Defines
 //==============================================================================
-
-// The pixel number in horizontal and vertical
-#if defined(CONFIG_ST7735_160x80)
-    #define TFT_WIDTH  160
-    #define TFT_HEIGHT  80
-#elif defined(CONFIG_ST7789_240x135)
-    #define TFT_WIDTH  240
-    #define TFT_HEIGHT 135
-#elif defined(CONFIG_ST7789_240x240)
-    #define TFT_WIDTH  240
-    #define TFT_HEIGHT 240
-#else
-    #error "Please pick a screen size"
-#endif
 
 #define SWAP(x) ((x>>8)|(x<<8))
 
@@ -51,28 +38,34 @@
 
 /* Screen-specific configurations */
 #if defined(CONFIG_ST7735_160x80)
-#define LCD_PIXEL_CLOCK_HZ (40 * 1000*1000)
-#define X_OFFSET            1
-#define Y_OFFSET           26
-#define SWAP_XY          true
-#define MIRROR_X        false
-#define MIRROR_Y         true
+    #define TFT_WIDTH         160
+    #define TFT_HEIGHT         80
+    #define LCD_PIXEL_CLOCK_HZ (40 * 1000*1000)
+    #define X_OFFSET            1
+    #define Y_OFFSET           26
+    #define SWAP_XY          true
+    #define MIRROR_X        false
+    #define MIRROR_Y         true
 #elif defined(CONFIG_ST7789_240x135)
-#define LCD_PIXEL_CLOCK_HZ (80 * 1000 * 1000)
-#define X_OFFSET           40
-#define Y_OFFSET           52
-#define SWAP_XY          true
-#define MIRROR_X        false
-#define MIRROR_Y         true
+    #define TFT_WIDTH         240
+    #define TFT_HEIGHT        135
+    #define LCD_PIXEL_CLOCK_HZ (80 * 1000 * 1000)
+    #define X_OFFSET           40
+    #define Y_OFFSET           52
+    #define SWAP_XY          true
+    #define MIRROR_X        false
+    #define MIRROR_Y         true
 #elif defined(CONFIG_ST7789_240x240)
-#define LCD_PIXEL_CLOCK_HZ (80 * 1000 * 1000)
-#define X_OFFSET            0
-#define Y_OFFSET            0
-#define SWAP_XY         false
-#define MIRROR_X        false
-#define MIRROR_Y        false
+    #define TFT_WIDTH         240
+    #define TFT_HEIGHT        240
+    #define LCD_PIXEL_CLOCK_HZ (80 * 1000 * 1000)
+    #define X_OFFSET            0
+    #define Y_OFFSET            0
+    #define SWAP_XY         false
+    #define MIRROR_X        false
+    #define MIRROR_Y        false
 #else
-#error "Please pick a screen size"
+    #error "Please pick a screen size"
 #endif
 
 //==============================================================================
@@ -88,93 +81,27 @@ void drawDisplayTft(bool drawDiff);
 // Variables
 //==============================================================================
 
-esp_lcd_panel_handle_t panel_handle = NULL;
-rgb_pixel_t pixels[TFT_HEIGHT][TFT_WIDTH] = {0};
+static esp_lcd_panel_handle_t panel_handle = NULL;
+static rgb_pixel_t pixels[TFT_HEIGHT][TFT_WIDTH] = {0};
 static uint16_t *s_lines[2] = {0};
+// static uint64_t tFpsStart = 0;
+// static int framesDrawn = 0;
 
 //==============================================================================
 // Functions
 //==============================================================================
 
 /**
- * @brief TODO
- *
- * @param h
- * @param s
- * @param v
- * @param px
- */
-void hsv2rgb(uint16_t h, float s, float v, rgb_pixel_t *px)
-{
-    float hh, p, q, t, ff;
-    uint16_t i;
-
-    hh = (h % 360) / 60.0f;
-    i = (uint16_t)hh;
-    ff = hh - i;
-    p = v * (1.0 - s);
-    q = v * (1.0 - (s * ff));
-    t = v * (1.0 - (s * (1.0 - ff)));
-
-    switch (i)
-    {
-    case 0:
-    {
-        px->c.r = v * 0x1F;
-        px->c.g = t * 0x3F;
-        px->c.b = p * 0x1F;
-        break;
-    }
-    case 1:
-    {
-        px->c.r = q * 0x1F;
-        px->c.g = v * 0x3F;
-        px->c.b = p * 0x1F;
-        break;
-    }
-    case 2:
-    {
-        px->c.r = p * 0x1F;
-        px->c.g = v * 0x3F;
-        px->c.b = t * 0x1F;
-        break;
-    }
-    case 3:
-    {
-        px->c.r = p * 0x1F;
-        px->c.g = q * 0x3F;
-        px->c.b = v * 0x1F;
-        break;
-    }
-    case 4:
-    {
-        px->c.r = t * 0x1F;
-        px->c.g = p * 0x3F;
-        px->c.b = v * 0x1F;
-        break;
-    }
-    case 5:
-    default:
-    {
-        px->c.r = v * 0x1F;
-        px->c.g = p * 0x3F;
-        px->c.b = q * 0x1F;
-        break;
-    }
-    }
-}
-
-/**
- * @brief TODO
+ * @brief Initialize a TFT display and return it through a pointer arg
  * 
- * @param disp 
- * @param spiHost 
- * @param sclk 
- * @param mosi 
- * @param dc 
- * @param cs 
- * @param rst 
- * @param backlight 
+ * @param disp    The display to initialize
+ * @param spiHost The SPI host to use for this display
+ * @param sclk    The GPIO for the SCLK pin
+ * @param mosi    The GPIO for the MOSI pin
+ * @param dc      The GPIO for the TFT SPI data or command selector pin
+ * @param cs      The GPIO for the chip select pin
+ * @param rst     The GPIO for the RESET pin
+ * @param backlight The GPIO used to PWM control the backlight
  */
 void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
             gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
@@ -258,14 +185,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     esp_lcd_panel_set_gap(panel_handle, X_OFFSET, Y_OFFSET);
     esp_lcd_panel_invert_color(panel_handle, true);
 
-    for (int y = 0; y < TFT_HEIGHT; y++)
-    {
-        for (int x = 0; x < TFT_WIDTH; x++)
-        {
-            hsv2rgb((x * 360) / TFT_WIDTH, y / (float)(TFT_HEIGHT-1), 1, &pixels[y][x]);
-        }
-    }
-
+    // FIll the handle for the initialized display
     disp->h = TFT_HEIGHT;
     disp->w = TFT_WIDTH;
     disp->setPx = setPxTft;
@@ -275,13 +195,13 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
 }
 
 /**
- * @brief TODO
+ * @brief Set a single pixel in the display, with bounds check
  * 
  * TODO handle transparency
  * 
- * @param x 
- * @param y 
- * @param px 
+ * @param x The x coordinate of the pixel to set
+ * @param y The y coordinate of the pixel to set
+ * @param px The color of the pixel to set
  */
 void setPxTft(int16_t x, int16_t y, rgba_pixel_t px)
 {
@@ -292,11 +212,11 @@ void setPxTft(int16_t x, int16_t y, rgba_pixel_t px)
 }
 
 /**
- * @brief TODO
+ * @brief Get a single pixel in the display
  * 
- * @param x 
- * @param y 
- * @return rgb_pixel_t 
+ * @param x The x coordinate of the pixel to get
+ * @param y The y coordinate of the pixel to get
+ * @return rgb_pixel_t The color of the given pixel, or black if out of bounds
  */
 rgb_pixel_t getPxTft(int16_t x, int16_t y)
 {
@@ -309,8 +229,7 @@ rgb_pixel_t getPxTft(int16_t x, int16_t y)
 }
 
 /**
- * @brief TODO
- * 
+ * @brief Clear all pixels in the display to black
  */
 void clearPxTft(void)
 {
@@ -318,23 +237,18 @@ void clearPxTft(void)
 }
 
 /**
- * @brief TODO
+ * @brief Send the current framebuffer to the TFT display over the SPI bus.
+ * 
+ * This function can be called as quickly as possible and will limit frames to
+ * 60fps max
  *
- * Simple routine to generate some patterns and send them to the LCD. Because
- * the SPI driver handles transactions in the background, we can calculate the
- * next line while the previous one is being sent.
+ * Because the SPI driver handles transactions in the background, we can
+ * calculate the next line while the previous one is being sent.
  * 
  * @param drawDiff unused
  */
 void drawDisplayTft(bool drawDiff __attribute__((unused)))
 {
-    static int framesDrawn = 0;
-    static uint64_t tFpsStart = 0;
-    if (0 == tFpsStart)
-    {
-        tFpsStart = esp_timer_get_time();
-    }
-
     // Limit drawing to 60fps
     static uint64_t tLastDraw = 0;
     uint64_t tNow = esp_timer_get_time();
@@ -343,17 +257,17 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
         tLastDraw = tNow;
 
         // Indexes of the line currently being sent to the LCD and the line we're calculating
-        int sending_line = 0;
-        int calc_line = 0;
+        uint8_t sending_line = 0;
+        uint8_t calc_line = 0;
 
         // Send the frame, ping ponging the send buffer
-        for (int y = 0; y < TFT_HEIGHT; y += PARALLEL_LINES)
+        for (uint16_t y = 0; y < TFT_HEIGHT; y += PARALLEL_LINES)
         {
             // Calculate a line
-            int destIdx = 0;
-            for (int yp = y; yp < y + PARALLEL_LINES; yp++)
+            uint16_t destIdx = 0;
+            for (uint16_t yp = y; yp < y + PARALLEL_LINES; yp++)
             {
-                for (int x = 0; x < TFT_WIDTH; x++)
+                for (uint16_t x = 0; x < TFT_WIDTH; x++)
                 {
                     s_lines[calc_line][destIdx++] = SWAP(pixels[yp][x].val);
                 }
@@ -368,13 +282,14 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
                                       s_lines[sending_line]);
         }
 
-        framesDrawn++;
-        if (framesDrawn == 120)
-        {
-            uint64_t tFpsEnd = esp_timer_get_time();
-            printf("%f FPS\n", 120 / ((tFpsEnd - tFpsStart) / 1000000.0f));
-            tFpsStart = tFpsEnd;
-            framesDrawn = 0;
-        }
+        // Debug printing for frames-per-second
+        // framesDrawn++;
+        // if (framesDrawn == 120)
+        // {
+        //     uint64_t tFpsEnd = esp_timer_get_time();
+        //     ESP_LOGD("TFT", "%f FPS\n", 120 / ((tFpsEnd - tFpsStart) / 1000000.0f));
+        //     tFpsStart = tFpsEnd;
+        //     framesDrawn = 0;
+        // }
     }
 }

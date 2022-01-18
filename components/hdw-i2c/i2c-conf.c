@@ -4,7 +4,12 @@
 #include "i2c-conf.h"
 
 /**
- * @brief i2c master initialization
+ * @brief Initialize the I2C bus
+ * 
+ * @param sda The GPIO for SDA
+ * @param scl The GPIO for SCL
+ * @param pullup GPIO_PULLUP_ENABLE or GPIO_PULLUP_DISABLE for SDA and SCL
+ * @param clkHz The frequency for this I2C bus
  */
 void i2c_master_init(gpio_num_t sda, gpio_num_t scl, gpio_pullup_t pullup, uint32_t clkHz)
 {

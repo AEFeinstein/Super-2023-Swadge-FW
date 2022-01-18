@@ -1,3 +1,6 @@
+#ifndef _BUZZER_H_
+#define _BUZZER_H_
+
 #include <stdbool.h>
 #include <stdint.h>
 #include "hal/gpio_types.h"
@@ -141,3 +144,5 @@ void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt);
 void buzzer_play(const song_t* song);
 void buzzer_check_next_note(void);
 void buzzer_stop(void);
+
+#endif

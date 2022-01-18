@@ -1,22 +1,30 @@
+//==============================================================================
+// Includes
+//==============================================================================
+
 #include "esp_err.h"
+#include "esp_log.h"
 #include "nvs_flash.h"
 #include "nvs.h"
 
 #include "nvs_manager.h"
 
+//==============================================================================
+// Defines
+//==============================================================================
+
 #define PARTITION_NAME "storage"
 
-#ifdef NVS_DEBUG_PRINT
-    #define nvs_printf(...) printf(__VA_ARGS__)
-#else
-    #define nvs_printf(...)
-#endif
+//==============================================================================
+// Functions
+//==============================================================================
 
 /**
- * @brief TODO
- *
- * @return true
- * @return false
+ * @brief Initialize the nonvolatile storage
+ * 
+ * @param firstTry true if this is the first time NVS is initialized this boot,
+ *                 false otherwise
+ * @return true if NVS was initialized and can be used, false if it failed
  */
 bool initNvs(bool firstTry)
 {
@@ -71,12 +79,11 @@ bool initNvs(bool firstTry)
 }
 
 /**
- * @brief TODO
+ * @brief Write a 32 bit value to NVS with a given string key
  *
- * @param key
- * @param val
- * @return true
- * @return false
+ * @param key The key for the value to write
+ * @param val The value to write
+ * @return true if the value was written, false if it was not
  */
 bool writeNvs32(const char* key, int32_t val)
 {
@@ -106,7 +113,7 @@ bool writeNvs32(const char* key, int32_t val)
                 case ESP_ERR_NVS_NOT_ENOUGH_SPACE:
                 case ESP_ERR_NVS_REMOVE_FAILED:
                 {
-                    nvs_printf("%s err %s\n", __func__, esp_err_to_name(writeErr));
+                    ESP_LOGE("NVS", "%s err %s\n", __func__, esp_err_to_name(writeErr));
                     break;
                 }
             }
@@ -122,19 +129,18 @@ bool writeNvs32(const char* key, int32_t val)
         case ESP_ERR_NVS_INVALID_NAME:
         case ESP_ERR_NO_MEM:
         {
-            nvs_printf("%s openErr %s\n", __func__, esp_err_to_name(openErr));
+            ESP_LOGE("NVS", "%s openErr %s\n", __func__, esp_err_to_name(openErr));
             return false;
         }
     }
 }
 
 /**
- * @brief TODO
- *
- * @param key
- * @param outVal
- * @return true
- * @return false
+ * @brief Read a 32 bit value from NVS with a given string key
+ * 
+ * @param key The key for the value to read
+ * @param outVal The value that was read
+ * @return true if the value was read, false if it was not
  */
 bool readNvs32(const char* key, int32_t* outVal)
 {
@@ -162,7 +168,7 @@ bool readNvs32(const char* key, int32_t* outVal)
                 case ESP_ERR_NVS_INVALID_NAME:
                 case ESP_ERR_NVS_INVALID_LENGTH:
                 {
-                    nvs_printf("%s readErr %s\n", __func__, esp_err_to_name(readErr));
+                    ESP_LOGE("NVS", "%s readErr %s\n", __func__, esp_err_to_name(readErr));
                     break;
                 }
             }
@@ -177,7 +183,7 @@ bool readNvs32(const char* key, int32_t* outVal)
         case ESP_ERR_NVS_INVALID_NAME:
         case ESP_ERR_NO_MEM:
         {
-            nvs_printf("%s openErr %s\n", __func__, esp_err_to_name(openErr));
+            ESP_LOGE("NVS", "%s openErr %s\n", __func__, esp_err_to_name(openErr));
             return false;
         }
     }

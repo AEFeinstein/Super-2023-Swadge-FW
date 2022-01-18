@@ -5,9 +5,9 @@
  *      Author: adam
  */
 
-/*============================================================================
- * Includes
- *==========================================================================*/
+//==============================================================================
+// Includes
+//==============================================================================
 
 #include <stdint.h>
 #include <string.h>
@@ -15,25 +15,20 @@
 #include <esp_now.h>
 #include <esp_err.h>
 #include <freertos/queue.h>
+#include <esp_log.h>
 
 #include "espNowUtils.h"
 #include "p2pConnection.h"
 
-/*============================================================================
- * Defines
- *==========================================================================*/
-
-#ifdef ESP_NOW_DEBUG_PRINT
-    #define espnow_printf(...) printf(__VA_ARGS__)
-#else
-    #define espnow_printf(...)
-#endif
+//==============================================================================
+// Defines
+//==============================================================================
 
 #define SOFTAP_CHANNEL 11
 
-/*============================================================================
- * Variables
- *==========================================================================*/
+//==============================================================================
+// Variables
+//==============================================================================
 
 /// This is the MAC address to transmit to for broadcasting
 const uint8_t espNowBroadcastMac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -43,16 +38,16 @@ hostEspNowSendCb_t hostEspNowSendCb = NULL;
 
 static xQueueHandle esp_now_queue = NULL;
 
-/*============================================================================
- * Prototypes
- *==========================================================================*/
+//==============================================================================
+// Prototypes
+//==============================================================================
 
 void espNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, int data_len);
 void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 
-/*============================================================================
- * Functions
- *==========================================================================*/
+//==============================================================================
+// Functions
+//==============================================================================
 
 /**
  * Initialize ESP-NOW and attach callback functions
@@ -72,33 +67,33 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
 
     if (ESP_OK != (err = esp_netif_init()))
     {
-        espnow_printf("Couldn't init netif %s\n", esp_err_to_name(err));
+        ESP_LOGD("ESPNOW", "Couldn't init netif %s\n", esp_err_to_name(err));
         return;
     }
 
     if (ESP_OK != (err = esp_event_loop_create_default()))
     {
-        espnow_printf("Couldn't create event loop %s\n", esp_err_to_name(err));
+        ESP_LOGD("ESPNOW", "Couldn't create event loop %s\n", esp_err_to_name(err));
         return;
     }
 
     wifi_init_config_t conf = WIFI_INIT_CONFIG_DEFAULT();
     if (ESP_OK != (err = esp_wifi_init(&conf)))
     {
-        espnow_printf("Couldn't init wifi %s\n", esp_err_to_name(err));
+        ESP_LOGD("ESPNOW", "Couldn't init wifi %s\n", esp_err_to_name(err));
         return;
     }
 
     if (ESP_OK != (err = esp_wifi_set_storage(WIFI_STORAGE_RAM)))
     {
-        espnow_printf("Couldn't set wifi storage %s\n", esp_err_to_name(err));
+        ESP_LOGD("ESPNOW", "Couldn't set wifi storage %s\n", esp_err_to_name(err));
         return;
     }
 
     // Set up all the wifi softAP mode configs
     if(ESP_OK != (err = esp_wifi_set_mode(WIFI_MODE_AP)))
     {
-        espnow_printf("Could not set as station mode\n");
+        ESP_LOGD("ESPNOW", "Could not set as station mode\n");
         return;
     }
 
@@ -120,13 +115,13 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
     };
     if(ESP_OK != (err = esp_wifi_set_config(ESP_IF_WIFI_AP, &config)))
     {
-        espnow_printf("Couldn't set softap config\n");
+        ESP_LOGD("ESPNOW", "Couldn't set softap config\n");
         return;
     }
 
     if(ESP_OK != (err = esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N)))
     {
-        espnow_printf("Couldn't set protocol %s\n", esp_err_to_name(err));
+        ESP_LOGD("ESPNOW", "Couldn't set protocol %s\n", esp_err_to_name(err));
         return;
     }
 
@@ -140,41 +135,41 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
     };
     if(ESP_OK != (err = esp_wifi_set_country(&usa)))
     {
-        espnow_printf("Couldn't set country\n");
+        ESP_LOGD("ESPNOW", "Couldn't set country\n");
         return;
     }
 
     if(ESP_OK != (err = esp_wifi_config_espnow_rate(ESP_IF_WIFI_AP, WIFI_PHY_RATE_54M)))
     {
-        espnow_printf("Couldn't set PHY rate %s\n", esp_err_to_name(err));
+        ESP_LOGD("ESPNOW", "Couldn't set PHY rate %s\n", esp_err_to_name(err));
         return;
     }
 
     if(ESP_OK != (err = esp_wifi_start()))
     {
-        espnow_printf("Couldn't start wifi %s\n", esp_err_to_name(err));
+        ESP_LOGD("ESPNOW", "Couldn't start wifi %s\n", esp_err_to_name(err));
         return;
     }
 
     // Set the channel
     if(ESP_OK != (err = esp_wifi_set_channel( SOFTAP_CHANNEL, WIFI_SECOND_CHAN_BELOW )))
     {
-        espnow_printf("Couldn't set channel\n");
+        ESP_LOGD("ESPNOW", "Couldn't set channel\n");
         return;
     }
 
     if(ESP_OK == (err = esp_now_init()))
     {
-        espnow_printf("ESP NOW init!\n");
+        ESP_LOGD("ESPNOW", "ESP NOW init!\n");
 
         if(ESP_OK != (err = esp_now_register_recv_cb(espNowRecvCb)))
         {
-            espnow_printf("recvCb NOT registered\n");
+            ESP_LOGD("ESPNOW", "recvCb NOT registered\n");
         }
 
         if(ESP_OK != (err = esp_now_register_send_cb(espNowSendCb)))
         {
-            espnow_printf("sendCb NOT registered\n");
+            ESP_LOGD("ESPNOW", "sendCb NOT registered\n");
         }
 
         esp_now_peer_info_t broadcastPeer =
@@ -188,12 +183,12 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
         };
         if(ESP_OK != (err = esp_now_add_peer(&broadcastPeer)))
         {
-            espnow_printf("peer NOT added\n");
+            ESP_LOGD("ESPNOW", "peer NOT added\n");
         }
     }
     else
     {
-        espnow_printf("esp now fail (%s)\n", esp_err_to_name(err));
+        ESP_LOGD("ESPNOW", "esp now fail (%s)\n", esp_err_to_name(err));
     }
 }
 
@@ -251,10 +246,10 @@ void checkEspNowRxQueue(void)
         // int i;
         // for (i = 0; i < packet.len; i++)
         // {
-        //     sespnow_printf(tmp, "%02X ", packet.data[i]);
+        //     sprintf(tmp, "%02X ", packet.data[i]);
         //     strcat(dbg, tmp);
         // }
-        // espnow_printf("%s, MAC [%02X:%02X:%02X:%02X:%02X:%02X], Bytes [%s]\n",
+        // ESP_LOGD("ESPNOW", "%s, MAC [%02X:%02X:%02X:%02X:%02X:%02X], Bytes [%s]\n",
         //        __func__,
         //        packet.mac[0],
         //        packet.mac[1],
@@ -292,7 +287,7 @@ void espNowSend(const uint8_t* data, uint8_t len)
  */
 void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
-    espnow_printf("SEND MAC %02X:%02X:%02X:%02X:%02X:%02X\n",
+    ESP_LOGD("ESPNOW", "SEND MAC %02X:%02X:%02X:%02X:%02X:%02X\n",
            mac_addr[0],
            mac_addr[1],
            mac_addr[2],
@@ -304,13 +299,13 @@ void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
     {
         case ESP_NOW_SEND_SUCCESS:
         {
-            // espnow_printf("ESP NOW MT_TX_STATUS_OK\n");
+            // ESP_LOGD("ESPNOW", "ESP NOW MT_TX_STATUS_OK\n");
             break;
         }
         default:
         case ESP_NOW_SEND_FAIL:
         {
-            espnow_printf("ESP NOW MT_TX_STATUS_FAILED\n");
+            ESP_LOGD("ESPNOW", "ESP NOW MT_TX_STATUS_FAILED\n");
             break;
         }
     }

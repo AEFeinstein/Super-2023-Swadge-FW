@@ -443,8 +443,7 @@ rgb_pixel_t getPxOled(int16_t x, int16_t y)
 }
 
 /**
- * @brief TODO
- * 
+ * @brief Clear the entire display to black
  */
 void clearPxOled(void)
 {
@@ -453,11 +452,12 @@ void clearPxOled(void)
 }
 
 /**
- * Initialize the SSD1306 OLED
+ * @brief Initialize the SSD1306 OLED. The I2C bus must be initialized before
+ * this is called
  *
- * @param disp TODO
+ * @param disp The display to initialize
  * @param reset true to reset the OLED using the RST line, false to leave it alone
- * @param rst_gpio TODO
+ * @param rst_gpio The GPIO for the reset pin
  * @return true if it initialized, false if it failed
  */
 bool initOLED(display_t * disp, bool reset, gpio_num_t rst_gpio)

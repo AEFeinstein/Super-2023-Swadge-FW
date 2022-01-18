@@ -1,17 +1,20 @@
+//==============================================================================
+// Includes
+//==============================================================================
+
 #include <stdio.h>
 #include <string.h>
 
 #include "esp_err.h"
 #include "esp_spiffs.h"
+#include "esp_log.h"
+
 #include "spiffs_manager.h"
 #include "spiffs_config.h"
 
-#define SPIFFS_DEBUG_PRINT
-#ifdef SPIFFS_DEBUG_PRINT
-#define spiffs_printf(...) printf(__VA_ARGS__)
-#else
-#define spiffs_printf(...)
-#endif
+//==============================================================================
+// Variables
+//==============================================================================
 
 /* Config data */
 static const esp_vfs_spiffs_conf_t conf = {
@@ -21,11 +24,15 @@ static const esp_vfs_spiffs_conf_t conf = {
     .format_if_mount_failed = false
 };
 
+//==============================================================================
+// Functions
+//==============================================================================
+
 /**
- * @brief TODO
+ * @brief Initialize the SPI file system (SPIFFS). This is used to store assets
+ * like PNGs and fonts
  *
- * @return true
- * @return false
+ * @return true if SPIFFS was initialized and can be used, false if it failed
  */
 bool initSpiffs(void)
 {
@@ -33,38 +40,20 @@ bool initSpiffs(void)
      * Use settings defined above to initialize and mount SPIFFS filesystem.
      * Note: esp_vfs_spiffs_register is an all-in-one convenience function.
      */
-    esp_err_t ret = esp_vfs_spiffs_register(&conf);
+    ESP_ERROR_CHECK(esp_vfs_spiffs_register(&conf));
 
-    if (ret != ESP_OK) {
-        if (ret == ESP_FAIL) {
-            spiffs_printf("Failed to mount or format filesystem\n");
-        } else if (ret == ESP_ERR_NOT_FOUND) {
-            spiffs_printf("Failed to find SPIFFS partition\n");
-        } else {
-            spiffs_printf("Failed to initialize SPIFFS (%s)\n", esp_err_to_name(ret));
-        }
-        return false;
-    }
-
-#ifdef SPIFFS_DEBUG_PRINT
+    /* Debug print */
     size_t total = 0, used = 0;
-    ret = esp_spiffs_info(NULL, &total, &used);
-    if (ret != ESP_OK) {
-        spiffs_printf("Failed to get SPIFFS partition information (%s)\n", esp_err_to_name(ret));
-        return false;
-    } else {
-        spiffs_printf("Partition size: total: %d, used: %d\n", total, used);
-    }
-#endif
+    ESP_ERROR_CHECK(esp_spiffs_info(NULL, &total, &used));
+    ESP_LOGD("SPIFFS", "Partition size: total: %d, used: %d\n", total, used);
 
     return true;
 }
 
 /**
- * @brief TODO
+ * @brief De-initialize the SPI file system (SPIFFS)
  *
- * @return true
- * @return false
+ * @return true if SPIFFS was de-initialized, false if it was not
  */
 bool deinitSpiffs(void)
 {
@@ -72,30 +61,34 @@ bool deinitSpiffs(void)
 }
 
 /**
- * The following calls demonstrate reading files from the generated SPIFFS
- * image. The images should contain the same files and contents as the
- * spiffs_image directory.
- *
- * @return true
- * @return false
+ * @brief Read a file from SPIFFS into an output array. Files that are in the
+ * spiffs_image folder before compilation and flashing will automatically
+ * be included in the firmware
+ * 
+ * @param fname   The name of the file to load
+ * @param output  A pointer to a pointer to return the read data in. This memory
+ *                will be allocated with calloc(). Must be NULL to start
+ * @param outsize A pointer to a size_t to return how much data was read
+ * @return true if the file was read successfully, false otherwise
  */
 bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
 {
+    // Make sure the output pointer is NULL to begin with
     if(NULL != *output)
     {
-        spiffs_printf("output not NULL\n");
+        ESP_LOGE("SPIFFS", "output not NULL\n");
         return false;
     }
 
     // Read and display the contents of a small text file
-    spiffs_printf("Reading %s\n", fname);
+    ESP_LOGD("SPIFFS", "Reading %s\n", fname);
 
     // Open for reading the given file
     char fnameFull[128] = "/spiffs/";
     strcat(fnameFull, fname);
     FILE* f = fopen(fnameFull, "r");
     if (f == NULL) {
-        spiffs_printf("Failed to open %s\n", fnameFull);
+        ESP_LOGE("SPIFFS", "Failed to open %s\n", fnameFull);
         return false;
     }
 
@@ -112,6 +105,6 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
     fclose(f);
 
     // Display the read contents from the file
-    spiffs_printf("Read from %s: %u bytes\n", fname, *outsize);
+    ESP_LOGD("SPIFFS", "Read from %s: %u bytes\n", fname, *outsize);
     return true;
 }

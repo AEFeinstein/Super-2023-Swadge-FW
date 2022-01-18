@@ -52,7 +52,8 @@
         "stack": "c",
         "cmath": "c",
         "gpio_types.h": "c",
-        "spi_types.h": "c"
+        "spi_types.h": "c",
+        "esp_log.h": "c"
     },
     "idf.adapterTargetName": "esp32s2",
 }

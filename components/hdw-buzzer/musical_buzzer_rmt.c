@@ -1,13 +1,13 @@
-/*******************************************************************************
- * Includes
- ******************************************************************************/
+//==============================================================================
+// Includes
+//==============================================================================
 
 #include "esp_timer.h"
 #include "musical_buzzer.h"
 
-/*******************************************************************************
- * Structs
- ******************************************************************************/
+//==============================================================================
+// Structs
+//==============================================================================
 
 typedef struct
 {
@@ -18,25 +18,27 @@ typedef struct
     int64_t start_time;
 } rmt_buzzer_t;
 
-/*******************************************************************************
- * Function Prototypes
- ******************************************************************************/
+//==============================================================================
+// Function Prototypes
+//==============================================================================
 
 static void play_note(void);
 
-/*******************************************************************************
- * Variables
- ******************************************************************************/
+//==============================================================================
+// Variables
+//==============================================================================
 
 rmt_buzzer_t rmt_buzzer;
 
-/*******************************************************************************
- * Functions
- ******************************************************************************/
+//==============================================================================
+// Functions
+//==============================================================================
 
 /**
- * @brief TOOD
- *
+ * @brief Initialize a buzzer peripheral
+ * 
+ * @param gpio The GPIO the buzzer is connected to
+ * @param rmt  The RMT channel to control the buzzer with
  */
 void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
 {
@@ -47,23 +49,21 @@ void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
     dev_config.tx_config.loop_en = true;
 
     // Install RMT driver
-    rmt_config(&dev_config);
-    rmt_driver_install(rmt, 0, 0);
+    ESP_ERROR_CHECK(rmt_config(&dev_config));
+    ESP_ERROR_CHECK(rmt_driver_install(rmt, 0, 0));
 
     // Enable autostopping when the loop count hits the threshold
-    rmt_enable_tx_loop_autostop(rmt, true);
+    ESP_ERROR_CHECK(rmt_enable_tx_loop_autostop(rmt, true));
 
     // Save the channel and clock frequency
     rmt_buzzer.channel = rmt;
-    rmt_get_counter_clock(rmt, &rmt_buzzer.counter_clk_hz);
+    ESP_ERROR_CHECK(rmt_get_counter_clock(rmt, &rmt_buzzer.counter_clk_hz));
 }
 
 /**
- * @brief TODO
- *
- * @param notation
- * @param notation_length
- * @return bool
+ * @brief Start playing a song on the buzzer
+ * 
+ * @param song The song to play as a sequence of notes
  */
 void buzzer_play(const song_t* song)
 {
@@ -77,9 +77,8 @@ void buzzer_play(const song_t* song)
 }
 
 /**
- * @brief TODO
- *
- * @return bool
+ * @brief Check if there is a new note to play on the buzzer. This should be
+ * called periodically 
  */
 void buzzer_check_next_note(void)
 {
@@ -119,9 +118,8 @@ void buzzer_check_next_note(void)
 }
 
 /**
- * @brief TODO
- *
- * @return rmt_item32_t
+ * @brief Play the current note on the buzzer
+ * 
  */
 static void play_note(void)
 {
@@ -150,9 +148,7 @@ static void play_note(void)
 }
 
 /**
- * @brief TODO
- *
- * @return bool
+ * @brief Stop the buzzer from playing anything
  */
 void buzzer_stop(void)
 {
