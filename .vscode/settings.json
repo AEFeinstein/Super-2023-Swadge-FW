@@ -53,7 +53,13 @@
         "cmath": "c",
         "gpio_types.h": "c",
         "spi_types.h": "c",
-        "esp_log.h": "c"
+        "esp_log.h": "c",
+        "bitset": "c",
+        "chrono": "c",
+        "algorithm": "c",
+        "xhash": "c",
+        "xtree": "c",
+        "xutility": "c"
     },
     "idf.adapterTargetName": "esp32s2",
 }

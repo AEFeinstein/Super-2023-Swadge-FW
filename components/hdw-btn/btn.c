@@ -17,15 +17,10 @@
 #include "btn.h"
 
 //==============================================================================
-// Structs
+// Defines
 //==============================================================================
 
-typedef struct
-{
-    gpio_num_t gpioNum;
-    uint32_t savedBit;
-    gpio_config_t gpioConf;
-}  gpio_config_plus_t;
+#define GPIO_HIGH_BIT BIT31
 
 //==============================================================================
 // Prototypes
@@ -37,162 +32,147 @@ static void IRAM_ATTR gpio_isr_handler(void* arg);
 // Variables
 //==============================================================================
 
-gpio_config_plus_t gpioConfP[] =
-{
-    {
-        .gpioNum = GPIO_NUM_0, // LEFT
-        .savedBit = BIT0,
-        .gpioConf =
-        {
-            .pin_bit_mask = GPIO_SEL_0,
-            .mode         = GPIO_MODE_INPUT,
-            .pull_up_en   = GPIO_PULLUP_ENABLE,
-            .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type    = GPIO_INTR_ANYEDGE,
-        }
-    },
-    {
-        .gpioNum = GPIO_NUM_3, // RIGHT
-        .savedBit = BIT1,
-        .gpioConf =
-        {
-            .pin_bit_mask = GPIO_SEL_3,
-            .mode         = GPIO_MODE_INPUT,
-            .pull_up_en   = GPIO_PULLUP_ENABLE,
-            .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type    = GPIO_INTR_ANYEDGE,
-        }
-    },
-    {
-        .gpioNum = GPIO_NUM_2, // MODE
-        .savedBit = BIT2,
-        .gpioConf =
-        {
-            .pin_bit_mask = GPIO_SEL_2,
-            .mode         = GPIO_MODE_INPUT,
-            .pull_up_en   = GPIO_PULLUP_ENABLE,
-            .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type    = GPIO_INTR_ANYEDGE,
-        }
-    },
-    {
-        .gpioNum = GPIO_NUM_4, // OLED RST OUTPUT
-        .savedBit = 0,
-        .gpioConf =
-        {
-            .pin_bit_mask = GPIO_SEL_4,
-            .mode         = GPIO_MODE_OUTPUT,
-            .pull_up_en   = GPIO_PULLUP_ENABLE,
-            .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type    = GPIO_INTR_DISABLE,
-        }
-    }
-};
-
+static gpio_num_t * btnGpios;
 static xQueueHandle gpio_evt_queue = NULL;
-uint32_t buttonStates = 0;
+static uint32_t buttonStates = 0;
 
 //==============================================================================
 // Functions
 //==============================================================================
 
 /**
- * TODO
+ * @brief Initialize the given GPIOs as inputs for buttons
+ * 
+ * @param numButtons The number of GPIOs to initialize as buttons
+ * @param ... A list of GPIOs to initialize as buttons
  */
-void initButtons(void)
+void initButtons(uint8_t numButtons, ...)
 {
-    ESP_LOGD("BTN", "initializing buttons\n");
+    ESP_LOGD("BTN", "initializing buttons");
 
-    // Configure GPIOs
-    for(uint8_t i = 0; i < ARRAY_SIZE(gpioConfP); i++)
+    if(numButtons > 31)
     {
-        gpio_config(&(gpioConfP[i].gpioConf));
-        if(GPIO_MODE_INPUT == gpioConfP[i].gpioConf.mode)
-        {
-            if(gpio_get_level(gpioConfP[i].gpioNum))
-            {
-                buttonStates |= gpioConfP[i].savedBit;
-            }
-        }
+        ESP_LOGE("BTN", "Too many buttons initialized (%d), max 31", numButtons);
+        return;
     }
 
+    // Save all the button GPIOs
+    btnGpios = malloc(numButtons * sizeof(gpio_num_t));
+
     // create a queue to handle gpio event from isr
-    gpio_evt_queue = xQueueCreate(10, sizeof(gpio_config_plus_t*));
+    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
 
     // install gpio isr service
     gpio_install_isr_service(0); // See ESP_INTR_FLAG_*
 
-    // Configure interrupts
-    for(uint8_t i = 0; i < ARRAY_SIZE(gpioConfP); i++)
+    // For each GPIO
+    va_list ap;
+    va_start(ap, numButtons);
+    for(uint8_t i = 0; i < numButtons; i++)
     {
-        if(GPIO_INTR_DISABLE != gpioConfP[i].gpioConf.intr_type)
+        // Save the GPIO number
+        btnGpios[i] = va_arg(ap, gpio_num_t);
+
+        // Configure the GPIO
+        gpio_config_t conf = 
         {
-            gpio_isr_handler_add(gpioConfP[i].gpioNum, gpio_isr_handler, (gpio_config_plus_t*) &gpioConfP[i]);
+            .intr_type = GPIO_INTR_ANYEDGE,
+            .mode = GPIO_MODE_INPUT,
+            .pin_bit_mask = ((uint64_t)(((uint64_t)1)<<btnGpios[i])),
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .pull_up_en = GPIO_PULLUP_ENABLE
+        };
+        ESP_ERROR_CHECK(gpio_config(&conf));
+
+        // Get the initial state
+        if(!gpio_get_level(btnGpios[i]))
+        {
+            buttonStates |= (1 << i);
         }
+
+        // Register the interrupt with the index as the arg
+        ESP_ERROR_CHECK(gpio_isr_handler_add(btnGpios[i], gpio_isr_handler, (void*)((uintptr_t)i)));
     }
+    // Clean up
+    va_end(ap);
 }
 
 /**
- * @brief TODO
+ * @brief Free memory used by the buttons
+ */
+void deinitializeButtons(void)
+{
+    free(btnGpios);
+}
+
+/**
+ * @brief Interrupt handler for button presses
  *
- * @param arg
+ * @param arg The index into btnGpios[] of the GPIO that caused this interrupt
  */
 static void IRAM_ATTR gpio_isr_handler(void* arg)
 {
-    // Get the GPIO config from the interrupt argument
-    gpio_config_plus_t* conf = (gpio_config_plus_t*)arg;
+    // Get the button index
+    uint8_t buttonIdx = (uint8_t)((uintptr_t)arg);
 
-    // Get the corresponding bit from the configuration
-    uint32_t savedBit = conf->savedBit;
-
-    // Set BIT31 depending on the GPIO state
-    if(gpio_get_level(conf->gpioNum))
+    // Report this button index and if the GPIO is high or low (GPIO_HIGH_BIT)
+    uint32_t gpio_evt = buttonIdx;
+    if(gpio_get_level(btnGpios[buttonIdx]))
     {
-        savedBit |= BIT31;
+        gpio_evt |= GPIO_HIGH_BIT;
     }
 
     // Queue up this event
-    xQueueSendFromISR(gpio_evt_queue, &savedBit, NULL);
+    xQueueSendFromISR(gpio_evt_queue, &gpio_evt, NULL);
 }
 
 /**
- * @brief TODO
+ * @brief Service the queue of button events that caused interrupts
  * 
- * @param evt 
- * @return 
+ * @param evt If an event occurred, return it through this argument
+ * @return true if an event occurred, false if nothing happened
  */
 bool checkButtonQueue(buttonEvt_t* evt)
 {
-    uint32_t gpio_evt;
     // Check if there's an event to dequeue from the ISR
+    uint32_t gpio_evt;
     if (xQueueReceive(gpio_evt_queue, &gpio_evt, 0))
     {
         // Save the old button states
         uint32_t oldButtonStates = buttonStates;
 
-        // Set or clear the corresponding bit for this event.
-        // BIT31 indicates rising or falling edge
-        if(gpio_evt & BIT31)
+        // Get the button bit and edge from the interrupt queue
+        uint32_t buttonBit = 1 << (gpio_evt & (~GPIO_HIGH_BIT));
+        bool buttonPressed = (gpio_evt & GPIO_HIGH_BIT) ? false : true;
+
+        // Set or clear the bit for this event.
+        if(buttonPressed)
         {
-            buttonStates |= (gpio_evt & (~BIT31));
+            buttonStates |= buttonBit;
         }
         else
         {
-            buttonStates &= ~(gpio_evt & (~BIT31));
+            buttonStates &= (~buttonBit);
         }
 
-        // If there was a change in states, print it
+        // If there was a change in states, report it
         if(oldButtonStates != buttonStates)
         {
-            evt->button = gpio_evt & (~BIT31);
-            evt->down = !(gpio_evt & BIT31);
+            // Build the event to return
+            evt->button = buttonBit;
+            evt->down = buttonPressed;
             evt->state = buttonStates;
-            // ESP_LOGD("BTN", ("Bit 0x%02x went %s, buttonStates is %02x\n",
-            //        gpio_evt & (~BIT31),
-            //        (gpio_evt & BIT31) ? "high" : "low ",
-            //        buttonStates);
+
+            // Debug print
+            ESP_LOGD("BTN", "Bit 0x%02x was %s, buttonStates is %02x",
+                   buttonBit,
+                   (buttonPressed) ? "pressed " : "released",
+                   buttonStates);
+
+            // An event occurred
             return true;
         }
     }
+    // Nothing happened
     return false;
 }

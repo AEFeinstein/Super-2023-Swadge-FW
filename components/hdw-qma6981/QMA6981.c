@@ -298,7 +298,7 @@ void QMA6981_poll(accel_t* currentAccel)
     uint8_t raw_data[6];
     if(false == QMA6981_readreg(QMA6981_DATA, 6, raw_data))
     {
-        ESP_LOGE("ACCEL", "read xyz error!!!\n");
+        ESP_LOGE("ACCEL", "read xyz error!!!");
         // Try reinitializing, then return last known value
         QMA6981_setup();
     }

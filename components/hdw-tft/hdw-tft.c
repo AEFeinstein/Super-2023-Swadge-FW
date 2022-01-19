@@ -287,7 +287,7 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
         // if (framesDrawn == 120)
         // {
         //     uint64_t tFpsEnd = esp_timer_get_time();
-        //     ESP_LOGD("TFT", "%f FPS\n", 120 / ((tFpsEnd - tFpsStart) / 1000000.0f));
+        //     ESP_LOGD("TFT", "%f FPS", 120 / ((tFpsEnd - tFpsStart) / 1000000.0f));
         //     tFpsStart = tFpsEnd;
         //     framesDrawn = 0;
         // }

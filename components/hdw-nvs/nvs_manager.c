@@ -113,7 +113,7 @@ bool writeNvs32(const char* key, int32_t val)
                 case ESP_ERR_NVS_NOT_ENOUGH_SPACE:
                 case ESP_ERR_NVS_REMOVE_FAILED:
                 {
-                    ESP_LOGE("NVS", "%s err %s\n", __func__, esp_err_to_name(writeErr));
+                    ESP_LOGE("NVS", "%s err %s", __func__, esp_err_to_name(writeErr));
                     break;
                 }
             }
@@ -129,7 +129,7 @@ bool writeNvs32(const char* key, int32_t val)
         case ESP_ERR_NVS_INVALID_NAME:
         case ESP_ERR_NO_MEM:
         {
-            ESP_LOGE("NVS", "%s openErr %s\n", __func__, esp_err_to_name(openErr));
+            ESP_LOGE("NVS", "%s openErr %s", __func__, esp_err_to_name(openErr));
             return false;
         }
     }
@@ -168,7 +168,7 @@ bool readNvs32(const char* key, int32_t* outVal)
                 case ESP_ERR_NVS_INVALID_NAME:
                 case ESP_ERR_NVS_INVALID_LENGTH:
                 {
-                    ESP_LOGE("NVS", "%s readErr %s\n", __func__, esp_err_to_name(readErr));
+                    ESP_LOGE("NVS", "%s readErr %s", __func__, esp_err_to_name(readErr));
                     break;
                 }
             }
@@ -183,7 +183,7 @@ bool readNvs32(const char* key, int32_t* outVal)
         case ESP_ERR_NVS_INVALID_NAME:
         case ESP_ERR_NO_MEM:
         {
-            ESP_LOGE("NVS", "%s openErr %s\n", __func__, esp_err_to_name(openErr));
+            ESP_LOGE("NVS", "%s openErr %s", __func__, esp_err_to_name(openErr));
             return false;
         }
     }

@@ -97,17 +97,17 @@ p2pInfo p;
 
 void testConCbFn(p2pInfo* p2p, connectionEvt_t evt)
 {
-    ESP_LOGD("MAIN", "%s :: %d\n", __func__, evt);
+    ESP_LOGD("MAIN", "%s :: %d", __func__, evt);
 }
 
 void testMsgRxCbFn(p2pInfo* p2p, const char* msg, const uint8_t* payload, uint8_t len)
 {
-    ESP_LOGD("MAIN", "%s :: %d\n", __func__, len);
+    ESP_LOGD("MAIN", "%s :: %d", __func__, len);
 }
 
 void testMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
 {
-    ESP_LOGD("MAIN", "%s :: %d\n", __func__, status);
+    ESP_LOGD("MAIN", "%s :: %d", __func__, status);
 }
 
 /**
@@ -161,10 +161,10 @@ void app_main(void)
 
     ESP_LOGD("MAIN", "silicon revision %d, ", chip_info.revision);
 
-    ESP_LOGD("MAIN", "%dMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
+    ESP_LOGD("MAIN", "%dMB %s flash", spi_flash_get_chip_size() / (1024 * 1024),
                 (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
 
-    ESP_LOGD("MAIN", "Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
+    ESP_LOGD("MAIN", "Minimum free heap size: %d bytes", esp_get_minimum_free_heap_size());
 #endif
 
     /* The ESP32-C3 can enumerate as a USB CDC device using pins 18 and 19
@@ -244,13 +244,24 @@ void mainSwadgeTask(void * arg)
     initSpiffs();
 
     /* Initialize non-i2c hardware peripherals */
-    initButtons(); // TODO GPIOs in args somehow
+    initButtons(2, GPIO_NUM_35, GPIO_NUM_36);
     initLeds(GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
     buzzer_init(GPIO_NUM_9, RMT_CHANNEL_1);
     initTemperatureSensor();
 
-    touch_pad_t touchPads[] = {TOUCH_PAD_NUM12};
-    initTouchSensor(sizeof(touchPads) / sizeof(touchPads[0]), touchPads, 0.2f, true);
+    initTouchSensor(0.2f, true, 10,
+        TOUCH_PAD_NUM3,
+        TOUCH_PAD_NUM4,
+        TOUCH_PAD_NUM5,
+        TOUCH_PAD_NUM6,
+        TOUCH_PAD_NUM7,
+        // TOUCH_PAD_NUM8,
+        // TOUCH_PAD_NUM9,
+        TOUCH_PAD_NUM10,
+        TOUCH_PAD_NUM11,
+        TOUCH_PAD_NUM12,
+        TOUCH_PAD_NUM13,
+        TOUCH_PAD_NUM14);
 
     /* Initialize i2c peripherals */
 #define I2C_ENABLED
@@ -288,7 +299,7 @@ void mainSwadgeTask(void * arg)
     int32_t magicVal = 0;
     if((false == readNvs32("magicVal", &magicVal)) || (MAGIC_VAL != magicVal))
     {
-        ESP_LOGD("MAIN", "Writing magic val\n");
+        ESP_LOGD("MAIN", "Writing magic val");
         writeNvs32("magicVal", 0x01);
         writeNvs32("testVal", 0x01);
     }
@@ -421,7 +432,7 @@ void mainSwadgeTask(void * arg)
         if(tempTimeUs - lastTmp >= 1000000)
         {
             lastTmp = tempTimeUs;
-            ESP_LOGD("MAIN", "temperature %fc\n", readTemperatureSensor());
+            ESP_LOGD("MAIN", "temperature %fc", readTemperatureSensor());
         }
 #endif
 
@@ -436,8 +447,8 @@ void mainSwadgeTask(void * arg)
         {
             if (read != write)
             {
-                ESP_LOGD("MAIN", "nvs read  %04x\n", read);
-                ESP_LOGD("MAIN", "nvs write %04x\n", write);
+                ESP_LOGD("MAIN", "nvs read  %04x", read);
+                ESP_LOGD("MAIN", "nvs write %04x", write);
                 writeNvs32("testVal", write);
             }
         }
@@ -479,7 +490,7 @@ void mainSwadgeTask(void * arg)
         if(cTimeUs - lastAccelPrint >= 1000000)
         {
             lastAccelPrint = cTimeUs;
-            ESP_LOGD("MAIN", "%4d %4d %4d\n", accel.x, accel.y, accel.z);
+            ESP_LOGD("MAIN", "%4d %4d %4d", accel.x, accel.y, accel.z);
         }
         // if(NULL != snakeMode.fnAccelerometerCallback)
         // {
@@ -497,7 +508,8 @@ void mainSwadgeTask(void * arg)
             // }
         }
 
-        checkTouchSensor();
+        touch_event_t tEvt = {0};
+        checkTouchSensor(&tEvt);
 
         // Run the mode's event loop
         // static int64_t tLastCallUs = 0;

@@ -116,7 +116,7 @@ void p2pInitialize(p2pInfo* p2p, char* msgId,
                    p2pConCbFn conCbFn,
                    p2pMsgRxCbFn msgRxCbFn, int8_t connectionRssi)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
     // Make sure everything is zero!
     memset(p2p, 0, sizeof(p2pInfo));
 
@@ -225,7 +225,7 @@ void p2pInitialize(p2pInfo* p2p, char* msgId,
  */
 void p2pStartConnection(p2pInfo* p2p)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
     esp_timer_start_once(p2p->tmr.Connection, 1000);
 
     if(NULL != p2p->conCbFn)
@@ -241,7 +241,7 @@ void p2pStartConnection(p2pInfo* p2p)
  */
 void p2pDeinit(p2pInfo* p2p)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
 
     esp_timer_stop(p2p->tmr.Connection);
     esp_timer_stop(p2p->tmr.TxRetry);
@@ -260,7 +260,7 @@ void p2pDeinit(p2pInfo* p2p)
  */
 void p2pConnectionTimeout(void* arg)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
 
     p2pInfo* p2p = (p2pInfo*)arg;
     // Send a connection broadcast
@@ -270,7 +270,7 @@ void p2pConnectionTimeout(void* arg)
     uint32_t timeoutUs = 1000 * (100 * (5 + (esp_random() % 11)));
 
     // Start the timer again
-    ESP_LOGD("P2P", "retry broadcast in %dus\n", timeoutUs);
+    ESP_LOGD("P2P", "retry broadcast in %dus", timeoutUs);
     esp_timer_start_once(p2p->tmr.Connection, timeoutUs);
 }
 
@@ -284,13 +284,13 @@ void p2pConnectionTimeout(void* arg)
  */
 void p2pTxRetryTimeout(void* arg)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
 
     p2pInfo* p2p = (p2pInfo*)arg;
 
     if(p2p->ack.msgToAckLen > 0)
     {
-        ESP_LOGD("P2P", "Retrying message \"%s\"\n", p2p->ack.msgToAck);
+        ESP_LOGD("P2P", "Retrying message \"%s\"", p2p->ack.msgToAck);
         p2pSendMsgEx(p2p, p2p->ack.msgToAck, p2p->ack.msgToAckLen, true, p2p->ack.SuccessFn, p2p->ack.FailureFn);
     }
 }
@@ -306,7 +306,7 @@ void p2pTxRetryTimeout(void* arg)
  */
 void p2pTxAllRetriesTimeout(void* arg)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
 
     p2pInfo* p2p = (p2pInfo*)arg;
 
@@ -315,7 +315,7 @@ void p2pTxAllRetriesTimeout(void* arg)
     esp_timer_stop(p2p->tmr.TxAllRetries);
 
     // Call the failure function
-    ESP_LOGD("P2P", "Message totally failed \"%s\"\n", p2p->ack.msgToAck);
+    ESP_LOGD("P2P", "Message totally failed \"%s\"", p2p->ack.msgToAck);
     if(NULL != p2p->ack.FailureFn)
     {
         p2p->ack.FailureFn(p2p);
@@ -339,7 +339,7 @@ void p2pTxAllRetriesTimeout(void* arg)
 void p2pSendMsg(p2pInfo* p2p, char* msg, char* payload,
                 uint16_t len, p2pMsgTxCbFn msgTxCbFn)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
 
     char builtMsg[P2P_MAX_MSG_LEN] = {0};
 
@@ -383,7 +383,7 @@ void p2pSendMsg(p2pInfo* p2p, char* msg, char* payload,
  */
 void p2pModeMsgSuccess(void* arg)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
 
     p2pInfo* p2p = (p2pInfo*)arg;
     if(NULL != p2p->msgTxCbFn)
@@ -400,7 +400,7 @@ void p2pModeMsgSuccess(void* arg)
  */
 void p2pModeMsgFailure(void* arg)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
 
     p2pInfo* p2p = (p2pInfo*)arg;
     if(NULL != p2p->msgTxCbFn)
@@ -423,7 +423,7 @@ void p2pModeMsgFailure(void* arg)
 void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
                   bool shouldAck, void (*success)(void*), void (*failure)(void*))
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
 
     // If this is a first time message and longer than a connection message
     if( (p2p->ack.msgToAck != msg) && strlen(p2p->conMsg) < len)
@@ -444,7 +444,7 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
     char* dbgMsg = (char*)malloc(sizeof(char) * (len + 1));
     memcpy(dbgMsg, msg, len);
     dbgMsg[len] = 0;
-    ESP_LOGD("P2P", "%s: %s\n", __func__, dbgMsg);
+    ESP_LOGD("P2P", "%s: %s", __func__, dbgMsg);
     free(dbgMsg);
 #endif
 
@@ -456,7 +456,7 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
         // If this is not a retry
         if(p2p->ack.msgToAck != msg)
         {
-            ESP_LOGD("P2P", "sending for the first time\n");
+            ESP_LOGD("P2P", "sending for the first time");
 
             // Store the message for potential retries
             memcpy(p2p->ack.msgToAck, msg, len);
@@ -470,7 +470,7 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
         }
         else
         {
-            ESP_LOGD("P2P", "this is a retry\n");
+            ESP_LOGD("P2P", "this is a retry");
         }
 
         // Mark the time this transmission started, the retry timer gets
@@ -497,7 +497,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
     char* dbgMsg = (char*)malloc(sizeof(char) * (len + 1));
     memcpy(dbgMsg, data, len);
     dbgMsg[len] = 0;
-    ESP_LOGD("P2P", "%s: %s\n", __func__, dbgMsg);
+    ESP_LOGD("P2P", "%s: %s", __func__, dbgMsg);
     free(dbgMsg);
 #endif
 
@@ -506,7 +506,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
             (0 != memcmp(data, p2p->conMsg, CMD_IDX)))
     {
         // This message is too short, or does not match our message ID
-        ESP_LOGD("P2P", "DISCARD: Not a message for '%s'\n", p2p->msgId);
+        ESP_LOGD("P2P", "DISCARD: Not a message for '%s'", p2p->msgId);
         return;
     }
 
@@ -515,7 +515,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
             0 != memcmp(&data[MAC_IDX], p2p->cnc.macStr, strlen(p2p->cnc.macStr)))
     {
         // This MAC isn't for us
-        ESP_LOGD("P2P", "DISCARD: Not for our MAC\n");
+        ESP_LOGD("P2P", "DISCARD: Not for our MAC");
         return;
     }
 
@@ -525,7 +525,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
             0 != memcmp(mac_addr, p2p->cnc.otherMac, sizeof(p2p->cnc.otherMac)))
     {
         // This isn't from the other known swadge
-        ESP_LOGD("P2P", "DISCARD: Not from the other MAC\n");
+        ESP_LOGD("P2P", "DISCARD: Not from the other MAC");
         return;
     }
 
@@ -549,13 +549,13 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
         // Check it against the last known sequence number
         if(theirSeq == p2p->cnc.lastSeqNum)
         {
-            ESP_LOGD("P2P", "DISCARD: Duplicate sequence number\n");
+            ESP_LOGD("P2P", "DISCARD: Duplicate sequence number");
             return;
         }
         else
         {
             p2p->cnc.lastSeqNum = theirSeq;
-            ESP_LOGD("P2P", "Store lastSeqNum %d\n", p2p->cnc.lastSeqNum);
+            ESP_LOGD("P2P", "Store lastSeqNum %d", p2p->cnc.lastSeqNum);
         }
     }
 
@@ -566,7 +566,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
         if(strlen(p2p->ackMsg) == len &&
                 0 == memcmp(data, p2p->ackMsg, SEQ_IDX))
         {
-            ESP_LOGD("P2P", "ACK Received\n");
+            ESP_LOGD("P2P", "ACK Received");
 
             // Call the function after receiving the ack
             if(NULL != p2p->ack.SuccessFn)
@@ -623,7 +623,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
                  strlen(p2p->startMsg) == len &&
                  0 == memcmp(data, p2p->startMsg, SEQ_IDX))
         {
-            ESP_LOGD("P2P", "Game start message received, ACKing\n");
+            ESP_LOGD("P2P", "Game start message received, ACKing");
 
             // This is another swadge trying to start a game, which means
             // they received our p2p->conMsg. First disable our p2p->conMsg
@@ -636,11 +636,11 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
     }
     else
     {
-        ESP_LOGD("P2P", "cnc.isconnected is true\n");
+        ESP_LOGD("P2P", "cnc.isconnected is true");
         // Let the mode handle it
         if(NULL != p2p->msgRxCbFn)
         {
-            ESP_LOGD("P2P", "letting mode handle message\n");
+            ESP_LOGD("P2P", "letting mode handle message");
             char msgType[4] = {0};
             memcpy(msgType, &data[CMD_IDX], 3 * sizeof(char));
             p2p->msgRxCbFn(p2p, msgType, &data[EXT_IDX], len - EXT_IDX);
@@ -656,7 +656,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
  */
 void p2pSendAckToMac(p2pInfo* p2p, const uint8_t* mac_addr)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
 
     snprintf(p2p->ackMsg, sizeof(p2p->ackMsg), p2pNoPayloadMsgFmt,
              p2p->msgId,
@@ -678,7 +678,7 @@ void p2pSendAckToMac(p2pInfo* p2p, const uint8_t* mac_addr)
  */
 void p2pGameStartAckRecv(void* arg)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
 
     p2pInfo* p2p = (p2pInfo*)arg;
     p2pProcConnectionEvt(p2p, RX_GAME_START_ACK);
@@ -695,7 +695,7 @@ void p2pGameStartAckRecv(void* arg)
  */
 void p2pProcConnectionEvt(p2pInfo* p2p, connectionEvt_t event)
 {
-    ESP_LOGD("P2P", "%s evt: %d, p2p->cnc.rxGameStartMsg %d, p2p->cnc.rxGameStartAck %d\n", __func__, event,
+    ESP_LOGD("P2P", "%s evt: %d, p2p->cnc.rxGameStartMsg %d, p2p->cnc.rxGameStartAck %d", __func__, event,
                p2p->cnc.rxGameStartMsg, p2p->cnc.rxGameStartAck);
 
     switch(event)
@@ -766,7 +766,7 @@ void p2pProcConnectionEvt(p2pInfo* p2p, connectionEvt_t event)
  */
 void p2pStartRestartTimer(void* arg)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
 
     p2pInfo* p2p = (p2pInfo*)arg;
     // If the connection isn't established in FAILURE_RESTART_MS, restart
@@ -781,7 +781,7 @@ void p2pStartRestartTimer(void* arg)
  */
 void p2pRestart(void* arg)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
 
     p2pInfo* p2p = (p2pInfo*)arg;
 
@@ -810,7 +810,7 @@ void p2pRestart(void* arg)
  */
 void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr, esp_now_send_status_t status)
 {
-    ESP_LOGD("P2P", "%s\n", __func__);
+    ESP_LOGD("P2P", "%s", __func__);
 
     switch(status)
     {
@@ -819,7 +819,7 @@ void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr, esp_now_send_status_t stat
             if(0 != p2p->ack.timeSentUs)
             {
                 uint32_t transmissionTimeUs = esp_timer_get_time() - p2p->ack.timeSentUs;
-                ESP_LOGD("P2P", "Transmission time %dus\n", transmissionTimeUs);
+                ESP_LOGD("P2P", "Transmission time %dus", transmissionTimeUs);
                 // The timers are all millisecond, so make sure that
                 // transmissionTimeUs is at least 1ms
                 if(transmissionTimeUs < 1000)
@@ -832,7 +832,7 @@ void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr, esp_now_send_status_t stat
                 uint32_t waitTimeUs = 1000 * (((transmissionTimeUs + 500) / 1000) + 69 + (esp_random() & 0b1111));
 
                 // Start the timer
-                ESP_LOGD("P2P", "ack timer set for %dus\n", waitTimeUs);
+                ESP_LOGD("P2P", "ack timer set for %dus", waitTimeUs);
                 esp_timer_start_once(p2p->tmr.TxRetry, waitTimeUs);
             }
             break;
