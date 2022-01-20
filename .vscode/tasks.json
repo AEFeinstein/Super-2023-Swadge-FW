@@ -4,14 +4,19 @@
     "version": "2.0.0",
     "options": {
         "shell": {
-            "executable": "bash"
+            "executable": "powershell"
         }
     },
     "tasks": [
         {
-            "label": "Build, Flash, Debug",
+            "label": "make emu",
             "type": "shell",
-            "command": "${workspaceFolder}/burn-dbg.sh",
+            "command": "make",
+            "args": [
+                "-f",
+                "${workspaceFolder}/makefile_emu",
+                "all"
+            ],
             "problemMatcher": [
                 "$gcc"
             ],
@@ -21,25 +26,15 @@
             }
         },
         {
-            "label": "Clean",
+            "label": "clean emu",
             "type": "shell",
-            "command": "idf.py",
+            "command": "make",
             "args": [
-                "fullclean"
-            ],
-            "problemMatcher": [
-                "$gcc"
+                "-f",
+                "${workspaceFolder}/makefile_emu",
+                "clean"
             ],
             "group": "build"
         },
-        {
-            "label": "Erase Chip",
-            "type": "shell",
-            "command": "idf.py",
-            "args": [
-                "erase_flash"
-            ],
-            "group": "build"
-        }
     ]
 }
