@@ -101,7 +101,7 @@ void initRawDraw(int w, int h)
  * @param y 
  * @param px 
  */
-void emuSetPx(int16_t x, int16_t y, rgba_pixel_t px)
+void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px)
 {
 	// Convert from 15 bit to 24 bit color
 	uint8_t r8 = ((px.rgb.c.r * 0xFF) / 0x1F) & 0xFF;
@@ -117,7 +117,7 @@ void emuSetPx(int16_t x, int16_t y, rgba_pixel_t px)
  * @param y 
  * @return rgb_pixel_t 
  */
-rgb_pixel_t emuGetPx(int16_t x, int16_t y)
+rgb_pixel_t emuGetPxTft(int16_t x, int16_t y)
 {
 	uint32_t argb = bitmapDisplay[(bitmapWidth * y) + x];
 	rgb_pixel_t px;
@@ -131,7 +131,7 @@ rgb_pixel_t emuGetPx(int16_t x, int16_t y)
  * @brief TODO
  * 
  */
-void emuClearPx(void)
+void emuClearPxTft(void)
 {
 	memset(bitmapDisplay, 0x00, sizeof(uint32_t) * bitmapWidth * bitmapHeight);
 }
@@ -141,7 +141,7 @@ void emuClearPx(void)
  * 
  * @param drawDiff 
  */
-void emuDrawDisplay(bool drawDiff)
+void emuDrawDisplayTft(bool drawDiff)
 {
 	// Black Background
 	CNFGBGColor = 0x000000FF;
@@ -152,6 +152,49 @@ void emuDrawDisplay(bool drawDiff)
 
 	//Display the image and wait for time to display next frame.
 	CNFGSwapBuffers();
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param x 
+ * @param y 
+ * @param px 
+ */
+void emuSetPxOled(int16_t x, int16_t y, rgba_pixel_t px)
+{
+	ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param x 
+ * @param y 
+ * @return rgb_pixel_t 
+ */
+rgb_pixel_t emuGetPxOled(int16_t x, int16_t y)
+{
+	ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+/**
+ * @brief TODO
+ * 
+ */
+void emuClearPxOled(void)
+{
+	ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param drawDiff 
+ */
+void emuDrawDisplayOled(bool drawDiff)
+{
+	ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
 }
 
 /**

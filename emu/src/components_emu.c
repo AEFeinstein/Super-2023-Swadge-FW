@@ -27,9 +27,9 @@
 
 /**
  * @brief TODO
- * 
- * @param numButtons 
- * @param ... 
+ *
+ * @param numButtons
+ * @param ...
  */
 void initButtons(uint8_t numButtons, ...)
 {
@@ -38,7 +38,7 @@ void initButtons(uint8_t numButtons, ...)
 
 /**
  * @brief TODO
- * 
+ *
  */
 void deinitializeButtons(void)
 {
@@ -47,9 +47,9 @@ void deinitializeButtons(void)
 
 /**
  * @brief TODO
- * 
- * @return true 
- * @return false 
+ *
+ * @return true
+ * @return false
  */
 bool checkButtonQueue(buttonEvt_t* evt)
 {
@@ -63,9 +63,9 @@ bool checkButtonQueue(buttonEvt_t* evt)
 
 /**
  * @brief TODO
- * 
- * @param gpio 
- * @param rmt 
+ *
+ * @param gpio
+ * @param rmt
  */
 void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
 {
@@ -74,8 +74,8 @@ void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
 
 /**
  * @brief TODO
- * 
- * @param song 
+ *
+ * @param song
  */
 void buzzer_play(const song_t* song)
 {
@@ -84,7 +84,7 @@ void buzzer_play(const song_t* song)
 
 /**
  * @brief TODO
- * 
+ *
  */
 void buzzer_check_next_note(void)
 {
@@ -93,7 +93,7 @@ void buzzer_check_next_note(void)
 
 /**
  * @brief TODO
- * 
+ *
  */
 void buzzer_stop(void)
 {
@@ -106,11 +106,11 @@ void buzzer_stop(void)
 
 /**
  * @brief TODO
- * 
- * @param touchPadSensitivity 
- * @param denoiseEnable 
- * @param numTouchPads 
- * @param ... 
+ *
+ * @param touchPadSensitivity
+ * @param denoiseEnable
+ * @param numTouchPads
+ * @param ...
  */
 void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
     uint8_t numTouchPads, ...)
@@ -120,9 +120,9 @@ void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
 
 /**
  * @brief TODO
- * 
- * @return true 
- * @return false 
+ *
+ * @return true
+ * @return false
  */
 bool checkTouchSensor(touch_event_t * evt)
 {
@@ -136,11 +136,11 @@ bool checkTouchSensor(touch_event_t * evt)
 
 /**
  * @brief TODO
- * 
- * @param sda 
- * @param scl 
- * @param pullup 
- * @param clkHz 
+ *
+ * @param sda
+ * @param scl
+ * @param pullup
+ * @param clkHz
  */
 void i2c_master_init(gpio_num_t sda, gpio_num_t scl, gpio_pullup_t pullup, uint32_t clkHz)
 {
@@ -153,10 +153,10 @@ void i2c_master_init(gpio_num_t sda, gpio_num_t scl, gpio_pullup_t pullup, uint3
 
 /**
  * @brief TODO
- * 
- * @param gpio 
- * @param rmt 
- * @param numLeds 
+ *
+ * @param gpio
+ * @param rmt
+ * @param numLeds
  */
 void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds)
 {
@@ -165,9 +165,9 @@ void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds)
 
 /**
  * @brief TODO
- * 
- * @param leds 
- * @param numLeds 
+ *
+ * @param leds
+ * @param numLeds
  */
 void setLeds(led_t* leds, uint8_t numLeds)
 {
@@ -176,13 +176,13 @@ void setLeds(led_t* leds, uint8_t numLeds)
 
 /**
  * @brief TODO
- * 
- * @param h 
- * @param s 
- * @param v 
- * @param r 
- * @param g 
- * @param b 
+ *
+ * @param h
+ * @param s
+ * @param v
+ * @param r
+ * @param g
+ * @param b
  */
 void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r, uint8_t* g, uint8_t* b)
 {
@@ -195,10 +195,10 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r, uint8_t* 
 
 /**
  * @brief TODO
- * 
- * @param firstTry 
- * @return true 
- * @return false 
+ *
+ * @param firstTry
+ * @return true
+ * @return false
  */
 bool initNvs(bool firstTry)
 {
@@ -208,11 +208,11 @@ bool initNvs(bool firstTry)
 
 /**
  * @brief TODO
- * 
- * @param key 
- * @param val 
- * @return true 
- * @return false 
+ *
+ * @param key
+ * @param val
+ * @return true
+ * @return false
  */
 bool writeNvs32(const char* key, int32_t val)
 {
@@ -222,11 +222,11 @@ bool writeNvs32(const char* key, int32_t val)
 
 /**
  * @brief TODO
- * 
- * @param key 
- * @param outVal 
- * @return true 
- * @return false 
+ *
+ * @param key
+ * @param outVal
+ * @return true
+ * @return false
  */
 bool readNvs32(const char* key, int32_t* outVal)
 {
@@ -240,17 +240,25 @@ bool readNvs32(const char* key, int32_t* outVal)
 
 /**
  * @brief TODO
- * 
- * @param disp 
- * @param reset 
- * @param rst 
- * @return true 
- * @return false 
+ *
+ * @param disp
+ * @param reset
+ * @param rst
+ * @return true
+ * @return false
  */
-bool initOLED(display_t * disp, bool reset, gpio_num_t rst)
+bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
 {
     ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
-    return false;
+
+    disp->w = 0;
+    disp->h = 0;
+    disp->getPx = emuGetPxOled;
+    disp->setPx = emuSetPxOled;
+    disp->clearPx = emuClearPxOled;
+    disp->drawDisplay = emuDrawDisplayOled;
+    
+    return true;
 }
 
 //==============================================================================
@@ -259,9 +267,9 @@ bool initOLED(display_t * disp, bool reset, gpio_num_t rst)
 
 /**
  * @brief TODO
- * 
- * @return true 
- * @return false 
+ *
+ * @return true
+ * @return false
  */
 bool initSpiffs(void)
 {
@@ -271,9 +279,9 @@ bool initSpiffs(void)
 
 /**
  * @brief TODO
- * 
- * @return true 
- * @return false 
+ *
+ * @return true
+ * @return false
  */
 bool deinitSpiffs(void)
 {
@@ -285,7 +293,7 @@ bool deinitSpiffs(void)
  * @brief Read a file from SPIFFS into an output array. Files that are in the
  * spiffs_image folder before compilation and flashing will automatically
  * be included in the firmware
- * 
+ *
  * @param fname   The name of the file to load
  * @param output  A pointer to a pointer to return the read data in. This memory
  *                will be allocated with calloc(). Must be NULL to start
@@ -307,7 +315,7 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
     // Open for reading the given file
     char fnameFull[128] = "./spiffs_image/";
     strcat(fnameFull, fname);
-    FILE* f = fopen(fnameFull, "r");
+    FILE* f = fopen(fnameFull, "rb");
     if (f == NULL) {
         ESP_LOGE("SPIFFS", "Failed to open %s", fnameFull);
         return false;
@@ -326,7 +334,7 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
     fclose(f);
 
     // Display the read contents from the file
-    ESP_LOGD("SPIFFS", "Read from %s: %llu bytes", fname, *outsize);
+    ESP_LOGD("SPIFFS", "Read from %s: %d bytes", fname, *outsize);
     return true;
 }
 
@@ -336,7 +344,7 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
 
 /**
  * @brief TODO
- * 
+ *
  */
 void initTemperatureSensor(void)
 {
@@ -345,8 +353,8 @@ void initTemperatureSensor(void)
 
 /**
  * @brief TODO
- * 
- * @return float 
+ *
+ * @return float
  */
 float readTemperatureSensor(void)
 {
@@ -360,15 +368,15 @@ float readTemperatureSensor(void)
 
 /**
  * @brief TODO
- * 
- * @param disp 
- * @param spiHost 
- * @param sclk 
- * @param mosi 
- * @param dc 
- * @param cs 
- * @param rst 
- * @param backlight 
+ *
+ * @param disp
+ * @param spiHost
+ * @param sclk
+ * @param mosi
+ * @param dc
+ * @param cs
+ * @param rst
+ * @param backlight
  */
 void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
     gpio_num_t sclk UNUSED, gpio_num_t mosi UNUSED, gpio_num_t dc UNUSED,
@@ -394,10 +402,10 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
 
     disp->w = TFT_WIDTH;
     disp->h = TFT_HEIGHT;
-    disp->getPx = emuGetPx;
-    disp->setPx = emuSetPx;
-    disp->clearPx = emuClearPx;
-    disp->drawDisplay = emuDrawDisplay;    
+    disp->getPx = emuGetPxTft;
+    disp->setPx = emuSetPxTft;
+    disp->clearPx = emuClearPxTft;
+    disp->drawDisplay = emuDrawDisplayTft;
 }
 
 //==============================================================================
@@ -406,9 +414,9 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
 
 /**
  * @brief TODO
- * 
- * @return true 
- * @return false 
+ *
+ * @return true
+ * @return false
  */
 bool QMA6981_setup(void)
 {
@@ -418,8 +426,8 @@ bool QMA6981_setup(void)
 
 /**
  * @brief TODO
- * 
- * @param currentAccel 
+ *
+ * @param currentAccel
  */
 void QMA6981_poll(accel_t* currentAccel)
 {
