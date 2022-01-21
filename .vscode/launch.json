@@ -28,7 +28,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "ext"
+            "preLaunchTask": "make emu"
         }
     ]
 }
