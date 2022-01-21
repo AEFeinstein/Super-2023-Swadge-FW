@@ -227,7 +227,10 @@
                 "${env:IDF_PATH}/components/xtensa/esp32/include",
                 "${env:IDF_PATH}/components/xtensa/esp32s2/include",
                 "${env:IDF_PATH}/components/xtensa/esp32s3/include",
-                "${env:IDF_PATH}/components/xtensa/include"
+                "${env:IDF_PATH}/components/xtensa/include",
+                "${workspaceFolder}/components/**",
+                "${workspaceFolder}/main/**",
+                "${workspaceFolder}/emu/**"
             ],
             "compileCommands": "${workspaceFolder}/build/compile_commands.json"
         }

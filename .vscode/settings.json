@@ -82,7 +82,12 @@
         "xlocmon": "cpp",
         "xloctime": "cpp",
         "xstring": "cpp",
-        "math.h": "c"
+        "math.h": "c",
+        "esp_efuse.h": "c",
+        "regex": "cpp",
+        "strstream": "cpp",
+        "led_util.h": "c",
+        "led_strip.h": "c"
     },
     "idf.adapterTargetName": "esp32s2",
 }

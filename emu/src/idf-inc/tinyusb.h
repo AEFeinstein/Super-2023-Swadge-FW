@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "esp_err.h"
+
 /// USB Device Descriptor
 typedef struct
 {
@@ -31,5 +33,7 @@ typedef struct {
     const char **string_descriptor; /*!< Pointer to an array of string descriptors */
     bool external_phy;              /*!< Should USB use an external PHY */
 } tinyusb_config_t;
+
+esp_err_t tinyusb_driver_install(const tinyusb_config_t *config);
 
 #endif

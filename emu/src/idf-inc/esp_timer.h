@@ -2,6 +2,7 @@
 #define _ESP_TIMER_H_
 
 #include <stdint.h>
+#include "esp_err.h"
 
 typedef enum {
     FL_ISR_DISPATCH_METHOD   = (1 << 0),  //!< 0=Callback is called from timer task, 1=Callback is called from timer ISR
@@ -30,5 +31,8 @@ struct esp_timer {
 };
 
 typedef struct esp_timer* esp_timer_handle_t;
+
+int64_t esp_timer_get_time(void);
+esp_err_t esp_timer_init(void);
 
 #endif

@@ -2,6 +2,7 @@
 #define _TUSB_HID_GAMEPAD_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define TU_BIT(n)             (1UL << (n))
 
@@ -104,5 +105,15 @@ typedef struct TU_ATTR_PACKED
   uint8_t hat;       ///< Buttons mask for currently pressed buttons in the DPad/hat
   uint32_t buttons;  ///< Buttons mask for currently pressed buttons
 }hid_gamepad_report_t;
+
+void tud_gamepad_report(hid_gamepad_report_t * report);
+bool tud_ready(void);
+
+uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id,
+                               hid_report_type_t report_type, uint8_t* buffer,
+                               uint16_t reqlen);
+void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
+                           hid_report_type_t report_type, uint8_t const* buffer,
+                           uint16_t bufsize);
 
 #endif
