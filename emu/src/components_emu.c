@@ -1,3 +1,9 @@
+#include <string.h>
+#include <stdio.h>
+
+#include "esp_emu.h"
+#include "emu_main.h"
+
 #include "btn.h"
 #include "musical_buzzer.h"
 #include "espNowUtils.h"
@@ -45,7 +51,7 @@ void deinitializeButtons(void)
  * @return true 
  * @return false 
  */
-bool checkButtonQueue(buttonEvt_t*)
+bool checkButtonQueue(buttonEvt_t* evt)
 {
     ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
     return false;
@@ -118,7 +124,7 @@ void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
  * @return true 
  * @return false 
  */
-bool checkTouchSensor(touch_event_t *)
+bool checkTouchSensor(touch_event_t * evt)
 {
     ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
     return false;
@@ -276,18 +282,52 @@ bool deinitSpiffs(void)
 }
 
 /**
- * @brief TODO
+ * @brief Read a file from SPIFFS into an output array. Files that are in the
+ * spiffs_image folder before compilation and flashing will automatically
+ * be included in the firmware
  * 
- * @param fname 
- * @param output 
- * @param outsize 
- * @return true 
- * @return false 
+ * @param fname   The name of the file to load
+ * @param output  A pointer to a pointer to return the read data in. This memory
+ *                will be allocated with calloc(). Must be NULL to start
+ * @param outsize A pointer to a size_t to return how much data was read
+ * @return true if the file was read successfully, false otherwise
  */
 bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
-    return false;
+    // Make sure the output pointer is NULL to begin with
+    if(NULL != *output)
+    {
+        ESP_LOGE("SPIFFS", "output not NULL");
+        return false;
+    }
+
+    // Read and display the contents of a small text file
+    ESP_LOGD("SPIFFS", "Reading %s", fname);
+
+    // Open for reading the given file
+    char fnameFull[128] = "./spiffs_image/";
+    strcat(fnameFull, fname);
+    FILE* f = fopen(fnameFull, "r");
+    if (f == NULL) {
+        ESP_LOGE("SPIFFS", "Failed to open %s", fnameFull);
+        return false;
+    }
+
+    // Get the file size
+    fseek(f, 0L, SEEK_END);
+    *outsize = ftell(f);
+    fseek(f, 0L, SEEK_SET);
+
+    // Read the file into an array
+    *output = (uint8_t*)calloc((*outsize + 1), sizeof(uint8_t));
+    fread(*output, *outsize, 1, f);
+
+    // Close the file
+    fclose(f);
+
+    // Display the read contents from the file
+    ESP_LOGD("SPIFFS", "Read from %s: %llu bytes", fname, *outsize);
+    return true;
 }
 
 //==============================================================================
@@ -330,11 +370,34 @@ float readTemperatureSensor(void)
  * @param rst 
  * @param backlight 
  */
-void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
-            gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
-            gpio_num_t backlight)
+void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
+    gpio_num_t sclk UNUSED, gpio_num_t mosi UNUSED, gpio_num_t dc UNUSED,
+    gpio_num_t cs UNUSED, gpio_num_t rst UNUSED, gpio_num_t backlight UNUSED)
 {
     ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+
+/* Screen-specific configurations */
+#if defined(CONFIG_ST7735_160x80)
+    #define TFT_WIDTH         160
+    #define TFT_HEIGHT         80
+#elif defined(CONFIG_ST7789_240x135)
+    #define TFT_WIDTH         240
+    #define TFT_HEIGHT        135
+#elif defined(CONFIG_ST7789_240x240)
+    #define TFT_WIDTH         240
+    #define TFT_HEIGHT        240
+#else
+    #error "Please pick a screen size"
+#endif
+
+    initRawDraw(TFT_WIDTH, TFT_HEIGHT);
+
+    disp->w = TFT_WIDTH;
+    disp->h = TFT_HEIGHT;
+    disp->getPx = emuGetPx;
+    disp->setPx = emuSetPx;
+    disp->clearPx = emuClearPx;
+    disp->drawDisplay = emuDrawDisplay;    
 }
 
 //==============================================================================

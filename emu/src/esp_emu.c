@@ -2,6 +2,7 @@
 
 #include "list.h"
 #include "esp_emu.h"
+#include "emu_main.h"
 
 #include "rmt.h"
 #include "touch_pad.h"
@@ -21,7 +22,14 @@
 #include "tinyusb.h"
 #include "tusb_hid_gamepad.h"
 
-#define UNUSED __attribute__((unused))
+typedef struct
+{
+    TaskFunction_t pvTaskCode;
+    const char * pcName;
+    uint32_t usStackDepth;
+    void * pvParameters;
+    UBaseType_t uxPriority;
+} rtosTask_t;
 
 static unsigned long boot_time_in_micros = 0;
 static list_t * taskList = NULL;
@@ -100,22 +108,12 @@ bool tud_ready(void)
 }
 
 /**
- * @brief TODO
- * 
+ * @brief Yield to rawdraw
  */
 void taskYIELD(void)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    onTaskYield();
 }
-
-typedef struct
-{
-    TaskFunction_t pvTaskCode;
-    const char * pcName;
-    uint32_t usStackDepth;
-    void * pvParameters;
-    UBaseType_t uxPriority;
-} rtosTask_t;
 
 /**
  * @brief TODO

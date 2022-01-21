@@ -72,12 +72,13 @@ CFLAGS_WARNINGS_EXTRA = \
 
 # Used by the ESP SDK
 DEFINES_LIST = \
-	SOC_TOUCH_SENSOR_NUM=14 \
-	CONFIG_ST7789_240x135 \
-	CONFIG_IDF_TARGET_ESP32S2 \
+	CONFIG_ST7789_240x135=y \
+	CONFIG_IDF_TARGET_ESP32S2=y \
 	SOC_RMT_CHANNELS_PER_GROUP=4 \
-	SOC_TOUCH_PROXIMITY_MEAS_DONE_SUPPORTED\
-	WITH_PROFILING=0
+	SOC_TOUCH_SENSOR_NUM=14 \
+	SOC_TOUCH_PROXIMITY_MEAS_DONE_SUPPORTED \
+	WITH_PROFILING=0 \
+	LOG_LOCAL_LEVEL=ESP_LOG_VERBOSE
 
 DEFINES = $(patsubst %, -D%, $(DEFINES_LIST))
 
@@ -107,7 +108,7 @@ OBJECTS = $(patsubst %.c, $(OBJ_DIR)/%.o, $(SOURCES))
 ################################################################################
 
 # This is a list of libraries to include. Order doesn't matter
-LIBS = 
+LIBS = opengl32 gdi32 user32 
 
 # These are directories to look for library files in
 LIB_DIRS = 

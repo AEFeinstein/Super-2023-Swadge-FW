@@ -88,7 +88,10 @@
         "strstream": "cpp",
         "led_util.h": "c",
         "led_strip.h": "c",
-        "queue.h": "c"
+        "queue.h": "c",
+        "esp_wifi_types.h": "c",
+        "esp_wifi_types_private.h": "c",
+        "esp_emu.h": "c"
     },
     "idf.adapterTargetName": "esp32s2",
 }
