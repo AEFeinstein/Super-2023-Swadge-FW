@@ -433,3 +433,149 @@ void QMA6981_poll(accel_t* currentAccel)
 {
     ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
 }
+
+//==============================================================================
+// ESP Now
+//==============================================================================
+
+/**
+ * @brief TODO
+ * 
+ * @param recvCb 
+ * @param sendCb 
+ */
+void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
+{
+    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+/**
+ * @brief TODO
+ * 
+ */
+void espNowDeinit(void)
+{
+    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param data 
+ * @param len 
+ */
+void espNowSend(const uint8_t* data, uint8_t len)
+{
+    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+/**
+ * @brief TODO
+ * 
+ */
+void checkEspNowRxQueue(void)
+{
+    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+//==============================================================================
+// P2P Connection
+//==============================================================================
+
+/**
+ * @brief TODO
+ * 
+ * @param p2p 
+ * @param msgId 
+ * @param conCbFn 
+ * @param msgRxCbFn 
+ * @param connectionRssi 
+ */
+void p2pInitialize(p2pInfo* p2p, char* msgId,
+                   p2pConCbFn conCbFn,
+                   p2pMsgRxCbFn msgRxCbFn, int8_t connectionRssi)
+{
+    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param p2p 
+ */
+void p2pDeinit(p2pInfo* p2p)
+{
+    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param p2p 
+ */
+void p2pStartConnection(p2pInfo* p2p)
+{
+    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param p2p 
+ * @param msg 
+ * @param payload 
+ * @param len 
+ * @param msgTxCbFn 
+ */
+void p2pSendMsg(p2pInfo* p2p, char* msg, char* payload, uint16_t len, p2pMsgTxCbFn msgTxCbFn)
+{
+    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param p2p 
+ * @param mac_addr 
+ * @param status 
+ */
+void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr, esp_now_send_status_t status)
+{
+    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param p2p 
+ * @param mac_addr 
+ * @param data 
+ * @param len 
+ * @param rssi 
+ */
+void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi)
+{
+    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param p2p 
+ * @return playOrder_t 
+ */
+playOrder_t p2pGetPlayOrder(p2pInfo* p2p)
+{
+    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param p2p 
+ * @param order 
+ */
+void p2pSetPlayOrder(p2pInfo* p2p, playOrder_t order)
+{
+    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+}

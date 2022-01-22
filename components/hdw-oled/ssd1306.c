@@ -22,8 +22,10 @@
 // Defines and Enums
 //==============================================================================
 
-#define OLED_WIDTH 128
-#define OLED_HEIGHT 64
+// #define OLED_WIDTH 128
+// #define OLED_HEIGHT 64
+#define OLED_WIDTH  0
+#define OLED_HEIGHT 0
 
 #define OLED_ADDRESS (0x78 >> 1)
 //#define OLED_FREQ 800

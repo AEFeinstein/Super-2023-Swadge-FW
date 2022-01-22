@@ -39,86 +39,30 @@
 
 #include "display.h"
 
-//==============================================================================
-// Defines
-//==============================================================================
-
-// #define TEST_ACCEL
-// #define TEST_BZR
-// #define TEST_ESP_NOW
-// #define TEST_LEDS
-// #define TEST_NVR
-// #define TEST_OLED
-// #define TEST_TEMPERATURE
+#include "mode_demo.h"
 
 //==============================================================================
 // Function Prototypes
 //==============================================================================
+
 void mainSwadgeTask(void * arg);
-
 void app_main(void);
-
-//==============================================================================
-// Variables
-//==============================================================================
-
-#ifdef TEST_BZR
-/**
- * @brief Musical Notation: Beethoven's Ode to joy
- */
-static const musicalNote_t notation[] =
-{
-    {740, 400}, {740, 600}, {784, 400}, {880, 400},
-    {880, 400}, {784, 400}, {740, 400}, {659, 400},
-    {587, 400}, {587, 400}, {659, 400}, {740, 400},
-    {740, 400}, {740, 200}, {659, 200}, {659, 800},
-
-    {740, 400}, {740, 600}, {784, 400}, {880, 400},
-    {880, 400}, {784, 400}, {740, 400}, {659, 400},
-    {587, 400}, {587, 400}, {659, 400}, {740, 400},
-    {659, 400}, {659, 200}, {587, 200}, {587, 800},
-
-    {659, 400}, {659, 400}, {740, 400}, {587, 400},
-    {659, 400}, {740, 200}, {784, 200}, {740, 400}, {587, 400},
-    {659, 400}, {740, 200}, {784, 200}, {740, 400}, {659, 400},
-    {587, 400}, {659, 400}, {440, 400}, {440, 400},
-
-    {740, 400}, {740, 600}, {784, 400}, {880, 400},
-    {880, 400}, {784, 400}, {740, 400}, {659, 400},
-    {587, 400}, {587, 400}, {659, 400}, {740, 400},
-    {659, 400}, {659, 200}, {587, 200}, {587, 800},
-};
-#endif
 
 //==============================================================================
 // Functions
 //==============================================================================
 
-#ifdef TEST_ESP_NOW
-p2pInfo p;
-
-void testConCbFn(p2pInfo* p2p, connectionEvt_t evt)
-{
-    ESP_LOGD("MAIN", "%s :: %d", __func__, evt);
-}
-
-void testMsgRxCbFn(p2pInfo* p2p, const char* msg, const uint8_t* payload, uint8_t len)
-{
-    ESP_LOGD("MAIN", "%s :: %d", __func__, len);
-}
-
-void testMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
-{
-    ESP_LOGD("MAIN", "%s :: %d", __func__, status);
-}
-
 /**
- * Callback from ESP NOW to the current Swadge mode whenever a packet is received
- * It routes through user_main.c, which knows what the current mode is
+ * Callback from ESP NOW to the current Swadge mode whenever a packet is
+ * received. It routes through user_main.c, which knows what the current mode is
  */
-void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi)
+void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, 
+    uint8_t len, int8_t rssi)
 {
-    p2pRecvCb(&p, mac_addr, data, len, rssi);
+    if(NULL != modeDemo.fnEspNowRecvCb)
+    {
+        modeDemo.fnEspNowRecvCb(mac_addr, data, len, rssi);
+    }
 }
 
 /**
@@ -127,9 +71,53 @@ void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_
  */
 void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
-    p2pSendCb(&p, mac_addr, status);
+    if(NULL != modeDemo.fnEspNowSendCb)
+    {
+        modeDemo.fnEspNowSendCb(mac_addr, status);
+    }
 }
-#endif
+
+/**
+ * Invoked when received GET_REPORT control request
+ * Application must fill buffer report's content and return its length.
+ * Return zero will cause the stack to STALL request
+ * 
+ * Unimplemented, and seemingly never called. Arguments are unclear.
+ * Providing this function is necessary for compilation
+ *
+ * @param itf
+ * @param report_id
+ * @param report_type
+ * @param buffer
+ * @param reqlen
+ * @return uint16_t
+ */
+uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id,
+                               hid_report_type_t report_type, uint8_t* buffer,
+                               uint16_t reqlen)
+{
+    return 0;
+}
+
+/**
+ * Invoked when received SET_REPORT control request or
+ * received data on OUT endpoint ( Report ID = 0, Type = 0 )
+ * 
+ * Unimplemented, and seemingly never called. Arguments are unclear.
+ * Providing this function is necessary for compilation
+ *
+ * @param itf
+ * @param report_id
+ * @param report_type
+ * @param buffer
+ * @param bufsize
+ */
+void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
+                           hid_report_type_t report_type, uint8_t const* buffer,
+                           uint16_t bufsize)
+{
+    ;
+}
 
 /**
  * After all other components are initialized, the main task is created and the
@@ -188,49 +176,8 @@ void app_main(void)
 
     // Create a task for the swadge, then return
     TaskHandle_t xHandle = NULL;
-    xTaskCreate(mainSwadgeTask, "SWADGE", 16384, NULL, tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, &xHandle);
-}
-
-/**
- * Invoked when received GET_REPORT control request
- * Application must fill buffer report's content and return its length.
- * Return zero will cause the stack to STALL request
- * 
- * Unimplemented, and seemingly never called. Arguments are unclear.
- * Providing this function is necessary for compilation
- *
- * @param itf
- * @param report_id
- * @param report_type
- * @param buffer
- * @param reqlen
- * @return uint16_t
- */
-uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id,
-                               hid_report_type_t report_type, uint8_t* buffer,
-                               uint16_t reqlen)
-{
-    return 0;
-}
-
-/**
- * Invoked when received SET_REPORT control request or
- * received data on OUT endpoint ( Report ID = 0, Type = 0 )
- * 
- * Unimplemented, and seemingly never called. Arguments are unclear.
- * Providing this function is necessary for compilation
- *
- * @param itf
- * @param report_id
- * @param report_type
- * @param buffer
- * @param bufsize
- */
-void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
-                           hid_report_type_t report_type, uint8_t const* buffer,
-                           uint16_t bufsize)
-{
-    ;
+    xTaskCreate(mainSwadgeTask, "SWADGE", 8192, NULL, 
+        tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, &xHandle);
 }
 
 /**
@@ -250,7 +197,6 @@ void mainSwadgeTask(void * arg)
     initLeds(GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
     buzzer_init(GPIO_NUM_9, RMT_CHANNEL_1);
     initTemperatureSensor();
-
     initTouchSensor(0.2f, true, 10,
         TOUCH_PAD_NUM3,
         TOUCH_PAD_NUM4,
@@ -266,14 +212,14 @@ void mainSwadgeTask(void * arg)
         TOUCH_PAD_NUM14);
 
     /* Initialize i2c peripherals */
-#define I2C_ENABLED
-#ifdef I2C_ENABLED
-    display_t oledDisp;
     i2c_master_init(GPIO_NUM_33, GPIO_NUM_34, GPIO_PULLUP_DISABLE, 1000000);
-    initOLED(&oledDisp, true, GPIO_NUM_21);
     QMA6981_setup();
+#ifdef OLED_ENABLED
+    display_t oledDisp;
+    initOLED(&oledDisp, true, GPIO_NUM_21);
 #endif
 
+    /* Initialize SPI peripherals */
     display_t tftDisp;
     initTFT(&tftDisp,
             SPI2_HOST,
@@ -284,255 +230,79 @@ void mainSwadgeTask(void * arg)
             GPIO_NUM_40,  // rst
             GPIO_NUM_42); // backlight
 
-    /* the configuration using default values */
+    /* Initialize USB peripheral */
     tinyusb_config_t tusb_cfg = {};
-    /* This calls tusb_init() and sets up a task to spin tud_task() */
     tinyusb_driver_install(&tusb_cfg);
 
-    /*************************
-     * One-time tests
-     ************************/
-#ifdef TEST_BZR
-    buzzer_play(notation, sizeof(notation) / sizeof(notation[0]));
-#endif
-
-#ifdef TEST_NVR
-#define MAGIC_VAL 0x01
-    int32_t magicVal = 0;
-    if((false == readNvs32("magicVal", &magicVal)) || (MAGIC_VAL != magicVal))
+    /* Initialize Wifi peripheral */
+    if(ESP_NOW == modeDemo.wifiMode)
     {
-        ESP_LOGD("MAIN", "Writing magic val");
-        writeNvs32("magicVal", 0x01);
-        writeNvs32("testVal", 0x01);
+        espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb);
     }
-#endif
-
-#ifdef TEST_ESP_NOW
-    espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb);
-    p2pInitialize(&p, "tst", testConCbFn, testMsgRxCbFn, -10);
-    p2pStartConnection(&p);
-#endif
-
-#ifdef TEST_LEDS
-    led_t leds[NUM_LEDS] = {0};
-    int16_t pxidx = 0;
-    uint16_t hue = 0;
-#endif
-
-    png_t dq;
-    loadPng("dq.png", &dq);
-    drawPng(&tftDisp, &dq, 0, 0);
-
-    png_t megaman[9];
-    loadPng("run-1.png", &megaman[0]);
-    loadPng("run-2.png", &megaman[1]);
-    loadPng("run-3.png", &megaman[2]);
-    loadPng("run-4.png", &megaman[3]);
-    loadPng("run-5.png", &megaman[4]);
-    loadPng("run-6.png", &megaman[5]);
-    loadPng("run-7.png", &megaman[6]);
-    loadPng("run-8.png", &megaman[7]);
-    loadPng("run-9.png", &megaman[8]);
-
-    font_t tom_thumb;
-    loadFont("tom_thumb.font", &tom_thumb);
-    font_t ibm_vga8;
-    loadFont("ibm_vga8.font", &ibm_vga8);
-    font_t radiostars;
-    loadFont("radiostars.font", &radiostars);
-
-    rgba_pixel_t textColor = {
-        .a = 0xFF,
-        .rgb.c.r = 0x00,
-        .rgb.c.g = 0x00,
-        .rgb.c.b = 0x00,
-    };
-
-    textColor.rgb.c.r = 0x1F;
-    drawText(&tftDisp, &tom_thumb, textColor, "hello TFT", 10, 64);
-    textColor.rgb.c.r = 0x00;
-    textColor.rgb.c.g = 0x3F;
-    drawText(&tftDisp, &ibm_vga8, textColor, "hello TFT", 10, 84);
-    textColor.rgb.c.g = 0x00;
-    textColor.rgb.c.b = 0x1F;
-    drawText(&tftDisp, &radiostars, textColor, "hello TFT", 10, 104);
-
-    freeFont(&tom_thumb);
-    freeFont(&ibm_vga8);
-    freeFont(&radiostars);
 
     /* Enter the swadge mode */
-    // snakeMode.fnEnterMode();
+    if(NULL != modeDemo.fnEnterMode)
+    {
+        modeDemo.fnEnterMode(&tftDisp);
+    }
 
     /* Loop forever! */
     while(1)
     {
-        uint64_t megaTimeUs = esp_timer_get_time();
-        static uint64_t lastMega = 0;
-        if(megaTimeUs - lastMega >= 100000)
+        // Process ESP NOW
+        if(ESP_NOW == modeDemo.wifiMode)
         {
-            lastMega = megaTimeUs;
-            static int megaIdx = 0;
-            static int megaPos = 0;
-
-            tftDisp.clearPx();
-            drawPng(&tftDisp, &megaman[megaIdx], megaPos, (tftDisp.h-megaman[0].h)/2);
-
-#ifdef I2C_ENABLED
-            oledDisp.clearPx();
-            drawPng(&oledDisp, &megaman[megaIdx], megaPos, (oledDisp.h-megaman[0].h)/2);
-#endif
-            megaPos += 4;
-            if(megaPos >= tftDisp.w)
-            {
-                megaPos = -megaman[0].w;
-            }
-            megaIdx = (megaIdx + 1) % 9;
+            checkEspNowRxQueue();
         }
-
-        /* Twice a second push out some USB data */
-        uint64_t usbTimeUs = esp_timer_get_time();
-        static uint64_t lastUsb = 0;
-        /* Don't send until USB is ready */
-        if(tud_ready() && usbTimeUs - lastUsb >= 250000)
-        {
-            lastUsb = usbTimeUs;
-
-            // Static variables to track button and hat position
-            static hid_gamepad_button_bm_t btnPressed = GAMEPAD_BUTTON_A;
-            static hid_gamepad_hat_t hatDir = GAMEPAD_HAT_CENTERED;
-
-            // Build and send the state over USB
-            hid_gamepad_report_t report =
-            {
-                .buttons = btnPressed,
-                .hat = hatDir
-            };
-            tud_gamepad_report(&report);
-
-            // Move to the next button
-            btnPressed <<= 1;
-            if(btnPressed > GAMEPAD_BUTTON_THUMBR)
-            {
-                btnPressed = GAMEPAD_BUTTON_A;
-            }
-
-            // Move to the next hat dir
-            hatDir++;
-            if(hatDir > GAMEPAD_HAT_UP_LEFT)
-            {
-                hatDir = GAMEPAD_HAT_CENTERED;
-            }
-        }
-
-        /*************************
-         * Looped tests
-         ************************/
-#ifdef TEST_TEMPERATURE
-        uint64_t tempTimeUs = esp_timer_get_time();
-        static uint64_t lastTmp = 0;
-        if(tempTimeUs - lastTmp >= 1000000)
-        {
-            lastTmp = tempTimeUs;
-            ESP_LOGD("MAIN", "temperature %fc", readTemperatureSensor());
-        }
-#endif
-
-#ifdef TEST_ESP_NOW
-        checkEspNowRxQueue();
-#endif
-
-#ifdef TEST_NVR
-        int32_t write = 0xAEF;
-        int32_t read = 0;
-        if(readNvs32("testVal", &read))
-        {
-            if (read != write)
-            {
-                ESP_LOGD("MAIN", "nvs read  %04x", read);
-                ESP_LOGD("MAIN", "nvs write %04x", write);
-                writeNvs32("testVal", write);
-            }
-        }
-#endif
-
-#ifdef TEST_LEDS
-        for(int i = 0; i < NUM_LEDS; i++)
-        {
-            uint16_t tmpHue = (hue + (60 * i)) % 360;
-            led_strip_hsv2rgb(tmpHue, 100, 3, &leds[i].r, &leds[i].g, &leds[i].b);
-        }
-        hue = (hue + 1) % 360;
-        setLeds(leds, NUM_LEDS);
-#endif
-
-#ifdef TEST_OLED
-        switch(getPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH))
-        {
-        default:
-        case BLACK:
-        {
-            drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, WHITE);
-            break;
-        }
-        case WHITE:
-        {
-            drawPixel(pxidx % OLED_WIDTH, pxidx / OLED_WIDTH, BLACK);
-            break;
-        }
-        }
-        pxidx = (pxidx + 1) % (OLED_WIDTH * OLED_HEIGHT);
-#endif
-
-#if defined(I2C_ENABLED) && defined(TEST_ACCEL)
+        
+        // Process Accelerometer
         accel_t accel = {0};
         QMA6981_poll(&accel);
-        uint64_t cTimeUs = esp_timer_get_time();
-        static uint64_t lastAccelPrint = 0;
-        if(cTimeUs - lastAccelPrint >= 1000000)
+        if(NULL != modeDemo.fnAccelerometerCallback)
         {
-            lastAccelPrint = cTimeUs;
-            ESP_LOGD("MAIN", "%4d %4d %4d", accel.x, accel.y, accel.z);
+            modeDemo.fnAccelerometerCallback(&accel);
         }
-        // if(NULL != snakeMode.fnAccelerometerCallback)
-        // {
-        //     snakeMode.fnAccelerometerCallback(&accel);
-        // }
-#endif
 
         // Process button presses
         buttonEvt_t bEvt = {0};
         if(checkButtonQueue(&bEvt))
         {
-            // if(NULL != snakeMode.fnButtonCallback)
-            // {
-            //     snakeMode.fnButtonCallback(bEvt.state, bEvt.button, bEvt.down);
-            // }
+            if(NULL != modeDemo.fnButtonCallback)
+            {
+                modeDemo.fnButtonCallback(&bEvt);
+            }
         }
 
+        // Process touch events
         touch_event_t tEvt = {0};
-        checkTouchSensor(&tEvt);
+        if(checkTouchSensor(&tEvt))
+        {
+            if(NULL != modeDemo.fnTouchCallback)
+            {
+                modeDemo.fnTouchCallback(&tEvt);
+            }
+        }
 
         // Run the mode's event loop
-        // static int64_t tLastCallUs = 0;
-        // if(0 == tLastCallUs)
-        // {
-        //     tLastCallUs = esp_timer_get_time();
-        // }
-        // else
-        // {
-        //     int64_t tNowUs = esp_timer_get_time();
-        //     int64_t tElapsedUs = tNowUs - tLastCallUs;
-        //     tLastCallUs = tNowUs;
+        static int64_t tLastCallUs = 0;
+        if(0 == tLastCallUs)
+        {
+            tLastCallUs = esp_timer_get_time();
+        }
+        else
+        {
+            int64_t tNowUs = esp_timer_get_time();
+            int64_t tElapsedUs = tNowUs - tLastCallUs;
+            tLastCallUs = tNowUs;
 
-        //     if(NULL != snakeMode.fnMainLoop)
-        //     {
-        //         snakeMode.fnMainLoop(tElapsedUs);
-        //     }
-        // }
+            if(NULL != modeDemo.fnMainLoop)
+            {
+                modeDemo.fnMainLoop(tElapsedUs);
+            }
+        }
 
         // Update outputs
-#ifdef I2C_ENABLED
+#ifdef OLED_ENABLED
         oledDisp.drawDisplay(true);
 #endif
         tftDisp.drawDisplay(true);
@@ -540,6 +310,7 @@ void mainSwadgeTask(void * arg)
 
         // Yield to let the rest of the RTOS run
         taskYIELD();
-        // Note, the RTOS tick rate can be changed in idf.py menuconfig (100hz by default)
+        // Note, the RTOS tick rate can be changed in idf.py menuconfig
+        // (100hz by default)
     }
 }

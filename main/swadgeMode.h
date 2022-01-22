@@ -2,14 +2,20 @@
 #define _SWADGE_MODE_H_
 
 #include <stdint.h>
+
 #include <esp_now.h>
+
 #include "QMA6981.h"
+#include "btn.h"
+#include "touch_sensor.h"
+#include "display.h"
 
 #define NUM_LEDS 6
 
 typedef enum __attribute__((packed))
 {
-    NO_WIFI    
+    NO_WIFI,
+    ESP_NOW
 } wifiMode_t;
 
 /**
@@ -27,8 +33,10 @@ typedef struct _swadgeMode
     /**
      * This function is called when this mode is started. It should initialize
      * any necessary variables
+     * 
+     * @param disp The display to draw to
      */
-    void (*fnEnterMode)(void);
+    void (*fnEnterMode)(display_t * disp);
     /**
      * This function is called when the mode is exited. It should clean up
      * anything that shouldn't happen when the mode is not active
@@ -37,7 +45,7 @@ typedef struct _swadgeMode
     /**
      * This function is called from the main loop. It's pretty quick, but the
      * timing may be inconsistent
-     * 
+     *
      * @param elapsedUs The time elapsed since the last time this function was
      *                  called
      */
@@ -50,11 +58,15 @@ typedef struct _swadgeMode
      * global variables shared between buttonCallback() and other functions must
      * be declared volatile.
      *
-     * @param state A bitmask of all button statuses
-     * @param button  The button number which was pressed
-     * @param down 1 if the button was pressed, 0 if it was released
+     * @param evt The button event that occurred
      */
-    void (*fnButtonCallback)(uint8_t state, int button, int down);
+    void (*fnButtonCallback)(buttonEvt_t* evt);
+    /**
+     * This function is called when a touchpad event occurs
+     *
+     * @param evt The touchpad event that occurred
+     */
+    void (*fnTouchCallback)(touch_event_t* evt);
     /**
      * This is a setting, not a function pointer. Set it to one of these
      * values to have the system configure the swadge's WiFi

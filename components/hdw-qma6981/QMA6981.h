@@ -8,6 +8,8 @@
 #ifndef QMA6981_H_
 #define QMA6981_H_
 
+#include <stdbool.h>
+
 typedef struct
 {
     int16_t x;

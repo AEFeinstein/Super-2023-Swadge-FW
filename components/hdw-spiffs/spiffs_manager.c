@@ -45,7 +45,7 @@ bool initSpiffs(void)
     /* Debug print */
     size_t total = 0, used = 0;
     ESP_ERROR_CHECK(esp_spiffs_info(NULL, &total, &used));
-    ESP_LOGD("SPIFFS", "Partition size: total: %d, used: %d", total, used);
+    ESP_LOGI("SPIFFS", "Partition size: total: %d, used: %d", total, used);
 
     return true;
 }
@@ -81,12 +81,12 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
     }
 
     // Read and display the contents of a small text file
-    ESP_LOGD("SPIFFS", "Reading %s", fname);
+    ESP_LOGI("SPIFFS", "Reading %s", fname);
 
     // Open for reading the given file
     char fnameFull[128] = "/spiffs/";
     strcat(fnameFull, fname);
-    FILE* f = fopen(fnameFull, "r");
+    FILE* f = fopen(fnameFull, "rb");
     if (f == NULL) {
         ESP_LOGE("SPIFFS", "Failed to open %s", fnameFull);
         return false;
@@ -105,6 +105,6 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
     fclose(f);
 
     // Display the read contents from the file
-    ESP_LOGD("SPIFFS", "Read from %s: %u bytes", fname, *outsize);
+    ESP_LOGI("SPIFFS", "Read from %s: %u bytes", fname, *outsize);
     return true;
 }

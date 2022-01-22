@@ -13,7 +13,7 @@
 //==============================================================================
 
 typedef union {
-    struct /*__attribute__((packed))*/ {
+    struct __attribute__((packed)) {
         uint16_t b:5;
         uint16_t g:6;
         uint16_t r:5;
@@ -21,7 +21,7 @@ typedef union {
     uint16_t val;
 } rgb_pixel_t;
 
-typedef struct /*__attribute__((packed))*/ {
+typedef struct __attribute__((packed)) {
     rgb_pixel_t rgb;
     uint8_t a;
 } rgba_pixel_t;

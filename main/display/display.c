@@ -95,6 +95,12 @@ bool loadPng(char * name, png_t * png)
     // Allocate space for pixels
     png->px = (rgba_pixel_t*)malloc(sizeof(rgba_pixel_t) * png->w * png->h);
 
+    if(NULL == png->px)
+    {
+        ESP_LOGE("PNG", "malloc fail (%s)", name);
+        return false;
+    }
+
     // Convert the PNG to 565 color, fill up pixels
     for(int y = 0; y < png->h; y++)
     {
@@ -137,6 +143,11 @@ void freePng(png_t * png)
  */
 void drawPng(display_t * disp, png_t *png, int16_t xOff, int16_t yOff)
 {
+    if(NULL == png->px)
+    {
+        return;
+    }
+
     // Only draw in bounds
     int16_t xMin = CLAMP(xOff, 0, disp->w);
     int16_t xMax = CLAMP(xOff + png->w, 0, disp->w);
