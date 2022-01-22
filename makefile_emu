@@ -128,10 +128,14 @@ EXECUTABLE = swadge_emulator
 ################################################################################
 
 # This list of targets do not build files which match their name
-.PHONY: all clean docs cppcheck print-%
+.PHONY: all assets clean docs cppcheck print-%
 
 # Build everything!
-all: $(EXECUTABLE)
+all: $(EXECUTABLE) assets
+
+assets:
+	make -C ./spiffs_file_preprocessor/
+	./spiffs_file_preprocessor/spiffs_file_preprocessor -i ./assets/ -o ./spiffs_image/
 
 # To build the main file, you have to compile the objects
 $(EXECUTABLE): $(OBJECTS)
