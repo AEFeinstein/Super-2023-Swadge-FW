@@ -12,7 +12,8 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-#include "zopflipng_lib.h"
+#define QOI_IMPLEMENTATION
+#include "qoi.h"
 
 #include "spiffs_file_preprocessor.h"
 #include "image_processor.h"
@@ -29,7 +30,6 @@ typedef struct
 	int eR;
 	int eG;
 	int eB;
-	int eA;
 	bool isDrawn;
 } pixel_t;
 
@@ -84,11 +84,10 @@ int isNeighborNotDrawn(pixel_t **img, int x, int y, int w, int h)
  * @param teR
  * @param teG
  * @param teB
- * @param teA
  * @param diagScalar
  */
 void spreadError(pixel_t **img, int x, int y, int w, int h,
-				 int teR, int teG, int teB, int teA, float diagScalar)
+				 int teR, int teG, int teB, float diagScalar)
 {
 	if (0 <= x && x < w)
 	{
@@ -99,7 +98,6 @@ void spreadError(pixel_t **img, int x, int y, int w, int h,
 				img[y][x].eR = (int)(teR * diagScalar + 0.5);
 				img[y][x].eG = (int)(teG * diagScalar + 0.5);
 				img[y][x].eB = (int)(teB * diagScalar + 0.5);
-				img[y][x].eA = (int)(teA * diagScalar + 0.5);
 			}
 		}
 	}
@@ -160,6 +158,12 @@ void process_image(const char *infile, const char *outdir)
 	strcat(outFilePath, "/");
 	strcat(outFilePath, get_filename(infile));
 
+	/* Change the file extension */
+	char * dotptr = strrchr(outFilePath, '.');
+	dotptr[1] = 'q';
+	dotptr[2] = 'o';
+	dotptr[3] = 'i';
+
 	if(doesFileExist(outFilePath))
 	{
 		printf("Output for %s already exists\n", infile);
@@ -201,17 +205,16 @@ void process_image(const char *infile, const char *outdir)
 			unsigned char sourceB = data[(y * (w * 4)) + (x * 4) + 2];
 			unsigned char sourceA = data[(y * (w * 4)) + (x * 4) + 3];
 
-			/* Find the bit-reduced value, use rounding, 5655 for RGBA */
+			/* Find the bit-reduced value, use rounding, 5551 for RGBA */
 			image16b[y][x].r = (127 + ((sourceR + image16b[y][x].eR) * 31)) / 255;
-			image16b[y][x].g = (127 + ((sourceG + image16b[y][x].eG) * 63)) / 255;
+			image16b[y][x].g = (127 + ((sourceG + image16b[y][x].eG) * 31)) / 255;
 			image16b[y][x].b = (127 + ((sourceB + image16b[y][x].eB) * 31)) / 255;
-			image16b[y][x].a = (127 + ((sourceA + image16b[y][x].eA) * 31)) / 255;
+			image16b[y][x].a = sourceA ? 0xFF : 0x00;
 
 			/* Find the total error, 8 bits per channel */
 			int teR = sourceR - ((image16b[y][x].r * 255) / 31);
-			int teG = sourceG - ((image16b[y][x].g * 255) / 63);
+			int teG = sourceG - ((image16b[y][x].g * 255) / 31);
 			int teB = sourceB - ((image16b[y][x].b * 255) / 31);
-			int teA = sourceA - ((image16b[y][x].a * 255) / 31);
 
 			/* Count all the neighbors that haven't been drawn yet */
 			int adjNeighbors = 0;
@@ -232,14 +235,14 @@ void process_image(const char *infile, const char *outdir)
 			float adjScalar = 2 * diagScalar;
 
 			/* Write the error */
-			spreadError(image16b, x - 1, y - 1, w, h, teR, teG, teB, teA, diagScalar);
-			spreadError(image16b, x - 1, y + 1, w, h, teR, teG, teB, teA, diagScalar);
-			spreadError(image16b, x + 1, y - 1, w, h, teR, teG, teB, teA, diagScalar);
-			spreadError(image16b, x + 1, y + 1, w, h, teR, teG, teB, teA, diagScalar);
-			spreadError(image16b, x - 1, y + 0, w, h, teR, teG, teB, teA, adjScalar);
-			spreadError(image16b, x + 1, y + 0, w, h, teR, teG, teB, teA, adjScalar);
-			spreadError(image16b, x + 0, y - 1, w, h, teR, teG, teB, teA, adjScalar);
-			spreadError(image16b, x + 0, y + 1, w, h, teR, teG, teB, teA, adjScalar);
+			spreadError(image16b, x - 1, y - 1, w, h, teR, teG, teB, diagScalar);
+			spreadError(image16b, x - 1, y + 1, w, h, teR, teG, teB, diagScalar);
+			spreadError(image16b, x + 1, y - 1, w, h, teR, teG, teB, diagScalar);
+			spreadError(image16b, x + 1, y + 1, w, h, teR, teG, teB, diagScalar);
+			spreadError(image16b, x - 1, y + 0, w, h, teR, teG, teB, adjScalar);
+			spreadError(image16b, x + 1, y + 0, w, h, teR, teG, teB, adjScalar);
+			spreadError(image16b, x + 0, y - 1, w, h, teR, teG, teB, adjScalar);
+			spreadError(image16b, x + 0, y + 1, w, h, teR, teG, teB, adjScalar);
 
 			/* Mark the random pixel as drawn */
 			image16b[y][x].isDrawn = true;
@@ -256,9 +259,9 @@ void process_image(const char *infile, const char *outdir)
 			for (int x = 0; x < w; x++)
 			{
 				pixBuf[pixBufIdx++] = (image16b[y][x].r * 255) / 31;
-				pixBuf[pixBufIdx++] = (image16b[y][x].g * 255) / 63;
+				pixBuf[pixBufIdx++] = (image16b[y][x].g * 255) / 31;
 				pixBuf[pixBufIdx++] = (image16b[y][x].b * 255) / 31;
-				pixBuf[pixBufIdx++] = (image16b[y][x].a * 255) / 31;
+				pixBuf[pixBufIdx++] = image16b[y][x].a;
 			}
 		}
 
@@ -269,64 +272,19 @@ void process_image(const char *infile, const char *outdir)
 		}
 		free(image16b);
 
-		/* Write PNG to RAM */
-		stbi_write_png_compression_level = INT_MAX;
-		int pngOutLen = 0;
-		const unsigned char *pngBytes = stbi_write_png_to_mem(pixBuf, w * 4, w, h, 4, &pngOutLen);
-
-		/* Set up zopfli defaults */
-		// --iterations=500 --filters=01234mepb --lossy_8bit --lossy_transparent
-		enum ZopfliPNGFilterStrategy filters[] =
-		{
-			kStrategyZero,
-			kStrategyOne,
-			kStrategyTwo,
-			kStrategyThree,
-			kStrategyFour,
-			kStrategyMinSum,
-			kStrategyEntropy,
-			kStrategyPredefined,
-			kStrategyBruteForce
+		/* Write a QOI image */
+		const qoi_desc qd = {
+			.width = (unsigned int)w,
+			.height = (unsigned int)h,
+			.channels = 4,
+			.colorspace = QOI_SRGB
 		};
-		CZopfliPNGOptions zopfliOpts =
-		{
-			.lossy_transparent = true,
-			.lossy_8bit = true,
-			.filter_strategies = filters,
-			.num_filter_strategies = sizeof(filters) / sizeof(filters[0]),
-			.auto_filter_strategy = false,
-			.keep_colortype = true,
-			.keepchunks = NULL,
-			.num_keepchunks = 0,
-			.use_zopfli = true,
-			.num_iterations = 500,
-			.num_iterations_large = 500,
-			.block_split_strategy = 0,
-		};
-
-		/* Compress as best as we can */
-		unsigned char *resultpng;
-		size_t resultpng_size;
-		CZopfliPNGOptimize(pngBytes,
-						   pngOutLen,
-						   &zopfliOpts,
-						   1, // int verbose,
-						   &resultpng,
-						   &resultpng_size);
-
-		/* Write zopfli compressed png to a file */
-		FILE *zopfliOut = fopen(outFilePath, "wb+");
-		fwrite(resultpng, resultpng_size, 1, zopfliOut);
-		fclose(zopfliOut);
-
-		/* free zopfli memory */
-		free(resultpng);
+		qoi_write(outFilePath, pixBuf, &qd);
 
 		/* Print results */
-		printf("%s:\n  Source file size: %ld\n  STBI   file size: %d\n  Zopfli file size: %ld\n",
+		printf("%s:\n  Source file size: %ld\n  QOI   file size: %ld\n",
 			   infile,
 			   getFileSize(infile),
-			   pngOutLen,
 			   getFileSize(outFilePath));
 	}
 }

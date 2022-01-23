@@ -57,3 +57,4 @@ sdkconfig.old
 *.log
 spiffs_image/*.png
 spiffs_image/*.font
+spiffs_image/*.qoi
