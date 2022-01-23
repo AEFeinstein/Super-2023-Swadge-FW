@@ -1,3 +1,0 @@
-[submodule "spiffs_file_preprocessor/zopfli"]
-	path = spiffs_file_preprocessor/zopfli
-	url = https://github.com/AEFeinstein/zopfli.git
