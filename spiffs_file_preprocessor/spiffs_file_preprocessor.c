@@ -1,10 +1,12 @@
-#include <stdio.h>
-#include <string.h>
 #include <ctype.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <unistd.h>
+#include <fcntl.h>
 #include <ftw.h>
+#include <getopt.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "spiffs_file_preprocessor.h"
 #include "image_processor.h"
@@ -79,7 +81,8 @@ static int processFile(const char * fpath, const struct stat * st __attribute__(
         {
             break;
         }
-    case FTW_SL: // symlink
+    default:
+    // case FTW_SL: // symlink
     case FTW_NS: // failed
     case FTW_DNR: // failed
         {

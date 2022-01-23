@@ -1,6 +1,22 @@
 # Makefile by Adam, 2022
 
 ################################################################################
+# What OS we're compiling on
+################################################################################
+
+ifeq ($(OS),Windows_NT)
+    HOST_OS = Windows
+else
+    UNAME_S := $(shell uname -s)
+    ifeq ($(UNAME_S),Linux)
+        HOST_OS = Linux
+    endif
+    ifeq ($(UNAME_S),Darwin)
+        HOST_OS = Darwin
+    endif
+endif
+
+################################################################################
 # Programs to use
 ################################################################################
 
@@ -108,7 +124,13 @@ OBJECTS = $(patsubst %.c, $(OBJ_DIR)/%.o, $(SOURCES))
 ################################################################################
 
 # This is a list of libraries to include. Order doesn't matter
-LIBS = opengl32 gdi32 user32 
+
+ifeq ($(HOST_OS),Windows)
+    LIBS = opengl32 gdi32 user32
+endif
+ifeq ($(HOST_OS),Linux)
+    LIBS = m X11
+endif
 
 # These are directories to look for library files in
 LIB_DIRS = 

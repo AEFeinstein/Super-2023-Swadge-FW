@@ -1,10 +1,13 @@
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <time.h>
-#include <limits.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
