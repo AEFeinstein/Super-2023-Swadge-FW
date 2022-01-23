@@ -1,14 +1,20 @@
+CC = gcc
+
 SRC_FILES = spiffs_file_preprocessor.c image_processor.c font_processor.c
-CFLAGS = -Wall -Wextra -Wno-missing-field-initializers -g -std=c++98
-INC_FLAGS = -I. -I./zopfli/src/zopflipng/
-LIB_FLAGS = -L./zopfli/ -lm -lzopflipng -lzopfli
+CFLAGS = -Wall -Wextra -Wno-missing-field-initializers -g -std=c99
+INC_FLAGS = -I.
+LIB_FLAGS = -lm
 
 EXECUTABLE = spiffs_file_preprocessor
 
-all:
-	make -C ./zopfli/ libzopfli.a libzopflipng.a
-	g++ $(SRC_FILES) $(CFLAGS) $(INC_FLAGS) -o $(EXECUTABLE) $(LIB_FLAGS)
+# This list of targets do not build files which match their name
+.PHONY: all clean
+
+# Build everything!
+all: $(EXECUTABLE)
+
+$(EXECUTABLE):
+	$(CC) $(SRC_FILES) $(CFLAGS) $(INC_FLAGS) -o $(EXECUTABLE) $(LIB_FLAGS)
 
 clean:
-	make -C ./zopfli/ clean
 	rm -f $(EXECUTABLE)

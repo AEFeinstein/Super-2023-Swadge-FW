@@ -16,7 +16,7 @@
  * @param y
  * @return uint32_t
  */
-inline uint32_t getPx(unsigned char * data, int w, int x, int y)
+uint32_t getPx(unsigned char * data, int w, int x, int y)
 {
     return (data[(y * w * 4) + (x * 4) + 0] <<  0) |
            (data[(y * w * 4) + (x * 4) + 1] <<  8) |
