@@ -30,7 +30,7 @@ static const esp_vfs_spiffs_conf_t conf = {
 
 /**
  * @brief Initialize the SPI file system (SPIFFS). This is used to store assets
- * like PNGs and fonts
+ * like QOIs and fonts
  *
  * @return true if SPIFFS was initialized and can be used, false if it failed
  */

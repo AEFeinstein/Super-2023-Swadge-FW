@@ -8,7 +8,10 @@
 #include <esp_log.h>
 
 #include "display.h"
-#include "upng.h"
+
+#define QOI_NO_STDIO
+#define QOI_IMPLEMENTATION
+#include "qoi.h"
 
 #include "../../components/hdw-spiffs/spiffs_manager.h"
 
@@ -52,119 +55,106 @@ void fillDisplayArea(display_t * disp, int16_t x1, int16_t y1, int16_t x2,
 }
 
 /**
- * @brief Load a png from ROM to RAM. PNGs placed in the spiffs_image folder
+ * @brief Load a qoi from ROM to RAM. QOIs placed in the spiffs_image folder
  * before compilation will be automatically flashed to ROM 
  * 
- * @param name The filename of the PNG to load
- * @param png  A handle to load the png to
- * @return true if the png was loaded successfully,
- *         false if the png load failed and should not be used
+ * @param name The filename of the QOI to load
+ * @param qoi  A handle to load the qoi to
+ * @return true if the qoi was loaded successfully,
+ *         false if the qoi load failed and should not be used
  */
-bool loadPng(char * name, png_t * png)
+bool loadQoi(char * name, qoi_t * qoi)
 {
-    // Read font from file
+    // Read QOI from file
     uint8_t * buf = NULL;
     size_t sz;
     if(!spiffsReadFile(name, &buf, &sz))
     {
-        ESP_LOGE("PNG", "Failed to read %s", name);
+        ESP_LOGE("QOI", "Failed to read %s", name);
         return false;
     }
 
-    // Decode PNG
-    upng_t * upng = upng_new_from_bytes(buf, sz);
-    if(UPNG_EOK != upng_decode(upng))
+    // // Decode the QOI
+    qoi_desc qd;
+    qoi_rgba_t* pixels = (qoi_rgba_t*)qoi_decode(buf, sz, &qd, 4);
+    free(buf);
+    if(NULL == pixels)
     {
-        ESP_LOGE("PNG", "Failed to decode png %s", name);
+        ESP_LOGE("QOI", "QOI decode fail (%s)", name);
         return false;
     }
 
-    // Variables for PNG metadata
-    png->w  = upng_get_width(upng);
-    png->h = upng_get_height(upng);
-    unsigned int depth  = upng_get_bpp(upng) / 8;
-    upng_format format  = upng_get_format(upng);
-
-    // Validate the format
-    if(UPNG_RGB8 != format && UPNG_RGBA8 != format)
+    // Save the image data in the arg
+    qoi->px = malloc(sizeof(rgba_pixel_t) * qd.width * qd.height);
+    if(NULL == qoi->px)
     {
-        ESP_LOGE("PNG", "Invalid PNG format %s (%d)", name, format);
+        ESP_LOGE("QOI", "QOI malloc fail (%s)", name);
+        free(pixels);
         return false;
     }
+    qoi->h = qd.height;
+    qoi->w = qd.width;
 
-    // Allocate space for pixels
-    png->px = (rgba_pixel_t*)malloc(sizeof(rgba_pixel_t) * png->w * png->h);
-
-    if(NULL == png->px)
+    // Copy each pixel
+    for(uint16_t y = 0; y < qd.height; y++)
     {
-        ESP_LOGE("PNG", "malloc fail (%s)", name);
-        return false;
-    }
-
-    // Convert the PNG to 565 color, fill up pixels
-    for(int y = 0; y < png->h; y++)
-    {
-        for(int x = 0; x < png->w; x++)
+        for(uint16_t x = 0; x < qd.width; x++)
         {
-            (png->px)[(y * png->w) + x].rgb.c.r = (127 + (upng_get_buffer(upng)[depth * ((y * png->w) + x) + 0]) * 31) / 255;
-            (png->px)[(y * png->w) + x].rgb.c.g = (127 + (upng_get_buffer(upng)[depth * ((y * png->w) + x) + 1]) * 63) / 255;
-            (png->px)[(y * png->w) + x].rgb.c.b = (127 + (upng_get_buffer(upng)[depth * ((y * png->w) + x) + 2]) * 31) / 255;
-            if(UPNG_RGBA8 == format)
-            {
-                (png->px)[(y * png->w) + x].a = upng_get_buffer(upng)[depth * ((y * png->w) + x) + 3];
-            }
+            qoi->px[(y * qd.width) + x].r = (pixels[(y * qd.width) + x].rgba.r * 0x1F) / 0xFF;
+            qoi->px[(y * qd.width) + x].g = (pixels[(y * qd.width) + x].rgba.g * 0x1F) / 0xFF;
+            qoi->px[(y * qd.width) + x].b = (pixels[(y * qd.width) + x].rgba.b * 0x1F) / 0xFF;
+            qoi->px[(y * qd.width) + x].a =  pixels[(y * qd.width) + x].rgba.a ? PX_OPAQUE : PX_TRANSPARENT;
         }
     }
 
-    // Free the upng data
-    upng_free(upng);
+    // Free the decoded pixels
+    free(pixels);
 
     // All done
     return true;
 }
 
 /**
- * @brief Free the memory for a loaded PNG
+ * @brief Free the memory for a loaded QOI
  * 
- * @param png The png to free memory from
+ * @param qoi The qoi to free memory from
  */
-void freePng(png_t * png)
+void freeQoi(qoi_t * qoi)
 {
-    free(png->px);
+    free(qoi->px);
 }
 
 /**
- * @brief Draw a png to the display
+ * @brief Draw a QOI to the display
  * 
- * @param disp The display to draw the png to
- * @param png  The png to draw to the display
- * @param xOff The x offset to draw the png at
- * @param yOff The y offset to draw the png at
+ * @param disp The display to draw the QOI to
+ * @param qoi  The QOI to draw to the display
+ * @param xOff The x offset to draw the QOI at
+ * @param yOff The y offset to draw the QOI at
  */
-void drawPng(display_t * disp, png_t *png, int16_t xOff, int16_t yOff)
+void drawQoi(display_t * disp, qoi_t *qoi, int16_t xOff, int16_t yOff)
 {
-    if(NULL == png->px)
+    if(NULL == qoi->px)
     {
         return;
     }
 
     // Only draw in bounds
     int16_t xMin = CLAMP(xOff, 0, disp->w);
-    int16_t xMax = CLAMP(xOff + png->w, 0, disp->w);
+    int16_t xMax = CLAMP(xOff + qoi->w, 0, disp->w);
     int16_t yMin = CLAMP(yOff, 0, disp->h);
-    int16_t yMax = CLAMP(yOff + png->h, 0, disp->h);
+    int16_t yMax = CLAMP(yOff + qoi->h, 0, disp->h);
     
     // Draw each pixel
     for (int y = yMin; y < yMax; y++)
     {
         for (int x = xMin; x < xMax; x++)
         {
-            int16_t pngX = x - xOff;
-            int16_t pngY = y - yOff;
-            // TODO handle transparency properly
-            if (png->px[(pngY * png->w) + pngX].a)
+            int16_t qoiX = x - xOff;
+            int16_t qoiY = y - yOff;
+            if (PX_OPAQUE == qoi->px[(qoiY * qoi->w) + qoiX].a)
             {
-                disp->setPx(x, y, png->px[(pngY * png->w) + pngX]);
+                disp->setPx(x, y, qoi->px[(qoiY * qoi->w) + qoiX]);
             }
         }
     }
@@ -242,8 +232,8 @@ void freeFont(font_t * font)
  * @param color The color of the character to draw
  * @param h     The height of the character to draw
  * @param ch    The character bitmap to draw (includes the width of the char)
- * @param xOff  The x offset to draw the png at
- * @param yOff  The y offset to draw the png at
+ * @param xOff  The x offset to draw the char at
+ * @param yOff  The y offset to draw the char at
  */
 void drawChar(display_t * disp, rgba_pixel_t color, uint16_t h, font_ch_t * ch, int16_t xOff, int16_t yOff)
 {
@@ -313,13 +303,13 @@ void drawText(display_t * disp, font_t * font, rgba_pixel_t color, const char * 
  * @param h The input hue
  * @param s The input saturation
  * @param v The input value
- * @return rgb_pixel_t The output RGB
+ * @return rgba_pixel_t The output RGB
  */
-rgb_pixel_t hsv2rgb(uint16_t h, float s, float v)
+rgba_pixel_t hsv2rgb(uint16_t h, float s, float v)
 {
     float hh, p, q, t, ff;
     uint16_t i;
-    rgb_pixel_t px;
+    rgba_pixel_t px = {.a=PX_OPAQUE};
 
     hh = (h % 360) / 60.0f;
     i = (uint16_t)hh;
@@ -332,45 +322,45 @@ rgb_pixel_t hsv2rgb(uint16_t h, float s, float v)
     {
         case 0:
         {
-            px.c.r = v * 0x1F;
-            px.c.g = t * 0x3F;
-            px.c.b = p * 0x1F;
+            px.r = v * 0x1F;
+            px.g = t * 0x1F;
+            px.b = p * 0x1F;
             break;
         }
         case 1:
         {
-            px.c.r = q * 0x1F;
-            px.c.g = v * 0x3F;
-            px.c.b = p * 0x1F;
+            px.r = q * 0x1F;
+            px.g = v * 0x1F;
+            px.b = p * 0x1F;
             break;
         }
         case 2:
         {
-            px.c.r = p * 0x1F;
-            px.c.g = v * 0x3F;
-            px.c.b = t * 0x1F;
+            px.r = p * 0x1F;
+            px.g = v * 0x1F;
+            px.b = t * 0x1F;
             break;
         }
         case 3:
         {
-            px.c.r = p * 0x1F;
-            px.c.g = q * 0x3F;
-            px.c.b = v * 0x1F;
+            px.r = p * 0x1F;
+            px.g = q * 0x1F;
+            px.b = v * 0x1F;
             break;
         }
         case 4:
         {
-            px.c.r = t * 0x1F;
-            px.c.g = p * 0x3F;
-            px.c.b = v * 0x1F;
+            px.r = t * 0x1F;
+            px.g = p * 0x1F;
+            px.b = v * 0x1F;
             break;
         }
         case 5:
         default:
         {
-            px.c.r = v * 0x1F;
-            px.c.g = p * 0x3F;
-            px.c.b = q * 0x1F;
+            px.r = v * 0x1F;
+            px.g = p * 0x1F;
+            px.b = q * 0x1F;
             break;
         }
     }

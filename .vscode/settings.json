@@ -93,7 +93,9 @@
         "esp_wifi_types_private.h": "c",
         "esp_emu.h": "c",
         "btn.h": "c",
-        "touch_sensor.h": "c"
+        "touch_sensor.h": "c",
+        "qoi.h": "c",
+        "emu_main.h": "c"
     },
     "idf.adapterTargetName": "esp32s2",
 }

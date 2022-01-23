@@ -1,4 +1,5 @@
 #include <sys/time.h>
+#include <time.h>
 
 #include "list.h"
 #include "esp_emu.h"
@@ -52,10 +53,13 @@ esp_err_t esp_efuse_set_rom_log_scheme(esp_efuse_rom_log_scheme_t log_scheme UNU
  */
 esp_err_t esp_timer_init(void)
 {
-    struct timeval tv;
-    gettimeofday(&tv,NULL);
-    boot_time_in_micros = 1000000 * tv.tv_sec + tv.tv_usec;
-
+    struct timespec ts;
+    if (0 != clock_gettime(CLOCK_MONOTONIC, &ts))
+    {
+        ESP_LOGE("EMU", "Clock err");
+        return 0;
+    }
+    boot_time_in_micros = (ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
     return ESP_OK;
 }
 
@@ -66,11 +70,13 @@ esp_err_t esp_timer_init(void)
  */
 int64_t esp_timer_get_time(void)
 {
-    struct timeval tv;
-    gettimeofday(&tv,NULL);
-    unsigned long time_in_micros = 1000000 * tv.tv_sec + tv.tv_usec;
-
-    return boot_time_in_micros - time_in_micros;
+    struct timespec ts;
+    if (0 != clock_gettime(CLOCK_MONOTONIC, &ts))
+    {
+        ESP_LOGE("EMU", "Clock err");
+        return 0;
+    }
+    return ((ts.tv_sec * 1000000) + (ts.tv_nsec / 1000)) - boot_time_in_micros;
 }
 
 /**
@@ -81,7 +87,7 @@ int64_t esp_timer_get_time(void)
  */
 esp_err_t tinyusb_driver_install(const tinyusb_config_t *config)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
     return ESP_FAIL;
 }
 
@@ -92,7 +98,7 @@ esp_err_t tinyusb_driver_install(const tinyusb_config_t *config)
  */
 void tud_gamepad_report(hid_gamepad_report_t * report)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -103,7 +109,7 @@ void tud_gamepad_report(hid_gamepad_report_t * report)
  */
 bool tud_ready(void)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
     return false;
 }
 

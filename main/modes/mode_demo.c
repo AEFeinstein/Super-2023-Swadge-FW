@@ -76,7 +76,7 @@ static const song_t odeToJoy =
 typedef struct 
 {
     uint16_t demoHue;
-    png_t megaman[9];
+    qoi_t megaman[9];
     font_t tom_thumb;
     font_t ibm_vga8;
     font_t radiostars;
@@ -134,16 +134,16 @@ void demoEnterMode(display_t * disp)
         ESP_LOGD("DEMO", "Magic val read, 0x%02X", magicVal);
     }
 
-    // Load some PNGs
-    loadPng("run-1.png", &demo->megaman[0]);
-    loadPng("run-2.png", &demo->megaman[1]);
-    loadPng("run-3.png", &demo->megaman[2]);
-    loadPng("run-4.png", &demo->megaman[3]);
-    loadPng("run-5.png", &demo->megaman[4]);
-    loadPng("run-6.png", &demo->megaman[5]);
-    loadPng("run-7.png", &demo->megaman[6]);
-    loadPng("run-8.png", &demo->megaman[7]);
-    loadPng("run-9.png", &demo->megaman[8]);
+    // Load some QOIs
+    loadQoi("run-1.qoi", &demo->megaman[0]);
+    loadQoi("run-2.qoi", &demo->megaman[1]);
+    loadQoi("run-3.qoi", &demo->megaman[2]);
+    loadQoi("run-4.qoi", &demo->megaman[3]);
+    loadQoi("run-5.qoi", &demo->megaman[4]);
+    loadQoi("run-6.qoi", &demo->megaman[5]);
+    loadQoi("run-7.qoi", &demo->megaman[6]);
+    loadQoi("run-8.qoi", &demo->megaman[7]);
+    loadQoi("run-9.qoi", &demo->megaman[8]);
 
     // Load some fonts
     loadFont("tom_thumb.font", &demo->tom_thumb);
@@ -163,7 +163,7 @@ void demoExitMode(void)
 {
     for(uint8_t i = 0; i < (sizeof(demo->megaman) / sizeof(demo->megaman[0])); i++)
     {
-        freePng(&demo->megaman[i]);
+        freeQoi(&demo->megaman[i]);
     }
     freeFont(&demo->tom_thumb);
     freeFont(&demo->ibm_vga8);
@@ -210,32 +210,32 @@ void demoMainLoop(int64_t elapsedUs)
     // Draw to the TFT periodically
     static uint64_t tftTime = 0;
     tftTime += elapsedUs;
-    if(tftTime >= 16667)
+    if(tftTime >= 250000)
     {
-        tftTime -= 16667;
+        tftTime -= 250000;
 
         demo->disp->clearPx();
 
         rgba_pixel_t textColor = {
-            .a = 0xFF,
-            .rgb.c.r = 0x00,
-            .rgb.c.g = 0x00,
-            .rgb.c.b = 0x00,
+            .a = PX_OPAQUE,
+            .r = 0x00,
+            .g = 0x00,
+            .b = 0x00,
         };
 
-        textColor.rgb.c.r = 0x1F;
+        textColor.r = 0x1F;
         drawText(demo->disp, &demo->tom_thumb, textColor, "hello TFT", 10, 64);
-        textColor.rgb.c.r = 0x00;
-        textColor.rgb.c.g = 0x3F;
+        textColor.r = 0x00;
+        textColor.g = 0x1F;
         drawText(demo->disp, &demo->ibm_vga8, textColor, "hello TFT", 10, 84);
-        textColor.rgb.c.g = 0x00;
-        textColor.rgb.c.b = 0x1F;
+        textColor.g = 0x00;
+        textColor.b = 0x1F;
         drawText(demo->disp, &demo->radiostars, textColor, "hello TFT", 10, 104);
 
         static int megaIdx = 0;
         static int megaPos = 0;
 
-        drawPng(demo->disp, &demo->megaman[megaIdx], megaPos, (demo->disp->h-demo->megaman[0].h)/2);
+        drawQoi(demo->disp, &demo->megaman[megaIdx], megaPos, (demo->disp->h-demo->megaman[0].h)/2);
 
         megaPos += 4;
         if(megaPos >= demo->disp->w)

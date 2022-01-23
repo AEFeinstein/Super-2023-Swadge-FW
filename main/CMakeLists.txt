@@ -1,4 +1,4 @@
-idf_component_register(SRCS "swadge_esp32.c" "display/display.c" "display/bresenham.c" "display/upng.c" "modes/mode_demo.c"
+idf_component_register(SRCS "swadge_esp32.c" "display/display.c" "display/bresenham.c" "modes/mode_demo.c"
                     INCLUDE_DIRS "." "../components/hdw-buzzer/" "../components/hdw-qma6981/" "../components/hdw-oled/" "modes" "display")
 
 function(spiffs_file_preprocessor)

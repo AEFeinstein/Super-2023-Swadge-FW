@@ -21,7 +21,7 @@ int bitmapHeight = 0;
  */
 void HandleKey( int keycode, int bDown )
 {
-    ESP_LOGE("RAW", "%s NOT IMPLEMENTED (%d %d)", __func__, keycode, bDown);
+	WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -34,7 +34,7 @@ void HandleKey( int keycode, int bDown )
  */
 void HandleButton( int x, int y, int button, int bDown )
 {
-    ESP_LOGE("RAW", "%s NOT IMPLEMENTED (%d %d %d %d)", __func__, x, y, button, bDown);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -46,7 +46,7 @@ void HandleButton( int x, int y, int button, int bDown )
  */
 void HandleMotion( int x, int y, int mask )
 {
-    ESP_LOGE("RAW", "%s NOT IMPLEMENTED (%d %d %d)", __func__, x, y, mask);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -104,10 +104,13 @@ void initRawDraw(int w, int h)
 void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px)
 {
 	// Convert from 15 bit to 24 bit color
-	uint8_t r8 = ((px.rgb.c.r * 0xFF) / 0x1F) & 0xFF;
-	uint8_t g8 = ((px.rgb.c.g * 0xFF) / 0x3F) & 0xFF;
-	uint8_t b8 = ((px.rgb.c.b * 0xFF) / 0x1F) & 0xFF;
-	bitmapDisplay[(bitmapWidth * y) + x] = (px.a << 24) | (r8 << 16) | (g8 << 8) | (b8);
+	if(PX_OPAQUE == px.a)
+	{
+		uint8_t r8 = ((px.r * 0xFF) / 0x1F) & 0xFF;
+		uint8_t g8 = ((px.g * 0xFF) / 0x1F) & 0xFF;
+		uint8_t b8 = ((px.b * 0xFF) / 0x1F) & 0xFF;
+		bitmapDisplay[(bitmapWidth * y) + x] = (0xFF << 24) | (r8 << 16) | (g8 << 8) | (b8);
+	}
 }
 
 /**
@@ -115,15 +118,15 @@ void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px)
  * 
  * @param x 
  * @param y 
- * @return rgb_pixel_t 
+ * @return rgba_pixel_t 
  */
-rgb_pixel_t emuGetPxTft(int16_t x, int16_t y)
+rgba_pixel_t emuGetPxTft(int16_t x, int16_t y)
 {
 	uint32_t argb = bitmapDisplay[(bitmapWidth * y) + x];
-	rgb_pixel_t px;
-	px.c.r = (((argb & 0xFF0000) >> 16) * 0x1F) / 0xFF; // 5 bit
-	px.c.g = (((argb & 0x00FF00) >>  8) * 0x3F) / 0xFF; // 5 bit
-	px.c.b = (((argb & 0x0000FF) >>  0) * 0x1F) / 0xFF; // 5 bit
+	rgba_pixel_t px;
+	px.r = (((argb & 0xFF0000) >> 16) * 0x1F) / 0xFF; // 5 bit
+	px.g = (((argb & 0x00FF00) >>  8) * 0x1F) / 0xFF; // 5 bit
+	px.b = (((argb & 0x0000FF) >>  0) * 0x1F) / 0xFF; // 5 bit
 	return px;
 }
 
@@ -163,7 +166,7 @@ void emuDrawDisplayTft(bool drawDiff)
  */
 void emuSetPxOled(int16_t x, int16_t y, rgba_pixel_t px)
 {
-	ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+	WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -171,11 +174,13 @@ void emuSetPxOled(int16_t x, int16_t y, rgba_pixel_t px)
  * 
  * @param x 
  * @param y 
- * @return rgb_pixel_t 
+ * @return rgba_pixel_t 
  */
-rgb_pixel_t emuGetPxOled(int16_t x, int16_t y)
+rgba_pixel_t emuGetPxOled(int16_t x, int16_t y)
 {
-	ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+	WARN_UNIMPLEMENTED();
+	rgba_pixel_t px = {.r=0x00, .g = 0x00, .b = 0x00, .a = PX_OPAQUE};
+	return px;
 }
 
 /**
@@ -184,7 +189,7 @@ rgb_pixel_t emuGetPxOled(int16_t x, int16_t y)
  */
 void emuClearPxOled(void)
 {
-	ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+	WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -194,7 +199,7 @@ void emuClearPxOled(void)
  */
 void emuDrawDisplayOled(bool drawDiff)
 {
-	ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+	WARN_UNIMPLEMENTED();
 }
 
 /**

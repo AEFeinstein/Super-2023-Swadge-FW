@@ -47,6 +47,9 @@
 
 void mainSwadgeTask(void * arg);
 void app_main(void);
+void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, 
+    uint8_t len, int8_t rssi);
+void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 
 //==============================================================================
 // Functions

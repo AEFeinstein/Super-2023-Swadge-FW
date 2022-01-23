@@ -3,6 +3,14 @@
 
 #define UNUSED __attribute__((unused))
 
+#define WARN_UNIMPLEMENTED() do {  \
+    static bool isPrinted = false; \
+    if(!isPrinted) {               \
+        isPrinted = true;          \
+        ESP_LOGW("EMU", "%s UNIMPLEMENTED", __func__); \
+    }                              \
+} while(0)
+
 void runAllTasks(void);
 
 #endif

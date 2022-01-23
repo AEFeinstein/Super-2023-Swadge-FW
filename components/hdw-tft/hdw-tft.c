@@ -73,7 +73,7 @@
 //==============================================================================
 
 void setPxTft(int16_t x, int16_t y, rgba_pixel_t px);
-rgb_pixel_t getPxTft(int16_t x, int16_t y);
+rgba_pixel_t getPxTft(int16_t x, int16_t y);
 void clearPxTft(void);
 void drawDisplayTft(bool drawDiff);
 
@@ -82,7 +82,7 @@ void drawDisplayTft(bool drawDiff);
 //==============================================================================
 
 static esp_lcd_panel_handle_t panel_handle = NULL;
-static rgb_pixel_t pixels[TFT_HEIGHT][TFT_WIDTH] = {0};
+static rgba_pixel_disp_t pixels[TFT_HEIGHT][TFT_WIDTH] = {0};
 static uint16_t *s_lines[2] = {0};
 // static uint64_t tFpsStart = 0;
 // static int framesDrawn = 0;
@@ -205,9 +205,9 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
  */
 void setPxTft(int16_t x, int16_t y, rgba_pixel_t px)
 {
-    if(0 <= x && x <= TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
+    if(0 <= x && x <= TFT_WIDTH && 0 <= y && y < TFT_HEIGHT && PX_OPAQUE == px.a)
     {
-        pixels[y][x] = px.rgb;
+        pixels[y][x].px = px;
     }
 }
 
@@ -216,15 +216,15 @@ void setPxTft(int16_t x, int16_t y, rgba_pixel_t px)
  * 
  * @param x The x coordinate of the pixel to get
  * @param y The y coordinate of the pixel to get
- * @return rgb_pixel_t The color of the given pixel, or black if out of bounds
+ * @return rgba_pixel_t The color of the given pixel, or black if out of bounds
  */
-rgb_pixel_t getPxTft(int16_t x, int16_t y)
+rgba_pixel_t getPxTft(int16_t x, int16_t y)
 {
     if(0 <= x && x <= TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
-        return pixels[y][x];
+        return pixels[y][x].px;
     }
-    rgb_pixel_t black = {.val = 0x0000};
+    rgba_pixel_t black = {.r = 0x00, .g = 0x00, .b = 0x00, .a = PX_OPAQUE};
     return black;
 }
 
@@ -233,7 +233,7 @@ rgb_pixel_t getPxTft(int16_t x, int16_t y)
  */
 void clearPxTft(void)
 {
-    memset(&(pixels[0][0]), 0, sizeof(rgb_pixel_t) * TFT_HEIGHT * TFT_WIDTH);
+    memset(&(pixels[0][0]), 0, sizeof(rgba_pixel_t) * TFT_HEIGHT * TFT_WIDTH);
 }
 
 /**

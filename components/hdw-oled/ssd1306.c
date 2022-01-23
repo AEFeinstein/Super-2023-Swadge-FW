@@ -18,14 +18,14 @@
 #include "btn.h"
 #include "ssd1306.h"
 
+#ifdef OLED_ENABLED
+
 //==============================================================================
 // Defines and Enums
 //==============================================================================
 
-// #define OLED_WIDTH 128
-// #define OLED_HEIGHT 64
-#define OLED_WIDTH  0
-#define OLED_HEIGHT 0
+#define OLED_WIDTH 128
+#define OLED_HEIGHT 64
 
 #define OLED_ADDRESS (0x78 >> 1)
 //#define OLED_FREQ 800
@@ -366,7 +366,7 @@ bool setOLEDparams(bool turnOnOff);
 void updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t maxPage );
 
 void setPxOled(int16_t x, int16_t y, rgba_pixel_t c);
-rgb_pixel_t getPxOled(int16_t x, int16_t y);
+rgba_pixel_t getPxOled(int16_t x, int16_t y);
 void clearPxOled(void);
 void drawDisplayOled(bool drawDifference);
 
@@ -395,7 +395,7 @@ bool fbChanges = false;
 void setPxOled(int16_t x, int16_t y, rgba_pixel_t c)
 {
     // Don't draw transparent pixels
-    if(c.a > 0x80)
+    if(PX_OPAQUE == c.a)
     {
         // Make sure it's in bounds
         if(0 <= x && x < OLED_WIDTH && 0 <= y && y < OLED_HEIGHT)
@@ -403,15 +403,15 @@ void setPxOled(int16_t x, int16_t y, rgba_pixel_t c)
             fbChanges = true;
             uint8_t* addy = &currentFb[(y + x * OLED_HEIGHT) / 8];
             uint8_t mask = 1 << (y & 7);
-            if(c.rgb.val == 0x0000)
-            {
-                // 'black' clears a pixel
-                *addy &= ~mask;
-            }
-            else
+            if(c.r | c.g | c.b)
             {
                 // 'white' sets a pixel
                 *addy |= mask;
+            }
+            else
+            {
+                // 'black' clears a pixel
+                *addy &= ~mask;
             }
         }
     }
@@ -424,23 +424,23 @@ void setPxOled(int16_t x, int16_t y, rgba_pixel_t c)
  * @param y Row of the display, 0 is at the top
  * @return either BLACK or WHITE
  */
-rgb_pixel_t getPxOled(int16_t x, int16_t y)
+rgba_pixel_t getPxOled(int16_t x, int16_t y)
 {
     if ((0 <= x) && (x < OLED_WIDTH) &&
             (0 <= y) && (y < OLED_HEIGHT))
     {
         if(currentFb[(y + x * OLED_HEIGHT) / 8] & (1 << (y & 7)))
         {
-            rgb_pixel_t white = {.val = 0xFFFF};
+            rgba_pixel_t white = {.r = 0x1F, .g = 0x1F, .b = 0x1F, .a = PX_OPAQUE};
             return white;
         }
         else
         {
-            rgb_pixel_t black = {.val = 0x0000};
+            rgba_pixel_t black = {.r = 0x00, .g = 0x00, .b = 0x00, .a = PX_OPAQUE};
             return black;
         }
     }
-    rgb_pixel_t black = {.val = 0x0000};
+    rgba_pixel_t black = {.r = 0x00, .g = 0x00, .b = 0x00, .a = PX_OPAQUE};
     return black;
 }
 
@@ -728,3 +728,21 @@ int processDisplayCommands( const uint8_t* buffer, uint8_t flags )
     }
     return offset;
 }
+
+#else
+
+/**
+ * @brief Empty Initializer when the OLED is disabled
+ * 
+ * @param disp 
+ * @param reset 
+ * @param rst_gpio 
+ * @return true 
+ * @return false 
+ */
+bool initOLED(display_t * disp, bool reset, gpio_num_t rst_gpio)
+{
+    return false;
+}
+
+#endif

@@ -33,7 +33,7 @@
  */
 void initButtons(uint8_t numButtons, ...)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -42,7 +42,7 @@ void initButtons(uint8_t numButtons, ...)
  */
 void deinitializeButtons(void)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -53,7 +53,7 @@ void deinitializeButtons(void)
  */
 bool checkButtonQueue(buttonEvt_t* evt)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
     return false;
 }
 
@@ -69,7 +69,7 @@ bool checkButtonQueue(buttonEvt_t* evt)
  */
 void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -79,7 +79,7 @@ void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
  */
 void buzzer_play(const song_t* song)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -88,7 +88,7 @@ void buzzer_play(const song_t* song)
  */
 void buzzer_check_next_note(void)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -97,7 +97,7 @@ void buzzer_check_next_note(void)
  */
 void buzzer_stop(void)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 //==============================================================================
@@ -115,7 +115,7 @@ void buzzer_stop(void)
 void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
     uint8_t numTouchPads, ...)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -126,7 +126,7 @@ void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
  */
 bool checkTouchSensor(touch_event_t * evt)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
     return false;
 }
 
@@ -144,7 +144,7 @@ bool checkTouchSensor(touch_event_t * evt)
  */
 void i2c_master_init(gpio_num_t sda, gpio_num_t scl, gpio_pullup_t pullup, uint32_t clkHz)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 //==============================================================================
@@ -160,7 +160,7 @@ void i2c_master_init(gpio_num_t sda, gpio_num_t scl, gpio_pullup_t pullup, uint3
  */
 void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -171,7 +171,7 @@ void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds)
  */
 void setLeds(led_t* leds, uint8_t numLeds)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -186,7 +186,7 @@ void setLeds(led_t* leds, uint8_t numLeds)
  */
 void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r, uint8_t* g, uint8_t* b)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 //==============================================================================
@@ -202,7 +202,7 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r, uint8_t* 
  */
 bool initNvs(bool firstTry)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
     return false;
 }
 
@@ -216,7 +216,7 @@ bool initNvs(bool firstTry)
  */
 bool writeNvs32(const char* key, int32_t val)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
     return false;
 }
 
@@ -230,7 +230,7 @@ bool writeNvs32(const char* key, int32_t val)
  */
 bool readNvs32(const char* key, int32_t* outVal)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
     return false;
 }
 
@@ -249,7 +249,7 @@ bool readNvs32(const char* key, int32_t* outVal)
  */
 bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 
     disp->w = 0;
     disp->h = 0;
@@ -273,7 +273,7 @@ bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
  */
 bool initSpiffs(void)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
     return false;
 }
 
@@ -285,7 +285,7 @@ bool initSpiffs(void)
  */
 bool deinitSpiffs(void)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
     return false;
 }
 
@@ -348,7 +348,7 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
  */
 void initTemperatureSensor(void)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -358,7 +358,7 @@ void initTemperatureSensor(void)
  */
 float readTemperatureSensor(void)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
     return 0;
 }
 
@@ -382,7 +382,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
     gpio_num_t sclk UNUSED, gpio_num_t mosi UNUSED, gpio_num_t dc UNUSED,
     gpio_num_t cs UNUSED, gpio_num_t rst UNUSED, gpio_num_t backlight UNUSED)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 
 /* Screen-specific configurations */
 #if defined(CONFIG_ST7735_160x80)
@@ -420,7 +420,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
  */
 bool QMA6981_setup(void)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
     return false;
 }
 
@@ -431,7 +431,7 @@ bool QMA6981_setup(void)
  */
 void QMA6981_poll(accel_t* currentAccel)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 //==============================================================================
@@ -446,7 +446,7 @@ void QMA6981_poll(accel_t* currentAccel)
  */
 void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -455,7 +455,7 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
  */
 void espNowDeinit(void)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -466,7 +466,7 @@ void espNowDeinit(void)
  */
 void espNowSend(const uint8_t* data, uint8_t len)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -475,7 +475,7 @@ void espNowSend(const uint8_t* data, uint8_t len)
  */
 void checkEspNowRxQueue(void)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 //==============================================================================
@@ -495,7 +495,7 @@ void p2pInitialize(p2pInfo* p2p, char* msgId,
                    p2pConCbFn conCbFn,
                    p2pMsgRxCbFn msgRxCbFn, int8_t connectionRssi)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -505,7 +505,7 @@ void p2pInitialize(p2pInfo* p2p, char* msgId,
  */
 void p2pDeinit(p2pInfo* p2p)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -515,7 +515,7 @@ void p2pDeinit(p2pInfo* p2p)
  */
 void p2pStartConnection(p2pInfo* p2p)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -529,7 +529,7 @@ void p2pStartConnection(p2pInfo* p2p)
  */
 void p2pSendMsg(p2pInfo* p2p, char* msg, char* payload, uint16_t len, p2pMsgTxCbFn msgTxCbFn)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -541,7 +541,7 @@ void p2pSendMsg(p2pInfo* p2p, char* msg, char* payload, uint16_t len, p2pMsgTxCb
  */
 void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr, esp_now_send_status_t status)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -555,7 +555,7 @@ void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr, esp_now_send_status_t stat
  */
 void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }
 
 /**
@@ -566,7 +566,8 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
  */
 playOrder_t p2pGetPlayOrder(p2pInfo* p2p)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
+    return NOT_SET;
 }
 
 /**
@@ -577,5 +578,5 @@ playOrder_t p2pGetPlayOrder(p2pInfo* p2p)
  */
 void p2pSetPlayOrder(p2pInfo* p2p, playOrder_t order)
 {
-    ESP_LOGE("EMU", "%s UNIMPLEMENTED", __func__);
+    WARN_UNIMPLEMENTED();
 }

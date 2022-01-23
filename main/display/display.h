@@ -9,31 +9,36 @@
 #include <stdbool.h>
 
 //==============================================================================
+// Defines
+//==============================================================================
+
+#define PX_TRANSPARENT 1
+#define PX_OPAQUE      0
+
+//==============================================================================
 // Structs
 //==============================================================================
 
-typedef union {
-    struct __attribute__((packed)) {
-        uint16_t b:5;
-        uint16_t g:6;
-        uint16_t r:5;
-    } c;
-    uint16_t val;
-} rgb_pixel_t;
-
 typedef struct __attribute__((packed)) {
-    rgb_pixel_t rgb;
-    uint8_t a;
+    uint16_t b:5;
+    uint16_t a:1; // This is actually the LSB for green when transferring the framebuffer to the TFT
+    uint16_t g:5;
+    uint16_t r:5;
 } rgba_pixel_t;
+
+typedef union {
+    rgba_pixel_t px;
+    uint16_t val;
+} rgba_pixel_disp_t;
 
 typedef struct {
     rgba_pixel_t * px;
     uint16_t w;
     uint16_t h;
-} png_t;
+} qoi_t;
 
 typedef void (*pxSetFunc_t)(int16_t x, int16_t y, rgba_pixel_t px);
-typedef rgb_pixel_t (*pxGetFunc_t)(int16_t x, int16_t y);
+typedef rgba_pixel_t (*pxGetFunc_t)(int16_t x, int16_t y);
 typedef void (*pxClearFunc_t)(void);
 typedef void (*drawDisplayFunc_t)(bool drawDiff);
 
@@ -56,7 +61,6 @@ typedef struct {
     font_ch_t chars['~' - ' ' + 1];
 } font_t;
 
-
 //==============================================================================
 // Prototypes
 //==============================================================================
@@ -64,9 +68,9 @@ typedef struct {
 void fillDisplayArea(display_t * disp, int16_t x1, int16_t y1, int16_t x2,
     int16_t y2, rgba_pixel_t c);
 
-bool loadPng(char * name, png_t *);
-void drawPng(display_t * disp, png_t *png, int16_t xOff, int16_t yOff);
-void freePng(png_t *);
+bool loadQoi(char * name, qoi_t * qoi);
+void drawQoi(display_t * disp, qoi_t *qoi, int16_t xOff, int16_t yOff);
+void freeQoi(qoi_t * qoi);
 
 bool loadFont(const char * name, font_t * font);
 void drawChar(display_t * disp, rgba_pixel_t color, uint16_t h, font_ch_t * ch,
@@ -75,6 +79,6 @@ void drawText(display_t * disp, font_t * font, rgba_pixel_t color,
     const char * text, int16_t xOff, int16_t yOff);
 void freeFont(font_t * font);
 
-rgb_pixel_t hsv2rgb(uint16_t h, float s, float v);
+rgba_pixel_t hsv2rgb(uint16_t h, float s, float v);
 
 #endif
