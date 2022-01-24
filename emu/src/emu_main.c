@@ -1,8 +1,10 @@
 #include <stdbool.h>
+#include <unistd.h>
 
 #include "emu_main.h"
 #include "esp_emu.h"
 #include "esp_log.h"
+#include "swadge_esp32.h"
 
 //Make it so we don't need to include any other C files in our build.
 #define CNFG_IMPLEMENTATION
@@ -54,6 +56,8 @@ void HandleMotion( int x, int y, int mask )
  */
 void HandleDestroy()
 {
+	// Upon exit, stop all tasks and free some memory
+	quitSwadgeEmu();
 	if(NULL != bitmapDisplay)
 	{
 		free(bitmapDisplay);
@@ -67,15 +71,18 @@ void HandleDestroy()
  * @param argv
  * @return int
  */
-int main(int argc, char ** argv)
+int main(int argc UNUSED, char ** argv UNUSED)
 {
+	// This is the 'main' that gets called when the ESP boots
     app_main();
 
-    while(true)
+	// Spin around waiting for a program exit afterwards
+    while(1)
     {
-        runAllTasks();
+        usleep(1000);
     }
-    return 0;
+
+	return 0;
 }
 
 /**
@@ -209,4 +216,5 @@ void emuDrawDisplayOled(bool drawDiff)
 void onTaskYield(void)
 {
 	CNFGHandleInput();
+	usleep(1000);
 }

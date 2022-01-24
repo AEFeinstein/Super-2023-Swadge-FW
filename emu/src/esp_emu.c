@@ -23,17 +23,7 @@
 #include "tinyusb.h"
 #include "tusb_hid_gamepad.h"
 
-typedef struct
-{
-    TaskFunction_t pvTaskCode;
-    const char * pcName;
-    uint32_t usStackDepth;
-    void * pvParameters;
-    UBaseType_t uxPriority;
-} rtosTask_t;
-
 static unsigned long boot_time_in_micros = 0;
-static list_t * taskList = NULL;
 
 /**
  * @brief Do nothing for the emulator
@@ -85,7 +75,7 @@ int64_t esp_timer_get_time(void)
  * @param config 
  * @return esp_err_t 
  */
-esp_err_t tinyusb_driver_install(const tinyusb_config_t *config)
+esp_err_t tinyusb_driver_install(const tinyusb_config_t *config UNUSED)
 {
     WARN_UNIMPLEMENTED();
     return ESP_FAIL;
@@ -96,7 +86,7 @@ esp_err_t tinyusb_driver_install(const tinyusb_config_t *config)
  * 
  * @param report 
  */
-void tud_gamepad_report(hid_gamepad_report_t * report)
+void tud_gamepad_report(hid_gamepad_report_t * report UNUSED)
 {
     WARN_UNIMPLEMENTED();
 }
@@ -122,51 +112,28 @@ void taskYIELD(void)
 }
 
 /**
- * @brief TODO
+ * @brief Run the given task immediately. The emulator only supports one task.
  * 
- * @param pvTaskCode 
- * @param pcName 
- * @param usStackDepth 
- * @param pvParameters 
- * @param uxPriority 
- * @param pxCreatedTask 
- * @return BaseType_t 
+ * @param pvTaskCode The task to immediately run
+ * @param pcName unused
+ * @param usStackDepth unused
+ * @param pvParameters unused
+ * @param uxPriority unused
+ * @param pxCreatedTask unused
+ * @return 0 for success, 1 for failure
  */
-BaseType_t xTaskCreate( TaskFunction_t pvTaskCode, const char * const pcName,
-    const uint32_t usStackDepth , void * const pvParameters , 
-    UBaseType_t uxPriority , TaskHandle_t * const pxCreatedTask)
+BaseType_t xTaskCreate( TaskFunction_t pvTaskCode, const char * const pcName UNUSED,
+    const uint32_t usStackDepth UNUSED, void * const pvParameters UNUSED, 
+    UBaseType_t uxPriority UNUSED, TaskHandle_t * const pxCreatedTask UNUSED)
 {
-    // Init the list if necessary
-    if(NULL == taskList)
+    static int tasksCreated = 0;
+
+    tasksCreated++;
+    if(tasksCreated > 1)
     {
-        taskList = list_new();
+        ESP_LOGE("TASK", "Emulator only supports one task!");
+        return 1;
     }
-
-    rtosTask_t * newTask = (rtosTask_t*)malloc(sizeof(rtosTask_t));
-    newTask->pvTaskCode = pvTaskCode;
-    newTask->pcName = pcName;
-    newTask->usStackDepth = usStackDepth;
-    newTask->pvParameters = pvParameters;
-    newTask->uxPriority = uxPriority;
-
-    *pxCreatedTask = NULL;
-
-    // Make a node for this task, add it to the list
-    list_node_t *taskNode = list_node_new(newTask);
-    list_rpush(taskList, taskNode);
-
+    pvTaskCode(NULL);
     return 0;
-}
-/**
- * @brief TODO create a thread for each task instead???
- * 
- */
-void runAllTasks(void)
-{
-    list_node_t *node;
-    list_iterator_t *it = list_iterator_new(taskList, LIST_HEAD);
-    while ((node = list_iterator_next(it)))
-    {
-        ((rtosTask_t *)(node->val))->pvTaskCode(((rtosTask_t *)(node->val))->pvParameters);
-    } 
 }

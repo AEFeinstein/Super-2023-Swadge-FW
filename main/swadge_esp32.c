@@ -12,6 +12,9 @@
 #include "driver/rmt.h"
 #include "esp_timer.h"
 #include "esp_efuse.h"
+#include "esp_log.h"
+
+#include "swadge_esp32.h"
 
 #include "led_util.h"
 #include "btn.h"
@@ -46,10 +49,20 @@
 //==============================================================================
 
 void mainSwadgeTask(void * arg);
-void app_main(void);
 void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, 
     uint8_t len, int8_t rssi);
 void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
+
+//==============================================================================
+// Variables
+//==============================================================================
+
+swadgeMode* swadgeModes[] =
+{
+    &modeDemo
+};
+
+static bool isModeRunning = true;
 
 //==============================================================================
 // Functions
@@ -62,9 +75,9 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
 void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, 
     uint8_t len, int8_t rssi)
 {
-    if(NULL != modeDemo.fnEspNowRecvCb)
+    if(isModeRunning && NULL != swadgeModes[0]->fnEspNowRecvCb)
     {
-        modeDemo.fnEspNowRecvCb(mac_addr, data, len, rssi);
+        swadgeModes[0]->fnEspNowRecvCb(mac_addr, data, len, rssi);
     }
 }
 
@@ -74,9 +87,9 @@ void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data,
  */
 void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
-    if(NULL != modeDemo.fnEspNowSendCb)
+    if(isModeRunning && NULL != swadgeModes[0]->fnEspNowSendCb)
     {
-        modeDemo.fnEspNowSendCb(mac_addr, status);
+        swadgeModes[0]->fnEspNowSendCb(mac_addr, status);
     }
 }
 
@@ -238,22 +251,22 @@ void mainSwadgeTask(void * arg)
     tinyusb_driver_install(&tusb_cfg);
 
     /* Initialize Wifi peripheral */
-    if(ESP_NOW == modeDemo.wifiMode)
+    if(ESP_NOW == swadgeModes[0]->wifiMode)
     {
         espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb);
     }
 
     /* Enter the swadge mode */
-    if(NULL != modeDemo.fnEnterMode)
+    if(isModeRunning && NULL != swadgeModes[0]->fnEnterMode)
     {
-        modeDemo.fnEnterMode(&tftDisp);
+        swadgeModes[0]->fnEnterMode(&tftDisp);
     }
 
     /* Loop forever! */
     while(1)
     {
         // Process ESP NOW
-        if(ESP_NOW == modeDemo.wifiMode)
+        if(ESP_NOW == swadgeModes[0]->wifiMode)
         {
             checkEspNowRxQueue();
         }
@@ -261,18 +274,18 @@ void mainSwadgeTask(void * arg)
         // Process Accelerometer
         accel_t accel = {0};
         QMA6981_poll(&accel);
-        if(NULL != modeDemo.fnAccelerometerCallback)
+        if(isModeRunning && NULL != swadgeModes[0]->fnAccelerometerCallback)
         {
-            modeDemo.fnAccelerometerCallback(&accel);
+            swadgeModes[0]->fnAccelerometerCallback(&accel);
         }
 
         // Process button presses
         buttonEvt_t bEvt = {0};
         if(checkButtonQueue(&bEvt))
         {
-            if(NULL != modeDemo.fnButtonCallback)
+            if(isModeRunning && NULL != swadgeModes[0]->fnButtonCallback)
             {
-                modeDemo.fnButtonCallback(&bEvt);
+                swadgeModes[0]->fnButtonCallback(&bEvt);
             }
         }
 
@@ -280,9 +293,9 @@ void mainSwadgeTask(void * arg)
         touch_event_t tEvt = {0};
         if(checkTouchSensor(&tEvt))
         {
-            if(NULL != modeDemo.fnTouchCallback)
+            if(isModeRunning && NULL != swadgeModes[0]->fnTouchCallback)
             {
-                modeDemo.fnTouchCallback(&tEvt);
+                swadgeModes[0]->fnTouchCallback(&tEvt);
             }
         }
 
@@ -298,9 +311,9 @@ void mainSwadgeTask(void * arg)
             int64_t tElapsedUs = tNowUs - tLastCallUs;
             tLastCallUs = tNowUs;
 
-            if(NULL != modeDemo.fnMainLoop)
+            if(isModeRunning && NULL != swadgeModes[0]->fnMainLoop)
             {
-                modeDemo.fnMainLoop(tElapsedUs);
+                swadgeModes[0]->fnMainLoop(tElapsedUs);
             }
         }
 
@@ -317,3 +330,18 @@ void mainSwadgeTask(void * arg)
         // (100hz by default)
     }
 }
+
+#ifdef EMU
+/**
+ * @brief Exit the current swadge mode
+ * 
+ */
+void quitSwadgeEmu(void)
+{
+    if(isModeRunning && NULL != swadgeModes[0]->fnExitMode)
+    {
+        swadgeModes[0]->fnExitMode();
+    }
+    isModeRunning = false;
+}
+#endif

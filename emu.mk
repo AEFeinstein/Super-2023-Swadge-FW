@@ -94,7 +94,8 @@ DEFINES_LIST = \
 	SOC_TOUCH_SENSOR_NUM=14 \
 	SOC_TOUCH_PROXIMITY_MEAS_DONE_SUPPORTED \
 	WITH_PROFILING=0 \
-	LOG_LOCAL_LEVEL=ESP_LOG_VERBOSE
+	LOG_LOCAL_LEVEL=ESP_LOG_VERBOSE \
+	EMU=1
 
 DEFINES = $(patsubst %, -D%, $(DEFINES_LIST))
 
@@ -170,6 +171,7 @@ $(EXECUTABLE): $(OBJECTS)
 
 # This clean everything
 clean:
+	make -C ./spiffs_file_preprocessor/ clean
 	-@rm -f $(OBJECTS) $(EXECUTABLE)
 	-@rm -rf docs
 

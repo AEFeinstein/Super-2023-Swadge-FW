@@ -11,6 +11,4 @@
     }                              \
 } while(0)
 
-void runAllTasks(void);
-
 #endif
