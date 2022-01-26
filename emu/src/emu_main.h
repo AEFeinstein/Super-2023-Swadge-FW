@@ -4,8 +4,6 @@
 #include <stdint.h>
 #include "display.h"
 
-void initRawDraw(int w, int h);
-
 void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px);
 rgba_pixel_t emuGetPxTft(int16_t x, int16_t y);
 void emuClearPxTft(void);

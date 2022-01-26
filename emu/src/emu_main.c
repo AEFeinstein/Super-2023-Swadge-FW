@@ -11,9 +11,10 @@
 #include "rawdraw_sf.h"
 
 /// Display memory
-uint32_t * bitmapDisplay = NULL; //0xRRGGBBAA
+volatile uint32_t * bitmapDisplay = NULL; //0xRRGGBBAA
 int bitmapWidth = 0;
 int bitmapHeight = 0;
+volatile bool shouldDrawTft = false;
 
 /**
  * @brief
@@ -56,8 +57,10 @@ void HandleMotion( int x, int y, int mask )
  */
 void HandleDestroy()
 {
-	// Upon exit, stop all tasks and free some memory
-	quitSwadgeEmu();
+	// Upon exit, stop all tasks
+	joinThreads();
+
+	// Then free display memory
 	if(NULL != bitmapDisplay)
 	{
 		free(bitmapDisplay);
@@ -73,32 +76,59 @@ void HandleDestroy()
  */
 int main(int argc UNUSED, char ** argv UNUSED)
 {
+	// First initialize rawdraw
+	// Screen-specific configurations
+#if defined(CONFIG_ST7735_160x80)
+    #define TFT_WIDTH         160
+    #define TFT_HEIGHT         80
+#elif defined(CONFIG_ST7789_240x135)
+    #define TFT_WIDTH         240
+    #define TFT_HEIGHT        135
+#elif defined(CONFIG_ST7789_240x240)
+    #define TFT_WIDTH         240
+    #define TFT_HEIGHT        240
+#else
+    #error "Please pick a screen size"
+#endif
+	CNFGSetup( "Swadge S2 Emulator", TFT_WIDTH, TFT_HEIGHT);
+
+	// ARGB pixels
+	bitmapDisplay = malloc(sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
+	memset(bitmapDisplay, 0, sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
+	bitmapWidth = TFT_WIDTH;
+	bitmapHeight = TFT_HEIGHT;
+
 	// This is the 'main' that gets called when the ESP boots
     app_main();
 
 	// Spin around waiting for a program exit afterwards
     while(1)
     {
+		// Always handle inputs
+		CNFGHandleInput();
+		
+		// Only redraw the screen when requested by the thread
+		if(shouldDrawTft)
+		{
+			// Lower flag
+			shouldDrawTft = false;
+
+			// Black Background
+			CNFGBGColor = 0x000000FF;
+			CNFGClearFrame();
+
+			// Draw bitmap to screen
+			CNFGUpdateScreenWithBitmap(bitmapDisplay, bitmapWidth, bitmapHeight);
+
+			//Display the image and wait for time to display next frame.
+			CNFGSwapBuffers();
+		}
+
+		// Sleep for a ms
         usleep(1000);
     }
 
 	return 0;
-}
-
-/**
- * @brief TODO
- * 
- * @param w 
- * @param h 
- */
-void initRawDraw(int w, int h)
-{
-	CNFGSetup( "Swadge S2 Emulator", w, h);
-
-	// ARGB pixels
-	bitmapDisplay = malloc(sizeof(uint32_t) * w * h);
-	bitmapWidth = w;
-	bitmapHeight = h;
 }
 
 /**
@@ -149,19 +179,16 @@ void emuClearPxTft(void)
 /**
  * @brief TODO
  * 
+ * Note, this is called from a pthread
+ * 
  * @param drawDiff 
  */
 void emuDrawDisplayTft(bool drawDiff)
 {
-	// Black Background
-	CNFGBGColor = 0x000000FF;
-	CNFGClearFrame();
-
-	// Draw bitmap to screen
-	CNFGUpdateScreenWithBitmap(bitmapDisplay, bitmapWidth, bitmapHeight);
-
-	//Display the image and wait for time to display next frame.
-	CNFGSwapBuffers();
+	/* Rawdraw is initialized on the main thread, so the draw calls must come 
+	 * from there too. Raise a flag to do so
+	 */
+	shouldDrawTft = true;
 }
 
 /**
@@ -210,11 +237,11 @@ void emuDrawDisplayOled(bool drawDiff)
 }
 
 /**
- * @brief When the main task yields, handle inputs
+ * @brief When the main task yields, rest
  * 
  */
 void onTaskYield(void)
 {
-	CNFGHandleInput();
+	// Just sleep for a ms
 	usleep(1000);
 }

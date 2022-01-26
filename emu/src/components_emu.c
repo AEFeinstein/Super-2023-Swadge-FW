@@ -398,7 +398,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
     #error "Please pick a screen size"
 #endif
 
-    initRawDraw(TFT_WIDTH, TFT_HEIGHT);
+    // Rawdraw initialized in main
 
     disp->w = TFT_WIDTH;
     disp->h = TFT_HEIGHT;

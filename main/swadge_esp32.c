@@ -44,6 +44,10 @@
 
 #include "mode_demo.h"
 
+#ifdef EMU
+#include "esp_emu.h"
+#endif
+
 //==============================================================================
 // Function Prototypes
 //==============================================================================
@@ -263,7 +267,11 @@ void mainSwadgeTask(void * arg)
     }
 
     /* Loop forever! */
-    while(1)
+#ifdef EMU
+    while(threadsShouldRun)
+#else
+    while(true)
+#endif
     {
         // Process ESP NOW
         if(ESP_NOW == swadgeModes[0]->wifiMode)
@@ -329,19 +337,9 @@ void mainSwadgeTask(void * arg)
         // Note, the RTOS tick rate can be changed in idf.py menuconfig
         // (100hz by default)
     }
-}
 
-#ifdef EMU
-/**
- * @brief Exit the current swadge mode
- * 
- */
-void quitSwadgeEmu(void)
-{
     if(isModeRunning && NULL != swadgeModes[0]->fnExitMode)
     {
         swadgeModes[0]->fnExitMode();
     }
-    isModeRunning = false;
 }
-#endif

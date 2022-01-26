@@ -127,10 +127,10 @@ OBJECTS = $(patsubst %.c, $(OBJ_DIR)/%.o, $(SOURCES))
 # This is a list of libraries to include. Order doesn't matter
 
 ifeq ($(HOST_OS),Windows)
-    LIBS = opengl32 gdi32 user32
+    LIBS = opengl32 gdi32 user32 pthread
 endif
 ifeq ($(HOST_OS),Linux)
-    LIBS = m X11
+    LIBS = m X11 pthread
 endif
 
 # These are directories to look for library files in

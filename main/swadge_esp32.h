@@ -7,8 +7,4 @@
 
 void app_main(void);
 
-#ifdef EMU
-void quitSwadgeEmu(void);
-#endif
-
 #endif

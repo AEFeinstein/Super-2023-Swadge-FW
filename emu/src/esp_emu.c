@@ -1,5 +1,7 @@
 #include <sys/time.h>
 #include <time.h>
+#include <pthread.h>
+#include <string.h>
 
 #include "list.h"
 #include "esp_emu.h"
@@ -22,6 +24,12 @@
 #include "rmt_reg.h"
 #include "tinyusb.h"
 #include "tusb_hid_gamepad.h"
+
+#define MAX_THREADS 10
+void * runTaskInThread(void * taskFnPtr);
+uint8_t pthreadIdx = 0;
+pthread_t threads[MAX_THREADS];
+volatile bool threadsShouldRun = true;
 
 static unsigned long boot_time_in_micros = 0;
 
@@ -112,6 +120,18 @@ void taskYIELD(void)
 }
 
 /**
+ * @brief Helper function to call a TaskFunction_t from a pthread
+ * 
+ * @param taskFnPtr The TaskFunction_t to call
+ */
+void * runTaskInThread(void * taskFnPtr)
+{
+    // Cast and run!
+    ((TaskFunction_t)taskFnPtr)(NULL);
+    return NULL;
+}
+
+/**
  * @brief Run the given task immediately. The emulator only supports one task.
  * 
  * @param pvTaskCode The task to immediately run
@@ -126,14 +146,29 @@ BaseType_t xTaskCreate( TaskFunction_t pvTaskCode, const char * const pcName UNU
     const uint32_t usStackDepth UNUSED, void * const pvParameters UNUSED, 
     UBaseType_t uxPriority UNUSED, TaskHandle_t * const pxCreatedTask UNUSED)
 {
-    static int tasksCreated = 0;
-
-    tasksCreated++;
-    if(tasksCreated > 1)
+    if(pthreadIdx < MAX_THREADS)
     {
-        ESP_LOGE("TASK", "Emulator only supports one task!");
-        return 1;
+        pthread_create(&threads[pthreadIdx++], NULL, runTaskInThread, pvTaskCode);
     }
-    pvTaskCode(NULL);
+    else
+    {
+        ESP_LOGE("TASK", "Emulator only supports %d tasks!", MAX_THREADS);
+    }
+
     return 0;
+}
+
+/**
+ * @brief Raise a flag to stop all threads, then join them
+ */
+void joinThreads(void)
+{
+    // Tell threads to stop
+    threadsShouldRun = false;
+
+    // Wait for threads to actually stop
+    for(uint8_t i = 0; i < pthreadIdx; i++)
+    {
+        pthread_join(threads[i], NULL);
+    }
 }
