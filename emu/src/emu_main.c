@@ -1,5 +1,8 @@
 #include <stdbool.h>
 #include <unistd.h>
+#include <pthread.h>
+
+#include "list.h"
 
 #include "emu_main.h"
 #include "esp_emu.h"
@@ -16,15 +19,118 @@ int bitmapWidth = 0;
 int bitmapHeight = 0;
 volatile bool shouldDrawTft = false;
 
+// Input queues for buttons
+char inputKeys[32];
+uint32_t buttonState = 0;
+list_t * buttonQueue;
+pthread_mutex_t buttonQueueMutex = PTHREAD_MUTEX_INITIALIZER;
+
 /**
- * @brief
+ * Set up keyboard keys to act as pushbuttons
+ * 
+ * @param numButtons The number of keyboard keys to set up, up to 32
+ * @param keyOrder The keys which should be used, as lowercase letters
+ */
+void setInputKeys(uint8_t numButtons, char * keyOrder)
+{
+	memcpy(inputKeys, keyOrder, numButtons);
+	buttonState = 0;
+	buttonQueue = list_new();
+}
+
+/**
+ * This function must be provided for rawdraw. Key events are received here
+ * 
+ * Note that this is called on the main thread and the swadge task is on a
+ * separate thread, so queue accesses must be mutexed
  *
- * @param keycode
- * @param bDown
+ * @param keycode The key code, a lowercase ascii char
+ * @param bDown true if the key was pressed, false if it was released
  */
 void HandleKey( int keycode, int bDown )
 {
-	WARN_UNIMPLEMENTED();
+	// Check keycode against initialized keys
+	for(uint8_t idx = 0; idx < ARRAY_SIZE(inputKeys); idx++)
+	{
+		// If this matches
+		if(keycode == inputKeys[idx])
+		{
+			// Set or clear the button
+			if(bDown)
+			{
+				// Check if button was already pressed
+				if(buttonState & (1 << idx))
+				{
+					// It was, just return
+					return;
+				}
+				else
+				{
+					// It wasn't, set it!
+					buttonState |= (1 << idx);
+				}
+			}
+			else
+			{
+				// Check if button was already released
+				if(0 == (buttonState & (1 << idx)))
+				{
+					// It was, just return
+					return;
+				}
+				else
+				{
+					// It wasn't, clear it!
+					buttonState &= ~(1 << idx);
+				}
+			}
+
+			// Create a new event
+			buttonEvt_t * evt = malloc(sizeof(buttonEvt_t));
+			evt->button = idx;
+			evt->down = bDown;
+			evt->state = buttonState;
+
+			// Add the event to the list, guarded by a mutex
+			pthread_mutex_lock(&buttonQueueMutex);
+			list_node_t * buttonNode = list_node_new(evt);
+			list_rpush(buttonQueue, buttonNode); 
+			pthread_mutex_unlock(&buttonQueueMutex);
+			
+			break;
+		}
+	}
+}
+
+/**
+ * Check if there were any queued input events and return them if there were
+ * 
+ * @param evt Return the event through this pointer argument
+ * @return true if an event occurred and was returned, false otherwise
+ */
+bool checkInputKeys(buttonEvt_t * evt)
+{
+	// Check the queue, guarded by a mutex
+	pthread_mutex_lock(&buttonQueueMutex);
+	list_node_t * node = list_lpop(buttonQueue);
+	pthread_mutex_unlock(&buttonQueueMutex);
+
+	// No events
+	if(NULL == node)
+	{
+		memset(evt, 0, sizeof(buttonEvt_t));
+		return false;
+	}
+	else
+	{
+		// Copy the event to the arg
+		memcpy(evt, node->val, sizeof(buttonEvt_t));
+		// Free everything
+		free(node->val);
+		free(node);
+		// Return that an event occurred
+		return true;
+	}
 }
 
 /**

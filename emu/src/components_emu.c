@@ -26,35 +26,36 @@
 //==============================================================================
 
 /**
- * @brief TODO
+ * @brief Set up the keyboard to act as input buttons
  *
- * @param numButtons
- * @param ...
+ * @param numButtons The number of buttons to initialize
+ * @param ... A list of GPIOs, which are ignored
  */
 void initButtons(uint8_t numButtons, ...)
 {
-    WARN_UNIMPLEMENTED();
+    // The order in which keys are initialized
+    // Note that the actuall number of buttons initialized may be less than this
+    char keyOrder[] = {'w', 's', 'a', 'd', 'i', 'k', 'j', 'l'};
+    setInputKeys(numButtons, keyOrder);
 }
 
 /**
- * @brief TODO
+ * @brief Do nothing
  *
  */
 void deinitializeButtons(void)
 {
-    WARN_UNIMPLEMENTED();
+    ;
 }
 
 /**
- * @brief TODO
+ * @brief Check the input queue for any events
  *
- * @return true
- * @return false
+ * @return true if there was an event, false if there wasn't
  */
 bool checkButtonQueue(buttonEvt_t* evt)
 {
-    WARN_UNIMPLEMENTED();
-    return false;
+    return checkInputKeys(evt);
 }
 
 //==============================================================================
