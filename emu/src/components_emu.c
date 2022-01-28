@@ -136,16 +136,17 @@ bool checkTouchSensor(touch_event_t * evt)
 //==============================================================================
 
 /**
- * @brief TODO
+ * @brief Do Nothing
  *
- * @param sda
- * @param scl
- * @param pullup
- * @param clkHz
+ * @param sda unused
+ * @param scl unused
+ * @param pullup unused
+ * @param clkHz unused
  */
-void i2c_master_init(gpio_num_t sda, gpio_num_t scl, gpio_pullup_t pullup, uint32_t clkHz)
+void i2c_master_init(gpio_num_t sda UNUSED, gpio_num_t scl UNUSED,
+    gpio_pullup_t pullup UNUSED, uint32_t clkHz UNUSED)
 {
-    WARN_UNIMPLEMENTED();
+    ; // Nothing to du
 }
 
 //==============================================================================
@@ -155,13 +156,13 @@ void i2c_master_init(gpio_num_t sda, gpio_num_t scl, gpio_pullup_t pullup, uint3
 /**
  * @brief TODO
  *
- * @param gpio
- * @param rmt
- * @param numLeds
+ * @param gpio unused
+ * @param rmt unused
+ * @param numLeds The number of LEDs to display
  */
-void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds)
+void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds)
 {
-    WARN_UNIMPLEMENTED();
+    initRawdrawLeds(numLeds);
 }
 
 /**
@@ -172,22 +173,67 @@ void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds)
  */
 void setLeds(led_t* leds, uint8_t numLeds)
 {
-    WARN_UNIMPLEMENTED();
+    setRawdrawLeds(leds, numLeds);
 }
 
 /**
- * @brief TODO
+ * @brief Simple helper function, converting HSV color space to RGB color space
  *
- * @param h
- * @param s
- * @param v
- * @param r
- * @param g
- * @param b
+ * Wiki: https://en.wikipedia.org/wiki/HSL_and_HSV
+ *
+ * @param h The input hue
+ * @param s The input saturation
+ * @param v The input value
+ * @param r The output red
+ * @param g The output green
+ * @param b The output blue
  */
-void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r, uint8_t* g, uint8_t* b)
+void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r,
+    uint8_t* g, uint8_t* b)
 {
-    WARN_UNIMPLEMENTED();
+    h %= 360; // h -> [0,360]
+    uint32_t rgb_max = v * 2.55f;
+    uint32_t rgb_min = rgb_max * (100 - s) / 100.0f;
+
+    uint32_t i = h / 60;
+    uint32_t diff = h % 60;
+
+    // RGB adjustment amount by hue
+    uint32_t rgb_adj = (rgb_max - rgb_min) * diff / 60;
+
+    switch (i)
+    {
+        case 0:
+            *r = rgb_max;
+            *g = rgb_min + rgb_adj;
+            *b = rgb_min;
+            break;
+        case 1:
+            *r = rgb_max - rgb_adj;
+            *g = rgb_max;
+            *b = rgb_min;
+            break;
+        case 2:
+            *r = rgb_min;
+            *g = rgb_max;
+            *b = rgb_min + rgb_adj;
+            break;
+        case 3:
+            *r = rgb_min;
+            *g = rgb_max - rgb_adj;
+            *b = rgb_max;
+            break;
+        case 4:
+            *r = rgb_min + rgb_adj;
+            *g = rgb_min;
+            *b = rgb_max;
+            break;
+        default:
+            *r = rgb_max;
+            *g = rgb_min;
+            *b = rgb_max - rgb_adj;
+            break;
+    }
 }
 
 //==============================================================================

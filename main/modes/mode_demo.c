@@ -200,8 +200,8 @@ void demoMainLoop(int64_t elapsedUs)
         led_t leds[NUM_LEDS] = {0};
         for(int i = 0; i < NUM_LEDS; i++)
         {
-            uint16_t tmpHue = (demo->demoHue + (60 * i)) % 360;
-            led_strip_hsv2rgb(tmpHue, 100, 3, &leds[i].r, &leds[i].g, &leds[i].b);
+            uint16_t tmpHue = (demo->demoHue + ((360/NUM_LEDS) * i)) % 360;
+            led_strip_hsv2rgb(tmpHue, 100, 100, &leds[i].r, &leds[i].g, &leds[i].b);
         }
         demo->demoHue = (demo->demoHue + 1) % 360;
         setLeds(leds, NUM_LEDS);

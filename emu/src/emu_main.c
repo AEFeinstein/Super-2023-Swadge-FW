@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <math.h>
 
 #include "list.h"
 
@@ -13,17 +14,24 @@
 #define CNFG_IMPLEMENTATION
 #include "rawdraw_sf.h"
 
-/// Display memory
-volatile uint32_t * bitmapDisplay = NULL; //0xRRGGBBAA
+#define MAX(x,y) ((x)>(y)?(x):(y))
+
+// Display memory
+uint32_t * bitmapDisplay = NULL; //0xRRGGBBAA
 int bitmapWidth = 0;
 int bitmapHeight = 0;
 volatile bool shouldDrawTft = false;
+pthread_mutex_t displayMutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Input queues for buttons
 char inputKeys[32];
 uint32_t buttonState = 0;
 list_t * buttonQueue;
 pthread_mutex_t buttonQueueMutex = PTHREAD_MUTEX_INITIALIZER;
+
+// LED state
+uint8_t rdNumLeds = 0;
+led_t rdLeds[256] = {0};
 
 /**
  * Set up keyboard keys to act as pushbuttons
@@ -167,10 +175,12 @@ void HandleDestroy()
 	joinThreads();
 
 	// Then free display memory
+	pthread_mutex_lock(&displayMutex);
 	if(NULL != bitmapDisplay)
 	{
 		free(bitmapDisplay);
 	}
+	pthread_mutex_unlock(&displayMutex);
 }
 
 /**
@@ -196,11 +206,13 @@ int main(int argc UNUSED, char ** argv UNUSED)
 #else
     #error "Please pick a screen size"
 #endif
-	CNFGSetup( "Swadge S2 Emulator", TFT_WIDTH, TFT_HEIGHT);
+	CNFGSetup( "Swadge S2 Emulator", TFT_WIDTH, TFT_HEIGHT + MAX(TFT_WIDTH, TFT_HEIGHT) + 1);
 
 	// ARGB pixels
+	pthread_mutex_lock(&displayMutex);
 	bitmapDisplay = malloc(sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
 	memset(bitmapDisplay, 0, sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
+	pthread_mutex_unlock(&displayMutex);
 	bitmapWidth = TFT_WIDTH;
 	bitmapHeight = TFT_HEIGHT;
 
@@ -219,12 +231,53 @@ int main(int argc UNUSED, char ** argv UNUSED)
 			// Lower flag
 			shouldDrawTft = false;
 
-			// Black Background
-			CNFGBGColor = 0x000000FF;
+			// Grey Background
+			CNFGBGColor = 0x252525FF;
 			CNFGClearFrame();
 
 			// Draw bitmap to screen
+			pthread_mutex_lock(&displayMutex);
 			CNFGUpdateScreenWithBitmap(bitmapDisplay, bitmapWidth, bitmapHeight);
+			pthread_mutex_unlock(&displayMutex);
+
+			// Draw dividing line
+			CNFGColor( 0x808080FF ); 
+			CNFGTackSegment(0, TFT_HEIGHT, TFT_WIDTH, TFT_HEIGHT);
+
+			// Draw simulated LEDs
+			if (rdNumLeds > 0)
+			{
+				for(int i = 0; i < rdNumLeds; i++)
+				{
+					float angle1 = ( i      * 2 * M_PI) / rdNumLeds;
+					float angle2 = ((i + 1) * 2 * M_PI) / rdNumLeds;
+					RDPoint points[] = 
+					{
+						{
+							.x = (TFT_WIDTH / 2) + (TFT_WIDTH/2) * sin(angle1),
+							.y = 1 + (TFT_HEIGHT + (TFT_WIDTH/2)) + (TFT_WIDTH/2) * cos(angle1),
+						},
+						{
+							.x = (TFT_WIDTH / 2) + (TFT_WIDTH/2) * sin(angle2),
+							.y = 1 + (TFT_HEIGHT + (TFT_WIDTH/2)) + (TFT_WIDTH/2) * cos(angle2),
+						},
+						{
+							.x = TFT_WIDTH / 2,
+							.y = 1 + TFT_HEIGHT + (TFT_WIDTH/2)
+						}
+					};
+
+					// Draw filled polygon
+					pthread_mutex_lock(&displayMutex);
+					CNFGColor( (rdLeds[i].r << 24) | (rdLeds[i].g << 16) | (rdLeds[i].b << 8) | 0xFF);
+					pthread_mutex_unlock(&displayMutex);
+					CNFGTackPoly(points, ARRAY_SIZE(points)); 
+
+					// Draw outline
+					CNFGColor( 0x808080FF );
+					CNFGTackSegment(points[0].x, points[0].y, points[1].x, points[1].y);
+				}
+			}
 
 			//Display the image and wait for time to display next frame.
 			CNFGSwapBuffers();
@@ -252,7 +305,9 @@ void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px)
 		uint8_t r8 = ((px.r * 0xFF) / 0x1F) & 0xFF;
 		uint8_t g8 = ((px.g * 0xFF) / 0x1F) & 0xFF;
 		uint8_t b8 = ((px.b * 0xFF) / 0x1F) & 0xFF;
+		pthread_mutex_lock(&displayMutex);
 		bitmapDisplay[(bitmapWidth * y) + x] = (0xFF << 24) | (r8 << 16) | (g8 << 8) | (b8);
+		pthread_mutex_unlock(&displayMutex);
 	}
 }
 
@@ -265,7 +320,9 @@ void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px)
  */
 rgba_pixel_t emuGetPxTft(int16_t x, int16_t y)
 {
+	pthread_mutex_lock(&displayMutex);
 	uint32_t argb = bitmapDisplay[(bitmapWidth * y) + x];
+	pthread_mutex_unlock(&displayMutex);
 	rgba_pixel_t px;
 	px.r = (((argb & 0xFF0000) >> 16) * 0x1F) / 0xFF; // 5 bit
 	px.g = (((argb & 0x00FF00) >>  8) * 0x1F) / 0xFF; // 5 bit
@@ -279,17 +336,18 @@ rgba_pixel_t emuGetPxTft(int16_t x, int16_t y)
  */
 void emuClearPxTft(void)
 {
+	pthread_mutex_lock(&displayMutex);
 	memset(bitmapDisplay, 0x00, sizeof(uint32_t) * bitmapWidth * bitmapHeight);
+	pthread_mutex_unlock(&displayMutex);
 }
 
 /**
- * @brief TODO
+ * @brief Called when the Swadge wants to draw a new display. Note, this is
+ * called from a pthread, so it raises a flag to draw on the main thread
  * 
- * Note, this is called from a pthread
- * 
- * @param drawDiff 
+ * @param drawDiff unused, the whole display is always drawn
  */
-void emuDrawDisplayTft(bool drawDiff)
+void emuDrawDisplayTft(bool drawDiff UNUSED)
 {
 	/* Rawdraw is initialized on the main thread, so the draw calls must come 
 	 * from there too. Raise a flag to do so
@@ -350,4 +408,27 @@ void onTaskYield(void)
 {
 	// Just sleep for a ms
 	usleep(1000);
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param numLeds 
+ */
+void initRawdrawLeds(uint8_t numLeds)
+{
+	rdNumLeds = numLeds;
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param leds 
+ * @param numLeds 
+ */
+void setRawdrawLeds(led_t * leds, uint8_t numLeds)
+{
+	pthread_mutex_lock(&displayMutex);
+	memcpy(rdLeds, leds, sizeof(led_t) * numLeds);
+	pthread_mutex_unlock(&displayMutex);
 }

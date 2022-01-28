@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include "display.h"
 #include "btn.h"
+#include "led_util.h"
 
 void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px);
 rgba_pixel_t emuGetPxTft(int16_t x, int16_t y);
@@ -20,5 +21,8 @@ void onTaskYield(void);
 
 void setInputKeys(uint8_t numButtons, char * keyOrder);
 bool checkInputKeys(buttonEvt_t * evt);
+
+void initRawdrawLeds(uint8_t numLeds);
+void setRawdrawLeds(led_t * leds, uint8_t numLeds);
 
 #endif

@@ -13,6 +13,7 @@
             "type": "shell",
             "command": "make",
             "args": [
+                "-j12",
                 "-f",
                 "${workspaceFolder}/emu.mk",
                 "all"
