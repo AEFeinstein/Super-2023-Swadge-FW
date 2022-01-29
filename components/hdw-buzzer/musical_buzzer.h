@@ -7,9 +7,7 @@
 #include "driver/rmt.h"
 #include "soc/rmt_reg.h"
 
-// These counts (essential period of notes) are (5,000,000 / (2 * frequency))
-// Negative values n are used by mode_music.c to play the current selected note
-//    adjusted by n + 1201 cent of an octave
+// Frequencies of notes
 typedef enum
 {
     SILENCE = 0,

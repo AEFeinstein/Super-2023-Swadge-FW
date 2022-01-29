@@ -95,7 +95,9 @@
         "btn.h": "c",
         "touch_sensor.h": "c",
         "qoi.h": "c",
-        "emu_main.h": "c"
+        "emu_main.h": "c",
+        "list.h": "c",
+        "cjson.h": "c"
     },
     "idf.adapterTargetName": "esp32s2",
 }
