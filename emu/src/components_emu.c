@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <math.h>
+#include <pthread.h>
 
 #include "esp_emu.h"
 #include "emu_main.h"
@@ -72,6 +73,7 @@ uint8_t ssamples[SSBUF];
 int sshead;
 int sstail;
 uint16_t buzzernote;
+pthread_mutex_t buzzerMutex = PTHREAD_MUTEX_INITIALIZER;
 struct SoundDriver * sounddriver;
 
 void EmuSoundCb( struct SoundDriver* sd, short* in, short* out, int samplesr, int samplesp );
@@ -119,7 +121,9 @@ void EmuSoundCb( struct SoundDriver* sd, short* in, short* out, int samplesr, in
     {
         // Keep track of our place in the wave
         static float placeInWave = 0;
+
         // If there is a note to play
+        pthread_mutex_lock(&buzzerMutex);
         if ( buzzernote )
         {
             // For each sample
@@ -142,6 +146,7 @@ void EmuSoundCb( struct SoundDriver* sd, short* in, short* out, int samplesr, in
             memset( out, 0, samplesp * 2 );
             placeInWave = 0;
         }
+        pthread_mutex_unlock(&buzzerMutex);
     }
 }
 
@@ -238,7 +243,9 @@ void buzzer_stop(void)
     emuBzr.note_index = 0;
     emuBzr.start_time = 0;
 
+    pthread_mutex_lock(&buzzerMutex);
     buzzernote = SILENCE;
+    pthread_mutex_unlock(&buzzerMutex);
 
     play_note();
 }
@@ -258,12 +265,16 @@ void play_note(void)
         }
         else
         {
+            pthread_mutex_lock(&buzzerMutex);
             buzzernote = notation->note;
+            pthread_mutex_unlock(&buzzerMutex);
         }
     }
     else
     {
+        pthread_mutex_lock(&buzzerMutex);
         buzzernote = SILENCE;
+        pthread_mutex_unlock(&buzzerMutex);
     }
 }
 
