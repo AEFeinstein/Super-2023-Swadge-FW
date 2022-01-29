@@ -9,6 +9,7 @@
 #include "esp_emu.h"
 #include "esp_log.h"
 #include "swadge_esp32.h"
+#include "sound.h"
 
 //Make it so we don't need to include any other C files in our build.
 #define CNFG_IMPLEMENTATION
@@ -181,6 +182,13 @@ void HandleDestroy()
 		free(bitmapDisplay);
 	}
 	pthread_mutex_unlock(&displayMutex);
+
+	// Close sound
+	// TODO proper
+	CloseSound(NULL);
+
+	// Free button queue
+	free(buttonQueue);
 }
 
 /**

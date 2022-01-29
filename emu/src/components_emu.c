@@ -342,15 +342,18 @@ bool writeNvs32(const char* key, int32_t val)
             {
                 char * jsonStr = cJSON_Print(json);
                 fprintf(nvsFileW, "%s", jsonStr);
-                free(jsonStr);
-
                 fclose(nvsFileW);
+
+                free(jsonStr);
+                cJSON_Delete(json);
+
                 return true;
             }
             else
             {
                 // Couldn't open file to write
             }
+            cJSON_Delete(json);
         }
         else
         {
@@ -407,10 +410,12 @@ bool readNvs32(const char* key, int32_t* outVal)
                     {
                         // Return the value
                         *outVal = (int32_t)cJSON_GetNumberValue(jsonIter);
+                        cJSON_Delete(json);
                         return true;
                     }
                 }
             }
+            cJSON_Delete(json);
         }
         else
         {
