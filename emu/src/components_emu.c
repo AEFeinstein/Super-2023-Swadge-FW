@@ -1,8 +1,11 @@
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "esp_emu.h"
 #include "emu_main.h"
+#include <list.h>
+#include <cJSON.h>
 
 #include "btn.h"
 #include "musical_buzzer.h"
@@ -240,44 +243,180 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r,
 // NVS
 //==============================================================================
 
+#define NVS_JSON_FILE "nvs.json"
+
 /**
- * @brief TODO
+ * @brief Initialize NVS by making sure the file exists
  *
- * @param firstTry
- * @return true
- * @return false
+ * @param firstTry unused
+ * @return true if the file exists or was created, false otherwise
  */
 bool initNvs(bool firstTry)
 {
-    WARN_UNIMPLEMENTED();
-    return false;
+    // Check if the json file exists
+    if( access( NVS_JSON_FILE, F_OK ) != 0 )
+    {
+        FILE * nvsFile = fopen(NVS_JSON_FILE, "wb");
+        if(NULL != nvsFile)
+        {
+            if(1 == fwrite("{}", sizeof("{}"), 1, nvsFile))
+            {
+                // Wrote successfully
+                fclose(nvsFile);
+                return true;
+            }
+            else
+            {
+                // Failed to write
+                fclose(nvsFile);
+                return false;
+            }
+        }
+        else
+        {
+            // Couldn't open file
+            return false;
+        }
+    }
+    else
+    {
+        // File exists
+        return true;
+    }
 }
 
 /**
- * @brief TODO
+ * @brief Write a 32 bit value to NVS with a given string key
  *
- * @param key
- * @param val
- * @return true
- * @return false
+ * @param key The key for the value to write
+ * @param val The value to write
+ * @return true if the value was written, false if it was not
  */
 bool writeNvs32(const char* key, int32_t val)
 {
-    WARN_UNIMPLEMENTED();
+    // Open the file
+    FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
+    if(NULL != nvsFile)
+    {
+        // Get the file size
+        fseek(nvsFile, 0L, SEEK_END);
+        size_t fsize = ftell(nvsFile);
+        fseek(nvsFile, 0L, SEEK_SET);
+
+        // Read the file
+        char fbuf[fsize + 1];
+        fbuf[fsize] = 0;
+        if(fsize == fread(fbuf, 1, fsize, nvsFile))
+        {
+            // Close the file
+            fclose(nvsFile);
+
+            // Parse the JSON
+            cJSON * json = cJSON_Parse(fbuf);
+
+            // Check if the key alredy exists
+            cJSON * jsonIter;
+            bool keyExists = false;
+            cJSON_ArrayForEach(jsonIter, json)
+            {
+                if(0 == strcmp(jsonIter->string, key))
+                {
+                    keyExists = true;
+                }
+            }
+
+            // Add or replace the item
+            cJSON * jsonVal = cJSON_CreateNumber(val);
+            if(keyExists)
+            {
+                cJSON_ReplaceItemInObject(json, key, jsonVal);
+            }
+            else
+            {
+                cJSON_AddItemToObject(json, key, jsonVal);
+            }
+
+            // Write the new JSON back to the file
+            FILE * nvsFileW = fopen(NVS_JSON_FILE, "wb");
+            if(NULL != nvsFileW)
+            {
+                char * jsonStr = cJSON_Print(json);
+                fprintf(nvsFileW, "%s", jsonStr);
+                free(jsonStr);
+
+                fclose(nvsFileW);
+                return true;
+            }
+            else
+            {
+                // Couldn't open file to write
+            }
+        }
+        else
+        {
+            // Couldn't read file
+            fclose(nvsFile);
+        }
+    }
+    else
+    {
+        // couldn't open file to read
+    }
     return false;
 }
 
 /**
- * @brief TODO
- *
- * @param key
- * @param outVal
- * @return true
- * @return false
+ * @brief Read a 32 bit value from NVS with a given string key
+ * 
+ * @param key The key for the value to read
+ * @param outVal The value that was read
+ * @return true if the value was read, false if it was not
  */
 bool readNvs32(const char* key, int32_t* outVal)
 {
-    WARN_UNIMPLEMENTED();
+    // Open the file
+    FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
+    if(NULL != nvsFile)
+    {
+        // Get the file size
+        fseek(nvsFile, 0L, SEEK_END);
+        size_t fsize = ftell(nvsFile);
+        fseek(nvsFile, 0L, SEEK_SET);
+
+        // Read the file
+        char fbuf[fsize + 1];
+        fbuf[fsize] = 0;
+        if(fsize == fread(fbuf, 1, fsize, nvsFile))
+        {
+            // Close the file
+            fclose(nvsFile);
+
+            // Parse the JSON
+            cJSON * json = cJSON_Parse(fbuf);
+            cJSON * jsonIter = json;
+
+            // Find the requested key
+            char *current_key = NULL;
+            cJSON_ArrayForEach(jsonIter, json)
+            {
+                current_key = jsonIter->string;
+                if (current_key != NULL)
+                {
+                    // If the key matches
+                    if(0 == strcmp(current_key, key))
+                    {
+                        // Return the value
+                        *outVal = (int32_t)cJSON_GetNumberValue(jsonIter);
+                        return true;
+                    }
+                }
+            }
+        }
+        else
+        {
+            fclose(nvsFile);
+        }
+    }
     return false;
 }
 
@@ -286,18 +425,15 @@ bool readNvs32(const char* key, int32_t* outVal)
 //==============================================================================
 
 /**
- * @brief TODO
+ * @brief Initialie a null OLED since the OLED isn't emulated
  *
- * @param disp
- * @param reset
- * @param rst
- * @return true
- * @return false
+ * @param disp The display to initialize
+ * @param reset true to reset the OLED using the RST line, false to leave it alone
+ * @param rst_gpio The GPIO for the reset pin
+ * @return true if it initialized, false if it failed
  */
 bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
 {
-    WARN_UNIMPLEMENTED();
-
     disp->w = 0;
     disp->h = 0;
     disp->getPx = emuGetPxOled;
@@ -313,26 +449,22 @@ bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
 //==============================================================================
 
 /**
- * @brief TODO
+ * @brief Do nothing, the normal file system replaces SPIFFS well
  *
  * @return true
- * @return false
  */
 bool initSpiffs(void)
 {
-    WARN_UNIMPLEMENTED();
-    return false;
+    return true;
 }
 
 /**
- * @brief TODO
+ * @brief Do nothing, the normal file system replaces SPIFFS well
  *
  * @return true
- * @return false
  */
 bool deinitSpiffs(void)
 {
-    WARN_UNIMPLEMENTED();
     return false;
 }
 
@@ -414,16 +546,16 @@ float readTemperatureSensor(void)
 //==============================================================================
 
 /**
- * @brief TODO
+ * @brief Initialize a TFT display and return it through a pointer arg
  *
- * @param disp
- * @param spiHost
- * @param sclk
- * @param mosi
- * @param dc
- * @param cs
- * @param rst
- * @param backlight
+ * @param disp The display to initialize
+ * @param spiHost UNUSED
+ * @param sclk UNUSED
+ * @param mosi UNUSED
+ * @param dc UNUSED
+ * @param cs UNUSED
+ * @param rst UNUSED
+ * @param backlight UNUSED
  */
 void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
     gpio_num_t sclk UNUSED, gpio_num_t mosi UNUSED, gpio_num_t dc UNUSED,

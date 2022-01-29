@@ -126,7 +126,7 @@ void demoEnterMode(display_t * disp)
     if((false == readNvs32("magicVal", &magicVal)) || (MAGIC_VAL != magicVal))
     {
         ESP_LOGD("DEMO", "Writing magic val");
-        writeNvs32("magicVal", 0x01);
+        writeNvs32("magicVal", MAGIC_VAL);
         writeNvs32("testVal", 0x01);
     }
     else

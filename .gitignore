@@ -60,3 +60,4 @@ spiffs_image/*.font
 spiffs_image/*.qoi
 spiffs_file_preprocessor/spiffs_file_preprocessor
 swadge_emulator
+nvs.json
