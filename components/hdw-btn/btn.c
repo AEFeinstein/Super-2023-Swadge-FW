@@ -100,7 +100,7 @@ void initButtons(uint8_t numButtons, ...)
 /**
  * @brief Free memory used by the buttons
  */
-void deinitializeButtons(void)
+void deinitButtons(void)
 {
     free(btnGpios);
 }

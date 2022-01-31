@@ -12,7 +12,7 @@ typedef struct
 } buttonEvt_t;
 
 void initButtons(uint8_t numButtons, ...);
-void deinitializeButtons(void);
+void deinitButtons(void);
 bool checkButtonQueue(buttonEvt_t*);
 
 #endif

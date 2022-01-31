@@ -1,7 +1,11 @@
-#include "esp_emu.h"
-#include "emu_main.h"
+#include <stdint.h>
+
+#include "gpio_types.h"
 
 #include "i2c-conf.h"
+
+#include "esp_emu.h"
+#include "emu_main.h"
 
 //==============================================================================
 // I2C

@@ -3,40 +3,24 @@
 #include <pthread.h>
 #include <math.h>
 
+#include "esp_log.h"
+#include "swadge_esp32.h"
+#include "btn.h"
+
 #include "list.h"
 
 #include "emu_main.h"
 #include "esp_emu.h"
-#include "esp_log.h"
-#include "swadge_esp32.h"
 #include "sound.h"
 #include "emu_display.h"
 #include "emu_sound.h"
+#include "emu_sensors.h"
 
 //Make it so we don't need to include any other C files in our build.
 #define CNFG_IMPLEMENTATION
 #include "rawdraw_sf.h"
 
 #define MAX(x,y) ((x)>(y)?(x):(y))
-
-// Input queues for buttons
-char inputKeys[32];
-uint32_t buttonState = 0;
-list_t * buttonQueue;
-pthread_mutex_t buttonQueueMutex = PTHREAD_MUTEX_INITIALIZER;
-
-/**
- * Set up keyboard keys to act as pushbuttons
- * 
- * @param numButtons The number of keyboard keys to set up, up to 32
- * @param keyOrder The keys which should be used, as lowercase letters
- */
-void setInputKeys(uint8_t numButtons, char * keyOrder)
-{
-	memcpy(inputKeys, keyOrder, numButtons);
-	buttonState = 0;
-	buttonQueue = list_new();
-}
 
 /**
  * This function must be provided for rawdraw. Key events are received here
@@ -49,88 +33,7 @@ void setInputKeys(uint8_t numButtons, char * keyOrder)
  */
 void HandleKey( int keycode, int bDown )
 {
-	// Check keycode against initialized keys
-	for(uint8_t idx = 0; idx < ARRAY_SIZE(inputKeys); idx++)
-	{
-		// If this matches
-		if(keycode == inputKeys[idx])
-		{
-			// Set or clear the button
-			if(bDown)
-			{
-				// Check if button was already pressed
-				if(buttonState & (1 << idx))
-				{
-					// It was, just return
-					return;
-				}
-				else
-				{
-					// It wasn't, set it!
-					buttonState |= (1 << idx);
-				}
-			}
-			else
-			{
-				// Check if button was already released
-				if(0 == (buttonState & (1 << idx)))
-				{
-					// It was, just return
-					return;
-				}
-				else
-				{
-					// It wasn't, clear it!
-					buttonState &= ~(1 << idx);
-				}
-			}
-
-			// Create a new event
-			buttonEvt_t * evt = malloc(sizeof(buttonEvt_t));
-			evt->button = idx;
-			evt->down = bDown;
-			evt->state = buttonState;
-
-			// Add the event to the list, guarded by a mutex
-			pthread_mutex_lock(&buttonQueueMutex);
-			list_node_t * buttonNode = list_node_new(evt);
-			list_rpush(buttonQueue, buttonNode); 
-			pthread_mutex_unlock(&buttonQueueMutex);
-			
-			break;
-		}
-	}
-}
-
-/**
- * Check if there were any queued input events and return them if there were
- * 
- * @param evt Return the event through this pointer argument
- * @return true if an event occurred and was returned, false otherwise
- */
-bool checkInputKeys(buttonEvt_t * evt)
-{
-	// Check the queue, guarded by a mutex
-	pthread_mutex_lock(&buttonQueueMutex);
-	list_node_t * node = list_lpop(buttonQueue);
-	pthread_mutex_unlock(&buttonQueueMutex);
-
-	// No events
-	if(NULL == node)
-	{
-		memset(evt, 0, sizeof(buttonEvt_t));
-		return false;
-	}
-	else
-	{
-		// Copy the event to the arg
-		memcpy(evt, node->val, sizeof(buttonEvt_t));
-		// Free everything
-		free(node->val);
-		free(node);
-		// Return that an event occurred
-		return true;
-	}
+	emuSensorHandleKey(keycode, bDown);
 }
 
 /**
@@ -173,7 +76,7 @@ void HandleDestroy()
 	deinitSound();
 
 	// Free button queue
-	free(buttonQueue);
+	deinitButtons();
 }
 
 /**
@@ -266,7 +169,7 @@ int main(int argc UNUSED, char ** argv UNUSED)
 		}
 
 		// Sleep for a ms
-        usleep(1000);
+        usleep(1);
     }
 
 	return 0;
@@ -279,5 +182,5 @@ int main(int argc UNUSED, char ** argv UNUSED)
 void onTaskYield(void)
 {
 	// Just sleep for a ms
-	usleep(1000);
+	usleep(1);
 }

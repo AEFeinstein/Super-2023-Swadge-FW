@@ -6,6 +6,7 @@
 
 #include "hal/spi_types.h"
 #include "led_util.h"
+#include "display.h"
 
 /* Screen-specific configurations */
 #if defined(CONFIG_ST7735_160x80)
