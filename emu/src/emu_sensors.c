@@ -1,13 +1,12 @@
+#include "esp_log.h"
+
 #include "esp_emu.h"
 #include "emu_main.h"
 
-#include "btn.h"
-#include "i2c-conf.h"
 #include "QMA6981.h"
 #include "esp_temperature_sensor.h"
 #include "touch_sensor.h"
-
-#include "esp_log.h"
+#include "btn.h"
 
 //==============================================================================
 // Buttons
@@ -74,24 +73,6 @@ bool checkTouchSensor(touch_event_t * evt)
 {
     WARN_UNIMPLEMENTED();
     return false;
-}
-
-//==============================================================================
-// I2C
-//==============================================================================
-
-/**
- * @brief Do Nothing
- *
- * @param sda unused
- * @param scl unused
- * @param pullup unused
- * @param clkHz unused
- */
-void i2c_master_init(gpio_num_t sda UNUSED, gpio_num_t scl UNUSED,
-    gpio_pullup_t pullup UNUSED, uint32_t clkHz UNUSED)
-{
-    ; // Nothing to du
 }
 
 //==============================================================================
