@@ -37,28 +37,29 @@ void HandleKey( int keycode, int bDown )
 }
 
 /**
- * @brief
+ * @brief Handle mouse click events from rawdraw
  *
- * @param x
- * @param y
- * @param button
- * @param bDown
+ * @param x The x coordinate of the mouse event
+ * @param y The y coordinate of the mouse event
+ * @param button The mouse button that was pressed or released
+ * @param bDown true if the button was pressed, false if it was released
  */
-void HandleButton( int x, int y, int button, int bDown )
+void HandleButton( int x UNUSED, int y UNUSED, int button UNUSED, int bDown UNUSED)
 {
     WARN_UNIMPLEMENTED();
 }
 
 /**
- * @brief
+ * @brief Handle mouse motion events from rawdraw
  *
- * @param x
- * @param y
- * @param mask
+ * @param x The x coordinate of the mouse event
+ * @param y The y coordinate of the mouse event
+ * @param mask A mask of mouse buttons that are currently held down
  */
 void HandleMotion( int x, int y, int mask )
 {
     WARN_UNIMPLEMENTED();
+	printf("%3d %3d 0x%08x\n", x, y, mask);
 }
 
 /**
@@ -80,11 +81,12 @@ void HandleDestroy()
 }
 
 /**
- * @brief TODO
+ * @brief The main emulator function. This initializes rawdraw and calls
+ * app_main(), then spins in a loop updating the rawdraw UI
  *
- * @param argc
- * @param argv
- * @return int
+ * @param argc unused
+ * @param argv unused
+ * @return 0 on success, a nonzero value for any errors
  */
 int main(int argc UNUSED, char ** argv UNUSED)
 {
@@ -177,7 +179,6 @@ int main(int argc UNUSED, char ** argv UNUSED)
 
 /**
  * @brief When the main task yields, rest
- * 
  */
 void onTaskYield(void)
 {

@@ -1,3 +1,7 @@
+//==============================================================================
+// Includes
+//==============================================================================
+
 #include <sys/time.h>
 #include <time.h>
 #include <pthread.h>
@@ -25,13 +29,31 @@
 #include "tinyusb.h"
 #include "tusb_hid_gamepad.h"
 
+//==============================================================================
+// Defines
+//==============================================================================
+
 #define MAX_THREADS 10
-void * runTaskInThread(void * taskFnPtr);
+
+//==============================================================================
+// Variables
+//==============================================================================
+
 uint8_t pthreadIdx = 0;
 pthread_t threads[MAX_THREADS];
 volatile bool threadsShouldRun = true;
 
 static unsigned long boot_time_in_micros = 0;
+
+//==============================================================================
+// Function prototypes
+//==============================================================================
+
+void * runTaskInThread(void * taskFnPtr);
+
+//==============================================================================
+// Functions
+//==============================================================================
 
 /**
  * @brief Do nothing for the emulator
@@ -78,10 +100,10 @@ int64_t esp_timer_get_time(void)
 }
 
 /**
- * @brief TODO
+ * @brief Initialize the tinyusb driver
  * 
- * @param config 
- * @return esp_err_t 
+ * @param config How to configure the tinyusb driver
+ * @return ESP_OK if the driver was installed, or some error if it was not 
  */
 esp_err_t tinyusb_driver_install(const tinyusb_config_t *config UNUSED)
 {
@@ -90,9 +112,9 @@ esp_err_t tinyusb_driver_install(const tinyusb_config_t *config UNUSED)
 }
 
 /**
- * @brief TODO
+ * @brief Send a USB HID gamepad report to the USB host
  * 
- * @param report 
+ * @param report The report to send to the host
  */
 void tud_gamepad_report(hid_gamepad_report_t * report UNUSED)
 {
@@ -100,10 +122,9 @@ void tud_gamepad_report(hid_gamepad_report_t * report UNUSED)
 }
 
 /**
- * @brief TODO
+ * @brief Check if the USB host is ready to receive a report
  * 
- * @return true 
- * @return false 
+ * @return true if the USB host is ready, false if it is not
  */
 bool tud_ready(void)
 {

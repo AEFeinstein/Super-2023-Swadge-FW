@@ -63,12 +63,11 @@ void EmuSoundCb( struct SoundDriver* sd, short* in, short* out, int samplesr, in
 //==============================================================================
 
 /**
- * @brief TODO
- * 
+ * @brief Deinitialize the sound driver
  */
 void deinitSound(void)
 {
-    // CloseSound(sounddriver); TODO when calling this, it halts
+    // CloseSound(sounddriver); TODO when calling this on Windows, it halts
     CloseSound(NULL);
 }
 

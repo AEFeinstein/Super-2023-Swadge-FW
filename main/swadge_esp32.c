@@ -112,9 +112,11 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
  * @param reqlen
  * @return uint16_t
  */
-uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id,
-                               hid_report_type_t report_type, uint8_t* buffer,
-                               uint16_t reqlen)
+uint16_t tud_hid_get_report_cb(uint8_t itf __attribute__((unused)),
+    uint8_t report_id __attribute__((unused)),
+    hid_report_type_t report_type __attribute__((unused)),
+    uint8_t* buffer __attribute__((unused)),
+    uint16_t reqlen __attribute__((unused)))
 {
     return 0;
 }
@@ -132,9 +134,11 @@ uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id,
  * @param buffer
  * @param bufsize
  */
-void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
-                           hid_report_type_t report_type, uint8_t const* buffer,
-                           uint16_t bufsize)
+void tud_hid_set_report_cb(uint8_t itf __attribute__((unused)),
+    uint8_t report_id __attribute__((unused)),
+    hid_report_type_t report_type __attribute__((unused)),
+    uint8_t const* buffer __attribute__((unused)),
+    uint16_t bufsize __attribute__((unused)))
 {
     ;
 }
@@ -201,10 +205,12 @@ void app_main(void)
 }
 
 /**
- * This is the task for the swadge. It sets up all peripherals and runs the
- * firmware in a while(1) loop
+ * @brief This is the task for the swadge. It sets up all peripherals and runs
+ * the firmware in a while(1) loop
+ * 
+ * @param arg unused
  */
-void mainSwadgeTask(void * arg)
+void mainSwadgeTask(void * arg __attribute((unused)))
 {
     /* Initialize internal NVS */
     initNvs(true);

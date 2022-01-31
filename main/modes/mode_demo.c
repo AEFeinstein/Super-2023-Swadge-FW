@@ -351,7 +351,7 @@ void demoEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
  * @param p2p 
  * @param evt 
  */
-void demoConCbFn(p2pInfo* p2p, connectionEvt_t evt)
+void demoConCbFn(p2pInfo* p2p __attribute__((unused)), connectionEvt_t evt)
 {
     ESP_LOGD("DEMO", "%s :: %d", __func__, evt);
 }
@@ -364,7 +364,9 @@ void demoConCbFn(p2pInfo* p2p, connectionEvt_t evt)
  * @param payload 
  * @param len 
  */
-void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const uint8_t* payload, uint8_t len)
+void demoMsgRxCbFn(p2pInfo* p2p __attribute__((unused)),
+    const char* msg __attribute__((unused)),
+    const uint8_t* payload __attribute__((unused)), uint8_t len)
 {
     ESP_LOGD("DEMO", "%s :: %d", __func__, len);
 }
@@ -375,7 +377,7 @@ void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const uint8_t* payload, uint8_
  * @param p2p 
  * @param status 
  */
-void demoMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
+void demoMsgTxCbFn(p2pInfo* p2p __attribute__((unused)), messageStatus_t status)
 {
     ESP_LOGD("DEMO", "%s :: %d", __func__, status);
 }

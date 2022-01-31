@@ -71,7 +71,7 @@ CFLAGS_WARNINGS = \
 # These are warning flags for the compiler, just for files outside $(SDK)
 CFLAGS_WARNINGS_EXTRA = \
 	-Wall \
-	-Wno-unused \
+	-Wunused \
 	-Wunused-macros \
 	-Wmissing-declarations \
 	-Wmissing-prototypes

@@ -27,7 +27,7 @@ struct esp_timer {
     size_t times_skipped;
     uint64_t total_callback_run_time;
 #endif // WITH_PROFILING
-    // LIST_ENTRY(esp_timer) list_entry; TODO figure this out
+    // LIST_ENTRY(esp_timer) list_entry;
 };
 
 typedef struct esp_timer* esp_timer_handle_t;

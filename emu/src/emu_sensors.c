@@ -47,8 +47,7 @@ void initButtons(uint8_t numButtons, ...)
 }
 
 /**
- * @brief Do nothing
- *
+ * @brief Free memory used for button handling
  */
 void deinitButtons(void)
 {
@@ -88,10 +87,10 @@ bool checkButtonQueue(buttonEvt_t* evt)
 }
 
 /**
- * @brief TODO
+ * @brief This handles key events from rawdraw
  * 
- * @param keycode 
- * @param bDown 
+ * @param keycode The key that was pressed or released
+ * @param bDown true if the key was pressed, false if it was released
  */
 void emuSensorHandleKey( int keycode, int bDown )
 {
@@ -153,26 +152,26 @@ void emuSensorHandleKey( int keycode, int bDown )
 //==============================================================================
 
 /**
- * @brief TODO
- *
- * @param touchPadSensitivity
- * @param denoiseEnable
- * @param numTouchPads
- * @param ...
+ * @brief Initialize touchpad sensors
+ * 
+ * @param touchPadSensitivity The sensitivity to set for these touchpads
+ * @param denoiseEnable true to denoise the input, false to use it raw
+ * @param numTouchPads The number of touchpads to initialize
+ * @param ... A list of touchpads to initialize (touch_pad_t)
  */
-void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
-    uint8_t numTouchPads, ...)
+void initTouchSensor(float touchPadSensitivity UNUSED, bool denoiseEnable UNUSED,
+    uint8_t numTouchPads UNUSED, ...)
 {
     WARN_UNIMPLEMENTED();
 }
 
 /**
- * @brief TODO
- *
- * @return true
- * @return false
+ * @brief Call this function periodically to check the touch pad interrupt queue
+ * 
+ * @param evt Return a touch event through this arg if there was one
+ * @return true if there was a touch event, false if there was not
  */
-bool checkTouchSensor(touch_event_t * evt)
+bool checkTouchSensor(touch_event_t * evt UNUSED)
 {
     WARN_UNIMPLEMENTED();
     return false;
@@ -183,8 +182,7 @@ bool checkTouchSensor(touch_event_t * evt)
 //==============================================================================
 
 /**
- * @brief TODO
- *
+ * @brief Initialize the ESP's onboard temperature sensor
  */
 void initTemperatureSensor(void)
 {
@@ -192,9 +190,9 @@ void initTemperatureSensor(void)
 }
 
 /**
- * @brief TODO
+ * @brief Get a temperature reading from the ESP's onboard temperature sensor
  *
- * @return float
+ * @return A floating point temperature
  */
 float readTemperatureSensor(void)
 {
@@ -207,10 +205,9 @@ float readTemperatureSensor(void)
 //==============================================================================
 
 /**
- * @brief TODO
+ * @brief Initialize the QMA6981 and start it going
  *
- * @return true
- * @return false
+ * @return true if initialization succeeded, false if it failed
  */
 bool QMA6981_setup(void)
 {
@@ -219,11 +216,11 @@ bool QMA6981_setup(void)
 }
 
 /**
- * @brief TODO
+ * @brief Poll the QMA6981 for the current acceleration value
  *
- * @param currentAccel
+ * @param currentAccel A pointer where the acceleration data will be stored
  */
-void QMA6981_poll(accel_t* currentAccel)
+void QMA6981_poll(accel_t* currentAccel UNUSED)
 {
     WARN_UNIMPLEMENTED();
 }

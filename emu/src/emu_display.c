@@ -28,7 +28,7 @@ pthread_mutex_t displayMutex = PTHREAD_MUTEX_INITIALIZER;
 
 // LED state
 uint8_t rdNumLeds = 0;
-led_t rdLeds[256] = {0};
+led_t * rdLeds = NULL;
 
 //==============================================================================
 // Function Prototypes
@@ -45,12 +45,12 @@ void emuClearPxOled(void);
 void emuDrawDisplayOled(bool drawDiff);
 
 //==============================================================================
-// Getters
+// Functions
 //==============================================================================
 
 /**
- * @brief TODO
- * 
+ * @brief Lock the mutex that guards memory used by rawdraw on the main thread
+ * and the swadge on a different thread
  */
 void lockDisplayMemoryMutex(void)
 {
@@ -58,8 +58,8 @@ void lockDisplayMemoryMutex(void)
 }
 
 /**
- * @brief TODO
- * 
+ * @brief Unlock the mutex that guards memory used by rawdraw on the main thread
+ * and the swadge on a different thread
  */
 void unlockDisplayMemoryMutex(void)
 {
@@ -67,11 +67,12 @@ void unlockDisplayMemoryMutex(void)
 }
 
 /**
- * @brief TODO
+ * @brief Get a pointer to the display memory. This access must be guarded by
+ * lockDisplayMemoryMutex() and unlockDisplayMemoryMutex()
  * 
- * @param width 
- * @param height 
- * @return uint32_t* 
+ * @param width A pointer to return the width of the display through
+ * @param height A pointer to return the height of the display through
+ * @return A pointer to the bitmap pixels for the display
  */
 uint32_t * getDisplayBitmap(uint16_t * width, uint16_t * height)
 {
@@ -81,10 +82,11 @@ uint32_t * getDisplayBitmap(uint16_t * width, uint16_t * height)
 }
 
 /**
- * @brief TODO
+ * @brief Get a pointer to the LED memory. This access must be guarded by 
+ * lockDisplayMemoryMutex() and unlockDisplayMemoryMutex()
  * 
- * @param numLeds 
- * @return led_t* 
+ * @param numLeds A pointer to return the number of led_t through
+ * @return A pointer to the current LED state
  */
 led_t * getLedMemory(uint8_t * numLeds)
 {
@@ -93,8 +95,7 @@ led_t * getLedMemory(uint8_t * numLeds)
 }
 
 /**
- * @brief TODO
- * 
+ * @brief Free any memory allocated for the display
  */
 void deinitDisplayMemory(void)
 {
@@ -103,6 +104,10 @@ void deinitDisplayMemory(void)
 	{
 		free(bitmapDisplay);
 	}
+    if(NULL != rdLeds)
+    {
+        free(rdLeds);        
+    }
 	pthread_mutex_unlock(&displayMutex);
 }
 
@@ -147,48 +152,60 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
 }
 
 /**
- * @brief TODO
+ * @brief Set a single pixel on the emulated TFT. This converts from 5 bit color
+ * to 8 bit color
  * 
- * @param x 
- * @param y 
- * @param px 
+ * @param x The X coordinate of the pixel to set
+ * @param y The Y coordinate of the pixel to set
+ * @param px The pixel to set, in 15 bit color with 1 alpha channel
  */
 void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px)
 {
-	// Convert from 15 bit to 24 bit color
-	if(PX_OPAQUE == px.a)
-	{
-		uint8_t r8 = ((px.r * 0xFF) / 0x1F) & 0xFF;
-		uint8_t g8 = ((px.g * 0xFF) / 0x1F) & 0xFF;
-		uint8_t b8 = ((px.b * 0xFF) / 0x1F) & 0xFF;
-		pthread_mutex_lock(&displayMutex);
-		bitmapDisplay[(bitmapWidth * y) + x] = (0xFF << 24) | (r8 << 16) | (g8 << 8) | (b8);
-		pthread_mutex_unlock(&displayMutex);
-	}
+    if(0 <= x && x < TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
+    {
+        // Convert from 15 bit to 24 bit color
+        if(PX_OPAQUE == px.a)
+        {
+            uint8_t r8 = ((px.r * 0xFF) / 0x1F) & 0xFF;
+            uint8_t g8 = ((px.g * 0xFF) / 0x1F) & 0xFF;
+            uint8_t b8 = ((px.b * 0xFF) / 0x1F) & 0xFF;
+            pthread_mutex_lock(&displayMutex);
+            bitmapDisplay[(bitmapWidth * y) + x] = (0xFF << 24) | (r8 << 16) | (g8 << 8) | (b8);
+            pthread_mutex_unlock(&displayMutex);
+        }
+    }
 }
 
 /**
- * @brief TODO
+ * @brief Get a pixel from the emulated TFT. This converts 8 bit color to 5 bit
+ * color
  * 
- * @param x 
- * @param y 
- * @return rgba_pixel_t 
+ * @param x The X coordinate of the pixel to get
+ * @param y The Y coordinate of the pixel to get
+ * @return The pixel at the given coordinate
  */
 rgba_pixel_t emuGetPxTft(int16_t x, int16_t y)
 {
-	pthread_mutex_lock(&displayMutex);
-	uint32_t argb = bitmapDisplay[(bitmapWidth * y) + x];
-	pthread_mutex_unlock(&displayMutex);
-	rgba_pixel_t px;
-	px.r = (((argb & 0xFF0000) >> 16) * 0x1F) / 0xFF; // 5 bit
-	px.g = (((argb & 0x00FF00) >>  8) * 0x1F) / 0xFF; // 5 bit
-	px.b = (((argb & 0x0000FF) >>  0) * 0x1F) / 0xFF; // 5 bit
-	return px;
+    if(0 <= x && x < TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
+    {
+        pthread_mutex_lock(&displayMutex);
+        uint32_t argb = bitmapDisplay[(bitmapWidth * y) + x];
+        pthread_mutex_unlock(&displayMutex);
+        rgba_pixel_t px;
+        px.r = (((argb & 0xFF0000) >> 16) * 0x1F) / 0xFF; // 5 bit
+        px.g = (((argb & 0x00FF00) >>  8) * 0x1F) / 0xFF; // 5 bit
+        px.b = (((argb & 0x0000FF) >>  0) * 0x1F) / 0xFF; // 5 bit
+        return px;
+    }
+    else
+    {
+        rgba_pixel_t px = {0};
+        return px;
+    }
 }
 
 /**
- * @brief TODO
- * 
+ * @brief Clear the entire display to opaque black in one call
  */
 void emuClearPxTft(void)
 {
@@ -219,9 +236,9 @@ void emuDrawDisplayTft(bool drawDiff UNUSED)
  * @brief Initialie a null OLED since the OLED isn't emulated
  *
  * @param disp The display to initialize
- * @param reset true to reset the OLED using the RST line, false to leave it alone
- * @param rst_gpio The GPIO for the reset pin
- * @return true if it initialized, false if it failed
+ * @param reset unused
+ * @param rst_gpio unused
+ * @return true
  */
 bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
 {
@@ -236,25 +253,27 @@ bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
 }
 
 /**
- * @brief TODO
+ * @brief Set a single pixel on the emulated OLED. This converts from 1 bit
+ * color to 8 bit color
  * 
- * @param x 
- * @param y 
- * @param px 
+ * @param x The X coordinate of the pixel to set
+ * @param y The Y coordinate of the pixel to set
+ * @param px The pixel to set, in 15 bit color with 1 alpha channel
  */
-void emuSetPxOled(int16_t x, int16_t y, rgba_pixel_t px)
+void emuSetPxOled(int16_t x UNUSED, int16_t y UNUSED, rgba_pixel_t px UNUSED)
 {
 	WARN_UNIMPLEMENTED();
 }
 
 /**
- * @brief TODO
+ * @brief Get a pixel from the emulated TFT. This converts 8 bit color to 1 bit
+ * color
  * 
- * @param x 
- * @param y 
- * @return rgba_pixel_t 
+ * @param x The X coordinate of the pixel to get
+ * @param y The Y coordinate of the pixel to get
+ * @return The pixel at the given coordinate
  */
-rgba_pixel_t emuGetPxOled(int16_t x, int16_t y)
+rgba_pixel_t emuGetPxOled(int16_t x UNUSED, int16_t y UNUSED)
 {
 	WARN_UNIMPLEMENTED();
 	rgba_pixel_t px = {.r=0x00, .g = 0x00, .b = 0x00, .a = PX_OPAQUE};
@@ -262,8 +281,7 @@ rgba_pixel_t emuGetPxOled(int16_t x, int16_t y)
 }
 
 /**
- * @brief TODO
- * 
+ * @brief Clear the entire display to opaque black in one call
  */
 void emuClearPxOled(void)
 {
@@ -271,11 +289,12 @@ void emuClearPxOled(void)
 }
 
 /**
- * @brief TODO
+ * @brief Called when the Swadge wants to draw a new display. Note, this is
+ * called from a pthread, so it raises a flag to draw on the main thread
  * 
- * @param drawDiff 
+ * @param drawDiff unused, the whole display is always drawn
  */
-void emuDrawDisplayOled(bool drawDiff)
+void emuDrawDisplayOled(bool drawDiff UNUSED)
 {
 	WARN_UNIMPLEMENTED();
 }
@@ -285,7 +304,7 @@ void emuDrawDisplayOled(bool drawDiff)
 //==============================================================================
 
 /**
- * @brief TODO
+ * @brief Initialize the emulated LEDs
  *
  * @param gpio unused
  * @param rmt unused
@@ -293,14 +312,23 @@ void emuDrawDisplayOled(bool drawDiff)
  */
 void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds)
 {
-    rdNumLeds = numLeds;
+    // If the LEDs haven't been initialized yet
+    if(NULL == rdLeds)
+    {
+        // Allocate some LED memory
+        pthread_mutex_lock(&displayMutex);
+        rdLeds = malloc(sizeof(led_t) * numLeds);        
+        pthread_mutex_unlock(&displayMutex);
+        // Save the number of LEDs
+        rdNumLeds = numLeds;
+    }
 }
 
 /**
- * @brief TODO
+ * @brief Set the color for an emulated LED strip
  *
- * @param leds
- * @param numLeds
+ * @param leds    The color of the LEDs 
+ * @param numLeds The number of LEDs to set
  */
 void setLeds(led_t* leds, uint8_t numLeds)
 {

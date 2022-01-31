@@ -97,7 +97,9 @@
         "qoi.h": "c",
         "emu_main.h": "c",
         "list.h": "c",
-        "cjson.h": "c"
+        "cjson.h": "c",
+        "array": "c",
+        "string_view": "c"
     },
     "idf.adapterTargetName": "esp32s2",
 }

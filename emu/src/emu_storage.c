@@ -7,6 +7,7 @@
 #include "esp_log.h"
 #include "cJSON.h"
 
+#include "esp_emu.h"
 #include "nvs_manager.h"
 #include "spiffs_manager.h"
 
@@ -22,7 +23,7 @@
  * @param firstTry unused
  * @return true if the file exists or was created, false otherwise
  */
-bool initNvs(bool firstTry)
+bool initNvs(bool firstTry UNUSED)
 {
     // Check if the json file exists
     if( access( NVS_JSON_FILE, F_OK ) != 0 )
