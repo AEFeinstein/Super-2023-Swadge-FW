@@ -41,7 +41,9 @@ void initButtons(uint8_t numButtons, ...)
     char keyOrder[] = {'w', 's', 'a', 'd', 'i', 'k', 'j', 'l'};
     memcpy(inputKeys, keyOrder, numButtons);
 	buttonState = 0;
+	pthread_mutex_lock(&buttonQueueMutex);
 	buttonQueue = list_new();
+	pthread_mutex_unlock(&buttonQueueMutex);
 }
 
 /**
@@ -50,7 +52,9 @@ void initButtons(uint8_t numButtons, ...)
  */
 void deinitButtons(void)
 {
+	pthread_mutex_lock(&buttonQueueMutex);
 	free(buttonQueue);
+	pthread_mutex_unlock(&buttonQueueMutex);
 }
 
 /**
