@@ -69,7 +69,7 @@ void unlockDisplayMemoryMutex(void)
 /**
  * @brief Get a pointer to the display memory. This access must be guarded by
  * lockDisplayMemoryMutex() and unlockDisplayMemoryMutex()
- * 
+ *
  * @param width A pointer to return the width of the display through
  * @param height A pointer to return the height of the display through
  * @return A pointer to the bitmap pixels for the display
@@ -82,9 +82,9 @@ uint32_t * getDisplayBitmap(uint16_t * width, uint16_t * height)
 }
 
 /**
- * @brief Get a pointer to the LED memory. This access must be guarded by 
+ * @brief Get a pointer to the LED memory. This access must be guarded by
  * lockDisplayMemoryMutex() and unlockDisplayMemoryMutex()
- * 
+ *
  * @param numLeds A pointer to return the number of led_t through
  * @return A pointer to the current LED state
  */
@@ -106,7 +106,7 @@ void deinitDisplayMemory(void)
 	}
     if(NULL != rdLeds)
     {
-        free(rdLeds);        
+        free(rdLeds);
     }
 	pthread_mutex_unlock(&displayMutex);
 }
@@ -154,7 +154,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
 /**
  * @brief Set a single pixel on the emulated TFT. This converts from 5 bit color
  * to 8 bit color
- * 
+ *
  * @param x The X coordinate of the pixel to set
  * @param y The Y coordinate of the pixel to set
  * @param px The pixel to set, in 15 bit color with 1 alpha channel
@@ -179,7 +179,7 @@ void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px)
 /**
  * @brief Get a pixel from the emulated TFT. This converts 8 bit color to 5 bit
  * color
- * 
+ *
  * @param x The X coordinate of the pixel to get
  * @param y The Y coordinate of the pixel to get
  * @return The pixel at the given coordinate
@@ -217,12 +217,12 @@ void emuClearPxTft(void)
 /**
  * @brief Called when the Swadge wants to draw a new display. Note, this is
  * called from a pthread, so it raises a flag to draw on the main thread
- * 
+ *
  * @param drawDiff unused, the whole display is always drawn
  */
 void emuDrawDisplayTft(bool drawDiff UNUSED)
 {
-	/* Rawdraw is initialized on the main thread, so the draw calls must come 
+	/* Rawdraw is initialized on the main thread, so the draw calls must come
 	 * from there too. Raise a flag to do so
 	 */
 	shouldDrawTft = true;
@@ -248,14 +248,14 @@ bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
     disp->setPx = emuSetPxOled;
     disp->clearPx = emuClearPxOled;
     disp->drawDisplay = emuDrawDisplayOled;
-    
+
     return true;
 }
 
 /**
  * @brief Set a single pixel on the emulated OLED. This converts from 1 bit
  * color to 8 bit color
- * 
+ *
  * @param x The X coordinate of the pixel to set
  * @param y The Y coordinate of the pixel to set
  * @param px The pixel to set, in 15 bit color with 1 alpha channel
@@ -268,7 +268,7 @@ void emuSetPxOled(int16_t x UNUSED, int16_t y UNUSED, rgba_pixel_t px UNUSED)
 /**
  * @brief Get a pixel from the emulated TFT. This converts 8 bit color to 1 bit
  * color
- * 
+ *
  * @param x The X coordinate of the pixel to get
  * @param y The Y coordinate of the pixel to get
  * @return The pixel at the given coordinate
@@ -291,7 +291,7 @@ void emuClearPxOled(void)
 /**
  * @brief Called when the Swadge wants to draw a new display. Note, this is
  * called from a pthread, so it raises a flag to draw on the main thread
- * 
+ *
  * @param drawDiff unused, the whole display is always drawn
  */
 void emuDrawDisplayOled(bool drawDiff UNUSED)
@@ -317,7 +317,7 @@ void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds
     {
         // Allocate some LED memory
         pthread_mutex_lock(&displayMutex);
-        rdLeds = malloc(sizeof(led_t) * numLeds);        
+        rdLeds = malloc(sizeof(led_t) * numLeds);
         pthread_mutex_unlock(&displayMutex);
         // Save the number of LEDs
         rdNumLeds = numLeds;
@@ -327,7 +327,7 @@ void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds
 /**
  * @brief Set the color for an emulated LED strip
  *
- * @param leds    The color of the LEDs 
+ * @param leds    The color of the LEDs
  * @param numLeds The number of LEDs to set
  */
 void setLeds(led_t* leds, uint8_t numLeds)

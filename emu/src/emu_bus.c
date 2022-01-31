@@ -9,7 +9,6 @@
 #include "i2c-conf.h"
 
 #include "emu_esp.h"
-#include "emu_main.h"
 
 //==============================================================================
 // Functions

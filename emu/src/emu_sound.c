@@ -73,7 +73,7 @@ void deinitSound(void)
 
 /**
  * @brief Callback for sound events, both input and output
- * 
+ *
  * @param sd The sound driver
  * @param in A pointer to read samples from. May be NULL
  * @param out A pointer to write samples to. May be NULL
@@ -194,7 +194,7 @@ void buzzer_check_next_note(void)
     {
         // Get the current time
         int64_t cTime = esp_timer_get_time();
-        
+
         // Check if it's time to play the next note
         if (cTime - emuBzr.start_time >= (1000 * emuBzr.song->notes[emuBzr.note_index].timeMs))
         {

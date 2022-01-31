@@ -12,7 +12,6 @@
 
 #include "swadge_esp32.h"
 #include "emu_esp.h"
-#include "emu_main.h"
 
 #include "QMA6981.h"
 #include "esp_temperature_sensor.h"
@@ -95,7 +94,7 @@ bool checkButtonQueue(buttonEvt_t* evt)
 
 /**
  * @brief This handles key events from rawdraw
- * 
+ *
  * @param keycode The key that was pressed or released
  * @param bDown true if the key was pressed, false if it was released
  */
@@ -146,9 +145,9 @@ void emuSensorHandleKey( int keycode, int bDown )
 			// Add the event to the list, guarded by a mutex
 			pthread_mutex_lock(&buttonQueueMutex);
 			list_node_t * buttonNode = list_node_new(evt);
-			list_rpush(buttonQueue, buttonNode); 
+			list_rpush(buttonQueue, buttonNode);
 			pthread_mutex_unlock(&buttonQueueMutex);
-			
+
 			break;
 		}
 	}
@@ -160,7 +159,7 @@ void emuSensorHandleKey( int keycode, int bDown )
 
 /**
  * @brief Initialize touchpad sensors
- * 
+ *
  * @param touchPadSensitivity The sensitivity to set for these touchpads
  * @param denoiseEnable true to denoise the input, false to use it raw
  * @param numTouchPads The number of touchpads to initialize
@@ -174,7 +173,7 @@ void initTouchSensor(float touchPadSensitivity UNUSED, bool denoiseEnable UNUSED
 
 /**
  * @brief Call this function periodically to check the touch pad interrupt queue
- * 
+ *
  * @param evt Return a touch event through this arg if there was one
  * @return true if there was a touch event, false if there was not
  */

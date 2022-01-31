@@ -13,7 +13,6 @@
 
 #include "list.h"
 
-#include "emu_main.h"
 #include "emu_esp.h"
 #include "sound.h"
 #include "emu_display.h"
@@ -36,7 +35,7 @@
 
 /**
  * This function must be provided for rawdraw. Key events are received here
- * 
+ *
  * Note that this is called on the main thread and the swadge task is on a
  * separate thread, so queue accesses must be mutexed
  *
@@ -114,7 +113,7 @@ int main(int argc UNUSED, char ** argv UNUSED)
     {
 		// Always handle inputs
 		CNFGHandleInput();
-		
+
 		// Only redraw the screen when requested by the thread
 		if(shouldDrawTft)
 		{
@@ -146,7 +145,7 @@ int main(int argc UNUSED, char ** argv UNUSED)
 				{
 					float angle1 = ( i      * 2 * M_PI) / numLeds;
 					float angle2 = ((i + 1) * 2 * M_PI) / numLeds;
-					RDPoint points[] = 
+					RDPoint points[] =
 					{
 						{
 							.x = (TFT_WIDTH / 2) + (TFT_WIDTH/2) * sin(angle1),
@@ -164,7 +163,7 @@ int main(int argc UNUSED, char ** argv UNUSED)
 
 					// Draw filled polygon
 					CNFGColor( (leds[i].r << 24) | (leds[i].g << 16) | (leds[i].b << 8) | 0xFF);
-					CNFGTackPoly(points, ARRAY_SIZE(points)); 
+					CNFGTackPoly(points, ARRAY_SIZE(points));
 
 					// Draw outline
 					CNFGColor( 0x808080FF );
@@ -175,7 +174,7 @@ int main(int argc UNUSED, char ** argv UNUSED)
 			unlockDisplayMemoryMutex();
 
 			// Draw dividing line
-			CNFGColor( 0x808080FF ); 
+			CNFGColor( 0x808080FF );
 			CNFGTackSegment(0, TFT_HEIGHT, TFT_WIDTH, TFT_HEIGHT);
 
 			//Display the image and wait for time to display next frame.
