@@ -58,7 +58,7 @@ void CloseSoundWin( void * v )
 	{
 		if( r->hMyWaveIn )
 		{
-			waveInStop(r->hMyWaveIn);
+			waveInStop(r->hMyWaveIn); // TODO this is blocking???
 			waveInReset(r->hMyWaveIn);
 			for ( i=0;i<BUFFS;i++)
 			{
@@ -95,7 +95,7 @@ int SoundStateWin( void * v )
 void CALLBACK HANDLEMIC(HWAVEIN hwi, UINT umsg, DWORD dwi, DWORD hdr, DWORD dwparm)
 {
 	int ctr;
-	int ob;
+	// int ob;
 	long cValue;
 	unsigned int maxWave=0;
 
@@ -109,7 +109,7 @@ void CALLBACK HANDLEMIC(HWAVEIN hwi, UINT umsg, DWORD dwi, DWORD hdr, DWORD dwpa
 		break;
 
 	case MM_WIM_DATA:
-		ob = (w->GOBUFFRec+(BUFFS))%BUFFS;
+		// ob = (w->GOBUFFRec+(BUFFS))%BUFFS;
 		w->callback(  (struct SoundDriver*)w, (short*)(w->WavBuffIn[w->GOBUFFRec]).lpData, 0, w->buffer, 0 );
 		waveInAddBuffer(w->hMyWaveIn,&(w->WavBuffIn[w->GOBUFFRec]),sizeof(WAVEHDR));
 		w->GOBUFFRec = ( w->GOBUFFRec + 1 ) % BUFFS;
