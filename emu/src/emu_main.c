@@ -70,7 +70,6 @@ void HandleButton( int x UNUSED, int y UNUSED, int button UNUSED, int bDown UNUS
 void HandleMotion( int x, int y, int mask )
 {
     WARN_UNIMPLEMENTED();
-	printf("%3d %3d 0x%08x\n", x, y, mask);
 }
 
 /**
