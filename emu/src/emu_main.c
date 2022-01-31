@@ -1,3 +1,7 @@
+//==============================================================================
+// Includes
+//==============================================================================
+
 #include <stdbool.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -10,7 +14,7 @@
 #include "list.h"
 
 #include "emu_main.h"
-#include "esp_emu.h"
+#include "emu_esp.h"
 #include "sound.h"
 #include "emu_display.h"
 #include "emu_sound.h"
@@ -20,7 +24,15 @@
 #define CNFG_IMPLEMENTATION
 #include "rawdraw_sf.h"
 
+//==============================================================================
+// Defines
+//==============================================================================
+
 #define MAX(x,y) ((x)>(y)?(x):(y))
+
+//==============================================================================
+// Functions
+//==============================================================================
 
 /**
  * This function must be provided for rawdraw. Key events are received here
@@ -175,13 +187,4 @@ int main(int argc UNUSED, char ** argv UNUSED)
     }
 
 	return 0;
-}
-
-/**
- * @brief When the main task yields, rest
- */
-void onTaskYield(void)
-{
-	// Just sleep for a ms
-	usleep(1);
 }

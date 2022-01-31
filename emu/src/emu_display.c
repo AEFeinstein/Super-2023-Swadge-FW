@@ -11,7 +11,7 @@
 #include "hal/spi_types.h"
 #include "esp_log.h"
 
-#include "esp_emu.h"
+#include "emu_esp.h"
 #include "display.h"
 #include "emu_display.h"
 

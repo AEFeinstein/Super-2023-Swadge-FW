@@ -11,7 +11,7 @@
 #include "driver/rmt.h"
 #include "esp_timer.h"
 
-#include "esp_emu.h"
+#include "emu_esp.h"
 #include "sound.h"
 #include "musical_buzzer.h"
 #include "emu_sound.h"

@@ -1,3 +1,7 @@
+//==============================================================================
+// Includes
+//==============================================================================
+
 #include <stdint.h>
 #include <string.h>
 #include <pthread.h>
@@ -7,7 +11,7 @@
 #include "esp_log.h"
 
 #include "swadge_esp32.h"
-#include "esp_emu.h"
+#include "emu_esp.h"
 #include "emu_main.h"
 
 #include "QMA6981.h"
@@ -17,12 +21,15 @@
 
 #include "emu_sensors.h"
 
+//==============================================================================
+// Variables
+//==============================================================================
+
 // Input queues for buttons
 char inputKeys[32];
 uint32_t buttonState = 0;
 list_t * buttonQueue;
 pthread_mutex_t buttonQueueMutex = PTHREAD_MUTEX_INITIALIZER;
-
 
 //==============================================================================
 // Buttons

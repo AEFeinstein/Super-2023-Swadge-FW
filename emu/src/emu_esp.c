@@ -6,9 +6,10 @@
 #include <time.h>
 #include <pthread.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "list.h"
-#include "esp_emu.h"
+#include "emu_esp.h"
 #include "emu_main.h"
 
 #include "rmt.h"
@@ -137,7 +138,8 @@ bool tud_ready(void)
  */
 void taskYIELD(void)
 {
-    onTaskYield();
+	// Just sleep for a ms
+	usleep(1);
 }
 
 /**

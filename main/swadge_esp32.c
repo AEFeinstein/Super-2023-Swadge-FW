@@ -45,7 +45,7 @@
 #include "mode_demo.h"
 
 #ifdef EMU
-#include "esp_emu.h"
+#include "emu_esp.h"
 #endif
 
 //==============================================================================
