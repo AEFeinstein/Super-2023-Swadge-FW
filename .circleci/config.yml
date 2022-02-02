@@ -41,6 +41,7 @@ jobs:
           shell: powershell.exe
           command: |
             $env:Path = "C:\msys64\usr\bin;" + $env:Path
+            $env:Path = "C:\msys64\mingw32\bin;" + $env:Path
             git clone << pipeline.parameters.src-repo-url >> --recurse-submodules
             cd esp32-c3-playground
             Write-Host | gcc -dM -E - # debugging step
