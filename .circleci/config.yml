@@ -59,8 +59,15 @@ jobs:
             # Set the path to find msys2 binaries
             $env:Path = "C:\msys64\mingw32\bin;C:\msys64\usr\bin;" + $env:Path
             # Export the IDF symbols
+            ~\esp\esp-idf\install.ps1
             ~\esp\esp-idf\export.ps1
+            # Be extra careful. CircleCI wasn't setting up they python env...
+            cd ~\esp\esp-idf\
+            python .\tools\idf_tools.py --non-interactive install
+            python .\tools\idf_tools.py --non-interactive install-python-env
+            python .\tools\idf_tools.py --non-interactive export
             # Check out the repository, move to the folder
+            cd ~\project\
             git clone << pipeline.parameters.src-repo-url >> --recurse-submodules -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
             cd esp32-c3-playground
             # Build the emulator
