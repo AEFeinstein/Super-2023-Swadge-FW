@@ -1,0 +1,59 @@
+version: 2.1
+
+orbs:
+  slack: circleci/slack@4.4.0
+  win: circleci/windows@2.2.0
+
+parameters:
+  src-repo-url:
+    type: string
+    default: https://github.com/AEFeinstein/esp32-c3-playground.git
+  windows-artifact:
+    type: string
+    default: swadge-32-windows.zip
+
+jobs:
+
+  build-windows:
+    executor:
+      name: win/default
+      size: medium
+      shell: bash.exe
+    parameters:
+      label:
+        type: string
+        default: swadge-32-windows
+    steps:
+      - run:
+          name: Download Cygwin installer
+          command: curl -sSJOL https://cygwin.com/setup-x86_64.exe
+      - run:
+          name: Install Cygwin and required packages
+          shell: powershell.exe
+          command: |
+            .\setup-x86_64.exe -q -s https://mirrors.kernel.org/sourceware/cygwin/ -P git,gcc-core,make,zip,find
+            $env:Path = "C:\cygwin64\bin\;" + $env:Path
+      - run:
+          name: Clone and build Swadge
+          shell: C:\\cygwin64\\bin\\bash.exe --login -eo pipefail
+          command: |
+            CIRCLE_WORKING_DIRECTORY=$(eval "echo $CIRCLE_WORKING_DIRECTORY")
+            mkdir -p $CIRCLE_WORKING_DIRECTORY
+            cd $CIRCLE_WORKING_DIRECTORY
+            git clone << pipeline.parameters.src-repo-url >> --recurse-submodules
+            cd esp32-c3-playground
+            make -f .\emu.mk all
+            echo $(date) >> version.txt && echo "https://github.com/AEFeinstein/esp32-c3-playground/commit/${CIRCLE_SHA1}" >> version.txt
+            zip << pipeline.parameters.windows-artifact >> -r swadge_emulator.exe spiffs_image version.txt /bin/cygwin1.dll
+            cp << pipeline.parameters.windows-artifact >> /cygdrive/c/Users/circleci/project/
+      - store_artifacts:
+          path: << pipeline.parameters.windows-artifact >>
+
+workflows:
+  version: 2
+  build-firmware-windows:
+    jobs:
+      - build-windows:
+          filters:
+            branches:
+              only: master
