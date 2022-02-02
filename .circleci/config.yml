@@ -35,7 +35,7 @@ jobs:
             # Update MSYS2
             C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Core update (in case any core packages are outdated)
             C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Normal update
-            C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel gcc git make zip'  # Install packages
+            C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel mingw-w64-gcc git make zip'  # Install packages
       - run:
           name: Clone and build Swadge
           shell: powershell.exe
@@ -44,6 +44,7 @@ jobs:
             git clone << pipeline.parameters.src-repo-url >> --recurse-submodules
             cd esp32-c3-playground
             Write-Host | gcc -dM -E - # debugging step
+            D:\msys64\usr\bin\bash.exe -lc 'pacman -Q | grep gcc' # debugging
             make -f emu.mk all
             echo $(date) >> version.txt
             echo "https://github.com/AEFeinstein/esp32-c3-playground/commit/$env:CIRCLE_SHA1" >> version.txt
