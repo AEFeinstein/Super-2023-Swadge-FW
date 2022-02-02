@@ -8,9 +8,12 @@ parameters:
   src-repo-url:
     type: string
     default: https://github.com/AEFeinstein/esp32-c3-playground.git
-  windows-artifact:
+  windows-emu-artifact:
     type: string
     default: swadge-32-windows.zip
+  firmware-artifact:
+    type: string
+    default: swadge-32-firmware.zip
 
 jobs:
   build-windows:
@@ -40,25 +43,43 @@ jobs:
             # Install packages
             C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain git make zip'
       - run:
-          name: Clone and build Swadge Emulator
+          name: Download and setup ESP-IDF
+          command: |
+            cd ~
+            mkdir esp
+            cd esp
+            git clone https://github.com/AEFeinstein/esp-idf.git -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+            cd esp-idf
+            git submodule update --init --recursive -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+            .\install.ps1
+      - run:
+          name: Clone and build Swadge Emulator and Firmware
           shell: powershell.exe
           command: |
             # Set the path to find msys2 binaries
             $env:Path = "C:\msys64\mingw32\bin;C:\msys64\usr\bin;" + $env:Path
+            # Export the IDF symbols
+            ~\esp\esp-idf\export.ps1
             # Check out the repository, move to the folder
-            git clone << pipeline.parameters.src-repo-url >> --recurse-submodules
+            git clone << pipeline.parameters.src-repo-url >> --recurse-submodules -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
             cd esp32-c3-playground
-            # Build everything
+            # Build the emulator
             make -f emu.mk all
+            # Build the firmware
+            idf.py all build dfu
             # Generate a file with the date and version
             echo $(date) >> version.txt
             echo "https://github.com/AEFeinstein/esp32-c3-playground/commit/$env:CIRCLE_SHA1" >> version.txt
-            # zip everything up
-            zip << pipeline.parameters.windows-artifact >> -r swadge_emulator.exe spiffs_image version.txt
-            # Move the zip to where circleci expects it so that it gets uploaded as an artifact
-            cp << pipeline.parameters.windows-artifact >> C:\Users\circleci\project\
+            # zip everything up in two zips
+            zip << pipeline.parameters.windows-emu-artifact >> -r swadge_emulator.exe spiffs_image version.txt
+            zip << pipeline.parameters.firmware-artifact >> -j build\bootloader\bootloader.bin build\partition_table\partition-table.bin build\swadge-esp32.bin build\storage.bin build\dfu.bin version.txt
+            # Move the zips to where circleci expects it so that it gets uploaded as an artifact
+            cp << pipeline.parameters.windows-emu-artifact >> C:\Users\circleci\project\
+            cp << pipeline.parameters.firmware-artifact >> C:\Users\circleci\project\
       - store_artifacts:
-          path: << pipeline.parameters.windows-artifact >>
+          path: << pipeline.parameters.windows-emu-artifact >>
+      - store_artifacts:
+          path: << pipeline.parameters.firmware-artifact >>
 
 workflows:
   version: 2
