@@ -25,26 +25,28 @@ jobs:
         default: swadge-32-windows
     steps:
       - run:
-          name: Download Cygwin installer
-          command: Invoke-WebRequest -Uri https://cygwin.com/setup-x86_64.exe -Outfile setup-x86_64.exe
-      - run:
-          name: Install Cygwin and required packages
-          shell: powershell.exe
+          name: Download and setup MSYS2
           command: |
-            .\setup-x86_64.exe -q -s https://mirrors.kernel.org/sourceware/cygwin/ -P git,gcc-core,make,zip,find
-            $env:Path = "C:\cygwin64\bin\;" + $env:Path
+            Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2022-01-28/msys2-base-x86_64-20220128.sfx.exe -Outfile msys2.exe
+            .\msys2.exe -y -oC:\    # Extract to C:\msys64
+            Remove-Item .\msys2.exe # Delete the installer
+            # Run for the first time
+            C:\msys64\usr\bin\bash -lc ' '
+            # Update MSYS2
+            C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Core update (in case any core packages are outdated)
+            C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Normal update
+            C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel gcc git make zip find'  # Install packages
       - run:
           name: Clone and build Swadge
           shell: powershell.exe
           command: |
-            $env:Path = "C:\cygwin64\bin\;" + $env:Path
+            $env:Path = "C:\msys64\usr\bin;" + $env:Path
             git clone << pipeline.parameters.src-repo-url >> --recurse-submodules
             cd esp32-c3-playground
             make -f emu.mk all
             echo $(date) >> version.txt
             echo "https://github.com/AEFeinstein/esp32-c3-playground/commit/${CIRCLE_SHA1}" >> version.txt
-            zip << pipeline.parameters.windows-artifact >> -r swadge_emulator.exe spiffs_image version.txt /bin/cygwin1.dll
-            # C:\Users\circleci\project\swadge-32-windows.zip
+            zip << pipeline.parameters.windows-artifact >> -r swadge_emulator.exe spiffs_image version.txt
             cp << pipeline.parameters.windows-artifact >> C:\Users\circleci\project\
       - store_artifacts:
           path: << pipeline.parameters.windows-artifact >>
