@@ -43,7 +43,8 @@ jobs:
             git clone << pipeline.parameters.src-repo-url >> --recurse-submodules
             cd esp32-c3-playground
             make -f emu.mk all
-            echo $(date) >> version.txt && echo "https://github.com/AEFeinstein/esp32-c3-playground/commit/${CIRCLE_SHA1}" >> version.txt
+            echo $(date) >> version.txt
+            echo "https://github.com/AEFeinstein/esp32-c3-playground/commit/${CIRCLE_SHA1}" >> version.txt
             zip << pipeline.parameters.windows-artifact >> -r swadge_emulator.exe spiffs_image version.txt /bin/cygwin1.dll
             cp << pipeline.parameters.windows-artifact >> /cygdrive/c/Users/circleci/project/
       - store_artifacts:
