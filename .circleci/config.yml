@@ -37,9 +37,6 @@ jobs:
           name: Clone and build Swadge
           shell: powershell.exe
           command: |
-            CIRCLE_WORKING_DIRECTORY=$(eval "echo $CIRCLE_WORKING_DIRECTORY")
-            mkdir -p $CIRCLE_WORKING_DIRECTORY
-            cd $CIRCLE_WORKING_DIRECTORY
             git clone << pipeline.parameters.src-repo-url >> --recurse-submodules
             cd esp32-c3-playground
             make -f emu.mk all
