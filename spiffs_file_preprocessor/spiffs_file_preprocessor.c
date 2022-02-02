@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "spiffs_file_preprocessor.h"
 #include "image_processor.h"
@@ -130,6 +132,12 @@ int main(int argc, char ** argv)
         fprintf(stderr, "Failed to provide all arguments\n");
         print_usage();
         return -1;
+    }
+
+    // Create output directory if it doesn't exist
+    struct stat st = {0};
+    if (stat(outDirName, &st) == -1) {
+        mkdir(outDirName);
     }
 
     if(ftw(inDirName, processFile, 99) == -1) {
