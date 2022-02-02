@@ -42,15 +42,23 @@ jobs:
             C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Normal update
             # Install packages
             C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain git make zip python python-pip mingw-w64-x86_64-python mingw-w64-x86_64-python-pip'
+            # Set the path to find msys2 binaries
+            $env:Path = "C:\msys64\mingw32\bin;C:\msys64\usr\bin;" + $env:Path
+            # Install some pip packages
+            pip install virtualenv click
       - run:
           name: Download and setup ESP-IDF
           command: |
+            # Set the path to find msys2 binaries
+            $env:Path = "C:\msys64\mingw32\bin;C:\msys64\usr\bin;" + $env:Path
+            # Clone the IDF
             cd ~
             mkdir esp
             cd esp
             git clone https://github.com/AEFeinstein/esp-idf.git -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
             cd esp-idf
             git submodule update --init --recursive -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+            # Install the tools
             .\install.ps1
       - run:
           name: Clone and build Swadge Emulator and Firmware
