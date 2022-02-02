@@ -35,7 +35,7 @@ jobs:
             # Update MSYS2
             C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Core update (in case any core packages are outdated)
             C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Normal update
-            C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel gcc git make zip find'  # Install packages
+            C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel gcc git make zip'  # Install packages
       - run:
           name: Clone and build Swadge
           shell: powershell.exe
