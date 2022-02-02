@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   slack: circleci/slack@4.4.0
-  win: circleci/windows@2.2.0
+  win: circleci/windows@2.4.1
 
 parameters:
   src-repo-url:
@@ -18,7 +18,7 @@ jobs:
     executor:
       name: win/default
       size: medium
-      shell: bash.exe
+      shell: powershell.exe
     parameters:
       label:
         type: string
@@ -35,7 +35,7 @@ jobs:
             $env:Path = "C:\cygwin64\bin\;" + $env:Path
       - run:
           name: Clone and build Swadge
-          shell: C:\\cygwin64\\bin\\bash.exe --login -eo pipefail
+          shell: powershell.exe
           command: |
             CIRCLE_WORKING_DIRECTORY=$(eval "echo $CIRCLE_WORKING_DIRECTORY")
             mkdir -p $CIRCLE_WORKING_DIRECTORY
