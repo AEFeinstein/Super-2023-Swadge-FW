@@ -45,6 +45,8 @@ jobs:
       - run:
           name: Download and setup ESP-IDF
           command: |
+            # Set the path to find msys2 binaries
+            $env:Path = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;" + $env:Path
             # Clone the IDF
             cd ~
             mkdir esp
@@ -82,13 +84,13 @@ jobs:
           shell: powershell.exe
           command: |
             cd ~\project\esp32-c3-playground
+            # Set the path to find msys2 binaries
+            $env:Path = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;" + $env:Path
             # Export the IDF symbols
             ~\esp\esp-idf\install.ps1
             ~\esp\esp-idf\export.ps1
             # Build the firmware
             idf.py all build dfu
-            # Set the path to find zip
-            $env:Path = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;" + $env:Path
             # zip everything up and move it to where circleci expects
             zip << pipeline.parameters.firmware-artifact >> -j build\bootloader\bootloader.bin build\partition_table\partition-table.bin build\swadge-esp32.bin build\storage.bin build\dfu.bin version.txt
             # Move the zips to where circleci expects it so that it gets uploaded as an artifact
