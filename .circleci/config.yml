@@ -26,7 +26,7 @@ jobs:
     steps:
       - run:
           name: Download Cygwin installer
-          command: curl -sSJOL https://cygwin.com/setup-x86_64.exe
+          command: Invoke-WebRequest -Uri https://cygwin.com/setup-x86_64.exe -Outfile setup-x86_64.exe
       - run:
           name: Install Cygwin and required packages
           shell: powershell.exe
