@@ -13,7 +13,6 @@ parameters:
     default: swadge-32-windows.zip
 
 jobs:
-
   build-windows:
     executor:
       name: win/default
@@ -27,29 +26,36 @@ jobs:
       - run:
           name: Download and setup MSYS2
           command: |
+            # Download installer
             Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2022-01-28/msys2-base-x86_64-20220128.sfx.exe -Outfile msys2.exe
-            .\msys2.exe -y -oC:\    # Extract to C:\msys64
-            Remove-Item .\msys2.exe # Delete the installer
+            # Extract to C:\msys64
+            .\msys2.exe -y -oC:\
+            # Delete the installer
+            Remove-Item .\msys2.exe
             # Run for the first time
             C:\msys64\usr\bin\bash -lc ' '
             # Update MSYS2
             C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Core update (in case any core packages are outdated)
             C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Normal update
-            C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain git make zip'  # Install packages
+            # Install packages
+            C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain git make zip'
       - run:
-          name: Clone and build Swadge
+          name: Clone and build Swadge Emulator
           shell: powershell.exe
           command: |
-            $env:Path = "C:\msys64\usr\bin;" + $env:Path
-            $env:Path = "C:\msys64\mingw32\bin;" + $env:Path
+            # Set the path to find msys2 binaries
+            $env:Path = "C:\msys64\mingw32\bin;C:\msys64\usr\bin;" + $env:Path
+            # Check out the repository, move to the folder
             git clone << pipeline.parameters.src-repo-url >> --recurse-submodules
             cd esp32-c3-playground
-            Write-Host | gcc -dM -E - # debugging step
-            D:\msys64\usr\bin\bash.exe -lc 'pacman -Q | grep gcc' # debugging
+            # Build everything
             make -f emu.mk all
+            # Generate a file with the date and version
             echo $(date) >> version.txt
             echo "https://github.com/AEFeinstein/esp32-c3-playground/commit/$env:CIRCLE_SHA1" >> version.txt
+            # zip everything up
             zip << pipeline.parameters.windows-artifact >> -r swadge_emulator.exe spiffs_image version.txt
+            # Move the zip to where circleci expects it so that it gets uploaded as an artifact
             cp << pipeline.parameters.windows-artifact >> C:\Users\circleci\project\
       - store_artifacts:
           path: << pipeline.parameters.windows-artifact >>
