@@ -41,16 +41,10 @@ jobs:
             C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Core update (in case any core packages are outdated)
             C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Normal update
             # Install packages
-            C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain git make zip python python-pip mingw-w64-x86_64-python mingw-w64-x86_64-python-pip'
-            # Set the path to find msys2 binaries
-            $env:Path = "C:\msys64\mingw32\bin;C:\msys64\usr\bin;" + $env:Path
-            # Install some pip packages
-            pip install virtualenv click
+            C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel mingw-w64-x86_64-toolchain git make zip'
       - run:
           name: Download and setup ESP-IDF
           command: |
-            # Set the path to find msys2 binaries
-            $env:Path = "C:\msys64\mingw32\bin;C:\msys64\usr\bin;" + $env:Path
             # Clone the IDF
             cd ~
             mkdir esp
@@ -61,35 +55,40 @@ jobs:
             # Install the tools
             .\install.ps1
       - run:
-          name: Clone and build Swadge Emulator and Firmware
+          name: Clone Swadge Repo
           shell: powershell.exe
           command: |
-            # Set the path to find msys2 binaries
-            $env:Path = "C:\msys64\mingw32\bin;C:\msys64\usr\bin;" + $env:Path
-            # Export the IDF symbols
-            ~\esp\esp-idf\install.ps1
-            ~\esp\esp-idf\export.ps1
-            # Be extra careful. CircleCI wasn't setting up they python env...
-            cd ~\esp\esp-idf\
-            python .\tools\idf_tools.py --non-interactive install
-            python .\tools\idf_tools.py --non-interactive install-python-env
-            python .\tools\idf_tools.py --non-interactive export
             # Check out the repository, move to the folder
             cd ~\project\
             git clone << pipeline.parameters.src-repo-url >> --recurse-submodules -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
-            cd esp32-c3-playground
+      - run:
+          name: Build Swadge Emulator
+          shell: powershell.exe
+          command: |
+            cd ~\project\esp32-c3-playground
+            # Set the path to find msys2 binaries
+            $env:Path = "C:\msys64\mingw32\bin;C:\msys64\usr\bin;" + $env:Path
             # Build the emulator
             make -f emu.mk all
-            # Build the firmware
-            idf.py all build dfu
-            # Generate a file with the date and version
+            # Generate a file with the date and version. This will be used for the firmware zip too
             echo $(date) >> version.txt
             echo "https://github.com/AEFeinstein/esp32-c3-playground/commit/$env:CIRCLE_SHA1" >> version.txt
-            # zip everything up in two zips
+            # zip everything up and move it to where circleci expects
             zip << pipeline.parameters.windows-emu-artifact >> -r swadge_emulator.exe spiffs_image version.txt
+            cp << pipeline.parameters.windows-emu-artifact >> C:\Users\circleci\project\
+      - run:
+          name: Build Swadge Firmware
+          shell: powershell.exe
+          command: |
+            cd ~\project\esp32-c3-playground
+            # Export the IDF symbols
+            ~\esp\esp-idf\install.ps1
+            ~\esp\esp-idf\export.ps1
+            # Build the firmware
+            idf.py all build dfu
+            # zip everything up and move it to where circleci expects
             zip << pipeline.parameters.firmware-artifact >> -j build\bootloader\bootloader.bin build\partition_table\partition-table.bin build\swadge-esp32.bin build\storage.bin build\dfu.bin version.txt
             # Move the zips to where circleci expects it so that it gets uploaded as an artifact
-            cp << pipeline.parameters.windows-emu-artifact >> C:\Users\circleci\project\
             cp << pipeline.parameters.firmware-artifact >> C:\Users\circleci\project\
       - store_artifacts:
           path: << pipeline.parameters.windows-emu-artifact >>
