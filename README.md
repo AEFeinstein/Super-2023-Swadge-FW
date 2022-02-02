@@ -2,6 +2,9 @@
 
 Intro text to come later
 
+## Continuous Integration
+[![AEFeinstein](https://circleci.com/gh/AEFeinstein/esp32-c3-playground.svg?style=svg)](https://circleci.com/gh/AEFeinstein/esp32-c3-playground)
+
 ## Configuring Your Environment
 
 I recommend reading through [the official ESP32-C3 Get Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/get-started/index.html), but always doing setup and installation via a terminal.
