@@ -56,4 +56,4 @@ workflows:
       - build-windows:
           filters:
             branches:
-              only: master
+              only: main
