@@ -41,7 +41,7 @@ jobs:
             C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Core update (in case any core packages are outdated)
             C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Normal update
             # Install packages
-            C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel mingw-w64-x86_64-toolchain git make zip'
+            C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel mingw-w64-x86_64-toolchain git make zip mingw-w64-x86_64-python-pip python-pip'
       - run:
           name: Download and setup ESP-IDF
           command: |
