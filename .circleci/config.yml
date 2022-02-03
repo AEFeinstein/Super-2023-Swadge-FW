@@ -46,7 +46,7 @@ jobs:
           name: Download and setup ESP-IDF
           command: |
             # Set the path to find msys2 binaries
-            $env:Path = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;" + $env:Path
+            $env:path = $env:path.Insert($env:path.ToLower().IndexOf("c:\windows\system32"), "C:\msys64\mingw64\bin;C:\msys64\usr\bin;")
             # Clone the IDF
             cd ~
             mkdir esp
@@ -73,7 +73,7 @@ jobs:
           command: |
             cd ~\project\esp32-c3-playground
             # Set the path to find msys2 binaries
-            $env:Path = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;" + $env:Path
+            $env:path = $env:path.Insert($env:path.ToLower().IndexOf("c:\windows\system32"), "C:\msys64\mingw64\bin;C:\msys64\usr\bin;")
             # Build the emulator
             make -f emu.mk all
             # zip everything up and move it to where circleci expects
@@ -85,9 +85,8 @@ jobs:
           command: |
             cd ~\project\esp32-c3-playground
             # Set the path to find msys2 binaries
-            $env:Path = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;" + $env:Path
+            $env:path = $env:path.Insert($env:path.ToLower().IndexOf("c:\windows\system32"), "C:\msys64\mingw64\bin;C:\msys64\usr\bin;")
             # Export the IDF symbols
-            ~\esp\esp-idf\install.ps1
             ~\esp\esp-idf\export.ps1
             # Build the firmware
             idf.py all build dfu
