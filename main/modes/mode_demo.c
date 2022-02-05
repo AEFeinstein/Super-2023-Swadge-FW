@@ -16,6 +16,7 @@
 #include "display.h"
 #include "led_util.h"
 #include "p2pConnection.h"
+#include "bresenham.h"
 
 #include "mode_demo.h"
 
@@ -207,21 +208,21 @@ void demoMainLoop(int64_t elapsedUs)
 
         demo->disp->clearPx();
 
-        rgba_pixel_t textColor = {
+        rgba_pixel_t pxCol = {
             .a = PX_OPAQUE,
             .r = 0x00,
             .g = 0x00,
             .b = 0x00,
         };
 
-        textColor.r = 0x1F;
-        drawText(demo->disp, &demo->tom_thumb, textColor, "hello TFT", 10, 64);
-        textColor.r = 0x00;
-        textColor.g = 0x1F;
-        drawText(demo->disp, &demo->ibm_vga8, textColor, "hello TFT", 10, 84);
-        textColor.g = 0x00;
-        textColor.b = 0x1F;
-        drawText(demo->disp, &demo->radiostars, textColor, "hello TFT", 10, 104);
+        pxCol.r = 0x1F;
+        drawText(demo->disp, &demo->tom_thumb, pxCol, "hello TFT", 10, 64);
+        pxCol.r = 0x00;
+        pxCol.g = 0x1F;
+        drawText(demo->disp, &demo->ibm_vga8, pxCol, "hello TFT", 10, 84);
+        pxCol.g = 0x00;
+        pxCol.b = 0x1F;
+        drawText(demo->disp, &demo->radiostars, pxCol, "hello TFT", 10, 104);
 
         static int megaIdx = 0;
         static int megaPos = 0;
@@ -234,6 +235,34 @@ void demoMainLoop(int64_t elapsedUs)
             megaPos = -demo->megaman[0].w;
         }
         megaIdx = (megaIdx + 1) % 9;
+
+        // Draw a single white pixel in the middle of the display
+        pxCol.r = 0x1F;
+        pxCol.g = 0x1F;
+        pxCol.b = 0x1F;
+        demo->disp->setPx(
+            demo->disp->w / 2,
+            demo->disp->h / 2,
+            pxCol);
+
+        // Draw a yellow line
+        pxCol.r = 0x1F;
+        pxCol.g = 0x1F;
+        pxCol.b = 0x00;
+        plotLine(demo->disp, 10, 5, 50, 20, pxCol);
+
+        // Draw a magenta rectangle
+        pxCol.r = 0x1F;
+        pxCol.g = 0x00;
+        pxCol.b = 0x1F;
+        plotRect(demo->disp, 70, 5, 100, 20, pxCol);
+
+        // Draw a cyan circle
+        pxCol.r = 0x00;
+        pxCol.g = 0x1F;
+        pxCol.b = 0x1F;
+        plotCircle(demo->disp, 140, 30, 20, pxCol);
+
     }
 
     // Twice a second push out some USB data
@@ -314,8 +343,8 @@ void demoAccelerometerCb(accel_t* accel)
 
 /**
  * @brief TODO
- * 
- * @param tmp_c 
+ *
+ * @param tmp_c
  */
 void demoTemperatureCb(float tmp_c)
 {

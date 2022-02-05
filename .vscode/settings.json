@@ -99,7 +99,8 @@
         "list.h": "c",
         "cjson.h": "c",
         "array": "c",
-        "string_view": "c"
+        "string_view": "c",
+        "bresenham.h": "c"
     },
     "idf.adapterTargetName": "esp32s2",
 }

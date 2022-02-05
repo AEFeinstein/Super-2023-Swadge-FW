@@ -202,7 +202,7 @@ The `.vscode` folder already has tasks for making and cleaning the emulator. It 
 1. [Fork this repository](https://help.github.com/en/articles/fork-a-repo) to create your own personal copy of the project. Working in your own forked repository guarantees no one else will mess with the project in unexpected ways during your development (and you won't mess with anyone else either!).
 1. If you're going to develop multiple features in your fork, you should [create a branch](https://help.github.com/en/articles/creating-and-deleting-branches-within-your-repository) for each feature. Keeping a single feature per-branch leads to cleaner and easier to understand pull requests.
 1. This is the fun part, write your feature!
-    1. Please comment your code. This makes it easier for everyone to understand. 
+    1. Please comment your code. This makes it easier for everyone to understand.
     1. [Doxygen comments](http://www.doxygen.nl/manual/docblocks.html) will be especially appreciated. You can [set up VSCode](https://marketplace.visualstudio.com/items?itemName=cschlosser.doxdocgen) to automatically add empty Doxygen templates to functions
     1. You should [run astyle](http://astyle.sourceforge.net/) with [this projects .astylerc file](/.astylerc) to beautify the code. Everyone loves pretty code. There's a [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=chiehyu.vscode-astyle) for this too.
     1. The code should compile without any warnings.
@@ -244,7 +244,7 @@ typedef struct _swadgeMode
      * This function is called when this mode is started. It should initialize
      * any necessary variables.
      * disp should be saved and used for later draw calls.
-     * 
+     *
      * @param disp The display to draw to
      */
     void (*fnEnterMode)(display_t * disp);
@@ -268,7 +268,7 @@ typedef struct _swadgeMode
     /**
      * This function is called when a button press is pressed. Buttons are
      * handled by interrupts and queued up for this callback, so there are no
-     * strict timing restrictions for this function. 
+     * strict timing restrictions for this function.
      *
      * @param evt The button event that occurred
      */
@@ -299,7 +299,7 @@ typedef struct _swadgeMode
     /**
      * This is a setting, not a function pointer. Set it to one of these
      * values to have the system configure the swadge's WiFi
-     * 
+     *
      * NO_WIFI - Don't use WiFi at all. This saves power.
      * ESP_NOW - Send and receive packets to and from all swadges in range
      */
@@ -329,14 +329,54 @@ typedef struct _swadgeMode
 
 ## Drawing to the Screen
 
-This is more complicated. Set your pixel and the system does the rest.
+Drawing to a display is done through a struct of function pointers, `display_t`. This struct has basic functions for setting and getting pixels, clearing the whole display, drawing the current framebuffer to the physical display (which you should not call directly). It also has the display's width and height, in pixels. This design decision was made to abstract any framebuffer specifics from functions that draw graphics. For instance, the TFT has 15 bit color, the OLED has 1 bit color, and the emulator has 24 bit color, but the same functions for drawing sprites can be used for all three. This design could even drive multiple displays simultaneously.
 
-15 bit color
+The TFT display uses 15 bit color and 1 bit alpha. That means that the red, green, and blue channels all range from 0 to 31 (0x1F), and alpha is either `PX_TRANSPARENT` or `PX_OPAQUE`. It packs neatly into a 16 bit variable, `rgba_pixel_t`, which is often used as a parameter when drawing.
 
-PNG, text, shapes
+You do not have to call any functions to draw the current framebuffer to the physical display. That is handled by the system firmware. Just draw your frame and it will get pushed out as fast as possible.
+
+There are a few convenient ways to draw your frame. You can use the `display_t` struct's `clearPx()` function to clear the entire frame before drawing, unless you're only redrawing specific elements. If you really want to draw a single pixel at a time, you can call the `display_t` struct's `setPx()` function. Likewise, `getPx()` will return a pixel from the current frame. This may be useful for collision detection or something.
+
+`bresenham.h` contains functions for drawing shapes like lines, rectangles, circles, or curves. Note that these shapes are not filled in. If you want filled shapes, or other shapes, we'll need to work on that. Remember that more complex polygons are just series of lines.
+
+Drawing more complex graphics, like text or `png` images is explained in the next section, [Loading and Freeing Assets](#loading-and-freeing-assets).
+
+As an example, this will clear the display, then draw a pixel, line, rectangle, and circle.
 
 ```C
-TODO: Example
+#include "display.h"
+#include "bresenham.h"
+
+// Clear the display to black
+demo->disp->clearPx();
+
+// Draw a single white pixel in the middle of the display
+rgba_pixel_t pxCol = { .a = PX_OPAQUE };
+pxCol.r = 0x1F;
+pxCol.g = 0x1F;
+pxCol.b = 0x1F;
+demo->disp->setPx(
+    demo->disp->w / 2, // Middle of the screen width
+    demo->disp->h / 2, // Middle of the screen height
+    pxCol);
+
+// Draw a yellow line
+pxCol.r = 0x1F;
+pxCol.g = 0x1F;
+pxCol.b = 0x00;
+plotLine(demo->disp, 10, 5, 50, 20, pxCol);
+
+// Draw a magenta rectangle
+pxCol.r = 0x1F;
+pxCol.g = 0x00;
+pxCol.b = 0x1F;
+plotRect(demo->disp, 70, 5, 100, 20, pxCol);
+
+// Draw a cyan circle
+pxCol.r = 0x00;
+pxCol.g = 0x1F;
+pxCol.b = 0x1F;
+plotCircle(demo->disp, 140, 30, 20, pxCol);
 ```
 
 ## Loading and Freeing Assets
@@ -438,7 +478,7 @@ Only one Swadge mode runs at a time, and each mode wants as much RAM as possible
 
 ```C
 // This is just a typedef, not a variable
-typedef struct 
+typedef struct
 {
     uint16_t stateVar1;
     uint8_t bunch_of_numbers[256];
