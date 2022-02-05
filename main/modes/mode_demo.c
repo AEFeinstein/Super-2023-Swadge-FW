@@ -12,8 +12,6 @@
 #include "swadgeMode.h"
 
 #include "musical_buzzer.h"
-#include "QMA6981.h"
-#include "esp_temperature_sensor.h"
 #include "nvs_manager.h"
 #include "display.h"
 #include "led_util.h"
@@ -29,6 +27,7 @@ void demoEnterMode(display_t * disp);
 void demoExitMode(void);
 void demoMainLoop(int64_t elapsedUs);
 void demoAccelerometerCb(accel_t* accel);
+void demoTemperatureCb(float tmp_c);
 void demoButtonCb(buttonEvt_t* evt);
 void demoTouchCb(touch_event_t* evt);
 void demoEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi);
@@ -73,7 +72,7 @@ static const song_t odeToJoy =
     .shouldLoop = false
 };
 
-typedef struct 
+typedef struct
 {
     uint16_t demoHue;
     qoi_t megaman[9];
@@ -81,7 +80,7 @@ typedef struct
     font_t ibm_vga8;
     font_t radiostars;
     p2pInfo p;
-    display_t * disp;    
+    display_t * disp;
 } demo_t;
 
 demo_t * demo;
@@ -97,11 +96,12 @@ swadgeMode modeDemo =
     .wifiMode = ESP_NOW,
     .fnEspNowRecvCb = demoEspNowRecvCb,
     .fnEspNowSendCb = demoEspNowSendCb,
-    .fnAccelerometerCallback = demoAccelerometerCb
+    .fnAccelerometerCallback = demoAccelerometerCb,
+    .fnTemperatureCallback = demoTemperatureCb
 };
 
 //==============================================================================
-// Functions 
+// Functions
 //==============================================================================
 
 /**
@@ -181,15 +181,6 @@ void demoExitMode(void)
  */
 void demoMainLoop(int64_t elapsedUs)
 {
-    // Print temperature every second
-    static uint64_t temperatureTime = 0;
-    temperatureTime += elapsedUs;
-    if(temperatureTime >= 1000000)
-    {
-        temperatureTime -= 1000000;
-        ESP_LOGD("DEMO", "temperature %fc", readTemperatureSensor());
-    }
-
     // Rotate through all the hues in two seconds
     static uint64_t ledTime = 0;
     ledTime += elapsedUs;
@@ -287,8 +278,8 @@ void demoMainLoop(int64_t elapsedUs)
 
 /**
  * @brief TODO
- * 
- * @param evt 
+ *
+ * @param evt
  */
 void demoButtonCb(buttonEvt_t* evt)
 {
@@ -297,8 +288,8 @@ void demoButtonCb(buttonEvt_t* evt)
 
 /**
  * @brief TODO
- * 
- * @param evt 
+ *
+ * @param evt
  */
 void demoTouchCb(touch_event_t* evt)
 {
@@ -324,10 +315,26 @@ void demoAccelerometerCb(accel_t* accel)
 /**
  * @brief TODO
  * 
- * @param mac_addr 
- * @param data 
- * @param len 
- * @param rssi 
+ * @param tmp_c 
+ */
+void demoTemperatureCb(float tmp_c)
+{
+    uint64_t cTimeUs = esp_timer_get_time();
+    static uint64_t lastTempPrint = 0;
+    if(cTimeUs - lastTempPrint >= 1000000)
+    {
+        lastTempPrint = cTimeUs;
+        ESP_LOGD("DEMO", "Temperature %f", tmp_c);
+    }
+}
+
+/**
+ * @brief TODO
+ *
+ * @param mac_addr
+ * @param data
+ * @param len
+ * @param rssi
  */
 void demoEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi)
 {
@@ -336,9 +343,9 @@ void demoEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len,
 
 /**
  * @brief TODO
- * 
- * @param mac_addr 
- * @param status 
+ *
+ * @param mac_addr
+ * @param status
  */
 void demoEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
@@ -347,9 +354,9 @@ void demoEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 
 /**
  * @brief TODO
- * 
- * @param p2p 
- * @param evt 
+ *
+ * @param p2p
+ * @param evt
  */
 void demoConCbFn(p2pInfo* p2p __attribute__((unused)), connectionEvt_t evt)
 {
@@ -358,24 +365,24 @@ void demoConCbFn(p2pInfo* p2p __attribute__((unused)), connectionEvt_t evt)
 
 /**
  * @brief TODO
- * 
- * @param p2p 
- * @param msg 
- * @param payload 
- * @param len 
+ *
+ * @param p2p
+ * @param msg
+ * @param payload
+ * @param len
  */
 void demoMsgRxCbFn(p2pInfo* p2p __attribute__((unused)),
-    const char* msg __attribute__((unused)),
-    const uint8_t* payload __attribute__((unused)), uint8_t len)
+                   const char* msg __attribute__((unused)),
+                   const uint8_t* payload __attribute__((unused)), uint8_t len)
 {
     ESP_LOGD("DEMO", "%s :: %d", __func__, len);
 }
 
 /**
  * @brief TODO
- * 
- * @param p2p 
- * @param status 
+ *
+ * @param p2p
+ * @param status
  */
 void demoMsgTxCbFn(p2pInfo* p2p __attribute__((unused)), messageStatus_t status)
 {

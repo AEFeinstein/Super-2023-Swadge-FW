@@ -67,7 +67,7 @@ void HandleButton( int x UNUSED, int y UNUSED, int button UNUSED, int bDown UNUS
  * @param y The y coordinate of the mouse event
  * @param mask A mask of mouse buttons that are currently held down
  */
-void HandleMotion( int x, int y, int mask )
+void HandleMotion( int x UNUSED, int y UNUSED, int mask UNUSED)
 {
     WARN_UNIMPLEMENTED();
 }

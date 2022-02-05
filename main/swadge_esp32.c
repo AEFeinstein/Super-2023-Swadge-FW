@@ -286,11 +286,17 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         }
         
         // Process Accelerometer
-        accel_t accel = {0};
-        QMA6981_poll(&accel);
         if(isModeRunning && NULL != swadgeModes[0]->fnAccelerometerCallback)
         {
+            accel_t accel = {0};
+            QMA6981_poll(&accel);
             swadgeModes[0]->fnAccelerometerCallback(&accel);
+        }
+
+        // Process temperature sensor
+        if(isModeRunning && NULL != swadgeModes[0]->fnTemperatureCallback)
+        {
+            swadgeModes[0]->fnTemperatureCallback(readTemperatureSensor());
         }
 
         // Process button presses

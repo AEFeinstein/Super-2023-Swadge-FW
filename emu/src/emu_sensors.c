@@ -203,7 +203,7 @@ void initTemperatureSensor(void)
 float readTemperatureSensor(void)
 {
     WARN_UNIMPLEMENTED();
-    return 0;
+    return -274; // Impossible! One degree below absolute zero
 }
 
 //==============================================================================
