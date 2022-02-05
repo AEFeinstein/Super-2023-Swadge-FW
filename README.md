@@ -350,6 +350,8 @@ Loading assets is a relatively slower operation, so often times it makes sense t
 As an example, this will load, draw, and free both an image and some red text. Note that the TFT's screen uses 15 bit color, so the max for each r/g/b channel is `0x1F`.
 
 ```C
+#include "display.h"
+
 qoi_t megaman;
 loadQoi("megaman.qoi", &megaman);
 drawQoi(demo->disp, &megaman, 0, 0);
