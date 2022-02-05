@@ -13,6 +13,15 @@
   * [How to Contribute a Feature](#how-to-contribute-a-feature)
   * [How to Report a Bug](#how-to-report-a-bug)
 * [Adding a Swadge Mode](#adding-a-swadge-mode)
+  * [Swadge Mode Struct](#swadge-mode-struct)
+  * [Loading and Freeing Assets](#loading-and-freeing-assets)
+  * [Saving Persistent Data](#saving-persistent-data)
+  * [Lighting LEDs](#lighting-leds)
+  * [Drawing to the Screen](#drawing-to-the-screen)
+  * [Playing Sounds](#playing-sounds)
+  * [ESP-NOW](#esp-now)
+  * [Temperature Sensor](#temperature-sensor)
+  * [Best Practices](#best-practices)
 * [Troubleshooting](#troubleshooting)
 * [Tips](#tips)
 
@@ -120,7 +129,7 @@ git submodule update --init --recursive
 To set up the emulator build environment, you'll need to install the following packages. The command is given for the `apt` package manager, but you should use whatever package manager your system uses
 
 ```bash
-sudo apt install build-essential xorg-dev libx11-dev libxinerama-dev libxext-dev mesa-common-dev libglu1-mesa-dev
+sudo apt install build-essential xorg-dev libx11-dev libxinerama-dev libxext-dev mesa-common-dev libglu1-mesa-dev libasound2-dev libpulse-dev
 ```
 
 ## Mac OS
@@ -214,7 +223,224 @@ Create an issue in this project with the following information:
 
 # Adding a Swadge Mode
 
-TODO
+A Swadge mode is kind of like an app. Only one runs at a time and it gets all the system resources.
+
+All Swadge mode source code should be in the `/main/modes` folder. To build, the source file must be listed in [`/main/CMakeLists.txt`](/main/CMakeLists.txt).
+
+## Swadge Mode Struct
+
+A Swadge mode is struct of function pointers, which is the closest thing in `C` to an object. The struct is defined in `swadgeMode.h`. The ESP32's system firmware will call the Swadge mode's function pointers. If a mode does not need a particular function, say it doesn't do audio handling, it is safe to set the function pointer to NULL. It just won't be called. The details of the struct and all the function pointers it contains are below. You can also read this in source.
+
+```C
+typedef struct _swadgeMode
+{
+    /**
+     * This swadge mode's name, mostly for debugging.
+     * This is not a function pointer.
+     */
+    char* modeName;
+
+    /**
+     * This function is called when this mode is started. It should initialize
+     * any necessary variables.
+     * disp should be saved and used for later draw calls.
+     * 
+     * @param disp The display to draw to
+     */
+    void (*fnEnterMode)(display_t * disp);
+
+    /**
+     * This function is called when the mode is exited. It should clean up
+     * anything that shouldn't happen when the mode is not active
+     */
+    void (*fnExitMode)(void);
+
+    /**
+     * This function is called from the main loop. It's pretty quick, but the
+     * timing may be inconsistent.
+     *
+     * @param elapsedUs The time elapsed since the last time this function was
+     *                  called. Use this value to determine when it's time to do
+     *                  things
+     */
+    void (*fnMainLoop)(int64_t elapsedUs);
+
+    /**
+     * This function is called when a button press is pressed. Buttons are
+     * handled by interrupts and queued up for this callback, so there are no
+     * strict timing restrictions for this function. 
+     *
+     * @param evt The button event that occurred
+     */
+    void (*fnButtonCallback)(buttonEvt_t* evt);
+
+    /**
+     * This function is called when a touchpad event occurs.
+     *
+     * @param evt The touchpad event that occurred
+     */
+    void (*fnTouchCallback)(touch_event_t* evt);
+
+    /**
+     * This function is called periodically with the current acceleration
+     * vector.
+     *
+     * @param accel A struct with 10 bit signed X, Y, and Z accel vectors
+     */
+    void (*fnAccelerometerCallback)(accel_t* accel);
+
+    /**
+     * This function is called periodically with the current temperature
+     *
+     * @param temperature A floating point temperature in celcius
+     */
+    void (*fnTemperatureCallback)(float temperature);
+
+    /**
+     * This is a setting, not a function pointer. Set it to one of these
+     * values to have the system configure the swadge's WiFi
+     * 
+     * NO_WIFI - Don't use WiFi at all. This saves power.
+     * ESP_NOW - Send and receive packets to and from all swadges in range
+     */
+    wifiMode_t wifiMode;
+
+    /**
+     * This function is called whenever an ESP NOW packet is received.
+     *
+     * @param mac_addr The MAC address which sent this data
+     * @param data     A pointer to the data received
+     * @param len      The length of the data received
+     * @param rssi     The RSSI for this packet, from 1 (weak) to ~90 (touching)
+     */
+    void (*fnEspNowRecvCb)(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi);
+
+    /**
+     * This function is called whenever an ESP NOW packet is sent.
+     * It is just a status callback whether or not the packet was actually sent.
+     * This will be called after calling espNowSend()
+     *
+     * @param mac_addr The MAC address which the data was sent to
+     * @param status   The status of the transmission
+     */
+    void (*fnEspNowSendCb)(const uint8_t* mac_addr, esp_now_send_status_t status);
+} swadgeMode;
+```
+
+## Loading and Freeing Assets
+
+Talk about [`spiffs_file_preprocessor`](/spiffs_file_preprocessor/). Currently fonts and images are processed. Everything else is blobs.
+
+```C
+TODO: Example
+```
+
+## Saving Persistent Data
+
+Persistent data is saved in a key-value store. Currently the only value that can be stored is a 32 bit integer. This may be expanded in the future. The functions `readNvs32()` and `writeNvs32()` do what they say. As an example, this will write a value to NVS if it does not already exist.
+
+```C
+#include "nvs_manager.h"
+
+#define MAGIC_VAL 0xAF
+
+int32_t magicVal = 0;
+if((false == readNvs32("magicVal", &magicVal)) || (MAGIC_VAL != magicVal))
+{
+    writeNvs32("magicVal", MAGIC_VAL);
+}
+```
+
+## Lighting LEDs
+
+Use an array of `led_t` structs and call `setLeds()` to light them the color of your choice. `NUM_LEDS` is defined as the number of LEDs on the hardware. Each color channel has eight bits of range (i.e. 0 to 255). For example, this will make six LEDs a rainbow.
+
+```C
+#include "led_util.h"
+
+static const led_t leds[NUM_LEDS] =
+{
+    {.r = 0xFF, .g = 0x00, .b = 0x00},
+    {.r = 0x80, .g = 0x80, .b = 0x00},
+    {.r = 0x00, .g = 0xFF, .b = 0x00},
+    {.r = 0x00, .g = 0x80, .b = 0x80},
+    {.r = 0x00, .g = 0x00, .b = 0xFF},
+    {.r = 0x80, .g = 0x00, .b = 0x80}
+};
+
+setLeds(leds, NUM_LEDS);
+```
+
+## Drawing to the Screen
+
+This is more complicated. Set your pixel and the system does the rest.
+PNG, text, shapes
+
+```C
+TODO: Example
+```
+
+## Playing Sounds
+
+The buzzer can play `song_t` structs. Each `song_t` is a collection of `musicalNote_t`, and each `musicalNote_t` has a `noteFrequency_t` and a duration. For example, this will play three notes
+
+```C
+#include "musical_buzzer.h"
+
+static const song_t do_re_mi =
+{
+    .notes =
+    {
+        {.note = A_4, .timeMs = 400},
+        {.note = SILENCE, .timeMs = 100},
+        {.note = B_4, .timeMs = 400},
+        {.note = SILENCE, .timeMs = 100},
+        {.note = C_4, .timeMs = 400},
+    },
+    .numNotes = 5,
+    .shouldLoop = false
+};
+
+buzzer_play(&do_re_mi);
+```
+
+## ESP-NOW
+
+There's a lot here, will write this one last
+
+```C
+TODO: Example
+```
+
+## Best Practices
+
+Only one Swadge mode runs at a time, and each mode wants as much RAM as possible. Therefore it's best practice to not statically allocate state variables, especially large ones. It's good practice to keep all your mode's state variables in a single struct which is allocated when the mode starts and freed when it ends. For example:
+
+```C
+// This is just a typedef, not a variable
+typedef struct 
+{
+    uint16_t stateVar1;
+    uint8_t bunch_of_numbers[256];
+} demo_t;
+
+// This is just a single pointer, so it's small
+demo_t * demo;
+
+// When entering the mode, allocate memory for it
+void demoEnterMode(display_t * disp)
+{
+    // Allocate memory for this mode
+    demo = (demo_t *)malloc(sizeof(demo_t));
+    memset(demo, 0, sizeof(demo_t));
+}
+
+// When exiting the mode, free the memory
+void demoExitMode(void)
+{
+    free(demo);
+}
+```
 
 # Troubleshooting
 
