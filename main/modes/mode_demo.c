@@ -82,6 +82,8 @@ typedef struct
     font_t radiostars;
     p2pInfo p;
     display_t * disp;
+    float temperature;
+    accel_t accel;
 } demo_t;
 
 demo_t * demo;
@@ -199,76 +201,85 @@ void demoMainLoop(int64_t elapsedUs)
         setLeds(leds, NUM_LEDS);
     }
 
-    // Draw to the TFT periodically
-    static uint64_t tftTime = 0;
-    tftTime += elapsedUs;
-    if(tftTime >= 250000)
+    // Move megaman sometimes
+    static int megaIdx = 0;
+    static int megaPos = 0;
+    static uint64_t megaTime = 0;
+    megaTime += elapsedUs;
+    if(megaTime >= 150000)
     {
-        tftTime -= 250000;
-
-        demo->disp->clearPx();
-
-        rgba_pixel_t pxCol = {
-            .a = PX_OPAQUE,
-            .r = 0x00,
-            .g = 0x00,
-            .b = 0x00,
-        };
-
-        pxCol.r = 0x1F;
-        drawText(demo->disp, &demo->tom_thumb, pxCol, "hello TFT", 10, 64);
-        pxCol.r = 0x00;
-        pxCol.g = 0x1F;
-        drawText(demo->disp, &demo->ibm_vga8, pxCol, "hello TFT", 10, 84);
-        pxCol.g = 0x00;
-        pxCol.b = 0x1F;
-        drawText(demo->disp, &demo->radiostars, pxCol, "hello TFT", 10, 104);
-
-        static int megaIdx = 0;
-        static int megaPos = 0;
-
-        drawQoi(demo->disp, &demo->megaman[megaIdx], megaPos, (demo->disp->h-demo->megaman[0].h)/2);
-
+        megaTime -= 150000;
+        
         megaPos += 4;
         if(megaPos >= demo->disp->w)
         {
             megaPos = -demo->megaman[0].w;
         }
         megaIdx = (megaIdx + 1) % 9;
-
-        // Draw a single white pixel in the middle of the display
-        pxCol.r = 0x1F;
-        pxCol.g = 0x1F;
-        pxCol.b = 0x1F;
-        demo->disp->setPx(
-            demo->disp->w / 2,
-            demo->disp->h / 2,
-            pxCol);
-
-        // Draw a yellow line
-        pxCol.r = 0x1F;
-        pxCol.g = 0x1F;
-        pxCol.b = 0x00;
-        plotLine(demo->disp, 10, 5, 50, 20, pxCol);
-
-        // Draw a magenta rectangle
-        pxCol.r = 0x1F;
-        pxCol.g = 0x00;
-        pxCol.b = 0x1F;
-        plotRect(demo->disp, 70, 5, 100, 20, pxCol);
-
-        // Draw a cyan circle
-        pxCol.r = 0x00;
-        pxCol.g = 0x1F;
-        pxCol.b = 0x1F;
-        plotCircle(demo->disp, 140, 30, 20, pxCol);
-
     }
+
+    demo->disp->clearPx();
+
+    rgba_pixel_t pxCol = {
+        .a = PX_OPAQUE,
+        .r = 0x1F,
+        .g = 0x00,
+        .b = 0x00,
+    };
+
+    // Draw text
+    drawText(demo->disp, &demo->radiostars, pxCol, "hello TFT", 10, 64);
+
+    // Draw image
+    drawQoi(demo->disp, &demo->megaman[megaIdx], megaPos, (demo->disp->h-demo->megaman[0].h)/2);
+
+    // Draw a single white pixel in the middle of the display
+    pxCol.r = 0x1F;
+    pxCol.g = 0x1F;
+    pxCol.b = 0x1F;
+    demo->disp->setPx(
+        demo->disp->w / 2,
+        demo->disp->h / 2,
+        pxCol);
+
+    // Draw a yellow line
+    pxCol.r = 0x1F;
+    pxCol.g = 0x1F;
+    pxCol.b = 0x00;
+    plotLine(demo->disp, 10, 5, 50, 20, pxCol);
+
+    // Draw a magenta rectangle
+    pxCol.r = 0x1F;
+    pxCol.g = 0x00;
+    pxCol.b = 0x1F;
+    plotRect(demo->disp, 70, 5, 100, 20, pxCol);
+
+    // Draw a cyan circle
+    pxCol.r = 0x00;
+    pxCol.g = 0x1F;
+    pxCol.b = 0x1F;
+    plotCircle(demo->disp, 140, 30, 20, pxCol);
+
+    // Draw temperature to display
+    char tempStr[128];
+    sprintf(tempStr, "%2.2f C", demo->temperature);
+    uint16_t tWidth = textWidth(&(demo->ibm_vga8), tempStr);
+    pxCol.r = 0x1F;
+    pxCol.g = 0x00;
+    pxCol.b = 0x1F;
+    drawText(demo->disp, &(demo->ibm_vga8), pxCol, tempStr, demo->disp->w - tWidth, demo->disp->h - demo->ibm_vga8.h);
+
+    // Draw acceleration to display
+    char accelStr[128];
+    sprintf(accelStr, "X: %3d, Y: %3d, Z: %3d", demo->accel.x, demo->accel.y, demo->accel.z);
+    pxCol.r = 0x00;
+    pxCol.g = 0x1F;
+    pxCol.b = 0x1F;
+    drawText(demo->disp, &(demo->ibm_vga8), pxCol, accelStr, 0, demo->disp->h - demo->ibm_vga8.h);
 
     // Twice a second push out some USB data
     static uint64_t usbTime = 0;
     usbTime += elapsedUs;
-    // Don't send until USB is ready
     if(usbTime >= 500000)
     {
         usbTime -= 500000;
@@ -332,13 +343,7 @@ void demoTouchCb(touch_event_t* evt)
  */
 void demoAccelerometerCb(accel_t* accel)
 {
-    uint64_t cTimeUs = esp_timer_get_time();
-    static uint64_t lastAccelPrint = 0;
-    if(cTimeUs - lastAccelPrint >= 1000000)
-    {
-        lastAccelPrint = cTimeUs;
-        ESP_LOGD("DEMO", "Accel %4d %4d %4d", accel->x, accel->y, accel->z);
-    }
+    demo->accel = *accel;
 }
 
 /**
@@ -348,13 +353,7 @@ void demoAccelerometerCb(accel_t* accel)
  */
 void demoTemperatureCb(float tmp_c)
 {
-    uint64_t cTimeUs = esp_timer_get_time();
-    static uint64_t lastTempPrint = 0;
-    if(cTimeUs - lastTempPrint >= 1000000)
-    {
-        lastTempPrint = cTimeUs;
-        ESP_LOGD("DEMO", "Temperature %f", tmp_c);
-    }
+    demo->temperature = tmp_c;
 }
 
 /**
@@ -405,6 +404,14 @@ void demoMsgRxCbFn(p2pInfo* p2p __attribute__((unused)),
                    const uint8_t* payload __attribute__((unused)), uint8_t len)
 {
     ESP_LOGD("DEMO", "%s :: %d", __func__, len);
+
+    static bool testMessageSent = false;
+    if(!testMessageSent)
+    {
+        testMessageSent = true;
+        const char tMsg[] = "Test Message";
+        p2pSendMsg(&(demo->p), "tst", tMsg, strlen(tMsg), demoMsgTxCbFn);
+    }
 }
 
 /**
