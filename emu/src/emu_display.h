@@ -22,8 +22,6 @@
     #error "Please pick a screen size"
 #endif
 
-extern volatile bool shouldDrawTft;
-
 void lockDisplayMemoryMutex(void);
 void unlockDisplayMemoryMutex(void);
 

@@ -113,72 +113,65 @@ int main(int argc UNUSED, char ** argv UNUSED)
 		// Always handle inputs
 		CNFGHandleInput();
 
-		// Only redraw the screen when requested by the thread
-		if(shouldDrawTft)
+		// Grey Background
+		CNFGBGColor = 0x252525FF;
+		CNFGClearFrame();
+
+		// Get a lock on the display memory mutex (LED & TFT)
+		lockDisplayMemoryMutex();
+
+		// Get the display memory
+		uint16_t bitmapWidth, bitmapHeight;
+		uint32_t * bitmapDisplay = getDisplayBitmap(&bitmapWidth, &bitmapHeight);
+
+		// Update the display
+		CNFGUpdateScreenWithBitmap(bitmapDisplay, bitmapWidth, bitmapHeight);
+
+		// Get the LED memory
+		uint8_t numLeds;
+		led_t * leds = getLedMemory(&numLeds);
+
+		// Draw simulated LEDs
+		if (numLeds > 0)
 		{
-			// Lower flag
-			shouldDrawTft = false;
-
-			// Grey Background
-			CNFGBGColor = 0x252525FF;
-			CNFGClearFrame();
-
-			// Get a lock on the display memory mutex (LED & TFT)
-			lockDisplayMemoryMutex();
-
-			// Get the display memory
-			uint16_t bitmapWidth, bitmapHeight;
-			uint32_t * bitmapDisplay = getDisplayBitmap(&bitmapWidth, &bitmapHeight);
-
-			// Update the display
-			CNFGUpdateScreenWithBitmap(bitmapDisplay, bitmapWidth, bitmapHeight);
-
-			// Get the LED memory
-			uint8_t numLeds;
-			led_t * leds = getLedMemory(&numLeds);
-
-			// Draw simulated LEDs
-			if (numLeds > 0)
+			for(int i = 0; i < numLeds; i++)
 			{
-				for(int i = 0; i < numLeds; i++)
+				float angle1 = ( i      * 2 * M_PI) / numLeds;
+				float angle2 = ((i + 1) * 2 * M_PI) / numLeds;
+				RDPoint points[] =
 				{
-					float angle1 = ( i      * 2 * M_PI) / numLeds;
-					float angle2 = ((i + 1) * 2 * M_PI) / numLeds;
-					RDPoint points[] =
 					{
-						{
-							.x = (TFT_WIDTH / 2) + (TFT_WIDTH/2) * sin(angle1),
-							.y = 1 + (TFT_HEIGHT + (TFT_WIDTH/2)) + (TFT_WIDTH/2) * cos(angle1),
-						},
-						{
-							.x = (TFT_WIDTH / 2) + (TFT_WIDTH/2) * sin(angle2),
-							.y = 1 + (TFT_HEIGHT + (TFT_WIDTH/2)) + (TFT_WIDTH/2) * cos(angle2),
-						},
-						{
-							.x = TFT_WIDTH / 2,
-							.y = 1 + TFT_HEIGHT + (TFT_WIDTH/2)
-						}
-					};
+						.x = (TFT_WIDTH / 2) + (TFT_WIDTH/2) * sin(angle1),
+						.y = 1 + (TFT_HEIGHT + (TFT_WIDTH/2)) + (TFT_WIDTH/2) * cos(angle1),
+					},
+					{
+						.x = (TFT_WIDTH / 2) + (TFT_WIDTH/2) * sin(angle2),
+						.y = 1 + (TFT_HEIGHT + (TFT_WIDTH/2)) + (TFT_WIDTH/2) * cos(angle2),
+					},
+					{
+						.x = TFT_WIDTH / 2,
+						.y = 1 + TFT_HEIGHT + (TFT_WIDTH/2)
+					}
+				};
 
-					// Draw filled polygon
-					CNFGColor( (leds[i].r << 24) | (leds[i].g << 16) | (leds[i].b << 8) | 0xFF);
-					CNFGTackPoly(points, ARRAY_SIZE(points));
+				// Draw filled polygon
+				CNFGColor( (leds[i].r << 24) | (leds[i].g << 16) | (leds[i].b << 8) | 0xFF);
+				CNFGTackPoly(points, ARRAY_SIZE(points));
 
-					// Draw outline
-					CNFGColor( 0x808080FF );
-					CNFGTackSegment(points[0].x, points[0].y, points[1].x, points[1].y);
-				}
+				// Draw outline
+				CNFGColor( 0x808080FF );
+				CNFGTackSegment(points[0].x, points[0].y, points[1].x, points[1].y);
 			}
-
-			unlockDisplayMemoryMutex();
-
-			// Draw dividing line
-			CNFGColor( 0x808080FF );
-			CNFGTackSegment(0, TFT_HEIGHT, TFT_WIDTH, TFT_HEIGHT);
-
-			//Display the image and wait for time to display next frame.
-			CNFGSwapBuffers();
 		}
+
+		unlockDisplayMemoryMutex();
+
+		// Draw dividing line
+		CNFGColor( 0x808080FF );
+		CNFGTackSegment(0, TFT_HEIGHT, TFT_WIDTH, TFT_HEIGHT);
+
+		//Display the image and wait for time to display next frame.
+		CNFGSwapBuffers();
 
 		// Sleep for a ms
         usleep(1);

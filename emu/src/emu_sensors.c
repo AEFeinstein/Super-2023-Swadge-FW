@@ -218,7 +218,7 @@ float readTemperatureSensor(void)
 bool QMA6981_setup(void)
 {
     WARN_UNIMPLEMENTED();
-    return false;
+    return true;
 }
 
 /**
