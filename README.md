@@ -306,7 +306,7 @@ typedef struct _swadgeMode
     wifiMode_t wifiMode;
 
     /**
-     * This function is called whenever an ESP NOW packet is received.
+     * This function is called whenever an ESP-NOW packet is received.
      *
      * @param mac_addr The MAC address which sent this data
      * @param data     A pointer to the data received
@@ -316,7 +316,7 @@ typedef struct _swadgeMode
     void (*fnEspNowRecvCb)(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi);
 
     /**
-     * This function is called whenever an ESP NOW packet is sent.
+     * This function is called whenever an ESP-NOW packet is sent.
      * It is just a status callback whether or not the packet was actually sent.
      * This will be called after calling espNowSend()
      *
@@ -466,15 +466,90 @@ buzzer_play(&do_re_mi);
 
 ## ESP-NOW
 
-There's a lot here, will write this one last
+ESP-NOW is a kind of connectionless Wi-Fi communication protocol that is defined by Espressif. You can read all about it [in the official documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/api-reference/network/esp_now.html).
+
+To enable ESP-NOW, set the Swadge mode struct's `wifiMode` to `ESP_NOW`.
+
+The Swadge uses the simplest form of ESP-NOW, where every message sent to the broadcast address, and every Swadge receives every message in range. If all you want is simple UDP-like communication then simply add the two required function pointers to your Swadge mode struct. One will be called when receiving messages, and the other will be called after transmission with transmission statuses. Call `espNowSend()` to send packets, and receive other packets through the callback. For example:
 
 ```C
-TODO: Example
+#include "espNowUtils.h"
+
+// Broadcast some data
+const uint8_t[] data = {1, 2, 3};
+espNowSend(data, sizeof(data) / sizeof(data[0]));
+
+// Callbacks for the Swadge mode struct
+void demoEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi)
+{
+    ; // Do something with received packet
+}
+
+void demoEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
+{
+    ; // Confirmation that a packet was sent, or failed to send
+}
+```
+
+If you want TCP-like communication between two Swadges, then you should use the `p2p` code. `p2p` builds on ESP-NOW by including a mode ID (so that a given Swadge mode doesn't try to connect to a different mode), destination MAC address, sequence number, and packet type in the payload. Packets are ack'ed and duplicates are ignored. Packets from other modes or Swadges are also ignored.
+
+For `p2p` to work, it must be initialized and deinitialized, ideally when the Swadge mode starts and finishes. `p2pRecvCb()` and `p2pSendCb()` must be called from the respective functions registered for ESP-NOW in the Swadge struct.
+
+A `p2p` connection is established by having both Swadges call `p2pStartConnection()` and being in close range of each other. The RSSI must be above a given threshold to establish a connection. Connection events are signaled through the `p2pConCbFn` callback function. Once established, one Swadge is designated `GOING_FIRST` and the other is designated `GOING_SECOND`. Calling `p2pGetPlayOrder()` will return the designation.
+
+Once connected, messages can be sent by calling `p2pSendMsg()`. Messages are received through the `p2pMsgRxCbFn` callback function.
+
+```C
+#include "espNowUtils.h"
+#include "p2pConnection.h"
+
+// Initialization and deinitialization
+void demoEnterMode(display_t * disp)
+{
+    p2pInitialize(&demo->p, "dmo", demoConCbFn, demoMsgRxCbFn, -10);
+    p2pStartConnection(&demo->p);
+}
+
+void demoExitMode(void)
+{
+    p2pDeinit(&demo->p);
+}
+
+// Callbacks for the Swadge mode struct
+void demoEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi)
+{
+    p2pRecvCb(&demo->p, mac_addr, data, len, rssi);
+}
+
+void demoEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
+{
+    p2pSendCb(&demo->p, mac_addr, status);
+}
+
+// Callbacks for p2p
+void demoConCbFn(p2pInfo* p2p, connectionEvt_t evt)
+{
+    ; // Do something when connection status changes
+}
+
+void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const uint8_t* payload, uint8_t len)
+{
+    ; // Do something when a message is received
+}
+
+void demoMsgTxCbFn(p2pInfo* p2p __attribute__((unused)), messageStatus_t status)
+{
+    ; // Do something with the transmission status
+}
+
+// Send a message
+const char tMsg[] = "Test Message";
+p2pSendMsg(&(demo->p), "tst", tMsg, strlen(tMsg), demoMsgTxCbFn);
 ```
 
 ## Best Practices
 
-Only one Swadge mode runs at a time, and each mode wants as much RAM as possible. Therefore it's best practice to not statically allocate state variables, especially large ones. It's good practice to keep all your mode's state variables in a single struct which is allocated when the mode starts and freed when it ends. For example:
+Only one Swadge mode runs at a time, and each mode wants as much RAM as possible. Therefore it's best practice to not statically allocate state variables, especially large ones. This includes `static` variables within functions. Don't use them. It's good practice to keep all your mode's state variables in a single struct which is allocated when the mode starts and freed when it ends. For example:
 
 ```C
 // This is just a typedef, not a variable
