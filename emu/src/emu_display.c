@@ -21,9 +21,9 @@
 
 // Display memory
 uint32_t * bitmapDisplay = NULL; //0xRRGGBBAA
+uint32_t * constBitmapDisplay = NULL; //0xRRGGBBAA
 int bitmapWidth = 0;
 int bitmapHeight = 0;
-volatile bool shouldDrawTft = false;
 pthread_mutex_t displayMutex = PTHREAD_MUTEX_INITIALIZER;
 
 // LED state
@@ -78,7 +78,7 @@ uint32_t * getDisplayBitmap(uint16_t * width, uint16_t * height)
 {
     *width = bitmapWidth;
     *height = bitmapHeight;
-    return bitmapDisplay;
+    return constBitmapDisplay;
 }
 
 /**
@@ -104,6 +104,10 @@ void deinitDisplayMemory(void)
 	{
 		free(bitmapDisplay);
 	}
+    if(NULL != constBitmapDisplay)
+    {
+        free(constBitmapDisplay);
+    }
     if(NULL != rdLeds)
     {
         free(rdLeds);
@@ -137,6 +141,8 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
 	pthread_mutex_lock(&displayMutex);
 	bitmapDisplay = malloc(sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
 	memset(bitmapDisplay, 0, sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
+	constBitmapDisplay = malloc(sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
+	memset(constBitmapDisplay, 0, sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
 	pthread_mutex_unlock(&displayMutex);
 	bitmapWidth = TFT_WIDTH;
 	bitmapHeight = TFT_HEIGHT;
@@ -222,10 +228,12 @@ void emuClearPxTft(void)
  */
 void emuDrawDisplayTft(bool drawDiff UNUSED)
 {
-	/* Rawdraw is initialized on the main thread, so the draw calls must come
-	 * from there too. Raise a flag to do so
-	 */
-	shouldDrawTft = true;
+	/* Copy the current framebuffer to memory that won't be modified by the
+     * Swadge mode. rawdraw will use this non-changing bitmap to draw
+     */
+	pthread_mutex_lock(&displayMutex);
+    memcpy(constBitmapDisplay, bitmapDisplay, sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
+	pthread_mutex_unlock(&displayMutex);
 }
 
 //==============================================================================

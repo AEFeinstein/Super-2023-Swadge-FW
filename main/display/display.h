@@ -77,6 +77,7 @@ void drawChar(display_t * disp, rgba_pixel_t color, uint16_t h, font_ch_t * ch,
     int16_t xOff, int16_t yOff);
 void drawText(display_t * disp, font_t * font, rgba_pixel_t color,
     const char * text, int16_t xOff, int16_t yOff);
+uint16_t textWidth(font_t * font, const char * text);
 void freeFont(font_t * font);
 
 rgba_pixel_t hsv2rgb(uint16_t h, float s, float v);

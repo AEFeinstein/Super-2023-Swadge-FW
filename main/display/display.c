@@ -298,6 +298,29 @@ void drawText(display_t * disp, font_t * font, rgba_pixel_t color, const char * 
 }
 
 /**
+ * @brief Return the pixel width of some text in a given font
+ * 
+ * @param font The font to use
+ * @param text The text to measure
+ * @return The width of the text rendered in the font
+ */
+uint16_t textWidth(font_t * font, const char * text)
+{
+    uint16_t width = 0;
+    while(*text != 0)
+    {
+        width += (font->chars[(*text) - ' '].w + 1);
+        text++;
+    }
+    // Delete trailing space
+    if(0 < width)
+    {
+        width--;
+    }
+    return width;
+}
+
+/**
  * @brief Convert hue, saturation, and value to 15-bit RGB representation
  *
  * @param h The input hue

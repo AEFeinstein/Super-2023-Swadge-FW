@@ -203,7 +203,7 @@ void initTemperatureSensor(void)
 float readTemperatureSensor(void)
 {
     WARN_UNIMPLEMENTED();
-    return 0;
+    return -274; // Impossible! One degree below absolute zero
 }
 
 //==============================================================================
@@ -218,7 +218,7 @@ float readTemperatureSensor(void)
 bool QMA6981_setup(void)
 {
     WARN_UNIMPLEMENTED();
-    return false;
+    return true;
 }
 
 /**

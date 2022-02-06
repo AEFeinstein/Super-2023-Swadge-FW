@@ -33,7 +33,7 @@ float readTemperatureSensor(void)
     {
         return tsens_out;
     }
-    return -1;
+    return -274; // Impossible! One degree below absolute zero
 }
 
 #else
