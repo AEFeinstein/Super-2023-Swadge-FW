@@ -24,6 +24,6 @@ void i2c_master_init(gpio_num_t sda, gpio_num_t scl, gpio_pullup_t pullup, uint3
         .master.clk_speed = clkHz,
         .clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL,
     };
-    i2c_param_config(i2c_master_port, &conf);
-    i2c_driver_install(i2c_master_port, conf.mode, 0, 0, 0);
+    ESP_ERROR_CHECK(i2c_param_config(i2c_master_port, &conf));
+    ESP_ERROR_CHECK(i2c_driver_install(i2c_master_port, conf.mode, 0, 0, 0));
 }

@@ -239,7 +239,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
 
     /* Initialize i2c peripherals */
     i2c_master_init(GPIO_NUM_33, GPIO_NUM_34, GPIO_PULLUP_DISABLE, 1000000);
-    QMA6981_setup();
+    bool accelInitialized = QMA6981_setup();
 #ifdef OLED_ENABLED
     display_t oledDisp;
     initOLED(&oledDisp, true, GPIO_NUM_21);
@@ -286,7 +286,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         }
         
         // Process Accelerometer
-        if(isModeRunning && NULL != swadgeModes[0]->fnAccelerometerCallback)
+        if(accelInitialized && isModeRunning && NULL != swadgeModes[0]->fnAccelerometerCallback)
         {
             accel_t accel = {0};
             QMA6981_poll(&accel);
