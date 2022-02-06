@@ -5,7 +5,7 @@
 * [Configuring Your Environment](#configuring-your-environment)
   * [Windows](#windows-powershell)
   * [Linux](#linux)
-  * [macOS](#mac-os)
+  * [macOS](#macos)
   * [Configuring VSCode](#configuring-vscode)
 * [Building and Flashing Firmware](#building-and-flashing-firmware)
 * [Building and Running the Emulator](#building-and-running-the-emulator)
@@ -131,7 +131,7 @@ To set up the emulator build environment, you'll need to install the following p
 sudo apt install build-essential xorg-dev libx11-dev libxinerama-dev libxext-dev mesa-common-dev libglu1-mesa-dev libasound2-dev libpulse-dev
 ```
 
-## Mac OS
+## macOS
 
 ```
 TBD
@@ -139,11 +139,14 @@ TBD
 
 ## Configuring VSCode
 
-For all OSes, I recommend using the Visual Studio Code IDE and the [Espressif Extension](https://marketplace.visualstudio.com/items?itemName=espressif.esp-idf-extension).
+For all OSes, I recommend using the [Visual Studio Code IDE](https://code.visualstudio.com/) and the [Espressif Extension](https://marketplace.visualstudio.com/items?itemName=espressif.esp-idf-extension).
 
 If you've already configured your environment, which you should have, then when setting up the extension for the first time, point the extension at the existing IDF and tools rather than installing new ones. Remember that the IDF should exist in `~/esp/esp-idf` and the tools should exist in `~/.espressif/`.
 
 The `.vscode` folder already has tasks for making and cleaning the emulator. It also has launch settings for launching the emulator with `gdb` attached. To build the firmware from VSCode, use the espressif extension buttons on the bottom toolbar. The build icon looks like a cylinder. Hover over the other icons to see what they do.
+
+I also recommend installing the [Doxygen Documentation Generator
+](https://marketplace.visualstudio.com/items?itemName=cschlosser.doxdocgen) plugin to generate [Doxygen comments](http://www.doxygen.nl/manual/docblocks.html) and the [Astyle](https://marketplace.visualstudio.com/items?itemName=chiehyu.vscode-astyle) plugin to automatically format code with with [this project's .astylerc file](/.astylerc).
 
 # Building and Flashing Firmware
 
