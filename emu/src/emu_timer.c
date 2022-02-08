@@ -1,3 +1,7 @@
+//==============================================================================
+// Includes
+//==============================================================================
+
 #include <stdlib.h>
 #include <time.h>
 
@@ -9,8 +13,16 @@
 #include "emu_esp.h"
 #include "esp_timer.h"
 
+//==============================================================================
+// Variables
+//==============================================================================
+
 list_t * timerList = NULL;
 static unsigned long boot_time_in_micros = 0;
+
+//==============================================================================
+// Functions
+//==============================================================================
 
 /**
  * @brief Set the time of 'boot'
@@ -19,6 +31,7 @@ static unsigned long boot_time_in_micros = 0;
  */
 esp_err_t esp_timer_init(void)
 {
+    // Log when the program starts
     struct timespec ts;
     if (0 != clock_gettime(CLOCK_MONOTONIC, &ts))
     {
@@ -27,6 +40,7 @@ esp_err_t esp_timer_init(void)
     }
     boot_time_in_micros = (ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
 
+    // Create an empty list of timers
     timerList = list_new();
 
     return ESP_OK;
@@ -96,8 +110,11 @@ int64_t esp_timer_get_time(void)
 esp_err_t esp_timer_create(const esp_timer_create_args_t* create_args,
                            esp_timer_handle_t* out_handle)
 {
-    // Allocate memory for a timer
-    (*out_handle) = (esp_timer_handle_t)malloc(sizeof(struct esp_timer));
+    if(NULL == *out_handle)
+    {
+        // Allocate memory for a timer
+        (*out_handle) = (esp_timer_handle_t)malloc(sizeof(struct esp_timer));
+    }
 
     // Initialize the timer
     (*out_handle)->callback = create_args->callback;
