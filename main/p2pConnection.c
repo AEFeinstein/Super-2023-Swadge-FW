@@ -136,7 +136,7 @@ void p2pInitialize(p2pInfo* p2p, char* msgId,
 
     // Get and save the string form of our MAC address
     uint8_t mymac[6];
-    esp_wifi_get_mac(ESP_IF_WIFI_AP, mymac);
+    esp_wifi_get_mac(WIFI_IF_AP, mymac);
     snprintf(p2p->cnc.macStr, sizeof(p2p->cnc.macStr), p2pMacFmt,
              mymac[0],
              mymac[1],
@@ -336,7 +336,7 @@ void p2pTxAllRetriesTimeout(void* arg)
  * @param len       The length of the optional message payload string. May be 0
  * @param msgTxCbFn A callback function when this message is ACKed or dropped
  */
-void p2pSendMsg(p2pInfo* p2p, char* msg, char* payload,
+void p2pSendMsg(p2pInfo* p2p, const char* msg, char* payload,
                 uint16_t len, p2pMsgTxCbFn msgTxCbFn)
 {
     ESP_LOGD("P2P", "%s", __func__);

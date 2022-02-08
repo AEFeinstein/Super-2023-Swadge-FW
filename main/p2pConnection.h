@@ -107,7 +107,7 @@ void p2pDeinit(p2pInfo* p2p);
 
 void p2pStartConnection(p2pInfo* p2p);
 
-void p2pSendMsg(p2pInfo* p2p, char* msg, char* payload, uint16_t len, p2pMsgTxCbFn msgTxCbFn);
+void p2pSendMsg(p2pInfo* p2p, const char* msg, char* payload, uint16_t len, p2pMsgTxCbFn msgTxCbFn);
 void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr, esp_now_send_status_t status);
 void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi);
 

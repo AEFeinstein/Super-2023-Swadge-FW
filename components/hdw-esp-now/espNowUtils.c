@@ -18,7 +18,7 @@
 #include <esp_log.h>
 
 #include "espNowUtils.h"
-#include "p2pConnection.h"
+#include "../../main/p2pConnection.h"
 
 //==============================================================================
 // Defines
