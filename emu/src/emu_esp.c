@@ -43,8 +43,6 @@ uint8_t pthreadIdx = 0;
 pthread_t threads[MAX_THREADS];
 volatile bool threadsShouldRun = true;
 
-static unsigned long boot_time_in_micros = 0;
-
 //==============================================================================
 // Function prototypes
 //==============================================================================
@@ -64,39 +62,6 @@ void * runTaskInThread(void * taskFnPtr);
 esp_err_t esp_efuse_set_rom_log_scheme(esp_efuse_rom_log_scheme_t log_scheme UNUSED)
 {
     return ESP_OK;
-}
-
-/**
- * @brief Set the time of 'boot'
- *
- * @return ESP_OK
- */
-esp_err_t esp_timer_init(void)
-{
-    struct timespec ts;
-    if (0 != clock_gettime(CLOCK_MONOTONIC, &ts))
-    {
-        ESP_LOGE("EMU", "Clock err");
-        return 0;
-    }
-    boot_time_in_micros = (ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
-    return ESP_OK;
-}
-
-/**
- * @brief Get the time since 'boot' in microseconds
- *
- * @return the time since 'boot' in microseconds
- */
-int64_t esp_timer_get_time(void)
-{
-    struct timespec ts;
-    if (0 != clock_gettime(CLOCK_MONOTONIC, &ts))
-    {
-        ESP_LOGE("EMU", "Clock err");
-        return 0;
-    }
-    return ((ts.tv_sec * 1000000) + (ts.tv_nsec / 1000)) - boot_time_in_micros;
 }
 
 /**

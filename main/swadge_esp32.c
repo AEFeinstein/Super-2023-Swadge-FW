@@ -335,6 +335,10 @@ void mainSwadgeTask(void * arg __attribute((unused)))
             {
                 swadgeModes[0]->fnMainLoop(tElapsedUs);
             }
+
+#ifdef EMU
+            check_esp_timer(tElapsedUs);
+#endif
         }
 
         // Update outputs
@@ -354,4 +358,8 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     {
         swadgeModes[0]->fnExitMode();
     }
+
+#ifdef EMU
+    esp_timer_deinit();
+#endif
 }
