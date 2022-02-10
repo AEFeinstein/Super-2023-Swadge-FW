@@ -38,11 +38,15 @@ This project uses CircleCI to automatically build the firmware any time a change
 
 No matter your environment, you'll need to first install `git`. Just google it.
 
-You should follow the instructions on this page, but I recommend reading through [the official ESP32-S2 Get Started Guide for setting up a development environment](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/get-started/index.html#setting-up-development-environment) for more context or if something written here doesn't work anymore. When given the option, use command line tools instead of installer programs.
+You must follow the instructions on this page, but I recommend reading through [the official ESP32-S2 Get Started Guide for setting up a development environment](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/get-started/index.html#setting-up-development-environment) for more context or if something written here doesn't work anymore. When given the option, use command line tools instead of installer programs.
 
 For Windows and Linux, I recommend setting up native tools. I don't recommend WSL in Windows. I haven't tried any setup on macOS yet.
 
-As of writing, this project requires a modified IDF which can be found at https://github.com/AEFeinstein/esp-idf.git. **DO NOT** `git clone` Espressif's official IDF. The modifications add support for USB HID device mode and more TFT driver chips.
+As of writing, this project requires IDF v4.4 with a patch for USB HID support applied. The patch is [usb_hid.patch](/usb_hid.patch) and assuming you download it and move it to the `esp-idf` folder, it can be applied with this command:
+
+```powershell
+git apply usb_hid.patch
+```
 
 This project uses CircleCI to build the firmware each time code is committed to `main`. As a consequence, you can always read the [config.yml](/.circleci/config.yml) to see how the Windows build environment is set up from scratch for both the firmware and emulator.
 
@@ -56,8 +60,12 @@ mkdir ~/esp
 cd ~/esp
 
 # Clone the IDF and move into it
-git clone --recursive https://github.com/AEFeinstein/esp-idf.git
+git clone -b v4.4 --recursive https://github.com/espressif/esp-idf.git esp-idf
 cd ~/esp/esp-idf
+
+# Download the USB HID patch and apply it
+Invoke-WebRequest https://raw.githubusercontent.com/AEFeinstein/esp32-c3-playground/main/usb_hid.patch -OutFile usb_hid.patch
+git apply usb_hid.patch
 
 # Initialize submodules
 git submodule update --init --recursive
@@ -112,8 +120,12 @@ mkdir ~/esp
 cd ~/esp
 
 # Clone the IDF and move into it
-git clone --recursive https://github.com/AEFeinstein/esp-idf.git
+git clone -b v4.4 --recursive https://github.com/espressif/esp-idf.git esp-idf
 cd ~/esp/esp-idf
+
+# Download the USB HID patch and apply it
+wget https://raw.githubusercontent.com/AEFeinstein/esp32-c3-playground/main/usb_hid.patch
+git apply usb_hid.patch
 
 # Initialize submodules
 git submodule update --init --recursive

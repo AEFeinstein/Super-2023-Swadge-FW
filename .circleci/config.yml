@@ -51,8 +51,12 @@ jobs:
             cd ~
             mkdir esp
             cd esp
-            git clone https://github.com/AEFeinstein/esp-idf.git -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+            git clone -b v4.4 --recursive https://github.com/espressif/esp-idf.git esp-idf -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
             cd esp-idf
+            # Download and apply USB patch
+            Invoke-WebRequest https://raw.githubusercontent.com/AEFeinstein/esp32-c3-playground/main/usb_hid.patch -OutFile usb_hid.patch
+            git apply usb_hid.patch
+            # Update submodules
             git submodule update --init --recursive -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
             # Install the tools
             .\install.ps1
