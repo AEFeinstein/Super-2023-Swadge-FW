@@ -1,5 +1,5 @@
 idf_component_register(SRCS "p2pConnection.c" "swadge_esp32.c" "display/display.c" "display/bresenham.c" "modes/mode_demo.c"
-                    INCLUDE_DIRS "." "../components/hdw-buzzer/" "../components/hdw-qma6981/" "../components/hdw-oled/" "modes" "display")
+                    INCLUDE_DIRS "." "../components/hdw-buzzer/" "../components/hdw-qma6981/" "../components/hdw-oled/" "../components/hdw-mic/" "modes" "display")
 
 function(spiffs_file_preprocessor)
     add_custom_target(spiffs_preprocessor ALL

@@ -26,6 +26,7 @@
 #include "QMA6981.h"
 
 #include "musical_buzzer.h"
+#include "hdw-mic.h"
 
 #include "esp_temperature_sensor.h"
 
@@ -237,6 +238,11 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         TOUCH_PAD_NUM13,
         TOUCH_PAD_NUM14);
 
+    static uint16_t adc1_chan_mask = BIT(2);
+    static uint16_t adc2_chan_mask = 0;
+    static adc_channel_t channel[] = {ADC1_CHANNEL_2}; // GPIO_NUM_3
+    continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
+
     /* Initialize i2c peripherals */
     i2c_master_init(GPIO_NUM_33, GPIO_NUM_34, GPIO_PULLUP_DISABLE, 1000000);
     bool accelInitialized = QMA6981_setup();
@@ -318,6 +324,8 @@ void mainSwadgeTask(void * arg __attribute((unused)))
                 swadgeModes[0]->fnTouchCallback(&tEvt);
             }
         }
+
+        mic_main();
 
         // Run the mode's event loop
         static int64_t tLastCallUs = 0;
