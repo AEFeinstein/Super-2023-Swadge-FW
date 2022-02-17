@@ -87,7 +87,7 @@ typedef struct _swadgeMode
      * @param samples A pointer to 12 bit audio samples
      * @param sampleCnt The number of samples read
      */
-    void (*fnAudioCallback)(uint16_t * samples, int32_t sampleCnt);
+    void (*fnAudioCallback)(uint16_t * samples, uint32_t sampleCnt);
 
     /**
      * This function is called periodically with the current temperature

@@ -9,6 +9,8 @@
 #include "esp_system.h"
 #include "esp_spi_flash.h"
 #include "hal/gpio_types.h"
+#include "hal/adc_types.h"
+#include "driver/adc.h"
 #include "driver/rmt.h"
 #include "esp_timer.h"
 #include "esp_efuse.h"
@@ -67,8 +69,6 @@ swadgeMode* swadgeModes[] =
     &modeDemo
 };
 
-static bool isModeRunning = true;
-
 //==============================================================================
 // Functions
 //==============================================================================
@@ -80,7 +80,7 @@ static bool isModeRunning = true;
 void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, 
     uint8_t len, int8_t rssi)
 {
-    if(isModeRunning && NULL != swadgeModes[0]->fnEspNowRecvCb)
+    if(NULL != swadgeModes[0]->fnEspNowRecvCb)
     {
         swadgeModes[0]->fnEspNowRecvCb(mac_addr, data, len, rssi);
     }
@@ -92,7 +92,7 @@ void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data,
  */
 void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
-    if(isModeRunning && NULL != swadgeModes[0]->fnEspNowSendCb)
+    if(NULL != swadgeModes[0]->fnEspNowSendCb)
     {
         swadgeModes[0]->fnEspNowSendCb(mac_addr, status);
     }
@@ -242,7 +242,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     {
         static uint16_t adc1_chan_mask = BIT(2);
         static uint16_t adc2_chan_mask = 0;
-        static adc_channel_t channel[] = {ADC1_CHANNEL_2}; // GPIO_NUM_3
+        static adc_channel_t channel[] = {ADC_CHANNEL_2}; // GPIO_NUM_3
         continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
         continuous_adc_start();
     }
@@ -281,7 +281,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     }
 
     /* Enter the swadge mode */
-    if(isModeRunning && NULL != swadgeModes[0]->fnEnterMode)
+    if(NULL != swadgeModes[0]->fnEnterMode)
     {
         swadgeModes[0]->fnEnterMode(&tftDisp);
     }
@@ -300,7 +300,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         }
         
         // Process Accelerometer
-        if(accelInitialized && isModeRunning)
+        if(accelInitialized)
         {
             accel_t accel = {0};
             QMA6981_poll(&accel);
@@ -308,7 +308,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         }
 
         // Process temperature sensor
-        if(isModeRunning && NULL != swadgeModes[0]->fnTemperatureCallback)
+        if(NULL != swadgeModes[0]->fnTemperatureCallback)
         {
             swadgeModes[0]->fnTemperatureCallback(readTemperatureSensor());
         }
@@ -317,7 +317,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         buttonEvt_t bEvt = {0};
         if(checkButtonQueue(&bEvt))
         {
-            if(isModeRunning && NULL != swadgeModes[0]->fnButtonCallback)
+            if(NULL != swadgeModes[0]->fnButtonCallback)
             {
                 swadgeModes[0]->fnButtonCallback(&bEvt);
             }
@@ -327,14 +327,14 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         touch_event_t tEvt = {0};
         if(checkTouchSensor(&tEvt))
         {
-            if(isModeRunning && NULL != swadgeModes[0]->fnTouchCallback)
+            if(NULL != swadgeModes[0]->fnTouchCallback)
             {
                 swadgeModes[0]->fnTouchCallback(&tEvt);
             }
         }
 
         // Process ADC samples
-        if(isModeRunning && NULL != swadgeModes[0]->fnAudioCallback)
+        if(NULL != swadgeModes[0]->fnAudioCallback)
         {
             uint16_t adcSamps[BYTES_PER_READ / sizeof(adc_digi_output_data_t)];
             uint32_t sampleCnt = 0;
@@ -356,7 +356,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
             int64_t tElapsedUs = tNowUs - tLastCallUs;
             tLastCallUs = tNowUs;
 
-            if(isModeRunning && NULL != swadgeModes[0]->fnMainLoop)
+            if(NULL != swadgeModes[0]->fnMainLoop)
             {
                 swadgeModes[0]->fnMainLoop(tElapsedUs);
             }
@@ -379,13 +379,13 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         // (100hz by default)
     }
 
-    if(isModeRunning && NULL != swadgeModes[0]->fnAudioCallback)
+    if(NULL != swadgeModes[0]->fnAudioCallback)
     {
         continuous_adc_stop();
         continuous_adc_deinit();
     }
 
-    if(isModeRunning && NULL != swadgeModes[0]->fnExitMode)
+    if(NULL != swadgeModes[0]->fnExitMode)
     {
         swadgeModes[0]->fnExitMode();
     }

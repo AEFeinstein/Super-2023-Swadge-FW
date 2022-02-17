@@ -45,7 +45,7 @@ void continuous_adc_init(uint16_t adc1_chan_mask, uint16_t adc2_chan_mask,
 	// Set up the ADC DMA
 	adc_digi_init_config_t adc_dma_config =
 	{
-		.max_store_buf_size = BYTES_PER_READ * 4, // Max length of the converted data that driver can store before they are processed.
+		.max_store_buf_size = BYTES_PER_READ * 2, // Max length of the converted data that driver can store before they are processed.
 		.conv_num_each_intr = BYTES_PER_READ,     // Bytes of data that can be converted in 1 interrupt.
 		.adc1_chan_mask = adc1_chan_mask, // Channel list of ADC1 to be initialized.
 		.adc2_chan_mask = adc2_chan_mask, // Channel list of ADC2 to be initialized.
@@ -56,11 +56,11 @@ void continuous_adc_init(uint16_t adc1_chan_mask, uint16_t adc2_chan_mask,
 	if (adc1_chan_mask && adc2_chan_mask)
 	{
 		// Sample both ADC units
-#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32H2
+#if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32H2)
 		convMode = ADC_CONV_ALTER_UNIT;
-#elif CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
+#elif defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32S3)
 		convMode = ADC_CONV_BOTH_UNIT;
-#elif CONFIG_IDF_TARGET_ESP32
+#elif defined(CONFIG_IDF_TARGET_ESP32)
 		// SP32 only supports ADC1 DMA mode
 		return;
 #endif
@@ -87,9 +87,9 @@ void continuous_adc_init(uint16_t adc1_chan_mask, uint16_t adc2_chan_mask,
 	// Set up the digital controller
 	adc_digi_configuration_t dig_cfg =
 	{
-#if CONFIG_IDF_TARGET_ESP32
+#if defined(CONFIG_IDF_TARGET_ESP32)
 		.conv_limit_en = 1,    // To limit ADC conversion times. Conversion stops after finishing conv_limit_num times conversion.
-#elif CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32H2 || CONFIG_IDF_TARGET_ESP32S3
+#elif defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32H2) || defined(CONFIG_IDF_TARGET_ESP32S3)
 		.conv_limit_en = 0,
 #endif
 		.conv_limit_num = 250, // Set the upper limit of the number of ADC conversion triggers. Range: 1 ~ 255.

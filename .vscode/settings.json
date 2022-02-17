@@ -100,7 +100,8 @@
         "cjson.h": "c",
         "array": "c",
         "string_view": "c",
-        "bresenham.h": "c"
+        "bresenham.h": "c",
+        "hdw-mic.h": "c"
     },
     "idf.adapterTargetName": "esp32s2"
 }
