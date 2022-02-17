@@ -238,14 +238,22 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         TOUCH_PAD_NUM13,
         TOUCH_PAD_NUM14);
 
-    static uint16_t adc1_chan_mask = BIT(2);
-    static uint16_t adc2_chan_mask = 0;
-    static adc_channel_t channel[] = {ADC1_CHANNEL_2}; // GPIO_NUM_3
-    continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
+    if(NULL != swadgeModes[0]->fnAudioCallback)
+    {
+        static uint16_t adc1_chan_mask = BIT(2);
+        static uint16_t adc2_chan_mask = 0;
+        static adc_channel_t channel[] = {ADC1_CHANNEL_2}; // GPIO_NUM_3
+        continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
+        continuous_adc_start();
+    }
 
-    /* Initialize i2c peripherals */
-    i2c_master_init(GPIO_NUM_33, GPIO_NUM_34, GPIO_PULLUP_DISABLE, 1000000);
-    bool accelInitialized = QMA6981_setup();
+    bool accelInitialized = false;
+    if(NULL != swadgeModes[0]->fnAccelerometerCallback)
+    {
+        /* Initialize i2c peripherals */
+        i2c_master_init(GPIO_NUM_33, GPIO_NUM_34, GPIO_PULLUP_DISABLE, 1000000);
+        accelInitialized = QMA6981_setup();
+    }
 #ifdef OLED_ENABLED
     display_t oledDisp;
     initOLED(&oledDisp, true, GPIO_NUM_21);
@@ -292,7 +300,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         }
         
         // Process Accelerometer
-        if(accelInitialized && isModeRunning && NULL != swadgeModes[0]->fnAccelerometerCallback)
+        if(accelInitialized && isModeRunning)
         {
             accel_t accel = {0};
             QMA6981_poll(&accel);
@@ -325,7 +333,16 @@ void mainSwadgeTask(void * arg __attribute((unused)))
             }
         }
 
-        mic_main();
+        // Process ADC samples
+        if(isModeRunning && NULL != swadgeModes[0]->fnAudioCallback)
+        {
+            uint16_t adcSamps[BYTES_PER_READ / sizeof(adc_digi_output_data_t)];
+            uint32_t sampleCnt = 0;
+            while(0 < (sampleCnt = continuous_adc_read(adcSamps)))
+            {
+                swadgeModes[0]->fnAudioCallback(adcSamps, sampleCnt);
+            }
+        }
 
         // Run the mode's event loop
         static int64_t tLastCallUs = 0;
@@ -360,6 +377,12 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         taskYIELD();
         // Note, the RTOS tick rate can be changed in idf.py menuconfig
         // (100hz by default)
+    }
+
+    if(isModeRunning && NULL != swadgeModes[0]->fnAudioCallback)
+    {
+        continuous_adc_stop();
+        continuous_adc_deinit();
     }
 
     if(isModeRunning && NULL != swadgeModes[0]->fnExitMode)

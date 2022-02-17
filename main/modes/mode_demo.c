@@ -28,6 +28,7 @@ void demoEnterMode(display_t * disp);
 void demoExitMode(void);
 void demoMainLoop(int64_t elapsedUs);
 void demoAccelerometerCb(accel_t* accel);
+void demoAudioCb(uint16_t * samples, uint32_t sampleCnt);
 void demoTemperatureCb(float tmp_c);
 void demoButtonCb(buttonEvt_t* evt);
 void demoTouchCb(touch_event_t* evt);
@@ -100,6 +101,7 @@ swadgeMode modeDemo =
     .fnEspNowRecvCb = demoEspNowRecvCb,
     .fnEspNowSendCb = demoEspNowSendCb,
     .fnAccelerometerCallback = demoAccelerometerCb,
+    .fnAudioCallback = demoAudioCb,
     .fnTemperatureCallback = demoTemperatureCb
 };
 
@@ -344,6 +346,17 @@ void demoTouchCb(touch_event_t* evt)
 void demoAccelerometerCb(accel_t* accel)
 {
     demo->accel = *accel;
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param samples 
+ * @param sampleCnt 
+ */
+void demoAudioCb(uint16_t * samples, uint32_t sampleCnt)
+{
+    // ESP_LOGI("DEMO", "%s, %d", __func__, sampleCnt);
 }
 
 /**

@@ -81,6 +81,15 @@ typedef struct _swadgeMode
     void (*fnAccelerometerCallback)(accel_t* accel);
 
     /**
+     * This function is called whenever audio samples are read from the
+     * microphone (ADC) and are ready for processing. Samples are read at 8KHz
+     *
+     * @param samples A pointer to 12 bit audio samples
+     * @param sampleCnt The number of samples read
+     */
+    void (*fnAudioCallback)(uint16_t * samples, int32_t sampleCnt);
+
+    /**
      * This function is called periodically with the current temperature
      *
      * @param temperature A floating point temperature in celcius
