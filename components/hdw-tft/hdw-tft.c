@@ -29,7 +29,7 @@
 #define PARALLEL_LINES 16
 
 /* Backlight levels */
-#define LCD_BK_LIGHT_ON_LEVEL  0
+#define LCD_BK_LIGHT_ON_LEVEL  1
 #define LCD_BK_LIGHT_OFF_LEVEL !LCD_BK_LIGHT_ON_LEVEL
 
 /* Bit number used to represent command and parameter */

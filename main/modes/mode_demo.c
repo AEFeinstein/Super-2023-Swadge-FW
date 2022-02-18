@@ -354,7 +354,8 @@ void demoAccelerometerCb(accel_t* accel)
  * @param samples 
  * @param sampleCnt 
  */
-void demoAudioCb(uint16_t * samples, uint32_t sampleCnt)
+void demoAudioCb(uint16_t * samples __attribute__((unused)),
+                uint32_t sampleCnt __attribute__((unused)))
 {
     // ESP_LOGI("DEMO", "%s, %d", __func__, sampleCnt);
 }
@@ -423,7 +424,7 @@ void demoMsgRxCbFn(p2pInfo* p2p __attribute__((unused)),
     {
         testMessageSent = true;
         const char tMsg[] = "Test Message";
-        p2pSendMsg(&(demo->p), "tst", tMsg, strlen(tMsg), demoMsgTxCbFn);
+        p2pSendMsg(&(demo->p), "tst", (char*)tMsg, strlen(tMsg), demoMsgTxCbFn);
     }
 }
 

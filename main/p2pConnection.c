@@ -808,7 +808,8 @@ void p2pRestart(void* arg)
  * @param mac_addr unused
  * @param status   Whether the transmission succeeded or failed
  */
-void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr, esp_now_send_status_t status)
+void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr __attribute__((unused)),
+                esp_now_send_status_t status)
 {
     ESP_LOGD("P2P", "%s", __func__);
 
