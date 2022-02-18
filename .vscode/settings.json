@@ -101,7 +101,11 @@
         "array": "c",
         "string_view": "c",
         "bresenham.h": "c",
-        "hdw-mic.h": "c"
+        "hdw-mic.h": "c",
+        "embeddednf.h": "c",
+        "ccconfig.h": "c",
+        "string.h": "c",
+        "stdlib.h": "c"
     },
     "idf.adapterTargetName": "esp32s2"
 }
