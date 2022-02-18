@@ -20,6 +20,10 @@
 
 #include "mode_demo.h"
 
+#include "DFT32.h"
+#include "embeddednf.h"
+#include "embeddedout.h"
+
 //==============================================================================
 // Functions Prototypes
 //==============================================================================
@@ -85,6 +89,11 @@ typedef struct
     display_t * disp;
     float temperature;
     accel_t accel;
+    dft32_data dd;
+    embeddednf_data end;
+    embeddedout_data eod;
+    uint8_t samplesProcessed;
+    uint16_t maxValue;
 } demo_t;
 
 demo_t * demo;
@@ -123,7 +132,7 @@ void demoEnterMode(display_t * disp)
     demo->disp = disp;
 
     // Test the buzzer, just once
-    buzzer_play(&odeToJoy);
+    // buzzer_play(&odeToJoy);
 
     // Test reading and writing NVR
 #define MAGIC_VAL 0xAF
@@ -138,6 +147,9 @@ void demoEnterMode(display_t * disp)
     {
         ESP_LOGD("DEMO", "Magic val read, 0x%02X", magicVal);
     }
+
+    InitColorChord(&demo->end, &demo->dd);
+    demo->maxValue = 1;
 
     // Load some QOIs
     loadQoi("run-1.qoi", &demo->megaman[0]);
@@ -187,6 +199,7 @@ void demoExitMode(void)
 void demoMainLoop(int64_t elapsedUs)
 {
     // Rotate through all the hues in two seconds
+    /*
     static uint64_t ledTime = 0;
     ledTime += elapsedUs;
     if(ledTime >= (2000000/360))
@@ -201,6 +214,20 @@ void demoMainLoop(int64_t elapsedUs)
         }
         demo->demoHue = (demo->demoHue + 1) % 360;
         setLeds(leds, NUM_LEDS);
+    }
+    */
+
+    // Draw the spectrum as a bar graph
+    uint16_t hue = 0;
+    uint16_t mv = demo->maxValue;
+    for(uint16_t i = 0; i < FIXBINS; i++)
+    {
+        if(demo->end.fuzzed_bins[i] > demo->maxValue)
+        {
+            demo->maxValue = demo->end.fuzzed_bins[i];
+        }
+        uint8_t height = (demo->disp->h * demo->end.fuzzed_bins[i]) / mv;
+        fillDisplayArea(demo->disp, i, demo->disp->h - height, (i + 1), demo->disp->h - 2, hsv2rgb(hue++, 1, 1));
     }
 
     // Move megaman sometimes
@@ -354,12 +381,25 @@ void demoAccelerometerCb(accel_t* accel)
  * @param samples 
  * @param sampleCnt 
  */
-void demoAudioCb(uint16_t * samples __attribute__((unused)),
-                uint32_t sampleCnt __attribute__((unused)))
+void demoAudioCb(uint16_t * samples, uint32_t sampleCnt)
 {
-    // ESP_LOGI("DEMO", "%s, %d", __func__, sampleCnt);
-}
+    bool ledsUpdated = false;
+    for(uint32_t idx = 0; idx < sampleCnt; idx++)
+    {
+        PushSample32(&demo->dd, samples[idx]);
 
+        demo->samplesProcessed++;
+        if(!ledsUpdated && demo->samplesProcessed >= 128)
+        {
+            demo->samplesProcessed = 0;
+            HandleFrameInfo(&demo->end, &demo->dd);
+            UpdateLinearLEDs(&demo->eod, &demo->end);
+            setLeds((led_t*)demo->eod.ledOut, NUM_LEDS);
+            ledsUpdated = true;
+        }
+    }
+}
+ 
 /**
  * @brief TODO
  *

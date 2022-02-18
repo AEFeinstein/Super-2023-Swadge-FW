@@ -109,7 +109,7 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
 					v = -32768;
 				}
 #endif
-				ssamples[sshead] = (v / 1024) + 512;
+				ssamples[sshead] = (v / 256) + 128;
 				sshead = (sshead + 1) % SSBUF;
 			}
 		}
