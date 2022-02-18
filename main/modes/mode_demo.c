@@ -132,7 +132,7 @@ void demoEnterMode(display_t * disp)
     demo->disp = disp;
 
     // Test the buzzer, just once
-    // buzzer_play(&odeToJoy);
+    buzzer_play(&odeToJoy);
 
     // Test reading and writing NVR
 #define MAGIC_VAL 0xAF
@@ -217,19 +217,6 @@ void demoMainLoop(int64_t elapsedUs)
     }
     */
 
-    // Draw the spectrum as a bar graph
-    uint16_t hue = 0;
-    uint16_t mv = demo->maxValue;
-    for(uint16_t i = 0; i < FIXBINS; i++)
-    {
-        if(demo->end.fuzzed_bins[i] > demo->maxValue)
-        {
-            demo->maxValue = demo->end.fuzzed_bins[i];
-        }
-        uint8_t height = (demo->disp->h * demo->end.fuzzed_bins[i]) / mv;
-        fillDisplayArea(demo->disp, i, demo->disp->h - height, (i + 1), demo->disp->h - 2, hsv2rgb(hue++, 1, 1));
-    }
-
     // Move megaman sometimes
     static int megaIdx = 0;
     static int megaPos = 0;
@@ -249,6 +236,21 @@ void demoMainLoop(int64_t elapsedUs)
 
     demo->disp->clearPx();
 
+    // Draw the spectrum as a bar graph
+    uint16_t mv = demo->maxValue;
+    for(uint16_t i = 0; i < FIXBINS; i++) // 120
+    {
+        if(demo->end.fuzzed_bins[i] > demo->maxValue)
+        {
+            demo->maxValue = demo->end.fuzzed_bins[i];
+        }
+        uint8_t height = ((demo->disp->h - demo->ibm_vga8.h - 2) * demo->end.fuzzed_bins[i]) / mv;
+        fillDisplayArea(demo->disp,
+            i * 2,        demo->disp->h - height,
+            (i + 1) * 2, (demo->disp->h - demo->ibm_vga8.h - 2),
+            hsv2rgb(64 + (i * 2), 1, 1));
+    }
+    
     rgba_pixel_t pxCol = {
         .a = PX_OPAQUE,
         .r = 0x1F,
@@ -393,7 +395,7 @@ void demoAudioCb(uint16_t * samples, uint32_t sampleCnt)
         {
             demo->samplesProcessed = 0;
             HandleFrameInfo(&demo->end, &demo->dd);
-            UpdateLinearLEDs(&demo->eod, &demo->end);
+            UpdateAllSameLEDs(&demo->eod, &demo->end);
             setLeds((led_t*)demo->eod.ledOut, NUM_LEDS);
             ledsUpdated = true;
         }

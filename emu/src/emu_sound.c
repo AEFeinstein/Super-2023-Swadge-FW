@@ -97,9 +97,12 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
 			// Read the sample into the circular ssamples[] buffer
 			if (sstail != ((sshead + 1) % SSBUF))
 			{
-				int v = in[i];
-#ifdef ANDROID
-				v *= 5;
+#ifndef ANDROID
+				// 12 bit sound, unsigned
+				uint16_t v = ((in[i] + INT16_MAX) >> 4);
+#else
+				// Android does something different
+				uint16_t v = in[i] * 5;
 				if (v > 32767)
 				{
 					v = 32767;
@@ -109,7 +112,22 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
 					v = -32768;
 				}
 #endif
-				ssamples[sshead] = (v / 256) + 128;
+
+				// Find and print max and min samples for tuning
+				// static int32_t vMin = INT32_MAX;
+				// static int32_t vMax = INT32_MIN;
+				// if(v > vMax)
+				// {
+				// 	vMax = v;
+				// 	printf("Audio %d -> %d\n", vMin, vMax);
+				// }
+				// if(v < vMin)
+				// {
+				// 	vMin = v;
+				// 	printf("Audio %d -> %d\n", vMin, vMax);
+				// }
+
+				ssamples[sshead] = v;
 				sshead = (sshead + 1) % SSBUF;
 			}
 		}
