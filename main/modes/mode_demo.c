@@ -94,6 +94,8 @@ typedef struct
     embeddedout_data eod;
     uint8_t samplesProcessed;
     uint16_t maxValue;
+    uint64_t packetTimer;
+    uint16_t packetsRx;
 } demo_t;
 
 demo_t * demo;
@@ -505,6 +507,18 @@ void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t l
 
     // Echo
     p2pSendMsg(p2p, msg, payload, len, demoMsgTxCbFn);
+
+    if(0 == demo->packetTimer)
+    {
+        demo->packetTimer = esp_timer_get_time();
+    }
+    demo->packetsRx++;
+    if(100 == demo->packetsRx)
+    {
+        ESP_LOGI("DEMO", "100 packets in %llu", esp_timer_get_time() - demo->packetTimer);
+        demo->packetsRx = 0;
+        demo->packetTimer = 0;
+    }
 }
 
 /**
