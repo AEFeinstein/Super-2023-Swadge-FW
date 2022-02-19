@@ -434,7 +434,7 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
 
         // Increment the sequence number, 0-99
         p2p->cnc.mySeqNum++;
-        if(100 == p2p->cnc.mySeqNum++)
+        if(100 == p2p->cnc.mySeqNum)
         {
             p2p->cnc.mySeqNum = 0;
         }
@@ -444,7 +444,7 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
     char* dbgMsg = (char*)malloc(sizeof(char) * (len + 1));
     memcpy(dbgMsg, msg, len);
     dbgMsg[len] = 0;
-    ESP_LOGD("P2P", "%s: %s", __func__, dbgMsg);
+    ESP_LOGD("P2P", "%12s: %s", __func__, dbgMsg);
     free(dbgMsg);
 #endif
 
@@ -497,7 +497,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
     char* dbgMsg = (char*)malloc(sizeof(char) * (len + 1));
     memcpy(dbgMsg, data, len);
     dbgMsg[len] = 0;
-    ESP_LOGD("P2P", "%s: %s", __func__, dbgMsg);
+    ESP_LOGD("P2P", "%12s: %s", __func__, dbgMsg);
     free(dbgMsg);
 #endif
 
@@ -559,31 +559,39 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
         }
     }
 
+    // Check if this is an ACK
+    bool isAck = strlen(p2p->ackMsg) == len &&
+                0 == memcmp(data, p2p->ackMsg, SEQ_IDX);
+
     // ACKs can be received in any state
-    if(p2p->ack.isWaitingForAck)
+    if(p2p->ack.isWaitingForAck && isAck)
     {
-        // Check if this is an ACK
-        if(strlen(p2p->ackMsg) == len &&
-                0 == memcmp(data, p2p->ackMsg, SEQ_IDX))
-        {
-            ESP_LOGD("P2P", "ACK Received");
+        ESP_LOGD("P2P", "ACK Received when waiting for one");
 
-            // Call the function after receiving the ack
-            if(NULL != p2p->ack.SuccessFn)
-            {
-                p2p->ack.SuccessFn(p2p);
-            }
+        // Save the function pointer to call it after clearing ACK vars
+        void (*tmpSuccessFn)(void*) = p2p->ack.SuccessFn;
 
-            // Clear ack timeout variables
-            esp_timer_stop(p2p->tmr.TxRetry);
-            // Disarm the whole transmission ack timer
-            esp_timer_stop(p2p->tmr.TxAllRetries);
-            // Clear out ACK variables
-            memset(&p2p->ack, 0, sizeof(p2p->ack));
+        // Clear ack timeout variables
+        esp_timer_stop(p2p->tmr.TxRetry);
+        // Disarm the whole transmission ack timer
+        esp_timer_stop(p2p->tmr.TxAllRetries);
+        // Clear out ACK variables
+        memset(&p2p->ack, 0, sizeof(p2p->ack));
 
-            p2p->ack.isWaitingForAck = false;
+        p2p->ack.isWaitingForAck = false;
+
+        // Call the callback after clearing out variables
+        if(NULL != tmpSuccessFn)
+        { 
+            tmpSuccessFn(p2p);
         }
-        // Don't process anything else when waiting for an ack
+
+        // Ack handled
+        return;
+    }
+    else if(p2p->ack.isWaitingForAck || isAck)
+    {
+        // Don't process anything else when waiting for or receiving an ack
         return;
     }
 
@@ -634,7 +642,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
         }
         return;
     }
-    else
+    else if(len >= EXT_IDX)
     {
         ESP_LOGD("P2P", "cnc.isconnected is true");
         // Let the mode handle it
