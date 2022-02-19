@@ -36,11 +36,11 @@ void demoAudioCb(uint16_t * samples, uint32_t sampleCnt);
 void demoTemperatureCb(float tmp_c);
 void demoButtonCb(buttonEvt_t* evt);
 void demoTouchCb(touch_event_t* evt);
-void demoEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi);
+void demoEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 void demoEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 
 void demoConCbFn(p2pInfo* p2p, connectionEvt_t evt);
-void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const uint8_t* payload, uint8_t len);
+void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t len);
 void demoMsgTxCbFn(p2pInfo* p2p, messageStatus_t status);
 
 //==============================================================================
@@ -420,7 +420,7 @@ void demoTemperatureCb(float tmp_c)
  * @param len
  * @param rssi
  */
-void demoEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi)
+void demoEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
 {
     p2pRecvCb(&demo->p, mac_addr, data, len, rssi);
 }
@@ -444,7 +444,51 @@ void demoEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
  */
 void demoConCbFn(p2pInfo* p2p __attribute__((unused)), connectionEvt_t evt)
 {
-    ESP_LOGD("DEMO", "%s :: %d", __func__, evt);
+    switch(evt)
+    {
+        case CON_STARTED:
+        {
+            ESP_LOGI("DEMO", "%s :: CON_STARTED", __func__);
+            break;
+        }
+        case RX_GAME_START_ACK:
+        {
+            ESP_LOGI("DEMO", "%s :: RX_GAME_START_ACK", __func__);
+            break;
+        }
+        case RX_GAME_START_MSG:
+        {
+            ESP_LOGI("DEMO", "%s :: RX_GAME_START_MSG", __func__);
+            break;
+        }
+        case CON_ESTABLISHED:
+        {
+            ESP_LOGI("DEMO", "%s :: CON_ESTABLISHED", __func__);
+            switch(p2pGetPlayOrder(p2p))
+            {
+                default:
+                case NOT_SET:
+                case GOING_SECOND:
+                {
+                    break;
+                }
+                case GOING_FIRST:
+                {
+                    const char randPayload[] = "zb4o5LBYgsmDuyreOtBcPIi8kINXYW0";
+                    p2pSendMsg(p2p, "gst", randPayload, sizeof(randPayload), demoMsgTxCbFn);
+                    break;
+                } 
+            }
+            break;
+        }
+        default:
+        case CON_LOST:
+        {
+            ESP_LOGI("DEMO", "%s :: CON_LOST", __func__);
+            p2pStartConnection(&demo->p);
+            break;
+        }
+    }
 }
 
 /**
@@ -455,19 +499,12 @@ void demoConCbFn(p2pInfo* p2p __attribute__((unused)), connectionEvt_t evt)
  * @param payload
  * @param len
  */
-void demoMsgRxCbFn(p2pInfo* p2p __attribute__((unused)),
-                   const char* msg __attribute__((unused)),
-                   const uint8_t* payload __attribute__((unused)), uint8_t len)
+void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t len)
 {
-    ESP_LOGD("DEMO", "%s :: %d", __func__, len);
+    ESP_LOGD("DEMO", "%s -> [%d] -> %s", __func__, len, payload);
 
-    static bool testMessageSent = false;
-    if(!testMessageSent)
-    {
-        testMessageSent = true;
-        const char tMsg[] = "Test Message";
-        p2pSendMsg(&(demo->p), "tst", (char*)tMsg, strlen(tMsg), demoMsgTxCbFn);
-    }
+    // Echo
+    p2pSendMsg(p2p, msg, payload, len, demoMsgTxCbFn);
 }
 
 /**

@@ -270,7 +270,7 @@ void checkEspNowRxQueue(void)
  * @param data The data to broadcast using ESP NOW
  * @param len  The length of the data to broadcast
  */
-void espNowSend(const uint8_t* data, uint8_t len)
+void espNowSend(const char* data, uint8_t len)
 {
     // Send a packet
     esp_now_send((uint8_t*)espNowBroadcastMac, (uint8_t*)data, len);

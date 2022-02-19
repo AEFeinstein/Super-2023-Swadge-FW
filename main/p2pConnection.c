@@ -112,8 +112,7 @@ void p2pModeMsgFailure(void* arg);
  *                      swadge. A positive value means swadges are quite close.
  *                      I've seen RSSI go as low as -70
  */
-void p2pInitialize(p2pInfo* p2p, char* msgId,
-                   p2pConCbFn conCbFn,
+void p2pInitialize(p2pInfo* p2p, char* msgId, p2pConCbFn conCbFn,
                    p2pMsgRxCbFn msgRxCbFn, int8_t connectionRssi)
 {
     ESP_LOGD("P2P", "%s", __func__);
@@ -264,7 +263,7 @@ void p2pConnectionTimeout(void* arg)
 
     p2pInfo* p2p = (p2pInfo*)arg;
     // Send a connection broadcast
-    p2pSendMsgEx(p2p, p2p->conMsg, strlen(p2p->conMsg), false, NULL, NULL);
+    p2pSendMsgEx(p2p, p2p->conMsg, strlen(p2p->conMsg) + 1, false, NULL, NULL);
 
     // esp_random returns a 32 bit number, so this is [500ms,1500ms]
     uint32_t timeoutUs = 1000 * (100 * (5 + (esp_random() % 11)));
@@ -291,7 +290,7 @@ void p2pTxRetryTimeout(void* arg)
     if(p2p->ack.msgToAckLen > 0)
     {
         ESP_LOGD("P2P", "Retrying message \"%s\"", p2p->ack.msgToAck);
-        p2pSendMsgEx(p2p, p2p->ack.msgToAck, p2p->ack.msgToAckLen, true, p2p->ack.SuccessFn, p2p->ack.FailureFn);
+        p2pSendMsgEx(p2p, p2p->ack.msgToAck, p2p->ack.msgToAckLen + 1, true, p2p->ack.SuccessFn, p2p->ack.FailureFn);
     }
 }
 
@@ -336,7 +335,7 @@ void p2pTxAllRetriesTimeout(void* arg)
  * @param len       The length of the optional message payload string. May be 0
  * @param msgTxCbFn A callback function when this message is ACKed or dropped
  */
-void p2pSendMsg(p2pInfo* p2p, const char* msg, char* payload,
+void p2pSendMsg(p2pInfo* p2p, const char* msg, const char* payload,
                 uint16_t len, p2pMsgTxCbFn msgTxCbFn)
 {
     ESP_LOGD("P2P", "%s", __func__);
@@ -372,7 +371,7 @@ void p2pSendMsg(p2pInfo* p2p, const char* msg, char* payload,
     }
 
     p2p->msgTxCbFn = msgTxCbFn;
-    p2pSendMsgEx(p2p, builtMsg, strlen(builtMsg), true, p2pModeMsgSuccess, p2pModeMsgFailure);
+    p2pSendMsgEx(p2p, builtMsg, strlen(builtMsg) + 1, true, p2pModeMsgSuccess, p2pModeMsgFailure);
 }
 
 /**
@@ -477,7 +476,7 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
         // started in p2pSendCb()
         p2p->ack.timeSentUs = esp_timer_get_time();
     }
-    espNowSend((const uint8_t*)msg, len);
+    espNowSend(msg, len);
 }
 
 /**
@@ -491,7 +490,7 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
  * @return false if the message was processed here,
  *         true if the message should be processed by the swadge mode
  */
-void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi)
+void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
 {
 #if LOG_LOCAL_LEVEL < ESP_LOG_DEBUG
     char* dbgMsg = (char*)malloc(sizeof(char) * (len + 1));
@@ -500,6 +499,9 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
     ESP_LOGD("P2P", "%12s: %s", __func__, dbgMsg);
     free(dbgMsg);
 #endif
+
+    // Ignore the null terminator when checking the length
+    len--;
 
     // Check if this message matches our message ID
     if(len < CMD_IDX ||
@@ -624,7 +626,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
                      mac_addr[5]);
 
             // If it's acked, call p2pGameStartAckRecv(), if not reinit with p2pRestart()
-            p2pSendMsgEx(p2p, p2p->startMsg, strlen(p2p->startMsg), true, p2pGameStartAckRecv, p2pRestart);
+            p2pSendMsgEx(p2p, p2p->startMsg, strlen(p2p->startMsg) + 1, true, p2pGameStartAckRecv, p2pRestart);
         }
         // Received a response to our broadcast
         else if (!p2p->cnc.rxGameStartMsg &&
@@ -649,9 +651,16 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
         if(NULL != p2p->msgRxCbFn)
         {
             ESP_LOGD("P2P", "letting mode handle message");
-            char msgType[4] = {0};
-            memcpy(msgType, &data[CMD_IDX], 3 * sizeof(char));
-            p2p->msgRxCbFn(p2p, msgType, &data[EXT_IDX], len - EXT_IDX);
+
+            // Null terminate the message type
+            char ntMsgType[4];
+            ntMsgType[0] = data[CMD_IDX];
+            ntMsgType[1] = data[CMD_IDX + 1];
+            ntMsgType[2] = data[CMD_IDX + 2];
+            ntMsgType[3] = 0;
+
+            // Call the callback
+            p2p->msgRxCbFn(p2p, ntMsgType, &data[EXT_IDX], len - EXT_IDX + 1);
         }
     }
 }
@@ -676,7 +685,7 @@ void p2pSendAckToMac(p2pInfo* p2p, const uint8_t* mac_addr)
              mac_addr[3],
              mac_addr[4],
              mac_addr[5]);
-    p2pSendMsgEx(p2p, p2p->ackMsg, strlen(p2p->ackMsg), false, NULL, NULL);
+    p2pSendMsgEx(p2p, p2p->ackMsg, strlen(p2p->ackMsg) + 1, false, NULL, NULL);
 }
 
 /**

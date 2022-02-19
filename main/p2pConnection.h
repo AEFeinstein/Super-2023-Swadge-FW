@@ -35,7 +35,7 @@ typedef enum
 typedef struct _p2pInfo p2pInfo;
 
 typedef void (*p2pConCbFn)(p2pInfo* p2p, connectionEvt_t);
-typedef void (*p2pMsgRxCbFn)(p2pInfo* p2p, const char* msg, const uint8_t* payload, uint8_t len);
+typedef void (*p2pMsgRxCbFn)(p2pInfo* p2p, const char* msg, const char* payload, uint8_t len);
 typedef void (*p2pMsgTxCbFn)(p2pInfo* p2p, messageStatus_t status);
 
 // Variables to track acking messages
@@ -107,9 +107,9 @@ void p2pDeinit(p2pInfo* p2p);
 
 void p2pStartConnection(p2pInfo* p2p);
 
-void p2pSendMsg(p2pInfo* p2p, const char* msg, char* payload, uint16_t len, p2pMsgTxCbFn msgTxCbFn);
+void p2pSendMsg(p2pInfo* p2p, const char* msg, const char* payload, uint16_t len, p2pMsgTxCbFn msgTxCbFn);
 void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr, esp_now_send_status_t status);
-void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi);
+void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 
 playOrder_t p2pGetPlayOrder(p2pInfo* p2p);
 void p2pSetPlayOrder(p2pInfo* p2p, playOrder_t order);

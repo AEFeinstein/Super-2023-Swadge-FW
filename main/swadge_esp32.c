@@ -56,7 +56,7 @@
 //==============================================================================
 
 void mainSwadgeTask(void * arg);
-void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, 
+void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const char* data, 
     uint8_t len, int8_t rssi);
 void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 
@@ -77,7 +77,7 @@ swadgeMode* swadgeModes[] =
  * Callback from ESP NOW to the current Swadge mode whenever a packet is
  * received. It routes through user_main.c, which knows what the current mode is
  */
-void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, 
+void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const char* data, 
     uint8_t len, int8_t rssi)
 {
     if(NULL != swadgeModes[0]->fnEspNowRecvCb)

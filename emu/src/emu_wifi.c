@@ -150,7 +150,7 @@ void espNowDeinit(void)
  * @param data    The data to broadcast using ESP NOW
  * @param dataLen The length of the data to broadcast
  */
-void espNowSend(const uint8_t* data, uint8_t dataLen)
+void espNowSend(const char* data, uint8_t dataLen)
 {
     struct sockaddr_in broadcastAddr; // Broadcast address
 
@@ -212,7 +212,7 @@ void checkEspNowRxQueue(void)
             if(0 != memcmp(recvMac, ourMac, sizeof(ourMac)))
             {
                 // If it does, send it to the application through the callback
-                hostEspNowRecvCb(recvMac, (uint8_t*)&recvString[21], recvStringLen - 21, 0);
+                hostEspNowRecvCb(recvMac, &recvString[21], recvStringLen - 21, 0);
             }
         }
     }
