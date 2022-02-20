@@ -37,13 +37,13 @@ espNowHeader_t;
 // Prototypes
 //==============================================================================
 
-typedef void (*hostEspNowRecvCb_t)(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi);
+typedef void (*hostEspNowRecvCb_t)(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 typedef void (*hostEspNowSendCb_t)(const uint8_t* mac_addr, esp_now_send_status_t status);
 
 void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb);
 void espNowDeinit(void);
 
-void espNowSend(const uint8_t* data, uint8_t len);
+void espNowSend(const char* data, uint8_t len);
 void checkEspNowRxQueue(void);
 
 #endif /* USER_ESPNOWUTILS_H_ */

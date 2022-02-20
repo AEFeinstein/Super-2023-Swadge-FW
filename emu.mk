@@ -27,7 +27,7 @@ CC = gcc
 ################################################################################
 
 # This is a list of directories to scan for c files recursively
-SRC_DIRS_RECURSIVE = emu/src main/display main/modes
+SRC_DIRS_RECURSIVE = emu/src main/display main/modes main/colorchord
 # This is a list of directories to scan for c files not recursively
 SRC_DIRS_FLAT = main
 # This is a list of files to compile directly. There's no scanning here
@@ -94,7 +94,7 @@ DEFINES_LIST = \
 	SOC_TOUCH_SENSOR_NUM=14 \
 	SOC_TOUCH_PROXIMITY_MEAS_DONE_SUPPORTED \
 	WITH_PROFILING=0 \
-	LOG_LOCAL_LEVEL=ESP_LOG_VERBOSE \
+	LOG_LOCAL_LEVEL=5 \
 	EMU=1
 
 DEFINES = $(patsubst %, -D%, $(DEFINES_LIST))

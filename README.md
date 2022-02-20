@@ -40,6 +40,15 @@ No matter your environment, you'll need to first install `git`. Just google it.
 
 You must follow the instructions on this page, but I recommend reading through [the official ESP32-S2 Get Started Guide for setting up a development environment](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/get-started/index.html#setting-up-development-environment) for more context or if something written here doesn't work anymore. When given the option, use command line tools instead of installer programs.
 
+From the official guide:
+> Keep in mind that ESP-IDF does not support spaces in paths.
+
+By default this guide sets up ESP-IDF in your home directory, so if your username has a space in it, please change all paths to something without a space, like `c:\esp\`. Also note that `ccache` uses a temporary directory in your home directory, and spaces in that path cause issues. `ccache` is enabled by default when running `export.ps1`, but it can be disabled by removing the following from `esp-idf/tools/tools.json`:
+```
+"export_vars": {
+  "IDF_CCACHE_ENABLE": "1"
+},
+```
 For Windows and Linux, I recommend setting up native tools. I don't recommend WSL in Windows. I haven't tried any setup on macOS yet.
 
 As of writing, this project requires IDF v4.4 with a patch for USB HID support applied. The patch is [usb_hid.patch](/usb_hid.patch) and assuming you download it and move it to the `esp-idf` folder, it can be applied with this command:
@@ -304,6 +313,15 @@ typedef struct _swadgeMode
     void (*fnAccelerometerCallback)(accel_t* accel);
 
     /**
+     * This function is called whenever audio samples are read from the
+     * microphone (ADC) and are ready for processing. Samples are read at 8KHz
+     *
+     * @param samples A pointer to 12 bit audio samples
+     * @param sampleCnt The number of samples read
+     */
+    void (*fnAudioCallback)(int16_t * samples, uint32_t sampleCnt);
+
+    /**
      * This function is called periodically with the current temperature
      *
      * @param temperature A floating point temperature in celcius
@@ -327,7 +345,7 @@ typedef struct _swadgeMode
      * @param len      The length of the data received
      * @param rssi     The RSSI for this packet, from 1 (weak) to ~90 (touching)
      */
-    void (*fnEspNowRecvCb)(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi);
+    void (*fnEspNowRecvCb)(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 
     /**
      * This function is called whenever an ESP-NOW packet is sent.
@@ -494,7 +512,7 @@ const uint8_t[] data = {1, 2, 3};
 espNowSend(data, sizeof(data) / sizeof(data[0]));
 
 // Callbacks for the Swadge mode struct
-void demoEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi)
+void demoEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
 {
     ; // Do something with received packet
 }
@@ -546,19 +564,19 @@ void demoConCbFn(p2pInfo* p2p, connectionEvt_t evt)
     ; // Do something when connection status changes
 }
 
-void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const uint8_t* payload, uint8_t len)
+void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t len)
 {
     ; // Do something when a message is received
 }
 
-void demoMsgTxCbFn(p2pInfo* p2p __attribute__((unused)), messageStatus_t status)
+void demoMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
 {
     ; // Do something with the transmission status
 }
 
 // Send a message
 const char tMsg[] = "Test Message";
-p2pSendMsg(&(demo->p), "tst", tMsg, strlen(tMsg), demoMsgTxCbFn);
+p2pSendMsg(&(demo->p), "tst", tMsg, sizeof(tMsg), demoMsgTxCbFn);
 ```
 
 ## Best Practices
