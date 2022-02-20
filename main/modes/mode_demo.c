@@ -20,6 +20,10 @@
 
 #include "mode_demo.h"
 
+#include "DFT32.h"
+#include "embeddednf.h"
+#include "embeddedout.h"
+
 //==============================================================================
 // Functions Prototypes
 //==============================================================================
@@ -28,14 +32,15 @@ void demoEnterMode(display_t * disp);
 void demoExitMode(void);
 void demoMainLoop(int64_t elapsedUs);
 void demoAccelerometerCb(accel_t* accel);
+void demoAudioCb(uint16_t * samples, uint32_t sampleCnt);
 void demoTemperatureCb(float tmp_c);
 void demoButtonCb(buttonEvt_t* evt);
 void demoTouchCb(touch_event_t* evt);
-void demoEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi);
+void demoEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 void demoEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 
 void demoConCbFn(p2pInfo* p2p, connectionEvt_t evt);
-void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const uint8_t* payload, uint8_t len);
+void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t len);
 void demoMsgTxCbFn(p2pInfo* p2p, messageStatus_t status);
 
 //==============================================================================
@@ -84,6 +89,13 @@ typedef struct
     display_t * disp;
     float temperature;
     accel_t accel;
+    dft32_data dd;
+    embeddednf_data end;
+    embeddedout_data eod;
+    uint8_t samplesProcessed;
+    uint16_t maxValue;
+    uint64_t packetTimer;
+    uint16_t packetsRx;
 } demo_t;
 
 demo_t * demo;
@@ -100,6 +112,7 @@ swadgeMode modeDemo =
     .fnEspNowRecvCb = demoEspNowRecvCb,
     .fnEspNowSendCb = demoEspNowSendCb,
     .fnAccelerometerCallback = demoAccelerometerCb,
+    .fnAudioCallback = demoAudioCb,
     .fnTemperatureCallback = demoTemperatureCb
 };
 
@@ -136,6 +149,9 @@ void demoEnterMode(display_t * disp)
     {
         ESP_LOGD("DEMO", "Magic val read, 0x%02X", magicVal);
     }
+
+    InitColorChord(&demo->end, &demo->dd);
+    demo->maxValue = 1;
 
     // Load some QOIs
     loadQoi("run-1.qoi", &demo->megaman[0]);
@@ -185,6 +201,7 @@ void demoExitMode(void)
 void demoMainLoop(int64_t elapsedUs)
 {
     // Rotate through all the hues in two seconds
+    /*
     static uint64_t ledTime = 0;
     ledTime += elapsedUs;
     if(ledTime >= (2000000/360))
@@ -200,6 +217,7 @@ void demoMainLoop(int64_t elapsedUs)
         demo->demoHue = (demo->demoHue + 1) % 360;
         setLeds(leds, NUM_LEDS);
     }
+    */
 
     // Move megaman sometimes
     static int megaIdx = 0;
@@ -220,6 +238,21 @@ void demoMainLoop(int64_t elapsedUs)
 
     demo->disp->clearPx();
 
+    // Draw the spectrum as a bar graph
+    uint16_t mv = demo->maxValue;
+    for(uint16_t i = 0; i < FIXBINS; i++) // 120
+    {
+        if(demo->end.fuzzed_bins[i] > demo->maxValue)
+        {
+            demo->maxValue = demo->end.fuzzed_bins[i];
+        }
+        uint8_t height = ((demo->disp->h - demo->ibm_vga8.h - 2) * demo->end.fuzzed_bins[i]) / mv;
+        fillDisplayArea(demo->disp,
+            i * 2,        demo->disp->h - height,
+            (i + 1) * 2, (demo->disp->h - demo->ibm_vga8.h - 2),
+            hsv2rgb(64 + (i * 2), 1, 1));
+    }
+    
     rgba_pixel_t pxCol = {
         .a = PX_OPAQUE,
         .r = 0x1F,
@@ -348,6 +381,31 @@ void demoAccelerometerCb(accel_t* accel)
 
 /**
  * @brief TODO
+ * 
+ * @param samples 
+ * @param sampleCnt 
+ */
+void demoAudioCb(uint16_t * samples, uint32_t sampleCnt)
+{
+    bool ledsUpdated = false;
+    for(uint32_t idx = 0; idx < sampleCnt; idx++)
+    {
+        PushSample32(&demo->dd, samples[idx]);
+
+        demo->samplesProcessed++;
+        if(!ledsUpdated && demo->samplesProcessed >= 128)
+        {
+            demo->samplesProcessed = 0;
+            HandleFrameInfo(&demo->end, &demo->dd);
+            UpdateAllSameLEDs(&demo->eod, &demo->end);
+            setLeds((led_t*)demo->eod.ledOut, NUM_LEDS);
+            ledsUpdated = true;
+        }
+    }
+}
+ 
+/**
+ * @brief TODO
  *
  * @param tmp_c
  */
@@ -364,7 +422,7 @@ void demoTemperatureCb(float tmp_c)
  * @param len
  * @param rssi
  */
-void demoEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi)
+void demoEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
 {
     p2pRecvCb(&demo->p, mac_addr, data, len, rssi);
 }
@@ -388,7 +446,51 @@ void demoEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
  */
 void demoConCbFn(p2pInfo* p2p __attribute__((unused)), connectionEvt_t evt)
 {
-    ESP_LOGD("DEMO", "%s :: %d", __func__, evt);
+    switch(evt)
+    {
+        case CON_STARTED:
+        {
+            ESP_LOGI("DEMO", "%s :: CON_STARTED", __func__);
+            break;
+        }
+        case RX_GAME_START_ACK:
+        {
+            ESP_LOGI("DEMO", "%s :: RX_GAME_START_ACK", __func__);
+            break;
+        }
+        case RX_GAME_START_MSG:
+        {
+            ESP_LOGI("DEMO", "%s :: RX_GAME_START_MSG", __func__);
+            break;
+        }
+        case CON_ESTABLISHED:
+        {
+            ESP_LOGI("DEMO", "%s :: CON_ESTABLISHED", __func__);
+            switch(p2pGetPlayOrder(p2p))
+            {
+                default:
+                case NOT_SET:
+                case GOING_SECOND:
+                {
+                    break;
+                }
+                case GOING_FIRST:
+                {
+                    const char randPayload[] = "zb4o5LBYgsmDuyreOtBcPIi8kINXYW0";
+                    p2pSendMsg(p2p, "gst", randPayload, sizeof(randPayload), demoMsgTxCbFn);
+                    break;
+                } 
+            }
+            break;
+        }
+        default:
+        case CON_LOST:
+        {
+            ESP_LOGI("DEMO", "%s :: CON_LOST", __func__);
+            p2pStartConnection(&demo->p);
+            break;
+        }
+    }
 }
 
 /**
@@ -399,18 +501,23 @@ void demoConCbFn(p2pInfo* p2p __attribute__((unused)), connectionEvt_t evt)
  * @param payload
  * @param len
  */
-void demoMsgRxCbFn(p2pInfo* p2p __attribute__((unused)),
-                   const char* msg __attribute__((unused)),
-                   const uint8_t* payload __attribute__((unused)), uint8_t len)
+void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t len)
 {
-    ESP_LOGD("DEMO", "%s :: %d", __func__, len);
+    ESP_LOGD("DEMO", "%s -> [%d] -> %s", __func__, len, payload);
 
-    static bool testMessageSent = false;
-    if(!testMessageSent)
+    // Echo
+    p2pSendMsg(p2p, msg, payload, len, demoMsgTxCbFn);
+
+    if(0 == demo->packetTimer)
     {
-        testMessageSent = true;
-        const char tMsg[] = "Test Message";
-        p2pSendMsg(&(demo->p), "tst", tMsg, strlen(tMsg), demoMsgTxCbFn);
+        demo->packetTimer = esp_timer_get_time();
+    }
+    demo->packetsRx++;
+    if(100 == demo->packetsRx)
+    {
+        ESP_LOGI("DEMO", "100 packets in %llu", esp_timer_get_time() - demo->packetTimer);
+        demo->packetsRx = 0;
+        demo->packetTimer = 0;
     }
 }
 

@@ -81,6 +81,15 @@ typedef struct _swadgeMode
     void (*fnAccelerometerCallback)(accel_t* accel);
 
     /**
+     * This function is called whenever audio samples are read from the
+     * microphone (ADC) and are ready for processing. Samples are read at 8KHz
+     *
+     * @param samples A pointer to 12 bit audio samples
+     * @param sampleCnt The number of samples read
+     */
+    void (*fnAudioCallback)(uint16_t * samples, uint32_t sampleCnt);
+
+    /**
      * This function is called periodically with the current temperature
      *
      * @param temperature A floating point temperature in celcius
@@ -104,7 +113,7 @@ typedef struct _swadgeMode
      * @param len      The length of the data received
      * @param rssi     The RSSI for this packet, from 1 (weak) to ~90 (touching)
      */
-    void (*fnEspNowRecvCb)(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi);
+    void (*fnEspNowRecvCb)(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 
     /**
      * This function is called whenever an ESP NOW packet is sent.

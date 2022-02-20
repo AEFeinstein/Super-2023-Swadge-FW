@@ -173,8 +173,8 @@ int main(int argc UNUSED, char ** argv UNUSED)
 		//Display the image and wait for time to display next frame.
 		CNFGSwapBuffers();
 
-		// Sleep for a ms
-        usleep(1);
+		// Sleep for ten ms
+        usleep(10);
     }
 
 	return 0;

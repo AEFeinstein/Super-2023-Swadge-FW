@@ -29,7 +29,7 @@
 #define PARALLEL_LINES 16
 
 /* Backlight levels */
-#define LCD_BK_LIGHT_ON_LEVEL  0
+#define LCD_BK_LIGHT_ON_LEVEL  1
 #define LCD_BK_LIGHT_OFF_LEVEL !LCD_BK_LIGHT_ON_LEVEL
 
 /* Bit number used to represent command and parameter */
@@ -240,7 +240,7 @@ void clearPxTft(void)
  * @brief Send the current framebuffer to the TFT display over the SPI bus.
  * 
  * This function can be called as quickly as possible and will limit frames to
- * 60fps max
+ * 30fps max
  *
  * Because the SPI driver handles transactions in the background, we can
  * calculate the next line while the previous one is being sent.
@@ -249,10 +249,10 @@ void clearPxTft(void)
  */
 void drawDisplayTft(bool drawDiff __attribute__((unused)))
 {
-    // Limit drawing to 60fps
+    // Limit drawing to 30fps
     static uint64_t tLastDraw = 0;
     uint64_t tNow = esp_timer_get_time();
-    if (tNow - tLastDraw > 16666)
+    if (tNow - tLastDraw > 33333)
     {
         tLastDraw = tNow;
 
