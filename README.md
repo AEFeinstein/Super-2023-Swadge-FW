@@ -40,6 +40,15 @@ No matter your environment, you'll need to first install `git`. Just google it.
 
 You must follow the instructions on this page, but I recommend reading through [the official ESP32-S2 Get Started Guide for setting up a development environment](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/get-started/index.html#setting-up-development-environment) for more context or if something written here doesn't work anymore. When given the option, use command line tools instead of installer programs.
 
+From the official guide:
+> Keep in mind that ESP-IDF does not support spaces in paths.
+
+By default this guide sets up ESP-IDF in your home directory, so if your username has a space in it, please change all paths to something without a space, like `c:\esp\`. Also note that `ccache` uses a temporary directory in your home directory, and spaces in that path cause issues. `ccache` is enabled by default when running `export.ps1`, but it can be disabled by removing the following from `esp-idf/tools/tools.json`:
+```
+"export_vars": {
+  "IDF_CCACHE_ENABLE": "1"
+},
+```
 For Windows and Linux, I recommend setting up native tools. I don't recommend WSL in Windows. I haven't tried any setup on macOS yet.
 
 As of writing, this project requires IDF v4.4 with a patch for USB HID support applied. The patch is [usb_hid.patch](/usb_hid.patch) and assuming you download it and move it to the `esp-idf` folder, it can be applied with this command:
