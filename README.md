@@ -345,7 +345,7 @@ typedef struct _swadgeMode
      * @param len      The length of the data received
      * @param rssi     The RSSI for this packet, from 1 (weak) to ~90 (touching)
      */
-    void (*fnEspNowRecvCb)(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi);
+    void (*fnEspNowRecvCb)(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 
     /**
      * This function is called whenever an ESP-NOW packet is sent.
@@ -512,7 +512,7 @@ const uint8_t[] data = {1, 2, 3};
 espNowSend(data, sizeof(data) / sizeof(data[0]));
 
 // Callbacks for the Swadge mode struct
-void demoEspNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi)
+void demoEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
 {
     ; // Do something with received packet
 }
@@ -564,19 +564,19 @@ void demoConCbFn(p2pInfo* p2p, connectionEvt_t evt)
     ; // Do something when connection status changes
 }
 
-void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const uint8_t* payload, uint8_t len)
+void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t len)
 {
     ; // Do something when a message is received
 }
 
-void demoMsgTxCbFn(p2pInfo* p2p __attribute__((unused)), messageStatus_t status)
+void demoMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
 {
     ; // Do something with the transmission status
 }
 
 // Send a message
 const char tMsg[] = "Test Message";
-p2pSendMsg(&(demo->p), "tst", tMsg, strlen(tMsg), demoMsgTxCbFn);
+p2pSendMsg(&(demo->p), "tst", tMsg, sizeof(tMsg), demoMsgTxCbFn);
 ```
 
 ## Best Practices

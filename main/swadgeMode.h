@@ -106,7 +106,7 @@ typedef struct _swadgeMode
     wifiMode_t wifiMode;
 
     /**
-     * This function is called whenever an ESP NOW packet is received.
+     * This function is called whenever an ESP-NOW packet is received.
      *
      * @param mac_addr The MAC address which sent this data
      * @param data     A pointer to the data received
@@ -116,7 +116,7 @@ typedef struct _swadgeMode
     void (*fnEspNowRecvCb)(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 
     /**
-     * This function is called whenever an ESP NOW packet is sent.
+     * This function is called whenever an ESP-NOW packet is sent.
      * It is just a status callback whether or not the packet was actually sent.
      * This will be called after calling espNowSend()
      *
