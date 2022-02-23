@@ -13,7 +13,10 @@
 // Includes
 //==============================================================================
 
+#include <string.h>
+
 #include "esp_log.h"
+#include "esp_timer.h"
 
 #include "swadgeMode.h"
 #include "mode_fighter.h"
@@ -28,9 +31,9 @@
 #define SF (1 << 8) // Scaling factor, a nice power of 2
 #define FIGHTER_SIZE (16 * SF)
 
-#define FRAME_TIME_MS 50 // 20fps
+#define FRAME_TIME_MS 25 // 20fps
 
-#define ABS(x) (((x) < 0) ? -(x) : (x))
+// #define ABS(x) (((x) < 0) ? -(x) : (x))
 
 //==============================================================================
 // Structs
@@ -38,16 +41,16 @@
 
 typedef struct
 {
-	box_t hurtbox;
-	vector_t velocity;
-	vector_t acceleration;
-	bool isOnGround;
+    box_t hurtbox;
+    vector_t velocity;
+    vector_t acceleration;
+    bool isOnGround;
 } fighter_t;
 
 typedef struct
 {
-	box_t area;
-	bool canFallThrough;
+    box_t area;
+    bool canFallThrough;
 } platform_t;
 
 //==============================================================================
@@ -78,18 +81,18 @@ void updatePosition(fighter_t *f, const platform_t *platforms, uint8_t numPlatfo
 
 swadgeMode modeFighter =
 {
-	.modeName = "Fighter",
-	.fnEnterMode = fighterEnterMode,
-	.fnExitMode = fighterExitMode,
-	.fnMainLoop = fighterMainLoop,
-	.fnButtonCallback = NULL, // fighterButtonCb,
-	.fnTouchCallback = NULL, // fighterTouchCb,
-	.wifiMode = NO_WIFI, // ESP_NOW,
-	.fnEspNowRecvCb = NULL, // fighterEspNowRecvCb,
-	.fnEspNowSendCb = NULL, // fighterEspNowSendCb,
-	.fnAccelerometerCallback = NULL, // fighterAccelerometerCb,
-	.fnAudioCallback = NULL, // fighterAudioCb,
-	.fnTemperatureCallback = NULL, // fighterTemperatureCb
+    .modeName = "Fighter",
+    .fnEnterMode = fighterEnterMode,
+    .fnExitMode = fighterExitMode,
+    .fnMainLoop = fighterMainLoop,
+    .fnButtonCallback = NULL, // fighterButtonCb,
+    .fnTouchCallback = NULL, // fighterTouchCb,
+    .wifiMode = NO_WIFI, // ESP_NOW,
+    .fnEspNowRecvCb = NULL, // fighterEspNowRecvCb,
+    .fnEspNowSendCb = NULL, // fighterEspNowSendCb,
+    .fnAccelerometerCallback = NULL, // fighterAccelerometerCb,
+    .fnAudioCallback = NULL, // fighterAudioCb,
+    .fnTemperatureCallback = NULL, // fighterTemperatureCb
 };
 
 fighter_t fighters[2];
@@ -97,26 +100,26 @@ display_t *d;
 
 static const platform_t finalDest[] =
 {
-	{
-		.area =
-		{
-			.x0 = (32) * SF,
-			.y0 = (115) * SF,
-			.x1 = (240-32) * SF,
-			.y1 = (120) * SF,
-		},
-		.canFallThrough = false
-	},
     {
-		.area =
-		{
-			.x0 = (200) * SF,
-			.y0 = (20) * SF,
-			.x1 = (200) * SF,
-			.y1 = (130) * SF,
-		},
-		.canFallThrough = false
-	}
+        .area =
+        {
+            .x0 = (32) * SF,
+            .y0 = (115) * SF,
+            .x1 = (240-32) * SF,
+            .y1 = (120) * SF,
+        },
+        .canFallThrough = false
+    },
+    {
+        .area =
+        {
+            .x0 = (200) * SF,
+            .y0 = (20) * SF,
+            .x1 = (205) * SF,
+            .y1 = (130) * SF,
+        },
+        .canFallThrough = false
+    }
 };
 
 //==============================================================================
@@ -130,27 +133,27 @@ static const platform_t finalDest[] =
  */
 void fighterEnterMode(display_t *disp)
 {
-	d = disp;
+    d = disp;
 
-	fighters[0].hurtbox.x0 = 0 * SF;
-	fighters[0].hurtbox.y0 = 0 * SF;
-	fighters[0].hurtbox.x1 = fighters[0].hurtbox.x0 + FIGHTER_SIZE;
-	fighters[0].hurtbox.y1 = fighters[0].hurtbox.y0 + FIGHTER_SIZE;
-	fighters[0].velocity.x = 4 * SF;
-	fighters[0].velocity.y = 0 * SF;
-	fighters[0].acceleration.x = 0 * SF;
-	fighters[0].acceleration.y = 1 * SF;
-	fighters[0].isOnGround = false;
+    fighters[0].hurtbox.x0 = 0 * SF;
+    fighters[0].hurtbox.y0 = 0 * SF;
+    fighters[0].hurtbox.x1 = fighters[0].hurtbox.x0 + FIGHTER_SIZE;
+    fighters[0].hurtbox.y1 = fighters[0].hurtbox.y0 + FIGHTER_SIZE;
+    fighters[0].velocity.x = 6 * SF;
+    fighters[0].velocity.y = 0 * SF;
+    fighters[0].acceleration.x = 0 * SF;
+    fighters[0].acceleration.y = 0.1 * SF;
+    fighters[0].isOnGround = false;
 
-	fighters[1].hurtbox.x0 = (((disp->w - 1 - 100) * SF) - FIGHTER_SIZE);
-	fighters[1].hurtbox.y0 = 8 * SF;
-	fighters[1].hurtbox.x1 = fighters[1].hurtbox.x0 + FIGHTER_SIZE;
-	fighters[1].hurtbox.y1 = fighters[1].hurtbox.y0 + FIGHTER_SIZE;
-	fighters[1].velocity.x = -4 * SF;
-	fighters[1].velocity.y = 0 * SF;
-	fighters[1].acceleration.x = 0 * SF;
-	fighters[1].acceleration.y = 1 * SF;
-	fighters[1].isOnGround = false;
+    fighters[1].hurtbox.x0 = (((disp->w - 1 - 100) * SF) - FIGHTER_SIZE);
+    fighters[1].hurtbox.y0 = 8 * SF;
+    fighters[1].hurtbox.x1 = fighters[1].hurtbox.x0 + FIGHTER_SIZE;
+    fighters[1].hurtbox.y1 = fighters[1].hurtbox.y0 + FIGHTER_SIZE;
+    fighters[1].velocity.x = -8 * SF;
+    fighters[1].velocity.y = 0 * SF;
+    fighters[1].acceleration.x = 0 * SF;
+    fighters[1].acceleration.y = 2 * SF;
+    fighters[1].isOnGround = false;
 }
 
 /**
@@ -169,187 +172,212 @@ void fighterExitMode(void)
  */
 void fighterMainLoop(int64_t elapsedUs)
 {
-	static int64_t frameElapsed = 0;
-	frameElapsed += elapsedUs;
-	if (frameElapsed > (FRAME_TIME_MS * 1000))
-	{
-		frameElapsed -= (FRAME_TIME_MS * 1000);
+    static int64_t frameElapsed = 0;
+    frameElapsed += elapsedUs;
+    if (frameElapsed > (FRAME_TIME_MS * 1000))
+    {
+        frameElapsed -= (FRAME_TIME_MS * 1000);
 
-		updatePosition(&fighters[0], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
-        // TODO something gets screwy when this is offscreen
-        // TODO cap velocity?
-		updatePosition(&fighters[1], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
+        updatePosition(&fighters[0], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
+        updatePosition(&fighters[1], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
 
         // ESP_LOGI("FGT", "{[%d, %d], [%d, %d]}",
         //     fighters[0].hurtbox.x0,
         //     fighters[0].hurtbox.y0,
         //     fighters[0].velocity.x,
         //     fighters[0].velocity.y);
-	}
+    }
 
-	d->clearPx();
+    d->clearPx();
 
-	rgba_pixel_t px =
-	{
-		.r = 0x1F,
-		.g = 0x00,
-		.b = 0x00,
-		.a = PX_OPAQUE
-	};
-	drawBox(d, fighters[0].hurtbox, px, SF);
+    rgba_pixel_t px =
+    {
+        .r = 0x1F,
+        .g = 0x00,
+        .b = 0x00,
+        .a = PX_OPAQUE
+    };
+    drawBox(d, fighters[0].hurtbox, px, SF);
 
-	px.r = 0;
-	px.b = 0x1F;
-	drawBox(d, fighters[1].hurtbox, px, SF);
+    px.r = 0;
+    px.b = 0x1F;
+    drawBox(d, fighters[1].hurtbox, px, SF);
 
-	if (boxesCollide(fighters[0].hurtbox, fighters[1].hurtbox))
-	{
-		px.g = 0x1F;
-		px.b = 0;
-		fillDisplayArea(d, 0, 0, 10, 10, px);
-	}
+    if (boxesCollide(fighters[0].hurtbox, fighters[1].hurtbox))
+    {
+        px.g = 0x1F;
+        px.b = 0;
+        fillDisplayArea(d, 0, 0, 10, 10, px);
+    }
 
-	px.r = 0x1F;
-	px.g = 0x1F;
-	px.b = 0x1F;
-	for (uint8_t idx = 0; idx < sizeof(finalDest) / sizeof(finalDest[0]); idx++)
-	{
-		drawBox(d, finalDest[idx].area, px, SF);
-	}
+    px.r = 0x1F;
+    px.g = 0x1F;
+    px.b = 0x1F;
+    for (uint8_t idx = 0; idx < sizeof(finalDest) / sizeof(finalDest[0]); idx++)
+    {
+        drawBox(d, finalDest[idx].area, px, SF);
+    }
 }
 
 /**
  * @brief TODO
- * 
- * @param f 
- * @param platforms 
- * @param numPlatforms 
+ *
+ * @param f
+ * @param platforms
+ * @param numPlatforms
  */
 void updatePosition(fighter_t *f, const platform_t *platforms, uint8_t numPlatforms)
 {
-	// Update velocity
-	f->velocity.x += ((f->acceleration.x * FRAME_TIME_MS) / SF);
-	if (!f->isOnGround)
-	{
-		f->velocity.y += ((f->acceleration.y * FRAME_TIME_MS) / SF);
-	}
+    // Update velocity
+    f->velocity.x += ((f->acceleration.x * FRAME_TIME_MS) / SF);
+    if (!f->isOnGround)
+    {
+        f->velocity.y += ((f->acceleration.y * FRAME_TIME_MS) / SF);
+    }
 
-	// Find the target position
-	int32_t x1 = f->hurtbox.x0 + (((f->velocity.x * FRAME_TIME_MS) / SF) + ((f->acceleration.x * FRAME_TIME_MS * FRAME_TIME_MS) / (SF * 4)));
-	int32_t y1;
-	if (!f->isOnGround)
-	{
-		y1 = f->hurtbox.y0 + (((f->velocity.y * FRAME_TIME_MS) / SF) + ((f->acceleration.y * FRAME_TIME_MS * FRAME_TIME_MS) / (SF * 4)));
-	}
-	else
-	{
-		y1 = f->hurtbox.y0;
-	}
+    // TODO cap velocity?
 
-	// Move one pixel at a time towards the target, using Bresenham
-	int32_t dx = ABS(x1 - f->hurtbox.x0);
-	int32_t sx = f->hurtbox.x0 < x1 ? 1 : -1;
-	int32_t dy = -ABS(y1 - f->hurtbox.y0);
-	int32_t sy = f->hurtbox.y0 < y1 ? 1 : -1;
-	int32_t err = dx + dy;
-	int32_t e2; /* error value e_xy */
+    // Find the target position
+    box_t upper_hurtbox;
+    upper_hurtbox.x0 = f->hurtbox.x0 + (((f->velocity.x * FRAME_TIME_MS) / SF) + ((f->acceleration.x * FRAME_TIME_MS * FRAME_TIME_MS) / (SF * 4)));
+    if (!f->isOnGround)
+    {
+        upper_hurtbox.y0 = f->hurtbox.y0 + (((f->velocity.y * FRAME_TIME_MS) / SF) + ((f->acceleration.y * FRAME_TIME_MS * FRAME_TIME_MS) / (SF * 4)));
+    }
+    else
+    {
+        upper_hurtbox.y0 = f->hurtbox.y0;
+    }
+    upper_hurtbox.x1 = upper_hurtbox.x0 + FIGHTER_SIZE;
+    upper_hurtbox.y1 = upper_hurtbox.y0 + FIGHTER_SIZE;
 
-	while (true)
-	{
-		// Check for collisions between platforms and hurtbox
-		// This comes before moving in case the initial state was a collision
-		bool collisionDetected = false;
-		bool isOnGround = false;
-		for (uint8_t idx = 0; idx < numPlatforms; idx++)
-		{
-			// Check with a boundary
-			if (boxesCollideBoundary(f->hurtbox, platforms[idx].area, SF))
-			{
-                // A fighter only has to be on one platform to be on the ground. Velocity doesn't matter
-				if (((f->hurtbox.y1 + SF) == (platforms[idx].area.y0 + 1)))
-				{
-					isOnGround = true;
-				}
+    // Do a quick check to see if the binary search can be avoided altogether
+    bool collisionDetected = false;
+    for (uint8_t idx = 0; idx < numPlatforms; idx++)
+    {
+        if(boxesCollide(upper_hurtbox, platforms[idx].area))
+        {
+            collisionDetected = true;
+        }
+    }
 
-                // If a fighter is moving vertically
-				if (f->velocity.y)
-				{
-                    // If the fighter is moving downward and hit a platform
-					if ((f->velocity.y > 0) && ((f->hurtbox.y1 + SF) == (platforms[idx].area.y0 + 1)))
-					{
-						// Fighter above platform
-						f->velocity.y = 0;
-						collisionDetected = true;
-					}
-                    // If the fighter is moving upward and hit a platform
-					else if ((f->velocity.y < 0) && ((f->hurtbox.y0 + 1) == (platforms[idx].area.y1 + SF)))
-					{
-						// Fighter below platform
-						f->velocity.y = 0;
-						collisionDetected = true;
-					}
-				}
+    // If no collisions were detected at the final position
+    if(!collisionDetected)
+    {
+        // Just move it and be done
+        memcpy(&f->hurtbox, &upper_hurtbox, sizeof(box_t));
+    }
+    else
+    {
+        // Save the starting position
+        box_t lower_hurtbox;
+        memcpy(&lower_hurtbox, &f->hurtbox, sizeof(box_t));
 
-                // If a fighter is moving horizontally
-				if (f->velocity.x)
-				{
-                    // If the fighter is moving rightward and hit a wall
-					if ((f->velocity.x > 0) && ((f->hurtbox.x1 + SF) == (platforms[idx].area.x0 + 1)))
-					{
-						// Fighter to left of platform
-						f->velocity.x = 0;
-						collisionDetected = true;
-					}
-                    // If the fighter is moving leftward and hit a wall
-					else if ((f->velocity.x < 0) && ((f->hurtbox.x0 + 1) == (platforms[idx].area.x1 + SF)))
-					{
-						// Fighter to right of platform
-						f->velocity.x = 0;
-						collisionDetected = true;
-					}
-				}
+        // Start the binary search at the midpoint between lower and upper
+        box_t test_hurtbox;
+        test_hurtbox.x0 = (lower_hurtbox.x0 + upper_hurtbox.x0) / 2;
+        test_hurtbox.y0 = (lower_hurtbox.y0 + upper_hurtbox.y0) / 2;
+        test_hurtbox.x1 = test_hurtbox.x0 + FIGHTER_SIZE;
+        test_hurtbox.y1 = test_hurtbox.y0 + FIGHTER_SIZE;
 
-				if (collisionDetected)
-				{
-					// Break out of loop checking platforms
-					break;
-				}
-			}
-		}
+        // Binary search between where the fighter is and where the fighter
+        // wants to be until it converges
+        while(true)
+        {
+            // Check if there are any collisions at this position
+            collisionDetected = false;
+            for (uint8_t idx = 0; idx < numPlatforms; idx++)
+            {
+                if(boxesCollide(test_hurtbox, platforms[idx].area))
+                {
+                    collisionDetected = true;
+                }
+            }
 
-        // Save if the fighter is on the ground
-		f->isOnGround = isOnGround;
+            if(collisionDetected)
+            {
+                // If there was a collision, move back by setting the new upper
+                // bound as the test point
+                memcpy(&upper_hurtbox, &test_hurtbox, sizeof(box_t));
+            }
+            else
+            {
+                // If there wasn't a collision, move back by setting the new
+                // lower bound as the test point
+                memcpy(&lower_hurtbox, &test_hurtbox, sizeof(box_t));
 
-		if (collisionDetected)
-		{
-			// Break out of Bresenham loop
-			break;
-		}
+                // And since there wasn't a collision, move the fighter here
+                memcpy(&f->hurtbox, &test_hurtbox, sizeof(box_t));
+            }
 
-		// Move either the x or y start of the hurtbox
-        // This is Bresenham in action!
-		e2 = 2 * err;
-		if (e2 >= dy)
-		{
-			if (f->hurtbox.x0 == x1)
-			{
-				break;
-			}
-			err += dy;
-			f->hurtbox.x0 += sx;
-		}
-		if (e2 <= dx)
-		{
-			if (f->hurtbox.y0 == y1)
-			{
-				break;
-			}
-			err += dx;
-			f->hurtbox.y0 += sy;
-		}
+            // Recalculate the new test point
+            test_hurtbox.x0 = (lower_hurtbox.x0 + upper_hurtbox.x0) / 2;
+            test_hurtbox.y0 = (lower_hurtbox.y0 + upper_hurtbox.y0) / 2;
+            test_hurtbox.x1 = test_hurtbox.x0 + FIGHTER_SIZE;
+            test_hurtbox.y1 = test_hurtbox.y0 + FIGHTER_SIZE;
 
-		// Adjust the end of the hurtbox
-		f->hurtbox.x1 = f->hurtbox.x0 + FIGHTER_SIZE;
-		f->hurtbox.y1 = f->hurtbox.y0 + FIGHTER_SIZE;
-	}
+            // Check for convergence
+            if(((test_hurtbox.x0 == lower_hurtbox.x0) || (test_hurtbox.x0 == upper_hurtbox.x0)) &&
+                    ((test_hurtbox.y0 == lower_hurtbox.y0) || (test_hurtbox.y0 == upper_hurtbox.y0)))
+            {
+                // Binary search has converged
+                break;
+            }
+        }
+
+        // After the final location was found, check what the fighter is up against
+        f->isOnGround = false;
+        for (uint8_t idx = 0; idx < numPlatforms; idx++)
+        {
+            // If a fighter is moving vertically
+            if (f->velocity.y)
+            {
+                // If the fighter is moving downward and hit a platform
+                if ((f->velocity.y > 0) && (((f->hurtbox.y1 / SF) + 1) == (platforms[idx].area.y0 / SF)))
+                {
+                    // Fighter above platform
+                    f->velocity.y = 0;
+                }
+                // If the fighter is moving upward and hit a platform
+                else if ((f->velocity.y < 0) && ((f->hurtbox.y0 / SF) == ((platforms[idx].area.y1 / SF) + 1)))
+                {
+                    // Fighter below platform
+                    f->velocity.y = 0;
+                }
+            }
+
+            // If a fighter is moving horizontally
+            if (f->velocity.x)
+            {
+                // If the fighter is moving rightward and hit a wall
+                if ((f->velocity.x > 0) && (((f->hurtbox.x1 / SF) + 1) == (platforms[idx].area.x0 / SF)))
+                {
+                    // Fighter to left of platform
+                    f->velocity.x = 0;
+                }
+                // If the fighter is moving leftward and hit a wall
+                else if ((f->velocity.x < 0) && ((f->hurtbox.x0 / SF) == ((platforms[idx].area.x1 / SF) + 1)))
+                {
+                    // Fighter to right of platform
+                    f->velocity.x = 0;
+                }
+            }
+        }
+    }
+
+    // Once the fighter is in the final position, no matter if there was a
+    // collision or not, check if they are on the ground
+    f->isOnGround = false;
+    for (uint8_t idx = 0; idx < numPlatforms; idx++)
+    {
+        // A fighter only has to be on one platform to be on the ground.
+        // Velocity doesn't matter
+        if ( ((f->hurtbox.y1 / SF) + 1) == (platforms[idx].area.y0 / SF) &&
+                (f->hurtbox.x0 <= platforms[idx].area.x1) &&
+                (f->hurtbox.x1 >= platforms[idx].area.x0))
+        {
+            f->isOnGround = true;
+            break;
+        }
+    }
 }
