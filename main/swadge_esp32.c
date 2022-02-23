@@ -224,8 +224,8 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     initLeds(GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
     buzzer_init(GPIO_NUM_9, RMT_CHANNEL_1);
     initTemperatureSensor();
-    initTouchSensor(0.2f, true, 10,
-        TOUCH_PAD_NUM3,
+    initTouchSensor(0.2f, true, 9,
+        // TOUCH_PAD_NUM3,
         TOUCH_PAD_NUM4,
         TOUCH_PAD_NUM5,
         TOUCH_PAD_NUM6,
