@@ -19,7 +19,7 @@
 // Structs
 //==============================================================================
 
-typedef struct __attribute__((packed)) {
+typedef struct /*__attribute__((packed))*/ {
     uint16_t b:5;
     uint16_t a:1; // This is actually the LSB for green when transferring the framebuffer to the TFT
     uint16_t g:5;
@@ -75,7 +75,7 @@ void freeQoi(qoi_t * qoi);
 bool loadFont(const char * name, font_t * font);
 void drawChar(display_t * disp, rgba_pixel_t color, uint16_t h, font_ch_t * ch,
     int16_t xOff, int16_t yOff);
-void drawText(display_t * disp, font_t * font, rgba_pixel_t color,
+int16_t drawText(display_t * disp, font_t * font, rgba_pixel_t color,
     const char * text, int16_t xOff, int16_t yOff);
 uint16_t textWidth(font_t * font, const char * text);
 void freeFont(font_t * font);

@@ -1,4 +1,4 @@
-idf_component_register(SRCS "p2pConnection.c" "swadge_esp32.c" "display/display.c" "display/bresenham.c" "modes/mode_demo.c" "colorchord/DFT32.c" "colorchord/embeddednf.c" "colorchord/embeddedout.c"
+idf_component_register(SRCS "p2pConnection.c" "swadge_esp32.c" "display/display.c" "display/bresenham.c" "modes/mode_demo.c" "modes/mode_main_menu.c" "colorchord/DFT32.c" "colorchord/embeddednf.c" "colorchord/embeddedout.c" "menu2d.c"
                     INCLUDE_DIRS "." "../components/hdw-buzzer/" "../components/hdw-qma6981/" "../components/hdw-oled/" "../components/hdw-mic/" "modes" "display" "colorchord")
 
 function(spiffs_file_preprocessor)
