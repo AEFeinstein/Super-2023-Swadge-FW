@@ -33,7 +33,7 @@
 
 #define FRAME_TIME_MS 25 // 20fps
 
-// #define ABS(x) (((x) < 0) ? -(x) : (x))
+#define DEFAULT_GRAVITY    32
 
 //==============================================================================
 // Structs
@@ -41,10 +41,16 @@
 
 typedef struct
 {
+    /* Position too! */
     box_t hurtbox;
     vector_t velocity;
-    vector_t acceleration;
+    /* Gravity, Y is how floaty a jump is */
+    vector_t acceleration; 
     bool isOnGround;
+    /* A negative velocity applied when jumping.
+     * The more negative, the higher the jump
+     */
+    int32_t jump_velo;
 } fighter_t;
 
 typedef struct
@@ -60,6 +66,7 @@ typedef struct
 void fighterEnterMode(display_t *disp);
 void fighterExitMode(void);
 void fighterMainLoop(int64_t elapsedUs);
+void fighterButtonCb(buttonEvt_t* evt);
 
 void updatePosition(fighter_t *f, const platform_t *platforms, uint8_t numPlatforms);
 
@@ -85,7 +92,7 @@ swadgeMode modeFighter =
     .fnEnterMode = fighterEnterMode,
     .fnExitMode = fighterExitMode,
     .fnMainLoop = fighterMainLoop,
-    .fnButtonCallback = NULL, // fighterButtonCb,
+    .fnButtonCallback = fighterButtonCb,
     .fnTouchCallback = NULL, // fighterTouchCb,
     .wifiMode = NO_WIFI, // ESP_NOW,
     .fnEspNowRecvCb = NULL, // fighterEspNowRecvCb,
@@ -103,23 +110,44 @@ static const platform_t finalDest[] =
     {
         .area =
         {
-            .x0 = (32) * SF,
-            .y0 = (115) * SF,
-            .x1 = (240-32) * SF,
-            .y1 = (120) * SF,
+            .x0 = (14) * SF,
+            .y0 = (170) * SF,
+            .x1 = (14 + 212 - 1) * SF,
+            .y1 = (170 + 4 - 1) * SF,
         },
         .canFallThrough = false
     },
     {
         .area =
         {
-            .x0 = (200) * SF,
-            .y0 = (20) * SF,
-            .x1 = (205) * SF,
-            .y1 = (130) * SF,
+            .x0 = (30) * SF,
+            .y0 = (130) * SF,
+            .x1 = (30 + 54 - 1) * SF,
+            .y1 = (130 + 4 - 1) * SF,
         },
-        .canFallThrough = false
+        .canFallThrough = true
+    },
+    {
+        .area =
+        {
+            .x0 = (156) * SF,
+            .y0 = (130) * SF,
+            .x1 = (156 + 54 - 1) * SF,
+            .y1 = (130 + 4 - 1) * SF,
+        },
+        .canFallThrough = true
+    },
+    {
+        .area =
+        {
+            .x0 = (93) * SF,
+            .y0 = (90) * SF,
+            .x1 = (93 + 54 - 1) * SF,
+            .y1 = (90 + 4 - 1) * SF,
+        },
+        .canFallThrough = true
     }
+
 };
 
 //==============================================================================
@@ -139,21 +167,23 @@ void fighterEnterMode(display_t *disp)
     fighters[0].hurtbox.y0 = 0 * SF;
     fighters[0].hurtbox.x1 = fighters[0].hurtbox.x0 + FIGHTER_SIZE;
     fighters[0].hurtbox.y1 = fighters[0].hurtbox.y0 + FIGHTER_SIZE;
-    fighters[0].velocity.x = 6 * SF;
+    fighters[0].velocity.x = 0 * SF;
     fighters[0].velocity.y = 0 * SF;
     fighters[0].acceleration.x = 0 * SF;
-    fighters[0].acceleration.y = 0.1 * SF;
+    fighters[0].acceleration.y = DEFAULT_GRAVITY * SF;
     fighters[0].isOnGround = false;
+    fighters[0].jump_velo = -60;
 
     fighters[1].hurtbox.x0 = (((disp->w - 1 - 100) * SF) - FIGHTER_SIZE);
     fighters[1].hurtbox.y0 = 8 * SF;
     fighters[1].hurtbox.x1 = fighters[1].hurtbox.x0 + FIGHTER_SIZE;
     fighters[1].hurtbox.y1 = fighters[1].hurtbox.y0 + FIGHTER_SIZE;
-    fighters[1].velocity.x = -8 * SF;
+    fighters[1].velocity.x = 0 * SF;
     fighters[1].velocity.y = 0 * SF;
     fighters[1].acceleration.x = 0 * SF;
-    fighters[1].acceleration.y = 2 * SF;
+    fighters[1].acceleration.y = DEFAULT_GRAVITY * SF;
     fighters[1].isOnGround = false;
+    fighters[1].jump_velo = -60;
 }
 
 /**
@@ -181,11 +211,12 @@ void fighterMainLoop(int64_t elapsedUs)
         updatePosition(&fighters[0], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
         updatePosition(&fighters[1], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
 
-        // ESP_LOGI("FGT", "{[%d, %d], [%d, %d]}",
+        // ESP_LOGI("FGT", "{[%d, %d], [%d, %d], %d}",
         //     fighters[0].hurtbox.x0,
         //     fighters[0].hurtbox.y0,
         //     fighters[0].velocity.x,
-        //     fighters[0].velocity.y);
+        //     fighters[0].velocity.y,
+        //     fighters[0].isOnGround);
     }
 
     d->clearPx();
@@ -228,26 +259,21 @@ void fighterMainLoop(int64_t elapsedUs)
  */
 void updatePosition(fighter_t *f, const platform_t *platforms, uint8_t numPlatforms)
 {
-    // Update velocity
-    f->velocity.x += ((f->acceleration.x * FRAME_TIME_MS) / SF);
-    if (!f->isOnGround)
-    {
-        f->velocity.y += ((f->acceleration.y * FRAME_TIME_MS) / SF);
-    }
+    box_t upper_hurtbox;
+    vector_t v0 = f->velocity;
+
+    // Update X kinematics
+    f->velocity.x = v0.x + (f->acceleration.x * FRAME_TIME_MS) / SF;
+    upper_hurtbox.x0 = f->hurtbox.x0 + (((f->velocity.x + v0.x) * FRAME_TIME_MS) / (SF * 2));
+
+    // Update Y kinematics
+    f->velocity.y = v0.y + (f->acceleration.y * FRAME_TIME_MS) / SF;
+    upper_hurtbox.y0 = f->hurtbox.y0 + (((f->velocity.y + v0.y) * FRAME_TIME_MS) / (SF * 2));
 
     // TODO cap velocity?
+    // TODO don't update Y velo if on ground?
 
-    // Find the target position
-    box_t upper_hurtbox;
-    upper_hurtbox.x0 = f->hurtbox.x0 + (((f->velocity.x * FRAME_TIME_MS) / SF) + ((f->acceleration.x * FRAME_TIME_MS * FRAME_TIME_MS) / (SF * 4)));
-    if (!f->isOnGround)
-    {
-        upper_hurtbox.y0 = f->hurtbox.y0 + (((f->velocity.y * FRAME_TIME_MS) / SF) + ((f->acceleration.y * FRAME_TIME_MS * FRAME_TIME_MS) / (SF * 4)));
-    }
-    else
-    {
-        upper_hurtbox.y0 = f->hurtbox.y0;
-    }
+    // Finish up the upper hurtbox
     upper_hurtbox.x1 = upper_hurtbox.x0 + FIGHTER_SIZE;
     upper_hurtbox.y1 = upper_hurtbox.y0 + FIGHTER_SIZE;
 
@@ -371,13 +397,28 @@ void updatePosition(fighter_t *f, const platform_t *platforms, uint8_t numPlatfo
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
         // A fighter only has to be on one platform to be on the ground.
-        // Velocity doesn't matter
-        if ( ((f->hurtbox.y1 / SF) + 1) == (platforms[idx].area.y0 / SF) &&
+        if ((f->velocity.y >= 0) &&
+                ((f->hurtbox.y1 / SF) + 1) == (platforms[idx].area.y0 / SF) &&
                 (f->hurtbox.x0 <= platforms[idx].area.x1) &&
                 (f->hurtbox.x1 >= platforms[idx].area.x0))
         {
             f->isOnGround = true;
+            f->velocity.y = 0;
             break;
         }
+    }
+}
+
+/**
+ * @brief TODO
+ *
+ * @param evt
+ */
+void fighterButtonCb(buttonEvt_t* evt)
+{
+    if(evt->down)
+    {
+        fighters[0].velocity.y = fighters[0].jump_velo * SF;
+        fighters[0].isOnGround = false;
     }
 }
