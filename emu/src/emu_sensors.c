@@ -44,7 +44,7 @@ void initButtons(uint8_t numButtons, ...)
 {
     // The order in which keys are initialized
     // Note that the actuall number of buttons initialized may be less than this
-    char keyOrder[] = {'w', 's', 'a', 'd', 'i', 'k', 'j', 'l'};
+    char keyOrder[] = {'w', 's', 'a', 'd', 'k', 'l', 'i', 'o'};
     memcpy(inputKeys, keyOrder, numButtons);
 	buttonState = 0;
 	pthread_mutex_lock(&buttonQueueMutex);
@@ -138,7 +138,7 @@ void emuSensorHandleKey( int keycode, int bDown )
 
 			// Create a new event
 			buttonEvt_t * evt = malloc(sizeof(buttonEvt_t));
-			evt->button = idx;
+			evt->button = (1 << idx);
 			evt->down = bDown;
 			evt->state = buttonState;
 
