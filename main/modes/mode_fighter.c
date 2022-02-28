@@ -39,18 +39,35 @@
 // Structs
 //==============================================================================
 
+typedef enum
+{
+    FREE_FLOATING,
+    ABOVE_PLATFORM,
+    BELOW_PLATFORM,
+    RIGHT_OF_PLATFORM,
+    LEFT_OF_PLATFORM
+} platformPos_t;
+
 typedef struct
 {
     /* Position too! */
     box_t hurtbox;
     vector_t velocity;
-    /* Gravity, Y is how floaty a jump is */
-    vector_t acceleration; 
-    bool isOnGround;
+    platformPos_t relativePos;
+    uint8_t numJumps;
+    /* how floaty a jump is */
+    int32_t gravity;
     /* A negative velocity applied when jumping.
      * The more negative, the higher the jump
      */
     int32_t jump_velo;
+    /* Acceleration to run */
+    int32_t run_accel;
+    /* Acceleration to run */
+    int32_t run_decel;
+    /* Velocity maximum running velocity */
+    int32_t run_max_velo;
+    int32_t btnState;
 } fighter_t;
 
 typedef struct
@@ -163,27 +180,33 @@ void fighterEnterMode(display_t *disp)
 {
     d = disp;
 
-    fighters[0].hurtbox.x0 = 0 * SF;
+    fighters[0].hurtbox.x0 = (32) * SF;
     fighters[0].hurtbox.y0 = 0 * SF;
     fighters[0].hurtbox.x1 = fighters[0].hurtbox.x0 + FIGHTER_SIZE;
     fighters[0].hurtbox.y1 = fighters[0].hurtbox.y0 + FIGHTER_SIZE;
     fighters[0].velocity.x = 0 * SF;
     fighters[0].velocity.y = 0 * SF;
-    fighters[0].acceleration.x = 0 * SF;
-    fighters[0].acceleration.y = DEFAULT_GRAVITY * SF;
-    fighters[0].isOnGround = false;
-    fighters[0].jump_velo = -60;
+    fighters[0].relativePos = FREE_FLOATING;
+    fighters[0].numJumps = 0;
+    fighters[0].gravity = DEFAULT_GRAVITY * SF;
+    fighters[0].jump_velo = -60 * SF;
+    fighters[0].run_accel = DEFAULT_GRAVITY * SF;
+    fighters[0].run_decel = DEFAULT_GRAVITY * SF;
+    fighters[0].run_max_velo = 60 * SF;
 
-    fighters[1].hurtbox.x0 = (((disp->w - 1 - 100) * SF) - FIGHTER_SIZE);
-    fighters[1].hurtbox.y0 = 8 * SF;
+    fighters[1].hurtbox.x0 = (240-32) * SF - FIGHTER_SIZE;
+    fighters[1].hurtbox.y0 = 0 * SF;
     fighters[1].hurtbox.x1 = fighters[1].hurtbox.x0 + FIGHTER_SIZE;
     fighters[1].hurtbox.y1 = fighters[1].hurtbox.y0 + FIGHTER_SIZE;
     fighters[1].velocity.x = 0 * SF;
     fighters[1].velocity.y = 0 * SF;
-    fighters[1].acceleration.x = 0 * SF;
-    fighters[1].acceleration.y = DEFAULT_GRAVITY * SF;
-    fighters[1].isOnGround = false;
-    fighters[1].jump_velo = -60;
+    fighters[1].relativePos = FREE_FLOATING;
+    fighters[1].numJumps = 0;
+    fighters[1].gravity = DEFAULT_GRAVITY * SF;
+    fighters[1].jump_velo = -60 * SF;
+    fighters[1].run_accel = DEFAULT_GRAVITY * SF;
+    fighters[1].run_decel = DEFAULT_GRAVITY * SF;
+    fighters[1].run_max_velo = 60 * SF;
 }
 
 /**
@@ -212,11 +235,11 @@ void fighterMainLoop(int64_t elapsedUs)
         updatePosition(&fighters[1], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
 
         // ESP_LOGI("FGT", "{[%d, %d], [%d, %d], %d}",
-        //     fighters[0].hurtbox.x0,
-        //     fighters[0].hurtbox.y0,
+        //     fighters[0].hurtbox.x0 / SF,
+        //     fighters[0].hurtbox.y0 / SF,
         //     fighters[0].velocity.x,
         //     fighters[0].velocity.y,
-        //     fighters[0].isOnGround);
+        //     fighters[0].relativePos);
     }
 
     d->clearPx();
@@ -233,13 +256,6 @@ void fighterMainLoop(int64_t elapsedUs)
     px.r = 0;
     px.b = 0x1F;
     drawBox(d, fighters[1].hurtbox, px, SF);
-
-    if (boxesCollide(fighters[0].hurtbox, fighters[1].hurtbox))
-    {
-        px.g = 0x1F;
-        px.b = 0;
-        fillDisplayArea(d, 0, 0, 10, 10, px);
-    }
 
     px.r = 0x1F;
     px.g = 0x1F;
@@ -259,19 +275,82 @@ void fighterMainLoop(int64_t elapsedUs)
  */
 void updatePosition(fighter_t *f, const platform_t *platforms, uint8_t numPlatforms)
 {
+    // The hitbox where the fighter will travel to
     box_t upper_hurtbox;
+    // Initial velocity before this frame's calculations
     vector_t v0 = f->velocity;
 
     // Update X kinematics
-    f->velocity.x = v0.x + (f->acceleration.x * FRAME_TIME_MS) / SF;
+    if(f->btnState & LEFT)
+    {
+        if(f->relativePos != RIGHT_OF_PLATFORM)
+        {
+            // Accelerate towards the left
+            f->velocity.x = v0.x - (f->run_accel * FRAME_TIME_MS) / SF;
+            if (f->velocity.x < -f->run_max_velo)
+            {
+                f->velocity.x = -f->run_max_velo;
+            }
+        }
+        else
+        {
+            f->velocity.x = 0;
+        }
+    }
+    else if(f->btnState & RIGHT)
+    {
+        if(f->relativePos != LEFT_OF_PLATFORM)
+        {
+            // Accelerate towards the right
+            f->velocity.x = v0.x + (f->run_accel * FRAME_TIME_MS) / SF;
+            if(f->velocity.x > f->run_max_velo)
+            {
+                f->velocity.x = f->run_max_velo;
+            }
+        }
+        else
+        {
+            f->velocity.x = 0;
+        }
+    }
+    else
+    {
+        if(f->velocity.x > 0)
+        {
+            // Decelrate towards the left
+            f->velocity.x = v0.x - (f->run_decel * FRAME_TIME_MS) / SF;
+            if (f->velocity.x < 0)
+            {
+                f->velocity.x = 0;
+            }
+        }
+        else if(f->velocity.x < 0)
+        {
+            // Decelerate towards the right
+            f->velocity.x = v0.x + (f->run_decel * FRAME_TIME_MS) / SF;
+            if(f->velocity.x > 0)
+            {
+                f->velocity.x = 0;
+            }
+        }
+    }
+    // Find the new X position
     upper_hurtbox.x0 = f->hurtbox.x0 + (((f->velocity.x + v0.x) * FRAME_TIME_MS) / (SF * 2));
 
     // Update Y kinematics
-    f->velocity.y = v0.y + (f->acceleration.y * FRAME_TIME_MS) / SF;
-    upper_hurtbox.y0 = f->hurtbox.y0 + (((f->velocity.y + v0.y) * FRAME_TIME_MS) / (SF * 2));
-
-    // TODO cap velocity?
-    // TODO don't update Y velo if on ground?
+    if(f->relativePos != ABOVE_PLATFORM)
+    {
+        // Fighter is in the air, so there will be a new Y
+        f->velocity.y = v0.y + (f->gravity * FRAME_TIME_MS) / SF;
+        // TODO cap velocity?
+        upper_hurtbox.y0 = f->hurtbox.y0 + (((f->velocity.y + v0.y) * FRAME_TIME_MS) / (SF * 2));
+    }
+    else
+    {
+        // If the fighter is on the ground, don't bother doing Y axis math
+        f->velocity.y = 0;
+        upper_hurtbox.y0 = f->hurtbox.y0;
+    }
 
     // Finish up the upper hurtbox
     upper_hurtbox.x1 = upper_hurtbox.x0 + FIGHTER_SIZE;
@@ -281,7 +360,7 @@ void updatePosition(fighter_t *f, const platform_t *platforms, uint8_t numPlatfo
     bool collisionDetected = false;
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
-        if(boxesCollide(upper_hurtbox, platforms[idx].area))
+        if(boxesCollide(upper_hurtbox, platforms[idx].area, SF))
         {
             collisionDetected = true;
         }
@@ -314,7 +393,7 @@ void updatePosition(fighter_t *f, const platform_t *platforms, uint8_t numPlatfo
             collisionDetected = false;
             for (uint8_t idx = 0; idx < numPlatforms; idx++)
             {
-                if(boxesCollide(test_hurtbox, platforms[idx].area))
+                if(boxesCollide(test_hurtbox, platforms[idx].area, SF))
                 {
                     collisionDetected = true;
                 }
@@ -350,60 +429,56 @@ void updatePosition(fighter_t *f, const platform_t *platforms, uint8_t numPlatfo
                 break;
             }
         }
-
-        // After the final location was found, check what the fighter is up against
-        f->isOnGround = false;
-        for (uint8_t idx = 0; idx < numPlatforms; idx++)
-        {
-            // If a fighter is moving vertically
-            if (f->velocity.y)
-            {
-                // If the fighter is moving downward and hit a platform
-                if ((f->velocity.y > 0) && (((f->hurtbox.y1 / SF) + 1) == (platforms[idx].area.y0 / SF)))
-                {
-                    // Fighter above platform
-                    f->velocity.y = 0;
-                }
-                // If the fighter is moving upward and hit a platform
-                else if ((f->velocity.y < 0) && ((f->hurtbox.y0 / SF) == ((platforms[idx].area.y1 / SF) + 1)))
-                {
-                    // Fighter below platform
-                    f->velocity.y = 0;
-                }
-            }
-
-            // If a fighter is moving horizontally
-            if (f->velocity.x)
-            {
-                // If the fighter is moving rightward and hit a wall
-                if ((f->velocity.x > 0) && (((f->hurtbox.x1 / SF) + 1) == (platforms[idx].area.x0 / SF)))
-                {
-                    // Fighter to left of platform
-                    f->velocity.x = 0;
-                }
-                // If the fighter is moving leftward and hit a wall
-                else if ((f->velocity.x < 0) && ((f->hurtbox.x0 / SF) == ((platforms[idx].area.x1 / SF) + 1)))
-                {
-                    // Fighter to right of platform
-                    f->velocity.x = 0;
-                }
-            }
-        }
     }
 
-    // Once the fighter is in the final position, no matter if there was a
-    // collision or not, check if they are on the ground
-    f->isOnGround = false;
+    // After the final location was found, check what the fighter is up against
+    f->relativePos = FREE_FLOATING;
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
-        // A fighter only has to be on one platform to be on the ground.
+        // If the fighter is moving downward or not at all and hit a platform
         if ((f->velocity.y >= 0) &&
-                ((f->hurtbox.y1 / SF) + 1) == (platforms[idx].area.y0 / SF) &&
-                (f->hurtbox.x0 <= platforms[idx].area.x1) &&
-                (f->hurtbox.x1 >= platforms[idx].area.x0))
+            (((f->hurtbox.y1 / SF) + 1) == (platforms[idx].area.y0 / SF)) && 
+            (f->hurtbox.x0 < platforms[idx].area.x1 + SF) &&
+            (f->hurtbox.x1 + SF > platforms[idx].area.x0))
         {
-            f->isOnGround = true;
+            // Fighter above platform
             f->velocity.y = 0;
+            f->relativePos = ABOVE_PLATFORM;
+            f->numJumps = 2;
+            break;
+        }
+        // If the fighter is moving upward and hit a platform
+        else if ((f->velocity.y <= 0) &&
+            ((f->hurtbox.y0 / SF) == ((platforms[idx].area.y1 / SF) + 1)) && 
+            (f->hurtbox.x0 < platforms[idx].area.x1 + SF) &&
+            (f->hurtbox.x1 + SF > platforms[idx].area.x0))
+        {
+            // Fighter below platform
+            f->velocity.y = 0;
+            f->relativePos = BELOW_PLATFORM;
+            break;
+        }
+
+        // If the fighter is moving rightward and hit a wall
+        if ((f->velocity.x >= 0) &&
+            (((f->hurtbox.x1 / SF) + 1) == (platforms[idx].area.x0 / SF)) &&
+            (f->hurtbox.y0 < platforms[idx].area.y1 + SF) &&
+            (f->hurtbox.y1 + SF > platforms[idx].area.y0))
+        {
+            // Fighter to left of platform
+            f->velocity.x = 0;
+            f->relativePos = LEFT_OF_PLATFORM;
+            break;
+        }
+        // If the fighter is moving leftward and hit a wall
+        else if ((f->velocity.x <= 0) &&
+            ((f->hurtbox.x0 / SF) == ((platforms[idx].area.x1 / SF) + 1)) &&
+            (f->hurtbox.y0 < platforms[idx].area.y1 + SF) &&
+            (f->hurtbox.y1 + SF > platforms[idx].area.y0))
+        {
+            // Fighter to right of platform
+            f->velocity.x = 0;
+            f->relativePos = RIGHT_OF_PLATFORM;
             break;
         }
     }
@@ -416,9 +491,28 @@ void updatePosition(fighter_t *f, const platform_t *platforms, uint8_t numPlatfo
  */
 void fighterButtonCb(buttonEvt_t* evt)
 {
+    // Save the state for X axis kinematics
+    fighters[0].btnState = evt->state;
+
+    // Check for a jump
     if(evt->down)
     {
-        fighters[0].velocity.y = fighters[0].jump_velo * SF;
-        fighters[0].isOnGround = false;
+        switch(evt->button)
+        {
+            case UP:
+            {
+                if(fighters[0].numJumps > 0)
+                {
+                    fighters[0].numJumps--;
+                    fighters[0].velocity.y = fighters[0].jump_velo;
+                    fighters[0].relativePos = FREE_FLOATING;
+                }
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
     }
 }

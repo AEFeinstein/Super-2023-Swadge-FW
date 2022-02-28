@@ -29,17 +29,17 @@ void drawBox(display_t * disp, box_t box, rgba_pixel_t color, uint32_t scalingFa
 }
 
 /**
- * @brief TODO
- *
- * @param box0
- * @param box1
- * @return true
- * @return false
+ * @brief 
+ * 
+ * @param box0 A box to check for collision
+ * @param box1 The other box to check for collision
+ * @param scalingFactor The scaling factor used for fixed point integers
+ * @return true if the boxes collide, false if they do not
  */
-bool boxesCollide(box_t box0, box_t box1)
+bool boxesCollide(box_t box0, box_t box1, uint32_t scalingFactor)
 {
-    return (box0.x0 <= box1.x1 &&
-            box0.x1 >= box1.x0 &&
-            box0.y0 <= box1.y1 &&
-            box0.y1 >= box1.y0);
+    return (box0.x0 < box1.x1 + scalingFactor &&
+            box0.x1  + scalingFactor> box1.x0 &&
+            box0.y0 < box1.y1 + scalingFactor &&
+            box0.y1 + scalingFactor > box1.y0);
 }
