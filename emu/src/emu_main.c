@@ -120,19 +120,12 @@ int main(int argc UNUSED, char ** argv UNUSED)
 		// Get a lock on the display memory mutex (LED & TFT)
 		lockDisplayMemoryMutex();
 
-		// Get the display memory
-		uint16_t bitmapWidth, bitmapHeight;
-		uint32_t * bitmapDisplay = getDisplayBitmap(&bitmapWidth, &bitmapHeight);
-
-		// Update the display
-		CNFGUpdateScreenWithBitmap(bitmapDisplay, bitmapWidth, bitmapHeight);
-
 		// Get the LED memory
 		uint8_t numLeds;
 		led_t * leds = getLedMemory(&numLeds);
 
 		// Draw simulated LEDs
-		if (numLeds > 0)
+		if (numLeds > 0 && NULL != leds)
 		{
 			for(int i = 0; i < numLeds; i++)
 			{
@@ -164,8 +157,6 @@ int main(int argc UNUSED, char ** argv UNUSED)
 			}
 		}
 
-		unlockDisplayMemoryMutex();
-
 		// Draw dividing line
 		CNFGColor( 0x808080FF );
 		CNFGTackSegment(0, TFT_HEIGHT, TFT_WIDTH, TFT_HEIGHT);
@@ -173,8 +164,23 @@ int main(int argc UNUSED, char ** argv UNUSED)
 		//Display the image and wait for time to display next frame.
 		CNFGSwapBuffers();
 
+		// Get the display memory
+		uint16_t bitmapWidth, bitmapHeight;
+		uint32_t * bitmapDisplay = getDisplayBitmap(&bitmapWidth, &bitmapHeight);
+
+		if((0 != bitmapWidth) && (0 != bitmapHeight) && (NULL != bitmapDisplay))
+		{
+			// Update the display
+			CNFGUpdateScreenWithBitmap(bitmapDisplay, bitmapWidth, bitmapHeight);
+		}
+
+		unlockDisplayMemoryMutex();
+
 		// Sleep for ten ms
+		// This causes flickering on Linux (WSL) for some reason
+#ifndef __linux__
         usleep(10);
+#endif
     }
 
 	return 0;

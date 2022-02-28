@@ -201,7 +201,6 @@ void demoExitMode(void)
 void demoMainLoop(int64_t elapsedUs)
 {
     // Rotate through all the hues in two seconds
-    /*
     static uint64_t ledTime = 0;
     ledTime += elapsedUs;
     if(ledTime >= (2000000/360))
@@ -217,7 +216,6 @@ void demoMainLoop(int64_t elapsedUs)
         demo->demoHue = (demo->demoHue + 1) % 360;
         setLeds(leds, NUM_LEDS);
     }
-    */
 
     // Move megaman sometimes
     static int megaIdx = 0;
@@ -397,8 +395,8 @@ void demoAudioCb(uint16_t * samples, uint32_t sampleCnt)
         {
             demo->samplesProcessed = 0;
             HandleFrameInfo(&demo->end, &demo->dd);
-            UpdateAllSameLEDs(&demo->eod, &demo->end);
-            setLeds((led_t*)demo->eod.ledOut, NUM_LEDS);
+            // UpdateAllSameLEDs(&demo->eod, &demo->end);
+            // setLeds((led_t*)demo->eod.ledOut, NUM_LEDS);
             ledsUpdated = true;
         }
     }

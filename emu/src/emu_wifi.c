@@ -10,14 +10,16 @@
     #error "OS Not Detected"
 #endif
 
-#if USING_WINDOWS
+#if defined(USING_WINDOWS)
     #include <WinSock2.h>
-#elif USING_LINUX
+#elif defined(USING_LINUX)
     #include <sys/socket.h> // for socket(), connect(), sendto(), and recvfrom() 
-    #include <arpa/inet.h>  // for sockaddr_in and inet_addr() 
+    #include <arpa/inet.h>  // for sockaddr_in and inet_addr()
+    #include <fcntl.h>
 #endif
 
  #include <unistd.h>
+ #include <string.h>
 
 #include "emu_esp.h"
 #include "esp_log.h"
@@ -59,7 +61,7 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
     hostEspNowRecvCb = recvCb;
     hostEspNowSendCb = sendCb;
 
-#if USING_WINDOWS
+#if defined(USING_WINDOWS)
     // Initialize Winsock
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0)
@@ -93,7 +95,7 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
         return;
     }
 
-#if USING_WINDOWS
+#if defined(USING_WINDOWS)
     //-------------------------
     // Set the socket I/O mode: In this case FIONBIO
     // enables or disables the blocking mode for the
@@ -138,7 +140,7 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
 void espNowDeinit(void)
 {
     close(socketFd);
-#if USING_WINDOWS
+#if defined(USING_WINDOWS)
     WSACleanup();
 #endif
 }
