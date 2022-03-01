@@ -56,11 +56,18 @@ void plotLine(display_t * disp, int x0, int y0, int x1, int y1, rgba_pixel_t col
 void plotRect(display_t * disp, int x0, int y0, int x1, int y1, rgba_pixel_t col)
 {
     // Vertical lines
-    plotLine(disp, x0, y0, x0, y1, col);
-    plotLine(disp, x1, y0, x1, y1, col);
+    for(int y = y0 + 1; y < y1; y++)
+    {
+        disp->setPx(x0, y, col);
+        disp->setPx(x1, y, col);
+    }
+
     // Horizontal lines
-    plotLine(disp, x0, y0, x1, y0, col);
-    plotLine(disp, x0, y1, x1, y1, col);
+    for(int x = x0; x < x1 + 1; x++)
+    {
+        disp->setPx(x, y0, col);
+        disp->setPx(x, y1, col);
+    }
 }
 
 void plotEllipse(display_t * disp, int xm, int ym, int a, int b, rgba_pixel_t col)

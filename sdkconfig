@@ -142,8 +142,8 @@ CONFIG_PARTITION_TABLE_MD5=y
 # TFT Configuration
 #
 # CONFIG_ST7735_160x80 is not set
-CONFIG_ST7789_240x135=y
-# CONFIG_ST7789_240x240 is not set
+# CONFIG_ST7789_240x135 is not set
+CONFIG_ST7789_240x240=y
 # end of TFT Configuration
 
 #
