@@ -103,7 +103,7 @@ bool tud_ready(void)
 void taskYIELD(void)
 {
 	// Just sleep for ten ms
-	usleep(10);
+	usleep(10 * 1000);
 }
 
 /**

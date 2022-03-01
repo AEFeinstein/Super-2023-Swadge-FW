@@ -161,9 +161,6 @@ int main(int argc UNUSED, char ** argv UNUSED)
 		CNFGColor( 0x808080FF );
 		CNFGTackSegment(0, TFT_HEIGHT, TFT_WIDTH, TFT_HEIGHT);
 
-		//Display the image and wait for time to display next frame.
-		CNFGSwapBuffers();
-
 		// Get the display memory
 		uint16_t bitmapWidth, bitmapHeight;
 		uint32_t * bitmapDisplay = getDisplayBitmap(&bitmapWidth, &bitmapHeight);
@@ -171,16 +168,16 @@ int main(int argc UNUSED, char ** argv UNUSED)
 		if((0 != bitmapWidth) && (0 != bitmapHeight) && (NULL != bitmapDisplay))
 		{
 			// Update the display
-			CNFGUpdateScreenWithBitmap(bitmapDisplay, bitmapWidth, bitmapHeight);
+			CNFGBlitImage(bitmapDisplay, 0, 0, bitmapWidth, bitmapHeight);
 		}
+
+		//Display the image and wait for time to display next frame.
+		CNFGSwapBuffers();
 
 		unlockDisplayMemoryMutex();
 
 		// Sleep for ten ms
-		// This causes flickering on Linux (WSL) for some reason
-#ifndef __linux__
-        usleep(10);
-#endif
+        usleep(10 * 1000);
     }
 
 	return 0;
