@@ -137,7 +137,11 @@ int main(int argc, char ** argv)
     // Create output directory if it doesn't exist
     struct stat st = {0};
     if (stat(outDirName, &st) == -1) {
+#if defined(_WIN32)
         mkdir(outDirName);
+#elif defined(__linux__)
+        mkdir(outDirName, 0777);
+#endif
     }
 
     if(ftw(inDirName, processFile, 99) == -1) {

@@ -148,7 +148,7 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
 			for (int i = 0; i < samplesp; i++)
 			{
 				// Write the sample
-				out[i] = 16384 * sin(placeInWave);
+				out[i] = 1024 * sin(placeInWave);
 				// Advance the place in the wave
 				placeInWave += ((2 * M_PI * buzzernote) / ((float)SAMPLING_RATE));
 				// Keep it bound between 0 and 2*PI

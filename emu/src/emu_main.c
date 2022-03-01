@@ -44,7 +44,7 @@
  */
 void HandleKey( int keycode, int bDown )
 {
-	emuSensorHandleKey(keycode, bDown);
+    emuSensorHandleKey(keycode, bDown);
 }
 
 /**
@@ -77,17 +77,17 @@ void HandleMotion( int x UNUSED, int y UNUSED, int mask UNUSED)
  */
 void HandleDestroy()
 {
-	// Upon exit, stop all tasks
-	joinThreads();
+    // Upon exit, stop all tasks
+    joinThreads();
 
-	// Then free display memory
-	deinitDisplayMemory();
+    // Then free display memory
+    deinitDisplayMemory();
 
-	// Close sound
-	deinitSound();
+    // Close sound
+    deinitSound();
 
-	// Free button queue
-	deinitButtons();
+    // Free button queue
+    deinitButtons();
 }
 
 /**
@@ -100,82 +100,85 @@ void HandleDestroy()
  */
 int main(int argc UNUSED, char ** argv UNUSED)
 {
-	// First initialize rawdraw
-	// Screen-specific configurations
-	CNFGSetup( "Swadge S2 Emulator", TFT_WIDTH, TFT_HEIGHT + MAX(TFT_WIDTH, TFT_HEIGHT) + 1);
+    // First initialize rawdraw
+    // Screen-specific configurations
+    CNFGSetup( "Swadge S2 Emulator", TFT_WIDTH, TFT_HEIGHT + MAX(TFT_WIDTH, TFT_HEIGHT) + 1);
 
-	// This is the 'main' that gets called when the ESP boots
+    // This is the 'main' that gets called when the ESP boots
     app_main();
 
-	// Spin around waiting for a program exit afterwards
+    // Spin around waiting for a program exit afterwards
     while(1)
     {
-		// Always handle inputs
-		CNFGHandleInput();
+        // Always handle inputs
+        CNFGHandleInput();
 
-		// Grey Background
-		CNFGBGColor = 0x252525FF;
-		CNFGClearFrame();
+        // Grey Background
+        CNFGBGColor = 0x252525FF;
+        CNFGClearFrame();
 
-		// Get a lock on the display memory mutex (LED & TFT)
-		lockDisplayMemoryMutex();
+        // Get a lock on the display memory mutex (LED & TFT)
+        lockDisplayMemoryMutex();
 
-		// Get the display memory
-		uint16_t bitmapWidth, bitmapHeight;
-		uint32_t * bitmapDisplay = getDisplayBitmap(&bitmapWidth, &bitmapHeight);
+        // Get the LED memory
+        uint8_t numLeds;
+        led_t * leds = getLedMemory(&numLeds);
 
-		// Update the display
-		CNFGUpdateScreenWithBitmap(bitmapDisplay, bitmapWidth, bitmapHeight);
+        // Draw simulated LEDs
+        if (numLeds > 0 && NULL != leds)
+        {
+            for(int i = 0; i < numLeds; i++)
+            {
+                float angle1 = ( i      * 2 * M_PI) / numLeds;
+                float angle2 = ((i + 1) * 2 * M_PI) / numLeds;
+                RDPoint points[] =
+                {
+                    {
+                        .x = (TFT_WIDTH / 2) + (TFT_WIDTH/2) * sin(angle1),
+                        .y = 1 + (TFT_HEIGHT + (TFT_WIDTH/2)) + (TFT_WIDTH/2) * cos(angle1),
+                    },
+                    {
+                        .x = (TFT_WIDTH / 2) + (TFT_WIDTH/2) * sin(angle2),
+                        .y = 1 + (TFT_HEIGHT + (TFT_WIDTH/2)) + (TFT_WIDTH/2) * cos(angle2),
+                    },
+                    {
+                        .x = TFT_WIDTH / 2,
+                        .y = 1 + TFT_HEIGHT + (TFT_WIDTH/2)
+                    }
+                };
 
-		// Get the LED memory
-		uint8_t numLeds;
-		led_t * leds = getLedMemory(&numLeds);
+                // Draw filled polygon
+                CNFGColor( (leds[i].r << 24) | (leds[i].g << 16) | (leds[i].b << 8) | 0xFF);
+                CNFGTackPoly(points, ARRAY_SIZE(points));
 
-		// Draw simulated LEDs
-		if (numLeds > 0)
-		{
-			for(int i = 0; i < numLeds; i++)
-			{
-				float angle1 = ( i      * 2 * M_PI) / numLeds;
-				float angle2 = ((i + 1) * 2 * M_PI) / numLeds;
-				RDPoint points[] =
-				{
-					{
-						.x = (TFT_WIDTH / 2) + (TFT_WIDTH/2) * sin(angle1),
-						.y = 1 + (TFT_HEIGHT + (TFT_WIDTH/2)) + (TFT_WIDTH/2) * cos(angle1),
-					},
-					{
-						.x = (TFT_WIDTH / 2) + (TFT_WIDTH/2) * sin(angle2),
-						.y = 1 + (TFT_HEIGHT + (TFT_WIDTH/2)) + (TFT_WIDTH/2) * cos(angle2),
-					},
-					{
-						.x = TFT_WIDTH / 2,
-						.y = 1 + TFT_HEIGHT + (TFT_WIDTH/2)
-					}
-				};
+                // Draw outline
+                CNFGColor( 0x808080FF );
+                CNFGTackSegment(points[0].x, points[0].y, points[1].x, points[1].y);
+            }
+        }
 
-				// Draw filled polygon
-				CNFGColor( (leds[i].r << 24) | (leds[i].g << 16) | (leds[i].b << 8) | 0xFF);
-				CNFGTackPoly(points, ARRAY_SIZE(points));
+        // Draw dividing line
+        CNFGColor( 0x808080FF );
+        CNFGTackSegment(0, TFT_HEIGHT, TFT_WIDTH, TFT_HEIGHT);
 
-				// Draw outline
-				CNFGColor( 0x808080FF );
-				CNFGTackSegment(points[0].x, points[0].y, points[1].x, points[1].y);
-			}
-		}
+        // Get the display memory
+        uint16_t bitmapWidth, bitmapHeight;
+        uint32_t * bitmapDisplay = getDisplayBitmap(&bitmapWidth, &bitmapHeight);
 
-		unlockDisplayMemoryMutex();
+        if((0 != bitmapWidth) && (0 != bitmapHeight) && (NULL != bitmapDisplay))
+        {
+            // Update the display
+            CNFGBlitImage(bitmapDisplay, 0, 0, bitmapWidth, bitmapHeight);
+        }
 
-		// Draw dividing line
-		CNFGColor( 0x808080FF );
-		CNFGTackSegment(0, TFT_HEIGHT, TFT_WIDTH, TFT_HEIGHT);
+        //Display the image and wait for time to display next frame.
+        CNFGSwapBuffers();
 
-		//Display the image and wait for time to display next frame.
-		CNFGSwapBuffers();
+        unlockDisplayMemoryMutex();
 
-		// Sleep for one ms
-        usleep(1000);
+        // Sleep for ten ms
+        usleep(10 * 1000);
     }
 
-	return 0;
+    return 0;
 }
