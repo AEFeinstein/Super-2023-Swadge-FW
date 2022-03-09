@@ -71,11 +71,11 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
     //     return;
     // }
 
-    if (ESP_OK != (err = esp_event_loop_create_default()))
-    {
-        ESP_LOGD("ESPNOW", "Couldn't create event loop %s", esp_err_to_name(err));
-        return;
-    }
+    // if (ESP_OK != (err = esp_event_loop_create_default()))
+    // {
+    //     ESP_LOGD("ESPNOW", "Couldn't create event loop %s", esp_err_to_name(err));
+    //     return;
+    // }
 
     wifi_init_config_t conf = WIFI_INIT_CONFIG_DEFAULT();
     if (ESP_OK != (err = esp_wifi_init(&conf)))
