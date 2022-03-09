@@ -65,11 +65,11 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
 
     esp_err_t err;
 
-    if (ESP_OK != (err = esp_netif_init()))
-    {
-        ESP_LOGD("ESPNOW", "Couldn't init netif %s", esp_err_to_name(err));
-        return;
-    }
+    // if (ESP_OK != (err = esp_netif_init()))
+    // {
+    //     ESP_LOGD("ESPNOW", "Couldn't init netif %s", esp_err_to_name(err));
+    //     return;
+    // }
 
     if (ESP_OK != (err = esp_event_loop_create_default()))
     {
