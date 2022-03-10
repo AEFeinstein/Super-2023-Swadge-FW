@@ -24,7 +24,7 @@
 // Defines
 //==============================================================================
 
-#define SOFTAP_CHANNEL 11
+#define ESPNOW_CHANNEL 11
 
 //==============================================================================
 // Variables
@@ -90,8 +90,8 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
         return;
     }
 
-    // Set up all the wifi softAP mode configs
-    if(ESP_OK != (err = esp_wifi_set_mode(WIFI_MODE_AP)))
+    // Set up all the wifi station mode configs
+    if(ESP_OK != (err = esp_wifi_set_mode(WIFI_MODE_STA)))
     {
         ESP_LOGD("ESPNOW", "Could not set as station mode");
         return;
@@ -99,27 +99,33 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
 
     wifi_config_t config =
     {
-        .ap =
+        .sta =
         {
-            .ssid = "",                 /**< SSID of ESP32 soft-AP. If ssid_len field is 0, this must be a Null terminated string. Otherwise, length is set according to ssid_len. */
-            .password = "",             /**< Password of ESP32 soft-AP. */
-            .ssid_len = 0,              /**< Optional length of SSID field. */
-            .channel = SOFTAP_CHANNEL,  /**< Channel of ESP32 soft-AP */
-            .authmode = WIFI_AUTH_OPEN, /**< Auth mode of ESP32 soft-AP. Do not support AUTH_WEP in soft-AP mode */
-            .ssid_hidden = 1,           /**< Broadcast SSID or not, default 0, broadcast the SSID */
-            .max_connection = 0,        /**< Max number of stations allowed to connect in, default 4, max 10 */
-            .beacon_interval = 60000,   /**< Beacon interval which should be multiples of 100. Unit: TU(time unit, 1 TU = 1024 us). Range: 100 ~ 60000. Default value: 100 */
-            .pairwise_cipher = WIFI_CIPHER_TYPE_NONE, /**< pairwise cipher of SoftAP, group cipher will be derived using this. cipher values are valid starting from WIFI_CIPHER_TYPE_TKIP, enum values before that will be considered as invalid and default cipher suites(TKIP+CCMP) will be used. Valid cipher suites in softAP mode are WIFI_CIPHER_TYPE_TKIP, WIFI_CIPHER_TYPE_CCMP and WIFI_CIPHER_TYPE_TKIP_CCMP. */
-            .ftm_responder = 0,         /**< Enable FTM Responder mode */
-        }
+            .ssid = "",                    /**< SSID of target AP. */
+            .password = "",                /**< Password of target AP. */
+            .scan_method = WIFI_FAST_SCAN, /**< do all channel scan or fast scan */
+            .bssid_set = false,            /**< whether set MAC address of target AP or not. Generally, station_config.bssid_set needs to be 0 = 0, and it needs to be 1 only when users need to check the MAC address of the AP.*/
+            .bssid = {0,0,0,0,0,0},        /**< MAC address of target AP*/
+            .channel = ESPNOW_CHANNEL,     /**< channel of target AP. Set to 1~13 to scan starting from the specified channel before connecting to AP. If the channel of AP is unknown, set it to 0.*/
+            .listen_interval = 3,          /**< Listen interval for ESP32 station to receive beacon when WIFI_PS_MAX_MODEM is set. Units: AP beacon intervals. Defaults to 3 if set to 0. */
+            .sort_method = WIFI_CONNECT_AP_BY_SIGNAL, /**< sort the connect AP in the list by rssi or security mode */
+            .threshold.authmode = WIFI_AUTH_OPEN, /**< When sort_method is set, only APs which have an auth mode that is more secure than the selected auth mode and a signal stronger than the minimum RSSI will be used. */
+            .threshold.rssi = 0,
+            .pmf_cfg.capable = false,      /**< Configuration for Protected Management Frame. Will be advertized in RSN Capabilities in RSN IE. */
+            .pmf_cfg.required = false,
+            .rm_enabled = false,           /**< Whether Radio Measurements are enabled for the connection */
+            .btm_enabled = false,          /**< Whether BSS Transition Management is enabled for the connection */
+            .mbo_enabled = false,          /**< Whether MBO is enabled for the connection */
+            .reserved = 0                  /**< Reserved for future feature set */
+        },
     };
-    if(ESP_OK != (err = esp_wifi_set_config(ESP_IF_WIFI_AP, &config)))
+    if(ESP_OK != (err = esp_wifi_set_config(ESP_IF_WIFI_STA, &config)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't set softap config");
+        ESP_LOGD("ESPNOW", "Couldn't set station config");
         return;
     }
 
-    if(ESP_OK != (err = esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N)))
+    if(ESP_OK != (err = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N)))
     {
         ESP_LOGD("ESPNOW", "Couldn't set protocol %s", esp_err_to_name(err));
         return;
@@ -139,7 +145,7 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
         return;
     }
 
-    if(ESP_OK != (err = esp_wifi_config_espnow_rate(ESP_IF_WIFI_AP, WIFI_PHY_RATE_54M)))
+    if(ESP_OK != (err = esp_wifi_config_espnow_rate(ESP_IF_WIFI_STA, WIFI_PHY_RATE_54M)))
     {
         ESP_LOGD("ESPNOW", "Couldn't set PHY rate %s", esp_err_to_name(err));
         return;
@@ -152,9 +158,16 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
     }
 
     // Set the channel
-    if(ESP_OK != (err = esp_wifi_set_channel( SOFTAP_CHANNEL, WIFI_SECOND_CHAN_BELOW )))
+    if(ESP_OK != (err = esp_wifi_set_channel( ESPNOW_CHANNEL, WIFI_SECOND_CHAN_BELOW )))
     {
         ESP_LOGD("ESPNOW", "Couldn't set channel");
+        return;
+    }
+
+    // Don't scan in STA mode
+    if(ESP_OK != (err = esp_wifi_scan_stop()))
+    {
+        ESP_LOGD("ESPNOW", "Couldn't stop scanning");
         return;
     }
 
@@ -176,8 +189,8 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
         {
             .peer_addr = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
             .lmk = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-            .channel = SOFTAP_CHANNEL,
-            .ifidx = ESP_IF_WIFI_AP,
+            .channel = ESPNOW_CHANNEL,
+            .ifidx = ESP_IF_WIFI_STA,
             .encrypt = 0,
             .priv = NULL
         };
@@ -287,7 +300,8 @@ void espNowSend(const char* data, uint8_t len)
  */
 void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
-    ESP_LOGD("ESPNOW", "SEND MAC %02X:%02X:%02X:%02X:%02X:%02X",
+    ESP_LOGD("ESPNOW", "%s, MAC: %02X:%02X:%02X:%02X:%02X:%02X",
+        status == ESP_NOW_SEND_SUCCESS ? "ESP_NOW_SEND_SUCCESS" : "ESP_NOW_SEND_FAIL",
            mac_addr[0],
            mac_addr[1],
            mac_addr[2],

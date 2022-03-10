@@ -513,7 +513,7 @@ void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t l
     demo->packetsRx++;
     if(100 == demo->packetsRx)
     {
-        ESP_LOGI("DEMO", "100 packets in %llu", esp_timer_get_time() - demo->packetTimer);
+        ESP_LOGI("DEMO", "30 packets in %lluus", esp_timer_get_time() - demo->packetTimer);
         demo->packetsRx = 0;
         demo->packetTimer = 0;
     }
