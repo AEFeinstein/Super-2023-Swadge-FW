@@ -273,8 +273,9 @@ void drawChar(display_t * disp, rgba_pixel_t color, uint16_t h, font_ch_t * ch, 
  * @param text  The text to draw to the display
  * @param xOff  The x offset to draw the text at
  * @param yOff  The y offset to draw the text at
+ * @return The x offset at the end of the drawn string
  */
-void drawText(display_t * disp, font_t * font, rgba_pixel_t color, const char * text, int16_t xOff, int16_t yOff)
+int16_t drawText(display_t * disp, font_t * font, rgba_pixel_t color, const char * text, int16_t xOff, int16_t yOff)
 {
     while(*text != 0)
     {
@@ -292,9 +293,10 @@ void drawText(display_t * disp, font_t * font, rgba_pixel_t color, const char * 
         // If this char is offscreen, finish drawing
         if(xOff >= disp->w)
         {
-            return;
+            return xOff;
         }
     }
+    return xOff;
 }
 
 /**

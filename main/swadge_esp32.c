@@ -45,7 +45,9 @@
 
 #include "display.h"
 
+#include "mode_main_menu.h"
 #include "mode_demo.h"
+#include "mode_fighter.h"
 
 #ifdef EMU
 #include "emu_esp.h"
@@ -66,8 +68,12 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
 
 swadgeMode* swadgeModes[] =
 {
+    &modemainMenu,
+    &modeFighter,
     &modeDemo
 };
+
+uint8_t swadgeModeIdx = 1;
 
 //==============================================================================
 // Functions
@@ -80,9 +86,9 @@ swadgeMode* swadgeModes[] =
 void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const char* data, 
     uint8_t len, int8_t rssi)
 {
-    if(NULL != swadgeModes[0]->fnEspNowRecvCb)
+    if(NULL != swadgeModes[swadgeModeIdx]->fnEspNowRecvCb)
     {
-        swadgeModes[0]->fnEspNowRecvCb(mac_addr, data, len, rssi);
+        swadgeModes[swadgeModeIdx]->fnEspNowRecvCb(mac_addr, data, len, rssi);
     }
 }
 
@@ -92,9 +98,9 @@ void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const char* data,
  */
 void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
-    if(NULL != swadgeModes[0]->fnEspNowSendCb)
+    if(NULL != swadgeModes[swadgeModeIdx]->fnEspNowSendCb)
     {
-        swadgeModes[0]->fnEspNowSendCb(mac_addr, status);
+        swadgeModes[swadgeModeIdx]->fnEspNowSendCb(mac_addr, status);
     }
 }
 
@@ -219,26 +225,31 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     /* Initialize SPIFFS */
     initSpiffs();
 
-    /* Initialize non-i2c hardware peripherals */
-    initButtons(2, GPIO_NUM_35, GPIO_NUM_36);
-    initLeds(GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
-    buzzer_init(GPIO_NUM_9, RMT_CHANNEL_1);
     initTemperatureSensor();
-    initTouchSensor(0.2f, true, 9,
-        // TOUCH_PAD_NUM3,
-        TOUCH_PAD_NUM4,
-        TOUCH_PAD_NUM5,
-        TOUCH_PAD_NUM6,
-        TOUCH_PAD_NUM7,
-        // TOUCH_PAD_NUM8,
-        // TOUCH_PAD_NUM9,
-        TOUCH_PAD_NUM10,
-        TOUCH_PAD_NUM11,
-        TOUCH_PAD_NUM12,
-        TOUCH_PAD_NUM13,
-        TOUCH_PAD_NUM14);
 
-    if(NULL != swadgeModes[0]->fnAudioCallback)
+    /* Initialize non-i2c hardware peripherals */
+    initButtons(8,
+        GPIO_NUM_4,
+        GPIO_NUM_5,
+        GPIO_NUM_6,
+        GPIO_NUM_7,
+        GPIO_NUM_15,
+        GPIO_NUM_16,
+        GPIO_NUM_17,
+        GPIO_NUM_18);
+
+    initTouchSensor(0.2f, true, 6,
+        TOUCH_PAD_NUM9,   // GPIO_NUM_9
+        TOUCH_PAD_NUM10,  // GPIO_NUM_10
+        TOUCH_PAD_NUM11,  // GPIO_NUM_11
+        TOUCH_PAD_NUM12,  // GPIO_NUM_12
+        TOUCH_PAD_NUM13,  // GPIO_NUM_13
+        TOUCH_PAD_NUM14); // GPIO_NUM_14
+
+    initLeds(GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
+    buzzer_init(GPIO_NUM_35, RMT_CHANNEL_1);
+
+    if(NULL != swadgeModes[swadgeModeIdx]->fnAudioCallback)
     {
         /* Since the ADC2 is shared with the WIFI module, which has higher
          * priority, reading operation of adc2_get_raw() will fail between
@@ -253,10 +264,13 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     }
 
     bool accelInitialized = false;
-    if(NULL != swadgeModes[0]->fnAccelerometerCallback)
+    if(NULL != swadgeModes[swadgeModeIdx]->fnAccelerometerCallback)
     {
         /* Initialize i2c peripherals */
-        i2c_master_init(GPIO_NUM_33, GPIO_NUM_34, GPIO_PULLUP_DISABLE, 1000000);
+        i2c_master_init(
+            GPIO_NUM_33,
+            GPIO_NUM_34,
+            GPIO_PULLUP_DISABLE, 1000000);
         accelInitialized = QMA6981_setup();
     }
 #ifdef OLED_ENABLED
@@ -280,15 +294,15 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     tinyusb_driver_install(&tusb_cfg);
 
     /* Initialize Wifi peripheral */
-    if(ESP_NOW == swadgeModes[0]->wifiMode)
+    if(ESP_NOW == swadgeModes[swadgeModeIdx]->wifiMode)
     {
         espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb);
     }
 
     /* Enter the swadge mode */
-    if(NULL != swadgeModes[0]->fnEnterMode)
+    if(NULL != swadgeModes[swadgeModeIdx]->fnEnterMode)
     {
-        swadgeModes[0]->fnEnterMode(&tftDisp);
+        swadgeModes[swadgeModeIdx]->fnEnterMode(&tftDisp);
     }
 
     /* Loop forever! */
@@ -299,7 +313,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
 #endif
     {
         // Process ESP NOW
-        if(ESP_NOW == swadgeModes[0]->wifiMode)
+        if(ESP_NOW == swadgeModes[swadgeModeIdx]->wifiMode)
         {
             checkEspNowRxQueue();
         }
@@ -309,22 +323,22 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         {
             accel_t accel = {0};
             QMA6981_poll(&accel);
-            swadgeModes[0]->fnAccelerometerCallback(&accel);
+            swadgeModes[swadgeModeIdx]->fnAccelerometerCallback(&accel);
         }
 
         // Process temperature sensor
-        if(NULL != swadgeModes[0]->fnTemperatureCallback)
+        if(NULL != swadgeModes[swadgeModeIdx]->fnTemperatureCallback)
         {
-            swadgeModes[0]->fnTemperatureCallback(readTemperatureSensor());
+            swadgeModes[swadgeModeIdx]->fnTemperatureCallback(readTemperatureSensor());
         }
 
         // Process button presses
         buttonEvt_t bEvt = {0};
         if(checkButtonQueue(&bEvt))
         {
-            if(NULL != swadgeModes[0]->fnButtonCallback)
+            if(NULL != swadgeModes[swadgeModeIdx]->fnButtonCallback)
             {
-                swadgeModes[0]->fnButtonCallback(&bEvt);
+                swadgeModes[swadgeModeIdx]->fnButtonCallback(&bEvt);
             }
         }
 
@@ -332,20 +346,20 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         touch_event_t tEvt = {0};
         if(checkTouchSensor(&tEvt))
         {
-            if(NULL != swadgeModes[0]->fnTouchCallback)
+            if(NULL != swadgeModes[swadgeModeIdx]->fnTouchCallback)
             {
-                swadgeModes[0]->fnTouchCallback(&tEvt);
+                swadgeModes[swadgeModeIdx]->fnTouchCallback(&tEvt);
             }
         }
 
         // Process ADC samples
-        if(NULL != swadgeModes[0]->fnAudioCallback)
+        if(NULL != swadgeModes[swadgeModeIdx]->fnAudioCallback)
         {
             uint16_t adcSamps[BYTES_PER_READ / sizeof(adc_digi_output_data_t)];
             uint32_t sampleCnt = 0;
             while(0 < (sampleCnt = continuous_adc_read(adcSamps)))
             {
-                swadgeModes[0]->fnAudioCallback(adcSamps, sampleCnt);
+                swadgeModes[swadgeModeIdx]->fnAudioCallback(adcSamps, sampleCnt);
             }
         }
 
@@ -361,9 +375,9 @@ void mainSwadgeTask(void * arg __attribute((unused)))
             int64_t tElapsedUs = tNowUs - tLastCallUs;
             tLastCallUs = tNowUs;
 
-            if(NULL != swadgeModes[0]->fnMainLoop)
+            if(NULL != swadgeModes[swadgeModeIdx]->fnMainLoop)
             {
-                swadgeModes[0]->fnMainLoop(tElapsedUs);
+                swadgeModes[swadgeModeIdx]->fnMainLoop(tElapsedUs);
             }
 
 #ifdef EMU
@@ -384,15 +398,15 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         // (100hz by default)
     }
 
-    if(NULL != swadgeModes[0]->fnAudioCallback)
+    if(NULL != swadgeModes[swadgeModeIdx]->fnAudioCallback)
     {
         continuous_adc_stop();
         continuous_adc_deinit();
     }
 
-    if(NULL != swadgeModes[0]->fnExitMode)
+    if(NULL != swadgeModes[swadgeModeIdx]->fnExitMode)
     {
-        swadgeModes[0]->fnExitMode();
+        swadgeModes[swadgeModeIdx]->fnExitMode();
     }
 
 #ifdef EMU
