@@ -251,9 +251,14 @@ void mainSwadgeTask(void * arg __attribute((unused)))
 
     if(NULL != swadgeModes[swadgeModeIdx]->fnAudioCallback)
     {
+        /* Since the ADC2 is shared with the WIFI module, which has higher
+         * priority, reading operation of adc2_get_raw() will fail between
+         * esp_wifi_start() and esp_wifi_stop(). Use the return code to see
+         * whether the reading is successful.
+         */
         static uint16_t adc1_chan_mask = BIT(2);
         static uint16_t adc2_chan_mask = 0;
-        static adc_channel_t channel[] = {ADC_CHANNEL_1}; // GPIO_NUM_3
+        static adc_channel_t channel[] = {ADC1_CHANNEL_2}; // GPIO_NUM_3
         continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
         continuous_adc_start();
     }

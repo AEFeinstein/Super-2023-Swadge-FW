@@ -135,7 +135,7 @@ void p2pInitialize(p2pInfo* p2p, char* msgId, p2pConCbFn conCbFn,
 
     // Get and save the string form of our MAC address
     uint8_t mymac[6];
-    esp_wifi_get_mac(WIFI_IF_AP, mymac);
+    esp_wifi_get_mac(WIFI_IF_STA, mymac);
     snprintf(p2p->cnc.macStr, sizeof(p2p->cnc.macStr), p2pMacFmt,
              mymac[0],
              mymac[1],
@@ -422,7 +422,7 @@ void p2pModeMsgFailure(void* arg)
 void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
                   bool shouldAck, void (*success)(void*), void (*failure)(void*))
 {
-    ESP_LOGD("P2P", "%s", __func__);
+    ESP_LOGD("P2P", "%12s: %s", __func__, msg);
 
     // If this is a first time message and longer than a connection message
     if( (p2p->ack.msgToAck != msg) && strlen(p2p->conMsg) < len)
@@ -438,14 +438,6 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
             p2p->cnc.mySeqNum = 0;
         }
     }
-
-#if LOG_LOCAL_LEVEL < ESP_LOG_DEBUG
-    char* dbgMsg = (char*)malloc(sizeof(char) * (len + 1));
-    memcpy(dbgMsg, msg, len);
-    dbgMsg[len] = 0;
-    ESP_LOGD("P2P", "%12s: %s", __func__, dbgMsg);
-    free(dbgMsg);
-#endif
 
     if(shouldAck)
     {
@@ -492,13 +484,14 @@ void p2pSendMsgEx(p2pInfo* p2p, char* msg, uint16_t len,
  */
 void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
 {
-#if LOG_LOCAL_LEVEL < ESP_LOG_DEBUG
-    char* dbgMsg = (char*)malloc(sizeof(char) * (len + 1));
-    memcpy(dbgMsg, data, len);
-    dbgMsg[len] = 0;
-    ESP_LOGD("P2P", "%12s: %s", __func__, dbgMsg);
-    free(dbgMsg);
-#endif
+    ESP_LOGD("P2P", "%12s - From %02X:%02X:%02X:%02X:%02X:%02X - %s", __func__,
+                mac_addr[0],
+                mac_addr[1],
+                mac_addr[2],
+                mac_addr[3],
+                mac_addr[4],
+                mac_addr[5],
+                data);
 
     // Ignore the null terminator when checking the length
     len--;
@@ -517,7 +510,9 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const char* data, uint8_t 
             0 != memcmp(&data[MAC_IDX], p2p->cnc.macStr, strlen(p2p->cnc.macStr)))
     {
         // This MAC isn't for us
-        ESP_LOGD("P2P", "DISCARD: Not for our MAC");
+        ESP_LOGD("P2P", "DISCARD: Not for our MAC.");
+        ESP_LOGD("P2P", "         Our MAC: %s", p2p->cnc.macStr);
+        ESP_LOGD("P2P", "         rx  MAC: %s", &data[MAC_IDX]);
         return;
     }
 
@@ -828,7 +823,7 @@ void p2pRestart(void* arg)
 void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr __attribute__((unused)),
                 esp_now_send_status_t status)
 {
-    ESP_LOGD("P2P", "%s", __func__);
+    ESP_LOGD("P2P", "%s - %s", __func__, status == ESP_NOW_SEND_SUCCESS ? "ESP_NOW_SEND_SUCCESS" : "ESP_NOW_SEND_FAIL");
 
     switch(status)
     {
