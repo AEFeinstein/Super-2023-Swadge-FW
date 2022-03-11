@@ -21,136 +21,154 @@ typedef int8_t s8;
 
 #include "esp_supplicant/src/esp_wifi_driver.h"
 
+const char WPA_TAG[] = "WPA";
+
 ////////////////////////////////////////////////////////////////////////////////
 
 bool wpa_attach(void)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return true;
 }
 
 bool wpa_deattach(void)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return true;
 }
 
 int wpa_sta_connect(uint8_t *bssid)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return 0;
 }
 
 void wpa_sta_disconnected_cb(uint8_t reason_code)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
 }
 
 int wpa_sm_rx_eapol(u8 *src_addr, u8 *buf, u32 len)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return 0;
 }
 
 bool wpa_sta_in_4way_handshake(void)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return true;
 }
 
+#ifdef CONFIG_ESP_WIFI_SOFTAP_SUPPORT
+
 void *hostap_init(void)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return NULL;
 }
 
 bool hostap_deinit(void *data)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return true;
 }
 
 bool wpa_ap_join(void **sm, u8 *bssid, u8 *wpa_ie, u8 wpa_ie_len)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return true;
 }
 
 bool wpa_ap_remove(void *sm)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return true;
 }
 
 uint8_t *wpa_ap_get_wpa_ie(uint8_t *len)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return NULL;
 }
 
 bool wpa_ap_rx_eapol(void *hapd_data, void *sm, u8 *data, size_t data_len)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return true;
 }
 
 void wpa_ap_get_peer_spp_msg(void *sm, bool *spp_cap, bool *spp_req)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
 }
+
+#endif
 
 char *wpa_config_parse_string(const char *value, size_t *len)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return NULL;
 }
 
 int wpa_parse_wpa_ie_wrapper(const u8 *wpa_ie, size_t wpa_ie_len, wifi_wpa_ie_t *data)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return 0;
 }
+
+#if 0
 
 int wpa_config_bss(u8 *bssid)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return 0;
 }
+
+#endif
 
 int wpa_michael_mic_failure(u16 is_unicast)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return 0;
 }
 
+#if 0
+
 uint8_t *wpa3_build_sae_msg(uint8_t *bssid, uint32_t type, size_t *len)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return NULL;
 }
 
 int wpa3_parse_sae_msg(uint8_t *buf, size_t len, uint32_t type, uint16_t status)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return 0;
 }
 
 int wpa_sta_rx_mgmt(u8 type, u8 *frame, size_t len, u8 *sender, u32 rssi, u8 channel, u64 current_tsf)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return 0;
 }
 
+#endif
+
 void wpa_config_done(void)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
 }
+
+#if 0
 
 bool wpa_sta_profile_match(u8 *bssid)
 {
-    ESP_EARLY_LOGE("WPA","%s",__func__);
+    ESP_LOGI(WPA_TAG,"%s",__func__);
     return true;
 }
+
+#endif
 
 int esp_supplicant_init(void)
 {
@@ -235,163 +253,141 @@ int os_get_random(unsigned char *buf, size_t len)
 
 int aes_128_cbc_encrypt(const unsigned char *key, const unsigned char *iv, unsigned char *data, int data_len)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int aes_128_cbc_decrypt(const unsigned char *key, const unsigned char *iv, unsigned char *data, int data_len)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int esp_aes_wrap(const unsigned char *kek, int n, const unsigned char *plain, unsigned char *cipher)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int esp_aes_unwrap(const unsigned char *kek, int n, const unsigned char *cipher, unsigned char *plain)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int hmac_sha256_vector(const unsigned char *key, int key_len, int num_elem,
 			                   const unsigned char *addr[], const int *len, unsigned char *mac)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int sha256_prf(const unsigned char *key, int key_len, const char *label,
 	                           const unsigned char *data, int data_len, unsigned char *buf, int buf_len)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int hmac_md5(const unsigned char *key, unsigned int key_len, const unsigned char *data,
                               unsigned int data_len, unsigned char *mac)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int hmac_md5_vector(const unsigned char *key, unsigned int key_len, unsigned int num_elem,
                               const unsigned char *addr[], const unsigned int *len, unsigned char *mac)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int hmac_sha1(const unsigned char *key, unsigned int key_len, const unsigned char *data,
                               unsigned int data_len, unsigned char *mac)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int hmac_sha1_vector(const unsigned char *key, unsigned int key_len, unsigned int num_elem,
                               const unsigned char *addr[], const unsigned int *len, unsigned char *mac)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int sha1_prf(const unsigned char *key, unsigned int key_len, const char *label,
                               const unsigned char *data, unsigned int data_len, unsigned char *buf, unsigned int buf_len)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int sha1_vector(unsigned int num_elem, const unsigned char *addr[], const unsigned int *len,
                               unsigned char *mac)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int pbkdf2_sha1(const char *passphrase, const char *ssid, unsigned int ssid_len,
                               int iterations, unsigned char *buf, unsigned int buflen)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int rc4_skip(const unsigned char *key, unsigned int keylen, unsigned int skip,
                               unsigned char *data, unsigned int data_len)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 int md5_vector(unsigned int num_elem, const unsigned char *addr[], const unsigned int *len,
                               unsigned char *mac)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
 void esp_aes_encrypt(void *ctx, const unsigned char *plain, unsigned char *crypt)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
 }
 
 void * aes_encrypt_init(const unsigned char *key,  unsigned int len)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return NULL;
 }
 
 void aes_encrypt_deinit(void *ctx)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
 }
 
 void esp_aes_decrypt(void *ctx, const unsigned char *crypt, unsigned char *plain)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
 }
 
 void * aes_decrypt_init(const unsigned char *key, unsigned int len)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return NULL;
 }
 
 void aes_decrypt_deinit(void *ctx)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
 }
 
 int omac1_aes_128(const uint8_t *key, const uint8_t *data, size_t data_len,
                                    uint8_t *mic)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
@@ -399,24 +395,21 @@ uint8_t * ccmp_decrypt(const uint8_t *tk, const uint8_t *ieee80211_hdr,
                                         const uint8_t *data, size_t data_len,
                                         size_t *decrypted_len, bool espnow_pkt)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return NULL;
 }
 
 uint8_t * ccmp_encrypt(const uint8_t *tk, uint8_t *frame, size_t len, size_t hdrlen,
                                         uint8_t *pn, int keyid, size_t *encrypted_len)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return NULL;
 }
 
 int esp_aes_gmac(const uint8_t *key, size_t keylen, const uint8_t *iv, size_t iv_len,
                               const uint8_t *aad, size_t aad_len, uint8_t *mic)
 {
-    ESP_EARLY_LOGE("WPA", "%s", __func__);
-    //ESP_DRAM_LOGE("WPA", "%s", __func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return 0;
 }
 
