@@ -2,6 +2,8 @@
 // Includes
 //==============================================================================
 
+#include <string.h>
+
 #include "esp_log.h"
 
 #include "swadgeMode.h"

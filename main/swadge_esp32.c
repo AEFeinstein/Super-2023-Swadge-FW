@@ -73,7 +73,7 @@ swadgeMode* swadgeModes[] =
     &modeDemo
 };
 
-uint8_t swadgeModeIdx = 1;
+uint8_t swadgeModeIdx = 2;
 
 //==============================================================================
 // Functions
