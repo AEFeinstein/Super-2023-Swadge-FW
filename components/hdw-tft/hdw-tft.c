@@ -82,7 +82,7 @@ void drawDisplayTft(bool drawDiff);
 //==============================================================================
 
 static esp_lcd_panel_handle_t panel_handle = NULL;
-static rgba_pixel_disp_t * pixels = NULL
+static rgba_pixel_disp_t * pixels = NULL;
 static uint16_t *s_lines[2] = {0};
 // static uint64_t tFpsStart = 0;
 // static int framesDrawn = 0;
