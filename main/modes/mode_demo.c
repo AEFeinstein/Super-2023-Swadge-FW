@@ -250,63 +250,38 @@ void demoMainLoop(int64_t elapsedUs)
             (i + 1) * 2, (demo->disp->h - demo->ibm_vga8.h - 2),
             hsv2rgb(64 + (i * 2), 1, 1));
     }
-    
-    rgba_pixel_t pxCol = {
-        .a = PX_OPAQUE,
-        .r = 0x1F,
-        .g = 0x00,
-        .b = 0x00,
-    };
 
     // Draw text
-    drawText(demo->disp, &demo->radiostars, pxCol, "hello TFT", 10, 64);
+    drawText(demo->disp, &demo->radiostars, c500, "hello TFT", 10, 64);
 
     // Draw image
     drawQoi(demo->disp, &demo->megaman[megaIdx], megaPos, (demo->disp->h-demo->megaman[0].h)/2);
 
     // Draw a single white pixel in the middle of the display
-    pxCol.r = 0x1F;
-    pxCol.g = 0x1F;
-    pxCol.b = 0x1F;
     demo->disp->setPx(
         demo->disp->w / 2,
         demo->disp->h / 2,
-        pxCol);
+        c555);
 
     // Draw a yellow line
-    pxCol.r = 0x1F;
-    pxCol.g = 0x1F;
-    pxCol.b = 0x00;
-    plotLine(demo->disp, 10, 5, 50, 20, pxCol);
+    plotLine(demo->disp, 10, 5, 50, 20, c550);
 
     // Draw a magenta rectangle
-    pxCol.r = 0x1F;
-    pxCol.g = 0x00;
-    pxCol.b = 0x1F;
-    plotRect(demo->disp, 70, 5, 100, 20, pxCol);
+    plotRect(demo->disp, 70, 5, 100, 20, c505);
 
     // Draw a cyan circle
-    pxCol.r = 0x00;
-    pxCol.g = 0x1F;
-    pxCol.b = 0x1F;
-    plotCircle(demo->disp, 140, 30, 20, pxCol);
+    plotCircle(demo->disp, 140, 30, 20, c055);
 
     // Draw temperature to display
     char tempStr[128];
     sprintf(tempStr, "%2.2f C", demo->temperature);
     uint16_t tWidth = textWidth(&(demo->ibm_vga8), tempStr);
-    pxCol.r = 0x1F;
-    pxCol.g = 0x00;
-    pxCol.b = 0x1F;
-    drawText(demo->disp, &(demo->ibm_vga8), pxCol, tempStr, demo->disp->w - tWidth, demo->disp->h - demo->ibm_vga8.h);
+    drawText(demo->disp, &(demo->ibm_vga8), c505, tempStr, demo->disp->w - tWidth, demo->disp->h - demo->ibm_vga8.h);
 
     // Draw acceleration to display
     char accelStr[128];
     sprintf(accelStr, "X: %3d, Y: %3d, Z: %3d", demo->accel.x, demo->accel.y, demo->accel.z);
-    pxCol.r = 0x00;
-    pxCol.g = 0x1F;
-    pxCol.b = 0x1F;
-    drawText(demo->disp, &(demo->ibm_vga8), pxCol, accelStr, 0, demo->disp->h - demo->ibm_vga8.h);
+    drawText(demo->disp, &(demo->ibm_vga8), c055, accelStr, 0, demo->disp->h - demo->ibm_vga8.h);
 
     // Twice a second push out some USB data
     static uint64_t usbTime = 0;

@@ -363,7 +363,7 @@ typedef struct _swadgeMode
 
 Drawing to a display is done through a struct of function pointers, `display_t`. This struct has basic functions for setting and getting pixels, clearing the whole display, drawing the current framebuffer to the physical display (which you should not call directly). It also has the display's width and height, in pixels. This design decision was made to abstract any framebuffer specifics from functions that draw graphics. For instance, the TFT has 15 bit color, the OLED has 1 bit color, and the emulator has 24 bit color, but the same functions for drawing sprites can be used for all three. This design could even drive multiple displays simultaneously.
 
-The TFT display uses 15 bit color and 1 bit alpha. That means that the red, green, and blue channels all range from 0 to 31 (0x1F), and alpha is either `PX_TRANSPARENT` or `PX_OPAQUE`. It packs neatly into a 16 bit variable, `rgba_pixel_t`, which is often used as a parameter when drawing.
+The TFT display uses 8-bit web-safe color palette. This means that the red, green, and blue channels all range from 0 to 5. There's a handy `enum`, `paletteColor_t`, which has all the colors named like `cRGB`. For example, `c500` is full red. `cTransparent` is a special value for a transparent pixel.
 
 You do not have to call any functions to draw the current framebuffer to the physical display. That is handled by the system firmware. Just draw your frame and it will get pushed out as fast as possible.
 
@@ -383,32 +383,19 @@ As an example, this will clear the display, then draw a pixel, line, rectangle, 
 demo->disp->clearPx();
 
 // Draw a single white pixel in the middle of the display
-rgba_pixel_t pxCol = { .a = PX_OPAQUE };
-pxCol.r = 0x1F;
-pxCol.g = 0x1F;
-pxCol.b = 0x1F;
 demo->disp->setPx(
     demo->disp->w / 2, // Middle of the screen width
     demo->disp->h / 2, // Middle of the screen height
-    pxCol);
+    c555);
 
 // Draw a yellow line
-pxCol.r = 0x1F;
-pxCol.g = 0x1F;
-pxCol.b = 0x00;
-plotLine(demo->disp, 10, 5, 50, 20, pxCol);
+plotLine(demo->disp, 10, 5, 50, 20, c550);
 
 // Draw a magenta rectangle
-pxCol.r = 0x1F;
-pxCol.g = 0x00;
-pxCol.b = 0x1F;
-plotRect(demo->disp, 70, 5, 100, 20, pxCol);
+plotRect(demo->disp, 70, 5, 100, 20, c505);
 
 // Draw a cyan circle
-pxCol.r = 0x00;
-pxCol.g = 0x1F;
-pxCol.b = 0x1F;
-plotCircle(demo->disp, 140, 30, 20, pxCol);
+plotCircle(demo->disp, 140, 30, 20, c055);
 ```
 
 ## Loading and Freeing Assets
@@ -431,8 +418,7 @@ freeQoi(&megaman);
 
 font_t ibm;
 loadFont("ibm_vga8.font", &ibm);
-rgba_pixel_t color = {.r = 0x1F, .g = 0x00, .b = 0x00, .a = PX_OPAQUE};
-drawText(demo->disp, &ibm, color, "Demo Text", 0, 0);
+drawText(demo->disp, &ibm, c500, "Demo Text", 0, 0);
 freeFont(&ibm);
 ```
 

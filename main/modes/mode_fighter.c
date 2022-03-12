@@ -244,25 +244,13 @@ void fighterMainLoop(int64_t elapsedUs)
 
     d->clearPx();
 
-    rgba_pixel_t px =
-    {
-        .r = 0x1F,
-        .g = 0x00,
-        .b = 0x00,
-        .a = PX_OPAQUE
-    };
-    drawBox(d, fighters[0].hurtbox, px, SF);
+    drawBox(d, fighters[0].hurtbox, c500, SF);
 
-    px.r = 0;
-    px.b = 0x1F;
-    drawBox(d, fighters[1].hurtbox, px, SF);
+    drawBox(d, fighters[1].hurtbox, c005, SF);
 
-    px.r = 0x1F;
-    px.g = 0x1F;
-    px.b = 0x1F;
     for (uint8_t idx = 0; idx < sizeof(finalDest) / sizeof(finalDest[0]); idx++)
     {
-        drawBox(d, finalDest[idx].area, px, SF);
+        drawBox(d, finalDest[idx].area, c555, SF);
     }
 }
 

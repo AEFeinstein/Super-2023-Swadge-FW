@@ -34,13 +34,13 @@ led_t * rdLeds = NULL;
 // Function Prototypes
 //==============================================================================
 
-void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px);
-rgba_pixel_t emuGetPxTft(int16_t x, int16_t y);
+void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px);
+paletteColor_t emuGetPxTft(int16_t x, int16_t y);
 void emuClearPxTft(void);
 void emuDrawDisplayTft(bool drawDiff);
 
-void emuSetPxOled(int16_t x, int16_t y, rgba_pixel_t px);
-rgba_pixel_t emuGetPxOled(int16_t x, int16_t y);
+void emuSetPxOled(int16_t x, int16_t y, paletteColor_t px);
+paletteColor_t emuGetPxOled(int16_t x, int16_t y);
 void emuClearPxOled(void);
 void emuDrawDisplayOled(bool drawDiff);
 
@@ -165,18 +165,19 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
  * @param y The Y coordinate of the pixel to set
  * @param px The pixel to set, in 15 bit color with 1 alpha channel
  */
-void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px)
+void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px)
 {
     if(0 <= x && x < TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
         // Convert from 15 bit to 24 bit color
-        if(PX_OPAQUE == px.a)
+        if(cTransparent == px)
         {
-            uint8_t r8 = ((px.r * 0xFF) / 0x1F) & 0xFF;
-            uint8_t g8 = ((px.g * 0xFF) / 0x1F) & 0xFF;
-            uint8_t b8 = ((px.b * 0xFF) / 0x1F) & 0xFF;
-            pthread_mutex_lock(&displayMutex);
-            bitmapDisplay[(bitmapWidth * y) + x] = (0xFF << 24) | (r8 << 16) | (g8 << 8) | (b8);
+            // TODO do this!!!
+            // uint8_t r8 = ((px.r * 0xFF) / 0x1F) & 0xFF;
+            // uint8_t g8 = ((px.g * 0xFF) / 0x1F) & 0xFF;
+            // uint8_t b8 = ((px.b * 0xFF) / 0x1F) & 0xFF;
+            // pthread_mutex_lock(&displayMutex);
+            // bitmapDisplay[(bitmapWidth * y) + x] = (0xFF << 24) | (r8 << 16) | (g8 << 8) | (b8);
             pthread_mutex_unlock(&displayMutex);
         }
     }
@@ -190,23 +191,24 @@ void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px)
  * @param y The Y coordinate of the pixel to get
  * @return The pixel at the given coordinate
  */
-rgba_pixel_t emuGetPxTft(int16_t x, int16_t y)
+paletteColor_t emuGetPxTft(int16_t x, int16_t y)
 {
     if(0 <= x && x < TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
-        pthread_mutex_lock(&displayMutex);
-        uint32_t argb = bitmapDisplay[(bitmapWidth * y) + x];
-        pthread_mutex_unlock(&displayMutex);
-        rgba_pixel_t px;
-        px.r = (((argb & 0xFF0000) >> 16) * 0x1F) / 0xFF; // 5 bit
-        px.g = (((argb & 0x00FF00) >>  8) * 0x1F) / 0xFF; // 5 bit
-        px.b = (((argb & 0x0000FF) >>  0) * 0x1F) / 0xFF; // 5 bit
-        return px;
+        // TODO do this!!!
+        // pthread_mutex_lock(&displayMutex);
+        // uint32_t argb = bitmapDisplay[(bitmapWidth * y) + x];
+        // pthread_mutex_unlock(&displayMutex);
+        // rgba_pixel_t px;
+        // px.r = (((argb & 0xFF0000) >> 16) * 0x1F) / 0xFF; // 5 bit
+        // px.g = (((argb & 0x00FF00) >>  8) * 0x1F) / 0xFF; // 5 bit
+        // px.b = (((argb & 0x0000FF) >>  0) * 0x1F) / 0xFF; // 5 bit
+        // return px;
+        return c555;
     }
     else
     {
-        rgba_pixel_t px = {0};
-        return px;
+        return c000;
     }
 }
 
@@ -268,7 +270,7 @@ bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
  * @param y The Y coordinate of the pixel to set
  * @param px The pixel to set, in 15 bit color with 1 alpha channel
  */
-void emuSetPxOled(int16_t x UNUSED, int16_t y UNUSED, rgba_pixel_t px UNUSED)
+void emuSetPxOled(int16_t x UNUSED, int16_t y UNUSED, paletteColor_t px UNUSED)
 {
 	WARN_UNIMPLEMENTED();
 }
@@ -281,11 +283,10 @@ void emuSetPxOled(int16_t x UNUSED, int16_t y UNUSED, rgba_pixel_t px UNUSED)
  * @param y The Y coordinate of the pixel to get
  * @return The pixel at the given coordinate
  */
-rgba_pixel_t emuGetPxOled(int16_t x UNUSED, int16_t y UNUSED)
+paletteColor_t emuGetPxOled(int16_t x UNUSED, int16_t y UNUSED)
 {
 	WARN_UNIMPLEMENTED();
-	rgba_pixel_t px = {.r=0x00, .g = 0x00, .b = 0x00, .a = PX_OPAQUE};
-	return px;
+    return c000;
 }
 
 /**

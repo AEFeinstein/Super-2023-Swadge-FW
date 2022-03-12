@@ -50,8 +50,8 @@ void drawRow(menu_t * menu, cLinkedNode_t* row, int16_t yPos, bool shouldDrawBox
  * @return A pointer to malloc'd memory for this menu
  */
 menu_t* initMenu(display_t * disp, const char* title, font_t * titleFont,
-                 font_t * menuFont, rgba_pixel_t foregroundColor,
-                 rgba_pixel_t backgroundColor, menuCb cbFunc)
+                 font_t * menuFont, paletteColor_t foregroundColor,
+                 paletteColor_t backgroundColor, menuCb cbFunc)
 {
     // Allocate the memory
     menu_t* menu = (menu_t*)malloc(sizeof(menu_t));

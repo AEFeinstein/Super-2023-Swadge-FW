@@ -36,7 +36,7 @@
  * @param c  The color to fill
  */
 void fillDisplayArea(display_t * disp, int16_t x1, int16_t y1, int16_t x2,
-    int16_t y2, rgba_pixel_t c)
+    int16_t y2, paletteColor_t c)
 {
     // Only draw on the display
     int16_t xMin = CLAMP(x1, 0, disp->w);
@@ -85,7 +85,7 @@ bool loadQoi(char * name, qoi_t * qoi)
     }
 
     // Save the image data in the arg
-    qoi->px = malloc(sizeof(rgba_pixel_t) * qd.width * qd.height);
+    qoi->px = malloc(sizeof(paletteColor_t) * qd.width * qd.height);
     if(NULL == qoi->px)
     {
         ESP_LOGE("QOI", "QOI malloc fail (%s)", name);
@@ -100,10 +100,11 @@ bool loadQoi(char * name, qoi_t * qoi)
     {
         for(uint16_t x = 0; x < qd.width; x++)
         {
-            qoi->px[(y * qd.width) + x].r = (pixels[(y * qd.width) + x].rgba.r * 0x1F) / 0xFF;
-            qoi->px[(y * qd.width) + x].g = (pixels[(y * qd.width) + x].rgba.g * 0x1F) / 0xFF;
-            qoi->px[(y * qd.width) + x].b = (pixels[(y * qd.width) + x].rgba.b * 0x1F) / 0xFF;
-            qoi->px[(y * qd.width) + x].a =  pixels[(y * qd.width) + x].rgba.a ? PX_OPAQUE : PX_TRANSPARENT;
+            // TODO FIX THIS!!!
+            // qoi->px[(y * qd.width) + x].r = (pixels[(y * qd.width) + x].rgba.r * 0x1F) / 0xFF;
+            // qoi->px[(y * qd.width) + x].g = (pixels[(y * qd.width) + x].rgba.g * 0x1F) / 0xFF;
+            // qoi->px[(y * qd.width) + x].b = (pixels[(y * qd.width) + x].rgba.b * 0x1F) / 0xFF;
+            // qoi->px[(y * qd.width) + x].a =  pixels[(y * qd.width) + x].rgba.a ? PX_OPAQUE : PX_TRANSPARENT;
         }
     }
 
@@ -152,7 +153,7 @@ void drawQoi(display_t * disp, qoi_t *qoi, int16_t xOff, int16_t yOff)
         {
             int16_t qoiX = x - xOff;
             int16_t qoiY = y - yOff;
-            if (PX_OPAQUE == qoi->px[(qoiY * qoi->w) + qoiX].a)
+            if (cTransparent != qoi->px[(qoiY * qoi->w) + qoiX])
             {
                 disp->setPx(x, y, qoi->px[(qoiY * qoi->w) + qoiX]);
             }
@@ -235,7 +236,7 @@ void freeFont(font_t * font)
  * @param xOff  The x offset to draw the char at
  * @param yOff  The y offset to draw the char at
  */
-void drawChar(display_t * disp, rgba_pixel_t color, uint16_t h, font_ch_t * ch, int16_t xOff, int16_t yOff)
+void drawChar(display_t * disp, paletteColor_t color, uint16_t h, font_ch_t * ch, int16_t xOff, int16_t yOff)
 {
     uint16_t byteIdx = 0;
     uint8_t bitIdx = 0;
@@ -275,7 +276,7 @@ void drawChar(display_t * disp, rgba_pixel_t color, uint16_t h, font_ch_t * ch, 
  * @param yOff  The y offset to draw the text at
  * @return The x offset at the end of the drawn string
  */
-int16_t drawText(display_t * disp, font_t * font, rgba_pixel_t color, const char * text, int16_t xOff, int16_t yOff)
+int16_t drawText(display_t * disp, font_t * font, paletteColor_t color, const char * text, int16_t xOff, int16_t yOff)
 {
     while(*text != 0)
     {
@@ -328,66 +329,68 @@ uint16_t textWidth(font_t * font, const char * text)
  * @param h The input hue
  * @param s The input saturation
  * @param v The input value
- * @return rgba_pixel_t The output RGB
+ * @return paletteColor_t The output RGB
  */
-rgba_pixel_t hsv2rgb(uint16_t h, float s, float v)
+paletteColor_t hsv2rgb(uint16_t h, float s, float v)
 {
-    float hh, p, q, t, ff;
-    uint16_t i;
-    rgba_pixel_t px = {.a=PX_OPAQUE};
+    // TODO FIX THIS!!!
+    return c232;
+    // float hh, p, q, t, ff;
+    // uint16_t i;
+    // paletteColor_t px = {.a=PX_OPAQUE};
 
-    hh = (h % 360) / 60.0f;
-    i = (uint16_t)hh;
-    ff = hh - i;
-    p = v * (1.0 - s);
-    q = v * (1.0 - (s * ff));
-    t = v * (1.0 - (s * (1.0 - ff)));
+    // hh = (h % 360) / 60.0f;
+    // i = (uint16_t)hh;
+    // ff = hh - i;
+    // p = v * (1.0 - s);
+    // q = v * (1.0 - (s * ff));
+    // t = v * (1.0 - (s * (1.0 - ff)));
 
-    switch (i)
-    {
-        case 0:
-        {
-            px.r = v * 0x1F;
-            px.g = t * 0x1F;
-            px.b = p * 0x1F;
-            break;
-        }
-        case 1:
-        {
-            px.r = q * 0x1F;
-            px.g = v * 0x1F;
-            px.b = p * 0x1F;
-            break;
-        }
-        case 2:
-        {
-            px.r = p * 0x1F;
-            px.g = v * 0x1F;
-            px.b = t * 0x1F;
-            break;
-        }
-        case 3:
-        {
-            px.r = p * 0x1F;
-            px.g = q * 0x1F;
-            px.b = v * 0x1F;
-            break;
-        }
-        case 4:
-        {
-            px.r = t * 0x1F;
-            px.g = p * 0x1F;
-            px.b = v * 0x1F;
-            break;
-        }
-        case 5:
-        default:
-        {
-            px.r = v * 0x1F;
-            px.g = p * 0x1F;
-            px.b = q * 0x1F;
-            break;
-        }
-    }
-    return px;
+    // switch (i)
+    // {
+    //     case 0:
+    //     {
+    //         px.r = v * 0x1F;
+    //         px.g = t * 0x1F;
+    //         px.b = p * 0x1F;
+    //         break;
+    //     }
+    //     case 1:
+    //     {
+    //         px.r = q * 0x1F;
+    //         px.g = v * 0x1F;
+    //         px.b = p * 0x1F;
+    //         break;
+    //     }
+    //     case 2:
+    //     {
+    //         px.r = p * 0x1F;
+    //         px.g = v * 0x1F;
+    //         px.b = t * 0x1F;
+    //         break;
+    //     }
+    //     case 3:
+    //     {
+    //         px.r = p * 0x1F;
+    //         px.g = q * 0x1F;
+    //         px.b = v * 0x1F;
+    //         break;
+    //     }
+    //     case 4:
+    //     {
+    //         px.r = t * 0x1F;
+    //         px.g = p * 0x1F;
+    //         px.b = v * 0x1F;
+    //         break;
+    //     }
+    //     case 5:
+    //     default:
+    //     {
+    //         px.r = v * 0x1F;
+    //         px.g = p * 0x1F;
+    //         px.b = q * 0x1F;
+    //         break;
+    //     }
+    // }
+    // return px;
 }
