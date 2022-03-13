@@ -176,7 +176,7 @@ void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px)
             uint8_t g8 = ((px.g * 0xFF) / 0x1F) & 0xFF;
             uint8_t b8 = ((px.b * 0xFF) / 0x1F) & 0xFF;
             pthread_mutex_lock(&displayMutex);
-            bitmapDisplay[(bitmapWidth * y) + x] = (0xFF << 24) | (r8 << 16) | (g8 << 8) | (b8);
+            bitmapDisplay[(bitmapWidth * y) + x] = (r8 << 24) | (g8 << 16) | (b8 << 8) | 0xFF;
             pthread_mutex_unlock(&displayMutex);
         }
     }
