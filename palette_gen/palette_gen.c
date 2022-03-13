@@ -51,7 +51,7 @@ int main(int argc, char ** argv)
         {
             for(int b = 0; b < 6; b++)
             {
-                uint32_t px = (0xFF << 24) | (((r * 0xFF) / 5) << 16) | (((g * 0xFF) / 5) << 8) | (((b * 0xFF) / 5));
+                uint32_t px = (((r * 0xFF) / 5) << 24) | (((g * 0xFF) / 5) << 16) | (((b * 0xFF) / 5) << 8) | 0xFF;
                 printf("    0x%08X,\n", px);
             }
         }
