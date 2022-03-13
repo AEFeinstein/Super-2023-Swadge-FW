@@ -17,7 +17,7 @@ typedef struct {
     paletteColor_t * px;
     uint16_t w;
     uint16_t h;
-} qoi_t;
+} wsg_t;
 
 typedef void (*pxSetFunc_t)(int16_t x, int16_t y, paletteColor_t px);
 typedef paletteColor_t (*pxGetFunc_t)(int16_t x, int16_t y);
@@ -50,9 +50,9 @@ typedef struct {
 void fillDisplayArea(display_t * disp, int16_t x1, int16_t y1, int16_t x2,
     int16_t y2, paletteColor_t c);
 
-bool loadQoi(char * name, qoi_t * qoi);
-void drawQoi(display_t * disp, qoi_t *qoi, int16_t xOff, int16_t yOff);
-void freeQoi(qoi_t * qoi);
+bool loadWsg(char * name, wsg_t * wsg);
+void drawWsg(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff);
+void freeWsg(wsg_t * wsg);
 
 bool loadFont(const char * name, font_t * font);
 void drawChar(display_t * disp, paletteColor_t color, uint16_t h, font_ch_t * ch,

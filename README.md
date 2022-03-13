@@ -402,7 +402,7 @@ plotCircle(demo->disp, 140, 30, 20, c055);
 
 The build system will automatically process, pack, and flash assets as a read-only part of the firmware. The the [`spiffs_file_preprocessor`](/spiffs_file_preprocessor/) is responsible for this. Assets are an easy way to include things like images, fonts, and eventually other file types. Any files in the [`/assets/`](/assets/) folder will be processed and the output will be written to [`/spiffs_image/`](/spiffs_image/).
 
-`spiffs_file_preprocessor` currently only processes `.png` and `.font.png` files. `.png` are converted into `.qoi` files, which are reasonably compressed and have very little overhead to decode. You can read about that at [QOI Image Format](https://qoiformat.org/). `.font.png` files are a line of characters with underlines to denote char width (open one up to see what I'm talking about). They are converted into a one-bit bitmapped format.
+`spiffs_file_preprocessor` currently only processes `.png` and `.font.png` files. `.png` are converted into `.wsg` files, which use an 8 bit web-safe color palette, are reasonably compressed and have very little overhead to decode. `.font.png` files are a line of characters with underlines to denote char width (open one up to see what I'm talking about). They are converted into a one-bit bitmapped format.
 
 Loading assets is a relatively slower operation, so often times it makes sense to load once when a mode starts and free when the mode finishes. On the other hand, loading assets eats up RAM, so it may be wise to only load assets when necessary. Engineering is a figuring out a series of trade-offs.
 
@@ -411,10 +411,10 @@ As an example, this will load, draw, and free both an image and some red text. N
 ```C
 #include "display.h"
 
-qoi_t megaman;
-loadQoi("megaman.qoi", &megaman);
-drawQoi(demo->disp, &megaman, 0, 0);
-freeQoi(&megaman);
+wsg_t megaman;
+loadWsg("megaman.wsg", &megaman);
+drawWsg(demo->disp, &megaman, 0, 0);
+freeWsg(&megaman);
 
 font_t ibm;
 loadFont("ibm_vga8.font", &ibm);

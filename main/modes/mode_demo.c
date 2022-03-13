@@ -81,7 +81,7 @@ static const song_t odeToJoy =
 typedef struct
 {
     uint16_t demoHue;
-    qoi_t megaman[9];
+    wsg_t megaman[9];
     font_t tom_thumb;
     font_t ibm_vga8;
     font_t radiostars;
@@ -153,16 +153,16 @@ void demoEnterMode(display_t * disp)
     InitColorChord(&demo->end, &demo->dd);
     demo->maxValue = 1;
 
-    // Load some QOIs
-    loadQoi("run-1.qoi", &demo->megaman[0]);
-    loadQoi("run-2.qoi", &demo->megaman[1]);
-    loadQoi("run-3.qoi", &demo->megaman[2]);
-    loadQoi("run-4.qoi", &demo->megaman[3]);
-    loadQoi("run-5.qoi", &demo->megaman[4]);
-    loadQoi("run-6.qoi", &demo->megaman[5]);
-    loadQoi("run-7.qoi", &demo->megaman[6]);
-    loadQoi("run-8.qoi", &demo->megaman[7]);
-    loadQoi("run-9.qoi", &demo->megaman[8]);
+    // Load some WSGs
+    loadWsg("run-1.wsg", &demo->megaman[0]);
+    loadWsg("run-2.wsg", &demo->megaman[1]);
+    loadWsg("run-3.wsg", &demo->megaman[2]);
+    loadWsg("run-4.wsg", &demo->megaman[3]);
+    loadWsg("run-5.wsg", &demo->megaman[4]);
+    loadWsg("run-6.wsg", &demo->megaman[5]);
+    loadWsg("run-7.wsg", &demo->megaman[6]);
+    loadWsg("run-8.wsg", &demo->megaman[7]);
+    loadWsg("run-9.wsg", &demo->megaman[8]);
 
     // Load some fonts
     loadFont("tom_thumb.font", &demo->tom_thumb);
@@ -182,7 +182,7 @@ void demoExitMode(void)
 {
     for(uint8_t i = 0; i < (sizeof(demo->megaman) / sizeof(demo->megaman[0])); i++)
     {
-        freeQoi(&demo->megaman[i]);
+        freeWsg(&demo->megaman[i]);
     }
     freeFont(&demo->tom_thumb);
     freeFont(&demo->ibm_vga8);
@@ -255,7 +255,7 @@ void demoMainLoop(int64_t elapsedUs)
     drawText(demo->disp, &demo->radiostars, c500, "hello TFT", 10, 64);
 
     // Draw image
-    drawQoi(demo->disp, &demo->megaman[megaIdx], megaPos, (demo->disp->h-demo->megaman[0].h)/2);
+    drawWsg(demo->disp, &demo->megaman[megaIdx], megaPos, (demo->disp->h-demo->megaman[0].h)/2);
 
     // Draw a single white pixel in the middle of the display
     demo->disp->setPx(
