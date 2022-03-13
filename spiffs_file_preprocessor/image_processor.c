@@ -15,14 +15,13 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-#define QOI_IMPLEMENTATION
-#include "qoi.h"
-
 #include "spiffs_file_preprocessor.h"
 #include "image_processor.h"
 
 #define HI_BYTE(x) ((x >> 8) & 0xFF)
 #define LO_BYTE(x) ((x) & 0xFF)
+
+#define CLAMP(x,l,u) ((x) < l ? l : ((x) > u ? u : (x)))
 
 typedef struct
 {
@@ -79,7 +78,7 @@ int isNeighborNotDrawn(pixel_t **img, int x, int y, int w, int h)
 /**
  * @brief TODO
  *
- * @param image16b
+ * @param image8b
  * @param x
  * @param y
  * @param w
@@ -163,9 +162,9 @@ void process_image(const char *infile, const char *outdir)
 
 	/* Change the file extension */
 	char * dotptr = strrchr(outFilePath, '.');
-	dotptr[1] = 'q';
-	dotptr[2] = 'o';
-	dotptr[3] = 'i';
+	dotptr[1] = 'w';
+	dotptr[2] = 's';
+	dotptr[3] = 'g';
 
 	if(doesFileExist(outFilePath))
 	{
@@ -180,11 +179,11 @@ void process_image(const char *infile, const char *outdir)
 	if (NULL != data)
 	{
 		/* Create an array for output */
-		pixel_t **image16b;
-		image16b = (pixel_t **)calloc(h, sizeof(pixel_t *));
+		pixel_t **image8b;
+		image8b = (pixel_t **)calloc(h, sizeof(pixel_t *));
 		for (int y = 0; y < h; y++)
 		{
-			image16b[y] = (pixel_t *)calloc(w, sizeof(pixel_t));
+			image8b[y] = (pixel_t *)calloc(w, sizeof(pixel_t));
 		}
 
 		/* Create an array of pixel indicies, then shuffle it */
@@ -209,27 +208,27 @@ void process_image(const char *infile, const char *outdir)
 			unsigned char sourceA = data[(y * (w * 4)) + (x * 4) + 3];
 
 			/* Find the bit-reduced value, use rounding, 5551 for RGBA */
-			image16b[y][x].r = (127 + ((sourceR + image16b[y][x].eR) * 31)) / 255;
-			image16b[y][x].g = (127 + ((sourceG + image16b[y][x].eG) * 31)) / 255;
-			image16b[y][x].b = (127 + ((sourceB + image16b[y][x].eB) * 31)) / 255;
-			image16b[y][x].a = sourceA ? 0xFF : 0x00;
+			image8b[y][x].r = CLAMP((127 + ((sourceR + image8b[y][x].eR) * 5)) / 255, 0, 5);
+			image8b[y][x].g = CLAMP((127 + ((sourceG + image8b[y][x].eG) * 5)) / 255, 0, 5);
+			image8b[y][x].b = CLAMP((127 + ((sourceB + image8b[y][x].eB) * 5)) / 255, 0, 5);
+			image8b[y][x].a = sourceA ? 0xFF : 0x00;
 
 			/* Find the total error, 8 bits per channel */
-			int teR = sourceR - ((image16b[y][x].r * 255) / 31);
-			int teG = sourceG - ((image16b[y][x].g * 255) / 31);
-			int teB = sourceB - ((image16b[y][x].b * 255) / 31);
+			int teR = sourceR - ((image8b[y][x].r * 255) / 5);
+			int teG = sourceG - ((image8b[y][x].g * 255) / 5);
+			int teB = sourceB - ((image8b[y][x].b * 255) / 5);
 
 			/* Count all the neighbors that haven't been drawn yet */
 			int adjNeighbors = 0;
-			adjNeighbors += isNeighborNotDrawn(image16b, x + 0, y + 1, w, h);
-			adjNeighbors += isNeighborNotDrawn(image16b, x + 0, y - 1, w, h);
-			adjNeighbors += isNeighborNotDrawn(image16b, x + 1, y + 0, w, h);
-			adjNeighbors += isNeighborNotDrawn(image16b, x - 1, y + 0, w, h);
+			adjNeighbors += isNeighborNotDrawn(image8b, x + 0, y + 1, w, h);
+			adjNeighbors += isNeighborNotDrawn(image8b, x + 0, y - 1, w, h);
+			adjNeighbors += isNeighborNotDrawn(image8b, x + 1, y + 0, w, h);
+			adjNeighbors += isNeighborNotDrawn(image8b, x - 1, y + 0, w, h);
 			int diagNeighbors = 0;
-			diagNeighbors += isNeighborNotDrawn(image16b, x - 1, y - 1, w, h);
-			diagNeighbors += isNeighborNotDrawn(image16b, x + 1, y - 1, w, h);
-			diagNeighbors += isNeighborNotDrawn(image16b, x - 1, y + 1, w, h);
-			diagNeighbors += isNeighborNotDrawn(image16b, x + 1, y + 1, w, h);
+			diagNeighbors += isNeighborNotDrawn(image8b, x - 1, y - 1, w, h);
+			diagNeighbors += isNeighborNotDrawn(image8b, x + 1, y - 1, w, h);
+			diagNeighbors += isNeighborNotDrawn(image8b, x - 1, y + 1, w, h);
+			diagNeighbors += isNeighborNotDrawn(image8b, x + 1, y + 1, w, h);
 
 			/* Spread the error to all neighboring unquantized pixels, with
 			 * twice as much error to the adjacent pixels as the diagonal ones
@@ -238,17 +237,17 @@ void process_image(const char *infile, const char *outdir)
 			float adjScalar = 2 * diagScalar;
 
 			/* Write the error */
-			spreadError(image16b, x - 1, y - 1, w, h, teR, teG, teB, diagScalar);
-			spreadError(image16b, x - 1, y + 1, w, h, teR, teG, teB, diagScalar);
-			spreadError(image16b, x + 1, y - 1, w, h, teR, teG, teB, diagScalar);
-			spreadError(image16b, x + 1, y + 1, w, h, teR, teG, teB, diagScalar);
-			spreadError(image16b, x - 1, y + 0, w, h, teR, teG, teB, adjScalar);
-			spreadError(image16b, x + 1, y + 0, w, h, teR, teG, teB, adjScalar);
-			spreadError(image16b, x + 0, y - 1, w, h, teR, teG, teB, adjScalar);
-			spreadError(image16b, x + 0, y + 1, w, h, teR, teG, teB, adjScalar);
+			spreadError(image8b, x - 1, y - 1, w, h, teR, teG, teB, diagScalar);
+			spreadError(image8b, x - 1, y + 1, w, h, teR, teG, teB, diagScalar);
+			spreadError(image8b, x + 1, y - 1, w, h, teR, teG, teB, diagScalar);
+			spreadError(image8b, x + 1, y + 1, w, h, teR, teG, teB, diagScalar);
+			spreadError(image8b, x - 1, y + 0, w, h, teR, teG, teB, adjScalar);
+			spreadError(image8b, x + 1, y + 0, w, h, teR, teG, teB, adjScalar);
+			spreadError(image8b, x + 0, y - 1, w, h, teR, teG, teB, adjScalar);
+			spreadError(image8b, x + 0, y + 1, w, h, teR, teG, teB, adjScalar);
 
 			/* Mark the random pixel as drawn */
-			image16b[y][x].isDrawn = true;
+			image8b[y][x].isDrawn = true;
 		}
 
 		/* Free stbi memory */
@@ -261,31 +260,51 @@ void process_image(const char *infile, const char *outdir)
 		{
 			for (int x = 0; x < w; x++)
 			{
-				pixBuf[pixBufIdx++] = (image16b[y][x].r * 255) / 31;
-				pixBuf[pixBufIdx++] = (image16b[y][x].g * 255) / 31;
-				pixBuf[pixBufIdx++] = (image16b[y][x].b * 255) / 31;
-				pixBuf[pixBufIdx++] = image16b[y][x].a;
+				pixBuf[pixBufIdx++] = (image8b[y][x].r * 255) / 5;
+				pixBuf[pixBufIdx++] = (image8b[y][x].g * 255) / 5;
+				pixBuf[pixBufIdx++] = (image8b[y][x].b * 255) / 5;
+				pixBuf[pixBufIdx++] = image8b[y][x].a;
+			}
+		}
+
+		/* Convert to a palette buffer */
+		unsigned char paletteBuf[w*h];
+		int paletteBufIdx = 0;
+		for (int y = 0; y < h; y++)
+		{
+			for (int x = 0; x < w; x++)
+			{
+				if(image8b[y][x].a)
+				{
+					paletteBuf[paletteBufIdx++] = (image8b[y][x].b) + (6 * (image8b[y][x].g)) + (36 * (image8b[y][x].r));
+				}
+				else
+				{
+					paletteBuf[paletteBufIdx++] = 216;
+				}
 			}
 		}
 
 		/* Free dithering memory */
 		for (int y = 0; y < h; y++)
 		{
-			free(image16b[y]);
+			free(image8b[y]);
 		}
-		free(image16b);
+		free(image8b);
 
-		/* Write a QOI image */
-		const qoi_desc qd = {
-			.width = (unsigned int)w,
-			.height = (unsigned int)h,
-			.channels = 4,
-			.colorspace = QOI_SRGB
-		};
-		qoi_write(outFilePath, pixBuf, &qd);
+		/* Write a WSG image */
+		FILE * wsgFile = fopen(outFilePath, "wb");
+		/* Write dimensions */
+		putc(HI_BYTE(w), wsgFile);
+		putc(LO_BYTE(w), wsgFile);
+		putc(HI_BYTE(h), wsgFile);
+		putc(LO_BYTE(h), wsgFile);
+		/* Dump bytes */
+		fwrite(paletteBuf, w * h, sizeof(unsigned char), wsgFile);
+		fclose(wsgFile);
 
 		/* Print results */
-		printf("%s:\n  Source file size: %ld\n  QOI   file size: %ld\n",
+		printf("%s:\n  Source file size: %ld\n  WSG   file size: %ld\n",
 			   infile,
 			   getFileSize(infile),
 			   getFileSize(outFilePath));
