@@ -44,6 +44,20 @@ int main(int argc, char ** argv)
     }
     printf("};\n\n");
 
+    printf("uint32_t paletteColorsEmu[216] = \n{\n");
+    for(int r = 0; r < 6; r++)
+    {
+        for(int g = 0; g < 6; g++)
+        {
+            for(int b = 0; b < 6; b++)
+            {
+                uint32_t px = (0xFF << 24) | (((r * 0xFF) / 5) << 16) | (((g * 0xFF) / 5) << 8) | (((b * 0xFF) / 5));
+                printf("    0x%08X,\n", px);
+            }
+        }
+    }
+    printf("};\n\n");
+
     printf("typedef enum\n{\n");
     for(int r = 0; r < 6; r++)
     {
