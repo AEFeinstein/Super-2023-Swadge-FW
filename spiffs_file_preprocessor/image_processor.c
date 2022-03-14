@@ -43,7 +43,7 @@ typedef struct
  * @param ar
  * @param len
  */
-void shuffleArray(uint16_t *ar, uint32_t len)
+void shuffleArray(uint32_t *ar, uint32_t len)
 {
 	srand(time(NULL));
 	for (int i = len - 1; i > 0; i--)
@@ -189,7 +189,7 @@ void process_image(const char *infile, const char *outdir)
 		}
 
 		/* Create an array of pixel indicies, then shuffle it */
-		uint16_t indices[w * h];
+		uint32_t * indices = (uint32_t*)malloc(sizeof(uint32_t) * w * h); //[w * h];
 		for (int i = 0; i < w * h; i++)
 		{
 			indices[i] = i;
@@ -252,12 +252,14 @@ void process_image(const char *infile, const char *outdir)
 			image8b[y][x].isDrawn = true;
 		}
 
+		free(indices);
+
 		/* Free stbi memory */
 		stbi_image_free(data);
 
 #ifdef WRITE_DITHERED_PNG
 		/* Convert to a pixel buffer */
-		unsigned char pixBuf[w*h*4];
+		unsigned char* pixBuf = (char*)malloc(sizeof(unsigned char) * w * h * 4);//[w*h*4];
 		int pixBufIdx = 0;
 		for (int y = 0; y < h; y++)
 		{
@@ -274,6 +276,7 @@ void process_image(const char *infile, const char *outdir)
 		strcpy(pngOutFilePath, outFilePath);
 		strcat(pngOutFilePath, ".png");
 		stbi_write_png(pngOutFilePath, w, h, 4, pixBuf, 4 * w);
+		free(pixBuf);
 #endif
 
 		/* Convert to a palette buffer */
