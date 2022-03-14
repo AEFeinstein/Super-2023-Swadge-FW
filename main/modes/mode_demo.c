@@ -81,7 +81,7 @@ static const song_t odeToJoy =
 typedef struct
 {
     uint16_t demoHue;
-    qoi_t megaman[9];
+    wsg_t megaman[9];
     font_t tom_thumb;
     font_t ibm_vga8;
     font_t radiostars;
@@ -153,16 +153,16 @@ void demoEnterMode(display_t * disp)
     InitColorChord(&demo->end, &demo->dd);
     demo->maxValue = 1;
 
-    // Load some QOIs
-    loadQoi("run-1.qoi", &demo->megaman[0]);
-    loadQoi("run-2.qoi", &demo->megaman[1]);
-    loadQoi("run-3.qoi", &demo->megaman[2]);
-    loadQoi("run-4.qoi", &demo->megaman[3]);
-    loadQoi("run-5.qoi", &demo->megaman[4]);
-    loadQoi("run-6.qoi", &demo->megaman[5]);
-    loadQoi("run-7.qoi", &demo->megaman[6]);
-    loadQoi("run-8.qoi", &demo->megaman[7]);
-    loadQoi("run-9.qoi", &demo->megaman[8]);
+    // Load some WSGs
+    loadWsg("run-1.wsg", &demo->megaman[0]);
+    loadWsg("run-2.wsg", &demo->megaman[1]);
+    loadWsg("run-3.wsg", &demo->megaman[2]);
+    loadWsg("run-4.wsg", &demo->megaman[3]);
+    loadWsg("run-5.wsg", &demo->megaman[4]);
+    loadWsg("run-6.wsg", &demo->megaman[5]);
+    loadWsg("run-7.wsg", &demo->megaman[6]);
+    loadWsg("run-8.wsg", &demo->megaman[7]);
+    loadWsg("run-9.wsg", &demo->megaman[8]);
 
     // Load some fonts
     loadFont("tom_thumb.font", &demo->tom_thumb);
@@ -182,7 +182,7 @@ void demoExitMode(void)
 {
     for(uint8_t i = 0; i < (sizeof(demo->megaman) / sizeof(demo->megaman[0])); i++)
     {
-        freeQoi(&demo->megaman[i]);
+        freeWsg(&demo->megaman[i]);
     }
     freeFont(&demo->tom_thumb);
     freeFont(&demo->ibm_vga8);
@@ -250,63 +250,38 @@ void demoMainLoop(int64_t elapsedUs)
             (i + 1) * 2, (demo->disp->h - demo->ibm_vga8.h - 2),
             hsv2rgb(64 + (i * 2), 1, 1));
     }
-    
-    rgba_pixel_t pxCol = {
-        .a = PX_OPAQUE,
-        .r = 0x1F,
-        .g = 0x00,
-        .b = 0x00,
-    };
 
     // Draw text
-    drawText(demo->disp, &demo->radiostars, pxCol, "hello TFT", 10, 64);
+    drawText(demo->disp, &demo->radiostars, c500, "hello TFT", 10, 64);
 
     // Draw image
-    drawQoi(demo->disp, &demo->megaman[megaIdx], megaPos, (demo->disp->h-demo->megaman[0].h)/2);
+    drawWsg(demo->disp, &demo->megaman[megaIdx], megaPos, (demo->disp->h-demo->megaman[0].h)/2);
 
     // Draw a single white pixel in the middle of the display
-    pxCol.r = 0x1F;
-    pxCol.g = 0x1F;
-    pxCol.b = 0x1F;
     demo->disp->setPx(
         demo->disp->w / 2,
         demo->disp->h / 2,
-        pxCol);
+        c555);
 
     // Draw a yellow line
-    pxCol.r = 0x1F;
-    pxCol.g = 0x1F;
-    pxCol.b = 0x00;
-    plotLine(demo->disp, 10, 5, 50, 20, pxCol);
+    plotLine(demo->disp, 10, 5, 50, 20, c550);
 
     // Draw a magenta rectangle
-    pxCol.r = 0x1F;
-    pxCol.g = 0x00;
-    pxCol.b = 0x1F;
-    plotRect(demo->disp, 70, 5, 100, 20, pxCol);
+    plotRect(demo->disp, 70, 5, 100, 20, c505);
 
     // Draw a cyan circle
-    pxCol.r = 0x00;
-    pxCol.g = 0x1F;
-    pxCol.b = 0x1F;
-    plotCircle(demo->disp, 140, 30, 20, pxCol);
+    plotCircle(demo->disp, 140, 30, 20, c055);
 
     // Draw temperature to display
     char tempStr[128];
     sprintf(tempStr, "%2.2f C", demo->temperature);
     uint16_t tWidth = textWidth(&(demo->ibm_vga8), tempStr);
-    pxCol.r = 0x1F;
-    pxCol.g = 0x00;
-    pxCol.b = 0x1F;
-    drawText(demo->disp, &(demo->ibm_vga8), pxCol, tempStr, demo->disp->w - tWidth, demo->disp->h - demo->ibm_vga8.h);
+    drawText(demo->disp, &(demo->ibm_vga8), c505, tempStr, demo->disp->w - tWidth, demo->disp->h - demo->ibm_vga8.h);
 
     // Draw acceleration to display
     char accelStr[128];
     sprintf(accelStr, "X: %3d, Y: %3d, Z: %3d", demo->accel.x, demo->accel.y, demo->accel.z);
-    pxCol.r = 0x00;
-    pxCol.g = 0x1F;
-    pxCol.b = 0x1F;
-    drawText(demo->disp, &(demo->ibm_vga8), pxCol, accelStr, 0, demo->disp->h - demo->ibm_vga8.h);
+    drawText(demo->disp, &(demo->ibm_vga8), c055, accelStr, 0, demo->disp->h - demo->ibm_vga8.h);
 
     // Twice a second push out some USB data
     static uint64_t usbTime = 0;
@@ -513,7 +488,7 @@ void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t l
     demo->packetsRx++;
     if(100 == demo->packetsRx)
     {
-        ESP_LOGI("DEMO", "100 packets in %llu", esp_timer_get_time() - demo->packetTimer);
+        ESP_LOGI("DEMO", "30 packets in %lluus", esp_timer_get_time() - demo->packetTimer);
         demo->packetsRx = 0;
         demo->packetTimer = 0;
     }

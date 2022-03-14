@@ -8,10 +8,7 @@
 #include <esp_log.h>
 
 #include "display.h"
-
-#define QOI_NO_STDIO
-#define QOI_IMPLEMENTATION
-#include "qoi.h"
+#include "heatshrink_decoder.h"
 
 #include "../../components/hdw-spiffs/spiffs_manager.h"
 
@@ -36,7 +33,7 @@
  * @param c  The color to fill
  */
 void fillDisplayArea(display_t * disp, int16_t x1, int16_t y1, int16_t x2,
-    int16_t y2, rgba_pixel_t c)
+    int16_t y2, paletteColor_t c)
 {
     // Only draw on the display
     int16_t xMin = CLAMP(x1, 0, disp->w);
@@ -55,106 +52,114 @@ void fillDisplayArea(display_t * disp, int16_t x1, int16_t y1, int16_t x2,
 }
 
 /**
- * @brief Load a qoi from ROM to RAM. QOIs placed in the spiffs_image folder
+ * @brief Load a WSG from ROM to RAM. WSGs placed in the spiffs_image folder
  * before compilation will be automatically flashed to ROM 
  * 
- * @param name The filename of the QOI to load
- * @param qoi  A handle to load the qoi to
- * @return true if the qoi was loaded successfully,
- *         false if the qoi load failed and should not be used
+ * @param name The filename of the WSG to load
+ * @param wsg  A handle to load the WSG to
+ * @return true if the WSG was loaded successfully,
+ *         false if the WSG load failed and should not be used
  */
-bool loadQoi(char * name, qoi_t * qoi)
+bool loadWsg(char * name, wsg_t * wsg)
 {
-    // Read QOI from file
+    // Read WSG from file
     uint8_t * buf = NULL;
     size_t sz;
     if(!spiffsReadFile(name, &buf, &sz))
     {
-        ESP_LOGE("QOI", "Failed to read %s", name);
+        ESP_LOGE("WSG", "Failed to read %s", name);
         return false;
     }
 
-    // // Decode the QOI
-    qoi_desc qd;
-    qoi_rgba_t* pixels = (qoi_rgba_t*)qoi_decode(buf, sz, &qd, 4);
-    free(buf);
-    if(NULL == pixels)
+    // Pick out the decompresed size and create a space for it
+    uint16_t decompressedSize = (buf[0] << 8) | buf[1];
+    uint8_t decompressedBuf[decompressedSize];
+
+    // Create the decoder
+    size_t copied = 0;
+    heatshrink_decoder * hsd = heatshrink_decoder_alloc(256, 8, 4);
+    heatshrink_decoder_reset(hsd);
+
+    // Decode the file in chunks
+    uint32_t inputIdx = 0;
+    uint32_t outputIdx = 0;
+    while(inputIdx < (sz-2))
     {
-        ESP_LOGE("QOI", "QOI decode fail (%s)", name);
-        return false;
+        // Decode some data
+        copied = 0;
+        heatshrink_decoder_sink(hsd, &buf[2 + inputIdx], sz - 2 - inputIdx, &copied);
+        inputIdx += copied;
+
+        // Save it to the output array
+        copied = 0;
+        heatshrink_decoder_poll(hsd, &decompressedBuf[outputIdx], sizeof(decompressedBuf) - outputIdx, &copied);
+        outputIdx += copied;
     }
 
-    // Save the image data in the arg
-    qoi->px = malloc(sizeof(rgba_pixel_t) * qd.width * qd.height);
-    if(NULL == qoi->px)
-    {
-        ESP_LOGE("QOI", "QOI malloc fail (%s)", name);
-        free(pixels);
-        return false;
-    }
-    qoi->h = qd.height;
-    qoi->w = qd.width;
+    // Note that it's all done
+    heatshrink_decoder_finish(hsd);
 
-    // Copy each pixel
-    for(uint16_t y = 0; y < qd.height; y++)
-    {
-        for(uint16_t x = 0; x < qd.width; x++)
-        {
-            qoi->px[(y * qd.width) + x].r = (pixels[(y * qd.width) + x].rgba.r * 0x1F) / 0xFF;
-            qoi->px[(y * qd.width) + x].g = (pixels[(y * qd.width) + x].rgba.g * 0x1F) / 0xFF;
-            qoi->px[(y * qd.width) + x].b = (pixels[(y * qd.width) + x].rgba.b * 0x1F) / 0xFF;
-            qoi->px[(y * qd.width) + x].a =  pixels[(y * qd.width) + x].rgba.a ? PX_OPAQUE : PX_TRANSPARENT;
-        }
-    }
+    // Flush any final output
+    copied = 0;
+    heatshrink_decoder_poll(hsd, &decompressedBuf[outputIdx], sizeof(decompressedBuf) - outputIdx, &copied);
+    outputIdx += copied;
 
-    // Free the decoded pixels
-    free(pixels);
+    // All done decoding
+    heatshrink_decoder_finish(hsd);
+    heatshrink_decoder_free(hsd);
 
-    // All done
+    // Save the decompressed info to the wsg. The first four bytes are dimension
+    wsg->w = (decompressedBuf[0] << 8) | decompressedBuf[1];
+    wsg->h = (decompressedBuf[2] << 8) | decompressedBuf[3];
+    // The rest of the bytes are pixels
+    wsg->px = (paletteColor_t *)malloc(sizeof(paletteColor_t) * wsg->w * wsg->h);
+    memcpy(wsg->px, &decompressedBuf[4], outputIdx - 4);
+
+    // all done
     return true;
 }
 
 /**
- * @brief Free the memory for a loaded QOI
+ * @brief Free the memory for a loaded WSG
  * 
- * @param qoi The qoi to free memory from
+ * @param wsg The WSG to free memory from
  */
-void freeQoi(qoi_t * qoi)
+void freeWsg(wsg_t * wsg)
 {
-    free(qoi->px);
+    free(wsg->px);
 }
 
 /**
- * @brief Draw a QOI to the display
+ * @brief Draw a WSG to the display
  * 
- * @param disp The display to draw the QOI to
- * @param qoi  The QOI to draw to the display
- * @param xOff The x offset to draw the QOI at
- * @param yOff The y offset to draw the QOI at
+ * @param disp The display to draw the WSG to
+ * @param wsg  The WSG to draw to the display
+ * @param xOff The x offset to draw the WSG at
+ * @param yOff The y offset to draw the WSG at
  */
-void drawQoi(display_t * disp, qoi_t *qoi, int16_t xOff, int16_t yOff)
+void drawWsg(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff)
 {
-    if(NULL == qoi->px)
+    if(NULL == wsg->px)
     {
         return;
     }
 
     // Only draw in bounds
     int16_t xMin = CLAMP(xOff, 0, disp->w);
-    int16_t xMax = CLAMP(xOff + qoi->w, 0, disp->w);
+    int16_t xMax = CLAMP(xOff + wsg->w, 0, disp->w);
     int16_t yMin = CLAMP(yOff, 0, disp->h);
-    int16_t yMax = CLAMP(yOff + qoi->h, 0, disp->h);
+    int16_t yMax = CLAMP(yOff + wsg->h, 0, disp->h);
     
     // Draw each pixel
     for (int y = yMin; y < yMax; y++)
     {
         for (int x = xMin; x < xMax; x++)
         {
-            int16_t qoiX = x - xOff;
-            int16_t qoiY = y - yOff;
-            if (PX_OPAQUE == qoi->px[(qoiY * qoi->w) + qoiX].a)
+            int16_t wsgX = x - xOff;
+            int16_t wsgY = y - yOff;
+            if (cTransparent != wsg->px[(wsgY * wsg->w) + wsgX])
             {
-                disp->setPx(x, y, qoi->px[(qoiY * qoi->w) + qoiX]);
+                disp->setPx(x, y, wsg->px[(wsgY * wsg->w) + wsgX]);
             }
         }
     }
@@ -235,7 +240,7 @@ void freeFont(font_t * font)
  * @param xOff  The x offset to draw the char at
  * @param yOff  The y offset to draw the char at
  */
-void drawChar(display_t * disp, rgba_pixel_t color, uint16_t h, font_ch_t * ch, int16_t xOff, int16_t yOff)
+void drawChar(display_t * disp, paletteColor_t color, uint16_t h, font_ch_t * ch, int16_t xOff, int16_t yOff)
 {
     uint16_t byteIdx = 0;
     uint8_t bitIdx = 0;
@@ -273,8 +278,9 @@ void drawChar(display_t * disp, rgba_pixel_t color, uint16_t h, font_ch_t * ch, 
  * @param text  The text to draw to the display
  * @param xOff  The x offset to draw the text at
  * @param yOff  The y offset to draw the text at
+ * @return The x offset at the end of the drawn string
  */
-void drawText(display_t * disp, font_t * font, rgba_pixel_t color, const char * text, int16_t xOff, int16_t yOff)
+int16_t drawText(display_t * disp, font_t * font, paletteColor_t color, const char * text, int16_t xOff, int16_t yOff)
 {
     while(*text != 0)
     {
@@ -292,9 +298,10 @@ void drawText(display_t * disp, font_t * font, rgba_pixel_t color, const char * 
         // If this char is offscreen, finish drawing
         if(xOff >= disp->w)
         {
-            return;
+            return xOff;
         }
     }
+    return xOff;
 }
 
 /**
@@ -326,66 +333,68 @@ uint16_t textWidth(font_t * font, const char * text)
  * @param h The input hue
  * @param s The input saturation
  * @param v The input value
- * @return rgba_pixel_t The output RGB
+ * @return paletteColor_t The output RGB
  */
-rgba_pixel_t hsv2rgb(uint16_t h, float s, float v)
+paletteColor_t hsv2rgb(uint16_t h, float s, float v)
 {
-    float hh, p, q, t, ff;
-    uint16_t i;
-    rgba_pixel_t px = {.a=PX_OPAQUE};
+    // TODO FIX THIS!!!
+    return c232;
+    // float hh, p, q, t, ff;
+    // uint16_t i;
+    // paletteColor_t px = {.a=PX_OPAQUE};
 
-    hh = (h % 360) / 60.0f;
-    i = (uint16_t)hh;
-    ff = hh - i;
-    p = v * (1.0 - s);
-    q = v * (1.0 - (s * ff));
-    t = v * (1.0 - (s * (1.0 - ff)));
+    // hh = (h % 360) / 60.0f;
+    // i = (uint16_t)hh;
+    // ff = hh - i;
+    // p = v * (1.0 - s);
+    // q = v * (1.0 - (s * ff));
+    // t = v * (1.0 - (s * (1.0 - ff)));
 
-    switch (i)
-    {
-        case 0:
-        {
-            px.r = v * 0x1F;
-            px.g = t * 0x1F;
-            px.b = p * 0x1F;
-            break;
-        }
-        case 1:
-        {
-            px.r = q * 0x1F;
-            px.g = v * 0x1F;
-            px.b = p * 0x1F;
-            break;
-        }
-        case 2:
-        {
-            px.r = p * 0x1F;
-            px.g = v * 0x1F;
-            px.b = t * 0x1F;
-            break;
-        }
-        case 3:
-        {
-            px.r = p * 0x1F;
-            px.g = q * 0x1F;
-            px.b = v * 0x1F;
-            break;
-        }
-        case 4:
-        {
-            px.r = t * 0x1F;
-            px.g = p * 0x1F;
-            px.b = v * 0x1F;
-            break;
-        }
-        case 5:
-        default:
-        {
-            px.r = v * 0x1F;
-            px.g = p * 0x1F;
-            px.b = q * 0x1F;
-            break;
-        }
-    }
-    return px;
+    // switch (i)
+    // {
+    //     case 0:
+    //     {
+    //         px.r = v * 0x1F;
+    //         px.g = t * 0x1F;
+    //         px.b = p * 0x1F;
+    //         break;
+    //     }
+    //     case 1:
+    //     {
+    //         px.r = q * 0x1F;
+    //         px.g = v * 0x1F;
+    //         px.b = p * 0x1F;
+    //         break;
+    //     }
+    //     case 2:
+    //     {
+    //         px.r = p * 0x1F;
+    //         px.g = v * 0x1F;
+    //         px.b = t * 0x1F;
+    //         break;
+    //     }
+    //     case 3:
+    //     {
+    //         px.r = p * 0x1F;
+    //         px.g = q * 0x1F;
+    //         px.b = v * 0x1F;
+    //         break;
+    //     }
+    //     case 4:
+    //     {
+    //         px.r = t * 0x1F;
+    //         px.g = p * 0x1F;
+    //         px.b = v * 0x1F;
+    //         break;
+    //     }
+    //     case 5:
+    //     default:
+    //     {
+    //         px.r = v * 0x1F;
+    //         px.g = p * 0x1F;
+    //         px.b = q * 0x1F;
+    //         break;
+    //     }
+    // }
+    // return px;
 }
