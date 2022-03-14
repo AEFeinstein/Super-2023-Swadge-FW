@@ -82,21 +82,7 @@ void mainMenuEnterMode(display_t * disp)
     loadFont("ibm_vga8.font", &mainMenu->ibm_vga8);
     loadFont("radiostars.font", &mainMenu->radiostars);
 
-    rgba_pixel_t fg =
-    {
-        .r = 0x1F,
-        .g = 0x1F,
-        .b = 0x00,
-        .a = PX_OPAQUE,
-    };
-    rgba_pixel_t bg =
-    {
-        .r = 0x00,
-        .g = 0x00,
-        .b = 0x04,
-        .a = PX_OPAQUE,
-    };
-    mainMenu->menu = initMenu(disp, "Swadge!", &mainMenu->radiostars, &mainMenu->ibm_vga8, fg, bg, mainMenuCb);
+    mainMenu->menu = initMenu(disp, "Swadge!", &mainMenu->radiostars, &mainMenu->ibm_vga8, c550, c001, mainMenuCb);
 
     // void addRowToMenu(menu_t* menu);
     // linkedInfo_t* addItemToRow(menu_t* menu, const char* name);

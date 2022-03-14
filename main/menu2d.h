@@ -61,8 +61,8 @@ typedef struct
     display_t * disp;
     font_t * tFont;
     font_t * mFont;
-    rgba_pixel_t fColor;
-    rgba_pixel_t bColor;
+    paletteColor_t fColor;
+    paletteColor_t bColor;
 } menu_t;
 
 //==============================================================================
@@ -70,8 +70,8 @@ typedef struct
 //==============================================================================
 
 menu_t* initMenu(display_t * disp, const char* title, font_t * titleFont,
-                 font_t * menuFont, rgba_pixel_t foregroundColor,
-                 rgba_pixel_t backgroundColor, menuCb cbFunc);
+                 font_t * menuFont, paletteColor_t foregroundColor,
+                 paletteColor_t backgroundColor, menuCb cbFunc);
 void deinitMenu(menu_t* menu);
 void addRowToMenu(menu_t* menu);
 linkedInfo_t* addItemToRow(menu_t* menu, const char* name);

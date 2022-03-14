@@ -15,7 +15,7 @@ typedef struct {
     int32_t y1;
 } box_t;
 
-void drawBox(display_t * disp, box_t box, rgba_pixel_t color, uint32_t scalingFactor);
+void drawBox(display_t * disp, box_t box, paletteColor_t color, uint32_t scalingFactor);
 bool boxesCollide(box_t box0, box_t box1, uint32_t scalingFactor);
 
 #endif
