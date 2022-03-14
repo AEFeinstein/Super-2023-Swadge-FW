@@ -259,7 +259,7 @@ void process_image(const char *infile, const char *outdir)
 
 #ifdef WRITE_DITHERED_PNG
 		/* Convert to a pixel buffer */
-		unsigned char* pixBuf = (char*)malloc(sizeof(unsigned char) * w * h * 4);//[w*h*4];
+		unsigned char* pixBuf = (unsigned char*)malloc(sizeof(unsigned char) * w * h * 4);//[w*h*4];
 		int pixBufIdx = 0;
 		for (int y = 0; y < h; y++)
 		{
