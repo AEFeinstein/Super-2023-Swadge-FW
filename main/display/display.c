@@ -8,6 +8,7 @@
 #include <esp_log.h>
 
 #include "display.h"
+#include "heatshrink_decoder.h"
 
 #include "../../components/hdw-spiffs/spiffs_manager.h"
 
@@ -70,10 +71,51 @@ bool loadWsg(char * name, wsg_t * wsg)
         return false;
     }
 
-    wsg->w = (buf[0] << 8) | buf[1];
-    wsg->h = (buf[2] << 8) | buf[3];
+    // Pick out the decompresed size and create a space for it
+    uint16_t decompressedSize = (buf[0] << 8) | buf[1];
+    uint8_t decompressedBuf[decompressedSize];
+
+    // Create the decoder
+    size_t copied = 0;
+    heatshrink_decoder * hsd = heatshrink_decoder_alloc(256, 8, 4);
+    heatshrink_decoder_reset(hsd);
+
+    // Decode the file in chunks
+    uint32_t inputIdx = 0;
+    uint32_t outputIdx = 0;
+    while(inputIdx < (sz-2))
+    {
+        // Decode some data
+        copied = 0;
+        heatshrink_decoder_sink(hsd, &buf[2 + inputIdx], sz - 2 - inputIdx, &copied);
+        inputIdx += copied;
+
+        // Save it to the output array
+        copied = 0;
+        heatshrink_decoder_poll(hsd, &decompressedBuf[outputIdx], sizeof(decompressedBuf) - outputIdx, &copied);
+        outputIdx += copied;
+    }
+
+    // Note that it's all done
+    heatshrink_decoder_finish(hsd);
+
+    // Flush any final output
+    copied = 0;
+    heatshrink_decoder_poll(hsd, &decompressedBuf[outputIdx], sizeof(decompressedBuf) - outputIdx, &copied);
+    outputIdx += copied;
+
+    // All done decoding
+    heatshrink_decoder_finish(hsd);
+    heatshrink_decoder_free(hsd);
+
+    // Save the decompressed info to the wsg. The first four bytes are dimension
+    wsg->w = (decompressedBuf[0] << 8) | decompressedBuf[1];
+    wsg->h = (decompressedBuf[2] << 8) | decompressedBuf[3];
+    // The rest of the bytes are pixels
     wsg->px = (paletteColor_t *)malloc(sizeof(paletteColor_t) * wsg->w * wsg->h);
-    memcpy(wsg->px, &buf[4], sz - 4);
+    memcpy(wsg->px, &decompressedBuf[4], outputIdx - 4);
+
+    // all done
     return true;
 }
 
