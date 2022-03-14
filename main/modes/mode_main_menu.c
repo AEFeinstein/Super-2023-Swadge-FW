@@ -2,6 +2,7 @@
 // Includes
 //==============================================================================
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "esp_log.h"
@@ -115,7 +116,7 @@ void mainMenuExitMode(void)
  *
  * @param elapsedUs
  */
-void mainMenuMainLoop(int64_t elapsedUs)
+void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
     drawMenu(mainMenu->menu);
 }
@@ -140,6 +141,9 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                 menuButton(mainMenu->menu, evt->button);
                 break;
             }
+            case START:
+            case SELECT:
+            case BTN_B:
             default:
             {
                 break;
