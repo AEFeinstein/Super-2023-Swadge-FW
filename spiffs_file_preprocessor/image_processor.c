@@ -18,6 +18,8 @@
 #include "spiffs_file_preprocessor.h"
 #include "image_processor.h"
 
+#include "heatshrink_encoder.h"
+
 #define HI_BYTE(x) ((x >> 8) & 0xFF)
 #define LO_BYTE(x) ((x) & 0xFF)
 
@@ -253,6 +255,7 @@ void process_image(const char *infile, const char *outdir)
 		/* Free stbi memory */
 		stbi_image_free(data);
 
+#ifdef WRITE_DITHERED_PNG
 		/* Convert to a pixel buffer */
 		unsigned char pixBuf[w*h*4];
 		int pixBufIdx = 0;
@@ -266,6 +269,12 @@ void process_image(const char *infile, const char *outdir)
 				pixBuf[pixBufIdx++] = image8b[y][x].a;
 			}
 		}
+		/* Write a PNG */
+		char pngOutFilePath[strlen(outFilePath) + 4];
+		strcpy(pngOutFilePath, outFilePath);
+		strcat(pngOutFilePath, ".png");
+		stbi_write_png(pngOutFilePath, w, h, 4, pixBuf, 4 * w);
+#endif
 
 		/* Convert to a palette buffer */
 		unsigned char paletteBuf[w*h];
@@ -276,11 +285,15 @@ void process_image(const char *infile, const char *outdir)
 			{
 				if(image8b[y][x].a)
 				{
+					/* Index math! The palette indices increase blue, then green, then red.
+					 * Each has a value 0-5 (six levels)
+					 */
 					paletteBuf[paletteBufIdx++] = (image8b[y][x].b) + (6 * (image8b[y][x].g)) + (36 * (image8b[y][x].r));
 				}
 				else
 				{
-					paletteBuf[paletteBufIdx++] = 216;
+					/* This invalid value means 'transparent' */
+					paletteBuf[paletteBufIdx++] = 6 * 6 * 6;
 				}
 			}
 		}
@@ -292,15 +305,59 @@ void process_image(const char *infile, const char *outdir)
 		}
 		free(image8b);
 
+		/* Compress the palette-ized image */
+		uint8_t output[4 + sizeof(paletteBuf)];
+		uint32_t outputIdx = 0;
+		uint32_t inputIdx = 0;
+		size_t copied = 0;
+
+		/* Creete the encoder */
+		heatshrink_encoder *hse = heatshrink_encoder_alloc(8, 4);
+		heatshrink_encoder_reset(hse);
+		/* Encode the dimension header */
+		uint8_t imgDimHdr[] =
+		{
+			HI_BYTE(w),
+			LO_BYTE(w),
+			HI_BYTE(h),
+			LO_BYTE(h)
+		};
+		heatshrink_encoder_sink(hse, imgDimHdr, sizeof(imgDimHdr), &copied);
+
+		/* Stream the data in chunks */
+		while(inputIdx < sizeof(paletteBuf))
+		{
+			/* Pass pixels to the encoder for compression */
+			copied = 0;
+			heatshrink_encoder_sink(hse, &paletteBuf[inputIdx], sizeof(paletteBuf) - inputIdx, &copied);
+			inputIdx += copied;
+
+			/* Save compressed data */
+			copied = 0;
+			heatshrink_encoder_poll(hse, &output[outputIdx], sizeof(output) - outputIdx, &copied);
+			outputIdx += copied;
+		}
+
+		/* Mark all input as processed */
+		heatshrink_encoder_finish(hse);
+
+		/* Flush the last bits of output */
+		copied = 0;
+		heatshrink_encoder_poll(hse, &output[outputIdx], sizeof(output) - outputIdx, &copied);
+		outputIdx += copied;
+
+		/* Free the encoder */
+		heatshrink_encoder_free(hse);
+
 		/* Write a WSG image */
 		FILE * wsgFile = fopen(outFilePath, "wb");
-		/* Write dimensions */
-		putc(HI_BYTE(w), wsgFile);
-		putc(LO_BYTE(w), wsgFile);
-		putc(HI_BYTE(h), wsgFile);
-		putc(LO_BYTE(h), wsgFile);
-		/* Dump bytes */
-		fwrite(paletteBuf, w * h, sizeof(unsigned char), wsgFile);
+		/* First two bytes are decompresed size */
+		uint16_t decompressedSize = sizeof(imgDimHdr) + sizeof(paletteBuf);
+		putc(HI_BYTE(decompressedSize), wsgFile);
+		putc(LO_BYTE(decompressedSize), wsgFile);
+		/* Then dump the compressed bytes */
+		fwrite(output, outputIdx, 1, wsgFile);
+		/* Done writing to the file */
 		fclose(wsgFile);
 
 		/* Print results */
