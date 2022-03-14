@@ -69,7 +69,10 @@ void fillDisplayArea(display_t * disp, int16_t x1, int16_t y1, int16_t x2,
     int16_t y2, rgba_pixel_t c);
 
 bool loadQoi(char * name, qoi_t * qoi);
+bool loadBlankQoi(qoi_t * qoi, unsigned int width, unsigned int height);
 void drawQoi(display_t * disp, qoi_t *qoi, int16_t xOff, int16_t yOff);
+void drawQoiTiled(display_t * disp, qoi_t *qoi, int16_t xOff, int16_t yOff);
+void drawQoiIntoQoi(qoi_t *source, qoi_t *destination, int16_t xOff, int16_t yOff);
 void freeQoi(qoi_t * qoi);
 
 bool loadFont(const char * name, font_t * font);

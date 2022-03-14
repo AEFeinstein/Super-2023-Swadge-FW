@@ -20,10 +20,23 @@
 //==============================================================================
 
 #define CLAMP(x,l,u) ((x) < l ? l : ((x) > u ? u : (x)))
+//#define WRAP(x,u) (x + ((x < 0)?((u) * ((-x) / (u))):0)) % (u)
+#define WRAP(x,u) (((x < 0) ? (x + ((u + 1) * ((-x) / (u + 1) + 1))) : x) % (u + 1))
+//#define WRAP(x,u) (x + ((x < 0)?((u + 1) * ((-x) / (u + 1) + 1)):0)) % (u + 1)
 
 //==============================================================================
 // Functions
 //==============================================================================
+
+int Wrap(int kX, int const kLowerBound, int const kUpperBound)
+{
+    int range_size = kUpperBound - kLowerBound + 1;
+
+    if (kX < kLowerBound)
+        kX += range_size * ((kLowerBound - kX) / range_size + 1);
+
+    return kLowerBound + (kX - kLowerBound) % range_size;
+}
 
 /**
  * @brief Fill a rectangular area on a display with a single color
@@ -115,6 +128,31 @@ bool loadQoi(char * name, qoi_t * qoi)
 }
 
 /**
+ * @brief Allocate space for an empty QOI
+ * 
+ * @param name The filename of the QOI to load
+ * @param qoi  A handle to load the qoi to
+ * @return true if the qoi was loaded successfully,
+ *         false if the qoi load failed and should not be used
+ */
+bool loadBlankQoi(qoi_t * qoi, unsigned int width, unsigned int height)
+{
+    // Save the image data in the arg
+    qoi->px = malloc(sizeof(rgba_pixel_t) * width * height);
+    if(NULL == qoi->px)
+    {
+        ESP_LOGE("QOI", "QOI malloc fail");
+        return false;
+    }
+    qoi->h = height;
+    qoi->w = width;
+
+    // All done
+    return true;
+}
+
+
+/**
  * @brief Free the memory for a loaded QOI
  * 
  * @param qoi The qoi to free memory from
@@ -155,6 +193,97 @@ void drawQoi(display_t * disp, qoi_t *qoi, int16_t xOff, int16_t yOff)
             if (PX_OPAQUE == qoi->px[(qoiY * qoi->w) + qoiX].a)
             {
                 disp->setPx(x, y, qoi->px[(qoiY * qoi->w) + qoiX]);
+            }
+        }
+    }
+}
+
+/**
+ * @brief Draw a QOI to the display
+ * 
+ * @param disp The display to draw the QOI to
+ * @param qoi  The QOI to draw to the display
+ * @param xOff The x offset to draw the QOI at
+ * @param yOff The y offset to draw the QOI at
+ */
+void drawQoiTiled(display_t * disp, qoi_t *qoi, int16_t xOff, int16_t yOff)
+{
+    if(NULL == qoi->px)
+    {
+        return;
+    }
+
+    // Only draw in bounds
+    int16_t xMin = 0;
+    int16_t xMax = disp->w;
+    int16_t yMin = 0;
+    int16_t yMax = disp->h;
+    
+    // Draw each pixel
+    for (int y = yMin; y < yMax; y++)
+    {
+        for (int x = xMin; x < xMax; x++)
+        {
+            //int16_t qoiX = (qoi->w + x - xOff) % qoi->w;
+            
+            int16_t qoiX = Wrap(x - xOff, 0, (qoi->w - 1));
+            int16_t qoiY = Wrap(y - yOff, 0, (qoi->h - 1));
+
+            //int16_t qoiX = WRAP(x - xOff, (qoi->w - 1));
+            //int16_t qoiY = WRAP(y - yOff, (qoi->h - 1));
+            //int16_t qoiY = (qoi->h + y - yOff) % qoi->h;
+
+            //int16_t qoiX = x - xOff;
+            //int16_t qoiY = y - yOff;
+
+            /*int16_t pix=(qoiY * qoi->w) + qoiX;
+            if(pix < 0 || pix > 16384){
+                ESP_LOGD("Hello","hi");
+                qoiY = Wrap(y - yOff, 0, qoi->h -1);
+            }*/
+
+            rgba_pixel_t * currentPixel = &qoi->px[(qoiY * qoi->w) + qoiX];
+
+            if (PX_OPAQUE == currentPixel->a)
+            {
+                disp->setPx(x, y, *currentPixel);
+            }
+        }
+    }
+}
+
+/**
+ * @brief Draw an allocated QOI into another allocated QOI
+ * 
+ * @param source Pointer to the QOI to be drawn
+ * @param destination Pointer to the QOI that will be drawn onto
+ * @param xOff The x offset to draw the QOI at
+ * @param yOff The y offset to draw the QOI at
+ */
+void drawQoiIntoQoi(qoi_t *source, qoi_t *destination, int16_t xOff, int16_t yOff)
+{
+    if(NULL == source->px || NULL == destination -> px)
+    {
+        return;
+    }
+
+    
+    // Only draw in bounds
+    int16_t xMin = CLAMP(xOff, 0, destination->w);
+    int16_t xMax = CLAMP(xOff + source->w, 0, destination->w);
+    int16_t yMin = CLAMP(yOff, 0, destination->h);
+    int16_t yMax = CLAMP(yOff + source->h, 0, destination->h);
+    
+    // Draw each pixel
+    for (int y = yMin; y < yMax; y++)
+    {
+        for (int x = xMin; x < xMax; x++)
+        {
+            int16_t qoiX = x - xOff;
+            int16_t qoiY = y - yOff;
+            if (PX_OPAQUE == source->px[(qoiY * source->w) + qoiX].a)
+            {
+                destination->px[(y * destination->w) + x]=source->px[(qoiY * source->w) + qoiX];
             }
         }
     }
