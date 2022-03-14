@@ -16,6 +16,230 @@
 #include "emu_display.h"
 
 //==============================================================================
+// Palette
+//==============================================================================
+
+uint32_t paletteColorsEmu[216] = 
+{
+    0x000000FF,
+    0x000033FF,
+    0x000066FF,
+    0x000099FF,
+    0x0000CCFF,
+    0x0000FFFF,
+    0x003300FF,
+    0x003333FF,
+    0x003366FF,
+    0x003399FF,
+    0x0033CCFF,
+    0x0033FFFF,
+    0x006600FF,
+    0x006633FF,
+    0x006666FF,
+    0x006699FF,
+    0x0066CCFF,
+    0x0066FFFF,
+    0x009900FF,
+    0x009933FF,
+    0x009966FF,
+    0x009999FF,
+    0x0099CCFF,
+    0x0099FFFF,
+    0x00CC00FF,
+    0x00CC33FF,
+    0x00CC66FF,
+    0x00CC99FF,
+    0x00CCCCFF,
+    0x00CCFFFF,
+    0x00FF00FF,
+    0x00FF33FF,
+    0x00FF66FF,
+    0x00FF99FF,
+    0x00FFCCFF,
+    0x00FFFFFF,
+    0x330000FF,
+    0x330033FF,
+    0x330066FF,
+    0x330099FF,
+    0x3300CCFF,
+    0x3300FFFF,
+    0x333300FF,
+    0x333333FF,
+    0x333366FF,
+    0x333399FF,
+    0x3333CCFF,
+    0x3333FFFF,
+    0x336600FF,
+    0x336633FF,
+    0x336666FF,
+    0x336699FF,
+    0x3366CCFF,
+    0x3366FFFF,
+    0x339900FF,
+    0x339933FF,
+    0x339966FF,
+    0x339999FF,
+    0x3399CCFF,
+    0x3399FFFF,
+    0x33CC00FF,
+    0x33CC33FF,
+    0x33CC66FF,
+    0x33CC99FF,
+    0x33CCCCFF,
+    0x33CCFFFF,
+    0x33FF00FF,
+    0x33FF33FF,
+    0x33FF66FF,
+    0x33FF99FF,
+    0x33FFCCFF,
+    0x33FFFFFF,
+    0x660000FF,
+    0x660033FF,
+    0x660066FF,
+    0x660099FF,
+    0x6600CCFF,
+    0x6600FFFF,
+    0x663300FF,
+    0x663333FF,
+    0x663366FF,
+    0x663399FF,
+    0x6633CCFF,
+    0x6633FFFF,
+    0x666600FF,
+    0x666633FF,
+    0x666666FF,
+    0x666699FF,
+    0x6666CCFF,
+    0x6666FFFF,
+    0x669900FF,
+    0x669933FF,
+    0x669966FF,
+    0x669999FF,
+    0x6699CCFF,
+    0x6699FFFF,
+    0x66CC00FF,
+    0x66CC33FF,
+    0x66CC66FF,
+    0x66CC99FF,
+    0x66CCCCFF,
+    0x66CCFFFF,
+    0x66FF00FF,
+    0x66FF33FF,
+    0x66FF66FF,
+    0x66FF99FF,
+    0x66FFCCFF,
+    0x66FFFFFF,
+    0x990000FF,
+    0x990033FF,
+    0x990066FF,
+    0x990099FF,
+    0x9900CCFF,
+    0x9900FFFF,
+    0x993300FF,
+    0x993333FF,
+    0x993366FF,
+    0x993399FF,
+    0x9933CCFF,
+    0x9933FFFF,
+    0x996600FF,
+    0x996633FF,
+    0x996666FF,
+    0x996699FF,
+    0x9966CCFF,
+    0x9966FFFF,
+    0x999900FF,
+    0x999933FF,
+    0x999966FF,
+    0x999999FF,
+    0x9999CCFF,
+    0x9999FFFF,
+    0x99CC00FF,
+    0x99CC33FF,
+    0x99CC66FF,
+    0x99CC99FF,
+    0x99CCCCFF,
+    0x99CCFFFF,
+    0x99FF00FF,
+    0x99FF33FF,
+    0x99FF66FF,
+    0x99FF99FF,
+    0x99FFCCFF,
+    0x99FFFFFF,
+    0xCC0000FF,
+    0xCC0033FF,
+    0xCC0066FF,
+    0xCC0099FF,
+    0xCC00CCFF,
+    0xCC00FFFF,
+    0xCC3300FF,
+    0xCC3333FF,
+    0xCC3366FF,
+    0xCC3399FF,
+    0xCC33CCFF,
+    0xCC33FFFF,
+    0xCC6600FF,
+    0xCC6633FF,
+    0xCC6666FF,
+    0xCC6699FF,
+    0xCC66CCFF,
+    0xCC66FFFF,
+    0xCC9900FF,
+    0xCC9933FF,
+    0xCC9966FF,
+    0xCC9999FF,
+    0xCC99CCFF,
+    0xCC99FFFF,
+    0xCCCC00FF,
+    0xCCCC33FF,
+    0xCCCC66FF,
+    0xCCCC99FF,
+    0xCCCCCCFF,
+    0xCCCCFFFF,
+    0xCCFF00FF,
+    0xCCFF33FF,
+    0xCCFF66FF,
+    0xCCFF99FF,
+    0xCCFFCCFF,
+    0xCCFFFFFF,
+    0xFF0000FF,
+    0xFF0033FF,
+    0xFF0066FF,
+    0xFF0099FF,
+    0xFF00CCFF,
+    0xFF00FFFF,
+    0xFF3300FF,
+    0xFF3333FF,
+    0xFF3366FF,
+    0xFF3399FF,
+    0xFF33CCFF,
+    0xFF33FFFF,
+    0xFF6600FF,
+    0xFF6633FF,
+    0xFF6666FF,
+    0xFF6699FF,
+    0xFF66CCFF,
+    0xFF66FFFF,
+    0xFF9900FF,
+    0xFF9933FF,
+    0xFF9966FF,
+    0xFF9999FF,
+    0xFF99CCFF,
+    0xFF99FFFF,
+    0xFFCC00FF,
+    0xFFCC33FF,
+    0xFFCC66FF,
+    0xFFCC99FF,
+    0xFFCCCCFF,
+    0xFFCCFFFF,
+    0xFFFF00FF,
+    0xFFFF33FF,
+    0xFFFF66FF,
+    0xFFFF99FF,
+    0xFFFFCCFF,
+    0xFFFFFFFF,
+};
+
+//==============================================================================
 // Variables
 //==============================================================================
 
@@ -34,13 +258,13 @@ led_t * rdLeds = NULL;
 // Function Prototypes
 //==============================================================================
 
-void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px);
-rgba_pixel_t emuGetPxTft(int16_t x, int16_t y);
+void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px);
+paletteColor_t emuGetPxTft(int16_t x, int16_t y);
 void emuClearPxTft(void);
 void emuDrawDisplayTft(bool drawDiff);
 
-void emuSetPxOled(int16_t x, int16_t y, rgba_pixel_t px);
-rgba_pixel_t emuGetPxOled(int16_t x, int16_t y);
+void emuSetPxOled(int16_t x, int16_t y, paletteColor_t px);
+paletteColor_t emuGetPxOled(int16_t x, int16_t y);
 void emuClearPxOled(void);
 void emuDrawDisplayOled(bool drawDiff);
 
@@ -165,18 +389,15 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
  * @param y The Y coordinate of the pixel to set
  * @param px The pixel to set, in 15 bit color with 1 alpha channel
  */
-void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px)
+void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px)
 {
     if(0 <= x && x < TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
-        // Convert from 15 bit to 24 bit color
-        if(PX_OPAQUE == px.a)
+        // Convert from 8 bit to 24 bit color
+        if(cTransparent != px)
         {
-            uint8_t r8 = ((px.r * 0xFF) / 0x1F) & 0xFF;
-            uint8_t g8 = ((px.g * 0xFF) / 0x1F) & 0xFF;
-            uint8_t b8 = ((px.b * 0xFF) / 0x1F) & 0xFF;
             pthread_mutex_lock(&displayMutex);
-            bitmapDisplay[(bitmapWidth * y) + x] = (0xFF << 24) | (r8 << 16) | (g8 << 8) | (b8);
+            bitmapDisplay[(bitmapWidth * y) + x] = paletteColorsEmu[px];
             pthread_mutex_unlock(&displayMutex);
         }
     }
@@ -190,24 +411,23 @@ void emuSetPxTft(int16_t x, int16_t y, rgba_pixel_t px)
  * @param y The Y coordinate of the pixel to get
  * @return The pixel at the given coordinate
  */
-rgba_pixel_t emuGetPxTft(int16_t x, int16_t y)
+paletteColor_t emuGetPxTft(int16_t x, int16_t y)
 {
     if(0 <= x && x < TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
         pthread_mutex_lock(&displayMutex);
         uint32_t argb = bitmapDisplay[(bitmapWidth * y) + x];
         pthread_mutex_unlock(&displayMutex);
-        rgba_pixel_t px;
-        px.r = (((argb & 0xFF0000) >> 16) * 0x1F) / 0xFF; // 5 bit
-        px.g = (((argb & 0x00FF00) >>  8) * 0x1F) / 0xFF; // 5 bit
-        px.b = (((argb & 0x0000FF) >>  0) * 0x1F) / 0xFF; // 5 bit
-        return px;
+
+        for(uint8_t i = 0; i < (sizeof(paletteColorsEmu) / sizeof(paletteColorsEmu[0])); i++)
+        {
+            if (argb == paletteColorsEmu[i])
+            {
+                return i;
+            }
+        }
     }
-    else
-    {
-        rgba_pixel_t px = {0};
-        return px;
-    }
+    return c000;
 }
 
 /**
@@ -268,7 +488,7 @@ bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
  * @param y The Y coordinate of the pixel to set
  * @param px The pixel to set, in 15 bit color with 1 alpha channel
  */
-void emuSetPxOled(int16_t x UNUSED, int16_t y UNUSED, rgba_pixel_t px UNUSED)
+void emuSetPxOled(int16_t x UNUSED, int16_t y UNUSED, paletteColor_t px UNUSED)
 {
 	WARN_UNIMPLEMENTED();
 }
@@ -281,11 +501,10 @@ void emuSetPxOled(int16_t x UNUSED, int16_t y UNUSED, rgba_pixel_t px UNUSED)
  * @param y The Y coordinate of the pixel to get
  * @return The pixel at the given coordinate
  */
-rgba_pixel_t emuGetPxOled(int16_t x UNUSED, int16_t y UNUSED)
+paletteColor_t emuGetPxOled(int16_t x UNUSED, int16_t y UNUSED)
 {
 	WARN_UNIMPLEMENTED();
-	rgba_pixel_t px = {.r=0x00, .g = 0x00, .b = 0x00, .a = PX_OPAQUE};
-	return px;
+    return c000;
 }
 
 /**

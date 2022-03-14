@@ -94,7 +94,6 @@
         "emu_esp.h": "c",
         "btn.h": "c",
         "touch_sensor.h": "c",
-        "qoi.h": "c",
         "emu_main.h": "c",
         "list.h": "c",
         "cjson.h": "c",
@@ -105,7 +104,11 @@
         "embeddednf.h": "c",
         "ccconfig.h": "c",
         "string.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "menu2d.h": "c",
+        "fontsub.h": "c",
+        "palette.h": "c",
+        "rawdraw_sf.h": "c"
     },
     "idf.adapterTargetName": "esp32s2"
 }

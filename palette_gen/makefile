@@ -1,11 +1,11 @@
 CC = gcc
 
-SRC_FILES = spiffs_file_preprocessor.c image_processor.c font_processor.c heatshrink_encoder.c
+SRC_FILES = palette_gen.c
 CFLAGS = -Wall -Wextra -Wno-missing-field-initializers -g -std=c99
 INC_FLAGS = -I.
-LIB_FLAGS = -lm
+LIB_FLAGS = #-lm
 
-EXECUTABLE = spiffs_file_preprocessor
+EXECUTABLE = palette_gen
 
 # This list of targets do not build files which match their name
 .PHONY: all clean
