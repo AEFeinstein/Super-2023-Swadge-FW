@@ -26,21 +26,6 @@
 // Functions
 //==============================================================================
 
-int wrap(int kX, int const kLowerBound, int const kUpperBound)
-{
-    int range_size = kUpperBound - kLowerBound + 1;
-
-    if (kX < kLowerBound)
-        kX += range_size * ((kLowerBound - kX) / range_size + 1);
-
-    return kLowerBound + (kX - kLowerBound) % range_size;
-}
-
-int wrapZero(int x, int const u)
-{
-    return ((x < 0) ? x + (u + 1) * ((-x) / (u + 1) + 1) : x) % (u + 1);
-}
-
 /**
  * @brief Fill a rectangular area on a display with a single color
  * 
