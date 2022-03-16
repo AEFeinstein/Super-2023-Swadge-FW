@@ -51,11 +51,7 @@ By default this guide sets up ESP-IDF in your home directory, so if your usernam
 ```
 For Windows and Linux, I recommend setting up native tools. I don't recommend WSL in Windows. I haven't tried any setup on macOS yet.
 
-As of writing, this project requires IDF v4.4 with a patch for USB HID support applied. The patch is [usb_hid.patch](/usb_hid.patch) and assuming you download it and move it to the `esp-idf` folder, it can be applied with this command:
-
-```powershell
-git apply usb_hid.patch
-```
+When building an ESP32 project, the default components in the IDF may be overridden. To override a component, create a directory in the local `components/` directory with the same name as a component in the IDF. This project overrides `freemodbus` and `wpa_supplicant` to effectively remove the components from the firmware and `tinyusb` to add USB HID gamepad support.
 
 This project uses CircleCI to build the firmware each time code is committed to `main`. As a consequence, you can always read the [config.yml](/.circleci/config.yml) to see how the Windows build environment is set up from scratch for both the firmware and emulator.
 
@@ -71,10 +67,6 @@ cd ~/esp
 # Clone the IDF and move into it
 git clone -b v4.4 --recursive https://github.com/espressif/esp-idf.git esp-idf
 cd ~/esp/esp-idf
-
-# Download the USB HID patch and apply it
-Invoke-WebRequest https://raw.githubusercontent.com/AEFeinstein/esp32-c3-playground/main/usb_hid.patch -OutFile usb_hid.patch
-git apply usb_hid.patch
 
 # Initialize submodules
 git submodule update --init --recursive
@@ -131,10 +123,6 @@ cd ~/esp
 # Clone the IDF and move into it
 git clone -b v4.4 --recursive https://github.com/espressif/esp-idf.git esp-idf
 cd ~/esp/esp-idf
-
-# Download the USB HID patch and apply it
-wget https://raw.githubusercontent.com/AEFeinstein/esp32-c3-playground/main/usb_hid.patch
-git apply usb_hid.patch
 
 # Initialize submodules
 git submodule update --init --recursive
@@ -363,7 +351,7 @@ typedef struct _swadgeMode
 
 Drawing to a display is done through a struct of function pointers, `display_t`. This struct has basic functions for setting and getting pixels, clearing the whole display, drawing the current framebuffer to the physical display (which you should not call directly). It also has the display's width and height, in pixels. This design decision was made to abstract any framebuffer specifics from functions that draw graphics. For instance, the TFT has 15 bit color, the OLED has 1 bit color, and the emulator has 24 bit color, but the same functions for drawing sprites can be used for all three. This design could even drive multiple displays simultaneously.
 
-The TFT display uses 15 bit color and 1 bit alpha. That means that the red, green, and blue channels all range from 0 to 31 (0x1F), and alpha is either `PX_TRANSPARENT` or `PX_OPAQUE`. It packs neatly into a 16 bit variable, `rgba_pixel_t`, which is often used as a parameter when drawing.
+The TFT display uses 8-bit web-safe color palette. This means that the red, green, and blue channels all range from 0 to 5. There's a handy `enum`, `paletteColor_t`, which has all the colors named like `cRGB`. For example, `c500` is full red. `cTransparent` is a special value for a transparent pixel.
 
 You do not have to call any functions to draw the current framebuffer to the physical display. That is handled by the system firmware. Just draw your frame and it will get pushed out as fast as possible.
 
@@ -383,39 +371,26 @@ As an example, this will clear the display, then draw a pixel, line, rectangle, 
 demo->disp->clearPx();
 
 // Draw a single white pixel in the middle of the display
-rgba_pixel_t pxCol = { .a = PX_OPAQUE };
-pxCol.r = 0x1F;
-pxCol.g = 0x1F;
-pxCol.b = 0x1F;
 demo->disp->setPx(
     demo->disp->w / 2, // Middle of the screen width
     demo->disp->h / 2, // Middle of the screen height
-    pxCol);
+    c555);
 
 // Draw a yellow line
-pxCol.r = 0x1F;
-pxCol.g = 0x1F;
-pxCol.b = 0x00;
-plotLine(demo->disp, 10, 5, 50, 20, pxCol);
+plotLine(demo->disp, 10, 5, 50, 20, c550);
 
 // Draw a magenta rectangle
-pxCol.r = 0x1F;
-pxCol.g = 0x00;
-pxCol.b = 0x1F;
-plotRect(demo->disp, 70, 5, 100, 20, pxCol);
+plotRect(demo->disp, 70, 5, 100, 20, c505);
 
 // Draw a cyan circle
-pxCol.r = 0x00;
-pxCol.g = 0x1F;
-pxCol.b = 0x1F;
-plotCircle(demo->disp, 140, 30, 20, pxCol);
+plotCircle(demo->disp, 140, 30, 20, c055);
 ```
 
 ## Loading and Freeing Assets
 
 The build system will automatically process, pack, and flash assets as a read-only part of the firmware. The the [`spiffs_file_preprocessor`](/spiffs_file_preprocessor/) is responsible for this. Assets are an easy way to include things like images, fonts, and eventually other file types. Any files in the [`/assets/`](/assets/) folder will be processed and the output will be written to [`/spiffs_image/`](/spiffs_image/).
 
-`spiffs_file_preprocessor` currently only processes `.png` and `.font.png` files. `.png` are converted into `.qoi` files, which are reasonably compressed and have very little overhead to decode. You can read about that at [QOI Image Format](https://qoiformat.org/). `.font.png` files are a line of characters with underlines to denote char width (open one up to see what I'm talking about). They are converted into a one-bit bitmapped format.
+`spiffs_file_preprocessor` currently only processes `.png` and `.font.png` files. `.png` are converted into `.wsg` files, which use an 8 bit web-safe color palette, are reasonably compressed and have very little overhead to decode. `.font.png` files are a line of characters with underlines to denote char width (open one up to see what I'm talking about). They are converted into a one-bit bitmapped format.
 
 Loading assets is a relatively slower operation, so often times it makes sense to load once when a mode starts and free when the mode finishes. On the other hand, loading assets eats up RAM, so it may be wise to only load assets when necessary. Engineering is a figuring out a series of trade-offs.
 
@@ -424,15 +399,14 @@ As an example, this will load, draw, and free both an image and some red text. N
 ```C
 #include "display.h"
 
-qoi_t megaman;
-loadQoi("megaman.qoi", &megaman);
-drawQoi(demo->disp, &megaman, 0, 0);
-freeQoi(&megaman);
+wsg_t megaman;
+loadWsg("megaman.wsg", &megaman);
+drawWsg(demo->disp, &megaman, 0, 0);
+freeWsg(&megaman);
 
 font_t ibm;
 loadFont("ibm_vga8.font", &ibm);
-rgba_pixel_t color = {.r = 0x1F, .g = 0x00, .b = 0x00, .a = PX_OPAQUE};
-drawText(demo->disp, &ibm, color, "Demo Text", 0, 0);
+drawText(demo->disp, &ibm, c500, "Demo Text", 0, 0);
 freeFont(&ibm);
 ```
 
