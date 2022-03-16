@@ -192,7 +192,7 @@ void drawWsg(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff)
 }
 
 /**
- * @brief Draw a WSG to the display
+ * @brief Draw a WSG to the display, repeating it across the whole screen
  *
  * @param disp The display to draw the WSG to
  * @param wsg  The WSG to draw to the display
