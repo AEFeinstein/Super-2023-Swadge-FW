@@ -121,24 +121,24 @@ bool loadWsg(char * name, wsg_t * wsg)
 }
 
 /**
- * @brief Allocate space for an empty QOI
+ * @brief Allocate space for an empty WSG
  *
- * @param name The filename of the QOI to load
- * @param qoi  A handle to load the qoi to
- * @return true if the qoi was loaded successfully,
- *         false if the qoi load failed and should not be used
+ * @param wsg  A handle to load a blank/empty wsg to
+ * @return true if the blank wsg was loaded successfully,
+ *         false if the wblank sg load failed and should not be used
  */
-bool loadBlankQoi(qoi_t * qoi, unsigned int width, unsigned int height)
+bool loadBlankWsg(wsg_t * wsg, unsigned int width, unsigned int height)
 {
+    wsg->h = height;
+    wsg->w = width;
+
     // Save the image data in the arg
-    qoi->px = malloc(sizeof(rgba_pixel_t) * width * height);
-    if(NULL == qoi->px)
+    wsg->px = (paletteColor_t *)malloc(sizeof(paletteColor_t) * wsg->w * wsg->h);
+    if(NULL == wsg->px)
     {
-        ESP_LOGE("QOI", "QOI malloc fail");
+        ESP_LOGE("WSG", "WSG malloc fail");
         return false;
     }
-    qoi->h = height;
-    qoi->w = width;
 
     // All done
     return true;
@@ -192,16 +192,16 @@ void drawWsg(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff)
 }
 
 /**
- * @brief Draw a QOI to the display
+ * @brief Draw a WSG to the display
  *
- * @param disp The display to draw the QOI to
- * @param qoi  The QOI to draw to the display
- * @param xOff The x offset to draw the QOI at
- * @param yOff The y offset to draw the QOI at
+ * @param disp The display to draw the WSG to
+ * @param wsg  The WSG to draw to the display
+ * @param xOff The x offset to draw the WSG at
+ * @param yOff The y offset to draw the WSG at
  */
-void drawQoiTiled(display_t * disp, qoi_t *qoi, int16_t xOff, int16_t yOff)
+void drawWsgTiled(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff)
 {
-    if(NULL == qoi->px)
+    if(NULL == wsg->px)
     {
         return;
     }
@@ -217,28 +217,25 @@ void drawQoiTiled(display_t * disp, qoi_t *qoi, int16_t xOff, int16_t yOff)
     {
         for (int x = xMin; x < xMax; x++)
         {
-            int16_t qoiX = WRAP(x - xOff, (qoi->w - 1));
-            int16_t qoiY = WRAP(y - yOff, (qoi->h - 1));
-
-            rgba_pixel_t * currentPixel = &qoi->px[(qoiY * qoi->w) + qoiX];
-
-            if (PX_OPAQUE == currentPixel->a)
+            int16_t wsgX = WRAP(x - xOff, (wsg->w - 1));
+            int16_t wsgY = WRAP(y - yOff, (wsg->h - 1));
+            if (cTransparent != wsg->px[(wsgY * wsg->w) + wsgX])
             {
-                disp->setPx(x, y, *currentPixel);
+                disp->setPx(x, y, wsg->px[(wsgY * wsg->w) + wsgX]);
             }
         }
     }
 }
 
 /**
- * @brief Draw an allocated QOI into another allocated QOI
+ * @brief Draw an allocated WSG into another allocated WSG
  *
- * @param source Pointer to the QOI to be drawn
- * @param destination Pointer to the QOI that will be drawn onto
- * @param xOff The x offset to draw the QOI at
- * @param yOff The y offset to draw the QOI at
+ * @param source Pointer to the WSG to be drawn
+ * @param destination Pointer to the WSG that will be drawn onto
+ * @param xOff The x offset to draw the WSG at
+ * @param yOff The y offset to draw the WSG at
  */
-void drawQoiIntoQoi(qoi_t *source, qoi_t *destination, int16_t xOff, int16_t yOff)
+void drawWsgIntoWsg(wsg_t *source, wsg_t *destination, int16_t xOff, int16_t yOff)
 {
     if(NULL == source->px || NULL == destination -> px)
     {
@@ -257,11 +254,11 @@ void drawQoiIntoQoi(qoi_t *source, qoi_t *destination, int16_t xOff, int16_t yOf
     {
         for (int x = xMin; x < xMax; x++)
         {
-            int16_t qoiX = x - xOff;
-            int16_t qoiY = y - yOff;
-            if (PX_OPAQUE == source->px[(qoiY * source->w) + qoiX].a)
+            int16_t wsgX = x - xOff;
+            int16_t wsgY = y - yOff;            
+            if (cTransparent != source->px[(wsgY * source->w) + wsgX])
             {
-                destination->px[(y * destination->w) + x]=source->px[(qoiY * source->w) + qoiX];
+                destination->px[(y * destination->w) + x]=source->px[(wsgY * source->w) + wsgX];
             }
         }
     }
