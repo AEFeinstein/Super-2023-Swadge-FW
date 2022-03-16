@@ -21,7 +21,7 @@
 
 #define CLAMP(x,l,u) ((x) < l ? l : ((x) > u ? u : (x)))
 //#define WRAP(x,u) (x + ((x < 0)?((u) * ((-x) / (u))):0)) % (u)
-#define WRAP(x,u) (((x < 0) ? (x + ((u + 1) * ((-x) / (u + 1) + 1))) : x) % (u + 1))
+#define WRAP(x,u) (((x < 0) ? x + (u + 1) * ((-(x)) / (u + 1) + 1) : x) % (u + 1))
 //#define WRAP(x,u) (x + ((x < 0)?((u + 1) * ((-x) / (u + 1) + 1)):0)) % (u + 1)
 
 //==============================================================================
@@ -36,6 +36,17 @@ int Wrap(int kX, int const kLowerBound, int const kUpperBound)
         kX += range_size * ((kLowerBound - kX) / range_size + 1);
 
     return kLowerBound + (kX - kLowerBound) % range_size;
+}
+
+int WrapZero(int x, int const u)
+{
+    //int range_size = (u + 1);
+
+    //if (x < 0)
+    //    x += (u + 1) * ((-x) / (u + 1) + 1);
+
+    //return 0 + (x - 0) % (u + 1);
+    return ((x < 0) ? x + (u + 1) * ((-x) / (u + 1) + 1) : x) % (u + 1);
 }
 
 /**
@@ -226,8 +237,8 @@ void drawQoiTiled(display_t * disp, qoi_t *qoi, int16_t xOff, int16_t yOff)
         {
             //int16_t qoiX = (qoi->w + x - xOff) % qoi->w;
             
-            int16_t qoiX = Wrap(x - xOff, 0, (qoi->w - 1));
-            int16_t qoiY = Wrap(y - yOff, 0, (qoi->h - 1));
+            int16_t qoiX = WRAP(x - xOff, (qoi->w - 1));
+            int16_t qoiY = WRAP(y - yOff, (qoi->h - 1));
 
             //int16_t qoiX = WRAP(x - xOff, (qoi->w - 1));
             //int16_t qoiY = WRAP(y - yOff, (qoi->h - 1));
@@ -236,11 +247,12 @@ void drawQoiTiled(display_t * disp, qoi_t *qoi, int16_t xOff, int16_t yOff)
             //int16_t qoiX = x - xOff;
             //int16_t qoiY = y - yOff;
 
-            /*int16_t pix=(qoiY * qoi->w) + qoiX;
-            if(pix < 0 || pix > 16384){
-                ESP_LOGD("Hello","hi");
-                qoiY = Wrap(y - yOff, 0, qoi->h -1);
-            }*/
+            //int16_t pix=WRAP(y - yOff, (qoi->h - 1));
+            //int16_t pix=((((y - yOff) < 0) ? (y - yOff) + ((qoi->h - 1) + 1) * ((-(y - yOff)) / ((qoi->h - 1) + 1) + 1) : (y - yOff)) % ((qoi->h - 1) + 1));
+            //if(pix < 0 || pix > 16384){
+            //    ESP_LOGD("Hello","hi");
+            //    qoiY = Wrap(y - yOff, 0, qoi->h -1);
+            //}
 
             rgba_pixel_t * currentPixel = &qoi->px[(qoiY * qoi->w) + qoiX];
 
