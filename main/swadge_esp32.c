@@ -48,6 +48,7 @@
 #include "mode_main_menu.h"
 #include "mode_demo.h"
 #include "mode_fighter.h"
+#include "mode_platformer.h"
 
 #ifdef EMU
 #include "emu_esp.h"
@@ -70,6 +71,7 @@ swadgeMode* swadgeModes[] =
 {
     &modemainMenu,
     &modeFighter,
+    &modePlatformer,
     &modeDemo
 };
 
