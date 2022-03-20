@@ -11,6 +11,7 @@
 #include "mode_fighter.h"
 #include "aabb_utils.h"
 #include "bresenham.h"
+#include "esp_random.h"
 
 //==============================================================================
 // Constants
@@ -26,6 +27,15 @@
 #define MAP_WIDTH 32
 #define MAP_HEIGHT 32
 
+typedef struct 
+{
+    wsg_t tilemap_buffer;
+    wsg_t tiles;
+
+    int16_t tilemapOffsetX;
+    int16_t tilemapOffsetY;
+} tilemap_t;
+
 //==============================================================================
 // Functions Prototypes
 //==============================================================================
@@ -35,10 +45,14 @@ void platformerExitMode(void);
 void platformerMainLoop(int64_t elapsedUs);
 void platformerButtonCb(buttonEvt_t* evt);
 void platformerCb(const char* opt);
+void initializeTileMap(tilemap_t * tilemap);
+void drawTileMap(display_t * disp, tilemap_t * tilemap);
 
 //==============================================================================
 // Structs
 //==============================================================================
+
+
 
 typedef struct
 {
@@ -47,20 +61,16 @@ typedef struct
     font_t ibm_vga8;
     font_t radiostars;
 
+    tilemap_t tilemap;
+
     wsg_t block;
-    wsg_t tilemap_buffer;
+    wsg_t test_wsg_into_wsg;
 
     int16_t tilemapOffsetX;
     int16_t tilemapOffsetY;
+
+
 } platformer_t;
-
-typedef struct 
-{
-    wsg_t tilemap_buffer;
-
-    int16_t tilemapOffsetX;
-    int16_t tilemapOffsetY;
-} tilemap_t;
 
 
 //==============================================================================
@@ -101,15 +111,17 @@ void platformerEnterMode(display_t * disp)
 
     // Save a pointer to the display
     platformer->disp = disp;
-
+    
     loadWsg("block.wsg", &platformer->block);
 
-    loadBlankWsg(&platformer->tilemap_buffer, 128, 128);
-    drawWsgIntoWsg(&platformer->block, &platformer->tilemap_buffer, 13, 25);
-    drawWsgIntoWsg(&platformer->block, &platformer->tilemap_buffer, 114, 0);
+    loadBlankWsg(&platformer->test_wsg_into_wsg, 128, 128);
+    drawWsgIntoWsg(&platformer->block, &platformer->test_wsg_into_wsg, 13, 25);
+    drawWsgIntoWsg(&platformer->block, &platformer->test_wsg_into_wsg, 114, 0);
 
     platformer->tilemapOffsetX=0;
     platformer->tilemapOffsetY=0;
+
+    initializeTileMap(&(platformer->tilemap));
 }
 
 
@@ -122,9 +134,11 @@ void platformerExitMode(void)
     freeFont(&platformer->ibm_vga8);
     freeFont(&platformer->radiostars);
     
-    freeWsg(&platformer->block);
-    freeWsg(&platformer->tilemap_buffer);
+    //TODO
+    //freeWsg(platformer->tilemap->tiles);
+    //freeWsg(platformer->tilemap->tilemap_buffer);
 
+    //free(platformer->tilemap);
     free(platformer);
 }
 
@@ -140,8 +154,10 @@ void platformerMainLoop(int64_t elapsedUs)
     platformer->tilemapOffsetX--;
     platformer->tilemapOffsetY--;
 
-    drawWsgTiled(platformer->disp, &platformer->tilemap_buffer, platformer->tilemapOffsetX, platformer->tilemapOffsetY);
+    drawWsgTiled(platformer->disp, &platformer->test_wsg_into_wsg, platformer->tilemapOffsetX, platformer->tilemapOffsetY);
     drawWsg(platformer->disp, &platformer->block, 16, 16);
+
+    drawTileMap(platformer->disp, &(platformer->tilemap));
 }
 
 /**
@@ -181,3 +197,31 @@ void platformerCb(const char* opt)
     ESP_LOGI("MNU", "%s", opt);
 }
 
+void initializeTileMap(tilemap_t * tilemap) 
+{
+    tilemap->tilemapOffsetX = 0;
+    tilemap->tilemapOffsetY = 0;
+    
+    loadBlankWsg(&tilemap->tilemap_buffer, TILEMAP_BUFFER_WIDTH_PIXELS, TILEMAP_BUFFER_HEIGHT_PIXELS);
+    loadWsg("block.wsg", &tilemap->tiles);
+
+    for (int y=0; y < TILEMAP_BUFFER_HEIGHT_TILES; y++) 
+    {
+
+        for (int x=0; x < TILEMAP_BUFFER_WIDTH_TILES; x++) 
+        {
+
+            if( esp_random() % 2) 
+            {
+                drawWsgIntoWsg(&tilemap->tiles, &tilemap->tilemap_buffer, x * TILE_SIZE, y * TILE_SIZE);
+            }
+
+        }
+
+    }
+}
+
+void drawTileMap(display_t * disp, tilemap_t * tilemap)
+{
+    drawWsgTiled(disp, &(tilemap->tilemap_buffer), &tilemap->tilemapOffsetX, &tilemap->tilemapOffsetY);
+}
