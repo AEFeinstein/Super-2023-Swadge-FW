@@ -151,12 +151,9 @@ void platformerMainLoop(int64_t elapsedUs)
 {
     platformer->disp->clearPx();
 
-    platformer->tilemapOffsetX--;
-    platformer->tilemapOffsetY--;
-
-    drawWsgTiled(platformer->disp, &platformer->test_wsg_into_wsg, platformer->tilemapOffsetX, platformer->tilemapOffsetY);
-    drawWsg(platformer->disp, &platformer->block, 16, 16);
-
+    platformer->tilemap.tilemapOffsetX--;
+    platformer->tilemap.tilemapOffsetY--;
+  
     drawTileMap(platformer->disp, &(platformer->tilemap));
 }
 
@@ -223,5 +220,5 @@ void initializeTileMap(tilemap_t * tilemap)
 
 void drawTileMap(display_t * disp, tilemap_t * tilemap)
 {
-    drawWsgTiled(disp, &(tilemap->tilemap_buffer), &tilemap->tilemapOffsetX, &tilemap->tilemapOffsetY);
+    drawWsgTiled(disp, &(tilemap->tilemap_buffer), tilemap->tilemapOffsetX, tilemap->tilemapOffsetY);
 }
