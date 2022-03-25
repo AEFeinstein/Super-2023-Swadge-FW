@@ -51,11 +51,7 @@ By default this guide sets up ESP-IDF in your home directory, so if your usernam
 ```
 For Windows and Linux, I recommend setting up native tools. I don't recommend WSL in Windows. I haven't tried any setup on macOS yet.
 
-As of writing, this project requires IDF v4.4 with a patch for USB HID support applied. The patch is [usb_hid.patch](/usb_hid.patch) and assuming you download it and move it to the `esp-idf` folder, it can be applied with this command:
-
-```powershell
-git apply usb_hid.patch
-```
+When building an ESP32 project, the default components in the IDF may be overridden. To override a component, create a directory in the local `components/` directory with the same name as a component in the IDF. This project overrides `freemodbus` and `wpa_supplicant` to effectively remove the components from the firmware and `tinyusb` to add USB HID gamepad support.
 
 This project uses CircleCI to build the firmware each time code is committed to `main`. As a consequence, you can always read the [config.yml](/.circleci/config.yml) to see how the Windows build environment is set up from scratch for both the firmware and emulator.
 
@@ -71,10 +67,6 @@ cd ~/esp
 # Clone the IDF and move into it
 git clone -b v4.4 --recursive https://github.com/espressif/esp-idf.git esp-idf
 cd ~/esp/esp-idf
-
-# Download the USB HID patch and apply it
-Invoke-WebRequest https://raw.githubusercontent.com/AEFeinstein/esp32-c3-playground/main/usb_hid.patch -OutFile usb_hid.patch
-git apply usb_hid.patch
 
 # Initialize submodules
 git submodule update --init --recursive
@@ -131,10 +123,6 @@ cd ~/esp
 # Clone the IDF and move into it
 git clone -b v4.4 --recursive https://github.com/espressif/esp-idf.git esp-idf
 cd ~/esp/esp-idf
-
-# Download the USB HID patch and apply it
-wget https://raw.githubusercontent.com/AEFeinstein/esp32-c3-playground/main/usb_hid.patch
-git apply usb_hid.patch
 
 # Initialize submodules
 git submodule update --init --recursive
