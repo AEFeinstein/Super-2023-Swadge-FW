@@ -170,12 +170,13 @@ uint32_t continuous_adc_read(uint16_t *outSamples)
             {
                 *(outSamples++) = ((adc_digi_output_data_t *)(&result[i]))->type1.data;
             }
+        	// ESP_LOGI(TAG, "ADC DMA OK/INVALID: %d", (ret_num / sizeof(adc_digi_output_data_t)));
             return (ret_num / sizeof(adc_digi_output_data_t));
         }
         case ESP_ERR_TIMEOUT:
         default:
         {
-        	// ESP_LOGI(TAG, "ADC DMA ESP_ERR_TIMEOUT");
+        	// ESP_LOGI(TAG, "ADC DMA ESP_ERR_TIMEOUT %d", (ret_num / sizeof(adc_digi_output_data_t)));
             return 0;
         }
     }
