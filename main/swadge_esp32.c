@@ -73,7 +73,7 @@ swadgeMode* swadgeModes[] =
     &modeDemo
 };
 
-uint8_t swadgeModeIdx = 2;
+uint8_t swadgeModeIdx = 1;
 
 //==============================================================================
 // Functions
@@ -170,6 +170,7 @@ void tud_hid_set_report_cb(uint8_t itf __attribute__((unused)),
  */
 void app_main(void)
 {
+// #define PRINT_STATS
 #ifdef PRINT_STATS
     /* Print chip information */
     esp_chip_info_t chip_info;
@@ -186,6 +187,7 @@ void app_main(void)
                 (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
 
     ESP_LOGD("MAIN", "Minimum free heap size: %d bytes", esp_get_minimum_free_heap_size());
+    heap_caps_print_heap_info(MALLOC_CAP_EXEC | MALLOC_CAP_32BIT | MALLOC_CAP_8BIT | MALLOC_CAP_DMA | MALLOC_CAP_PID2 | MALLOC_CAP_PID3 | MALLOC_CAP_PID4 | MALLOC_CAP_PID5 | MALLOC_CAP_PID6 | MALLOC_CAP_PID7 | MALLOC_CAP_SPIRAM | MALLOC_CAP_INTERNAL | MALLOC_CAP_DEFAULT | MALLOC_CAP_IRAM_8BIT | MALLOC_CAP_RETENTION | MALLOC_CAP_RTCRAM);
 #endif
 
     /* The ESP32-C3 can enumerate as a USB CDC device using pins 18 and 19
