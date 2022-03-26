@@ -16,6 +16,7 @@
 //==============================================================================
 // Constants
 //==============================================================================
+#define WRAP(x,u) (((x < 0) ? x + (u + 1) * ((-(x)) / (u + 1) + 1) : x) % (u + 1))
 
 #define TILEMAP_BUFFER_WIDTH_PIXELS 256
 #define TILEMAP_BUFFER_HEIGHT_PIXELS 256
@@ -150,10 +151,9 @@ void platformerExitMode(void)
 void platformerMainLoop(int64_t elapsedUs)
 {
     platformer->disp->clearPx();
-
-    platformer->tilemap.tilemapOffsetX--;
-    platformer->tilemap.tilemapOffsetY--;
   
+    scrollTileMap(&(platformer->tilemap), -1, -1);
+
     drawTileMap(platformer->disp, &(platformer->tilemap));
 }
 
@@ -221,4 +221,58 @@ void initializeTileMap(tilemap_t * tilemap)
 void drawTileMap(display_t * disp, tilemap_t * tilemap)
 {
     drawWsgTiled(disp, &(tilemap->tilemap_buffer), tilemap->tilemapOffsetX, tilemap->tilemapOffsetY);
+}
+
+void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y) {
+    if(x != 0){
+
+        int16_t currentUpdateColumn = WRAP(-tilemap->tilemapOffsetX, TILEMAP_BUFFER_WIDTH_PIXELS) >> 4;
+        
+        tilemap->tilemapOffsetX -= x;
+
+        int16_t newUpdateColumn = WRAP(-tilemap->tilemapOffsetX, TILEMAP_BUFFER_WIDTH_PIXELS) >> 4;
+
+        if(newUpdateColumn != currentUpdateColumn) {
+            updateTileMapColumn(tilemap, newUpdateColumn);
+        }
+
+    }
+
+    if(y != 0){
+
+        int16_t currentUpdateRow = WRAP(-tilemap->tilemapOffsetY, TILEMAP_BUFFER_HEIGHT_PIXELS) >> 4;
+        
+        tilemap->tilemapOffsetY -= y;
+
+        int16_t newUpdateRow= WRAP(-tilemap->tilemapOffsetY, TILEMAP_BUFFER_HEIGHT_PIXELS) >> 4;
+
+        if(currentUpdateRow != currentUpdateRow) {
+            updateTileMapRow(tilemap, newUpdateRow);
+        }
+
+    }
+}
+
+void updateTileMapColumn(tilemap_t * tilemap, int16_t column){
+    for (int y=0; y < TILEMAP_BUFFER_HEIGHT_TILES; y++) 
+    {
+      
+        if( esp_random() % 2) 
+        {
+            drawWsgIntoWsg(&tilemap->tiles, &tilemap->tilemap_buffer, column * TILE_SIZE, y * TILE_SIZE);
+        }
+
+    }
+}
+
+void updateTileMapRow(tilemap_t * tilemap, int16_t row){
+    for (int x=0; x < TILEMAP_BUFFER_WIDTH_TILES; x++) 
+    {
+      
+        if( esp_random() % 2) 
+        {
+            drawWsgIntoWsg(&tilemap->tiles, &tilemap->tilemap_buffer, x * TILE_SIZE, row * TILE_SIZE);
+        }
+
+    }
 }
