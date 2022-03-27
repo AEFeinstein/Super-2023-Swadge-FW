@@ -264,6 +264,45 @@ void drawWsgIntoWsg(wsg_t *source, wsg_t *destination, int16_t xOff, int16_t yOf
     }
 }
 
+/*
+ * @brief Draw a portion of an allocated WSG into another allocated WSG
+ *
+ * @param source Pointer to the WSG to be drawn
+ * @param destination Pointer to the WSG that will be drawn onto
+ * @param xOff The x offset to draw the WSG at
+ * @param yOff The y offset to draw the WSG at
+ */
+void drawPartialWsgIntoWsg(wsg_t *source, wsg_t *destination, int16_t sourceXstart, int16_t sourceYstart, int16_t sourceXend, int16_t sourceYend, int16_t xOff, int16_t yOff)
+{
+    if(NULL == source->px || NULL == destination -> px)
+    {
+        return;
+    }
+
+    int16_t drawWidth = sourceXend - sourceXstart;
+    int16_t drawHeight = sourceYend - sourceYstart;
+
+    // Only draw in bounds
+    int16_t xMin = CLAMP(xOff, 0, destination->w);
+    int16_t xMax = CLAMP(xOff + drawWidth, 0, destination->w);
+    int16_t yMin = CLAMP(yOff, 0, destination->h);
+    int16_t yMax = CLAMP(yOff + drawHeight, 0, destination->h);
+
+    // Draw each pixel
+    for (int y = yMin; y < yMax; y++)
+    {
+        for (int x = xMin; x < xMax; x++)
+        {
+            int16_t wsgX = x + sourceXstart - xOff;
+            int16_t wsgY = y + sourceYstart - yOff;            
+            //if (cTransparent != source->px[(wsgY * source->w) + wsgX])
+            {
+                destination->px[(y * destination->w) + x]=source->px[(wsgY * source->w) + wsgX];
+            }
+        }
+    }
+}
+
 /**
  * @brief Load a font from ROM to RAM. Fonts are bitmapped image files that have
  * a single height, all ASCII characters, and a width for each character.
