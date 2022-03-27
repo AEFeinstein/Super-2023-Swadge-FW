@@ -1,11 +1,8 @@
-#include <errno.h>
-#include <fcntl.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -15,13 +12,11 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-#include "spiffs_file_preprocessor.h"
 #include "image_processor.h"
 
 #include "heatshrink_encoder.h"
 
-#define HI_BYTE(x) ((x >> 8) & 0xFF)
-#define LO_BYTE(x) ((x) & 0xFF)
+#include "fileUtils.h"
 
 #define CLAMP(x,l,u) ((x) < l ? l : ((x) > u ? u : (x)))
 
@@ -105,47 +100,6 @@ void spreadError(pixel_t **img, int x, int y, int w, int h,
 			}
 		}
 	}
-}
-
-/**
- * TODO
- *
- * @param fname
- * @return long
- */
-long getFileSize(const char *fname)
-{
-	FILE *fp = fopen(fname, "rb");
-	fseek(fp, 0L, SEEK_END);
-	long sz = ftell(fp);
-	fclose(fp);
-	return sz;
-}
-
-/**
- * @brief TODO
- *
- * @param fname
- * @return true
- * @return false
- */
-bool doesFileExist(const char *fname)
-{
-	int fd = open(fname, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
-	if (fd < 0)
-	{
-		/* failure */
-		if (errno == EEXIST)
-		{
-			/* the file already existed */
-			close(fd);
-			return true;
-		}
-	}
-
-	/* File does not exist */
-	close(fd);
-	return false;
 }
 
 /**
