@@ -113,7 +113,7 @@ void platformerEnterMode(display_t * disp)
     // Save a pointer to the display
     platformer->disp = disp;
     
-    loadWsg("block.wsg", &platformer->block);
+    loadWsg("tiles.wsg", &platformer->block);
 
     loadBlankWsg(&platformer->test_wsg_into_wsg, 128, 128);
     drawWsgIntoWsg(&platformer->block, &platformer->test_wsg_into_wsg, 13, 25);
@@ -155,6 +155,8 @@ void platformerMainLoop(int64_t elapsedUs)
     scrollTileMap(&(platformer->tilemap), -1, -1);
 
     drawTileMap(platformer->disp, &(platformer->tilemap));
+
+    //drawWsg(platformer->disp, &platformer->block, 16,16);
 }
 
 /**
@@ -200,19 +202,14 @@ void initializeTileMap(tilemap_t * tilemap)
     tilemap->tilemapOffsetY = 0;
     
     loadBlankWsg(&tilemap->tilemap_buffer, TILEMAP_BUFFER_WIDTH_PIXELS, TILEMAP_BUFFER_HEIGHT_PIXELS);
-    loadWsg("block.wsg", &tilemap->tiles);
+    loadWsg("tiles.wsg", &tilemap->tiles);
 
     for (int y=0; y < TILEMAP_BUFFER_HEIGHT_TILES; y++) 
     {
 
         for (int x=0; x < TILEMAP_BUFFER_WIDTH_TILES; x++) 
         {
-
-            if( esp_random() % 2) 
-            {
-                drawWsgIntoWsg(&tilemap->tiles, &tilemap->tilemap_buffer, x * TILE_SIZE, y * TILE_SIZE);
-            }
-
+            drawTile(tilemap, esp_random() % 4, x * TILE_SIZE, y * TILE_SIZE);
         }
 
     }
@@ -256,23 +253,18 @@ void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y) {
 void updateTileMapColumn(tilemap_t * tilemap, int16_t column){
     for (int y=0; y < TILEMAP_BUFFER_HEIGHT_TILES; y++) 
     {
-      
-        if( esp_random() % 2) 
-        {
-            drawWsgIntoWsg(&tilemap->tiles, &tilemap->tilemap_buffer, column * TILE_SIZE, y * TILE_SIZE);
-        }
-
+        drawTile(tilemap, esp_random() % 4, column * TILE_SIZE, y * TILE_SIZE);
     }
 }
 
 void updateTileMapRow(tilemap_t * tilemap, int16_t row){
     for (int x=0; x < TILEMAP_BUFFER_WIDTH_TILES; x++) 
     {
-      
-        if( esp_random() % 2) 
-        {
-            drawWsgIntoWsg(&tilemap->tiles, &tilemap->tilemap_buffer, x * TILE_SIZE, row * TILE_SIZE);
-        }
-
+        drawTile(tilemap, esp_random() % 4, x * TILE_SIZE, row * TILE_SIZE);
     }
+}
+
+void drawTile(tilemap_t * tilemap, uint8_t tileId, int16_t x, int16_t y)
+{
+    drawPartialWsgIntoWsg(&tilemap->tiles, &tilemap->tilemap_buffer, tileId * TILE_SIZE, 0, (tileId * TILE_SIZE) + TILE_SIZE, TILE_SIZE, x, y);
 }
