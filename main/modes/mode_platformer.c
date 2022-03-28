@@ -233,7 +233,7 @@ void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y) {
 
         int16_t currentUpdateColumn = WRAP(-tilemap->tilemapOffsetX - ((x > 0)?TILE_SIZE:0), TILEMAP_BUFFER_WIDTH_PIXELS) >> 4;
         
-        tilemap->tilemapOffsetX -= x;
+        tilemap->tilemapOffsetX = WRAP(tilemap->tilemapOffsetX - x, TILEMAP_BUFFER_WIDTH_PIXELS);
 
         int16_t newUpdateColumn = WRAP(-tilemap->tilemapOffsetX - ((x > 0)?TILE_SIZE:0), TILEMAP_BUFFER_WIDTH_PIXELS) >> 4;
 
@@ -247,7 +247,7 @@ void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y) {
 
         int16_t currentUpdateRow = WRAP(-tilemap->tilemapOffsetY - ((y > 0)?TILE_SIZE:0), TILEMAP_BUFFER_HEIGHT_PIXELS) >> 4;
         
-        tilemap->tilemapOffsetY -= y;
+        tilemap->tilemapOffsetY = WRAP(tilemap->tilemapOffsetY - y, TILEMAP_BUFFER_HEIGHT_PIXELS);
 
         int16_t newUpdateRow= WRAP(-tilemap->tilemapOffsetY - ((y > 0)?TILE_SIZE:0), TILEMAP_BUFFER_HEIGHT_PIXELS) >> 4;
 
