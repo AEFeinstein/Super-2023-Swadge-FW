@@ -64,13 +64,6 @@ typedef struct
 
     tilemap_t tilemap;
 
-    wsg_t block;
-    wsg_t test_wsg_into_wsg;
-
-    int16_t tilemapOffsetX;
-    int16_t tilemapOffsetY;
-
-
 } platformer_t;
 
 
@@ -113,14 +106,6 @@ void platformerEnterMode(display_t * disp)
     // Save a pointer to the display
     platformer->disp = disp;
     
-    loadWsg("tiles.wsg", &platformer->block);
-
-    loadBlankWsg(&platformer->test_wsg_into_wsg, 128, 128);
-    drawWsgIntoWsg(&platformer->block, &platformer->test_wsg_into_wsg, 13, 25);
-    drawWsgIntoWsg(&platformer->block, &platformer->test_wsg_into_wsg, 114, 0);
-
-    platformer->tilemapOffsetX=0;
-    platformer->tilemapOffsetY=0;
 
     initializeTileMap(&(platformer->tilemap));
 }
