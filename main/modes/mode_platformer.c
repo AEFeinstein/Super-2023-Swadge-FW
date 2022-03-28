@@ -64,6 +64,10 @@ typedef struct
 
     tilemap_t tilemap;
 
+    int8_t scrolltesttimer;
+    int16_t scroll_xspeed;
+    int16_t scroll_yspeed;
+
 } platformer_t;
 
 
@@ -106,6 +110,9 @@ void platformerEnterMode(display_t * disp)
     // Save a pointer to the display
     platformer->disp = disp;
     
+    platformer->scrolltesttimer = 1;
+    platformer->scroll_xspeed = 0;
+    platformer->scroll_yspeed = 0;
 
     initializeTileMap(&(platformer->tilemap));
 }
@@ -137,7 +144,15 @@ void platformerMainLoop(int64_t elapsedUs)
 {
     platformer->disp->clearPx();
   
-    //scrollTileMap(&(platformer->tilemap), -1, -1);
+    platformer->scrolltesttimer --;
+    if (platformer->scrolltesttimer < 0) {
+        platformer->scrolltesttimer = 127;
+
+        platformer->scroll_xspeed = -2 + (esp_random() % 5);
+        platformer->scroll_yspeed = -2 + (esp_random() % 5);
+    }
+
+    scrollTileMap(&(platformer->tilemap), platformer->scroll_xspeed, platformer->scroll_yspeed);
 
     drawTileMap(platformer->disp, &(platformer->tilemap));
 
@@ -155,7 +170,7 @@ void platformerButtonCb(buttonEvt_t* evt)
     {
         switch (evt->button)
         {
-            case UP:
+            /*case UP:
                 scrollTileMap(&(platformer->tilemap),0,-1);
                 break;
             case DOWN:
@@ -170,7 +185,7 @@ void platformerButtonCb(buttonEvt_t* evt)
             case BTN_A:
             {
                 break;
-            }
+            }*/
             default:
             {
                 break;
