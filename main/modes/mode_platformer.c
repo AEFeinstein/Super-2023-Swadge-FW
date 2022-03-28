@@ -152,7 +152,7 @@ void platformerMainLoop(int64_t elapsedUs)
 {
     platformer->disp->clearPx();
   
-    scrollTileMap(&(platformer->tilemap), -1, -1);
+    //scrollTileMap(&(platformer->tilemap), -1, -1);
 
     drawTileMap(platformer->disp, &(platformer->tilemap));
 
@@ -171,9 +171,17 @@ void platformerButtonCb(buttonEvt_t* evt)
         switch (evt->button)
         {
             case UP:
+                scrollTileMap(&(platformer->tilemap),0,-1);
+                break;
             case DOWN:
+                scrollTileMap(&(platformer->tilemap),0,1);
+                break;
             case LEFT:
+                scrollTileMap(&(platformer->tilemap),-1,0);
+                break;
             case RIGHT:
+                scrollTileMap(&(platformer->tilemap),1,0);
+                break;
             case BTN_A:
             {
                 break;
@@ -223,11 +231,11 @@ void drawTileMap(display_t * disp, tilemap_t * tilemap)
 void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y) {
     if(x != 0){
 
-        int16_t currentUpdateColumn = WRAP(-tilemap->tilemapOffsetX, TILEMAP_BUFFER_WIDTH_PIXELS) >> 4;
+        int16_t currentUpdateColumn = WRAP(-tilemap->tilemapOffsetX - ((x > 0)?TILE_SIZE:0), TILEMAP_BUFFER_WIDTH_PIXELS) >> 4;
         
         tilemap->tilemapOffsetX -= x;
 
-        int16_t newUpdateColumn = WRAP(-tilemap->tilemapOffsetX, TILEMAP_BUFFER_WIDTH_PIXELS) >> 4;
+        int16_t newUpdateColumn = WRAP(-tilemap->tilemapOffsetX - ((x > 0)?TILE_SIZE:0), TILEMAP_BUFFER_WIDTH_PIXELS) >> 4;
 
         if(newUpdateColumn != currentUpdateColumn) {
             updateTileMapColumn(tilemap, newUpdateColumn);
@@ -237,13 +245,13 @@ void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y) {
 
     if(y != 0){
 
-        int16_t currentUpdateRow = WRAP(-tilemap->tilemapOffsetY, TILEMAP_BUFFER_HEIGHT_PIXELS) >> 4;
+        int16_t currentUpdateRow = WRAP(-tilemap->tilemapOffsetY - ((y > 0)?TILE_SIZE:0), TILEMAP_BUFFER_HEIGHT_PIXELS) >> 4;
         
         tilemap->tilemapOffsetY -= y;
 
-        int16_t newUpdateRow= WRAP(-tilemap->tilemapOffsetY, TILEMAP_BUFFER_HEIGHT_PIXELS) >> 4;
+        int16_t newUpdateRow= WRAP(-tilemap->tilemapOffsetY - ((y > 0)?TILE_SIZE:0), TILEMAP_BUFFER_HEIGHT_PIXELS) >> 4;
 
-        if(currentUpdateRow != currentUpdateRow) {
+        if(currentUpdateRow != newUpdateRow) {
             updateTileMapRow(tilemap, newUpdateRow);
         }
 
