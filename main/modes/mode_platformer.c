@@ -217,7 +217,7 @@ void initializeTileMap(tilemap_t * tilemap)
 
         for (int x=0; x < TILEMAP_BUFFER_WIDTH_TILES; x++) 
         {
-            drawTile(tilemap, esp_random() % 4, x * TILE_SIZE, y * TILE_SIZE);
+            drawTile(tilemap, esp_random() % 5, x * TILE_SIZE, y * TILE_SIZE);
         }
 
     }
@@ -261,14 +261,14 @@ void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y) {
 void updateTileMapColumn(tilemap_t * tilemap, int16_t column){
     for (int y=0; y < TILEMAP_BUFFER_HEIGHT_TILES; y++) 
     {
-        drawTile(tilemap, esp_random() % 4, column * TILE_SIZE, y * TILE_SIZE);
+        drawTile(tilemap, esp_random() % 5, column * TILE_SIZE, y * TILE_SIZE);
     }
 }
 
 void updateTileMapRow(tilemap_t * tilemap, int16_t row){
     for (int x=0; x < TILEMAP_BUFFER_WIDTH_TILES; x++) 
     {
-        drawTile(tilemap, esp_random() % 4, x * TILE_SIZE, row * TILE_SIZE);
+        drawTile(tilemap, esp_random() % 5, x * TILE_SIZE, row * TILE_SIZE);
     }
 }
 
