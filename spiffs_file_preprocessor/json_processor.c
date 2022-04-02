@@ -16,12 +16,14 @@ void process_json(const char *infile, const char *outdir)
     strcat(outFilePath, "/");
     strcat(outFilePath, get_filename(infile));
 
+#ifdef JSON_COMPRESSION
     /* Change the file extension */
     char * dotptr = strrchr(outFilePath, '.');
     dotptr[1] = 'h';
     dotptr[2] = 'o';
     dotptr[3] = 'n';
     dotptr[4] = 0;
+#endif
 
     if(doesFileExist(outFilePath))
     {
@@ -29,7 +31,7 @@ void process_json(const char *infile, const char *outdir)
         return;
     }
 
-    /* Minify input file */
+    /* Read input file */
     FILE *fp = fopen(infile, "rb");
     fseek(fp, 0L, SEEK_END);
     long sz = ftell(fp);
@@ -39,6 +41,12 @@ void process_json(const char *infile, const char *outdir)
     jsonInStr[sz] = 0;
     fclose(fp);
 
+#ifndef JSON_COMPRESSION
+    /* Write input directly to output */
+    FILE* outFile = fopen(outFilePath, "wb");
+    fwrite(jsonInStr, sz, 1, outFile);
+    fclose(outFile);
+#else
     /* Minify input file */
     cJSON* jsonIn = cJSON_Parse(jsonInStr);
     char * jsonInUnformatted = cJSON_PrintUnformatted(jsonIn);
@@ -50,14 +58,14 @@ void process_json(const char *infile, const char *outdir)
     uint32_t inputIdx = 0;
     size_t copied = 0;
 
-    /* Creete the encoder */
+    /* Create the encoder */
     heatshrink_encoder *hse = heatshrink_encoder_alloc(8, 4);
     heatshrink_encoder_reset(hse);
 
     /* Stream the data in chunks */
     while(inputIdx < strlen(jsonInUnformatted) + 1)
     {
-        /* Pass pixels to the encoder for compression */
+        /* Pass chars to the encoder for compression */
         copied = 0;
         heatshrink_encoder_sink(hse, (uint8_t*)(&jsonInUnformatted[inputIdx]), strlen(jsonInUnformatted) + 1 - inputIdx, &copied);
         inputIdx += copied;
@@ -82,14 +90,17 @@ void process_json(const char *infile, const char *outdir)
     /* Free the encoder */
     heatshrink_encoder_free(hse);
 
-    /* Write a HON image */
+    /* Write a Heatshrink Object Notation file */
     FILE * honFile = fopen(outFilePath, "wb");
+    /* Write uncompressed size first */
     putc(HI_BYTE(inputIdx), honFile);
     putc(LO_BYTE(inputIdx), honFile);
+    /* Write compressed bytes */
     fwrite(output, outputIdx, 1, honFile);
     fclose(honFile);
 
     /* Print results */
     printf("%s:\n  Source file size: %d\n  WSG   file size: %d\n",
            infile, inputIdx, outputIdx);
+#endif
 }
