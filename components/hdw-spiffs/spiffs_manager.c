@@ -100,6 +100,8 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
     // Read the file into an array
     *output = (uint8_t*)calloc((*outsize + 1), sizeof(uint8_t));
     fread(*output, *outsize, 1, f);
+    // Add null terminator
+    (*output)[*outsize] = 0;
 
     // Close the file
     fclose(f);
