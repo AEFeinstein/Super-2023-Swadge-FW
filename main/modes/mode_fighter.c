@@ -29,7 +29,7 @@
 
 // Division by a power of 2 has slightly more instructions than rshift, but handles negative numbers properly!
 #define SF (1 << 8) // Scaling factor, a nice power of 2
-#define FIGHTER_SIZE (16 * SF)
+#define FIGHTER_SIZE (24 * SF)
 
 #define FRAME_TIME_MS 25 // 20fps
 
@@ -121,6 +121,7 @@ swadgeMode modeFighter =
 
 fighter_t fighters[2];
 display_t *d;
+wsg_t kd[2];
 
 static const platform_t finalDest[] =
 {
@@ -180,6 +181,9 @@ void fighterEnterMode(display_t *disp)
 {
     d = disp;
 
+    loadWsg("kd0.wsg", &kd[0]);
+    loadWsg("kd1.wsg", &kd[1]);
+
     fighters[0].hurtbox.x0 = (32) * SF;
     fighters[0].hurtbox.y0 = 0 * SF;
     fighters[0].hurtbox.x1 = fighters[0].hurtbox.x0 + FIGHTER_SIZE;
@@ -215,7 +219,8 @@ void fighterEnterMode(display_t *disp)
  */
 void fighterExitMode(void)
 {
-
+    freeWsg(&kd[0]);
+    freeWsg(&kd[1]);
 }
 
 /**
@@ -225,6 +230,15 @@ void fighterExitMode(void)
  */
 void fighterMainLoop(int64_t elapsedUs)
 {
+    static uint8_t animIdx = 0;
+    static int64_t animElapsed = 0;
+    animElapsed += elapsedUs;
+    if(animElapsed > 500000)
+    {
+        animElapsed -= 500000;
+        animIdx = animIdx ? 0 : 1;
+    }
+
     static int64_t frameElapsed = 0;
     frameElapsed += elapsedUs;
     if (frameElapsed > (FRAME_TIME_MS * 1000))
@@ -244,9 +258,11 @@ void fighterMainLoop(int64_t elapsedUs)
 
     d->clearPx();
 
-    drawBox(d, fighters[0].hurtbox, c500, SF);
+    // drawBox(d, fighters[0].hurtbox, c500, SF);
+    drawWsg(d, &kd[animIdx], fighters[0].hurtbox.x0 / SF, fighters[0].hurtbox.y0 / SF);
 
-    drawBox(d, fighters[1].hurtbox, c005, SF);
+    // drawBox(d, fighters[1].hurtbox, c005, SF);
+    drawWsg(d, &kd[(1 + animIdx) % 2], fighters[1].hurtbox.x0 / SF, fighters[1].hurtbox.y0 / SF);
 
     for (uint8_t idx = 0; idx < sizeof(finalDest) / sizeof(finalDest[0]); idx++)
     {
