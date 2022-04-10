@@ -1,11 +1,8 @@
-#include <errno.h>
-#include <fcntl.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -15,13 +12,11 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-#include "spiffs_file_preprocessor.h"
 #include "image_processor.h"
 
 #include "heatshrink_encoder.h"
 
-#define HI_BYTE(x) ((x >> 8) & 0xFF)
-#define LO_BYTE(x) ((x) & 0xFF)
+#include "fileUtils.h"
 
 #define CLAMP(x,l,u) ((x) < l ? l : ((x) > u ? u : (x)))
 
@@ -43,7 +38,7 @@ typedef struct
  * @param ar
  * @param len
  */
-void shuffleArray(uint16_t *ar, uint32_t len)
+void shuffleArray(uint32_t *ar, uint32_t len)
 {
 	srand(time(NULL));
 	for (int i = len - 1; i > 0; i--)
@@ -108,47 +103,6 @@ void spreadError(pixel_t **img, int x, int y, int w, int h,
 }
 
 /**
- * TODO
- *
- * @param fname
- * @return long
- */
-long getFileSize(const char *fname)
-{
-	FILE *fp = fopen(fname, "rb");
-	fseek(fp, 0L, SEEK_END);
-	long sz = ftell(fp);
-	fclose(fp);
-	return sz;
-}
-
-/**
- * @brief TODO
- *
- * @param fname
- * @return true
- * @return false
- */
-bool doesFileExist(const char *fname)
-{
-	int fd = open(fname, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
-	if (fd < 0)
-	{
-		/* failure */
-		if (errno == EEXIST)
-		{
-			/* the file already existed */
-			close(fd);
-			return true;
-		}
-	}
-
-	/* File does not exist */
-	close(fd);
-	return false;
-}
-
-/**
  * @brief TODO
  *
  * @param infile
@@ -189,7 +143,7 @@ void process_image(const char *infile, const char *outdir)
 		}
 
 		/* Create an array of pixel indicies, then shuffle it */
-		uint16_t indices[w * h];
+		uint32_t * indices = (uint32_t*)malloc(sizeof(uint32_t) * w * h); //[w * h];
 		for (int i = 0; i < w * h; i++)
 		{
 			indices[i] = i;
@@ -252,12 +206,14 @@ void process_image(const char *infile, const char *outdir)
 			image8b[y][x].isDrawn = true;
 		}
 
+		free(indices);
+
 		/* Free stbi memory */
 		stbi_image_free(data);
 
 #ifdef WRITE_DITHERED_PNG
 		/* Convert to a pixel buffer */
-		unsigned char pixBuf[w*h*4];
+		unsigned char* pixBuf = (unsigned char*)malloc(sizeof(unsigned char) * w * h * 4);//[w*h*4];
 		int pixBufIdx = 0;
 		for (int y = 0; y < h; y++)
 		{
@@ -274,6 +230,7 @@ void process_image(const char *infile, const char *outdir)
 		strcpy(pngOutFilePath, outFilePath);
 		strcat(pngOutFilePath, ".png");
 		stbi_write_png(pngOutFilePath, w, h, 4, pixBuf, 4 * w);
+		free(pixBuf);
 #endif
 
 		/* Convert to a palette buffer */

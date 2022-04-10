@@ -1,6 +1,6 @@
 CC = gcc
 
-SRC_FILES = spiffs_file_preprocessor.c image_processor.c font_processor.c heatshrink_encoder.c
+SRC_FILES = spiffs_file_preprocessor.c image_processor.c font_processor.c heatshrink_encoder.c json_processor.c cJSON.c fileUtils.c
 CFLAGS = -Wall -Wextra -Wno-missing-field-initializers -g -std=c99
 INC_FLAGS = -I.
 LIB_FLAGS = -lm
@@ -11,9 +11,7 @@ EXECUTABLE = spiffs_file_preprocessor
 .PHONY: all clean
 
 # Build everything!
-all: $(EXECUTABLE)
-
-$(EXECUTABLE):
+all: 
 	$(CC) $(SRC_FILES) $(CFLAGS) $(INC_FLAGS) -o $(EXECUTABLE) $(LIB_FLAGS)
 
 clean:

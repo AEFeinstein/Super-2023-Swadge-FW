@@ -18,7 +18,7 @@
  * @param color
  * @param scalingFactor
  */
-void drawBox(display_t * disp, box_t box, paletteColor_t color, uint32_t scalingFactor)
+void drawBox(display_t* disp, box_t box, paletteColor_t color, uint32_t scalingFactor)
 {
     plotRect(disp,
              box.x0 / scalingFactor,
@@ -29,8 +29,8 @@ void drawBox(display_t * disp, box_t box, paletteColor_t color, uint32_t scaling
 }
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @param box0 A box to check for collision
  * @param box1 The other box to check for collision
  * @param scalingFactor The scaling factor used for fixed point integers

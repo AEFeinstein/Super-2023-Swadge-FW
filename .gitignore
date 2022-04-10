@@ -58,6 +58,8 @@ sdkconfig.old
 spiffs_image/*.png
 spiffs_image/*.font
 spiffs_image/*.wsg
+spiffs_image/*.hon
+spiffs_image/*.json
 spiffs_file_preprocessor/spiffs_file_preprocessor
 swadge_emulator
 nvs.json

@@ -95,7 +95,7 @@ void buzzer_check_next_note(void)
             // Make sure RMT is idle
             uint32_t status;
             rmt_get_status(rmt_buzzer.channel, &status);
-            if(0 == (status & RMT_TX_START_CH1))
+            if(0 == (status & RMT_TX_START_CH0))
             {
                 // Move to the next note
                 rmt_buzzer.note_index++;
