@@ -31,6 +31,8 @@ void initializeTileMap(tilemap_t * tilemap)
 {
     tilemap->tilemapOffsetX = 0;
     tilemap->tilemapOffsetY = 0;
+    tilemap->mapOffsetX = 0;
+    tilemap->mapOffsetY = 0;
     
     loadBlankWsg(&tilemap->tilemap_buffer, TILEMAP_BUFFER_WIDTH_PIXELS, TILEMAP_BUFFER_HEIGHT_PIXELS);
     loadWsg("tiles.wsg", &tilemap->tiles);
@@ -42,7 +44,7 @@ void initializeTileMap(tilemap_t * tilemap)
 
         for (int x=0; x < TILEMAP_BUFFER_WIDTH_TILES; x++) 
         {
-            drawTile(tilemap, esp_random() % 5, x * TILE_SIZE, y * TILE_SIZE);
+            drawTile(tilemap, tilemap->map[(y * tilemap->mapWidth) + x], x * TILE_SIZE, y * TILE_SIZE);
         }
 
     }
@@ -59,11 +61,19 @@ void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y) {
         int16_t currentUpdateColumn = WRAP(-tilemap->tilemapOffsetX - ((x > 0)?TILE_SIZE:0), TILEMAP_BUFFER_WIDTH_PIXELS) >> 4;
         
         tilemap->tilemapOffsetX = WRAP(tilemap->tilemapOffsetX - x, TILEMAP_BUFFER_WIDTH_PIXELS);
+        tilemap->mapOffsetX += x;
 
         int16_t newUpdateColumn = WRAP(-tilemap->tilemapOffsetX - ((x > 0)?TILE_SIZE:0), TILEMAP_BUFFER_WIDTH_PIXELS) >> 4;
 
-        if(newUpdateColumn != currentUpdateColumn) {
-            updateTileMapColumn(tilemap, newUpdateColumn);
+        //TODO
+        //BUG: Because currentUpdateColumn and newUpdateColumn 
+        //     are constrained to the range 0..TILEMAP_BUFFER_WIDTH_IN_TILES,
+        //     the updateColumnDelta won't always calculate as intended
+
+        int8_t updateColumnDelta = newUpdateColumn - currentUpdateColumn;
+
+        if(updateColumnDelta != 0) {
+            updateTileMapColumn(tilemap, newUpdateColumn, updateColumnDelta);
         }
 
     }
@@ -73,27 +83,32 @@ void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y) {
         int16_t currentUpdateRow = WRAP(-tilemap->tilemapOffsetY - ((y > 0)?TILE_SIZE:0), TILEMAP_BUFFER_HEIGHT_PIXELS) >> 4;
         
         tilemap->tilemapOffsetY = WRAP(tilemap->tilemapOffsetY - y, TILEMAP_BUFFER_HEIGHT_PIXELS);
+        tilemap->mapOffsetY += y;
 
         int16_t newUpdateRow= WRAP(-tilemap->tilemapOffsetY - ((y > 0)?TILE_SIZE:0), TILEMAP_BUFFER_HEIGHT_PIXELS) >> 4;
 
+        int8_t updateRowDelta = newUpdateRow - currentUpdateRow;
+
         if(currentUpdateRow != newUpdateRow) {
-            updateTileMapRow(tilemap, newUpdateRow);
+            updateTileMapRow(tilemap, newUpdateRow, updateRowDelta);
         }
 
     }
 }
 
-void updateTileMapColumn(tilemap_t * tilemap, int16_t column){
+void updateTileMapColumn(tilemap_t * tilemap, int16_t column, int8_t updateColumnDelta){
     for (int y=0; y < TILEMAP_BUFFER_HEIGHT_TILES; y++) 
     {
-        drawTile(tilemap, esp_random() % 5, column * TILE_SIZE, y * TILE_SIZE);
+        uint8_t tile = tilemap->map[(y * tilemap->mapWidth) + (tilemap->mapOffsetX >> 4) + ((updateColumnDelta > 0) ? TILEMAP_BUFFER_WIDTH_TILES : -1)];
+        drawTile(tilemap, tile, column * TILE_SIZE, y * TILE_SIZE);
     }
 }
 
-void updateTileMapRow(tilemap_t * tilemap, int16_t row){
+void updateTileMapRow(tilemap_t * tilemap, int16_t row, int8_t updateRowDelta){
     for (int x=0; x < TILEMAP_BUFFER_WIDTH_TILES; x++) 
     {
-        drawTile(tilemap, esp_random() % 5, x * TILE_SIZE, row * TILE_SIZE);
+        uint8_t tile = tilemap->map[( ( (tilemap->mapOffsetY >> 4) + ((updateRowDelta > 0) ? TILEMAP_BUFFER_HEIGHT_TILES : -1) )  * tilemap->mapWidth) + x];
+        drawTile(tilemap, tile, x * TILE_SIZE, row * TILE_SIZE);
     }
 }
 

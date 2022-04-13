@@ -90,8 +90,8 @@ void platformerEnterMode(display_t * disp)
     // Save a pointer to the display
     platformer->disp = disp;
     
-    platformer->scrolltesttimer = 1;
-    platformer->scroll_xspeed = 0;
+    platformer->scrolltesttimer = 60;
+    platformer->scroll_xspeed = 2;
     platformer->scroll_yspeed = 0;
 
     initializeTileMap(&(platformer->tilemap));
@@ -132,7 +132,7 @@ void platformerMainLoop(int64_t elapsedUs)
         platformer->scroll_yspeed = -2 + (esp_random() % 5);
     }
 
-    scrollTileMap(&(platformer->tilemap), platformer->scroll_xspeed, platformer->scroll_yspeed);
+    scrollTileMap(&(platformer->tilemap), platformer->scroll_xspeed, 0);
 
     drawTileMap(platformer->disp, &(platformer->tilemap));
 
