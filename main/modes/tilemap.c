@@ -2,7 +2,14 @@
 // Includes
 //==============================================================================
 
+#include <stdlib.h>
+#include <esp_log.h>
+#include <string.h>
+
 #include "tilemap.h"
+#include "esp_random.h"
+
+#include "../../components/hdw-spiffs/spiffs_manager.h"
 
 //==============================================================================
 // Constants
@@ -16,20 +23,6 @@
 
 #define TILE_SIZE 16
 
-#define MAP_WIDTH 32
-#define MAP_HEIGHT 32
-
-//==============================================================================
-// Functions Prototypes
-//==============================================================================
-
-void initializeTileMap(tilemap_t * tilemap);
-void drawTileMap(display_t * disp, tilemap_t * tilemap);
-void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y);
-void updateTileMapColumn(tilemap_t * tilemap, int16_t column);
-void updateTileMapRow(tilemap_t * tilemap, int16_t row);
-void drawTile(tilemap_t * tilemap, uint8_t tileId, int16_t x, int16_t y);
-
 //==============================================================================
 // Functions
 //==============================================================================
@@ -41,6 +34,8 @@ void initializeTileMap(tilemap_t * tilemap)
     
     loadBlankWsg(&tilemap->tilemap_buffer, TILEMAP_BUFFER_WIDTH_PIXELS, TILEMAP_BUFFER_HEIGHT_PIXELS);
     loadWsg("tiles.wsg", &tilemap->tiles);
+
+    loadMapFromFile(tilemap, "level_test.bin");
 
     for (int y=0; y < TILEMAP_BUFFER_HEIGHT_TILES; y++) 
     {
@@ -105,4 +100,32 @@ void updateTileMapRow(tilemap_t * tilemap, int16_t row){
 void drawTile(tilemap_t * tilemap, uint8_t tileId, int16_t x, int16_t y)
 {
     drawPartialWsgIntoWsg(&tilemap->tiles, &tilemap->tilemap_buffer, tileId * TILE_SIZE, 0, (tileId * TILE_SIZE) + TILE_SIZE, TILE_SIZE, x, y);
+}
+
+bool loadMapFromFile(tilemap_t * tilemap, char * name)
+{
+    if(tilemap->map != NULL){
+        free(&(tilemap->map));
+    }
+    
+    uint8_t * buf = NULL;
+    size_t sz;
+    if(!spiffsReadFile(name, &buf, &sz))
+    {
+        ESP_LOGE("MAP", "Failed to read %s", name);
+        return false;
+    }
+
+    uint8_t width = buf[0];
+    uint8_t height = buf[1];
+
+    tilemap->map = (uint8_t *)malloc(sizeof(uint8_t) * width * height);
+    memcpy(tilemap->map, &buf[2], width * height - 2);
+
+    tilemap->mapWidth = width;
+    tilemap->mapHeight = height;
+
+    free(buf);
+
+    return true;
 }
