@@ -18,7 +18,7 @@
  * @param color
  * @param scalingFactor
  */
-void drawBox(display_t* disp, box_t box, paletteColor_t color, uint32_t scalingFactor)
+void drawBox(display_t* disp, box_t box, paletteColor_t color, int32_t scalingFactor)
 {
     plotRect(disp,
              box.x0 / scalingFactor,
