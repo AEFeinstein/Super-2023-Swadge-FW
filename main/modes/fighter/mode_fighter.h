@@ -50,6 +50,7 @@ typedef struct
 {
     /* Position too! */
     box_t hurtbox;
+    vector_t size;
     vector_t velocity;
     platformPos_t relativePos;
     uint8_t numJumps;
@@ -65,6 +66,7 @@ typedef struct
     int32_t run_decel;
     /* Velocity maximum running velocity */
     int32_t run_max_velo;
+    int32_t prevState;
     int32_t btnState;
     attack_t attacks[9];
     char* idleSprite0;

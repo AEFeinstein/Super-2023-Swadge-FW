@@ -29,11 +29,8 @@
 
 // Division by a power of 2 has slightly more instructions than rshift, but handles negative numbers properly!
 #define SF (1 << 8) // Scaling factor, a nice power of 2
-#define FIGHTER_SIZE (24 * SF)
 
 #define FRAME_TIME_MS 25 // 20fps
-
-// #define DEFAULT_GRAVITY    32
 
 //==============================================================================
 // Structs
@@ -161,34 +158,6 @@ void fighterEnterMode(display_t* disp)
 
     // loadWsg("kd0.wsg", &kd[0]);
     // loadWsg("kd1.wsg", &kd[1]);
-
-    // fighters[0].hurtbox.x0 = (32) * SF;
-    // fighters[0].hurtbox.y0 = 0 * SF;
-    // fighters[0].hurtbox.x1 = fighters[0].hurtbox.x0 + FIGHTER_SIZE;
-    // fighters[0].hurtbox.y1 = fighters[0].hurtbox.y0 + FIGHTER_SIZE;
-    // fighters[0].velocity.x = 0 * SF;
-    // fighters[0].velocity.y = 0 * SF;
-    // fighters[0].relativePos = FREE_FLOATING;
-    // fighters[0].numJumps = 0;
-    // fighters[0].gravity = DEFAULT_GRAVITY * SF;
-    // fighters[0].jump_velo = -60 * SF;
-    // fighters[0].run_accel = DEFAULT_GRAVITY * SF;
-    // fighters[0].run_decel = DEFAULT_GRAVITY * SF;
-    // fighters[0].run_max_velo = 60 * SF;
-
-    // fighters[1].hurtbox.x0 = (240-32) * SF - FIGHTER_SIZE;
-    // fighters[1].hurtbox.y0 = 0 * SF;
-    // fighters[1].hurtbox.x1 = fighters[1].hurtbox.x0 + FIGHTER_SIZE;
-    // fighters[1].hurtbox.y1 = fighters[1].hurtbox.y0 + FIGHTER_SIZE;
-    // fighters[1].velocity.x = 0 * SF;
-    // fighters[1].velocity.y = 0 * SF;
-    // fighters[1].relativePos = FREE_FLOATING;
-    // fighters[1].numJumps = 0;
-    // fighters[1].gravity = DEFAULT_GRAVITY * SF;
-    // fighters[1].jump_velo = -60 * SF;
-    // fighters[1].run_accel = DEFAULT_GRAVITY * SF;
-    // fighters[1].run_decel = DEFAULT_GRAVITY * SF;
-    // fighters[1].run_max_velo = 60 * SF;
 }
 
 /**
@@ -228,11 +197,11 @@ void fighterMainLoop(int64_t elapsedUs)
         updatePosition(&f->fighters[1], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
 
         // ESP_LOGI("FGT", "{[%d, %d], [%d, %d], %d}",
-        //     fighters[0].hurtbox.x0 / SF,
-        //     fighters[0].hurtbox.y0 / SF,
-        //     fighters[0].velocity.x,
-        //     fighters[0].velocity.y,
-        //     fighters[0].relativePos);
+        //     f->fighters[0].hurtbox.x0 / SF,
+        //     f->fighters[0].hurtbox.y0 / SF,
+        //     f->fighters[0].velocity.x,
+        //     f->fighters[0].velocity.y,
+        //     f->fighters[0].relativePos);
     }
 
     f->d->clearPx();
@@ -262,6 +231,59 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     box_t upper_hurtbox;
     // Initial velocity before this frame's calculations
     vector_t v0 = ftr->velocity;
+
+    // Check for button presses, jump first
+    if (!(ftr->prevState & BTN_A) && (ftr->btnState & BTN_A))
+    {
+        if(ftr->numJumps > 0)
+        {
+            ftr->numJumps--;
+            v0.y = ftr->jump_velo;
+            ftr->relativePos = FREE_FLOATING;
+        }
+    }
+
+    // Attack button
+    if (!(ftr->prevState & BTN_B) && (ftr->btnState & BTN_B))
+    {
+        if(ABOVE_PLATFORM == ftr->relativePos)
+        {
+            // Attack on ground
+            if(ftr->btnState & UP) {
+                // Up tilt attack
+            }
+            else if(ftr->btnState & DOWN) {
+                // Down tilt attack
+            }
+            else if((ftr->btnState & LEFT) || (ftr->btnState & RIGHT)) {
+                // Side attack
+            }
+            else {
+                // Neutral attack
+            }
+        }
+        else
+        {
+            // Attack in air
+            if(ftr->btnState & UP) {
+                // Up air attack
+            }
+            else if(ftr->btnState & DOWN) {
+                // Down air
+            }
+            else if(ftr->btnState & LEFT) {
+                // Left air
+                // TODO front-back based on facing direction
+            }
+            else if(ftr->btnState & RIGHT) {
+                // Right air
+                // TODO front-back based on facing direction
+            }
+            else {
+                // Neutral air
+            }
+        }
+    }
 
     // Update X kinematics
     if(ftr->btnState & LEFT)
@@ -336,8 +358,8 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     }
 
     // Finish up the upper hurtbox
-    upper_hurtbox.x1 = upper_hurtbox.x0 + FIGHTER_SIZE;
-    upper_hurtbox.y1 = upper_hurtbox.y0 + FIGHTER_SIZE;
+    upper_hurtbox.x1 = upper_hurtbox.x0 + ftr->size.x;
+    upper_hurtbox.y1 = upper_hurtbox.y0 + ftr->size.y;
 
     // Do a quick check to see if the binary search can be avoided altogether
     bool collisionDetected = false;
@@ -365,8 +387,8 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
         box_t test_hurtbox;
         test_hurtbox.x0 = (lower_hurtbox.x0 + upper_hurtbox.x0) / 2;
         test_hurtbox.y0 = (lower_hurtbox.y0 + upper_hurtbox.y0) / 2;
-        test_hurtbox.x1 = test_hurtbox.x0 + FIGHTER_SIZE;
-        test_hurtbox.y1 = test_hurtbox.y0 + FIGHTER_SIZE;
+        test_hurtbox.x1 = test_hurtbox.x0 + ftr->size.x;
+        test_hurtbox.y1 = test_hurtbox.y0 + ftr->size.y;
 
         // Binary search between where the fighter is and where the fighter
         // wants to be until it converges
@@ -379,6 +401,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
                 if(boxesCollide(test_hurtbox, platforms[idx].area, SF))
                 {
                     collisionDetected = true;
+                    break;
                 }
             }
 
@@ -401,8 +424,8 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             // Recalculate the new test point
             test_hurtbox.x0 = (lower_hurtbox.x0 + upper_hurtbox.x0) / 2;
             test_hurtbox.y0 = (lower_hurtbox.y0 + upper_hurtbox.y0) / 2;
-            test_hurtbox.x1 = test_hurtbox.x0 + FIGHTER_SIZE;
-            test_hurtbox.y1 = test_hurtbox.y0 + FIGHTER_SIZE;
+            test_hurtbox.x1 = test_hurtbox.x0 + ftr->size.x;
+            test_hurtbox.y1 = test_hurtbox.y0 + ftr->size.y;
 
             // Check for convergence
             if(((test_hurtbox.x0 == lower_hurtbox.x0) || (test_hurtbox.x0 == upper_hurtbox.x0)) &&
@@ -465,6 +488,8 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             break;
         }
     }
+
+    ftr->prevState = ftr->btnState;
 }
 
 /**
@@ -474,28 +499,6 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
  */
 void fighterButtonCb(buttonEvt_t* evt)
 {
-    // Save the state for X axis kinematics
+    // Save the state to check synchronously
     f->fighters[0].btnState = evt->state;
-
-    // Check for a jump
-    if(evt->down)
-    {
-        switch(evt->button)
-        {
-            case UP:
-            {
-                if(f->fighters[0].numJumps > 0)
-                {
-                    f->fighters[0].numJumps--;
-                    f->fighters[0].velocity.y = f->fighters[0].jump_velo;
-                    f->fighters[0].relativePos = FREE_FLOATING;
-                }
-                break;
-            }
-            default:
-            {
-                break;
-            }
-        }
-    }
 }
