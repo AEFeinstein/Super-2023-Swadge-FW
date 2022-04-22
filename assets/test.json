@@ -15,15 +15,15 @@
          "duck_spr":"kd0.wsg",
          "attacks":{
             "utilt":{
-               "startupLag":0,
+               "startupLag":20,
                "startupLagSpr":"kd0.png",
                "active_states":[
                   {
-                     "duration":0,
-                     "relativePos_x":0,
-                     "relativePos_y":0,
-                     "size_x":0,
-                     "size_y":0,
+                     "duration":40,
+                     "relativePos_x":1536,
+                     "relativePos_y":-6144,
+                     "size_x":3072,
+                     "size_y":6144,
                      "damage":0,
                      "knockback":0,
                      "knockbackAng_x":0,
@@ -32,7 +32,7 @@
                      "sprite":"kd0.png"
                   }
                ],
-               "endLag":0,
+               "endLag":20,
                "endLagSpr":"kd0.png"
             },
             "dtilt":{
