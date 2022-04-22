@@ -59,6 +59,8 @@ void fighterMainLoop(int64_t elapsedUs);
 void fighterButtonCb(buttonEvt_t* evt);
 
 void updatePosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
+void checkFighterTimer(fighter_t* ftr);
+void drawFighter(display_t* d, fighter_t* ftr);
 
 // void fighterAccelerometerCb(accel_t* accel);
 // void fighterAudioCb(uint16_t * samples, uint32_t sampleCnt);
@@ -196,6 +198,9 @@ void fighterMainLoop(int64_t elapsedUs)
         updatePosition(&f->fighters[0], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
         updatePosition(&f->fighters[1], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
 
+        checkFighterTimer(&f->fighters[0]);
+        checkFighterTimer(&f->fighters[1]);
+
         // ESP_LOGI("FGT", "{[%d, %d], [%d, %d], %d}",
         //     f->fighters[0].hurtbox.x0 / SF,
         //     f->fighters[0].hurtbox.y0 / SF,
@@ -206,18 +211,130 @@ void fighterMainLoop(int64_t elapsedUs)
 
     f->d->clearPx();
 
-    drawBox(f->d, f->fighters[0].hurtbox, c500, SF);
-    // drawWsg(f->d, &kd[animIdx], f->fighters[0].hurtbox.x0 / SF, f->fighters[0].hurtbox.y0 / SF);
-
-    drawBox(f->d, f->fighters[1].hurtbox, c005, SF);
-    // drawWsg(f->d, &kd[(1 + animIdx) % 2], f->fighters[1].hurtbox.x0 / SF, f->fighters[1].hurtbox.y0 / SF);
-
     for (uint8_t idx = 0; idx < sizeof(finalDest) / sizeof(finalDest[0]); idx++)
     {
         drawBox(f->d, finalDest[idx].area, c555, SF);
     }
+
+    drawFighter(f->d, &f->fighters[0]);
+    drawFighter(f->d, &f->fighters[1]);
 }
 
+/**
+ * @brief TODO
+ * 
+ * @param d 
+ * @param ftr 
+ */
+void drawFighter(display_t* d, fighter_t* ftr)
+{
+    drawBox(d, ftr->hurtbox, c500, SF);
+    // drawWsg(f->d, &kd[animIdx], f->fighters[0].hurtbox.x0 / SF, f->fighters[0].hurtbox.y0 / SF);
+
+    if((FS_GROUND_ATTACK == ftr->state) || (FS_AIR_ATTACK == ftr->state))
+    {
+        box_t relativeHitbox = ftr->hurtbox;
+        relativeHitbox.x0 += ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxPos.x;
+        relativeHitbox.y0 += ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxPos.y;
+        relativeHitbox.x1 = relativeHitbox.x0 + ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxSize.x;
+        relativeHitbox.y1 = relativeHitbox.y0 + ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxSize.y;
+        drawBox(d, relativeHitbox, c440, SF);
+    }
+}
+
+/**
+ * @brief TODO
+ *
+ * @param ftr
+ */
+void checkFighterTimer(fighter_t* ftr)
+{
+    bool shouldTransition = false;
+    if(ftr->timer > 0)
+    {
+        ftr->timer--;
+        if(0 == ftr->timer)
+        {
+            shouldTransition = true;
+        }
+    }
+
+    if(shouldTransition)
+    {
+        switch(ftr->state)
+        {
+        case FS_GROUND_STARTUP:
+        {
+            ftr->state = FS_GROUND_ATTACK;
+            ftr->attackFrame = 0;
+            ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+            break;
+        }
+        case FS_GROUND_ATTACK:
+        {
+            ftr->attackFrame++;
+            if(ftr->attackFrame < ftr->attacks[ftr->cAttack].numAttackFrames)
+            {
+                // Don't change state
+                ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+            }
+            else
+            {
+                ftr->state = FS_GROUND_COOLDOWN;
+                ftr->timer = ftr->attacks[ftr->cAttack].endLag;
+            }
+            break;
+        }
+        case FS_GROUND_COOLDOWN:
+        {
+            ftr->state = FS_IDLE;
+            break;
+        }
+        case FS_AIR_STARTUP:
+        {
+            ftr->state = FS_AIR_ATTACK;
+            ftr->attackFrame = 0;
+            ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+            break;
+        }
+        case FS_AIR_ATTACK:
+        {
+            ftr->attackFrame++;
+            if(ftr->attackFrame < ftr->attacks[ftr->cAttack].numAttackFrames)
+            {
+                // Don't change state
+                ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+            }
+            else
+            {
+                ftr->state = FS_AIR_COOLDOWN;
+                ftr->timer = ftr->attacks[ftr->cAttack].endLag;
+            }
+            break;
+        }
+        case FS_AIR_COOLDOWN:
+        {
+            ftr->state = FS_IDLE;
+            break;
+        }
+        case FS_IDLE:
+        case FS_RUNNING:
+        case FS_DUCKING:
+        case FS_JUMP_1:
+        case FS_JUMP_2:
+        case FS_FALLING:
+        case FS_FREEFALL:
+        case FS_HITSTUN:
+        case FS_HITSTOP:
+        case FS_INVINCIBLE:
+        default:
+        {
+            // TODO
+            break;
+        }
+        }
+    }
+}
 /**
  * @brief TODO
  *
@@ -246,41 +363,68 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     // Attack button
     if (!(ftr->prevState & BTN_B) && (ftr->btnState & BTN_B))
     {
+        // TODO don't allow attacks in all fighter states
         if(ABOVE_PLATFORM == ftr->relativePos)
         {
             // Attack on ground
             if(ftr->btnState & UP) {
                 // Up tilt attack
+                ftr->cAttack = UP_GROUND;
+                ftr->state = FS_GROUND_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if(ftr->btnState & DOWN) {
                 // Down tilt attack
+                ftr->cAttack = DOWN_GROUND;
+                ftr->state = FS_GROUND_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if((ftr->btnState & LEFT) || (ftr->btnState & RIGHT)) {
                 // Side attack
+                ftr->cAttack = DASH_GROUND;
+                ftr->state = FS_GROUND_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else {
                 // Neutral attack
+                ftr->cAttack = NEUTRAL_GROUND;
+                ftr->state = FS_GROUND_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
         }
-        else
-        {
+        else {
             // Attack in air
             if(ftr->btnState & UP) {
                 // Up air attack
+                ftr->cAttack = UP_AIR;
+                ftr->state = FS_AIR_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if(ftr->btnState & DOWN) {
                 // Down air
+                ftr->cAttack = DOWN_AIR;
+                ftr->state = FS_AIR_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if(ftr->btnState & LEFT) {
                 // Left air
                 // TODO front-back based on facing direction
+                ftr->cAttack = BACK_AIR;
+                ftr->state = FS_AIR_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if(ftr->btnState & RIGHT) {
                 // Right air
                 // TODO front-back based on facing direction
+                ftr->cAttack = FRONT_AIR;
+                ftr->state = FS_AIR_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else {
                 // Neutral air
+                ftr->cAttack = NEUTRAL_AIR;
+                ftr->state = FS_AIR_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
         }
     }

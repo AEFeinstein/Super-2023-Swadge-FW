@@ -21,6 +21,39 @@ typedef enum
     LEFT_OF_PLATFORM
 } platformPos_t;
 
+typedef enum
+{
+    FS_IDLE,
+    FS_RUNNING,
+    FS_DUCKING,
+    FS_JUMP_1,
+    FS_JUMP_2,
+    FS_FALLING,
+    FS_FREEFALL, // After up special
+    FS_GROUND_STARTUP,
+    FS_GROUND_ATTACK,
+    FS_GROUND_COOLDOWN,
+    FS_AIR_STARTUP,
+    FS_AIR_ATTACK,
+    FS_AIR_COOLDOWN,
+    FS_HITSTUN,
+    FS_HITSTOP,
+    FS_INVINCIBLE
+} fighterState_t;
+
+typedef enum {
+    UP_GROUND,
+    DOWN_GROUND,
+    DASH_GROUND,
+    NEUTRAL_GROUND,
+    NEUTRAL_AIR,
+    FRONT_AIR,
+    BACK_AIR,
+    UP_AIR,
+    DOWN_AIR,
+    NUM_ATTACKS
+} attackOrder_t;
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -28,7 +61,8 @@ typedef enum
 typedef struct
 {
     uint16_t duration;
-    box_t hitbox;
+    vector_t hitboxPos;
+    vector_t hitboxSize;
     uint16_t damage;
     uint16_t knockback;
     vector_t knockbackAng;
@@ -68,7 +102,11 @@ typedef struct
     int32_t run_max_velo;
     int32_t prevState;
     int32_t btnState;
-    attack_t attacks[9];
+    fighterState_t state;
+    attackOrder_t cAttack;
+    uint8_t attackFrame;
+    int32_t timer;
+    attack_t attacks[NUM_ATTACKS];
     char* idleSprite0;
     char* idleSprite1;
     char* jumpSprite;

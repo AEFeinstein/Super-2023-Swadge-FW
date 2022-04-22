@@ -558,22 +558,22 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
             }
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_RELATIVE_POS_X:
             {
-                cAttack->attackFrames[cAttackIdx].hitbox.x0 = jsonInteger(jsonStr, t[i]);
+                cAttack->attackFrames[cAttackIdx].hitboxPos.x = jsonInteger(jsonStr, t[i]);
                 break;
             }
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_RELATIVE_POS_Y:
             {
-                cAttack->attackFrames[cAttackIdx].hitbox.y0 = jsonInteger(jsonStr, t[i]);
+                cAttack->attackFrames[cAttackIdx].hitboxPos.y = jsonInteger(jsonStr, t[i]);
                 break;
             }
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_SIZE_X:
             {
-                cAttack->attackFrames[cAttackIdx].hitbox.x1 = jsonInteger(jsonStr, t[i]);
+                cAttack->attackFrames[cAttackIdx].hitboxSize.x = jsonInteger(jsonStr, t[i]);
                 break;
             }
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_SIZE_Y:
             {
-                cAttack->attackFrames[cAttackIdx].hitbox.y1 = jsonInteger(jsonStr, t[i]);
+                cAttack->attackFrames[cAttackIdx].hitboxSize.y = jsonInteger(jsonStr, t[i]);
                 break;
             }
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_DAMAGE:
@@ -637,7 +637,7 @@ void freeFighterData(fighter_t* fighter, uint8_t numFighters)
 {
     for(uint8_t fgtIdx = 0; fgtIdx < numFighters; fgtIdx++)
     {
-        for(uint8_t atkIdx = 0; atkIdx < 9; atkIdx++)
+        for(uint8_t atkIdx = 0; atkIdx < NUM_ATTACKS; atkIdx++)
         {
             free(fighter[fgtIdx].attacks[atkIdx].startupLagSpr);
             for(uint8_t atkFrameIdx = 0; atkFrameIdx < fighter[fgtIdx].attacks[atkIdx].numAttackFrames; atkFrameIdx++)
