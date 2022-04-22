@@ -222,9 +222,9 @@ void fighterMainLoop(int64_t elapsedUs)
 
 /**
  * @brief TODO
- * 
- * @param d 
- * @param ftr 
+ *
+ * @param d
+ * @param ftr
  */
 void drawFighter(display_t* d, fighter_t* ftr)
 {
@@ -263,75 +263,75 @@ void checkFighterTimer(fighter_t* ftr)
     {
         switch(ftr->state)
         {
-        case FS_GROUND_STARTUP:
-        {
-            ftr->state = FS_GROUND_ATTACK;
-            ftr->attackFrame = 0;
-            ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
-            break;
-        }
-        case FS_GROUND_ATTACK:
-        {
-            ftr->attackFrame++;
-            if(ftr->attackFrame < ftr->attacks[ftr->cAttack].numAttackFrames)
+            case FS_GROUND_STARTUP:
             {
-                // Don't change state
+                ftr->state = FS_GROUND_ATTACK;
+                ftr->attackFrame = 0;
                 ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+                break;
             }
-            else
+            case FS_GROUND_ATTACK:
             {
-                ftr->state = FS_GROUND_COOLDOWN;
-                ftr->timer = ftr->attacks[ftr->cAttack].endLag;
+                ftr->attackFrame++;
+                if(ftr->attackFrame < ftr->attacks[ftr->cAttack].numAttackFrames)
+                {
+                    // Don't change state
+                    ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+                }
+                else
+                {
+                    ftr->state = FS_GROUND_COOLDOWN;
+                    ftr->timer = ftr->attacks[ftr->cAttack].endLag;
+                }
+                break;
             }
-            break;
-        }
-        case FS_GROUND_COOLDOWN:
-        {
-            ftr->state = FS_IDLE;
-            break;
-        }
-        case FS_AIR_STARTUP:
-        {
-            ftr->state = FS_AIR_ATTACK;
-            ftr->attackFrame = 0;
-            ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
-            break;
-        }
-        case FS_AIR_ATTACK:
-        {
-            ftr->attackFrame++;
-            if(ftr->attackFrame < ftr->attacks[ftr->cAttack].numAttackFrames)
+            case FS_GROUND_COOLDOWN:
             {
-                // Don't change state
+                ftr->state = FS_IDLE;
+                break;
+            }
+            case FS_AIR_STARTUP:
+            {
+                ftr->state = FS_AIR_ATTACK;
+                ftr->attackFrame = 0;
                 ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+                break;
             }
-            else
+            case FS_AIR_ATTACK:
             {
-                ftr->state = FS_AIR_COOLDOWN;
-                ftr->timer = ftr->attacks[ftr->cAttack].endLag;
+                ftr->attackFrame++;
+                if(ftr->attackFrame < ftr->attacks[ftr->cAttack].numAttackFrames)
+                {
+                    // Don't change state
+                    ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+                }
+                else
+                {
+                    ftr->state = FS_AIR_COOLDOWN;
+                    ftr->timer = ftr->attacks[ftr->cAttack].endLag;
+                }
+                break;
             }
-            break;
-        }
-        case FS_AIR_COOLDOWN:
-        {
-            ftr->state = FS_IDLE;
-            break;
-        }
-        case FS_IDLE:
-        case FS_RUNNING:
-        case FS_DUCKING:
-        case FS_JUMP_1:
-        case FS_JUMP_2:
-        case FS_FALLING:
-        case FS_FREEFALL:
-        case FS_HITSTUN:
-        case FS_HITSTOP:
-        case FS_INVINCIBLE:
-        default:
-        {
-            // TODO
-            break;
-        }
+            case FS_AIR_COOLDOWN:
+            {
+                ftr->state = FS_IDLE;
+                break;
+            }
+            case FS_IDLE:
+            case FS_RUNNING:
+            case FS_DUCKING:
+            case FS_JUMP_1:
+            case FS_JUMP_2:
+            case FS_FALLING:
+            case FS_FREEFALL:
+            case FS_HITSTUN:
+            case FS_HITSTOP:
+            case FS_INVINCIBLE:
+            default:
+            {
+                // TODO
+                break;
+            }
         }
     }
 }
@@ -367,60 +367,70 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
         if(ABOVE_PLATFORM == ftr->relativePos)
         {
             // Attack on ground
-            if(ftr->btnState & UP) {
+            if(ftr->btnState & UP)
+            {
                 // Up tilt attack
                 ftr->cAttack = UP_GROUND;
                 ftr->state = FS_GROUND_STARTUP;
                 ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
-            else if(ftr->btnState & DOWN) {
+            else if(ftr->btnState & DOWN)
+            {
                 // Down tilt attack
                 ftr->cAttack = DOWN_GROUND;
                 ftr->state = FS_GROUND_STARTUP;
                 ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
-            else if((ftr->btnState & LEFT) || (ftr->btnState & RIGHT)) {
+            else if((ftr->btnState & LEFT) || (ftr->btnState & RIGHT))
+            {
                 // Side attack
                 ftr->cAttack = DASH_GROUND;
                 ftr->state = FS_GROUND_STARTUP;
                 ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
-            else {
+            else
+            {
                 // Neutral attack
                 ftr->cAttack = NEUTRAL_GROUND;
                 ftr->state = FS_GROUND_STARTUP;
                 ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
         }
-        else {
+        else
+        {
             // Attack in air
-            if(ftr->btnState & UP) {
+            if(ftr->btnState & UP)
+            {
                 // Up air attack
                 ftr->cAttack = UP_AIR;
                 ftr->state = FS_AIR_STARTUP;
                 ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
-            else if(ftr->btnState & DOWN) {
+            else if(ftr->btnState & DOWN)
+            {
                 // Down air
                 ftr->cAttack = DOWN_AIR;
                 ftr->state = FS_AIR_STARTUP;
                 ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
-            else if(ftr->btnState & LEFT) {
+            else if(ftr->btnState & LEFT)
+            {
                 // Left air
                 // TODO front-back based on facing direction
                 ftr->cAttack = BACK_AIR;
                 ftr->state = FS_AIR_STARTUP;
                 ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
-            else if(ftr->btnState & RIGHT) {
+            else if(ftr->btnState & RIGHT)
+            {
                 // Right air
                 // TODO front-back based on facing direction
                 ftr->cAttack = FRONT_AIR;
                 ftr->state = FS_AIR_STARTUP;
                 ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
-            else {
+            else
+            {
                 // Neutral air
                 ftr->cAttack = NEUTRAL_AIR;
                 ftr->state = FS_AIR_STARTUP;

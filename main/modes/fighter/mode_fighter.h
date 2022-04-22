@@ -41,7 +41,8 @@ typedef enum
     FS_INVINCIBLE
 } fighterState_t;
 
-typedef enum {
+typedef enum
+{
     UP_GROUND,
     DOWN_GROUND,
     DASH_GROUND,
