@@ -48,6 +48,7 @@ typedef struct
     int16_t scroll_xspeed;
     int16_t scroll_yspeed;
 
+    int32_t btnState;
 } platformer_t;
 
 
@@ -90,9 +91,10 @@ void platformerEnterMode(display_t * disp)
     // Save a pointer to the display
     platformer->disp = disp;
     
-    platformer->scrolltesttimer = 60;
+    platformer->scrolltesttimer = 127;
     platformer->scroll_xspeed = 2;
     platformer->scroll_yspeed = 0;
+    platformer->btnState = 0;
 
     initializeTileMap(&(platformer->tilemap));
 }
@@ -124,15 +126,19 @@ void platformerMainLoop(int64_t elapsedUs)
 {
     platformer->disp->clearPx();
   
-    platformer->scrolltesttimer --;
-    if (platformer->scrolltesttimer < 0) {
-        platformer->scrolltesttimer = 127;
-
-        platformer->scroll_xspeed = -2 + (esp_random() % 5);
-        platformer->scroll_yspeed = -2 + (esp_random() % 5);
+    if(platformer->btnState & LEFT){
+        scrollTileMap(&(platformer->tilemap),-1,0);
+    } else if(platformer->btnState & RIGHT){
+        scrollTileMap(&(platformer->tilemap),1,0);
     }
 
-    scrollTileMap(&(platformer->tilemap), platformer->scroll_xspeed, 0);
+/*
+    if(platformer->btnState & UP){
+        scrollTileMap(&(platformer->tilemap),0,-1);
+    } else if(platformer->btnState & DOWN){
+        scrollTileMap(&(platformer->tilemap),0,1);
+    }
+*/
 
     drawTileMap(platformer->disp, &(platformer->tilemap));
 
@@ -146,11 +152,13 @@ void platformerMainLoop(int64_t elapsedUs)
  */
 void platformerButtonCb(buttonEvt_t* evt)
 {
-    if(evt->down)
+    platformer->btnState = evt->state;
+    
+    /*if(evt->down)
     {
         switch (evt->button)
         {
-            /*case UP:
+            case UP:
                 scrollTileMap(&(platformer->tilemap),0,-1);
                 break;
             case DOWN:
@@ -165,13 +173,13 @@ void platformerButtonCb(buttonEvt_t* evt)
             case BTN_A:
             {
                 break;
-            }*/
+            }
             default:
             {
                 break;
             }
         }
-    }
+    }*/
 }
 
 /**
