@@ -609,7 +609,8 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
                 }
 
                 // Handle state transitions
-                if((++activeStateAttrsParsed) == activeStateAttrsToParse)
+                if(((++activeStateAttrsParsed) == activeStateAttrsToParse) &&
+                        (cAttackIdx == cAttack->numAttackFrames - 1))
                 {
                     ps = PARSING_FIGHTER_ATTACK_ATTRS;
                 }

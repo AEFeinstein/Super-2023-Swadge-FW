@@ -23,6 +23,12 @@ typedef enum
 
 typedef enum
 {
+    FACING_LEFT,
+    FACING_RIGHT
+} fighterDirection_t;
+
+typedef enum
+{
     FS_IDLE,
     FS_RUNNING,
     FS_DUCKING,
@@ -101,17 +107,22 @@ typedef struct
     int32_t run_decel;
     /* Velocity maximum running velocity */
     int32_t run_max_velo;
-    int32_t prevState;
-    int32_t btnState;
-    fighterState_t state;
-    attackOrder_t cAttack;
-    uint8_t attackFrame;
-    int32_t timer;
+    /* Attack data */
     attack_t attacks[NUM_ATTACKS];
+    /* Sprite names */
     char* idleSprite0;
     char* idleSprite1;
     char* jumpSprite;
     char* duckSprite;
+    /* Input Tracking */
+    int32_t prevBtnState;
+    int32_t btnState;
+    /* Current state tracking */
+    fighterState_t state;
+    attackOrder_t cAttack;
+    uint8_t attackFrame;
+    int32_t timer;
+    fighterDirection_t dir;
 } fighter_t;
 
 //==============================================================================

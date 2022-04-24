@@ -25,11 +25,11 @@ void process_json(const char *infile, const char *outdir)
     dotptr[4] = 0;
 #endif
 
-    if(doesFileExist(outFilePath))
-    {
-        printf("Output for %s already exists\n", infile);
-        return;
-    }
+    // if(doesFileExist(outFilePath))
+    // {
+    //     printf("Output for %s already exists\n", infile);
+    //     return;
+    // }
 
     /* Read input file */
     FILE *fp = fopen(infile, "rb");

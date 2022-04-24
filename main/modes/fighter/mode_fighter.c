@@ -228,15 +228,78 @@ void fighterMainLoop(int64_t elapsedUs)
  */
 void drawFighter(display_t* d, fighter_t* ftr)
 {
-    drawBox(d, ftr->hurtbox, c500, SF);
-    // drawWsg(f->d, &kd[animIdx], f->fighters[0].hurtbox.x0 / SF, f->fighters[0].hurtbox.y0 / SF);
+    /* Pick the color based on state */
+    paletteColor_t hitboxColor = c500;
+    switch(ftr->state)
+    {
+        case FS_GROUND_STARTUP:
+        case FS_AIR_STARTUP:
+        {
+            hitboxColor = c502;
+            break;
+        }
+        case FS_GROUND_ATTACK:
+        case FS_AIR_ATTACK:
+        {
+            hitboxColor = c303;
+            break;
+        }
+        case FS_GROUND_COOLDOWN:
+        case FS_AIR_COOLDOWN:
+        {
+            hitboxColor = c205;
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+    drawBox(d, ftr->hurtbox, hitboxColor, SF);
 
+    /* Draw which way the figher is facing */
+    switch(ftr->dir)
+    {
+        case FACING_LEFT:
+        {
+            fillDisplayArea(d,
+                            ftr->hurtbox.x0 / SF, ftr->hurtbox.y0 / SF,
+                            (ftr->hurtbox.x1 + ftr->hurtbox.x0) / (2 * SF), ftr->hurtbox.y1 / SF,
+                            hitboxColor);
+            break;
+        }
+        case FACING_RIGHT:
+        {
+            fillDisplayArea(d,
+                            (ftr->hurtbox.x1 + ftr->hurtbox.x0) / (2 * SF), ftr->hurtbox.y0 / SF,
+                            ftr->hurtbox.x1 / SF, ftr->hurtbox.y1 / SF,
+                            hitboxColor);
+            break;
+        }
+        default:
+        {
+            // Draw no indicator
+            break;
+        }
+    }
+
+    /* Draw the hitbox if attacking */
     if((FS_GROUND_ATTACK == ftr->state) || (FS_AIR_ATTACK == ftr->state))
     {
         box_t relativeHitbox = ftr->hurtbox;
-        relativeHitbox.x0 += ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxPos.x;
+        if(ftr->cAttack == DASH_GROUND && ftr->dir == FACING_LEFT)
+        {
+            /* reverse the hitbox if dashing and facing left */
+            relativeHitbox.x1 = relativeHitbox.x0 + ftr->size.x -
+                                ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxPos.x;
+            relativeHitbox.x0 = relativeHitbox.x1 - ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxSize.x;
+        }
+        else
+        {
+            relativeHitbox.x0 += ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxPos.x;
+            relativeHitbox.x1 = relativeHitbox.x0 + ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxSize.x;
+        }
         relativeHitbox.y0 += ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxPos.y;
-        relativeHitbox.x1 = relativeHitbox.x0 + ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxSize.x;
         relativeHitbox.y1 = relativeHitbox.y0 + ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxSize.y;
         drawBox(d, relativeHitbox, c440, SF);
     }
@@ -350,7 +413,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     vector_t v0 = ftr->velocity;
 
     // Check for button presses, jump first
-    if (!(ftr->prevState & BTN_A) && (ftr->btnState & BTN_A))
+    if (!(ftr->prevBtnState & BTN_A) && (ftr->btnState & BTN_A))
     {
         if(ftr->numJumps > 0)
         {
@@ -361,7 +424,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     }
 
     // Attack button
-    if (!(ftr->prevState & BTN_B) && (ftr->btnState & BTN_B))
+    if (!(ftr->prevBtnState & BTN_B) && (ftr->btnState & BTN_B))
     {
         // TODO don't allow attacks in all fighter states
         if(ABOVE_PLATFORM == ftr->relativePos)
@@ -442,6 +505,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     // Update X kinematics
     if(ftr->btnState & LEFT)
     {
+        ftr->dir = FACING_LEFT;
         if(ftr->relativePos != RIGHT_OF_PLATFORM)
         {
             // Accelerate towards the left
@@ -458,6 +522,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     }
     else if(ftr->btnState & RIGHT)
     {
+        ftr->dir = FACING_RIGHT;
         if(ftr->relativePos != LEFT_OF_PLATFORM)
         {
             // Accelerate towards the right
@@ -643,7 +708,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
         }
     }
 
-    ftr->prevState = ftr->btnState;
+    ftr->prevBtnState = ftr->btnState;
 }
 
 /**
