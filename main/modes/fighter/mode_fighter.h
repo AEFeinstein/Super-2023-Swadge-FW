@@ -12,6 +12,9 @@
 // Enums
 //==============================================================================
 
+// Division by a power of 2 has slightly more instructions than rshift, but handles negative numbers properly!
+#define SF (1 << 8) // Scaling factor, a nice power of 2
+
 typedef enum
 {
     FREE_FLOATING,

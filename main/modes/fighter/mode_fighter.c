@@ -27,9 +27,6 @@
 // Constants
 //==============================================================================
 
-// Division by a power of 2 has slightly more instructions than rshift, but handles negative numbers properly!
-#define SF (1 << 8) // Scaling factor, a nice power of 2
-
 #define FRAME_TIME_MS 25 // 20fps
 
 //==============================================================================
@@ -287,7 +284,10 @@ void drawFighter(display_t* d, fighter_t* ftr)
     if((FS_GROUND_ATTACK == ftr->state) || (FS_AIR_ATTACK == ftr->state))
     {
         box_t relativeHitbox = ftr->hurtbox;
-        if(ftr->cAttack == DASH_GROUND && ftr->dir == FACING_LEFT)
+        if((ftr->dir == FACING_LEFT) &&
+                ((DASH_GROUND == ftr->cAttack) ||
+                 (FRONT_AIR   == ftr->cAttack) ||
+                 (BACK_AIR    == ftr->cAttack)))
         {
             /* reverse the hitbox if dashing and facing left */
             relativeHitbox.x1 = relativeHitbox.x0 + ftr->size.x -
@@ -476,18 +476,18 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
                 ftr->state = FS_AIR_STARTUP;
                 ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
-            else if(ftr->btnState & LEFT)
+            else if(((ftr->btnState & LEFT ) && (FACING_RIGHT == ftr->dir)) ||
+                    ((ftr->btnState & RIGHT) && (FACING_LEFT  == ftr->dir)))
             {
-                // Left air
-                // TODO front-back based on facing direction
+                // Back air
                 ftr->cAttack = BACK_AIR;
                 ftr->state = FS_AIR_STARTUP;
                 ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
             }
-            else if(ftr->btnState & RIGHT)
+            else if(((ftr->btnState & RIGHT) && (FACING_RIGHT == ftr->dir)) ||
+                    ((ftr->btnState & LEFT ) && (FACING_LEFT  == ftr->dir)))
             {
-                // Right air
-                // TODO front-back based on facing direction
+                // Front air
                 ftr->cAttack = FRONT_AIR;
                 ftr->state = FS_AIR_STARTUP;
                 ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
@@ -505,7 +505,11 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     // Update X kinematics
     if(ftr->btnState & LEFT)
     {
-        ftr->dir = FACING_LEFT;
+        if(ABOVE_PLATFORM == ftr->relativePos)
+        {
+            ftr->dir = FACING_LEFT;
+        }
+
         if(ftr->relativePos != RIGHT_OF_PLATFORM)
         {
             // Accelerate towards the left
@@ -522,7 +526,11 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     }
     else if(ftr->btnState & RIGHT)
     {
-        ftr->dir = FACING_RIGHT;
+        if(ABOVE_PLATFORM == ftr->relativePos)
+        {
+            ftr->dir = FACING_RIGHT;
+        }
+
         if(ftr->relativePos != LEFT_OF_PLATFORM)
         {
             // Accelerate towards the right
