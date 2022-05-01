@@ -35,7 +35,7 @@ void initializeTileMap(tilemap_t * tilemap)
     tilemap->mapOffsetY = 0;
     
     loadBlankWsg(&tilemap->tilemap_buffer, TILEMAP_BUFFER_WIDTH_PIXELS, TILEMAP_BUFFER_HEIGHT_PIXELS);
-    loadWsg("tiles.wsg", &tilemap->tiles);
+    loadWsg("block.wsg", &tilemap->tiles);
 
     loadMapFromFile(tilemap, "level_test.bin");
 
@@ -44,13 +44,28 @@ void initializeTileMap(tilemap_t * tilemap)
 
         for (int x=0; x < TILEMAP_BUFFER_WIDTH_TILES; x++) 
         {
-            drawTile(tilemap, tilemap->map[(y * tilemap->mapWidth) + x], x * TILE_SIZE, y * TILE_SIZE);
+            drawTileIntoBuffer(tilemap, tilemap->map[(y * tilemap->mapWidth) + x], x * TILE_SIZE, y * TILE_SIZE);
         }
 
     }
 }
 
 void drawTileMap(display_t * disp, tilemap_t * tilemap)
+{
+    for(uint16_t y = -(tilemap->mapOffsetY >> 4); y < (tilemap->mapOffsetY >> 4) + TILEMAP_BUFFER_HEIGHT_TILES; y++)
+    {
+        for(uint16_t x = (tilemap->mapOffsetX >> 4); x < (tilemap->mapOffsetX >> 4) + TILEMAP_BUFFER_WIDTH_TILES; x++)
+        {
+            uint8_t tile = tilemap->map[(y * tilemap->mapWidth) + x];
+            if(tile > 0)
+            {
+                drawWsg(disp, &tilemap->tiles, x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
+            }
+        }
+    }
+}
+
+void drawTileMapBuffered(display_t * disp, tilemap_t * tilemap)
 {
     drawWsgTiled(disp, &(tilemap->tilemap_buffer), tilemap->tilemapOffsetX, tilemap->tilemapOffsetY);
 }
@@ -100,7 +115,7 @@ void updateTileMapColumn(tilemap_t * tilemap, int16_t column, int8_t updateColum
     for (int y=0; y < TILEMAP_BUFFER_HEIGHT_TILES; y++) 
     {
         uint8_t tile = tilemap->map[(y * tilemap->mapWidth) + (tilemap->mapOffsetX >> 4) + ((updateColumnDelta > 0) ? TILEMAP_BUFFER_WIDTH_TILES : 0)];
-        drawTile(tilemap, tile, column * TILE_SIZE, y * TILE_SIZE);
+        drawTileIntoBuffer(tilemap, tile, column * TILE_SIZE, y * TILE_SIZE);
     }
 }
 
@@ -108,11 +123,11 @@ void updateTileMapRow(tilemap_t * tilemap, int16_t row, int8_t updateRowDelta){
     for (int x=0; x < TILEMAP_BUFFER_WIDTH_TILES; x++) 
     {
         uint8_t tile = tilemap->map[( ( (tilemap->mapOffsetY >> 4) + ((updateRowDelta > 0) ? TILEMAP_BUFFER_HEIGHT_TILES : -1) )  * tilemap->mapWidth) + x];
-        drawTile(tilemap, tile, x * TILE_SIZE, row * TILE_SIZE);
+        drawTileIntoBuffer(tilemap, tile, x * TILE_SIZE, row * TILE_SIZE);
     }
 }
 
-void drawTile(tilemap_t * tilemap, uint8_t tileId, int16_t x, int16_t y)
+void drawTileIntoBuffer(tilemap_t * tilemap, uint8_t tileId, int16_t x, int16_t y)
 {
     drawPartialWsgIntoWsg(&tilemap->tiles, &tilemap->tilemap_buffer, tileId * TILE_SIZE, 0, (tileId * TILE_SIZE) + TILE_SIZE, TILE_SIZE, x, y);
 }
