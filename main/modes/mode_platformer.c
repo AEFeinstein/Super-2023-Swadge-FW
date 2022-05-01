@@ -136,24 +136,24 @@ void platformerMainLoop(int64_t elapsedUs)
         // Clear the display
         platformer->disp->clearPx();
     
-        platformer->btnState |= RIGHT;
+        //platformer->btnState |= RIGHT;
 
         // Draw the display
         if(platformer->btnState & LEFT){
-            scrollTileMap(&(platformer->tilemap),-9,0);
+            scrollTileMap(&(platformer->tilemap),-2,0);
         } else if(platformer->btnState & RIGHT){
-            scrollTileMap(&(platformer->tilemap),9,0);
+            scrollTileMap(&(platformer->tilemap),2,0);
         }
  
- /*
+ 
         if(platformer->btnState & UP){
-            scrollTileMap(&(platformer->tilemap),0,-1);
+            scrollTileMap(&(platformer->tilemap),0,-2);
         } else if(platformer->btnState & DOWN){
-            scrollTileMap(&(platformer->tilemap),0,1);
+            scrollTileMap(&(platformer->tilemap),0,2);
         }
- */
  
-        drawTileMap(platformer->disp, &(platformer->tilemap));
+ 
+        drawTileMap(platformer->disp, &platformer->tilemap);
  
         //drawWsg(platformer->disp, &platformer->block, 16,16);
     }
