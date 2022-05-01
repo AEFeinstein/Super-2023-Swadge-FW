@@ -120,7 +120,7 @@ void drawTile(tilemap_t * tilemap, uint8_t tileId, int16_t x, int16_t y)
 bool loadMapFromFile(tilemap_t * tilemap, char * name)
 {
     if(tilemap->map != NULL){
-        free(&(tilemap->map));
+        free(tilemap->map);
     }
     
     uint8_t * buf = NULL;
