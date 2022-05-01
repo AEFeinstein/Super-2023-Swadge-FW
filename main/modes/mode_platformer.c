@@ -146,11 +146,6 @@ void platformerMainLoop(int64_t elapsedUs)
         }
  
  /*
-    if(platformer->btnState & UP){
-        scrollTileMap(&(platformer->tilemap),0,-1);
-    } else if(platformer->btnState & DOWN){
-        scrollTileMap(&(platformer->tilemap),0,1);
-    }
         if(platformer->btnState & UP){
             scrollTileMap(&(platformer->tilemap),0,-1);
         } else if(platformer->btnState & DOWN){
@@ -158,10 +153,8 @@ void platformerMainLoop(int64_t elapsedUs)
         }
  */
  
-    drawTileMap(platformer->disp, &(platformer->tilemap));
         drawTileMap(platformer->disp, &(platformer->tilemap));
  
-    //drawWsg(platformer->disp, &platformer->block, 16,16);
         //drawWsg(platformer->disp, &platformer->block, 16,16);
     }
 }
