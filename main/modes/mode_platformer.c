@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -49,6 +50,8 @@ typedef struct
     int16_t scroll_yspeed;
 
     int32_t btnState;
+
+    int32_t frameTimer;
 } platformer_t;
 
 
@@ -124,25 +127,43 @@ void platformerExitMode(void)
  */
 void platformerMainLoop(int64_t elapsedUs)
 {
-    platformer->disp->clearPx();
-  
-    if(platformer->btnState & LEFT){
-        scrollTileMap(&(platformer->tilemap),-1,0);
-    } else if(platformer->btnState & RIGHT){
-        scrollTileMap(&(platformer->tilemap),1,0);
-    }
+    // Execute logic at 20fps
+    platformer->frameTimer += elapsedUs;
+    if(platformer->frameTimer >= 50000)
+    {
+        platformer->frameTimer -= 50000;
 
-/*
+        // Clear the display
+        platformer->disp->clearPx();
+    
+        platformer->btnState |= RIGHT;
+
+        // Draw the display
+        if(platformer->btnState & LEFT){
+            scrollTileMap(&(platformer->tilemap),-9,0);
+        } else if(platformer->btnState & RIGHT){
+            scrollTileMap(&(platformer->tilemap),9,0);
+        }
+ 
+ /*
     if(platformer->btnState & UP){
         scrollTileMap(&(platformer->tilemap),0,-1);
     } else if(platformer->btnState & DOWN){
         scrollTileMap(&(platformer->tilemap),0,1);
     }
-*/
-
+        if(platformer->btnState & UP){
+            scrollTileMap(&(platformer->tilemap),0,-1);
+        } else if(platformer->btnState & DOWN){
+            scrollTileMap(&(platformer->tilemap),0,1);
+        }
+ */
+ 
     drawTileMap(platformer->disp, &(platformer->tilemap));
-
+        drawTileMap(platformer->disp, &(platformer->tilemap));
+ 
     //drawWsg(platformer->disp, &platformer->block, 16,16);
+        //drawWsg(platformer->disp, &platformer->block, 16,16);
+    }
 }
 
 /**
