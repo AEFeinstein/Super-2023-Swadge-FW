@@ -16,7 +16,7 @@
 typedef struct 
 {
     wsg_t tilemap_buffer;
-    wsg_t tiles;
+    wsg_t tiles[8];
 
     uint8_t * map;
     uint8_t mapWidth;
@@ -42,6 +42,7 @@ void updateTileMapRow(tilemap_t * tilemap, int16_t row, int8_t updateRowDelta);
 void drawTile(tilemap_t * tilemap, uint8_t tileId, int16_t x, int16_t y);
 void drawTileIntoBuffer(tilemap_t * tilemap, uint8_t tileId, int16_t x, int16_t y);
 bool loadMapFromFile(tilemap_t * tilemap, char * name);
+bool loadTiles(tilemap_t * tilemap);
 
 
 #endif

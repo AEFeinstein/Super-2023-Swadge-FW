@@ -35,31 +35,22 @@ void initializeTileMap(tilemap_t * tilemap)
     tilemap->mapOffsetY = 0;
     
     loadBlankWsg(&tilemap->tilemap_buffer, TILEMAP_BUFFER_WIDTH_PIXELS, TILEMAP_BUFFER_HEIGHT_PIXELS);
-    loadWsg("block.wsg", &tilemap->tiles);
+    loadTiles(tilemap);
 
     loadMapFromFile(tilemap, "level_test.bin");
 
-    for (int y=0; y < TILEMAP_BUFFER_HEIGHT_TILES; y++) 
-    {
-
-        for (int x=0; x < TILEMAP_BUFFER_WIDTH_TILES; x++) 
-        {
-            drawTileIntoBuffer(tilemap, tilemap->map[(y * tilemap->mapWidth) + x], x * TILE_SIZE, y * TILE_SIZE);
-        }
-
-    }
 }
 
 void drawTileMap(display_t * disp, tilemap_t * tilemap)
 {
-    for(uint16_t y = -(tilemap->mapOffsetY >> 4); y < (tilemap->mapOffsetY >> 4) + TILEMAP_BUFFER_HEIGHT_TILES; y++)
+    for(uint16_t y = (tilemap->mapOffsetY >> 4); y < (tilemap->mapOffsetY >> 4) + TILEMAP_BUFFER_HEIGHT_TILES; y++)
     {
         for(uint16_t x = (tilemap->mapOffsetX >> 4); x < (tilemap->mapOffsetX >> 4) + TILEMAP_BUFFER_WIDTH_TILES; x++)
         {
             uint8_t tile = tilemap->map[(y * tilemap->mapWidth) + x];
             if(tile > 0)
             {
-                drawWsg(disp, &tilemap->tiles, x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
+                drawWsg(disp, &tilemap->tiles[tile], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
             }
         }
     }
@@ -88,7 +79,7 @@ void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y) {
         int8_t updateColumnDelta = newUpdateColumn - currentUpdateColumn;
 
         if(updateColumnDelta != 0) {
-            updateTileMapColumn(tilemap, newUpdateColumn, (x > 0)? 1: -1);
+            //updateTileMapColumn(tilemap, newUpdateColumn, (x > 0)? 1: -1);
         }
 
     }
@@ -105,7 +96,7 @@ void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y) {
         int8_t updateRowDelta = newUpdateRow - currentUpdateRow;
 
         if(currentUpdateRow != newUpdateRow) {
-            updateTileMapRow(tilemap, newUpdateRow, updateRowDelta);
+            //updateTileMapRow(tilemap, newUpdateRow, updateRowDelta);
         }
 
     }
@@ -158,4 +149,13 @@ bool loadMapFromFile(tilemap_t * tilemap, char * name)
     free(buf);
 
     return true;
+}
+
+bool loadTiles(tilemap_t * tilemap){
+    loadWsg("tile000.wsg", &tilemap->tiles[0]);
+    loadWsg("tile001.wsg", &tilemap->tiles[1]);
+    loadWsg("tile002.wsg", &tilemap->tiles[2]);
+    loadWsg("tile003.wsg", &tilemap->tiles[3]);
+    loadWsg("tile004.wsg", &tilemap->tiles[4]);
+    loadWsg("tile005.wsg", &tilemap->tiles[5]);
 }
