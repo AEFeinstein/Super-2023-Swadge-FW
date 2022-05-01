@@ -215,10 +215,10 @@ void drawWsgTiled(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff)
     // Draw each pixel
     for (int y = yMin; y < yMax; y++)
     {
+        int16_t wsgY = WRAP(y - yOff, (wsg->h - 1));
         for (int x = xMin; x < xMax; x++)
         {
             int16_t wsgX = WRAP(x - xOff, (wsg->w - 1));
-            int16_t wsgY = WRAP(y - yOff, (wsg->h - 1));
             if (cTransparent != wsg->px[(wsgY * wsg->w) + wsgX])
             {
                 disp->setPx(x, y, wsg->px[(wsgY * wsg->w) + wsgX]);
@@ -242,20 +242,24 @@ void drawWsgIntoWsg(wsg_t *source, wsg_t *destination, int16_t xOff, int16_t yOf
         return;
     }
 
-
     // Only draw in bounds
     int16_t xMin = CLAMP(xOff, 0, destination->w);
     int16_t xMax = CLAMP(xOff + source->w, 0, destination->w);
     int16_t yMin = CLAMP(yOff, 0, destination->h);
     int16_t yMax = CLAMP(yOff + source->h, 0, destination->h);
 
+    if(xMax == xMin || yMax == yMin)
+    {
+        return;
+    }
+
     // Draw each pixel
     for (int y = yMin; y < yMax; y++)
     {
+        int16_t wsgY = y - yOff;
         for (int x = xMin; x < xMax; x++)
         {
-            int16_t wsgX = x - xOff;
-            int16_t wsgY = y - yOff;            
+            int16_t wsgX = x - xOff;           
             if (cTransparent != source->px[(wsgY * source->w) + wsgX])
             {
                 destination->px[(y * destination->w) + x]=source->px[(wsgY * source->w) + wsgX];
