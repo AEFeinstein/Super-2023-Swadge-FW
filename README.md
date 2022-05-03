@@ -65,7 +65,7 @@ mkdir ~/esp
 cd ~/esp
 
 # Clone the IDF and move into it
-git clone -b v4.4 --recursive https://github.com/espressif/esp-idf.git esp-idf
+git clone -b v4.4.1 --recursive https://github.com/espressif/esp-idf.git esp-idf
 cd ~/esp/esp-idf
 
 # Initialize submodules
@@ -121,7 +121,7 @@ mkdir ~/esp
 cd ~/esp
 
 # Clone the IDF and move into it
-git clone -b v4.4 --recursive https://github.com/espressif/esp-idf.git esp-idf
+git clone -b v4.4.1 --recursive https://github.com/espressif/esp-idf.git esp-idf
 cd ~/esp/esp-idf
 
 # Initialize submodules
