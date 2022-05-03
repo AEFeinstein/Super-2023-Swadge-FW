@@ -101,7 +101,7 @@ static const platform_t finalDest[] =
             .x0 = (14) * SF,
             .y0 = (170) * SF,
             .x1 = (14 + 212 - 1) * SF,
-            .y1 = (170 + 4 - 1) * SF,
+            .y1 = (170 + 4) * SF,
         },
         .canFallThrough = false
     },
@@ -111,7 +111,7 @@ static const platform_t finalDest[] =
             .x0 = (30) * SF,
             .y0 = (130) * SF,
             .x1 = (30 + 54 - 1) * SF,
-            .y1 = (130 + 4 - 1) * SF,
+            .y1 = (130 + 4) * SF,
         },
         .canFallThrough = true
     },
@@ -121,7 +121,7 @@ static const platform_t finalDest[] =
             .x0 = (156) * SF,
             .y0 = (130) * SF,
             .x1 = (156 + 54 - 1) * SF,
-            .y1 = (130 + 4 - 1) * SF,
+            .y1 = (130 + 4) * SF,
         },
         .canFallThrough = true
     },
@@ -131,7 +131,7 @@ static const platform_t finalDest[] =
             .x0 = (93) * SF,
             .y0 = (90) * SF,
             .x1 = (93 + 54 - 1) * SF,
-            .y1 = (90 + 4 - 1) * SF,
+            .y1 = (90 + 4) * SF,
         },
         .canFallThrough = true
     }
@@ -210,7 +210,7 @@ void fighterMainLoop(int64_t elapsedUs)
 
     for (uint8_t idx = 0; idx < sizeof(finalDest) / sizeof(finalDest[0]); idx++)
     {
-        drawBox(f->d, finalDest[idx].area, c555, SF);
+        drawBox(f->d, finalDest[idx].area, c555, !finalDest[idx].canFallThrough, SF);
     }
 
     drawFighter(f->d, &f->fighters[0]);
@@ -252,7 +252,7 @@ void drawFighter(display_t* d, fighter_t* ftr)
             break;
         }
     }
-    drawBox(d, ftr->hurtbox, hitboxColor, SF);
+    drawBox(d, ftr->hurtbox, hitboxColor, false, SF);
 
     /* Draw which way the figher is facing */
     switch(ftr->dir)
@@ -301,7 +301,7 @@ void drawFighter(display_t* d, fighter_t* ftr)
         }
         relativeHitbox.y0 += ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxPos.y;
         relativeHitbox.y1 = relativeHitbox.y0 + ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxSize.y;
-        drawBox(d, relativeHitbox, c440, SF);
+        drawBox(d, relativeHitbox, c440, false, SF);
     }
 }
 
@@ -592,7 +592,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     bool collisionDetected = false;
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
-        if(boxesCollide(upper_hurtbox, platforms[idx].area, SF))
+        if(boxesCollide(upper_hurtbox, platforms[idx].area))
         {
             collisionDetected = true;
         }
@@ -625,7 +625,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             collisionDetected = false;
             for (uint8_t idx = 0; idx < numPlatforms; idx++)
             {
-                if(boxesCollide(test_hurtbox, platforms[idx].area, SF))
+                if(boxesCollide(test_hurtbox, platforms[idx].area))
                 {
                     collisionDetected = true;
                     break;
@@ -668,51 +668,53 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     ftr->relativePos = FREE_FLOATING;
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
-        // If the fighter is moving downward or not at all and hit a platform
-        if ((ftr->velocity.y >= 0) &&
-                (((ftr->hurtbox.y1 / SF) + 1) == (platforms[idx].area.y0 / SF)) &&
-                (ftr->hurtbox.x0 < platforms[idx].area.x1 + SF) &&
+        // If the fighter is above or below a platform
+        if((ftr->hurtbox.x0 < platforms[idx].area.x1 + SF) &&
                 (ftr->hurtbox.x1 + SF > platforms[idx].area.x0))
         {
-            // Fighter above platform
-            ftr->velocity.y = 0;
-            ftr->relativePos = ABOVE_PLATFORM;
-            ftr->numJumps = 2;
-            break;
-        }
-        // If the fighter is moving upward and hit a platform
-        else if ((ftr->velocity.y <= 0) &&
-                 ((ftr->hurtbox.y0 / SF) == ((platforms[idx].area.y1 / SF) + 1)) &&
-                 (ftr->hurtbox.x0 < platforms[idx].area.x1 + SF) &&
-                 (ftr->hurtbox.x1 + SF > platforms[idx].area.x0))
-        {
-            // Fighter below platform
-            ftr->velocity.y = 0;
-            ftr->relativePos = BELOW_PLATFORM;
-            break;
+            // If the fighter is moving downward or not at all and hit a platform
+            if ((ftr->velocity.y >= 0) &&
+                    (((ftr->hurtbox.y1 / SF)) == (platforms[idx].area.y0 / SF)))
+            {
+                // Fighter above platform
+                ftr->velocity.y = 0;
+                ftr->relativePos = ABOVE_PLATFORM;
+                ftr->numJumps = 2;
+                break;
+            }
+            // If the fighter is moving upward and hit a platform
+            else if ((ftr->velocity.y <= 0) &&
+                     ((ftr->hurtbox.y0 / SF) == ((platforms[idx].area.y1 / SF))))
+            {
+                // Fighter below platform
+                ftr->velocity.y = 0;
+                ftr->relativePos = BELOW_PLATFORM;
+                break;
+            }
         }
 
-        // If the fighter is moving rightward and hit a wall
-        if ((ftr->velocity.x >= 0) &&
-                (((ftr->hurtbox.x1 / SF) + 1) == (platforms[idx].area.x0 / SF)) &&
-                (ftr->hurtbox.y0 < platforms[idx].area.y1 + SF) &&
+        // If the fighter is to the left or right of a platform
+        if((ftr->hurtbox.y0 < platforms[idx].area.y1 + SF) &&
                 (ftr->hurtbox.y1 + SF > platforms[idx].area.y0))
         {
-            // Fighter to left of platform
-            ftr->velocity.x = 0;
-            ftr->relativePos = LEFT_OF_PLATFORM;
-            break;
-        }
-        // If the fighter is moving leftward and hit a wall
-        else if ((ftr->velocity.x <= 0) &&
-                 ((ftr->hurtbox.x0 / SF) == ((platforms[idx].area.x1 / SF) + 1)) &&
-                 (ftr->hurtbox.y0 < platforms[idx].area.y1 + SF) &&
-                 (ftr->hurtbox.y1 + SF > platforms[idx].area.y0))
-        {
-            // Fighter to right of platform
-            ftr->velocity.x = 0;
-            ftr->relativePos = RIGHT_OF_PLATFORM;
-            break;
+            // If the fighter is moving rightward and hit a wall
+            if ((ftr->velocity.x >= 0) &&
+                    (((ftr->hurtbox.x1 / SF)) == (platforms[idx].area.x0 / SF)))
+            {
+                // Fighter to left of platform
+                ftr->velocity.x = 0;
+                ftr->relativePos = LEFT_OF_PLATFORM;
+                break;
+            }
+            // If the fighter is moving leftward and hit a wall
+            else if ((ftr->velocity.x <= 0) &&
+                     ((ftr->hurtbox.x0 / SF) == ((platforms[idx].area.x1 / SF))))
+            {
+                // Fighter to right of platform
+                ftr->velocity.x = 0;
+                ftr->relativePos = RIGHT_OF_PLATFORM;
+                break;
+            }
         }
     }
 

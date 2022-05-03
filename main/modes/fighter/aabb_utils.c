@@ -18,14 +18,26 @@
  * @param color
  * @param scalingFactor
  */
-void drawBox(display_t* disp, box_t box, paletteColor_t color, int32_t scalingFactor)
+void drawBox(display_t* disp, box_t box, paletteColor_t color, bool isFilled, int32_t scalingFactor)
 {
-    plotRect(disp,
-             box.x0 / scalingFactor,
-             box.y0 / scalingFactor,
-             box.x1 / scalingFactor,
-             box.y1 / scalingFactor,
-             color);
+    if(isFilled)
+    {
+        fillDisplayArea(disp,
+                        box.x0 / scalingFactor,
+                        box.y0 / scalingFactor,
+                        box.x1 / scalingFactor,
+                        box.y1 / scalingFactor,
+                        color);
+    }
+    else
+    {
+        plotRect(disp,
+                 box.x0 / scalingFactor,
+                 box.y0 / scalingFactor,
+                 box.x1 / scalingFactor,
+                 box.y1 / scalingFactor,
+                 color);
+    }
 }
 
 /**
@@ -33,13 +45,12 @@ void drawBox(display_t* disp, box_t box, paletteColor_t color, int32_t scalingFa
  *
  * @param box0 A box to check for collision
  * @param box1 The other box to check for collision
- * @param scalingFactor The scaling factor used for fixed point integers
  * @return true if the boxes collide, false if they do not
  */
-bool boxesCollide(box_t box0, box_t box1, uint32_t scalingFactor)
+bool boxesCollide(box_t box0, box_t box1)
 {
-    return (box0.x0 < (int32_t)(box1.x1 + scalingFactor) &&
-            (int32_t)(box0.x1 + scalingFactor) > box1.x0 &&
-            box0.y0 < (int32_t)(box1.y1 + scalingFactor) &&
-            (int32_t)(box0.y1 + scalingFactor) > box1.y0);
+    return (box0.x0 < (int32_t)(box1.x1) &&
+            (int32_t)(box0.x1) > box1.x0 &&
+            box0.y0 < (int32_t)(box1.y1) &&
+            (int32_t)(box0.y1) > box1.y0);
 }
