@@ -92,11 +92,19 @@ typedef struct
 
 typedef struct
 {
+    box_t area;
+    bool canFallThrough;
+} platform_t;
+
+typedef struct
+{
     /* Position too! */
     box_t hurtbox;
     vector_t size;
     vector_t velocity;
     platformPos_t relativePos;
+    const platform_t* touchingPlatform;
+    const platform_t* passingThroughPlatform;
     uint8_t numJumps;
     /* how floaty a jump is */
     int32_t gravity;
@@ -125,6 +133,7 @@ typedef struct
     attackOrder_t cAttack;
     uint8_t attackFrame;
     int32_t timer;
+    int32_t fallThroughTimer;
     fighterDirection_t dir;
 } fighter_t;
 

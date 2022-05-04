@@ -35,12 +35,6 @@
 
 typedef struct
 {
-    box_t area;
-    bool canFallThrough;
-} platform_t;
-
-typedef struct
-{
     fighter_t* fighters;
     uint8_t numFighters;
     display_t* d;
@@ -312,6 +306,11 @@ void drawFighter(display_t* d, fighter_t* ftr)
  */
 void checkFighterTimer(fighter_t* ftr)
 {
+    if(ftr->fallThroughTimer > 0)
+    {
+        ftr->fallThroughTimer--;
+    }
+
     bool shouldTransition = false;
     if(ftr->timer > 0)
     {
@@ -502,6 +501,30 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
         }
     }
 
+    // Double tap to fall through platforms
+    if(ftr->relativePos == ABOVE_PLATFORM && ftr->touchingPlatform->canFallThrough)
+    {
+        // Check if button was released
+        if ((ftr->prevBtnState & DOWN) && !(ftr->btnState & DOWN))
+        {
+            // Start timer to check for second press
+            ftr->fallThroughTimer = 10; // 10 frames @ 25ms == 250ms
+        }
+        else if (ftr->fallThroughTimer > 0 && !(ftr->prevBtnState & DOWN) && (ftr->btnState & DOWN))
+        {
+            // Second press detected fast enough
+            ftr->fallThroughTimer = 0;
+            // Fall through a platform
+            ftr->relativePos = FREE_FLOATING;
+            ftr->passingThroughPlatform = ftr->touchingPlatform;
+        }
+    }
+    else
+    {
+        // Not on a platform, kill the timer
+        ftr->fallThroughTimer = 0;
+    }
+
     // Update X kinematics
     if(ftr->btnState & LEFT)
     {
@@ -592,7 +615,8 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     bool collisionDetected = false;
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
-        if(boxesCollide(upper_hurtbox, platforms[idx].area))
+        if(ftr->passingThroughPlatform != &platforms[idx] &&
+                boxesCollide(upper_hurtbox, platforms[idx].area))
         {
             collisionDetected = true;
         }
@@ -625,7 +649,8 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             collisionDetected = false;
             for (uint8_t idx = 0; idx < numPlatforms; idx++)
             {
-                if(boxesCollide(test_hurtbox, platforms[idx].area))
+                if(ftr->passingThroughPlatform != &platforms[idx] &&
+                        boxesCollide(test_hurtbox, platforms[idx].area))
                 {
                     collisionDetected = true;
                     break;
@@ -666,8 +691,14 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
 
     // After the final location was found, check what the fighter is up against
     ftr->relativePos = FREE_FLOATING;
+    ftr->touchingPlatform = NULL;
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
+        // Don't check the platform being passed throughd
+        if(ftr->passingThroughPlatform == &platforms[idx])
+        {
+            continue;
+        }
         // If the fighter is above or below a platform
         if((ftr->hurtbox.x0 < platforms[idx].area.x1 + SF) &&
                 (ftr->hurtbox.x1 + SF > platforms[idx].area.x0))
@@ -680,6 +711,9 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
                 ftr->velocity.y = 0;
                 ftr->relativePos = ABOVE_PLATFORM;
                 ftr->numJumps = 2;
+                ftr->touchingPlatform = &platforms[idx];
+                // Landed on another platform, so clear this
+                ftr->passingThroughPlatform = NULL;
                 break;
             }
             // If the fighter is moving upward and hit a platform
@@ -689,6 +723,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
                 // Fighter below platform
                 ftr->velocity.y = 0;
                 ftr->relativePos = BELOW_PLATFORM;
+                ftr->touchingPlatform = &platforms[idx];
                 break;
             }
         }
@@ -704,6 +739,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
                 // Fighter to left of platform
                 ftr->velocity.x = 0;
                 ftr->relativePos = LEFT_OF_PLATFORM;
+                ftr->touchingPlatform = &platforms[idx];
                 break;
             }
             // If the fighter is moving leftward and hit a wall
@@ -713,6 +749,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
                 // Fighter to right of platform
                 ftr->velocity.x = 0;
                 ftr->relativePos = RIGHT_OF_PLATFORM;
+                ftr->touchingPlatform = &platforms[idx];
                 break;
             }
         }
