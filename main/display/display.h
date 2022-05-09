@@ -51,7 +51,11 @@ void fillDisplayArea(display_t * disp, int16_t x1, int16_t y1, int16_t x2,
     int16_t y2, paletteColor_t c);
 
 bool loadWsg(char * name, wsg_t * wsg);
+bool loadBlankWsg(wsg_t * wsg, unsigned int width, unsigned int height);
 void drawWsg(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff);
+void drawWsgTiled(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff);
+void drawWsgIntoWsg(wsg_t *source, wsg_t *destination, int16_t xOff, int16_t yOff);
+void drawPartialWsgIntoWsg(wsg_t *source, wsg_t *destination, int16_t sourceXstart, int16_t sourceYstart, int16_t sourceXend, int16_t sourceYend, int16_t xOff, int16_t yOff);
 void freeWsg(wsg_t * wsg);
 
 bool loadFont(const char * name, font_t * font);

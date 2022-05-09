@@ -48,6 +48,7 @@
 #include "mode_main_menu.h"
 #include "mode_demo.h"
 #include "mode_fighter.h"
+#include "mode_platformer.h"
 
 #ifdef EMU
 #include "emu_esp.h"
@@ -69,6 +70,7 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
 swadgeMode* swadgeModes[] =
 {
     &modemainMenu,
+    &modePlatformer,
     &modeFighter,
     &modeDemo
 };
