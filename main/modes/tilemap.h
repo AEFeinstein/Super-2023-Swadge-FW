@@ -20,8 +20,14 @@ typedef struct
     uint8_t * map;
     uint8_t mapWidth;
     uint8_t mapHeight;
+
     int16_t mapOffsetX;
     int16_t mapOffsetY;
+    
+    int16_t minMapOffsetX;
+    int16_t maxMapOffsetX;
+    int16_t minMapOffsetY;
+    int16_t maxMapOffsetY;
 
 } tilemap_t;
 

@@ -14,14 +14,15 @@
 //==============================================================================
 // Constants
 //==============================================================================
-#define WRAP(x,u) (((x < 0) ? x + (u + 1) * ((-(x)) / (u + 1) + 1) : x) % (u + 1))
+#define CLAMP(x,l,u) ((x) < l ? l : ((x) > u ? u : (x)))
 
-#define TILEMAP_BUFFER_WIDTH_PIXELS 256
-#define TILEMAP_BUFFER_HEIGHT_PIXELS 256
-#define TILEMAP_BUFFER_WIDTH_TILES 16
-#define TILEMAP_BUFFER_HEIGHT_TILES 16
+#define TILEMAP_DISPLAY_WIDTH_PIXELS 240   //The screen size
+#define TILEMAP_DISPLAY_HEIGHT_PIXELS 240  //The screen size
+#define TILEMAP_DISPLAY_WIDTH_TILES 16     //The screen size in tiles + 1
+#define TILEMAP_DISPLAY_HEIGHT_TILES 16    //The screen size in tiles + 1
 
 #define TILE_SIZE 16
+#define TILE_SIZE_IN_POWERS_OF_2 4
 
 //==============================================================================
 // Functions
@@ -39,9 +40,9 @@ void initializeTileMap(tilemap_t * tilemap)
 
 void drawTileMap(display_t * disp, tilemap_t * tilemap)
 {
-    for(uint16_t y = (tilemap->mapOffsetY >> 4); y < (tilemap->mapOffsetY >> 4) + TILEMAP_BUFFER_HEIGHT_TILES; y++)
+    for(uint16_t y = (tilemap->mapOffsetY >> TILE_SIZE_IN_POWERS_OF_2); y < (tilemap->mapOffsetY >> TILE_SIZE_IN_POWERS_OF_2) + TILEMAP_DISPLAY_HEIGHT_TILES; y++)
     {
-        for(uint16_t x = (tilemap->mapOffsetX >> 4); x < (tilemap->mapOffsetX >> 4) + TILEMAP_BUFFER_WIDTH_TILES; x++)
+        for(uint16_t x = (tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2); x < (tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2) + TILEMAP_DISPLAY_WIDTH_TILES; x++)
         {
             uint8_t tile = tilemap->map[(y * tilemap->mapWidth) + x];
             if(tile > 0)
@@ -54,15 +55,11 @@ void drawTileMap(display_t * disp, tilemap_t * tilemap)
 
 void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y) {
     if(x != 0){
-        //TODO:
-        //Prevent scrolling out of bounds
-        tilemap->mapOffsetX += x;
+        tilemap->mapOffsetX = CLAMP(tilemap->mapOffsetX + x, tilemap->minMapOffsetX, tilemap->maxMapOffsetX);
     }
 
     if(y != 0){
-        //TODO:
-        //Prevent scrolling out of bounds
-        tilemap->mapOffsetY += y;
+        tilemap->mapOffsetY = CLAMP(tilemap->mapOffsetY + y, tilemap->minMapOffsetY, tilemap->maxMapOffsetY);
     }
 }
 
@@ -88,6 +85,12 @@ bool loadMapFromFile(tilemap_t * tilemap, char * name)
 
     tilemap->mapWidth = width;
     tilemap->mapHeight = height;
+
+    tilemap->minMapOffsetX = 0;
+    tilemap->maxMapOffsetX = width * TILE_SIZE - TILEMAP_DISPLAY_WIDTH_PIXELS;
+    
+    tilemap->minMapOffsetY = 0;
+    tilemap->maxMapOffsetY = height * TILE_SIZE - TILEMAP_DISPLAY_HEIGHT_PIXELS;
 
     free(buf);
 
