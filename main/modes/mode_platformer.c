@@ -140,16 +140,16 @@ void platformerMainLoop(int64_t elapsedUs)
 
         // Draw the display
         if(platformer->btnState & LEFT){
-            scrollTileMap(&(platformer->tilemap),-2,0);
+            scrollTileMap(&(platformer->tilemap),-4,0);
         } else if(platformer->btnState & RIGHT){
-            scrollTileMap(&(platformer->tilemap),2,0);
+            scrollTileMap(&(platformer->tilemap),4,0);
         }
  
  
         if(platformer->btnState & UP){
-            scrollTileMap(&(platformer->tilemap),0,-2);
+            scrollTileMap(&(platformer->tilemap),0,-4);
         } else if(platformer->btnState & DOWN){
-            scrollTileMap(&(platformer->tilemap),0,2);
+            scrollTileMap(&(platformer->tilemap),0,4);
         }
  
  

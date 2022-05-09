@@ -45,6 +45,12 @@ void drawTileMap(display_t * disp, tilemap_t * tilemap)
         for(uint16_t x = (tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2); x < (tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2) + TILEMAP_DISPLAY_WIDTH_TILES; x++)
         {
             uint8_t tile = tilemap->map[(y * tilemap->mapWidth) + x];
+
+            //Test animated tiles
+            if(tile == 3 || tile == 7){
+                tile += ((tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2) % 3);
+            }
+
             if(tile > 0)
             {
                 drawWsg(disp, &tilemap->tiles[tile], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
@@ -98,10 +104,13 @@ bool loadMapFromFile(tilemap_t * tilemap, char * name)
 }
 
 bool loadTiles(tilemap_t * tilemap){
-    loadWsg("tile000.wsg", &tilemap->tiles[0]);
     loadWsg("tile001.wsg", &tilemap->tiles[1]);
     loadWsg("tile002.wsg", &tilemap->tiles[2]);
     loadWsg("tile003.wsg", &tilemap->tiles[3]);
     loadWsg("tile004.wsg", &tilemap->tiles[4]);
     loadWsg("tile005.wsg", &tilemap->tiles[5]);
+    loadWsg("tile006.wsg", &tilemap->tiles[6]);
+    loadWsg("tile007.wsg", &tilemap->tiles[7]);
+    loadWsg("tile008.wsg", &tilemap->tiles[8]);
+    loadWsg("tile009.wsg", &tilemap->tiles[9]);
 }

@@ -15,7 +15,7 @@
 
 typedef struct 
 {
-    wsg_t tiles[8];
+    wsg_t tiles[10];
 
     uint8_t * map;
     uint8_t mapWidth;
