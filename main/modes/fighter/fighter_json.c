@@ -305,14 +305,16 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
                     }
                     case PARSING_FIGHTER_ATTR_SIZE_X:
                     {
+                        cFighter->size.x = SF * jsonInteger(jsonStr, t[i]);
                         cFighter->hurtbox.x0 = 0;
-                        cFighter->hurtbox.x1 = jsonInteger(jsonStr, t[i]);
+                        cFighter->hurtbox.x1 = cFighter->hurtbox.x0 + cFighter->size.x;
                         break;
                     }
                     case PARSING_FIGHTER_ATTR_SIZE_Y:
                     {
+                        cFighter->size.y = SF * jsonInteger(jsonStr, t[i]);
                         cFighter->hurtbox.y0 = 0;
-                        cFighter->hurtbox.y1 = jsonInteger(jsonStr, t[i]);
+                        cFighter->hurtbox.y1 = cFighter->hurtbox.y0 + cFighter->size.y;
                         break;
                     }
                     case PARSING_FIGHTER_ATTR_NJUMPS:
@@ -556,22 +558,22 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
                     }
                     case PARSING_FIGHTER_ATTACK_FRAME_ATTR_RELATIVE_POS_X:
                     {
-                        cAttack->attackFrames[cAttackIdx].hitbox.x0 = jsonInteger(jsonStr, t[i]);
+                        cAttack->attackFrames[cAttackIdx].hitboxPos.x = SF * jsonInteger(jsonStr, t[i]);
                         break;
                     }
                     case PARSING_FIGHTER_ATTACK_FRAME_ATTR_RELATIVE_POS_Y:
                     {
-                        cAttack->attackFrames[cAttackIdx].hitbox.y0 = jsonInteger(jsonStr, t[i]);
+                        cAttack->attackFrames[cAttackIdx].hitboxPos.y = SF * jsonInteger(jsonStr, t[i]);
                         break;
                     }
                     case PARSING_FIGHTER_ATTACK_FRAME_ATTR_SIZE_X:
                     {
-                        cAttack->attackFrames[cAttackIdx].hitbox.x1 = jsonInteger(jsonStr, t[i]);
+                        cAttack->attackFrames[cAttackIdx].hitboxSize.x = SF * jsonInteger(jsonStr, t[i]);
                         break;
                     }
                     case PARSING_FIGHTER_ATTACK_FRAME_ATTR_SIZE_Y:
                     {
-                        cAttack->attackFrames[cAttackIdx].hitbox.y1 = jsonInteger(jsonStr, t[i]);
+                        cAttack->attackFrames[cAttackIdx].hitboxSize.y = SF * jsonInteger(jsonStr, t[i]);
                         break;
                     }
                     case PARSING_FIGHTER_ATTACK_FRAME_ATTR_DAMAGE:
@@ -607,7 +609,8 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
                 }
 
                 // Handle state transitions
-                if((++activeStateAttrsParsed) == activeStateAttrsToParse)
+                if(((++activeStateAttrsParsed) == activeStateAttrsToParse) &&
+                        (cAttackIdx == cAttack->numAttackFrames - 1))
                 {
                     ps = PARSING_FIGHTER_ATTACK_ATTRS;
                 }
@@ -635,7 +638,7 @@ void freeFighterData(fighter_t* fighter, uint8_t numFighters)
 {
     for(uint8_t fgtIdx = 0; fgtIdx < numFighters; fgtIdx++)
     {
-        for(uint8_t atkIdx = 0; atkIdx < 9; atkIdx++)
+        for(uint8_t atkIdx = 0; atkIdx < NUM_ATTACKS; atkIdx++)
         {
             free(fighter[fgtIdx].attacks[atkIdx].startupLagSpr);
             for(uint8_t atkFrameIdx = 0; atkFrameIdx < fighter[fgtIdx].attacks[atkIdx].numAttackFrames; atkFrameIdx++)

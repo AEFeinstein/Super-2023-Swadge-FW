@@ -27,23 +27,11 @@
 // Constants
 //==============================================================================
 
-// Division by a power of 2 has slightly more instructions than rshift, but handles negative numbers properly!
-#define SF (1 << 8) // Scaling factor, a nice power of 2
-#define FIGHTER_SIZE (24 * SF)
-
 #define FRAME_TIME_MS 25 // 20fps
-
-// #define DEFAULT_GRAVITY    32
 
 //==============================================================================
 // Structs
 //==============================================================================
-
-typedef struct
-{
-    box_t area;
-    bool canFallThrough;
-} platform_t;
 
 typedef struct
 {
@@ -62,6 +50,8 @@ void fighterMainLoop(int64_t elapsedUs);
 void fighterButtonCb(buttonEvt_t* evt);
 
 void updatePosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
+void checkFighterTimer(fighter_t* ftr);
+void drawFighter(display_t* d, fighter_t* ftr);
 
 // void fighterAccelerometerCb(accel_t* accel);
 // void fighterAudioCb(uint16_t * samples, uint32_t sampleCnt);
@@ -105,7 +95,7 @@ static const platform_t finalDest[] =
             .x0 = (14) * SF,
             .y0 = (170) * SF,
             .x1 = (14 + 212 - 1) * SF,
-            .y1 = (170 + 4 - 1) * SF,
+            .y1 = (170 + 4) * SF,
         },
         .canFallThrough = false
     },
@@ -115,7 +105,7 @@ static const platform_t finalDest[] =
             .x0 = (30) * SF,
             .y0 = (130) * SF,
             .x1 = (30 + 54 - 1) * SF,
-            .y1 = (130 + 4 - 1) * SF,
+            .y1 = (130 + 4) * SF,
         },
         .canFallThrough = true
     },
@@ -125,7 +115,7 @@ static const platform_t finalDest[] =
             .x0 = (156) * SF,
             .y0 = (130) * SF,
             .x1 = (156 + 54 - 1) * SF,
-            .y1 = (130 + 4 - 1) * SF,
+            .y1 = (130 + 4) * SF,
         },
         .canFallThrough = true
     },
@@ -135,7 +125,7 @@ static const platform_t finalDest[] =
             .x0 = (93) * SF,
             .y0 = (90) * SF,
             .x1 = (93 + 54 - 1) * SF,
-            .y1 = (90 + 4 - 1) * SF,
+            .y1 = (90 + 4) * SF,
         },
         .canFallThrough = true
     }
@@ -161,34 +151,6 @@ void fighterEnterMode(display_t* disp)
 
     // loadWsg("kd0.wsg", &kd[0]);
     // loadWsg("kd1.wsg", &kd[1]);
-
-    // fighters[0].hurtbox.x0 = (32) * SF;
-    // fighters[0].hurtbox.y0 = 0 * SF;
-    // fighters[0].hurtbox.x1 = fighters[0].hurtbox.x0 + FIGHTER_SIZE;
-    // fighters[0].hurtbox.y1 = fighters[0].hurtbox.y0 + FIGHTER_SIZE;
-    // fighters[0].velocity.x = 0 * SF;
-    // fighters[0].velocity.y = 0 * SF;
-    // fighters[0].relativePos = FREE_FLOATING;
-    // fighters[0].numJumps = 0;
-    // fighters[0].gravity = DEFAULT_GRAVITY * SF;
-    // fighters[0].jump_velo = -60 * SF;
-    // fighters[0].run_accel = DEFAULT_GRAVITY * SF;
-    // fighters[0].run_decel = DEFAULT_GRAVITY * SF;
-    // fighters[0].run_max_velo = 60 * SF;
-
-    // fighters[1].hurtbox.x0 = (240-32) * SF - FIGHTER_SIZE;
-    // fighters[1].hurtbox.y0 = 0 * SF;
-    // fighters[1].hurtbox.x1 = fighters[1].hurtbox.x0 + FIGHTER_SIZE;
-    // fighters[1].hurtbox.y1 = fighters[1].hurtbox.y0 + FIGHTER_SIZE;
-    // fighters[1].velocity.x = 0 * SF;
-    // fighters[1].velocity.y = 0 * SF;
-    // fighters[1].relativePos = FREE_FLOATING;
-    // fighters[1].numJumps = 0;
-    // fighters[1].gravity = DEFAULT_GRAVITY * SF;
-    // fighters[1].jump_velo = -60 * SF;
-    // fighters[1].run_accel = DEFAULT_GRAVITY * SF;
-    // fighters[1].run_decel = DEFAULT_GRAVITY * SF;
-    // fighters[1].run_max_velo = 60 * SF;
 }
 
 /**
@@ -227,28 +189,214 @@ void fighterMainLoop(int64_t elapsedUs)
         updatePosition(&f->fighters[0], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
         updatePosition(&f->fighters[1], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
 
+        checkFighterTimer(&f->fighters[0]);
+        checkFighterTimer(&f->fighters[1]);
+
         // ESP_LOGI("FGT", "{[%d, %d], [%d, %d], %d}",
-        //     fighters[0].hurtbox.x0 / SF,
-        //     fighters[0].hurtbox.y0 / SF,
-        //     fighters[0].velocity.x,
-        //     fighters[0].velocity.y,
-        //     fighters[0].relativePos);
+        //     f->fighters[0].hurtbox.x0 / SF,
+        //     f->fighters[0].hurtbox.y0 / SF,
+        //     f->fighters[0].velocity.x,
+        //     f->fighters[0].velocity.y,
+        //     f->fighters[0].relativePos);
     }
 
     f->d->clearPx();
 
-    drawBox(f->d, f->fighters[0].hurtbox, c500, SF);
-    // drawWsg(f->d, &kd[animIdx], f->fighters[0].hurtbox.x0 / SF, f->fighters[0].hurtbox.y0 / SF);
-
-    drawBox(f->d, f->fighters[1].hurtbox, c005, SF);
-    // drawWsg(f->d, &kd[(1 + animIdx) % 2], f->fighters[1].hurtbox.x0 / SF, f->fighters[1].hurtbox.y0 / SF);
-
     for (uint8_t idx = 0; idx < sizeof(finalDest) / sizeof(finalDest[0]); idx++)
     {
-        drawBox(f->d, finalDest[idx].area, c555, SF);
+        drawBox(f->d, finalDest[idx].area, c555, !finalDest[idx].canFallThrough, SF);
+    }
+
+    drawFighter(f->d, &f->fighters[0]);
+    drawFighter(f->d, &f->fighters[1]);
+}
+
+/**
+ * @brief TODO
+ *
+ * @param d
+ * @param ftr
+ */
+void drawFighter(display_t* d, fighter_t* ftr)
+{
+    /* Pick the color based on state */
+    paletteColor_t hitboxColor = c500;
+    switch(ftr->state)
+    {
+        case FS_GROUND_STARTUP:
+        case FS_AIR_STARTUP:
+        {
+            hitboxColor = c502;
+            break;
+        }
+        case FS_GROUND_ATTACK:
+        case FS_AIR_ATTACK:
+        {
+            hitboxColor = c303;
+            break;
+        }
+        case FS_GROUND_COOLDOWN:
+        case FS_AIR_COOLDOWN:
+        {
+            hitboxColor = c205;
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+    drawBox(d, ftr->hurtbox, hitboxColor, false, SF);
+
+    /* Draw which way the figher is facing */
+    switch(ftr->dir)
+    {
+        case FACING_LEFT:
+        {
+            fillDisplayArea(d,
+                            ftr->hurtbox.x0 / SF, ftr->hurtbox.y0 / SF,
+                            (ftr->hurtbox.x1 + ftr->hurtbox.x0) / (2 * SF), ftr->hurtbox.y1 / SF,
+                            hitboxColor);
+            break;
+        }
+        case FACING_RIGHT:
+        {
+            fillDisplayArea(d,
+                            (ftr->hurtbox.x1 + ftr->hurtbox.x0) / (2 * SF), ftr->hurtbox.y0 / SF,
+                            ftr->hurtbox.x1 / SF, ftr->hurtbox.y1 / SF,
+                            hitboxColor);
+            break;
+        }
+        default:
+        {
+            // Draw no indicator
+            break;
+        }
+    }
+
+    /* Draw the hitbox if attacking */
+    if((FS_GROUND_ATTACK == ftr->state) || (FS_AIR_ATTACK == ftr->state))
+    {
+        box_t relativeHitbox = ftr->hurtbox;
+        if((ftr->dir == FACING_LEFT) &&
+                ((DASH_GROUND == ftr->cAttack) ||
+                 (FRONT_AIR   == ftr->cAttack) ||
+                 (BACK_AIR    == ftr->cAttack)))
+        {
+            /* reverse the hitbox if dashing and facing left */
+            relativeHitbox.x1 = relativeHitbox.x0 + ftr->size.x -
+                                ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxPos.x;
+            relativeHitbox.x0 = relativeHitbox.x1 - ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxSize.x;
+        }
+        else
+        {
+            relativeHitbox.x0 += ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxPos.x;
+            relativeHitbox.x1 = relativeHitbox.x0 + ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxSize.x;
+        }
+        relativeHitbox.y0 += ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxPos.y;
+        relativeHitbox.y1 = relativeHitbox.y0 + ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxSize.y;
+        drawBox(d, relativeHitbox, c440, false, SF);
     }
 }
 
+/**
+ * @brief TODO
+ *
+ * @param ftr
+ */
+void checkFighterTimer(fighter_t* ftr)
+{
+    if(ftr->fallThroughTimer > 0)
+    {
+        ftr->fallThroughTimer--;
+    }
+
+    bool shouldTransition = false;
+    if(ftr->timer > 0)
+    {
+        ftr->timer--;
+        if(0 == ftr->timer)
+        {
+            shouldTransition = true;
+        }
+    }
+
+    if(shouldTransition)
+    {
+        switch(ftr->state)
+        {
+            case FS_GROUND_STARTUP:
+            {
+                ftr->state = FS_GROUND_ATTACK;
+                ftr->attackFrame = 0;
+                ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+                break;
+            }
+            case FS_GROUND_ATTACK:
+            {
+                ftr->attackFrame++;
+                if(ftr->attackFrame < ftr->attacks[ftr->cAttack].numAttackFrames)
+                {
+                    // Don't change state
+                    ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+                }
+                else
+                {
+                    ftr->state = FS_GROUND_COOLDOWN;
+                    ftr->timer = ftr->attacks[ftr->cAttack].endLag;
+                }
+                break;
+            }
+            case FS_GROUND_COOLDOWN:
+            {
+                ftr->state = FS_IDLE;
+                break;
+            }
+            case FS_AIR_STARTUP:
+            {
+                ftr->state = FS_AIR_ATTACK;
+                ftr->attackFrame = 0;
+                ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+                break;
+            }
+            case FS_AIR_ATTACK:
+            {
+                ftr->attackFrame++;
+                if(ftr->attackFrame < ftr->attacks[ftr->cAttack].numAttackFrames)
+                {
+                    // Don't change state
+                    ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+                }
+                else
+                {
+                    ftr->state = FS_AIR_COOLDOWN;
+                    ftr->timer = ftr->attacks[ftr->cAttack].endLag;
+                }
+                break;
+            }
+            case FS_AIR_COOLDOWN:
+            {
+                ftr->state = FS_IDLE;
+                break;
+            }
+            case FS_IDLE:
+            case FS_RUNNING:
+            case FS_DUCKING:
+            case FS_JUMP_1:
+            case FS_JUMP_2:
+            case FS_FALLING:
+            case FS_FREEFALL:
+            case FS_HITSTUN:
+            case FS_HITSTOP:
+            case FS_INVINCIBLE:
+            default:
+            {
+                // TODO
+                break;
+            }
+        }
+    }
+}
 /**
  * @brief TODO
  *
@@ -263,9 +411,128 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     // Initial velocity before this frame's calculations
     vector_t v0 = ftr->velocity;
 
+    // Check for button presses, jump first
+    if (!(ftr->prevBtnState & BTN_A) && (ftr->btnState & BTN_A))
+    {
+        if(ftr->numJumps > 0)
+        {
+            ftr->numJumps--;
+            v0.y = ftr->jump_velo;
+            ftr->relativePos = FREE_FLOATING;
+        }
+    }
+
+    // Attack button
+    if (!(ftr->prevBtnState & BTN_B) && (ftr->btnState & BTN_B))
+    {
+        // TODO don't allow attacks in all fighter states
+        if(ABOVE_PLATFORM == ftr->relativePos)
+        {
+            // Attack on ground
+            if(ftr->btnState & UP)
+            {
+                // Up tilt attack
+                ftr->cAttack = UP_GROUND;
+                ftr->state = FS_GROUND_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+            }
+            else if(ftr->btnState & DOWN)
+            {
+                // Down tilt attack
+                ftr->cAttack = DOWN_GROUND;
+                ftr->state = FS_GROUND_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+            }
+            else if((ftr->btnState & LEFT) || (ftr->btnState & RIGHT))
+            {
+                // Side attack
+                ftr->cAttack = DASH_GROUND;
+                ftr->state = FS_GROUND_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+            }
+            else
+            {
+                // Neutral attack
+                ftr->cAttack = NEUTRAL_GROUND;
+                ftr->state = FS_GROUND_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+            }
+        }
+        else
+        {
+            // Attack in air
+            if(ftr->btnState & UP)
+            {
+                // Up air attack
+                ftr->cAttack = UP_AIR;
+                ftr->state = FS_AIR_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+            }
+            else if(ftr->btnState & DOWN)
+            {
+                // Down air
+                ftr->cAttack = DOWN_AIR;
+                ftr->state = FS_AIR_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+            }
+            else if(((ftr->btnState & LEFT ) && (FACING_RIGHT == ftr->dir)) ||
+                    ((ftr->btnState & RIGHT) && (FACING_LEFT  == ftr->dir)))
+            {
+                // Back air
+                ftr->cAttack = BACK_AIR;
+                ftr->state = FS_AIR_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+            }
+            else if(((ftr->btnState & RIGHT) && (FACING_RIGHT == ftr->dir)) ||
+                    ((ftr->btnState & LEFT ) && (FACING_LEFT  == ftr->dir)))
+            {
+                // Front air
+                ftr->cAttack = FRONT_AIR;
+                ftr->state = FS_AIR_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+            }
+            else
+            {
+                // Neutral air
+                ftr->cAttack = NEUTRAL_AIR;
+                ftr->state = FS_AIR_STARTUP;
+                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+            }
+        }
+    }
+
+    // Double tap to fall through platforms
+    if(ftr->relativePos == ABOVE_PLATFORM && ftr->touchingPlatform->canFallThrough)
+    {
+        // Check if button was released
+        if ((ftr->prevBtnState & DOWN) && !(ftr->btnState & DOWN))
+        {
+            // Start timer to check for second press
+            ftr->fallThroughTimer = 10; // 10 frames @ 25ms == 250ms
+        }
+        else if (ftr->fallThroughTimer > 0 && !(ftr->prevBtnState & DOWN) && (ftr->btnState & DOWN))
+        {
+            // Second press detected fast enough
+            ftr->fallThroughTimer = 0;
+            // Fall through a platform
+            ftr->relativePos = FREE_FLOATING;
+            ftr->passingThroughPlatform = ftr->touchingPlatform;
+        }
+    }
+    else
+    {
+        // Not on a platform, kill the timer
+        ftr->fallThroughTimer = 0;
+    }
+
     // Update X kinematics
     if(ftr->btnState & LEFT)
     {
+        if(ABOVE_PLATFORM == ftr->relativePos)
+        {
+            ftr->dir = FACING_LEFT;
+        }
+
         if(ftr->relativePos != RIGHT_OF_PLATFORM)
         {
             // Accelerate towards the left
@@ -282,6 +549,11 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     }
     else if(ftr->btnState & RIGHT)
     {
+        if(ABOVE_PLATFORM == ftr->relativePos)
+        {
+            ftr->dir = FACING_RIGHT;
+        }
+
         if(ftr->relativePos != LEFT_OF_PLATFORM)
         {
             // Accelerate towards the right
@@ -336,14 +608,15 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     }
 
     // Finish up the upper hurtbox
-    upper_hurtbox.x1 = upper_hurtbox.x0 + FIGHTER_SIZE;
-    upper_hurtbox.y1 = upper_hurtbox.y0 + FIGHTER_SIZE;
+    upper_hurtbox.x1 = upper_hurtbox.x0 + ftr->size.x;
+    upper_hurtbox.y1 = upper_hurtbox.y0 + ftr->size.y;
 
     // Do a quick check to see if the binary search can be avoided altogether
     bool collisionDetected = false;
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
-        if(boxesCollide(upper_hurtbox, platforms[idx].area, SF))
+        if(ftr->passingThroughPlatform != &platforms[idx] &&
+                boxesCollide(upper_hurtbox, platforms[idx].area))
         {
             collisionDetected = true;
         }
@@ -365,8 +638,8 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
         box_t test_hurtbox;
         test_hurtbox.x0 = (lower_hurtbox.x0 + upper_hurtbox.x0) / 2;
         test_hurtbox.y0 = (lower_hurtbox.y0 + upper_hurtbox.y0) / 2;
-        test_hurtbox.x1 = test_hurtbox.x0 + FIGHTER_SIZE;
-        test_hurtbox.y1 = test_hurtbox.y0 + FIGHTER_SIZE;
+        test_hurtbox.x1 = test_hurtbox.x0 + ftr->size.x;
+        test_hurtbox.y1 = test_hurtbox.y0 + ftr->size.y;
 
         // Binary search between where the fighter is and where the fighter
         // wants to be until it converges
@@ -376,9 +649,11 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             collisionDetected = false;
             for (uint8_t idx = 0; idx < numPlatforms; idx++)
             {
-                if(boxesCollide(test_hurtbox, platforms[idx].area, SF))
+                if(ftr->passingThroughPlatform != &platforms[idx] &&
+                        boxesCollide(test_hurtbox, platforms[idx].area))
                 {
                     collisionDetected = true;
+                    break;
                 }
             }
 
@@ -401,8 +676,8 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             // Recalculate the new test point
             test_hurtbox.x0 = (lower_hurtbox.x0 + upper_hurtbox.x0) / 2;
             test_hurtbox.y0 = (lower_hurtbox.y0 + upper_hurtbox.y0) / 2;
-            test_hurtbox.x1 = test_hurtbox.x0 + FIGHTER_SIZE;
-            test_hurtbox.y1 = test_hurtbox.y0 + FIGHTER_SIZE;
+            test_hurtbox.x1 = test_hurtbox.x0 + ftr->size.x;
+            test_hurtbox.y1 = test_hurtbox.y0 + ftr->size.y;
 
             // Check for convergence
             if(((test_hurtbox.x0 == lower_hurtbox.x0) || (test_hurtbox.x0 == upper_hurtbox.x0)) &&
@@ -416,55 +691,71 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
 
     // After the final location was found, check what the fighter is up against
     ftr->relativePos = FREE_FLOATING;
+    ftr->touchingPlatform = NULL;
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
-        // If the fighter is moving downward or not at all and hit a platform
-        if ((ftr->velocity.y >= 0) &&
-                (((ftr->hurtbox.y1 / SF) + 1) == (platforms[idx].area.y0 / SF)) &&
-                (ftr->hurtbox.x0 < platforms[idx].area.x1 + SF) &&
+        // Don't check the platform being passed throughd
+        if(ftr->passingThroughPlatform == &platforms[idx])
+        {
+            continue;
+        }
+        // If the fighter is above or below a platform
+        if((ftr->hurtbox.x0 < platforms[idx].area.x1 + SF) &&
                 (ftr->hurtbox.x1 + SF > platforms[idx].area.x0))
         {
-            // Fighter above platform
-            ftr->velocity.y = 0;
-            ftr->relativePos = ABOVE_PLATFORM;
-            ftr->numJumps = 2;
-            break;
-        }
-        // If the fighter is moving upward and hit a platform
-        else if ((ftr->velocity.y <= 0) &&
-                 ((ftr->hurtbox.y0 / SF) == ((platforms[idx].area.y1 / SF) + 1)) &&
-                 (ftr->hurtbox.x0 < platforms[idx].area.x1 + SF) &&
-                 (ftr->hurtbox.x1 + SF > platforms[idx].area.x0))
-        {
-            // Fighter below platform
-            ftr->velocity.y = 0;
-            ftr->relativePos = BELOW_PLATFORM;
-            break;
+            // If the fighter is moving downward or not at all and hit a platform
+            if ((ftr->velocity.y >= 0) &&
+                    (((ftr->hurtbox.y1 / SF)) == (platforms[idx].area.y0 / SF)))
+            {
+                // Fighter above platform
+                ftr->velocity.y = 0;
+                ftr->relativePos = ABOVE_PLATFORM;
+                ftr->numJumps = 2;
+                ftr->touchingPlatform = &platforms[idx];
+                // Landed on another platform, so clear this
+                ftr->passingThroughPlatform = NULL;
+                break;
+            }
+            // If the fighter is moving upward and hit a platform
+            else if ((ftr->velocity.y <= 0) &&
+                     ((ftr->hurtbox.y0 / SF) == ((platforms[idx].area.y1 / SF))))
+            {
+                // Fighter below platform
+                ftr->velocity.y = 0;
+                ftr->relativePos = BELOW_PLATFORM;
+                ftr->touchingPlatform = &platforms[idx];
+                break;
+            }
         }
 
-        // If the fighter is moving rightward and hit a wall
-        if ((ftr->velocity.x >= 0) &&
-                (((ftr->hurtbox.x1 / SF) + 1) == (platforms[idx].area.x0 / SF)) &&
-                (ftr->hurtbox.y0 < platforms[idx].area.y1 + SF) &&
+        // If the fighter is to the left or right of a platform
+        if((ftr->hurtbox.y0 < platforms[idx].area.y1 + SF) &&
                 (ftr->hurtbox.y1 + SF > platforms[idx].area.y0))
         {
-            // Fighter to left of platform
-            ftr->velocity.x = 0;
-            ftr->relativePos = LEFT_OF_PLATFORM;
-            break;
-        }
-        // If the fighter is moving leftward and hit a wall
-        else if ((ftr->velocity.x <= 0) &&
-                 ((ftr->hurtbox.x0 / SF) == ((platforms[idx].area.x1 / SF) + 1)) &&
-                 (ftr->hurtbox.y0 < platforms[idx].area.y1 + SF) &&
-                 (ftr->hurtbox.y1 + SF > platforms[idx].area.y0))
-        {
-            // Fighter to right of platform
-            ftr->velocity.x = 0;
-            ftr->relativePos = RIGHT_OF_PLATFORM;
-            break;
+            // If the fighter is moving rightward and hit a wall
+            if ((ftr->velocity.x >= 0) &&
+                    (((ftr->hurtbox.x1 / SF)) == (platforms[idx].area.x0 / SF)))
+            {
+                // Fighter to left of platform
+                ftr->velocity.x = 0;
+                ftr->relativePos = LEFT_OF_PLATFORM;
+                ftr->touchingPlatform = &platforms[idx];
+                break;
+            }
+            // If the fighter is moving leftward and hit a wall
+            else if ((ftr->velocity.x <= 0) &&
+                     ((ftr->hurtbox.x0 / SF) == ((platforms[idx].area.x1 / SF))))
+            {
+                // Fighter to right of platform
+                ftr->velocity.x = 0;
+                ftr->relativePos = RIGHT_OF_PLATFORM;
+                ftr->touchingPlatform = &platforms[idx];
+                break;
+            }
         }
     }
+
+    ftr->prevBtnState = ftr->btnState;
 }
 
 /**
@@ -474,28 +765,6 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
  */
 void fighterButtonCb(buttonEvt_t* evt)
 {
-    // Save the state for X axis kinematics
+    // Save the state to check synchronously
     f->fighters[0].btnState = evt->state;
-
-    // Check for a jump
-    if(evt->down)
-    {
-        switch(evt->button)
-        {
-            case UP:
-            {
-                if(f->fighters[0].numJumps > 0)
-                {
-                    f->fighters[0].numJumps--;
-                    f->fighters[0].velocity.y = f->fighters[0].jump_velo;
-                    f->fighters[0].relativePos = FREE_FLOATING;
-                }
-                break;
-            }
-            default:
-            {
-                break;
-            }
-        }
-    }
 }
