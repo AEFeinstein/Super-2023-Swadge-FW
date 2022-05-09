@@ -51,7 +51,7 @@ jobs:
             cd ~
             mkdir esp
             cd esp
-            git clone -b release/v4.4 --recursive https://github.com/espressif/esp-idf.git esp-idf -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+            git clone -b v4.4.1 --recursive https://github.com/espressif/esp-idf.git esp-idf -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
             cd esp-idf
             # Update submodules
             git submodule update --init --recursive -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
