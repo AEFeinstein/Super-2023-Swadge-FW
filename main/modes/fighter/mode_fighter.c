@@ -146,6 +146,8 @@ void fighterEnterMode(display_t* disp)
     f = malloc(sizeof(fightingGame_t));
     f->d = disp;
     f->fighters = loadJsonFighterData(&(f->numFighters));
+    f->fighters[0].relativePos = FREE_FLOATING;
+    f->fighters[1].relativePos = FREE_FLOATING;
 
     ESP_LOGD("FGT", "data loaded");
 
@@ -419,6 +421,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             ftr->numJumps--;
             v0.y = ftr->jump_velo;
             ftr->relativePos = FREE_FLOATING;
+            ftr->touchingPlatform = NULL;
         }
     }
 
@@ -515,8 +518,9 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             // Second press detected fast enough
             ftr->fallThroughTimer = 0;
             // Fall through a platform
-            ftr->relativePos = FREE_FLOATING;
+            ftr->relativePos = FALLING_THROUGH_PLATFORM;
             ftr->passingThroughPlatform = ftr->touchingPlatform;
+            ftr->touchingPlatform = NULL;
         }
     }
     else
@@ -627,6 +631,14 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     {
         // Just move it and be done
         memcpy(&ftr->hurtbox, &upper_hurtbox, sizeof(box_t));
+
+        // TODO This is NULLing too early, when passing downwards at the apex of a jump
+        if( (ftr->velocity.y > 0) &&
+            (ftr->relativePos == JUMPING_UP_THROUGH_PLATFORM))
+        {
+            ftr->passingThroughPlatform = NULL;
+            ftr->relativePos = FREE_FLOATING;
+        }
     }
     else
     {
@@ -689,9 +701,14 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
         }
     }
 
+    // If the fighter is touching something, clear that
+    if(ftr->relativePos < FREE_FLOATING)
+    {
+        ftr->relativePos = FREE_FLOATING;
+        ftr->touchingPlatform = NULL;
+    }
+
     // After the final location was found, check what the fighter is up against
-    ftr->relativePos = FREE_FLOATING;
-    ftr->touchingPlatform = NULL;
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
         // Don't check the platform being passed throughd
@@ -720,10 +737,20 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             else if ((ftr->velocity.y <= 0) &&
                      ((ftr->hurtbox.y0 / SF) == ((platforms[idx].area.y1 / SF))))
             {
-                // Fighter below platform
-                ftr->velocity.y = 0;
-                ftr->relativePos = BELOW_PLATFORM;
-                ftr->touchingPlatform = &platforms[idx];
+                if((true == platforms[idx].canFallThrough))
+                {
+                    // Jump up through the platform
+                    ftr->passingThroughPlatform = &platforms[idx];
+                    ftr->relativePos = JUMPING_UP_THROUGH_PLATFORM;
+                    ftr->touchingPlatform = NULL;
+                }
+                else
+                {
+                    // Fighter below platform
+                    ftr->velocity.y = 0;
+                    ftr->relativePos = BELOW_PLATFORM;
+                    ftr->touchingPlatform = &platforms[idx];
+                }
                 break;
             }
         }
