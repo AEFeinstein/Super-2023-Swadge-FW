@@ -110,5 +110,6 @@
         "palette.h": "c",
         "rawdraw_sf.h": "c"
     },
-    "idf.adapterTargetName": "esp32s2"
+    "idf.adapterTargetName": "esp32",
+    "makefile.makefilePath": "./emu.mk"
 }
