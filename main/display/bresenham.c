@@ -56,17 +56,17 @@ void plotLine(display_t * disp, int x0, int y0, int x1, int y1, paletteColor_t c
 void plotRect(display_t * disp, int x0, int y0, int x1, int y1, paletteColor_t col)
 {
     // Vertical lines
-    for(int y = y0 + 1; y < y1; y++)
+    for(int y = y0; y < y1; y++)
     {
         disp->setPx(x0, y, col);
-        disp->setPx(x1, y, col);
+        disp->setPx(x1 - 1, y, col);
     }
 
     // Horizontal lines
-    for(int x = x0; x < x1 + 1; x++)
+    for(int x = x0; x < x1; x++)
     {
         disp->setPx(x, y0, col);
-        disp->setPx(x, y1, col);
+        disp->setPx(x, y1 - 1, col);
     }
 }
 

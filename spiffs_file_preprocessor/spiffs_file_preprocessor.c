@@ -10,9 +10,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "spiffs_file_preprocessor.h"
 #include "image_processor.h"
 #include "font_processor.h"
+#include "json_processor.h"
 
 const char * outDirName = NULL;
 
@@ -43,20 +43,6 @@ bool endsWith(const char *filename, const char *suffix)
 }
 
 /**
- * @brief Get the filename ext object
- *
- * @param filename
- * @return const char*
- */
-const char *get_filename(const char *filename) {
-    const char *slash = strrchr(filename, '/');
-    if(!slash || slash == filename) {
-        return "";
-    }
-    return slash + 1;
-}
-
-/**
  * @brief TODO
  *
  * @param fpath
@@ -76,6 +62,10 @@ static int processFile(const char * fpath, const struct stat * st __attribute__(
             else if(endsWith(fpath, ".png"))
             {
                 process_image(fpath, outDirName);
+            }
+            else if(endsWith(fpath, ".json"))
+            {
+                process_json(fpath, outDirName);
             }
             break;
         }
