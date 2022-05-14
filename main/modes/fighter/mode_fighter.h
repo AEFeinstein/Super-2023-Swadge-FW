@@ -71,6 +71,22 @@ typedef enum
 
 typedef struct
 {
+    char* sprite;
+
+    vector_t size;
+    vector_t pos;
+    vector_t velo;
+    vector_t accel;
+
+    vector_t knockbackAng;
+    uint16_t knockback;
+    uint16_t duration;
+    uint16_t damage;
+    uint16_t hitstun;
+} projectile_t;
+
+typedef struct
+{
     uint16_t duration;
     vector_t hitboxPos;
     vector_t hitboxSize;
@@ -79,6 +95,12 @@ typedef struct
     vector_t knockbackAng;
     uint16_t hitstun;
     char* sprite;
+
+    bool isProjectile;
+    char* projSprite;
+    uint16_t projDuration;
+    vector_t projVelo;
+    vector_t projAccel;
 } attackFrame_t;
 
 typedef struct

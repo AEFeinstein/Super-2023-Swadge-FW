@@ -48,7 +48,14 @@ typedef enum
     PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_X,
     PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_Y,
     PARSING_FIGHTER_ATTACK_FRAME_ATTR_HITSTUN,
-    PARSING_FIGHTER_ATTACK_FRAME_ATTR_SPRITE
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_SPRITE,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_ISPROJECTILE,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILESPRITE,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEDURATION,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_X,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_Y,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_X,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_Y
 } fgtParseState_t;
 
 const char* attackOrder[] =
@@ -117,6 +124,21 @@ static char* jsonString(const char* jsonStr, jsmntok_t tok)
     memcpy(copiedStr, &(jsonStr[tok.start]), (tok.end - tok.start));
     copiedStr[tok.end - tok.start] = 0;
     return copiedStr;
+}
+
+/**
+ * @brief TODO
+ *
+ * @param jsonStr
+ * @param tok
+ * @return char*
+ */
+static bool jsonBoolean(const char* jsonStr, jsmntok_t tok)
+{
+    char* copiedStr = malloc(sizeof(char) * (tok.end - tok.start + 1));
+    memcpy(copiedStr, &(jsonStr[tok.start]), (tok.end - tok.start));
+    copiedStr[tok.end - tok.start] = 0;
+    return (0 == strcmp("true", copiedStr)) ? true : false;
 }
 
 /**
@@ -433,6 +455,7 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
                     {
                         cAttack->numAttackFrames = t[i].size;
                         cAttack->attackFrames = malloc(sizeof(attackFrame_t) * t[i].size);
+                        memset(cAttack->attackFrames, 0, sizeof(attackFrame_t) * t[i].size);
                         cAttackIdx = -1;
                         break;
                     }
@@ -531,6 +554,34 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
                 {
                     ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_SPRITE;
                 }
+                else if (jsoneq(jsonStr, &t[i], "isProjectile") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_ISPROJECTILE;
+                }
+                else if (jsoneq(jsonStr, &t[i], "projectileSprite") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILESPRITE;
+                }
+                else if (jsoneq(jsonStr, &t[i], "projectileDuration") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEDURATION;
+                }
+                else if (jsoneq(jsonStr, &t[i], "projectileVelo_x") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_X;
+                }
+                else if (jsoneq(jsonStr, &t[i], "projectileVelo_y") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_Y;
+                }
+                else if (jsoneq(jsonStr, &t[i], "projectileAccel_x") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_X;
+                }
+                else if (jsoneq(jsonStr, &t[i], "projectileAccel_y") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_Y;
+                }
                 break;
             }
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_DURATION:
@@ -544,6 +595,13 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_Y:
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_HITSTUN:
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_SPRITE:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_ISPROJECTILE:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILESPRITE:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEDURATION:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_X:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_Y:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_X:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_Y:
             {
                 switch(ps)
                 {
@@ -604,6 +662,41 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
                     case PARSING_FIGHTER_ATTACK_FRAME_ATTR_SPRITE:
                     {
                         cAttack->attackFrames[cAttackIdx].sprite = jsonString(jsonStr, t[i]);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_ISPROJECTILE:
+                    {
+                        cAttack->attackFrames[cAttackIdx].isProjectile = jsonBoolean(jsonStr, t[i]);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILESPRITE:
+                    {
+                        cAttack->attackFrames[cAttackIdx].projSprite = jsonString(jsonStr, t[i]);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEDURATION:
+                    {
+                        cAttack->attackFrames[cAttackIdx].projDuration = jsonInteger(jsonStr, t[i]);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_X:
+                    {
+                        cAttack->attackFrames[cAttackIdx].projVelo.x = jsonInteger(jsonStr, t[i]);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_Y:
+                    {
+                        cAttack->attackFrames[cAttackIdx].projVelo.y = jsonInteger(jsonStr, t[i]);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_X:
+                    {
+                        cAttack->attackFrames[cAttackIdx].projAccel.x = jsonInteger(jsonStr, t[i]);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_Y:
+                    {
+                        cAttack->attackFrames[cAttackIdx].projAccel.y = jsonInteger(jsonStr, t[i]);
                         break;
                     }
                 }

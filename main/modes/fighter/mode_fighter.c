@@ -22,6 +22,7 @@
 #include "mode_fighter.h"
 #include "fighter_json.h"
 #include "bresenham.h"
+#include "linked_list.h"
 
 //==============================================================================
 // Constants
@@ -37,6 +38,7 @@ typedef struct
 {
     fighter_t* fighters;
     uint8_t numFighters;
+    list_t projectiles;
     display_t* d;
 } fightingGame_t;
 
@@ -144,6 +146,7 @@ static const platform_t finalDest[] =
 void fighterEnterMode(display_t* disp)
 {
     f = malloc(sizeof(fightingGame_t));
+    memset(f, 0, sizeof(fightingGame_t));
     f->d = disp;
     f->fighters = loadJsonFighterData(&(f->numFighters));
     f->fighters[0].relativePos = FREE_FLOATING;
@@ -200,6 +203,24 @@ void fighterMainLoop(int64_t elapsedUs)
         //     f->fighters[0].velocity.x,
         //     f->fighters[0].velocity.y,
         //     f->fighters[0].relativePos);
+
+        // Check projectile timers
+        node_t* currentNode = f->projectiles.first;
+        while (currentNode != NULL)
+        {
+            projectile_t* proj = currentNode->val;
+            proj->duration--;
+            if(0 == proj->duration)
+            {
+                node_t* toRemove = currentNode;
+                currentNode = currentNode->next;
+                removeEntry(&(f->projectiles), toRemove);
+            }
+            else
+            {
+                currentNode = currentNode->next;
+            }
+        }
     }
 
     f->d->clearPx();
@@ -211,6 +232,23 @@ void fighterMainLoop(int64_t elapsedUs)
 
     drawFighter(f->d, &f->fighters[0]);
     drawFighter(f->d, &f->fighters[1]);
+
+    node_t* currentNode = f->projectiles.first;
+    while (currentNode != NULL)
+    {
+        projectile_t* proj = currentNode->val;
+        box_t projBox =
+        {
+            .x0 = proj->pos.x,
+            .y0 = proj->pos.y,
+            .x1 = proj->pos.x + proj->size.x,
+            .y1 = proj->pos.y + proj->size.y,
+        };
+
+        drawBox(f->d, projBox, c050, false, SF);
+
+        currentNode = currentNode->next;
+    }
 }
 
 /**
@@ -279,25 +317,25 @@ void drawFighter(display_t* d, fighter_t* ftr)
     /* Draw the hitbox if attacking */
     if((FS_GROUND_ATTACK == ftr->state) || (FS_AIR_ATTACK == ftr->state))
     {
-        box_t relativeHitbox = ftr->hurtbox;
-        if((ftr->dir == FACING_LEFT) &&
-                ((DASH_GROUND == ftr->cAttack) ||
-                 (FRONT_AIR   == ftr->cAttack) ||
-                 (BACK_AIR    == ftr->cAttack)))
+        attackFrame_t* atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
+        if(!atk->isProjectile)
         {
-            /* reverse the hitbox if dashing and facing left */
-            relativeHitbox.x1 = relativeHitbox.x0 + ftr->size.x -
-                                ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxPos.x;
-            relativeHitbox.x0 = relativeHitbox.x1 - ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxSize.x;
+            box_t relativeHitbox = ftr->hurtbox;
+            if((ftr->dir == FACING_LEFT))
+            {
+                /* reverse the hitbox if dashing and facing left */
+                relativeHitbox.x1 = relativeHitbox.x0 + ftr->size.x - atk->hitboxPos.x;
+                relativeHitbox.x0 = relativeHitbox.x1 - atk->hitboxSize.x;
+            }
+            else
+            {
+                relativeHitbox.x0 += atk->hitboxPos.x;
+                relativeHitbox.x1 = relativeHitbox.x0 + atk->hitboxSize.x;
+            }
+            relativeHitbox.y0 += atk->hitboxPos.y;
+            relativeHitbox.y1 = relativeHitbox.y0 + atk->hitboxSize.y;
+            drawBox(d, relativeHitbox, c440, false, SF);
         }
-        else
-        {
-            relativeHitbox.x0 += ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxPos.x;
-            relativeHitbox.x1 = relativeHitbox.x0 + ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxSize.x;
-        }
-        relativeHitbox.y0 += ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxPos.y;
-        relativeHitbox.y1 = relativeHitbox.y0 + ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].hitboxSize.y;
-        drawBox(d, relativeHitbox, c440, false, SF);
     }
 }
 
@@ -325,13 +363,15 @@ void checkFighterTimer(fighter_t* ftr)
 
     if(shouldTransition)
     {
+        attackFrame_t* atk = NULL;
         switch(ftr->state)
         {
             case FS_GROUND_STARTUP:
             {
                 ftr->state = FS_GROUND_ATTACK;
                 ftr->attackFrame = 0;
-                ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+                atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
+                ftr->timer = atk->duration;
                 break;
             }
             case FS_GROUND_ATTACK:
@@ -339,11 +379,13 @@ void checkFighterTimer(fighter_t* ftr)
                 ftr->attackFrame++;
                 if(ftr->attackFrame < ftr->attacks[ftr->cAttack].numAttackFrames)
                 {
+                    atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
                     // Don't change state
-                    ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+                    ftr->timer = atk->duration;
                 }
                 else
                 {
+                    atk = NULL;
                     ftr->state = FS_GROUND_COOLDOWN;
                     ftr->timer = ftr->attacks[ftr->cAttack].endLag;
                 }
@@ -358,7 +400,8 @@ void checkFighterTimer(fighter_t* ftr)
             {
                 ftr->state = FS_AIR_ATTACK;
                 ftr->attackFrame = 0;
-                ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+                atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
+                ftr->timer = atk->duration;
                 break;
             }
             case FS_AIR_ATTACK:
@@ -366,11 +409,13 @@ void checkFighterTimer(fighter_t* ftr)
                 ftr->attackFrame++;
                 if(ftr->attackFrame < ftr->attacks[ftr->cAttack].numAttackFrames)
                 {
+                    atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
                     // Don't change state
-                    ftr->timer = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].duration;
+                    ftr->timer = atk->duration;
                 }
                 else
                 {
+                    atk = NULL;
                     ftr->state = FS_AIR_COOLDOWN;
                     ftr->timer = ftr->attacks[ftr->cAttack].endLag;
                 }
@@ -396,6 +441,36 @@ void checkFighterTimer(fighter_t* ftr)
                 // TODO
                 break;
             }
+        }
+
+        // Spawn projectile
+        if((NULL != atk) && (atk->isProjectile))
+        {
+            projectile_t* proj = malloc(sizeof(projectile_t));
+            proj->sprite = 0;
+
+            proj->size = atk->hitboxSize;
+            proj->velo = atk->projVelo;
+            proj->accel = atk->projAccel;
+            if((ftr->dir == FACING_LEFT))
+            {
+                // Reverse
+                proj->pos.x = ftr->hurtbox.x1 - atk->hitboxPos.x - proj->size.x;
+                proj->velo.x = -proj->velo.x;
+                proj->accel.x = -proj->accel.x;
+            }
+            else
+            {
+                proj->pos.x = ftr->hurtbox.x0 + atk->hitboxPos.x;
+            }
+            proj->pos.y = ftr->hurtbox.y0 + atk->hitboxPos.y;
+            proj->duration = atk->projDuration;
+
+            proj->knockbackAng = atk->knockbackAng;
+            proj->knockback = atk->knockback;
+            proj->damage = atk->damage;
+            proj->hitstun = atk->hitstun;
+            push(&f->projectiles, proj);
         }
     }
 }

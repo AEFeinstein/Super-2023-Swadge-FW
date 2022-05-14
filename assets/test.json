@@ -96,16 +96,24 @@
                "active_states":[
                   {
                      "duration":40,
-                     "relativePos_x":-12,
-                     "relativePos_y":-12,
-                     "size_x":48,
-                     "size_y":48,
+                     "relativePos_x":24,
+                     "relativePos_y":8,
+                     "size_x":8,
+                     "size_y":8,
                      "damage":0,
                      "knockback":0,
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.png",
+
+                     "isProjectile":true,
+                     "projectileSprite":"kd0.png",
+                     "projectileDuration":160,
+                     "projectileVelo_x":10,
+                     "projectileVelo_y":0,
+                     "projectileAccel_x":10,
+                     "projectileAccel_y":0
                   }
                ],
                "endLag":20,
