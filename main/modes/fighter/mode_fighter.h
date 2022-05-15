@@ -40,12 +40,9 @@ typedef enum
     FS_JUMP_2,
     FS_FALLING,
     FS_FREEFALL, // After up special
-    FS_GROUND_STARTUP,
-    FS_GROUND_ATTACK,
-    FS_GROUND_COOLDOWN,
-    FS_AIR_STARTUP,
-    FS_AIR_ATTACK,
-    FS_AIR_COOLDOWN,
+    FS_STARTUP,
+    FS_ATTACK,
+    FS_COOLDOWN,
     FS_HITSTUN,
     FS_HITSTOP,
     FS_INVINCIBLE
@@ -83,6 +80,8 @@ typedef struct
     uint16_t duration;
     uint16_t damage;
     uint16_t hitstun;
+
+    bool removeNextFrame;
 } projectile_t;
 
 typedef struct
@@ -155,7 +154,7 @@ typedef struct
     fighterState_t state;
     attackOrder_t cAttack;
     uint8_t attackFrame;
-    int32_t timer;
+    int32_t stateTimer;
     int32_t fallThroughTimer;
     fighterDirection_t dir;
 } fighter_t;

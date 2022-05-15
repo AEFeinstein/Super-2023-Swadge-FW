@@ -110,10 +110,10 @@
                      "isProjectile":true,
                      "projectileSprite":"kd0.png",
                      "projectileDuration":160,
-                     "projectileVelo_x":10,
+                     "projectileVelo_x":20480,
                      "projectileVelo_y":0,
-                     "projectileAccel_x":10,
-                     "projectileAccel_y":0
+                     "projectileAccel_x":0,
+                     "projectileAccel_y":2048
                   }
                ],
                "endLag":20,

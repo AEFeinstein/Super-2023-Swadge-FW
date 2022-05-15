@@ -135,10 +135,7 @@ static char* jsonString(const char* jsonStr, jsmntok_t tok)
  */
 static bool jsonBoolean(const char* jsonStr, jsmntok_t tok)
 {
-    char* copiedStr = malloc(sizeof(char) * (tok.end - tok.start + 1));
-    memcpy(copiedStr, &(jsonStr[tok.start]), (tok.end - tok.start));
-    copiedStr[tok.end - tok.start] = 0;
-    return (0 == strcmp("true", copiedStr)) ? true : false;
+    return (0 == memcmp("true", &(jsonStr[tok.start]), (tok.end - tok.start))) ? true : false;
 }
 
 /**
@@ -734,12 +731,16 @@ void freeFighterData(fighter_t* fighter, uint8_t numFighters)
         for(uint8_t atkIdx = 0; atkIdx < NUM_ATTACKS; atkIdx++)
         {
             free(fighter[fgtIdx].attacks[atkIdx].startupLagSpr);
+            free(fighter[fgtIdx].attacks[atkIdx].endLagSpr);
             for(uint8_t atkFrameIdx = 0; atkFrameIdx < fighter[fgtIdx].attacks[atkIdx].numAttackFrames; atkFrameIdx++)
             {
                 free(fighter[fgtIdx].attacks[atkIdx].attackFrames[atkFrameIdx].sprite);
+                if(NULL != fighter[fgtIdx].attacks[atkIdx].attackFrames[atkFrameIdx].projSprite)
+                {
+                    free(fighter[fgtIdx].attacks[atkIdx].attackFrames[atkFrameIdx].projSprite);
+                }
             }
             free(fighter[fgtIdx].attacks[atkIdx].attackFrames);
-            free(fighter[fgtIdx].attacks[atkIdx].endLagSpr);
         }
         free(fighter[fgtIdx].idleSprite0);
         free(fighter[fgtIdx].idleSprite1);

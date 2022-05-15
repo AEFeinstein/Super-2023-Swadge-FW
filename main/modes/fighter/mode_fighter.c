@@ -23,6 +23,7 @@
 #include "fighter_json.h"
 #include "bresenham.h"
 #include "linked_list.h"
+#include "led_util.h"
 
 //==============================================================================
 // Constants
@@ -36,6 +37,7 @@
 
 typedef struct
 {
+    int64_t frameElapsed;
     fighter_t* fighters;
     uint8_t numFighters;
     list_t projectiles;
@@ -51,9 +53,16 @@ void fighterExitMode(void);
 void fighterMainLoop(int64_t elapsedUs);
 void fighterButtonCb(buttonEvt_t* evt);
 
-void updatePosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
+void checkFighterButtonInput(fighter_t* ftr);
+void updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
 void checkFighterTimer(fighter_t* ftr);
 void drawFighter(display_t* d, fighter_t* ftr);
+
+void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
+                          uint8_t numPlatforms);
+
+void drawFighterFrame(display_t* d, const platform_t* platforms,
+                      uint8_t numPlatforms);
 
 // void fighterAccelerometerCb(accel_t* accel);
 // void fighterAudioCb(uint16_t * samples, uint32_t sampleCnt);
@@ -131,7 +140,6 @@ static const platform_t finalDest[] =
         },
         .canFallThrough = true
     }
-
 };
 
 //==============================================================================
@@ -139,63 +147,98 @@ static const platform_t finalDest[] =
 //==============================================================================
 
 /**
- * @brief TODO
+ * Initialize all data needed for the fighter game
  *
- * @param disp
+ * @param disp The display to draw to
  */
 void fighterEnterMode(display_t* disp)
 {
+    // Allocate base memory for the mode
     f = malloc(sizeof(fightingGame_t));
     memset(f, 0, sizeof(fightingGame_t));
+
+    // Save the display
     f->d = disp;
+
+    // Load fighter data
     f->fighters = loadJsonFighterData(&(f->numFighters));
     f->fighters[0].relativePos = FREE_FLOATING;
     f->fighters[1].relativePos = FREE_FLOATING;
 
-    ESP_LOGD("FGT", "data loaded");
-
-    // loadWsg("kd0.wsg", &kd[0]);
-    // loadWsg("kd1.wsg", &kd[1]);
+    // Set some LEDs, just because
+    static led_t leds[NUM_LEDS] =
+    {
+        {.r = 0x00, .g = 0x00, .b = 0x00},
+        {.r = 0xFF, .g = 0x00, .b = 0xFF},
+        {.r = 0x0C, .g = 0x19, .b = 0x60},
+        {.r = 0xFD, .g = 0x08, .b = 0x07},
+        {.r = 0x70, .g = 0x81, .b = 0xFF},
+        {.r = 0xFF, .g = 0xCC, .b = 0x00},
+    };
+    setLeds(leds, NUM_LEDS);
 }
 
 /**
- * @brief TODO
- *
+ * Free all data needed for the fighter game
  */
 void fighterExitMode(void)
 {
+    // Free any stray projectiles
+    node_t* currentNode = f->projectiles.first;
+    while (currentNode != NULL)
+    {
+        free(currentNode->val);
+        node_t* toRemove = currentNode;
+        currentNode = currentNode->next;
+        removeEntry(&(f->projectiles), toRemove);
+    }
+
+    // Free fighter data
     freeFighterData(f->fighters, f->numFighters);
-    // freeWsg(&kd[0]);
-    // freeWsg(&kd[1]);
+
+    // Free game data
+    free(f);
 }
 
 /**
- * @brief TODO
+ * Run the main loop for the fighter game. When the time is ready, this will
+ * handle button input synchronously, move fighters, check collisions, manage
+ * projectiles, and pretty much everything else
  *
- * @param elapsedUs
+ * TODO
+ *  - Hitbox collisions
+ *  - Damage tracking
+ *  - Knockback
+ *  - Hitstun
+ *  - Player stock tracking
+ *
+ * @param elapsedUs The time elapsed since the last time this was called
  */
 void fighterMainLoop(int64_t elapsedUs)
 {
-    static uint8_t animIdx = 0;
-    static int64_t animElapsed = 0;
-    animElapsed += elapsedUs;
-    if(animElapsed > 500000)
+    // Keep track of time and only calculate frames every FRAME_TIME_MS
+    f->frameElapsed += elapsedUs;
+    if (f->frameElapsed > (FRAME_TIME_MS * 1000))
     {
-        animElapsed -= 500000;
-        animIdx = animIdx ? 0 : 1;
-    }
+        f->frameElapsed -= (FRAME_TIME_MS * 1000);
 
-    static int64_t frameElapsed = 0;
-    frameElapsed += elapsedUs;
-    if (frameElapsed > (FRAME_TIME_MS * 1000))
-    {
-        frameElapsed -= (FRAME_TIME_MS * 1000);
+        // Check fighter button inputs
+        checkFighterButtonInput(&f->fighters[0]);
+        checkFighterButtonInput(&f->fighters[1]);
 
-        updatePosition(&f->fighters[0], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
-        updatePosition(&f->fighters[1], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
+        // Move fighters
+        updateFighterPosition(&f->fighters[0], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
+        updateFighterPosition(&f->fighters[1], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
 
+        // Update timers. This transitions between states and spawns projectiles
         checkFighterTimer(&f->fighters[0]);
         checkFighterTimer(&f->fighters[1]);
+
+        // Update projectile timers. This moves projectiles and despawns if necessary
+        checkProjectileTimer(&f->projectiles, finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
+
+        // Render the scene
+        drawFighterFrame(f->d, finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
 
         // ESP_LOGI("FGT", "{[%d, %d], [%d, %d], %d}",
         //     f->fighters[0].hurtbox.x0 / SF,
@@ -203,80 +246,35 @@ void fighterMainLoop(int64_t elapsedUs)
         //     f->fighters[0].velocity.x,
         //     f->fighters[0].velocity.y,
         //     f->fighters[0].relativePos);
-
-        // Check projectile timers
-        node_t* currentNode = f->projectiles.first;
-        while (currentNode != NULL)
-        {
-            projectile_t* proj = currentNode->val;
-            proj->duration--;
-            if(0 == proj->duration)
-            {
-                node_t* toRemove = currentNode;
-                currentNode = currentNode->next;
-                removeEntry(&(f->projectiles), toRemove);
-            }
-            else
-            {
-                currentNode = currentNode->next;
-            }
-        }
-    }
-
-    f->d->clearPx();
-
-    for (uint8_t idx = 0; idx < sizeof(finalDest) / sizeof(finalDest[0]); idx++)
-    {
-        drawBox(f->d, finalDest[idx].area, c555, !finalDest[idx].canFallThrough, SF);
-    }
-
-    drawFighter(f->d, &f->fighters[0]);
-    drawFighter(f->d, &f->fighters[1]);
-
-    node_t* currentNode = f->projectiles.first;
-    while (currentNode != NULL)
-    {
-        projectile_t* proj = currentNode->val;
-        box_t projBox =
-        {
-            .x0 = proj->pos.x,
-            .y0 = proj->pos.y,
-            .x1 = proj->pos.x + proj->size.x,
-            .y1 = proj->pos.y + proj->size.y,
-        };
-
-        drawBox(f->d, projBox, c050, false, SF);
-
-        currentNode = currentNode->next;
     }
 }
 
 /**
- * @brief TODO
+ * Draw a fighter to the display. Right now, just draw debugging boxes
  *
- * @param d
- * @param ftr
+ * TODO
+ *  - Draw sprites instead of (or addition to) debug boxes
+ *
+ * @param d   The display to draw to
+ * @param ftr The fighter to draw
  */
 void drawFighter(display_t* d, fighter_t* ftr)
 {
-    /* Pick the color based on state */
+    // Pick the color based on state
     paletteColor_t hitboxColor = c500;
     switch(ftr->state)
     {
-        case FS_GROUND_STARTUP:
-        case FS_AIR_STARTUP:
+        case FS_STARTUP:
         {
             hitboxColor = c502;
             break;
         }
-        case FS_GROUND_ATTACK:
-        case FS_AIR_ATTACK:
+        case FS_ATTACK:
         {
             hitboxColor = c303;
             break;
         }
-        case FS_GROUND_COOLDOWN:
-        case FS_AIR_COOLDOWN:
+        case FS_COOLDOWN:
         {
             hitboxColor = c205;
             break;
@@ -286,9 +284,10 @@ void drawFighter(display_t* d, fighter_t* ftr)
             break;
         }
     }
+    // Draw an outline
     drawBox(d, ftr->hurtbox, hitboxColor, false, SF);
 
-    /* Draw which way the figher is facing */
+    // Fill in half the box to indicate which way the figher is facing
     switch(ftr->dir)
     {
         case FACING_LEFT:
@@ -309,21 +308,24 @@ void drawFighter(display_t* d, fighter_t* ftr)
         }
         default:
         {
-            // Draw no indicator
             break;
         }
     }
 
-    /* Draw the hitbox if attacking */
-    if((FS_GROUND_ATTACK == ftr->state) || (FS_AIR_ATTACK == ftr->state))
+    // Draw the hitbox if attacking
+    if(FS_ATTACK == ftr->state)
     {
+        // Get a reference to the attack frame
         attackFrame_t* atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
+
+        // If this isn't a projectile attack, draw it
         if(!atk->isProjectile)
         {
+            // Figure out where the hitbox is relative to the fighter
             box_t relativeHitbox = ftr->hurtbox;
             if((ftr->dir == FACING_LEFT))
             {
-                /* reverse the hitbox if dashing and facing left */
+                // reverse the hitbox if dashing and facing left
                 relativeHitbox.x1 = relativeHitbox.x0 + ftr->size.x - atk->hitboxPos.x;
                 relativeHitbox.x0 = relativeHitbox.x1 - atk->hitboxSize.x;
             }
@@ -334,95 +336,76 @@ void drawFighter(display_t* d, fighter_t* ftr)
             }
             relativeHitbox.y0 += atk->hitboxPos.y;
             relativeHitbox.y1 = relativeHitbox.y0 + atk->hitboxSize.y;
+            // Draw the hitbox
             drawBox(d, relativeHitbox, c440, false, SF);
         }
     }
 }
 
 /**
- * @brief TODO
+ * Check all timers for the given fighter.
+ * Manage transitons between fighter attacks.
+ * Create a projectile if the attack state transitioned to is one.
  *
- * @param ftr
+ * @param ftr The fighter to to check timers for
  */
 void checkFighterTimer(fighter_t* ftr)
 {
+    // Decrement the timer checking double-down-presses to fall through platforms
     if(ftr->fallThroughTimer > 0)
     {
         ftr->fallThroughTimer--;
     }
 
+    // Decrement the timer for state transitions
     bool shouldTransition = false;
-    if(ftr->timer > 0)
+    if(ftr->stateTimer > 0)
     {
-        ftr->timer--;
-        if(0 == ftr->timer)
+        ftr->stateTimer--;
+        if(0 == ftr->stateTimer)
         {
             shouldTransition = true;
         }
     }
 
+    // If the timer expired and there is a state transition
     if(shouldTransition)
     {
+        // Keep a pointer to the current attack frame
         attackFrame_t* atk = NULL;
+        // Switch on where we're transitioning from
         switch(ftr->state)
         {
-            case FS_GROUND_STARTUP:
+            case FS_STARTUP:
             {
-                ftr->state = FS_GROUND_ATTACK;
+                // Transition from ground startup to ground attack
+                ftr->state = FS_ATTACK;
                 ftr->attackFrame = 0;
                 atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
-                ftr->timer = atk->duration;
+                ftr->stateTimer = atk->duration;
                 break;
             }
-            case FS_GROUND_ATTACK:
+            case FS_ATTACK:
             {
                 ftr->attackFrame++;
                 if(ftr->attackFrame < ftr->attacks[ftr->cAttack].numAttackFrames)
                 {
+                    // Transition from one attack frame to the next attack frame
                     atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
-                    // Don't change state
-                    ftr->timer = atk->duration;
+                    ftr->stateTimer = atk->duration;
                 }
                 else
                 {
+                    // Transition from attacking to cooldown
                     atk = NULL;
-                    ftr->state = FS_GROUND_COOLDOWN;
-                    ftr->timer = ftr->attacks[ftr->cAttack].endLag;
+                    ftr->state = FS_COOLDOWN;
+                    ftr->stateTimer = ftr->attacks[ftr->cAttack].endLag;
                 }
                 break;
             }
-            case FS_GROUND_COOLDOWN:
+            case FS_COOLDOWN:
             {
-                ftr->state = FS_IDLE;
-                break;
-            }
-            case FS_AIR_STARTUP:
-            {
-                ftr->state = FS_AIR_ATTACK;
-                ftr->attackFrame = 0;
-                atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
-                ftr->timer = atk->duration;
-                break;
-            }
-            case FS_AIR_ATTACK:
-            {
-                ftr->attackFrame++;
-                if(ftr->attackFrame < ftr->attacks[ftr->cAttack].numAttackFrames)
-                {
-                    atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
-                    // Don't change state
-                    ftr->timer = atk->duration;
-                }
-                else
-                {
-                    atk = NULL;
-                    ftr->state = FS_AIR_COOLDOWN;
-                    ftr->timer = ftr->attacks[ftr->cAttack].endLag;
-                }
-                break;
-            }
-            case FS_AIR_COOLDOWN:
-            {
+                // Transition from cooldown to idle
                 ftr->state = FS_IDLE;
                 break;
             }
@@ -438,20 +421,24 @@ void checkFighterTimer(fighter_t* ftr)
             case FS_INVINCIBLE:
             default:
             {
-                // TODO
+                // These states have no transitions, yet
                 break;
             }
         }
 
-        // Spawn projectile
+        // If there is a current attack frame, and the attack is a projectile,
+        // allocate a projectile and link it to the list
         if((NULL != atk) && (atk->isProjectile))
         {
+            // Allocate the projectile
             projectile_t* proj = malloc(sizeof(projectile_t));
-            proj->sprite = 0;
 
-            proj->size = atk->hitboxSize;
-            proj->velo = atk->projVelo;
-            proj->accel = atk->projAccel;
+            // Copy data from the attack frame to the projectile
+            proj->sprite = atk->projSprite;
+            proj->size   = atk->hitboxSize;
+            proj->velo   = atk->projVelo;
+            proj->accel  = atk->projAccel;
+            // Adjust position, velocity, and acceleration depending on direction
             if((ftr->dir == FACING_LEFT))
             {
                 // Reverse
@@ -463,47 +450,47 @@ void checkFighterTimer(fighter_t* ftr)
             {
                 proj->pos.x = ftr->hurtbox.x0 + atk->hitboxPos.x;
             }
-            proj->pos.y = ftr->hurtbox.y0 + atk->hitboxPos.y;
-            proj->duration = atk->projDuration;
+            proj->pos.y           = ftr->hurtbox.y0 + atk->hitboxPos.y;
+            proj->duration        = atk->projDuration;
+            proj->knockbackAng    = atk->knockbackAng;
+            proj->knockback       = atk->knockback;
+            proj->damage          = atk->damage;
+            proj->hitstun         = atk->hitstun;
+            proj->removeNextFrame = false;
 
-            proj->knockbackAng = atk->knockbackAng;
-            proj->knockback = atk->knockback;
-            proj->damage = atk->damage;
-            proj->hitstun = atk->hitstun;
+            // Add the projectile to the list
             push(&f->projectiles, proj);
         }
     }
 }
-/**
- * @brief TODO
- *
- * @param f
- * @param platforms
- * @param numPlatforms
- */
-void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlatforms)
-{
-    // The hitbox where the fighter will travel to
-    box_t upper_hurtbox;
-    // Initial velocity before this frame's calculations
-    vector_t v0 = ftr->velocity;
 
-    // Check for button presses, jump first
+/**
+ * Check button inputs asynchronously for the given fighter
+ *
+ * TODO
+ *  - Don't allow transitions from all states
+ *  - Short hops
+ *
+ * @param ftr The fighter to check buttons for
+ */
+void checkFighterButtonInput(fighter_t* ftr)
+{
+    // Pressing A means jump
     if (!(ftr->prevBtnState & BTN_A) && (ftr->btnState & BTN_A))
     {
         if(ftr->numJumps > 0)
         {
             ftr->numJumps--;
-            v0.y = ftr->jump_velo;
+            ftr->velocity.y = ftr->jump_velo;
             ftr->relativePos = FREE_FLOATING;
             ftr->touchingPlatform = NULL;
         }
     }
 
-    // Attack button
+    // Pressing B means attack
     if (!(ftr->prevBtnState & BTN_B) && (ftr->btnState & BTN_B))
     {
-        // TODO don't allow attacks in all fighter states
+        // Check if it's a ground or air attack
         if(ABOVE_PLATFORM == ftr->relativePos)
         {
             // Attack on ground
@@ -511,29 +498,29 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             {
                 // Up tilt attack
                 ftr->cAttack = UP_GROUND;
-                ftr->state = FS_GROUND_STARTUP;
-                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+                ftr->state = FS_STARTUP;
+                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if(ftr->btnState & DOWN)
             {
                 // Down tilt attack
                 ftr->cAttack = DOWN_GROUND;
-                ftr->state = FS_GROUND_STARTUP;
-                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+                ftr->state = FS_STARTUP;
+                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if((ftr->btnState & LEFT) || (ftr->btnState & RIGHT))
             {
                 // Side attack
                 ftr->cAttack = DASH_GROUND;
-                ftr->state = FS_GROUND_STARTUP;
-                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+                ftr->state = FS_STARTUP;
+                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else
             {
                 // Neutral attack
                 ftr->cAttack = NEUTRAL_GROUND;
-                ftr->state = FS_GROUND_STARTUP;
-                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+                ftr->state = FS_STARTUP;
+                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
         }
         else
@@ -543,51 +530,52 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             {
                 // Up air attack
                 ftr->cAttack = UP_AIR;
-                ftr->state = FS_AIR_STARTUP;
-                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+                ftr->state = FS_STARTUP;
+                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if(ftr->btnState & DOWN)
             {
                 // Down air
                 ftr->cAttack = DOWN_AIR;
-                ftr->state = FS_AIR_STARTUP;
-                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+                ftr->state = FS_STARTUP;
+                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if(((ftr->btnState & LEFT ) && (FACING_RIGHT == ftr->dir)) ||
                     ((ftr->btnState & RIGHT) && (FACING_LEFT  == ftr->dir)))
             {
                 // Back air
                 ftr->cAttack = BACK_AIR;
-                ftr->state = FS_AIR_STARTUP;
-                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+                ftr->state = FS_STARTUP;
+                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if(((ftr->btnState & RIGHT) && (FACING_RIGHT == ftr->dir)) ||
                     ((ftr->btnState & LEFT ) && (FACING_LEFT  == ftr->dir)))
             {
                 // Front air
                 ftr->cAttack = FRONT_AIR;
-                ftr->state = FS_AIR_STARTUP;
-                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+                ftr->state = FS_STARTUP;
+                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else
             {
                 // Neutral air
                 ftr->cAttack = NEUTRAL_AIR;
-                ftr->state = FS_AIR_STARTUP;
-                ftr->timer = ftr->attacks[ftr->cAttack].startupLag;
+                ftr->state = FS_STARTUP;
+                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
         }
     }
 
-    // Double tap to fall through platforms
+    // Double tapping down will fall through platforms, if the platform allows it
     if(ftr->relativePos == ABOVE_PLATFORM && ftr->touchingPlatform->canFallThrough)
     {
-        // Check if button was released
+        // Check if down button was released
         if ((ftr->prevBtnState & DOWN) && !(ftr->btnState & DOWN))
         {
             // Start timer to check for second press
             ftr->fallThroughTimer = 10; // 10 frames @ 25ms == 250ms
         }
+        // Check if a second down press was detected while the timer is active
         else if (ftr->fallThroughTimer > 0 && !(ftr->prevBtnState & DOWN) && (ftr->btnState & DOWN))
         {
             // Second press detected fast enough
@@ -604,18 +592,46 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
         ftr->fallThroughTimer = 0;
     }
 
-    // Update X kinematics
+    // Save the button state for the next frame comparison
+    ftr->prevBtnState = ftr->btnState;
+}
+
+/**
+ * Move the fighter based on current button input and position. The algorithm is
+ * as follows:
+ *  - Find where the fighter should move to in this frame
+ *  - Check for collisions with platforms. If none are found, move there
+ *  - If a collision is found, do a binary search on a line between where the
+ *    fighter is and where they're trying to move and move as far as it can
+ *
+ * @param f            The fighter to move
+ * @param platforms    A pointer to platforms to check for collisions
+ * @param numPlatforms The number of platforms
+ */
+void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
+                           uint8_t numPlatforms)
+{
+    // The hitbox where the fighter will travel to
+    box_t dest_hurtbox;
+    // Initial velocity before this frame's calculations
+    vector_t v0 = ftr->velocity;
+
+    // Update X kinematics based on button state and fighter position
     if(ftr->btnState & LEFT)
     {
+        // Left button is currently held
+        // Change direction if standing on a platform
         if(ABOVE_PLATFORM == ftr->relativePos)
         {
             ftr->dir = FACING_LEFT;
         }
 
-        if(ftr->relativePos != RIGHT_OF_PLATFORM)
+        // Move left if not up against a wall
+        if(RIGHT_OF_PLATFORM != ftr->relativePos)
         {
             // Accelerate towards the left
             ftr->velocity.x = v0.x - (ftr->run_accel * FRAME_TIME_MS) / SF;
+            // Cap the velocity
             if (ftr->velocity.x < -ftr->run_max_velo)
             {
                 ftr->velocity.x = -ftr->run_max_velo;
@@ -623,20 +639,25 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
         }
         else
         {
+            // Up against a a wall, so stop
             ftr->velocity.x = 0;
         }
     }
     else if(ftr->btnState & RIGHT)
     {
+        // Right button is currently held
+        // Change direction if standing on a platform
         if(ABOVE_PLATFORM == ftr->relativePos)
         {
             ftr->dir = FACING_RIGHT;
         }
 
-        if(ftr->relativePos != LEFT_OF_PLATFORM)
+        // Move right if not up against a wall
+        if(LEFT_OF_PLATFORM != ftr->relativePos)
         {
             // Accelerate towards the right
             ftr->velocity.x = v0.x + (ftr->run_accel * FRAME_TIME_MS) / SF;
+            // Cap the velocity
             if(ftr->velocity.x > ftr->run_max_velo)
             {
                 ftr->velocity.x = ftr->run_max_velo;
@@ -644,15 +665,18 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
         }
         else
         {
+            // Up against a a wall, so stop
             ftr->velocity.x = 0;
         }
     }
     else
     {
+        // Neither left nor right buttons are being pressed. Slow down!
         if(ftr->velocity.x > 0)
         {
             // Decelrate towards the left
             ftr->velocity.x = v0.x - (ftr->run_decel * FRAME_TIME_MS) / SF;
+            // Check if stopped
             if (ftr->velocity.x < 0)
             {
                 ftr->velocity.x = 0;
@@ -662,44 +686,53 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
         {
             // Decelerate towards the right
             ftr->velocity.x = v0.x + (ftr->run_decel * FRAME_TIME_MS) / SF;
+            // Check if stopped
             if(ftr->velocity.x > 0)
             {
                 ftr->velocity.x = 0;
             }
         }
     }
-    // Find the new X position
-    upper_hurtbox.x0 = ftr->hurtbox.x0 + (((ftr->velocity.x + v0.x) * FRAME_TIME_MS) / (SF * 2));
+    // Now that we have X velocity, find the new X position
+    dest_hurtbox.x0 = ftr->hurtbox.x0 + (((ftr->velocity.x + v0.x) * FRAME_TIME_MS) / (SF * 2));
 
-    // Update Y kinematics
+    // Update Y kinematics based on fighter position
     if(ftr->relativePos != ABOVE_PLATFORM)
     {
         // Fighter is in the air, so there will be a new Y
         ftr->velocity.y = v0.y + (ftr->gravity * FRAME_TIME_MS) / SF;
-        // TODO cap velocity?
-        upper_hurtbox.y0 = ftr->hurtbox.y0 + (((ftr->velocity.y + v0.y) * FRAME_TIME_MS) / (SF * 2));
+        // Terminal velocity, arbitrarily chosen. Maybe make this a character attribute?
+        if(ftr->velocity.y > 60 * SF)
+        {
+            ftr->velocity.y = 60 * SF;
+        }
+        // Now that we have Y velocity, find the new Y position
+        dest_hurtbox.y0 = ftr->hurtbox.y0 + (((ftr->velocity.y + v0.y) * FRAME_TIME_MS) / (SF * 2));
     }
     else
     {
         // If the fighter is on the ground, don't bother doing Y axis math
         ftr->velocity.y = 0;
-        upper_hurtbox.y0 = ftr->hurtbox.y0;
+        dest_hurtbox.y0 = ftr->hurtbox.y0;
     }
 
-    // Finish up the upper hurtbox
-    upper_hurtbox.x1 = upper_hurtbox.x0 + ftr->size.x;
-    upper_hurtbox.y1 = upper_hurtbox.y0 + ftr->size.y;
+    // Finish up the destination hurtbox
+    dest_hurtbox.x1 = dest_hurtbox.x0 + ftr->size.x;
+    dest_hurtbox.y1 = dest_hurtbox.y0 + ftr->size.y;
 
     // Do a quick check to see if the binary search can be avoided altogether
     bool collisionDetected = false;
     bool intersectionDetected = false;
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
-        if(boxesCollide(upper_hurtbox, platforms[idx].area))
+        if(boxesCollide(dest_hurtbox, platforms[idx].area))
         {
+            // dest_hurtbox intersects with a platform, but it may be passing
+            // through, like jumping up through one
             intersectionDetected = true;
             if(ftr->passingThroughPlatform != &platforms[idx])
             {
+                // dest_hurtbox collides with a platform that it shouldn't
                 collisionDetected = true;
                 break;
             }
@@ -710,25 +743,28 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
     // a platform anymore
     if(!intersectionDetected)
     {
+        // Clear the reference to the platform being passed through
         ftr->passingThroughPlatform = NULL;
     }
 
     // If no collisions were detected at the final position
-    if(!collisionDetected)
+    if(false == collisionDetected)
     {
         // Just move it and be done
-        memcpy(&ftr->hurtbox, &upper_hurtbox, sizeof(box_t));
+        memcpy(&ftr->hurtbox, &dest_hurtbox, sizeof(box_t));
     }
     else
     {
+        // A collision at the destination was detected. Do a binary search to
+        // find how close the fighter can get to the destination as possible.
         // Save the starting position
-        box_t lower_hurtbox;
-        memcpy(&lower_hurtbox, &ftr->hurtbox, sizeof(box_t));
+        box_t src_hurtbox;
+        memcpy(&src_hurtbox, &ftr->hurtbox, sizeof(box_t));
 
-        // Start the binary search at the midpoint between lower and upper
+        // Start the binary search at the midpoint between src and dest
         box_t test_hurtbox;
-        test_hurtbox.x0 = (lower_hurtbox.x0 + upper_hurtbox.x0) / 2;
-        test_hurtbox.y0 = (lower_hurtbox.y0 + upper_hurtbox.y0) / 2;
+        test_hurtbox.x0 = (src_hurtbox.x0 + dest_hurtbox.x0) / 2;
+        test_hurtbox.y0 = (src_hurtbox.y0 + dest_hurtbox.y0) / 2;
         test_hurtbox.x1 = test_hurtbox.x0 + ftr->size.x;
         test_hurtbox.y1 = test_hurtbox.y0 + ftr->size.y;
 
@@ -743,6 +779,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
                 if(ftr->passingThroughPlatform != &platforms[idx] &&
                         boxesCollide(test_hurtbox, platforms[idx].area))
                 {
+                    // Collision is dettected, stop looping!
                     collisionDetected = true;
                     break;
                 }
@@ -750,44 +787,44 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
 
             if(collisionDetected)
             {
-                // If there was a collision, move back by setting the new upper
-                // bound as the test point
-                memcpy(&upper_hurtbox, &test_hurtbox, sizeof(box_t));
+                // If there was a collision, move towards the src by setting
+                // the new dest to be what the test point was
+                memcpy(&dest_hurtbox, &test_hurtbox, sizeof(box_t));
             }
             else
             {
-                // If there wasn't a collision, move back by setting the new
-                // lower bound as the test point
-                memcpy(&lower_hurtbox, &test_hurtbox, sizeof(box_t));
+                // If there wasn't a collision, move towards the dest by setting
+                // the new src to be what the test point was
+                memcpy(&src_hurtbox, &test_hurtbox, sizeof(box_t));
 
-                // And since there wasn't a collision, move the fighter here
+                // No collision here, so move the fighter here for now
                 memcpy(&ftr->hurtbox, &test_hurtbox, sizeof(box_t));
             }
 
             // Recalculate the new test point
-            test_hurtbox.x0 = (lower_hurtbox.x0 + upper_hurtbox.x0) / 2;
-            test_hurtbox.y0 = (lower_hurtbox.y0 + upper_hurtbox.y0) / 2;
+            test_hurtbox.x0 = (src_hurtbox.x0 + dest_hurtbox.x0) / 2;
+            test_hurtbox.y0 = (src_hurtbox.y0 + dest_hurtbox.y0) / 2;
             test_hurtbox.x1 = test_hurtbox.x0 + ftr->size.x;
             test_hurtbox.y1 = test_hurtbox.y0 + ftr->size.y;
 
             // Check for convergence
-            if(((test_hurtbox.x0 == lower_hurtbox.x0) || (test_hurtbox.x0 == upper_hurtbox.x0)) &&
-                    ((test_hurtbox.y0 == lower_hurtbox.y0) || (test_hurtbox.y0 == upper_hurtbox.y0)))
+            if(((test_hurtbox.x0 == src_hurtbox.x0) || (test_hurtbox.x0 == dest_hurtbox.x0)) &&
+                    ((test_hurtbox.y0 == src_hurtbox.y0) || (test_hurtbox.y0 == dest_hurtbox.y0)))
             {
-                // Binary search has converged
                 break;
             }
         }
     }
 
-    // If the fighter is touching something, clear that
+    // After the final location was found, check what the fighter is up against
+    // If the fighter is touching something to begin with, clear that
     if(ftr->relativePos < FREE_FLOATING)
     {
         ftr->relativePos = FREE_FLOATING;
         ftr->touchingPlatform = NULL;
     }
 
-    // After the final location was found, check what the fighter is up against
+    // Loop through all platforms to check for touching
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
         // Don't check the platform being passed throughd
@@ -795,6 +832,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
         {
             continue;
         }
+
         // If the fighter is above or below a platform
         if((ftr->hurtbox.x0 < platforms[idx].area.x1 + SF) &&
                 (ftr->hurtbox.x1 + SF > platforms[idx].area.x0))
@@ -803,7 +841,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             if ((ftr->velocity.y >= 0) &&
                     (((ftr->hurtbox.y1 / SF)) == (platforms[idx].area.y0 / SF)))
             {
-                // Fighter above platform
+                // Fighter standing on platform
                 ftr->velocity.y = 0;
                 ftr->relativePos = ABOVE_PLATFORM;
                 ftr->touchingPlatform = &platforms[idx];
@@ -823,7 +861,7 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
                 }
                 else
                 {
-                    // Fighter below platform
+                    // Fighter jumped into the bottom of a solid platform
                     ftr->velocity.y = 0;
                     ftr->relativePos = BELOW_PLATFORM;
                     ftr->touchingPlatform = &platforms[idx];
@@ -842,14 +880,14 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             {
                 if((true == platforms[idx].canFallThrough))
                 {
-                    // Jump up through the platform
+                    // Pass through this platform from the side
                     ftr->passingThroughPlatform = &platforms[idx];
                     ftr->relativePos = PASSING_THROUGH_PLATFORM;
                     ftr->touchingPlatform = NULL;
                 }
                 else
                 {
-                    // Fighter to left of platform
+                    // Fighter to left of a solid platform
                     ftr->velocity.x = 0;
                     ftr->relativePos = LEFT_OF_PLATFORM;
                     ftr->touchingPlatform = &platforms[idx];
@@ -862,14 +900,14 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             {
                 if((true == platforms[idx].canFallThrough))
                 {
-                    // Jump up through the platform
+                    // Pass through this platform from the side
                     ftr->passingThroughPlatform = &platforms[idx];
                     ftr->relativePos = PASSING_THROUGH_PLATFORM;
                     ftr->touchingPlatform = NULL;
                 }
                 else
                 {
-                    // Fighter to right of platform
+                    // Fighter to right of a solid platform
                     ftr->velocity.x = 0;
                     ftr->relativePos = RIGHT_OF_PLATFORM;
                     ftr->touchingPlatform = &platforms[idx];
@@ -878,15 +916,128 @@ void updatePosition(fighter_t* ftr, const platform_t* platforms, uint8_t numPlat
             }
         }
     }
-
-    // Save the button state for the next frame comparison
-    ftr->prevBtnState = ftr->btnState;
 }
 
 /**
- * @brief TODO
+ * Iterate through all projectiles, checking their timers and collisions.
+ * If a projectile collides with a platform or times out, unlink and free it
  *
- * @param evt
+ * @param projectiles  A linked list of projectiles to process
+ * @param platforms    A pointer to platforms to check for collisions
+ * @param numPlatforms The number of platforms
+ */
+void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
+                          uint8_t numPlatforms)
+{
+    // Iterate through all projectiles
+    node_t* currentNode = projectiles->first;
+    while (currentNode != NULL)
+    {
+        projectile_t* proj = currentNode->val;
+
+        // Decrement this projectile's time-to-live
+        proj->duration--;
+
+        // If the projectile times out or is marked for removal
+        if((0 == proj->duration) || (true == proj->removeNextFrame))
+        {
+            // Free and remove the projectile, and iterate
+            free(proj);
+            node_t* toRemove = currentNode;
+            currentNode = currentNode->next;
+            removeEntry(projectiles, toRemove);
+        }
+        else
+        {
+            // Otherwise, update projectile kinematics. Acceleration is constant
+            vector_t v0 = proj->velo;
+
+            // Update velocity
+            proj->velo.x = proj->velo.x + (proj->accel.x * FRAME_TIME_MS) / SF;
+            proj->velo.y = proj->velo.y + (proj->accel.y * FRAME_TIME_MS) / SF;
+
+            // Update the position
+            proj->pos.x = proj->pos.x + (((proj->velo.x + v0.x) * FRAME_TIME_MS) / (SF * 2));
+            proj->pos.y = proj->pos.y + (((proj->velo.y + v0.y) * FRAME_TIME_MS) / (SF * 2));
+
+            // Create a hurtbox for this projectile to check for collisions with platforms
+            box_t projHurtbox =
+            {
+                .x0 = proj->pos.x,
+                .y0 = proj->pos.y,
+                .x1 = proj->pos.x + proj->size.x,
+                .y1 = proj->pos.y + proj->size.y,
+            };
+
+            // Check if this projectile collided with a platform
+            for (uint8_t idx = 0; idx < numPlatforms; idx++)
+            {
+                if(boxesCollide(projHurtbox, platforms[idx].area))
+                {
+                    // Draw one more frame, then remove the projectile
+                    proj->removeNextFrame = true;
+                    break;
+                }
+            }
+
+            // Iterate to the next projectile
+            currentNode = currentNode->next;
+        }
+    }
+}
+
+/**
+ * Render the current frame to the display, including fighters, platforms, and
+ * projectiles
+ *
+ * TODO
+ *  - Draw HUD
+ *
+ * @param d The display to draw to
+ * @param platforms    A pointer to platforms to draw
+ * @param numPlatforms The number of platforms
+ */
+void drawFighterFrame(display_t* d, const platform_t* platforms,
+                      uint8_t numPlatforms)
+{
+    // First clear everything
+    d->clearPx();
+
+    // Draw all the platforms
+    for (uint8_t idx = 0; idx < numPlatforms; idx++)
+    {
+        drawBox(d, platforms[idx].area, c555, !platforms[idx].canFallThrough, SF);
+    }
+
+    // Draw the fighters
+    drawFighter(d, &f->fighters[0]);
+    drawFighter(d, &f->fighters[1]);
+
+    // Iterate through all the projectiles
+    node_t* currentNode = f->projectiles.first;
+    while (currentNode != NULL)
+    {
+        projectile_t* proj = currentNode->val;
+        box_t projBox =
+        {
+            .x0 = proj->pos.x,
+            .y0 = proj->pos.y,
+            .x1 = proj->pos.x + proj->size.x,
+            .y1 = proj->pos.y + proj->size.y,
+        };
+
+        // Draw the projectile
+        drawBox(d, projBox, c050, false, SF);
+
+        // Iterate
+        currentNode = currentNode->next;
+    }
+}
+
+/**
+ * Save the button state for processing
+ *
+ * @param evt The button event to save
  */
 void fighterButtonCb(buttonEvt_t* evt)
 {

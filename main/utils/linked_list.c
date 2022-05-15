@@ -6,7 +6,6 @@
 */
 
 #include <stdlib.h>
-#include <mem.h>
 #include <esp_log.h>
 
 #include "linked_list.h"
