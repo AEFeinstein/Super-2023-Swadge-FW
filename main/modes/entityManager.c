@@ -49,10 +49,9 @@ void updateEntities(entityManager_t * entityManager)
 {
     for(u_int8_t i=0; i < MAX_ENTITIES; i++)
     {
-        entity_t currentEntity = entityManager->entities[i];
-        if(currentEntity.active)
+        if(entityManager->entities[i].active)
         {
-            currentEntity.updateFunction(&currentEntity);
+            entityManager->entities[i].updateFunction(&(entityManager->entities[i]));
         }
     }
 };
@@ -62,7 +61,11 @@ void drawEntities(display_t * disp, entityManager_t * entityManager)
     for(uint8_t i=0; i < MAX_ENTITIES; i++)
     {
         entity_t currentEntity = entityManager->entities[i];
-        drawWsg(disp, &entityManager->sprites[currentEntity.spriteIndex], currentEntity.x, currentEntity.y);
+
+        if(currentEntity.active)
+        {
+            drawWsg(disp, &entityManager->sprites[currentEntity.spriteIndex], currentEntity.x, currentEntity.y);
+        }
     }
 };
 
@@ -74,9 +77,8 @@ entity_t * findInactiveEntity(entityManager_t * entityManager)
     };
     
     uint8_t entityIndex = 0;
-    entity_t currentEntity = entityManager->entities[entityIndex];
 
-    while(currentEntity.active){
+    while(entityManager->entities[entityIndex].active){
         entityIndex++;
 
         //Extra safeguard to make sure we don't get stuck here
@@ -84,11 +86,9 @@ entity_t * findInactiveEntity(entityManager_t * entityManager)
         {
             return NULL;
         }
-
-        entity_t currentEntity = entityManager->entities[entityIndex];
     }
 
-    return &currentEntity;
+    return &(entityManager->entities[entityIndex]);
 }
 
 void createTestObject(entityManager_t * entityManager, int16_t x, int16_t y)
