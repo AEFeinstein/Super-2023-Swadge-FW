@@ -9,12 +9,13 @@
 #include "esp_timer.h"
 
 #include "swadgeMode.h"
-#include "mode_fighter.h"
+#include "mode_platformer.h"
 #include "aabb_utils.h"
 #include "bresenham.h"
 #include "esp_random.h"
 
 #include "tilemap.h"
+#include "entityManager.h"
 
 //==============================================================================
 // Constants
@@ -44,6 +45,7 @@ typedef struct
     font_t radiostars;
 
     tilemap_t tilemap;
+    entityManager_t entityManager;
 
     int8_t scrolltesttimer;
     int16_t scroll_xspeed;
@@ -53,7 +55,6 @@ typedef struct
 
     int32_t frameTimer;
 } platformer_t;
-
 
 //==============================================================================
 // Variables
@@ -100,6 +101,7 @@ void platformerEnterMode(display_t * disp)
     platformer->btnState = 0;
 
     initializeTileMap(&(platformer->tilemap));
+    initializeEntityManager(&(platformer->entityManager), &(platformer->tilemap));
 }
 
 
@@ -152,10 +154,10 @@ void platformerMainLoop(int64_t elapsedUs)
             scrollTileMap(&(platformer->tilemap),0,4);
         }
  
- 
+        updateEntities(&(platformer->entityManager));
+
         drawTileMap(platformer->disp, &platformer->tilemap);
- 
-        //drawWsg(platformer->disp, &platformer->block, 16,16);
+        drawEntities(platformer->disp, &(platformer->entityManager));
     }
 }
 
