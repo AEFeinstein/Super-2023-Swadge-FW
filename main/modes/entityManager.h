@@ -18,7 +18,7 @@
 typedef struct
 {
     wsg_t sprites[8];
-    entity_t entities[16];
+    entity_t * entities;
     uint8_t activeEntities;
 
     tilemap_t * tilemap;

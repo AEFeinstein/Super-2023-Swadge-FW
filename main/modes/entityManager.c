@@ -22,6 +22,8 @@
 void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilemap)
 {
     loadSprites(entityManager);
+    entityManager->entities = malloc(sizeof(entity_t) * MAX_ENTITIES);
+    
     for(uint8_t i=0; i < MAX_ENTITIES; i++)
     {
         initializeEntity(&(entityManager->entities[i]), tilemap);
@@ -31,13 +33,14 @@ void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilema
     entityManager->tilemap = tilemap;
 
     createTestObject(entityManager, 33, 27);
+    createTestObject(entityManager, 104, 202);
 };
 
 void loadSprites(entityManager_t * entityManager)
 {
-    loadWsg("tile001.wsg", &entityManager->sprites[0]);
-    loadWsg("tile001.wsg", &entityManager->sprites[1]);
-    loadWsg("tile001.wsg", &entityManager->sprites[2]);
+    loadWsg("tile003.wsg", &entityManager->sprites[0]);
+    loadWsg("tile004.wsg", &entityManager->sprites[1]);
+    loadWsg("tile005.wsg", &entityManager->sprites[2]);
     loadWsg("tile001.wsg", &entityManager->sprites[3]);
     loadWsg("tile001.wsg", &entityManager->sprites[4]);
     loadWsg("tile001.wsg", &entityManager->sprites[5]);
@@ -95,6 +98,7 @@ void createTestObject(entityManager_t * entityManager, int16_t x, int16_t y)
 {
     entity_t * entity = findInactiveEntity(entityManager);
 
+    entity->active = true;
     entity->x = x;
     entity->y = y;
 
