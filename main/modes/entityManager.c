@@ -50,7 +50,7 @@ void loadSprites(entityManager_t * entityManager)
 
 void updateEntities(entityManager_t * entityManager)
 {
-    for(u_int8_t i=0; i < MAX_ENTITIES; i++)
+    for(uint8_t i=0; i < MAX_ENTITIES; i++)
     {
         if(entityManager->entities[i].active)
         {
@@ -67,7 +67,7 @@ void drawEntities(display_t * disp, entityManager_t * entityManager)
 
         if(currentEntity.active)
         {
-            drawWsg(disp, &entityManager->sprites[currentEntity.spriteIndex], currentEntity.x, currentEntity.y);
+            drawWsg(disp, &entityManager->sprites[currentEntity.spriteIndex], currentEntity.x - entityManager->tilemap->mapOffsetX, currentEntity.y  - entityManager->tilemap->mapOffsetY);
         }
     }
 };

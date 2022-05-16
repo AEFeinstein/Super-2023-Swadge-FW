@@ -19,6 +19,6 @@ void initializeEntity(entity_t * entity, tilemap_t * tilemap){
 
 void updateTestObject(entity_t * self) {
     self->spriteIndex = (self->spriteIndex + 1) % 3;
-    self->x = (self->x + 2) % 240;
+    self->x = (self->x + 2) % 480;
     self->y = (self->y + 2) % 240;
 };
