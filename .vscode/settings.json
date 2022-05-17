@@ -109,7 +109,9 @@
         "fontsub.h": "c",
         "palette.h": "c",
         "rawdraw_sf.h": "c",
-        "fighter_json.h": "c"
+        "fighter_json.h": "c",
+        "linked_list.h": "c",
+        "mode_fighter.h": "c"
     },
     "idf.adapterTargetName": "esp32s2",
     "makefile.makefilePath": "./emu.mk"
