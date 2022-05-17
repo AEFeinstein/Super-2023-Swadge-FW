@@ -41,6 +41,7 @@ typedef struct
     fighter_t* fighters;
     uint8_t numFighters;
     list_t projectiles;
+    list_t loadedSprites;
     display_t* d;
 } fightingGame_t;
 
@@ -161,9 +162,13 @@ void fighterEnterMode(display_t* disp)
     f->d = disp;
 
     // Load fighter data
-    f->fighters = loadJsonFighterData(&(f->numFighters));
+    f->fighters = loadJsonFighterData(&(f->numFighters), &(f->loadedSprites));
     f->fighters[0].relativePos = FREE_FLOATING;
     f->fighters[1].relativePos = FREE_FLOATING;
+
+    // Set the initial sprites
+    f->fighters[0].currentSprite = f->fighters[0].idleSprite0;
+    f->fighters[1].currentSprite = f->fighters[1].idleSprite0;
 
     // Set some LEDs, just because
     static led_t leds[NUM_LEDS] =
@@ -184,17 +189,17 @@ void fighterEnterMode(display_t* disp)
 void fighterExitMode(void)
 {
     // Free any stray projectiles
-    node_t* currentNode = f->projectiles.first;
-    while (currentNode != NULL)
+    projectile_t* toFree;
+    while (NULL != (toFree = pop(&f->projectiles)))
     {
-        free(currentNode->val);
-        node_t* toRemove = currentNode;
-        currentNode = currentNode->next;
-        removeEntry(&(f->projectiles), toRemove);
+        free(toFree);
     }
 
     // Free fighter data
     freeFighterData(f->fighters, f->numFighters);
+
+    // Free sprites
+    freeFighterSprites(&(f->loadedSprites));
 
     // Free game data
     free(f);
@@ -260,6 +265,7 @@ void fighterMainLoop(int64_t elapsedUs)
  */
 void drawFighter(display_t* d, fighter_t* ftr)
 {
+#if defined(DRAW_DEBUG_BOXES)
     // Pick the color based on state
     paletteColor_t hitboxColor = c500;
     switch(ftr->state)
@@ -286,31 +292,11 @@ void drawFighter(display_t* d, fighter_t* ftr)
     }
     // Draw an outline
     drawBox(d, ftr->hurtbox, hitboxColor, false, SF);
+#endif
 
-    // Fill in half the box to indicate which way the figher is facing
-    switch(ftr->dir)
-    {
-        case FACING_LEFT:
-        {
-            fillDisplayArea(d,
-                            ftr->hurtbox.x0 / SF, ftr->hurtbox.y0 / SF,
-                            (ftr->hurtbox.x1 + ftr->hurtbox.x0) / (2 * SF), ftr->hurtbox.y1 / SF,
-                            hitboxColor);
-            break;
-        }
-        case FACING_RIGHT:
-        {
-            fillDisplayArea(d,
-                            (ftr->hurtbox.x1 + ftr->hurtbox.x0) / (2 * SF), ftr->hurtbox.y0 / SF,
-                            ftr->hurtbox.x1 / SF, ftr->hurtbox.y1 / SF,
-                            hitboxColor);
-            break;
-        }
-        default:
-        {
-            break;
-        }
-    }
+    // Draw a sprite
+    drawWsg(d, ftr->currentSprite, ftr->hurtbox.x0 / SF, ftr->hurtbox.y0 / SF,
+            ftr->dir == FACING_LEFT, false, 0);
 
     // Draw the hitbox if attacking
     if(FS_ATTACK == ftr->state)
@@ -351,6 +337,30 @@ void drawFighter(display_t* d, fighter_t* ftr)
  */
 void checkFighterTimer(fighter_t* ftr)
 {
+    // If the fighter is idle
+    if(FS_IDLE == ftr->state)
+    {
+        // tick down the idle timer
+        if(ftr->idleAnimTimer > 0)
+        {
+            ftr->idleAnimTimer--;
+        }
+        else
+        {
+            // When it elapses, reset it to 0.5s
+            ftr->idleAnimTimer = 500 / FRAME_TIME_MS;
+            // And switch the idle sprite
+            if(ftr->currentSprite == ftr->idleSprite1)
+            {
+                ftr->currentSprite = ftr->idleSprite0;
+            }
+            else
+            {
+                ftr->currentSprite = ftr->idleSprite1;
+            }
+        }
+    }
+
     // Decrement the timer checking double-down-presses to fall through platforms
     if(ftr->fallThroughTimer > 0)
     {
@@ -383,6 +393,8 @@ void checkFighterTimer(fighter_t* ftr)
                 ftr->attackFrame = 0;
                 atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
                 ftr->stateTimer = atk->duration;
+                // Set the sprite
+                ftr->currentSprite = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite;
                 break;
             }
             case FS_ATTACK:
@@ -393,6 +405,8 @@ void checkFighterTimer(fighter_t* ftr)
                     // Transition from one attack frame to the next attack frame
                     atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
                     ftr->stateTimer = atk->duration;
+                    // Set the sprite
+                    ftr->currentSprite = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite;
                 }
                 else
                 {
@@ -400,6 +414,8 @@ void checkFighterTimer(fighter_t* ftr)
                     atk = NULL;
                     ftr->state = FS_COOLDOWN;
                     ftr->stateTimer = ftr->attacks[ftr->cAttack].endLag;
+                    // Set the sprite
+                    ftr->currentSprite = ftr->attacks[ftr->cAttack].endLagSpr;
                 }
                 break;
             }
@@ -407,6 +423,7 @@ void checkFighterTimer(fighter_t* ftr)
             {
                 // Transition from cooldown to idle
                 ftr->state = FS_IDLE;
+                ftr->currentSprite = ftr->idleSprite0;
                 break;
             }
             case FS_IDLE:
@@ -445,10 +462,12 @@ void checkFighterTimer(fighter_t* ftr)
                 proj->pos.x = ftr->hurtbox.x1 - atk->hitboxPos.x - proj->size.x;
                 proj->velo.x = -proj->velo.x;
                 proj->accel.x = -proj->accel.x;
+                proj->dir = FACING_LEFT;
             }
             else
             {
                 proj->pos.x = ftr->hurtbox.x0 + atk->hitboxPos.x;
+                proj->dir = FACING_RIGHT;
             }
             proj->pos.y           = ftr->hurtbox.y0 + atk->hitboxPos.y;
             proj->duration        = atk->projDuration;
@@ -563,6 +582,13 @@ void checkFighterButtonInput(fighter_t* ftr)
                 ftr->state = FS_STARTUP;
                 ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
+        }
+
+        // If an attack is starting up
+        if(FS_STARTUP == ftr->state)
+        {
+            // Set the sprite
+            ftr->currentSprite = ftr->attacks[ftr->cAttack].startupLagSpr;
         }
     }
 
@@ -1018,6 +1044,13 @@ void drawFighterFrame(display_t* d, const platform_t* platforms,
     while (currentNode != NULL)
     {
         projectile_t* proj = currentNode->val;
+
+        // Draw the sprite
+        drawWsg(d, proj->sprite, proj->pos.x / SF, proj->pos.y / SF,
+                FACING_LEFT == proj->dir, false, 0);
+
+#if defined(DRAW_DEBUG_BOXES)
+        // Draw the projectile box
         box_t projBox =
         {
             .x0 = proj->pos.x,
@@ -1025,9 +1058,8 @@ void drawFighterFrame(display_t* d, const platform_t* platforms,
             .x1 = proj->pos.x + proj->size.x,
             .y1 = proj->pos.y + proj->size.y,
         };
-
-        // Draw the projectile
         drawBox(d, projBox, c050, false, SF);
+#endif
 
         // Iterate
         currentNode = currentNode->next;
