@@ -16,7 +16,7 @@
          "attacks":{
             "utilt":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":20,
@@ -29,7 +29,7 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   },
                   {
                      "duration":20,
@@ -42,15 +42,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "dtilt":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -63,15 +63,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "dash":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -84,31 +84,31 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "neutral":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
                      "relativePos_x":24,
                      "relativePos_y":8,
-                     "size_x":8,
-                     "size_y":8,
+                     "size_x":19,
+                     "size_y":11,
                      "damage":0,
                      "knockback":0,
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png",
+                     "sprite":"kd0.wsg",
 
                      "isProjectile":true,
-                     "projectileSprite":"kd0.png",
+                     "projectileSprite":"fb.wsg",
                      "projectileDuration":160,
                      "projectileVelo_x":20480,
                      "projectileVelo_y":0,
@@ -117,11 +117,11 @@
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "nair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -134,15 +134,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "fair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -155,15 +155,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "bair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -176,15 +176,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "uair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -197,15 +197,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "dair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -218,11 +218,11 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             }
          }
       },
@@ -242,7 +242,7 @@
          "attacks":{
             "utilt":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -255,15 +255,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "dtilt":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -276,15 +276,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "dash":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -297,15 +297,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "neutral":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -318,15 +318,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "nair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -339,15 +339,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "fair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -360,15 +360,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "bair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -381,15 +381,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "uair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -402,15 +402,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             },
             "dair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.png",
+               "startupLagSpr":"kd0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -423,11 +423,11 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.png"
+                     "sprite":"kd0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.png"
+               "endLagSpr":"kd0.wsg"
             }
          }
       }
