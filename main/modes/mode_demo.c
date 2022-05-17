@@ -255,7 +255,7 @@ void demoMainLoop(int64_t elapsedUs)
     drawText(demo->disp, &demo->radiostars, c500, "hello TFT", 10, 64);
 
     // Draw image
-    drawWsg(demo->disp, &demo->megaman[megaIdx], megaPos, (demo->disp->h-demo->megaman[0].h)/2);
+    drawWsg(demo->disp, &demo->megaman[megaIdx], megaPos, (demo->disp->h-demo->megaman[0].h)/2, false, false, 0);
 
     // Draw a single white pixel in the middle of the display
     demo->disp->setPx(

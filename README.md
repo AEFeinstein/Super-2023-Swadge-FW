@@ -401,7 +401,7 @@ As an example, this will load, draw, and free both an image and some red text. N
 
 wsg_t megaman;
 loadWsg("megaman.wsg", &megaman);
-drawWsg(demo->disp, &megaman, 0, 0);
+drawWsg(demo->disp, &megaman, 0, 0, false, false, 0);
 freeWsg(&megaman);
 
 font_t ibm;
