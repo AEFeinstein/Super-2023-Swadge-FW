@@ -31,6 +31,8 @@ typedef enum
     PARSING_FIGHTER_ATTR_NJUMPS,
     PARSING_FIGHTER_ATTR_IDLE_SPR_0,
     PARSING_FIGHTER_ATTR_IDLE_SPR_1,
+    PARSING_FIGHTER_ATTR_RUN_SPR_0,
+    PARSING_FIGHTER_ATTR_RUN_SPR_1,
     PARSING_FIGHTER_ATTR_JUMP_SPR,
     PARSING_FIGHTER_ATTR_DUCK_SPR,
     PARSING_FIGHTER_ATTR_MOVES,
@@ -155,13 +157,14 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
 {
     char* jsonStr = loadJson("test.json");
     jsmn_parser p;
-    jsmntok_t t[1024];
+    jsmntok_t* t = malloc(sizeof(jsmntok_t) * 1024);
 
     jsmn_init(&p);
-    int r = jsmn_parse(&p, jsonStr, strlen(jsonStr), t, sizeof(t) / sizeof(t[0]));
+    int r = jsmn_parse(&p, jsonStr, strlen(jsonStr), t, 1024);
     if (r < 0)
     {
         ESP_LOGE("FGT", "Failed to parse JSON: %d\n", r);
+        free(t);
         return NULL;
     }
     else
@@ -271,6 +274,14 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
                 {
                     ps = PARSING_FIGHTER_ATTR_IDLE_SPR_1;
                 }
+                else if (jsoneq(jsonStr, &t[i], "run_spr_0") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTR_RUN_SPR_0;
+                }
+                else if (jsoneq(jsonStr, &t[i], "run_spr_1") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTR_RUN_SPR_1;
+                }
                 else if (jsoneq(jsonStr, &t[i], "jump_spr") == 0)
                 {
                     ps = PARSING_FIGHTER_ATTR_JUMP_SPR;
@@ -295,6 +306,8 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
             case PARSING_FIGHTER_ATTR_NJUMPS:
             case PARSING_FIGHTER_ATTR_IDLE_SPR_0:
             case PARSING_FIGHTER_ATTR_IDLE_SPR_1:
+            case PARSING_FIGHTER_ATTR_RUN_SPR_0:
+            case PARSING_FIGHTER_ATTR_RUN_SPR_1:
             case PARSING_FIGHTER_ATTR_JUMP_SPR:
             case PARSING_FIGHTER_ATTR_DUCK_SPR:
             {
@@ -359,6 +372,20 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
                     {
                         char* name = jsonString(jsonStr, t[i]);
                         cFighter->idleSprite1 = loadFighterSprite(name, loadedSprites);
+                        free(name);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTR_RUN_SPR_0:
+                    {
+                        char* name = jsonString(jsonStr, t[i]);
+                        cFighter->runSprite0 = loadFighterSprite(name, loadedSprites);
+                        free(name);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTR_RUN_SPR_1:
+                    {
+                        char* name = jsonString(jsonStr, t[i]);
+                        cFighter->runSprite1 = loadFighterSprite(name, loadedSprites);
                         free(name);
                         break;
                     }
@@ -737,6 +764,7 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
     }
 
     freeJson(jsonStr);
+    free(t);
 
     return fighters;
 }
@@ -767,6 +795,8 @@ void freeFighterData(fighter_t* fighter, uint8_t numFighters)
         }
         free(fighter[fgtIdx].idleSprite0);
         free(fighter[fgtIdx].idleSprite1);
+        free(fighter[fgtIdx].runSprite0);
+        free(fighter[fgtIdx].runSprite1);
         free(fighter[fgtIdx].jumpSprite);
         free(fighter[fgtIdx].duckSprite);
     }

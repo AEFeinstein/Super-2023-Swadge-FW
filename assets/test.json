@@ -9,14 +9,16 @@
          "size_x":24,
          "size_y":24,
          "nJumps":2,
-         "idle_spr_0":"kd0.wsg",
-         "idle_spr_1":"kd1.wsg",
-         "jump_spr":"kd0.wsg",
+         "idle_spr_0":"ki0.wsg",
+         "idle_spr_1":"ki1.wsg",
+         "run_spr_0":"kr0.wsg",
+         "run_spr_1":"kr1.wsg",
+         "jump_spr":"kj0.wsg",
          "duck_spr":"kd0.wsg",
          "attacks":{
             "utilt":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":20,
@@ -29,7 +31,7 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   },
                   {
                      "duration":20,
@@ -42,15 +44,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "dtilt":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -63,15 +65,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "dash":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -84,15 +86,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "neutral":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -105,7 +107,7 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg",
+                     "sprite":"ki0.wsg",
 
                      "isProjectile":true,
                      "projectileSprite":"fb.wsg",
@@ -117,11 +119,11 @@
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "nair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -134,15 +136,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "fair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -155,15 +157,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "bair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -176,15 +178,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "uair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -197,15 +199,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "dair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -218,11 +220,11 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             }
          }
       },
@@ -235,14 +237,16 @@
          "size_x":24,
          "size_y":24,
          "nJumps":2,
-         "idle_spr_0":"kd0.wsg",
-         "idle_spr_1":"kd1.wsg",
-         "jump_spr":"kd0.wsg",
+         "idle_spr_0":"ki0.wsg",
+         "idle_spr_1":"ki1.wsg",
+         "run_spr_0":"kr0.wsg",
+         "run_spr_1":"kr1.wsg",
+         "jump_spr":"kj0.wsg",
          "duck_spr":"kd0.wsg",
          "attacks":{
             "utilt":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -255,15 +259,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "dtilt":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -276,15 +280,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "dash":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -297,15 +301,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "neutral":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -318,15 +322,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "nair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -339,15 +343,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "fair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -360,15 +364,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "bair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -381,15 +385,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "uair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -402,15 +406,15 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             },
             "dair":{
                "startupLag":20,
-               "startupLagSpr":"kd0.wsg",
+               "startupLagSpr":"ki0.wsg",
                "active_states":[
                   {
                      "duration":40,
@@ -423,11 +427,11 @@
                      "knockbackAng_x":0,
                      "knockbackAng_y":0,
                      "hitstun":0,
-                     "sprite":"kd0.wsg"
+                     "sprite":"ki0.wsg"
                   }
                ],
                "endLag":20,
-               "endLagSpr":"kd0.wsg"
+               "endLagSpr":"ki0.wsg"
             }
          }
       }

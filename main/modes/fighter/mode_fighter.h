@@ -36,8 +36,7 @@ typedef enum
     FS_IDLE,
     FS_RUNNING,
     FS_DUCKING,
-    FS_JUMP_1,
-    FS_JUMP_2,
+    FS_JUMP,
     FS_FALLING,
     FS_FREEFALL, // After up special
     FS_STARTUP,
@@ -59,7 +58,8 @@ typedef enum
     BACK_AIR,
     UP_AIR,
     DOWN_AIR,
-    NUM_ATTACKS
+    NUM_ATTACKS,
+    NO_ATTACK
 } attackOrder_t;
 
 //==============================================================================
@@ -146,6 +146,8 @@ typedef struct
     /* Sprite names */
     wsg_t* idleSprite0;
     wsg_t* idleSprite1;
+    wsg_t* runSprite0;
+    wsg_t* runSprite1;
     wsg_t* jumpSprite;
     wsg_t* duckSprite;
     /* Input Tracking */
@@ -159,7 +161,7 @@ typedef struct
     int32_t fallThroughTimer;
     fighterDirection_t dir;
     /* Animation timer */
-    int32_t idleAnimTimer;
+    int32_t animTimer;
     wsg_t* currentSprite;
 } fighter_t;
 

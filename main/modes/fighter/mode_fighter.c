@@ -54,6 +54,8 @@ void fighterExitMode(void);
 void fighterMainLoop(int64_t elapsedUs);
 void fighterButtonCb(buttonEvt_t* evt);
 
+#define setFighterState(f, st, sp) _setFighterState(f, st, sp, __LINE__);
+void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite, uint32_t line);
 void checkFighterButtonInput(fighter_t* ftr);
 void updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
 void checkFighterTimer(fighter_t* ftr);
@@ -166,9 +168,12 @@ void fighterEnterMode(display_t* disp)
     f->fighters[0].relativePos = FREE_FLOATING;
     f->fighters[1].relativePos = FREE_FLOATING;
 
+    f->fighters[0].cAttack = NO_ATTACK;
+    f->fighters[1].cAttack = NO_ATTACK;
+
     // Set the initial sprites
-    f->fighters[0].currentSprite = f->fighters[0].idleSprite0;
-    f->fighters[1].currentSprite = f->fighters[1].idleSprite0;
+    setFighterState((&f->fighters[0]), FS_IDLE, f->fighters[0].idleSprite0);
+    setFighterState((&f->fighters[1]), FS_IDLE, f->fighters[1].idleSprite0);
 
     // Set some LEDs, just because
     static led_t leds[NUM_LEDS] =
@@ -203,6 +208,51 @@ void fighterExitMode(void)
 
     // Free game data
     free(f);
+}
+
+/**
+ * Set this fighter's current state and adjust any related variables
+ *
+ * @param ftr       The fighter to set state for
+ * @param newState  The new state
+ * @param newSprite The new sprite for that state
+ * @param line      The line number this was called from, for debugging
+ */
+void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite, uint32_t line)
+{
+    // Set the new state
+    ftr->state = newState;
+
+    // Set the new sprite
+    ftr->currentSprite = newSprite;
+
+    // Manage any other variab,es
+    switch(newState)
+    {
+        case FS_STARTUP:
+        case FS_ATTACK:
+        case FS_COOLDOWN:
+        {
+            break;
+        }
+        case FS_IDLE:
+        case FS_RUNNING:
+        case FS_DUCKING:
+        case FS_JUMP:
+        case FS_FALLING:
+        case FS_FREEFALL:
+        case FS_HITSTUN:
+        case FS_HITSTOP:
+        case FS_INVINCIBLE:
+        default:
+        {
+            ftr->cAttack = NO_ATTACK;
+            break;
+        }
+    }
+
+    // debug
+    // printf("%d: %d, %p\n", line, newState, newSprite);
 }
 
 /**
@@ -341,14 +391,14 @@ void checkFighterTimer(fighter_t* ftr)
     if(FS_IDLE == ftr->state)
     {
         // tick down the idle timer
-        if(ftr->idleAnimTimer > 0)
+        if(ftr->animTimer > 0)
         {
-            ftr->idleAnimTimer--;
+            ftr->animTimer--;
         }
         else
         {
             // When it elapses, reset it to 0.5s
-            ftr->idleAnimTimer = 500 / FRAME_TIME_MS;
+            ftr->animTimer = 500 / FRAME_TIME_MS;
             // And switch the idle sprite
             if(ftr->currentSprite == ftr->idleSprite1)
             {
@@ -357,6 +407,28 @@ void checkFighterTimer(fighter_t* ftr)
             else
             {
                 ftr->currentSprite = ftr->idleSprite1;
+            }
+        }
+    }
+    else if (FS_RUNNING == ftr->state)
+    {
+        // tick down the idle timer
+        if(ftr->animTimer > 0)
+        {
+            ftr->animTimer--;
+        }
+        else
+        {
+            // When it elapses, reset it to 0.2s
+            ftr->animTimer = 200 / FRAME_TIME_MS;
+            // And switch the running sprite
+            if(ftr->currentSprite == ftr->runSprite1)
+            {
+                ftr->currentSprite = ftr->runSprite0;
+            }
+            else
+            {
+                ftr->currentSprite = ftr->runSprite1;
             }
         }
     }
@@ -389,12 +461,10 @@ void checkFighterTimer(fighter_t* ftr)
             case FS_STARTUP:
             {
                 // Transition from ground startup to ground attack
-                ftr->state = FS_ATTACK;
                 ftr->attackFrame = 0;
+                setFighterState(ftr, FS_ATTACK, ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite);
                 atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
                 ftr->stateTimer = atk->duration;
-                // Set the sprite
-                ftr->currentSprite = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite;
                 break;
             }
             case FS_ATTACK:
@@ -406,31 +476,27 @@ void checkFighterTimer(fighter_t* ftr)
                     atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
                     ftr->stateTimer = atk->duration;
                     // Set the sprite
-                    ftr->currentSprite = ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite;
+                    setFighterState(ftr, FS_ATTACK, ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite);
                 }
                 else
                 {
                     // Transition from attacking to cooldown
                     atk = NULL;
-                    ftr->state = FS_COOLDOWN;
+                    setFighterState(ftr, FS_COOLDOWN, ftr->attacks[ftr->cAttack].endLagSpr);
                     ftr->stateTimer = ftr->attacks[ftr->cAttack].endLag;
-                    // Set the sprite
-                    ftr->currentSprite = ftr->attacks[ftr->cAttack].endLagSpr;
                 }
                 break;
             }
             case FS_COOLDOWN:
             {
                 // Transition from cooldown to idle
-                ftr->state = FS_IDLE;
-                ftr->currentSprite = ftr->idleSprite0;
+                setFighterState(ftr, FS_IDLE, ftr->idleSprite0);
                 break;
             }
             case FS_IDLE:
             case FS_RUNNING:
             case FS_DUCKING:
-            case FS_JUMP_1:
-            case FS_JUMP_2:
+            case FS_JUMP:
             case FS_FALLING:
             case FS_FREEFALL:
             case FS_HITSTUN:
@@ -494,21 +560,28 @@ void checkFighterTimer(fighter_t* ftr)
  */
 void checkFighterButtonInput(fighter_t* ftr)
 {
-    // Pressing A means jump
-    if (!(ftr->prevBtnState & BTN_A) && (ftr->btnState & BTN_A))
+    // Pressing A in these states means jump
+    if(FS_IDLE == ftr->state || FS_RUNNING == ftr->state || FS_JUMP == ftr->state)
     {
-        if(ftr->numJumps > 0)
+        if (!(ftr->prevBtnState & BTN_A) && (ftr->btnState & BTN_A))
         {
-            ftr->numJumps--;
-            ftr->velocity.y = ftr->jump_velo;
-            ftr->relativePos = FREE_FLOATING;
-            ftr->touchingPlatform = NULL;
+            if(ftr->numJumps > 0)
+            {
+                ftr->numJumps--;
+                ftr->velocity.y = ftr->jump_velo;
+                ftr->relativePos = FREE_FLOATING;
+                ftr->touchingPlatform = NULL;
+                setFighterState(ftr, FS_JUMP, ftr->jumpSprite);
+            }
         }
     }
 
     // Pressing B means attack
     if (!(ftr->prevBtnState & BTN_B) && (ftr->btnState & BTN_B))
     {
+        // Save last state
+        attackOrder_t prevAttack = ftr->cAttack;
+
         // Check if it's a ground or air attack
         if(ABOVE_PLATFORM == ftr->relativePos)
         {
@@ -517,29 +590,21 @@ void checkFighterButtonInput(fighter_t* ftr)
             {
                 // Up tilt attack
                 ftr->cAttack = UP_GROUND;
-                ftr->state = FS_STARTUP;
-                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if(ftr->btnState & DOWN)
             {
                 // Down tilt attack
                 ftr->cAttack = DOWN_GROUND;
-                ftr->state = FS_STARTUP;
-                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if((ftr->btnState & LEFT) || (ftr->btnState & RIGHT))
             {
                 // Side attack
                 ftr->cAttack = DASH_GROUND;
-                ftr->state = FS_STARTUP;
-                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else
             {
                 // Neutral attack
                 ftr->cAttack = NEUTRAL_GROUND;
-                ftr->state = FS_STARTUP;
-                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
         }
         else
@@ -549,47 +614,48 @@ void checkFighterButtonInput(fighter_t* ftr)
             {
                 // Up air attack
                 ftr->cAttack = UP_AIR;
-                ftr->state = FS_STARTUP;
-                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if(ftr->btnState & DOWN)
             {
                 // Down air
                 ftr->cAttack = DOWN_AIR;
-                ftr->state = FS_STARTUP;
-                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if(((ftr->btnState & LEFT ) && (FACING_RIGHT == ftr->dir)) ||
                     ((ftr->btnState & RIGHT) && (FACING_LEFT  == ftr->dir)))
             {
                 // Back air
                 ftr->cAttack = BACK_AIR;
-                ftr->state = FS_STARTUP;
-                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else if(((ftr->btnState & RIGHT) && (FACING_RIGHT == ftr->dir)) ||
                     ((ftr->btnState & LEFT ) && (FACING_LEFT  == ftr->dir)))
             {
                 // Front air
                 ftr->cAttack = FRONT_AIR;
-                ftr->state = FS_STARTUP;
-                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
             else
             {
                 // Neutral air
                 ftr->cAttack = NEUTRAL_AIR;
-                ftr->state = FS_STARTUP;
-                ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
             }
         }
 
         // If an attack is starting up
-        if(FS_STARTUP == ftr->state)
+        if(prevAttack != ftr->cAttack)
         {
-            // Set the sprite
-            ftr->currentSprite = ftr->attacks[ftr->cAttack].startupLagSpr;
+            // Set the state, sprite, and timer
+            setFighterState(ftr, FS_STARTUP, ftr->attacks[ftr->cAttack].startupLagSpr);
+            ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
         }
+    }
+
+    // Manage ducking
+    if ((FS_IDLE == ftr->state) && (ftr->btnState & DOWN))
+    {
+        setFighterState(ftr, FS_DUCKING, ftr->duckSprite);
+    }
+    else if((FS_DUCKING == ftr->state) && !(ftr->btnState & DOWN))
+    {
+        setFighterState(ftr, FS_IDLE, ftr->idleSprite0);
     }
 
     // Double tapping down will fall through platforms, if the platform allows it
@@ -642,66 +708,101 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     // Initial velocity before this frame's calculations
     vector_t v0 = ftr->velocity;
 
-    // Update X kinematics based on button state and fighter position
-    if(ftr->btnState & LEFT)
+    // Only allow movement in these states
+    bool movementInput = false;
+    if(FS_IDLE == ftr->state || FS_JUMP == ftr->state || FS_RUNNING == ftr->state)
     {
-        // Left button is currently held
-        // Change direction if standing on a platform
-        if(ABOVE_PLATFORM == ftr->relativePos)
+        // Update X kinematics based on button state and fighter position
+        if(ftr->btnState & LEFT)
         {
-            ftr->dir = FACING_LEFT;
-        }
-
-        // Move left if not up against a wall
-        if(RIGHT_OF_PLATFORM != ftr->relativePos)
-        {
-            // Accelerate towards the left
-            ftr->velocity.x = v0.x - (ftr->run_accel * FRAME_TIME_MS) / SF;
-            // Cap the velocity
-            if (ftr->velocity.x < -ftr->run_max_velo)
+            movementInput = true;
+            // Left button is currently held
+            // Change direction if standing on a platform
+            if(ABOVE_PLATFORM == ftr->relativePos)
             {
-                ftr->velocity.x = -ftr->run_max_velo;
+                ftr->dir = FACING_LEFT;
+                if(FS_RUNNING != ftr->state)
+                {
+                    setFighterState(ftr, FS_RUNNING, ftr->runSprite0);
+                    ftr->animTimer = 200 / FRAME_TIME_MS;
+                }
+            }
+
+            // Move left if not up against a wall
+            if(RIGHT_OF_PLATFORM != ftr->relativePos)
+            {
+                // Accelerate towards the left
+                ftr->velocity.x = v0.x - (ftr->run_accel * FRAME_TIME_MS) / SF;
+                // Cap the velocity
+                if (ftr->velocity.x < -ftr->run_max_velo)
+                {
+                    ftr->velocity.x = -ftr->run_max_velo;
+                }
+            }
+            else
+            {
+                // Up against a a wall, so stop
+                ftr->velocity.x = 0;
             }
         }
-        else
+        else if(ftr->btnState & RIGHT)
         {
-            // Up against a a wall, so stop
-            ftr->velocity.x = 0;
-        }
-    }
-    else if(ftr->btnState & RIGHT)
-    {
-        // Right button is currently held
-        // Change direction if standing on a platform
-        if(ABOVE_PLATFORM == ftr->relativePos)
-        {
-            ftr->dir = FACING_RIGHT;
-        }
-
-        // Move right if not up against a wall
-        if(LEFT_OF_PLATFORM != ftr->relativePos)
-        {
-            // Accelerate towards the right
-            ftr->velocity.x = v0.x + (ftr->run_accel * FRAME_TIME_MS) / SF;
-            // Cap the velocity
-            if(ftr->velocity.x > ftr->run_max_velo)
+            movementInput = true;
+            // Right button is currently held
+            // Change direction if standing on a platform
+            if(ABOVE_PLATFORM == ftr->relativePos)
             {
-                ftr->velocity.x = ftr->run_max_velo;
+                ftr->dir = FACING_RIGHT;
+                if(FS_RUNNING != ftr->state)
+                {
+                    setFighterState(ftr, FS_RUNNING, ftr->runSprite0);
+                    ftr->animTimer = 200 / FRAME_TIME_MS;
+                }
+            }
+
+            // Move right if not up against a wall
+            if(LEFT_OF_PLATFORM != ftr->relativePos)
+            {
+                // Accelerate towards the right
+                ftr->velocity.x = v0.x + (ftr->run_accel * FRAME_TIME_MS) / SF;
+                // Cap the velocity
+                if(ftr->velocity.x > ftr->run_max_velo)
+                {
+                    ftr->velocity.x = ftr->run_max_velo;
+                }
+            }
+            else
+            {
+                // Up against a a wall, so stop
+                ftr->velocity.x = 0;
             }
         }
-        else
-        {
-            // Up against a a wall, so stop
-            ftr->velocity.x = 0;
-        }
     }
-    else
+
+    // If there was no movement input
+    if(false == movementInput)
     {
+        // If standing running on a platform, and not moving anymore
+        if((FS_RUNNING == ftr->state) && (ABOVE_PLATFORM == ftr->relativePos))
+        {
+            // Return to idle
+            setFighterState(ftr, FS_IDLE, ftr->idleSprite0);
+        }
+
+        // Decelerate less if attacking
+        int32_t decel = ftr->run_decel;
+        if((FS_STARTUP  == ftr->state) ||
+                (FS_ATTACK   == ftr->state) ||
+                (FS_COOLDOWN == ftr->state))
+        {
+            decel /= 4;
+        }
+
         // Neither left nor right buttons are being pressed. Slow down!
         if(ftr->velocity.x > 0)
         {
             // Decelrate towards the left
-            ftr->velocity.x = v0.x - (ftr->run_decel * FRAME_TIME_MS) / SF;
+            ftr->velocity.x = v0.x - (decel * FRAME_TIME_MS) / SF;
             // Check if stopped
             if (ftr->velocity.x < 0)
             {
@@ -711,7 +812,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         else if(ftr->velocity.x < 0)
         {
             // Decelerate towards the right
-            ftr->velocity.x = v0.x + (ftr->run_decel * FRAME_TIME_MS) / SF;
+            ftr->velocity.x = v0.x + (decel * FRAME_TIME_MS) / SF;
             // Check if stopped
             if(ftr->velocity.x > 0)
             {
@@ -719,6 +820,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             }
         }
     }
+
     // Now that we have X velocity, find the new X position
     dest_hurtbox.x0 = ftr->hurtbox.x0 + (((ftr->velocity.x + v0.x) * FRAME_TIME_MS) / (SF * 2));
 
@@ -872,6 +974,11 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 ftr->relativePos = ABOVE_PLATFORM;
                 ftr->touchingPlatform = &platforms[idx];
                 ftr->numJumps = 2;
+                // If the fighter was jumping, land
+                if(FS_JUMP == ftr->state)
+                {
+                    setFighterState(ftr, FS_IDLE, ftr->idleSprite0);
+                }
                 break;
             }
             // If the fighter is moving upward and hit a platform
