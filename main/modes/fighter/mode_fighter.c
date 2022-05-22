@@ -43,6 +43,7 @@ typedef struct
     list_t projectiles;
     list_t loadedSprites;
     display_t* d;
+    font_t mm_font;
 } fightingGame_t;
 
 //==============================================================================
@@ -78,6 +79,10 @@ void drawFighterFrame(display_t* d, const platform_t* platforms,
 // void fighterConCbFn(p2pInfo* p2p, connectionEvt_t evt);
 // void fighterMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t len);
 // void fighterMsgTxCbFn(p2pInfo* p2p, messageStatus_t status);
+
+void drawMeleeMenu(display_t* d, font_t* font);
+void drawMeleeMenuText(display_t* d, font_t* font, char* text, int16_t xPos,
+                       int16_t yPos, bool isSelected);
 
 //==============================================================================
 // Variables
@@ -163,6 +168,9 @@ void fighterEnterMode(display_t* disp)
     // Save the display
     f->d = disp;
 
+    // Load a font
+    loadFont("mm.font", &f->mm_font);
+
     // Load fighter data
     f->fighters = loadJsonFighterData(&(f->numFighters), &(f->loadedSprites));
     f->fighters[0].relativePos = FREE_FLOATING;
@@ -205,6 +213,9 @@ void fighterExitMode(void)
 
     // Free sprites
     freeFighterSprites(&(f->loadedSprites));
+
+    // Free font
+    freeFont(&f->mm_font);
 
     // Free game data
     free(f);
@@ -306,9 +317,6 @@ void fighterMainLoop(int64_t elapsedUs)
 
 /**
  * Draw a fighter to the display. Right now, just draw debugging boxes
- *
- * TODO
- *  - Draw sprites instead of (or addition to) debug boxes
  *
  * @param d   The display to draw to
  * @param ftr The fighter to draw
@@ -1171,6 +1179,8 @@ void drawFighterFrame(display_t* d, const platform_t* platforms,
         // Iterate
         currentNode = currentNode->next;
     }
+
+    // drawMeleeMenu(d, &f->mm_font);
 }
 
 /**
@@ -1182,4 +1192,124 @@ void fighterButtonCb(buttonEvt_t* evt)
 {
     // Save the state to check synchronously
     f->fighters[0].btnState = evt->state;
+}
+
+/**
+ * Draw a Melee style menu. This is static for now
+ *
+ * @param d    The display to draw to
+ * @param font The font to use
+ */
+void drawMeleeMenu(display_t* d, font_t* font)
+{
+    // Draw a background with a grid
+    for(int16_t y = 0; y < d->h; y++)
+    {
+        for(int16_t x = 0; x < d->w; x++)
+        {
+            if(((x % 12) == 0) || ((y % 12) == 0))
+            {
+                d->setPx(x, y, c111);
+            }
+            else
+            {
+                d->setPx(x, y, c001);
+            }
+        }
+    }
+
+    // Draw the title and note where it ends
+    int16_t textEnd = drawText(d, font, c222, "Main Menu", 33, 25);
+
+#define BORDER_WIDTH 7
+#define BORDER_GAP  24
+    // Draw a border, on the right
+    fillDisplayArea(d, BORDER_GAP, BORDER_GAP + font->h + 3, BORDER_GAP + BORDER_WIDTH, d->h - BORDER_GAP, c311);
+    // Then the left
+    fillDisplayArea(d, d->w - BORDER_GAP - BORDER_WIDTH, BORDER_GAP, d->w - BORDER_GAP, d->h - BORDER_GAP, c311);
+    // At the bottom
+    fillDisplayArea(d, BORDER_GAP, d->h - BORDER_GAP - BORDER_WIDTH, d->w - BORDER_GAP, d->h - BORDER_GAP, c311);
+    // Right of title
+    fillDisplayArea(d, textEnd + 1, BORDER_GAP, textEnd + 1 + BORDER_WIDTH, BORDER_GAP + font->h + 3, c311);
+    // Below title
+    fillDisplayArea(d, BORDER_GAP, BORDER_GAP + font->h + 3, textEnd + 1 + BORDER_WIDTH,
+                    BORDER_GAP + font->h + 3 + BORDER_WIDTH, c311);
+    // Top right of the title
+    fillDisplayArea(d, textEnd + 1, BORDER_GAP, d->w - BORDER_GAP, BORDER_GAP + BORDER_WIDTH, c311);
+
+    // Draw the entries
+    int16_t yIdx = 65 - 28;
+    drawMeleeMenuText(d, font, "1-P Mode", 20 + 50, (yIdx += 28), false);
+    drawMeleeMenuText(d, font, "VS. Mode", 20 + 25, (yIdx += 28), true);
+    drawMeleeMenuText(d, font, "Trophies", 20,      (yIdx += 28), false);
+    drawMeleeMenuText(d, font, "Options",  20 + 19, (yIdx += 28), false);
+    drawMeleeMenuText(d, font, "Data",     20 +  9, (yIdx += 28), false);
+}
+
+/**
+ * Draw text with a boundary and filled background to a Melee style menu
+ *
+ * @param d    The display to draw to
+ * @param font The font to use
+ * @param text The text for this box
+ * @param xPos The X position of the text. Note, this is not the position of the
+ *             boundary and filled background
+ * @param yPos The Y position of the text. Note, this is not the position of the
+ *             boundary and filled background
+ * @param isSelected true if this is the selected item. This will draw with
+ *                   different colors
+ */
+void drawMeleeMenuText(display_t* d, font_t* font, char* text, int16_t xPos,
+                       int16_t yPos, bool isSelected)
+{
+    // Boundary color is the same for all entries
+    paletteColor_t boundaryColor = c321;
+
+    // Figure out the text width to draw around it
+    int16_t tWidth = textWidth(font, text);
+
+    // Top and bottom lines
+    plotLine(d,
+             xPos - 3,          yPos - 3,
+             xPos + tWidth + 1, yPos - 3,
+             boundaryColor);
+    plotLine(d,
+             xPos - 8,          yPos + font->h + 2,
+             xPos + tWidth + 1, yPos + font->h + 2,
+             boundaryColor);
+
+    // Left side doodad
+    plotLine(d,
+             xPos -  3, yPos -  3,
+             xPos - 13, yPos + 14,
+             boundaryColor);
+    plotLine(d,
+             xPos - 13, yPos + 15,
+             xPos -  8, yPos + font->h + 2,
+             boundaryColor);
+
+    // Right side semi-circle
+    int16_t radius = (font->h + 6) / 2;
+    plotCircleQuadrants(d,
+                        xPos + tWidth, yPos - 3 + radius, radius,
+                        true, false, false, true,
+                        boundaryColor);
+
+    // Fill and color differently if selected
+    paletteColor_t textColor = c431;
+    paletteColor_t fillColor = c000;
+    if(isSelected)
+    {
+        textColor = c000;
+        fillColor = c540;
+    }
+
+    // Fill the polygon
+    oddEvenFill(d,
+                xPos - 13, yPos - 2,
+                xPos + tWidth + radius + 1, yPos + font->h + 2,
+                boundaryColor, fillColor);
+
+    // Draw the text
+    drawText(d, font, textColor, text, xPos, yPos);
 }
