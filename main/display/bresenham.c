@@ -22,6 +22,74 @@
 
 // #define assert(x) if(false == (x)) {  return;  }
 
+/**
+ * Attempt to fill a shape bounded by a one-pixel border of a given color using
+ * the even-odd rule:
+ * https://en.wikipedia.org/wiki/Even%E2%80%93odd_rule
+ * 
+ * WARNING!!! This is very finicky and is not guaranteed to work in all cases.
+ * 
+ * This iterates over each row in the bounding box, top to bottom, left to right
+ *
+ * This assumes that each row starts outside or on the boundary of the shape to
+ * be filled.
+ * 
+ * Each time a pixel of the 'boundary color' is iterated over, the in/out
+ * boolean will flip, no matter what. This means that stray pixels in the shape
+ * can flip the in/out state, and thick boundaries with an even number of pixels
+ * will also mess it up.
+ * 
+ * @param disp The display to read from and draw to
+ * @param x0 The left index of the bounding box
+ * @param y0 The top index of the bounding box
+ * @param x1 The right index of the bounding box
+ * @param y1 The bottom index of the bounding box
+ * @param boundaryColor The color of the boundary to fill in
+ * @param fillColor The color to fill
+ */
+void oddEvenFill(display_t * disp, int x0, int y0, int x1, int y1,
+    paletteColor_t boundaryColor, paletteColor_t fillColor)
+{
+    // Adjust the bounding box if it's out of bounds
+    if(x0 < 0)
+    {
+        x0 = 0;
+    }
+    if(x1 > disp->w)
+    {
+        x1 = disp->w;
+    }
+    if(y0 < 0)
+    {
+        y0 = 0;
+    }
+    if(y1 > disp->h)
+    {
+        y1 = disp->h;
+    }
+
+    // Iterate over the bounding box
+    for(int y = y0; y < y1; y++)
+    {
+        // Assume starting outside the shape for each row
+        bool isInside = false;
+        for(int x = x0; x < x1; x++)
+        {
+            // If a boundary is hit
+            if(boundaryColor == disp->getPx(x, y))
+            {
+                // Flip this boolean, don't color the boundary
+                isInside = !isInside;
+            }
+            else if(isInside)
+            {
+                // If we're in-bounds, color the pixel
+                disp->setPx(x, y, fillColor);
+            }
+        }
+    }
+}
+
 void plotLine(display_t * disp, int x0, int y0, int x1, int y1, paletteColor_t col)
 {
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
@@ -133,13 +201,31 @@ void plotOptimizedEllipse(display_t * disp, int xm, int ym, int a, int b, palett
 
 void plotCircle(display_t * disp, int xm, int ym, int r, paletteColor_t col)
 {
+    plotCircleQuadrants(disp, xm, ym, r, true, true, true, true, col);
+}
+
+void plotCircleQuadrants(display_t * disp, int xm, int ym, int r, bool q1,
+    bool q2, bool q3, bool q4, paletteColor_t col)
+{
     int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
     do
     {
-        disp->setPx(xm - x, ym + y, col); /*   I. Quadrant +x +y */
-        disp->setPx(xm - y, ym - x, col); /*  II. Quadrant -x +y */
-        disp->setPx(xm + x, ym - y, col); /* III. Quadrant -x -y */
-        disp->setPx(xm + y, ym + x, col); /*  IV. Quadrant +x -y */
+        if(q1)
+        {
+            disp->setPx(xm - x, ym + y, col); /*   I. Quadrant +x +y */            
+        }
+        if(q2)
+        {
+            disp->setPx(xm - y, ym - x, col); /*  II. Quadrant -x +y */            
+        }
+        if(q3)
+        {
+            disp->setPx(xm + x, ym - y, col); /* III. Quadrant -x -y */            
+        }
+        if(q4)
+        {
+            disp->setPx(xm + y, ym + x, col); /*  IV. Quadrant +x -y */
+        }
         r = err;
         if (r <= y)
         {

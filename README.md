@@ -394,20 +394,80 @@ The build system will automatically process, pack, and flash assets as a read-on
 
 Loading assets is a relatively slower operation, so often times it makes sense to load once when a mode starts and free when the mode finishes. On the other hand, loading assets eats up RAM, so it may be wise to only load assets when necessary. Engineering is a figuring out a series of trade-offs.
 
-As an example, this will load, draw, and free both an image and some red text. Note that the TFT's screen uses 15 bit color, so the max for each r/g/b channel is `0x1F`.
+As an example, this will load, draw, and free both an image and some red text. Note that the TFT's screen uses 15 bit color, but the firmware uses the web-safe color palette, so each color channel (r, g, b) ranges from `0` to `5`.
 
 ```C
 #include "display.h"
 
 wsg_t megaman;
 loadWsg("megaman.wsg", &megaman);
-drawWsg(demo->disp, &megaman, 0, 0);
+drawWsg(demo->disp, &megaman, 0, 0, false, false, 0);
 freeWsg(&megaman);
 
 font_t ibm;
 loadFont("ibm_vga8.font", &ibm);
 drawText(demo->disp, &ibm, c500, "Demo Text", 0, 0);
 freeFont(&ibm);
+```
+
+## Drawing a Menu
+
+Most modes will have a menu. This project provides functions for creating, drawing, and interacting with a menu. This menu should be used for consistency across the whole project.
+
+To use a menu, you must first create it by giving it a title, a `font_t`, and a callback function which will be called when the user clicks on a row. Next you must add some rows with label strings. When a row is clicked the callback is called. The argument in the callback will be the pointer to the label used for that row. This pointer address can be compared to the label strings used when adding a row to determine which row was clicked.
+
+When you're done with a menu, it must be deinitialized.
+
+Note that the strings used for the title and rows are **not** copied to any menu-specific memory, so they must be persistent for as long as the menu is used. 
+
+```C
+// These strings are stored in ROM and declared outside a function
+static const char title[] = "Main Menu"
+static const char _R1[]   = "Row 1";
+static const char _R2[]   = "Row 2";
+static const char _R3[]   = "Row 3";
+static const char _R4[]   = "Row 4";
+static const char _R5[]   = "Row 5";
+
+// Variables that stick around
+font_t mm;
+meleeMenu_t * menu;
+
+void initFunc()
+{
+    // Each menu needs a font, so load that first
+    loadFont("mm.font", &mm);
+
+    // Create the menu
+    menu = initMeleeMenu(title, &mm, mainMenuCb);
+
+    // Add the rows
+    addRowToMeleeMenu(menu, _R1);
+    addRowToMeleeMenu(menu, _R2);
+    addRowToMeleeMenu(menu, _R3);
+    addRowToMeleeMenu(menu, _R4);
+    addRowToMeleeMenu(menu, _R5);
+}
+
+void deinitFunc()
+{
+    // When done, deinitialize the menu
+    deinitMeleeMenu(menu);
+    // Free the font too!
+    freeFont(&meleeMenuFont);
+}
+
+void buttonCb(buttonEvt_t* evt)
+{
+    // Pass button events from the Swadge mode to the menu
+    meleeMenuButton(menu, evt->button);
+}
+
+void mainMenuCb(const char* opt)
+{
+    // When a row is clicked, print the label for debugging
+    ESP_LOGI("MNU", "%s", opt);
+}
 ```
 
 ## Saving Persistent Data

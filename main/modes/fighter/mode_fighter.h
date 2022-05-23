@@ -36,16 +36,12 @@ typedef enum
     FS_IDLE,
     FS_RUNNING,
     FS_DUCKING,
-    FS_JUMP_1,
-    FS_JUMP_2,
+    FS_JUMP,
     FS_FALLING,
     FS_FREEFALL, // After up special
-    FS_GROUND_STARTUP,
-    FS_GROUND_ATTACK,
-    FS_GROUND_COOLDOWN,
-    FS_AIR_STARTUP,
-    FS_AIR_ATTACK,
-    FS_AIR_COOLDOWN,
+    FS_STARTUP,
+    FS_ATTACK,
+    FS_COOLDOWN,
     FS_HITSTUN,
     FS_HITSTOP,
     FS_INVINCIBLE
@@ -62,12 +58,32 @@ typedef enum
     BACK_AIR,
     UP_AIR,
     DOWN_AIR,
-    NUM_ATTACKS
+    NUM_ATTACKS,
+    NO_ATTACK
 } attackOrder_t;
 
 //==============================================================================
 // Structs
 //==============================================================================
+
+typedef struct
+{
+    wsg_t* sprite;
+
+    vector_t size;
+    vector_t pos;
+    vector_t velo;
+    vector_t accel;
+
+    vector_t knockbackAng;
+    uint16_t knockback;
+    uint16_t duration;
+    uint16_t damage;
+    uint16_t hitstun;
+
+    bool removeNextFrame;
+    fighterDirection_t dir;
+} projectile_t;
 
 typedef struct
 {
@@ -78,17 +94,23 @@ typedef struct
     uint16_t knockback;
     vector_t knockbackAng;
     uint16_t hitstun;
-    char* sprite;
+    wsg_t* sprite;
+
+    bool isProjectile;
+    wsg_t* projSprite;
+    uint16_t projDuration;
+    vector_t projVelo;
+    vector_t projAccel;
 } attackFrame_t;
 
 typedef struct
 {
     uint16_t startupLag;
-    char* startupLagSpr;
+    wsg_t* startupLagSpr;
     uint8_t numAttackFrames;
     attackFrame_t* attackFrames;
     uint16_t endLag;
-    char* endLagSpr;
+    wsg_t* endLagSpr;
 } attack_t;
 
 typedef struct
@@ -122,10 +144,12 @@ typedef struct
     /* Attack data */
     attack_t attacks[NUM_ATTACKS];
     /* Sprite names */
-    char* idleSprite0;
-    char* idleSprite1;
-    char* jumpSprite;
-    char* duckSprite;
+    wsg_t* idleSprite0;
+    wsg_t* idleSprite1;
+    wsg_t* runSprite0;
+    wsg_t* runSprite1;
+    wsg_t* jumpSprite;
+    wsg_t* duckSprite;
     /* Input Tracking */
     int32_t prevBtnState;
     int32_t btnState;
@@ -133,9 +157,12 @@ typedef struct
     fighterState_t state;
     attackOrder_t cAttack;
     uint8_t attackFrame;
-    int32_t timer;
+    int32_t stateTimer;
     int32_t fallThroughTimer;
     fighterDirection_t dir;
+    /* Animation timer */
+    int32_t animTimer;
+    wsg_t* currentSprite;
 } fighter_t;
 
 //==============================================================================
