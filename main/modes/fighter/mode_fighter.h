@@ -160,6 +160,8 @@ typedef struct
     int32_t stateTimer;
     int32_t fallThroughTimer;
     fighterDirection_t dir;
+    int32_t shortHopTimer;
+    bool isShortHop;
     /* Animation timer */
     int32_t animTimer;
     wsg_t* currentSprite;

@@ -437,6 +437,18 @@ void checkFighterTimer(fighter_t* ftr)
         }
     }
 
+    // Decrement the short hop timer
+    if(ftr->shortHopTimer > 0)
+    {
+        ftr->shortHopTimer--;
+        // If the timer expires and the button has already been released
+        if((0 == ftr->shortHopTimer) && (true == ftr->isShortHop))
+        {
+            // Short hop by killing velocity
+            ftr->velocity.y = 0;
+        }
+    }
+
     // Decrement the timer checking double-down-presses to fall through platforms
     if(ftr->fallThroughTimer > 0)
     {
@@ -571,6 +583,12 @@ void checkFighterButtonInput(fighter_t* ftr)
         {
             if(ftr->numJumps > 0)
             {
+                // Only set short hop timer on the first jump
+                if(2 == ftr->numJumps)
+                {
+                    ftr->shortHopTimer = 125 / FRAME_TIME_MS;
+                    ftr->isShortHop = false;
+                }
                 ftr->numJumps--;
                 ftr->velocity.y = ftr->jump_velo;
                 ftr->relativePos = FREE_FLOATING;
@@ -578,6 +596,15 @@ void checkFighterButtonInput(fighter_t* ftr)
                 setFighterState(ftr, FS_JUMP, ftr->jumpSprite);
             }
         }
+    }
+
+    // Releasing A when the short hop timer is active will do a short hop
+    if((ftr->shortHopTimer > 0) &&
+            (ftr->prevBtnState & BTN_A) && !(ftr->btnState & BTN_A))
+    {
+        // Set this boolean, but don't stop the timer! The short hop will peak
+        // when the timer expires, at a nice consistent height
+        ftr->isShortHop = true;
     }
 
     // Pressing B means attack
@@ -669,7 +696,7 @@ void checkFighterButtonInput(fighter_t* ftr)
         if ((ftr->prevBtnState & DOWN) && !(ftr->btnState & DOWN))
         {
             // Start timer to check for second press
-            ftr->fallThroughTimer = 10; // 10 frames @ 25ms == 250ms
+            ftr->fallThroughTimer = 250 / FRAME_TIME_MS; // 250ms
         }
         // Check if a second down press was detected while the timer is active
         else if (ftr->fallThroughTimer > 0 && !(ftr->prevBtnState & DOWN) && (ftr->btnState & DOWN))
