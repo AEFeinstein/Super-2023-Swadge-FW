@@ -10,7 +10,7 @@
 #include "swadgeMode.h"
 #include "mode_main_menu.h"
 
-#include "menu2d.h"
+#include "meleeMenu.h"
 
 //==============================================================================
 // Functions Prototypes
@@ -29,9 +29,8 @@ void mainMenuCb(const char* opt);
 typedef struct
 {
     display_t * disp;
-    font_t ibm_vga8;
-    font_t radiostars;
-    menu_t * menu;
+    font_t meleeMenuFont;
+    meleeMenu_t * menu;
 } mainMenu_t;
 
 //==============================================================================
@@ -56,12 +55,11 @@ swadgeMode modemainMenu =
     .fnTemperatureCallback = NULL
 };
 
-static const char _R1I1[] = "Row 1-1";
-static const char _R1I2[] = "Row 1-2";
-static const char _R2I1[] = "Row 2-1";
-static const char _R2I2[] = "Row 2-2";
-static const char _R3I1[] = "Row 3-1";
-static const char _R3I2[] = "Row 3-2";
+static const char _R1I1[] = "1-P Mode";
+static const char _R2I1[] = "VS. Mode";
+static const char _R3I1[] = "Trophies";
+static const char _R4I1[] = "Options";
+static const char _R5I1[] = "Data";
 
 //==============================================================================
 // Functions
@@ -80,22 +78,15 @@ void mainMenuEnterMode(display_t * disp)
     // Save a pointer to the display
     mainMenu->disp = disp;
 
-    loadFont("ibm_vga8.font", &mainMenu->ibm_vga8);
-    loadFont("radiostars.font", &mainMenu->radiostars);
+    loadFont("mm.font", &mainMenu->meleeMenuFont);
 
-    mainMenu->menu = initMenu(disp, "Swadge!", &mainMenu->radiostars, &mainMenu->ibm_vga8, c550, c001, mainMenuCb);
+    mainMenu->menu = initMeleeMenu("Main Menu", &mainMenu->meleeMenuFont, mainMenuCb);
 
-    // void addRowToMenu(menu_t* menu);
-    // linkedInfo_t* addItemToRow(menu_t* menu, const char* name);
-    addRowToMenu(mainMenu->menu);
-    addItemToRow(mainMenu->menu, _R1I1);
-    addItemToRow(mainMenu->menu, _R1I2);
-    addRowToMenu(mainMenu->menu);
-    addItemToRow(mainMenu->menu, _R2I1);
-    addItemToRow(mainMenu->menu, _R2I2);
-    addRowToMenu(mainMenu->menu);
-    addItemToRow(mainMenu->menu, _R3I1);
-    addItemToRow(mainMenu->menu, _R3I2);
+    addRowToMeleeMenu(mainMenu->menu, _R1I1);
+    addRowToMeleeMenu(mainMenu->menu, _R2I1);
+    addRowToMeleeMenu(mainMenu->menu, _R3I1);
+    addRowToMeleeMenu(mainMenu->menu, _R4I1);
+    addRowToMeleeMenu(mainMenu->menu, _R5I1);
 }
 
 
@@ -105,9 +96,8 @@ void mainMenuEnterMode(display_t * disp)
  */
 void mainMenuExitMode(void)
 {
-    deinitMenu(mainMenu->menu);
-    freeFont(&mainMenu->ibm_vga8);
-    freeFont(&mainMenu->radiostars);
+    deinitMeleeMenu(mainMenu->menu);
+    freeFont(&mainMenu->meleeMenuFont);
     free(mainMenu);
 }
 
@@ -118,7 +108,7 @@ void mainMenuExitMode(void)
  */
 void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
-    drawMenu(mainMenu->menu);
+    drawMeleeMenu(mainMenu->disp, mainMenu->menu);
 }
 
 /**
@@ -138,7 +128,7 @@ void mainMenuButtonCb(buttonEvt_t* evt)
             case RIGHT:
             case BTN_A:
             {
-                menuButton(mainMenu->menu, evt->button);
+                meleeMenuButton(mainMenu->menu, evt->button);
                 break;
             }
             case START:
