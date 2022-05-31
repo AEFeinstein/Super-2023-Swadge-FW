@@ -105,10 +105,14 @@
         "ccconfig.h": "c",
         "string.h": "c",
         "stdlib.h": "c",
-        "menu2d.h": "c",
+        "meleeMenu.h": "c",
         "fontsub.h": "c",
         "palette.h": "c",
-        "rawdraw_sf.h": "c"
+        "rawdraw_sf.h": "c",
+        "fighter_json.h": "c",
+        "linked_list.h": "c",
+        "mode_fighter.h": "c"
     },
-    "idf.adapterTargetName": "esp32s2"
+    "idf.adapterTargetName": "esp32s2",
+    "makefile.makefilePath": "./emu.mk"
 }

@@ -27,7 +27,7 @@ CC = gcc
 ################################################################################
 
 # This is a list of directories to scan for c files recursively
-SRC_DIRS_RECURSIVE = emu/src main/display main/modes main/colorchord
+SRC_DIRS_RECURSIVE = emu/src main/display main/modes main/colorchord main/utils
 # This is a list of directories to scan for c files not recursively
 SRC_DIRS_FLAT = main
 # This is a list of files to compile directly. There's no scanning here
@@ -130,7 +130,7 @@ ifeq ($(HOST_OS),Windows)
     LIBS = opengl32 gdi32 user32 winmm pthread WSock32
 endif
 ifeq ($(HOST_OS),Linux)
-    LIBS = m X11 pthread asound pulse rt
+    LIBS = m X11 pthread asound pulse rt GL GLX
 endif
 
 # These are directories to look for library files in

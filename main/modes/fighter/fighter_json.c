@@ -8,6 +8,12 @@
 #include "spiffs_json.h"
 #include "fighter_json.h"
 
+typedef struct
+{
+    char* name;
+    wsg_t sprite;
+} namedSprite_t;
+
 typedef enum
 {
     PARSING_ROOT,
@@ -25,6 +31,8 @@ typedef enum
     PARSING_FIGHTER_ATTR_NJUMPS,
     PARSING_FIGHTER_ATTR_IDLE_SPR_0,
     PARSING_FIGHTER_ATTR_IDLE_SPR_1,
+    PARSING_FIGHTER_ATTR_RUN_SPR_0,
+    PARSING_FIGHTER_ATTR_RUN_SPR_1,
     PARSING_FIGHTER_ATTR_JUMP_SPR,
     PARSING_FIGHTER_ATTR_DUCK_SPR,
     PARSING_FIGHTER_ATTR_MOVES,
@@ -48,7 +56,14 @@ typedef enum
     PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_X,
     PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_Y,
     PARSING_FIGHTER_ATTACK_FRAME_ATTR_HITSTUN,
-    PARSING_FIGHTER_ATTACK_FRAME_ATTR_SPRITE
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_SPRITE,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_ISPROJECTILE,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILESPRITE,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEDURATION,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_X,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_Y,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_X,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_Y
 } fgtParseState_t;
 
 const char* attackOrder[] =
@@ -122,20 +137,34 @@ static char* jsonString(const char* jsonStr, jsmntok_t tok)
 /**
  * @brief TODO
  *
+ * @param jsonStr
+ * @param tok
+ * @return char*
+ */
+static bool jsonBoolean(const char* jsonStr, jsmntok_t tok)
+{
+    return (0 == memcmp("true", &(jsonStr[tok.start]), (tok.end - tok.start))) ? true : false;
+}
+
+/**
+ * @brief TODO
+ *
  * @param numFighters
+ * @param loadedSprites
  * @return fighter_t*
  */
-fighter_t* loadJsonFighterData(uint8_t* numFighters)
+fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
 {
     char* jsonStr = loadJson("test.json");
     jsmn_parser p;
-    jsmntok_t t[1024];
+    jsmntok_t* t = malloc(sizeof(jsmntok_t) * 1024);
 
     jsmn_init(&p);
-    int r = jsmn_parse(&p, jsonStr, strlen(jsonStr), t, sizeof(t) / sizeof(t[0]));
+    int r = jsmn_parse(&p, jsonStr, strlen(jsonStr), t, 1024);
     if (r < 0)
     {
         ESP_LOGE("FGT", "Failed to parse JSON: %d\n", r);
+        free(t);
         return NULL;
     }
     else
@@ -245,6 +274,14 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
                 {
                     ps = PARSING_FIGHTER_ATTR_IDLE_SPR_1;
                 }
+                else if (jsoneq(jsonStr, &t[i], "run_spr_0") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTR_RUN_SPR_0;
+                }
+                else if (jsoneq(jsonStr, &t[i], "run_spr_1") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTR_RUN_SPR_1;
+                }
                 else if (jsoneq(jsonStr, &t[i], "jump_spr") == 0)
                 {
                     ps = PARSING_FIGHTER_ATTR_JUMP_SPR;
@@ -269,6 +306,8 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
             case PARSING_FIGHTER_ATTR_NJUMPS:
             case PARSING_FIGHTER_ATTR_IDLE_SPR_0:
             case PARSING_FIGHTER_ATTR_IDLE_SPR_1:
+            case PARSING_FIGHTER_ATTR_RUN_SPR_0:
+            case PARSING_FIGHTER_ATTR_RUN_SPR_1:
             case PARSING_FIGHTER_ATTR_JUMP_SPR:
             case PARSING_FIGHTER_ATTR_DUCK_SPR:
             {
@@ -324,22 +363,44 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
                     }
                     case PARSING_FIGHTER_ATTR_IDLE_SPR_0:
                     {
-                        cFighter->idleSprite0 = jsonString(jsonStr, t[i]);
+                        char* name = jsonString(jsonStr, t[i]);
+                        cFighter->idleSprite0 = loadFighterSprite(name, loadedSprites);
+                        free(name);
                         break;
                     }
                     case PARSING_FIGHTER_ATTR_IDLE_SPR_1:
                     {
-                        cFighter->idleSprite1 = jsonString(jsonStr, t[i]);
+                        char* name = jsonString(jsonStr, t[i]);
+                        cFighter->idleSprite1 = loadFighterSprite(name, loadedSprites);
+                        free(name);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTR_RUN_SPR_0:
+                    {
+                        char* name = jsonString(jsonStr, t[i]);
+                        cFighter->runSprite0 = loadFighterSprite(name, loadedSprites);
+                        free(name);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTR_RUN_SPR_1:
+                    {
+                        char* name = jsonString(jsonStr, t[i]);
+                        cFighter->runSprite1 = loadFighterSprite(name, loadedSprites);
+                        free(name);
                         break;
                     }
                     case PARSING_FIGHTER_ATTR_JUMP_SPR:
                     {
-                        cFighter->jumpSprite = jsonString(jsonStr, t[i]);
+                        char* name = jsonString(jsonStr, t[i]);
+                        cFighter->jumpSprite = loadFighterSprite(name, loadedSprites);
+                        free(name);
                         break;
                     }
                     case PARSING_FIGHTER_ATTR_DUCK_SPR:
                     {
-                        cFighter->duckSprite = jsonString(jsonStr, t[i]);
+                        char* name = jsonString(jsonStr, t[i]);
+                        cFighter->duckSprite = loadFighterSprite(name, loadedSprites);
+                        free(name);
                         break;
                     }
                 }
@@ -426,13 +487,16 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
                     }
                     case PARSING_FIGHTER_ATTR_ATTACK_STARTUP_LAG_SPR:
                     {
-                        cAttack->startupLagSpr = jsonString(jsonStr, t[i]);
+                        char* name = jsonString(jsonStr, t[i]);
+                        cAttack->startupLagSpr = loadFighterSprite(name, loadedSprites);
+                        free(name);
                         break;
                     }
                     case PARSING_FIGHTER_ATTR_ATTACK_ACTIVE_STATES:
                     {
                         cAttack->numAttackFrames = t[i].size;
                         cAttack->attackFrames = malloc(sizeof(attackFrame_t) * t[i].size);
+                        memset(cAttack->attackFrames, 0, sizeof(attackFrame_t) * t[i].size);
                         cAttackIdx = -1;
                         break;
                     }
@@ -443,7 +507,9 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
                     }
                     case PARSING_FIGHTER_ATTR_ATTACK_END_LAG_SPR:
                     {
-                        cAttack->endLagSpr = jsonString(jsonStr, t[i]);
+                        char* name = jsonString(jsonStr, t[i]);
+                        cAttack->endLagSpr = loadFighterSprite(name, loadedSprites);
+                        free(name);
                         break;
                     }
                 }
@@ -531,6 +597,34 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
                 {
                     ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_SPRITE;
                 }
+                else if (jsoneq(jsonStr, &t[i], "isProjectile") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_ISPROJECTILE;
+                }
+                else if (jsoneq(jsonStr, &t[i], "projectileSprite") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILESPRITE;
+                }
+                else if (jsoneq(jsonStr, &t[i], "projectileDuration") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEDURATION;
+                }
+                else if (jsoneq(jsonStr, &t[i], "projectileVelo_x") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_X;
+                }
+                else if (jsoneq(jsonStr, &t[i], "projectileVelo_y") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_Y;
+                }
+                else if (jsoneq(jsonStr, &t[i], "projectileAccel_x") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_X;
+                }
+                else if (jsoneq(jsonStr, &t[i], "projectileAccel_y") == 0)
+                {
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_Y;
+                }
                 break;
             }
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_DURATION:
@@ -544,6 +638,13 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_Y:
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_HITSTUN:
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_SPRITE:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_ISPROJECTILE:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILESPRITE:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEDURATION:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_X:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_Y:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_X:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_Y:
             {
                 switch(ps)
                 {
@@ -603,7 +704,46 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
                     }
                     case PARSING_FIGHTER_ATTACK_FRAME_ATTR_SPRITE:
                     {
-                        cAttack->attackFrames[cAttackIdx].sprite = jsonString(jsonStr, t[i]);
+                        char* name = jsonString(jsonStr, t[i]);
+                        cAttack->attackFrames[cAttackIdx].sprite = loadFighterSprite(name, loadedSprites);
+                        free(name);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_ISPROJECTILE:
+                    {
+                        cAttack->attackFrames[cAttackIdx].isProjectile = jsonBoolean(jsonStr, t[i]);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILESPRITE:
+                    {
+                        char* name = jsonString(jsonStr, t[i]);
+                        cAttack->attackFrames[cAttackIdx].projSprite = loadFighterSprite(name, loadedSprites);
+                        free(name);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEDURATION:
+                    {
+                        cAttack->attackFrames[cAttackIdx].projDuration = jsonInteger(jsonStr, t[i]);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_X:
+                    {
+                        cAttack->attackFrames[cAttackIdx].projVelo.x = jsonInteger(jsonStr, t[i]);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEVELO_Y:
+                    {
+                        cAttack->attackFrames[cAttackIdx].projVelo.y = jsonInteger(jsonStr, t[i]);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_X:
+                    {
+                        cAttack->attackFrames[cAttackIdx].projAccel.x = jsonInteger(jsonStr, t[i]);
+                        break;
+                    }
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_PROJECTILEACCEL_Y:
+                    {
+                        cAttack->attackFrames[cAttackIdx].projAccel.y = jsonInteger(jsonStr, t[i]);
                         break;
                     }
                 }
@@ -624,6 +764,7 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters)
     }
 
     freeJson(jsonStr);
+    free(t);
 
     return fighters;
 }
@@ -641,17 +782,82 @@ void freeFighterData(fighter_t* fighter, uint8_t numFighters)
         for(uint8_t atkIdx = 0; atkIdx < NUM_ATTACKS; atkIdx++)
         {
             free(fighter[fgtIdx].attacks[atkIdx].startupLagSpr);
+            free(fighter[fgtIdx].attacks[atkIdx].endLagSpr);
             for(uint8_t atkFrameIdx = 0; atkFrameIdx < fighter[fgtIdx].attacks[atkIdx].numAttackFrames; atkFrameIdx++)
             {
                 free(fighter[fgtIdx].attacks[atkIdx].attackFrames[atkFrameIdx].sprite);
+                if(NULL != fighter[fgtIdx].attacks[atkIdx].attackFrames[atkFrameIdx].projSprite)
+                {
+                    free(fighter[fgtIdx].attacks[atkIdx].attackFrames[atkFrameIdx].projSprite);
+                }
             }
             free(fighter[fgtIdx].attacks[atkIdx].attackFrames);
-            free(fighter[fgtIdx].attacks[atkIdx].endLagSpr);
         }
         free(fighter[fgtIdx].idleSprite0);
         free(fighter[fgtIdx].idleSprite1);
+        free(fighter[fgtIdx].runSprite0);
+        free(fighter[fgtIdx].runSprite1);
         free(fighter[fgtIdx].jumpSprite);
         free(fighter[fgtIdx].duckSprite);
     }
     free(fighter);
+}
+
+/**
+ * @brief TODO
+ *
+ * @param name
+ * @param loadedSprites
+ * @return wsg_t*
+ */
+wsg_t* loadFighterSprite(char* name, list_t* loadedSprites)
+{
+    // Iterate through the list of loaded sprites and look to see if this
+    // has been loaded already. If so, return it
+    node_t* currentNode = loadedSprites->first;
+    while (currentNode != NULL)
+    {
+        if(0 == strcmp(((namedSprite_t*)currentNode->val)->name, name))
+        {
+            // Name matches, so return this loaded sprite
+            return &((namedSprite_t*)currentNode->val)->sprite;
+        }
+        // Name didn't match, so iterate
+        currentNode = currentNode->next;
+    }
+
+    // Made it this far, which means it isn't loaded yet.
+    // Allocate a new sprite
+    namedSprite_t* newSprite = malloc(sizeof(namedSprite_t));
+
+    // Load the sprite
+    loadWsg(name, &(newSprite->sprite));
+    // Copy the name
+    newSprite->name = malloc(strlen(name) + 1);
+    memcpy(newSprite->name, name, strlen(name) + 1);
+
+    // Add the loaded sprite to the list
+    push(loadedSprites, newSprite);
+
+    // Return the loaded sprite
+    return &(newSprite->sprite);
+}
+
+/**
+ * @brief TODO
+ *
+ * @param loadedSprites
+ */
+void freeFighterSprites(list_t* loadedSprites)
+{
+    // Pop and free all sprites
+    namedSprite_t* toFree;
+    while (NULL != (toFree = pop(loadedSprites)))
+    {
+        // Free the fields
+        freeWsg(&(toFree->sprite));
+        free(toFree->name);
+        // Free the named sprite
+        free(toFree);
+    }
 }
