@@ -67,7 +67,7 @@ void drawEntities(display_t * disp, entityManager_t * entityManager)
 
         if(currentEntity.active)
         {
-            drawWsg(disp, &entityManager->sprites[currentEntity.spriteIndex], currentEntity.x - entityManager->tilemap->mapOffsetX, currentEntity.y  - entityManager->tilemap->mapOffsetY);
+            drawWsg(disp, &entityManager->sprites[currentEntity.spriteIndex], currentEntity.x - entityManager->tilemap->mapOffsetX, currentEntity.y  - entityManager->tilemap->mapOffsetY, false, false, 0);
         }
     }
 };

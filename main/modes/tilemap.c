@@ -51,9 +51,10 @@ void drawTileMap(display_t * disp, tilemap_t * tilemap)
                 tile += ((tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2) % 3);
             }
 
-            if(tile > 0)
+            //Draw only non-garbage tiles
+            if(tile > 0 && tile < 10)
             {
-                drawWsg(disp, &tilemap->tiles[tile], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
+                drawWsg(disp, &tilemap->tiles[tile], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY, false, false, 0);
             }
         }
     }

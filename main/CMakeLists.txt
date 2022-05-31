@@ -12,6 +12,7 @@ idf_component_register(
         "modes/fighter/fighter_json.c"
         "modes/mode_demo.c"
         "modes/mode_main_menu.c"
+        "modes/mode_platformer.c"
         "utils/linked_list.c"
         "p2pConnection.c"
         "swadge_esp32.c"
