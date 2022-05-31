@@ -13,7 +13,6 @@
 #include "image_processor.h"
 #include "font_processor.h"
 #include "json_processor.h"
-#include "bin_processor.h"
 
 const char * outDirName = NULL;
 
@@ -67,10 +66,6 @@ static int processFile(const char * fpath, const struct stat * st __attribute__(
             else if(endsWith(fpath, ".json"))
             {
                 process_json(fpath, outDirName);
-            }
-            else if(endsWith(fpath, ".bin"))
-            {
-                process_bin(fpath, outDirName);
             }
             break;
         }

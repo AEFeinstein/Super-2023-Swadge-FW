@@ -17,7 +17,6 @@
 //==============================================================================
 
 #define CLAMP(x,l,u) ((x) < l ? l : ((x) > u ? u : (x)))
-#define WRAP(x,u) (((x < 0) ? x + (u + 1) * ((-(x)) / (u + 1) + 1) : x) % (u + 1))
 
 //==============================================================================
 // Functions
@@ -25,7 +24,7 @@
 
 /**
  * @brief Fill a rectangular area on a display with a single color
- *
+ * 
  * @param disp The display to fill an area on
  * @param x1 The x coordinate to start the fill (top left)
  * @param y1 The y coordinate to start the fill (top left)
@@ -41,7 +40,7 @@ void fillDisplayArea(display_t * disp, int16_t x1, int16_t y1, int16_t x2,
     int16_t xMax = CLAMP(x2, 0, disp->w);
     int16_t yMin = CLAMP(y1, 0, disp->h);
     int16_t yMax = CLAMP(y2, 0, disp->h);
-
+    
     // Set each pixel
     for (int y = yMin; y < yMax; y++)
     {
@@ -54,8 +53,8 @@ void fillDisplayArea(display_t * disp, int16_t x1, int16_t y1, int16_t x2,
 
 /**
  * @brief Load a WSG from ROM to RAM. WSGs placed in the spiffs_image folder
- * before compilation will be automatically flashed to ROM
- *
+ * before compilation will be automatically flashed to ROM 
+ * 
  * @param name The filename of the WSG to load
  * @param wsg  A handle to load the WSG to
  * @return true if the WSG was loaded successfully,
@@ -121,33 +120,8 @@ bool loadWsg(char * name, wsg_t * wsg)
 }
 
 /**
- * @brief Allocate space for an empty WSG
- *
- * @param wsg  A handle to load a blank/empty wsg to
- * @return true if the blank wsg was loaded successfully,
- *         false if the wblank sg load failed and should not be used
- */
-bool loadBlankWsg(wsg_t * wsg, unsigned int width, unsigned int height)
-{
-    wsg->h = height;
-    wsg->w = width;
-
-    // Save the image data in the arg
-    wsg->px = (paletteColor_t *)malloc(sizeof(paletteColor_t) * wsg->w * wsg->h);
-    if(NULL == wsg->px)
-    {
-        ESP_LOGE("WSG", "WSG malloc fail");
-        return false;
-    }
-
-    // All done
-    return true;
-}
-
-
-/**
  * @brief Free the memory for a loaded WSG
- *
+ * 
  * @param wsg The WSG to free memory from
  */
 void freeWsg(wsg_t * wsg)
@@ -157,7 +131,7 @@ void freeWsg(wsg_t * wsg)
 
 /**
  * @brief Draw a WSG to the display
- *
+ * 
  * @param disp The display to draw the WSG to
  * @param wsg  The WSG to draw to the display
  * @param xOff The x offset to draw the WSG at
@@ -175,7 +149,7 @@ void drawWsg(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff)
     int16_t xMax = CLAMP(xOff + wsg->w, 0, disp->w);
     int16_t yMin = CLAMP(yOff, 0, disp->h);
     int16_t yMax = CLAMP(yOff + wsg->h, 0, disp->h);
-
+    
     // Draw each pixel
     for (int y = yMin; y < yMax; y++)
     {
@@ -192,127 +166,11 @@ void drawWsg(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff)
 }
 
 /**
- * @brief Draw a WSG to the display, repeating it across the whole screen
- *
- * @param disp The display to draw the WSG to
- * @param wsg  The WSG to draw to the display
- * @param xOff The x offset to draw the WSG at
- * @param yOff The y offset to draw the WSG at
- */
-void drawWsgTiled(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff)
-{
-    if(NULL == wsg->px)
-    {
-        return;
-    }
-
-    // Only draw in bounds
-    int16_t xMin = 0;
-    int16_t xMax = disp->w;
-    int16_t yMin = 0;
-    int16_t yMax = disp->h;
-
-    // Draw each pixel
-    for (int y = yMin; y < yMax; y++)
-    {
-        int16_t wsgY = WRAP(y - yOff, (wsg->h - 1));
-        for (int x = xMin; x < xMax; x++)
-        {
-            int16_t wsgX = WRAP(x - xOff, (wsg->w - 1));
-            if (cTransparent != wsg->px[(wsgY * wsg->w) + wsgX])
-            {
-                disp->setPx(x, y, wsg->px[(wsgY * wsg->w) + wsgX]);
-            }
-        }
-    }
-}
-
-/**
- * @brief Draw an allocated WSG into another allocated WSG
- *
- * @param source Pointer to the WSG to be drawn
- * @param destination Pointer to the WSG that will be drawn onto
- * @param xOff The x offset to draw the WSG at
- * @param yOff The y offset to draw the WSG at
- */
-void drawWsgIntoWsg(wsg_t *source, wsg_t *destination, int16_t xOff, int16_t yOff)
-{
-    if(NULL == source->px || NULL == destination -> px)
-    {
-        return;
-    }
-
-    // Only draw in bounds
-    int16_t xMin = CLAMP(xOff, 0, destination->w);
-    int16_t xMax = CLAMP(xOff + source->w, 0, destination->w);
-    int16_t yMin = CLAMP(yOff, 0, destination->h);
-    int16_t yMax = CLAMP(yOff + source->h, 0, destination->h);
-
-    if(xMax == xMin || yMax == yMin)
-    {
-        return;
-    }
-
-    // Draw each pixel
-    for (int y = yMin; y < yMax; y++)
-    {
-        int16_t wsgY = y - yOff;
-        for (int x = xMin; x < xMax; x++)
-        {
-            int16_t wsgX = x - xOff;           
-            if (cTransparent != source->px[(wsgY * source->w) + wsgX])
-            {
-                destination->px[(y * destination->w) + x]=source->px[(wsgY * source->w) + wsgX];
-            }
-        }
-    }
-}
-
-/*
- * @brief Draw a portion of an allocated WSG into another allocated WSG
- *
- * @param source Pointer to the WSG to be drawn
- * @param destination Pointer to the WSG that will be drawn onto
- * @param xOff The x offset to draw the WSG at
- * @param yOff The y offset to draw the WSG at
- */
-void drawPartialWsgIntoWsg(wsg_t *source, wsg_t *destination, int16_t sourceXstart, int16_t sourceYstart, int16_t sourceXend, int16_t sourceYend, int16_t xOff, int16_t yOff)
-{
-    if(NULL == source->px || NULL == destination -> px)
-    {
-        return;
-    }
-
-    int16_t drawWidth = sourceXend - sourceXstart;
-    int16_t drawHeight = sourceYend - sourceYstart;
-
-    // Only draw in bounds
-    int16_t xMin = CLAMP(xOff, 0, destination->w);
-    int16_t xMax = CLAMP(xOff + drawWidth, 0, destination->w);
-    int16_t yMin = CLAMP(yOff, 0, destination->h);
-    int16_t yMax = CLAMP(yOff + drawHeight, 0, destination->h);
-
-    // Draw each pixel
-    for (int y = yMin; y < yMax; y++)
-    {
-        for (int x = xMin; x < xMax; x++)
-        {
-            int16_t wsgX = x + sourceXstart - xOff;
-            int16_t wsgY = y + sourceYstart - yOff;            
-            //if (cTransparent != source->px[(wsgY * source->w) + wsgX])
-            {
-                destination->px[(y * destination->w) + x]=source->px[(wsgY * source->w) + wsgX];
-            }
-        }
-    }
-}
-
-/**
  * @brief Load a font from ROM to RAM. Fonts are bitmapped image files that have
  * a single height, all ASCII characters, and a width for each character.
  * PNGs placed in the assets folder before compilation will be automatically
- * flashed to ROM
- *
+ * flashed to ROM 
+ * 
  * @param name The name of the font to load
  * @param font A handle to load the font to
  * @return true if the font was loaded successfully
@@ -374,7 +232,7 @@ void freeFont(font_t * font)
 
 /**
  * @brief Draw a single character from a font to a display
- *
+ * 
  * @param disp  The display to draw a character to
  * @param color The color of the character to draw
  * @param h     The height of the character to draw
@@ -413,7 +271,7 @@ void drawChar(display_t * disp, paletteColor_t color, uint16_t h, font_ch_t * ch
 
 /**
  * @brief Draw text to a display with the given color and font
- *
+ * 
  * @param disp  The display to draw a character to
  * @param font  The font to use for the text
  * @param color The color of the character to draw
@@ -448,7 +306,7 @@ int16_t drawText(display_t * disp, font_t * font, paletteColor_t color, const ch
 
 /**
  * @brief Return the pixel width of some text in a given font
- *
+ * 
  * @param font The font to use
  * @param text The text to measure
  * @return The width of the text rendered in the font
