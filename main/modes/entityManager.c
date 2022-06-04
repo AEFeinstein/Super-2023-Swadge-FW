@@ -15,18 +15,19 @@
 // Constants
 //==============================================================================
 #define MAX_ENTITIES 16
+#define SUBPIXEL_RESOLUTION 4
 
 //==============================================================================
 // Functions
 //==============================================================================
-void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilemap)
+void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilemap, gameData_t * gameData)
 {
     loadSprites(entityManager);
     entityManager->entities = malloc(sizeof(entity_t) * MAX_ENTITIES);
     
     for(uint8_t i=0; i < MAX_ENTITIES; i++)
     {
-        initializeEntity(&(entityManager->entities[i]), tilemap);
+        initializeEntity(&(entityManager->entities[i]), tilemap, gameData);
     }
 
     entityManager->activeEntities = 0;
@@ -67,7 +68,7 @@ void drawEntities(display_t * disp, entityManager_t * entityManager)
 
         if(currentEntity.active)
         {
-            drawWsg(disp, &entityManager->sprites[currentEntity.spriteIndex], currentEntity.x - entityManager->tilemap->mapOffsetX, currentEntity.y  - entityManager->tilemap->mapOffsetY, false, false, 0);
+            drawWsg(disp, &entityManager->sprites[currentEntity.spriteIndex], (currentEntity.x >> SUBPIXEL_RESOLUTION) - entityManager->tilemap->mapOffsetX, (currentEntity.y >> SUBPIXEL_RESOLUTION)  - entityManager->tilemap->mapOffsetY, false, false, 0);
         }
     }
 };
@@ -99,8 +100,8 @@ void createTestObject(entityManager_t * entityManager, int16_t x, int16_t y)
     entity_t * entity = findInactiveEntity(entityManager);
 
     entity->active = true;
-    entity->x = x;
-    entity->y = y;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
 
     entity->type = 0;
     entity->spriteIndex = 1;

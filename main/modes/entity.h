@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "tilemap.h"
+#include "gameData.h"
 
 //==============================================================================
 // Structs
@@ -35,12 +36,13 @@ typedef struct
     uint8_t animationTimer;
 
     tilemap_t * tilemap;
+    gameData_t * gameData;
 } entity_t;
 
 //==============================================================================
 // Prototypes
 //==============================================================================
-void initializeEntity(entity_t * entity, tilemap_t * tilemap);
+void initializeEntity(entity_t * entity, tilemap_t * tilemap, gameData_t * gameData);
 
 void updateTestObject(entity_t * self);
 

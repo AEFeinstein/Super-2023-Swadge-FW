@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include "entity.h"
 #include "tilemap.h"
+#include "gameData.h"
 #include "display.h"
 
 //==============================================================================
@@ -28,7 +29,7 @@ typedef struct
 //==============================================================================
 // Prototypes
 //==============================================================================
-void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilemap);
+void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilemap, gameData_t * gameData);
 void loadSprites(entityManager_t * entityManager);
 void updateEntities(entityManager_t * entityManager);
 void drawEntities(display_t * disp, entityManager_t * entityManager);

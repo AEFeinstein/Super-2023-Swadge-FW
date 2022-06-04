@@ -15,12 +15,14 @@
 #include "esp_random.h"
 
 #include "tilemap.h"
+#include "gameData.h"
 #include "entityManager.h"
 
 //==============================================================================
 // Constants
 //==============================================================================
 
+#define MOTION_SUBPIXEL_RESOLUTION 4
 
 //==============================================================================
 // Functions Prototypes
@@ -36,7 +38,6 @@ void platformerCb(const char* opt);
 // Structs
 //==============================================================================
 
-
 typedef struct
 {
     display_t * disp;
@@ -46,12 +47,13 @@ typedef struct
 
     tilemap_t tilemap;
     entityManager_t entityManager;
+    gameData_t gameData;
 
     int8_t scrolltesttimer;
     int16_t scroll_xspeed;
     int16_t scroll_yspeed;
 
-    int32_t btnState;
+    int16_t btnState;
 
     int32_t frameTimer;
 } platformer_t;
@@ -101,7 +103,8 @@ void platformerEnterMode(display_t * disp)
     platformer->btnState = 0;
 
     initializeTileMap(&(platformer->tilemap));
-    initializeEntityManager(&(platformer->entityManager), &(platformer->tilemap));
+    initializeGameData(&(platformer->gameData));
+    initializeEntityManager(&(platformer->entityManager), &(platformer->tilemap), &(platformer->gameData));
 }
 
 
@@ -141,7 +144,7 @@ void platformerMainLoop(int64_t elapsedUs)
         //platformer->btnState |= RIGHT;
 
         // Draw the display
-        if(platformer->btnState & LEFT){
+        /*if(platformer->btnState & LEFT){
             scrollTileMap(&(platformer->tilemap),-4,0);
         } else if(platformer->btnState & RIGHT){
             scrollTileMap(&(platformer->tilemap),4,0);
@@ -152,7 +155,7 @@ void platformerMainLoop(int64_t elapsedUs)
             scrollTileMap(&(platformer->tilemap),0,-4);
         } else if(platformer->btnState & DOWN){
             scrollTileMap(&(platformer->tilemap),0,4);
-        }
+        }*/
  
         updateEntities(&(platformer->entityManager));
 
@@ -169,7 +172,8 @@ void platformerMainLoop(int64_t elapsedUs)
 void platformerButtonCb(buttonEvt_t* evt)
 {
     platformer->btnState = evt->state;
-    
+    platformer->gameData.btnState = evt->state;
+
     /*if(evt->down)
     {
         switch (evt->button)
