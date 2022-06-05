@@ -17,7 +17,9 @@
 #define HALF_TILE_SIZE 8
 
 #define SIGNOF(x) ((x > 0) - (x < 0))
-#define TO_TILE_COORDS(x) (x >> SUBPIXEL_RESOLUTION >> TILE_SIZE_IN_POWERS_OF_2)
+#define TO_TILE_COORDS(x) (x >> TILE_SIZE_IN_POWERS_OF_2)
+#define TO_PIXEL_COORDS(x) (x >> SUBPIXEL_RESOLUTION)
+#define TO_SUBPIXEL_COORDS(x) (x << SUBPIXEL_RESOLUTION)
 
 //==============================================================================
 // Functions
@@ -56,33 +58,71 @@ void updateTestObject(entity_t * self) {
 
     int16_t newX = self->x;
     int16_t newY = self->y;
-    uint8_t tx = TO_TILE_COORDS(self->x);
-    uint8_t ty = TO_TILE_COORDS((self->y + (15 << 4) * ((self->y >> 4) % TILE_SIZE > 8)));
+    uint8_t tx = TO_TILE_COORDS(self->x >> SUBPIXEL_RESOLUTION);
+    uint8_t ty = TO_TILE_COORDS(self->y >> SUBPIXEL_RESOLUTION);
+    bool collision = false;
 
     if(self->yspeed != 0) {
-        uint8_t newTy = TO_TILE_COORDS((self->y + self->yspeed));
+        int16_t hcof = ( ((self->x >> SUBPIXEL_RESOLUTION) % TILE_SIZE) - HALF_TILE_SIZE);
 
-        //if(newTx != tx) {
-            uint8_t newVerticalTile = self->tilemap->map[(newTy + (self->yspeed > 0)) * self->tilemap->mapWidth + tx];
+        //Handle halfway though tile
+        uint8_t at = self->tilemap->map[ty * self->tilemap->mapWidth + tx + SIGNOF(hcof)];
+
+        if(at > 0) {
+            collision = true;
+            newX=((tx + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+        }
+
+        uint8_t newTy = TO_TILE_COORDS(((self->y + self->yspeed) >> SUBPIXEL_RESOLUTION) + SIGNOF(self->yspeed) * HALF_TILE_SIZE);
+
+        if(newTy != ty) {
+            uint8_t newVerticalTile = self->tilemap->map[newTy * self->tilemap->mapWidth + tx];
 
             if(newVerticalTile > 0) {
-                newY=((newTy + (self->yspeed < 0)) << SUBPIXEL_RESOLUTION) * TILE_SIZE;// - HALF_TILE_SIZE;
+                collision = true;
                 self->yspeed = 0;
+                newY=((ty + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
             }
-        //}
+        }
     }
 
     if(self->xspeed != 0) {
-        uint8_t newTx = TO_TILE_COORDS((self->x + self->xspeed));
+        int16_t vcof = ( ((self->y >> SUBPIXEL_RESOLUTION) % TILE_SIZE) - HALF_TILE_SIZE);
 
-        //if(newTx != tx) {
-            uint8_t newHorizontalTile = self->tilemap->map[ty * self->tilemap->mapWidth + newTx + (self->xspeed > 0)];
+        //Handle halfway though tile
+        uint8_t att = self->tilemap->map[(ty + SIGNOF(vcof)) * self->tilemap->mapWidth + tx];
+
+        if(att > 0) {
+            collision = true;
+            newY=((ty + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+        }
+
+        //Handle outside of tile
+        uint8_t newTx = TO_TILE_COORDS(((self->x + self->xspeed) >> SUBPIXEL_RESOLUTION) + SIGNOF(self->xspeed) * HALF_TILE_SIZE);
+
+        if(newTx != tx) {
+            uint8_t newHorizontalTile = self->tilemap->map[ty * self->tilemap->mapWidth + newTx];
 
             if(newHorizontalTile > 0) {
-                newX=((newTx + (self->xspeed < 0)) << SUBPIXEL_RESOLUTION) * TILE_SIZE;// - HALF_TILE_SIZE;
+                collision = true;
                 self->xspeed = 0;
+                newX=((tx + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
             }
-        //}
+        }
+    }
+
+    //Handle literal corner case
+    if(!collision && self->xspeed !=0 && self->yspeed != 0){
+        uint8_t t = self->tilemap->map[ty * self->tilemap->mapWidth + tx];
+
+        if(t > 0){
+            self->yspeed = -self->yspeed;
+        }
+    }
+
+    //Quick and broken way to the view follow the sprite
+    if(self->x > (120 << 4)){
+        scrollTileMap(self->tilemap, (self->xspeed >> 4), 0);
     }
 
     self->x = newX+self->xspeed;
