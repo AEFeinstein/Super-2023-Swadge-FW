@@ -34,7 +34,7 @@ void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilema
     entityManager->tilemap = tilemap;
 
     createTestObject(entityManager, 33, 27);
-    createTestObject(entityManager, 104, 202);
+    //createTestObject(entityManager, 104, 202);
 };
 
 void loadSprites(entityManager_t * entityManager)
