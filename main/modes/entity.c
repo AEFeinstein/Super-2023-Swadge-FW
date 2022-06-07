@@ -67,8 +67,8 @@ void updateTestObject(entity_t * self) {
 
 void moveEntityWithTileCollisions(entity_t * self){
     
-    int16_t newX = self->x;
-    int16_t newY = self->y;
+    uint16_t newX = self->x;
+    uint16_t newY = self->y;
     uint8_t tx = TO_TILE_COORDS(self->x >> SUBPIXEL_RESOLUTION);
     uint8_t ty = TO_TILE_COORDS(self->y >> SUBPIXEL_RESOLUTION);
     bool collision = false;

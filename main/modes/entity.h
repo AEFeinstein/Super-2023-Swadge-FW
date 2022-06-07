@@ -25,8 +25,8 @@ typedef struct
     uint8_t type;
     updateFunction_t updateFunction;
 
-    int16_t x;
-    int16_t y;
+    uint16_t x;
+    uint16_t y;
     
     int16_t xspeed;
     int16_t yspeed;
