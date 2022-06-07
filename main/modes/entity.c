@@ -58,11 +58,6 @@ void updateTestObject(entity_t * self) {
 
     moveEntityWithTileCollisions(self);
 
-    //Quick and broken way to the view follow the sprite
-    if(self->x > (120 << 4)){
-        scrollTileMap(self->tilemap, (self->xspeed >> 4), 0);
-    }
-
 };
 
 void moveEntityWithTileCollisions(entity_t * self){

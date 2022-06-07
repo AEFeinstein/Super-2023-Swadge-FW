@@ -34,6 +34,7 @@ void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilema
     entityManager->tilemap = tilemap;
 
     createTestObject(entityManager, 33, 27);
+    entityManager->viewEntity = 0;
     //createTestObject(entityManager, 104, 202);
 };
 
@@ -56,6 +57,10 @@ void updateEntities(entityManager_t * entityManager)
         if(entityManager->entities[i].active)
         {
             entityManager->entities[i].updateFunction(&(entityManager->entities[i]));
+
+            if(i == entityManager->viewEntity){
+                viewFollowEntity(entityManager->tilemap, &(entityManager->entities[i]));
+            }
         }
     }
 };
@@ -106,4 +111,24 @@ void createTestObject(entityManager_t * entityManager, int16_t x, int16_t y)
     entity->type = 0;
     entity->spriteIndex = 1;
     entity->updateFunction = &updateTestObject;
+}
+
+void viewFollowEntity(tilemap_t * tilemap, entity_t * entity){
+    int16_t moveViewByX = (entity->x) >> SUBPIXEL_RESOLUTION;
+    int16_t moveViewByY = (entity->y) >> SUBPIXEL_RESOLUTION;
+
+    int16_t centerOfViewX = tilemap->mapOffsetX + 120;
+    int16_t centerOfViewY = tilemap->mapOffsetY + 120;
+
+    //if(centerOfViewX != moveViewByX) {
+        moveViewByX -= centerOfViewX;
+    //}
+
+    //if(centerOfViewY != moveViewByY) {
+        moveViewByY -= centerOfViewY;
+    //}
+
+    //if(moveViewByX && moveViewByY){
+        scrollTileMap(tilemap, moveViewByX, moveViewByY);
+    //}
 }
