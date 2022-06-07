@@ -56,6 +56,17 @@ void updateTestObject(entity_t * self) {
         self->yspeed += 2;
     }
 
+    moveEntityWithTileCollisions(self);
+
+    //Quick and broken way to the view follow the sprite
+    if(self->x > (120 << 4)){
+        scrollTileMap(self->tilemap, (self->xspeed >> 4), 0);
+    }
+
+};
+
+void moveEntityWithTileCollisions(entity_t * self){
+    
     int16_t newX = self->x;
     int16_t newY = self->y;
     uint8_t tx = TO_TILE_COORDS(self->x >> SUBPIXEL_RESOLUTION);
@@ -120,11 +131,6 @@ void updateTestObject(entity_t * self) {
         }
     }
 
-    //Quick and broken way to the view follow the sprite
-    if(self->x > (120 << 4)){
-        scrollTileMap(self->tilemap, (self->xspeed >> 4), 0);
-    }
-
     self->x = newX+self->xspeed;
     self->y = newY+self->yspeed;
-};
+}

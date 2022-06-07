@@ -45,5 +45,6 @@ typedef struct
 void initializeEntity(entity_t * entity, tilemap_t * tilemap, gameData_t * gameData);
 
 void updateTestObject(entity_t * self);
+void moveEntityWithTileCollisions(entity_t * self);
 
 #endif
