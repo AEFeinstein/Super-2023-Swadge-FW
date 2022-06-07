@@ -38,6 +38,6 @@ void drawEntities(display_t * disp, entityManager_t * entityManager);
 entity_t * findInactiveEntity(entityManager_t * entityManager);
 
 void createTestObject(entityManager_t * entityManager, int16_t x, int16_t y);
-viewFollowEntity(tilemap_t * tilemap, entity_t * entity)
+void viewFollowEntity(tilemap_t * tilemap, entity_t * entity)
 
 #endif
