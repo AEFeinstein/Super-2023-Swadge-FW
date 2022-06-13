@@ -22,8 +22,6 @@
 // Constants
 //==============================================================================
 
-#define MOTION_SUBPIXEL_RESOLUTION 4
-
 //==============================================================================
 // Functions Prototypes
 //==============================================================================
@@ -144,22 +142,6 @@ void platformerMainLoop(int64_t elapsedUs)
         // Clear the display
         platformer->disp->clearPx();
     
-        //platformer->btnState |= RIGHT;
-
-        // Draw the display
-        /*if(platformer->btnState & LEFT){
-            scrollTileMap(&(platformer->tilemap),-4,0);
-        } else if(platformer->btnState & RIGHT){
-            scrollTileMap(&(platformer->tilemap),4,0);
-        }
- 
- 
-        if(platformer->btnState & UP){
-            scrollTileMap(&(platformer->tilemap),0,-4);
-        } else if(platformer->btnState & DOWN){
-            scrollTileMap(&(platformer->tilemap),0,4);
-        }*/
- 
         updateEntities(&(platformer->entityManager));
 
         drawTileMap(platformer->disp, &platformer->tilemap);
@@ -176,33 +158,6 @@ void platformerButtonCb(buttonEvt_t* evt)
 {
     platformer->btnState = evt->state;
     platformer->gameData.btnState = evt->state;
-
-    /*if(evt->down)
-    {
-        switch (evt->button)
-        {
-            case UP:
-                scrollTileMap(&(platformer->tilemap),0,-1);
-                break;
-            case DOWN:
-                scrollTileMap(&(platformer->tilemap),0,1);
-                break;
-            case LEFT:
-                scrollTileMap(&(platformer->tilemap),-1,0);
-                break;
-            case RIGHT:
-                scrollTileMap(&(platformer->tilemap),1,0);
-                break;
-            case BTN_A:
-            {
-                break;
-            }
-            default:
-            {
-                break;
-            }
-        }
-    }*/
 }
 
 /**

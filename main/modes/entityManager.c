@@ -152,6 +152,8 @@ bool createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->type = ENTITY_PLAYER;
     entity->spriteIndex = 1;
     entity->updateFunction = &updatePlayer;
+
+    return true;
 }
 
 bool createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t y)
@@ -169,4 +171,6 @@ bool createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->type = ENTITY_TEST;
     entity->spriteIndex = 1;
     entity->updateFunction = &updateTestObject;
+
+    return true;
 }
