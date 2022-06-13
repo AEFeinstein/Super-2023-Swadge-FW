@@ -105,6 +105,9 @@ void platformerEnterMode(display_t * disp)
     initializeTileMap(&(platformer->tilemap));
     initializeGameData(&(platformer->gameData));
     initializeEntityManager(&(platformer->entityManager), &(platformer->tilemap), &(platformer->gameData));
+
+    platformer->tilemap.entityManager = &(platformer->entityManager);
+    platformer->tilemap.tileSpawnEnabled = true;
 }
 
 

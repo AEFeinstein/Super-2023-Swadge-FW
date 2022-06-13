@@ -30,18 +30,8 @@ void initializeEntity(entity_t * entity, tilemap_t * tilemap, gameData_t * gameD
     entity->gameData = gameData;
 };
 
-void updateTestObject(entity_t * self) {
+void updatePlayer(entity_t * self) {
     self->spriteIndex = (self->spriteIndex + 1) % 3;
-
-    /*self->xspeed += 1;
-    if(self->xspeed > 32) {
-        self->xspeed = -32;
-    }
-
-    self->yspeed += 1;
-    if(self->yspeed > 64) {
-        self->yspeed = -64;
-    }*/
 
     if(self->gameData->btnState & LEFT){
         self->xspeed -= 2;
@@ -57,7 +47,25 @@ void updateTestObject(entity_t * self) {
     }
 
     moveEntityWithTileCollisions(self);
+};
 
+void updateTestObject(entity_t * self) {
+    self->spriteIndex = (self->spriteIndex + 1) % 3;
+
+    self->xspeed += 1;
+    if(self->xspeed > 32) {
+        self->xspeed = -32;
+    }
+
+    self->yspeed += 1;
+    if(self->yspeed > 64) {
+        self->yspeed = -64;
+    }
+
+    self->x += self->xspeed;
+    self->y += self->yspeed;
+
+    //moveEntityWithTileCollisions(self);
 };
 
 void moveEntityWithTileCollisions(entity_t * self){

@@ -33,9 +33,9 @@ void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilema
     entityManager->activeEntities = 0;
     entityManager->tilemap = tilemap;
 
-    createTestObject(entityManager, 33, 27);
+    createPlayer(entityManager, 33, 27);
     entityManager->viewEntity = 0;
-    //createTestObject(entityManager, 104, 202);
+    createTestObject(entityManager, 104, 202);
 };
 
 void loadSprites(entityManager_t * entityManager)
@@ -100,19 +100,6 @@ entity_t * findInactiveEntity(entityManager_t * entityManager)
     return &(entityManager->entities[entityIndex]);
 }
 
-void createTestObject(entityManager_t * entityManager, int16_t x, int16_t y)
-{
-    entity_t * entity = findInactiveEntity(entityManager);
-
-    entity->active = true;
-    entity->x = x << SUBPIXEL_RESOLUTION;
-    entity->y = y << SUBPIXEL_RESOLUTION;
-
-    entity->type = 0;
-    entity->spriteIndex = 1;
-    entity->updateFunction = &updateTestObject;
-}
-
 void viewFollowEntity(tilemap_t * tilemap, entity_t * entity){
     int16_t moveViewByX = (entity->x) >> SUBPIXEL_RESOLUTION;
     int16_t moveViewByY = (entity->y) >> SUBPIXEL_RESOLUTION;
@@ -131,4 +118,55 @@ void viewFollowEntity(tilemap_t * tilemap, entity_t * entity){
     //if(moveViewByX && moveViewByY){
         scrollTileMap(tilemap, moveViewByX, moveViewByY);
     //}
+}
+
+bool createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint16_t x, uint16_t y){
+    if(entityManager->activeEntities == MAX_ENTITIES){
+        return false;
+    }
+
+    bool createSuccess = false;
+
+    switch(objectIndex){
+        case ENTITY_PLAYER:
+            createSuccess = createTestObject(entityManager, x, y);
+        default:
+            ;
+    }
+
+    return createSuccess;
+}
+
+bool createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return false;
+    }
+
+    entity->active = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+
+    entity->type = ENTITY_PLAYER;
+    entity->spriteIndex = 1;
+    entity->updateFunction = &updatePlayer;
+}
+
+bool createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return false;
+    }
+
+    entity->active = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+
+    entity->type = ENTITY_TEST;
+    entity->spriteIndex = 1;
+    entity->updateFunction = &updateTestObject;
 }

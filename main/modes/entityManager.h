@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "common_typedef.h"
 #include "entity.h"
 #include "tilemap.h"
 #include "gameData.h"
@@ -16,7 +17,7 @@
 // Structs
 //==============================================================================
 
-typedef struct
+struct entityManager_t
 {
     wsg_t sprites[8];
     entity_t * entities;
@@ -25,8 +26,7 @@ typedef struct
     int16_t viewEntity;
 
     tilemap_t * tilemap;
-} entityManager_t;
-
+};
 
 //==============================================================================
 // Prototypes
@@ -37,7 +37,9 @@ void updateEntities(entityManager_t * entityManager);
 void drawEntities(display_t * disp, entityManager_t * entityManager);
 entity_t * findInactiveEntity(entityManager_t * entityManager);
 
-void createTestObject(entityManager_t * entityManager, int16_t x, int16_t y);
 void viewFollowEntity(tilemap_t * tilemap, entity_t * entity);
+bool createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint16_t x, uint16_t y);
+bool createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y);
+bool createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t y);
 
 #endif

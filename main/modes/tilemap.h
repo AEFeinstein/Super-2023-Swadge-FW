@@ -8,12 +8,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "display.h"
+#include "common_typedef.h"
+#include "entityManager.h"
 
 //==============================================================================
 // Structs
 //==============================================================================
 
-typedef struct 
+ struct tilemap_t
 {
     wsg_t tiles[10];
 
@@ -29,7 +31,9 @@ typedef struct
     int16_t minMapOffsetY;
     int16_t maxMapOffsetY;
 
-} tilemap_t;
+    bool tileSpawnEnabled;
+    entityManager_t *entityManager;
+} ;
 
 //==============================================================================
 // Prototypes
@@ -40,6 +44,6 @@ void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y);
 void drawTile(tilemap_t * tilemap, uint8_t tileId, int16_t x, int16_t y);
 bool loadMapFromFile(tilemap_t * tilemap, char * name);
 bool loadTiles(tilemap_t * tilemap);
-
+void tileSpawnEntity(tilemap_t * tilemap, uint8_t objectIndex, uint8_t tx, uint8_t ty);
 
 #endif

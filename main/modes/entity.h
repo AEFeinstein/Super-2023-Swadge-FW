@@ -7,17 +7,26 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "common_typedef.h"
 #include "tilemap.h"
 #include "gameData.h"
+
+//==============================================================================
+// Enums
+//==============================================================================
+
+typedef enum {
+    ENTITY_PLAYER,
+    ENTITY_TEST
+} entityIndex_t;
 
 //==============================================================================
 // Structs
 //==============================================================================
 
-struct entity_t;
 typedef void(*updateFunction_t)(struct entity_t *self);
 
-typedef struct
+struct entity_t
 {
     bool active;
     //bool important;
@@ -37,14 +46,17 @@ typedef struct
 
     tilemap_t * tilemap;
     gameData_t * gameData;
-} entity_t;
+};
 
 //==============================================================================
 // Prototypes
 //==============================================================================
 void initializeEntity(entity_t * entity, tilemap_t * tilemap, gameData_t * gameData);
 
+void updatePlayer(entity_t * self) ;
+
 void updateTestObject(entity_t * self);
+
 void moveEntityWithTileCollisions(entity_t * self);
 
 #endif

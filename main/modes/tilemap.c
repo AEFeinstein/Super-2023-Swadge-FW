@@ -32,6 +32,8 @@ void initializeTileMap(tilemap_t * tilemap)
 {
     tilemap->mapOffsetX = 0;
     tilemap->mapOffsetY = 0;
+
+    tilemap->tileSpawnEnabled = false;
     
     loadTiles(tilemap);
 
@@ -55,6 +57,8 @@ void drawTileMap(display_t * disp, tilemap_t * tilemap)
             if(tile > 0 && tile < 10)
             {
                 drawWsg(disp, &tilemap->tiles[tile], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY, false, false, 0);
+            } else if(tile > 127 && tilemap->tileSpawnEnabled) {
+                tileSpawnEntity(tilemap, tile >> 7, x, y);
             }
         }
     }
@@ -114,4 +118,12 @@ bool loadTiles(tilemap_t * tilemap){
     loadWsg("tile007.wsg", &tilemap->tiles[7]);
     loadWsg("tile008.wsg", &tilemap->tiles[8]);
     loadWsg("tile009.wsg", &tilemap->tiles[9]);
+}
+
+void tileSpawnEntity(tilemap_t * tilemap, uint8_t objectIndex, uint8_t tx, uint8_t ty) {
+    bool entityCreated = createEntity(tilemap->entityManager, objectIndex, (tx << TILE_SIZE_IN_POWERS_OF_2) + 8, (ty << TILE_SIZE_IN_POWERS_OF_2) + 8);
+
+    if(entityCreated) { 
+        tilemap->map[ty * tilemap->mapWidth + tx] = 0;
+    }
 }
