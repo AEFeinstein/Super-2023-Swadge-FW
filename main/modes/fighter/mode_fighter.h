@@ -162,6 +162,8 @@ typedef struct
     fighterDirection_t dir;
     int32_t shortHopTimer;
     bool isShortHop;
+    bool attackConnected;
+    int32_t damage;
     /* Animation timer */
     int32_t animTimer;
     wsg_t* currentSprite;

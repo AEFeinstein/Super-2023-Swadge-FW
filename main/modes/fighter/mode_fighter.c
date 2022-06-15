@@ -60,6 +60,8 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite,
 void checkFighterButtonInput(fighter_t* ftr);
 void updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
 void checkFighterTimer(fighter_t* ftr);
+void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr);
+void checkFighterProjectileCollisions(fighter_t* ftr, fighter_t* otherFtr, list_t* projectiles);
 void drawFighter(display_t* d, fighter_t* ftr);
 
 void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
@@ -67,6 +69,7 @@ void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
 
 void drawFighterFrame(display_t* d, const platform_t* platforms,
                       uint8_t numPlatforms);
+void drawFighterHud(display_t* d, font_t* font, fighter_t* ftr1, fighter_t* ftr2);
 
 // void fighterAccelerometerCb(accel_t* accel);
 // void fighterAudioCb(uint16_t * samples, uint32_t sampleCnt);
@@ -268,8 +271,6 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite,
  * projectiles, and pretty much everything else
  *
  * TODO
- *  - Hitbox collisions
- *  - Damage tracking
  *  - Knockback
  *  - Hitstun
  *  - Player stock tracking
@@ -298,6 +299,12 @@ void fighterMainLoop(int64_t elapsedUs)
 
         // Update projectile timers. This moves projectiles and despawns if necessary
         checkProjectileTimer(&f->projectiles, finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
+
+        // Check for collisions between hitboxes and hurtboxes
+        checkFighterHitboxCollisions(&f->fighters[0], &f->fighters[1]);
+        checkFighterHitboxCollisions(&f->fighters[1], &f->fighters[0]);
+        // Check for collisions between projectiles and hurtboxes
+        checkFighterProjectileCollisions(&f->fighters[0], &f->fighters[1], &f->projectiles);
 
         // Render the scene
         drawFighterFrame(f->d, finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
@@ -570,7 +577,6 @@ void checkFighterTimer(fighter_t* ftr)
  *
  * TODO
  *  - Don't allow transitions from all states
- *  - Short hops
  *
  * @param ftr The fighter to check buttons for
  */
@@ -1083,6 +1089,123 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
 }
 
 /**
+ * Check if ftr's hitbox collides with otherFtr's hurtbox. If it does, note that
+ * the attack connected and add damage and knockback to otherFtr
+ *
+ * @param ftr      The fighter that is attacking
+ * @param otherFtr The fighter that is being attached
+ */
+void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
+{
+    // Check hitbox and hurbox
+    if(FS_ATTACK == ftr->state)
+    {
+        if(false == ftr->attackConnected)
+        {
+            // Get a reference to the attack frame
+            attackFrame_t* atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
+
+            // If this isn't a projectile attack, check the hitbox
+            if(!atk->isProjectile)
+            {
+                // Figure out where the hitbox is relative to the fighter
+                box_t relativeHitbox = ftr->hurtbox;
+                if((ftr->dir == FACING_LEFT))
+                {
+                    // reverse the hitbox if dashing and facing left
+                    relativeHitbox.x1 = relativeHitbox.x0 + ftr->size.x - atk->hitboxPos.x;
+                    relativeHitbox.x0 = relativeHitbox.x1 - atk->hitboxSize.x;
+                }
+                else
+                {
+                    relativeHitbox.x0 += atk->hitboxPos.x;
+                    relativeHitbox.x1 = relativeHitbox.x0 + atk->hitboxSize.x;
+                }
+                relativeHitbox.y0 += atk->hitboxPos.y;
+                relativeHitbox.y1 = relativeHitbox.y0 + atk->hitboxSize.y;
+
+                if(boxesCollide(relativeHitbox, otherFtr->hurtbox))
+                {
+                    // Note the attack connected so it doesnt collide twice
+                    ftr->attackConnected = true;
+
+                    // Tally the damage
+                    otherFtr->damage += atk->damage;
+                    // TODO knockback, hitstun
+                }
+            }
+        }
+    }
+    else
+    {
+        ftr->attackConnected = false;
+    }
+}
+
+/**
+ * Check if any projectile's hitbox collides with either of the fighter's
+ * hurtboxes. If it does, despawn the projectile and add damage and knockback to
+ * the fighter who was shot.
+ *
+ * Note, once a projectile is fired, it has no owner and can hit either fighter.
+ *
+ * @param ftr1 One of the fighters to check
+ * @param ftr2 The other fighter to check
+ * @param projectiles A list of projectiles to check
+ */
+void checkFighterProjectileCollisions(fighter_t* ftr1, fighter_t* ftr2,
+                                      list_t* projectiles)
+{
+    // Check projectile collisions. Iterate through all projectiles
+    node_t* currentNode = projectiles->first;
+    while (currentNode != NULL)
+    {
+        projectile_t* proj = currentNode->val;
+
+        // Create a hurtbox for this projectile to check for collisions with hurtboxes
+        box_t projHurtbox =
+        {
+            .x0 = proj->pos.x,
+            .y0 = proj->pos.y,
+            .x1 = proj->pos.x + proj->size.x,
+            .y1 = proj->pos.y + proj->size.y,
+        };
+
+        bool removeProjectile = false;
+
+        // Check if this projectile collided the first fighter
+        if(boxesCollide(projHurtbox, ftr1->hurtbox))
+        {
+            ftr1->damage += proj->damage;
+            // TODO knockback, hitstun
+            removeProjectile = true;
+        }
+
+        // Check if this projectile collided the second fighter
+        if(boxesCollide(projHurtbox, ftr2->hurtbox))
+        {
+            ftr2->damage += proj->damage;
+            // TODO knockback, hitstun
+            removeProjectile = true;
+        }
+
+        // If the projectile collided with a fighter, remove it
+        if(removeProjectile)
+        {
+            // Iterate while removing this projectile
+            node_t* nextNode = currentNode->next;
+            removeEntry(projectiles, currentNode);
+            currentNode = nextNode;
+        }
+        else
+        {
+            // Iterate to the next projectile
+            currentNode = currentNode->next;
+        }
+    }
+}
+
+/**
  * Iterate through all projectiles, checking their timers and collisions.
  * If a projectile collides with a platform or times out, unlink and free it
  *
@@ -1152,10 +1275,7 @@ void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
 
 /**
  * Render the current frame to the display, including fighters, platforms, and
- * projectiles
- *
- * TODO
- *  - Draw HUD
+ * projectiles, and HUD
  *
  * @param d The display to draw to
  * @param platforms    A pointer to platforms to draw
@@ -1203,7 +1323,34 @@ void drawFighterFrame(display_t* d, const platform_t* platforms,
         currentNode = currentNode->next;
     }
 
+    drawFighterHud(d, &f->mm_font, &f->fighters[0], &f->fighters[1]);
+
     // drawMeleeMenu(d, &f->mm_font);
+}
+
+/**
+ * Draw the HUD, which is just the damage percentages
+ *
+ * @param d The display to draw to
+ * @param font The font to use for the damage percentages
+ * @param ftr1 The first fighter to draw damage percent for
+ * @param ftr2 The second fighter to draw damage percent for
+ */
+void drawFighterHud(display_t* d, font_t* font, fighter_t* ftr1, fighter_t* ftr2)
+{
+    char dmgStr[8];
+    uint16_t tWidth;
+    uint16_t xPos;
+
+    snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", ftr1->damage);
+    tWidth = textWidth(font, dmgStr);
+    xPos = (d->w / 3) - (tWidth / 2);
+    drawText(d, font, c555, dmgStr, xPos, d->h - font->h - 2);
+
+    snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", ftr2->damage);
+    tWidth = textWidth(font, dmgStr);
+    xPos = (2 * (d->w / 3)) - (tWidth / 2);
+    drawText(d, font, c555, dmgStr, xPos, d->h - font->h - 2);
 }
 
 /**
