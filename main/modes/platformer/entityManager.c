@@ -129,7 +129,11 @@ bool createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint16_t 
 
     switch(objectIndex){
         case ENTITY_PLAYER:
+            createSuccess = createPlayer(entityManager, x, y);
+            break;
+        case ENTITY_TEST:
             createSuccess = createTestObject(entityManager, x, y);
+            break;
         default:
             ;
     }
