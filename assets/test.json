@@ -26,10 +26,9 @@
                      "relativePos_y":-24,
                      "size_x":12,
                      "size_y":24,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   },
@@ -39,10 +38,9 @@
                      "relativePos_y":-24,
                      "size_x":12,
                      "size_y":24,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -60,10 +58,9 @@
                      "relativePos_y":12,
                      "size_x":48,
                      "size_y":12,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -81,10 +78,9 @@
                      "relativePos_y":8,
                      "size_x":32,
                      "size_y":8,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -102,10 +98,9 @@
                      "relativePos_y":8,
                      "size_x":19,
                      "size_y":11,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg",
 
@@ -131,10 +126,9 @@
                      "relativePos_y":2,
                      "size_x":20,
                      "size_y":20,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -152,10 +146,9 @@
                      "relativePos_y":-4,
                      "size_x":20,
                      "size_y":10,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -173,10 +166,9 @@
                      "relativePos_y":12,
                      "size_x":20,
                      "size_y":10,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":-7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -194,10 +186,9 @@
                      "relativePos_y":-16,
                      "size_x":8,
                      "size_y":24,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":0,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -215,10 +206,9 @@
                      "relativePos_y":20,
                      "size_x":8,
                      "size_y":24,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":0,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -254,10 +244,9 @@
                      "relativePos_y":0,
                      "size_x":0,
                      "size_y":0,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -275,10 +264,9 @@
                      "relativePos_y":0,
                      "size_x":0,
                      "size_y":0,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -296,10 +284,9 @@
                      "relativePos_y":0,
                      "size_x":0,
                      "size_y":0,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -317,10 +304,9 @@
                      "relativePos_y":0,
                      "size_x":0,
                      "size_y":0,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -338,10 +324,9 @@
                      "relativePos_y":0,
                      "size_x":0,
                      "size_y":0,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -359,10 +344,9 @@
                      "relativePos_y":0,
                      "size_x":0,
                      "size_y":0,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -380,10 +364,9 @@
                      "relativePos_y":0,
                      "size_x":0,
                      "size_y":0,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":-7680,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -401,10 +384,9 @@
                      "relativePos_y":0,
                      "size_x":0,
                      "size_y":0,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":0,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
@@ -422,10 +404,9 @@
                      "relativePos_y":0,
                      "size_x":0,
                      "size_y":0,
-                     "damage":1,
-                     "knockback":0,
-                     "knockbackAng_x":0,
-                     "knockbackAng_y":0,
+                     "damage":9,
+                     "knockback_x":0,
+                     "knockback_y":-7680,
                      "hitstun":0,
                      "sprite":"ki0.wsg"
                   }
