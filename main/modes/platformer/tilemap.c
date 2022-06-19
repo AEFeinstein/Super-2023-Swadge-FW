@@ -44,6 +44,10 @@ void drawTileMap(display_t * disp, tilemap_t * tilemap)
 {
     for(uint16_t y = (tilemap->mapOffsetY >> TILE_SIZE_IN_POWERS_OF_2); y < (tilemap->mapOffsetY >> TILE_SIZE_IN_POWERS_OF_2) + TILEMAP_DISPLAY_HEIGHT_TILES; y++)
     {
+        if(y >= tilemap->mapHeight){
+            break;
+        }
+        
         for(uint16_t x = (tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2); x < (tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2) + TILEMAP_DISPLAY_WIDTH_TILES; x++)
         {
             uint8_t tile = tilemap->map[(y * tilemap->mapWidth) + x];
