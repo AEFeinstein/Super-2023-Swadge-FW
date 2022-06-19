@@ -61,7 +61,7 @@ void checkFighterButtonInput(fighter_t* ftr);
 void updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
 void checkFighterTimer(fighter_t* ftr);
 void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr);
-void checkFighterProjectileCollisions(fighter_t* ftr, fighter_t* otherFtr, list_t* projectiles);
+void checkFighterProjectileCollisions(list_t* projectiles);
 void drawFighter(display_t* d, fighter_t* ftr);
 
 void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
@@ -181,6 +181,10 @@ void fighterEnterMode(display_t* disp)
     // Set the initial sprites
     setFighterState((&f->fighters[0]), FS_IDLE, f->fighters[0].idleSprite0);
     setFighterState((&f->fighters[1]), FS_IDLE, f->fighters[1].idleSprite0);
+
+    // Start both fighters in the middle of the stage
+    f->fighters[0].hurtbox.x0 = (f->d->w/2) * SF;
+    f->fighters[1].hurtbox.x0 = (f->d->w/2) * SF;
 
     // Set some LEDs, just because
     static led_t leds[NUM_LEDS] =
@@ -304,7 +308,7 @@ void fighterMainLoop(int64_t elapsedUs)
         checkFighterHitboxCollisions(&f->fighters[0], &f->fighters[1]);
         checkFighterHitboxCollisions(&f->fighters[1], &f->fighters[0]);
         // Check for collisions between projectiles and hurtboxes
-        checkFighterProjectileCollisions(&f->fighters[0], &f->fighters[1], &f->projectiles);
+        checkFighterProjectileCollisions(&f->projectiles);
 
         // Render the scene
         drawFighterFrame(f->d, finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
@@ -560,7 +564,6 @@ void checkFighterTimer(fighter_t* ftr)
             }
             proj->pos.y           = ftr->hurtbox.y0 + atk->hitboxPos.y;
             proj->duration        = atk->projDuration;
-            proj->knockbackAng    = atk->knockbackAng;
             proj->knockback       = atk->knockback;
             proj->damage          = atk->damage;
             proj->hitstun         = atk->hitstun;
@@ -1131,7 +1134,27 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
 
                     // Tally the damage
                     otherFtr->damage += atk->damage;
-                    // TODO knockback, hitstun
+
+                    // Apply the knockback, scaled by damage
+                    // roughly (1 + (0.02 * dmg))
+                    int32_t knockbackScalar = 64 + (otherFtr->damage);
+                    if(FACING_RIGHT == ftr->dir)
+                    {
+                        otherFtr->velocity.x += ((atk->knockback.x * knockbackScalar) / 64);
+                    }
+                    else
+                    {
+                        otherFtr->velocity.x -= ((atk->knockback.x * knockbackScalar) / 64);
+                    }
+                    otherFtr->velocity.y += ((atk->knockback.y * knockbackScalar) / 64);
+
+                    // Knock the fighter into the air
+                    if(ABOVE_PLATFORM == otherFtr->relativePos)
+                    {
+                        otherFtr->relativePos = FREE_FLOATING;
+                    }
+
+                    // TODO apply hitstun
                 }
             }
         }
@@ -1149,12 +1172,9 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
  *
  * Note, once a projectile is fired, it has no owner and can hit either fighter.
  *
- * @param ftr1 One of the fighters to check
- * @param ftr2 The other fighter to check
  * @param projectiles A list of projectiles to check
  */
-void checkFighterProjectileCollisions(fighter_t* ftr1, fighter_t* ftr2,
-                                      list_t* projectiles)
+void checkFighterProjectileCollisions(list_t* projectiles)
 {
     // Check projectile collisions. Iterate through all projectiles
     node_t* currentNode = projectiles->first;
@@ -1173,20 +1193,40 @@ void checkFighterProjectileCollisions(fighter_t* ftr1, fighter_t* ftr2,
 
         bool removeProjectile = false;
 
-        // Check if this projectile collided the first fighter
-        if(boxesCollide(projHurtbox, ftr1->hurtbox))
+        // For each fighter
+        for(uint8_t i = 0; i < f->numFighters; i++)
         {
-            ftr1->damage += proj->damage;
-            // TODO knockback, hitstun
-            removeProjectile = true;
-        }
+            // Get a convenience pointer
+            fighter_t * ftr = &f->fighters[i];
+            // Check if this projectile collided the first fighter
+            if(boxesCollide(projHurtbox, ftr->hurtbox))
+            {
+                // Tally the damage
+                ftr->damage += proj->damage;
 
-        // Check if this projectile collided the second fighter
-        if(boxesCollide(projHurtbox, ftr2->hurtbox))
-        {
-            ftr2->damage += proj->damage;
-            // TODO knockback, hitstun
-            removeProjectile = true;
+                // Apply the knockback, scaled by damage
+                // roughly (1 + (0.02 * dmg))
+                int32_t knockbackScalar = 64 + (ftr->damage);
+                if(FACING_RIGHT == proj->dir)
+                {
+                    ftr->velocity.x += ((proj->knockback.x * knockbackScalar) / 64);
+                }
+                else
+                {
+                    ftr->velocity.x -= ((proj->knockback.x * knockbackScalar) / 64);
+                }
+                ftr->velocity.y += ((proj->knockback.y * knockbackScalar) / 64);
+                // Knock the fighter into the air
+                if(ABOVE_PLATFORM == ftr->relativePos)
+                {
+                    ftr->relativePos = FREE_FLOATING;
+                }
+
+                // TODO apply hitstun
+
+                // Mark this projectile for removal
+                removeProjectile = true;
+            }
         }
 
         // If the projectile collided with a fighter, remove it
