@@ -57,6 +57,7 @@ void updatePlayer(entity_t * self) {
 void updateTestObject(entity_t * self) {
     self->spriteIndex = (self->spriteIndex + 1) % 3;
 
+    /*
     self->xspeed += 1;
     if(self->xspeed > 32) {
         self->xspeed = -32;
@@ -66,7 +67,8 @@ void updateTestObject(entity_t * self) {
     if(self->yspeed > 64) {
         self->yspeed = -64;
     }
-
+    */
+   
     self->x += self->xspeed;
     self->y += self->yspeed;
 
