@@ -46,6 +46,9 @@ struct entity_t
 
     tilemap_t * tilemap;
     gameData_t * gameData;
+
+    uint8_t homeTileX;
+    uint8_t homeTileY;
 };
 
 //==============================================================================
@@ -58,5 +61,9 @@ void updatePlayer(entity_t * self) ;
 void updateTestObject(entity_t * self);
 
 void moveEntityWithTileCollisions(entity_t * self);
+
+void despawnWhenOffscreen(entity_t *self);
+
+void destroyEntity(entity_t *self, bool respawn);
 
 #endif

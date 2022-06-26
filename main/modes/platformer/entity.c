@@ -15,6 +15,9 @@
 #define TILE_SIZE_IN_POWERS_OF_2 4
 #define TILE_SIZE 16
 #define HALF_TILE_SIZE 8
+#define TILEMAP_DISPLAY_WIDTH_PIXELS 240   //The screen size
+#define TILEMAP_DISPLAY_HEIGHT_PIXELS 240  //The screen size
+#define DESPAWN_THRESHOLD 64
 
 #define SIGNOF(x) ((x > 0) - (x < 0))
 #define TO_TILE_COORDS(x) (x >> TILE_SIZE_IN_POWERS_OF_2)
@@ -28,6 +31,8 @@ void initializeEntity(entity_t * entity, tilemap_t * tilemap, gameData_t * gameD
     entity->active = false;
     entity->tilemap = tilemap;
     entity->gameData = gameData;
+    entity->homeTileX = 0;
+    entity->homeTileY = 0;
 };
 
 void updatePlayer(entity_t * self) {
@@ -65,6 +70,7 @@ void updateTestObject(entity_t * self) {
     self->x += self->xspeed;
     self->y += self->yspeed;
 
+    despawnWhenOffscreen(self);
     //moveEntityWithTileCollisions(self);
 };
 
@@ -136,4 +142,24 @@ void moveEntityWithTileCollisions(entity_t * self){
 
     self->x = newX+self->xspeed;
     self->y = newY+self->yspeed;
+}
+
+void despawnWhenOffscreen(entity_t *self){
+    if(
+        (self->x >> SUBPIXEL_RESOLUTION) < (self->tilemap->mapOffsetX - DESPAWN_THRESHOLD) || 
+        (self->x >> SUBPIXEL_RESOLUTION) > (self->tilemap->mapOffsetX + TILEMAP_DISPLAY_WIDTH_PIXELS + DESPAWN_THRESHOLD) || 
+        (self->y >> SUBPIXEL_RESOLUTION) < (self->tilemap->mapOffsetY - DESPAWN_THRESHOLD) || 
+        (self->y >> SUBPIXEL_RESOLUTION) > (self->tilemap->mapOffsetY + TILEMAP_DISPLAY_HEIGHT_PIXELS + DESPAWN_THRESHOLD)
+    ) {
+        destroyEntity(self, true);
+    }
+}
+
+void destroyEntity(entity_t *self, bool respawn) {
+    if(respawn && !(self->homeTileX == 0 && self->homeTileY == 0)){
+        self->tilemap->map[self->homeTileY * self->tilemap->mapWidth + self->homeTileX] = self->type << 7;
+    }
+    
+    //self->entityManager->activeEntities--;
+    self->active = false;
 }

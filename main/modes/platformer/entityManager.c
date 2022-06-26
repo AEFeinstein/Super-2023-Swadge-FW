@@ -120,33 +120,37 @@ void viewFollowEntity(tilemap_t * tilemap, entity_t * entity){
     //}
 }
 
-bool createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint16_t x, uint16_t y){
-    if(entityManager->activeEntities == MAX_ENTITIES){
-        return false;
-    }
+entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint16_t x, uint16_t y){
+    //if(entityManager->activeEntities == MAX_ENTITIES){
+    //    return NULL;
+    //}
 
-    bool createSuccess = false;
+    entity_t *createdEntity;
 
     switch(objectIndex){
         case ENTITY_PLAYER:
-            createSuccess = createPlayer(entityManager, x, y);
+            createdEntity = createPlayer(entityManager, x, y);
             break;
         case ENTITY_TEST:
-            createSuccess = createTestObject(entityManager, x, y);
+            createdEntity = createTestObject(entityManager, x, y);
             break;
         default:
             ;
     }
 
-    return createSuccess;
+    //if(createdEntity != NULL) {
+    //    entityManager->activeEntities++;
+    //}
+
+    return createdEntity;
 }
 
-bool createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
+entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
 {
     entity_t * entity = findInactiveEntity(entityManager);
 
     if(entity == NULL) {
-        return false;
+        return NULL;
     }
 
     entity->active = true;
@@ -157,15 +161,15 @@ bool createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->spriteIndex = 1;
     entity->updateFunction = &updatePlayer;
 
-    return true;
+    return entity;
 }
 
-bool createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t y)
+entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t y)
 {
     entity_t * entity = findInactiveEntity(entityManager);
 
     if(entity == NULL) {
-        return false;
+        return NULL;
     }
 
     entity->active = true;
@@ -176,5 +180,5 @@ bool createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->spriteIndex = 1;
     entity->updateFunction = &updateTestObject;
 
-    return true;
+    return entity;
 }

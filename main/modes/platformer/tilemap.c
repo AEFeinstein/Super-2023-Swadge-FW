@@ -125,9 +125,11 @@ bool loadTiles(tilemap_t * tilemap){
 }
 
 void tileSpawnEntity(tilemap_t * tilemap, uint8_t objectIndex, uint8_t tx, uint8_t ty) {
-    bool entityCreated = createEntity(tilemap->entityManager, objectIndex, (tx << TILE_SIZE_IN_POWERS_OF_2) + 8, (ty << TILE_SIZE_IN_POWERS_OF_2) + 8);
+    entity_t *entityCreated = createEntity(tilemap->entityManager, objectIndex, (tx << TILE_SIZE_IN_POWERS_OF_2) + 8, (ty << TILE_SIZE_IN_POWERS_OF_2) + 8);
 
-    if(entityCreated) { 
+    if(entityCreated != NULL) {
+        entityCreated->homeTileX = tx;
+        entityCreated->homeTileY = ty;
         tilemap->map[ty * tilemap->mapWidth + tx] = 0;
     }
 }

@@ -38,8 +38,8 @@ void drawEntities(display_t * disp, entityManager_t * entityManager);
 entity_t * findInactiveEntity(entityManager_t * entityManager);
 
 void viewFollowEntity(tilemap_t * tilemap, entity_t * entity);
-bool createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint16_t x, uint16_t y);
-bool createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y);
-bool createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t y);
+entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint16_t x, uint16_t y);
+entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y);
+entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t y);
 
 #endif
