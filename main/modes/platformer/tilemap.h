@@ -32,6 +32,9 @@
     int16_t maxMapOffsetY;
 
     bool tileSpawnEnabled;
+    int16_t executeTileSpawnColumn;
+    int16_t executeTileSpawnRow;
+
     entityManager_t *entityManager;
 } ;
 

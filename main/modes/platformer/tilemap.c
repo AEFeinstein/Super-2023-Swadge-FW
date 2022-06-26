@@ -34,7 +34,9 @@ void initializeTileMap(tilemap_t * tilemap)
     tilemap->mapOffsetY = 0;
 
     tilemap->tileSpawnEnabled = false;
-    
+    tilemap->executeTileSpawnColumn = -1;
+    tilemap->executeTileSpawnRow = -1;
+
     loadTiles(tilemap);
 
     loadMapFromFile(tilemap, "level_test.bin");
@@ -61,7 +63,7 @@ void drawTileMap(display_t * disp, tilemap_t * tilemap)
             if(tile > 0 && tile < 10)
             {
                 drawWsg(disp, &tilemap->tiles[tile], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY, false, false, 0);
-            } else if(tile > 127 && tilemap->tileSpawnEnabled) {
+            } else if(tile > 127 && tilemap->tileSpawnEnabled && tilemap->executeTileSpawnColumn == x) {
                 tileSpawnEntity(tilemap, tile >> 7, x, y);
             }
         }
@@ -70,7 +72,17 @@ void drawTileMap(display_t * disp, tilemap_t * tilemap)
 
 void scrollTileMap(tilemap_t * tilemap, int16_t x, int16_t y) {
     if(x != 0){
+        uint8_t oldTx = tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2;
         tilemap->mapOffsetX = CLAMP(tilemap->mapOffsetX + x, tilemap->minMapOffsetX, tilemap->maxMapOffsetX);
+        uint8_t newTx = tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2;
+
+        if(newTx > oldTx) {
+            tilemap->executeTileSpawnColumn = oldTx + TILEMAP_DISPLAY_WIDTH_TILES;
+        } else if(newTx < oldTx) {
+            tilemap->executeTileSpawnColumn = newTx;
+        } else {
+            tilemap->executeTileSpawnColumn = -1;
+        }
     }
 
     if(y != 0){
