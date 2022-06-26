@@ -52,6 +52,10 @@ void drawTileMap(display_t * disp, tilemap_t * tilemap)
         
         for(uint16_t x = (tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2); x < (tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2) + TILEMAP_DISPLAY_WIDTH_TILES; x++)
         {
+            if(x >= tilemap->mapWidth){
+                break;
+            }
+
             uint8_t tile = tilemap->map[(y * tilemap->mapWidth) + x];
 
             //Test animated tiles
