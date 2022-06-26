@@ -144,7 +144,7 @@ void platformerMainLoop(int64_t elapsedUs)
     
         updateEntities(&(platformer->entityManager));
 
-        drawTileMap(platformer->disp, &platformer->tilemap);
+        drawTileMap(platformer->disp, &(platformer->tilemap));
         drawEntities(platformer->disp, &(platformer->entityManager));
     }
 }
