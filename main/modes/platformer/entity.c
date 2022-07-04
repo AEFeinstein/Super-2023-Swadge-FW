@@ -34,6 +34,7 @@ void initializeEntity(entity_t * entity, tilemap_t * tilemap, gameData_t * gameD
     entity->homeTileX = 0;
     entity->homeTileY = 0;
     entity->gravity = false;
+    entity->falling = false;
 };
 
 void updatePlayer(entity_t * self) {
@@ -68,6 +69,11 @@ void updatePlayer(entity_t * self) {
         if(self->yspeed > self->yMaxSpeed){
             self->yspeed = self->yMaxSpeed;
         }
+    }
+
+    if(!self->falling && !(self->gameData->prevBtnState & BTN_A) && (self->gameData->btnState & BTN_A)) {
+         self->yspeed = -256;
+         self->falling = true;
     }
 
     moveEntityWithTileCollisions(self);
