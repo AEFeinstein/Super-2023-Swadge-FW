@@ -166,21 +166,20 @@ void moveEntityWithTileCollisions(entity_t * self){
 
             if(!self->falling) {
                 uint8_t newBelowTile=self->tilemap->map[(ty + 1) * self->tilemap->mapWidth + tx];
-
-                if(newBelowTile == 0){
+                
+                if(!newBelowTile){
                     self->falling = true;
                 }
             }
         }
     }
 
-    //Handle literal corner case
-    if(!collision && self->xspeed !=0 && self->yspeed != 0){
-        uint8_t t = self->tilemap->map[ty * self->tilemap->mapWidth + tx];
+    //Are we inside a block? Push self out of block
+    uint8_t t = self->tilemap->map[ty * self->tilemap->mapWidth + tx];
 
-        if(t > 0){
-            self->yspeed = -self->yspeed;
-        }
+    if(t > 0){
+        self->yspeed = -self->yspeed;
+        self->xspeed = -self->xspeed;
     }
 
     self->x = newX+self->xspeed;
