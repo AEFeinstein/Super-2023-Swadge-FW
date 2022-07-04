@@ -52,6 +52,7 @@ typedef struct
     int16_t scroll_yspeed;
 
     int16_t btnState;
+    int16_t prevBtnState;
 
     int32_t frameTimer;
 } platformer_t;
@@ -99,6 +100,7 @@ void platformerEnterMode(display_t * disp)
     platformer->scroll_xspeed = 2;
     platformer->scroll_yspeed = 0;
     platformer->btnState = 0;
+    platformer->prevBtnState = 0;
 
     initializeTileMap(&(platformer->tilemap));
     initializeGameData(&(platformer->gameData));
@@ -146,6 +148,9 @@ void platformerMainLoop(int64_t elapsedUs)
 
         drawTileMap(platformer->disp, &(platformer->tilemap));
         drawEntities(platformer->disp, &(platformer->entityManager));
+
+        platformer->prevBtnState = platformer->btnState;
+        platformer->gameData.prevBtnState = platformer->prevBtnState;
     }
 }
 

@@ -14,6 +14,7 @@
 typedef struct 
 {
     int16_t btnState;
+    int16_t prevBtnState;
     uint8_t gameState;
 
     uint32_t score;
