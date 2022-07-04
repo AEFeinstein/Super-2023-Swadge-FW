@@ -159,3 +159,17 @@ void tileSpawnEntity(tilemap_t * tilemap, uint8_t objectIndex, uint8_t tx, uint8
         tilemap->map[ty * tilemap->mapWidth + tx] = 0;
     }
 }
+
+uint8_t getTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty){
+    //ty = CLAMP(ty, 0, tilemap->mapHeight - 1);
+
+    if(/*ty < 0 ||*/ ty >= tilemap->mapHeight){
+        return 0;
+    }
+
+    if(/*tx < 0 ||*/ tx >= tilemap->mapWidth){
+        return 1;
+    }
+
+    return tilemap->map[ty * tilemap->mapWidth + tx];
+}

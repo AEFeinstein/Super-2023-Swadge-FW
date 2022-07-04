@@ -48,5 +48,6 @@ void drawTile(tilemap_t * tilemap, uint8_t tileId, int16_t x, int16_t y);
 bool loadMapFromFile(tilemap_t * tilemap, char * name);
 bool loadTiles(tilemap_t * tilemap);
 void tileSpawnEntity(tilemap_t * tilemap, uint8_t objectIndex, uint8_t tx, uint8_t ty);
+uint8_t getTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty);
 
 #endif
