@@ -33,6 +33,7 @@ void initializeEntity(entity_t * entity, tilemap_t * tilemap, gameData_t * gameD
     entity->gameData = gameData;
     entity->homeTileX = 0;
     entity->homeTileY = 0;
+    entity->gravity = false;
 };
 
 void updatePlayer(entity_t * self) {
@@ -70,6 +71,7 @@ void updatePlayer(entity_t * self) {
     }
 
     moveEntityWithTileCollisions(self);
+    applyGravity(self);
     applyDamping(self);
 };
 
@@ -120,6 +122,12 @@ void moveEntityWithTileCollisions(entity_t * self){
             uint8_t newVerticalTile = self->tilemap->map[newTy * self->tilemap->mapWidth + tx];
 
             if(newVerticalTile > 0) {
+
+                if(self->yspeed > 0) {
+                    //Landed on platform
+                    self->falling = false;
+                }
+
                 collision = true;
                 self->yspeed = 0;
                 newY=((ty + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
@@ -148,6 +156,14 @@ void moveEntityWithTileCollisions(entity_t * self){
                 collision = true;
                 self->xspeed = 0;
                 newX=((tx + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+            }
+
+            if(!self->falling) {
+                uint8_t newBelowTile=self->tilemap->map[(ty + 1) * self->tilemap->mapWidth + tx];
+
+                if(newBelowTile == 0){
+                    self->falling = true;
+                }
             }
         }
     }
@@ -180,8 +196,7 @@ void applyDamping(entity_t *self){
         }
     }
     
-    //TODO: remove this after implementing jumping/gravity
-    if(self->gravity != 0){
+    if(self->gravityEnabled){
         return;
     }
 
@@ -197,6 +212,18 @@ void applyDamping(entity_t *self){
         if(self->yspeed > 0) {
             self->yspeed = 0;
         }
+    }
+}
+
+void applyGravity(entity_t *self){
+    if(!self->gravityEnabled || !self->falling) {
+        return;
+    }
+
+    self->yspeed += self->gravity;
+
+    if(self->yspeed > self->yMaxSpeed){
+        self->yspeed = self->yMaxSpeed;
     }
 }
 

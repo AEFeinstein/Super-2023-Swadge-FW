@@ -46,6 +46,7 @@ struct entity_t
     int16_t xDamping;
     int16_t yDamping;
 
+    bool gravityEnabled;
     int16_t gravity;
     bool falling;
 
@@ -75,5 +76,7 @@ void despawnWhenOffscreen(entity_t *self);
 void destroyEntity(entity_t *self, bool respawn);
 
 void applyDamping(entity_t *self);
+
+void applyGravity(entity_t *self);
 
 #endif
