@@ -39,7 +39,15 @@ struct entity_t
     
     int16_t xspeed;
     int16_t yspeed;
+
+    int16_t xMaxSpeed;
+    int16_t yMaxSpeed;
+
+    int16_t xDamping;
+    int16_t yDamping;
+
     int16_t gravity;
+    bool falling;
 
     uint8_t spriteIndex;
     uint8_t animationTimer;
@@ -65,5 +73,7 @@ void moveEntityWithTileCollisions(entity_t * self);
 void despawnWhenOffscreen(entity_t *self);
 
 void destroyEntity(entity_t *self, bool respawn);
+
+void applyDamping(entity_t *self);
 
 #endif

@@ -39,19 +39,38 @@ void updatePlayer(entity_t * self) {
     self->spriteIndex = (self->spriteIndex + 1) % 3;
 
     if(self->gameData->btnState & LEFT){
-        self->xspeed -= 2;
+        self->xspeed -= 16;
+
+        if(self->xspeed < -self->xMaxSpeed){
+            self->xspeed = -self->xMaxSpeed;
+        }
+
     } else if(self->gameData->btnState & RIGHT){
-        self->xspeed += 2;
+        self->xspeed += 16;
+
+        if(self->xspeed > self->xMaxSpeed){
+            self->xspeed = self->xMaxSpeed;
+        }
     }
 
 
     if(self->gameData->btnState & UP){
-        self->yspeed -= 2;
+        self->yspeed -= 16;
+
+         if(self->yspeed < -self->yMaxSpeed){
+            self->yspeed = -self->yMaxSpeed;
+        }
+
     } else if(self->gameData->btnState & DOWN){
-        self->yspeed += 2;
+        self->yspeed += 16;
+
+        if(self->yspeed > self->yMaxSpeed){
+            self->yspeed = self->yMaxSpeed;
+        }
     }
 
     moveEntityWithTileCollisions(self);
+    applyDamping(self);
 };
 
 void updateTestObject(entity_t * self) {
@@ -144,6 +163,41 @@ void moveEntityWithTileCollisions(entity_t * self){
 
     self->x = newX+self->xspeed;
     self->y = newY+self->yspeed;
+}
+
+void applyDamping(entity_t *self){
+    if(self->xspeed > 0) {
+        self->xspeed -= self->xDamping;
+        
+        if(self->xspeed < 0) {
+            self->xspeed = 0;
+        }
+    } else if(self->xspeed < 0) {
+        self->xspeed += self->xDamping;
+        
+        if(self->xspeed > 0) {
+            self->xspeed = 0;
+        }
+    }
+    
+    //TODO: remove this after implementing jumping/gravity
+    if(self->gravity != 0){
+        return;
+    }
+
+    if(self->yspeed > 0) {
+        self->yspeed -= self->yDamping;
+        
+        if(self->yspeed < 0) {
+            self->yspeed = 0;
+        }
+    } else if(self->yspeed < 0) {
+        self->yspeed += self->yDamping;
+        
+        if(self->yspeed > 0) {
+            self->yspeed = 0;
+        }
+    }
 }
 
 void despawnWhenOffscreen(entity_t *self){
