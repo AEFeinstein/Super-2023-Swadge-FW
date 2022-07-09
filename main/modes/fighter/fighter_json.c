@@ -52,9 +52,8 @@ typedef enum
     PARSING_FIGHTER_ATTACK_FRAME_ATTR_SIZE_X,
     PARSING_FIGHTER_ATTACK_FRAME_ATTR_SIZE_Y,
     PARSING_FIGHTER_ATTACK_FRAME_ATTR_DAMAGE,
-    PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK,
-    PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_X,
-    PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_Y,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_X,
+    PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_Y,
     PARSING_FIGHTER_ATTACK_FRAME_ATTR_HITSTUN,
     PARSING_FIGHTER_ATTACK_FRAME_ATTR_SPRITE,
     PARSING_FIGHTER_ATTACK_FRAME_ATTR_ISPROJECTILE,
@@ -577,17 +576,13 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
                 {
                     ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_DAMAGE;
                 }
-                else if (jsoneq(jsonStr, &t[i], "knockback") == 0)
+                else if (jsoneq(jsonStr, &t[i], "knockback_x") == 0)
                 {
-                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK;
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_X;
                 }
-                else if (jsoneq(jsonStr, &t[i], "knockbackAng_x") == 0)
+                else if (jsoneq(jsonStr, &t[i], "knockback_y") == 0)
                 {
-                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_X;
-                }
-                else if (jsoneq(jsonStr, &t[i], "knockbackAng_y") == 0)
-                {
-                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_Y;
+                    ps = PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_Y;
                 }
                 else if (jsoneq(jsonStr, &t[i], "hitstun") == 0)
                 {
@@ -633,9 +628,8 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_SIZE_X:
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_SIZE_Y:
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_DAMAGE:
-            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK:
-            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_X:
-            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_Y:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_X:
+            case PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_Y:
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_HITSTUN:
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_SPRITE:
             case PARSING_FIGHTER_ATTACK_FRAME_ATTR_ISPROJECTILE:
@@ -682,19 +676,14 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
                         cAttack->attackFrames[cAttackIdx].damage = jsonInteger(jsonStr, t[i]);
                         break;
                     }
-                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK:
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_X:
                     {
-                        cAttack->attackFrames[cAttackIdx].knockback = jsonInteger(jsonStr, t[i]);
+                        cAttack->attackFrames[cAttackIdx].knockback.x = jsonInteger(jsonStr, t[i]);
                         break;
                     }
-                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_X:
+                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_Y:
                     {
-                        cAttack->attackFrames[cAttackIdx].knockbackAng.x = jsonInteger(jsonStr, t[i]);
-                        break;
-                    }
-                    case PARSING_FIGHTER_ATTACK_FRAME_ATTR_KNOCKBACK_ANG_Y:
-                    {
-                        cAttack->attackFrames[cAttackIdx].knockbackAng.y = jsonInteger(jsonStr, t[i]);
+                        cAttack->attackFrames[cAttackIdx].knockback.y = jsonInteger(jsonStr, t[i]);
                         break;
                     }
                     case PARSING_FIGHTER_ATTACK_FRAME_ATTR_HITSTUN:

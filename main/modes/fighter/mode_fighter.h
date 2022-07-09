@@ -75,8 +75,7 @@ typedef struct
     vector_t velo;
     vector_t accel;
 
-    vector_t knockbackAng;
-    uint16_t knockback;
+    vector_t knockback;
     uint16_t duration;
     uint16_t damage;
     uint16_t hitstun;
@@ -91,8 +90,7 @@ typedef struct
     vector_t hitboxPos;
     vector_t hitboxSize;
     uint16_t damage;
-    uint16_t knockback;
-    vector_t knockbackAng;
+    vector_t knockback;
     uint16_t hitstun;
     wsg_t* sprite;
 
@@ -160,6 +158,10 @@ typedef struct
     int32_t stateTimer;
     int32_t fallThroughTimer;
     fighterDirection_t dir;
+    int32_t shortHopTimer;
+    bool isShortHop;
+    bool attackConnected;
+    int32_t damage;
     /* Animation timer */
     int32_t animTimer;
     wsg_t* currentSprite;

@@ -60,6 +60,8 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite,
 void checkFighterButtonInput(fighter_t* ftr);
 void updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
 void checkFighterTimer(fighter_t* ftr);
+void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr);
+void checkFighterProjectileCollisions(list_t* projectiles);
 void drawFighter(display_t* d, fighter_t* ftr);
 
 void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
@@ -67,6 +69,7 @@ void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
 
 void drawFighterFrame(display_t* d, const platform_t* platforms,
                       uint8_t numPlatforms);
+void drawFighterHud(display_t* d, font_t* font, fighter_t* ftr1, fighter_t* ftr2);
 
 // void fighterAccelerometerCb(accel_t* accel);
 // void fighterAudioCb(uint16_t * samples, uint32_t sampleCnt);
@@ -179,6 +182,10 @@ void fighterEnterMode(display_t* disp)
     setFighterState((&f->fighters[0]), FS_IDLE, f->fighters[0].idleSprite0);
     setFighterState((&f->fighters[1]), FS_IDLE, f->fighters[1].idleSprite0);
 
+    // Start both fighters in the middle of the stage
+    f->fighters[0].hurtbox.x0 = (f->d->w/2) * SF;
+    f->fighters[1].hurtbox.x0 = (f->d->w/2) * SF;
+
     // Set some LEDs, just because
     static led_t leds[NUM_LEDS] =
     {
@@ -268,8 +275,6 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite,
  * projectiles, and pretty much everything else
  *
  * TODO
- *  - Hitbox collisions
- *  - Damage tracking
  *  - Knockback
  *  - Hitstun
  *  - Player stock tracking
@@ -298,6 +303,12 @@ void fighterMainLoop(int64_t elapsedUs)
 
         // Update projectile timers. This moves projectiles and despawns if necessary
         checkProjectileTimer(&f->projectiles, finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
+
+        // Check for collisions between hitboxes and hurtboxes
+        checkFighterHitboxCollisions(&f->fighters[0], &f->fighters[1]);
+        checkFighterHitboxCollisions(&f->fighters[1], &f->fighters[0]);
+        // Check for collisions between projectiles and hurtboxes
+        checkFighterProjectileCollisions(&f->projectiles);
 
         // Render the scene
         drawFighterFrame(f->d, finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
@@ -437,6 +448,18 @@ void checkFighterTimer(fighter_t* ftr)
         }
     }
 
+    // Decrement the short hop timer
+    if(ftr->shortHopTimer > 0)
+    {
+        ftr->shortHopTimer--;
+        // If the timer expires and the button has already been released
+        if((0 == ftr->shortHopTimer) && (true == ftr->isShortHop))
+        {
+            // Short hop by killing velocity
+            ftr->velocity.y = 0;
+        }
+    }
+
     // Decrement the timer checking double-down-presses to fall through platforms
     if(ftr->fallThroughTimer > 0)
     {
@@ -541,7 +564,6 @@ void checkFighterTimer(fighter_t* ftr)
             }
             proj->pos.y           = ftr->hurtbox.y0 + atk->hitboxPos.y;
             proj->duration        = atk->projDuration;
-            proj->knockbackAng    = atk->knockbackAng;
             proj->knockback       = atk->knockback;
             proj->damage          = atk->damage;
             proj->hitstun         = atk->hitstun;
@@ -558,7 +580,6 @@ void checkFighterTimer(fighter_t* ftr)
  *
  * TODO
  *  - Don't allow transitions from all states
- *  - Short hops
  *
  * @param ftr The fighter to check buttons for
  */
@@ -571,6 +592,12 @@ void checkFighterButtonInput(fighter_t* ftr)
         {
             if(ftr->numJumps > 0)
             {
+                // Only set short hop timer on the first jump
+                if(2 == ftr->numJumps)
+                {
+                    ftr->shortHopTimer = 125 / FRAME_TIME_MS;
+                    ftr->isShortHop = false;
+                }
                 ftr->numJumps--;
                 ftr->velocity.y = ftr->jump_velo;
                 ftr->relativePos = FREE_FLOATING;
@@ -578,6 +605,15 @@ void checkFighterButtonInput(fighter_t* ftr)
                 setFighterState(ftr, FS_JUMP, ftr->jumpSprite);
             }
         }
+    }
+
+    // Releasing A when the short hop timer is active will do a short hop
+    if((ftr->shortHopTimer > 0) &&
+            (ftr->prevBtnState & BTN_A) && !(ftr->btnState & BTN_A))
+    {
+        // Set this boolean, but don't stop the timer! The short hop will peak
+        // when the timer expires, at a nice consistent height
+        ftr->isShortHop = true;
     }
 
     // Pressing B means attack
@@ -669,7 +705,7 @@ void checkFighterButtonInput(fighter_t* ftr)
         if ((ftr->prevBtnState & DOWN) && !(ftr->btnState & DOWN))
         {
             // Start timer to check for second press
-            ftr->fallThroughTimer = 10; // 10 frames @ 25ms == 250ms
+            ftr->fallThroughTimer = 250 / FRAME_TIME_MS; // 250ms
         }
         // Check if a second down press was detected while the timer is active
         else if (ftr->fallThroughTimer > 0 && !(ftr->prevBtnState & DOWN) && (ftr->btnState & DOWN))
@@ -1056,6 +1092,160 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
 }
 
 /**
+ * Check if ftr's hitbox collides with otherFtr's hurtbox. If it does, note that
+ * the attack connected and add damage and knockback to otherFtr
+ *
+ * @param ftr      The fighter that is attacking
+ * @param otherFtr The fighter that is being attached
+ */
+void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
+{
+    // Check hitbox and hurbox
+    if(FS_ATTACK == ftr->state)
+    {
+        if(false == ftr->attackConnected)
+        {
+            // Get a reference to the attack frame
+            attackFrame_t* atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
+
+            // If this isn't a projectile attack, check the hitbox
+            if(!atk->isProjectile)
+            {
+                // Figure out where the hitbox is relative to the fighter
+                box_t relativeHitbox = ftr->hurtbox;
+                if((ftr->dir == FACING_LEFT))
+                {
+                    // reverse the hitbox if dashing and facing left
+                    relativeHitbox.x1 = relativeHitbox.x0 + ftr->size.x - atk->hitboxPos.x;
+                    relativeHitbox.x0 = relativeHitbox.x1 - atk->hitboxSize.x;
+                }
+                else
+                {
+                    relativeHitbox.x0 += atk->hitboxPos.x;
+                    relativeHitbox.x1 = relativeHitbox.x0 + atk->hitboxSize.x;
+                }
+                relativeHitbox.y0 += atk->hitboxPos.y;
+                relativeHitbox.y1 = relativeHitbox.y0 + atk->hitboxSize.y;
+
+                if(boxesCollide(relativeHitbox, otherFtr->hurtbox))
+                {
+                    // Note the attack connected so it doesnt collide twice
+                    ftr->attackConnected = true;
+
+                    // Tally the damage
+                    otherFtr->damage += atk->damage;
+
+                    // Apply the knockback, scaled by damage
+                    // roughly (1 + (0.02 * dmg))
+                    int32_t knockbackScalar = 64 + (otherFtr->damage);
+                    if(FACING_RIGHT == ftr->dir)
+                    {
+                        otherFtr->velocity.x += ((atk->knockback.x * knockbackScalar) / 64);
+                    }
+                    else
+                    {
+                        otherFtr->velocity.x -= ((atk->knockback.x * knockbackScalar) / 64);
+                    }
+                    otherFtr->velocity.y += ((atk->knockback.y * knockbackScalar) / 64);
+
+                    // Knock the fighter into the air
+                    if(ABOVE_PLATFORM == otherFtr->relativePos)
+                    {
+                        otherFtr->relativePos = FREE_FLOATING;
+                    }
+
+                    // TODO apply hitstun
+                }
+            }
+        }
+    }
+    else
+    {
+        ftr->attackConnected = false;
+    }
+}
+
+/**
+ * Check if any projectile's hitbox collides with either of the fighter's
+ * hurtboxes. If it does, despawn the projectile and add damage and knockback to
+ * the fighter who was shot.
+ *
+ * Note, once a projectile is fired, it has no owner and can hit either fighter.
+ *
+ * @param projectiles A list of projectiles to check
+ */
+void checkFighterProjectileCollisions(list_t* projectiles)
+{
+    // Check projectile collisions. Iterate through all projectiles
+    node_t* currentNode = projectiles->first;
+    while (currentNode != NULL)
+    {
+        projectile_t* proj = currentNode->val;
+
+        // Create a hurtbox for this projectile to check for collisions with hurtboxes
+        box_t projHurtbox =
+        {
+            .x0 = proj->pos.x,
+            .y0 = proj->pos.y,
+            .x1 = proj->pos.x + proj->size.x,
+            .y1 = proj->pos.y + proj->size.y,
+        };
+
+        bool removeProjectile = false;
+
+        // For each fighter
+        for(uint8_t i = 0; i < f->numFighters; i++)
+        {
+            // Get a convenience pointer
+            fighter_t * ftr = &f->fighters[i];
+            // Check if this projectile collided the first fighter
+            if(boxesCollide(projHurtbox, ftr->hurtbox))
+            {
+                // Tally the damage
+                ftr->damage += proj->damage;
+
+                // Apply the knockback, scaled by damage
+                // roughly (1 + (0.02 * dmg))
+                int32_t knockbackScalar = 64 + (ftr->damage);
+                if(FACING_RIGHT == proj->dir)
+                {
+                    ftr->velocity.x += ((proj->knockback.x * knockbackScalar) / 64);
+                }
+                else
+                {
+                    ftr->velocity.x -= ((proj->knockback.x * knockbackScalar) / 64);
+                }
+                ftr->velocity.y += ((proj->knockback.y * knockbackScalar) / 64);
+                // Knock the fighter into the air
+                if(ABOVE_PLATFORM == ftr->relativePos)
+                {
+                    ftr->relativePos = FREE_FLOATING;
+                }
+
+                // TODO apply hitstun
+
+                // Mark this projectile for removal
+                removeProjectile = true;
+            }
+        }
+
+        // If the projectile collided with a fighter, remove it
+        if(removeProjectile)
+        {
+            // Iterate while removing this projectile
+            node_t* nextNode = currentNode->next;
+            removeEntry(projectiles, currentNode);
+            currentNode = nextNode;
+        }
+        else
+        {
+            // Iterate to the next projectile
+            currentNode = currentNode->next;
+        }
+    }
+}
+
+/**
  * Iterate through all projectiles, checking their timers and collisions.
  * If a projectile collides with a platform or times out, unlink and free it
  *
@@ -1125,10 +1315,7 @@ void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
 
 /**
  * Render the current frame to the display, including fighters, platforms, and
- * projectiles
- *
- * TODO
- *  - Draw HUD
+ * projectiles, and HUD
  *
  * @param d The display to draw to
  * @param platforms    A pointer to platforms to draw
@@ -1176,7 +1363,34 @@ void drawFighterFrame(display_t* d, const platform_t* platforms,
         currentNode = currentNode->next;
     }
 
+    drawFighterHud(d, &f->mm_font, &f->fighters[0], &f->fighters[1]);
+
     // drawMeleeMenu(d, &f->mm_font);
+}
+
+/**
+ * Draw the HUD, which is just the damage percentages
+ *
+ * @param d The display to draw to
+ * @param font The font to use for the damage percentages
+ * @param ftr1 The first fighter to draw damage percent for
+ * @param ftr2 The second fighter to draw damage percent for
+ */
+void drawFighterHud(display_t* d, font_t* font, fighter_t* ftr1, fighter_t* ftr2)
+{
+    char dmgStr[8];
+    uint16_t tWidth;
+    uint16_t xPos;
+
+    snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", ftr1->damage);
+    tWidth = textWidth(font, dmgStr);
+    xPos = (d->w / 3) - (tWidth / 2);
+    drawText(d, font, c555, dmgStr, xPos, d->h - font->h - 2);
+
+    snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", ftr2->damage);
+    tWidth = textWidth(font, dmgStr);
+    xPos = (2 * (d->w / 3)) - (tWidth / 2);
+    drawText(d, font, c555, dmgStr, xPos, d->h - font->h - 2);
 }
 
 /**
