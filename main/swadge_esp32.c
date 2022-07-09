@@ -15,6 +15,7 @@
 #include "esp_timer.h"
 #include "esp_efuse.h"
 #include "esp_log.h"
+#include "esp_sleep.h"
 
 #include "swadge_esp32.h"
 
@@ -41,15 +42,13 @@
 #include "espNowUtils.h"
 #include "p2pConnection.h"
 
-#include "swadgeMode.h"
-
 #include "display.h"
 
 #include "mode_main_menu.h"
 #include "mode_demo.h"
 #include "mode_fighter.h"
 
-#ifdef EMU
+#if defined(EMU)
 #include "emu_esp.h"
 #endif
 
@@ -73,7 +72,9 @@ swadgeMode* swadgeModes[] =
     &modeDemo
 };
 
-uint8_t swadgeModeIdx = 1;
+static RTC_DATA_ATTR uint8_t pendingSwadgeModeIdx = 0;
+static uint8_t swadgeModeIdx = 0;
+static bool shouldSwitchSwadgeMode = false;
 
 //==============================================================================
 // Functions
@@ -221,6 +222,25 @@ void app_main(void)
  */
 void mainSwadgeTask(void * arg __attribute((unused)))
 {
+#if !defined(EMU)
+    /* Check why this ESP woke up */
+    switch (esp_sleep_get_wakeup_cause())
+    {
+        case ESP_SLEEP_WAKEUP_TIMER:
+        {
+            /* Use the pending mode */
+            swadgeModeIdx = pendingSwadgeModeIdx;
+            break;
+        }
+        default:
+        {
+            /* Reset swadgeModeIdx */
+            swadgeModeIdx = 0;
+            break;
+        }
+    }
+#endif
+
     /* Initialize internal NVS */
     initNvs(true);
 
@@ -251,7 +271,9 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     initLeds(GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
     buzzer_init(GPIO_NUM_35, RMT_CHANNEL_1);
 
+#if !defined(EMU)
     if(NULL != swadgeModes[swadgeModeIdx]->fnAudioCallback)
+#endif
     {
         /* Since the ADC2 is shared with the WIFI module, which has higher
          * priority, reading operation of adc2_get_raw() will fail between
@@ -266,7 +288,9 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     }
 
     bool accelInitialized = false;
+#if !defined(EMU)
     if(NULL != swadgeModes[swadgeModeIdx]->fnAccelerometerCallback)
+#endif
     {
         /* Initialize i2c peripherals */
         i2c_master_init(
@@ -275,6 +299,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
             GPIO_PULLUP_DISABLE, 1000000);
         accelInitialized = QMA6981_setup();
     }
+
 #ifdef OLED_ENABLED
     display_t oledDisp;
     initOLED(&oledDisp, true, GPIO_NUM_21);
@@ -296,7 +321,9 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     tinyusb_driver_install(&tusb_cfg);
 
     /* Initialize Wifi peripheral */
+#if !defined(EMU)
     if(ESP_NOW == swadgeModes[swadgeModeIdx]->wifiMode)
+#endif
     {
         espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb);
     }
@@ -308,7 +335,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     }
 
     /* Loop forever! */
-#ifdef EMU
+#if defined(EMU)
     while(threadsShouldRun)
 #else
     while(true)
@@ -321,7 +348,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         }
         
         // Process Accelerometer
-        if(accelInitialized)
+        if(accelInitialized && NULL != swadgeModes[swadgeModeIdx]->fnAccelerometerCallback)
         {
             accel_t accel = {0};
             QMA6981_poll(&accel);
@@ -382,7 +409,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
                 swadgeModes[swadgeModeIdx]->fnMainLoop(tElapsedUs);
             }
 
-#ifdef EMU
+#if defined(EMU)
             check_esp_timer(tElapsedUs);
 #endif
         }
@@ -393,6 +420,32 @@ void mainSwadgeTask(void * arg __attribute((unused)))
 #endif
         tftDisp.drawDisplay(true);
         buzzer_check_next_note();
+
+        /* If the mode should be switched, do it now */
+        if(shouldSwitchSwadgeMode)
+        {
+#if defined(EMU)
+            // Exit the current mode
+            if(NULL != swadgeModes[swadgeModeIdx]->fnExitMode)
+            {
+                swadgeModes[swadgeModeIdx]->fnExitMode();
+            }
+
+            // Switch the mode IDX
+            swadgeModeIdx = pendingSwadgeModeIdx;
+            shouldSwitchSwadgeMode = false;
+
+            // Enter the next mode
+            if(NULL != swadgeModes[swadgeModeIdx]->fnEnterMode)
+            {
+                swadgeModes[swadgeModeIdx]->fnEnterMode(&tftDisp);
+            }
+#else
+            // Deep sleep, wake up, and switch to pendingSwadgeModeIdx
+            esp_sleep_enable_timer_wakeup(1);
+            esp_deep_sleep_start();
+#endif
+        }
 
         // Yield to let the rest of the RTOS run
         taskYIELD();
@@ -411,7 +464,26 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         swadgeModes[swadgeModeIdx]->fnExitMode();
     }
 
-#ifdef EMU
+#if defined(EMU)
     esp_timer_deinit();
 #endif
+}
+
+/**
+ * @return The total number of Swadge modes, including the main menu (mode 0)
+ */
+uint8_t getNumSwadgeModes(void)
+{
+    return ARRAY_SIZE(swadgeModes);
+}
+
+/**
+ * Set up variables to synchronously switch the swadge mode in the main loop
+ * 
+ * @param mode The index of the mode to switch to
+ */
+void switchToSwadgeMode(uint8_t mode)
+{
+    pendingSwadgeModeIdx = mode;
+    shouldSwitchSwadgeMode = true;
 }
