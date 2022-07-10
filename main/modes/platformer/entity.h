@@ -51,6 +51,7 @@ struct entity_t
     bool falling;
 
     uint8_t spriteIndex;
+    bool spriteFlipHorizontal;
     uint8_t animationTimer;
 
     tilemap_t * tilemap;
@@ -78,5 +79,7 @@ void destroyEntity(entity_t *self, bool respawn);
 void applyDamping(entity_t *self);
 
 void applyGravity(entity_t *self);
+
+void animatePlayer(entity_t * self);
 
 #endif

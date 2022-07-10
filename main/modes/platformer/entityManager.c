@@ -40,12 +40,12 @@ void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilema
 
 void loadSprites(entityManager_t * entityManager)
 {
-    loadWsg("tile003.wsg", &entityManager->sprites[0]);
-    loadWsg("tile004.wsg", &entityManager->sprites[1]);
-    loadWsg("tile005.wsg", &entityManager->sprites[2]);
-    loadWsg("tile001.wsg", &entityManager->sprites[3]);
-    loadWsg("tile001.wsg", &entityManager->sprites[4]);
-    loadWsg("tile001.wsg", &entityManager->sprites[5]);
+    loadWsg("sprite000.wsg", &entityManager->sprites[0]);
+    loadWsg("sprite001.wsg", &entityManager->sprites[1]);
+    loadWsg("sprite002.wsg", &entityManager->sprites[2]);
+    loadWsg("sprite003.wsg", &entityManager->sprites[3]);
+    loadWsg("sprite004.wsg", &entityManager->sprites[4]);
+    loadWsg("sprite008.wsg", &entityManager->sprites[5]);
     loadWsg("tile001.wsg", &entityManager->sprites[6]);
     loadWsg("tile001.wsg", &entityManager->sprites[7]);
 };
@@ -73,7 +73,7 @@ void drawEntities(display_t * disp, entityManager_t * entityManager)
 
         if(currentEntity.active)
         {
-            drawWsg(disp, &entityManager->sprites[currentEntity.spriteIndex], (currentEntity.x >> SUBPIXEL_RESOLUTION) - 8 - entityManager->tilemap->mapOffsetX, (currentEntity.y >> SUBPIXEL_RESOLUTION)  - entityManager->tilemap->mapOffsetY - 8, false, false, 0);
+            drawWsg(disp, &entityManager->sprites[currentEntity.spriteIndex], (currentEntity.x >> SUBPIXEL_RESOLUTION) - 8 - entityManager->tilemap->mapOffsetX, (currentEntity.y >> SUBPIXEL_RESOLUTION)  - entityManager->tilemap->mapOffsetY - 8, currentEntity.spriteFlipHorizontal, false, 0);
         }
     }
 };
@@ -186,9 +186,10 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
     entity->xspeed = (x < (entityManager->tilemap->mapOffsetX + 120)) ? 16 : -16;
+    entity->yspeed = 0;
 
     entity->type = ENTITY_TEST;
-    entity->spriteIndex = 1;
+    entity->spriteIndex = 5;
     entity->updateFunction = &updateTestObject;
 
     return entity;

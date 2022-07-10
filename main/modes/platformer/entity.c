@@ -38,7 +38,7 @@ void initializeEntity(entity_t * entity, tilemap_t * tilemap, gameData_t * gameD
 };
 
 void updatePlayer(entity_t * self) {
-    self->spriteIndex = (self->spriteIndex + 1) % 3;
+    //self->spriteIndex = (self->spriteIndex + 1) % 3;
 
     if(self->gameData->btnState & LEFT){
         self->xspeed -= 16;
@@ -79,10 +79,11 @@ void updatePlayer(entity_t * self) {
     moveEntityWithTileCollisions(self);
     applyGravity(self);
     applyDamping(self);
+    animatePlayer(self);
 };
 
 void updateTestObject(entity_t * self) {
-    self->spriteIndex = (self->spriteIndex + 1) % 3;
+    self->spriteFlipHorizontal = !self->spriteFlipHorizontal;
 
     /*
     self->xspeed += 1;
@@ -256,4 +257,24 @@ void destroyEntity(entity_t *self, bool respawn) {
     
     //self->entityManager->activeEntities--;
     self->active = false;
+}
+
+void animatePlayer(entity_t * self){
+    if(self->falling){
+        if(self->yspeed < 0) {
+            //Jumping
+            self->spriteIndex = 4;
+        } else {
+            //Falling
+            self->spriteIndex = 1;
+
+        }
+    } else if(self->xspeed != 0) {
+        //Running
+        self->spriteFlipHorizontal=(self->xspeed > 0)? 0 : 1;
+        self->spriteIndex = 1+((self->spriteIndex + 1) % 3);
+    } else {
+        //Standing
+        self->spriteIndex = 0;
+    }
 }
