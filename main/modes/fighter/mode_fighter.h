@@ -86,19 +86,25 @@ typedef struct
 
 typedef struct
 {
-    uint16_t duration;
     vector_t hitboxPos;
     vector_t hitboxSize;
     uint16_t damage;
     vector_t knockback;
     uint16_t hitstun;
-    wsg_t* sprite;
 
     bool isProjectile;
     wsg_t* projSprite;
     uint16_t projDuration;
     vector_t projVelo;
     vector_t projAccel;
+} attackHitbox_t;
+
+typedef struct
+{
+    wsg_t* sprite;
+    attackHitbox_t* hitboxes;
+    uint16_t duration;
+    uint8_t numHitboxes;
 } attackFrame_t;
 
 typedef struct
