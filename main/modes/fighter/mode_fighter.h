@@ -103,6 +103,10 @@ typedef struct
 {
     wsg_t* sprite;
     attackHitbox_t* hitboxes;
+    vector_t sprite_offset;
+    vector_t hurtbox_offset;
+    vector_t hurtbox_size;
+    vector_t velocity;
     uint16_t duration;
     uint8_t numHitboxes;
 } attackFrame_t;

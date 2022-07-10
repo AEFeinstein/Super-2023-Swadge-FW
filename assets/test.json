@@ -25,6 +25,12 @@
                   {
                      "duration":20,
                      "sprite":"ki0.wsg",
+                     "sprite_offset_x":0,
+                     "sprite_offset_y":0,
+                     "hurtbox_offset_x":0,
+                     "hurtbox_offset_y":0,
+                     "hurtbox_size_x":24,
+                     "hurtbox_size_y":24,
                      "hitboxes":[
                         {
                            "relativePos_x":0,
@@ -217,12 +223,14 @@
             },
             {
                "type":"uair",
-               "startupLag":20,
+               "startupLag":1,
                "startupLagSpr":"ki0.wsg",
                "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
+                     "velo_x":0,
+                     "velo_y":-15360,
                      "hitboxes":[
                         {
                            "relativePos_x":8,
@@ -237,7 +245,7 @@
                      ]
                   }
                ],
-               "endLag":20,
+               "endLag":1,
                "endLagSpr":"ki0.wsg"
             },
             {

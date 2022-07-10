@@ -31,6 +31,8 @@
 
 #define FRAME_TIME_MS 25 // 20fps
 
+#define DRAW_DEBUG_BOXES
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -359,10 +361,29 @@ void drawFighter(display_t* d, fighter_t* ftr)
     drawBox(d, ftr->hurtbox, hitboxColor, false, SF);
 #endif
 
+    // Start with the sprite aligned with the hurtbox
+    vector_t spritePos =
+    {
+        .x = ftr->hurtbox.x0 / SF,
+        .y = ftr->hurtbox.y0 / SF
+    };
+
+    // If this is an attack frame
+    if(NUM_ATTACKS > ftr->cAttack)
+    {
+        // Get a reference to the attack frame
+        attackFrame_t* atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
+        // Shift the sprite
+        spritePos.x += atk->sprite_offset.x;
+        spritePos.y += atk->sprite_offset.y;
+    }
+
     // Draw a sprite
-    drawWsg(d, ftr->currentSprite, ftr->hurtbox.x0 / SF, ftr->hurtbox.y0 / SF,
+    drawWsg(d, ftr->currentSprite,
+            spritePos.x, spritePos.y,
             ftr->dir == FACING_LEFT, false, 0);
 
+#if defined(DRAW_DEBUG_BOXES)
     // Draw the hitbox if attacking
     if(FS_ATTACK == ftr->state)
     {
@@ -397,6 +418,7 @@ void drawFighter(display_t* d, fighter_t* ftr)
             }
         }
     }
+#endif
 }
 
 /**
@@ -542,10 +564,20 @@ void checkFighterTimer(fighter_t* ftr)
             }
         }
 
-        // If there is a current attack frame, and the attack is a projectile,
-        // allocate a projectile and link it to the list
+        // If this is an attack, check for velocity changes and projectiles
         if(NULL != atk)
         {
+            // Apply any velocity from this attack to the fighter
+            if(0 != atk->velocity.x)
+            {
+                ftr->velocity.x = atk->velocity.x;
+            }
+            if(0 != atk->velocity.y)
+            {
+                ftr->velocity.y = atk->velocity.y;
+            }
+
+            // Check hitboxes for projectiles. Allocate and link any that are
             for(uint8_t hbIdx = 0; hbIdx < atk->numHitboxes; hbIdx++)
             {
                 attackHitbox_t* hbx = &atk->hitboxes[hbIdx];
@@ -668,6 +700,8 @@ void checkFighterButtonInput(fighter_t* ftr)
             {
                 // Up air attack
                 ftr->cAttack = UP_AIR;
+                // No more jumps after up air!
+                ftr->numJumps = 0;
             }
             else if(ftr->btnState & DOWN)
             {

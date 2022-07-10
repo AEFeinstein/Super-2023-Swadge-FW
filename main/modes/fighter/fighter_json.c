@@ -419,7 +419,7 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* 
             {
                 tokIdx++;
                 char* type = jsonString(jsonStr, toks[tokIdx]);
-                ESP_LOGD("FGT", "Parsing %s", type);
+                // ESP_LOGD("FGT", "Parsing %s", type);
                 free(type);
                 tokIdx++;
                 numFieldsParsed++;
@@ -530,6 +530,62 @@ int32_t parseJsonAttackFrame(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, lis
                 char* name = jsonString(jsonStr, toks[tokIdx]);
                 frm->sprite = loadFighterSprite(name, loadedSprites);
                 free(name);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "sprite_offset_x"))
+            {
+                tokIdx++;
+                frm->sprite_offset.x = jsonInteger(jsonStr, toks[tokIdx]);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "sprite_offset_y"))
+            {
+                tokIdx++;
+                frm->sprite_offset.y = jsonInteger(jsonStr, toks[tokIdx]);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "hurtbox_offset_x"))
+            {
+                tokIdx++;
+                frm->hurtbox_offset.x = jsonInteger(jsonStr, toks[tokIdx]);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "hurtbox_offset_y"))
+            {
+                tokIdx++;
+                frm->hurtbox_offset.y = jsonInteger(jsonStr, toks[tokIdx]);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "hurtbox_size_x"))
+            {
+                tokIdx++;
+                frm->hurtbox_size.x = jsonInteger(jsonStr, toks[tokIdx]);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "hurtbox_size_y"))
+            {
+                tokIdx++;
+                frm->hurtbox_size.y = jsonInteger(jsonStr, toks[tokIdx]);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "velo_x"))
+            {
+                tokIdx++;
+                frm->velocity.x = jsonInteger(jsonStr, toks[tokIdx]);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "velo_y"))
+            {
+                tokIdx++;
+                frm->velocity.y = jsonInteger(jsonStr, toks[tokIdx]);
                 tokIdx++;
                 numFieldsParsed++;
             }
