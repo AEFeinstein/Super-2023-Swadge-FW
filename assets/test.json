@@ -21,7 +21,7 @@
                "type":"utilt",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":20,
                      "sprite":"ki0.wsg",
@@ -62,7 +62,7 @@
                "type":"dtilt",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -87,7 +87,7 @@
                "type":"dash",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -112,7 +112,7 @@
                "type":"neutral",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -144,7 +144,7 @@
                "type":"nair",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -169,7 +169,7 @@
                "type":"fair",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -194,7 +194,7 @@
                "type":"bair",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -219,7 +219,7 @@
                "type":"uair",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -244,7 +244,7 @@
                "type":"dair",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -288,7 +288,7 @@
                "type":"utilt",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -313,7 +313,7 @@
                "type":"dtilt",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -338,7 +338,7 @@
                "type":"dash",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -363,7 +363,7 @@
                "type":"neutral",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -388,7 +388,7 @@
                "type":"nair",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -413,7 +413,7 @@
                "type":"fair",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -438,7 +438,7 @@
                "type":"bair",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -463,7 +463,7 @@
                "type":"uair",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
@@ -488,7 +488,7 @@
                "type":"dair",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
-               "active_states":[
+               "attack_frames":[
                   {
                      "duration":40,
                      "sprite":"ki0.wsg",
