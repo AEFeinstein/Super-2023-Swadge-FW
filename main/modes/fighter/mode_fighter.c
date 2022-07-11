@@ -1299,6 +1299,9 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         }
 
                         // TODO apply hitstun
+
+                        // Break out of the for loop so that only one hitbox hits
+                        break;
                     }
                 }
             }
