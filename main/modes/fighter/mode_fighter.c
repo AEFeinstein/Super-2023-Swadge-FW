@@ -264,7 +264,7 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite,
     {
         // When leaving attack state, clear all 'attackConnected'
         ftr->attacks[ftr->cAttack].attackConnected = false;
-        attackFrame_t * atk = ftr->attacks[ftr->cAttack].attackFrames;
+        attackFrame_t* atk = ftr->attacks[ftr->cAttack].attackFrames;
         uint8_t numAttackFrames = ftr->attacks[ftr->cAttack].numAttackFrames;
         for(uint8_t atkIdx = 0; atkIdx < numAttackFrames; atkIdx++)
         {
@@ -981,7 +981,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     int32_t deltaX = (((ftr->velocity.x + v0.x) * FRAME_TIME_MS) / (SF * 2));
     dest_hurtbox.x0 += deltaX;
     dest_hurtbox.x1 += deltaX;
- 
+
     // Update Y kinematics based on fighter position
     if(ftr->relativePos != ABOVE_PLATFORM)
     {
@@ -1238,13 +1238,13 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
     if(FS_ATTACK == ftr->state)
     {
         // Get a reference to the attack and frames
-        attack_t * atk = &ftr->attacks[ftr->cAttack];
+        attack_t* atk = &ftr->attacks[ftr->cAttack];
         attackFrame_t* afrm = &atk->attackFrames[ftr->attackFrame];
 
         // Check for collisions if this frame hasn't connected yet
         // Also make sure that the attack allows multi-frame hits
         if ((false == (atk->onlyFirstHit && atk->attackConnected)) &&
-            (false == afrm->attackConnected))
+                (false == afrm->attackConnected))
         {
             for(uint8_t hbIdx = 0; hbIdx < afrm->numHitboxes; hbIdx++)
             {

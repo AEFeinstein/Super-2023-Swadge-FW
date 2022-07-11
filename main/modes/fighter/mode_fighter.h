@@ -164,7 +164,7 @@ typedef struct
 
 typedef struct
 {
-    fighter_t * owner;
+    fighter_t* owner;
     wsg_t* sprite;
 
     vector_t size;
