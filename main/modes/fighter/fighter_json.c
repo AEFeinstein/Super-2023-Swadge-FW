@@ -27,7 +27,7 @@ typedef struct
 //==============================================================================
 
 int32_t parseJsonFighter(          char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites,
-                                   fighter_t* fgt);
+                                   fighter_t* ftr);
 int32_t parseJsonAttack(           char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites,
                                    attack_t* atk);
 int32_t parseJsonAttackFrame(      char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites,
@@ -132,13 +132,13 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
     int32_t numToks = jsmn_parse(&p, jsonStr, strlen(jsonStr), toks, 1024);
     if (numToks < 0)
     {
-        ESP_LOGE("FGT", "Failed to parse JSON: %d\n", numToks);
+        ESP_LOGE("FTR", "Failed to parse JSON: %d\n", numToks);
         free(toks);
         return NULL;
     }
     else
     {
-        ESP_LOGI("FGT", "numToks = %d", numToks);
+        ESP_LOGI("FTR", "numToks = %d", numToks);
     }
 
     // Pointer to allocate memory for later
@@ -206,10 +206,10 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
  * @param toks An array of JSON tokens
  * @param tokIdx The index of the current JSON token
  * @param loadedSprites A list of sprites, used for loading
- * @param fgt The fighter to parse data into
+ * @param ftr The fighter to parse data into
  * @return int32_t The index of the JSON token after parsing
  */
-int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites, fighter_t* fgt)
+int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites, fighter_t* ftr)
 {
     // Each fighter is an object
     if(JSMN_OBJECT != toks[tokIdx].type)
@@ -232,7 +232,7 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                ESP_LOGD("FGT", "Fighter name is %s", name);
+                ESP_LOGD("FTR", "Fighter name is %s", name);
                 free(name);
                 tokIdx++;
                 numFieldsParsed++;
@@ -241,7 +241,7 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                fgt->idleSprite0 = loadFighterSprite(name, loadedSprites);
+                ftr->idleSprite0 = loadFighterSprite(name, loadedSprites);
                 free(name);
                 tokIdx++;
                 numFieldsParsed++;
@@ -250,7 +250,7 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                fgt->idleSprite1 = loadFighterSprite(name, loadedSprites);
+                ftr->idleSprite1 = loadFighterSprite(name, loadedSprites);
                 free(name);
                 tokIdx++;
                 numFieldsParsed++;
@@ -259,7 +259,7 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                fgt->runSprite0 = loadFighterSprite(name, loadedSprites);
+                ftr->runSprite0 = loadFighterSprite(name, loadedSprites);
                 free(name);
                 tokIdx++;
                 numFieldsParsed++;
@@ -268,7 +268,7 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                fgt->runSprite1 = loadFighterSprite(name, loadedSprites);
+                ftr->runSprite1 = loadFighterSprite(name, loadedSprites);
                 free(name);
                 tokIdx++;
                 numFieldsParsed++;
@@ -277,7 +277,7 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                fgt->jumpSprite = loadFighterSprite(name, loadedSprites);
+                ftr->jumpSprite = loadFighterSprite(name, loadedSprites);
                 free(name);
                 tokIdx++;
                 numFieldsParsed++;
@@ -286,7 +286,7 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                fgt->duckSprite = loadFighterSprite(name, loadedSprites);
+                ftr->duckSprite = loadFighterSprite(name, loadedSprites);
                 free(name);
                 tokIdx++;
                 numFieldsParsed++;
@@ -294,56 +294,58 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "gravity"))
             {
                 tokIdx++;
-                fgt->gravity = jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->gravity = jsonInteger(jsonStr, toks[tokIdx]);
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "jump_velo"))
             {
                 tokIdx++;
-                fgt->jump_velo = jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->jump_velo = jsonInteger(jsonStr, toks[tokIdx]);
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "run_accel"))
             {
                 tokIdx++;
-                fgt->run_accel = jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->run_accel = jsonInteger(jsonStr, toks[tokIdx]);
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "run_decel"))
             {
                 tokIdx++;
-                fgt->run_decel = jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->run_decel = jsonInteger(jsonStr, toks[tokIdx]);
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "run_max_velo"))
             {
                 tokIdx++;
-                fgt->run_max_velo = jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->run_max_velo = jsonInteger(jsonStr, toks[tokIdx]);
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "size_x"))
             {
                 tokIdx++;
-                fgt->size.x = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->size.x = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->originalSize.x = SF * jsonInteger(jsonStr, toks[tokIdx]);
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "size_y"))
             {
                 tokIdx++;
-                fgt->size.y = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->size.y = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->originalSize.y = SF * jsonInteger(jsonStr, toks[tokIdx]);
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "nJumps"))
             {
                 tokIdx++;
-                fgt->numJumps = jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->numJumps = jsonInteger(jsonStr, toks[tokIdx]);
                 tokIdx++;
                 numFieldsParsed++;
             }
@@ -362,7 +364,7 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
                 tokIdx++;
                 for(uint8_t atkIdx = 0; atkIdx < numAttacks; atkIdx++)
                 {
-                    tokIdx = parseJsonAttack(jsonStr, toks, tokIdx, loadedSprites, &fgt->attacks[atkIdx]);
+                    tokIdx = parseJsonAttack(jsonStr, toks, tokIdx, loadedSprites, &ftr->attacks[atkIdx]);
                 }
                 numFieldsParsed++;
             }
@@ -415,7 +417,7 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* 
             {
                 tokIdx++;
                 char* type = jsonString(jsonStr, toks[tokIdx]);
-                // ESP_LOGD("FGT", "Parsing %s", type);
+                // ESP_LOGD("FTR", "Parsing %s", type);
                 free(type);
                 tokIdx++;
                 numFieldsParsed++;
@@ -490,7 +492,7 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* 
  * @param toks An array of JSON tokens
  * @param tokIdx The index of the current JSON token
  * @param loadedSprites A list of sprites, used for loading
- * @param fgt The attack frame to parse data into
+ * @param ftr The attack frame to parse data into
  * @return int32_t The index of the JSON token after parsing
  */
 int32_t parseJsonAttackFrame(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites, attackFrame_t* frm)
@@ -624,7 +626,7 @@ int32_t parseJsonAttackFrame(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, lis
  * @param toks An array of JSON tokens
  * @param tokIdx The index of the current JSON token
  * @param loadedSprites A list of sprites, used for loading
- * @param fgt The attack hitbox to parse data into
+ * @param ftr The attack hitbox to parse data into
  * @return int32_t The index of the JSON token after parsing
  */
 int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites,
@@ -778,12 +780,12 @@ int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokId
  */
 void freeFighterData(fighter_t* fighters, uint8_t numFighters)
 {
-    for(uint8_t fgtIdx = 0; fgtIdx < numFighters; fgtIdx++)
+    for(uint8_t ftrIdx = 0; ftrIdx < numFighters; ftrIdx++)
     {
-        fighter_t* fgt = &fighters[fgtIdx];
+        fighter_t* ftr = &fighters[ftrIdx];
         for(uint8_t atkIdx = 0; atkIdx < NUM_ATTACKS; atkIdx++)
         {
-            attack_t* atk = &fgt->attacks[atkIdx];
+            attack_t* atk = &ftr->attacks[atkIdx];
             for(uint8_t atkFrameIdx = 0; atkFrameIdx < atk->numAttackFrames; atkFrameIdx++)
             {
                 attackFrame_t* frm = &atk->attackFrames[atkFrameIdx];
