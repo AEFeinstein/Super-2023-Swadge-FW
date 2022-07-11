@@ -412,7 +412,7 @@ void drawFighter(display_t* d, fighter_t* ftr)
     spritePos.y = ftr->pos.y / SF;
 
     // If this is an attack frame
-    if(NUM_ATTACKS > ftr->cAttack)
+    if(FS_ATTACK == ftr->state)
     {
         // Get a reference to the attack frame
         attackFrame_t* atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
