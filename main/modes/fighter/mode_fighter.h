@@ -130,7 +130,9 @@ typedef struct
 typedef struct
 {
     vector_t pos;
+    vector_t hurtbox_offset;
     vector_t size;
+    vector_t originalSize;
     vector_t velocity;
     platformPos_t relativePos;
     const platform_t* touchingPlatform;
