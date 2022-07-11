@@ -185,8 +185,8 @@ void fighterEnterMode(display_t* disp)
     setFighterState((&f->fighters[1]), FS_IDLE, f->fighters[1].idleSprite0);
 
     // Start both fighters in the middle of the stage
-    f->fighters[0].hurtbox.x0 = (f->d->w / 2) * SF;
-    f->fighters[1].hurtbox.x0 = (f->d->w / 2) * SF;
+    f->fighters[0].pos.x = (f->d->w / 2) * SF;
+    f->fighters[1].pos.x = (f->d->w / 2) * SF;
 
     // Set some LEDs, just because
     static led_t leds[NUM_LEDS] =
@@ -358,14 +358,21 @@ void drawFighter(display_t* d, fighter_t* ftr)
         }
     }
     // Draw an outline
-    drawBox(d, ftr->hurtbox, hitboxColor, false, SF);
+    box_t hurtbox =
+    {
+        .x0 = ftr->pos.x,
+        .x1 = ftr->pos.x + ftr->size.x,
+        .y0 = ftr->pos.y,
+        .y1 = ftr->pos.y + ftr->size.y
+    };
+    drawBox(d, hurtbox, hitboxColor, false, SF);
 #endif
 
     // Start with the sprite aligned with the hurtbox
     vector_t spritePos =
     {
-        .x = ftr->hurtbox.x0 / SF,
-        .y = ftr->hurtbox.y0 / SF
+        .x = ftr->pos.x / SF,
+        .y = ftr->pos.y / SF
     };
 
     // If this is an attack frame
@@ -399,7 +406,13 @@ void drawFighter(display_t* d, fighter_t* ftr)
             if(!hbx->isProjectile)
             {
                 // Figure out where the hitbox is relative to the fighter
-                box_t relativeHitbox = ftr->hurtbox;
+                box_t relativeHitbox =
+                {
+                    .x0 = ftr->pos.x,
+                    .x1 = ftr->pos.x + ftr->size.x,
+                    .y0 = ftr->pos.y,
+                    .y1 = ftr->pos.y + ftr->size.y
+                };
                 if((ftr->dir == FACING_LEFT))
                 {
                     // reverse the hitbox if dashing and facing left
@@ -596,17 +609,17 @@ void checkFighterTimer(fighter_t* ftr)
                     if((ftr->dir == FACING_LEFT))
                     {
                         // Reverse
-                        proj->pos.x = ftr->hurtbox.x1 - hbx->hitboxPos.x - proj->size.x;
+                        proj->pos.x = ftr->pos.x + ftr->size.x - hbx->hitboxPos.x - proj->size.x;
                         proj->velo.x = -proj->velo.x;
                         proj->accel.x = -proj->accel.x;
                         proj->dir = FACING_LEFT;
                     }
                     else
                     {
-                        proj->pos.x = ftr->hurtbox.x0 + hbx->hitboxPos.x;
+                        proj->pos.x = ftr->pos.x + hbx->hitboxPos.x;
                         proj->dir = FACING_RIGHT;
                     }
-                    proj->pos.y           = ftr->hurtbox.y0 + hbx->hitboxPos.y;
+                    proj->pos.y           = ftr->pos.y + hbx->hitboxPos.y;
                     proj->duration        = hbx->projDuration;
                     proj->knockback       = hbx->knockback;
                     proj->damage          = hbx->damage;
@@ -910,7 +923,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     }
 
     // Now that we have X velocity, find the new X position
-    dest_hurtbox.x0 = ftr->hurtbox.x0 + (((ftr->velocity.x + v0.x) * FRAME_TIME_MS) / (SF * 2));
+    dest_hurtbox.x0 = ftr->pos.x + (((ftr->velocity.x + v0.x) * FRAME_TIME_MS) / (SF * 2));
 
     // Update Y kinematics based on fighter position
     if(ftr->relativePos != ABOVE_PLATFORM)
@@ -923,13 +936,13 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             ftr->velocity.y = 60 * SF;
         }
         // Now that we have Y velocity, find the new Y position
-        dest_hurtbox.y0 = ftr->hurtbox.y0 + (((ftr->velocity.y + v0.y) * FRAME_TIME_MS) / (SF * 2));
+        dest_hurtbox.y0 = ftr->pos.y + (((ftr->velocity.y + v0.y) * FRAME_TIME_MS) / (SF * 2));
     }
     else
     {
         // If the fighter is on the ground, don't bother doing Y axis math
         ftr->velocity.y = 0;
-        dest_hurtbox.y0 = ftr->hurtbox.y0;
+        dest_hurtbox.y0 = ftr->pos.y;
     }
 
     // Finish up the destination hurtbox
@@ -967,15 +980,21 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     if(false == collisionDetected)
     {
         // Just move it and be done
-        memcpy(&ftr->hurtbox, &dest_hurtbox, sizeof(box_t));
+        ftr->pos.x = dest_hurtbox.x0;
+        ftr->pos.y = dest_hurtbox.y0;
     }
     else
     {
         // A collision at the destination was detected. Do a binary search to
         // find how close the fighter can get to the destination as possible.
         // Save the starting position
-        box_t src_hurtbox;
-        memcpy(&src_hurtbox, &ftr->hurtbox, sizeof(box_t));
+        box_t src_hurtbox =
+        {
+            .x0 = ftr->pos.x,
+            .x1 = ftr->pos.x + ftr->size.x,
+            .y0 = ftr->pos.y,
+            .y1 = ftr->pos.y + ftr->size.y
+        };
 
         // Start the binary search at the midpoint between src and dest
         box_t test_hurtbox;
@@ -1014,7 +1033,8 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 memcpy(&src_hurtbox, &test_hurtbox, sizeof(box_t));
 
                 // No collision here, so move the fighter here for now
-                memcpy(&ftr->hurtbox, &test_hurtbox, sizeof(box_t));
+                ftr->pos.x = test_hurtbox.x0;
+                ftr->pos.y = test_hurtbox.y0;
             }
 
             // Recalculate the new test point
@@ -1050,12 +1070,12 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         }
 
         // If the fighter is above or below a platform
-        if((ftr->hurtbox.x0 < platforms[idx].area.x1 + SF) &&
-                (ftr->hurtbox.x1 + SF > platforms[idx].area.x0))
+        if((ftr->pos.x < platforms[idx].area.x1 + SF) &&
+                (ftr->pos.x + ftr->size.x + SF > platforms[idx].area.x0))
         {
             // If the fighter is moving downward or not at all and hit a platform
             if ((ftr->velocity.y >= 0) &&
-                    (((ftr->hurtbox.y1 / SF)) == (platforms[idx].area.y0 / SF)))
+                    ((((ftr->pos.y + ftr->size.y) / SF)) == (platforms[idx].area.y0 / SF)))
             {
                 // Fighter standing on platform
                 ftr->velocity.y = 0;
@@ -1071,7 +1091,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             }
             // If the fighter is moving upward and hit a platform
             else if ((ftr->velocity.y <= 0) &&
-                     ((ftr->hurtbox.y0 / SF) == ((platforms[idx].area.y1 / SF))))
+                     ((ftr->pos.y / SF) == ((platforms[idx].area.y1 / SF))))
             {
                 if((true == platforms[idx].canFallThrough))
                 {
@@ -1092,12 +1112,12 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         }
 
         // If the fighter is to the left or right of a platform
-        if((ftr->hurtbox.y0 < platforms[idx].area.y1 + SF) &&
-                (ftr->hurtbox.y1 + SF > platforms[idx].area.y0))
+        if((ftr->pos.y < platforms[idx].area.y1 + SF) &&
+                (ftr->pos.y + ftr->size.y + SF > platforms[idx].area.y0))
         {
             // If the fighter is moving rightward and hit a wall
             if ((ftr->velocity.x >= 0) &&
-                    (((ftr->hurtbox.x1 / SF)) == (platforms[idx].area.x0 / SF)))
+                    ((((ftr->pos.x + ftr->size.x) / SF)) == (platforms[idx].area.x0 / SF)))
             {
                 if((true == platforms[idx].canFallThrough))
                 {
@@ -1117,7 +1137,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             }
             // If the fighter is moving leftward and hit a wall
             else if ((ftr->velocity.x <= 0) &&
-                     ((ftr->hurtbox.x0 / SF) == ((platforms[idx].area.x1 / SF))))
+                     ((ftr->pos.x / SF) == ((platforms[idx].area.x1 / SF))))
             {
                 if((true == platforms[idx].canFallThrough))
                 {
@@ -1148,6 +1168,14 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
  */
 void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
 {
+    box_t oterFtrHurtbox =
+    {
+        .x0 = otherFtr->pos.x,
+        .x1 = otherFtr->pos.x + otherFtr->size.x,
+        .y0 = otherFtr->pos.y,
+        .y1 = otherFtr->pos.y + otherFtr->size.y
+    };
+
     // Check hitbox and hurbox
     if(FS_ATTACK == ftr->state)
     {
@@ -1164,7 +1192,14 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                 if(!hbx->isProjectile)
                 {
                     // Figure out where the hitbox is relative to the fighter
-                    box_t relativeHitbox = ftr->hurtbox;
+                    box_t relativeHitbox =
+                    {
+                        .x0 = ftr->pos.x,
+                        .x1 = ftr->pos.x + ftr->size.x,
+                        .y0 = ftr->pos.y,
+                        .y1 = ftr->pos.y + ftr->size.y
+                    };
+
                     if((ftr->dir == FACING_LEFT))
                     {
                         // reverse the hitbox if dashing and facing left
@@ -1179,7 +1214,7 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                     relativeHitbox.y0 += hbx->hitboxPos.y;
                     relativeHitbox.y1 = relativeHitbox.y0 + hbx->hitboxSize.y;
 
-                    if(boxesCollide(relativeHitbox, otherFtr->hurtbox))
+                    if(boxesCollide(relativeHitbox, oterFtrHurtbox))
                     {
                         // Note the attack connected so it doesnt collide twice
                         ftr->attackConnected = true;
@@ -1251,8 +1286,15 @@ void checkFighterProjectileCollisions(list_t* projectiles)
         {
             // Get a convenience pointer
             fighter_t* ftr = &f->fighters[i];
+            box_t ftrHurtbox =
+            {
+                .x0 = ftr->pos.x,
+                .x1 = ftr->pos.x + ftr->size.x,
+                .y0 = ftr->pos.y,
+                .y1 = ftr->pos.y + ftr->size.y
+            };
             // Check if this projectile collided the first fighter
-            if(boxesCollide(projHurtbox, ftr->hurtbox))
+            if(boxesCollide(projHurtbox, ftrHurtbox))
             {
                 // Tally the damage
                 ftr->damage += proj->damage;

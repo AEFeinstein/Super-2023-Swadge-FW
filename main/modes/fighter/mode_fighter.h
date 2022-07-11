@@ -129,8 +129,7 @@ typedef struct
 
 typedef struct
 {
-    /* Position too! */
-    box_t hurtbox;
+    vector_t pos;
     vector_t size;
     vector_t velocity;
     platformPos_t relativePos;

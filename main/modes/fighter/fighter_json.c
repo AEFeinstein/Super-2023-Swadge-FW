@@ -330,8 +330,6 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
             {
                 tokIdx++;
                 fgt->size.x = SF * jsonInteger(jsonStr, toks[tokIdx]);
-                fgt->hurtbox.x0 = 0;
-                fgt->hurtbox.x1 = fgt->hurtbox.x0 + fgt->size.x;
                 tokIdx++;
                 numFieldsParsed++;
             }
@@ -339,8 +337,6 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
             {
                 tokIdx++;
                 fgt->size.y = SF * jsonInteger(jsonStr, toks[tokIdx]);
-                fgt->hurtbox.y0 = 0;
-                fgt->hurtbox.y1 = fgt->hurtbox.y0 + fgt->size.y;
                 tokIdx++;
                 numFieldsParsed++;
             }
