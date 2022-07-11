@@ -136,7 +136,7 @@
                      "sprite":"ki0.wsg",
                      "hitboxes":[
                         {
-                           "relativePos_x":24,
+                           "relativePos_x":0,
                            "relativePos_y":8,
                            "size_x":19,
                            "size_y":11,

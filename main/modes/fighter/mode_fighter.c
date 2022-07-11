@@ -670,6 +670,7 @@ void checkFighterTimer(fighter_t* ftr)
                     proj->damage          = hbx->damage;
                     proj->hitstun         = hbx->hitstun;
                     proj->removeNextFrame = false;
+                    proj->owner           = ftr;
 
                     // Add the projectile to the list
                     push(&f->projectiles, proj);
@@ -1342,36 +1343,41 @@ void checkFighterProjectileCollisions(list_t* projectiles)
         {
             // Get a convenience pointer
             fighter_t* ftr = &f->fighters[i];
-            box_t ftrHurtbox;
-            getHurtbox(ftr, &ftrHurtbox);
-            // Check if this projectile collided the first fighter
-            if(boxesCollide(projHurtbox, ftrHurtbox))
+
+            // Make sure a projectile can't hurt its owner
+            if(ftr != proj->owner)
             {
-                // Tally the damage
-                ftr->damage += proj->damage;
-
-                // Apply the knockback, scaled by damage
-                // roughly (1 + (0.02 * dmg))
-                int32_t knockbackScalar = 64 + (ftr->damage);
-                if(FACING_RIGHT == proj->dir)
+                box_t ftrHurtbox;
+                getHurtbox(ftr, &ftrHurtbox);
+                // Check if this projectile collided the first fighter
+                if(boxesCollide(projHurtbox, ftrHurtbox))
                 {
-                    ftr->velocity.x += ((proj->knockback.x * knockbackScalar) / 64);
-                }
-                else
-                {
-                    ftr->velocity.x -= ((proj->knockback.x * knockbackScalar) / 64);
-                }
-                ftr->velocity.y += ((proj->knockback.y * knockbackScalar) / 64);
-                // Knock the fighter into the air
-                if(ABOVE_PLATFORM == ftr->relativePos)
-                {
-                    ftr->relativePos = FREE_FLOATING;
-                }
+                    // Tally the damage
+                    ftr->damage += proj->damage;
 
-                // TODO apply hitstun
+                    // Apply the knockback, scaled by damage
+                    // roughly (1 + (0.02 * dmg))
+                    int32_t knockbackScalar = 64 + (ftr->damage);
+                    if(FACING_RIGHT == proj->dir)
+                    {
+                        ftr->velocity.x += ((proj->knockback.x * knockbackScalar) / 64);
+                    }
+                    else
+                    {
+                        ftr->velocity.x -= ((proj->knockback.x * knockbackScalar) / 64);
+                    }
+                    ftr->velocity.y += ((proj->knockback.y * knockbackScalar) / 64);
+                    // Knock the fighter into the air
+                    if(ABOVE_PLATFORM == ftr->relativePos)
+                    {
+                        ftr->relativePos = FREE_FLOATING;
+                    }
 
-                // Mark this projectile for removal
-                removeProjectile = true;
+                    // TODO apply hitstun
+
+                    // Mark this projectile for removal
+                    removeProjectile = true;
+                }
             }
         }
 

@@ -68,24 +68,6 @@ typedef enum
 
 typedef struct
 {
-    wsg_t* sprite;
-
-    vector_t size;
-    vector_t pos;
-    vector_t velo;
-    vector_t accel;
-
-    vector_t knockback;
-    uint16_t duration;
-    uint16_t damage;
-    uint16_t hitstun;
-
-    bool removeNextFrame;
-    fighterDirection_t dir;
-} projectile_t;
-
-typedef struct
-{
     vector_t hitboxPos;
     vector_t hitboxSize;
     uint16_t damage;
@@ -179,6 +161,25 @@ typedef struct
     int32_t animTimer;
     wsg_t* currentSprite;
 } fighter_t;
+
+typedef struct
+{
+    fighter_t * owner;
+    wsg_t* sprite;
+
+    vector_t size;
+    vector_t pos;
+    vector_t velo;
+    vector_t accel;
+
+    vector_t knockback;
+    uint16_t duration;
+    uint16_t damage;
+    uint16_t hitstun;
+
+    bool removeNextFrame;
+    fighterDirection_t dir;
+} projectile_t;
 
 //==============================================================================
 // Extern variables
