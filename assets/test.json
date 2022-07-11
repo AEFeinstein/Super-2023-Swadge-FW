@@ -21,6 +21,7 @@
                "type":"utilt",
                "startupLag":20,
                "startupLagSpr":"ki0.wsg",
+               "onlyFirstHit":true,
                "attack_frames":[
                   {
                      "duration":20,
@@ -76,13 +77,24 @@
                         {
                            "relativePos_x":-12,
                            "relativePos_y":12,
-                           "size_x":48,
+                           "size_x":12,
+                           "size_y":12,
+                           "damage":9,
+                           "knockback_x":-7680,
+                           "knockback_y":-7680,
+                           "hitstun":0
+                        },
+                        {
+                           "relativePos_x":24,
+                           "relativePos_y":12,
+                           "size_x":12,
                            "size_y":12,
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
                            "hitstun":0
                         }
+
                      ]
                   }
                ],

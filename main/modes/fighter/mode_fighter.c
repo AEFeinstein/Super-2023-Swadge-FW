@@ -259,13 +259,26 @@ void getHurtbox(fighter_t* ftr, box_t* hurtbox)
  */
 void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite, uint32_t line)
 {
+    // Clean up variables when leaving a state
+    if((FS_ATTACK == ftr->state) && (FS_ATTACK != newState))
+    {
+        // When leaving attack state, clear all 'attackConnected'
+        ftr->attacks[ftr->cAttack].attackConnected = false;
+        attackFrame_t * atk = ftr->attacks[ftr->cAttack].attackFrames;
+        uint8_t numAttackFrames = ftr->attacks[ftr->cAttack].numAttackFrames;
+        for(uint8_t atkIdx = 0; atkIdx < numAttackFrames; atkIdx++)
+        {
+            atk[atkIdx].attackConnected = false;
+        }
+    }
+
     // Set the new state
     ftr->state = newState;
 
     // Set the new sprite
     ftr->currentSprite = newSprite;
 
-    // Manage any other variab,es
+    // Manage any other variables
     switch(newState)
     {
         case FS_STARTUP:
@@ -1223,14 +1236,18 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
     // Check hitbox and hurbox
     if(FS_ATTACK == ftr->state)
     {
-        if(false == ftr->attackConnected)
-        {
-            // Get a reference to the attack frame
-            attackFrame_t* atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
+        // Get a reference to the attack and frames
+        attack_t * atk = &ftr->attacks[ftr->cAttack];
+        attackFrame_t* afrm = &atk->attackFrames[ftr->attackFrame];
 
-            for(uint8_t hbIdx = 0; hbIdx < atk->numHitboxes; hbIdx++)
+        // Check for collisions if this frame hasn't connected yet
+        // Also make sure that the attack allows multi-frame hits
+        if ((false == (atk->onlyFirstHit && atk->attackConnected)) &&
+            (false == afrm->attackConnected))
+        {
+            for(uint8_t hbIdx = 0; hbIdx < afrm->numHitboxes; hbIdx++)
             {
-                attackHitbox_t* hbx = &atk->hitboxes[hbIdx];
+                attackHitbox_t* hbx = &afrm->hitboxes[hbIdx];
 
                 // If this isn't a projectile attack, check the hitbox
                 if(!hbx->isProjectile)
@@ -1256,7 +1273,8 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                     if(boxesCollide(relativeHitbox, otherFtrHurtbox))
                     {
                         // Note the attack connected so it doesnt collide twice
-                        ftr->attackConnected = true;
+                        atk->attackConnected = true;
+                        afrm->attackConnected = true;
 
                         // Tally the damage
                         otherFtr->damage += hbx->damage;
@@ -1285,10 +1303,6 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                 }
             }
         }
-    }
-    else
-    {
-        ftr->attackConnected = false;
     }
 }
 

@@ -454,6 +454,13 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* 
                 tokIdx++;
                 numFieldsParsed++;
             }
+            else if(0 == jsoneq(jsonStr, &toks[tokIdx], "onlyFirstHit"))
+            {
+                tokIdx++;
+                atk->onlyFirstHit = jsonBoolean(jsonStr, toks[tokIdx]);
+                tokIdx++;
+                numFieldsParsed++;
+            }
             else if (0 == jsoneq(jsonStr, &toks[tokIdx], "attack_frames"))
             {
                 // Move to the array, get the size

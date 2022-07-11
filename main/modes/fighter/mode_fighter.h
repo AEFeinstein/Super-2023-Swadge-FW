@@ -109,16 +109,19 @@ typedef struct
     vector_t velocity;
     uint16_t duration;
     uint8_t numHitboxes;
+    bool attackConnected;
 } attackFrame_t;
 
 typedef struct
 {
-    uint16_t startupLag;
     wsg_t* startupLagSpr;
-    uint8_t numAttackFrames;
-    attackFrame_t* attackFrames;
-    uint16_t endLag;
     wsg_t* endLagSpr;
+    attackFrame_t* attackFrames;
+    uint16_t startupLag;
+    uint16_t endLag;
+    uint8_t numAttackFrames;
+    bool onlyFirstHit;
+    bool attackConnected;
 } attack_t;
 
 typedef struct
@@ -171,7 +174,6 @@ typedef struct
     fighterDirection_t dir;
     int32_t shortHopTimer;
     bool isShortHop;
-    bool attackConnected;
     int32_t damage;
     /* Animation timer */
     int32_t animTimer;
