@@ -142,7 +142,7 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
     }
 
     // Pointer to allocate memory for later
-    fighter_t* fighters;
+    fighter_t* fighters = NULL;
 
     ////////////////////////////////////////////////////////////////////////////
 

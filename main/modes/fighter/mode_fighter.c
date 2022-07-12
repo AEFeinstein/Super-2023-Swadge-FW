@@ -260,7 +260,7 @@ void getHurtbox(fighter_t* ftr, box_t* hurtbox)
 void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite, uint32_t line)
 {
     // Clean up variables when leaving a state
-    if((FS_ATTACK == ftr->state) && (FS_ATTACK != newState))
+    if((FS_ATTACK == ftr->state) && (FS_ATTACK != newState) && (ftr->cAttack < NUM_ATTACKS))
     {
         // When leaving attack state, clear all 'attackConnected'
         ftr->attacks[ftr->cAttack].attackConnected = false;
