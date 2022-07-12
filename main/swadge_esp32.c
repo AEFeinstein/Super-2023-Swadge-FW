@@ -47,6 +47,9 @@
 #include "mode_main_menu.h"
 #include "mode_demo.h"
 #include "mode_fighter.h"
+#include "mode_gamepad.h"
+
+#include "driver/gpio.h"
 
 #if defined(EMU)
 #include "emu_esp.h"
@@ -67,9 +70,10 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
 
 swadgeMode* swadgeModes[] =
 {
-    &modemainMenu,
+    &modeMainMenu,
     &modeFighter,
-    &modeDemo
+    &modeDemo,
+    &modeGamepad,
 };
 
 static RTC_DATA_ATTR uint8_t pendingSwadgeModeIdx = 0;
@@ -171,6 +175,25 @@ void tud_hid_set_report_cb(uint8_t itf __attribute__((unused)),
  */
 void app_main(void)
 {
+    // Pull these GPIOs low immediately!!!
+    // This prevents overheating on the devkit
+    gpio_num_t toPullLow[] = {
+        GPIO_NUM_33, // TFTATN
+        GPIO_NUM_35, // TFTATP
+        GPIO_NUM_41, // SP-
+        GPIO_NUM_42  // SP+
+    };
+    for(uint8_t i = 0; i < ARRAY_SIZE(toPullLow); i++)
+    {
+        gpio_config_t atn_gpio_config =
+        {
+            .mode = GPIO_MODE_OUTPUT,
+            .pin_bit_mask = 1ULL << toPullLow[i]
+        };
+        ESP_ERROR_CHECK(gpio_config(&atn_gpio_config));
+        ESP_ERROR_CHECK(gpio_set_level(toPullLow[i], 0));
+    }
+
 // #define PRINT_STATS
 #ifdef PRINT_STATS
     /* Print chip information */
@@ -251,14 +274,14 @@ void mainSwadgeTask(void * arg __attribute((unused)))
 
     /* Initialize non-i2c hardware peripherals */
     initButtons(8,
-        GPIO_NUM_4,
+        GPIO_NUM_1,
+        GPIO_NUM_0,
+        GPIO_NUM_3,
+        GPIO_NUM_2,
         GPIO_NUM_5,
-        GPIO_NUM_6,
-        GPIO_NUM_7,
-        GPIO_NUM_15,
-        GPIO_NUM_16,
-        GPIO_NUM_17,
-        GPIO_NUM_18);
+        GPIO_NUM_45,
+        GPIO_NUM_4,
+        GPIO_NUM_15); // GPIO 46 doesn't work b/c it has a permanent pulldown
 
     initTouchSensor(0.2f, true, 6,
         TOUCH_PAD_NUM9,   // GPIO_NUM_9
@@ -268,8 +291,8 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         TOUCH_PAD_NUM13,  // GPIO_NUM_13
         TOUCH_PAD_NUM14); // GPIO_NUM_14
 
-    initLeds(GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
-    buzzer_init(GPIO_NUM_35, RMT_CHANNEL_1);
+    initLeds(GPIO_NUM_39, RMT_CHANNEL_0, NUM_LEDS);
+    buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1);
 
 #if !defined(EMU)
     if(NULL != swadgeModes[swadgeModeIdx]->fnAudioCallback)
@@ -282,7 +305,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
          */
         static uint16_t adc1_chan_mask = BIT(2);
         static uint16_t adc2_chan_mask = 0;
-        static adc_channel_t channel[] = {ADC1_CHANNEL_2}; // GPIO_NUM_3
+        static adc_channel_t channel[] = {ADC1_CHANNEL_7}; // GPIO_NUM_8
         continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
         continuous_adc_start();
     }
@@ -294,8 +317,8 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     {
         /* Initialize i2c peripherals */
         i2c_master_init(
-            GPIO_NUM_33,
-            GPIO_NUM_34,
+            GPIO_NUM_17, // SDA
+            GPIO_NUM_18, // SCL
             GPIO_PULLUP_DISABLE, 1000000);
         accelInitialized = QMA6981_setup();
     }
@@ -309,12 +332,12 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     display_t tftDisp;
     initTFT(&tftDisp,
             SPI2_HOST,
-            GPIO_NUM_37,  // sclk
-            GPIO_NUM_38,  // mosi
-            GPIO_NUM_41,  // dc
-            GPIO_NUM_39,  // cs
-            GPIO_NUM_40,  // rst
-            GPIO_NUM_42); // backlight
+            GPIO_NUM_36, // sclk
+            GPIO_NUM_37, // mosi
+            GPIO_NUM_21, // dc
+            GPIO_NUM_34, // cs
+            GPIO_NUM_38, // rst
+            GPIO_NUM_7); // backlight (dummy GPIO for now)
 
     /* Initialize USB peripheral */
     tinyusb_config_t tusb_cfg = {};

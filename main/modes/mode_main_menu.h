@@ -7,6 +7,6 @@ extern swadgeMode* swadgeModes[];
 uint8_t getNumSwadgeModes(void);
 void switchToSwadgeMode(uint8_t mode);
 
-extern swadgeMode modemainMenu;
+extern swadgeMode modeMainMenu;
 
 #endif
