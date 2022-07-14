@@ -13,6 +13,8 @@
 
 #include "swadgeMode.h"
 
+#include "esp_flash.h"
+
 #define ULOG( x... ) 
     //ESP_LOGI( "advanced_usb_control", x )
 
@@ -22,17 +24,18 @@
 
 uint32_t * advanced_usb_scratch_buffer_data;
 uint32_t   advanced_usb_scratch_buffer_data_size;
-uint32_t   advanced_usb_scratch_immediate[4];
+uint32_t   advanced_usb_scratch_immediate[64];
 uint8_t  advanced_usb_printf_buffer[2048];
 int      advanced_usb_printf_head, advanced_usb_printf_tail;
 
-static int advanced_usb_read_offset;
-static int terminal_redirected;
+uint32_t * advanced_usb_read_offset;
+static uint8_t terminal_redirected;
+static uint8_t did_init_flash_function;
 
 int handle_advanced_usb_control_get( int reqlen, uint8_t * data )
 {
     if( advanced_usb_read_offset == 0 ) return 0;
-    memcpy( data, (void*)advanced_usb_read_offset, reqlen );
+    memcpy( data, advanced_usb_read_offset, reqlen );
     return reqlen;
 }
 
@@ -102,7 +105,7 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
         break;
     case 0x05:
         // Configure read.
-        advanced_usb_read_offset = value;
+        advanced_usb_read_offset = (uint32_t*)value;
         break;
     case 0x06:
         // Execute scratch
@@ -148,6 +151,33 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
             ULOG( "New: %p / %d", advanced_usb_scratch_buffer_data, advanced_usb_scratch_buffer_data_size );
         }
         break;
+    case 0x10: // Flash erase region
+    {
+        if( datalen < 10 ) return ;
+        intptr_t length = data[6] | ( data[7] << 8 ) | ( data[8] << 16 ) | ( data[9]<<24 );
+        if( !did_init_flash_function )
+            esp_flash_init( 0 );
+        if( ( length & 0x80000000 ) && value == 0 )
+            esp_flash_erase_chip( 0 );
+        else
+            esp_flash_erase_region( 0, value, length );    
+        break;
+    }
+    case 0x11: // Flash write region
+    {
+        esp_flash_write( 0, data+6, value, datalen-6 );
+        break;
+    }
+    case 0x12: // Flash read region
+    {
+        if( datalen < 10 ) return ;
+        intptr_t length = data[6] | ( data[7] << 8 ) | ( data[8] << 16 ) | ( data[9]<<24 );
+        if( length > sizeof( advanced_usb_scratch_immediate ) )
+            length = sizeof( advanced_usb_scratch_immediate );
+        int r = esp_flash_read( 0, advanced_usb_scratch_immediate, value, length );
+        advanced_usb_read_offset = advanced_usb_scratch_immediate;
+        break;
+    }
     }
 }
 

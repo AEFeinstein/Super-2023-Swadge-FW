@@ -7,14 +7,6 @@
 #define VID 0x303a
 #define PID 0x4004
 
-
-/*
-# MAGFest Swadge 2022
-SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="303a", ATTR{idProduct}=="4004", MODE="0666"
-
-Add that to /etc/udev/rules.d/99-magfest.rules"
-*/
-
 hid_device * hd;
 const int chunksize = 224;
 const int alignlen = 4;

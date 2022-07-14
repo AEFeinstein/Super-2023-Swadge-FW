@@ -7,6 +7,8 @@
 
 int global_i = 100;
 
+esp_err_t esp_flash_read(void *chip, void *buffer, uint32_t address, uint32_t length);
+
 void sandbox_main(display_t * disp)
 {
 	ESP_LOGI( "sandbox", "Running from IRAM. %d", global_i );
@@ -19,6 +21,9 @@ void sandbox_exit()
 
 void sandbox_tick()
 {
+	uint32_t buffer[4] = { 0 };
+	int r = esp_flash_read( 0, buffer, 0x3f0000, sizeof( buffer ) );
+
 	ESP_LOGI( "sandbox", "global_i: %d", global_i++ );
 } 
 
