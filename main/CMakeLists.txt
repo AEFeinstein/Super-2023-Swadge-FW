@@ -16,6 +16,7 @@ idf_component_register(
         "utils/linked_list.c"
         "p2pConnection.c"
         "swadge_esp32.c"
+        "advanced_usb_control.c"
     INCLUDE_DIRS
         "."
         "../components/hdw-buzzer/"
@@ -31,7 +32,7 @@ idf_component_register(
 function(spiffs_file_preprocessor)
     add_custom_target(spiffs_preprocessor ALL
     COMMAND make -C ${CMAKE_CURRENT_SOURCE_DIR}/../spiffs_file_preprocessor/
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../spiffs_file_preprocessor/spiffs_file_preprocessor.exe -i ${CMAKE_CURRENT_SOURCE_DIR}/../assets/ -o ${CMAKE_CURRENT_SOURCE_DIR}/../spiffs_image/
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../spiffs_file_preprocessor/spiffs_file_preprocessor -i ${CMAKE_CURRENT_SOURCE_DIR}/../assets/ -o ${CMAKE_CURRENT_SOURCE_DIR}/../spiffs_image/
     )
 endfunction()
 
