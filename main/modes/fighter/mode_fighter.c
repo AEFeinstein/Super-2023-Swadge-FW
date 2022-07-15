@@ -584,7 +584,16 @@ void checkFighterTimer(fighter_t* ftr)
             case FS_COOLDOWN:
             {
                 // Transition from cooldown to idle
-                setFighterState(ftr, FS_IDLE, ftr->idleSprite0);
+                if(ABOVE_PLATFORM != ftr->relativePos)
+                {
+                    // In air, go to jump
+                    setFighterState(ftr, FS_JUMPING, ftr->jumpSprite);
+                }
+                else
+                {
+                    // On ground, go to idle
+                    setFighterState(ftr, FS_IDLE, ftr->idleSprite0);
+                }
                 break;
             }
             case FS_IDLE:
