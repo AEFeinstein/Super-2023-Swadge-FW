@@ -15,6 +15,7 @@
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "hdw-tft.h"
+#include "esp_lcd_panel_interface.h"
 
 //==============================================================================
 // Colors
@@ -270,6 +271,15 @@ const uint16_t paletteColors[] =
     #define SWAP_XY          true
     #define MIRROR_X        false
     #define MIRROR_Y         true
+#elif defined(CONFIG_ST7735_128x160)
+    #define TFT_WIDTH         160
+    #define TFT_HEIGHT        128
+    #define LCD_PIXEL_CLOCK_HZ (40 * 1000*1000)
+    #define X_OFFSET            0
+    #define Y_OFFSET            0
+    #define SWAP_XY          true
+    #define MIRROR_X        false
+    #define MIRROR_Y         true
 #elif defined(CONFIG_ST7789_240x135)
     #define TFT_WIDTH         240
     #define TFT_HEIGHT        135
@@ -305,7 +315,7 @@ void drawDisplayTft(bool drawDiff);
 // Variables
 //==============================================================================
 
-static esp_lcd_panel_handle_t panel_handle = NULL;
+esp_lcd_panel_handle_t panel_handle = NULL;
 static paletteColor_t * pixels = NULL;
 static uint16_t *s_lines[2] = {0};
 // static uint64_t tFpsStart = 0;
@@ -377,7 +387,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
 
 #if defined(CONFIG_ST7735_160x80)
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7735(io_handle, &panel_config, &panel_handle));
-#elif defined(CONFIG_ST7789_240x135) || defined(CONFIG_ST7789_240x240)
+#elif defined(CONFIG_ST7789_240x135) || defined(CONFIG_ST7789_240x240) || defined(CONFIG_ST7735_128x160)
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_config, &panel_handle));
 #else
 #error "Please pick a screen size"
@@ -408,6 +418,32 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     esp_lcd_panel_mirror(panel_handle, MIRROR_X, MIRROR_Y);
     esp_lcd_panel_set_gap(panel_handle, X_OFFSET, Y_OFFSET);
     esp_lcd_panel_invert_color(panel_handle, true);
+
+#if defined(CONFIG_ST7735_128x160)
+    // Mixture of docs + experimentation
+    // This is the RB027D25N05A
+    typedef struct {
+        esp_lcd_panel_t base;
+        esp_lcd_panel_io_handle_t io;
+        int reset_gpio_num;
+        bool reset_level;
+        int x_gap;
+        int y_gap;
+        unsigned int bits_per_pixel;
+        uint8_t madctl_val; // save current value of LCD_CMD_MADCTL register
+        uint8_t colmod_cal; // save surrent value of LCD_CMD_COLMOD register
+    } st7789_panel_internal_t;
+    st7789_panel_internal_t *st7789 = __containerof(panel_handle, st7789_panel_internal_t, base);
+    esp_lcd_panel_io_handle_t io = st7789->io;
+    esp_lcd_panel_io_tx_param(io, 0xB1, (uint8_t[]) { 0x05, 0x3C, 0x3C }, 3 );
+    esp_lcd_panel_io_tx_param(io, 0xB2, (uint8_t[]) { 0x05, 0x3C, 0x3C }, 3 );
+    esp_lcd_panel_io_tx_param(io, 0xB3, (uint8_t[]) { 0x05, 0x3C, 0x3C, 0x05, 0x3C, 0x3C }, 6 );
+    esp_lcd_panel_io_tx_param(io, 0xB4, (uint8_t[]) {0x00}, 1 ); //00 Dot inversion,  //07 column inversion
+    esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[]) {0xa0}, 1 ); //MX, MY, RGB mode  (MADCTL)
+    esp_lcd_panel_io_tx_param(io, 0xE0, (uint8_t[]) {0x04,0x22,0x07,0x0A,0x2E,0x30,0x25,0x2A,0x28,0x26,0x2E,0x3A,0x00,0x01,0x03,0x13}, 16 );
+    esp_lcd_panel_io_tx_param(io, 0xE1, (uint8_t[]) {0x04,0x16,0x06,0x0D,0x2D,0x26,0x23,0x27,0x27,0x25,0x2D,0x3B,0x00,0x01,0x04,0x13}, 16 );
+    esp_lcd_panel_io_tx_param(io, 0x20, (uint8_t[]) { 0 }, 0 ); // buffer color inversion
+#endif
 
     // FIll the handle for the initialized display
     disp->h = TFT_HEIGHT;
