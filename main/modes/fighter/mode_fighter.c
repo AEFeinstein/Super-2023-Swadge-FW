@@ -1299,6 +1299,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         ftr->pos.y = 0;
         ftr->velocity.x = 0;
         ftr->velocity.y = 0;
+        ftr->damage = 0;
     }
 }
 
