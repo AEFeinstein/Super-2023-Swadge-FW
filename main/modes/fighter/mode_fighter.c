@@ -687,24 +687,59 @@ void checkFighterTimer(fighter_t* ftr)
  */
 void checkFighterButtonInput(fighter_t* ftr)
 {
-    // Pressing A in these states means jump
-    if(FS_IDLE == ftr->state || FS_RUNNING == ftr->state || FS_JUMPING == ftr->state)
+    // Manage ducking
+    if ((FS_IDLE == ftr->state) && (ftr->btnState & DOWN))
     {
-        if (!(ftr->prevBtnState & BTN_A) && (ftr->btnState & BTN_A))
+        setFighterState(ftr, FS_DUCKING, ftr->duckSprite);
+    }
+    else if((FS_DUCKING == ftr->state) && !(ftr->btnState & DOWN))
+    {
+        setFighterState(ftr, FS_IDLE, ftr->idleSprite0);
+    }
+    
+    // Manage the A button
+    if (!(ftr->prevBtnState & BTN_A) && (ftr->btnState & BTN_A))
+    {
+        switch(ftr->state)
         {
-            if(ftr->numJumpsLeft > 0)
+            case FS_IDLE:
+            case FS_RUNNING:
+            case FS_JUMPING:
             {
-                // Only set short hop timer on the first jump
-                if(ftr->numJumps == ftr->numJumpsLeft)
+                // Pressing A in these states means jump
+                if(ftr->numJumpsLeft > 0)
                 {
-                    ftr->shortHopTimer = 125 / FRAME_TIME_MS;
-                    ftr->isShortHop = false;
+                    // Only set short hop timer on the first jump
+                    if(ftr->numJumps == ftr->numJumpsLeft)
+                    {
+                        ftr->shortHopTimer = 125 / FRAME_TIME_MS;
+                        ftr->isShortHop = false;
+                    }
+                    ftr->numJumpsLeft--;
+                    ftr->velocity.y = ftr->jump_velo;
+                    ftr->relativePos = FREE_FLOATING;
+                    ftr->touchingPlatform = NULL;
+                    setFighterState(ftr, FS_JUMPING, ftr->jumpSprite);
                 }
-                ftr->numJumpsLeft--;
-                ftr->velocity.y = ftr->jump_velo;
-                ftr->relativePos = FREE_FLOATING;
-                ftr->touchingPlatform = NULL;
-                setFighterState(ftr, FS_JUMPING, ftr->jumpSprite);
+                break;
+            }
+            case FS_DUCKING:
+            {
+                // Pressing A in this state means fall through platform
+                if(ftr->relativePos == ABOVE_PLATFORM && ftr->touchingPlatform->canFallThrough)
+                {
+                    // Fall through a platform
+                    ftr->relativePos = PASSING_THROUGH_PLATFORM;
+                    ftr->passingThroughPlatform = ftr->touchingPlatform;
+                    ftr->touchingPlatform = NULL;
+                    ftr->fallThroughTimer = 0;
+                }
+                break;
+            }
+            default:
+            {
+                // Do nothing
+                break;
             }
         }
     }
@@ -794,16 +829,6 @@ void checkFighterButtonInput(fighter_t* ftr)
             setFighterState(ftr, FS_STARTUP, ftr->attacks[ftr->cAttack].startupLagSpr);
             ftr->stateTimer = ftr->attacks[ftr->cAttack].startupLag;
         }
-    }
-
-    // Manage ducking
-    if ((FS_IDLE == ftr->state) && (ftr->btnState & DOWN))
-    {
-        setFighterState(ftr, FS_DUCKING, ftr->duckSprite);
-    }
-    else if((FS_DUCKING == ftr->state) && !(ftr->btnState & DOWN))
-    {
-        setFighterState(ftr, FS_IDLE, ftr->idleSprite0);
     }
 
     // Double tapping down will fall through platforms, if the platform allows it
