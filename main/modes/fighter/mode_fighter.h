@@ -36,15 +36,10 @@ typedef enum
     FS_IDLE,
     FS_RUNNING,
     FS_DUCKING,
-    FS_JUMP,
-    FS_FALLING,
-    FS_FREEFALL, // After up special
+    FS_JUMPING,
     FS_STARTUP,
     FS_ATTACK,
-    FS_COOLDOWN,
-    FS_HITSTUN,
-    FS_HITSTOP,
-    FS_INVINCIBLE
+    FS_COOLDOWN
 } fighterState_t;
 
 typedef enum
@@ -101,6 +96,7 @@ typedef struct
     attackFrame_t* attackFrames;
     uint16_t startupLag;
     uint16_t endLag;
+    uint16_t landingLag;
     uint8_t numAttackFrames;
     bool onlyFirstHit;
     bool attackConnected;
@@ -123,6 +119,8 @@ typedef struct
     const platform_t* touchingPlatform;
     const platform_t* passingThroughPlatform;
     uint8_t numJumps;
+    uint8_t numJumpsLeft;
+    uint16_t landingLag;
     /* how floaty a jump is */
     int32_t gravity;
     /* A negative velocity applied when jumping.
@@ -144,11 +142,13 @@ typedef struct
     wsg_t* runSprite1;
     wsg_t* jumpSprite;
     wsg_t* duckSprite;
+    wsg_t* landingLagSprite;
     /* Input Tracking */
     int32_t prevBtnState;
     int32_t btnState;
     /* Current state tracking */
     fighterState_t state;
+    bool isAerialAttack;
     attackOrder_t cAttack;
     uint8_t attackFrame;
     int32_t stateTimer;

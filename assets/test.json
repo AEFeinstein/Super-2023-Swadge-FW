@@ -10,12 +10,14 @@
          "size_x":24,
          "size_y":24,
          "nJumps":2,
+         "landing_lag":20,
          "idle_spr_0":"ki0.wsg",
          "idle_spr_1":"ki1.wsg",
          "run_spr_0":"kr0.wsg",
          "run_spr_1":"kr1.wsg",
          "jump_spr":"kj0.wsg",
          "duck_spr":"kd0.wsg",
+         "land_lag_spr":"ki0.wsg",
          "attacks":[
             {
                "type":"utilt",
@@ -94,7 +96,6 @@
                            "knockback_y":-7680,
                            "hitstun":0
                         }
-
                      ]
                   }
                ],
@@ -181,7 +182,8 @@
                   }
                ],
                "endLag":20,
-               "endLagSpr":"ki0.wsg"
+               "endLagSpr":"ki0.wsg",
+               "landing_lag":20
             },
             {
                "type":"fair",
@@ -206,7 +208,8 @@
                   }
                ],
                "endLag":20,
-               "endLagSpr":"ki0.wsg"
+               "endLagSpr":"ki0.wsg",
+               "landing_lag":20
             },
             {
                "type":"bair",
@@ -231,7 +234,8 @@
                   }
                ],
                "endLag":20,
-               "endLagSpr":"ki0.wsg"
+               "endLagSpr":"ki0.wsg",
+               "landing_lag":20
             },
             {
                "type":"uair",
@@ -258,7 +262,8 @@
                   }
                ],
                "endLag":1,
-               "endLagSpr":"ki0.wsg"
+               "endLagSpr":"ki0.wsg",
+               "landing_lag":20
             },
             {
                "type":"dair",
@@ -283,7 +288,8 @@
                   }
                ],
                "endLag":20,
-               "endLagSpr":"ki0.wsg"
+               "endLagSpr":"ki0.wsg",
+               "landing_lag":20
             }
          ]
       },
@@ -297,12 +303,14 @@
          "size_x":24,
          "size_y":24,
          "nJumps":2,
+         "landing_lag":20,
          "idle_spr_0":"ki0.wsg",
          "idle_spr_1":"ki1.wsg",
          "run_spr_0":"kr0.wsg",
          "run_spr_1":"kr1.wsg",
          "jump_spr":"kj0.wsg",
          "duck_spr":"kd0.wsg",
+         "land_lag_spr":"ki0.wsg",
          "attacks":[
             {
                "type":"utilt",
@@ -427,7 +435,8 @@
                   }
                ],
                "endLag":20,
-               "endLagSpr":"ki0.wsg"
+               "endLagSpr":"ki0.wsg",
+               "landing_lag":20
             },
             {
                "type":"fair",
@@ -452,7 +461,8 @@
                   }
                ],
                "endLag":20,
-               "endLagSpr":"ki0.wsg"
+               "endLagSpr":"ki0.wsg",
+               "landing_lag":20
             },
             {
                "type":"bair",
@@ -477,7 +487,8 @@
                   }
                ],
                "endLag":20,
-               "endLagSpr":"ki0.wsg"
+               "endLagSpr":"ki0.wsg",
+               "landing_lag":20
             },
             {
                "type":"uair",
@@ -502,7 +513,8 @@
                   }
                ],
                "endLag":20,
-               "endLagSpr":"ki0.wsg"
+               "endLagSpr":"ki0.wsg",
+               "landing_lag":20
             },
             {
                "type":"dair",
@@ -527,7 +539,8 @@
                   }
                ],
                "endLag":20,
-               "endLagSpr":"ki0.wsg"
+               "endLagSpr":"ki0.wsg",
+               "landing_lag":20
             }
          ]
       }

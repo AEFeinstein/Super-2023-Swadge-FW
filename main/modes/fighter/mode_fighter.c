@@ -290,12 +290,7 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite,
         case FS_IDLE:
         case FS_RUNNING:
         case FS_DUCKING:
-        case FS_JUMP:
-        case FS_FALLING:
-        case FS_FREEFALL:
-        case FS_HITSTUN:
-        case FS_HITSTOP:
-        case FS_INVINCIBLE:
+        case FS_JUMPING:
         default:
         {
             ftr->cAttack = NO_ATTACK;
@@ -595,12 +590,7 @@ void checkFighterTimer(fighter_t* ftr)
             case FS_IDLE:
             case FS_RUNNING:
             case FS_DUCKING:
-            case FS_JUMP:
-            case FS_FALLING:
-            case FS_FREEFALL:
-            case FS_HITSTUN:
-            case FS_HITSTOP:
-            case FS_INVINCIBLE:
+            case FS_JUMPING:
             default:
             {
                 // These states have no transitions, yet
@@ -698,23 +688,23 @@ void checkFighterTimer(fighter_t* ftr)
 void checkFighterButtonInput(fighter_t* ftr)
 {
     // Pressing A in these states means jump
-    if(FS_IDLE == ftr->state || FS_RUNNING == ftr->state || FS_JUMP == ftr->state)
+    if(FS_IDLE == ftr->state || FS_RUNNING == ftr->state || FS_JUMPING == ftr->state)
     {
         if (!(ftr->prevBtnState & BTN_A) && (ftr->btnState & BTN_A))
         {
-            if(ftr->numJumps > 0)
+            if(ftr->numJumpsLeft > 0)
             {
                 // Only set short hop timer on the first jump
-                if(2 == ftr->numJumps)
+                if(ftr->numJumps == ftr->numJumpsLeft)
                 {
                     ftr->shortHopTimer = 125 / FRAME_TIME_MS;
                     ftr->isShortHop = false;
                 }
-                ftr->numJumps--;
+                ftr->numJumpsLeft--;
                 ftr->velocity.y = ftr->jump_velo;
                 ftr->relativePos = FREE_FLOATING;
                 ftr->touchingPlatform = NULL;
-                setFighterState(ftr, FS_JUMP, ftr->jumpSprite);
+                setFighterState(ftr, FS_JUMPING, ftr->jumpSprite);
             }
         }
     }
@@ -738,6 +728,8 @@ void checkFighterButtonInput(fighter_t* ftr)
         if(ABOVE_PLATFORM == ftr->relativePos)
         {
             // Attack on ground
+            ftr->isAerialAttack = false;
+
             if(ftr->btnState & UP)
             {
                 // Up tilt attack
@@ -762,12 +754,14 @@ void checkFighterButtonInput(fighter_t* ftr)
         else
         {
             // Attack in air
+            ftr->isAerialAttack = true;
+
             if(ftr->btnState & UP)
             {
                 // Up air attack
                 ftr->cAttack = UP_AIR;
                 // No more jumps after up air!
-                ftr->numJumps = 0;
+                ftr->numJumpsLeft = 0;
             }
             else if(ftr->btnState & DOWN)
             {
@@ -862,7 +856,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
 
     // Only allow movement in these states
     bool movementInput = false;
-    if(FS_IDLE == ftr->state || FS_JUMP == ftr->state || FS_RUNNING == ftr->state)
+    if(FS_IDLE == ftr->state || FS_JUMPING == ftr->state || FS_RUNNING == ftr->state)
     {
         // Update X kinematics based on button state and fighter position
         if(ftr->btnState & LEFT)
@@ -1144,11 +1138,35 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 ftr->velocity.y = 0;
                 ftr->relativePos = ABOVE_PLATFORM;
                 ftr->touchingPlatform = &platforms[idx];
-                ftr->numJumps = 2;
+                ftr->numJumpsLeft = ftr->numJumps;
                 // If the fighter was jumping, land
-                if(FS_JUMP == ftr->state)
+                switch(ftr->state)
                 {
-                    setFighterState(ftr, FS_IDLE, ftr->idleSprite0);
+                    case FS_JUMPING:
+                    {
+                        // Apply normal landing lag
+                        setFighterState(ftr, FS_COOLDOWN, ftr->landingLagSprite);
+                        ftr->stateTimer = ftr->landingLag;
+                        break;
+                    }
+                    case FS_STARTUP:
+                    case FS_ATTACK:
+                    {
+                        // If this is an aerial attack while landing
+                        if(ftr->isAerialAttack)
+                        {
+                            // Apply attack landing lag
+                            setFighterState(ftr, FS_COOLDOWN, ftr->landingLagSprite);
+                            ftr->stateTimer = ftr->attacks[ftr->cAttack].landingLag;
+                        }
+                        break;
+                    }
+                    case FS_COOLDOWN:
+                    default:
+                    {
+                        // Do nothing (stick with the normal attack cooldown)
+                        break;
+                    }
                 }
                 break;
             }

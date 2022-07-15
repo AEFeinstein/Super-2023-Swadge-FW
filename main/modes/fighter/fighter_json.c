@@ -291,6 +291,15 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
                 tokIdx++;
                 numFieldsParsed++;
             }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "land_lag_spr"))
+            {
+                tokIdx++;
+                char* name = jsonString(jsonStr, toks[tokIdx]);
+                ftr->landingLagSprite = loadFighterSprite(name, loadedSprites);
+                free(name);
+                tokIdx++;
+                numFieldsParsed++;
+            }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "gravity"))
             {
                 tokIdx++;
@@ -346,6 +355,13 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
             {
                 tokIdx++;
                 ftr->numJumps = jsonInteger(jsonStr, toks[tokIdx]);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if(0 == jsoneq(jsonStr, &toks[tokIdx], "landing_lag"))
+            {
+                tokIdx++;
+                ftr->landingLag = jsonInteger(jsonStr, toks[tokIdx]);
                 tokIdx++;
                 numFieldsParsed++;
             }
@@ -433,6 +449,13 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* 
             {
                 tokIdx++;
                 atk->endLag = jsonInteger(jsonStr, toks[tokIdx]);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if(0 == jsoneq(jsonStr, &toks[tokIdx], "landing_lag"))
+            {
+                tokIdx++;
+                atk->landingLag = jsonInteger(jsonStr, toks[tokIdx]);
                 tokIdx++;
                 numFieldsParsed++;
             }
