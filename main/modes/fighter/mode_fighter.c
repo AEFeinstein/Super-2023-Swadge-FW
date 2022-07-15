@@ -189,6 +189,10 @@ void fighterEnterMode(display_t* disp)
     f->fighters[0].pos.x = (f->d->w / 2) * SF;
     f->fighters[1].pos.x = (f->d->w / 2) * SF;
 
+    // Start with three stocks
+    f->fighters[0].stocks = 3;
+    f->fighters[1].stocks = 3;
+
     // Set some LEDs, just because
     static led_t leds[NUM_LEDS] =
     {
@@ -705,7 +709,7 @@ void checkFighterButtonInput(fighter_t* ftr)
     {
         setFighterState(ftr, FS_IDLE, ftr->idleSprite0);
     }
-    
+
     // Manage the A button
     if (!(ftr->prevBtnState & BTN_A) && (ftr->btnState & BTN_A))
     {
@@ -1272,6 +1276,30 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             }
         }
     }
+
+    // Check kill zone
+    if(ftr->pos.y > SF * 600)
+    {
+        // Decrement stocks
+        if(ftr->stocks > 0)
+        {
+            ftr->stocks--;
+        }
+        else
+        {
+            // TODO end game
+        }
+
+        // Respawn by resetting state
+        // TODO probably need to reset more
+        ftr->relativePos = FREE_FLOATING;
+        ftr->cAttack = NO_ATTACK;
+        setFighterState(ftr, FS_IDLE, ftr->idleSprite0);
+        ftr->pos.x = (f->d->w / 2) * SF;
+        ftr->pos.y = 0;
+        ftr->velocity.x = 0;
+        ftr->velocity.y = 0;
+    }
 }
 
 /**
@@ -1573,7 +1601,7 @@ void drawFighterFrame(display_t* d, const platform_t* platforms,
 }
 
 /**
- * Draw the HUD, which is just the damage percentages
+ * Draw the HUD, which is just the damage percentages and stock circles
  *
  * @param d The display to draw to
  * @param font The font to use for the damage percentages
@@ -1586,10 +1614,25 @@ void drawFighterHud(display_t* d, font_t* font, fighter_t* ftr1, fighter_t* ftr2
     uint16_t tWidth;
     uint16_t xPos;
 
+#define SR 5
+    int16_t stockX = (d->w / 3) - (2 * SR) - 3;
+    for(uint8_t stockToDraw = 0; stockToDraw < ftr1->stocks; stockToDraw++)
+    {
+        plotCircleFilled(d, stockX, d->h - font->h - 4 - (SR * 2), SR, c550);
+        stockX += ((2 * SR) + 3);
+    }
+
     snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", ftr1->damage);
     tWidth = textWidth(font, dmgStr);
     xPos = (d->w / 3) - (tWidth / 2);
     drawText(d, font, c555, dmgStr, xPos, d->h - font->h - 2);
+
+    stockX = (2 * (d->w / 3)) - (2 * SR) - 3;
+    for(uint8_t stockToDraw = 0; stockToDraw < ftr2->stocks; stockToDraw++)
+    {
+        plotCircleFilled(d, stockX, d->h - font->h - 4 - (SR * 2), SR, c550);
+        stockX += ((2 * SR) + 3);
+    }
 
     snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", ftr2->damage);
     tWidth = textWidth(font, dmgStr);

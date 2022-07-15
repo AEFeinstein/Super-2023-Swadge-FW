@@ -238,6 +238,29 @@ void plotCircleQuadrants(display_t * disp, int xm, int ym, int r, bool q1,
     } while (x < 0);
 }
 
+void plotCircleFilled(display_t * disp, int xm, int ym, int r, paletteColor_t col)
+{
+    int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
+    do
+    {
+        for (int lineX = xm + x; lineX <= xm - x; lineX++)
+        {
+            disp->setPx(lineX, ym - y, col);
+            disp->setPx(lineX, ym + y, col);
+        }
+
+        r = err;
+        if (r <= y)
+        {
+            err += ++y * 2 + 1;    /* e_xy+e_y < 0 */
+        }
+        if (r > x || err > y) /* e_xy+e_x > 0 or no 2nd y-step */
+        {
+            err += ++x * 2 + 1;    /* -> x-step now */
+        }
+    } while (x < 0);
+}
+
 void plotEllipseRect(display_t * disp, int x0, int y0, int x1,
                      int y1, paletteColor_t col)   /* rectangular parameter enclosing the ellipse */
 {

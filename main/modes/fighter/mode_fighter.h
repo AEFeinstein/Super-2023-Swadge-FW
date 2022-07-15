@@ -157,6 +157,7 @@ typedef struct
     int32_t shortHopTimer;
     bool isShortHop;
     int32_t damage;
+    uint8_t stocks;
     /* Animation timer */
     int32_t animTimer;
     wsg_t* currentSprite;
