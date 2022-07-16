@@ -147,7 +147,7 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
             }
             advanced_usb_scratch_immediate[0] = (intptr_t)advanced_usb_scratch_buffer_data;
             advanced_usb_scratch_immediate[1] = advanced_usb_scratch_buffer_data_size;
-            advanced_usb_read_offset = (intptr_t)(&advanced_usb_scratch_immediate[0]);
+            advanced_usb_read_offset = (uint32_t*)(&advanced_usb_scratch_immediate[0]);
             ULOG( "New: %p / %d", advanced_usb_scratch_buffer_data, advanced_usb_scratch_buffer_data_size );
         }
         break;
@@ -174,7 +174,7 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
         intptr_t length = data[6] | ( data[7] << 8 ) | ( data[8] << 16 ) | ( data[9]<<24 );
         if( length > sizeof( advanced_usb_scratch_immediate ) )
             length = sizeof( advanced_usb_scratch_immediate );
-        int r = esp_flash_read( 0, advanced_usb_scratch_immediate, value, length );
+        esp_flash_read( 0, advanced_usb_scratch_immediate, value, length );
         advanced_usb_read_offset = advanced_usb_scratch_immediate;
         break;
     }
