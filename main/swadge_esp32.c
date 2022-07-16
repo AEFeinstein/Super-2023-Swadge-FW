@@ -17,6 +17,10 @@
 #include "esp_log.h"
 #include "esp_sleep.h"
 
+#include "soc/dport_access.h"
+#include "soc/periph_defs.h"
+#include "hal/memprot_ll.h"
+
 #include "swadge_esp32.h"
 
 #include "led_util.h"
@@ -163,10 +167,6 @@ void tud_hid_set_report_cb(uint8_t itf,
     if( report_id == 170 )
         handle_advanced_usb_control_set( bufsize, buffer );
 }
-
-#include "soc/dport_access.h"
-#include "soc/periph_defs.h"
-#include "hal/memprot_ll.h"
 
 /**
  * After all other components are initialized, the main task is created and the
