@@ -134,10 +134,14 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
     switch( data[1] )
     {
     case AUSB_CMD_WRITE_RAM:
+	{
         // Write into scratch.
-        ULOG( "Writing %d into %p", datalen-6, (void*)value );
-        memcpy( (void*)value, data+6, datalen-6 );
+        if( datalen < 8 ) return;
+        intptr_t length = data[6] | ( data[7] << 8 );
+        ULOG( "Writing %d into %p", length, (void*)value );
+        memcpy( (void*)value, data+8, length );
         break;
+	}
     case AUSB_CMD_READ_RAM:
         // Configure read.
         advanced_usb_read_offset = (uint32_t*)value;
@@ -200,13 +204,15 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
     }
     case AUSB_CMD_FLASH_WRITE: // Flash write region
     {
-        esp_flash_write( 0, data+6, value, datalen-6 );
+        if( datalen < 8 ) return;
+        intptr_t length = data[6] | ( data[7] << 8 );
+        esp_flash_write( 0, data+8, value, length );
         break;
     }
     case AUSB_CMD_FLASH_READ: // Flash read region
     {
-        if( datalen < 10 ) return ;
-        intptr_t length = data[6] | ( data[7] << 8 ) | ( data[8] << 16 ) | ( data[9]<<24 );
+        if( datalen < 8 ) return ;
+        intptr_t length = data[6] | ( data[7] << 8 );
         if( length > sizeof( advanced_usb_scratch_immediate ) )
             length = sizeof( advanced_usb_scratch_immediate );
         esp_flash_read( 0, advanced_usb_scratch_immediate, value, length );

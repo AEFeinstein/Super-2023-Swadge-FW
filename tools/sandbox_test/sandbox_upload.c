@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 #include "../hidapi.h"
 #include "../hidapi.c"
@@ -8,10 +10,17 @@
 #define PID 0x4004
 
 hid_device * hd;
-const int chunksize = 224;
+
+#ifdef WIN32
+const int chunksize = 48;
+const int force_packet_length = 65;
+#else
+const int chunksize = 244;
+const int force_packet_length = 256;
+#endif
+
 const int alignlen = 4;
 int tries = 0;
-
 
 int DoUpload( const char * file, uint32_t address )
 {
@@ -23,7 +32,7 @@ int DoUpload( const char * file, uint32_t address )
 	int blobkclen = ( bloblen + alignlen - 1 ) / alignlen * alignlen;
 
 	{
-		FILE * binary_blob = fopen( file, "r" );
+		FILE * binary_blob = fopen( file, "rb" );
 		if( !binary_blob )
 		{
 			fprintf( stderr, "ERROR: Could not open %s.\n", file );
@@ -61,7 +70,7 @@ int DoUpload( const char * file, uint32_t address )
 		for( i = 0; i < chunks; i++ )
 		{
 			uint32_t offset = i * chunksize + address;
-			uint8_t rdata[chunksize+6];
+			uint8_t rdata[chunksize+10];
 			rdata[0] = 170;  // Code for advanced USB control
 			rdata[1] = 4;    // Command #
 			rdata[2] = offset & 0xff;
@@ -71,15 +80,17 @@ int DoUpload( const char * file, uint32_t address )
 			int writelen = blobkclen - i * chunksize;
 			if( writelen > chunksize )
 				writelen = chunksize;
-			memcpy( rdata + 6, blob + offset - address, writelen );
+			rdata[6] = writelen & 0xff;
+			rdata[7] = writelen >> 8;
+			memcpy( rdata + 8, blob + offset - address, writelen );
 			printf( "Writing %d bytes into 0x%08x\n", writelen, (uint32_t)offset );
 
 			int r;
 			do
 			{
-				r = hid_send_feature_report( hd, rdata, writelen+6  );
+				r = hid_send_feature_report( hd, rdata, force_packet_length  );
 				if( tries++ > 10 ) { fprintf( stderr, "Error: failed to write into scratch buffer %d (%d)\n", rdata[1], r ); return -94; }
-			} while ( r != writelen+6 );
+			} while ( r < writelen+8 );
 			tries = 0;
 		}
 	}
@@ -106,12 +117,12 @@ int main()
 			return -5;
 		}
 
-		char * line = 0;
-		size_t n = 0;
+		char line[1024];
 
 		while( !feof( f ) )
 		{
-			ssize_t llen = getline( &line, &n, f );
+			fgets( line, 1023, f );
+			ssize_t llen = strlen( line );
 			
 			char addy[128], prop[128], V[128], sec[128], size[128], name[1024];
 			int l = sscanf( line, "%127s %127s %127s %127s %127s %1023s\n", addy, prop, V, sec, size, name );
@@ -158,9 +169,9 @@ int main()
 	rdata[5] = 0 >> 24;
 	do
 	{
-		r = hid_send_feature_report( hd, rdata, 6 );
+		r = hid_send_feature_report( hd, rdata, 65 );
 		if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
-	} while ( r != 6 );
+	} while ( r < 6 );
 	tries = 0;
 
 	// Give it a chance to exit.
@@ -184,9 +195,9 @@ int main()
 	rdata[5] = sandbox_main_address >> 24;
 	do
 	{
-		r = hid_send_feature_report( hd, rdata, 6 );
+		r = hid_send_feature_report( hd, rdata, 65 );
 		if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
-	} while ( r != 6 );
+	} while ( r < 6 );
 	tries = 0;
 */
 	printf( "Adding mode address: 0x%08x\n", sandbox_mode_address );
@@ -200,9 +211,9 @@ int main()
 	rdata[5] = sandbox_mode_address >> 24;
 	do
 	{
-		r = hid_send_feature_report( hd, rdata, 6 );
+		r = hid_send_feature_report( hd, rdata, 65 );
 		if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
-	} while ( r != 6 );
+	} while ( r < 6 );
 	tries = 0;
 
 	hid_close( hd );

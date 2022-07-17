@@ -1,7 +1,16 @@
 all : sandbox_upload run sandbox_interactive
 
-SYSELF:=../../build/swadge-esp32.elf
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Linux)
 CFLAGS:=-g -O0
+LDFLAGS:=-ludev
+else
+CFLAGS:=-g -O0
+LDFLAGS:=C:/windows/system32/setupapi.dll
+endif
+
+SYSELF:=../../build/swadge-esp32.elf
 
 build : 
 	mkdir -p build
@@ -16,13 +25,13 @@ run : sandbox_upload sandbox.o
 	./sandbox_upload
 
 buildhelp : buildhelp.c
-	gcc $(CFLAGS) -o $@ $^ -ludev
+	gcc $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 sandbox_upload : sandbox_upload.c
-	gcc $(CFLAGS) -o $@ $^ -ludev
+	gcc $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 sandbox_interactive : sandbox_interactive.c
-	gcc $(CFLAGS) -o $@ $^ -ludev
+	gcc $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 interactive : sandbox_interactive build
 	./sandbox_interactive sandbox.c $(SYSELF)

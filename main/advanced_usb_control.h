@@ -13,9 +13,18 @@
     code without needing to reflash the whole chip.
     
     The memory layout for this functionality follows the following guide.
+
         NOTE: the first byte is the report ID.  In some systems this is
         separate.  In others it is the first byte of the message.  You will
         need to consult examples to determine which way this is.
+		
+		NOTE: Windows and Linux behave differently.  In Windows, you always
+		must transfer exactly REPORT_SIZE+1 bytes (With first byte being
+		the report ID (0xaa).  Where Linux allows variations.
+		
+		NOTE: On Windows and Linux you can transfer arbitrary lengths of
+		data for FEATURE_GET commands.  IF YOU KNOW HOW TO SEND ARBITRARY
+		DATA LENGTHS FOR FEATURE_SET ON WINDOWS, PLEASE CONTACT ME (cnlohr)
     
     [0xaa (or report ID = 0xaa)] [1-byte COMMAND] [4-byte parameter]
         [Data or parameters ...]
@@ -25,6 +34,7 @@
     The commands that are supported are as follows:
     AUSB_CMD_WRITE_RAM: 0x04
         Parameter 0: Address to start writing to.
+		Parameter 1 [2-bytes]: Length of data to write
         Data to write...
     
     AUSB_CMD_READ_RAM: 0x05
@@ -47,17 +57,18 @@
     
     AUSB_CMD_FLASH_ERASE: 0x10
         Parameter 0: Start address of flash to erase.
-        Parameter 1: Size of flash to erase.
+        Parameter 1 [4 bytes]: Size of flash to erase.
         
         NOTE: For flash erase commands, you MUST use sector-aligned values!
         
     AUSB_CMD_FLASH_WRITE: 0x11
         Parameter 0: Start address of flash to write.
+		Parameter 1 [2 bytes]: Length of data to write
         Payload: Data to write.
         
     AUSB_CMD_FLASH_READ: 0x12
         Parameter 0: Start address of flash to read.
-        Parameter 1: Quantity of flash to read (Cannot exceed
+        Parameter 1 [2 bytes]: Quantity of flash to read (Cannot exceed
             SCRATCH_IMMEDIATE_DWORDS)
         
         The data is written to a scratch buffer

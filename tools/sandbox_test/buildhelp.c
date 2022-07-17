@@ -39,14 +39,13 @@ int main( int argc, char ** argv )
 {
 	int r;
 	int tries = 0;
-	uint8_t rdata[128];
+	uint8_t rdata[512];
 
 	uint32_t allocated_addy = 0;
 	uint32_t allocated_size = 0;
 
 	hid_init();
 	hid_device * hd = hid_open( VID, PID, 0);
-	if( !hd ) { fprintf( stderr, "Could not open USB\n" ); return -94; }
 
 	if( argc != 2 )
 	{
@@ -64,7 +63,6 @@ int main( int argc, char ** argv )
 
 	printf( "Using IDF Path: %s\n", idf_path );
 
-
 	uint32_t advanced_usb_scratch_buffer_address_inst = 0;
 	uint32_t advanced_usb_scratch_buffer_address_data = 0;
 
@@ -79,16 +77,16 @@ int main( int argc, char ** argv )
 		rdata[5] = 0xff;
 		do
 		{
-			r = hid_send_feature_report( hd, rdata, 6 );
+			r = hid_send_feature_report( hd, rdata, 65 );
 			if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
-		} while ( r != 6 );
+		} while ( r != 65 );
 		tries = 0;
-		rdata[0] = 170;
 		do
 		{
+			rdata[0] = 172;
 			r = hid_get_feature_report( hd, rdata, 10 );
 			if( tries++ > 10 ) { fprintf( stderr, "Error reading feature report on command %d (%d)\n", rdata[1], r ); return -85; }
-		} while ( r != 10 );
+		} while ( r < 10 );
 		allocated_addy = ((uint32_t*)(rdata+0))[0];
 		allocated_size = ((uint32_t*)(rdata+0))[1];
 
@@ -163,12 +161,11 @@ int main( int argc, char ** argv )
 				return -5;
 			}
 
-			char * line = 0;
-			size_t n = 0;
+			char line[1024];
 
 			while( !feof( f ) )
 			{
-				ssize_t llen = getline( &line, &n, f );
+				fgets( line, 1023, f );
 				char addy[128], prop[128], V[128], sec[128], size[128], name[1024];
 				int l = sscanf( line, "%127s %127s %127s %127s %127s %1023s\n", addy, prop, V, sec, size, name );
 				if( l == 6 )
@@ -272,12 +269,11 @@ int main( int argc, char ** argv )
 				return -5;
 			}
 
-			char * line = 0;
-			size_t n = 0;
+			char line[1024];
 
 			while( !feof( f ) )
 			{
-				ssize_t llen = getline( &line, &n, f );
+				fgets( line, 1023, f );
 				char addy[128], prop[128], V[128], sec[128], size[128], name[1024];
 				int l = sscanf( line, "%127s %127s %127s %127s %127s %1023s\n", addy, prop, V, sec, size, name );
 				int naddy = strtol( addy, 0, 16 );
@@ -318,9 +314,9 @@ int main( int argc, char ** argv )
 			rdata[5] = 0>>24;
 			do
 			{
-				r = hid_send_feature_report( hd, rdata, 6 );
+				r = hid_send_feature_report( hd, rdata, 65 );
 				if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
-			} while ( r != 6 );
+			} while ( r != 65 );
 			tries = 0;
 
 			usleep( 20000 );
@@ -333,9 +329,9 @@ int main( int argc, char ** argv )
 			rdata[5] = total_segment_size>>24;
 			do
 			{
-				r = hid_send_feature_report( hd, rdata, 6 );
+				r = hid_send_feature_report( hd, rdata, 65 );
 				if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
-			} while ( r != 6 );
+			} while ( r != 65 );
 			tries = 0;
 			printf( "Reallocated to %d\n", total_segment_size );
 			continue;

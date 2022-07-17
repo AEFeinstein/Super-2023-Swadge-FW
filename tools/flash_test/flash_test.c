@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <sys/stat.h>
 
 #include "../hidapi.h"
 #include "../hidapi.c"
@@ -8,11 +9,17 @@
 #define PID 0x4004
 
 hid_device * hd;
+#ifdef WIN32
+const int chunksize = 48;
+const int const_send = 65;
+#else
 const int chunksize = 128;
+const int const_send = 144;
+#endif
 int tries = 0;
 int alignlen = 4;
 
-uint8_t rdata[256];
+uint8_t rdata[512]; //Must be plenty big.
 int sector_size = 4096;
 
 int StringToNumberHexOrInt( const char * str )
@@ -62,7 +69,7 @@ int main( int argc, char ** argv )
 		int blobkclen = ( bloblen + alignlen - 1 ) / alignlen * alignlen;
 		uint8_t * blob;
 		{
-			FILE * binary_blob = fopen( argv[2], "r" );
+			FILE * binary_blob = fopen( argv[2], "rb" );
 			if( !binary_blob )
 			{
 				fprintf( stderr, "ERROR: Could not open %s.\n", argv[2] );
@@ -99,9 +106,9 @@ int main( int argc, char ** argv )
 			rdata[9] = eraselen >> 24;
 			do
 			{
-				r = hid_send_feature_report( hd, rdata, 10 );
+				r = hid_send_feature_report( hd, rdata, 65 );
 				if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
-			} while ( r != 10 );
+			} while ( r < 10 );
 			tries = 0;
 		}
 		
@@ -118,12 +125,15 @@ int main( int argc, char ** argv )
 			rdata[5] = wp >> 24;
 			int wl = blobkclen - offset;
 			if( wl > chunksize ) wl = chunksize;
-			memcpy( rdata + 6, blob + offset, wl );
+			rdata[6] = wl & 0xff;
+			rdata[7] = wl >> 8;
+			memcpy( rdata + 8, blob + offset, wl );
 			do
 			{
-				r = hid_send_feature_report( hd, rdata, wl+6 );
+				r = hid_send_feature_report( hd, rdata, const_send );
+				printf( "%d %d\n", wl, const_send );
 				if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
-			} while ( r != wl+6  );
+			} while ( r < wl+8  );
 			tries = 0;
 			printf( "." ); fflush( stdout );
 		}
@@ -134,7 +144,7 @@ int main( int argc, char ** argv )
 		if( argc != 5 ) goto help;
 		int r;
 		uint32_t length = StringToNumberHexOrInt( argv[4] );
-		FILE * f = fopen( argv[2], "w" );
+		FILE * f = fopen( argv[2], "wb" );
 		if( !f )
 		{
 			fprintf( stderr, "Error: couldn't open file for writing\n" );
@@ -160,25 +170,25 @@ int main( int argc, char ** argv )
 
 			rdata[6] = wl & 0xff;
 			rdata[7] = wl >> 8;
-			rdata[8] = wl >> 16;
-			rdata[9] = wl >> 24;
 			do
 			{
-				r = hid_send_feature_report( hd, rdata, 10 );
+				r = hid_send_feature_report( hd, rdata, const_send );
 				if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
-			} while ( r != 10  );
+			} while ( r < 8 );
 			tries = 0;
 			
 			
 			do
 			{
 				memset( rdata, 0, sizeof( rdata ) );
-				rdata[0] = 170;
-				r = hid_get_feature_report( hd, rdata, wl );
-				if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
-			} while ( r != wl  );
+				rdata[0] = 172;
+				r = hid_get_feature_report( hd, rdata, wl+4 );
+				printf( "%d %d [%x %x %x %x %x %x]\n", wl, r, rdata[0], rdata[1], rdata[2], rdata[3], rdata[4], rdata[5] );
+				if( tries++ > 10 ) { fprintf( stderr, "Error getting feature report on command %d (%d)\n", rdata[1], r ); return -85; }
+			} while ( r < wl );
 			tries = 0;
 		
+			int chars = wl;
 			fwrite( rdata, wl, 1, f );
 			
 			printf( "." ); fflush( stdout );

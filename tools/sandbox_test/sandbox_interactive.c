@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include "../hidapi.h"
 #include "../hidapi.c"
@@ -26,11 +27,19 @@ int CheckTimespec( int argc, char ** argv )
 	{
 		struct stat sbuf;
 		stat( argv[i], &sbuf);
+#ifdef WIN32
+		if( sbuf.st_mtime != file_timespecs[i].tv_sec )
+		{
+			file_timespecs[i].tv_sec = sbuf.st_mtime;
+			taint = 1;
+		}
+#else
 		if( sbuf.st_mtim.tv_sec != file_timespecs[i].tv_sec || sbuf.st_mtim.tv_nsec != file_timespecs[i].tv_nsec  )
 		{
 			file_timespecs[i] = sbuf.st_mtim;
 			taint = 1;
 		}
+#endif
 	}
 
 	//Note: file_timespecs[0] unused at the moment.
@@ -51,9 +60,9 @@ int main( int argc, char ** argv )
 		int r;
 
 		// Disable tick.
-		uint8_t rdata[128] = { 0 };
+		uint8_t rdata[255] = { 0 };
 		rdata[0] = 171;
-		r = hid_get_feature_report( hd, rdata, 128 );
+		r = hid_get_feature_report( hd, rdata, 255 );
 		if( r < 0 )
 		{
 			do
@@ -70,7 +79,11 @@ int main( int argc, char ** argv )
 			continue;
 			
 		}
+#ifdef WIN32
+		int toprint = r - 3;
+#else
 		int toprint = r - 2;
+#endif
 		write( 1, rdata + 2, toprint );
 
 		// Check whatever else.
