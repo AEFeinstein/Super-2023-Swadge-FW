@@ -130,6 +130,9 @@ int main( int argc, char ** argv )
 			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/driver/include", idf_path ); appendcflag( temp );
 			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/esp_lcd/include", idf_path ); appendcflag( temp );
 			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/esp_lcd/interface", idf_path ); appendcflag( temp );
+			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/esp_hw_support/include/soc", idf_path ); appendcflag( temp );
+			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/esp_hw_support/port", idf_path ); appendcflag( temp );
+			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/esp_hw_support/port/esp32s2/private_include", idf_path ); appendcflag( temp );
 
 			appendcflag( "-I../../components" );
 			appendcflag( "-I../../components/hdw-qma6981" );
@@ -228,9 +231,11 @@ int main( int argc, char ** argv )
 				"INCLUDE \"build/provided.lds\"\n"
 				"INCLUDE \"%s/components/esp_rom/esp32s2/ld/esp32s2.rom.ld\"\n"
 				"INCLUDE \"%s/components/soc/esp32s2/ld/esp32s2.peripherals.ld\"\n"
+                "INCLUDE \"%s/components/esp_rom/esp32s2/ld/esp32s2.rom.api.ld\"\n"
 				, advanced_usb_scratch_buffer_address_inst
 				, advanced_usb_scratch_buffer_address_data
 				, advanced_usb_scratch_buffer_address_data
+				, idf_path
 				, idf_path
 				, idf_path );
 

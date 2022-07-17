@@ -1,5 +1,7 @@
 all : hidapi_test
 
+UNAME := $(shell uname)
+
 ifeq ($(UNAME), Linux)
 CFLAGS:=-g -O0
 LDFLAGS:=-ludev

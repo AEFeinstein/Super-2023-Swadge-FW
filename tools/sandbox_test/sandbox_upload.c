@@ -14,9 +14,11 @@ hid_device * hd;
 #ifdef WIN32
 const int chunksize = 244;
 const int force_packet_length = 255;
+const int reg_packet_length = 65;
 #else
 const int chunksize = 244;
-const int force_packet_length = 256;
+const int force_packet_length = 255;
+const int reg_packet_length = 64;
 #endif
 
 const int alignlen = 4;
@@ -169,7 +171,7 @@ int main()
 	rdata[5] = 0 >> 24;
 	do
 	{
-		r = hid_send_feature_report( hd, rdata, 65 );
+		r = hid_send_feature_report( hd, rdata, reg_packet_length );
 		if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
 	} while ( r < 6 );
 	tries = 0;
@@ -195,7 +197,7 @@ int main()
 	rdata[5] = sandbox_main_address >> 24;
 	do
 	{
-		r = hid_send_feature_report( hd, rdata, 65 );
+		r = hid_send_feature_report( hd, rdata, reg_packet_length );
 		if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
 	} while ( r < 6 );
 	tries = 0;
@@ -211,7 +213,7 @@ int main()
 	rdata[5] = sandbox_mode_address >> 24;
 	do
 	{
-		r = hid_send_feature_report( hd, rdata, 65 );
+		r = hid_send_feature_report( hd, rdata, reg_packet_length );
 		if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
 	} while ( r < 6 );
 	tries = 0;

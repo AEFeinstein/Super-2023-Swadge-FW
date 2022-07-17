@@ -1,5 +1,6 @@
 all : flash_test
 
+UNAME := $(shell uname)
 
 ifeq ($(UNAME), Linux)
 CFLAGS:=-g -O0
