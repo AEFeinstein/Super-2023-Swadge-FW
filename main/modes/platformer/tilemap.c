@@ -39,7 +39,7 @@ void initializeTileMap(tilemap_t * tilemap)
 
     loadTiles(tilemap);
 
-    loadMapFromFile(tilemap, "level_test.bin");
+    loadMapFromFile(tilemap, "level1-1.bin");
 }
 
 void drawTileMap(display_t * disp, tilemap_t * tilemap)
@@ -59,14 +59,14 @@ void drawTileMap(display_t * disp, tilemap_t * tilemap)
             uint8_t tile = tilemap->map[(y * tilemap->mapWidth) + x];
 
             //Test animated tiles
-            if(tile == 3 || tile == 7){
+            if(tile == 32 || tile == 48){
                 tile += ((tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2) % 3);
             }
 
             //Draw only non-garbage tiles
-            if(tile > 0 && tile < 10)
+            if(tile > 15 && tile < 51)
             {
-                drawWsg(disp, &tilemap->tiles[tile], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY, false, false, 0);
+                drawWsg(disp, &tilemap->tiles[tile - 16], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY, false, false, 0);
             } else if(tile > 127 && tilemap->tileSpawnEnabled && (tilemap->executeTileSpawnColumn == x || tilemap->executeTileSpawnRow == y) ) {
                 tileSpawnEntity(tilemap, tile >> 7, x, y);
             }
@@ -139,15 +139,48 @@ bool loadMapFromFile(tilemap_t * tilemap, char * name)
 }
 
 bool loadTiles(tilemap_t * tilemap){
-    loadWsg("tile001.wsg", &tilemap->tiles[1]);
-    loadWsg("tile002.wsg", &tilemap->tiles[2]);
-    loadWsg("tile003.wsg", &tilemap->tiles[3]);
-    loadWsg("tile004.wsg", &tilemap->tiles[4]);
-    loadWsg("tile005.wsg", &tilemap->tiles[5]);
-    loadWsg("tile006.wsg", &tilemap->tiles[6]);
-    loadWsg("tile007.wsg", &tilemap->tiles[7]);
-    loadWsg("tile008.wsg", &tilemap->tiles[8]);
-    loadWsg("tile009.wsg", &tilemap->tiles[9]);
+    //tiles 0-15 are invisible tiles; 
+    //remember to shift out first 4 bits of tile index before drawing tile
+    loadWsg("tile016.wsg", &tilemap->tiles[0]);
+    loadWsg("tile017.wsg", &tilemap->tiles[1]);
+    loadWsg("tile018.wsg", &tilemap->tiles[2]);
+    loadWsg("tile019.wsg", &tilemap->tiles[3]);
+    loadWsg("tile020.wsg", &tilemap->tiles[4]);
+    loadWsg("tile021.wsg", &tilemap->tiles[5]);
+    loadWsg("tile022.wsg", &tilemap->tiles[6]);
+    loadWsg("tile023.wsg", &tilemap->tiles[7]);
+    
+    //These tiles have not been designed yet
+    loadWsg("tile016.wsg", &tilemap->tiles[8]);
+    loadWsg("tile016.wsg", &tilemap->tiles[9]);
+    loadWsg("tile016.wsg", &tilemap->tiles[10]);
+    loadWsg("tile016.wsg", &tilemap->tiles[11]);
+    loadWsg("tile016.wsg", &tilemap->tiles[12]);
+    loadWsg("tile016.wsg", &tilemap->tiles[13]);
+    loadWsg("tile016.wsg", &tilemap->tiles[14]);
+    loadWsg("tile016.wsg", &tilemap->tiles[15]);
+
+    loadWsg("tile032.wsg", &tilemap->tiles[16]);
+    loadWsg("tile033.wsg", &tilemap->tiles[17]);
+    loadWsg("tile034.wsg", &tilemap->tiles[18]);
+    loadWsg("tile016.wsg", &tilemap->tiles[19]);
+    loadWsg("tile016.wsg", &tilemap->tiles[20]);
+    loadWsg("tile016.wsg", &tilemap->tiles[21]);
+    loadWsg("tile016.wsg", &tilemap->tiles[22]);
+    loadWsg("tile016.wsg", &tilemap->tiles[23]);
+
+    loadWsg("tile016.wsg", &tilemap->tiles[24]);
+    loadWsg("tile016.wsg", &tilemap->tiles[25]);
+    loadWsg("tile016.wsg", &tilemap->tiles[26]);
+    loadWsg("tile016.wsg", &tilemap->tiles[27]);
+    loadWsg("tile016.wsg", &tilemap->tiles[28]);
+    loadWsg("tile016.wsg", &tilemap->tiles[29]);
+    loadWsg("tile016.wsg", &tilemap->tiles[30]);
+    loadWsg("tile016.wsg", &tilemap->tiles[31]);
+
+    loadWsg("tile048.wsg", &tilemap->tiles[32]);
+    loadWsg("tile049.wsg", &tilemap->tiles[33]);
+    loadWsg("tile050.wsg", &tilemap->tiles[34]);
 }
 
 void tileSpawnEntity(tilemap_t * tilemap, uint8_t objectIndex, uint8_t tx, uint8_t ty) {
@@ -172,4 +205,14 @@ uint8_t getTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty){
     }
 
     return tilemap->map[ty * tilemap->mapWidth + tx];
+}
+
+bool isSolid(uint8_t tileId) {
+    switch(tileId) {
+        case TILE_EMPTY ... TILE_CTNR_0xE:
+            return false;
+            break;
+        default:
+            return true;
+    }
 }
