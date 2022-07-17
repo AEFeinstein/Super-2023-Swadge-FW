@@ -15,12 +15,10 @@
 
 #include "esp_flash.h"
 
+// Uncomment the ESP_LOGI to activate logging for this file.
+// Logging can cause issues in operation, so by default it should remain off.
 #define ULOG( x... ) 
     //ESP_LOGI( "advanced_usb_control", x )
-
-// TODO
-//   * Enable flash modification
-//   * Be smarter about printf. 
 
 uint32_t * advanced_usb_scratch_buffer_data;
 uint32_t   advanced_usb_scratch_buffer_data_size;
@@ -32,6 +30,14 @@ uint32_t * advanced_usb_read_offset;
 static uint8_t terminal_redirected;
 static uint8_t did_init_flash_function;
 
+/**
+ * @brief Accept a "get" feature report command from a USB host and write
+ *         back whatever is needed to send back.
+ * 
+ * @param datalen Number of bytes host is requesting from us.
+ * @param data Pointer to a feature get request for the command set.
+ * @return Number of bytes that will be returned.
+ */
 int handle_advanced_usb_control_get( int reqlen, uint8_t * data )
 {
     if( advanced_usb_read_offset == 0 ) return 0;
@@ -39,10 +45,18 @@ int handle_advanced_usb_control_get( int reqlen, uint8_t * data )
     return reqlen;
 }
 
+/**
+ * @brief Internal function for writing log data to the ring buffer.
+ * 
+ * @param cookie *unused*
+ * @param data Pointer to text that needs to be logged.
+ * @return size Number of bytes in data that need to be logged.
+ */
 static int advanced_usb_write_log( void* cookie, const char* data, int size )
 {
     int next = ( advanced_usb_printf_head + 1 ) % sizeof( advanced_usb_printf_buffer );
     int idx = 0;
+    cookie = cookie; // unused
     // Drop extra characters on the floor.
     while( next != advanced_usb_printf_tail && idx < size )
     {
@@ -53,17 +67,29 @@ static int advanced_usb_write_log( void* cookie, const char* data, int size )
     return size;
 }
 
-
-
-
+/**
+ * @brief vaprintf standin for USB logging.
+ * 
+ * @param fmt vaprintf format
+ * @param args vaprintf args
+ * @return size Number of characters that were written.
+ */
 int advanced_usb_write_log_printf(const char *fmt, va_list args)
 {
-    char buffer[1024];
-    int l = vsnprintf( buffer, 1023, fmt, args );
+    char buffer[512];
+    int l = vsnprintf( buffer, 511, fmt, args );
     advanced_usb_write_log( 0, buffer, l );
     return l;
 }
 
+
+/**
+ * @brief USB request to get text in buffer
+ * 
+ * @param reqlen The number of bytes the host is requesting from us.
+ * @param data The data that we will write back into
+ * @return size Number of bytes to be returned to the host.
+ */
 int handle_advanced_usb_terminal_get( int reqlen, uint8_t * data )
 {
     if( !terminal_redirected )
@@ -92,6 +118,15 @@ int handle_advanced_usb_terminal_get( int reqlen, uint8_t * data )
     return mark;
 }
 
+
+/**
+ * @brief Accept a "send" feature report command from a USB host and interpret it.
+ *         executing whatever needs to be executed.
+ * 
+ * @param datalen Total length of the buffer (command ID incldued)
+ * @param data Pointer to full command
+ * @return A pointer to a null terminated JSON string. May be NULL if the load
+ */
 void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * data )
 {
     if( datalen < 6 ) return;
