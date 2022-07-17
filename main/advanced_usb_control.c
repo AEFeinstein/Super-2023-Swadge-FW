@@ -1,3 +1,4 @@
+#include "advanced_usb_control.h"
 #include "tinyusb.h"
 #include "tusb_hid_gamepad.h"
 #include <stdio.h>
@@ -22,7 +23,7 @@
 
 uint32_t * advanced_usb_scratch_buffer_data;
 uint32_t   advanced_usb_scratch_buffer_data_size;
-uint32_t   advanced_usb_scratch_immediate[64];
+uint32_t   advanced_usb_scratch_immediate[SCRATCH_IMMEDIATE_DWORDS];
 uint8_t  advanced_usb_printf_buffer[2048];
 int      advanced_usb_printf_head, advanced_usb_printf_tail;
 
@@ -118,7 +119,6 @@ int handle_advanced_usb_terminal_get( int reqlen, uint8_t * data )
     return mark;
 }
 
-
 /**
  * @brief Accept a "send" feature report command from a USB host and interpret it.
  *         executing whatever needs to be executed.
@@ -133,16 +133,16 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
     intptr_t value = data[2] | ( data[3] << 8 ) | ( data[4] << 16 ) | ( data[5]<<24 );
     switch( data[1] )
     {
-    case 0x04:
+    case AUSB_CMD_WRITE_RAM:
         // Write into scratch.
         ULOG( "Writing %d into %p", datalen-6, (void*)value );
         memcpy( (void*)value, data+6, datalen-6 );
         break;
-    case 0x05:
+    case AUSB_CMD_READ_RAM:
         // Configure read.
         advanced_usb_read_offset = (uint32_t*)value;
         break;
-    case 0x06:
+    case AUSB_CMD_EXEC_RAM:
         // Execute scratch
         {
             void (*scratchfn)() = (void (*)())(value);
@@ -150,7 +150,7 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
             scratchfn();
         }
         break;
-    case 0x07:
+    case AUSB_CMD_SWITCH_MODE:
         // Switch Swadge Mode
         {
             ULOG( "SwadgeMode Value: 0x%08x", value );
@@ -160,7 +160,7 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
                 overrideToSwadgeMode( (swadgeMode*)value );
         }
         break;
-    case 0x08:
+    case AUSB_CMD_ALLOC_SCRATCH:
         // (re) allocate the primary scratch buffer.
         {
             // value = -1 will just cause a report.
@@ -186,7 +186,7 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
             ULOG( "New: %p / %d", advanced_usb_scratch_buffer_data, advanced_usb_scratch_buffer_data_size );
         }
         break;
-    case 0x10: // Flash erase region
+    case AUSB_CMD_FLASH_ERASE: // Flash erase region
     {
         if( datalen < 10 ) return ;
         intptr_t length = data[6] | ( data[7] << 8 ) | ( data[8] << 16 ) | ( data[9]<<24 );
@@ -198,12 +198,12 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
             esp_flash_erase_region( 0, value, length );    
         break;
     }
-    case 0x11: // Flash write region
+    case AUSB_CMD_FLASH_WRITE: // Flash write region
     {
         esp_flash_write( 0, data+6, value, datalen-6 );
         break;
     }
-    case 0x12: // Flash read region
+    case AUSB_CMD_FLASH_READ: // Flash read region
     {
         if( datalen < 10 ) return ;
         intptr_t length = data[6] | ( data[7] << 8 ) | ( data[8] << 16 ) | ( data[9]<<24 );

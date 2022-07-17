@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "spiffs_manager.h"
 #include "heatshrink_decoder.h"
@@ -21,7 +22,7 @@ char * loadJson(char * name)
     size_t sz;
     if(!spiffsReadFile(name, &buf, &sz))
     {
-        fprintf(stderr, "Failed to read %s", name);
+        printf("Failed to read %s", name);
         return NULL;
     }
 
