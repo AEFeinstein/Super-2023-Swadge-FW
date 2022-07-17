@@ -421,7 +421,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
 
 #if defined(CONFIG_ST7735_128x160)
     // Mixture of docs + experimentation
-    // This is the RB027D25N05A
+    // This is the RB027D25N05A / RB017D14N05A (Actually the ST7735S, so inbetween a ST7735 and ST7789)
     typedef struct {
         esp_lcd_panel_t base;
         esp_lcd_panel_io_handle_t io;
