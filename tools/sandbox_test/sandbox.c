@@ -21,11 +21,10 @@ void sandbox_exit()
 
 void sandbox_tick()
 {
-	uint32_t buffer[4] = { 0 };
-	int r = esp_flash_read( 0, buffer, 0x3f0000, sizeof( buffer ) );
-	r = r;
+	//uint32_t buffer[4] = { 0 };
+	//int r = esp_flash_read( 0, buffer, 0x3f0000, sizeof( buffer ) );
 	ESP_LOGI( "sandbox", "global_i: %d", global_i++ );
-} 
+}
 
 swadgeMode sandbox_mode =
 {

@@ -137,12 +137,12 @@ uint16_t tud_hid_get_report_cb(uint8_t itf,
     uint8_t* buffer,
     uint16_t reqlen)
 {
-    if( report_id == 172 )
+    if( report_id == 170 || report_id == 171 )
         return handle_advanced_usb_control_get( reqlen, buffer );
-    else if( report_id == 171 )
+    else if( report_id == 172 )
         return handle_advanced_usb_terminal_get( reqlen, buffer );
     else
-        return 0;
+        return reqlen;
 }
 
 /**
@@ -164,7 +164,7 @@ void tud_hid_set_report_cb(uint8_t itf,
     uint8_t const* buffer,
     uint16_t bufsize )
 {
-    if( report_id == 170 )
+    if( report_id >= 170 && report_id <= 171 )
         handle_advanced_usb_control_set( bufsize, buffer );
 }
 

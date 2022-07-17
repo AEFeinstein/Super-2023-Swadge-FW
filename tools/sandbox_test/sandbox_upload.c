@@ -12,8 +12,8 @@
 hid_device * hd;
 
 #ifdef WIN32
-const int chunksize = 48;
-const int force_packet_length = 65;
+const int chunksize = 244;
+const int force_packet_length = 255;
 #else
 const int chunksize = 244;
 const int force_packet_length = 256;
@@ -71,7 +71,7 @@ int DoUpload( const char * file, uint32_t address )
 		{
 			uint32_t offset = i * chunksize + address;
 			uint8_t rdata[chunksize+10];
-			rdata[0] = 170;  // Code for advanced USB control
+			rdata[0] = 171;  // Code for advanced USB control
 			rdata[1] = 4;    // Command #
 			rdata[2] = offset & 0xff;
 			rdata[3] = offset >> 8;

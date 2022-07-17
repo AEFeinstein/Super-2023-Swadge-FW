@@ -83,8 +83,8 @@ int main( int argc, char ** argv )
 		tries = 0;
 		do
 		{
-			rdata[0] = 172;
-			r = hid_get_feature_report( hd, rdata, 10 );
+			rdata[0] = 170;
+			r = hid_get_feature_report( hd, rdata, sizeof(rdata) );
 			if( tries++ > 10 ) { fprintf( stderr, "Error reading feature report on command %d (%d)\n", rdata[1], r ); return -85; }
 		} while ( r < 10 );
 		allocated_addy = ((uint32_t*)(rdata+0))[0];

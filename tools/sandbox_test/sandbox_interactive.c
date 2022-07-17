@@ -60,9 +60,9 @@ int main( int argc, char ** argv )
 		int r;
 
 		// Disable tick.
-		uint8_t rdata[255] = { 0 };
-		rdata[0] = 171;
-		r = hid_get_feature_report( hd, rdata, 255 );
+		uint8_t rdata[513] = { 0 };
+		rdata[0] = 172;
+		r = hid_get_feature_report( hd, rdata, 513 );
 		if( r < 0 )
 		{
 			do

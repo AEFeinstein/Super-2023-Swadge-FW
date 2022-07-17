@@ -337,13 +337,14 @@ static inline bool tud_hid_mouse_report(uint8_t report_id, uint8_t buttons, int8
     HID_REPORT_COUNT ( 16                                     ) ,\
     HID_REPORT_SIZE  ( 1                                      ) ,\
     HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ) ,\
-    /* Allow for 0xaa and 0xab feature reports; Windows needs specific named endpoints. */ \
+    /* Allow for 0xaa (regular size), 0xab (jumbo sized) and 0xac mini feature reports; Windows needs specific id'd and size'd endpoints. */ \
     HID_REPORT_COUNT ( CFG_TUD_ENDPOINT0_SIZE                 ) ,\
     HID_REPORT_SIZE  ( 8                                      ) ,\
-    HID_REPORT_ID    ( 0xab                                   ) \
+    HID_REPORT_ID    ( 0xaa                                   ) \
     HID_USAGE        ( HID_USAGE_DESKTOP_GAMEPAD              ) ,\
     HID_FEATURE      ( HID_DATA | HID_ARRAY | HID_ABSOLUTE    ) ,\
-    HID_REPORT_ID    ( 0xaa                                   ) \
+    HID_REPORT_COUNT ( (CONFIG_TINYUSB_HID_BUFSIZE-1)         ) ,\
+    HID_REPORT_ID    ( 0xab                                   ) \
     HID_USAGE        ( HID_USAGE_DESKTOP_GAMEPAD              ) ,\
     HID_FEATURE      ( HID_DATA | HID_ARRAY | HID_ABSOLUTE    ) ,\
     HID_REPORT_COUNT ( 1                                      ) ,\

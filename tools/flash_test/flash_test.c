@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #include "../hidapi.h"
 #include "../hidapi.c"
@@ -10,8 +11,8 @@
 
 hid_device * hd;
 #ifdef WIN32
-const int chunksize = 48;
-const int const_send = 65;
+const int chunksize = 244;
+const int const_send = 255;
 #else
 const int chunksize = 128;
 const int const_send = 144;
@@ -47,6 +48,9 @@ int main( int argc, char ** argv )
 	hid_init();
 	hd = hid_open( VID, PID, 0);
 	if( !hd ) { fprintf( stderr, "Could not open USB\n" ); return -94; }
+
+	struct timeval tv_start, tv_end;
+	gettimeofday( &tv_start, 0 );
 
 	if( strcmp( argv[1], "write" ) == 0 )
 	{
@@ -86,6 +90,7 @@ int main( int argc, char ** argv )
 
 		// Now, we have blob and bloblen.
 
+		printf( "Erasing\n" );
 		if( flash_start & (sector_size-1) )
 		{
 			fprintf( stderr, "WARNING: You are doing a non-block-aligned-write.  We will NOT perform an erase.\n" );
@@ -112,12 +117,21 @@ int main( int argc, char ** argv )
 			tries = 0;
 		}
 		
+		printf( "Writing\n" );
 		int offset;
+		int lastpercent = 0;
 		for( offset = 0; offset < blobkclen; offset+= chunksize )
 		{
+			int percent = ((uint64_t)(offset)) * 1000LL / blobkclen;
+			if( percent >= lastpercent + 100 )
+			{
+				printf( "%d%%\n", percent/10 );
+				fflush( stdout );
+				lastpercent += 100;
+			}
 			uint32_t wp = flash_start + offset;
 			// Write
-			rdata[0] = 170;
+			rdata[0] = 171;
 			rdata[1] = 0x11;
 			rdata[2] = wp & 0xff;
 			rdata[3] = wp >> 8;
@@ -131,13 +145,13 @@ int main( int argc, char ** argv )
 			do
 			{
 				r = hid_send_feature_report( hd, rdata, const_send );
-				printf( "%d %d\n", wl, const_send );
 				if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
 			} while ( r < wl+8  );
 			tries = 0;
-			printf( "." ); fflush( stdout );
 		}
-		printf( "\nDone\n" );
+		gettimeofday( &tv_end, 0 );
+		int elapsed_us = (tv_end.tv_sec - tv_start.tv_sec)*1000000 + (tv_end.tv_usec - tv_start.tv_usec);
+		printf( "Done. Took %3.3f seconds. %.2f kbit/s (Erase time included)\n", elapsed_us / 1000000.0f, bloblen*8000.0f/elapsed_us );
 	}
 	else if( strcmp( argv[1], "read" ) == 0 )
 	{
@@ -154,8 +168,17 @@ int main( int argc, char ** argv )
 		
 		int blobkclen = ( length + alignlen - 1 ) / alignlen * alignlen;
 		printf( "Reading %d bytes from 0x%x\n", length, flash_start );
+		int lastpercent = 0;
 		for( offset = 0; offset < blobkclen; offset+= chunksize )
 		{
+			int percent = ((uint64_t)(offset)) * 1000LL / blobkclen;
+			if( percent >= lastpercent + 100 )
+			{
+				printf( "%d%%\n", percent/10 );
+				fflush( stdout );
+				lastpercent += 100;
+			}
+			
 			uint32_t wp = flash_start + offset;
 			// Write
 			rdata[0] = 170;
@@ -172,18 +195,17 @@ int main( int argc, char ** argv )
 			rdata[7] = wl >> 8;
 			do
 			{
-				r = hid_send_feature_report( hd, rdata, const_send );
+				r = hid_send_feature_report( hd, rdata, 65 );
 				if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
 			} while ( r < 8 );
 			tries = 0;
-			
-			
+
 			do
 			{
 				memset( rdata, 0, sizeof( rdata ) );
-				rdata[0] = 172;
-				r = hid_get_feature_report( hd, rdata, wl+4 );
-				printf( "%d %d [%x %x %x %x %x %x]\n", wl, r, rdata[0], rdata[1], rdata[2], rdata[3], rdata[4], rdata[5] );
+				rdata[0] = 170;
+				r = hid_get_feature_report( hd, rdata, sizeof(rdata) );
+				//printf( "%d %d [%x %x %x %x %x %x]\n", wl, r, rdata[0], rdata[1], rdata[2], rdata[3], rdata[4], rdata[5] );
 				if( tries++ > 10 ) { fprintf( stderr, "Error getting feature report on command %d (%d)\n", rdata[1], r ); return -85; }
 			} while ( r < wl );
 			tries = 0;
@@ -191,10 +213,11 @@ int main( int argc, char ** argv )
 			int chars = wl;
 			fwrite( rdata, wl, 1, f );
 			
-			printf( "." ); fflush( stdout );
 		}
 		fclose( f );
-		printf( "\nDone\n" );		
+		gettimeofday( &tv_end, 0 );
+		int elapsed_us = (tv_end.tv_sec - tv_start.tv_sec)*1000000 + (tv_end.tv_usec - tv_start.tv_usec);
+		printf( "Done. Took %3.3f seconds. %.2f kbit/s\n", elapsed_us / 1000000.0f, length*8000.0f/elapsed_us );
 	}
 	else
 	{
