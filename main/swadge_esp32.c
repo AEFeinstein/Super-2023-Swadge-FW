@@ -17,6 +17,10 @@
 #include "esp_log.h"
 #include "esp_sleep.h"
 
+#include "soc/dport_access.h"
+#include "soc/periph_defs.h"
+#include "hal/memprot_ll.h"
+
 #include "swadge_esp32.h"
 
 #include "led_util.h"
@@ -43,6 +47,8 @@
 #include "p2pConnection.h"
 
 #include "display.h"
+
+#include "advanced_usb_control.h"
 
 #include "mode_main_menu.h"
 #include "mode_demo.h"
@@ -74,6 +80,7 @@ swadgeMode* swadgeModes[] =
     &modeFighter,
     &modeDemo,
     &modeGamepad,
+    0,
 };
 
 static RTC_DATA_ATTR uint8_t pendingSwadgeModeIdx = 0;
@@ -124,13 +131,18 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
  * @param reqlen
  * @return uint16_t
  */
-uint16_t tud_hid_get_report_cb(uint8_t itf __attribute__((unused)),
-    uint8_t report_id __attribute__((unused)),
-    hid_report_type_t report_type __attribute__((unused)),
-    uint8_t* buffer __attribute__((unused)),
-    uint16_t reqlen __attribute__((unused)))
+uint16_t tud_hid_get_report_cb(uint8_t itf,
+    uint8_t report_id,
+    hid_report_type_t report_type,
+    uint8_t* buffer,
+    uint16_t reqlen)
 {
-    return 0;
+    if( report_id == 170 || report_id == 171 )
+        return handle_advanced_usb_control_get( reqlen, buffer );
+    else if( report_id == 172 )
+        return handle_advanced_usb_terminal_get( reqlen, buffer );
+    else
+        return reqlen;
 }
 
 /**
@@ -146,13 +158,14 @@ uint16_t tud_hid_get_report_cb(uint8_t itf __attribute__((unused)),
  * @param buffer
  * @param bufsize
  */
-void tud_hid_set_report_cb(uint8_t itf __attribute__((unused)),
-    uint8_t report_id __attribute__((unused)),
-    hid_report_type_t report_type __attribute__((unused)),
-    uint8_t const* buffer __attribute__((unused)),
-    uint16_t bufsize __attribute__((unused)))
+void tud_hid_set_report_cb(uint8_t itf,
+    uint8_t report_id,
+    hid_report_type_t report_type,
+    uint8_t const* buffer,
+    uint16_t bufsize )
 {
-    ;
+    if( report_id >= 170 && report_id <= 171 )
+        handle_advanced_usb_control_set( bufsize, buffer );
 }
 
 /**
@@ -173,6 +186,7 @@ void tud_hid_set_report_cb(uint8_t itf __attribute__((unused)),
  * creates other application tasks and then returns, or as a main application
  * task itself.
  */
+
 void app_main(void)
 {
     // Pull these GPIOs low immediately!!!
@@ -194,7 +208,6 @@ void app_main(void)
         ESP_ERROR_CHECK(gpio_set_level(toPullLow[i], 0));
     }
 
-// #define PRINT_STATS
 #ifdef PRINT_STATS
     /* Print chip information */
     esp_chip_info_t chip_info;
@@ -448,26 +461,36 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         if(shouldSwitchSwadgeMode)
         {
 #if defined(EMU)
-            // Exit the current mode
-            if(NULL != swadgeModes[swadgeModeIdx]->fnExitMode)
-            {
-                swadgeModes[swadgeModeIdx]->fnExitMode();
-            }
-
-            // Switch the mode IDX
-            swadgeModeIdx = pendingSwadgeModeIdx;
-            shouldSwitchSwadgeMode = false;
-
-            // Enter the next mode
-            if(NULL != swadgeModes[swadgeModeIdx]->fnEnterMode)
-            {
-                swadgeModes[swadgeModeIdx]->fnEnterMode(&tftDisp);
-            }
+            int force_soft = 1;
 #else
-            // Deep sleep, wake up, and switch to pendingSwadgeModeIdx
-            esp_sleep_enable_timer_wakeup(1);
-            esp_deep_sleep_start();
+            int force_soft = 0;
 #endif
+            if( force_soft || 
+                pendingSwadgeModeIdx == 0 ||
+                pendingSwadgeModeIdx == getNumSwadgeModes() )
+            {
+                // Exit the current mode
+                if(NULL != swadgeModes[swadgeModeIdx]->fnExitMode)
+                {
+                    swadgeModes[swadgeModeIdx]->fnExitMode();
+                }
+
+                // Switch the mode IDX
+                swadgeModeIdx = pendingSwadgeModeIdx;
+                shouldSwitchSwadgeMode = false;
+
+                // Enter the next mode
+                if(NULL != swadgeModes[swadgeModeIdx]->fnEnterMode)
+                {
+                    swadgeModes[swadgeModeIdx]->fnEnterMode(&tftDisp);
+                }
+            }
+            else
+            {
+                // Deep sleep, wake up, and switch to pendingSwadgeModeIdx
+                esp_sleep_enable_timer_wakeup(1);
+                esp_deep_sleep_start();
+            }
         }
 
         // Yield to let the rest of the RTOS run
@@ -497,7 +520,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
  */
 uint8_t getNumSwadgeModes(void)
 {
-    return ARRAY_SIZE(swadgeModes);
+    return ARRAY_SIZE(swadgeModes)-1;
 }
 
 /**
@@ -510,3 +533,16 @@ void switchToSwadgeMode(uint8_t mode)
     pendingSwadgeModeIdx = mode;
     shouldSwitchSwadgeMode = true;
 }
+
+/**
+ * Use a pointer to a swadge mode to jump to a dynamic swadge mode.
+ * 
+ * @param mode Pointer to a valid swadgeMode struct.
+ */
+void overrideToSwadgeMode( swadgeMode* mode )
+{
+    int sandboxSwadgeMode = getNumSwadgeModes();
+    swadgeModes[sandboxSwadgeMode] = mode;
+    switchToSwadgeMode( sandboxSwadgeMode );
+}
+
