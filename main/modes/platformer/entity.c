@@ -97,11 +97,12 @@ void updateTestObject(entity_t * self) {
     }
     */
    
-    self->x += self->xspeed;
-    self->y += self->yspeed;
+    //self->x += self->xspeed;
+    //self->y += self->yspeed;
 
     despawnWhenOffscreen(self);
-    //moveEntityWithTileCollisions(self);
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
 };
 
 void moveEntityWithTileCollisions(entity_t * self){
@@ -116,10 +117,9 @@ void moveEntityWithTileCollisions(entity_t * self){
         int16_t hcof = ( ((self->x >> SUBPIXEL_RESOLUTION) % TILE_SIZE) - HALF_TILE_SIZE);
 
         //Handle halfway though tile
-        //uint8_t at = self->tilemap->map[ty * self->tilemap->mapWidth + tx + SIGNOF(hcof)];
         uint8_t at = getTile(self->tilemap, tx + SIGNOF(hcof), ty);
 
-        if(at > 0) {
+        if(isSolid(at)) {
             collision = true;
             newX=((tx + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
         }
@@ -130,7 +130,7 @@ void moveEntityWithTileCollisions(entity_t * self){
             //uint8_t newVerticalTile = self->tilemap->map[newTy * self->tilemap->mapWidth + tx];
             uint8_t newVerticalTile = getTile(self->tilemap, tx, newTy);
 
-            if(newVerticalTile > 0) {
+            if(isSolid(newVerticalTile)) {
 
                 if(self->yspeed > 0) {
                     //Landed on platform
@@ -151,7 +151,7 @@ void moveEntityWithTileCollisions(entity_t * self){
         //uint8_t att = self->tilemap->map[(ty + SIGNOF(vcof)) * self->tilemap->mapWidth + tx];
         uint8_t att = getTile(self->tilemap, tx, ty + SIGNOF(vcof));
 
-        if(att > 0) {
+        if(isSolid(att)) {
             collision = true;
             newY=((ty + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
         }
@@ -163,7 +163,7 @@ void moveEntityWithTileCollisions(entity_t * self){
             //uint8_t newHorizontalTile = self->tilemap->map[ty * self->tilemap->mapWidth + newTx];
             uint8_t newHorizontalTile = getTile(self->tilemap, newTx, ty);
 
-            if(newHorizontalTile > 0) {
+            if(isSolid(newHorizontalTile)) {
                 collision = true;
                 self->xspeed = 0;
                 newX=((tx + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
@@ -173,7 +173,7 @@ void moveEntityWithTileCollisions(entity_t * self){
                 //uint8_t newBelowTile=self->tilemap->map[(ty + 1) * self->tilemap->mapWidth + tx];
                 uint8_t newBelowTile=getTile(self->tilemap, tx, ty + 1);
 
-                if(!newBelowTile){
+                if(!isSolid(newBelowTile)){
                     self->falling = true;
                 }
             }
@@ -181,12 +181,18 @@ void moveEntityWithTileCollisions(entity_t * self){
     }
 
     //Are we inside a block? Push self out of block
-    //uint8_t t = self->tilemap->map[ty * self->tilemap->mapWidth + tx];
     uint8_t t = getTile(self->tilemap, tx, ty);
  
-    if(t > 0){
-        self->yspeed = -self->yspeed;
-        self->xspeed = -self->xspeed;
+    if(isSolid(t)){
+        if(self->xspeed == 0 && self->yspeed ==0){
+            newX += (self->spriteFlipHorizontal) ? 16: -16;
+        } else {
+            self->yspeed = -self->yspeed;
+            self->xspeed = -self->xspeed;
+        }
+        //newX=self->x;
+        //self->yspeed=SIGNOF(self->yspeed)*-64;
+        //self->falling=true;
     }
 
     self->x = newX+self->xspeed;

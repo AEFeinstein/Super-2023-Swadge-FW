@@ -212,7 +212,10 @@ bool isSolid(uint8_t tileId) {
         case TILE_EMPTY ... TILE_CTNR_0xE:
             return false;
             break;
-        default:
+        case TILE_INVISIBLE_BLOCK ... TILE_UNUSED_0x2F:
             return true;
+            break;
+        default:
+            return false;
     }
 }
