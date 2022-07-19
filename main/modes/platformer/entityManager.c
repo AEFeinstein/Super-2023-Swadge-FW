@@ -185,8 +185,13 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->active = true;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
+    
     entity->xspeed = (x < (entityManager->tilemap->mapOffsetX + 120)) ? 16 : -16;
     entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 132;
+    entity->gravityEnabled = true;
+    entity->gravity = 32;
 
     entity->type = ENTITY_TEST;
     entity->spriteIndex = 5;
