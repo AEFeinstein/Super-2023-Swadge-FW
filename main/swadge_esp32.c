@@ -17,10 +17,6 @@
 #include "esp_log.h"
 #include "esp_sleep.h"
 
-#include "soc/dport_access.h"
-#include "soc/periph_defs.h"
-#include "hal/memprot_ll.h"
-
 #include "swadge_esp32.h"
 
 #include "led_util.h"
@@ -59,6 +55,10 @@
 
 #if defined(EMU)
 #include "emu_esp.h"
+#else
+#include "soc/dport_access.h"
+#include "soc/periph_defs.h"
+#include "hal/memprot_ll.h"
 #endif
 
 //==============================================================================
@@ -137,12 +137,16 @@ uint16_t tud_hid_get_report_cb(uint8_t itf,
     uint8_t* buffer,
     uint16_t reqlen)
 {
+#if !defined(EMU)
     if( report_id == 170 || report_id == 171 )
         return handle_advanced_usb_control_get( reqlen, buffer );
     else if( report_id == 172 )
         return handle_advanced_usb_terminal_get( reqlen, buffer );
     else
         return reqlen;
+#else
+    return 0;
+#endif
 }
 
 /**
@@ -164,8 +168,10 @@ void tud_hid_set_report_cb(uint8_t itf,
     uint8_t const* buffer,
     uint16_t bufsize )
 {
+#if !defined(EMU)
     if( report_id >= 170 && report_id <= 171 )
         handle_advanced_usb_control_set( bufsize, buffer );
+#endif
 }
 
 /**

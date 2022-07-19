@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "esp_log.h"
 #include "spiffs_manager.h"
 #include "heatshrink_decoder.h"
 #include "spiffs_json.h"
@@ -22,7 +23,7 @@ char * loadJson(char * name)
     size_t sz;
     if(!spiffsReadFile(name, &buf, &sz))
     {
-        printf("Failed to read %s", name);
+        ESP_LOGE("JSON", "Failed to read %s", name);
         return NULL;
     }
 

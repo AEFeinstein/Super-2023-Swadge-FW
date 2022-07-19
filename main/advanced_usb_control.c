@@ -1,3 +1,5 @@
+#if !defined(EMU)
+
 #include "advanced_usb_control.h"
 #include "tinyusb.h"
 #include "tusb_hid_gamepad.h"
@@ -222,5 +224,4 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
     }
 }
 
-
-
+#endif
