@@ -272,6 +272,8 @@ const uint16_t paletteColors[] =
     #define MIRROR_X        false
     #define MIRROR_Y         true
 #elif defined(CONFIG_ST7735_128x160)
+    // Mixture of docs + experimentation
+    // This is the RB027D25N05A / RB017D14N05A (Actually the ST7735S, so inbetween a ST7735 and ST7789)
     #define TFT_WIDTH         160
     #define TFT_HEIGHT        128
     #define LCD_PIXEL_CLOCK_HZ (40 * 1000*1000)
@@ -296,6 +298,16 @@ const uint16_t paletteColors[] =
     #define X_OFFSET            0
     #define Y_OFFSET            0
     #define SWAP_XY         false
+    #define MIRROR_X        false
+    #define MIRROR_Y        false
+#elif defined(CONFIG_GC9307_240x280)
+    // A beautiful rounded edges LCD RB017A1505A
+    #define TFT_WIDTH         280
+    #define TFT_HEIGHT        240
+    #define LCD_PIXEL_CLOCK_HZ (100 * 1000 * 1000)
+    #define X_OFFSET            20
+    #define Y_OFFSET            0
+    #define SWAP_XY         true
     #define MIRROR_X        false
     #define MIRROR_Y        false
 #else
@@ -387,7 +399,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
 
 #if defined(CONFIG_ST7735_160x80)
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7735(io_handle, &panel_config, &panel_handle));
-#elif defined(CONFIG_ST7789_240x135) || defined(CONFIG_ST7789_240x240) || defined(CONFIG_ST7735_128x160)
+#elif defined(CONFIG_ST7789_240x135) || defined(CONFIG_ST7789_240x240) || defined(CONFIG_ST7735_128x160) || defined(CONFIG_GC9307_240x280)
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_config, &panel_handle));
 #else
 #error "Please pick a screen size"
@@ -417,11 +429,8 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     esp_lcd_panel_swap_xy(panel_handle, SWAP_XY);
     esp_lcd_panel_mirror(panel_handle, MIRROR_X, MIRROR_Y);
     esp_lcd_panel_set_gap(panel_handle, X_OFFSET, Y_OFFSET);
-    esp_lcd_panel_invert_color(panel_handle, true);
 
-#if defined(CONFIG_ST7735_128x160)
-    // Mixture of docs + experimentation
-    // This is the RB027D25N05A / RB017D14N05A (Actually the ST7735S, so inbetween a ST7735 and ST7789)
+#if defined(CONFIG_GC9307_240x280) || defined(CONFIG_ST7735_128x160)
     typedef struct {
         esp_lcd_panel_t base;
         esp_lcd_panel_io_handle_t io;
@@ -435,6 +444,13 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     } st7789_panel_internal_t;
     st7789_panel_internal_t *st7789 = __containerof(panel_handle, st7789_panel_internal_t, base);
     esp_lcd_panel_io_handle_t io = st7789->io;
+#endif
+
+#if defined(CONFIG_GC9307_240x280)
+    esp_lcd_panel_invert_color(panel_handle, false);
+    esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[]) {0x28}, 1 ); //MX, MY, RGB mode  (MADCTL)
+    esp_lcd_panel_io_tx_param(io, 0x35, (uint8_t[]) {0x00}, 1 ); // "tear effect" testing sync pin.
+#elif defined(CONFIG_ST7735_128x160)
     esp_lcd_panel_io_tx_param(io, 0xB1, (uint8_t[]) { 0x05, 0x3C, 0x3C }, 3 );
     esp_lcd_panel_io_tx_param(io, 0xB2, (uint8_t[]) { 0x05, 0x3C, 0x3C }, 3 );
     esp_lcd_panel_io_tx_param(io, 0xB3, (uint8_t[]) { 0x05, 0x3C, 0x3C, 0x05, 0x3C, 0x3C }, 6 );
@@ -443,6 +459,8 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     esp_lcd_panel_io_tx_param(io, 0xE0, (uint8_t[]) {0x04,0x22,0x07,0x0A,0x2E,0x30,0x25,0x2A,0x28,0x26,0x2E,0x3A,0x00,0x01,0x03,0x13}, 16 );
     esp_lcd_panel_io_tx_param(io, 0xE1, (uint8_t[]) {0x04,0x16,0x06,0x0D,0x2D,0x26,0x23,0x27,0x27,0x25,0x2D,0x3B,0x00,0x01,0x04,0x13}, 16 );
     esp_lcd_panel_io_tx_param(io, 0x20, (uint8_t[]) { 0 }, 0 ); // buffer color inversion
+#else
+    esp_lcd_panel_invert_color(panel_handle, true);
 #endif
 
     // FIll the handle for the initialized display
