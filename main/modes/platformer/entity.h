@@ -59,6 +59,8 @@ struct entity_t
 
     uint8_t homeTileX;
     uint8_t homeTileY;
+
+    int16_t jumpPower;
 };
 
 //==============================================================================

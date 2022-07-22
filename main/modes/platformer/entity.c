@@ -38,17 +38,16 @@ void initializeEntity(entity_t * entity, tilemap_t * tilemap, gameData_t * gameD
 };
 
 void updatePlayer(entity_t * self) {
-    //self->spriteIndex = (self->spriteIndex + 1) % 3;
 
     if(self->gameData->btnState & LEFT){
-        self->xspeed -= 16;
+        self->xspeed -= (self->falling)? 8 : 16;
 
         if(self->xspeed < -self->xMaxSpeed){
             self->xspeed = -self->xMaxSpeed;
         }
 
     } else if(self->gameData->btnState & RIGHT){
-        self->xspeed += 16;
+        self->xspeed += (self->falling)? 8 : 16;
 
         if(self->xspeed > self->xMaxSpeed){
             self->xspeed = self->xMaxSpeed;
@@ -71,9 +70,25 @@ void updatePlayer(entity_t * self) {
         }
     }
 
-    if(!self->falling && !(self->gameData->prevBtnState & BTN_A) && (self->gameData->btnState & BTN_A)) {
-         self->yspeed = -256;
-         self->falling = true;
+    if(self->gameData->btnState & BTN_A){
+        if(!self->falling && !(self->gameData->prevBtnState & BTN_A) ) {
+            //initiate jump
+            self->jumpPower = 256 + (abs(self->xspeed) >> 2);
+            self->yspeed = -self->jumpPower;
+            self->falling = true;
+        } else if (self->jumpPower > 0 && self->yspeed < 0) {
+            //jump dampening
+            self->jumpPower -= 32;
+            self->yspeed = -self->jumpPower;
+
+            if(self->jumpPower < 0) {
+                self->jumpPower = 0;
+            }
+        }
+    } else if (self->falling && self->jumpPower > 0 && self->yspeed < 0) {
+        //Cut jump short if player lets go of jump button
+        self->jumpPower = 0;
+        self->yspeed=self->yspeed >> 2; //technically shouldn't do this with a signed int
     }
 
     moveEntityWithTileCollisions(self);
@@ -200,20 +215,22 @@ void moveEntityWithTileCollisions(entity_t * self){
 }
 
 void applyDamping(entity_t *self){
-    if(self->xspeed > 0) {
-        self->xspeed -= self->xDamping;
-        
-        if(self->xspeed < 0) {
-            self->xspeed = 0;
-        }
-    } else if(self->xspeed < 0) {
-        self->xspeed += self->xDamping;
-        
+    if(!self->falling) {
         if(self->xspeed > 0) {
-            self->xspeed = 0;
+            self->xspeed -= self->xDamping;
+            
+            if(self->xspeed < 0) {
+                self->xspeed = 0;
+            }
+        } else if(self->xspeed < 0) {
+            self->xspeed += self->xDamping;
+            
+            if(self->xspeed > 0) {
+                self->xspeed = 0;
+            }
         }
     }
-    
+
     if(self->gravityEnabled){
         return;
     }
