@@ -83,7 +83,7 @@
 
 #define SCRATCH_IMMEDIATE_DWORDS  64
 
-#define AUSB_CMD_REBOOT_TO_BOOTLOADER 0x03
+#define AUSB_CMD_REBOOT           0x03
 #define AUSB_CMD_WRITE_RAM        0x04
 #define AUSB_CMD_READ_RAM         0x05
 #define AUSB_CMD_EXEC_RAM         0x06
