@@ -856,30 +856,49 @@ void checkFighterButtonInput(fighter_t* ftr)
         }
     }
 
-    // Double tapping down will fall through platforms, if the platform allows it
-    if(ftr->relativePos == ABOVE_PLATFORM && ftr->touchingPlatform->canFallThrough)
+    switch(ftr->state)
     {
-        // Check if down button was released
-        if ((ftr->prevBtnState & DOWN) && !(ftr->btnState & DOWN))
+        case FS_IDLE:
+        case FS_RUNNING:
+        case FS_DUCKING:
         {
-            // Start timer to check for second press
-            ftr->fallThroughTimer = 250 / FRAME_TIME_MS; // 250ms
+            // Double tapping down will fall through platforms, if the platform allows it
+            if(ftr->relativePos == ABOVE_PLATFORM && ftr->touchingPlatform->canFallThrough)
+            {
+                // Check if down button was released
+                if ((ftr->prevBtnState & DOWN) && !(ftr->btnState & DOWN))
+                {
+                    // Start timer to check for second press
+                    ftr->fallThroughTimer = 250 / FRAME_TIME_MS; // 250ms
+                }
+                // Check if a second down press was detected while the timer is active
+                else if (ftr->fallThroughTimer > 0 && !(ftr->prevBtnState & DOWN) && (ftr->btnState & DOWN))
+                {
+                    // Second press detected fast enough
+                    ftr->fallThroughTimer = 0;
+                    // Fall through a platform
+                    ftr->relativePos = PASSING_THROUGH_PLATFORM;
+                    ftr->passingThroughPlatform = ftr->touchingPlatform;
+                    ftr->touchingPlatform = NULL;
+                }
+            }
+            else
+            {
+                // Not on a platform, kill the timer
+                ftr->fallThroughTimer = 0;
+            }
+            break;
         }
-        // Check if a second down press was detected while the timer is active
-        else if (ftr->fallThroughTimer > 0 && !(ftr->prevBtnState & DOWN) && (ftr->btnState & DOWN))
+        case FS_JUMPING:
+        case FS_STARTUP:
+        case FS_ATTACK:
+        case FS_COOLDOWN:
+        case FS_HITSTUN:
         {
-            // Second press detected fast enough
+            // Falling through platforms not allowed in these states
             ftr->fallThroughTimer = 0;
-            // Fall through a platform
-            ftr->relativePos = PASSING_THROUGH_PLATFORM;
-            ftr->passingThroughPlatform = ftr->touchingPlatform;
-            ftr->touchingPlatform = NULL;
+            break;
         }
-    }
-    else
-    {
-        // Not on a platform, kill the timer
-        ftr->fallThroughTimer = 0;
     }
 
     // Save the button state for the next frame comparison
