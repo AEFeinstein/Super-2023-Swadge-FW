@@ -8,7 +8,6 @@
 
 // The ROM locations for these will be defined in the 
 void esp_cpu_reset(uint32_t x); 
-void ets_wdt_reset_cpu( uint32_t x );
 void chip_usb_set_persist_flags( uint32_t x );
 
 void bootload_reboot_stub()
@@ -24,7 +23,6 @@ void bootload_reboot_stub()
 
 	// These should probably be investigated as other alternatives.
 	//esp_cpu_reset( 0 );
-	//ets_wdt_reset_cpu( 0 );
 }
 
 
