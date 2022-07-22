@@ -276,6 +276,12 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite,
             atk[atkIdx].attackConnected = false;
         }
     }
+    else if((FS_DUCKING == ftr->state) && (FS_DUCKING != newState))
+    {
+        // Restore original hitbox
+        ftr->size.y = ftr->originalSize.y;
+        ftr->hurtbox_offset.y = 0;
+    }
 
     // Set the new state
     ftr->state = newState;
@@ -296,9 +302,16 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite,
         {
             break;
         }
+        case FS_DUCKING:
+        {
+            // Half the height of the hurbox when ducking
+            ftr->size.y = (ftr->size.y / 2);
+            ftr->hurtbox_offset.y = ftr->size.y;
+            ftr->cAttack = NO_ATTACK;
+            break;
+        }
         case FS_IDLE:
         case FS_RUNNING:
-        case FS_DUCKING:
         case FS_JUMPING:
         {
             ftr->cAttack = NO_ATTACK;
@@ -1172,13 +1185,13 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         // Just move it and be done
         if(FACING_RIGHT == ftr->dir)
         {
-            ftr->pos.x = dest_hurtbox.x0;
+            ftr->pos.x = dest_hurtbox.x0 - ftr->hurtbox_offset.x;
         }
         else
         {
-            ftr->pos.x = dest_hurtbox.x1 - ftr->originalSize.x;
+            ftr->pos.x = dest_hurtbox.x1 - ftr->originalSize.x + ftr->hurtbox_offset.x;
         }
-        ftr->pos.y = dest_hurtbox.y0;
+        ftr->pos.y = dest_hurtbox.y0 - ftr->hurtbox_offset.y;
     }
     else
     {
@@ -1227,13 +1240,13 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 // No collision here, so move the fighter here for now
                 if(FACING_RIGHT == ftr->dir)
                 {
-                    ftr->pos.x = test_hurtbox.x0;
+                    ftr->pos.x = test_hurtbox.x0 - ftr->hurtbox_offset.x;
                 }
                 else
                 {
-                    ftr->pos.x = test_hurtbox.x1 - ftr->originalSize.x;
+                    ftr->pos.x = test_hurtbox.x1 - ftr->originalSize.x + ftr->hurtbox_offset.x;
                 }
-                ftr->pos.y = test_hurtbox.y0;
+                ftr->pos.y = test_hurtbox.y0 - ftr->hurtbox_offset.y;
             }
 
             // Recalculate the new test point
@@ -1265,6 +1278,10 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         }
     }
 
+    // Get the final hurtbox
+    box_t hbox;
+    getHurtbox(ftr, &hbox);
+
     // Loop through all platforms to check for touching
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
@@ -1275,12 +1292,12 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         }
 
         // If the fighter is above or below a platform
-        if((ftr->pos.x < platforms[idx].area.x1 + SF) &&
-                (ftr->pos.x + ftr->size.x + SF > platforms[idx].area.x0))
+        if((hbox.x0 < platforms[idx].area.x1 + SF) &&
+                (hbox.x1 + SF > platforms[idx].area.x0))
         {
             // If the fighter is moving downward or not at all and hit a platform
             if ((ftr->velocity.y >= 0) &&
-                    ((((ftr->pos.y + ftr->size.y) / SF)) == (platforms[idx].area.y0 / SF)))
+                    (((hbox.y1 / SF)) == (platforms[idx].area.y0 / SF)))
             {
                 // Fighter standing on platform
                 ftr->velocity.y = 0;
@@ -1321,7 +1338,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             }
             // If the fighter is moving upward and hit a platform
             else if ((ftr->velocity.y <= 0) &&
-                     ((ftr->pos.y / SF) == ((platforms[idx].area.y1 / SF))))
+                     ((hbox.y0 / SF) == ((platforms[idx].area.y1 / SF))))
             {
                 if((true == platforms[idx].canFallThrough))
                 {
@@ -1342,12 +1359,12 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         }
 
         // If the fighter is to the left or right of a platform
-        if((ftr->pos.y < platforms[idx].area.y1 + SF) &&
-                (ftr->pos.y + ftr->size.y + SF > platforms[idx].area.y0))
+        if((hbox.y0 < platforms[idx].area.y1 + SF) &&
+                (hbox.y1 + SF > platforms[idx].area.y0))
         {
             // If the fighter is moving rightward and hit a wall
             if ((ftr->velocity.x >= 0) &&
-                    ((((ftr->pos.x + ftr->size.x) / SF)) == (platforms[idx].area.x0 / SF)))
+                    (((hbox.x1 / SF)) == (platforms[idx].area.x0 / SF)))
             {
                 if((true == platforms[idx].canFallThrough))
                 {
@@ -1367,7 +1384,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             }
             // If the fighter is moving leftward and hit a wall
             else if ((ftr->velocity.x <= 0) &&
-                     ((ftr->pos.x / SF) == ((platforms[idx].area.x1 / SF))))
+                     ((hbox.x0 / SF) == ((platforms[idx].area.x1 / SF))))
             {
                 if((true == platforms[idx].canFallThrough))
                 {
@@ -1389,7 +1406,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     }
 
     // Check kill zone
-    if(ftr->pos.y > SF * 600)
+    if(hbox.y0 > SF * 600)
     {
         // Decrement stocks
         if(ftr->stocks > 0)
