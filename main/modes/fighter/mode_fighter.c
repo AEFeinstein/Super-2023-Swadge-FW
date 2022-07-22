@@ -1442,8 +1442,8 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         }
                         otherFtr->velocity.y += ((hbx->knockback.y * knockbackScalar) / 64);
 
-                        // Apply hitstun based on knockback
-                        setFighterState(otherFtr, FS_HITSTUN, otherFtr->currentSprite, hbx->hitstun);
+                        // Apply hitstun, scaled by defendant's percentage
+                        setFighterState(otherFtr, FS_HITSTUN, otherFtr->currentSprite, hbx->hitstun * (otherFtr->damage / 32));
 
                         // Knock the fighter into the air
                         if(ABOVE_PLATFORM == otherFtr->relativePos)
@@ -1518,8 +1518,8 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                     }
                     ftr->velocity.y += ((proj->knockback.y * knockbackScalar) / 64);
 
-                    // Apply hitstun
-                    setFighterState(ftr, FS_HITSTUN, ftr->currentSprite, proj->hitstun);
+                    // Apply hitstun, scaled by defendant's percentage
+                    setFighterState(ftr, FS_HITSTUN, ftr->currentSprite, proj->hitstun * (ftr->damage / 32));
 
                     // Knock the fighter into the air
                     if(ABOVE_PLATFORM == ftr->relativePos)
