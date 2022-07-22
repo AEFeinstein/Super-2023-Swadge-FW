@@ -1220,6 +1220,12 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     {
         ftr->relativePos = FREE_FLOATING;
         ftr->touchingPlatform = NULL;
+        // If in the air for any reason (like running off a ledge)
+        // only have a max of one jump left
+        if(ftr->numJumpsLeft > 1)
+        {
+            ftr->numJumpsLeft = 1;
+        }
     }
 
     // Loop through all platforms to check for touching
