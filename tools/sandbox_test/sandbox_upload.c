@@ -72,7 +72,7 @@ int DoUpload( const char * file, uint32_t address )
 		for( i = 0; i < chunks; i++ )
 		{
 			uint32_t offset = i * chunksize + address;
-			uint8_t rdata[chunksize+10];
+			uint8_t rdata[force_packet_length];
 			rdata[0] = 171;  // Code for advanced USB control
 			rdata[1] = 4;    // Command #
 			rdata[2] = offset & 0xff;
@@ -162,7 +162,7 @@ int main()
 	int r;
 
 	// Disable mode.
-	uint8_t rdata[6];
+	uint8_t rdata[reg_packet_length];
 	rdata[0] = 170;
 	rdata[1] = 7;
 	rdata[2] = 0 & 0xff;

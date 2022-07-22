@@ -34,7 +34,7 @@ sandbox_interactive : sandbox_interactive.c
 	gcc $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 interactive : sandbox_interactive build
-	./sandbox_interactive sandbox.c $(SYSELF)
+	./sandbox_interactive sandbox.c sandbox.S $(SYSELF)
 
 clean :
 	rm -rf *.o *~ build/sandbox_inst.bin build/sandbox_data.bin build/buildhelp build/sandbox.o sandbox_upload build/sandbox.lds build/provided.lds build/sandbox_symbols.txt build/system_symbols.txt sandbox_interactive

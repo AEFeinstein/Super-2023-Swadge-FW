@@ -17,14 +17,14 @@
         NOTE: the first byte is the report ID.  In some systems this is
         separate.  In others it is the first byte of the message.  You will
         need to consult examples to determine which way this is.
-		
-		NOTE: Windows and Linux behave differently.  In Windows, you always
-		must transfer exactly REPORT_SIZE+1 bytes (With first byte being
-		the report ID (0xaa).  Where Linux allows variations.
-		
-		NOTE: On Windows and Linux you can transfer arbitrary lengths of
-		data for FEATURE_GET commands.  IF YOU KNOW HOW TO SEND ARBITRARY
-		DATA LENGTHS FOR FEATURE_SET ON WINDOWS, PLEASE CONTACT ME (cnlohr)
+        
+        NOTE: Windows and Linux behave differently.  In Windows, you always
+        must transfer exactly REPORT_SIZE+1 bytes (With first byte being
+        the report ID (0xaa).  Where Linux allows variations.
+        
+        NOTE: On Windows and Linux you can transfer arbitrary lengths of
+        data for FEATURE_GET commands.  IF YOU KNOW HOW TO SEND ARBITRARY
+        DATA LENGTHS FOR FEATURE_SET ON WINDOWS, PLEASE CONTACT ME (cnlohr)
     
     [0xaa (or report ID = 0xaa)] [1-byte COMMAND] [4-byte parameter]
         [Data or parameters ...]
@@ -32,9 +32,15 @@
     Note parameter are 4-bytes, LSB first byte. 
 
     The commands that are supported are as follows:
+
+    AUSB_CMD_REBOOT: 0x03
+        Parameter 1:
+            Zero: Just reboot.
+            Nonzero: Reboot into bootloader.
+
     AUSB_CMD_WRITE_RAM: 0x04
         Parameter 0: Address to start writing to.
-		Parameter 1 [2-bytes]: Length of data to write
+        Parameter 1 [2-bytes]: Length of data to write
         Data to write...
     
     AUSB_CMD_READ_RAM: 0x05
@@ -63,7 +69,7 @@
         
     AUSB_CMD_FLASH_WRITE: 0x11
         Parameter 0: Start address of flash to write.
-		Parameter 1 [2 bytes]: Length of data to write
+        Parameter 1 [2 bytes]: Length of data to write
         Payload: Data to write.
         
     AUSB_CMD_FLASH_READ: 0x12
@@ -77,6 +83,7 @@
 
 #define SCRATCH_IMMEDIATE_DWORDS  64
 
+#define AUSB_CMD_REBOOT_TO_BOOTLOADER 0x03
 #define AUSB_CMD_WRITE_RAM        0x04
 #define AUSB_CMD_READ_RAM         0x05
 #define AUSB_CMD_EXEC_RAM         0x06
