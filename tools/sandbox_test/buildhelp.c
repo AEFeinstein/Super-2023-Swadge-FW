@@ -12,9 +12,8 @@
 #define VID 0x303a
 #define PID 0x4004
 
-
 const char * sym_dump_cmd = "objdump -t %s > build/system_symbols.txt";
-const char * compile_cmd = "xtensa-esp32s2-elf-gcc  -mlongcalls %s -DHAVE_CONFIG_H  -ffunction-sections -fdata-sections -Wall -Werror=all -Wno-error=unused-function -Wno-error=unused-variable -Wno-error=deprecated-declarations -Wextra -Wno-unused-parameter -Wno-sign-compare -ggdb -O2 -fmacro-prefix-map=/home/cnlohr/git/esp32-c3-playground=. -fmacro-prefix-map=/home/cnlohr/esp/esp-idf=IDF -fstrict-volatile-bitfields -Wno-error=unused-but-set-variable -fno-jump-tables -fno-tree-switch-conversion sandbox.c -T build/sandbox.lds -o build/sandbox.o -nodefaultlibs -nostartfiles";
+const char * compile_cmd = "xtensa-esp32s2-elf-gcc  -mlongcalls %s -DHAVE_CONFIG_H  -ffunction-sections -fdata-sections -Wall -Werror=all -Wno-error=unused-function -Wno-error=unused-variable -Wno-error=deprecated-declarations -Wextra -Wno-unused-parameter -Wno-sign-compare -ggdb -O2 -fmacro-prefix-map=/home/cnlohr/git/esp32-c3-playground=. -fmacro-prefix-map=/home/cnlohr/esp/esp-idf=IDF -fstrict-volatile-bitfields -Wno-error=unused-but-set-variable -fno-jump-tables -fno-tree-switch-conversion sandbox.c sandbox.S -T build/sandbox.lds -o build/sandbox.o -nodefaultlibs -nostartfiles";
 const char * sym_comp_dump_cmd = "objdump -t build/sandbox.o > build/sandbox_symbols.txt";
 const char * ocpy_cmd_inst = "xtensa-esp32s2-elf-objcopy -j .inst -O binary build/sandbox.o build/sandbox_inst.bin";
 const char * ocpy_cmd_data = "xtensa-esp32s2-elf-objcopy -j .data -O binary build/sandbox.o build/sandbox_data.bin";
@@ -46,6 +45,12 @@ int main( int argc, char ** argv )
 
 	hid_init();
 	hid_device * hd = hid_open( VID, PID, 0);
+
+	if( !hd )
+	{
+		fprintf( stderr, "Error: cannot open %04x:%04x\n", VID, PID );
+		return -5;
+	}
 
 	if( argc != 2 )
 	{

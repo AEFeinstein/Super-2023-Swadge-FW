@@ -13,6 +13,8 @@
 #include "rom/cache.h"
 #include "soc/sensitive_reg.h"
 #include "soc/dport_access.h"
+#include "soc/rtc_wdt.h"
+#include "soc/soc.h"  // for WRITE_PERI_REG
 
 #include "swadgeMode.h"
 
@@ -135,15 +137,29 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
     intptr_t value = data[2] | ( data[3] << 8 ) | ( data[4] << 16 ) | ( data[5]<<24 );
     switch( data[1] )
     {
-    case AUSB_CMD_WRITE_RAM:
-	{
-        // Write into scratch.
-        if( datalen < 8 ) return;
-        intptr_t length = data[6] | ( data[7] << 8 );
-        ULOG( "Writing %d into %p", length, (void*)value );
-        memcpy( (void*)value, data+8, length );
+    case AUSB_CMD_REBOOT:
+        {
+        // This is mentioned a few places, but seems unnecessary.
+        //void chip_usb_set_persist_flags( uint32_t x );
+        //chip_usb_set_persist_flags( USBDC_PERSIST_ENA );
+
+        // Decide to reboot into bootloader or not.
+        REG_WRITE(RTC_CNTL_OPTION1_REG, value?RTC_CNTL_FORCE_DOWNLOAD_BOOT:0 );
+
+        void software_reset(uint32_t x);
+        software_reset( 0 ); // ROM function
+
         break;
-	}
+        }
+    case AUSB_CMD_WRITE_RAM:
+        {
+            // Write into scratch.
+            if( datalen < 8 ) return;
+            intptr_t length = data[6] | ( data[7] << 8 );
+            ULOG( "Writing %d into %p", length, (void*)value );
+            memcpy( (void*)value, data+8, length );
+            break;
+        }
     case AUSB_CMD_READ_RAM:
         // Configure read.
         advanced_usb_read_offset = (uint32_t*)value;
@@ -225,3 +241,4 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
 }
 
 #endif
+

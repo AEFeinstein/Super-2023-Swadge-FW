@@ -11,8 +11,20 @@
 #define VID 0x303a
 #define PID 0x4004
 
+
+
+#ifdef WIN32
+const int chunksize = 244;
+const int force_packet_length = 255;
+const int reg_packet_length = 65;
+#else
+const int chunksize = 244;
+const int force_packet_length = 255;
+const int reg_packet_length = 64;
+#endif
+
+
 hid_device * hd;
-const int chunksize = 32;
 
 // command-line arguments = file-list to watch.
 
@@ -91,6 +103,23 @@ int main( int argc, char ** argv )
 		if( taint )
 		{
 			struct timespec spec_start, spec_end;
+
+			uint8_t rdata[64];
+			int r;
+			int tries = 0;
+			rdata[0] = 170;
+			rdata[1] = 7;
+			rdata[2] = 0 & 0xff;
+			rdata[3] = 0 >> 8;
+			rdata[4] = 0 >> 16;
+			rdata[5] = 0 >> 24;
+			do
+			{
+				r = hid_send_feature_report( hd, rdata, reg_packet_length );
+				if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
+			} while ( r < 6 );
+			tries = 0;
+
 		    clock_gettime(CLOCK_REALTIME, &spec_start );
 			system( "make run" );
 		    clock_gettime(CLOCK_REALTIME, &spec_end );
