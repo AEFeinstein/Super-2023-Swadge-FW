@@ -39,7 +39,8 @@ typedef enum
     FS_JUMPING,
     FS_STARTUP,
     FS_ATTACK,
-    FS_COOLDOWN
+    FS_COOLDOWN,
+    FS_HITSTUN
 } fighterState_t;
 
 typedef enum

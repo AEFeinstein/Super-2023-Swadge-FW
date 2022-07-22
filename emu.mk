@@ -63,10 +63,10 @@ CFLAGS_WARNINGS = \
 	-Wshadow \
 	-Wredundant-decls \
 	-Wjump-misses-init \
-	-Wswitch-default \
+	-Wswitch-enum \
 	-Wcast-align \
-	-Wformat-nonliteral
-	# -Wswitch-enum
+	-Wformat-nonliteral \
+	-Wno-switch-default
 
 # These are warning flags for the compiler, just for files outside $(SDK)
 CFLAGS_WARNINGS_EXTRA = \
