@@ -780,79 +780,97 @@ void checkFighterButtonInput(fighter_t* ftr)
     }
 
     // Pressing B means attack
-    if (!(ftr->prevBtnState & BTN_B) && (ftr->btnState & BTN_B))
+    switch(ftr->state)
     {
-        // Save last state
-        attackOrder_t prevAttack = ftr->cAttack;
-
-        // Check if it's a ground or air attack
-        if(ABOVE_PLATFORM == ftr->relativePos)
+        case FS_IDLE:
+        case FS_RUNNING:
+        case FS_DUCKING:
+        case FS_JUMPING:
         {
-            // Attack on ground
-            ftr->isAerialAttack = false;
+            if (!(ftr->prevBtnState & BTN_B) && (ftr->btnState & BTN_B))
+            {
+                // Save last state
+                attackOrder_t prevAttack = ftr->cAttack;
 
-            if(ftr->btnState & UP)
-            {
-                // Up tilt attack
-                ftr->cAttack = UP_GROUND;
+                // Check if it's a ground or air attack
+                if(ABOVE_PLATFORM == ftr->relativePos)
+                {
+                    // Attack on ground
+                    ftr->isAerialAttack = false;
+
+                    if(ftr->btnState & UP)
+                    {
+                        // Up tilt attack
+                        ftr->cAttack = UP_GROUND;
+                    }
+                    else if(ftr->btnState & DOWN)
+                    {
+                        // Down tilt attack
+                        ftr->cAttack = DOWN_GROUND;
+                    }
+                    else if((ftr->btnState & LEFT) || (ftr->btnState & RIGHT))
+                    {
+                        // Side attack
+                        ftr->cAttack = DASH_GROUND;
+                    }
+                    else
+                    {
+                        // Neutral attack
+                        ftr->cAttack = NEUTRAL_GROUND;
+                    }
+                }
+                else
+                {
+                    // Attack in air
+                    ftr->isAerialAttack = true;
+
+                    if(ftr->btnState & UP)
+                    {
+                        // Up air attack
+                        ftr->cAttack = UP_AIR;
+                        // No more jumps after up air!
+                        ftr->numJumpsLeft = 0;
+                    }
+                    else if(ftr->btnState & DOWN)
+                    {
+                        // Down air
+                        ftr->cAttack = DOWN_AIR;
+                    }
+                    else if(((ftr->btnState & LEFT ) && (FACING_RIGHT == ftr->dir)) ||
+                            ((ftr->btnState & RIGHT) && (FACING_LEFT  == ftr->dir)))
+                    {
+                        // Back air
+                        ftr->cAttack = BACK_AIR;
+                    }
+                    else if(((ftr->btnState & RIGHT) && (FACING_RIGHT == ftr->dir)) ||
+                            ((ftr->btnState & LEFT ) && (FACING_LEFT  == ftr->dir)))
+                    {
+                        // Front air
+                        ftr->cAttack = FRONT_AIR;
+                    }
+                    else
+                    {
+                        // Neutral air
+                        ftr->cAttack = NEUTRAL_AIR;
+                    }
+                }
+
+                // If an attack is starting up
+                if(prevAttack != ftr->cAttack)
+                {
+                    // Set the state, sprite, and timer
+                    setFighterState(ftr, FS_STARTUP, ftr->attacks[ftr->cAttack].startupLagSpr, ftr->attacks[ftr->cAttack].startupLag);
+                }
             }
-            else if(ftr->btnState & DOWN)
-            {
-                // Down tilt attack
-                ftr->cAttack = DOWN_GROUND;
-            }
-            else if((ftr->btnState & LEFT) || (ftr->btnState & RIGHT))
-            {
-                // Side attack
-                ftr->cAttack = DASH_GROUND;
-            }
-            else
-            {
-                // Neutral attack
-                ftr->cAttack = NEUTRAL_GROUND;
-            }
+            break;
         }
-        else
+        case FS_STARTUP:
+        case FS_ATTACK:
+        case FS_COOLDOWN:
+        case FS_HITSTUN:
         {
-            // Attack in air
-            ftr->isAerialAttack = true;
-
-            if(ftr->btnState & UP)
-            {
-                // Up air attack
-                ftr->cAttack = UP_AIR;
-                // No more jumps after up air!
-                ftr->numJumpsLeft = 0;
-            }
-            else if(ftr->btnState & DOWN)
-            {
-                // Down air
-                ftr->cAttack = DOWN_AIR;
-            }
-            else if(((ftr->btnState & LEFT ) && (FACING_RIGHT == ftr->dir)) ||
-                    ((ftr->btnState & RIGHT) && (FACING_LEFT  == ftr->dir)))
-            {
-                // Back air
-                ftr->cAttack = BACK_AIR;
-            }
-            else if(((ftr->btnState & RIGHT) && (FACING_RIGHT == ftr->dir)) ||
-                    ((ftr->btnState & LEFT ) && (FACING_LEFT  == ftr->dir)))
-            {
-                // Front air
-                ftr->cAttack = FRONT_AIR;
-            }
-            else
-            {
-                // Neutral air
-                ftr->cAttack = NEUTRAL_AIR;
-            }
-        }
-
-        // If an attack is starting up
-        if(prevAttack != ftr->cAttack)
-        {
-            // Set the state, sprite, and timer
-            setFighterState(ftr, FS_STARTUP, ftr->attacks[ftr->cAttack].startupLagSpr, ftr->attacks[ftr->cAttack].startupLag);
+            // Don't allow attacks in these states
+            break;
         }
     }
 
