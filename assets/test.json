@@ -43,7 +43,7 @@
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   },
@@ -59,7 +59,7 @@
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -84,7 +84,7 @@
                            "damage":9,
                            "knockback_x":-7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         },
                         {
                            "relativePos_x":24,
@@ -94,7 +94,7 @@
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -119,7 +119,7 @@
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -144,7 +144,7 @@
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
-                           "hitstun":0,
+                           "hitstun":10,
                            "isProjectile":true,
                            "projectileSprite":"fb.wsg",
                            "projectileDuration":160,
@@ -176,7 +176,7 @@
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -202,7 +202,7 @@
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -228,7 +228,7 @@
                            "damage":9,
                            "knockback_x":-7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -256,7 +256,7 @@
                            "damage":9,
                            "knockback_x":0,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -282,7 +282,7 @@
                            "damage":9,
                            "knockback_x":0,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -329,7 +329,7 @@
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -354,7 +354,7 @@
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -379,7 +379,7 @@
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -404,7 +404,7 @@
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -429,7 +429,7 @@
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -455,7 +455,7 @@
                            "damage":9,
                            "knockback_x":7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -481,7 +481,7 @@
                            "damage":9,
                            "knockback_x":-7680,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -507,7 +507,7 @@
                            "damage":9,
                            "knockback_x":0,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
@@ -533,7 +533,7 @@
                            "damage":9,
                            "knockback_x":0,
                            "knockback_y":-7680,
-                           "hitstun":0
+                           "hitstun":10
                         }
                      ]
                   }
