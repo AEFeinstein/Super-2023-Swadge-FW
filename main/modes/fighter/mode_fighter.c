@@ -628,22 +628,31 @@ void checkFighterTimer(fighter_t* ftr)
         switch(ftr->state)
         {
             case FS_STARTUP:
-            {
-                // Transition from ground startup to ground attack
-                ftr->attackFrame = 0;
-                atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
-                setFighterState(ftr, FS_ATTACK, ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite, atk->duration);
-                break;
-            }
             case FS_ATTACK:
             {
-                ftr->attackFrame++;
+                if(FS_STARTUP == ftr->state)
+                {
+                    // Transition from ground startup to ground attack
+                    ftr->attackFrame = 0;
+                }
+                else
+                {
+                    // Transition from one attack frame to the next
+                    ftr->attackFrame++;
+                }
+
+                // Make sure the attack frame exists
                 if(ftr->attackFrame < ftr->attacks[ftr->cAttack].numAttackFrames)
                 {
                     // Transition from one attack frame to the next attack frame
                     atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
                     // Set the sprite
                     setFighterState(ftr, FS_ATTACK, ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite, atk->duration);
+
+                    // Always copy the iframe value, may be 0
+                    ftr->iFrameTimer = atk->iFrames;
+                    // Set invincibility if the timer is active
+                    ftr->isInvincible = (ftr->iFrameTimer > 0);
                 }
                 else
                 {
@@ -923,6 +932,11 @@ void checkFighterButtonInput(fighter_t* ftr)
                 {
                     // Set the state, sprite, and timer
                     setFighterState(ftr, FS_STARTUP, ftr->attacks[ftr->cAttack].startupLagSpr, ftr->attacks[ftr->cAttack].startupLag);
+
+                    // Always copy the iframe value, may be 0
+                    ftr->iFrameTimer = ftr->attacks[ftr->cAttack].iFrames;
+                    // Set invincibility if the timer is active
+                    ftr->isInvincible = (ftr->iFrameTimer > 0);
                 }
             }
             break;

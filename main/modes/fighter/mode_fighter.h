@@ -86,6 +86,7 @@ typedef struct
     vector_t hurtbox_size;
     vector_t velocity;
     uint16_t duration;
+    uint16_t iFrames;
     uint8_t numHitboxes;
     bool attackConnected;
 } attackFrame_t;
@@ -98,6 +99,7 @@ typedef struct
     uint16_t startupLag;
     uint16_t endLag;
     uint16_t landingLag;
+    uint16_t iFrames;
     uint8_t numAttackFrames;
     bool onlyFirstHit;
     bool attackConnected;
