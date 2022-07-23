@@ -1236,7 +1236,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
 
     // If there are no intersections, then the fighter isn't passing through
     // a platform anymore
-    if(!intersectionDetected)
+    if(!intersectionDetected && (PASSING_THROUGH_PLATFORM == ftr->relativePos))
     {
         // Clear the reference to the platform being passed through
         setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
