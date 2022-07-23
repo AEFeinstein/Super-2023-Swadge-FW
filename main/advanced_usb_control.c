@@ -194,6 +194,7 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
                 if( value > advanced_usb_scratch_buffer_data_size  )
                 {
                     advanced_usb_scratch_buffer_data = realloc( advanced_usb_scratch_buffer_data, value );
+					memset( advanced_usb_scratch_buffer_data, 0, value );
                     advanced_usb_scratch_buffer_data_size = value;
                 }
                 if( value == 0 )
@@ -208,6 +209,25 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
             ULOG( "New: %p / %d", advanced_usb_scratch_buffer_data, advanced_usb_scratch_buffer_data_size );
         }
         break;
+	case ACMD_CMD_MEMSET:
+	{
+        if( datalen < 11 ) return;
+        intptr_t length = data[6] | ( data[7] << 8 ) | ( data[8] << 16 ) | ( data[9] << 24 );
+        ULOG( "Memset %d into %p", length, (void*)value );
+        memset( (void*)value, data[10], length );
+        break;
+	}
+	case ACMD_CMD_GETVER:
+	{
+		// TODO: This is terrible.  It should be improved.
+		void app_main(void);
+		advanced_usb_scratch_immediate[0] = (uint32_t)&app_main;
+		advanced_usb_scratch_immediate[1] = (uint32_t)&advanced_usb_scratch_buffer_data;
+		advanced_usb_scratch_immediate[2] = (uint32_t)&handle_advanced_usb_control_set;
+		advanced_usb_scratch_immediate[3] = (uint32_t)&handle_advanced_usb_terminal_get;
+        advanced_usb_read_offset = advanced_usb_scratch_immediate;
+		break;
+	}
     case AUSB_CMD_FLASH_ERASE: // Flash erase region
     {
         if( datalen < 10 ) return ;

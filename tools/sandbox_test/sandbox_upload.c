@@ -111,6 +111,8 @@ int main()
 	uint32_t sandbox_mode_address = 0;
 	uint32_t sandbox_start_address_inst = 0;
 	uint32_t sandbox_start_address_data = 0;
+	uint32_t sandbox_sentinel_end_data = 0;
+	uint32_t sandbox_bss_size;
 	{
 		FILE * f = fopen( "build/sandbox_symbols.txt", "r" );
 		if( !f || ferror( f ) )
@@ -148,6 +150,16 @@ int main()
 				sandbox_start_address_data = strtol( addy, 0, 16 );
 				printf( "Found sandbox_sentinel_start_data at 0x%08x\n", sandbox_start_address_data );
 			}
+			if( strcmp( size, "sandbox_sentinel_end_data" ) == 0 && l == 5 )
+			{
+				sandbox_sentinel_end_data = strtol( addy, 0, 16 );
+				printf( "Found sandbox_sentinel_end_data at 0x%08x\n", sandbox_sentinel_end_data );
+			}
+			if( strcmp( size, "sandbox_bss_size" ) == 0 && l == 5 )
+			{
+				sandbox_bss_size = strtol( addy, 0, 16 );
+				printf( "Found sandbox_bss_size at 0x%08x\n", sandbox_bss_size );
+			}
 
 		}
 		fclose( f );
@@ -184,6 +196,27 @@ int main()
 
 	r = DoUpload( "build/sandbox_data.bin", sandbox_start_address_data );
 	if( r ) return r;
+
+	/* Memset the BSS segment. */
+	printf( "Issuing BSS memset of %08x:%d\n", sandbox_sentinel_end_data, sandbox_bss_size );
+	rdata[0] = 170;
+	rdata[1] = 9;
+	rdata[2] = sandbox_sentinel_end_data & 0xff;
+	rdata[3] = sandbox_sentinel_end_data >> 8;
+	rdata[4] = sandbox_sentinel_end_data >> 16;
+	rdata[5] = sandbox_sentinel_end_data >> 24;
+	rdata[6] = sandbox_bss_size >> 24;
+	rdata[7] = sandbox_bss_size >> 24;
+	rdata[8] = sandbox_bss_size >> 24;
+	rdata[9] = sandbox_bss_size >> 24;
+	rdata[10] = 0;
+	do
+	{
+		r = hid_send_feature_report( hd, rdata, reg_packet_length );
+		if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
+	} while ( r < 6 );
+	tries = 0;
+
 
 	printf( "Upload complete.  Starting main: 0x%08x\n", sandbox_main_address );
 
