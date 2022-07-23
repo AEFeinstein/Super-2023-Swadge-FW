@@ -117,6 +117,7 @@ typedef struct
     vector_t originalSize;
     vector_t velocity;
     bool isInAir;
+    bool ledgeJumped;
     platformPos_t relativePos;
     const platform_t* touchingPlatform;
     const platform_t* passingThroughPlatform;

@@ -108,7 +108,7 @@ swadgeMode modeFighter =
     .fnTemperatureCallback = NULL, // fighterTemperatureCb
 };
 
-static const platform_t finalDest[] =
+static const platform_t battlefield[] =
 {
     {
         .area =
@@ -350,15 +350,15 @@ void fighterMainLoop(int64_t elapsedUs)
         checkFighterButtonInput(&f->fighters[1]);
 
         // Move fighters
-        updateFighterPosition(&f->fighters[0], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
-        updateFighterPosition(&f->fighters[1], finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
+        updateFighterPosition(&f->fighters[0], battlefield, sizeof(battlefield) / sizeof(battlefield[0]));
+        updateFighterPosition(&f->fighters[1], battlefield, sizeof(battlefield) / sizeof(battlefield[0]));
 
         // Update timers. This transitions between states and spawns projectiles
         checkFighterTimer(&f->fighters[0]);
         checkFighterTimer(&f->fighters[1]);
 
         // Update projectile timers. This moves projectiles and despawns if necessary
-        checkProjectileTimer(&f->projectiles, finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
+        checkProjectileTimer(&f->projectiles, battlefield, sizeof(battlefield) / sizeof(battlefield[0]));
 
         // Check for collisions between hitboxes and hurtboxes
         checkFighterHitboxCollisions(&f->fighters[0], &f->fighters[1]);
@@ -367,7 +367,7 @@ void fighterMainLoop(int64_t elapsedUs)
         checkFighterProjectileCollisions(&f->projectiles);
 
         // Render the scene
-        drawFighterFrame(f->d, finalDest, sizeof(finalDest) / sizeof(finalDest[0]));
+        drawFighterFrame(f->d, battlefield, sizeof(battlefield) / sizeof(battlefield[0]));
 
         // ESP_LOGI("FTR", "{[%d, %d], [%d, %d], %d}",
         //     f->fighters[0].hurtbox.x0 / SF,
@@ -1305,6 +1305,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             {
                 // Fighter standing on platform
                 ftr->isInAir = false;
+                ftr->ledgeJumped = false;
                 ftr->velocity.y = 0;
                 ftr->relativePos = ABOVE_PLATFORM;
                 ftr->touchingPlatform = &platforms[idx];
@@ -1384,6 +1385,14 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     ftr->velocity.x = 0;
                     ftr->relativePos = LEFT_OF_PLATFORM;
                     ftr->touchingPlatform = &platforms[idx];
+
+                    // Moving downward
+                    if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
+                    {
+                        // Give a bonus 2/3 'jump' to get back on the platform
+                        ftr->ledgeJumped = true;
+                        ftr->velocity.y = 2 * (ftr->jump_velo / 3);
+                    }
                 }
                 break;
             }
@@ -1404,6 +1413,14 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     ftr->velocity.x = 0;
                     ftr->relativePos = RIGHT_OF_PLATFORM;
                     ftr->touchingPlatform = &platforms[idx];
+
+                    // Moving downward
+                    if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
+                    {
+                        // Give a bonus 2/3 'jump' to get back on the platform
+                        ftr->ledgeJumped = true;
+                        ftr->velocity.y = 2 * (ftr->jump_velo / 3);
+                    }
                 }
                 break;
             }

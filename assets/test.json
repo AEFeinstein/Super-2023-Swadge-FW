@@ -10,7 +10,7 @@
          "size_x":24,
          "size_y":24,
          "nJumps":2,
-         "landing_lag":20,
+         "landing_lag":1,
          "idle_spr_0":"ki0.wsg",
          "idle_spr_1":"ki1.wsg",
          "run_spr_0":"kr0.wsg",
@@ -183,7 +183,7 @@
                ],
                "endLag":20,
                "endLagSpr":"ki0.wsg",
-               "landing_lag":20
+               "landing_lag":1
             },
             {
                "type":"fair",
@@ -209,7 +209,7 @@
                ],
                "endLag":20,
                "endLagSpr":"ki0.wsg",
-               "landing_lag":20
+               "landing_lag":1
             },
             {
                "type":"bair",
@@ -235,7 +235,7 @@
                ],
                "endLag":20,
                "endLagSpr":"ki0.wsg",
-               "landing_lag":20
+               "landing_lag":1
             },
             {
                "type":"uair",
@@ -263,7 +263,7 @@
                ],
                "endLag":1,
                "endLagSpr":"ki0.wsg",
-               "landing_lag":20
+               "landing_lag":1
             },
             {
                "type":"dair",
@@ -289,7 +289,7 @@
                ],
                "endLag":20,
                "endLagSpr":"ki0.wsg",
-               "landing_lag":20
+               "landing_lag":1
             }
          ]
       },
@@ -303,7 +303,7 @@
          "size_x":24,
          "size_y":24,
          "nJumps":2,
-         "landing_lag":20,
+         "landing_lag":1,
          "idle_spr_0":"ki0.wsg",
          "idle_spr_1":"ki1.wsg",
          "run_spr_0":"kr0.wsg",
@@ -436,7 +436,7 @@
                ],
                "endLag":20,
                "endLagSpr":"ki0.wsg",
-               "landing_lag":20
+               "landing_lag":1
             },
             {
                "type":"fair",
@@ -462,7 +462,7 @@
                ],
                "endLag":20,
                "endLagSpr":"ki0.wsg",
-               "landing_lag":20
+               "landing_lag":1
             },
             {
                "type":"bair",
@@ -488,7 +488,7 @@
                ],
                "endLag":20,
                "endLagSpr":"ki0.wsg",
-               "landing_lag":20
+               "landing_lag":1
             },
             {
                "type":"uair",
@@ -514,7 +514,7 @@
                ],
                "endLag":20,
                "endLagSpr":"ki0.wsg",
-               "landing_lag":20
+               "landing_lag":1
             },
             {
                "type":"dair",
@@ -540,7 +540,7 @@
                ],
                "endLag":20,
                "endLagSpr":"ki0.wsg",
-               "landing_lag":20
+               "landing_lag":1
             }
          ]
       }
