@@ -175,8 +175,10 @@ void fighterEnterMode(display_t* disp)
 
     // Load fighter data
     f->fighters = loadJsonFighterData(&(f->numFighters), &(f->loadedSprites));
-    f->fighters[0].relativePos = FREE_FLOATING;
-    f->fighters[1].relativePos = FREE_FLOATING;
+    f->fighters[0].relativePos = NOT_TOUCHING_PLATFORM;
+    f->fighters[1].relativePos = NOT_TOUCHING_PLATFORM;
+    f->fighters[0].isInAir = true;
+    f->fighters[1].isInAir = true;
 
     f->fighters[0].cAttack = NO_ATTACK;
     f->fighters[1].cAttack = NO_ATTACK;
@@ -612,7 +614,7 @@ void checkFighterTimer(fighter_t* ftr)
             case FS_HITSTUN:
             {
                 // Transition from cooldown to idle
-                if(ABOVE_PLATFORM != ftr->relativePos)
+                if(ftr->isInAir)
                 {
                     // In air, go to jump
                     setFighterState(ftr, FS_JUMPING, ftr->jumpSprite, 0);
@@ -753,8 +755,9 @@ void checkFighterButtonInput(fighter_t* ftr)
                     }
                     ftr->numJumpsLeft--;
                     ftr->velocity.y = ftr->jump_velo;
-                    ftr->relativePos = FREE_FLOATING;
+                    ftr->relativePos = NOT_TOUCHING_PLATFORM;
                     ftr->touchingPlatform = NULL;
+                    ftr->isInAir = true;
                     setFighterState(ftr, FS_JUMPING, ftr->jumpSprite, 0);
                 }
                 break;
@@ -762,7 +765,7 @@ void checkFighterButtonInput(fighter_t* ftr)
             case FS_DUCKING:
             {
                 // Pressing A in this state means fall through platform
-                if(ftr->relativePos == ABOVE_PLATFORM && ftr->touchingPlatform->canFallThrough)
+                if((!ftr->isInAir) && ftr->touchingPlatform->canFallThrough)
                 {
                     // Fall through a platform
                     ftr->relativePos = PASSING_THROUGH_PLATFORM;
@@ -806,7 +809,7 @@ void checkFighterButtonInput(fighter_t* ftr)
                 attackOrder_t prevAttack = ftr->cAttack;
 
                 // Check if it's a ground or air attack
-                if(ABOVE_PLATFORM == ftr->relativePos)
+                if(!ftr->isInAir)
                 {
                     // Attack on ground
                     ftr->isAerialAttack = false;
@@ -894,7 +897,7 @@ void checkFighterButtonInput(fighter_t* ftr)
         case FS_DUCKING:
         {
             // Double tapping down will fall through platforms, if the platform allows it
-            if(ftr->relativePos == ABOVE_PLATFORM && ftr->touchingPlatform->canFallThrough)
+            if((!ftr->isInAir) && ftr->touchingPlatform->canFallThrough)
             {
                 // Check if down button was released
                 if ((ftr->prevBtnState & DOWN) && !(ftr->btnState & DOWN))
@@ -968,7 +971,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 movementInput = true;
                 // Left button is currently held
                 // Change direction if standing on a platform
-                if(ABOVE_PLATFORM == ftr->relativePos)
+                if(!ftr->isInAir)
                 {
                     ftr->dir = FACING_LEFT;
                     if(FS_RUNNING != ftr->state)
@@ -983,7 +986,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 {
                     int32_t accel = ftr->run_accel;
                     // Half the acceleration in the air
-                    if(ABOVE_PLATFORM != ftr->relativePos)
+                    if(ftr->isInAir)
                     {
                         accel >>= 1;
                     }
@@ -1006,7 +1009,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 movementInput = true;
                 // Right button is currently held
                 // Change direction if standing on a platform
-                if(ABOVE_PLATFORM == ftr->relativePos)
+                if(!ftr->isInAir)
                 {
                     ftr->dir = FACING_RIGHT;
                     if(FS_RUNNING != ftr->state)
@@ -1021,7 +1024,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 {
                     int32_t accel = ftr->run_accel;
                     // Half the acceleration in the air
-                    if(ABOVE_PLATFORM != ftr->relativePos)
+                    if(ftr->isInAir)
                     {
                         accel >>= 1;
                     }
@@ -1048,7 +1051,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         case FS_HITSTUN:
         {
             // DI in the air in these states
-            if(ftr->relativePos != ABOVE_PLATFORM)
+            if(ftr->isInAir)
             {
                 if(ftr->btnState & LEFT)
                 {
@@ -1086,7 +1089,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     if(false == movementInput)
     {
         // If standing running on a platform, and not moving anymore
-        if((FS_RUNNING == ftr->state) && (ABOVE_PLATFORM == ftr->relativePos))
+        if((FS_RUNNING == ftr->state) && (!ftr->isInAir))
         {
             // Return to idle
             setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0);
@@ -1094,7 +1097,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
 
         // Decelerate less in the air
         int32_t decel = ftr->run_decel;
-        if(ABOVE_PLATFORM != ftr->relativePos)
+        if(ftr->isInAir)
         {
             decel >>= 1;
         }
@@ -1132,7 +1135,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     dest_hurtbox.x1 += deltaX;
 
     // Update Y kinematics based on fighter position
-    if(ftr->relativePos != ABOVE_PLATFORM)
+    if(ftr->isInAir)
     {
         // Fighter is in the air, so there will be a new Y
         ftr->velocity.y = v0.y + (ftr->gravity * FRAME_TIME_MS) / SF;
@@ -1266,10 +1269,11 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
 
     // After the final location was found, check what the fighter is up against
     // If the fighter is touching something to begin with, clear that
-    if(ftr->relativePos < FREE_FLOATING)
+    if(ftr->relativePos < NOT_TOUCHING_PLATFORM)
     {
-        ftr->relativePos = FREE_FLOATING;
+        ftr->relativePos = NOT_TOUCHING_PLATFORM;
         ftr->touchingPlatform = NULL;
+        ftr->isInAir = true;
         // If in the air for any reason (like running off a ledge)
         // only have a max of one jump left
         if(ftr->numJumpsLeft > 1)
@@ -1300,6 +1304,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     (((hbox.y1 / SF)) == (platforms[idx].area.y0 / SF)))
             {
                 // Fighter standing on platform
+                ftr->isInAir = false;
                 ftr->velocity.y = 0;
                 ftr->relativePos = ABOVE_PLATFORM;
                 ftr->touchingPlatform = &platforms[idx];
@@ -1420,7 +1425,9 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
 
         // Respawn by resetting state
         // TODO probably need to reset more
-        ftr->relativePos = FREE_FLOATING;
+        ftr->relativePos = NOT_TOUCHING_PLATFORM;
+        ftr->touchingPlatform = NULL;
+        ftr->isInAir = true;
         ftr->cAttack = NO_ATTACK;
         setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0);
         ftr->pos.x = (f->d->w / 2) * SF;
@@ -1506,9 +1513,11 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         setFighterState(otherFtr, FS_HITSTUN, otherFtr->currentSprite, hbx->hitstun * (1 + (otherFtr->damage / 32)));
 
                         // Knock the fighter into the air
-                        if(ABOVE_PLATFORM == otherFtr->relativePos)
+                        if(!otherFtr->isInAir)
                         {
-                            otherFtr->relativePos = FREE_FLOATING;
+                            otherFtr->relativePos = NOT_TOUCHING_PLATFORM;
+                            otherFtr->touchingPlatform = NULL;
+                            otherFtr->isInAir = true;
                         }
 
                         // Break out of the for loop so that only one hitbox hits
@@ -1582,9 +1591,11 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                     setFighterState(ftr, FS_HITSTUN, ftr->currentSprite, proj->hitstun * (1 + (ftr->damage / 32)));
 
                     // Knock the fighter into the air
-                    if(ABOVE_PLATFORM == ftr->relativePos)
+                    if(!ftr->isInAir)
                     {
-                        ftr->relativePos = FREE_FLOATING;
+                        ftr->relativePos = NOT_TOUCHING_PLATFORM;
+                        ftr->touchingPlatform = NULL;
+                        ftr->isInAir = true;
                     }
 
                     // Mark this projectile for removal

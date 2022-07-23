@@ -21,7 +21,7 @@ typedef enum
     BELOW_PLATFORM,
     RIGHT_OF_PLATFORM,
     LEFT_OF_PLATFORM,
-    FREE_FLOATING,
+    NOT_TOUCHING_PLATFORM,
     PASSING_THROUGH_PLATFORM
 } platformPos_t;
 
@@ -116,6 +116,7 @@ typedef struct
     vector_t size;
     vector_t originalSize;
     vector_t velocity;
+    bool isInAir;
     platformPos_t relativePos;
     const platform_t* touchingPlatform;
     const platform_t* passingThroughPlatform;
