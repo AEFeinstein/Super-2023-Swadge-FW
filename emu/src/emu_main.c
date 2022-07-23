@@ -28,6 +28,12 @@
 // Defines
 //==============================================================================
 
+static bool isRunning = true;
+
+//==============================================================================
+// Defines
+//==============================================================================
+
 #define MAX(x,y) ((x)>(y)?(x):(y))
 
 //==============================================================================
@@ -78,6 +84,9 @@ void HandleMotion( int x UNUSED, int y UNUSED, int mask UNUSED)
  */
 void HandleDestroy()
 {
+    // Stop the main loop
+    isRunning = false;
+
     // Upon exit, stop all tasks
     joinThreads();
 
@@ -113,6 +122,13 @@ int main(int argc UNUSED, char ** argv UNUSED)
     {
         // Always handle inputs
         CNFGHandleInput();
+
+        // If not running anymore, don't handle graphics
+        // Must be checked after handling input, before graphics
+        if(!isRunning)
+        {
+            break;
+        }
 
         // Grey Background
         CNFGBGColor = 0x252525FF;
