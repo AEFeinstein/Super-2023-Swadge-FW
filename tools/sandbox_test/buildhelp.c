@@ -216,7 +216,6 @@ int main( int argc, char ** argv )
 				"		*(.rodata.*)\n"
 				"		*(.gnu.linkonce.r.*)\n"
 				"		*(.rodata1)\n"
-				"		*(.bss) \n"
 				"		*(.dynsbss)\n"
 				"		*(.sbss)\n"
 				"		*(.sbss.*)\n"
@@ -226,12 +225,15 @@ int main( int argc, char ** argv )
 				"		*(.sbss2.*)\n"
 				"		*(.gnu.linkonce.sb2.*)\n"
 				"		*(.dynbss)\n"
-				"		*(.bss)\n"
-				"		*(.bss.*)\n"
 				"		*(.data)\n"
 				"		*(.data.*)\n"
 				"	}\n"
 				"	sandbox_sentinel_end_data = .;\n"
+				"	.bss : ALIGN( 4 ) {\n"
+				"		*(.bss) /* Tricky: BSS needs to be allocated but not sent. GCC Will not populate these for calculating data size */ \n"
+				"		*(.bss.*)\n"
+				"	}\n"
+				"	bss_size = SIZEOF( .bss );\n"
 				"}\n"
 				"INCLUDE \"build/provided.lds\"\n"
 				"INCLUDE \"%s/components/esp_rom/esp32s2/ld/esp32s2.rom.ld\"\n"
@@ -270,6 +272,7 @@ int main( int argc, char ** argv )
 		uint32_t data_segment_origin = 0;
 		uint32_t data_segment_start = 0;
 		uint32_t data_segment_end = 0;
+		uint32_t bss_size = 0;
 
 		{
 			FILE * f = fopen( "build/sandbox_symbols.txt", "r" );
@@ -301,14 +304,19 @@ int main( int argc, char ** argv )
 					{
 						data_segment_end = naddy;
 					}
+					else if( strcmp( size, "bss_size" ) == 0 )
+					{
+						bss_size = naddy;
+					}
 				}
 			}
 			fclose( f );
 		}
 
-		int total_segment_size = data_segment_end - data_segment_origin;
+		int total_segment_size = data_segment_end - data_segment_origin + bss_size;
 		printf( "Data: %d bytes\n", data_segment_start - data_segment_origin );
 		printf( "Data: %d bytes\n", data_segment_end - data_segment_start );
+		printf( "BSS: %d\n", bss_size );
 		printf( "Total Segment Size: %d\n", total_segment_size );
 
 		if( total_segment_size > allocated_size )
