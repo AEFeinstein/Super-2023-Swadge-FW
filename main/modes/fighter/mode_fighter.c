@@ -60,6 +60,8 @@ void fighterButtonCb(buttonEvt_t* evt);
 void getHurtbox(fighter_t* ftr, box_t* hurtbox);
 #define setFighterState(f, st, sp, tm) _setFighterState(f, st, sp, tm, __LINE__);
 void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite, int32_t timer, uint32_t line);
+void setFighterRelPos(fighter_t * ftr, platformPos_t relPos, const platform_t * touchingPlatform,
+    const platform_t * passingThroughPlatform, bool isInAir);
 void checkFighterButtonInput(fighter_t* ftr);
 void updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
 void checkFighterTimer(fighter_t* ftr);
@@ -175,13 +177,17 @@ void fighterEnterMode(display_t* disp)
 
     // Load fighter data
     f->fighters = loadJsonFighterData(&(f->numFighters), &(f->loadedSprites));
-    f->fighters[0].relativePos = NOT_TOUCHING_PLATFORM;
-    f->fighters[1].relativePos = NOT_TOUCHING_PLATFORM;
-    f->fighters[0].isInAir = true;
-    f->fighters[1].isInAir = true;
+    setFighterRelPos(&(f->fighters[0]), NOT_TOUCHING_PLATFORM, NULL, NULL, true);
+    setFighterRelPos(&(f->fighters[1]), NOT_TOUCHING_PLATFORM, NULL, NULL, true);
 
     f->fighters[0].cAttack = NO_ATTACK;
     f->fighters[1].cAttack = NO_ATTACK;
+
+    // three seconds @ 20fps
+    f->fighters[0].iFrameTimer = 60;
+    f->fighters[0].isInvincible = true;
+    f->fighters[1].iFrameTimer = 60;
+    f->fighters[1].isInvincible = true;
 
     // Set the initial sprites
     setFighterState((&f->fighters[0]), FS_IDLE, f->fighters[0].idleSprite0, 0);
@@ -326,6 +332,24 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite,
 }
 
 /**
+ * @brief Set a group of variables which define positions relative to platforms
+ * 
+ * @param ftr The fighter to update
+ * @param relPos A position relative to a platform
+ * @param touchingPlatform The platform the fighter is touching, may be NULL
+ * @param passingThroughPlatform The platform the fighter is passing through, may be NULL
+ * @param isInAir true if the fighter is in the air, false if it is not
+ */
+void setFighterRelPos(fighter_t * ftr, platformPos_t relPos, const platform_t * touchingPlatform,
+    const platform_t * passingThroughPlatform, bool isInAir)
+{
+    ftr->relativePos = relPos;
+    ftr->touchingPlatform = touchingPlatform;
+    ftr->passingThroughPlatform = passingThroughPlatform;
+    ftr->isInAir = isInAir;
+}
+
+/**
  * Run the main loop for the fighter game. When the time is ready, this will
  * handle button input synchronously, move fighters, check collisions, manage
  * projectiles, and pretty much everything else
@@ -420,6 +444,13 @@ void drawFighter(display_t* d, fighter_t* ftr)
             break;
         }
     }
+
+    // Override color if invincible
+    if(ftr->isInvincible)
+    {
+        hitboxColor = c333;
+    }
+
     // Draw an outline
     box_t hurtbox;
     getHurtbox(ftr, &hurtbox);
@@ -501,6 +532,18 @@ void drawFighter(display_t* d, fighter_t* ftr)
  */
 void checkFighterTimer(fighter_t* ftr)
 {
+    // Tick down the iframe timer
+    if(ftr->iFrameTimer > 0)
+    {
+        ftr->iFrameTimer--;
+        // When it hits zero
+        if(0 == ftr->iFrameTimer)
+        {
+            // Become vulnerable
+            ftr->isInvincible = false;
+        }
+    }
+
     // If the fighter is idle
     if(FS_IDLE == ftr->state)
     {
@@ -725,14 +768,17 @@ void checkFighterTimer(fighter_t* ftr)
  */
 void checkFighterButtonInput(fighter_t* ftr)
 {
-    // Manage ducking
-    if ((FS_IDLE == ftr->state) && (ftr->btnState & DOWN))
+    // Manage ducking, only happens on the ground
+    if(!ftr->isInAir)
     {
-        setFighterState(ftr, FS_DUCKING, ftr->duckSprite, 0);
-    }
-    else if((FS_DUCKING == ftr->state) && !(ftr->btnState & DOWN))
-    {
-        setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0);
+        if ((FS_IDLE == ftr->state) && (ftr->btnState & DOWN))
+        {
+            setFighterState(ftr, FS_DUCKING, ftr->duckSprite, 0);
+        }
+        else if((FS_DUCKING == ftr->state) && !(ftr->btnState & DOWN))
+        {
+            setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0);
+        }
     }
 
     // Manage the A button
@@ -755,9 +801,11 @@ void checkFighterButtonInput(fighter_t* ftr)
                     }
                     ftr->numJumpsLeft--;
                     ftr->velocity.y = ftr->jump_velo;
-                    ftr->relativePos = NOT_TOUCHING_PLATFORM;
-                    ftr->touchingPlatform = NULL;
-                    ftr->isInAir = true;
+                    // Only update relative pos if not already passing through a platform
+                    if(PASSING_THROUGH_PLATFORM != ftr->relativePos)
+                    {
+                        setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
+                    }
                     setFighterState(ftr, FS_JUMPING, ftr->jumpSprite, 0);
                 }
                 break;
@@ -768,9 +816,8 @@ void checkFighterButtonInput(fighter_t* ftr)
                 if((!ftr->isInAir) && ftr->touchingPlatform->canFallThrough)
                 {
                     // Fall through a platform
-                    ftr->relativePos = PASSING_THROUGH_PLATFORM;
-                    ftr->passingThroughPlatform = ftr->touchingPlatform;
-                    ftr->touchingPlatform = NULL;
+                    setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
+                    setFighterState(ftr, FS_JUMPING, ftr->jumpSprite, 0);
                     ftr->fallThroughTimer = 0;
                 }
                 break;
@@ -911,9 +958,8 @@ void checkFighterButtonInput(fighter_t* ftr)
                     // Second press detected fast enough
                     ftr->fallThroughTimer = 0;
                     // Fall through a platform
-                    ftr->relativePos = PASSING_THROUGH_PLATFORM;
-                    ftr->passingThroughPlatform = ftr->touchingPlatform;
-                    ftr->touchingPlatform = NULL;
+                    setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
+                    setFighterState(ftr, FS_JUMPING, ftr->jumpSprite, 0);
                 }
             }
             else
@@ -1179,7 +1225,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     if(!intersectionDetected)
     {
         // Clear the reference to the platform being passed through
-        ftr->passingThroughPlatform = NULL;
+        setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
     }
 
     // If no collisions were detected at the final position
@@ -1271,9 +1317,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     // If the fighter is touching something to begin with, clear that
     if(ftr->relativePos < NOT_TOUCHING_PLATFORM)
     {
-        ftr->relativePos = NOT_TOUCHING_PLATFORM;
-        ftr->touchingPlatform = NULL;
-        ftr->isInAir = true;
+        setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
         // If in the air for any reason (like running off a ledge)
         // only have a max of one jump left
         if(ftr->numJumpsLeft > 1)
@@ -1304,11 +1348,9 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     (((hbox.y1 / SF)) == (platforms[idx].area.y0 / SF)))
             {
                 // Fighter standing on platform
-                ftr->isInAir = false;
+                setFighterRelPos(ftr, ABOVE_PLATFORM, &platforms[idx], NULL, false);
                 ftr->ledgeJumped = false;
                 ftr->velocity.y = 0;
-                ftr->relativePos = ABOVE_PLATFORM;
-                ftr->touchingPlatform = &platforms[idx];
                 ftr->numJumpsLeft = ftr->numJumps;
                 // If the fighter was jumping, land
                 switch(ftr->state)
@@ -1349,16 +1391,13 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 if((true == platforms[idx].canFallThrough))
                 {
                     // Jump up through the platform
-                    ftr->passingThroughPlatform = &platforms[idx];
-                    ftr->relativePos = PASSING_THROUGH_PLATFORM;
-                    ftr->touchingPlatform = NULL;
+                    setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, &platforms[idx], true);
                 }
                 else
                 {
                     // Fighter jumped into the bottom of a solid platform
                     ftr->velocity.y = 0;
-                    ftr->relativePos = BELOW_PLATFORM;
-                    ftr->touchingPlatform = &platforms[idx];
+                    setFighterRelPos(ftr, BELOW_PLATFORM, &platforms[idx], NULL, true);
                 }
                 break;
             }
@@ -1375,16 +1414,13 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 if((true == platforms[idx].canFallThrough))
                 {
                     // Pass through this platform from the side
-                    ftr->passingThroughPlatform = &platforms[idx];
-                    ftr->relativePos = PASSING_THROUGH_PLATFORM;
-                    ftr->touchingPlatform = NULL;
+                    setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, &platforms[idx], true);
                 }
                 else
                 {
                     // Fighter to left of a solid platform
                     ftr->velocity.x = 0;
-                    ftr->relativePos = LEFT_OF_PLATFORM;
-                    ftr->touchingPlatform = &platforms[idx];
+                    setFighterRelPos(ftr, LEFT_OF_PLATFORM, &platforms[idx], NULL, true);
 
                     // Moving downward
                     if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
@@ -1403,16 +1439,13 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 if((true == platforms[idx].canFallThrough))
                 {
                     // Pass through this platform from the side
-                    ftr->passingThroughPlatform = &platforms[idx];
-                    ftr->relativePos = PASSING_THROUGH_PLATFORM;
-                    ftr->touchingPlatform = NULL;
+                    setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, &platforms[idx], true);
                 }
                 else
                 {
                     // Fighter to right of a solid platform
                     ftr->velocity.x = 0;
-                    ftr->relativePos = RIGHT_OF_PLATFORM;
-                    ftr->touchingPlatform = &platforms[idx];
+                    setFighterRelPos(ftr, RIGHT_OF_PLATFORM, &platforms[idx], NULL, true);
 
                     // Moving downward
                     if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
@@ -1442,9 +1475,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
 
         // Respawn by resetting state
         // TODO probably need to reset more
-        ftr->relativePos = NOT_TOUCHING_PLATFORM;
-        ftr->touchingPlatform = NULL;
-        ftr->isInAir = true;
+        setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
         ftr->cAttack = NO_ATTACK;
         setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0);
         ftr->pos.x = (f->d->w / 2) * SF;
@@ -1452,6 +1483,8 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         ftr->velocity.x = 0;
         ftr->velocity.y = 0;
         ftr->damage = 0;
+        ftr->iFrameTimer = 60;
+        ftr->isInvincible = true;
     }
 }
 
@@ -1532,9 +1565,7 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         // Knock the fighter into the air
                         if(!otherFtr->isInAir)
                         {
-                            otherFtr->relativePos = NOT_TOUCHING_PLATFORM;
-                            otherFtr->touchingPlatform = NULL;
-                            otherFtr->isInAir = true;
+                            setFighterRelPos(otherFtr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
                         }
 
                         // Break out of the for loop so that only one hitbox hits
@@ -1610,9 +1641,7 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                     // Knock the fighter into the air
                     if(!ftr->isInAir)
                     {
-                        ftr->relativePos = NOT_TOUCHING_PLATFORM;
-                        ftr->touchingPlatform = NULL;
-                        ftr->isInAir = true;
+                        setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
                     }
 
                     // Mark this projectile for removal

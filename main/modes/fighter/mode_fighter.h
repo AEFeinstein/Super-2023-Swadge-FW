@@ -118,6 +118,8 @@ typedef struct
     vector_t velocity;
     bool isInAir;
     bool ledgeJumped;
+    bool isInvincible;
+    uint16_t iFrameTimer;
     platformPos_t relativePos;
     const platform_t* touchingPlatform;
     const platform_t* passingThroughPlatform;
