@@ -29,7 +29,8 @@ jobs:
       - run:
           name: Download and setup MSYS2
           command: |
-            # Download installer
+            # Download installer, but without a progress bar
+            $ProgressPreference = 'SilentlyContinue'
             Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2022-06-03/msys2-x86_64-20220603.exe -Outfile msys2.exe
             # Extract to C:\msys64
             .\msys2.exe -y -oC:\
@@ -76,7 +77,7 @@ jobs:
             # Set the path to find msys2 binaries
             $env:path = $env:path.Insert($env:path.ToLower().IndexOf("c:\windows\system32"), "C:\msys64\mingw64\bin;C:\msys64\usr\bin;")
             # Build the emulator
-            make -f emu.mk all
+            make -f emu.mk all -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
             # zip everything up and move it to where circleci expects
             zip << pipeline.parameters.windows-emu-artifact >> -r swadge_emulator.exe spiffs_image version.txt
             cp << pipeline.parameters.windows-emu-artifact >> C:\Users\circleci\project\
