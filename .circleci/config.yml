@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  slack: circleci/slack@4.4.0
+  slack: circleci/slack@4.10.1
   win: circleci/windows@2.4.1
 
 parameters:
@@ -17,9 +17,10 @@ parameters:
 
 jobs:
   build-windows:
+    resource_class: large
     executor:
       name: win/default
-      size: medium
+      size: large
       shell: powershell.exe
     parameters:
       label:
@@ -30,7 +31,7 @@ jobs:
           name: Download and setup MSYS2
           command: |
             # Download installer
-            Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2022-01-28/msys2-base-x86_64-20220128.sfx.exe -Outfile msys2.exe
+            Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2022-06-03/msys2-x86_64-20220603.exe -Outfile msys2.exe
             # Extract to C:\msys64
             .\msys2.exe -y -oC:\
             # Delete the installer
@@ -99,6 +100,40 @@ jobs:
           path: << pipeline.parameters.windows-emu-artifact >>
       - store_artifacts:
           path: << pipeline.parameters.firmware-artifact >>
+      - slack/notify:
+          event: pass
+          custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Fresh hot builds!"
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":esp8266-icon: ESP Build\nhttps://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/<< pipeline.parameters.firmware-artifact >>"
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":windows95: Windows Build\nhttps://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/<< pipeline.parameters.windows-emu-artifact >>"
+                  }
+                }
+              ]
+            }
 
 workflows:
   version: 2
