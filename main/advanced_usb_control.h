@@ -60,7 +60,15 @@
             If 0, deallocate scratch.
         Address and size of scratch will be available to "get reports"
         as two 4-byte parameters.
-    
+
+	ACMD_CMD_MEMSET: 0x09
+		Parameter 0: Start of memory to memset
+		Parameter 1: Byte to write.
+
+	ACMD_CMD_GETVER: 0x0a
+		Writes a 16-byte version identifier in the scratch, which can be read.
+		Format TBD.
+
     AUSB_CMD_FLASH_ERASE: 0x10
         Parameter 0: Start address of flash to erase.
         Parameter 1 [4 bytes]: Size of flash to erase.
@@ -89,6 +97,8 @@
 #define AUSB_CMD_EXEC_RAM         0x06
 #define AUSB_CMD_SWITCH_MODE      0x07
 #define AUSB_CMD_ALLOC_SCRATCH    0x08
+#define ACMD_CMD_MEMSET           0x09
+#define ACMD_CMD_GETVER           0x0a
 #define AUSB_CMD_FLASH_ERASE      0x10
 #define AUSB_CMD_FLASH_WRITE      0x11
 #define AUSB_CMD_FLASH_READ       0x12

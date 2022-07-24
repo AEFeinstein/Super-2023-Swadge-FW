@@ -101,6 +101,27 @@ int main( int argc, char ** argv )
 			allocated_addy = 0x3ffb0000;
 		}
 
+
+		// Get version
+		rdata[0] = 170;
+		rdata[1] = 10;
+		do
+		{
+			r = hid_send_feature_report( hd, rdata, 65 );
+			if( tries++ > 10 ) { fprintf( stderr, "Error sending feature report on command %d (%d)\n", rdata[1], r ); return -85; }
+		} while ( r != 65 );
+		tries = 0;
+		do
+		{
+			rdata[0] = 170;
+			r = hid_get_feature_report( hd, rdata, sizeof(rdata) );
+			if( tries++ > 10 ) { fprintf( stderr, "Error reading feature report on command %d (%d)\n", rdata[1], r ); return -85; }
+		} while ( r < 10 );
+		uint32_t vercheck_app_main = ((uint32_t*)(rdata+0))[0];
+		uint32_t vercheck_advanced_usb_scratch_buffer_data = ((uint32_t*)(rdata+0))[1];
+		uint32_t vercheck_handle_advanced_usb_control_set = ((uint32_t*)(rdata+0))[2];
+		uint32_t vercheck_handle_advanced_usb_terminal_get = ((uint32_t*)(rdata+0))[3];
+
 		printf( "Allocated addy: 0x%08x\n", allocated_addy );
 		printf( "Allocated size: %d\n", allocated_size );
 
@@ -176,10 +197,46 @@ int main( int argc, char ** argv )
 				fgets( line, 1023, f );
 				char addy[128], prop[128], V[128], sec[128], size[128], name[1024];
 				int l = sscanf( line, "%127s %127s %127s %127s %127s %1023s\n", addy, prop, V, sec, size, name );
+				int naddy = strtol( addy, 0, 16 );
 				if( l == 6 )
 				{
 					fprintf( provided, "PROVIDE( %s = 0x%s );\n", name, addy );
 				}
+
+				// Really bad version match checking.
+				if( strcmp( name, "app_main" ) == 0 )
+				{
+					if( naddy != vercheck_app_main )
+					{
+						fprintf( stderr, "Error: version mismatch. (%s  %08x != %08x)\n", "app_main", naddy, vercheck_app_main );
+						return 5;
+					}
+				}
+				if( strcmp( name, "advanced_usb_scratch_buffer_data" ) == 0 )
+				{
+					if( naddy != vercheck_advanced_usb_scratch_buffer_data )
+					{
+						fprintf( stderr, "Error: version mismatch. (%s  %08x != %08x)\n", "advanced_usb_scratch_buffer_data", naddy, vercheck_advanced_usb_scratch_buffer_data );
+						return 5;
+					}
+				}
+				if( strcmp( name, "handle_advanced_usb_control_set" ) == 0 )
+				{
+					if( naddy != vercheck_handle_advanced_usb_control_set )
+					{
+						fprintf( stderr, "Error: version mismatch. (%s  %08x != %08x)\n", "handle_advanced_usb_control_set", naddy, vercheck_handle_advanced_usb_control_set );
+						return 5;
+					}
+				}
+				if( strcmp( name, "handle_advanced_usb_terminal_get" ) == 0 )
+				{
+					if( naddy != vercheck_handle_advanced_usb_terminal_get )
+					{
+						fprintf( stderr, "Error: version mismatch. (%s  %08x != %08x)\n", "handle_advanced_usb_terminal_get", naddy, vercheck_handle_advanced_usb_terminal_get );
+						return 5;
+					}
+				}
+
 			}
 			fclose( provided );
 			fclose( f );
@@ -233,7 +290,7 @@ int main( int argc, char ** argv )
 				"		*(.bss) /* Tricky: BSS needs to be allocated but not sent. GCC Will not populate these for calculating data size */ \n"
 				"		*(.bss.*)\n"
 				"	}\n"
-				"	bss_size = SIZEOF( .bss );\n"
+				"	sandbox_bss_size = SIZEOF( .bss );\n"
 				"}\n"
 				"INCLUDE \"build/provided.lds\"\n"
 				"INCLUDE \"%s/components/esp_rom/esp32s2/ld/esp32s2.rom.ld\"\n"
@@ -272,7 +329,7 @@ int main( int argc, char ** argv )
 		uint32_t data_segment_origin = 0;
 		uint32_t data_segment_start = 0;
 		uint32_t data_segment_end = 0;
-		uint32_t bss_size = 0;
+		uint32_t sandbox_bss_size = 0;
 
 		{
 			FILE * f = fopen( "build/sandbox_symbols.txt", "r" );
@@ -304,19 +361,19 @@ int main( int argc, char ** argv )
 					{
 						data_segment_end = naddy;
 					}
-					else if( strcmp( size, "bss_size" ) == 0 )
+					else if( strcmp( size, "sandbox_bss_size" ) == 0 )
 					{
-						bss_size = naddy;
+						sandbox_bss_size = naddy;
 					}
 				}
 			}
 			fclose( f );
 		}
 
-		int total_segment_size = data_segment_end - data_segment_origin + bss_size;
+		int total_segment_size = data_segment_end - data_segment_origin + sandbox_bss_size;
 		printf( "Data: %d bytes\n", data_segment_start - data_segment_origin );
 		printf( "Data: %d bytes\n", data_segment_end - data_segment_start );
-		printf( "BSS: %d\n", bss_size );
+		printf( "BSS: %d\n", sandbox_bss_size );
 		printf( "Total Segment Size: %d\n", total_segment_size );
 
 		if( total_segment_size > allocated_size )

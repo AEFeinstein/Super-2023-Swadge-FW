@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "esp_system.h"
 #include "swadgeMode.h"
 #include "hdw-led/led_util.h"
@@ -7,15 +8,26 @@
 #include "soc/efuse_reg.h"
 #include "soc/rtc_wdt.h"
 #include "soc/soc.h"
+#include "soc/system_reg.h"
+
+#include "meleeMenu.h"
 
 int global_i = 100;
+meleeMenu_t * menu;
+font_t meleeMenuFont;
+display_t * disp;
+
+const char * menu_MainMenu = "Main Menu";
+const char * menu_Bootload = "Bootloader";
 
 //#define REBOOT_TEST
-#define PROFILE_TEST
+//#define PROFILE_TEST
+
 
 // Example to do true inline assembly.  This will actually compile down to be
 // included in the code, itself, and "should" (does in all the tests I've run)
-// execute in one clock cycle since there is no function call.
+// execute in one clock cycle since there is no function call and rsr only
+// takes one cycle to complete. 
 static inline uint32_t get_ccount()
 {
 	uint32_t ccount;
@@ -28,25 +40,47 @@ void minimal_function();
 uint32_t test_function( uint32_t x );
 uint32_t asm_read_gpio();
 
-
-void sandbox_main(display_t * disp)
+void menuCb(const char* opt)
 {
+	if( opt == menu_MainMenu )
+	{
+		switchToSwadgeMode( 0 );
+	}
+	else if( opt == menu_Bootload )
+	{
+		// Uncomment this to reboot the chip into the bootloader.
+		// This is to test to make sure we can call ROM functions.
+		REG_WRITE(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
+		void software_reset( uint32_t x );
+		software_reset( 0 );
+	}
+}
+
+void sandbox_main(display_t * disp_in)
+{
+//	memset( &meleeMenuFont, 0, sizeof( meleeMenuFont ) );
+	menu = 0; disp = disp_in;
 	ESP_LOGI( "sandbox", "Running from IRAM. %d", global_i );
 
+	REG_WRITE( GPIO_FUNC7_OUT_SEL_CFG_REG,4 ); // select ledc_ls_sig_out0
 
-#ifdef REBOOT_TEST
-	// Uncomment this to reboot the chip into the bootloader.
-	// This is to test to make sure we can call ROM functions.
-	REG_WRITE(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
-	void software_reset( uint32_t x );
-	software_reset( 0 );
-#endif
+	loadFont("mm.font", &meleeMenuFont);
+	menu = initMeleeMenu("USB Sandbox", &meleeMenuFont, menuCb);
+	addRowToMeleeMenu(menu, menu_MainMenu);
+	addRowToMeleeMenu(menu, menu_Bootload);
 
 	ESP_LOGI( "sandbox", "Loaded" );
 }
 
 void sandbox_exit()
 {
+	ESP_LOGI( "sandbox", "Exit" );
+	if( menu )
+	{
+		deinitMeleeMenu(menu);
+		freeFont(&meleeMenuFont);
+	}
+
 	ESP_LOGI( "sandbox", "Exit" );
 }
 
@@ -102,14 +136,42 @@ void sandbox_tick()
 	end = get_ccount();
 	profiles[6] = end-start-1;
 
-
-
+	vTaskDelay(1);
 
 	ESP_LOGI( "sandbox", "global_i: %d %d %d %d %d %d %d clock cycles; tf ret: %08x / %08x", profiles[0], profiles[1], profiles[2], profiles[3], profiles[4], profiles[5], profiles[6], tfret, tfret2 );
 #else
 	ESP_LOGI( "sandbox", "global_i: %d", global_i++ );
 #endif
 
+	if( menu )
+	    drawMeleeMenu(disp, menu);
+
+}
+
+void sandbox_button(buttonEvt_t* evt)
+{
+    if(evt->down)
+    {
+        switch (evt->button)
+        {
+            case UP:
+            case DOWN:
+            case LEFT:
+            case RIGHT:
+            case BTN_A:
+            {
+                meleeMenuButton(menu, evt->button);
+                break;
+            }
+            case START:
+            case SELECT:
+            case BTN_B:
+            default:
+            {
+                break;
+            }
+        }
+    }
 }
 
 swadgeMode sandbox_mode =
@@ -118,7 +180,7 @@ swadgeMode sandbox_mode =
     .fnEnterMode = sandbox_main,
     .fnExitMode = sandbox_exit,
     .fnMainLoop = sandbox_tick,
-    .fnButtonCallback = NULL,
+    .fnButtonCallback = sandbox_button,
     .fnTouchCallback = NULL,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
