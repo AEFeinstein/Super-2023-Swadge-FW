@@ -31,7 +31,9 @@ jobs:
           command: |
             # Download installer, but without a progress bar
             $ProgressPreference = 'SilentlyContinue'
-            Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2022-06-03/msys2-x86_64-20220603.exe -Outfile msys2.exe
+            echo "Started download at $(Get-Date)"
+            Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/nightly-x86_64/msys2-base-x86_64-latest.sfx.exe -Outfile msys2.exe
+            echo "Finished download at $(Get-Date)"
             # Extract to C:\msys64
             .\msys2.exe -y -oC:\
             # Delete the installer
