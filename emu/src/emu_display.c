@@ -19,7 +19,7 @@
 // Palette
 //==============================================================================
 
-uint32_t paletteColorsEmu[216] = 
+uint32_t paletteColorsEmu[216] =
 {
     0x000000FF,
     0x000033FF,
@@ -248,6 +248,7 @@ uint32_t * bitmapDisplay = NULL; //0xRRGGBBAA
 uint32_t * constBitmapDisplay = NULL; //0xRRGGBBAA
 int bitmapWidth = 0;
 int bitmapHeight = 0;
+int displayMult = 1;
 pthread_mutex_t displayMutex = PTHREAD_MUTEX_INITIALIZER;
 
 // LED state
@@ -291,6 +292,30 @@ void unlockDisplayMemoryMutex(void)
 }
 
 /**
+ * Set a multiplier to draw the TFT to the window at
+ *
+ * @param multiplier The multipler for the display, no less than 1
+ */
+void setDisplayBitmapMultiplier(uint8_t multiplier)
+{
+    lockDisplayMemoryMutex();
+
+    displayMult = multiplier;
+
+    // Reallocate bitmapDisplay
+    free(bitmapDisplay);
+    bitmapDisplay = calloc((multiplier * TFT_WIDTH) * (multiplier * TFT_HEIGHT),
+        sizeof(uint32_t));
+
+    // Reallocate constBitmapDisplay
+    free(constBitmapDisplay);
+    constBitmapDisplay = calloc((multiplier * TFT_WIDTH) * (multiplier * TFT_HEIGHT),
+        sizeof(uint32_t));
+
+    unlockDisplayMemoryMutex();
+}
+
+/**
  * @brief Get a pointer to the display memory. This access must be guarded by
  * lockDisplayMemoryMutex() and unlockDisplayMemoryMutex()
  *
@@ -300,8 +325,8 @@ void unlockDisplayMemoryMutex(void)
  */
 uint32_t * getDisplayBitmap(uint16_t * width, uint16_t * height)
 {
-    *width = bitmapWidth;
-    *height = bitmapHeight;
+    *width = (bitmapWidth * displayMult);
+    *height = (bitmapHeight * displayMult);
     return constBitmapDisplay;
 }
 
@@ -363,13 +388,23 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
 
 	// ARGB pixels
 	pthread_mutex_lock(&displayMutex);
-	bitmapDisplay = malloc(sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
-	memset(bitmapDisplay, 0, sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
-	constBitmapDisplay = malloc(sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
-	memset(constBitmapDisplay, 0, sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
+
+    bitmapWidth = TFT_WIDTH;
+    bitmapHeight = TFT_HEIGHT;
+
+    // Set up underlying bitmap
+    if(NULL == bitmapDisplay)
+    {
+        bitmapDisplay = calloc(TFT_WIDTH * TFT_HEIGHT, sizeof(uint32_t));
+    }
+
+    // This may be setup by the emulator already
+    if(NULL == constBitmapDisplay)
+    {
+        constBitmapDisplay = calloc(TFT_WIDTH * TFT_HEIGHT, sizeof(uint32_t));
+        displayMult = 1;        
+    }
 	pthread_mutex_unlock(&displayMutex);
-	bitmapWidth = TFT_WIDTH;
-	bitmapHeight = TFT_HEIGHT;
 
     // Rawdraw initialized in main
 
@@ -397,7 +432,15 @@ void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px)
         if(cTransparent != px)
         {
             pthread_mutex_lock(&displayMutex);
-            bitmapDisplay[(bitmapWidth * y) + x] = paletteColorsEmu[px];
+            for(uint16_t mY = 0; mY < displayMult; mY++)
+            {
+                for(uint16_t mX = 0; mX < displayMult; mX++)
+                {
+                    int dstX = ((x * displayMult) + mX);
+                    int dstY = ((y * displayMult) + mY);
+                    bitmapDisplay[(dstY * (TFT_WIDTH * displayMult)) + dstX] = paletteColorsEmu[px];
+                }
+            }
             pthread_mutex_unlock(&displayMutex);
         }
     }
@@ -416,7 +459,9 @@ paletteColor_t emuGetPxTft(int16_t x, int16_t y)
     if(0 <= x && x < TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
         pthread_mutex_lock(&displayMutex);
-        uint32_t argb = bitmapDisplay[(bitmapWidth * y) + x];
+        int srcX = (x * displayMult);
+        int srcY = (y * displayMult);
+        uint32_t argb = bitmapDisplay[(srcY * (TFT_WIDTH * displayMult)) + srcX];
         pthread_mutex_unlock(&displayMutex);
 
         for(uint8_t i = 0; i < (sizeof(paletteColorsEmu) / sizeof(paletteColorsEmu[0])); i++)
@@ -436,7 +481,10 @@ paletteColor_t emuGetPxTft(int16_t x, int16_t y)
 void emuClearPxTft(void)
 {
 	pthread_mutex_lock(&displayMutex);
-	memset(bitmapDisplay, 0x00, sizeof(uint32_t) * bitmapWidth * bitmapHeight);
+    for(uint32_t idx = 0; idx < TFT_HEIGHT * displayMult * TFT_WIDTH * displayMult; idx++)
+    {
+        bitmapDisplay[idx] = 0x000000FF;
+    }
 	pthread_mutex_unlock(&displayMutex);
 }
 
@@ -452,7 +500,7 @@ void emuDrawDisplayTft(bool drawDiff UNUSED)
      * Swadge mode. rawdraw will use this non-changing bitmap to draw
      */
 	pthread_mutex_lock(&displayMutex);
-    memcpy(constBitmapDisplay, bitmapDisplay, sizeof(uint32_t) * TFT_WIDTH * TFT_HEIGHT);
+    memcpy(constBitmapDisplay, bitmapDisplay, sizeof(uint32_t) * TFT_HEIGHT * displayMult * TFT_WIDTH * displayMult);
 	pthread_mutex_unlock(&displayMutex);
 }
 

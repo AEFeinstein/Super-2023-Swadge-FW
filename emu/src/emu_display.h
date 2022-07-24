@@ -33,6 +33,8 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
     gpio_num_t cs UNUSED, gpio_num_t rst UNUSED, gpio_num_t backlight UNUSED);
 bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED);
 
+void setDisplayBitmapMultiplier(uint8_t multiplier);
+
 void deinitDisplayMemory(void);
 
 #endif
