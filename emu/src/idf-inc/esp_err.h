@@ -1,6 +1,8 @@
 #ifndef _ESP_ERR_H_
 #define _ESP_ERR_H_
 
+#define ESP_ERROR_CHECK(x) x
+
 typedef int esp_err_t;
 
 /* Definitions for error constants. */

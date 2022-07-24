@@ -40,7 +40,7 @@ typedef struct
 
 mainMenu_t * mainMenu;
 
-swadgeMode modemainMenu =
+swadgeMode modeMainMenu =
 {
     .modeName = "mainMenu",
     .fnEnterMode = mainMenuEnterMode,

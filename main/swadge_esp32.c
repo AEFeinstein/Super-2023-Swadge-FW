@@ -44,12 +44,21 @@
 
 #include "display.h"
 
+#include "advanced_usb_control.h"
+
 #include "mode_main_menu.h"
 #include "mode_demo.h"
 #include "mode_fighter.h"
+#include "mode_gamepad.h"
+
+#include "driver/gpio.h"
 
 #if defined(EMU)
 #include "emu_esp.h"
+#else
+#include "soc/dport_access.h"
+#include "soc/periph_defs.h"
+#include "hal/memprot_ll.h"
 #endif
 
 //==============================================================================
@@ -67,9 +76,11 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
 
 swadgeMode* swadgeModes[] =
 {
-    &modemainMenu,
+    &modeMainMenu,
     &modeFighter,
-    &modeDemo
+    &modeDemo,
+    &modeGamepad,
+    0,
 };
 
 static RTC_DATA_ATTR uint8_t pendingSwadgeModeIdx = 0;
@@ -120,13 +131,22 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
  * @param reqlen
  * @return uint16_t
  */
-uint16_t tud_hid_get_report_cb(uint8_t itf __attribute__((unused)),
-    uint8_t report_id __attribute__((unused)),
-    hid_report_type_t report_type __attribute__((unused)),
-    uint8_t* buffer __attribute__((unused)),
-    uint16_t reqlen __attribute__((unused)))
+uint16_t tud_hid_get_report_cb(uint8_t itf,
+    uint8_t report_id,
+    hid_report_type_t report_type,
+    uint8_t* buffer,
+    uint16_t reqlen)
 {
+#if !defined(EMU)
+    if( report_id == 170 || report_id == 171 )
+        return handle_advanced_usb_control_get( reqlen, buffer );
+    else if( report_id == 172 )
+        return handle_advanced_usb_terminal_get( reqlen, buffer );
+    else
+        return reqlen;
+#else
     return 0;
+#endif
 }
 
 /**
@@ -142,13 +162,16 @@ uint16_t tud_hid_get_report_cb(uint8_t itf __attribute__((unused)),
  * @param buffer
  * @param bufsize
  */
-void tud_hid_set_report_cb(uint8_t itf __attribute__((unused)),
-    uint8_t report_id __attribute__((unused)),
-    hid_report_type_t report_type __attribute__((unused)),
-    uint8_t const* buffer __attribute__((unused)),
-    uint16_t bufsize __attribute__((unused)))
+void tud_hid_set_report_cb(uint8_t itf,
+    uint8_t report_id,
+    hid_report_type_t report_type,
+    uint8_t const* buffer,
+    uint16_t bufsize )
 {
-    ;
+#if !defined(EMU)
+    if( report_id >= 170 && report_id <= 171 )
+        handle_advanced_usb_control_set( bufsize, buffer );
+#endif
 }
 
 /**
@@ -169,9 +192,28 @@ void tud_hid_set_report_cb(uint8_t itf __attribute__((unused)),
  * creates other application tasks and then returns, or as a main application
  * task itself.
  */
+
 void app_main(void)
 {
-// #define PRINT_STATS
+    // Pull these GPIOs low immediately!!!
+    // This prevents overheating on the devkit
+    gpio_num_t toPullLow[] = {
+        GPIO_NUM_33, // TFTATN
+        GPIO_NUM_35, // TFTATP
+        GPIO_NUM_41, // SP-
+        GPIO_NUM_42  // SP+
+    };
+    for(uint8_t i = 0; i < ARRAY_SIZE(toPullLow); i++)
+    {
+        gpio_config_t atn_gpio_config =
+        {
+            .mode = GPIO_MODE_OUTPUT,
+            .pin_bit_mask = 1ULL << toPullLow[i]
+        };
+        ESP_ERROR_CHECK(gpio_config(&atn_gpio_config));
+        ESP_ERROR_CHECK(gpio_set_level(toPullLow[i], 0));
+    }
+
 #ifdef PRINT_STATS
     /* Print chip information */
     esp_chip_info_t chip_info;
@@ -251,14 +293,14 @@ void mainSwadgeTask(void * arg __attribute((unused)))
 
     /* Initialize non-i2c hardware peripherals */
     initButtons(8,
-        GPIO_NUM_4,
+        GPIO_NUM_1,
+        GPIO_NUM_0,
+        GPIO_NUM_3,
+        GPIO_NUM_2,
         GPIO_NUM_5,
-        GPIO_NUM_6,
-        GPIO_NUM_7,
-        GPIO_NUM_15,
-        GPIO_NUM_16,
-        GPIO_NUM_17,
-        GPIO_NUM_18);
+        GPIO_NUM_45,
+        GPIO_NUM_4,
+        GPIO_NUM_15); // GPIO 46 doesn't work b/c it has a permanent pulldown
 
     initTouchSensor(0.2f, true, 6,
         TOUCH_PAD_NUM9,   // GPIO_NUM_9
@@ -268,8 +310,8 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         TOUCH_PAD_NUM13,  // GPIO_NUM_13
         TOUCH_PAD_NUM14); // GPIO_NUM_14
 
-    initLeds(GPIO_NUM_8, RMT_CHANNEL_0, NUM_LEDS);
-    buzzer_init(GPIO_NUM_35, RMT_CHANNEL_1);
+    initLeds(GPIO_NUM_39, RMT_CHANNEL_0, NUM_LEDS);
+    buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1);
 
 #if !defined(EMU)
     if(NULL != swadgeModes[swadgeModeIdx]->fnAudioCallback)
@@ -282,7 +324,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
          */
         static uint16_t adc1_chan_mask = BIT(2);
         static uint16_t adc2_chan_mask = 0;
-        static adc_channel_t channel[] = {ADC1_CHANNEL_2}; // GPIO_NUM_3
+        static adc_channel_t channel[] = {ADC1_CHANNEL_7}; // GPIO_NUM_8
         continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
         continuous_adc_start();
     }
@@ -294,8 +336,8 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     {
         /* Initialize i2c peripherals */
         i2c_master_init(
-            GPIO_NUM_33,
-            GPIO_NUM_34,
+            GPIO_NUM_17, // SDA
+            GPIO_NUM_18, // SCL
             GPIO_PULLUP_DISABLE, 1000000);
         accelInitialized = QMA6981_setup();
     }
@@ -309,12 +351,12 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     display_t tftDisp;
     initTFT(&tftDisp,
             SPI2_HOST,
-            GPIO_NUM_37,  // sclk
-            GPIO_NUM_38,  // mosi
-            GPIO_NUM_41,  // dc
-            GPIO_NUM_39,  // cs
-            GPIO_NUM_40,  // rst
-            GPIO_NUM_42); // backlight
+            GPIO_NUM_36, // sclk
+            GPIO_NUM_37, // mosi
+            GPIO_NUM_21, // dc
+            GPIO_NUM_34, // cs
+            GPIO_NUM_38, // rst
+            GPIO_NUM_7); // backlight (dummy GPIO for now)
 
     /* Initialize USB peripheral */
     tinyusb_config_t tusb_cfg = {};
@@ -425,26 +467,36 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         if(shouldSwitchSwadgeMode)
         {
 #if defined(EMU)
-            // Exit the current mode
-            if(NULL != swadgeModes[swadgeModeIdx]->fnExitMode)
-            {
-                swadgeModes[swadgeModeIdx]->fnExitMode();
-            }
-
-            // Switch the mode IDX
-            swadgeModeIdx = pendingSwadgeModeIdx;
-            shouldSwitchSwadgeMode = false;
-
-            // Enter the next mode
-            if(NULL != swadgeModes[swadgeModeIdx]->fnEnterMode)
-            {
-                swadgeModes[swadgeModeIdx]->fnEnterMode(&tftDisp);
-            }
+            int force_soft = 1;
 #else
-            // Deep sleep, wake up, and switch to pendingSwadgeModeIdx
-            esp_sleep_enable_timer_wakeup(1);
-            esp_deep_sleep_start();
+            int force_soft = 0;
 #endif
+            if( force_soft || 
+                pendingSwadgeModeIdx == 0 ||
+                pendingSwadgeModeIdx == getNumSwadgeModes() )
+            {
+                // Exit the current mode
+                if(NULL != swadgeModes[swadgeModeIdx]->fnExitMode)
+                {
+                    swadgeModes[swadgeModeIdx]->fnExitMode();
+                }
+
+                // Switch the mode IDX
+                swadgeModeIdx = pendingSwadgeModeIdx;
+                shouldSwitchSwadgeMode = false;
+
+                // Enter the next mode
+                if(NULL != swadgeModes[swadgeModeIdx]->fnEnterMode)
+                {
+                    swadgeModes[swadgeModeIdx]->fnEnterMode(&tftDisp);
+                }
+            }
+            else
+            {
+                // Deep sleep, wake up, and switch to pendingSwadgeModeIdx
+                esp_sleep_enable_timer_wakeup(1);
+                esp_deep_sleep_start();
+            }
         }
 
         // Yield to let the rest of the RTOS run
@@ -474,7 +526,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
  */
 uint8_t getNumSwadgeModes(void)
 {
-    return ARRAY_SIZE(swadgeModes);
+    return ARRAY_SIZE(swadgeModes)-1;
 }
 
 /**
@@ -487,3 +539,16 @@ void switchToSwadgeMode(uint8_t mode)
     pendingSwadgeModeIdx = mode;
     shouldSwitchSwadgeMode = true;
 }
+
+/**
+ * Use a pointer to a swadge mode to jump to a dynamic swadge mode.
+ * 
+ * @param mode Pointer to a valid swadgeMode struct.
+ */
+void overrideToSwadgeMode( swadgeMode* mode )
+{
+    int sandboxSwadgeMode = getNumSwadgeModes();
+    swadgeModes[sandboxSwadgeMode] = mode;
+    switchToSwadgeMode( sandboxSwadgeMode );
+}
+
