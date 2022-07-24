@@ -81,7 +81,7 @@ jobs:
             # Build the emulator
             make -f emu.mk all -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
             # zip everything up and move it to where circleci expects
-            zip << pipeline.parameters.windows-emu-artifact >> -r swadge_emulator.exe spiffs_image version.txt
+            zip << pipeline.parameters.windows-emu-artifact >> -r swadge_emulator.exe spiffs_image version.txt "C:\msys64\mingw64\bin\libwinpthread-1.dll"
             cp << pipeline.parameters.windows-emu-artifact >> C:\Users\circleci\project\
       - run:
           name: Build Swadge Firmware
@@ -102,51 +102,52 @@ jobs:
           path: << pipeline.parameters.windows-emu-artifact >>
       - store_artifacts:
           path: << pipeline.parameters.firmware-artifact >>
-  notify:
-    docker:
-      - image: cimg/base:stable
-    resource_class: small
-    steps:
-      - checkout
-      - run:
-          name: Trick the Slack orb into reporting the status of the most recently finished preceding build job.
-          command: source .circleci/trickSlackOrb.sh
-          environment:
-            VCS_TYPE: << pipeline.project.type >>
-      - slack/notify:
-          event: pass
-          custom: |
-            {
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "Fresh hot builds!"
-                  }
-                },
-                {
-                  "type": "divider"
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": ":esp8266-icon: ESP Build\nhttps://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/<< pipeline.parameters.firmware-artifact >>"
-                  }
-                },
-                {
-                  "type": "divider"
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": ":windows95: Windows Build\nhttps://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/<< pipeline.parameters.windows-emu-artifact >>"
-                  }
-                }
-              ]
-            }
+  ## Slack orb just doesn't work on Windows...
+  # notify:
+  #   docker:
+  #     - image: cimg/base:stable
+  #   resource_class: small
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Trick the Slack orb into reporting the status of the most recently finished preceding build job.
+  #         command: source .circleci/trickSlackOrb.sh
+  #         environment:
+  #           VCS_TYPE: << pipeline.project.type >>
+  #     - slack/notify:
+  #         event: pass
+  #         custom: |
+  #           {
+  #             "blocks": [
+  #               {
+  #                 "type": "section",
+  #                 "text": {
+  #                   "type": "mrkdwn",
+  #                   "text": "Fresh hot builds!"
+  #                 }
+  #               },
+  #               {
+  #                 "type": "divider"
+  #               },
+  #               {
+  #                 "type": "section",
+  #                 "text": {
+  #                   "type": "mrkdwn",
+  #                   "text": ":esp8266-icon: ESP Build\nhttps://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/<< pipeline.parameters.firmware-artifact >>"
+  #                 }
+  #               },
+  #               {
+  #                 "type": "divider"
+  #               },
+  #               {
+  #                 "type": "section",
+  #                 "text": {
+  #                   "type": "mrkdwn",
+  #                   "text": ":windows95: Windows Build\nhttps://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/<< pipeline.parameters.windows-emu-artifact >>"
+  #                 }
+  #               }
+  #             ]
+  #           }
 
 workflows:
   version: 2
@@ -156,20 +157,21 @@ workflows:
           filters:
             branches:
               only: main
+  ## Slack orb just doesn't work on Windows...
   # Take advantage of the fact that free CircleCI accounts are limited to
   # running one workflow at a time. If you are on a paid account, these
   # workflows will instead run in parallel. Consider submitting a pull request
   # to the Slack orb to use the bash.exe shell on Windows, using
   # https://github.com/eddiewebb/circleci-queue, or using the CircleCI API to
   # wait for the build workflow to complete.
-  notify:
-    jobs:
-      - notify:
-          context:
-            # a context that defines the CIRCLE_TOKEN environment variable
-            # to be a CircleCI API token for your project with Admin scope
-            - circleci-api-admin
-            # a context that defines the SLACK_ACCESS_TOKEN and SLACK_DEFAULT_CHANNEL
-            # environment variables as specified by
-            # https://github.com/CircleCI-Public/slack-orb#readme
-            - slack
+  # notify:
+  #   jobs:
+  #     - notify:
+  #         context:
+  #           # a context that defines the CIRCLE_TOKEN environment variable
+  #           # to be a CircleCI API token for your project with Admin scope
+  #           - circleci-api-admin
+  #           # a context that defines the SLACK_ACCESS_TOKEN and SLACK_DEFAULT_CHANNEL
+  #           # environment variables as specified by
+  #           # https://github.com/CircleCI-Public/slack-orb#readme
+  #           - slack
