@@ -17,9 +17,9 @@ parameters:
 
 jobs:
   build-windows:
-    resource_class: large
     executor:
       name: win/default
+      size: large
       shell: powershell.exe
     parameters:
       label:
