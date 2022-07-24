@@ -102,6 +102,17 @@ jobs:
           path: << pipeline.parameters.windows-emu-artifact >>
       - store_artifacts:
           path: << pipeline.parameters.firmware-artifact >>
+  notify:
+    docker:
+      - image: cimg/base:stable
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Trick the Slack orb into reporting the status of the most recently finished preceding build job.
+          command: source .circleci/trickSlackOrb.sh
+          environment:
+            VCS_TYPE: << pipeline.project.type >>
       - slack/notify:
           event: pass
           custom: |
@@ -145,3 +156,20 @@ workflows:
           filters:
             branches:
               only: main
+  # Take advantage of the fact that free CircleCI accounts are limited to
+  # running one workflow at a time. If you are on a paid account, these
+  # workflows will instead run in parallel. Consider submitting a pull request
+  # to the Slack orb to use the bash.exe shell on Windows, using
+  # https://github.com/eddiewebb/circleci-queue, or using the CircleCI API to
+  # wait for the build workflow to complete.
+  notify:
+    jobs:
+      - notify:
+          context:
+            # a context that defines the CIRCLE_TOKEN environment variable
+            # to be a CircleCI API token for your project with Admin scope
+            - circleci-api-admin
+            # a context that defines the SLACK_ACCESS_TOKEN and SLACK_DEFAULT_CHANNEL
+            # environment variables as specified by
+            # https://github.com/CircleCI-Public/slack-orb#readme
+            - slack
