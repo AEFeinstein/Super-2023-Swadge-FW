@@ -314,13 +314,21 @@ void animatePlayer(entity_t * self){
 void detectEntityCollisions(entity_t *self){
     for(uint8_t i=0; i < MAX_ENTITIES; i++)
     {
-        if(self->entities[i].active && &(self->entities[i]) != self)
+        entity_t *checkEntity = &(self->entities[i]);
+        if(checkEntity->active && checkEntity != self)
         {
-            uint32_t dist = abs(self->x - self->entities[i].x) + abs(self->y - self->entities[i].y);
+            uint32_t dist = abs(self->x - checkEntity->x) + abs(self->y - checkEntity->y);
+            
             if(dist < 256) {
-                self->yspeed = -64;
-                self->falling = true;
+                self->collisionHandler(self, checkEntity);
             }
         }
     }
+}
+
+void playerCollisionHandler(entity_t *self, entity_t *other){
+    self->yspeed = -64;
+    self->falling = true;
+
+    other->xspeed = -other->xspeed;
 }

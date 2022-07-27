@@ -171,6 +171,7 @@ entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->type = ENTITY_PLAYER;
     entity->spriteIndex = 1;
     entity->updateFunction = &updatePlayer;
+    entity->collisionHandler = &playerCollisionHandler;
 
     return entity;
 }

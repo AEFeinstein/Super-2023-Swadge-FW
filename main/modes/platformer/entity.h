@@ -25,6 +25,7 @@ typedef enum {
 //==============================================================================
 
 typedef void(*updateFunction_t)(struct entity_t *self);
+typedef void(*collisionHandler_t)(struct entity_t *self, struct entity_t *other);
 
 struct entity_t
 {
@@ -61,7 +62,10 @@ struct entity_t
     uint8_t homeTileY;
 
     int16_t jumpPower;
+    
     entity_t *entities;
+
+    collisionHandler_t collisionHandler;
 };
 
 //==============================================================================
@@ -86,5 +90,7 @@ void applyGravity(entity_t *self);
 void animatePlayer(entity_t * self);
 
 void detectEntityCollisions(entity_t *self);
+
+void playerCollisionHandler(entity_t *self, entity_t* other);
 
 #endif
