@@ -27,7 +27,7 @@ void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilema
     
     for(uint8_t i=0; i < MAX_ENTITIES; i++)
     {
-        initializeEntity(&(entityManager->entities[i]), tilemap, gameData);
+        initializeEntity(&(entityManager->entities[i]), entityManager->entities, tilemap, gameData);
     }
 
     entityManager->activeEntities = 0;

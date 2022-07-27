@@ -24,17 +24,20 @@
 #define TO_PIXEL_COORDS(x) (x >> SUBPIXEL_RESOLUTION)
 #define TO_SUBPIXEL_COORDS(x) (x << SUBPIXEL_RESOLUTION)
 
+#define MAX_ENTITIES 16
+
 //==============================================================================
 // Functions
 //==============================================================================
-void initializeEntity(entity_t * entity, tilemap_t * tilemap, gameData_t * gameData){
-    entity->active = false;
-    entity->tilemap = tilemap;
-    entity->gameData = gameData;
-    entity->homeTileX = 0;
-    entity->homeTileY = 0;
-    entity->gravity = false;
-    entity->falling = false;
+void initializeEntity(entity_t * self, entity_t * entities, tilemap_t * tilemap, gameData_t * gameData){
+    self->active = false;
+    self->tilemap = tilemap;
+    self->gameData = gameData;
+    self->homeTileX = 0;
+    self->homeTileY = 0;
+    self->gravity = false;
+    self->falling = false;
+    self->entities = entities;
 };
 
 void updatePlayer(entity_t * self) {
@@ -45,14 +48,14 @@ void updatePlayer(entity_t * self) {
     }
 
     if(self->gameData->btnState & LEFT){
-        self->xspeed -= (self->falling)? 8 : 16;
+        self->xspeed -= (self->falling)? 8 : 12;
 
         if(self->xspeed < -self->xMaxSpeed){
             self->xspeed = -self->xMaxSpeed;
         }
 
     } else if(self->gameData->btnState & RIGHT){
-        self->xspeed += (self->falling)? 8 : 16;
+        self->xspeed += (self->falling)? 8 : 12;
 
         if(self->xspeed > self->xMaxSpeed){
             self->xspeed = self->xMaxSpeed;
@@ -78,12 +81,12 @@ void updatePlayer(entity_t * self) {
     if(self->gameData->btnState & BTN_B){
         if(!self->falling && !(self->gameData->prevBtnState & BTN_B) ) {
             //initiate jump
-            self->jumpPower = 256 + (abs(self->xspeed) >> 2);
+            self->jumpPower = 180 + (abs(self->xspeed) >> 2);
             self->yspeed = -self->jumpPower;
             self->falling = true;
         } else if (self->jumpPower > 0 && self->yspeed < 0) {
             //jump dampening
-            self->jumpPower -= 32;
+            self->jumpPower -= 16; //32
             self->yspeed = -self->jumpPower;
 
             if(self->jumpPower < 0) {
@@ -99,6 +102,7 @@ void updatePlayer(entity_t * self) {
     moveEntityWithTileCollisions(self);
     applyGravity(self);
     applyDamping(self);
+    detectEntityCollisions(self);
     animatePlayer(self);
 };
 
@@ -304,5 +308,19 @@ void animatePlayer(entity_t * self){
     } else {
         //Standing
         self->spriteIndex = 0;
+    }
+}
+
+void detectEntityCollisions(entity_t *self){
+    for(uint8_t i=0; i < MAX_ENTITIES; i++)
+    {
+        if(self->entities[i].active && &(self->entities[i]) != self)
+        {
+            uint32_t dist = abs(self->x - self->entities[i].x) + abs(self->y - self->entities[i].y);
+            if(dist < 256) {
+                self->yspeed = -64;
+                self->falling = true;
+            }
+        }
     }
 }

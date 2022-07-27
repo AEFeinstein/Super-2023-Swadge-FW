@@ -61,12 +61,13 @@ struct entity_t
     uint8_t homeTileY;
 
     int16_t jumpPower;
+    entity_t *entities;
 };
 
 //==============================================================================
 // Prototypes
 //==============================================================================
-void initializeEntity(entity_t * entity, tilemap_t * tilemap, gameData_t * gameData);
+void initializeEntity(entity_t * self, entity_t * entities, tilemap_t * tilemap, gameData_t * gameData);
 
 void updatePlayer(entity_t * self) ;
 
@@ -83,5 +84,7 @@ void applyDamping(entity_t *self);
 void applyGravity(entity_t *self);
 
 void animatePlayer(entity_t * self);
+
+void detectEntityCollisions(entity_t *self);
 
 #endif
