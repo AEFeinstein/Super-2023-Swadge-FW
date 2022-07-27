@@ -198,6 +198,7 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->type = ENTITY_TEST;
     entity->spriteIndex = 5;
     entity->updateFunction = &updateTestObject;
+    entity->collisionHandler = &enemyCollisionHandler;
 
     return entity;
 }

@@ -92,5 +92,6 @@ void animatePlayer(entity_t * self);
 void detectEntityCollisions(entity_t *self);
 
 void playerCollisionHandler(entity_t *self, entity_t* other);
+void enemyCollisionHandler(entity_t *self, entity_t *other);
 
 #endif

@@ -127,6 +127,7 @@ void updateTestObject(entity_t * self) {
     despawnWhenOffscreen(self);
     moveEntityWithTileCollisions(self);
     applyGravity(self);
+    detectEntityCollisions(self);
 };
 
 void moveEntityWithTileCollisions(entity_t * self){
@@ -327,8 +328,24 @@ void detectEntityCollisions(entity_t *self){
 }
 
 void playerCollisionHandler(entity_t *self, entity_t *other){
-    self->yspeed = -64;
-    self->falling = true;
+    switch(other->type) {
+        case ENTITY_TEST:
+                self->yspeed = -64;
+                self->falling = true;
 
-    other->xspeed = -other->xspeed;
+                other->xspeed = -other->xspeed;
+                break;
+        default:
+            ;
+    }
+}
+
+void enemyCollisionHandler(entity_t *self, entity_t *other){
+    switch(other->type) {
+        case ENTITY_TEST:
+                self->xspeed = -self->xspeed;
+                break;
+        default:
+            ;
+    }
 }
