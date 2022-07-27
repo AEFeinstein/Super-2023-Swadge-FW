@@ -103,6 +103,9 @@ typedef enum {
     int16_t executeTileSpawnRow;
 
     entityManager_t *entityManager;
+
+    uint8_t animationFrame;
+    int16_t animationTimer;
 };
 
 //==============================================================================

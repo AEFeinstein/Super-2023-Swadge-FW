@@ -37,6 +37,9 @@ void initializeTileMap(tilemap_t * tilemap)
     tilemap->executeTileSpawnColumn = -1;
     tilemap->executeTileSpawnRow = -1;
 
+    tilemap->animationFrame = 0;
+    tilemap->animationTimer = 7;
+
     loadTiles(tilemap);
 
     loadMapFromFile(tilemap, "level1-1.bin");
@@ -44,6 +47,12 @@ void initializeTileMap(tilemap_t * tilemap)
 
 void drawTileMap(display_t * disp, tilemap_t * tilemap)
 {
+    tilemap->animationTimer--;
+    if(tilemap->animationTimer < 0){
+        tilemap->animationFrame = ((tilemap->animationFrame + 1) % 3);
+        tilemap->animationTimer = 7;
+    }
+
     for(uint16_t y = (tilemap->mapOffsetY >> TILE_SIZE_IN_POWERS_OF_2); y < (tilemap->mapOffsetY >> TILE_SIZE_IN_POWERS_OF_2) + TILEMAP_DISPLAY_HEIGHT_TILES; y++)
     {
         if(y >= tilemap->mapHeight){
@@ -60,7 +69,7 @@ void drawTileMap(display_t * disp, tilemap_t * tilemap)
 
             //Test animated tiles
             if(tile == 32 || tile == 48){
-                tile += ((tilemap->mapOffsetX >> TILE_SIZE_IN_POWERS_OF_2) % 3);
+                tile += tilemap->animationFrame;
             }
 
             //Draw only non-garbage tiles
