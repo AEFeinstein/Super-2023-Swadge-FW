@@ -178,9 +178,9 @@ int main(int argc UNUSED, char ** argv UNUSED)
         led_t * leds = getLedMemory(&numLeds);
 
         // Draw simulated LEDs
-        short led_w = window_w / numLeds;
         if (numLeds > 0 && NULL != leds)
         {
+            short led_w = window_w / numLeds;
             for(int i = 0; i < numLeds; i++)
             {
                 CNFGColor( (leds[i].r << 24) | (leds[i].g << 16) | (leds[i].b << 8) | 0xFF);
