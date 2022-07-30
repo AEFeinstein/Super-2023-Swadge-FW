@@ -5,6 +5,8 @@
 
 #define UNUSED __attribute__((unused))
 
+#define RTC_DATA_ATTR
+
 #define WARN_UNIMPLEMENTED() do {  \
     static bool isPrinted = false; \
     if(!isPrinted) {               \

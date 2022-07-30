@@ -8,6 +8,7 @@
 #include "esp_log.h"
 
 #include "swadgeMode.h"
+#include "swadge_esp32.h"
 #include "mode_main_menu.h"
 
 #include "meleeMenu.h"
@@ -39,7 +40,7 @@ typedef struct
 
 mainMenu_t * mainMenu;
 
-swadgeMode modemainMenu =
+swadgeMode modeMainMenu =
 {
     .modeName = "mainMenu",
     .fnEnterMode = mainMenuEnterMode,
@@ -54,12 +55,6 @@ swadgeMode modemainMenu =
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL
 };
-
-static const char _R1I1[] = "1-P Mode";
-static const char _R2I1[] = "VS. Mode";
-static const char _R3I1[] = "Trophies";
-static const char _R4I1[] = "Options";
-static const char _R5I1[] = "Data";
 
 //==============================================================================
 // Functions
@@ -82,11 +77,11 @@ void mainMenuEnterMode(display_t * disp)
 
     mainMenu->menu = initMeleeMenu("Main Menu", &mainMenu->meleeMenuFont, mainMenuCb);
 
-    addRowToMeleeMenu(mainMenu->menu, _R1I1);
-    addRowToMeleeMenu(mainMenu->menu, _R2I1);
-    addRowToMeleeMenu(mainMenu->menu, _R3I1);
-    addRowToMeleeMenu(mainMenu->menu, _R4I1);
-    addRowToMeleeMenu(mainMenu->menu, _R5I1);
+    uint8_t numSwadgeModes = getNumSwadgeModes();
+    for(uint8_t idx = 1; idx < numSwadgeModes; idx++)
+    {
+        addRowToMeleeMenu(mainMenu->menu, swadgeModes[idx]->modeName);
+    }
 }
 
 
@@ -149,5 +144,12 @@ void mainMenuButtonCb(buttonEvt_t* evt)
  */
 void mainMenuCb(const char* opt)
 {
-    ESP_LOGI("MNU", "%s", opt);
+    uint8_t numSwadgeModes = getNumSwadgeModes();
+    for(uint8_t idx = 1; idx < numSwadgeModes; idx++)
+    {
+        if(opt == swadgeModes[idx]->modeName)
+        {
+            switchToSwadgeMode(idx);
+        }
+    }
 }

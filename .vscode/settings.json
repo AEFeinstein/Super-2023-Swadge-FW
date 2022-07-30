@@ -111,7 +111,9 @@
         "rawdraw_sf.h": "c",
         "fighter_json.h": "c",
         "linked_list.h": "c",
-        "mode_fighter.h": "c"
+        "mode_fighter.h": "c",
+        "esp_attr.h": "c",
+        "emu_gpio.c": "c"
     },
     "idf.adapterTargetName": "esp32s2",
     "makefile.makefilePath": "./emu.mk"
