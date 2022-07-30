@@ -155,7 +155,7 @@ static void touchsensor_interrupt_cb(void *arg)
 bool checkTouchSensor(touch_event_t * evt)
 {
     /* Check the queue, but don't block */
-    int ret = xQueueReceive(que_touch, &evt, 0);
+    int ret = xQueueReceive(que_touch, evt, 0);
     if (ret != pdTRUE)
     {
         return false;

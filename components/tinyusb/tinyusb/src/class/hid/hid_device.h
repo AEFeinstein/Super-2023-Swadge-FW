@@ -298,6 +298,7 @@ static inline bool tud_hid_mouse_report(uint8_t report_id, uint8_t buttons, int8
 // Gamepad Report Descriptor Template
 // with 16 buttons, 2 joysticks and 1 hat/dpad with following layout
 // | X | Y | Z | Rz | Rx | Ry (1 byte each) | hat/DPAD (1 byte) | Button Map (2 bytes) |
+
 #define TUD_HID_REPORT_DESC_GAMEPAD(...) \
   HID_USAGE_PAGE ( HID_USAGE_PAGE_DESKTOP     )                 ,\
   HID_USAGE      ( HID_USAGE_DESKTOP_GAMEPAD  )                 ,\
@@ -336,7 +337,21 @@ static inline bool tud_hid_mouse_report(uint8_t report_id, uint8_t buttons, int8
     HID_REPORT_COUNT ( 16                                     ) ,\
     HID_REPORT_SIZE  ( 1                                      ) ,\
     HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ) ,\
-  HID_COLLECTION_END \
+    /* Allow for 0xaa (regular size), 0xab (jumbo sized) and 0xac mini feature reports; Windows needs specific id'd and size'd endpoints. */ \
+    HID_REPORT_COUNT ( CFG_TUD_ENDPOINT0_SIZE                 ) ,\
+    HID_REPORT_SIZE  ( 8                                      ) ,\
+    HID_REPORT_ID    ( 0xaa                                   ) \
+    HID_USAGE        ( HID_USAGE_DESKTOP_GAMEPAD              ) ,\
+    HID_FEATURE      ( HID_DATA | HID_ARRAY | HID_ABSOLUTE    ) ,\
+    HID_REPORT_COUNT ( (CONFIG_TINYUSB_HID_BUFSIZE-1)         ) ,\
+    HID_REPORT_ID    ( 0xab                                   ) \
+    HID_USAGE        ( HID_USAGE_DESKTOP_GAMEPAD              ) ,\
+    HID_FEATURE      ( HID_DATA | HID_ARRAY | HID_ABSOLUTE    ) ,\
+    HID_REPORT_COUNT ( 1                                      ) ,\
+    HID_REPORT_ID    ( 0xac                                   ) \
+    HID_USAGE        ( HID_USAGE_DESKTOP_GAMEPAD              ) ,\
+    HID_FEATURE      ( HID_DATA | HID_ARRAY | HID_ABSOLUTE    ) ,\
+  HID_COLLECTION_END
 
 // HID Generic Input & Output
 // - 1st parameter is report size (mandatory)
