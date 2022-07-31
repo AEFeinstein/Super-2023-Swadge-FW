@@ -58,6 +58,11 @@ typedef struct
 } platformer_t;
 
 //==============================================================================
+// Function Prototypes
+//==============================================================================
+void drawPlatformerHud(display_t* d, font_t* font, gameData_t* gameData);
+
+//==============================================================================
 // Variables
 //==============================================================================
 
@@ -101,6 +106,8 @@ void platformerEnterMode(display_t * disp)
     platformer->scroll_yspeed = 0;
     platformer->btnState = 0;
     platformer->prevBtnState = 0;
+
+    loadFont("radiostars.font", &platformer->radiostars);
 
     initializeTileMap(&(platformer->tilemap));
     initializeGameData(&(platformer->gameData));
@@ -148,6 +155,7 @@ void platformerMainLoop(int64_t elapsedUs)
 
         drawTileMap(platformer->disp, &(platformer->tilemap));
         drawEntities(platformer->disp, &(platformer->entityManager));
+        drawPlatformerHud(platformer->disp, &(platformer->radiostars), &(platformer->gameData));
 
         platformer->prevBtnState = platformer->btnState;
         platformer->gameData.prevBtnState = platformer->prevBtnState;
@@ -173,4 +181,15 @@ void platformerButtonCb(buttonEvt_t* evt)
 void platformerCb(const char* opt)
 {
     ESP_LOGI("MNU", "%s", opt);
+}
+
+void drawPlatformerHud(display_t* d, font_t* font, gameData_t* gameData){
+    char coinStr[8];
+    snprintf(coinStr, sizeof(coinStr) - 1, "%02d", gameData->coins);
+
+    char scoreStr[8];
+    snprintf(scoreStr, sizeof(scoreStr) - 1, "%06d", gameData->score);
+
+    drawText(d, font, c555, coinStr, 127, 0);
+    drawText(d, font, c555, scoreStr, 0, 0);
 }

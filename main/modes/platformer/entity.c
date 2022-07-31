@@ -365,6 +365,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
         case TILE_COIN_1 ... TILE_COIN_3:
             setTile(self->tilemap, tx, ty, TILE_EMPTY);
             self->gameData->coins++;
+            self->gameData->score+=50;
             break;
         default:
             break;
