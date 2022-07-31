@@ -119,6 +119,7 @@ bool loadMapFromFile(tilemap_t * tilemap, char * name);
 bool loadTiles(tilemap_t * tilemap);
 void tileSpawnEntity(tilemap_t * tilemap, uint8_t objectIndex, uint8_t tx, uint8_t ty);
 uint8_t getTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty);
+void setTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty, uint8_t newTileId);
 bool isSolid(uint8_t tileId);
 
 #endif

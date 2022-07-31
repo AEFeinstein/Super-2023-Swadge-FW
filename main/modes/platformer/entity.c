@@ -361,6 +361,15 @@ void enemyCollisionHandler(entity_t *self, entity_t *other){
 }
 
 bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+     switch(tileId){
+        case TILE_COIN_1 ... TILE_COIN_3:
+            setTile(self->tilemap, tx, ty, TILE_EMPTY);
+            self->gameData->coins++;
+            break;
+        default:
+            break;
+     }
+     
      if(isSolid(tileId)) {
         switch(direction){
             case 0: //LEFT

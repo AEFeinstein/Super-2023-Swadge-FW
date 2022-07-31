@@ -216,6 +216,16 @@ uint8_t getTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty){
     return tilemap->map[ty * tilemap->mapWidth + tx];
 }
 
+void setTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty, uint8_t newTileId){
+    //ty = CLAMP(ty, 0, tilemap->mapHeight - 1);
+
+    if(ty >= tilemap->mapHeight || tx >= tilemap->mapWidth){
+        return;
+    }
+
+    tilemap->map[ty * tilemap->mapWidth + tx] = newTileId;
+}
+
 bool isSolid(uint8_t tileId) {
     switch(tileId) {
         case TILE_EMPTY ... TILE_CTNR_0xE:
