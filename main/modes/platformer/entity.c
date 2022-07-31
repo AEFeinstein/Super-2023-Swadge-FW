@@ -155,7 +155,13 @@ void moveEntityWithTileCollisions(entity_t * self){
             //uint8_t newVerticalTile = self->tilemap->map[newTy * self->tilemap->mapWidth + tx];
             uint8_t newVerticalTile = getTile(self->tilemap, tx, newTy);
 
-            if(isSolid(newVerticalTile)) {
+            if(newVerticalTile > TILE_CTNR_0xE && newVerticalTile < 59){
+                if(self->tileCollisionHandler(self, newVerticalTile, tx, newTy, 2 << (self->yspeed > 0))){
+                    newY=((ty + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+                }
+            }
+
+            /*if(isSolid(newVerticalTile)) {
 
                 if(self->yspeed > 0) {
                     //Landed on platform
@@ -165,7 +171,7 @@ void moveEntityWithTileCollisions(entity_t * self){
                 collision = true;
                 self->yspeed = 0;
                 newY=((ty + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
-            }
+            }*/
         }
     }
 
@@ -185,17 +191,21 @@ void moveEntityWithTileCollisions(entity_t * self){
         uint8_t newTx = TO_TILE_COORDS(((self->x + self->xspeed) >> SUBPIXEL_RESOLUTION) + SIGNOF(self->xspeed) * HALF_TILE_SIZE);
 
         if(newTx != tx) {
-            //uint8_t newHorizontalTile = self->tilemap->map[ty * self->tilemap->mapWidth + newTx];
             uint8_t newHorizontalTile = getTile(self->tilemap, newTx, ty);
 
-            if(isSolid(newHorizontalTile)) {
+            if(newHorizontalTile > TILE_CTNR_0xE && newHorizontalTile < 59){
+                if(self->tileCollisionHandler(self, newHorizontalTile, newTx, ty, (self->xspeed > 0))){
+                    newX=((tx + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+                }
+            }
+
+            /*if(isSolid(newHorizontalTile)) {
                 collision = true;
                 self->xspeed = 0;
                 newX=((tx + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
-            }
+            }*/
 
             if(!self->falling) {
-                //uint8_t newBelowTile=self->tilemap->map[(ty + 1) * self->tilemap->mapWidth + tx];
                 uint8_t newBelowTile=getTile(self->tilemap, tx, ty + 1);
 
                 if(!isSolid(newBelowTile)){
@@ -348,4 +358,58 @@ void enemyCollisionHandler(entity_t *self, entity_t *other){
         default:
             ;
     }
+}
+
+bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+     if(isSolid(tileId)) {
+        switch(direction){
+            case 0: //LEFT
+                self->xspeed = 0;
+                break;
+            case 1: //RIGHT
+                self->xspeed = 0;
+                break;
+            case 2: //UP
+                self->yspeed = 0;
+                break;
+            case 4: //DOWN
+                //Landed on platform
+                self->falling = false;
+                self->yspeed = 0;
+                break;
+            default: //Should never hit
+                return false;
+        }
+        //trigger tile collision resolution
+        return true;
+    }
+
+    return false;
+}
+
+bool enemyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    if(isSolid(tileId)) {
+        switch(direction){
+            case 0: //LEFT
+                self->xspeed = -self->xspeed;
+                break;
+            case 1: //RIGHT
+                self->xspeed = -self->xspeed;
+                break;
+            case 2: //UP
+                self->yspeed = 0;
+                break;
+            case 4: //DOWN
+                //Landed on platform
+                self->falling = false;
+                self->yspeed = 0;
+                break;
+            default: //Should never hit
+                return false;
+        }
+        //trigger tile collision resolution
+        return true;
+    }
+
+    return false;
 }

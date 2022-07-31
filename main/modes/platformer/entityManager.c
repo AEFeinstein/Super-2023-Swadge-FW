@@ -172,6 +172,7 @@ entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->spriteIndex = 1;
     entity->updateFunction = &updatePlayer;
     entity->collisionHandler = &playerCollisionHandler;
+    entity->tileCollisionHandler = &playerTileCollisionHandler;
 
     return entity;
 }
@@ -199,6 +200,7 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->spriteIndex = 5;
     entity->updateFunction = &updateTestObject;
     entity->collisionHandler = &enemyCollisionHandler;
+    entity->tileCollisionHandler = &enemyTileCollisionHandler;
 
     return entity;
 }

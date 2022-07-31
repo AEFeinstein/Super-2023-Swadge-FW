@@ -228,3 +228,7 @@ bool isSolid(uint8_t tileId) {
             return false;
     }
 }
+
+bool isInteractive(uint8_t tileId){
+    return tileId > TILE_CTNR_0xE && tileId < 59;
+}

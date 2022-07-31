@@ -26,6 +26,7 @@ typedef enum {
 
 typedef void(*updateFunction_t)(struct entity_t *self);
 typedef void(*collisionHandler_t)(struct entity_t *self, struct entity_t *other);
+typedef bool(*tileCollisionHandler_t)(struct entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
 
 struct entity_t
 {
@@ -66,6 +67,7 @@ struct entity_t
     entity_t *entities;
 
     collisionHandler_t collisionHandler;
+    tileCollisionHandler_t tileCollisionHandler;
 };
 
 //==============================================================================
@@ -93,5 +95,8 @@ void detectEntityCollisions(entity_t *self);
 
 void playerCollisionHandler(entity_t *self, entity_t* other);
 void enemyCollisionHandler(entity_t *self, entity_t *other);
+
+bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
+bool enemyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
 
 #endif
