@@ -165,7 +165,7 @@ entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->yDamping = 8;
     entity->gravityEnabled = true;
     entity->gravity = 32;
-    entity->falling = false;
+    entity->falling = true;
     entity->jumpPower = 0;
 
     entity->type = ENTITY_PLAYER;
