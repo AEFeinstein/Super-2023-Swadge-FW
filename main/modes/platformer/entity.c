@@ -37,6 +37,16 @@ static const song_t sndHit =
     .shouldLoop = false
 };
 
+static const song_t sndCoin =
+{
+    .notes =
+    {
+        {1000, 50},{1200, 100}
+    },
+    .numNotes = 2,
+    .shouldLoop = false
+};
+
 //==============================================================================
 // Functions
 //==============================================================================
@@ -347,6 +357,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
             setTile(self->tilemap, tx, ty, TILE_EMPTY);
             self->gameData->coins++;
             self->gameData->score+=50;
+            buzzer_play(&sndCoin);
             break;
         default:
             break;
