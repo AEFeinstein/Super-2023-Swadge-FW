@@ -14,7 +14,6 @@
 //==============================================================================
 // Constants
 //==============================================================================
-#define MAX_ENTITIES 16
 #define SUBPIXEL_RESOLUTION 4
 
 //==============================================================================
@@ -27,7 +26,7 @@ void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilema
     
     for(uint8_t i=0; i < MAX_ENTITIES; i++)
     {
-        initializeEntity(&(entityManager->entities[i]), entityManager->entities, tilemap, gameData);
+        initializeEntity(&(entityManager->entities[i]), entityManager, tilemap, gameData);
     }
 
     entityManager->activeEntities = 0;
@@ -46,7 +45,7 @@ void loadSprites(entityManager_t * entityManager)
     loadWsg("sprite003.wsg", &entityManager->sprites[3]);
     loadWsg("sprite004.wsg", &entityManager->sprites[4]);
     loadWsg("sprite008.wsg", &entityManager->sprites[5]);
-    loadWsg("tile001.wsg", &entityManager->sprites[6]);
+    loadWsg("tile034.wsg", &entityManager->sprites[6]);
     loadWsg("tile001.wsg", &entityManager->sprites[7]);
 };
 
@@ -134,6 +133,9 @@ entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint
         case ENTITY_TEST:
             createdEntity = createTestObject(entityManager, x, y);
             break;
+        case ENTITY_HIT_BLOCK:
+            createdEntity = createHitBlock(entityManager, x, y);
+            break;
         default:
             ;
     }
@@ -201,6 +203,35 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->updateFunction = &updateTestObject;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &enemyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createHitBlock(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->xspeed = 0;
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 132;
+    entity->gravityEnabled = true;
+    entity->gravity = 32;
+
+    entity->type = ENTITY_TEST;
+    entity->spriteIndex = 6;
+    entity->animationTimer = 0;
+    entity->updateFunction = &updateHitBlock;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
 
     return entity;
 }

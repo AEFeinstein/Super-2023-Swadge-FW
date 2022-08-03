@@ -29,6 +29,11 @@ struct entityManager_t
 };
 
 //==============================================================================
+// Constants
+//==============================================================================
+#define MAX_ENTITIES 16
+
+//==============================================================================
 // Prototypes
 //==============================================================================
 void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilemap, gameData_t * gameData);
@@ -41,5 +46,6 @@ void viewFollowEntity(tilemap_t * tilemap, entity_t * entity);
 entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint16_t x, uint16_t y);
 entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y);
 entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t y);
+entity_t* createHitBlock(entityManager_t * entityManager, uint16_t x, uint16_t y);
 
 #endif

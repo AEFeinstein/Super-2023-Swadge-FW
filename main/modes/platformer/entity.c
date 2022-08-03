@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include "entity.h"
+#include "entityManager.h"
 #include "tilemap.h"
 #include "gameData.h"
 #include "musical_buzzer.h"
@@ -24,8 +25,6 @@
 #define TO_TILE_COORDS(x) (x >> TILE_SIZE_IN_POWERS_OF_2)
 #define TO_PIXEL_COORDS(x) (x >> SUBPIXEL_RESOLUTION)
 #define TO_SUBPIXEL_COORDS(x) (x << SUBPIXEL_RESOLUTION)
-
-#define MAX_ENTITIES 16
 
 static const song_t sndHit =
 {
@@ -50,7 +49,7 @@ static const song_t sndCoin =
 //==============================================================================
 // Functions
 //==============================================================================
-void initializeEntity(entity_t * self, entity_t * entities, tilemap_t * tilemap, gameData_t * gameData){
+void initializeEntity(entity_t * self, entityManager_t * entityManager, tilemap_t * tilemap, gameData_t * gameData){
     self->active = false;
     self->tilemap = tilemap;
     self->gameData = gameData;
@@ -58,7 +57,7 @@ void initializeEntity(entity_t * self, entity_t * entities, tilemap_t * tilemap,
     self->homeTileY = 0;
     self->gravity = false;
     self->falling = false;
-    self->entities = entities;
+    self->entityManager = entityManager;
 };
 
 void updatePlayer(entity_t * self) {
@@ -134,6 +133,22 @@ void updateTestObject(entity_t * self) {
     moveEntityWithTileCollisions(self);
     applyGravity(self);
     detectEntityCollisions(self);
+};
+
+void updateHitBlock(entity_t * self) {
+    self->x += self->xspeed;
+    self->y += self->yspeed;
+
+    self->animationTimer++;
+    if(self->animationTimer == 2){
+        self->xspeed = -self->xspeed;
+        self->yspeed = -self->yspeed;
+    }
+    if(self->animationTimer > 4){
+        self->tilemap->map[self->homeTileY * self->tilemap->mapWidth + self->homeTileX] = self->jumpPower;
+        destroyEntity(self, false);
+    }
+
 };
 
 void moveEntityWithTileCollisions(entity_t * self){
@@ -316,7 +331,7 @@ void animatePlayer(entity_t * self){
 void detectEntityCollisions(entity_t *self){
     for(uint8_t i=0; i < MAX_ENTITIES; i++)
     {
-        entity_t *checkEntity = &(self->entities[i]);
+        entity_t *checkEntity = &(self->entityManager->entities[i]);
         if(checkEntity->active && checkEntity != self)
         {
             uint32_t dist = abs(self->x - checkEntity->x) + abs(self->y - checkEntity->y);
@@ -351,8 +366,40 @@ void enemyCollisionHandler(entity_t *self, entity_t *other){
     }
 }
 
+void dummyCollisionHandler(entity_t *self, entity_t *other){
+    return;
+}
+
 bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
      switch(tileId){
+        case TILE_CONTAINER_1 ... TILE_CONTAINER_3: ;
+            entity_t* hitBlock = createEntity(self->entityManager, ENTITY_HIT_BLOCK, (tx * TILE_SIZE) + HALF_TILE_SIZE, (ty * TILE_SIZE) + HALF_TILE_SIZE);
+           
+            if(hitBlock != NULL){
+                
+                setTile(self->tilemap, tx, ty, TILE_INVISIBLE_BLOCK);
+                hitBlock->homeTileX = tx;
+                hitBlock->homeTileY = ty;
+                hitBlock->jumpPower = tileId;
+
+                switch(direction){
+                    case 0:
+                        hitBlock->xspeed = -64;
+                        break;
+                    case 1:
+                        hitBlock->xspeed = 64;
+                        break;
+                    case 2:
+                        hitBlock->yspeed = -64;
+                        break;
+                    case 4:
+                        hitBlock->yspeed = 64;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            break;
         case TILE_COIN_1 ... TILE_COIN_3:
             setTile(self->tilemap, tx, ty, TILE_EMPTY);
             self->gameData->coins++;
@@ -413,5 +460,9 @@ bool enemyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8
         return true;
     }
 
+    return false;
+}
+
+bool dummyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
     return false;
 }
