@@ -29,8 +29,9 @@
 // Constants
 //==============================================================================
 
-#define FRAME_TIME_MS 25 // 20fps
+#define FRAME_TIME_MS 25 // 40fps
 
+#define IFRAMES_AFTER_SPAWN ((3 * 1000) / FRAME_TIME_MS) // 3 seconds
 #define DRAW_DEBUG_BOXES
 
 //==============================================================================
@@ -183,10 +184,10 @@ void fighterEnterMode(display_t* disp)
     f->fighters[0].cAttack = NO_ATTACK;
     f->fighters[1].cAttack = NO_ATTACK;
 
-    // three seconds @ 20fps
-    f->fighters[0].iFrameTimer = 60;
+    // Invincible after spawning
+    f->fighters[0].iFrameTimer = IFRAMES_AFTER_SPAWN;
     f->fighters[0].isInvincible = true;
-    f->fighters[1].iFrameTimer = 60;
+    f->fighters[1].iFrameTimer = IFRAMES_AFTER_SPAWN;
     f->fighters[1].isInvincible = true;
 
     // Set the initial sprites
@@ -1497,7 +1498,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         ftr->velocity.x = 0;
         ftr->velocity.y = 0;
         ftr->damage = 0;
-        ftr->iFrameTimer = 60;
+        ftr->iFrameTimer = IFRAMES_AFTER_SPAWN;
         ftr->isInvincible = true;
     }
 }
@@ -1511,6 +1512,12 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
  */
 void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
 {
+    /* Can't get hurt if you're invincible! */
+    if(otherFtr->isInvincible)
+    {
+        return;
+    }
+
     box_t otherFtrHurtbox;
     getHurtbox(otherFtr, &otherFtrHurtbox);
 
