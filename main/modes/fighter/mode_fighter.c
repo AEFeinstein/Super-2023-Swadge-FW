@@ -695,7 +695,14 @@ void checkFighterTimer(fighter_t* ftr)
             // Apply any velocity from this attack to the fighter
             if(0 != atk->velocity.x)
             {
-                ftr->velocity.x = atk->velocity.x;
+                if(FACING_RIGHT == ftr->dir)
+                {
+                    ftr->velocity.x = atk->velocity.x;
+                }
+                else
+                {
+                    ftr->velocity.x = -atk->velocity.x;
+                }
             }
             if(0 != atk->velocity.y)
             {

@@ -112,7 +112,7 @@
                   {
                      "duration":15,
                      "sprite":"ki0.wsg",
-                     "velo_x":-30000,
+                     "velo_x":30000,
                      "hitboxes":[
                         {
                            "relativePos_x":12,
