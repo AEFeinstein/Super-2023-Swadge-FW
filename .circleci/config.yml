@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  slack: circleci/slack@4.4.0
+  slack: circleci/slack@4.10.1
   win: circleci/windows@2.4.1
 
 parameters:
@@ -19,7 +19,7 @@ jobs:
   build-windows:
     executor:
       name: win/default
-      size: medium
+      size: large
       shell: powershell.exe
     parameters:
       label:
@@ -29,8 +29,11 @@ jobs:
       - run:
           name: Download and setup MSYS2
           command: |
-            # Download installer
-            Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2022-01-28/msys2-base-x86_64-20220128.sfx.exe -Outfile msys2.exe
+            # Download installer, but without a progress bar
+            $ProgressPreference = 'SilentlyContinue'
+            echo "Started download at $(Get-Date)"
+            Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/nightly-x86_64/msys2-base-x86_64-latest.sfx.exe -Outfile msys2.exe
+            echo "Finished download at $(Get-Date)"
             # Extract to C:\msys64
             .\msys2.exe -y -oC:\
             # Delete the installer
@@ -76,9 +79,10 @@ jobs:
             # Set the path to find msys2 binaries
             $env:path = $env:path.Insert($env:path.ToLower().IndexOf("c:\windows\system32"), "C:\msys64\mingw64\bin;C:\msys64\usr\bin;")
             # Build the emulator
-            make -f emu.mk all
+            make -f emu.mk all -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
             # zip everything up and move it to where circleci expects
             zip << pipeline.parameters.windows-emu-artifact >> -r swadge_emulator.exe spiffs_image version.txt
+            zip << pipeline.parameters.windows-emu-artifact >> -j "C:\msys64\mingw64\bin\libwinpthread-1.dll"
             cp << pipeline.parameters.windows-emu-artifact >> C:\Users\circleci\project\
       - run:
           name: Build Swadge Firmware
@@ -99,6 +103,52 @@ jobs:
           path: << pipeline.parameters.windows-emu-artifact >>
       - store_artifacts:
           path: << pipeline.parameters.firmware-artifact >>
+  ## Slack orb just doesn't work on Windows...
+  # notify:
+  #   docker:
+  #     - image: cimg/base:stable
+  #   resource_class: small
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Trick the Slack orb into reporting the status of the most recently finished preceding build job.
+  #         command: source .circleci/trickSlackOrb.sh
+  #         environment:
+  #           VCS_TYPE: << pipeline.project.type >>
+  #     - slack/notify:
+  #         event: pass
+  #         custom: |
+  #           {
+  #             "blocks": [
+  #               {
+  #                 "type": "section",
+  #                 "text": {
+  #                   "type": "mrkdwn",
+  #                   "text": "Fresh hot builds!"
+  #                 }
+  #               },
+  #               {
+  #                 "type": "divider"
+  #               },
+  #               {
+  #                 "type": "section",
+  #                 "text": {
+  #                   "type": "mrkdwn",
+  #                   "text": ":esp8266-icon: ESP Build\nhttps://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/<< pipeline.parameters.firmware-artifact >>"
+  #                 }
+  #               },
+  #               {
+  #                 "type": "divider"
+  #               },
+  #               {
+  #                 "type": "section",
+  #                 "text": {
+  #                   "type": "mrkdwn",
+  #                   "text": ":windows95: Windows Build\nhttps://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/<< pipeline.parameters.windows-emu-artifact >>"
+  #                 }
+  #               }
+  #             ]
+  #           }
 
 workflows:
   version: 2
@@ -108,3 +158,21 @@ workflows:
           filters:
             branches:
               only: main
+  ## Slack orb just doesn't work on Windows...
+  # Take advantage of the fact that free CircleCI accounts are limited to
+  # running one workflow at a time. If you are on a paid account, these
+  # workflows will instead run in parallel. Consider submitting a pull request
+  # to the Slack orb to use the bash.exe shell on Windows, using
+  # https://github.com/eddiewebb/circleci-queue, or using the CircleCI API to
+  # wait for the build workflow to complete.
+  # notify:
+  #   jobs:
+  #     - notify:
+  #         context:
+  #           # a context that defines the CIRCLE_TOKEN environment variable
+  #           # to be a CircleCI API token for your project with Admin scope
+  #           - circleci-api-admin
+  #           # a context that defines the SLACK_ACCESS_TOKEN and SLACK_DEFAULT_CHANNEL
+  #           # environment variables as specified by
+  #           # https://github.com/CircleCI-Public/slack-orb#readme
+  #           - slack
