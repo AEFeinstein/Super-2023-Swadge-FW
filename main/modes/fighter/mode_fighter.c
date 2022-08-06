@@ -203,14 +203,23 @@ void fighterEnterMode(display_t* disp)
     f->fighters[1].stocks = 3;
 
     // Set some LEDs, just because
+    // static led_t leds[NUM_LEDS] =
+    // {
+    //     {.r = 0x00, .g = 0x00, .b = 0x00},
+    //     {.r = 0xFF, .g = 0x00, .b = 0xFF},
+    //     {.r = 0x0C, .g = 0x19, .b = 0x60},
+    //     {.r = 0xFD, .g = 0x08, .b = 0x07},
+    //     {.r = 0x70, .g = 0x81, .b = 0xFF},
+    //     {.r = 0xFF, .g = 0xCC, .b = 0x00},
+    // };
     static led_t leds[NUM_LEDS] =
     {
         {.r = 0x00, .g = 0x00, .b = 0x00},
-        {.r = 0xFF, .g = 0x00, .b = 0xFF},
-        {.r = 0x0C, .g = 0x19, .b = 0x60},
-        {.r = 0xFD, .g = 0x08, .b = 0x07},
-        {.r = 0x70, .g = 0x81, .b = 0xFF},
-        {.r = 0xFF, .g = 0xCC, .b = 0x00},
+        {.r = 0x00, .g = 0x00, .b = 0x00},
+        {.r = 0x00, .g = 0x00, .b = 0x00},
+        {.r = 0x00, .g = 0x00, .b = 0x00},
+        {.r = 0x00, .g = 0x00, .b = 0x00},
+        {.r = 0x00, .g = 0x00, .b = 0x00},
     };
     setLeds(leds, NUM_LEDS);
 }
@@ -398,16 +407,16 @@ void fighterMainLoop(int64_t elapsedUs)
         // box_t hb;
         // getHurtbox(&f->fighters[0], &hb);
         // sprintf(dbgStr, "{[%d,%d],[%d,%d]},%d",
-        //     f->fighters[0].pos.x / SF,
-        //     f->fighters[0].pos.y / SF,
+        //     f->fighters[0].pos.x >> SF,
+        //     f->fighters[0].pos.y >> SF,
         //     f->fighters[0].velocity.x,
         //     f->fighters[0].velocity.y,
         //     boxesCollide(battlefield[2].area, hb, SF));
         // drawText(f->d, &(f->mm_font), c444, dbgStr, 0, 0);
 
         // ESP_LOGI("FTR", "{[%d, %d], [%d, %d], %d}",
-        //     f->fighters[0].hurtbox.x0 / SF,
-        //     f->fighters[0].hurtbox.y0 / SF,
+        //     f->fighters[0].hurtbox.x0 >> SF,
+        //     f->fighters[0].hurtbox.y0 >> SF,
         //     f->fighters[0].velocity.x,
         //     f->fighters[0].velocity.y,
         //     f->fighters[0].relativePos);
@@ -473,13 +482,13 @@ void drawFighter(display_t* d, fighter_t* ftr)
     vector_t spritePos;
     if(FACING_RIGHT == ftr->dir)
     {
-        spritePos.x = ftr->pos.x / SF;
+        spritePos.x = ftr->pos.x >> SF;
     }
     else
     {
-        spritePos.x = ((ftr->pos.x + ftr->originalSize.x) / SF) - ftr->currentSprite->w;
+        spritePos.x = ((ftr->pos.x + ftr->originalSize.x) >> SF) - ftr->currentSprite->w;
     }
-    spritePos.y = ftr->pos.y / SF;
+    spritePos.y = ftr->pos.y >> SF;
 
     // If this is an attack frame
     if(FS_ATTACK == ftr->state)
@@ -1070,7 +1079,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                         accel >>= 1;
                     }
                     // Accelerate towards the left
-                    ftr->velocity.x = v0.x - (accel * FRAME_TIME_MS) / SF;
+                    ftr->velocity.x = v0.x - (accel * FRAME_TIME_MS) >> SF;
                     // Cap the velocity
                     if (ftr->velocity.x < -ftr->run_max_velo)
                     {
@@ -1109,7 +1118,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     }
 
                     // Accelerate towards the right
-                    ftr->velocity.x = v0.x + (accel * FRAME_TIME_MS) / SF;
+                    ftr->velocity.x = v0.x + (accel * FRAME_TIME_MS) >> SF;
                     // Cap the velocity
                     if(ftr->velocity.x > ftr->run_max_velo)
                     {
@@ -1136,7 +1145,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 {
                     movementInput = true;
                     // Accelerate towards the left
-                    ftr->velocity.x = v0.x - ((ftr->run_accel / 4) * FRAME_TIME_MS) / SF;
+                    ftr->velocity.x = v0.x - ((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF;
                     // Cap the velocity
                     if (ftr->velocity.x < -ftr->run_max_velo)
                     {
@@ -1147,7 +1156,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 {
                     movementInput = true;
                     // Accelerate towards the right
-                    ftr->velocity.x = v0.x + ((ftr->run_accel / 4) * FRAME_TIME_MS) / SF;
+                    ftr->velocity.x = v0.x + ((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF;
                     // Cap the velocity
                     if(ftr->velocity.x > ftr->run_max_velo)
                     {
@@ -1185,7 +1194,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         if(ftr->velocity.x > 0)
         {
             // Decelrate towards the left
-            ftr->velocity.x = v0.x - (decel * FRAME_TIME_MS) / SF;
+            ftr->velocity.x = v0.x - (decel * FRAME_TIME_MS) >> SF;
             // Check if stopped
             if (ftr->velocity.x < 0)
             {
@@ -1195,7 +1204,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         else if(ftr->velocity.x < 0)
         {
             // Decelerate towards the right
-            ftr->velocity.x = v0.x + (decel * FRAME_TIME_MS) / SF;
+            ftr->velocity.x = v0.x + (decel * FRAME_TIME_MS) >> SF;
             // Check if stopped
             if(ftr->velocity.x > 0)
             {
@@ -1217,7 +1226,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     if(ftr->isInAir)
     {
         // Fighter is in the air, so there will be a new Y
-        ftr->velocity.y = v0.y + (ftr->gravity * FRAME_TIME_MS) / SF;
+        ftr->velocity.y = v0.y + (ftr->gravity * FRAME_TIME_MS) >> SF;
         // Terminal velocity, arbitrarily chosen. Maybe make this a character attribute?
         if(ftr->velocity.y > 60 * SF)
         {
@@ -1373,12 +1382,12 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         }
 
         // If the fighter is above or below a platform
-        if(((hbox.x0 / SF) < (platforms[idx].area.x1 / SF)) &&
-           ((hbox.x1 / SF) > (platforms[idx].area.x0 / SF)))
+        if(((hbox.x0 >> SF) < (platforms[idx].area.x1 >> SF)) &&
+           ((hbox.x1 >> SF) > (platforms[idx].area.x0 >> SF)))
         {
             // If the fighter is moving downward or not at all and hit a platform
             if ((ftr->velocity.y >= 0) &&
-                    (((hbox.y1 / SF)) == (platforms[idx].area.y0 / SF)))
+                    (((hbox.y1 >> SF)) == (platforms[idx].area.y0 >> SF)))
             {
                 // Fighter standing on platform
                 setFighterRelPos(ftr, ABOVE_PLATFORM, &platforms[idx], NULL, false);
@@ -1419,7 +1428,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             }
             // If the fighter is moving upward and hit a platform
             else if ((ftr->velocity.y <= 0) &&
-                     ((hbox.y0 / SF) == ((platforms[idx].area.y1 / SF))))
+                     ((hbox.y0 >> SF) == ((platforms[idx].area.y1 >> SF))))
             {
                 if((true == platforms[idx].canFallThrough))
                 {
@@ -1437,12 +1446,12 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         }
 
         // If the fighter is to the left or right of a platform
-         if(((hbox.y0 / SF) < (platforms[idx].area.y1 / SF)) &&
-            ((hbox.y1 / SF) > (platforms[idx].area.y0 / SF)))
+         if(((hbox.y0 >> SF) < (platforms[idx].area.y1 >> SF)) &&
+            ((hbox.y1 >> SF) > (platforms[idx].area.y0 >> SF)))
         {
             // If the fighter is moving rightward and hit a wall
             if ((ftr->velocity.x >= 0) &&
-                    (((hbox.x1 / SF)) == (platforms[idx].area.x0 / SF)))
+                    (((hbox.x1 >> SF)) == (platforms[idx].area.x0 >> SF)))
             {
                 if((true == platforms[idx].canFallThrough))
                 {
@@ -1467,7 +1476,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             }
             // If the fighter is moving leftward and hit a wall
             else if ((ftr->velocity.x <= 0) &&
-                     ((hbox.x0 / SF) == ((platforms[idx].area.x1 / SF))))
+                     ((hbox.x0 >> SF) == ((platforms[idx].area.x1 >> SF))))
             {
                 if((true == platforms[idx].canFallThrough))
                 {
@@ -1740,8 +1749,8 @@ void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
             vector_t v0 = proj->velo;
 
             // Update velocity
-            proj->velo.x = proj->velo.x + (proj->accel.x * FRAME_TIME_MS) / SF;
-            proj->velo.y = proj->velo.y + (proj->accel.y * FRAME_TIME_MS) / SF;
+            proj->velo.x = proj->velo.x + (proj->accel.x * FRAME_TIME_MS) >> SF;
+            proj->velo.y = proj->velo.y + (proj->accel.y * FRAME_TIME_MS) >> SF;
 
             // Update the position
             proj->pos.x = proj->pos.x + (((proj->velo.x + v0.x) * FRAME_TIME_MS) / (SF * 2));
@@ -1804,7 +1813,7 @@ void drawFighterFrame(display_t* d, const platform_t* platforms,
         projectile_t* proj = currentNode->val;
 
         // Draw the sprite
-        drawWsg(d, proj->sprite, proj->pos.x / SF, proj->pos.y / SF,
+        drawWsg(d, proj->sprite, proj->pos.x >> SF, proj->pos.y >> SF,
                 FACING_LEFT == proj->dir, false, 0);
 
 #if defined(DRAW_DEBUG_BOXES)

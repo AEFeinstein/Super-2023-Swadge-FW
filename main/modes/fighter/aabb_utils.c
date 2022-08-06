@@ -23,19 +23,19 @@ void drawBox(display_t* disp, box_t box, paletteColor_t color, bool isFilled, in
     if(isFilled)
     {
         fillDisplayArea(disp,
-                        box.x0 / scalingFactor,
-                        box.y0 / scalingFactor,
-                        box.x1 / scalingFactor,
-                        box.y1 / scalingFactor,
+                        box.x0 >> scalingFactor,
+                        box.y0 >> scalingFactor,
+                        box.x1 >> scalingFactor,
+                        box.y1 >> scalingFactor,
                         color);
     }
     else
     {
         plotRect(disp,
-                 box.x0 / scalingFactor,
-                 box.y0 / scalingFactor,
-                 box.x1 / scalingFactor,
-                 box.y1 / scalingFactor,
+                 box.x0 >> scalingFactor,
+                 box.y0 >> scalingFactor,
+                 box.x1 >> scalingFactor,
+                 box.y1 >> scalingFactor,
                  color);
     }
 }
@@ -50,8 +50,8 @@ void drawBox(display_t* disp, box_t box, paletteColor_t color, bool isFilled, in
  */
 bool boxesCollide(box_t box0, box_t box1, int32_t scalingFactor)
 {
-    return (box0.x0 / scalingFactor) < (box1.x1 / scalingFactor) &&
-           (box0.x1 / scalingFactor) > (box1.x0 / scalingFactor) &&
-           (box0.y0 / scalingFactor) < (box1.y1 / scalingFactor) &&
-           (box0.y1 / scalingFactor) > (box1.y0 / scalingFactor);
+    return (box0.x0 >> scalingFactor) < (box1.x1 >> scalingFactor) &&
+           (box0.x1 >> scalingFactor) > (box1.x0 >> scalingFactor) &&
+           (box0.y0 >> scalingFactor) < (box1.y1 >> scalingFactor) &&
+           (box0.y1 >> scalingFactor) > (box1.y0 >> scalingFactor);
 }
