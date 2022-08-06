@@ -394,6 +394,17 @@ void fighterMainLoop(int64_t elapsedUs)
         // Render the scene
         drawFighterFrame(f->d, battlefield, sizeof(battlefield) / sizeof(battlefield[0]));
 
+        // char dbgStr[256];
+        // box_t hb;
+        // getHurtbox(&f->fighters[0], &hb);
+        // sprintf(dbgStr, "{[%d,%d],[%d,%d]},%d",
+        //     f->fighters[0].pos.x / SF,
+        //     f->fighters[0].pos.y / SF,
+        //     f->fighters[0].velocity.x,
+        //     f->fighters[0].velocity.y,
+        //     boxesCollide(battlefield[2].area, hb, SF));
+        // drawText(f->d, &(f->mm_font), c444, dbgStr, 0, 0);
+
         // ESP_LOGI("FTR", "{[%d, %d], [%d, %d], %d}",
         //     f->fighters[0].hurtbox.x0 / SF,
         //     f->fighters[0].hurtbox.y0 / SF,
@@ -1228,7 +1239,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     bool intersectionDetected = false;
     for (uint8_t idx = 0; idx < numPlatforms; idx++)
     {
-        if(boxesCollide(dest_hurtbox, platforms[idx].area))
+        if(boxesCollide(dest_hurtbox, platforms[idx].area, SF))
         {
             // dest_hurtbox intersects with a platform, but it may be passing
             // through, like jumping up through one
@@ -1288,7 +1299,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             for (uint8_t idx = 0; idx < numPlatforms; idx++)
             {
                 if(ftr->passingThroughPlatform != &platforms[idx] &&
-                        boxesCollide(test_hurtbox, platforms[idx].area))
+                        boxesCollide(test_hurtbox, platforms[idx].area, SF))
                 {
                     // Collision is dettected, stop looping!
                     collisionDetected = true;
@@ -1362,8 +1373,8 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         }
 
         // If the fighter is above or below a platform
-        if((hbox.x0 < platforms[idx].area.x1 + SF) &&
-                (hbox.x1 + SF > platforms[idx].area.x0))
+        if(((hbox.x0 / SF) < (platforms[idx].area.x1 / SF)) &&
+           ((hbox.x1 / SF) > (platforms[idx].area.x0 / SF)))
         {
             // If the fighter is moving downward or not at all and hit a platform
             if ((ftr->velocity.y >= 0) &&
@@ -1426,8 +1437,8 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         }
 
         // If the fighter is to the left or right of a platform
-        if((hbox.y0 < platforms[idx].area.y1 + SF) &&
-                (hbox.y1 + SF > platforms[idx].area.y0))
+         if(((hbox.y0 / SF) < (platforms[idx].area.y1 / SF)) &&
+            ((hbox.y1 / SF) > (platforms[idx].area.y0 / SF)))
         {
             // If the fighter is moving rightward and hit a wall
             if ((ftr->velocity.x >= 0) &&
@@ -1565,7 +1576,7 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                     relativeHitbox.y0 += hbx->hitboxPos.y;
                     relativeHitbox.y1 = relativeHitbox.y0 + hbx->hitboxSize.y;
 
-                    if(boxesCollide(relativeHitbox, otherFtrHurtbox))
+                    if(boxesCollide(relativeHitbox, otherFtrHurtbox, SF))
                     {
                         // Note the attack connected so it doesnt collide twice
                         atk->attackConnected = true;
@@ -1645,7 +1656,7 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                 box_t ftrHurtbox;
                 getHurtbox(ftr, &ftrHurtbox);
                 // Check if this projectile collided the first fighter
-                if(boxesCollide(projHurtbox, ftrHurtbox))
+                if(boxesCollide(projHurtbox, ftrHurtbox, SF))
                 {
                     // Tally the damage
                     ftr->damage += proj->damage;
@@ -1748,7 +1759,7 @@ void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
             // Check if this projectile collided with a platform
             for (uint8_t idx = 0; idx < numPlatforms; idx++)
             {
-                if(boxesCollide(projHurtbox, platforms[idx].area))
+                if(boxesCollide(projHurtbox, platforms[idx].area, SF))
                 {
                     // Draw one more frame, then remove the projectile
                     proj->removeNextFrame = true;
