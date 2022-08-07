@@ -27,8 +27,8 @@ typedef enum
 
 typedef enum
 {
-    FACING_LEFT,
-    FACING_RIGHT
+    FACING_RIGHT=0,
+    FACING_LEFT
 } fighterDirection_t;
 
 typedef enum
@@ -71,7 +71,7 @@ typedef struct
     uint16_t hitstun;
 
     bool isProjectile;
-    wsg_t* projSprite;
+    uint8_t projSprite;
     uint16_t projDuration;
     vector_t projVelo;
     vector_t projAccel;
@@ -79,7 +79,7 @@ typedef struct
 
 typedef struct
 {
-    wsg_t* sprite;
+    uint8_t sprite;
     attackHitbox_t* hitboxes;
     vector_t sprite_offset;
     vector_t hurtbox_offset;
@@ -93,8 +93,8 @@ typedef struct
 
 typedef struct
 {
-    wsg_t* startupLagSpr;
-    wsg_t* endLagSpr;
+    uint8_t startupLagSprite;
+    uint8_t endLagSprite;
     attackFrame_t* attackFrames;
     uint16_t startupLag;
     uint16_t endLag;
@@ -110,6 +110,12 @@ typedef struct
     box_t area;
     bool canFallThrough;
 } platform_t;
+
+typedef struct
+{
+    uint8_t numPlatforms;
+    platform_t platforms[];
+} stage_t;
 
 typedef struct
 {
@@ -143,13 +149,13 @@ typedef struct
     /* Attack data */
     attack_t attacks[NUM_ATTACKS];
     /* Sprite names */
-    wsg_t* idleSprite0;
-    wsg_t* idleSprite1;
-    wsg_t* runSprite0;
-    wsg_t* runSprite1;
-    wsg_t* jumpSprite;
-    wsg_t* duckSprite;
-    wsg_t* landingLagSprite;
+    uint8_t idleSprite0;
+    uint8_t idleSprite1;
+    uint8_t runSprite0;
+    uint8_t runSprite1;
+    uint8_t jumpSprite;
+    uint8_t duckSprite;
+    uint8_t landingLagSprite;
     /* Input Tracking */
     int32_t prevBtnState;
     int32_t btnState;
@@ -167,13 +173,13 @@ typedef struct
     uint8_t stocks;
     /* Animation timer */
     int32_t animTimer;
-    wsg_t* currentSprite;
+    uint8_t currentSprite;
 } fighter_t;
 
 typedef struct
 {
     fighter_t* owner;
-    wsg_t* sprite;
+    uint8_t sprite;
 
     vector_t size;
     vector_t pos;

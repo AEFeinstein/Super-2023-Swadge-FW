@@ -20,6 +20,7 @@ typedef struct
 {
     char* name;
     wsg_t sprite;
+    uint8_t idx;
 } namedSprite_t;
 
 //==============================================================================
@@ -338,16 +339,16 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "size_x"))
             {
                 tokIdx++;
-                ftr->size.x = SF * jsonInteger(jsonStr, toks[tokIdx]);
-                ftr->originalSize.x = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->size.x = jsonInteger(jsonStr, toks[tokIdx]) << SF;
+                ftr->originalSize.x = jsonInteger(jsonStr, toks[tokIdx]) << SF;
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "size_y"))
             {
                 tokIdx++;
-                ftr->size.y = SF * jsonInteger(jsonStr, toks[tokIdx]);
-                ftr->originalSize.y = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->size.y = jsonInteger(jsonStr, toks[tokIdx]) << SF;
+                ftr->originalSize.y = jsonInteger(jsonStr, toks[tokIdx]) << SF;
                 tokIdx++;
                 numFieldsParsed++;
             }
@@ -463,7 +464,7 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* 
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                atk->startupLagSpr = loadFighterSprite(name, loadedSprites);
+                atk->startupLagSprite = loadFighterSprite(name, loadedSprites);
                 free(name);
                 tokIdx++;
                 numFieldsParsed++;
@@ -472,7 +473,7 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* 
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                atk->endLagSpr = loadFighterSprite(name, loadedSprites);
+                atk->endLagSprite = loadFighterSprite(name, loadedSprites);
                 free(name);
                 tokIdx++;
                 numFieldsParsed++;
@@ -697,28 +698,28 @@ int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokId
             if(0 == jsoneq(jsonStr, &toks[tokIdx], "relativePos_x"))
             {
                 tokIdx++;
-                hbx->hitboxPos.x = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                hbx->hitboxPos.x = jsonInteger(jsonStr, toks[tokIdx]) << SF;
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "relativePos_y"))
             {
                 tokIdx++;
-                hbx->hitboxPos.y = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                hbx->hitboxPos.y = jsonInteger(jsonStr, toks[tokIdx]) << SF;
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "size_x"))
             {
                 tokIdx++;
-                hbx->hitboxSize.x = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                hbx->hitboxSize.x = jsonInteger(jsonStr, toks[tokIdx]) << SF;
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "size_y"))
             {
                 tokIdx++;
-                hbx->hitboxSize.y = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                hbx->hitboxSize.y = jsonInteger(jsonStr, toks[tokIdx]) << SF;
                 tokIdx++;
                 numFieldsParsed++;
             }
@@ -849,22 +850,27 @@ void freeFighterData(fighter_t* fighters, uint8_t numFighters)
 /**
  * Load a sprite, or return a pointer to that sprite if it's already loaded.
  * When loading a sprite, add it to loadedSprites.
+ * 
+ * TODO optimize sprite IDX
  *
  * @param name The name of the sprite to load
  * @param loadedSprites A linked list of loaded sprites
- * @return A pointer to a wsg_t sprite
+ * @return A sprite index
  */
-wsg_t* loadFighterSprite(char* name, list_t* loadedSprites)
+uint8_t loadFighterSprite(char* name, list_t* loadedSprites)
 {
+    uint8_t spriteIdx = 255;
     // Iterate through the list of loaded sprites and look to see if this
     // has been loaded already. If so, return it
     node_t* currentNode = loadedSprites->first;
     while (currentNode != NULL)
     {
+        spriteIdx = ((namedSprite_t*)currentNode->val)->idx;
         if(0 == strcmp(((namedSprite_t*)currentNode->val)->name, name))
         {
             // Name matches, so return this loaded sprite
-            return &((namedSprite_t*)currentNode->val)->sprite;
+            // return &((namedSprite_t*)currentNode->val)->sprite;
+            return spriteIdx;
         }
         // Name didn't match, so iterate
         currentNode = currentNode->next;
@@ -879,12 +885,41 @@ wsg_t* loadFighterSprite(char* name, list_t* loadedSprites)
     // Copy the name
     newSprite->name = calloc(1, strlen(name) + 1);
     memcpy(newSprite->name, name, strlen(name) + 1);
+    // Set the IDX
+    newSprite->idx = spriteIdx + 1;
 
     // Add the loaded sprite to the list
     push(loadedSprites, newSprite);
 
     // Return the loaded sprite
-    return &(newSprite->sprite);
+    // return &(newSprite->sprite);
+    return newSprite->idx;
+}
+
+/**
+ * Get a sprite given the sprite's index
+ * 
+ * TODO optimize sprite IDX
+ * 
+ * @param spriteIdx The index to get a sprite for
+ * @param loadedSprites A list of loaded sprites
+ * @return wsg_t* The sprite that corresponds to this index
+ */
+wsg_t * getFighterSprite(uint8_t spriteIdx, list_t* loadedSprites)
+{
+    // Iterate through the list of loaded sprites and look to see if this
+    // has been loaded already. If so, return it
+    node_t* currentNode = loadedSprites->first;
+    while (currentNode != NULL)
+    {
+        if (spriteIdx == ((namedSprite_t*)currentNode->val)->idx)
+        {
+            return &(((namedSprite_t*)currentNode->val)->sprite);
+        }
+        // Index didn't match, so iterate
+        currentNode = currentNode->next;
+    }
+    return NULL;
 }
 
 /**

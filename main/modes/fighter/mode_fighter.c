@@ -47,6 +47,7 @@ typedef struct
     list_t loadedSprites;
     display_t* d;
     font_t mm_font;
+    uint8_t stageIdx;
 } fightingGame_t;
 
 //==============================================================================
@@ -60,7 +61,7 @@ void fighterButtonCb(buttonEvt_t* evt);
 
 void getHurtbox(fighter_t* ftr, box_t* hurtbox);
 #define setFighterState(f, st, sp, tm) _setFighterState(f, st, sp, tm, __LINE__);
-void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite, int32_t timer, uint32_t line);
+void _setFighterState(fighter_t* ftr, fighterState_t newState, uint8_t newSprite, int32_t timer, uint32_t line);
 void setFighterRelPos(fighter_t * ftr, platformPos_t relPos, const platform_t * touchingPlatform,
     const platform_t * passingThroughPlatform, bool isInAir);
 void checkFighterButtonInput(fighter_t* ftr);
@@ -68,14 +69,19 @@ void updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t nu
 void checkFighterTimer(fighter_t* ftr);
 void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr);
 void checkFighterProjectileCollisions(list_t* projectiles);
-void drawFighter(display_t* d, fighter_t* ftr);
 
 void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
                           uint8_t numPlatforms);
 
-void drawFighterFrame(display_t* d, const platform_t* platforms,
-                      uint8_t numPlatforms);
-void drawFighterHud(display_t* d, font_t* font, fighter_t* ftr1, fighter_t* ftr2);
+void getSpritePos(fighter_t * ftr, vector_t * spritePos);
+int16_t * composeFighterScene(uint8_t stageIdx, fighter_t * f1, fighter_t * f2, list_t * projectiles, uint8_t * outLen);
+void drawFighterScene(display_t* d, int16_t * sceneData);
+void drawFighter(display_t* d, fighter_t* ftr);
+void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock, int16_t f2_dmg, int16_t f2_stock);
+#ifdef DRAW_DEBUG_BOXES
+void drawFighterDebugBox(display_t * d, fighter_t * ftr);
+void drawProjectileDebugBox(display_t * d, list_t * projectiles);
+#endif
 
 // void fighterAccelerometerCb(accel_t* accel);
 // void fighterAudioCb(uint16_t * samples, uint32_t sampleCnt);
@@ -111,48 +117,77 @@ swadgeMode modeFighter =
     .fnTemperatureCallback = NULL, // fighterTemperatureCb
 };
 
-static const platform_t battlefield[] =
+static const stage_t battlefield =
 {
+    .numPlatforms = 4,
+    .platforms =
     {
-        .area =
         {
-            .x0 = (14) * SF,
-            .y0 = (170) * SF,
-            .x1 = (14 + 212 - 1) * SF,
-            .y1 = (170 + 4) * SF,
+            .area =
+            {
+                .x0 = (14) << SF,
+                .y0 = (170) << SF,
+                .x1 = (14 + 212 - 1) << SF,
+                .y1 = (170 + 4) << SF,
+            },
+            .canFallThrough = false
         },
-        .canFallThrough = false
-    },
-    {
-        .area =
         {
-            .x0 = (30) * SF,
-            .y0 = (130) * SF,
-            .x1 = (30 + 54 - 1) * SF,
-            .y1 = (130 + 4) * SF,
+            .area =
+            {
+                .x0 = (30) << SF,
+                .y0 = (130) << SF,
+                .x1 = (30 + 54 - 1) << SF,
+                .y1 = (130 + 4) << SF,
+            },
+            .canFallThrough = true
         },
-        .canFallThrough = true
-    },
-    {
-        .area =
         {
-            .x0 = (156) * SF,
-            .y0 = (130) * SF,
-            .x1 = (156 + 54 - 1) * SF,
-            .y1 = (130 + 4) * SF,
+            .area =
+            {
+                .x0 = (156) << SF,
+                .y0 = (130) << SF,
+                .x1 = (156 + 54 - 1) << SF,
+                .y1 = (130 + 4) << SF,
+            },
+            .canFallThrough = true
         },
-        .canFallThrough = true
-    },
-    {
-        .area =
         {
-            .x0 = (93) * SF,
-            .y0 = (90) * SF,
-            .x1 = (93 + 54 - 1) * SF,
-            .y1 = (90 + 4) * SF,
-        },
-        .canFallThrough = true
+            .area =
+            {
+                .x0 = (93) << SF,
+                .y0 = (90) << SF,
+                .x1 = (93 + 54 - 1) << SF,
+                .y1 = (90 + 4) << SF,
+            },
+            .canFallThrough = true
+        }
     }
+};
+
+
+static const stage_t finalDest =
+{
+    .numPlatforms = 1,
+    .platforms =
+    {
+        {
+            .area =
+            {
+                .x0 = (14) << SF,
+                .y0 = (170) << SF,
+                .x1 = (14 + 212 - 1) << SF,
+                .y1 = (170 + 4) << SF,
+            },
+            .canFallThrough = false
+        }
+    }
+};
+
+static const stage_t *stages[] =
+{
+    &battlefield,
+    &finalDest
 };
 
 //==============================================================================
@@ -195,8 +230,8 @@ void fighterEnterMode(display_t* disp)
     setFighterState((&f->fighters[1]), FS_IDLE, f->fighters[1].idleSprite0, 0);
 
     // Start both fighters in the middle of the stage
-    f->fighters[0].pos.x = (f->d->w / 2) * SF;
-    f->fighters[1].pos.x = (f->d->w / 2) * SF;
+    f->fighters[0].pos.x = (f->d->w / 2) << SF;
+    f->fighters[1].pos.x = (f->d->w / 2) << SF;
 
     // Start with three stocks
     f->fighters[0].stocks = 3;
@@ -280,7 +315,7 @@ void getHurtbox(fighter_t* ftr, box_t* hurtbox)
  * @param timer     The time to stay in this state before transitioning (0 == forever)
  * @param line      The line number this was called from, for debugging
  */
-void _setFighterState(fighter_t* ftr, fighterState_t newState, wsg_t* newSprite, int32_t timer, uint32_t line)
+void _setFighterState(fighter_t* ftr, fighterState_t newState, uint8_t newSprite, int32_t timer, uint32_t line)
 {
     // Clean up variables when leaving a state
     if((FS_ATTACK == ftr->state) && (FS_ATTACK != newState) && (ftr->cAttack < NUM_ATTACKS))
@@ -384,15 +419,15 @@ void fighterMainLoop(int64_t elapsedUs)
         checkFighterButtonInput(&f->fighters[1]);
 
         // Move fighters
-        updateFighterPosition(&f->fighters[0], battlefield, sizeof(battlefield) / sizeof(battlefield[0]));
-        updateFighterPosition(&f->fighters[1], battlefield, sizeof(battlefield) / sizeof(battlefield[0]));
+        updateFighterPosition(&f->fighters[0], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
+        updateFighterPosition(&f->fighters[1], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
 
         // Update timers. This transitions between states and spawns projectiles
         checkFighterTimer(&f->fighters[0]);
         checkFighterTimer(&f->fighters[1]);
 
         // Update projectile timers. This moves projectiles and despawns if necessary
-        checkProjectileTimer(&f->projectiles, battlefield, sizeof(battlefield) / sizeof(battlefield[0]));
+        checkProjectileTimer(&f->projectiles, stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
 
         // Check for collisions between hitboxes and hurtboxes
         checkFighterHitboxCollisions(&f->fighters[0], &f->fighters[1]);
@@ -400,8 +435,13 @@ void fighterMainLoop(int64_t elapsedUs)
         // Check for collisions between projectiles and hurtboxes
         checkFighterProjectileCollisions(&f->projectiles);
 
+        uint8_t len = 0;
+        int16_t * scene = composeFighterScene(f->stageIdx, &f->fighters[0], &f->fighters[1], &f->projectiles, &len);
+
         // Render the scene
-        drawFighterFrame(f->d, battlefield, sizeof(battlefield) / sizeof(battlefield[0]));
+        drawFighterScene(f->d, scene);
+
+        free(scene);
 
         // char dbgStr[256];
         // box_t hb;
@@ -421,127 +461,6 @@ void fighterMainLoop(int64_t elapsedUs)
         //     f->fighters[0].velocity.y,
         //     f->fighters[0].relativePos);
     }
-}
-
-/**
- * Draw a fighter to the display. Right now, just draw debugging boxes
- *
- * @param d   The display to draw to
- * @param ftr The fighter to draw
- */
-void drawFighter(display_t* d, fighter_t* ftr)
-{
-#if defined(DRAW_DEBUG_BOXES)
-    // Pick the color based on state
-    paletteColor_t hitboxColor = c500;
-    switch(ftr->state)
-    {
-        case FS_STARTUP:
-        {
-            hitboxColor = c502;
-            break;
-        }
-        case FS_ATTACK:
-        {
-            hitboxColor = c303;
-            break;
-        }
-        case FS_COOLDOWN:
-        {
-            hitboxColor = c205;
-            break;
-        }
-        case FS_HITSTUN:
-        {
-            hitboxColor = c040;
-            break;
-        }
-        case FS_IDLE:
-        case FS_RUNNING:
-        case FS_DUCKING:
-        case FS_JUMPING:
-        {
-            hitboxColor = c500;
-            break;
-        }
-    }
-
-    // Override color if invincible
-    if(ftr->isInvincible)
-    {
-        hitboxColor = c333;
-    }
-
-    // Draw an outline
-    box_t hurtbox;
-    getHurtbox(ftr, &hurtbox);
-    drawBox(d, hurtbox, hitboxColor, false, SF);
-#endif
-
-    // Start with the sprite aligned with the hurtbox
-    vector_t spritePos;
-    if(FACING_RIGHT == ftr->dir)
-    {
-        spritePos.x = ftr->pos.x >> SF;
-    }
-    else
-    {
-        spritePos.x = ((ftr->pos.x + ftr->originalSize.x) >> SF) - ftr->currentSprite->w;
-    }
-    spritePos.y = ftr->pos.y >> SF;
-
-    // If this is an attack frame
-    if(FS_ATTACK == ftr->state)
-    {
-        // Get a reference to the attack frame
-        attackFrame_t* atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
-        // Shift the sprite
-        spritePos.x += atk->sprite_offset.x;
-        spritePos.y += atk->sprite_offset.y;
-    }
-
-    // Draw a sprite
-    drawWsg(d, ftr->currentSprite,
-            spritePos.x, spritePos.y,
-            ftr->dir == FACING_LEFT, false, 0);
-
-#if defined(DRAW_DEBUG_BOXES)
-    // Draw the hitbox if attacking
-    if(FS_ATTACK == ftr->state)
-    {
-        // Get a reference to the attack frame
-        attackFrame_t* atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
-
-        // For each hitbox in this frame
-        for(uint8_t hbIdx = 0; hbIdx < atk->numHitboxes; hbIdx++)
-        {
-            attackHitbox_t* hbx = &atk->hitboxes[hbIdx];
-
-            // If this isn't a projectile attack, draw it
-            if(!hbx->isProjectile)
-            {
-                // Figure out where the hitbox is relative to the fighter
-                box_t relativeHitbox;
-                getHurtbox(ftr, &relativeHitbox);
-                if(FACING_RIGHT == ftr->dir)
-                {
-                    relativeHitbox.x0 += hbx->hitboxPos.x;
-                    relativeHitbox.x1 = relativeHitbox.x0 + hbx->hitboxSize.x;
-                }
-                else
-                {
-                    // reverse the hitbox if dashing and facing left
-                    relativeHitbox.x1 = relativeHitbox.x0 + ftr->size.x - hbx->hitboxPos.x;
-                    relativeHitbox.x0 = relativeHitbox.x1 - hbx->hitboxSize.x;
-                }
-                relativeHitbox.y0 += hbx->hitboxPos.y;
-                relativeHitbox.y1 = relativeHitbox.y0 + hbx->hitboxSize.y;
-                // Draw the hitbox
-                drawBox(d, relativeHitbox, c440, false, SF);
-            }
-        }
-    }
-#endif
 }
 
 /**
@@ -679,7 +598,7 @@ void checkFighterTimer(fighter_t* ftr)
                 {
                     // Transition from attacking to cooldown
                     atk = NULL;
-                    setFighterState(ftr, FS_COOLDOWN, ftr->attacks[ftr->cAttack].endLagSpr, ftr->attacks[ftr->cAttack].endLag);
+                    setFighterState(ftr, FS_COOLDOWN, ftr->attacks[ftr->cAttack].endLagSprite, ftr->attacks[ftr->cAttack].endLag);
                 }
                 break;
             }
@@ -732,8 +651,8 @@ void checkFighterTimer(fighter_t* ftr)
             // Resize the hurtbox if there's a custom one
             if(0 != atk->hurtbox_size.x && 0 != atk->hurtbox_size.y)
             {
-                ftr->size.x = atk->hurtbox_size.x * SF;
-                ftr->size.y = atk->hurtbox_size.y * SF;
+                ftr->size.x = atk->hurtbox_size.x << SF;
+                ftr->size.y = atk->hurtbox_size.y << SF;
             }
             else
             {
@@ -741,8 +660,8 @@ void checkFighterTimer(fighter_t* ftr)
             }
 
             // Offset the hurtbox. Does nothing if the offset is 0
-            ftr->hurtbox_offset.x = atk->hurtbox_offset.x * SF;
-            ftr->hurtbox_offset.y = atk->hurtbox_offset.y * SF;
+            ftr->hurtbox_offset.x = atk->hurtbox_offset.x << SF;
+            ftr->hurtbox_offset.y = atk->hurtbox_offset.y << SF;
 
             // Check hitboxes for projectiles. Allocate and link any that are
             for(uint8_t hbIdx = 0; hbIdx < atk->numHitboxes; hbIdx++)
@@ -959,7 +878,7 @@ void checkFighterButtonInput(fighter_t* ftr)
                 if(prevAttack != ftr->cAttack)
                 {
                     // Set the state, sprite, and timer
-                    setFighterState(ftr, FS_STARTUP, ftr->attacks[ftr->cAttack].startupLagSpr, ftr->attacks[ftr->cAttack].startupLag);
+                    setFighterState(ftr, FS_STARTUP, ftr->attacks[ftr->cAttack].startupLagSprite, ftr->attacks[ftr->cAttack].startupLag);
 
                     // Always copy the iframe value, may be 0
                     ftr->iFrameTimer = ftr->attacks[ftr->cAttack].iFrames;
@@ -1079,7 +998,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                         accel >>= 1;
                     }
                     // Accelerate towards the left
-                    ftr->velocity.x = v0.x - (accel * FRAME_TIME_MS) >> SF;
+                    ftr->velocity.x = v0.x - ((accel * FRAME_TIME_MS) >> SF);
                     // Cap the velocity
                     if (ftr->velocity.x < -ftr->run_max_velo)
                     {
@@ -1118,7 +1037,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     }
 
                     // Accelerate towards the right
-                    ftr->velocity.x = v0.x + (accel * FRAME_TIME_MS) >> SF;
+                    ftr->velocity.x = v0.x + ((accel * FRAME_TIME_MS) >> SF);
                     // Cap the velocity
                     if(ftr->velocity.x > ftr->run_max_velo)
                     {
@@ -1145,7 +1064,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 {
                     movementInput = true;
                     // Accelerate towards the left
-                    ftr->velocity.x = v0.x - ((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF;
+                    ftr->velocity.x = v0.x - (((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF);
                     // Cap the velocity
                     if (ftr->velocity.x < -ftr->run_max_velo)
                     {
@@ -1156,7 +1075,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 {
                     movementInput = true;
                     // Accelerate towards the right
-                    ftr->velocity.x = v0.x + ((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF;
+                    ftr->velocity.x = v0.x + (((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF);
                     // Cap the velocity
                     if(ftr->velocity.x > ftr->run_max_velo)
                     {
@@ -1194,7 +1113,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         if(ftr->velocity.x > 0)
         {
             // Decelrate towards the left
-            ftr->velocity.x = v0.x - (decel * FRAME_TIME_MS) >> SF;
+            ftr->velocity.x = v0.x - ((decel * FRAME_TIME_MS) >> SF);
             // Check if stopped
             if (ftr->velocity.x < 0)
             {
@@ -1204,7 +1123,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         else if(ftr->velocity.x < 0)
         {
             // Decelerate towards the right
-            ftr->velocity.x = v0.x + (decel * FRAME_TIME_MS) >> SF;
+            ftr->velocity.x = v0.x + ((decel * FRAME_TIME_MS) >> SF);
             // Check if stopped
             if(ftr->velocity.x > 0)
             {
@@ -1218,7 +1137,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     getHurtbox(ftr, &dest_hurtbox);
 
     // Now that we have X velocity, find the new X position
-    int32_t deltaX = (((ftr->velocity.x + v0.x) * FRAME_TIME_MS) / (SF * 2));
+    int32_t deltaX = (((ftr->velocity.x + v0.x) * FRAME_TIME_MS) >> (SF + 1));
     dest_hurtbox.x0 += deltaX;
     dest_hurtbox.x1 += deltaX;
 
@@ -1226,14 +1145,14 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     if(ftr->isInAir)
     {
         // Fighter is in the air, so there will be a new Y
-        ftr->velocity.y = v0.y + (ftr->gravity * FRAME_TIME_MS) >> SF;
+        ftr->velocity.y = v0.y + ((ftr->gravity * FRAME_TIME_MS) >> SF);
         // Terminal velocity, arbitrarily chosen. Maybe make this a character attribute?
-        if(ftr->velocity.y > 60 * SF)
+        if(ftr->velocity.y > 60 << SF)
         {
-            ftr->velocity.y = 60 * SF;
+            ftr->velocity.y = 60 << SF;
         }
         // Now that we have Y velocity, find the new Y position
-        int32_t deltaY = (((ftr->velocity.y + v0.y) * FRAME_TIME_MS) / (SF * 2));
+        int32_t deltaY = (((ftr->velocity.y + v0.y) * FRAME_TIME_MS) >> (SF + 1));
         dest_hurtbox.y0 += deltaY;
         dest_hurtbox.y1 += deltaY;
     }
@@ -1503,7 +1422,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     }
 
     // Check kill zone
-    if(hbox.y0 > SF * 600)
+    if(hbox.y0 > (600 << SF))
     {
         // Decrement stocks
         if(ftr->stocks > 0)
@@ -1520,7 +1439,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
         ftr->cAttack = NO_ATTACK;
         setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0);
-        ftr->pos.x = (f->d->w / 2) * SF;
+        ftr->pos.x = (f->d->w / 2) << SF;
         ftr->pos.y = 0;
         ftr->velocity.x = 0;
         ftr->velocity.y = 0;
@@ -1749,12 +1668,12 @@ void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
             vector_t v0 = proj->velo;
 
             // Update velocity
-            proj->velo.x = proj->velo.x + (proj->accel.x * FRAME_TIME_MS) >> SF;
-            proj->velo.y = proj->velo.y + (proj->accel.y * FRAME_TIME_MS) >> SF;
+            proj->velo.x = proj->velo.x + ((proj->accel.x * FRAME_TIME_MS) >> SF);
+            proj->velo.y = proj->velo.y + ((proj->accel.y * FRAME_TIME_MS) >> SF);
 
             // Update the position
-            proj->pos.x = proj->pos.x + (((proj->velo.x + v0.x) * FRAME_TIME_MS) / (SF * 2));
-            proj->pos.y = proj->pos.y + (((proj->velo.y + v0.y) * FRAME_TIME_MS) / (SF * 2));
+            proj->pos.x = proj->pos.x + (((proj->velo.x + v0.x) * FRAME_TIME_MS) >> (SF + 1));
+            proj->pos.y = proj->pos.y + (((proj->velo.y + v0.y) * FRAME_TIME_MS) >> (SF + 1));
 
             // Create a hurtbox for this projectile to check for collisions with platforms
             box_t projHurtbox =
@@ -1783,58 +1702,180 @@ void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
 }
 
 /**
- * Render the current frame to the display, including fighters, platforms, and
- * projectiles, and HUD
- *
- * @param d The display to draw to
- * @param platforms    A pointer to platforms to draw
- * @param numPlatforms The number of platforms
+ * @brief Get the position to draw a fighter's sprite at
+ * 
+ * @param ftr The fighter to draw a sprite for
+ * @param spritePos The position of the sprite
  */
-void drawFighterFrame(display_t* d, const platform_t* platforms,
-                      uint8_t numPlatforms)
+void getSpritePos(fighter_t * ftr, vector_t * spritePos)
 {
-    // First clear everything
-    d->clearPx();
-
-    // Draw all the platforms
-    for (uint8_t idx = 0; idx < numPlatforms; idx++)
+    wsg_t * currentSprite = getFighterSprite(ftr->currentSprite, &(f->loadedSprites));
+    if(FACING_RIGHT == ftr->dir)
     {
-        drawBox(d, platforms[idx].area, c555, !platforms[idx].canFallThrough, SF);
+        spritePos->x = ftr->pos.x >> SF;
+    }
+    else
+    {
+        spritePos->x = ((ftr->pos.x + ftr->originalSize.x) >> SF) - currentSprite->w;
+    }
+    spritePos->y = ftr->pos.y >> SF;
+
+    // If this is an attack frame
+    if(FS_ATTACK == ftr->state)
+    {
+        // Get a reference to the attack frame
+        attackFrame_t* atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
+        // Shift the sprite
+        spritePos->x += atk->sprite_offset.x;
+        spritePos->y += atk->sprite_offset.y;
+    }
+}
+
+/**
+ * Compose the current scene into a series of instructions to either render or
+ * send to another Swadge
+ * 
+ * @param stageIdx The index of the stage being fought on
+ * @param f1 One fighter to compose
+ * @param f2 The other fighter to compose
+ * @param projectiles A list of projectiles to compose
+ * @param outLen The length of the composed scene (output)
+ * @return int16_t* An array with the composed scene. This memory is allocated and must be freed
+ */
+int16_t * composeFighterScene(uint8_t stageIdx, fighter_t * f1, fighter_t * f2, list_t * projectiles, uint8_t * outLen)
+{
+    // Count number of projectiles
+    int16_t numProj = 0;
+    node_t* currentNode = projectiles->first;
+    while (currentNode != NULL)
+    {
+        numProj++;
+        // Iterate
+        currentNode = currentNode->next;
     }
 
-    // Draw the fighters
-    drawFighter(d, &f->fighters[0]);
-    drawFighter(d, &f->fighters[1]);
+    // Allocate array to store the data to render a scene
+    (*outLen) = (1 + 6 + 6 + (4 * numProj));
+    int16_t * scene = malloc(sizeof(int16_t) * (*outLen));
+    uint8_t scIdx = 0;
 
+    // Save Stage IDX
+    scene[scIdx++] = stageIdx;
+
+    vector_t spritePos;
+
+    // f1 position
+    getSpritePos(f1, &spritePos);
+    scene[scIdx++] = spritePos.x; // Save the final location for the sprite
+    scene[scIdx++] = spritePos.y;
+    scene[scIdx++] = f1->dir;
+    // f1 sprite
+    scene[scIdx++] = f1->currentSprite;
+    // f1 damage and stock
+    scene[scIdx++] = f1->damage;
+    scene[scIdx++] = f1->stocks;
+    
+    // f2 position
+    getSpritePos(f2, &spritePos);
+    scene[scIdx++] = spritePos.x; // Save the final location for the sprite
+    scene[scIdx++] = spritePos.y;
+    scene[scIdx++] = f2->dir;
+    // f2 sprite
+    scene[scIdx++] = f2->currentSprite;
+    // f2 damage and stock
+    scene[scIdx++] = f2->damage;
+    scene[scIdx++] = f2->stocks;
+
+    scene[scIdx++] = numProj;
     // Iterate through all the projectiles
-    node_t* currentNode = f->projectiles.first;
+    currentNode = projectiles->first;
     while (currentNode != NULL)
     {
         projectile_t* proj = currentNode->val;
 
-        // Draw the sprite
-        drawWsg(d, proj->sprite, proj->pos.x >> SF, proj->pos.y >> SF,
-                FACING_LEFT == proj->dir, false, 0);
-
-#if defined(DRAW_DEBUG_BOXES)
-        // Draw the projectile box
-        box_t projBox =
-        {
-            .x0 = proj->pos.x,
-            .y0 = proj->pos.y,
-            .x1 = proj->pos.x + proj->size.x,
-            .y1 = proj->pos.y + proj->size.y,
-        };
-        drawBox(d, projBox, c050, false, SF);
-#endif
+        scene[scIdx++] = proj->pos.x >> SF;
+        scene[scIdx++] = proj->pos.y >> SF;
+        scene[scIdx++] = proj->dir;
+        scene[scIdx++] = proj->sprite;
 
         // Iterate
         currentNode = currentNode->next;
     }
 
-    drawFighterHud(d, &f->mm_font, &f->fighters[0], &f->fighters[1]);
+    return scene;
+}
 
-    // drawMeleeMenu(d, &f->mm_font);
+/**
+ * Render the current frame to the display, including fighters, platforms, and
+ * projectiles, and HUD
+ *
+ * @param d The display to draw to
+ * @param scene The scene to draw
+ */
+void drawFighterScene(display_t* d, int16_t * scene)
+{
+    // First clear everything
+    d->clearPx();
+
+    // Read from scene
+    uint8_t scIdx = 0;
+    uint8_t stageIdx = scene[scIdx++];
+
+    // Draw the specified stage
+    const stage_t * stage = stages[stageIdx];
+    for (uint8_t idx = 0; idx < stage->numPlatforms; idx++)
+    {
+        platform_t platform = stage->platforms[idx];
+        drawBox(d, platform.area, c555, !platform.canFallThrough, SF);
+    }
+
+    // f1 position
+    int16_t f1_posX           = scene[scIdx++];
+    int16_t f1_posY           = scene[scIdx++];
+    fighterDirection_t f1_dir = scene[scIdx++];
+    int16_t f1_sprite         = scene[scIdx++];
+
+    // f1 damage and stock
+    int16_t f1_dmg   = scene[scIdx++];
+    int16_t f1_stock = scene[scIdx++];
+
+    // f2 position
+    int16_t f2_posX           = scene[scIdx++];
+    int16_t f2_posY           = scene[scIdx++];
+    fighterDirection_t f2_dir = scene[scIdx++];
+    int16_t f2_sprite         = scene[scIdx++];
+
+    // f2 damage and stock
+    int16_t f2_dmg   = scene[scIdx++];
+    int16_t f2_stock = scene[scIdx++];
+
+    // Actually draw fighters
+    drawWsg(d, getFighterSprite(f1_sprite, &(f->loadedSprites)), f1_posX, f1_posY, f1_dir, false, 0);
+    drawWsg(d, getFighterSprite(f2_sprite, &(f->loadedSprites)), f2_posX, f2_posY, f2_dir, false, 0);
+
+    // Iterate through projectiles
+    int16_t numProj = scene[scIdx++];
+    for (int16_t pIdx = 0; pIdx < numProj; pIdx++)
+    {
+        // Projectile position
+        int16_t proj_posX           = scene[scIdx++];
+        int16_t proj_posY           = scene[scIdx++];
+        fighterDirection_t proj_dir = scene[scIdx++];
+        int16_t proj_sprite         = scene[scIdx++];
+
+        // Actually draw projectile
+        drawWsg(d, getFighterSprite(proj_sprite, &(f->loadedSprites)), proj_posX, proj_posY, proj_dir, false, 0);
+    }
+
+    // Draw the HUD
+    drawFighterHud(d, &f->mm_font, f1_dmg, f1_stock, f2_dmg, f2_stock);
+
+    // Draw debug boxes, conditionally
+#ifdef DRAW_DEBUG_BOXES
+    drawFighterDebugBox(d, &(f->fighters[0]));
+    drawFighterDebugBox(d, &(f->fighters[1]));
+    drawProjectileDebugBox(d, &(f->projectiles));
+#endif
 }
 
 /**
@@ -1842,40 +1883,163 @@ void drawFighterFrame(display_t* d, const platform_t* platforms,
  *
  * @param d The display to draw to
  * @param font The font to use for the damage percentages
- * @param ftr1 The first fighter to draw damage percent for
- * @param ftr2 The second fighter to draw damage percent for
+ * @param f1_dmg Fighter one's damage
+ * @param f1_stock Fighter one's stocks
+ * @param f2_dmg Fighter two's damage
+ * @param f2_stock Fighter two's stocks
  */
-void drawFighterHud(display_t* d, font_t* font, fighter_t* ftr1, fighter_t* ftr2)
+void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock, int16_t f2_dmg, int16_t f2_stock)
 {
     char dmgStr[8];
     uint16_t tWidth;
     uint16_t xPos;
 
-#define SR 5
+#define SR 5 // Stock radius
     int16_t stockX = (d->w / 3) - (2 * SR) - 3;
-    for(uint8_t stockToDraw = 0; stockToDraw < ftr1->stocks; stockToDraw++)
+    for(uint8_t stockToDraw = 0; stockToDraw < f1_stock; stockToDraw++)
     {
         plotCircleFilled(d, stockX, d->h - font->h - 4 - (SR * 2), SR, c550);
         stockX += ((2 * SR) + 3);
     }
 
-    snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", ftr1->damage);
+    snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", f1_dmg);
     tWidth = textWidth(font, dmgStr);
     xPos = (d->w / 3) - (tWidth / 2);
     drawText(d, font, c555, dmgStr, xPos, d->h - font->h - 2);
 
     stockX = (2 * (d->w / 3)) - (2 * SR) - 3;
-    for(uint8_t stockToDraw = 0; stockToDraw < ftr2->stocks; stockToDraw++)
+    for(uint8_t stockToDraw = 0; stockToDraw < f2_stock; stockToDraw++)
     {
         plotCircleFilled(d, stockX, d->h - font->h - 4 - (SR * 2), SR, c550);
         stockX += ((2 * SR) + 3);
     }
 
-    snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", ftr2->damage);
+    snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", f2_dmg);
     tWidth = textWidth(font, dmgStr);
     xPos = (2 * (d->w / 3)) - (tWidth / 2);
     drawText(d, font, c555, dmgStr, xPos, d->h - font->h - 2);
 }
+
+#ifdef DRAW_DEBUG_BOXES
+/**
+ * Draw debug hit and hurt boxes around a fighter
+ * 
+ * @param d The display to draw to
+ * @param fighter The fighter to draw debug boxes for
+ */
+void drawFighterDebugBox(display_t * d, fighter_t * ftr)
+{
+     // Pick the color based on state
+     paletteColor_t hitboxColor = c500;
+     switch(ftr->state)
+     {
+         case FS_STARTUP:
+         {
+             hitboxColor = c502;
+             break;
+         }
+         case FS_ATTACK:
+         {
+             hitboxColor = c303;
+             break;
+         }
+         case FS_COOLDOWN:
+         {
+             hitboxColor = c205;
+             break;
+         }
+         case FS_HITSTUN:
+         {
+             hitboxColor = c040;
+             break;
+         }
+         case FS_IDLE:
+         case FS_RUNNING:
+         case FS_DUCKING:
+         case FS_JUMPING:
+         {
+             hitboxColor = c500;
+             break;
+         }
+     }
+
+     // Override color if invincible
+     if(ftr->isInvincible)
+     {
+         hitboxColor = c333;
+     }
+
+     // Draw an outline
+     box_t hurtbox;
+     getHurtbox(ftr, &hurtbox);
+     drawBox(d, hurtbox, hitboxColor, false, SF);
+
+     // Draw the hitbox if attacking
+     if(FS_ATTACK == ftr->state)
+     {
+         // Get a reference to the attack frame
+         attackFrame_t* atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
+
+         // For each hitbox in this frame
+         for(uint8_t hbIdx = 0; hbIdx < atk->numHitboxes; hbIdx++)
+         {
+             attackHitbox_t* hbx = &atk->hitboxes[hbIdx];
+
+             // If this isn't a projectile attack, draw it
+             if(!hbx->isProjectile)
+             {
+                 // Figure out where the hitbox is relative to the fighter
+                 box_t relativeHitbox;
+                 getHurtbox(ftr, &relativeHitbox);
+                 if(FACING_RIGHT == ftr->dir)
+                 {
+                     relativeHitbox.x0 += hbx->hitboxPos.x;
+                     relativeHitbox.x1 = relativeHitbox.x0 + hbx->hitboxSize.x;
+                 }
+                 else
+                 {
+                     // reverse the hitbox if dashing and facing left
+                     relativeHitbox.x1 = relativeHitbox.x0 + ftr->size.x - hbx->hitboxPos.x;
+                     relativeHitbox.x0 = relativeHitbox.x1 - hbx->hitboxSize.x;
+                 }
+                 relativeHitbox.y0 += hbx->hitboxPos.y;
+                 relativeHitbox.y1 = relativeHitbox.y0 + hbx->hitboxSize.y;
+                 // Draw the hitbox
+                 drawBox(d, relativeHitbox, c440, false, SF);
+             }
+         }
+     }
+}
+
+/**
+ * Draw debug hit and hurt boxes around projectiles
+ * 
+ * @param d The display to draw to
+ * @param projectiles a list of projectiles to draw debug boxes around
+ */
+void drawProjectileDebugBox(display_t * d, list_t * projectiles)
+{
+     // Iterate through all the projectiles
+     node_t* currentNode = projectiles->first;
+     while (currentNode != NULL)
+     {
+         projectile_t* proj = currentNode->val;
+
+         // Draw the projectile box
+         box_t projBox =
+         {
+             .x0 = proj->pos.x,
+             .y0 = proj->pos.y,
+             .x1 = proj->pos.x + proj->size.x,
+             .y1 = proj->pos.y + proj->size.y,
+         };
+         drawBox(d, projBox, c050, false, SF);
+
+         // Iterate
+         currentNode = currentNode->next;
+     }
+}
+#endif /* DRAW_DEBUG_BOXES */
 
 /**
  * Save the button state for processing
