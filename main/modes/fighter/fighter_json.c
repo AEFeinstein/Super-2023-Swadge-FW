@@ -850,7 +850,7 @@ void freeFighterData(fighter_t* fighters, uint8_t numFighters)
 /**
  * Load a sprite, or return a pointer to that sprite if it's already loaded.
  * When loading a sprite, add it to loadedSprites.
- * 
+ *
  * TODO optimize sprite IDX
  *
  * @param name The name of the sprite to load
@@ -898,14 +898,14 @@ uint8_t loadFighterSprite(char* name, list_t* loadedSprites)
 
 /**
  * Get a sprite given the sprite's index
- * 
+ *
  * TODO optimize sprite IDX
- * 
+ *
  * @param spriteIdx The index to get a sprite for
  * @param loadedSprites A list of loaded sprites
  * @return wsg_t* The sprite that corresponds to this index
  */
-wsg_t * getFighterSprite(uint8_t spriteIdx, list_t* loadedSprites)
+wsg_t* getFighterSprite(uint8_t spriteIdx, list_t* loadedSprites)
 {
     // Iterate through the list of loaded sprites and look to see if this
     // has been loaded already. If so, return it

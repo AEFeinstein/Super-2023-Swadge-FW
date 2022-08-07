@@ -27,7 +27,7 @@ typedef enum
 
 typedef enum
 {
-    FACING_RIGHT=0,
+    FACING_RIGHT = 0,
     FACING_LEFT
 } fighterDirection_t;
 
