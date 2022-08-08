@@ -196,9 +196,12 @@ typedef struct
 } projectile_t;
 
 //==============================================================================
-// Extern variables
+// Functions
 //==============================================================================
 
-extern swadgeMode modeFighter;
+void fighterStartGame(display_t* disp, font_t* mmFont);
+void fighterExitGame(void);
+void fighterGameLoop(int64_t elapsedUs);
+void fighterGameButtonCb(buttonEvt_t* evt);
 
 #endif

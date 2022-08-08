@@ -46,18 +46,13 @@ typedef struct
     list_t projectiles;
     list_t loadedSprites;
     display_t* d;
-    font_t mm_font;
+    font_t* mm_font;
     uint8_t stageIdx;
 } fightingGame_t;
 
 //==============================================================================
 // Function Prototypes
 //==============================================================================
-
-void fighterEnterMode(display_t* disp);
-void fighterExitMode(void);
-void fighterMainLoop(int64_t elapsedUs);
-void fighterButtonCb(buttonEvt_t* evt);
 
 void getHurtbox(fighter_t* ftr, box_t* hurtbox);
 #define setFighterState(f, st, sp, tm) _setFighterState(f, st, sp, tm, __LINE__);
@@ -86,7 +81,6 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
 // void fighterAccelerometerCb(accel_t* accel);
 // void fighterAudioCb(uint16_t * samples, uint32_t sampleCnt);
 // void fighterTemperatureCb(float tmp_c);
-// void fighterButtonCb(buttonEvt_t* evt);
 // void fighterTouchCb(touch_event_t* evt);
 // void fighterEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 // void fighterEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
@@ -99,23 +93,7 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
 // Variables
 //==============================================================================
 
-static fightingGame_t* f;
-
-swadgeMode modeFighter =
-{
-    .modeName = "Fighter",
-    .fnEnterMode = fighterEnterMode,
-    .fnExitMode = fighterExitMode,
-    .fnMainLoop = fighterMainLoop,
-    .fnButtonCallback = fighterButtonCb,
-    .fnTouchCallback = NULL, // fighterTouchCb,
-    .wifiMode = NO_WIFI, // ESP_NOW,
-    .fnEspNowRecvCb = NULL, // fighterEspNowRecvCb,
-    .fnEspNowSendCb = NULL, // fighterEspNowSendCb,
-    .fnAccelerometerCallback = NULL, // fighterAccelerometerCb,
-    .fnAudioCallback = NULL, // fighterAudioCb,
-    .fnTemperatureCallback = NULL, // fighterTemperatureCb
-};
+static fightingGame_t* f = NULL;
 
 static const stage_t battlefield =
 {
@@ -198,8 +176,9 @@ static const stage_t* stages[] =
  * Initialize all data needed for the fighter game
  *
  * @param disp The display to draw to
+ * @param mmFont The font to use for the HUD, already loaded
  */
-void fighterEnterMode(display_t* disp)
+void fighterStartGame(display_t* disp, font_t* mmFont)
 {
     // Allocate base memory for the mode
     f = malloc(sizeof(fightingGame_t));
@@ -209,7 +188,7 @@ void fighterEnterMode(display_t* disp)
     f->d = disp;
 
     // Load a font
-    loadFont("mm.font", &f->mm_font);
+    f->mm_font = mmFont;
 
     // Load fighter data
     f->fighters = loadJsonFighterData(&(f->numFighters), &(f->loadedSprites));
@@ -262,26 +241,27 @@ void fighterEnterMode(display_t* disp)
 /**
  * Free all data needed for the fighter game
  */
-void fighterExitMode(void)
+void fighterExitGame(void)
 {
-    // Free any stray projectiles
-    projectile_t* toFree;
-    while (NULL != (toFree = pop(&f->projectiles)))
+    if(NULL != f)
     {
-        free(toFree);
+        // Free any stray projectiles
+        projectile_t* toFree;
+        while (NULL != (toFree = pop(&f->projectiles)))
+        {
+            free(toFree);
+        }
+
+        // Free fighter data
+        freeFighterData(f->fighters, f->numFighters);
+
+        // Free sprites
+        freeFighterSprites(&(f->loadedSprites));
+
+        // Free game data
+        free(f);
+        f = NULL;
     }
-
-    // Free fighter data
-    freeFighterData(f->fighters, f->numFighters);
-
-    // Free sprites
-    freeFighterSprites(&(f->loadedSprites));
-
-    // Free font
-    freeFont(&f->mm_font);
-
-    // Free game data
-    free(f);
 }
 
 /**
@@ -406,7 +386,7 @@ void setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* to
  *
  * @param elapsedUs The time elapsed since the last time this was called
  */
-void fighterMainLoop(int64_t elapsedUs)
+void fighterGameLoop(int64_t elapsedUs)
 {
     // Keep track of time and only calculate frames every FRAME_TIME_MS
     f->frameElapsed += elapsedUs;
@@ -1755,7 +1735,7 @@ int16_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, lis
     }
 
     // Allocate array to store the data to render a scene
-    (*outLen) = (1 + 6 + 6 + (4 * numProj));
+    (*outLen) = (1 + 6 + 6 + 1 + (4 * numProj));
     int16_t* scene = malloc(sizeof(int16_t) * (*outLen));
     uint8_t scIdx = 0;
 
@@ -1868,7 +1848,7 @@ void drawFighterScene(display_t* d, int16_t* scene)
     }
 
     // Draw the HUD
-    drawFighterHud(d, &f->mm_font, f1_dmg, f1_stock, f2_dmg, f2_stock);
+    drawFighterHud(d, f->mm_font, f1_dmg, f1_stock, f2_dmg, f2_stock);
 
     // Draw debug boxes, conditionally
 #ifdef DRAW_DEBUG_BOXES
@@ -2046,7 +2026,7 @@ void drawProjectileDebugBox(display_t* d, list_t* projectiles)
  *
  * @param evt The button event to save
  */
-void fighterButtonCb(buttonEvt_t* evt)
+void fighterGameButtonCb(buttonEvt_t* evt)
 {
     // Save the state to check synchronously
     f->fighters[0].btnState = evt->state;

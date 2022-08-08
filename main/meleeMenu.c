@@ -62,6 +62,20 @@ meleeMenu_t* initMeleeMenu(const char* title, font_t* font, meleeMenuCb cbFunc)
 }
 
 /**
+ * @brief Clear all rows and reset the menu title
+ * 
+ * @param menu The menu to reset
+ * @param title The new title to display
+ */
+void resetMeleeMenu(meleeMenu_t* menu, const char* title)
+{
+    menu->title = title;
+    menu->numRows = 0;
+    menu->selectedRow = 0;
+    memset(&menu->rows, 0, MAX_ROWS * sizeof(const char*));
+}
+
+/**
  * Deinitialize a melee menu
  *
  * @param menu A pointer to the meleeMenu_t to deinitialize.
