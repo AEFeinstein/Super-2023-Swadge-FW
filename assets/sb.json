@@ -2,8 +2,13 @@
    "name":"Sandbag",
    "gravity":8192,
    "run_decel":13000,
-   "size_x":24,
-   "size_y":24,
-   "idle_spr_0":"ki0.wsg",
-   "idle_spr_1":"ki1.wsg"
+   "size_x":22,
+   "size_y":26,
+   "idle_spr_0":"sbi.wsg",
+   "idle_spr_1":"sbi.wsg",
+   "run_spr_0":"sbi.wsg",
+   "run_spr_1":"sbi.wsg",
+   "jump_spr":"sbi.wsg",
+   "duck_spr":"sbi.wsg",
+   "land_lag_spr":"sbi.wsg"
 }
