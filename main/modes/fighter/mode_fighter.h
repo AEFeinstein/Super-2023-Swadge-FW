@@ -58,6 +58,26 @@ typedef enum
     NO_ATTACK
 } attackOrder_t;
 
+typedef enum
+{
+    KING_DONUT,
+    SUNNY,
+    BIG_FUNKUS,
+    SANDBAG
+} fightingCharacter_t;
+
+typedef enum
+{
+    BATTLEFIELD,
+    FINAL_DESTINATION,
+    HR_STADIUM
+} fightingStage_t;
+
+typedef enum{
+    HR_CONTEST,
+    MULTIPLAYER
+} fightingGameType_t;
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -199,7 +219,8 @@ typedef struct
 // Functions
 //==============================================================================
 
-void fighterStartGame(display_t* disp, font_t* mmFont);
+void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
+    fightingCharacter_t * fightingCharacter, fightingStage_t stage);
 void fighterExitGame(void);
 void fighterGameLoop(int64_t elapsedUs);
 void fighterGameButtonCb(buttonEvt_t* evt);

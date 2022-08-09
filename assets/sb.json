@@ -1,0 +1,9 @@
+{
+   "name":"Sandbag",
+   "gravity":8192,
+   "run_decel":13000,
+   "size_x":24,
+   "size_y":24,
+   "idle_spr_0":"ki0.wsg",
+   "idle_spr_1":"ki1.wsg"
+}

@@ -112,16 +112,16 @@ static bool jsonBoolean(const char* jsonStr, jsmntok_t tok)
 //==============================================================================
 
 /**
- * @brief Parse fighter attributes from a JSON file and return them in struct form
- *
- * @param numFighters The number of fighters will be written to this pointer
+ * @brief Parse fighter attributes from a JSON file into the given pointer
+ * 
+ * @param fighter The fighter_t struct to load a fighter into
+ * @param jsonFile The JSON file to load data from
  * @param loadedSprites A list of loaded sprites. Will be filled with sprites
- * @return A pointer to the allocated fighter attribute data
  */
-fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
+void loadJsonFighterData(fighter_t* fighter, const char* jsonFile, list_t* loadedSprites)
 {
     // Load the json string
-    char* jsonStr = loadJson("test.json");
+    char* jsonStr = loadJson(jsonFile);
 
     // Allocate a bunch of tokens
     jsmn_parser p;
@@ -135,69 +135,16 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
     {
         ESP_LOGE("FTR", "Failed to parse JSON: %d\n", numToks);
         free(toks);
-        return NULL;
     }
     else
     {
         ESP_LOGI("FTR", "numToks = %d", numToks);
     }
 
-    // Pointer to allocate memory for later
-    fighter_t* fighters = NULL;
+    // Load the fighter
+    parseJsonFighter(jsonStr, toks, tokIdx, loadedSprites, fighter);
 
-    ////////////////////////////////////////////////////////////////////////////
-
-    // Each attack is an object
-    if(JSMN_OBJECT != toks[tokIdx].type)
-    {
-        ESP_LOGE("JSON", "Non-object!!");
-    }
-
-    // Keep track of fields so we know when we're done
-    uint8_t numFieldsParsed = 0;
-    uint8_t numFieldsToParse = toks[tokIdx].size;
-
-    // Move to the first field
-    tokIdx++;
-
-    // Parse the tokens
-    while(true)
-    {
-        if(JSMN_STRING == toks[tokIdx].type)
-        {
-            if (0 == jsoneq(jsonStr, &toks[tokIdx], "fighters"))
-            {
-                tokIdx++;
-
-                // Allocate space for the fighters
-                *numFighters = toks[tokIdx].size;
-                fighters = calloc(sizeof(fighter_t), *numFighters);
-
-                // Move to the next token
-                tokIdx++;
-
-                // Parse each fighter
-                for(int32_t fighterIdx = 0; fighterIdx < *numFighters; fighterIdx++)
-                {
-                    // Sum up the number of tokens this fighter parsed
-                    tokIdx = parseJsonFighter(jsonStr, toks, tokIdx, loadedSprites, &fighters[fighterIdx]);
-                }
-
-                numFieldsParsed++;
-            }
-        }
-        else
-        {
-            ESP_LOGE("JSON", "Non-string key!!");
-        }
-
-        // Check to return
-        if(numFieldsParsed == numFieldsToParse)
-        {
-            return fighters;
-        }
-    }
-    return fighters;
+    free(toks);
 }
 
 /**
@@ -834,17 +781,13 @@ void freeFighterData(fighter_t* fighters, uint8_t numFighters)
             for(uint8_t atkFrameIdx = 0; atkFrameIdx < atk->numAttackFrames; atkFrameIdx++)
             {
                 attackFrame_t* frm = &atk->attackFrames[atkFrameIdx];
-                // for(uint8_t hbIdx = 0; hbIdx < frm->numHitboxes; hbIdx++)
-                // {
-                //     attackHitbox_t * hbx = &frm->hitboxes[hbIdx];
-                // }
                 free(frm->hitboxes);
             }
             free(atk->attackFrames);
         }
         // attacks isn't dynamically allocated
     }
-    free(fighters);
+    // Fighters aren't dynamically allocated
 }
 
 /**

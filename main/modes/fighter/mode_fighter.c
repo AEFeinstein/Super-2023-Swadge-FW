@@ -41,13 +41,14 @@
 typedef struct
 {
     int64_t frameElapsed;
-    fighter_t* fighters;
+    fighter_t fighters[2];
     uint8_t numFighters;
     list_t projectiles;
     list_t loadedSprites;
     display_t* d;
     font_t* mm_font;
-    uint8_t stageIdx;
+    fightingStage_t stageIdx;
+    fightingGameType_t type;
 } fightingGame_t;
 
 //==============================================================================
@@ -162,10 +163,30 @@ static const stage_t finalDest =
     }
 };
 
+static const stage_t hrStadium =
+{
+    .numPlatforms = 1,
+    .platforms =
+    {
+        {
+            .area =
+            {
+                .x0 = (32) << SF,
+                .y0 = (200) << SF,
+                .x1 = (240 - 32) << SF,
+                .y1 = (200 + 4) << SF,
+            },
+            .canFallThrough = false
+        }
+    }
+};
+
+// Keep in sync with fightingStage_t
 static const stage_t* stages[] =
 {
     &battlefield,
-    &finalDest
+    &finalDest,
+    &hrStadium
 };
 
 //==============================================================================
@@ -174,11 +195,15 @@ static const stage_t* stages[] =
 
 /**
  * Initialize all data needed for the fighter game
- *
+ * 
  * @param disp The display to draw to
  * @param mmFont The font to use for the HUD, already loaded
+ * @param type The type of game to play
+ * @param fightingCharacter Two characters to load
+ * @param stage The stage to fight on
  */
-void fighterStartGame(display_t* disp, font_t* mmFont)
+void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
+    fightingCharacter_t * fightingCharacter, fightingStage_t stage)
 {
     // Allocate base memory for the mode
     f = malloc(sizeof(fightingGame_t));
@@ -190,31 +215,66 @@ void fighterStartGame(display_t* disp, font_t* mmFont)
     // Load a font
     f->mm_font = mmFont;
 
+    // Keep track of the game type
+    f->type = type;
+
+    // Keep track of the stage
+    f->stageIdx = stage;
+
     // Load fighter data
-    f->fighters = loadJsonFighterData(&(f->numFighters), &(f->loadedSprites));
-    setFighterRelPos(&(f->fighters[0]), NOT_TOUCHING_PLATFORM, NULL, NULL, true);
-    setFighterRelPos(&(f->fighters[1]), NOT_TOUCHING_PLATFORM, NULL, NULL, true);
+    for(int i = 0; i < 2; i++)
+    {
+        switch (fightingCharacter[i])
+        {
+            case KING_DONUT:
+            {
+                loadJsonFighterData(&f->fighters[i], "kd.json", &(f->loadedSprites));
+                break;
+            }
+            case SUNNY:
+            {
+                loadJsonFighterData(&f->fighters[i], "sn.json", &(f->loadedSprites));
+                break;
+            }
+            case BIG_FUNKUS:
+            {
+                loadJsonFighterData(&f->fighters[i], "bf.json", &(f->loadedSprites));
+                break;
+            }
+            case SANDBAG:
+            {
+                loadJsonFighterData(&f->fighters[i], "sb.json", &(f->loadedSprites));
+                break;
+            }
+        }
+        setFighterRelPos(&(f->fighters[i]), NOT_TOUCHING_PLATFORM, NULL, NULL, true);
+        f->fighters[i].cAttack = NO_ATTACK;
+        // Invincible after spawning
+        f->fighters[i].iFrameTimer = IFRAMES_AFTER_SPAWN;
+        f->fighters[i].isInvincible = true;
 
-    f->fighters[0].cAttack = NO_ATTACK;
-    f->fighters[1].cAttack = NO_ATTACK;
+        // Set the initial sprites
+        setFighterState((&f->fighters[i]), FS_IDLE, f->fighters[i].idleSprite0, 0);
 
-    // Invincible after spawning
-    f->fighters[0].iFrameTimer = IFRAMES_AFTER_SPAWN;
-    f->fighters[0].isInvincible = true;
-    f->fighters[1].iFrameTimer = IFRAMES_AFTER_SPAWN;
-    f->fighters[1].isInvincible = true;
+        // Start both fighters in the middle of the stage
+        f->fighters[i].pos.x = (f->d->w / 2) << SF;
 
-    // Set the initial sprites
-    setFighterState((&f->fighters[0]), FS_IDLE, f->fighters[0].idleSprite0, 0);
-    setFighterState((&f->fighters[1]), FS_IDLE, f->fighters[1].idleSprite0, 0);
-
-    // Start both fighters in the middle of the stage
-    f->fighters[0].pos.x = (f->d->w / 2) << SF;
-    f->fighters[1].pos.x = (f->d->w / 2) << SF;
-
-    // Start with three stocks
-    f->fighters[0].stocks = 3;
-    f->fighters[1].stocks = 3;
+        switch(type)
+        {
+            case MULTIPLAYER:
+            {
+                // Start with three stocks
+                f->fighters[i].stocks = 3;
+                break;
+            }
+            case HR_CONTEST:
+            {
+                // No stocks for HR Contest
+                f->fighters[i].stocks = 0;
+                break;
+            }
+        }
+    }
 
     // Set some LEDs, just because
     // static led_t leds[NUM_LEDS] =

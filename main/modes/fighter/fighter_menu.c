@@ -220,8 +220,8 @@ void fighterMenuCb(const char* opt)
         if(fm->menu->title == str_hrContest)
         {
             // Selection in Home Run Contest
-            ESP_LOGI("FTR", "King Donut Home Run!");
-            fighterStartGame(fm->disp, &fm->mmFont);
+            fightingCharacter_t fChars[] = {KING_DONUT, SANDBAG};
+            fighterStartGame(fm->disp, &fm->mmFont, HR_CONTEST, fChars, HR_STADIUM);
             fm->screen = FIGHTER_GAME;
         }
         else if(fm->menu->title == str_multiplayer)
@@ -237,8 +237,8 @@ void fighterMenuCb(const char* opt)
         if(fm->menu->title == str_hrContest)
         {
             // Selection in Home Run Contest
-            ESP_LOGI("FTR", "Sunny Home Run!");
-            fighterStartGame(fm->disp, &fm->mmFont);
+            fightingCharacter_t fChars[] = {SUNNY, SANDBAG};
+            fighterStartGame(fm->disp, &fm->mmFont, HR_CONTEST, fChars, HR_STADIUM);
             fm->screen = FIGHTER_GAME;
         }
         else if(fm->menu->title == str_multiplayer)
@@ -254,8 +254,8 @@ void fighterMenuCb(const char* opt)
         if(fm->menu->title == str_hrContest)
         {
             // Selection in Home Run Contest
-            ESP_LOGI("FTR", "Big Funkus Home Run!");
-            fighterStartGame(fm->disp, &fm->mmFont);
+            fightingCharacter_t fChars[] = {BIG_FUNKUS, SANDBAG};
+            fighterStartGame(fm->disp, &fm->mmFont, HR_CONTEST, fChars, HR_STADIUM);
             fm->screen = FIGHTER_GAME;
         }
         else if(fm->menu->title == str_multiplayer)

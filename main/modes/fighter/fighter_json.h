@@ -4,7 +4,7 @@
 #include "mode_fighter.h"
 #include "linked_list.h"
 
-fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites);
+void loadJsonFighterData(fighter_t* fighter, const char* jsonFile, list_t* loadedSprites);
 void freeFighterData(fighter_t* fighter, uint8_t numFighters);
 
 void freeFighterSprites(list_t* loadedSprites);
