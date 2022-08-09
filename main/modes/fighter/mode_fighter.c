@@ -34,6 +34,8 @@
 #define IFRAMES_AFTER_SPAWN ((3 * 1000) / FRAME_TIME_MS) // 3 seconds
 #define DRAW_DEBUG_BOXES
 
+#define NUM_FIGHTERS 2
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -41,8 +43,7 @@
 typedef struct
 {
     int64_t frameElapsed;
-    fighter_t fighters[2];
-    uint8_t numFighters;
+    fighter_t fighters[NUM_FIGHTERS];
     list_t projectiles;
     list_t loadedSprites;
     display_t* d;
@@ -222,7 +223,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
     f->stageIdx = stage;
 
     // Load fighter data
-    for(int i = 0; i < 2; i++)
+    for(int i = 0; i < NUM_FIGHTERS; i++)
     {
         switch (fightingCharacter[i])
         {
@@ -313,7 +314,7 @@ void fighterExitGame(void)
         }
 
         // Free fighter data
-        freeFighterData(f->fighters, f->numFighters);
+        freeFighterData(f->fighters, NUM_FIGHTERS);
 
         // Free sprites
         freeFighterSprites(&(f->loadedSprites));
@@ -1613,7 +1614,7 @@ void checkFighterProjectileCollisions(list_t* projectiles)
         bool removeProjectile = false;
 
         // For each fighter
-        for(uint8_t i = 0; i < f->numFighters; i++)
+        for(uint8_t i = 0; i < NUM_FIGHTERS; i++)
         {
             // Get a convenience pointer
             fighter_t* ftr = &f->fighters[i];
