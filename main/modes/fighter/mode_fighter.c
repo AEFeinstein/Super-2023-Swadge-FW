@@ -1931,7 +1931,7 @@ void drawFighterScene(display_t* d, int16_t* scene)
  */
 void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock, int16_t f2_dmg, int16_t f2_stock)
 {
-    char dmgStr[8];
+    char dmgStr[16];
     uint16_t tWidth;
     uint16_t xPos;
 

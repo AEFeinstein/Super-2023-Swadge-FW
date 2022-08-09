@@ -2,6 +2,7 @@
 #define _LED_H_
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "hal/gpio_types.h"
 #include "driver/rmt.h"
 #include "led_strip.h"

@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "led_util.h"
+#include "swadgeMode.h"
+
 #include "bresenham.h"
 #include "meleeMenu.h"
 
@@ -16,6 +19,15 @@
 static const paletteColor_t borderColors[MAX_ROWS] =
 {
     c112, c211, c021, c221, c102
+};
+
+static const led_t borderLedColors[MAX_ROWS] =
+{
+    {.r = 0x10, .g = 0x10, .b = 0x20},
+    {.r = 0x20, .g = 0x10, .b = 0x10},
+    {.r = 0x00, .g = 0x20, .b = 0x10},
+    {.r = 0x20, .g = 0x20, .b = 0x10},
+    {.r = 0x10, .g = 0x00, .b = 0x20}
 };
 
 // X axis offset for each row
@@ -224,6 +236,13 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
                           rowOffsets[row], (yIdx += (menu->font->h + 7)),
                           (row == menu->selectedRow));
     }
+
+    led_t leds[NUM_LEDS] = {0};
+    for(uint8_t i = 0; i < NUM_LEDS; i++)
+    {
+        leds[i] = borderLedColors[menu->selectedRow];
+    }
+    setLeds(leds, NUM_LEDS);
 }
 
 /**

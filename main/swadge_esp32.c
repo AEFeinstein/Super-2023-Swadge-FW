@@ -48,7 +48,7 @@
 
 #include "mode_main_menu.h"
 #include "mode_demo.h"
-#include "mode_fighter.h"
+#include "fighter_menu.h""
 #include "mode_gamepad.h"
 
 #include "driver/gpio.h"
