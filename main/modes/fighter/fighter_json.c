@@ -248,6 +248,24 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
                 tokIdx++;
                 numFieldsParsed++;
             }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "hitstun_ground_sprite"))
+            {
+                tokIdx++;
+                char* name = jsonString(jsonStr, toks[tokIdx]);
+                ftr->hitstunGroundSprite = loadFighterSprite(name, loadedSprites);
+                free(name);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "hitstun_air_sprite"))
+            {
+                tokIdx++;
+                char* name = jsonString(jsonStr, toks[tokIdx]);
+                ftr->hitstunAirSprite = loadFighterSprite(name, loadedSprites);
+                free(name);
+                tokIdx++;
+                numFieldsParsed++;
+            }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "gravity"))
             {
                 tokIdx++;

@@ -1567,14 +1567,16 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         }
                         otherFtr->velocity.y += ((hbx->knockback.y * knockbackScalar) / 64);
 
-                        // Apply hitstun, scaled by defendant's percentage
-                        setFighterState(otherFtr, FS_HITSTUN, otherFtr->currentSprite, hbx->hitstun * (1 + (otherFtr->damage / 32)));
-
                         // Knock the fighter into the air
                         if(!otherFtr->isInAir)
                         {
                             setFighterRelPos(otherFtr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
                         }
+
+                        // Apply hitstun, scaled by defendant's percentage
+                        setFighterState(otherFtr, FS_HITSTUN,
+                            otherFtr->isInAir ? otherFtr->hitstunAirSprite : otherFtr->hitstunGroundSprite,
+                            hbx->hitstun * (1 + (otherFtr->damage / 32)));
 
                         // Break out of the for loop so that only one hitbox hits
                         break;
@@ -1643,14 +1645,16 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                     }
                     ftr->velocity.y += ((proj->knockback.y * knockbackScalar) / 64);
 
-                    // Apply hitstun, scaled by defendant's percentage
-                    setFighterState(ftr, FS_HITSTUN, ftr->currentSprite, proj->hitstun * (1 + (ftr->damage / 32)));
-
                     // Knock the fighter into the air
                     if(!ftr->isInAir)
                     {
                         setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
                     }
+
+                    // Apply hitstun, scaled by defendant's percentage
+                    setFighterState(ftr, FS_HITSTUN,
+                        ftr->isInAir ? ftr->hitstunAirSprite : ftr->hitstunGroundSprite,
+                        proj->hitstun * (1 + (ftr->damage / 32)));
 
                     // Mark this projectile for removal
                     removeProjectile = true;

@@ -16,6 +16,8 @@
    "jump_spr":"kj0.wsg",
    "duck_spr":"kd0.wsg",
    "land_lag_spr":"ki0.wsg",
+   "hitstun_ground_sprite":"ki0.wsg",
+   "hitstun_air_sprite":"ki0.wsg",
    "attacks":[
       {
          "type":"utilt",

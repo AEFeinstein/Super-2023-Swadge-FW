@@ -176,6 +176,8 @@ typedef struct
     uint8_t jumpSprite;
     uint8_t duckSprite;
     uint8_t landingLagSprite;
+    uint8_t hitstunGroundSprite;
+    uint8_t hitstunAirSprite;
     /* Input Tracking */
     int32_t prevBtnState;
     int32_t btnState;
