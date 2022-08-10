@@ -242,6 +242,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
                 break;
             }
             case SANDBAG:
+            case NO_CHARACTER:
             {
                 loadJsonFighterData(&f->fighters[i], "sb.json", &(f->loadedSprites));
                 break;
