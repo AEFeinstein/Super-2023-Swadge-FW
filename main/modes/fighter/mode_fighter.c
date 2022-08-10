@@ -173,9 +173,9 @@ static const stage_t hrStadium =
             .area =
             {
                 .x0 = (32) << SF,
-                .y0 = (200) << SF,
-                .x1 = (240 - 32) << SF,
-                .y1 = (200 + 4) << SF,
+                           .y0 = (200) << SF,
+                           .x1 = (240 - 32) << SF,
+                           .y1 = (200 + 4) << SF,
             },
             .canFallThrough = false
         }
@@ -196,7 +196,7 @@ static const stage_t* stages[] =
 
 /**
  * Initialize all data needed for the fighter game
- * 
+ *
  * @param disp The display to draw to
  * @param mmFont The font to use for the HUD, already loaded
  * @param type The type of game to play
@@ -204,11 +204,10 @@ static const stage_t* stages[] =
  * @param stage The stage to fight on
  */
 void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
-    fightingCharacter_t * fightingCharacter, fightingStage_t stage)
+                      fightingCharacter_t* fightingCharacter, fightingStage_t stage)
 {
     // Allocate base memory for the mode
-    f = malloc(sizeof(fightingGame_t));
-    memset(f, 0, sizeof(fightingGame_t));
+    f = calloc(1, sizeof(fightingGame_t));
 
     // Save the display
     f->d = disp;
@@ -1575,8 +1574,8 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
 
                         // Apply hitstun, scaled by defendant's percentage
                         setFighterState(otherFtr, FS_HITSTUN,
-                            otherFtr->isInAir ? otherFtr->hitstunAirSprite : otherFtr->hitstunGroundSprite,
-                            hbx->hitstun * (1 + (otherFtr->damage / 32)));
+                                        otherFtr->isInAir ? otherFtr->hitstunAirSprite : otherFtr->hitstunGroundSprite,
+                                        hbx->hitstun * (1 + (otherFtr->damage / 32)));
 
                         // Break out of the for loop so that only one hitbox hits
                         break;
@@ -1653,8 +1652,8 @@ void checkFighterProjectileCollisions(list_t* projectiles)
 
                     // Apply hitstun, scaled by defendant's percentage
                     setFighterState(ftr, FS_HITSTUN,
-                        ftr->isInAir ? ftr->hitstunAirSprite : ftr->hitstunGroundSprite,
-                        proj->hitstun * (1 + (ftr->damage / 32)));
+                                    ftr->isInAir ? ftr->hitstunAirSprite : ftr->hitstunGroundSprite,
+                                    proj->hitstun * (1 + (ftr->damage / 32)));
 
                     // Mark this projectile for removal
                     removeProjectile = true;

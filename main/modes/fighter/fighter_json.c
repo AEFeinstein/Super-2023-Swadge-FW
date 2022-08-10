@@ -113,7 +113,7 @@ static bool jsonBoolean(const char* jsonStr, jsmntok_t tok)
 
 /**
  * @brief Parse fighter attributes from a JSON file into the given pointer
- * 
+ *
  * @param fighter The fighter_t struct to load a fighter into
  * @param jsonFile The JSON file to load data from
  * @param loadedSprites A list of loaded sprites. Will be filled with sprites

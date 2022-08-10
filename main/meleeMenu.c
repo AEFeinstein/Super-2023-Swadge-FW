@@ -78,12 +78,15 @@ meleeMenu_t* initMeleeMenu(const char* title, font_t* font, meleeMenuCb cbFunc)
  * 
  * @param menu The menu to reset
  * @param title The new title to display
+ * @param cbFunc The function to call when a menu option is selected. The
+ *               argument to the callback will be the same pointer
  */
-void resetMeleeMenu(meleeMenu_t* menu, const char* title)
+void resetMeleeMenu(meleeMenu_t* menu, const char* title, meleeMenuCb cbFunc)
 {
     menu->title = title;
     menu->numRows = 0;
     menu->selectedRow = 0;
+    menu->cbFunc = cbFunc;
     memset(&menu->rows, 0, MAX_ROWS * sizeof(const char*));
 }
 
