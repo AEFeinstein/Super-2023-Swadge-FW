@@ -3,4 +3,7 @@
 
 extern swadgeMode modeFighter;
 
+void fighterSendButtonsToOther(int32_t btnState);
+void fighterSendSceneToOther(int16_t* scene, uint8_t len);
+
 #endif

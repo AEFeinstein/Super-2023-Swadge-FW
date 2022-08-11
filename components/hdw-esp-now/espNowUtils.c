@@ -272,7 +272,7 @@ void checkEspNowRxQueue(void)
         //        packet.mac[5],
         //        dbg);
 
-        hostEspNowRecvCb(packet.mac, (const char*)packet.data, packet.len, packet.rssi);
+        hostEspNowRecvCb(packet.mac, (const char*)(&packet.data), packet.len, packet.rssi);
     }
 }
 

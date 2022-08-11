@@ -225,9 +225,15 @@ typedef struct
 //==============================================================================
 
 void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
-                      fightingCharacter_t* fightingCharacter, fightingStage_t stage);
+                      fightingCharacter_t* fightingCharacter, fightingStage_t stage,
+                      bool isPlayerOne);
 void fighterExitGame(void);
 void fighterGameLoop(int64_t elapsedUs);
 void fighterGameButtonCb(buttonEvt_t* evt);
+
+void fighterRxButtonInput(int32_t btnState);
+
+void drawFighterScene(display_t* d, int16_t* sceneData);
+void fighterDrawSceneAfterAck(void);
 
 #endif

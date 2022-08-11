@@ -19,11 +19,13 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 
-#include "mode_fighter.h"
-#include "fighter_json.h"
 #include "bresenham.h"
 #include "linked_list.h"
 #include "led_util.h"
+
+#include "mode_fighter.h"
+#include "fighter_json.h"
+#include "fighter_menu.h"
 
 //==============================================================================
 // Constants
@@ -50,6 +52,10 @@ typedef struct
     font_t* mm_font;
     fightingStage_t stageIdx;
     fightingGameType_t type;
+    uint8_t playerIdx;
+    bool buttonInputReceived;
+    int16_t* composedScene;
+    uint8_t composedSceneLen;
 } fightingGame_t;
 
 //==============================================================================
@@ -72,7 +78,6 @@ void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
 
 void getSpritePos(fighter_t* ftr, vector_t* spritePos);
 int16_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, list_t* projectiles, uint8_t* outLen);
-void drawFighterScene(display_t* d, int16_t* sceneData);
 void drawFighter(display_t* d, fighter_t* ftr);
 void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock, int16_t f2_dmg, int16_t f2_stock);
 #ifdef DRAW_DEBUG_BOXES
@@ -202,9 +207,11 @@ static const stage_t* stages[] =
  * @param type The type of game to play
  * @param fightingCharacter Two characters to load
  * @param stage The stage to fight on
+ * @param isPlayerOne true if this is player one, false if player two
  */
 void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
-                      fightingCharacter_t* fightingCharacter, fightingStage_t stage)
+                      fightingCharacter_t* fightingCharacter, fightingStage_t stage,
+                      bool isPlayerOne)
 {
     // Allocate base memory for the mode
     f = calloc(1, sizeof(fightingGame_t));
@@ -220,6 +227,9 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
 
     // Keep track of the stage
     f->stageIdx = stage;
+
+    // Keep track of player order
+    f->playerIdx = isPlayerOne ? 0 : 1;
 
     // Load fighter data
     for(int i = 0; i < NUM_FIGHTERS; i++)
@@ -455,6 +465,31 @@ void fighterGameLoop(int64_t elapsedUs)
     {
         f->frameElapsed -= (FRAME_TIME_MS * 1000);
 
+        switch(f->type)
+        {
+            case MULTIPLAYER:
+            {
+                // Start by sending your buttons to the other swadge
+                if(1 == f->playerIdx)
+                {
+                    // Just send buttons to player 0
+                    fighterSendButtonsToOther(f->fighters[f->playerIdx].btnState);
+                }
+                break;
+            }
+            case HR_CONTEST:
+            {
+                // All button input is local
+                f->buttonInputReceived = true;
+                break;
+            }
+        }
+    }
+
+    if(f->buttonInputReceived)
+    {
+        f->buttonInputReceived = false;
+
         // Check fighter button inputs
         checkFighterButtonInput(&f->fighters[0]);
         checkFighterButtonInput(&f->fighters[1]);
@@ -476,13 +511,28 @@ void fighterGameLoop(int64_t elapsedUs)
         // Check for collisions between projectiles and hurtboxes
         checkFighterProjectileCollisions(&f->projectiles);
 
-        uint8_t len = 0;
-        int16_t* scene = composeFighterScene(f->stageIdx, &f->fighters[0], &f->fighters[1], &f->projectiles, &len);
+        f->composedSceneLen = 0;
+        f->composedScene = composeFighterScene(f->stageIdx, &f->fighters[0], &f->fighters[1], &f->projectiles,
+                                               &(f->composedSceneLen));
 
-        // Render the scene
-        drawFighterScene(f->d, scene);
-
-        free(scene);
+        // Render based on game type
+        switch(f->type)
+        {
+            case MULTIPLAYER:
+            {
+                fighterSendSceneToOther(f->composedScene, f->composedSceneLen);
+                // render and free scene upon ACK
+                break;
+            }
+            case HR_CONTEST:
+            {
+                // Render the scene immediately
+                drawFighterScene(f->d, &f->composedScene[1]);
+                free(f->composedScene);
+                f->composedSceneLen = 0;
+                break;
+            }
+        }
 
         // char dbgStr[256];
         // box_t hb;
@@ -502,6 +552,17 @@ void fighterGameLoop(int64_t elapsedUs)
         //     f->fighters[0].velocity.y,
         //     f->fighters[0].relativePos);
     }
+}
+
+/**
+ * @brief TODO doc
+ *
+ */
+void fighterDrawSceneAfterAck(void)
+{
+    drawFighterScene(f->d, &f->composedScene[1]);
+    free(f->composedScene);
+    f->composedSceneLen = 0;
 }
 
 /**
@@ -1800,9 +1861,13 @@ int16_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, lis
     }
 
     // Allocate array to store the data to render a scene
-    (*outLen) = (1 + 6 + 6 + 1 + (4 * numProj));
+    // TODO struct this
+    (*outLen) = (1 + 1 + 6 + 6 + 1 + (4 * numProj));
     int16_t* scene = malloc(sizeof(int16_t) * (*outLen));
     uint8_t scIdx = 0;
+
+    // Message type will go here later
+    scene[scIdx++] = 0;
 
     // Save Stage IDX
     scene[scIdx++] = stageIdx;
@@ -1917,9 +1982,12 @@ void drawFighterScene(display_t* d, int16_t* scene)
 
     // Draw debug boxes, conditionally
 #ifdef DRAW_DEBUG_BOXES
-    drawFighterDebugBox(d, &(f->fighters[0]));
-    drawFighterDebugBox(d, &(f->fighters[1]));
-    drawProjectileDebugBox(d, &(f->projectiles));
+    if(f->type != MULTIPLAYER)
+    {
+        drawFighterDebugBox(d, &(f->fighters[0]));
+        drawFighterDebugBox(d, &(f->fighters[1]));
+        drawProjectileDebugBox(d, &(f->projectiles));
+    }
 #endif
 }
 
@@ -2094,5 +2162,16 @@ void drawProjectileDebugBox(display_t* d, list_t* projectiles)
 void fighterGameButtonCb(buttonEvt_t* evt)
 {
     // Save the state to check synchronously
-    f->fighters[0].btnState = evt->state;
+    f->fighters[f->playerIdx].btnState = evt->state;
+}
+
+/**
+ * @brief TODO
+ *
+ * @param btnState
+ */
+void fighterRxButtonInput(int32_t btnState)
+{
+    f->fighters[1].btnState = btnState;
+    f->buttonInputReceived = true;
 }

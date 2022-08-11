@@ -24,6 +24,14 @@ typedef enum
     FIGHTER_GAME
 } fighterScreen_t;
 
+typedef enum
+{
+    CHAR_SEL_MSG,
+    STAGE_SEL_MSG,
+    BUTTON_INPUT_MSG,
+    SCENE_COMPOSED_MSG
+} fighterMessageType_t;
+
 typedef struct
 {
     font_t mmFont;
@@ -34,6 +42,7 @@ typedef struct
     bool menuChanged;
     fightingCharacter_t characters[2];
     fightingStage_t stage;
+    fighterMessageType_t lastSentMsg;
 } fighterMenu_t;
 
 //==============================================================================
@@ -60,7 +69,7 @@ void fighterMultiplayerStageMenuCb(const char* opt);
 void fighterEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 void fighterEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 void fighterP2pConCbFn(p2pInfo* p2p, connectionEvt_t);
-void fighterP2pMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t len);
+void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len);
 void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status);
 void fighterCheckGameBegin(void);
 
@@ -99,10 +108,7 @@ static const char str_stgFD[]       = "Final Destination";
 
 fighterMenu_t* fm;
 
-const char charSelMsg[]       = "1CS";
-const char stageSelMsg[]      = "3SS";
-const char buttonInputMsg[]   = "3BI";
-const char sceneComposedMsg[] = "4SC";
+#define FTR_TAG "FTR"
 
 //==============================================================================
 // Functions
@@ -139,7 +145,7 @@ void fighterEnterMode(display_t* disp)
     fm->stage = NO_STAGE;
 
     // Initialize p2p
-    p2pInitialize(&(fm->p2p), "FTR", fighterP2pConCbFn, fighterP2pMsgRxCbFn, 0);
+    p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, 0);
 }
 
 /**
@@ -332,7 +338,7 @@ void fighterHrMenuCb(const char* opt)
     }
 
     // No return, start the game
-    fighterStartGame(fm->disp, &fm->mmFont, HR_CONTEST, fm->characters, fm->stage);
+    fighterStartGame(fm->disp, &fm->mmFont, HR_CONTEST, fm->characters, fm->stage, true);
     fm->screen = FIGHTER_GAME;
 }
 
@@ -389,11 +395,14 @@ void fighterMultiplayerCharMenuCb(const char* opt)
 
     // No return means a character was selected
     // Send character to the other swadge
-    const char payload[] =
+    const uint8_t payload[] =
     {
+        CHAR_SEL_MSG,
         fm->characters[charIdx]
     };
-    p2pSendMsg(&fm->p2p, charSelMsg, payload, sizeof(payload), fighterP2pMsgTxCbFn);
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
+    fm->lastSentMsg = CHAR_SEL_MSG;
+    ESP_LOGD(FTR_TAG, "Char sel TX");
 
     if(GOING_FIRST == fm->p2p.cnc.playOrder)
     {
@@ -453,11 +462,14 @@ void fighterMultiplayerStageMenuCb(const char* opt)
 
     // No return means a stage was selected
     // Send stage to other swadge, check if game can start
-    const char payload[] =
+    const uint8_t payload[] =
     {
+        STAGE_SEL_MSG,
         fm->stage
     };
-    p2pSendMsg(&fm->p2p, stageSelMsg, payload, sizeof(payload), fighterP2pMsgTxCbFn);
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
+    fm->lastSentMsg = STAGE_SEL_MSG;
+    ESP_LOGD(FTR_TAG, "Stage sel TX");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -473,7 +485,7 @@ void fighterMultiplayerStageMenuCb(const char* opt)
 void fighterEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
 {
     // Forward to p2p
-    p2pRecvCb(&fm->p2p, mac_addr, data, len, rssi);
+    p2pRecvCb(&fm->p2p, mac_addr, (const uint8_t*)data, len, rssi);
 }
 
 /**
@@ -532,34 +544,38 @@ void fighterP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt)
  * @brief This is the p2p message receive callback
  *
  * @param p2p The p2p struct for this connection
- * @param msg The message that was received
  * @param payload The payload for the message
  * @param len The length of the message
  */
-void fighterP2pMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t len)
+void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
 {
-    // TODO things for msg RX CB
-    if(msg[0] == charSelMsg[0])
+    // Check what was received
+    if(payload[0] == CHAR_SEL_MSG)
     {
+        ESP_LOGD(FTR_TAG, "Char sel msg RX");
+        // Receive a character selection, so save it
         uint8_t charIdx = (GOING_FIRST == fm->p2p.cnc.playOrder) ? 1 : 0;
-        fm->characters[charIdx] = payload[0];
+        fm->characters[charIdx] = payload[1];
         fighterCheckGameBegin();
     }
-    else if(msg[0] == stageSelMsg[0])
+    else if(payload[0] == STAGE_SEL_MSG)
     {
-        fm->stage = payload[0];
-
-        printf("Received stage %d", fm->stage);
-
+        ESP_LOGD(FTR_TAG, "Stage sel msg RX");
+        // Receive a stage selection, so save it
+        fm->stage = payload[1];
         fighterCheckGameBegin();
     }
-    else if(msg[0] == buttonInputMsg[0])
+    else if(payload[0] == BUTTON_INPUT_MSG)
     {
-
+        // ESP_LOGD(FTR_TAG, "Button input RX");
+        // Receive button inputs, so save them
+        fighterRxButtonInput(payload[1]);
     }
-    else if(msg[0] == sceneComposedMsg[0])
+    else if(payload[0] == SCENE_COMPOSED_MSG)
     {
-
+        // ESP_LOGD(FTR_TAG, "Scene composed RX");
+        // Receive a scene, so draw it
+        drawFighterScene(fm->disp, (int16_t*) & (payload[2]));
     }
 }
 
@@ -571,12 +587,25 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uin
  */
 void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
 {
-    // TODO things for msg TX CB
+    // Check what was ACKed or failed
     switch(status)
     {
         case MSG_ACKED:
         {
-            fighterCheckGameBegin();
+            // After character or stage selection, check if the game can begin
+            if (fm->lastSentMsg == CHAR_SEL_MSG || fm->lastSentMsg == STAGE_SEL_MSG)
+            {
+                fighterCheckGameBegin();
+            }
+            else if (fm->lastSentMsg == BUTTON_INPUT_MSG)
+            {
+                // TODO don't really care after buttons are acked?
+            }
+            else if (fm->lastSentMsg == SCENE_COMPOSED_MSG)
+            {
+                // After the scene is acked, render it
+                fighterDrawSceneAfterAck();
+            }
             break;
         }
         case MSG_FAILED:
@@ -600,7 +629,42 @@ void fighterCheckGameBegin(void)
             fm->stage != NO_STAGE)
     {
         // Characters and stage set, start the game!
-        fighterStartGame(fm->disp, &fm->mmFont, MULTIPLAYER, fm->characters, fm->stage);
+        fighterStartGame(fm->disp, &fm->mmFont, MULTIPLAYER, fm->characters,
+                         fm->stage, GOING_FIRST == fm->p2p.cnc.playOrder);
         fm->screen = FIGHTER_GAME;
     }
+}
+
+/**
+ * @brief TODO doc
+ *
+ * @param btnState
+ */
+void fighterSendButtonsToOther(int32_t btnState)
+{
+    const uint8_t payload[] =
+    {
+        BUTTON_INPUT_MSG,
+        btnState
+    };
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
+    fm->lastSentMsg = BUTTON_INPUT_MSG;
+    // ESP_LOGD(FTR_TAG, "Button input TX");
+}
+
+/**
+ * @brief TODO doc
+ *
+ * @param scene
+ * @param len
+ */
+void fighterSendSceneToOther(int16_t* scene, uint8_t len)
+{
+    // TOOD check scene ptr length...
+    // TODO not sending whole scene??
+    // TODO expecting string....
+    ((uint8_t*)scene)[0] = SCENE_COMPOSED_MSG;
+    p2pSendMsg(&fm->p2p, (const uint8_t*)scene, len * sizeof(int16_t), fighterP2pMsgTxCbFn);
+    fm->lastSentMsg = SCENE_COMPOSED_MSG;
+    // ESP_LOGD(FTR_TAG, "Scene TX %llu", len * sizeof(int16_t));
 }
