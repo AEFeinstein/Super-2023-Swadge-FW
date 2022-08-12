@@ -450,11 +450,6 @@ void setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* to
  * handle button input synchronously, move fighters, check collisions, manage
  * projectiles, and pretty much everything else
  *
- * TODO
- *  - Knockback
- *  - Hitstun
- *  - Player stock tracking
- *
  * @param elapsedUs The time elapsed since the last time this was called
  */
 void fighterGameLoop(int64_t elapsedUs)
@@ -555,8 +550,8 @@ void fighterGameLoop(int64_t elapsedUs)
 }
 
 /**
- * @brief TODO doc
- *
+ * This function is called after receiving the ACK to the SCENE_COMPOSED_MSG
+ * It draws the screen on this swadge and frees the composed scene
  */
 void fighterDrawSceneAfterAck(void)
 {
@@ -819,8 +814,7 @@ void checkFighterTimer(fighter_t* ftr)
 /**
  * Check button inputs asynchronously for the given fighter
  *
- * TODO
- *  - Don't allow transitions from all states
+ * TODO Don't allow transitions from all states
  *
  * @param ftr The fighter to check buttons for
  */
@@ -2166,12 +2160,13 @@ void fighterGameButtonCb(buttonEvt_t* evt)
 }
 
 /**
- * @brief TODO
+ * @brief Receive button input from another swadge
  *
- * @param btnState
+ * @param btnState The button state from the other swadge
  */
 void fighterRxButtonInput(int32_t btnState)
 {
     f->fighters[1].btnState = btnState;
+    // Set to true to run main loop with input
     f->buttonInputReceived = true;
 }

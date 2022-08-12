@@ -243,8 +243,7 @@ void fighterButtonCb(buttonEvt_t* evt)
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @brief TODO doc
- *
+ * @brief Sets up the top level menu for Fighter, including callback
  */
 void setFighterMainMenu(void)
 {
@@ -257,7 +256,7 @@ void setFighterMainMenu(void)
 }
 
 /**
- * This is called when a menu option is selected
+ * This is called when a menu option is selected from the top level menu
  *
  * @param opt The option that was selected (string pointer)
  */
@@ -285,8 +284,7 @@ void fighterMainMenuCb(const char* opt)
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @brief TODO doc
- *
+ * @brief Sets up the Home Run Contest menu for Fighter, including callback
  */
 void setFighterHrMenu(void)
 {
@@ -300,9 +298,9 @@ void setFighterHrMenu(void)
 }
 
 /**
- * @brief TODO doc
+ * This is called when a menu option is selected from the Home Run Contest menu
  *
- * @param opt
+ * @param opt The option that was selected (string pointer)
  */
 void fighterHrMenuCb(const char* opt)
 {
@@ -334,6 +332,7 @@ void fighterHrMenuCb(const char* opt)
     }
     else
     {
+        // Shouldn't happen, but return just in case
         return;
     }
 
@@ -345,8 +344,7 @@ void fighterHrMenuCb(const char* opt)
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @brief TODO doc
- *
+ * @brief Sets up the multiplayer character select menu for Fighter, including callback
  */
 void setFighterMultiplayerCharSelMenu(void)
 {
@@ -360,9 +358,9 @@ void setFighterMultiplayerCharSelMenu(void)
 }
 
 /**
- * @brief TODO doc
+ * This is called when a menu option is selected from the multiplayer character select menu
  *
- * @param opt
+ * @param opt The option that was selected (string pointer)
  */
 void fighterMultiplayerCharMenuCb(const char* opt)
 {
@@ -390,6 +388,7 @@ void fighterMultiplayerCharMenuCb(const char* opt)
     }
     else
     {
+        // Shouldn't happen, but return just in case
         return;
     }
 
@@ -402,7 +401,6 @@ void fighterMultiplayerCharMenuCb(const char* opt)
     };
     p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
     fm->lastSentMsg = CHAR_SEL_MSG;
-    ESP_LOGD(FTR_TAG, "Char sel TX");
 
     if(GOING_FIRST == fm->p2p.cnc.playOrder)
     {
@@ -419,8 +417,7 @@ void fighterMultiplayerCharMenuCb(const char* opt)
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @brief TODO doc
- *
+ * @brief Sets up the multiplayer stage select menu for Fighter, including callback
  */
 void setFighterMultiplayerStageSelMenu(void)
 {
@@ -433,9 +430,9 @@ void setFighterMultiplayerStageSelMenu(void)
 }
 
 /**
- * @brief TODO doc
+ * This is called when a menu option is selected from the multiplayer stage select menu
  *
- * @param opt
+ * @param opt The option that was selected (string pointer)
  */
 void fighterMultiplayerStageMenuCb(const char* opt)
 {
@@ -457,11 +454,12 @@ void fighterMultiplayerStageMenuCb(const char* opt)
     }
     else
     {
+        // Shouldn't happen, but return just in case
         return;
     }
 
     // No return means a stage was selected
-    // Send stage to other swadge, check if game can start
+    // Send stage to other swadge
     const uint8_t payload[] =
     {
         STAGE_SEL_MSG,
@@ -469,7 +467,6 @@ void fighterMultiplayerStageMenuCb(const char* opt)
     };
     p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
     fm->lastSentMsg = STAGE_SEL_MSG;
-    ESP_LOGD(FTR_TAG, "Stage sel TX");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -510,19 +507,13 @@ void fighterEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
  */
 void fighterP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt)
 {
-    // TODO things based on connection events
     switch(evt)
     {
         case CON_STARTED:
-        {
-            break;
-        }
         case RX_GAME_START_ACK:
-        {
-            break;
-        }
         case RX_GAME_START_MSG:
         {
+            // TODO display status message?
             break;
         }
         case CON_ESTABLISHED:
@@ -534,6 +525,7 @@ void fighterP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt)
         case CON_LOST:
         {
             // Reset to top level melee menu
+            fighterExitGame();
             setFighterMainMenu();
             break;
         }
@@ -552,7 +544,6 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
     // Check what was received
     if(payload[0] == CHAR_SEL_MSG)
     {
-        ESP_LOGD(FTR_TAG, "Char sel msg RX");
         // Receive a character selection, so save it
         uint8_t charIdx = (GOING_FIRST == fm->p2p.cnc.playOrder) ? 1 : 0;
         fm->characters[charIdx] = payload[1];
@@ -560,20 +551,17 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
     }
     else if(payload[0] == STAGE_SEL_MSG)
     {
-        ESP_LOGD(FTR_TAG, "Stage sel msg RX");
         // Receive a stage selection, so save it
         fm->stage = payload[1];
         fighterCheckGameBegin();
     }
     else if(payload[0] == BUTTON_INPUT_MSG)
     {
-        // ESP_LOGD(FTR_TAG, "Button input RX");
         // Receive button inputs, so save them
         fighterRxButtonInput(payload[1]);
     }
     else if(payload[0] == SCENE_COMPOSED_MSG)
     {
-        // ESP_LOGD(FTR_TAG, "Scene composed RX");
         // Receive a scene, so draw it
         drawFighterScene(fm->disp, (int16_t*) & (payload[2]));
     }
@@ -617,8 +605,8 @@ void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
 }
 
 /**
- * @brief TODO doc
- *
+ * Check if the multiplayer game can begin. It can begin when both characters
+ * and a stage are selected
  */
 void fighterCheckGameBegin(void)
 {
@@ -636,7 +624,7 @@ void fighterCheckGameBegin(void)
 }
 
 /**
- * @brief TODO doc
+ * @brief Send a packet to the other swadge with this's player's button input
  *
  * @param btnState
  */
@@ -645,26 +633,22 @@ void fighterSendButtonsToOther(int32_t btnState)
     const uint8_t payload[] =
     {
         BUTTON_INPUT_MSG,
-        btnState
+        btnState // This clips 32 bits to 8 bits, but there are 8 buttons anyway
     };
     p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
     fm->lastSentMsg = BUTTON_INPUT_MSG;
-    // ESP_LOGD(FTR_TAG, "Button input TX");
 }
 
 /**
- * @brief TODO doc
+ * @brief Send a packet to the other swadge with the scene to draw
  *
  * @param scene
  * @param len
  */
 void fighterSendSceneToOther(int16_t* scene, uint8_t len)
 {
-    // TOOD check scene ptr length...
-    // TODO not sending whole scene??
-    // TODO expecting string....
+    // Insert the message type (this byte should be empty)
     ((uint8_t*)scene)[0] = SCENE_COMPOSED_MSG;
     p2pSendMsg(&fm->p2p, (const uint8_t*)scene, len * sizeof(int16_t), fighterP2pMsgTxCbFn);
     fm->lastSentMsg = SCENE_COMPOSED_MSG;
-    // ESP_LOGD(FTR_TAG, "Scene TX %llu", len * sizeof(int16_t));
 }

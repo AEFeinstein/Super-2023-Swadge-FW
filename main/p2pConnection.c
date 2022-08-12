@@ -1,37 +1,36 @@
 /* PlantUML documentation
- * TODO this is out of date
 
 == Connection ==
 
 group Part 1
-"Swadge_AB:AB:AB:AB:AB:AB" ->  "Swadge_12:12:12:12:12:12" : "p2p_con" (broadcast)
-"Swadge_12:12:12:12:12:12" ->  "Swadge_AB:AB:AB:AB:AB:AB" : "p2p_str_00_AB:AB:AB:AB:AB:AB"
+"Swadge_AB:AB:AB:AB:AB:AB" ->  "Swadge_12:12:12:12:12:12" : "['p', {mode ID}, 0x00 {P2P_MSG_CONNECT}]"
+"Swadge_12:12:12:12:12:12" ->  "Swadge_AB:AB:AB:AB:AB:AB" : "['p', {mode ID}, 0x01 {P2P_MSG_START}, 0x00 {seqNum}, (0xAB, 0xAB, 0xAB, 0xAB, 0xAB, 0xAB)]"
 note left: Stop Broadcasting, set p2p->cnc.rxGameStartMsg
-"Swadge_AB:AB:AB:AB:AB:AB" ->  "Swadge_12:12:12:12:12:12" : "p2p_ack_00_12:12:12:12:12:12"
+"Swadge_AB:AB:AB:AB:AB:AB" ->  "Swadge_12:12:12:12:12:12" : "['p', {mode ID}, 0x02 {P2P_MSG_ACK}, 0x00 {seqNum}, (0x12, 0x12, 0x12, 0x12, 0x12, 0x12)]
 note right: set p2p->cnc.rxGameStartAck
 end
 
 group Part 2
-"Swadge_12:12:12:12:12:12" ->  "Swadge_AB:AB:AB:AB:AB:AB" : "p2p_con" (broadcast)
-"Swadge_AB:AB:AB:AB:AB:AB" ->  "Swadge_12:12:12:12:12:12" : "p2p_str_01_12:12:12:12:12:12"
+"Swadge_12:12:12:12:12:12" ->  "Swadge_AB:AB:AB:AB:AB:AB" : "['p', {mode ID}, 0x00 {P2P_MSG_CONNECT}]"
+"Swadge_AB:AB:AB:AB:AB:AB" ->  "Swadge_12:12:12:12:12:12" : "['p', {mode ID}, 0x01 {P2P_MSG_START}, 0x01 {seqNum}, (0x12, 0x12, 0x12, 0x12, 0x12, 0x12)]"
 note right: Stop Broadcasting, set p2p->cnc.rxGameStartMsg, become CLIENT
-"Swadge_12:12:12:12:12:12" ->  "Swadge_AB:AB:AB:AB:AB:AB" : "p2p_ack_01_AB:AB:AB:AB:AB:AB"
+"Swadge_12:12:12:12:12:12" ->  "Swadge_AB:AB:AB:AB:AB:AB" : "['p', {mode ID}, 0x02 {P2P_MSG_ACK}, 0x01 {seqNum}, (0xAB, 0xAB, 0xAB, 0xAB, 0xAB, 0xAB)]
 note left: set p2p->cnc.rxGameStartAck, become SERVER
 end
 
 == Unreliable Communication Example ==
 
 group Retries & Sequence Numbers
-"Swadge_AB:AB:AB:AB:AB:AB" ->x "Swadge_12:12:12:12:12:12" : "p2p_cnt_04_12:12:12:12:12:12_up"
+"Swadge_AB:AB:AB:AB:AB:AB" ->x "Swadge_12:12:12:12:12:12" : "['p', {mode ID}, 0x03 {P2P_MSG_DATA}, 0x04 {seqNum}, (0x12, 0x12, 0x12, 0x12, 0x12, 0x12), 'd', 'a', 't', 'a']
 note right: msg not received
-"Swadge_AB:AB:AB:AB:AB:AB" ->  "Swadge_12:12:12:12:12:12" : "p2p_cnt_04_12:12:12:12:12:12_up"
+"Swadge_AB:AB:AB:AB:AB:AB" ->  "Swadge_12:12:12:12:12:12" : "['p', {mode ID}, 0x03 {P2P_MSG_DATA}, 0x04 {seqNum}, (0x12, 0x12, 0x12, 0x12, 0x12, 0x12), 'd', 'a', 't', 'a']
 note left: first retry, up to five retries
-"Swadge_12:12:12:12:12:12" ->x "Swadge_AB:AB:AB:AB:AB:AB" : "p2p_ack_04_AB:AB:AB:AB:AB:AB"
+"Swadge_12:12:12:12:12:12" ->x "Swadge_AB:AB:AB:AB:AB:AB" : "['p', {mode ID}, 0x02 {P2P_MSG_ACK}, 0x04 {seqNum}, (0xAB, 0xAB, 0xAB, 0xAB, 0xAB, 0xAB)]
 note left: ack not received
-"Swadge_AB:AB:AB:AB:AB:AB" ->  "Swadge_12:12:12:12:12:12" : "p2p_cnt_04_12:12:12:12:12:12_up"
+"Swadge_AB:AB:AB:AB:AB:AB" ->  "Swadge_12:12:12:12:12:12" : "['p', {mode ID}, 0x03 {P2P_MSG_DATA}, 0x04 {seqNum}, (0x12, 0x12, 0x12, 0x12, 0x12, 0x12), 'd', 'a', 't', 'a']
 note left: second retry
 note right: duplicate seq num, ignore message
-"Swadge_12:12:12:12:12:12" ->  "Swadge_AB:AB:AB:AB:AB:AB" : "p2p_ack_05_AB:AB:AB:AB:AB:AB"
+"Swadge_12:12:12:12:12:12" ->  "Swadge_AB:AB:AB:AB:AB:AB" : "['p', {mode ID}, 0x02 {P2P_MSG_ACK}, 0x05 {seqNum}, (0xAB, 0xAB, 0xAB, 0xAB, 0xAB, 0xAB)]
 end
 
 */
