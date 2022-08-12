@@ -54,7 +54,7 @@ typedef struct
     fightingGameType_t type;
     uint8_t playerIdx;
     bool buttonInputReceived;
-    int16_t* composedScene;
+    fighterScene_t* composedScene;
     uint8_t composedSceneLen;
 } fightingGame_t;
 
@@ -77,7 +77,8 @@ void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
                           uint8_t numPlatforms);
 
 void getSpritePos(fighter_t* ftr, vector_t* spritePos);
-int16_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, list_t* projectiles, uint8_t* outLen);
+fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, list_t* projectiles,
+                                    uint8_t* outLen);
 void drawFighter(display_t* d, fighter_t* ftr);
 void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock, int16_t f2_dmg, int16_t f2_stock);
 #ifdef DRAW_DEBUG_BOXES
@@ -522,7 +523,7 @@ void fighterGameLoop(int64_t elapsedUs)
             case HR_CONTEST:
             {
                 // Render the scene immediately
-                drawFighterScene(f->d, &f->composedScene[1]);
+                drawFighterScene(f->d, f->composedScene);
                 free(f->composedScene);
                 f->composedSceneLen = 0;
                 break;
@@ -555,7 +556,7 @@ void fighterGameLoop(int64_t elapsedUs)
  */
 void fighterDrawSceneAfterAck(void)
 {
-    drawFighterScene(f->d, &f->composedScene[1]);
+    drawFighterScene(f->d, f->composedScene);
     free(f->composedScene);
     f->composedSceneLen = 0;
 }
@@ -1842,7 +1843,8 @@ void getSpritePos(fighter_t* ftr, vector_t* spritePos)
  * @param outLen The length of the composed scene (output)
  * @return int16_t* An array with the composed scene. This memory is allocated and must be freed
  */
-int16_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, list_t* projectiles, uint8_t* outLen)
+fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, list_t* projectiles,
+                                    uint8_t* outLen)
 {
     // Count number of projectiles
     int16_t numProj = 0;
@@ -1855,54 +1857,54 @@ int16_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, lis
     }
 
     // Allocate array to store the data to render a scene
-    // TODO struct this
-    (*outLen) = (1 + 1 + 6 + 6 + 1 + (4 * numProj));
-    int16_t* scene = malloc(sizeof(int16_t) * (*outLen));
-    uint8_t scIdx = 0;
+    (*outLen) = (sizeof(fighterScene_t)) + (numProj * sizeof(fighterSceneProjectile_t));
+    fighterScene_t* scene = malloc((*outLen));
 
     // Message type will go here later
-    scene[scIdx++] = 0;
+    scene->p2pMsgType = 0;
 
     // Save Stage IDX
-    scene[scIdx++] = stageIdx;
+    scene->stageIdx = stageIdx;
 
     vector_t spritePos;
 
     // f1 position
     getSpritePos(f1, &spritePos);
-    scene[scIdx++] = spritePos.x; // Save the final location for the sprite
-    scene[scIdx++] = spritePos.y;
-    scene[scIdx++] = f1->dir;
+    scene->f1.spritePosX = spritePos.x; // Save the final location for the sprite
+    scene->f1.spritePosY = spritePos.y;
+    scene->f1.spriteDir = f1->dir;
     // f1 sprite
-    scene[scIdx++] = f1->currentSprite;
+    scene->f1.spriteIdx = f1->currentSprite;
     // f1 damage and stock
-    scene[scIdx++] = f1->damage;
-    scene[scIdx++] = f1->stocks;
+    scene->f1.damage = f1->damage;
+    scene->f1.stocks = f1->stocks;
 
     // f2 position
     getSpritePos(f2, &spritePos);
-    scene[scIdx++] = spritePos.x; // Save the final location for the sprite
-    scene[scIdx++] = spritePos.y;
-    scene[scIdx++] = f2->dir;
+    scene->f2.spritePosX = spritePos.x; // Save the final location for the sprite
+    scene->f2.spritePosY = spritePos.y;
+    scene->f2.spriteDir = f2->dir;
     // f2 sprite
-    scene[scIdx++] = f2->currentSprite;
+    scene->f2.spriteIdx = f2->currentSprite;
     // f2 damage and stock
-    scene[scIdx++] = f2->damage;
-    scene[scIdx++] = f2->stocks;
+    scene->f2.damage = f2->damage;
+    scene->f2.stocks = f2->stocks;
 
-    scene[scIdx++] = numProj;
+    scene->numProjectiles = numProj;
     // Iterate through all the projectiles
+    int16_t cProj = 0;
     currentNode = projectiles->first;
     while (currentNode != NULL)
     {
         projectile_t* proj = currentNode->val;
 
-        scene[scIdx++] = proj->pos.x >> SF;
-        scene[scIdx++] = proj->pos.y >> SF;
-        scene[scIdx++] = proj->dir;
-        scene[scIdx++] = proj->sprite;
+        scene->projs[cProj].spritePosX = proj->pos.x >> SF;
+        scene->projs[cProj].spritePosY = proj->pos.y >> SF;
+        scene->projs[cProj].spriteDir = proj->dir;
+        scene->projs[cProj].spriteIdx = proj->sprite;
 
         // Iterate
+        cProj++;
         currentNode = currentNode->next;
     }
 
@@ -1916,14 +1918,13 @@ int16_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, lis
  * @param d The display to draw to
  * @param scene The scene to draw
  */
-void drawFighterScene(display_t* d, int16_t* scene)
+void drawFighterScene(display_t* d, fighterScene_t* scene)
 {
     // First clear everything
     d->clearPx();
 
     // Read from scene
-    uint8_t scIdx = 0;
-    uint8_t stageIdx = scene[scIdx++];
+    uint8_t stageIdx = scene->stageIdx;
 
     // Draw the specified stage
     const stage_t* stage = stages[stageIdx];
@@ -1934,38 +1935,38 @@ void drawFighterScene(display_t* d, int16_t* scene)
     }
 
     // f1 position
-    int16_t f1_posX           = scene[scIdx++];
-    int16_t f1_posY           = scene[scIdx++];
-    fighterDirection_t f1_dir = scene[scIdx++];
-    int16_t f1_sprite         = scene[scIdx++];
+    int16_t f1_posX           = scene->f1.spritePosX;
+    int16_t f1_posY           = scene->f1.spritePosY;
+    fighterDirection_t f1_dir = scene->f1.spriteDir;
+    int16_t f1_sprite         = scene->f1.spriteIdx;
 
     // f1 damage and stock
-    int16_t f1_dmg   = scene[scIdx++];
-    int16_t f1_stock = scene[scIdx++];
+    int16_t f1_dmg   = scene->f1.damage;
+    int16_t f1_stock = scene->f1.stocks;
 
     // f2 position
-    int16_t f2_posX           = scene[scIdx++];
-    int16_t f2_posY           = scene[scIdx++];
-    fighterDirection_t f2_dir = scene[scIdx++];
-    int16_t f2_sprite         = scene[scIdx++];
+    int16_t f2_posX           = scene->f2.spritePosX;
+    int16_t f2_posY           = scene->f2.spritePosY;
+    fighterDirection_t f2_dir = scene->f2.spriteDir;
+    int16_t f2_sprite         = scene->f2.spriteIdx;
 
     // f2 damage and stock
-    int16_t f2_dmg   = scene[scIdx++];
-    int16_t f2_stock = scene[scIdx++];
+    int16_t f2_dmg   = scene->f2.damage;
+    int16_t f2_stock = scene->f2.stocks;
 
     // Actually draw fighters
     drawWsg(d, getFighterSprite(f1_sprite, &(f->loadedSprites)), f1_posX, f1_posY, f1_dir, false, 0);
     drawWsg(d, getFighterSprite(f2_sprite, &(f->loadedSprites)), f2_posX, f2_posY, f2_dir, false, 0);
 
     // Iterate through projectiles
-    int16_t numProj = scene[scIdx++];
+    int16_t numProj = scene->numProjectiles;
     for (int16_t pIdx = 0; pIdx < numProj; pIdx++)
     {
         // Projectile position
-        int16_t proj_posX           = scene[scIdx++];
-        int16_t proj_posY           = scene[scIdx++];
-        fighterDirection_t proj_dir = scene[scIdx++];
-        int16_t proj_sprite         = scene[scIdx++];
+        int16_t proj_posX           = scene->projs[pIdx].spritePosX;
+        int16_t proj_posY           = scene->projs[pIdx].spritePosY;
+        fighterDirection_t proj_dir = scene->projs[pIdx].spriteDir;
+        int16_t proj_sprite         = scene->projs[pIdx].spriteIdx;
 
         // Actually draw projectile
         drawWsg(d, getFighterSprite(proj_sprite, &(f->loadedSprites)), proj_posX, proj_posY, proj_dir, false, 0);

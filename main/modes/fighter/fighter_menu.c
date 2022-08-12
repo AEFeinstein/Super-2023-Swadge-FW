@@ -108,8 +108,6 @@ static const char str_stgFD[]       = "Final Destination";
 
 fighterMenu_t* fm;
 
-#define FTR_TAG "FTR"
-
 //==============================================================================
 // Functions
 //==============================================================================
@@ -563,7 +561,7 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
     else if(payload[0] == SCENE_COMPOSED_MSG)
     {
         // Receive a scene, so draw it
-        drawFighterScene(fm->disp, (int16_t*) & (payload[2]));
+        drawFighterScene(fm->disp, (fighterScene_t*) payload);
     }
 }
 
@@ -645,10 +643,10 @@ void fighterSendButtonsToOther(int32_t btnState)
  * @param scene
  * @param len
  */
-void fighterSendSceneToOther(int16_t* scene, uint8_t len)
+void fighterSendSceneToOther(fighterScene_t* scene, uint8_t len)
 {
     // Insert the message type (this byte should be empty)
     ((uint8_t*)scene)[0] = SCENE_COMPOSED_MSG;
-    p2pSendMsg(&fm->p2p, (const uint8_t*)scene, len * sizeof(int16_t), fighterP2pMsgTxCbFn);
+    p2pSendMsg(&fm->p2p, (const uint8_t*)scene, len, fighterP2pMsgTxCbFn);
     fm->lastSentMsg = SCENE_COMPOSED_MSG;
 }

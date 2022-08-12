@@ -220,6 +220,37 @@ typedef struct
     fighterDirection_t dir;
 } projectile_t;
 
+
+// Structs to store data to draw a scene
+
+typedef struct
+{
+    int16_t spritePosX;
+    int16_t spritePosY;
+    int16_t spriteDir;
+    int16_t spriteIdx;
+    int16_t damage;
+    int16_t stocks;
+} fighterSceneFighter_t;
+
+typedef struct
+{
+    int16_t spritePosX;
+    int16_t spritePosY;
+    int16_t spriteDir;
+    int16_t spriteIdx;
+} fighterSceneProjectile_t;
+
+typedef struct
+{
+    uint16_t p2pMsgType;
+    uint16_t stageIdx;
+    fighterSceneFighter_t f1;
+    fighterSceneFighter_t f2;
+    int16_t numProjectiles;
+    fighterSceneProjectile_t projs[];
+} fighterScene_t;
+
 //==============================================================================
 // Functions
 //==============================================================================
@@ -233,7 +264,7 @@ void fighterGameButtonCb(buttonEvt_t* evt);
 
 void fighterRxButtonInput(int32_t btnState);
 
-void drawFighterScene(display_t* d, int16_t* sceneData);
+void drawFighterScene(display_t* d, fighterScene_t* sceneData);
 void fighterDrawSceneAfterAck(void);
 
 #endif
