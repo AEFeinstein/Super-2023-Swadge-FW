@@ -929,15 +929,15 @@ void checkFighterButtonInput(fighter_t* ftr)
         ftr->isShortHop = true;
     }
 
-    // Pressing B means attack
-    switch(ftr->state)
+    // Pressing B means attack, when not in the freefall state
+    if (!ftr->isInFreefall && !(ftr->prevBtnState & BTN_B) && (ftr->btnState & BTN_B))
     {
-        case FS_IDLE:
-        case FS_RUNNING:
-        case FS_DUCKING:
-        case FS_JUMPING:
+        switch(ftr->state)
         {
-            if (!(ftr->prevBtnState & BTN_B) && (ftr->btnState & BTN_B))
+            case FS_IDLE:
+            case FS_RUNNING:
+            case FS_DUCKING:
+            case FS_JUMPING:
             {
                 // Save last state
                 attackOrder_t prevAttack = ftr->cAttack;
@@ -980,6 +980,7 @@ void checkFighterButtonInput(fighter_t* ftr)
                         ftr->cAttack = UP_AIR;
                         // No more jumps after up air!
                         ftr->numJumpsLeft = 0;
+                        ftr->isInFreefall = true;
                     }
                     else if(ftr->btnState & DOWN)
                     {
@@ -1017,16 +1018,16 @@ void checkFighterButtonInput(fighter_t* ftr)
                     // Set invincibility if the timer is active
                     ftr->isInvincible = (ftr->iFrameTimer > 0);
                 }
+                break;
             }
-            break;
-        }
-        case FS_STARTUP:
-        case FS_ATTACK:
-        case FS_COOLDOWN:
-        case FS_HITSTUN:
-        {
-            // Don't allow attacks in these states
-            break;
+            case FS_STARTUP:
+            case FS_ATTACK:
+            case FS_COOLDOWN:
+            case FS_HITSTUN:
+            {
+                // Don't allow attacks in these states
+                break;
+            }
         }
     }
 
@@ -1463,6 +1464,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     setFighterRelPos(ftr, ABOVE_PLATFORM, &platforms[idx], NULL, false);
                 }
                 ftr->numJumpsLeft = ftr->numJumps;
+                ftr->isInFreefall = false;
                 // If the fighter was jumping, land
                 switch(ftr->state)
                 {

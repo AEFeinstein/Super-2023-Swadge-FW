@@ -165,6 +165,7 @@ typedef struct
     const platform_t* passingThroughPlatform;
     uint8_t numJumps;
     uint8_t numJumpsLeft;
+    bool isInFreefall;
     uint16_t landingLag;
     /* how floaty a jump is */
     int32_t gravity;
