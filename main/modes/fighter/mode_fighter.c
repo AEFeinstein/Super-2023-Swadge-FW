@@ -1455,7 +1455,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 if(BOUNCE_UP == ftr->bounceNextCollision)
                 {
                     // Bounce up at half velocity
-                    ftr->velocity.y = (-ftr->velocity.y) >> 1;
+                    ftr->velocity.y = (-ftr->velocity.y);
                     ftr->bounceNextCollision = NO_BOUNCE;
                 }
                 else
@@ -1535,7 +1535,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     if(BOUNCE_RIGHT == ftr->bounceNextCollision)
                     {
                         // Bounce right at half velocity
-                        ftr->velocity.x = (-ftr->velocity.x) >> 1;
+                        ftr->velocity.x = (-ftr->velocity.x);
                         ftr->bounceNextCollision = NO_BOUNCE;
                     }
                     else
@@ -1569,7 +1569,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     if(BOUNCE_LEFT == ftr->bounceNextCollision)
                     {
                         // Bounce left at half velocity
-                        ftr->velocity.x = (-ftr->velocity.x) >> 1;
+                        ftr->velocity.x = (-ftr->velocity.x);
                         ftr->bounceNextCollision = NO_BOUNCE;
                     }
                     else
