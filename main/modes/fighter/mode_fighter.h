@@ -81,6 +81,15 @@ typedef enum
     MULTIPLAYER
 } fightingGameType_t;
 
+typedef enum
+{
+    NO_BOUNCE,
+    BOUNCE_UP,
+    BOUNCE_DOWN,
+    BOUNCE_LEFT,
+    BOUNCE_RIGHT
+} bounceDir_t;
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -196,6 +205,7 @@ typedef struct
     bool isShortHop;
     int32_t damage;
     uint8_t stocks;
+    bounceDir_t bounceNextCollision;
     /* Animation timer */
     int32_t animTimer;
     uint8_t currentSprite;

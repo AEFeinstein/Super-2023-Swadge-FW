@@ -63,8 +63,9 @@ typedef struct
 //==============================================================================
 
 void getHurtbox(fighter_t* ftr, box_t* hurtbox);
-#define setFighterState(f, st, sp, tm) _setFighterState(f, st, sp, tm, __LINE__);
-void _setFighterState(fighter_t* ftr, fighterState_t newState, uint8_t newSprite, int32_t timer, uint32_t line);
+#define setFighterState(f, st, sp, tm, kb) _setFighterState(f, st, sp, tm, kb, __LINE__);
+void _setFighterState(fighter_t* ftr, fighterState_t newState, uint8_t newSprite, int32_t timer, vector_t* knockback,
+                      uint32_t line);
 void setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* touchingPlatform,
                       const platform_t* passingThroughPlatform, bool isInAir);
 void checkFighterButtonInput(fighter_t* ftr);
@@ -266,7 +267,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
         f->fighters[i].isInvincible = true;
 
         // Set the initial sprites
-        setFighterState((&f->fighters[i]), FS_IDLE, f->fighters[i].idleSprite0, 0);
+        setFighterState((&f->fighters[i]), FS_IDLE, f->fighters[i].idleSprite0, 0, NULL);
 
         // Start both fighters in the middle of the stage
         f->fighters[i].pos.x = (f->d->w / 2) << SF;
@@ -365,9 +366,11 @@ void getHurtbox(fighter_t* ftr, box_t* hurtbox)
  * @param newState  The new state
  * @param newSprite The new sprite for that state
  * @param timer     The time to stay in this state before transitioning (0 == forever)
+ * @param knockback The knockback vector, may be NULL
  * @param line      The line number this was called from, for debugging
  */
-void _setFighterState(fighter_t* ftr, fighterState_t newState, uint8_t newSprite, int32_t timer, uint32_t line)
+void _setFighterState(fighter_t* ftr, fighterState_t newState, uint8_t newSprite, int32_t timer, vector_t* knockback,
+                      uint32_t line)
 {
     // Clean up variables when leaving a state
     if((FS_ATTACK == ftr->state) && (FS_ATTACK != newState) && (ftr->cAttack < NUM_ATTACKS))
@@ -403,8 +406,39 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, uint8_t newSprite
         case FS_STARTUP:
         case FS_ATTACK:
         case FS_COOLDOWN:
+        {
+            break;
+        }
         case FS_HITSTUN:
         {
+            int32_t absVelX = (knockback->x) > 0 ? (knockback->x) : -(knockback->x);
+            int32_t absVelY = (knockback->y) > 0 ? (knockback->y) : -(knockback->y);
+            if(absVelX > absVelY)
+            {
+                if(knockback->x > 0)
+                {
+                    // Traveling right, bounce to the left
+                    ftr->bounceNextCollision = BOUNCE_LEFT;
+                }
+                else
+                {
+                    // Traveling left, bounce to the right
+                    ftr->bounceNextCollision = BOUNCE_RIGHT;
+                }
+            }
+            else
+            {
+                if(knockback->y > 0)
+                {
+                    // Traveling down, bounce up
+                    ftr->bounceNextCollision = BOUNCE_UP;
+                }
+                else
+                {
+                    // Traveling up, bounce down
+                    ftr->bounceNextCollision = BOUNCE_DOWN;
+                }
+            }
             break;
         }
         case FS_DUCKING:
@@ -685,7 +719,7 @@ void checkFighterTimer(fighter_t* ftr)
                     // Transition from one attack frame to the next attack frame
                     atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
                     // Set the sprite
-                    setFighterState(ftr, FS_ATTACK, ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite, atk->duration);
+                    setFighterState(ftr, FS_ATTACK, ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite, atk->duration, NULL);
 
                     // Always copy the iframe value, may be 0
                     ftr->iFrameTimer = atk->iFrames;
@@ -696,7 +730,7 @@ void checkFighterTimer(fighter_t* ftr)
                 {
                     // Transition from attacking to cooldown
                     atk = NULL;
-                    setFighterState(ftr, FS_COOLDOWN, ftr->attacks[ftr->cAttack].endLagSprite, ftr->attacks[ftr->cAttack].endLag);
+                    setFighterState(ftr, FS_COOLDOWN, ftr->attacks[ftr->cAttack].endLagSprite, ftr->attacks[ftr->cAttack].endLag, NULL);
                 }
                 break;
             }
@@ -707,12 +741,12 @@ void checkFighterTimer(fighter_t* ftr)
                 if(ftr->isInAir)
                 {
                     // In air, go to jump
-                    setFighterState(ftr, FS_JUMPING, ftr->jumpSprite, 0);
+                    setFighterState(ftr, FS_JUMPING, ftr->jumpSprite, 0, NULL);
                 }
                 else
                 {
                     // On ground, go to idle
-                    setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0);
+                    setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0, NULL);
                 }
                 break;
             }
@@ -826,11 +860,11 @@ void checkFighterButtonInput(fighter_t* ftr)
     {
         if ((FS_IDLE == ftr->state) && (ftr->btnState & DOWN))
         {
-            setFighterState(ftr, FS_DUCKING, ftr->duckSprite, 0);
+            setFighterState(ftr, FS_DUCKING, ftr->duckSprite, 0, NULL);
         }
         else if((FS_DUCKING == ftr->state) && !(ftr->btnState & DOWN))
         {
-            setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0);
+            setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0, NULL);
         }
     }
 
@@ -859,7 +893,7 @@ void checkFighterButtonInput(fighter_t* ftr)
                     {
                         setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
                     }
-                    setFighterState(ftr, FS_JUMPING, ftr->jumpSprite, 0);
+                    setFighterState(ftr, FS_JUMPING, ftr->jumpSprite, 0, NULL);
                 }
                 break;
             }
@@ -870,7 +904,7 @@ void checkFighterButtonInput(fighter_t* ftr)
                 {
                     // Fall through a platform
                     setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
-                    setFighterState(ftr, FS_JUMPING, ftr->jumpSprite, 0);
+                    setFighterState(ftr, FS_JUMPING, ftr->jumpSprite, 0, NULL);
                     ftr->fallThroughTimer = 0;
                 }
                 break;
@@ -975,7 +1009,8 @@ void checkFighterButtonInput(fighter_t* ftr)
                 if(prevAttack != ftr->cAttack)
                 {
                     // Set the state, sprite, and timer
-                    setFighterState(ftr, FS_STARTUP, ftr->attacks[ftr->cAttack].startupLagSprite, ftr->attacks[ftr->cAttack].startupLag);
+                    setFighterState(ftr, FS_STARTUP, ftr->attacks[ftr->cAttack].startupLagSprite, ftr->attacks[ftr->cAttack].startupLag,
+                                    NULL);
 
                     // Always copy the iframe value, may be 0
                     ftr->iFrameTimer = ftr->attacks[ftr->cAttack].iFrames;
@@ -1017,7 +1052,7 @@ void checkFighterButtonInput(fighter_t* ftr)
                     ftr->fallThroughTimer = 0;
                     // Fall through a platform
                     setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
-                    setFighterState(ftr, FS_JUMPING, ftr->jumpSprite, 0);
+                    setFighterState(ftr, FS_JUMPING, ftr->jumpSprite, 0, NULL);
                 }
             }
             else
@@ -1080,7 +1115,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     ftr->dir = FACING_LEFT;
                     if(FS_RUNNING != ftr->state)
                     {
-                        setFighterState(ftr, FS_RUNNING, ftr->runSprite0, 0);
+                        setFighterState(ftr, FS_RUNNING, ftr->runSprite0, 0, NULL);
                         ftr->animTimer = 200 / FRAME_TIME_MS;
                     }
                 }
@@ -1118,7 +1153,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     ftr->dir = FACING_RIGHT;
                     if(FS_RUNNING != ftr->state)
                     {
-                        setFighterState(ftr, FS_RUNNING, ftr->runSprite0, 0);
+                        setFighterState(ftr, FS_RUNNING, ftr->runSprite0, 0, NULL);
                         ftr->animTimer = 200 / FRAME_TIME_MS;
                     }
                 }
@@ -1196,7 +1231,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         if((FS_RUNNING == ftr->state) && (!ftr->isInAir))
         {
             // Return to idle
-            setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0);
+            setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0, NULL);
         }
 
         // Decelerate less in the air
@@ -1255,8 +1290,17 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     }
     else
     {
-        // If the fighter is on the ground, don't bother doing Y axis math
-        ftr->velocity.y = 0;
+        // If the fighter is on the ground, check if they get bounced up
+        if(BOUNCE_UP == ftr->bounceNextCollision)
+        {
+            ftr->bounceNextCollision = NO_BOUNCE;
+            // Bounce up
+            ftr->velocity.y = (-ftr->velocity.y);
+        }
+        else
+        {
+            ftr->velocity.y = 0;
+        }
     }
 
     // Do a quick check to see if the binary search can be avoided altogether
@@ -1406,9 +1450,18 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     (((hbox.y1 >> SF)) == (platforms[idx].area.y0 >> SF)))
             {
                 // Fighter standing on platform
-                setFighterRelPos(ftr, ABOVE_PLATFORM, &platforms[idx], NULL, false);
                 ftr->ledgeJumped = false;
-                ftr->velocity.y = 0;
+                if(BOUNCE_UP == ftr->bounceNextCollision)
+                {
+                    // Bounce up at half velocity
+                    ftr->velocity.y = (-ftr->velocity.y) >> 1;
+                    ftr->bounceNextCollision = NO_BOUNCE;
+                }
+                else
+                {
+                    ftr->velocity.y = 0;
+                    setFighterRelPos(ftr, ABOVE_PLATFORM, &platforms[idx], NULL, false);
+                }
                 ftr->numJumpsLeft = ftr->numJumps;
                 // If the fighter was jumping, land
                 switch(ftr->state)
@@ -1416,7 +1469,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     case FS_JUMPING:
                     {
                         // Apply normal landing lag
-                        setFighterState(ftr, FS_COOLDOWN, ftr->landingLagSprite, ftr->landingLag);
+                        setFighterState(ftr, FS_COOLDOWN, ftr->landingLagSprite, ftr->landingLag, NULL);
                         break;
                     }
                     case FS_STARTUP:
@@ -1426,7 +1479,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                         if(ftr->isAerialAttack)
                         {
                             // Apply attack landing lag
-                            setFighterState(ftr, FS_COOLDOWN, ftr->landingLagSprite, ftr->attacks[ftr->cAttack].landingLag);
+                            setFighterState(ftr, FS_COOLDOWN, ftr->landingLagSprite, ftr->attacks[ftr->cAttack].landingLag, NULL);
                         }
                         break;
                     }
@@ -1477,8 +1530,17 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 else
                 {
                     // Fighter to left of a solid platform
-                    ftr->velocity.x = 0;
-                    setFighterRelPos(ftr, LEFT_OF_PLATFORM, &platforms[idx], NULL, true);
+                    if(BOUNCE_RIGHT == ftr->bounceNextCollision)
+                    {
+                        // Bounce right at half velocity
+                        ftr->velocity.x = (-ftr->velocity.x) >> 1;
+                        ftr->bounceNextCollision = NO_BOUNCE;
+                    }
+                    else
+                    {
+                        ftr->velocity.x = 0;
+                        setFighterRelPos(ftr, LEFT_OF_PLATFORM, &platforms[idx], NULL, true);
+                    }
 
                     // Moving downward
                     if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
@@ -1502,8 +1564,17 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 else
                 {
                     // Fighter to right of a solid platform
-                    ftr->velocity.x = 0;
-                    setFighterRelPos(ftr, RIGHT_OF_PLATFORM, &platforms[idx], NULL, true);
+                    if(BOUNCE_LEFT == ftr->bounceNextCollision)
+                    {
+                        // Bounce left at half velocity
+                        ftr->velocity.x = (-ftr->velocity.x) >> 1;
+                        ftr->bounceNextCollision = NO_BOUNCE;
+                    }
+                    else
+                    {
+                        ftr->velocity.x = 0;
+                        setFighterRelPos(ftr, RIGHT_OF_PLATFORM, &platforms[idx], NULL, true);
+                    }
 
                     // Moving downward
                     if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
@@ -1535,7 +1606,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         // TODO probably need to reset more
         setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
         ftr->cAttack = NO_ATTACK;
-        setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0);
+        setFighterState(ftr, FS_IDLE, ftr->idleSprite0, 0, NULL);
         ftr->pos.x = (f->d->w / 2) << SF;
         ftr->pos.y = 0;
         ftr->velocity.x = 0;
@@ -1613,15 +1684,18 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         // Apply the knockback, scaled by damage
                         // roughly (1 + (0.02 * dmg))
                         int32_t knockbackScalar = 64 + (otherFtr->damage);
+                        vector_t knockback;
                         if(FACING_RIGHT == ftr->dir)
                         {
-                            otherFtr->velocity.x += ((hbx->knockback.x * knockbackScalar) / 64);
+                            knockback.x = ((hbx->knockback.x * knockbackScalar) / 64);
                         }
                         else
                         {
-                            otherFtr->velocity.x -= ((hbx->knockback.x * knockbackScalar) / 64);
+                            knockback.x = -((hbx->knockback.x * knockbackScalar) / 64);
                         }
-                        otherFtr->velocity.y += ((hbx->knockback.y * knockbackScalar) / 64);
+                        knockback.y = ((hbx->knockback.y * knockbackScalar) / 64);
+                        otherFtr->velocity.x += knockback.x;
+                        otherFtr->velocity.y += knockback.y;
 
                         // Knock the fighter into the air
                         if(!otherFtr->isInAir)
@@ -1632,7 +1706,8 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         // Apply hitstun, scaled by defendant's percentage
                         setFighterState(otherFtr, FS_HITSTUN,
                                         otherFtr->isInAir ? otherFtr->hitstunAirSprite : otherFtr->hitstunGroundSprite,
-                                        hbx->hitstun * (1 + (otherFtr->damage / 32)));
+                                        hbx->hitstun * (1 + (otherFtr->damage / 32)),
+                                        &knockback);
 
                         // Break out of the for loop so that only one hitbox hits
                         break;
@@ -1691,15 +1766,18 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                     // Apply the knockback, scaled by damage
                     // roughly (1 + (0.02 * dmg))
                     int32_t knockbackScalar = 64 + (ftr->damage);
+                    vector_t knockback;
                     if(FACING_RIGHT == proj->dir)
                     {
-                        ftr->velocity.x += ((proj->knockback.x * knockbackScalar) / 64);
+                        knockback.x = ((proj->knockback.x * knockbackScalar) / 64);
                     }
                     else
                     {
-                        ftr->velocity.x -= ((proj->knockback.x * knockbackScalar) / 64);
+                        knockback.x = -((proj->knockback.x * knockbackScalar) / 64);
                     }
-                    ftr->velocity.y += ((proj->knockback.y * knockbackScalar) / 64);
+                    knockback.y = ((proj->knockback.y * knockbackScalar) / 64);
+                    ftr->velocity.x += knockback.x;
+                    ftr->velocity.y += knockback.y;
 
                     // Knock the fighter into the air
                     if(!ftr->isInAir)
@@ -1710,7 +1788,8 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                     // Apply hitstun, scaled by defendant's percentage
                     setFighterState(ftr, FS_HITSTUN,
                                     ftr->isInAir ? ftr->hitstunAirSprite : ftr->hitstunGroundSprite,
-                                    proj->hitstun * (1 + (ftr->damage / 32)));
+                                    proj->hitstun * (1 + (ftr->damage / 32)),
+                                    &knockback);
 
                     // Mark this projectile for removal
                     removeProjectile = true;
