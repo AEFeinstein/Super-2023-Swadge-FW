@@ -6,6 +6,12 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef _TEST_USE_SPIRAM_
+#include <esp_heap_caps.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#endif
+
 #include "esp_log.h"
 #include "jsmn.h"
 
@@ -820,7 +826,7 @@ void freeFighterData(fighter_t* fighters, uint8_t numFighters)
  */
 uint8_t loadFighterSprite(char* name, list_t* loadedSprites)
 {
-    uint8_t spriteIdx = 255;
+    uint32_t spriteIdx = 255;
     // Iterate through the list of loaded sprites and look to see if this
     // has been loaded already. If so, return it
     node_t* currentNode = loadedSprites->first;
@@ -841,16 +847,38 @@ uint8_t loadFighterSprite(char* name, list_t* loadedSprites)
     // Allocate a new sprite
     namedSprite_t* newSprite = calloc(1, sizeof(namedSprite_t));
 
-    // Load the sprite
-    loadWsg(name, &(newSprite->sprite));
-    // Copy the name
-    newSprite->name = calloc(1, strlen(name) + 1);
-    memcpy(newSprite->name, name, strlen(name) + 1);
-    // Set the IDX
-    newSprite->idx = spriteIdx + 1;
+#ifdef _MAX_LOAD_SPRITE_TEST_
+    while(1)
+#endif
+    {
+        // Load the sprite
+        if(loadWsg(name, &(newSprite->sprite)))
+        {
+            // Copy the name
+#ifdef _TEST_USE_SPIRAM_
+            newSprite->name = heap_caps_calloc(1, strlen(name) + 1, MALLOC_CAP_SPIRAM);
+    #ifdef _MAX_LOAD_SPRITE_TEST_
+            ESP_LOGE("SPR", "loaded %d sprites (%d free, %d largest block)", spriteIdx, heap_caps_get_free_size(MALLOC_CAP_SPIRAM), heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
+    #endif
+#else
+            newSprite->name = calloc(1, strlen(name) + 1);
+    #ifdef _MAX_LOAD_SPRITE_TEST_
+            ESP_LOGE("SPR", "loaded %d sprites (%d free, %d largest block)", spriteIdx, heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+    #endif
+#endif
+            memcpy(newSprite->name, name, strlen(name) + 1);
+            // Set the IDX
+            newSprite->idx = (++spriteIdx);
 
-    // Add the loaded sprite to the list
-    push(loadedSprites, newSprite);
+            // Add the loaded sprite to the list
+            push(loadedSprites, newSprite);
+
+#ifdef _MAX_LOAD_SPRITE_TEST_
+            // When looping infinitely, yield sometimes
+            taskYIELD();
+#endif
+        }
+    }
 
     // Return the loaded sprite
     // return &(newSprite->sprite);

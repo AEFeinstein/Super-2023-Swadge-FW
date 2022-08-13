@@ -6,6 +6,9 @@
 
 #include <string.h>
 #include <esp_log.h>
+#ifdef _TEST_USE_SPIRAM_
+#include <esp_heap_caps.h>
+#endif
 
 #include "display.h"
 #include "heatshrink_decoder.h"
@@ -184,16 +187,26 @@ bool loadWsg(char * name, wsg_t * wsg)
     // All done decoding
     heatshrink_decoder_finish(hsd);
     heatshrink_decoder_free(hsd);
+    // Free the bytes read from the file
+    free(buf);
 
     // Save the decompressed info to the wsg. The first four bytes are dimension
     wsg->w = (decompressedBuf[0] << 8) | decompressedBuf[1];
     wsg->h = (decompressedBuf[2] << 8) | decompressedBuf[3];
     // The rest of the bytes are pixels
+#ifdef _TEST_USE_SPIRAM_
+    wsg->px = (paletteColor_t *)heap_caps_malloc(sizeof(paletteColor_t) * wsg->w * wsg->h, MALLOC_CAP_SPIRAM);
+#else
     wsg->px = (paletteColor_t *)malloc(sizeof(paletteColor_t) * wsg->w * wsg->h);
-    memcpy(wsg->px, &decompressedBuf[4], outputIdx - 4);
+#endif
+    if(NULL != wsg->px)
+    {
+        memcpy(wsg->px, &decompressedBuf[4], outputIdx - 4);
+        return true;
+    }
 
     // all done
-    return true;
+    return false;
 }
 
 /**
