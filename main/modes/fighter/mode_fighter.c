@@ -1805,6 +1805,7 @@ void checkFighterProjectileCollisions(list_t* projectiles)
             // Iterate while removing this projectile
             node_t* nextNode = currentNode->next;
             removeEntry(projectiles, currentNode);
+            free(proj);
             currentNode = nextNode;
         }
         else
