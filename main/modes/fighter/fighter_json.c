@@ -151,6 +151,7 @@ void loadJsonFighterData(fighter_t* fighter, const char* jsonFile, list_t* loade
     parseJsonFighter(jsonStr, toks, tokIdx, loadedSprites, fighter);
 
     free(toks);
+    free(jsonStr);
 }
 
 /**
