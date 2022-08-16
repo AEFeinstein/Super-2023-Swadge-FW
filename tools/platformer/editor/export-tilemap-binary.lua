@@ -18,6 +18,14 @@ d:label{id="lab1",label="",text="Export Tilemap as .bin File for your own GameEn
  :button{text="&Cancel" }
  :show()
 
+--Initialize warp data array
+local warps = {}
+for i=0, 15 do
+  warps[i] = {}
+  warps[i][0] = 0;
+  warps[i][1] = 0;
+end
+
 local data = d.data
 if not data.ok then return end
     local lay = app.activeLayer
@@ -33,10 +41,37 @@ if not data.ok then return end
     mapFile:write(string.char(img.width))
     mapFile:write(string.char(img.height))
 
+    --The next section of bytes is the tilemap itself
     for p in img:pixels() do
       if(p ~= nil) then
-        mapFile:write(string.char(p()))
+        local tileId = p()
+
+        if(tileId > 0 and tileId < 17) then
+          --warp tiles
+
+          tileBelowCurrentTile = img:getPixel(p.x, p.y+1)
+          if(tileBelowCurrentTile == 34 or tileBelowCurrentTile == 64) then
+            --if tile below warp tile is brick block or container, write it like normal
+            mapFile:write(string.char(tileId))
+          else
+            --otherwise store it in warps array and don't write it into the file just yet
+            warps[tileId-1][0] = p.x
+            warps[tileId-1][1] = p.y
+            mapFile:write(string.char(0))
+          end
+          
+        else
+          --every other tile
+          mapFile:write(string.char(tileId))
+        end
+
       end
+    end
+
+    --The last 32 bytes are warp x and y locations
+    for i=0, 15 do
+      mapFile:write(string.char(warps[i][0]))
+      mapFile:write(string.char(warps[i][1]))
     end
   end
 
