@@ -56,6 +56,7 @@ typedef struct
     bool buttonInputReceived;
     fighterScene_t* composedScene;
     uint8_t composedSceneLen;
+    uint32_t hitstopTimer;
 } fightingGame_t;
 
 //==============================================================================
@@ -76,6 +77,7 @@ void checkFighterProjectileCollisions(list_t* projectiles);
 
 void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
                           uint8_t numPlatforms);
+uint32_t getHitstop(uint16_t damage);
 
 void getSpritePos(fighter_t* ftr, vector_t* spritePos);
 fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, list_t* projectiles,
@@ -514,6 +516,20 @@ void fighterGameLoop(int64_t elapsedUs)
                 break;
             }
         }
+
+        // If the hitstop timer is active
+        if(f->hitstopTimer)
+        {
+            // Decrement it
+            f->hitstopTimer--;
+        }
+    }
+
+    // If the hitstop timer is active
+    if(f->hitstopTimer)
+    {
+        // Don't do anything
+        return;
     }
 
     if(f->buttonInputReceived)
@@ -1620,6 +1636,20 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
 }
 
 /**
+ * Get the number of hitstop frames for the given amount of damage
+ *
+ * @param damage The amount of damage dealt
+ * @return The number of hitstop frames
+ */
+inline uint32_t getHitstop(uint16_t damage)
+{
+    // In ultimate, it's
+    // frames == floor(damage * 0.65 + 6)
+    // but an ultimate frame is 60fps, and this is 40fps, so this works
+    return ((damage * 4) + 36) / 9;
+}
+
+/**
  * Check if ftr's hitbox collides with otherFtr's hurtbox. If it does, note that
  * the attack connected and add damage and knockback to otherFtr
  *
@@ -1682,6 +1712,9 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
 
                         // Tally the damage
                         otherFtr->damage += hbx->damage;
+
+                        // Set the hitstun timer
+                        f->hitstopTimer = getHitstop(hbx->damage);
 
                         // Apply the knockback, scaled by damage
                         // roughly (1 + (0.02 * dmg))
