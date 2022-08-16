@@ -192,7 +192,7 @@ void moveEntityWithTileCollisions(entity_t * self){
             if(newTy != ty) {
                 uint8_t newVerticalTile = getTile(self->tilemap, tx, newTy);
 
-                if(newVerticalTile > TILE_CTNR_0xE && newVerticalTile < 59){
+                if(newVerticalTile > TILE_INVISIBLE_BLOCK && newVerticalTile < TILE_BG_GOAL_ZONE){
                     if(self->tileCollisionHandler(self, newVerticalTile, tx, newTy, 2 << (self->yspeed > 0))){
                         newY=((ty + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
                     }
@@ -218,7 +218,7 @@ void moveEntityWithTileCollisions(entity_t * self){
             if(newTx != tx) {
                 uint8_t newHorizontalTile = getTile(self->tilemap, newTx, ty);
 
-                if(newHorizontalTile > TILE_CTNR_0xE && newHorizontalTile < 59){
+                if(newHorizontalTile > TILE_INVISIBLE_BLOCK && newHorizontalTile < TILE_BG_GOAL_ZONE){
                     if(self->tileCollisionHandler(self, newHorizontalTile, newTx, ty, (self->xspeed > 0))){
                         newX=((tx + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
                     }

@@ -68,14 +68,14 @@ void drawTileMap(display_t * disp, tilemap_t * tilemap)
             uint8_t tile = tilemap->map[(y * tilemap->mapWidth) + x];
 
             //Test animated tiles
-            if(tile == 32 || tile == 48){
+            if(tile == 64 || tile == 67){
                 tile += tilemap->animationFrame;
             }
 
             //Draw only non-garbage tiles
-            if(tile > 15 && tile < 51)
+            if(tile > 31 && tile < 90)
             {
-                drawWsg(disp, &tilemap->tiles[tile - 16], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY, false, false, 0);
+                drawWsg(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY, false, false, 0);
             } else if(tile > 127 && tilemap->tileSpawnEnabled && (tilemap->executeTileSpawnColumn == x || tilemap->executeTileSpawnRow == y) ) {
                 tileSpawnEntity(tilemap, tile >> 7, x, y);
             }
@@ -148,48 +148,72 @@ bool loadMapFromFile(tilemap_t * tilemap, char * name)
 }
 
 bool loadTiles(tilemap_t * tilemap){
-    //tiles 0-15 are invisible tiles; 
-    //remember to shift out first 4 bits of tile index before drawing tile
-    loadWsg("tile016.wsg", &tilemap->tiles[0]);
-    loadWsg("tile017.wsg", &tilemap->tiles[1]);
-    loadWsg("tile018.wsg", &tilemap->tiles[2]);
-    loadWsg("tile019.wsg", &tilemap->tiles[3]);
-    loadWsg("tile020.wsg", &tilemap->tiles[4]);
-    loadWsg("tile021.wsg", &tilemap->tiles[5]);
-    loadWsg("tile022.wsg", &tilemap->tiles[6]);
-    loadWsg("tile023.wsg", &tilemap->tiles[7]);
-    
-    //These tiles have not been designed yet
-    loadWsg("tile016.wsg", &tilemap->tiles[8]);
-    loadWsg("tile016.wsg", &tilemap->tiles[9]);
-    loadWsg("tile016.wsg", &tilemap->tiles[10]);
-    loadWsg("tile016.wsg", &tilemap->tiles[11]);
-    loadWsg("tile016.wsg", &tilemap->tiles[12]);
-    loadWsg("tile016.wsg", &tilemap->tiles[13]);
-    loadWsg("tile016.wsg", &tilemap->tiles[14]);
-    loadWsg("tile016.wsg", &tilemap->tiles[15]);
+    //tiles 0-31 are invisible tiles; 
+    //remember to subtract 32 from tile index before drawing tile
+    loadWsg("tile032.wsg", &tilemap->tiles[0]);
+    loadWsg("tile033.wsg", &tilemap->tiles[1]);
+    loadWsg("tile034.wsg", &tilemap->tiles[2]);
+    loadWsg("tile035.wsg", &tilemap->tiles[3]);
+    loadWsg("tile036.wsg", &tilemap->tiles[4]);
+    loadWsg("tile037.wsg", &tilemap->tiles[5]);
+    loadWsg("tile038.wsg", &tilemap->tiles[6]);
 
+    loadWsg("tile032.wsg", &tilemap->tiles[7]);
+    loadWsg("tile032.wsg", &tilemap->tiles[8]);
+
+    loadWsg("tile041.wsg", &tilemap->tiles[9]);
+
+    loadWsg("tile032.wsg", &tilemap->tiles[10]);
+    loadWsg("tile032.wsg", &tilemap->tiles[11]);
+    loadWsg("tile032.wsg", &tilemap->tiles[12]);
+    loadWsg("tile032.wsg", &tilemap->tiles[13]);
+    loadWsg("tile032.wsg", &tilemap->tiles[14]);
+    loadWsg("tile032.wsg", &tilemap->tiles[15]);
     loadWsg("tile032.wsg", &tilemap->tiles[16]);
-    loadWsg("tile033.wsg", &tilemap->tiles[17]);
-    loadWsg("tile034.wsg", &tilemap->tiles[18]);
-    loadWsg("tile016.wsg", &tilemap->tiles[19]);
-    loadWsg("tile016.wsg", &tilemap->tiles[20]);
-    loadWsg("tile016.wsg", &tilemap->tiles[21]);
-    loadWsg("tile016.wsg", &tilemap->tiles[22]);
-    loadWsg("tile016.wsg", &tilemap->tiles[23]);
+    loadWsg("tile032.wsg", &tilemap->tiles[17]);
+    loadWsg("tile032.wsg", &tilemap->tiles[18]);
+    loadWsg("tile032.wsg", &tilemap->tiles[19]);
+    loadWsg("tile032.wsg", &tilemap->tiles[20]);
+    loadWsg("tile032.wsg", &tilemap->tiles[21]);
+    loadWsg("tile032.wsg", &tilemap->tiles[22]);
+    loadWsg("tile032.wsg", &tilemap->tiles[23]);
+    loadWsg("tile032.wsg", &tilemap->tiles[24]);
+    loadWsg("tile032.wsg", &tilemap->tiles[25]);
+    loadWsg("tile032.wsg", &tilemap->tiles[26]);
 
-    loadWsg("tile016.wsg", &tilemap->tiles[24]);
-    loadWsg("tile016.wsg", &tilemap->tiles[25]);
-    loadWsg("tile016.wsg", &tilemap->tiles[26]);
-    loadWsg("tile016.wsg", &tilemap->tiles[27]);
-    loadWsg("tile016.wsg", &tilemap->tiles[28]);
-    loadWsg("tile016.wsg", &tilemap->tiles[29]);
-    loadWsg("tile016.wsg", &tilemap->tiles[30]);
-    loadWsg("tile016.wsg", &tilemap->tiles[31]);
+    loadWsg("tile059.wsg", &tilemap->tiles[27]);
+    loadWsg("tile060.wsg", &tilemap->tiles[28]);
+    loadWsg("tile061.wsg", &tilemap->tiles[29]);
+    loadWsg("tile062.wsg", &tilemap->tiles[30]);
+    loadWsg("tile063.wsg", &tilemap->tiles[31]);
+    loadWsg("tile064.wsg", &tilemap->tiles[32]);
+    loadWsg("tile065.wsg", &tilemap->tiles[33]);
+    loadWsg("tile066.wsg", &tilemap->tiles[34]);
+    loadWsg("tile067.wsg", &tilemap->tiles[35]);
+    loadWsg("tile068.wsg", &tilemap->tiles[36]);
+    loadWsg("tile069.wsg", &tilemap->tiles[37]);
 
-    loadWsg("tile048.wsg", &tilemap->tiles[32]);
-    loadWsg("tile049.wsg", &tilemap->tiles[33]);
-    loadWsg("tile050.wsg", &tilemap->tiles[34]);
+    loadWsg("tile032.wsg", &tilemap->tiles[38]);
+    loadWsg("tile032.wsg", &tilemap->tiles[39]);
+    loadWsg("tile032.wsg", &tilemap->tiles[40]);
+    loadWsg("tile032.wsg", &tilemap->tiles[41]);
+    loadWsg("tile032.wsg", &tilemap->tiles[42]);
+    loadWsg("tile032.wsg", &tilemap->tiles[43]);
+    loadWsg("tile032.wsg", &tilemap->tiles[44]);
+    loadWsg("tile032.wsg", &tilemap->tiles[45]);
+    loadWsg("tile032.wsg", &tilemap->tiles[46]);
+    loadWsg("tile032.wsg", &tilemap->tiles[47]);
+
+    loadWsg("tile080.wsg", &tilemap->tiles[48]);
+    loadWsg("tile081.wsg", &tilemap->tiles[49]);
+    loadWsg("tile082.wsg", &tilemap->tiles[50]);
+    loadWsg("tile083.wsg", &tilemap->tiles[51]);
+    loadWsg("tile084.wsg", &tilemap->tiles[52]);
+    loadWsg("tile085.wsg", &tilemap->tiles[53]);
+    loadWsg("tile086.wsg", &tilemap->tiles[54]);
+    loadWsg("tile087.wsg", &tilemap->tiles[55]);
+    loadWsg("tile088.wsg", &tilemap->tiles[56]);
+
 }
 
 void tileSpawnEntity(tilemap_t * tilemap, uint8_t objectIndex, uint8_t tx, uint8_t ty) {
@@ -228,10 +252,10 @@ void setTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty, uint8_t newTileId){
 
 bool isSolid(uint8_t tileId) {
     switch(tileId) {
-        case TILE_EMPTY ... TILE_CTNR_0xE:
+        case TILE_EMPTY ... TILE_UNUSED_29:
             return false;
             break;
-        case TILE_INVISIBLE_BLOCK ... TILE_UNUSED_0x2F:
+        case TILE_INVISIBLE_BLOCK ... TILE_CONTAINER_3:
             return true;
             break;
         default:
@@ -240,5 +264,5 @@ bool isSolid(uint8_t tileId) {
 }
 
 bool isInteractive(uint8_t tileId){
-    return tileId > TILE_CTNR_0xE && tileId < 59;
+    return tileId > TILE_INVISIBLE_BLOCK && tileId < TILE_BG_GOAL_ZONE;
 }
