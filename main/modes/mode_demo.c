@@ -264,7 +264,7 @@ void demoMainLoop(int64_t elapsedUs)
         c555);
 
     // Draw a yellow line
-    plotLine(demo->disp, 10, 5, 50, 20, c550);
+    plotLine(demo->disp, 10, 5, 50, 20, c550, 0);
 
     // Draw a magenta rectangle
     plotRect(demo->disp, 70, 5, 100, 20, c505);

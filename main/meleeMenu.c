@@ -274,21 +274,21 @@ static void drawMeleeMenuText(display_t* d, font_t* font, const char* text,
     plotLine(d,
              xPos - 3,          yPos - 3,
              xPos + tWidth + 1, yPos - 3,
-             boundaryColor);
+             boundaryColor, 0);
     // Bottom line
     plotLine(d,
              xPos - 8,          yPos + font->h + 2,
              xPos + tWidth + 1, yPos + font->h + 2,
-             boundaryColor);
+             boundaryColor, 0);
     // Left side doodad
     plotLine(d,
              xPos -  3, yPos -  3,
              xPos - 13, yPos + 14,
-             boundaryColor);
+             boundaryColor, 0);
     plotLine(d,
              xPos - 13, yPos + 15,
              xPos -  8, yPos + font->h + 2,
-             boundaryColor);
+             boundaryColor, 0);
     // Right side semi-circle
     int16_t radius = (font->h + 6) / 2;
     plotCircleQuadrants(d,

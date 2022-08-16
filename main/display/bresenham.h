@@ -13,7 +13,7 @@
 void oddEvenFill(display_t * disp, int x0, int y0, int x1, int y1,
     paletteColor_t boundaryColor, paletteColor_t fillColor);
 
-void plotLine(display_t *, int x0, int y0, int x1, int y1, paletteColor_t col);
+void plotLine(display_t * disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth);
 void plotRect(display_t *, int x0, int y0, int x1, int y1, paletteColor_t col);
 void plotEllipse(display_t *, int xm, int ym, int a, int b, paletteColor_t col);
 void plotOptimizedEllipse(display_t *, int xm, int ym, int a, int b, paletteColor_t col);

@@ -1285,6 +1285,19 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     box_t dest_hurtbox;
     getHurtbox(ftr, &dest_hurtbox);
 
+    // If this is the home run contest
+    if(HR_CONTEST == f->type)
+    {
+        // Before calculating the destination hitbox
+        // If the destination is past a magic bouncy barrier
+        if((dest_hurtbox.x0 < hrStadium.platforms[0].area.x0 && ftr->velocity.x < 0) ||
+                (dest_hurtbox.x1 > hrStadium.platforms[0].area.x1 && ftr->velocity.x > 0))
+        {
+            // Reverse direction at 3/4 speed
+            ftr->velocity.x = -((3 * ftr->velocity.x) >> 2);
+        }
+    }
+
     // Now that we have X velocity, find the new X position
     int32_t deltaX = (((ftr->velocity.x + v0.x) * FRAME_TIME_MS) >> (SF + 1));
     dest_hurtbox.x0 += deltaX;
@@ -2075,6 +2088,21 @@ void drawFighterScene(display_t* d, fighterScene_t* scene)
 
         // Actually draw projectile
         drawWsg(d, getFighterSprite(proj_sprite, &(f->loadedSprites)), proj_posX, proj_posY, proj_dir, false, 0);
+    }
+
+    // If this is the home run contest
+    if(HR_CONTEST == f->type)
+    {
+        // Draw some barriers
+        plotLine(d,
+                 hrStadium.platforms[0].area.x0 >> SF, 0,
+                 hrStadium.platforms[0].area.x0 >> SF, (hrStadium.platforms[0].area.y0 >> SF) - 1,
+                 c435, 2);
+
+        plotLine(d,
+                 (hrStadium.platforms[0].area.x1 >> SF) - 1, 0,
+                 (hrStadium.platforms[0].area.x1 >> SF) - 1, (hrStadium.platforms[0].area.y0 >> SF) - 1,
+                 c435, 2);
     }
 
     // Draw the HUD

@@ -90,15 +90,33 @@ void oddEvenFill(display_t * disp, int x0, int y0, int x1, int y1,
     }
 }
 
-void plotLine(display_t * disp, int x0, int y0, int x1, int y1, paletteColor_t col)
+void plotLine(display_t * disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth)
 {
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
     int err = dx + dy, e2; /* error value e_xy */
+    int dashCnt = 0;
+    bool dashDraw = true;
 
     for (;;)   /* loop */
     {
-        disp->setPx(x0, y0, col);
+        if(dashWidth)
+        {
+            if(dashDraw)
+            {
+                disp->setPx(x0, y0, col);
+            }
+            dashCnt++;
+            if(dashWidth == dashCnt)
+            {
+                dashCnt = 0;
+                dashDraw = !dashDraw;
+            }
+        }
+        else
+        {
+            disp->setPx(x0, y0, col);
+        }
         e2 = 2 * err;
         if (e2 >= dy)   /* e_xy+e_x > 0 */
         {
@@ -372,7 +390,7 @@ void plotQuadBezierSeg(display_t * disp, int x0, int y0, int x1, int y1, int x2,
             } /* y step */
         } while (dy < 0 && dx > 0); /* gradient negates -> algorithm fails */
     }
-    plotLine(disp, x0, y0, x2, y2, col); /* plot remaining part to end */
+    plotLine(disp, x0, y0, x2, y2, col, 0); /* plot remaining part to end */
 }
 
 void plotQuadBezier(display_t * disp, int x0, int y0, int x1, int y1, int x2,
@@ -495,7 +513,7 @@ void plotQuadRationalBezierSeg(display_t * disp, int x0, int y0, int x1, int y1,
             }/* x step */
         } while (dy <= xy && dx >= xy); /* gradient negates -> algorithm fails */
     }
-    plotLine(disp, x0, y0, x2, y2, col); /* plot remaining needle to end */
+    plotLine(disp, x0, y0, x2, y2, col, 0); /* plot remaining needle to end */
 }
 
 void plotQuadRationalBezier(display_t * disp, int x0, int y0, int x1, int y1, int x2, int y2,
@@ -754,7 +772,7 @@ exit:
         yb = -yb;
         x1 = x2;
     } while (leg--); /* try other end */
-    plotLine(disp, x0, y0, x3, y3, col); /* remaining part in case of cusp or crunode */
+    plotLine(disp, x0, y0, x3, y3, col, 0); /* remaining part in case of cusp or crunode */
 }
 
 void plotCubicBezier(display_t * disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
