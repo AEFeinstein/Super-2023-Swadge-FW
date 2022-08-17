@@ -20,7 +20,12 @@ endif
 # Programs to use
 ################################################################################
 
-CC = gcc
+ifeq ($(HOST_OS),Windows)
+	CC = x86_64-w64-mingw32-gcc.exe
+endif
+ifeq ($(HOST_OS),Linux)
+	CC = gcc
+endif
 
 ################################################################################
 # Source Files
@@ -45,7 +50,10 @@ SOURCES   = $(shell find $(SRC_DIRS) -maxdepth 1 -iname "*.[c]") $(SRC_FILES)
 CFLAGS = \
 	-c \
 	-std=gnu99 \
-	-g
+	-g \
+	-static-libgcc \
+	-static-libstdc++ \
+	-ggdb
 
 # These are warning flags for the compiler, all files
 CFLAGS_WARNINGS = \
@@ -143,7 +151,10 @@ endif
 LIB_DIRS = 
 
 # This combines the flags for the linker to find and use libraries
-LIBRARY_FLAGS = $(patsubst %, -L%, $(LIB_DIRS)) $(patsubst %, -l%, $(LIBS))
+LIBRARY_FLAGS = $(patsubst %, -L%, $(LIB_DIRS)) $(patsubst %, -l%, $(LIBS)) \
+	-static-libgcc \
+	-static-libstdc++ \
+	-ggdb
 
 ################################################################################
 # Build Filenames

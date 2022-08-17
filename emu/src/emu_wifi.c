@@ -214,7 +214,7 @@ void checkEspNowRxQueue(void)
             if(0 != memcmp(recvMac, ourMac, sizeof(ourMac)))
             {
                 // If it does, send it to the application through the callback
-                hostEspNowRecvCb(recvMac, &recvString[21], recvStringLen - 21, 0);
+                hostEspNowRecvCb(recvMac, &recvString[21], recvStringLen - 21, 0x7F);
             }
         }
     }

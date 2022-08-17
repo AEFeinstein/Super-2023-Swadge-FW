@@ -296,10 +296,10 @@ const uint16_t paletteColors[] =
     #define TFT_HEIGHT        240
     #define LCD_PIXEL_CLOCK_HZ (80 * 1000 * 1000)
     #define X_OFFSET            0
-    #define Y_OFFSET            0
+    #define Y_OFFSET           80
     #define SWAP_XY         false
-    #define MIRROR_X        false
-    #define MIRROR_Y        false
+    #define MIRROR_X         true
+    #define MIRROR_Y         true
 #elif defined(CONFIG_GC9307_240x280)
     // A beautiful rounded edges LCD RB017A1505A
     #define TFT_WIDTH         280

@@ -13,7 +13,7 @@
 //==============================================================================
 
 // Division by a power of 2 has slightly more instructions than rshift, but handles negative numbers properly!
-#define SF (1 << 8) // Scaling factor, a nice power of 2
+#define SF 8 // Scaling factor, number of decimal bits
 
 typedef enum
 {
@@ -27,8 +27,8 @@ typedef enum
 
 typedef enum
 {
-    FACING_LEFT,
-    FACING_RIGHT
+    FACING_RIGHT = 0,
+    FACING_LEFT
 } fighterDirection_t;
 
 typedef enum
@@ -58,6 +58,38 @@ typedef enum
     NO_ATTACK
 } attackOrder_t;
 
+typedef enum
+{
+    KING_DONUT,
+    SUNNY,
+    BIG_FUNKUS,
+    SANDBAG,
+    NO_CHARACTER
+} fightingCharacter_t;
+
+typedef enum
+{
+    BATTLEFIELD,
+    FINAL_DESTINATION,
+    HR_STADIUM,
+    NO_STAGE,
+} fightingStage_t;
+
+typedef enum
+{
+    HR_CONTEST,
+    MULTIPLAYER
+} fightingGameType_t;
+
+typedef enum
+{
+    NO_BOUNCE,
+    BOUNCE_UP,
+    BOUNCE_DOWN,
+    BOUNCE_LEFT,
+    BOUNCE_RIGHT
+} bounceDir_t;
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -71,7 +103,7 @@ typedef struct
     uint16_t hitstun;
 
     bool isProjectile;
-    wsg_t* projSprite;
+    uint8_t projSprite;
     uint16_t projDuration;
     vector_t projVelo;
     vector_t projAccel;
@@ -79,7 +111,7 @@ typedef struct
 
 typedef struct
 {
-    wsg_t* sprite;
+    uint8_t sprite;
     attackHitbox_t* hitboxes;
     vector_t sprite_offset;
     vector_t hurtbox_offset;
@@ -93,8 +125,8 @@ typedef struct
 
 typedef struct
 {
-    wsg_t* startupLagSpr;
-    wsg_t* endLagSpr;
+    uint8_t startupLagSprite;
+    uint8_t endLagSprite;
     attackFrame_t* attackFrames;
     uint16_t startupLag;
     uint16_t endLag;
@@ -113,6 +145,12 @@ typedef struct
 
 typedef struct
 {
+    uint8_t numPlatforms;
+    platform_t platforms[];
+} stage_t;
+
+typedef struct
+{
     vector_t pos;
     vector_t hurtbox_offset;
     vector_t size;
@@ -127,6 +165,7 @@ typedef struct
     const platform_t* passingThroughPlatform;
     uint8_t numJumps;
     uint8_t numJumpsLeft;
+    bool isInFreefall;
     uint16_t landingLag;
     /* how floaty a jump is */
     int32_t gravity;
@@ -143,13 +182,15 @@ typedef struct
     /* Attack data */
     attack_t attacks[NUM_ATTACKS];
     /* Sprite names */
-    wsg_t* idleSprite0;
-    wsg_t* idleSprite1;
-    wsg_t* runSprite0;
-    wsg_t* runSprite1;
-    wsg_t* jumpSprite;
-    wsg_t* duckSprite;
-    wsg_t* landingLagSprite;
+    uint8_t idleSprite0;
+    uint8_t idleSprite1;
+    uint8_t runSprite0;
+    uint8_t runSprite1;
+    uint8_t jumpSprite;
+    uint8_t duckSprite;
+    uint8_t landingLagSprite;
+    uint8_t hitstunGroundSprite;
+    uint8_t hitstunAirSprite;
     /* Input Tracking */
     int32_t prevBtnState;
     int32_t btnState;
@@ -165,15 +206,16 @@ typedef struct
     bool isShortHop;
     int32_t damage;
     uint8_t stocks;
+    bounceDir_t bounceNextCollision;
     /* Animation timer */
     int32_t animTimer;
-    wsg_t* currentSprite;
+    uint8_t currentSprite;
 } fighter_t;
 
 typedef struct
 {
     fighter_t* owner;
-    wsg_t* sprite;
+    uint8_t sprite;
 
     vector_t size;
     vector_t pos;
@@ -189,10 +231,51 @@ typedef struct
     fighterDirection_t dir;
 } projectile_t;
 
+
+// Structs to store data to draw a scene
+
+typedef struct
+{
+    int16_t spritePosX;
+    int16_t spritePosY;
+    int16_t spriteDir;
+    int16_t spriteIdx;
+    int16_t damage;
+    int16_t stocks;
+} fighterSceneFighter_t;
+
+typedef struct
+{
+    int16_t spritePosX;
+    int16_t spritePosY;
+    int16_t spriteDir;
+    int16_t spriteIdx;
+} fighterSceneProjectile_t;
+
+typedef struct
+{
+    uint16_t p2pMsgType;
+    uint16_t stageIdx;
+    fighterSceneFighter_t f1;
+    fighterSceneFighter_t f2;
+    int16_t numProjectiles;
+    fighterSceneProjectile_t projs[];
+} fighterScene_t;
+
 //==============================================================================
-// Extern variables
+// Functions
 //==============================================================================
 
-extern swadgeMode modeFighter;
+void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
+                      fightingCharacter_t* fightingCharacter, fightingStage_t stage,
+                      bool isPlayerOne);
+void fighterExitGame(void);
+void fighterGameLoop(int64_t elapsedUs);
+void fighterGameButtonCb(buttonEvt_t* evt);
+
+void fighterRxButtonInput(int32_t btnState);
+
+void drawFighterScene(display_t* d, fighterScene_t* sceneData);
+void fighterDrawSceneAfterAck(void);
 
 #endif

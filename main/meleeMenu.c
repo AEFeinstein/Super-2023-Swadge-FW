@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "led_util.h"
+#include "swadgeMode.h"
+
 #include "bresenham.h"
 #include "meleeMenu.h"
 
@@ -16,6 +19,15 @@
 static const paletteColor_t borderColors[MAX_ROWS] =
 {
     c112, c211, c021, c221, c102
+};
+
+static const led_t borderLedColors[MAX_ROWS] =
+{
+    {.r = 0x10, .g = 0x10, .b = 0x20},
+    {.r = 0x20, .g = 0x10, .b = 0x10},
+    {.r = 0x00, .g = 0x20, .b = 0x10},
+    {.r = 0x20, .g = 0x20, .b = 0x10},
+    {.r = 0x10, .g = 0x00, .b = 0x20}
 };
 
 // X axis offset for each row
@@ -59,6 +71,23 @@ meleeMenu_t* initMeleeMenu(const char* title, font_t* font, meleeMenuCb cbFunc)
     newMenu->font = font;
     // Return the menu
     return newMenu;
+}
+
+/**
+ * @brief Clear all rows and reset the menu title
+ * 
+ * @param menu The menu to reset
+ * @param title The new title to display
+ * @param cbFunc The function to call when a menu option is selected. The
+ *               argument to the callback will be the same pointer
+ */
+void resetMeleeMenu(meleeMenu_t* menu, const char* title, meleeMenuCb cbFunc)
+{
+    menu->title = title;
+    menu->numRows = 0;
+    menu->selectedRow = 0;
+    menu->cbFunc = cbFunc;
+    memset(&menu->rows, 0, MAX_ROWS * sizeof(const char*));
 }
 
 /**
@@ -210,6 +239,13 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
                           rowOffsets[row], (yIdx += (menu->font->h + 7)),
                           (row == menu->selectedRow));
     }
+
+    led_t leds[NUM_LEDS] = {0};
+    for(uint8_t i = 0; i < NUM_LEDS; i++)
+    {
+        leds[i] = borderLedColors[menu->selectedRow];
+    }
+    setLeds(leds, NUM_LEDS);
 }
 
 /**
@@ -238,21 +274,21 @@ static void drawMeleeMenuText(display_t* d, font_t* font, const char* text,
     plotLine(d,
              xPos - 3,          yPos - 3,
              xPos + tWidth + 1, yPos - 3,
-             boundaryColor);
+             boundaryColor, 0);
     // Bottom line
     plotLine(d,
              xPos - 8,          yPos + font->h + 2,
              xPos + tWidth + 1, yPos + font->h + 2,
-             boundaryColor);
+             boundaryColor, 0);
     // Left side doodad
     plotLine(d,
              xPos -  3, yPos -  3,
              xPos - 13, yPos + 14,
-             boundaryColor);
+             boundaryColor, 0);
     plotLine(d,
              xPos - 13, yPos + 15,
              xPos -  8, yPos + font->h + 2,
-             boundaryColor);
+             boundaryColor, 0);
     // Right side semi-circle
     int16_t radius = (font->h + 6) / 2;
     plotCircleQuadrants(d,

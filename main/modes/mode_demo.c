@@ -40,7 +40,7 @@ void demoEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, in
 void demoEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 
 void demoConCbFn(p2pInfo* p2p, connectionEvt_t evt);
-void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t len);
+void demoMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len);
 void demoMsgTxCbFn(p2pInfo* p2p, messageStatus_t status);
 
 //==============================================================================
@@ -170,7 +170,7 @@ void demoEnterMode(display_t * disp)
     loadFont("radiostars.font", &demo->radiostars);
 
     // Start a p2p connection
-    p2pInitialize(&demo->p, "dmo", demoConCbFn, demoMsgRxCbFn, -10);
+    p2pInitialize(&demo->p, 'D', demoConCbFn, demoMsgRxCbFn, -10);
     p2pStartConnection(&demo->p);
 }
 
@@ -264,7 +264,7 @@ void demoMainLoop(int64_t elapsedUs)
         c555);
 
     // Draw a yellow line
-    plotLine(demo->disp, 10, 5, 50, 20, c550);
+    plotLine(demo->disp, 10, 5, 50, 20, c550, 0);
 
     // Draw a magenta rectangle
     plotRect(demo->disp, 70, 5, 100, 20, c505);
@@ -397,7 +397,7 @@ void demoTemperatureCb(float tmp_c)
  */
 void demoEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
 {
-    p2pRecvCb(&demo->p, mac_addr, data, len, rssi);
+    p2pRecvCb(&demo->p, mac_addr, (const uint8_t*)data, len, rssi);
 }
 
 /**
@@ -449,8 +449,8 @@ void demoConCbFn(p2pInfo* p2p __attribute__((unused)), connectionEvt_t evt)
                 }
                 case GOING_FIRST:
                 {
-                    const char randPayload[] = "zb4o5LBYgsmDuyreOtBcPIi8kINXYW0";
-                    p2pSendMsg(p2p, "gst", randPayload, sizeof(randPayload), demoMsgTxCbFn);
+                    const uint8_t randPayload[] = "zb4o5LBYgsmDuyreOtBcPIi8kINXYW0";
+                    p2pSendMsg(p2p, randPayload, sizeof(randPayload), demoMsgTxCbFn);
                     break;
                 } 
             }
@@ -470,16 +470,15 @@ void demoConCbFn(p2pInfo* p2p __attribute__((unused)), connectionEvt_t evt)
  * @brief TODO
  *
  * @param p2p
- * @param msg
  * @param payload
  * @param len
  */
-void demoMsgRxCbFn(p2pInfo* p2p, const char* msg, const char* payload, uint8_t len)
+void demoMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
 {
     ESP_LOGD("DEMO", "%s -> [%d] -> %s", __func__, len, payload);
 
     // Echo
-    p2pSendMsg(p2p, msg, payload, len, demoMsgTxCbFn);
+    p2pSendMsg(p2p, (const uint8_t*)payload, len, demoMsgTxCbFn);
 
     if(0 == demo->packetTimer)
     {

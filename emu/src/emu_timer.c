@@ -119,6 +119,7 @@ esp_err_t esp_timer_create(const esp_timer_create_args_t* create_args,
     // Initialize the timer
     (*out_handle)->callback = create_args->callback;
     (*out_handle)->arg = create_args->arg;
+    (*out_handle)->alarm = 0;
     if(create_args->skip_unhandled_events)
     {
         (*out_handle)->flags |= FL_SKIP_UNHANDLED_EVENTS;

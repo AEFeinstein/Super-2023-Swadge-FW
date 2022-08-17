@@ -6,6 +6,12 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef _TEST_USE_SPIRAM_
+    #include <esp_heap_caps.h>
+    #include "freertos/FreeRTOS.h"
+    #include "freertos/task.h"
+#endif
+
 #include "esp_log.h"
 #include "jsmn.h"
 
@@ -20,6 +26,7 @@ typedef struct
 {
     char* name;
     wsg_t sprite;
+    uint8_t idx;
 } namedSprite_t;
 
 //==============================================================================
@@ -111,16 +118,16 @@ static bool jsonBoolean(const char* jsonStr, jsmntok_t tok)
 //==============================================================================
 
 /**
- * @brief Parse fighter attributes from a JSON file and return them in struct form
+ * @brief Parse fighter attributes from a JSON file into the given pointer
  *
- * @param numFighters The number of fighters will be written to this pointer
+ * @param fighter The fighter_t struct to load a fighter into
+ * @param jsonFile The JSON file to load data from
  * @param loadedSprites A list of loaded sprites. Will be filled with sprites
- * @return A pointer to the allocated fighter attribute data
  */
-fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
+void loadJsonFighterData(fighter_t* fighter, const char* jsonFile, list_t* loadedSprites)
 {
     // Load the json string
-    char* jsonStr = loadJson("test.json");
+    char* jsonStr = loadJson(jsonFile);
 
     // Allocate a bunch of tokens
     jsmn_parser p;
@@ -134,69 +141,17 @@ fighter_t* loadJsonFighterData(uint8_t* numFighters, list_t* loadedSprites)
     {
         ESP_LOGE("FTR", "Failed to parse JSON: %d\n", numToks);
         free(toks);
-        return NULL;
     }
     else
     {
         ESP_LOGI("FTR", "numToks = %d", numToks);
     }
 
-    // Pointer to allocate memory for later
-    fighter_t* fighters = NULL;
+    // Load the fighter
+    parseJsonFighter(jsonStr, toks, tokIdx, loadedSprites, fighter);
 
-    ////////////////////////////////////////////////////////////////////////////
-
-    // Each attack is an object
-    if(JSMN_OBJECT != toks[tokIdx].type)
-    {
-        ESP_LOGE("JSON", "Non-object!!");
-    }
-
-    // Keep track of fields so we know when we're done
-    uint8_t numFieldsParsed = 0;
-    uint8_t numFieldsToParse = toks[tokIdx].size;
-
-    // Move to the first field
-    tokIdx++;
-
-    // Parse the tokens
-    while(true)
-    {
-        if(JSMN_STRING == toks[tokIdx].type)
-        {
-            if (0 == jsoneq(jsonStr, &toks[tokIdx], "fighters"))
-            {
-                tokIdx++;
-
-                // Allocate space for the fighters
-                *numFighters = toks[tokIdx].size;
-                fighters = calloc(sizeof(fighter_t), *numFighters);
-
-                // Move to the next token
-                tokIdx++;
-
-                // Parse each fighter
-                for(int32_t fighterIdx = 0; fighterIdx < *numFighters; fighterIdx++)
-                {
-                    // Sum up the number of tokens this fighter parsed
-                    tokIdx = parseJsonFighter(jsonStr, toks, tokIdx, loadedSprites, &fighters[fighterIdx]);
-                }
-
-                numFieldsParsed++;
-            }
-        }
-        else
-        {
-            ESP_LOGE("JSON", "Non-string key!!");
-        }
-
-        // Check to return
-        if(numFieldsParsed == numFieldsToParse)
-        {
-            return fighters;
-        }
-    }
-    return fighters;
+    free(toks);
+    free(jsonStr);
 }
 
 /**
@@ -300,6 +255,24 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
                 tokIdx++;
                 numFieldsParsed++;
             }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "hitstun_ground_sprite"))
+            {
+                tokIdx++;
+                char* name = jsonString(jsonStr, toks[tokIdx]);
+                ftr->hitstunGroundSprite = loadFighterSprite(name, loadedSprites);
+                free(name);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "hitstun_air_sprite"))
+            {
+                tokIdx++;
+                char* name = jsonString(jsonStr, toks[tokIdx]);
+                ftr->hitstunAirSprite = loadFighterSprite(name, loadedSprites);
+                free(name);
+                tokIdx++;
+                numFieldsParsed++;
+            }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "gravity"))
             {
                 tokIdx++;
@@ -338,16 +311,16 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "size_x"))
             {
                 tokIdx++;
-                ftr->size.x = SF * jsonInteger(jsonStr, toks[tokIdx]);
-                ftr->originalSize.x = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->size.x = jsonInteger(jsonStr, toks[tokIdx]) << SF;
+                ftr->originalSize.x = jsonInteger(jsonStr, toks[tokIdx]) << SF;
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "size_y"))
             {
                 tokIdx++;
-                ftr->size.y = SF * jsonInteger(jsonStr, toks[tokIdx]);
-                ftr->originalSize.y = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                ftr->size.y = jsonInteger(jsonStr, toks[tokIdx]) << SF;
+                ftr->originalSize.y = jsonInteger(jsonStr, toks[tokIdx]) << SF;
                 tokIdx++;
                 numFieldsParsed++;
             }
@@ -463,7 +436,7 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* 
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                atk->startupLagSpr = loadFighterSprite(name, loadedSprites);
+                atk->startupLagSprite = loadFighterSprite(name, loadedSprites);
                 free(name);
                 tokIdx++;
                 numFieldsParsed++;
@@ -472,7 +445,7 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* 
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                atk->endLagSpr = loadFighterSprite(name, loadedSprites);
+                atk->endLagSprite = loadFighterSprite(name, loadedSprites);
                 free(name);
                 tokIdx++;
                 numFieldsParsed++;
@@ -697,28 +670,28 @@ int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokId
             if(0 == jsoneq(jsonStr, &toks[tokIdx], "relativePos_x"))
             {
                 tokIdx++;
-                hbx->hitboxPos.x = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                hbx->hitboxPos.x = jsonInteger(jsonStr, toks[tokIdx]) << SF;
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "relativePos_y"))
             {
                 tokIdx++;
-                hbx->hitboxPos.y = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                hbx->hitboxPos.y = jsonInteger(jsonStr, toks[tokIdx]) << SF;
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "size_x"))
             {
                 tokIdx++;
-                hbx->hitboxSize.x = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                hbx->hitboxSize.x = jsonInteger(jsonStr, toks[tokIdx]) << SF;
                 tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "size_y"))
             {
                 tokIdx++;
-                hbx->hitboxSize.y = SF * jsonInteger(jsonStr, toks[tokIdx]);
+                hbx->hitboxSize.y = jsonInteger(jsonStr, toks[tokIdx]) << SF;
                 tokIdx++;
                 numFieldsParsed++;
             }
@@ -833,38 +806,39 @@ void freeFighterData(fighter_t* fighters, uint8_t numFighters)
             for(uint8_t atkFrameIdx = 0; atkFrameIdx < atk->numAttackFrames; atkFrameIdx++)
             {
                 attackFrame_t* frm = &atk->attackFrames[atkFrameIdx];
-                // for(uint8_t hbIdx = 0; hbIdx < frm->numHitboxes; hbIdx++)
-                // {
-                //     attackHitbox_t * hbx = &frm->hitboxes[hbIdx];
-                // }
                 free(frm->hitboxes);
             }
             free(atk->attackFrames);
         }
         // attacks isn't dynamically allocated
     }
-    free(fighters);
+    // Fighters aren't dynamically allocated
 }
 
 /**
  * Load a sprite, or return a pointer to that sprite if it's already loaded.
  * When loading a sprite, add it to loadedSprites.
  *
+ * TODO optimize sprite IDX
+ *
  * @param name The name of the sprite to load
  * @param loadedSprites A linked list of loaded sprites
- * @return A pointer to a wsg_t sprite
+ * @return A sprite index
  */
-wsg_t* loadFighterSprite(char* name, list_t* loadedSprites)
+uint8_t loadFighterSprite(char* name, list_t* loadedSprites)
 {
+    uint32_t spriteIdx = 255;
     // Iterate through the list of loaded sprites and look to see if this
     // has been loaded already. If so, return it
     node_t* currentNode = loadedSprites->first;
     while (currentNode != NULL)
     {
+        spriteIdx = ((namedSprite_t*)currentNode->val)->idx;
         if(0 == strcmp(((namedSprite_t*)currentNode->val)->name, name))
         {
             // Name matches, so return this loaded sprite
-            return &((namedSprite_t*)currentNode->val)->sprite;
+            // return &((namedSprite_t*)currentNode->val)->sprite;
+            return spriteIdx;
         }
         // Name didn't match, so iterate
         currentNode = currentNode->next;
@@ -874,17 +848,70 @@ wsg_t* loadFighterSprite(char* name, list_t* loadedSprites)
     // Allocate a new sprite
     namedSprite_t* newSprite = calloc(1, sizeof(namedSprite_t));
 
-    // Load the sprite
-    loadWsg(name, &(newSprite->sprite));
-    // Copy the name
-    newSprite->name = calloc(1, strlen(name) + 1);
-    memcpy(newSprite->name, name, strlen(name) + 1);
+#ifdef _MAX_LOAD_SPRITE_TEST_
+    while(1)
+#endif
+    {
+        // Load the sprite
+        if(loadWsg(name, &(newSprite->sprite)))
+        {
+            // Copy the name
+#ifdef _TEST_USE_SPIRAM_
+            newSprite->name = heap_caps_calloc(1, strlen(name) + 1, MALLOC_CAP_SPIRAM);
+#ifdef _MAX_LOAD_SPRITE_TEST_
+            ESP_LOGE("SPR", "loaded %d sprites (%d free, %d largest block)", spriteIdx, heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+                     heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
+#endif
+#else
+            newSprite->name = calloc(1, strlen(name) + 1);
+#ifdef _MAX_LOAD_SPRITE_TEST_
+            ESP_LOGE("SPR", "loaded %d sprites (%d free, %d largest block)", spriteIdx, heap_caps_get_free_size(MALLOC_CAP_8BIT),
+                     heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+#endif
+#endif
+            memcpy(newSprite->name, name, strlen(name) + 1);
+            // Set the IDX
+            newSprite->idx = (++spriteIdx);
 
-    // Add the loaded sprite to the list
-    push(loadedSprites, newSprite);
+            // Add the loaded sprite to the list
+            push(loadedSprites, newSprite);
+
+#ifdef _MAX_LOAD_SPRITE_TEST_
+            // When looping infinitely, yield sometimes
+            taskYIELD();
+#endif
+        }
+    }
 
     // Return the loaded sprite
-    return &(newSprite->sprite);
+    // return &(newSprite->sprite);
+    return newSprite->idx;
+}
+
+/**
+ * Get a sprite given the sprite's index
+ *
+ * TODO optimize sprite IDX
+ *
+ * @param spriteIdx The index to get a sprite for
+ * @param loadedSprites A list of loaded sprites
+ * @return wsg_t* The sprite that corresponds to this index
+ */
+wsg_t* getFighterSprite(uint8_t spriteIdx, list_t* loadedSprites)
+{
+    // Iterate through the list of loaded sprites and look to see if this
+    // has been loaded already. If so, return it
+    node_t* currentNode = loadedSprites->first;
+    while (currentNode != NULL)
+    {
+        if (spriteIdx == ((namedSprite_t*)currentNode->val)->idx)
+        {
+            return &(((namedSprite_t*)currentNode->val)->sprite);
+        }
+        // Index didn't match, so iterate
+        currentNode = currentNode->next;
+    }
+    return NULL;
 }
 
 /**

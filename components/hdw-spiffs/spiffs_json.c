@@ -16,7 +16,7 @@
  * @return A pointer to a null terminated JSON string. May be NULL if the load
  *         fails. Must be freed after use
  */
-char * loadJson(char * name)
+char * loadJson(const char * name)
 {
     // Read JSON from file
     uint8_t * buf = NULL;
