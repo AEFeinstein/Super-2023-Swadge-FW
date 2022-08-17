@@ -32,7 +32,7 @@ Magfest is cool. Welcome to this playground.
 
 This project uses CircleCI to automatically build the firmware any time a change is pushed to `main`. Eventually it will notify our Slack channel whenever there is a fresh executable. I hope the build is currently passing!
 
-[![AEFeinstein](https://circleci.com/gh/AEFeinstein/esp32-c3-playground.svg?style=svg)](https://circleci.com/gh/AEFeinstein/esp32-c3-playground)
+[![AEFeinstein](https://circleci.com/gh/AEFeinstein/Super-2023-Swadge-FW.svg?style=svg)](https://circleci.com/gh/AEFeinstein/Super-2023-Swadge-FW)
 
 # Configuring Your Environment
 
