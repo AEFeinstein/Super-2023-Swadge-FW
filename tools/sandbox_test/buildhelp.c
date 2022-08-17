@@ -159,6 +159,8 @@ int main( int argc, char ** argv )
 			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/esp_hw_support/include/soc", idf_path ); appendcflag( temp );
 			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/esp_hw_support/port", idf_path ); appendcflag( temp );
 			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/esp_hw_support/port/esp32s2/private_include", idf_path ); appendcflag( temp );
+			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/hal/platform_port/include", idf_path ); appendcflag( temp );
+			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/esp_hw_support/port/esp32s2", idf_path ); appendcflag( temp );
 
 			appendcflag( "-I../../components" );
 			appendcflag( "-I../../components/hdw-qma6981" );
@@ -258,7 +260,7 @@ int main( int argc, char ** argv )
 				"		 *(.entry.text)\n"
 				"		 *(.init.literal)\n"
 				"		 *(.init)\n"
-				"		 *(.literal .text .literal.* .text.* .stub .gnu.warning .gnu.linkonce.literal.* .gnu.linkonce.t.*.literal .gnu.linkonce.t.*)\n"
+				"		 *(.literal .text .literal.* .text.* .stub .gnu.warning .gnu.linkonce.literal.* .gnu.linkonce.t.*.literal .gnu.linkonce.t.* .iram* .iram1 .iram1.*)\n"
 				"		 *(.fini.literal)\n"
 				"		 *(.fini)\n"
 				"		 *(.gnu.version)\n"
