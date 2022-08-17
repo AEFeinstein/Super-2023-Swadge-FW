@@ -38,6 +38,15 @@
 
 #define NUM_FIGHTERS 2
 
+typedef enum
+{
+    COUNTING_IN,
+    HR_BARRIER_UP,
+    HR_BARRIER_DOWN,
+    HR_PARABOLA_ANIM,
+    GAME_OVER
+} fighterGamePhase_t;
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -57,6 +66,8 @@ typedef struct
     fighterScene_t* composedScene;
     uint8_t composedSceneLen;
     uint32_t hitstopTimer;
+    int32_t gameTimerUs;
+    fighterGamePhase_t gamePhase;
 } fightingGame_t;
 
 //==============================================================================
@@ -286,6 +297,9 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
             {
                 // No stocks for HR Contest
                 f->fighters[i].stocks = 0;
+
+                f->gamePhase = COUNTING_IN;
+                f->gameTimerUs = 3000000;
                 break;
             }
         }
@@ -491,6 +505,45 @@ void setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* to
  */
 void fighterGameLoop(int64_t elapsedUs)
 {
+    switch(f->gamePhase)
+    {
+        case COUNTING_IN:
+        {
+            f->gameTimerUs -= elapsedUs;
+            if(f->gameTimerUs <= 0)
+            {
+                f->gameTimerUs = 15000000; // 15s total
+                f->gamePhase = HR_BARRIER_UP;
+            }
+            break;
+        }
+        case HR_BARRIER_UP:
+        {
+            f->gameTimerUs -= elapsedUs;
+            if(f->gameTimerUs <= 5000000) // last 5s
+            {
+                f->gamePhase = HR_BARRIER_DOWN;
+            }
+            break;
+        }
+        case HR_BARRIER_DOWN:
+        {
+            f->gameTimerUs -= elapsedUs;
+            if(f->gameTimerUs <= 0)
+            {
+                f->gameTimerUs = 0;
+                f->gamePhase = HR_PARABOLA_ANIM;
+            }
+            break;
+        }
+        case HR_PARABOLA_ANIM:
+        case GAME_OVER:
+        {
+            // TODO
+            break;
+        }
+    }
+
     // Keep track of time and only calculate frames every FRAME_TIME_MS
     f->frameElapsed += elapsedUs;
     if (f->frameElapsed > (FRAME_TIME_MS * 1000))
@@ -536,9 +589,12 @@ void fighterGameLoop(int64_t elapsedUs)
     {
         f->buttonInputReceived = false;
 
-        // Check fighter button inputs
-        checkFighterButtonInput(&f->fighters[0]);
-        checkFighterButtonInput(&f->fighters[1]);
+        if(f->gamePhase != COUNTING_IN)
+        {
+            // Check fighter button inputs
+            checkFighterButtonInput(&f->fighters[0]);
+            checkFighterButtonInput(&f->fighters[1]);
+        }
 
         // Move fighters
         updateFighterPosition(&f->fighters[0], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
@@ -1286,7 +1342,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     getHurtbox(ftr, &dest_hurtbox);
 
     // If this is the home run contest
-    if(HR_CONTEST == f->type)
+    if(HR_CONTEST == f->type && (HR_BARRIER_UP == f->gamePhase || COUNTING_IN == f->gamePhase))
     {
         // Before calculating the destination hitbox
         // If the destination is past a magic bouncy barrier
@@ -2091,7 +2147,7 @@ void drawFighterScene(display_t* d, fighterScene_t* scene)
     }
 
     // If this is the home run contest
-    if(HR_CONTEST == f->type)
+    if(HR_CONTEST == f->type && (HR_BARRIER_UP == f->gamePhase || COUNTING_IN == f->gamePhase))
     {
         // Draw some barriers
         plotLine(d,
@@ -2159,6 +2215,12 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
     tWidth = textWidth(font, dmgStr);
     xPos = (2 * (d->w / 3)) - (tWidth / 2);
     drawText(d, font, c555, dmgStr, xPos, d->h - font->h - 2);
+
+    // Draw the timer
+    char timeStr[32];
+    snprintf(timeStr, sizeof(timeStr) - 1, "%d.%03d", f->gameTimerUs / 1000000, (f->gameTimerUs / 1000) % 1000);
+    tWidth = textWidth(font, "9.999"); // If this isn't constant, the time jiggles a lot
+    drawText(d, font, c555, timeStr, (d->w - tWidth) / 2, 0);
 }
 
 #ifdef DRAW_DEBUG_BOXES
