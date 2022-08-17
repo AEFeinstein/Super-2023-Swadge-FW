@@ -158,28 +158,28 @@ bool loadTiles(tilemap_t * tilemap){
     loadWsg("tile037.wsg", &tilemap->tiles[5]);
     loadWsg("tile038.wsg", &tilemap->tiles[6]);
 
-    loadWsg("tile032.wsg", &tilemap->tiles[7]);
-    loadWsg("tile032.wsg", &tilemap->tiles[8]);
+    tilemap->tiles[7] = tilemap->tiles[0];
+    tilemap->tiles[8] = tilemap->tiles[0];
 
     loadWsg("tile041.wsg", &tilemap->tiles[9]);
 
-    loadWsg("tile032.wsg", &tilemap->tiles[10]);
-    loadWsg("tile032.wsg", &tilemap->tiles[11]);
-    loadWsg("tile032.wsg", &tilemap->tiles[12]);
-    loadWsg("tile032.wsg", &tilemap->tiles[13]);
-    loadWsg("tile032.wsg", &tilemap->tiles[14]);
-    loadWsg("tile032.wsg", &tilemap->tiles[15]);
-    loadWsg("tile032.wsg", &tilemap->tiles[16]);
-    loadWsg("tile032.wsg", &tilemap->tiles[17]);
-    loadWsg("tile032.wsg", &tilemap->tiles[18]);
-    loadWsg("tile032.wsg", &tilemap->tiles[19]);
-    loadWsg("tile032.wsg", &tilemap->tiles[20]);
-    loadWsg("tile032.wsg", &tilemap->tiles[21]);
-    loadWsg("tile032.wsg", &tilemap->tiles[22]);
-    loadWsg("tile032.wsg", &tilemap->tiles[23]);
-    loadWsg("tile032.wsg", &tilemap->tiles[24]);
-    loadWsg("tile032.wsg", &tilemap->tiles[25]);
-    loadWsg("tile032.wsg", &tilemap->tiles[26]);
+    tilemap->tiles[10] = tilemap->tiles[0];
+    tilemap->tiles[11] = tilemap->tiles[0];
+    tilemap->tiles[12] = tilemap->tiles[0];
+    tilemap->tiles[13] = tilemap->tiles[0];
+    tilemap->tiles[14] = tilemap->tiles[0];
+    tilemap->tiles[15] = tilemap->tiles[0];
+    tilemap->tiles[16] = tilemap->tiles[0];
+    tilemap->tiles[17] = tilemap->tiles[0];
+    tilemap->tiles[18] = tilemap->tiles[0];
+    tilemap->tiles[19] = tilemap->tiles[0];
+    tilemap->tiles[20] = tilemap->tiles[0];
+    tilemap->tiles[21] = tilemap->tiles[0];
+    tilemap->tiles[22] = tilemap->tiles[0];
+    tilemap->tiles[23] = tilemap->tiles[0];
+    tilemap->tiles[24] = tilemap->tiles[0];
+    tilemap->tiles[25] = tilemap->tiles[0];
+    tilemap->tiles[26] = tilemap->tiles[0];
 
     loadWsg("tile059.wsg", &tilemap->tiles[27]);
     loadWsg("tile060.wsg", &tilemap->tiles[28]);
@@ -193,16 +193,16 @@ bool loadTiles(tilemap_t * tilemap){
     loadWsg("tile068.wsg", &tilemap->tiles[36]);
     loadWsg("tile069.wsg", &tilemap->tiles[37]);
 
-    loadWsg("tile032.wsg", &tilemap->tiles[38]);
-    loadWsg("tile032.wsg", &tilemap->tiles[39]);
-    loadWsg("tile032.wsg", &tilemap->tiles[40]);
-    loadWsg("tile032.wsg", &tilemap->tiles[41]);
-    loadWsg("tile032.wsg", &tilemap->tiles[42]);
-    loadWsg("tile032.wsg", &tilemap->tiles[43]);
-    loadWsg("tile032.wsg", &tilemap->tiles[44]);
-    loadWsg("tile032.wsg", &tilemap->tiles[45]);
-    loadWsg("tile032.wsg", &tilemap->tiles[46]);
-    loadWsg("tile032.wsg", &tilemap->tiles[47]);
+    tilemap->tiles[38]=tilemap->tiles[0];
+    tilemap->tiles[39]=tilemap->tiles[0];
+    tilemap->tiles[40]=tilemap->tiles[0];
+    tilemap->tiles[41]=tilemap->tiles[0];
+    tilemap->tiles[42]=tilemap->tiles[0];
+    tilemap->tiles[43]=tilemap->tiles[0];
+    tilemap->tiles[44]=tilemap->tiles[0];
+    tilemap->tiles[45]=tilemap->tiles[0];
+    tilemap->tiles[46]=tilemap->tiles[0];
+    tilemap->tiles[47]=tilemap->tiles[0];
 
     loadWsg("tile080.wsg", &tilemap->tiles[48]);
     loadWsg("tile081.wsg", &tilemap->tiles[49]);
