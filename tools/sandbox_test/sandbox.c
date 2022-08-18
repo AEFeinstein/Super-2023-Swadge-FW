@@ -11,6 +11,7 @@
 #include "soc/system_reg.h"
 
 #include "meleeMenu.h"
+#include "mode_main_menu.h"
 
 int global_i = 100;
 meleeMenu_t * menu;
@@ -44,7 +45,7 @@ void menuCb(const char* opt)
 {
 	if( opt == menu_MainMenu )
 	{
-		switchToSwadgeMode( 0 );
+		switchToSwadgeMode( &modeMainMenu );
 	}
 	else if( opt == menu_Bootload )
 	{

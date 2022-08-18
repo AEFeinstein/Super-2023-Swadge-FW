@@ -74,18 +74,9 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
 // Variables
 //==============================================================================
 
-swadgeMode* swadgeModes[] =
-{
-    &modeMainMenu,
-    &modeFighter,
-    &modeDemo,
-    &modeGamepad,
-    0,
-};
-
-static RTC_DATA_ATTR uint8_t pendingSwadgeModeIdx = 0;
-static uint8_t swadgeModeIdx = 0;
-static bool shouldSwitchSwadgeMode = false;
+static RTC_DATA_ATTR swadgeMode * pendingSwadgeMode = NULL;
+static swadgeMode * cSwadgeMode = &modeMainMenu;
+static bool isSandboxMode = false;
 
 //==============================================================================
 // Functions
@@ -98,9 +89,9 @@ static bool shouldSwitchSwadgeMode = false;
 void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const char* data, 
     uint8_t len, int8_t rssi)
 {
-    if(NULL != swadgeModes[swadgeModeIdx]->fnEspNowRecvCb)
+    if(NULL != cSwadgeMode->fnEspNowRecvCb)
     {
-        swadgeModes[swadgeModeIdx]->fnEspNowRecvCb(mac_addr, data, len, rssi);
+        cSwadgeMode->fnEspNowRecvCb(mac_addr, data, len, rssi);
     }
 }
 
@@ -110,9 +101,9 @@ void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const char* data,
  */
 void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
-    if(NULL != swadgeModes[swadgeModeIdx]->fnEspNowSendCb)
+    if(NULL != cSwadgeMode->fnEspNowSendCb)
     {
-        swadgeModes[swadgeModeIdx]->fnEspNowSendCb(mac_addr, status);
+        cSwadgeMode->fnEspNowSendCb(mac_addr, status);
     }
 }
 
@@ -271,13 +262,21 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         case ESP_SLEEP_WAKEUP_TIMER:
         {
             /* Use the pending mode */
-            swadgeModeIdx = pendingSwadgeModeIdx;
+            if(NULL != pendingSwadgeMode)
+            {
+                cSwadgeMode = pendingSwadgeMode;
+                pendingSwadgeMode = NULL;
+            }
+            else
+            {
+                cSwadgeMode = &modeMainMenu;
+            }
             break;
         }
         default:
         {
-            /* Reset swadgeModeIdx */
-            swadgeModeIdx = 0;
+            /* Reset cSwadgeMode */
+            cSwadgeMode = &modeMainMenu;
             break;
         }
     }
@@ -314,7 +313,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
     buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1);
 
 #if !defined(EMU)
-    if(NULL != swadgeModes[swadgeModeIdx]->fnAudioCallback)
+    if(NULL != cSwadgeMode->fnAudioCallback)
 #endif
     {
         /* Since the ADC2 is shared with the WIFI module, which has higher
@@ -331,7 +330,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
 
     bool accelInitialized = false;
 #if !defined(EMU)
-    if(NULL != swadgeModes[swadgeModeIdx]->fnAccelerometerCallback)
+    if(NULL != cSwadgeMode->fnAccelerometerCallback)
 #endif
     {
         /* Initialize i2c peripherals */
@@ -364,16 +363,16 @@ void mainSwadgeTask(void * arg __attribute((unused)))
 
     /* Initialize Wifi peripheral */
 #if !defined(EMU)
-    if(ESP_NOW == swadgeModes[swadgeModeIdx]->wifiMode)
+    if(ESP_NOW == cSwadgeMode->wifiMode)
 #endif
     {
         espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb);
     }
 
     /* Enter the swadge mode */
-    if(NULL != swadgeModes[swadgeModeIdx]->fnEnterMode)
+    if(NULL != cSwadgeMode->fnEnterMode)
     {
-        swadgeModes[swadgeModeIdx]->fnEnterMode(&tftDisp);
+        cSwadgeMode->fnEnterMode(&tftDisp);
     }
 
     /* Loop forever! */
@@ -384,32 +383,32 @@ void mainSwadgeTask(void * arg __attribute((unused)))
 #endif
     {
         // Process ESP NOW
-        if(ESP_NOW == swadgeModes[swadgeModeIdx]->wifiMode)
+        if(ESP_NOW == cSwadgeMode->wifiMode)
         {
             checkEspNowRxQueue();
         }
         
         // Process Accelerometer
-        if(accelInitialized && NULL != swadgeModes[swadgeModeIdx]->fnAccelerometerCallback)
+        if(accelInitialized && NULL != cSwadgeMode->fnAccelerometerCallback)
         {
             accel_t accel = {0};
             QMA6981_poll(&accel);
-            swadgeModes[swadgeModeIdx]->fnAccelerometerCallback(&accel);
+            cSwadgeMode->fnAccelerometerCallback(&accel);
         }
 
         // Process temperature sensor
-        if(NULL != swadgeModes[swadgeModeIdx]->fnTemperatureCallback)
+        if(NULL != cSwadgeMode->fnTemperatureCallback)
         {
-            swadgeModes[swadgeModeIdx]->fnTemperatureCallback(readTemperatureSensor());
+            cSwadgeMode->fnTemperatureCallback(readTemperatureSensor());
         }
 
         // Process button presses
         buttonEvt_t bEvt = {0};
         if(checkButtonQueue(&bEvt))
         {
-            if(NULL != swadgeModes[swadgeModeIdx]->fnButtonCallback)
+            if(NULL != cSwadgeMode->fnButtonCallback)
             {
-                swadgeModes[swadgeModeIdx]->fnButtonCallback(&bEvt);
+                cSwadgeMode->fnButtonCallback(&bEvt);
             }
         }
 
@@ -417,20 +416,20 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         touch_event_t tEvt = {0};
         if(checkTouchSensor(&tEvt))
         {
-            if(NULL != swadgeModes[swadgeModeIdx]->fnTouchCallback)
+            if(NULL != cSwadgeMode->fnTouchCallback)
             {
-                swadgeModes[swadgeModeIdx]->fnTouchCallback(&tEvt);
+                cSwadgeMode->fnTouchCallback(&tEvt);
             }
         }
 
         // Process ADC samples
-        if(NULL != swadgeModes[swadgeModeIdx]->fnAudioCallback)
+        if(NULL != cSwadgeMode->fnAudioCallback)
         {
             uint16_t adcSamps[BYTES_PER_READ / sizeof(adc_digi_output_data_t)];
             uint32_t sampleCnt = 0;
             while(0 < (sampleCnt = continuous_adc_read(adcSamps)))
             {
-                swadgeModes[swadgeModeIdx]->fnAudioCallback(adcSamps, sampleCnt);
+                cSwadgeMode->fnAudioCallback(adcSamps, sampleCnt);
             }
         }
 
@@ -446,9 +445,9 @@ void mainSwadgeTask(void * arg __attribute((unused)))
             int64_t tElapsedUs = tNowUs - tLastCallUs;
             tLastCallUs = tNowUs;
 
-            if(NULL != swadgeModes[swadgeModeIdx]->fnMainLoop)
+            if(NULL != cSwadgeMode->fnMainLoop)
             {
-                swadgeModes[swadgeModeIdx]->fnMainLoop(tElapsedUs);
+                cSwadgeMode->fnMainLoop(tElapsedUs);
             }
 
 #if defined(EMU)
@@ -464,36 +463,34 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         buzzer_check_next_note();
 
         /* If the mode should be switched, do it now */
-        if(shouldSwitchSwadgeMode)
+        if(NULL != pendingSwadgeMode)
         {
 #if defined(EMU)
             int force_soft = 1;
 #else
             int force_soft = 0;
 #endif
-            if( force_soft || 
-                pendingSwadgeModeIdx == 0 ||
-                pendingSwadgeModeIdx == getNumSwadgeModes() )
+            if( force_soft || isSandboxMode )
             {
                 // Exit the current mode
-                if(NULL != swadgeModes[swadgeModeIdx]->fnExitMode)
+                if(NULL != cSwadgeMode->fnExitMode)
                 {
-                    swadgeModes[swadgeModeIdx]->fnExitMode();
+                    cSwadgeMode->fnExitMode();
                 }
 
                 // Switch the mode IDX
-                swadgeModeIdx = pendingSwadgeModeIdx;
-                shouldSwitchSwadgeMode = false;
+                cSwadgeMode = pendingSwadgeMode;
+                pendingSwadgeMode = NULL;
 
                 // Enter the next mode
-                if(NULL != swadgeModes[swadgeModeIdx]->fnEnterMode)
+                if(NULL != cSwadgeMode->fnEnterMode)
                 {
-                    swadgeModes[swadgeModeIdx]->fnEnterMode(&tftDisp);
+                    cSwadgeMode->fnEnterMode(&tftDisp);
                 }
             }
             else
             {
-                // Deep sleep, wake up, and switch to pendingSwadgeModeIdx
+                // Deep sleep, wake up, and switch to pendingSwadgeMode
                 esp_sleep_enable_timer_wakeup(1);
                 esp_deep_sleep_start();
             }
@@ -505,15 +502,15 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         // (100hz by default)
     }
 
-    if(NULL != swadgeModes[swadgeModeIdx]->fnAudioCallback)
+    if(NULL != cSwadgeMode->fnAudioCallback)
     {
         continuous_adc_stop();
         continuous_adc_deinit();
     }
 
-    if(NULL != swadgeModes[swadgeModeIdx]->fnExitMode)
+    if(NULL != cSwadgeMode->fnExitMode)
     {
-        swadgeModes[swadgeModeIdx]->fnExitMode();
+        cSwadgeMode->fnExitMode();
     }
 
 #if defined(EMU)
@@ -522,22 +519,14 @@ void mainSwadgeTask(void * arg __attribute((unused)))
 }
 
 /**
- * @return The total number of Swadge modes, including the main menu (mode 0)
- */
-uint8_t getNumSwadgeModes(void)
-{
-    return ARRAY_SIZE(swadgeModes)-1;
-}
-
-/**
  * Set up variables to synchronously switch the swadge mode in the main loop
  * 
  * @param mode The index of the mode to switch to
  */
-void switchToSwadgeMode(uint8_t mode)
+void switchToSwadgeMode(swadgeMode* mode)
 {
-    pendingSwadgeModeIdx = mode;
-    shouldSwitchSwadgeMode = true;
+    pendingSwadgeMode = mode;
+    isSandboxMode = false;
 }
 
 /**
@@ -547,8 +536,7 @@ void switchToSwadgeMode(uint8_t mode)
  */
 void overrideToSwadgeMode( swadgeMode* mode )
 {
-    int sandboxSwadgeMode = getNumSwadgeModes();
-    swadgeModes[sandboxSwadgeMode] = mode;
-    switchToSwadgeMode( sandboxSwadgeMode );
+    pendingSwadgeMode = mode;
+    isSandboxMode = true;
 }
 

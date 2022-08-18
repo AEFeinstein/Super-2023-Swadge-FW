@@ -18,6 +18,7 @@ idf_component_register(
         "p2pConnection.c"
         "swadge_esp32.c"
         "advanced_usb_control.c"
+        "settingsManager.c"
     INCLUDE_DIRS
         "."
         "../components/hdw-buzzer/"
