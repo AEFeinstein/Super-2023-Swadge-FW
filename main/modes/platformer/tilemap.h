@@ -109,7 +109,10 @@ typedef enum {
 //==============================================================================
 // Structs
 //==============================================================================
-
+typedef struct {
+    uint8_t x;
+    uint8_t y;
+} warp_t;
  struct tilemap_t
 {
     wsg_t tiles[64];
@@ -117,6 +120,8 @@ typedef enum {
     uint8_t * map;
     uint8_t mapWidth;
     uint8_t mapHeight;
+    
+    warp_t warps[16];
 
     int16_t mapOffsetX;
     int16_t mapOffsetY;
