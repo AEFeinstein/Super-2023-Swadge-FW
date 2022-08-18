@@ -14,6 +14,7 @@
 #include "bresenham.h"
 #include "esp_random.h"
 
+#include "common_typedef.h"
 #include "tilemap.h"
 #include "gameData.h"
 #include "entityManager.h"
@@ -37,7 +38,8 @@ void platformerCb(const char* opt);
 // Structs
 //==============================================================================
 
-typedef struct
+typedef void (*gameUpdateFuncton_t)(platformer_t *self);
+struct platformer_t
 {
     display_t * disp;
 
@@ -56,12 +58,15 @@ typedef struct
     int16_t prevBtnState;
 
     int32_t frameTimer;
-} platformer_t;
+
+    gameUpdateFuncton_t update;
+};
 
 //==============================================================================
 // Function Prototypes
 //==============================================================================
 void drawPlatformerHud(display_t* d, font_t* font, gameData_t* gameData);
+void drawPlatformerTitleScreen(display_t* d, font_t* font, gameData_t* gameData);
 
 //==============================================================================
 // Variables
@@ -71,7 +76,7 @@ platformer_t * platformer;
 
 swadgeMode modePlatformer =
 {
-    .modeName = "platformer",
+    .modeName = "Platformer",
     .fnEnterMode = platformerEnterMode,
     .fnExitMode = platformerExitMode,
     .fnMainLoop = platformerMainLoop,
@@ -131,6 +136,8 @@ void platformerEnterMode(display_t * disp)
 
     platformer->tilemap.entityManager = &(platformer->entityManager);
     platformer->tilemap.tileSpawnEnabled = true;
+
+    platformer->update = &updateTitleScreen;
 }
 
 
@@ -165,7 +172,7 @@ void platformerMainLoop(int64_t elapsedUs)
         platformer->frameTimer -= 50000;
 
         // Clear the display
-        platformer->disp->clearPx();
+        /*platformer->disp->clearPx();
     
         updateEntities(&(platformer->entityManager));
 
@@ -174,7 +181,9 @@ void platformerMainLoop(int64_t elapsedUs)
         drawPlatformerHud(platformer->disp, &(platformer->radiostars), &(platformer->gameData));
 
         platformer->prevBtnState = platformer->btnState;
-        platformer->gameData.prevBtnState = platformer->prevBtnState;
+        platformer->gameData.prevBtnState = platformer->prevBtnState;*/
+
+        platformer->update(platformer);
     }
 }
 
@@ -199,6 +208,20 @@ void platformerCb(const char* opt)
     ESP_LOGI("MNU", "%s", opt);
 }
 
+void updateGame(platformer_t *self){
+    // Clear the display
+    self->disp->clearPx();
+
+    updateEntities(&(self->entityManager));
+
+    drawTileMap(self->disp, &(self->tilemap));
+    drawEntities(self->disp, &(self->entityManager));
+    drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
+
+    self->prevBtnState = self->btnState;
+    self->gameData.prevBtnState = self->prevBtnState;
+}
+
 void drawPlatformerHud(display_t* d, font_t* font, gameData_t* gameData){
     char coinStr[8];
     snprintf(coinStr, sizeof(coinStr) - 1, "%02d", gameData->coins);
@@ -208,4 +231,28 @@ void drawPlatformerHud(display_t* d, font_t* font, gameData_t* gameData){
 
     drawText(d, font, c555, coinStr, 127, 0);
     drawText(d, font, c555, scoreStr, 0, 0);
+}
+
+void updateTitleScreen(platformer_t *self){
+    // Clear the display
+    self->disp->clearPx();
+
+    //Handle inputs
+    if(
+        ((self->gameData.btnState & BTN_B) && !(self->gameData.prevBtnState & BTN_B))
+        ||
+        ((self->gameData.btnState & BTN_A) && !(self->gameData.prevBtnState & BTN_B))
+    ){
+        self->update = &updateGame;
+    }
+
+    drawPlatformerTitleScreen(self->disp,  &(self->radiostars), &(self->gameData));
+
+    self->prevBtnState = self->btnState;
+    self->gameData.prevBtnState = self->prevBtnState;
+}
+
+void drawPlatformerTitleScreen(display_t* d, font_t* font, gameData_t* gameData){
+    drawText(d, font, c555, "Super\n Swadge\n Land", 16, 32);
+    drawText(d, font, c555, "Press A or B to start", 0, 128);
 }
