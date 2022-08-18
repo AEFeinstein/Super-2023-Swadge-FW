@@ -17,6 +17,7 @@
 #include "tilemap.h"
 #include "gameData.h"
 #include "entityManager.h"
+#include "leveldef.h"
 
 //==============================================================================
 // Constants
@@ -84,6 +85,18 @@ swadgeMode modePlatformer =
     .fnTemperatureCallback = NULL
 };
 
+static leveldef_t leveldef[2] ={ 
+    {
+        .filename = "level1-1.bin",
+        .timeLimit = 300,
+        .checkpointTimeLimit = 150
+    },{
+        .filename = "level1-1.bin",
+        .timeLimit = 300,
+        .checkpointTimeLimit = 150
+    }
+};
+
 //==============================================================================
 // Functions
 //==============================================================================
@@ -110,6 +123,9 @@ void platformerEnterMode(display_t * disp)
     loadFont("radiostars.font", &platformer->radiostars);
 
     initializeTileMap(&(platformer->tilemap));
+
+    loadMapFromFile(&(platformer->tilemap), leveldef[0].filename);
+
     initializeGameData(&(platformer->gameData));
     initializeEntityManager(&(platformer->entityManager), &(platformer->tilemap), &(platformer->gameData));
 
