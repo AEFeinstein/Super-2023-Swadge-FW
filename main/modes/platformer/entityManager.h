@@ -23,7 +23,8 @@ struct entityManager_t
     entity_t * entities;
     uint8_t activeEntities;
 
-    int16_t viewEntity;
+    entity_t * viewEntity;
+    entity_t * playerEntity;
 
     tilemap_t * tilemap;
 };

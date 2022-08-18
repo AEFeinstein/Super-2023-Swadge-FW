@@ -32,9 +32,9 @@ void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilema
     entityManager->activeEntities = 0;
     entityManager->tilemap = tilemap;
 
-    createPlayer(entityManager, 33, 27);
-    entityManager->viewEntity = 0;
-    createTestObject(entityManager, 104, 202);
+    
+    entityManager->viewEntity = createPlayer(entityManager, entityManager->tilemap->warps[0].x * 16, entityManager->tilemap->warps[0].y * 16);
+    entityManager->playerEntity = entityManager->viewEntity;
 };
 
 void loadSprites(entityManager_t * entityManager)
@@ -57,12 +57,19 @@ void updateEntities(entityManager_t * entityManager)
         {
             entityManager->entities[i].updateFunction(&(entityManager->entities[i]));
 
-            if(i == entityManager->viewEntity){
+            if(&(entityManager->entities[i]) == entityManager->viewEntity){
                 viewFollowEntity(entityManager->tilemap, &(entityManager->entities[i]));
             }
         }
     }
 };
+
+void deactivateAllEntities(entityManager_t * entityManager){
+    for(uint8_t i=0; i < MAX_ENTITIES; i++)
+    {
+        entityManager->entities[i].active = false;
+    }
+}
 
 void drawEntities(display_t * disp, entityManager_t * entityManager)
 {
