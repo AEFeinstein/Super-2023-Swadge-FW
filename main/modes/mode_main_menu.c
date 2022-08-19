@@ -46,6 +46,7 @@ typedef struct
     display_t* disp;
     font_t meleeMenuFont;
     meleeMenu_t* menu;
+    bool shouldDraw;
 } mainMenu_t;
 
 //==============================================================================
@@ -85,8 +86,7 @@ char mainMenuMicVol[] = "Mic Volume: 1";
 //==============================================================================
 
 /**
- * @brief TODO doc
- *
+ * Initialize and enter the main menu
  */
 void mainMenuEnterMode(display_t* disp)
 {
@@ -97,15 +97,19 @@ void mainMenuEnterMode(display_t* disp)
     // Save a pointer to the display
     mainMenu->disp = disp;
 
+    // Load the font
     loadFont("mm.font", &mainMenu->meleeMenuFont);
 
+    // Initialize the menu
     mainMenu->menu = initMeleeMenu(mainMenuTitle, &mainMenu->meleeMenuFont, mainMenuTopLevelCb);
     mainMenuSetUpTopMenu();
+
+    // Set it to draw
+    mainMenu->shouldDraw = true;
 }
 
 /**
- * @brief TODO doc
- *
+ * Deinitialize and exit the main menu
  */
 void mainMenuExitMode(void)
 {
@@ -115,17 +119,21 @@ void mainMenuExitMode(void)
 }
 
 /**
- * @brief TODO doc
+ * The main menu loop, draw the menu if there's been a difference
  *
- * @param elapsedUs
+ * @param elapsedUs unused
  */
 void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
-    drawMeleeMenu(mainMenu->disp, mainMenu->menu);
+    if(mainMenu->shouldDraw)
+    {
+        mainMenu->shouldDraw = false;
+        drawMeleeMenu(mainMenu->disp, mainMenu->menu);
+    }
 }
 
 /**
- * @brief TODO doc
+ * Button callback for the main menu, pass the event to the menu
  *
  * @param evt
  */
@@ -133,31 +141,13 @@ void mainMenuButtonCb(buttonEvt_t* evt)
 {
     if(evt->down)
     {
-        switch (evt->button)
-        {
-            case UP:
-            case DOWN:
-            case LEFT:
-            case RIGHT:
-            case BTN_A:
-            {
-                meleeMenuButton(mainMenu->menu, evt->button);
-                break;
-            }
-            case START:
-            case SELECT:
-            case BTN_B:
-            default:
-            {
-                break;
-            }
-        }
+        meleeMenuButton(mainMenu->menu, evt->button);
+        mainMenu->shouldDraw = true;
     }
 }
 
 /**
- * @brief TODO doc
- *
+ * Set up the top level menu
  */
 void mainMenuSetUpTopMenu(void)
 {
@@ -168,9 +158,9 @@ void mainMenuSetUpTopMenu(void)
 }
 
 /**
- * @brief TODO doc
+ * Callback for the top level menu
  *
- * @param opt
+ * @param opt The menu option which was selected
  */
 void mainMenuTopLevelCb(const char* opt)
 {
@@ -189,8 +179,7 @@ void mainMenuTopLevelCb(const char* opt)
 }
 
 /**
- * @brief TODO doc
- *
+ * Set up the games menu
  */
 void mainMenuSetUpGamesMenu(void)
 {
@@ -200,9 +189,9 @@ void mainMenuSetUpGamesMenu(void)
 }
 
 /**
- * @brief TODO doc
+ * Callback for the games menu
  *
- * @param opt
+ * @param opt The menu option which was selected
  */
 void mainMenuGamesCb(const char* opt)
 {
@@ -218,8 +207,7 @@ void mainMenuGamesCb(const char* opt)
 }
 
 /**
- * @brief TODO doc
- *
+ * Set up the tools menu
  */
 void mainMenuSetUpToolsMenu(void)
 {
@@ -230,9 +218,9 @@ void mainMenuSetUpToolsMenu(void)
 }
 
 /**
- * @brief TODO doc
+ * Callback for the tools menu
  *
- * @param opt
+ * @param opt The menu option which was selected
  */
 void mainMenuToolsCb(const char* opt)
 {
@@ -253,9 +241,7 @@ void mainMenuToolsCb(const char* opt)
 }
 
 /**
- * @brief TODO doc
- *
- * @param preservePosition
+ * Set up the settings menu
  */
 void mainMenuSetUpSettingsMenu(bool preservePosition)
 {
@@ -292,9 +278,9 @@ void mainMenuSetUpSettingsMenu(bool preservePosition)
 }
 
 /**
- * @brief TODO doc
+ * Callback for the settings menu
  *
- * @param opt
+ * @param opt The menu option which was selected
  */
 void mainMenuSettingsCb(const char* opt)
 {

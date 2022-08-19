@@ -16,29 +16,12 @@ const char KEY_MUTE[] = "mute";
 const char KEY_BRIGHT[] = "bright";
 const char KEY_MIC[] = "mic";
 
-const uint8_t micVols[] =
-{
-    26,
-    51,
-    77,
-    102,
-    128,
-    153,
-    179,
-    204,
-    230,
-    255
-};
-
 //==============================================================================
 // Functions
 //==============================================================================
 
 /**
- * TODO doc
- *
- * @return true
- * @return false
+ * @return true if the buzzer is muted, false if it is not
  */
 bool getIsMuted(void)
 {
@@ -54,10 +37,10 @@ bool getIsMuted(void)
 }
 
 /**
- * TODO doc
+ * Set if the buzzer is muted or not
  *
- * @param isMuted
- * @return
+ * @param isMuted true to mute the buzzer, false to turn it on
+ * @return true if the setting was saved, false if it was not
  */
 bool setIsMuted(bool isMuted)
 {
@@ -66,9 +49,7 @@ bool setIsMuted(bool isMuted)
 }
 
 /**
- * TODO doc
- *
- * @return int32_t
+ * @return The brightness level for the TFT, 0-9
  */
 int32_t getBrightness(void)
 {
@@ -84,21 +65,29 @@ int32_t getBrightness(void)
 }
 
 /**
- * TODO doc
+ * Set the brightness level for the TFT
  *
- * @param brightness
- * @return
+ * @param brightness The brightness, 0-9
+ * @return true if the setting was saved, false if it was not
  */
 bool setBrightness(int32_t brightness)
 {
+    // Bound the value, just in case
+    if(brightness < 0)
+    {
+        brightness = 0;
+    }
+    else if(brightness > 9)
+    {
+        brightness = 9;
+    }
+
     // Write the value
     return writeNvs32(KEY_BRIGHT, brightness);
 }
 
 /**
- * TODO doc
- *
- * @return int32_t
+ * @return The volume setting for the microphone, 0-9
  */
 int32_t getMicVolume(void)
 {
@@ -114,23 +103,44 @@ int32_t getMicVolume(void)
 }
 
 /**
- * TODO doc
+ * Set the microphone volume
  *
- * @param micVolume
- * @return
+ * @param micVolume The volume setting for the microphone, 0-9
+ * @return true if the setting was saved, false if it was not
  */
 bool setMicVolume(int32_t micVolume)
 {
+    // Bound the value, just in case
+    if(micVolume < 0)
+    {
+        micVolume = 0;
+    }
+    else if(micVolume > 9)
+    {
+        micVolume = 9;
+    }
+
     // Write the value
     return writeNvs32(KEY_MIC, micVolume);
 }
 
 /**
- * TODO doc
- *
- * @return uint8_t
+ * @return The amplitude for the microphone when reading samples
  */
 uint8_t getMicAmplitude(void)
 {
+    const uint8_t micVols[] =
+    {
+        26,
+        51,
+        77,
+        102,
+        128,
+        153,
+        179,
+        204,
+        230,
+        255
+    };
     return micVols[getMicVolume()];
 }

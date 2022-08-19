@@ -56,28 +56,28 @@
 #include "settingsManager.h"
 
 #if defined(EMU)
-#include "emu_esp.h"
+    #include "emu_esp.h"
 #else
-#include "soc/dport_access.h"
-#include "soc/periph_defs.h"
-#include "hal/memprot_ll.h"
+    #include "soc/dport_access.h"
+    #include "soc/periph_defs.h"
+    #include "hal/memprot_ll.h"
 #endif
 
 //==============================================================================
 // Function Prototypes
 //==============================================================================
 
-void mainSwadgeTask(void * arg);
-void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const char* data, 
-    uint8_t len, int8_t rssi);
+void mainSwadgeTask(void* arg);
+void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const char* data,
+                            uint8_t len, int8_t rssi);
 void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 
 //==============================================================================
 // Variables
 //==============================================================================
 
-static RTC_DATA_ATTR swadgeMode * pendingSwadgeMode = NULL;
-static swadgeMode * cSwadgeMode = &modeMainMenu;
+static RTC_DATA_ATTR swadgeMode* pendingSwadgeMode = NULL;
+static swadgeMode* cSwadgeMode = &modeMainMenu;
 static bool isSandboxMode = false;
 
 //==============================================================================
@@ -88,8 +88,8 @@ static bool isSandboxMode = false;
  * Callback from ESP NOW to the current Swadge mode whenever a packet is
  * received. It routes through user_main.c, which knows what the current mode is
  */
-void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const char* data, 
-    uint8_t len, int8_t rssi)
+void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const char* data,
+                            uint8_t len, int8_t rssi)
 {
     if(NULL != cSwadgeMode->fnEspNowRecvCb)
     {
@@ -113,7 +113,7 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
  * Invoked when received GET_REPORT control request
  * Application must fill buffer report's content and return its length.
  * Return zero will cause the stack to STALL request
- * 
+ *
  * Unimplemented, and seemingly never called. Arguments are unclear.
  * Providing this function is necessary for compilation
  *
@@ -125,18 +125,24 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
  * @return uint16_t
  */
 uint16_t tud_hid_get_report_cb(uint8_t itf,
-    uint8_t report_id,
-    hid_report_type_t report_type,
-    uint8_t* buffer,
-    uint16_t reqlen)
+                               uint8_t report_id,
+                               hid_report_type_t report_type,
+                               uint8_t* buffer,
+                               uint16_t reqlen)
 {
 #if !defined(EMU)
     if( report_id == 170 || report_id == 171 )
+    {
         return handle_advanced_usb_control_get( reqlen, buffer );
+    }
     else if( report_id == 172 )
+    {
         return handle_advanced_usb_terminal_get( reqlen, buffer );
+    }
     else
+    {
         return reqlen;
+    }
 #else
     return 0;
 #endif
@@ -145,7 +151,7 @@ uint16_t tud_hid_get_report_cb(uint8_t itf,
 /**
  * Invoked when received SET_REPORT control request or
  * received data on OUT endpoint ( Report ID = 0, Type = 0 )
- * 
+ *
  * Unimplemented, and seemingly never called. Arguments are unclear.
  * Providing this function is necessary for compilation
  *
@@ -156,14 +162,16 @@ uint16_t tud_hid_get_report_cb(uint8_t itf,
  * @param bufsize
  */
 void tud_hid_set_report_cb(uint8_t itf,
-    uint8_t report_id,
-    hid_report_type_t report_type,
-    uint8_t const* buffer,
-    uint16_t bufsize )
+                           uint8_t report_id,
+                           hid_report_type_t report_type,
+                           uint8_t const* buffer,
+                           uint16_t bufsize )
 {
 #if !defined(EMU)
     if( report_id >= 170 && report_id <= 171 )
+    {
         handle_advanced_usb_control_set( bufsize, buffer );
+    }
 #endif
 }
 
@@ -190,7 +198,8 @@ void app_main(void)
 {
     // Pull these GPIOs low immediately!!!
     // This prevents overheating on the devkit
-    gpio_num_t toPullLow[] = {
+    gpio_num_t toPullLow[] =
+    {
         GPIO_NUM_33, // TFTATN
         GPIO_NUM_35, // TFTATP
         GPIO_NUM_41, // SP-
@@ -212,18 +221,20 @@ void app_main(void)
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
     ESP_LOGD("MAIN", "This is %s chip with %d CPU core(s), WiFi%s%s, ",
-                CONFIG_IDF_TARGET,
-                chip_info.cores,
-                (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
-                (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
+             CONFIG_IDF_TARGET,
+             chip_info.cores,
+             (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
+             (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
 
     ESP_LOGD("MAIN", "silicon revision %d, ", chip_info.revision);
 
     ESP_LOGD("MAIN", "%dMB %s flash", spi_flash_get_chip_size() / (1024 * 1024),
-                (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
+             (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
 
     ESP_LOGD("MAIN", "Minimum free heap size: %d bytes", esp_get_minimum_free_heap_size());
-    heap_caps_print_heap_info(MALLOC_CAP_EXEC | MALLOC_CAP_32BIT | MALLOC_CAP_8BIT | MALLOC_CAP_DMA | MALLOC_CAP_PID2 | MALLOC_CAP_PID3 | MALLOC_CAP_PID4 | MALLOC_CAP_PID5 | MALLOC_CAP_PID6 | MALLOC_CAP_PID7 | MALLOC_CAP_SPIRAM | MALLOC_CAP_INTERNAL | MALLOC_CAP_DEFAULT | MALLOC_CAP_IRAM_8BIT | MALLOC_CAP_RETENTION | MALLOC_CAP_RTCRAM);
+    heap_caps_print_heap_info(MALLOC_CAP_EXEC | MALLOC_CAP_32BIT | MALLOC_CAP_8BIT | MALLOC_CAP_DMA | MALLOC_CAP_PID2 |
+                              MALLOC_CAP_PID3 | MALLOC_CAP_PID4 | MALLOC_CAP_PID5 | MALLOC_CAP_PID6 | MALLOC_CAP_PID7 | MALLOC_CAP_SPIRAM |
+                              MALLOC_CAP_INTERNAL | MALLOC_CAP_DEFAULT | MALLOC_CAP_IRAM_8BIT | MALLOC_CAP_RETENTION | MALLOC_CAP_RTCRAM);
 #endif
 
     /* The ESP32-C3 can enumerate as a USB CDC device using pins 18 and 19
@@ -245,17 +256,17 @@ void app_main(void)
 
     // Create a task for the swadge, then return
     TaskHandle_t xHandle = NULL;
-    xTaskCreate(mainSwadgeTask, "SWADGE", 8192, NULL, 
-        tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, &xHandle);
+    xTaskCreate(mainSwadgeTask, "SWADGE", 8192, NULL,
+                tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, &xHandle);
 }
 
 /**
  * @brief This is the task for the swadge. It sets up all peripherals and runs
  * the firmware in a while(1) loop
- * 
+ *
  * @param arg unused
  */
-void mainSwadgeTask(void * arg __attribute((unused)))
+void mainSwadgeTask(void* arg __attribute((unused)))
 {
 #if !defined(EMU)
     /* Check why this ESP woke up */
@@ -294,22 +305,22 @@ void mainSwadgeTask(void * arg __attribute((unused)))
 
     /* Initialize non-i2c hardware peripherals */
     initButtons(8,
-        GPIO_NUM_1,
-        GPIO_NUM_0,
-        GPIO_NUM_3,
-        GPIO_NUM_2,
-        GPIO_NUM_5,
-        GPIO_NUM_45,
-        GPIO_NUM_4,
-        GPIO_NUM_15); // GPIO 46 doesn't work b/c it has a permanent pulldown
+                GPIO_NUM_1,
+                GPIO_NUM_0,
+                GPIO_NUM_3,
+                GPIO_NUM_2,
+                GPIO_NUM_5,
+                GPIO_NUM_45,
+                GPIO_NUM_4,
+                GPIO_NUM_15); // GPIO 46 doesn't work b/c it has a permanent pulldown
 
     initTouchSensor(0.2f, true, 6,
-        TOUCH_PAD_NUM9,   // GPIO_NUM_9
-        TOUCH_PAD_NUM10,  // GPIO_NUM_10
-        TOUCH_PAD_NUM11,  // GPIO_NUM_11
-        TOUCH_PAD_NUM12,  // GPIO_NUM_12
-        TOUCH_PAD_NUM13,  // GPIO_NUM_13
-        TOUCH_PAD_NUM14); // GPIO_NUM_14
+                    TOUCH_PAD_NUM9,   // GPIO_NUM_9
+                    TOUCH_PAD_NUM10,  // GPIO_NUM_10
+                    TOUCH_PAD_NUM11,  // GPIO_NUM_11
+                    TOUCH_PAD_NUM12,  // GPIO_NUM_12
+                    TOUCH_PAD_NUM13,  // GPIO_NUM_13
+                    TOUCH_PAD_NUM14); // GPIO_NUM_14
 
     initLeds(GPIO_NUM_39, RMT_CHANNEL_0, NUM_LEDS);
     buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1);
@@ -389,7 +400,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         {
             checkEspNowRxQueue();
         }
-        
+
         // Process Accelerometer
         if(accelInitialized && NULL != cSwadgeMode->fnAccelerometerCallback)
         {
@@ -534,7 +545,7 @@ void mainSwadgeTask(void * arg __attribute((unused)))
 
 /**
  * Set up variables to synchronously switch the swadge mode in the main loop
- * 
+ *
  * @param mode The index of the mode to switch to
  */
 void switchToSwadgeMode(swadgeMode* mode)
@@ -545,7 +556,7 @@ void switchToSwadgeMode(swadgeMode* mode)
 
 /**
  * Use a pointer to a swadge mode to jump to a dynamic swadge mode.
- * 
+ *
  * @param mode Pointer to a valid swadgeMode struct.
  */
 void overrideToSwadgeMode( swadgeMode* mode )

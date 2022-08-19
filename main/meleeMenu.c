@@ -75,7 +75,7 @@ meleeMenu_t* initMeleeMenu(const char* title, font_t* font, meleeMenuCb cbFunc)
 
 /**
  * @brief Clear all rows and reset the menu title
- * 
+ *
  * @param menu The menu to reset
  * @param title The new title to display
  * @param cbFunc The function to call when a menu option is selected. The
