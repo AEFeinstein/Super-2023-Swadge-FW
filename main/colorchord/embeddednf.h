@@ -91,22 +91,22 @@ typedef struct
 {
     uint16_t folded_bins[FIXBPERO]; //<! The folded fourier output.
     uint16_t fuzzed_bins[FIXBINS];  //<! The Full DFT after IIR, Blur and Taper
-                                    //  frequency of note; Note if it is == 255,
-                                    // then it means it is not set. It is
-                                    // generally a value from
+    //  frequency of note; Note if it is == 255,
+    // then it means it is not set. It is
+    // generally a value from
     uint8_t  note_peak_freqs[MAXNOTES];
     uint16_t note_peak_amps[MAXNOTES];
     uint16_t note_peak_amps2[MAXNOTES]; // (Responds quicker)
     uint8_t  note_jumped_to[MAXNOTES]; // When a note combines into another one,
-                                       // this records where it went. I.e. if
-                                       // your note just disappeared, check this
-                                       // flag.
+    // this records where it went. I.e. if
+    // your note just disappeared, check this
+    // flag.
 } embeddednf_data;
 
-void UpdateFreqs(dft32_data * dd);        //Not user-useful on most systems.
-void HandleFrameInfo(embeddednf_data * ed, dft32_data * dd);    //Not user-useful on most systems
+void UpdateFreqs(dft32_data* dd);         //Not user-useful on most systems.
+void HandleFrameInfo(embeddednf_data* ed, dft32_data* dd);      //Not user-useful on most systems
 
 //Call this when starting.
-void InitColorChord(embeddednf_data * ed, dft32_data * dd);
+void InitColorChord(embeddednf_data* ed, dft32_data* dd);
 
 #endif

@@ -16,7 +16,7 @@
 // Functions Prototypes
 //==============================================================================
 
-void gamepadEnterMode(display_t * disp);
+void gamepadEnterMode(display_t* disp);
 void gamepadExitMode(void);
 void gamepadMainLoop(int64_t elapsedUs);
 void gamepadButtonCb(buttonEvt_t* evt);
@@ -28,10 +28,10 @@ void gamepadTouchCb(touch_event_t* evt);
 
 typedef struct
 {
-    display_t * disp;
+    display_t* disp;
 } gamepad_t;
 
-gamepad_t * gamepad;
+gamepad_t* gamepad;
 
 swadgeMode modeGamepad =
 {
@@ -57,11 +57,11 @@ swadgeMode modeGamepad =
  * @brief TODO
  *
  */
-void gamepadEnterMode(display_t * disp)
+void gamepadEnterMode(display_t* disp)
 {
     // Allocate memory for this mode
-    gamepad = (gamepad_t *)calloc(1, sizeof(gamepad_t));
- 
+    gamepad = (gamepad_t*)calloc(1, sizeof(gamepad_t));
+
     // Save a pointer to the display
     gamepad->disp = disp;
 }

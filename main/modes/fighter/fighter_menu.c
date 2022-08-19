@@ -9,6 +9,7 @@
 #include "meleeMenu.h"
 #include "p2pConnection.h"
 
+#include "mode_main_menu.h"
 #include "fighter_menu.h"
 #include "mode_fighter.h"
 
@@ -274,8 +275,8 @@ void fighterMainMenuCb(const char* opt)
     }
     else if (opt == str_exit)
     {
-        // TODO Exit selected
-        ESP_LOGI("FTR", "Implement exit");
+        // Exit selected
+        switchToSwadgeMode(&modeMainMenu);
     }
 }
 

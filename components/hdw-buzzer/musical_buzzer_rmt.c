@@ -25,6 +25,7 @@ typedef struct
     buzzerTrack_t sfx;
     const musicalNote_t * playNote;
     bool stopSong;
+    bool isMuted;
 } rmt_buzzer_t;
 
 //==============================================================================
@@ -49,9 +50,17 @@ rmt_buzzer_t rmt_buzzer;
  * 
  * @param gpio The GPIO the buzzer is connected to
  * @param rmt  The RMT channel to control the buzzer with
+ * @param isMuted true to mute the buzzer, false to make it buzz
  */
-void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
+void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, bool isMuted)
 {
+    // Don't do much if muted
+    rmt_buzzer.isMuted = isMuted;
+    if(rmt_buzzer.isMuted)
+    {
+        return;
+    }
+
     // Start with the default RMT configuration
     rmt_config_t dev_config =
     {
@@ -98,6 +107,12 @@ void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt)
  */
 void buzzer_play_sfx(const song_t* song)
 {
+    // Don't do much if muted
+    if(rmt_buzzer.isMuted)
+    {
+        return;
+    }
+
     // update notation with the new one
     rmt_buzzer.sfx.song = song;
     rmt_buzzer.sfx.note_index = 0;
@@ -116,6 +131,12 @@ void buzzer_play_sfx(const song_t* song)
  */
 void buzzer_play_bgm(const song_t* song)
 {
+    // Don't do much if muted
+    if(rmt_buzzer.isMuted)
+    {
+        return;
+    }
+
     // update notation with the new one
     rmt_buzzer.bgm.song = song;
     rmt_buzzer.bgm.note_index = 0;
@@ -202,6 +223,12 @@ static bool buzzer_track_check_next_note(buzzerTrack_t * track, bool isActive)
  */
 void buzzer_check_next_note(void)
 {
+    // Don't do much if muted
+    if(rmt_buzzer.isMuted)
+    {
+        return;
+    }
+
     // Try playing SFX first
     bool sfxIsActive = buzzer_track_check_next_note(&rmt_buzzer.sfx, true);
     // Then play BGM if SFX isn't active
@@ -264,6 +291,12 @@ static void play_note(const musicalNote_t* notation)
  */
 void buzzer_stop(void)
 {
+    // Don't do much if muted
+    if(rmt_buzzer.isMuted)
+    {
+        return;
+    }
+
     // Spin and wait for any ongoing transmissions to finish
     while (ESP_ERR_TIMEOUT == rmt_wait_tx_done(rmt_buzzer.channel, 0))
     {

@@ -26,19 +26,19 @@
  * Attempt to fill a shape bounded by a one-pixel border of a given color using
  * the even-odd rule:
  * https://en.wikipedia.org/wiki/Even%E2%80%93odd_rule
- * 
+ *
  * WARNING!!! This is very finicky and is not guaranteed to work in all cases.
- * 
+ *
  * This iterates over each row in the bounding box, top to bottom, left to right
  *
  * This assumes that each row starts outside or on the boundary of the shape to
  * be filled.
- * 
+ *
  * Each time a pixel of the 'boundary color' is iterated over, the in/out
  * boolean will flip, no matter what. This means that stray pixels in the shape
  * can flip the in/out state, and thick boundaries with an even number of pixels
  * will also mess it up.
- * 
+ *
  * @param disp The display to read from and draw to
  * @param x0 The left index of the bounding box
  * @param y0 The top index of the bounding box
@@ -47,8 +47,8 @@
  * @param boundaryColor The color of the boundary to fill in
  * @param fillColor The color to fill
  */
-void oddEvenFill(display_t * disp, int x0, int y0, int x1, int y1,
-    paletteColor_t boundaryColor, paletteColor_t fillColor)
+void oddEvenFill(display_t* disp, int x0, int y0, int x1, int y1,
+                 paletteColor_t boundaryColor, paletteColor_t fillColor)
 {
     // Adjust the bounding box if it's out of bounds
     if(x0 < 0)
@@ -90,7 +90,7 @@ void oddEvenFill(display_t * disp, int x0, int y0, int x1, int y1,
     }
 }
 
-void plotLine(display_t * disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth)
+void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth)
 {
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
@@ -139,7 +139,7 @@ void plotLine(display_t * disp, int x0, int y0, int x1, int y1, paletteColor_t c
     }
 }
 
-void plotRect(display_t * disp, int x0, int y0, int x1, int y1, paletteColor_t col)
+void plotRect(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col)
 {
     // Vertical lines
     for(int y = y0; y < y1; y++)
@@ -156,7 +156,7 @@ void plotRect(display_t * disp, int x0, int y0, int x1, int y1, paletteColor_t c
     }
 }
 
-void plotEllipse(display_t * disp, int xm, int ym, int a, int b, paletteColor_t col)
+void plotEllipse(display_t* disp, int xm, int ym, int a, int b, paletteColor_t col)
 {
     int x = -a, y = 0; /* II. quadrant from bottom left to top right */
     long e2 = (long) b * b, err = (long) x * (2 * e2 + x) + e2; /* error of 1.step */
@@ -185,7 +185,7 @@ void plotEllipse(display_t * disp, int xm, int ym, int a, int b, paletteColor_t 
     }
 }
 
-void plotOptimizedEllipse(display_t * disp, int xm, int ym, int a, int b, paletteColor_t col)
+void plotOptimizedEllipse(display_t* disp, int xm, int ym, int a, int b, paletteColor_t col)
 {
     long x = -a, y = 0; /* II. quadrant from bottom left to top right */
     long e2 = b, dx = (1 + 2 * x) * e2 * e2; /* error increment  */
@@ -217,28 +217,28 @@ void plotOptimizedEllipse(display_t * disp, int xm, int ym, int a, int b, palett
     }
 }
 
-void plotCircle(display_t * disp, int xm, int ym, int r, paletteColor_t col)
+void plotCircle(display_t* disp, int xm, int ym, int r, paletteColor_t col)
 {
     plotCircleQuadrants(disp, xm, ym, r, true, true, true, true, col);
 }
 
-void plotCircleQuadrants(display_t * disp, int xm, int ym, int r, bool q1,
-    bool q2, bool q3, bool q4, paletteColor_t col)
+void plotCircleQuadrants(display_t* disp, int xm, int ym, int r, bool q1,
+                         bool q2, bool q3, bool q4, paletteColor_t col)
 {
     int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
     do
     {
         if(q1)
         {
-            disp->setPx(xm - x, ym + y, col); /*   I. Quadrant +x +y */            
+            disp->setPx(xm - x, ym + y, col); /*   I. Quadrant +x +y */
         }
         if(q2)
         {
-            disp->setPx(xm - y, ym - x, col); /*  II. Quadrant -x +y */            
+            disp->setPx(xm - y, ym - x, col); /*  II. Quadrant -x +y */
         }
         if(q3)
         {
-            disp->setPx(xm + x, ym - y, col); /* III. Quadrant -x -y */            
+            disp->setPx(xm + x, ym - y, col); /* III. Quadrant -x -y */
         }
         if(q4)
         {
@@ -256,7 +256,7 @@ void plotCircleQuadrants(display_t * disp, int xm, int ym, int r, bool q1,
     } while (x < 0);
 }
 
-void plotCircleFilled(display_t * disp, int xm, int ym, int r, paletteColor_t col)
+void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col)
 {
     int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
     do
@@ -279,7 +279,7 @@ void plotCircleFilled(display_t * disp, int xm, int ym, int r, paletteColor_t co
     } while (x < 0);
 }
 
-void plotEllipseRect(display_t * disp, int x0, int y0, int x1,
+void plotEllipseRect(display_t* disp, int x0, int y0, int x1,
                      int y1, paletteColor_t col)   /* rectangular parameter enclosing the ellipse */
 {
     long a = abs(x1 - x0), b = abs(y1 - y0), b1 = b & 1; /* diameter */
@@ -330,7 +330,7 @@ void plotEllipseRect(display_t * disp, int x0, int y0, int x1,
     }
 }
 
-void plotQuadBezierSeg(display_t * disp, int x0, int y0, int x1, int y1, int x2,
+void plotQuadBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2,
                        int y2, paletteColor_t col)   /* plot a limited quadratic Bezier segment */
 {
     int sx = x2 - x1, sy = y2 - y1;
@@ -393,7 +393,7 @@ void plotQuadBezierSeg(display_t * disp, int x0, int y0, int x1, int y1, int x2,
     plotLine(disp, x0, y0, x2, y2, col, 0); /* plot remaining part to end */
 }
 
-void plotQuadBezier(display_t * disp, int x0, int y0, int x1, int y1, int x2,
+void plotQuadBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2,
                     int y2, paletteColor_t col)   /* plot any quadratic Bezier curve */
 {
     int x = x0 - x1, y = y0 - y1;
@@ -439,7 +439,7 @@ void plotQuadBezier(display_t * disp, int x0, int y0, int x1, int y1, int x2,
     plotQuadBezierSeg(disp, x0, y0, x1, y1, x2, y2, col); /* remaining part */
 }
 
-void plotQuadRationalBezierSeg(display_t * disp, int x0, int y0, int x1, int y1, int x2, int y2,
+void plotQuadRationalBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2,
                                float w, paletteColor_t col)   /* plot a limited rational Bezier segment, squared weight */
 {
     int sx = x2 - x1, sy = y2 - y1; /* relative values for checks */
@@ -516,7 +516,7 @@ void plotQuadRationalBezierSeg(display_t * disp, int x0, int y0, int x1, int y1,
     plotLine(disp, x0, y0, x2, y2, col, 0); /* plot remaining needle to end */
 }
 
-void plotQuadRationalBezier(display_t * disp, int x0, int y0, int x1, int y1, int x2, int y2,
+void plotQuadRationalBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2,
                             float w, paletteColor_t col)   /* plot any quadratic rational Bezier curve */
 {
     int x = x0 - 2 * x1 + x2, y = y0 - 2 * y1 + y2;
@@ -605,7 +605,7 @@ void plotQuadRationalBezier(display_t * disp, int x0, int y0, int x1, int y1, in
     plotQuadRationalBezierSeg(disp, x0, y0, x1, y1, x2, y2, w * w, col); /* remaining */
 }
 
-void plotRotatedEllipse(display_t * disp, int x, int y, int a, int b,
+void plotRotatedEllipse(display_t* disp, int x, int y, int a, int b,
                         float angle, paletteColor_t col)   /* plot ellipse rotated by angle (radian) */
 {
     float xd = (long) a * a, yd = (long) b * b;
@@ -618,7 +618,7 @@ void plotRotatedEllipse(display_t * disp, int x, int y, int a, int b,
                            (long) (4 * zd * cos(angle)), col);
 }
 
-void plotRotatedEllipseRect(display_t * disp, int x0, int y0, int x1, int y1,
+void plotRotatedEllipseRect(display_t* disp, int x0, int y0, int x1, int y1,
                             long zd, paletteColor_t col)   /* rectangle enclosing the ellipse, integer rotation angle */
 {
     int xd = x1 - x0, yd = y1 - y0;
@@ -640,7 +640,7 @@ void plotRotatedEllipseRect(display_t * disp, int x0, int y0, int x1, int y1,
     plotQuadRationalBezierSeg(disp, x1, y1 - yd, x1, y0, x0 + xd, y0, w, col);
 }
 
-void plotCubicBezierSeg(display_t * disp, int x0, int y0, float x1, float y1, float x2, float y2,
+void plotCubicBezierSeg(display_t* disp, int x0, int y0, float x1, float y1, float x2, float y2,
                         int x3, int y3, paletteColor_t col)   /* plot limited cubic Bezier segment */
 {
     int f, fx, fy, leg = 1;
@@ -775,7 +775,7 @@ exit:
     plotLine(disp, x0, y0, x3, y3, col, 0); /* remaining part in case of cusp or crunode */
 }
 
-void plotCubicBezier(display_t * disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
+void plotCubicBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
                      int y3, paletteColor_t col)   /* plot any cubic Bezier curve */
 {
     int n = 0, i = 0;
@@ -875,7 +875,7 @@ void plotCubicBezier(display_t * disp, int x0, int y0, int x1, int y1, int x2, i
     }
 }
 
-void plotQuadSpline(display_t * disp, int n, int x[], int y[],
+void plotQuadSpline(display_t* disp, int n, int x[], int y[],
                     paletteColor_t col)   /* plot quadratic spline, destroys input arrays x,y */
 {
 #define M_MAX 6
@@ -916,7 +916,7 @@ void plotQuadSpline(display_t * disp, int n, int x[], int y[],
     plotQuadBezier(disp, x[0], y[0], x1, y1, x2, y2, col);
 }
 
-void plotCubicSpline(display_t * disp, int n, int x[], int y[],
+void plotCubicSpline(display_t* disp, int n, int x[], int y[],
                      paletteColor_t col)   /* plot cubic spline, destroys input arrays x,y */
 {
 #define M_MAX 6

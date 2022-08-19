@@ -306,7 +306,7 @@ void p2pTxAllRetriesTimeout(void* arg)
  * @param msgTxCbFn A callback function when this message is ACKed or dropped
  */
 void p2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len,
-    p2pMsgTxCbFn msgTxCbFn)
+                p2pMsgTxCbFn msgTxCbFn)
 {
     //ESP_LOGD("P2P", "%s", __func__);
 
@@ -391,7 +391,7 @@ void p2pSendMsgEx(p2pInfo* p2p, uint8_t* msg, uint16_t len,
     //ESP_LOGD("P2P", "%s", dbgStr);
 
     // If this is a first time message and longer than a connection message
-    if( ((void*)&(p2p->ack.msgToAck) != (void*)msg) && sizeof(p2pConMsg_t) < len)
+    if( ((void*) & (p2p->ack.msgToAck) != (void*)msg) && sizeof(p2pConMsg_t) < len)
     {
         // Insert a sequence number
         ((p2pCommonHeader_t*)msg)->seqNum = p2p->cnc.mySeqNum;
@@ -406,7 +406,7 @@ void p2pSendMsgEx(p2pInfo* p2p, uint8_t* msg, uint16_t len,
         p2p->ack.isWaitingForAck = true;
 
         // If this is not a retry
-        if((void*)&(p2p->ack.msgToAck) != (void*)msg)
+        if((void*) & (p2p->ack.msgToAck) != (void*)msg)
         {
             //ESP_LOGD("P2P", "sending for the first time");
 
@@ -469,8 +469,8 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
 
     // Check if this message matches our message ID
     if(len < sizeof(p2pConMsg_t) ||
-        ((p2pConMsg_t*)data)->startByte != P2P_START_BYTE ||
-        ((p2pConMsg_t*)data)->modeId != p2p->modeId)
+            ((p2pConMsg_t*)data)->startByte != P2P_START_BYTE ||
+            ((p2pConMsg_t*)data)->modeId != p2p->modeId)
     {
         // This message is too short, or does not match our message ID
         //ESP_LOGD("P2P", "DISCARD: Not a message for '%c'", p2p->modeId);
@@ -478,7 +478,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
     }
 
     // Make a pointer for convenience
-    p2pCommonHeader_t * p2pHdr = (p2pCommonHeader_t *)data;
+    p2pCommonHeader_t* p2pHdr = (p2pCommonHeader_t*)data;
 
     // If this message has a MAC, check it
     if(len >= sizeof(p2pCommonHeader_t) &&
@@ -511,7 +511,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
     // By here, we know the received message matches our message ID, either a
     // broadcast or for us. If this isn't an ack message, ack it
     if(len >= sizeof(p2pCommonHeader_t) &&
-        p2pHdr->messageType != P2P_MSG_ACK)
+            p2pHdr->messageType != P2P_MSG_ACK)
     {
         p2pSendAckToMac(p2p, mac_addr);
     }
@@ -555,7 +555,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
 
         // Call the callback after clearing out variables
         if(NULL != tmpSuccessFn)
-        { 
+        {
             tmpSuccessFn(p2p);
         }
 
@@ -586,7 +586,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
 
             // Send a message to that ESP to start the game.
             p2p->startMsg.startByte = P2P_START_BYTE;
-            p2p->startMsg.modeId= p2p->modeId; 
+            p2p->startMsg.modeId = p2p->modeId;
             p2p->startMsg.messageType = P2P_MSG_START;
             p2p->startMsg.seqNum = 0;
             memcpy(p2p->startMsg.macAddr, mac_addr, sizeof(p2p->startMsg.macAddr));
@@ -779,7 +779,7 @@ void p2pRestart(void* arg)
  * @param status   Whether the transmission succeeded or failed
  */
 void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr __attribute__((unused)),
-                esp_now_send_status_t status)
+               esp_now_send_status_t status)
 {
     //ESP_LOGD("P2P", "%s - %s", __func__, status == ESP_NOW_SEND_SUCCESS ? "ESP_NOW_SEND_SUCCESS" : "ESP_NOW_SEND_FAIL");
 

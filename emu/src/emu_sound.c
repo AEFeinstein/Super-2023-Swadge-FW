@@ -56,6 +56,9 @@ pthread_mutex_t buzzerMutex = PTHREAD_MUTEX_INITIALIZER;
 emu_buzzer_t emuBzrBgm = {0};
 emu_buzzer_t emuBzrSfx = {0};
 
+// Keep track of muted state
+bool emuMuted;
+
 //==============================================================================
 // Function Prototypes
 //==============================================================================
@@ -181,8 +184,14 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
  * @param gpio unused
  * @param rmt unused
  */
-void buzzer_init(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED)
+void buzzer_init(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, bool isMuted)
 {
+	emuMuted = isMuted;
+	if(emuMuted)
+	{
+		return;
+	}
+
 	buzzer_stop();
 	if (!sounddriver)
 	{
@@ -199,6 +208,11 @@ void buzzer_init(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED)
  */
 void buzzer_play_sfx(const song_t *song)
 {
+	if(emuMuted)
+	{
+		return;
+	}
+
 	// Save the song pointer
 	emuBzrSfx.song = song;
 	emuBzrSfx.note_index = 0;
@@ -215,6 +229,11 @@ void buzzer_play_sfx(const song_t *song)
  */
 void buzzer_play_bgm(const song_t *song)
 {
+	if(emuMuted)
+	{
+		return;
+	}
+
 	// Save the song pointer
 	emuBzrBgm.song = song;
 	emuBzrBgm.note_index = 0;
@@ -293,6 +312,11 @@ bool buzzer_track_check_next_note(emu_buzzer_t * track, bool isActive)
  */
 void buzzer_check_next_note(void)
 {
+	if(emuMuted)
+	{
+		return;
+	}
+
 	bool sfxIsActive = buzzer_track_check_next_note(&emuBzrSfx, true);
 	buzzer_track_check_next_note(&emuBzrBgm, !sfxIsActive);
 }
@@ -315,6 +339,11 @@ void buzzer_stop_dont_clear(void)
  */
 void buzzer_stop(void)
 {
+	if(emuMuted)
+	{
+		return;
+	}
+
 	emuBzrBgm.song = NULL;
 	emuBzrBgm.note_index = 0;
 	emuBzrBgm.start_time = 0;
