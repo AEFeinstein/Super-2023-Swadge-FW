@@ -16,7 +16,8 @@ typedef enum __attribute__((packed))
 {
     NO_WIFI,
     ESP_NOW
-} wifiMode_t;
+}
+wifiMode_t;
 
 /**
  * A struct of all the function pointers necessary for a swadge mode. If a mode
@@ -35,10 +36,10 @@ typedef struct _swadgeMode
      * This function is called when this mode is started. It should initialize
      * any necessary variables.
      * disp should be saved and used for later draw calls.
-     * 
+     *
      * @param disp The display to draw to
      */
-    void (*fnEnterMode)(display_t * disp);
+    void (*fnEnterMode)(display_t* disp);
 
     /**
      * This function is called when the mode is exited. It should clean up
@@ -59,7 +60,7 @@ typedef struct _swadgeMode
     /**
      * This function is called when a button press is pressed. Buttons are
      * handled by interrupts and queued up for this callback, so there are no
-     * strict timing restrictions for this function. 
+     * strict timing restrictions for this function.
      *
      * @param evt The button event that occurred
      */
@@ -87,7 +88,7 @@ typedef struct _swadgeMode
      * @param samples A pointer to 12 bit audio samples
      * @param sampleCnt The number of samples read
      */
-    void (*fnAudioCallback)(uint16_t * samples, uint32_t sampleCnt);
+    void (*fnAudioCallback)(uint16_t* samples, uint32_t sampleCnt);
 
     /**
      * This function is called periodically with the current temperature
@@ -99,7 +100,7 @@ typedef struct _swadgeMode
     /**
      * This is a setting, not a function pointer. Set it to one of these
      * values to have the system configure the swadge's WiFi
-     * 
+     *
      * NO_WIFI - Don't use WiFi at all. This saves power.
      * ESP_NOW - Send and receive packets to and from all swadges in range
      */
@@ -126,8 +127,7 @@ typedef struct _swadgeMode
     void (*fnEspNowSendCb)(const uint8_t* mac_addr, esp_now_send_status_t status);
 } swadgeMode;
 
-uint8_t getNumSwadgeModes(void);
-void overrideToSwadgeMode( swadgeMode* mode );
-void switchToSwadgeMode(uint8_t mode);
+void overrideToSwadgeMode(swadgeMode* mode);
+void switchToSwadgeMode(swadgeMode* mode);
 
 #endif

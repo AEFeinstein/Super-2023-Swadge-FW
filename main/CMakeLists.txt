@@ -17,6 +17,7 @@ idf_component_register(
         "utils/linked_list.c"
         "p2pConnection.c"
         "swadge_esp32.c"
+        "settingsManager.c"
         "advanced_usb_control.c"
     INCLUDE_DIRS
         "."

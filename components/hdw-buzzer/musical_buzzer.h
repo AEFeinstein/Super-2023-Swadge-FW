@@ -138,8 +138,9 @@ typedef struct
     musicalNote_t notes[];
 } song_t;
 
-void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt);
-void buzzer_play(const song_t* song);
+void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, bool isMuted);
+void buzzer_play_bgm(const song_t* song);
+void buzzer_play_sfx(const song_t* song);
 void buzzer_check_next_note(void);
 void buzzer_stop(void);
 

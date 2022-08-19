@@ -40,20 +40,24 @@ typedef void (*p2pMsgTxCbFn)(p2pInfo* p2p, messageStatus_t status);
 
 #define P2P_START_BYTE 'p'
 
-typedef enum __attribute__((packed)){
+typedef enum __attribute__((packed))
+{
     P2P_MSG_CONNECT,
     P2P_MSG_START,
     P2P_MSG_ACK,
     P2P_MSG_DATA
-} p2pMsgType_t;
+}
+p2pMsgType_t;
 
-typedef struct {
+typedef struct
+{
     uint8_t startByte;
     uint8_t modeId;
     p2pMsgType_t messageType;
 } p2pConMsg_t;
 
-typedef struct {
+typedef struct
+{
     uint8_t startByte;
     uint8_t modeId;
     p2pMsgType_t messageType;
@@ -61,7 +65,8 @@ typedef struct {
     uint8_t macAddr[6];
 } p2pCommonHeader_t;
 
-typedef struct {
+typedef struct
+{
     p2pCommonHeader_t hdr;
     uint8_t data[P2P_MAX_DATA_LEN];
 } p2pDataMsg_t;

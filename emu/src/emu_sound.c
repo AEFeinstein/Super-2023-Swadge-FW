@@ -53,14 +53,20 @@ pthread_mutex_t micMutex = PTHREAD_MUTEX_INITIALIZER;
 // Output buzzer
 uint16_t buzzernote = SILENCE;
 pthread_mutex_t buzzerMutex = PTHREAD_MUTEX_INITIALIZER;
-emu_buzzer_t emuBzr = {0};
+emu_buzzer_t emuBzrBgm = {0};
+emu_buzzer_t emuBzrSfx = {0};
+
+// Keep track of muted state
+bool emuMuted;
 
 //==============================================================================
 // Function Prototypes
 //==============================================================================
 
-void play_note(void);
+void play_note(const musicalNote_t * notation);
 void EmuSoundCb(struct SoundDriver *sd, short *in, short *out, int samplesr, int samplesp);
+bool buzzer_track_check_next_note(emu_buzzer_t * track, bool isActive);
+void buzzer_stop_dont_clear(void);
 
 //==============================================================================
 // Functions
@@ -178,14 +184,21 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
  * @param gpio unused
  * @param rmt unused
  */
-void buzzer_init(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED)
+void buzzer_init(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, bool isMuted)
 {
+	emuMuted = isMuted;
+	if(emuMuted)
+	{
+		return;
+	}
+
 	buzzer_stop();
 	if (!sounddriver)
 	{
 		sounddriver = InitSound(0, EmuSoundCb, SAMPLING_RATE, 1, 1, 256, 0, 0);
 	}
-	memset(&emuBzr, 0, sizeof(emuBzr));
+	memset(&emuBzrBgm, 0, sizeof(emuBzrBgm));
+	memset(&emuBzrSfx, 0, sizeof(emuBzrSfx));
 }
 
 /**
@@ -193,18 +206,104 @@ void buzzer_init(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED)
  *
  * @param song A song to play
  */
-void buzzer_play(const song_t *song)
+void buzzer_play_sfx(const song_t *song)
 {
-	// Stop everything
-	buzzer_stop();
+	if(emuMuted)
+	{
+		return;
+	}
 
 	// Save the song pointer
-	emuBzr.song = song;
-	emuBzr.note_index = 0;
-	emuBzr.start_time = esp_timer_get_time();
+	emuBzrSfx.song = song;
+	emuBzrSfx.note_index = 0;
+	emuBzrSfx.start_time = esp_timer_get_time();
 
 	// Start playing the first note
-	play_note();
+	play_note(&emuBzrSfx.song->notes[0]);
+}
+
+/**
+ * @brief Play a song on the emulated buzzer
+ *
+ * @param song A song to play
+ */
+void buzzer_play_bgm(const song_t *song)
+{
+	if(emuMuted)
+	{
+		return;
+	}
+
+	// Save the song pointer
+	emuBzrBgm.song = song;
+	emuBzrBgm.note_index = 0;
+	emuBzrBgm.start_time = esp_timer_get_time();
+
+	if(NULL == emuBzrSfx.song)
+	{
+		// Start playing the first note
+		play_note(&emuBzrBgm.song->notes[0]);
+	}
+}
+
+/**
+ * @brief Advance the notes in a specific track and play them if the track is active
+ * 
+ * @param track The track to check notes in
+ * @param isActive true to play notes, false to just advance them
+ * @return true  if this track is playing a note
+ *         false if it is not 
+ */
+bool buzzer_track_check_next_note(emu_buzzer_t * track, bool isActive)
+{
+	// Check if there is a song and there are still notes
+	if ((NULL != track->song) && (track->note_index < track->song->numNotes))
+	{
+		// Get the current time
+		int64_t cTime = esp_timer_get_time();
+
+		// Check if it's time to play the next note
+		if (cTime - track->start_time >= (1000 * track->song->notes[track->note_index].timeMs))
+		{
+			// Move to the next note
+			track->note_index++;
+			track->start_time = cTime;
+
+			// Loop if requested
+			if(track->song->shouldLoop && (track->note_index == track->song->numNotes))
+			{
+				track->note_index = 0;
+			}
+
+			// If there is a note
+			if (track->note_index < track->song->numNotes)
+			{
+				if(isActive)
+				{
+					// Play the note
+					play_note(&track->song->notes[track->note_index]);
+				}
+			}
+			else
+			{
+				if(isActive)
+				{
+					// Song is over
+					buzzer_stop_dont_clear();
+				}
+
+				track->start_time = 0;
+				track->note_index = 0;
+				track->song = NULL;
+				// Track is inactive
+				return false;
+			}
+		}
+		// Track is active
+		return true;
+	}
+	// Track is inactive
+	return false;
 }
 
 /**
@@ -213,32 +312,26 @@ void buzzer_play(const song_t *song)
  */
 void buzzer_check_next_note(void)
 {
-	// Check if there is a song and there are still notes
-	if ((NULL != emuBzr.song) && (emuBzr.note_index < emuBzr.song->numNotes))
+	if(emuMuted)
 	{
-		// Get the current time
-		int64_t cTime = esp_timer_get_time();
-
-		// Check if it's time to play the next note
-		if (cTime - emuBzr.start_time >= (1000 * emuBzr.song->notes[emuBzr.note_index].timeMs))
-		{
-			// Move to the next note
-			emuBzr.note_index++;
-			emuBzr.start_time = cTime;
-
-			// If there is a note
-			if (emuBzr.note_index < emuBzr.song->numNotes)
-			{
-				// Play the note
-				play_note();
-			}
-			else
-			{
-				// Song is over
-				buzzer_stop();
-			}
-		}
+		return;
 	}
+
+	bool sfxIsActive = buzzer_track_check_next_note(&emuBzrSfx, true);
+	buzzer_track_check_next_note(&emuBzrBgm, !sfxIsActive);
+}
+
+/**
+ * @brief Stop the buzzer without clearing the BGM or SFX data
+ * 
+ */
+void buzzer_stop_dont_clear(void)
+{
+	pthread_mutex_lock(&buzzerMutex);
+	buzzernote = SILENCE;
+	pthread_mutex_unlock(&buzzerMutex);
+
+	play_note(NULL);	
 }
 
 /**
@@ -246,29 +339,36 @@ void buzzer_check_next_note(void)
  */
 void buzzer_stop(void)
 {
-	emuBzr.song = NULL;
-	emuBzr.note_index = 0;
-	emuBzr.start_time = 0;
+	if(emuMuted)
+	{
+		return;
+	}
+
+	emuBzrBgm.song = NULL;
+	emuBzrBgm.note_index = 0;
+	emuBzrBgm.start_time = 0;
+
+	emuBzrSfx.song = NULL;
+	emuBzrSfx.note_index = 0;
+	emuBzrSfx.start_time = 0;
 
 	pthread_mutex_lock(&buzzerMutex);
 	buzzernote = SILENCE;
 	pthread_mutex_unlock(&buzzerMutex);
 
-	play_note();
+	play_note(NULL);
 }
 
 /**
  * @brief Play the current note on the emulated buzzer
  */
-void play_note(void)
+void play_note(const musicalNote_t * notation)
 {
-	if (NULL != emuBzr.song)
+	if (NULL != notation)
 	{
-		const musicalNote_t *notation = &emuBzr.song->notes[emuBzr.note_index];
-
 		if (SILENCE == notation->note)
 		{
-			buzzer_stop();
+			buzzer_stop_dont_clear();
 		}
 		else
 		{

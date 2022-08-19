@@ -31,7 +31,7 @@
     #define SORT_NOTES 0     //Whether the notes will be sorted. BUGGY Don't use.
 #endif
 
-typedef struct 
+typedef struct
 {
     uint8_t ledOut[NUM_LEDS * 3];
 
@@ -44,10 +44,10 @@ typedef struct
 } embeddedout_data;
 
 //For doing the nice linear strip LED updates
-void UpdateLinearLEDs(embeddedout_data * eod, embeddednf_data * end);
+void UpdateLinearLEDs(embeddedout_data* eod, embeddednf_data* end);
 
 //For making all the LEDs the same and quickest.  Good for solo instruments?
-void UpdateAllSameLEDs(embeddedout_data * eod, embeddednf_data * end);
+void UpdateAllSameLEDs(embeddedout_data* eod, embeddednf_data* end);
 
 uint32_t ECCtoHEX( uint8_t note, uint8_t sat, uint8_t val );
 
