@@ -50,10 +50,10 @@ int main()
 
 /**
  * @brief TODO
- * 
- * @param dd 
+ *
+ * @param dd
  */
-void UpdateFreqs(dft32_data * dd)
+void UpdateFreqs(dft32_data* dd)
 {
 
 #ifndef PRECOMPUTE_FREQUENCY_TABLE
@@ -95,7 +95,7 @@ void UpdateFreqs(dft32_data * dd)
 #endif
 }
 
-void InitColorChord(embeddednf_data * ed, dft32_data * dd)
+void InitColorChord(embeddednf_data* ed, dft32_data* dd)
 {
     int i;
     //Set up and initialize arrays.
@@ -123,11 +123,11 @@ void InitColorChord(embeddednf_data * ed, dft32_data * dd)
 
 /**
  * @brief TODO
- * 
- * @param ed 
- * @param dd 
+ *
+ * @param ed
+ * @param dd
  */
-void HandleFrameInfo(embeddednf_data * ed, dft32_data * dd)
+void HandleFrameInfo(embeddednf_data* ed, dft32_data* dd)
 {
     int i, j, k;
     uint8_t hitnotes[MAXNOTES];
@@ -145,7 +145,7 @@ void HandleFrameInfo(embeddednf_data * ed, dft32_data * dd)
     for( i = 0; i < FIXBINS; i++ )
     {
         ed->fuzzed_bins[i] = (ed->fuzzed_bins[i] + (strens[i] >> FUZZ_IIR_BITS) -
-                          (ed->fuzzed_bins[i] >> FUZZ_IIR_BITS));
+                              (ed->fuzzed_bins[i] >> FUZZ_IIR_BITS));
     }
 
     //Taper first octave
@@ -430,9 +430,9 @@ void HandleFrameInfo(embeddednf_data * ed, dft32_data * dd)
             //trying to average or combine the power of the notes looks awful.
             ed->note_peak_freqs[into] = newnote;
             ed->note_peak_amps[into] = (ed->note_peak_amps[into] > ed->note_peak_amps[from]) ?
-                                   ed->note_peak_amps[into] : ed->note_peak_amps[j];
+                                       ed->note_peak_amps[into] : ed->note_peak_amps[j];
             ed->note_peak_amps2[into] = (ed->note_peak_amps2[into] > ed->note_peak_amps2[from]) ?
-                                    ed->note_peak_amps2[into] : ed->note_peak_amps2[j];
+                                        ed->note_peak_amps2[into] : ed->note_peak_amps2[j];
 
             ed->note_peak_freqs[from] = 255;
             ed->note_peak_amps[from] = 0;

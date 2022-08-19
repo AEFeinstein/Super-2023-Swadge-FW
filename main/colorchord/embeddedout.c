@@ -13,11 +13,11 @@
 
 /**
  * @brief TODO
- * 
- * @param eod 
- * @param end 
+ *
+ * @param eod
+ * @param end
  */
-void UpdateLinearLEDs(embeddedout_data * eod, embeddednf_data * end)
+void UpdateLinearLEDs(embeddedout_data* eod, embeddednf_data* end)
 {
     //Source material:
     /*
@@ -85,7 +85,8 @@ void UpdateLinearLEDs(embeddedout_data * eod, embeddednf_data * end)
 #if 0
     for( i = 0; i < sorted_map_count; i++ )
     {
-        printf( "%d: %d: %d /", sorted_note_map[i],  end->note_peak_freqs[sorted_note_map[i]], end->note_peak_amps[sorted_note_map[i]] );
+        printf( "%d: %d: %d /", sorted_note_map[i],  end->note_peak_freqs[sorted_note_map[i]],
+                end->note_peak_amps[sorted_note_map[i]] );
     }
     printf( "\n" );
 #endif
@@ -258,11 +259,11 @@ void UpdateLinearLEDs(embeddedout_data * eod, embeddednf_data * end)
 
 /**
  * @brief TODO
- * 
- * @param eod 
- * @param end 
+ *
+ * @param eod
+ * @param end
  */
-void UpdateAllSameLEDs(embeddedout_data * eod, embeddednf_data * end)
+void UpdateAllSameLEDs(embeddedout_data* eod, embeddednf_data* end)
 {
     int i;
     uint8_t freq = 0;
@@ -297,11 +298,11 @@ void UpdateAllSameLEDs(embeddedout_data * eod, embeddednf_data * end)
 
 /**
  * @brief TODO
- * 
- * @param note 
- * @param sat 
- * @param val 
- * @return uint32_t 
+ *
+ * @param note
+ * @param sat
+ * @param val
+ * @return uint32_t
  */
 uint32_t ECCtoHEX( uint8_t note, uint8_t sat, uint8_t val )
 {

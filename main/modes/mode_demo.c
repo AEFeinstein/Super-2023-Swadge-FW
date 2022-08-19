@@ -28,11 +28,11 @@
 // Functions Prototypes
 //==============================================================================
 
-void demoEnterMode(display_t * disp);
+void demoEnterMode(display_t* disp);
 void demoExitMode(void);
 void demoMainLoop(int64_t elapsedUs);
 void demoAccelerometerCb(accel_t* accel);
-void demoAudioCb(uint16_t * samples, uint32_t sampleCnt);
+void demoAudioCb(uint16_t* samples, uint32_t sampleCnt);
 void demoTemperatureCb(float tmp_c);
 void demoButtonCb(buttonEvt_t* evt);
 void demoTouchCb(touch_event_t* evt);
@@ -96,7 +96,7 @@ typedef struct
     font_t ibm_vga8;
     font_t radiostars;
     p2pInfo p;
-    display_t * disp;
+    display_t* disp;
     float temperature;
     accel_t accel;
     dft32_data dd;
@@ -108,7 +108,7 @@ typedef struct
     uint16_t packetsRx;
 } demo_t;
 
-demo_t * demo;
+demo_t* demo;
 
 swadgeMode modeDemo =
 {
@@ -134,10 +134,10 @@ swadgeMode modeDemo =
  * @brief TODO
  *
  */
-void demoEnterMode(display_t * disp)
+void demoEnterMode(display_t* disp)
 {
     // Allocate memory for this mode
-    demo = (demo_t *)malloc(sizeof(demo_t));
+    demo = (demo_t*)malloc(sizeof(demo_t));
     memset(demo, 0, sizeof(demo_t));
 
     // Save a pointer to the display
@@ -213,14 +213,14 @@ void demoMainLoop(int64_t elapsedUs)
     // Rotate through all the hues in two seconds
     static uint64_t ledTime = 0;
     ledTime += elapsedUs;
-    if(ledTime >= (2000000/360))
+    if(ledTime >= (2000000 / 360))
     {
-        ledTime -= (2000000/360);
+        ledTime -= (2000000 / 360);
 
         led_t leds[NUM_LEDS] = {0};
         for(int i = 0; i < NUM_LEDS; i++)
         {
-            uint16_t tmpHue = (demo->demoHue + ((360/NUM_LEDS) * i)) % 360;
+            uint16_t tmpHue = (demo->demoHue + ((360 / NUM_LEDS) * i)) % 360;
             led_strip_hsv2rgb(tmpHue, 100, 10, &leds[i].r, &leds[i].g, &leds[i].b);
         }
         demo->demoHue = (demo->demoHue + 1) % 360;
@@ -235,7 +235,7 @@ void demoMainLoop(int64_t elapsedUs)
     if(megaTime >= 150000)
     {
         megaTime -= 150000;
-        
+
         megaPos += 4;
         if(megaPos >= demo->disp->w)
         {
@@ -256,16 +256,16 @@ void demoMainLoop(int64_t elapsedUs)
         }
         uint8_t height = ((demo->disp->h - demo->ibm_vga8.h - 2) * demo->end.fuzzed_bins[i]) / mv;
         fillDisplayArea(demo->disp,
-            i * 2,        demo->disp->h - height,
-            (i + 1) * 2, (demo->disp->h - demo->ibm_vga8.h - 2),
-            hsv2rgb(64 + (i * 2), 1, 1));
+                        i * 2,        demo->disp->h - height,
+                        (i + 1) * 2, (demo->disp->h - demo->ibm_vga8.h - 2),
+                        hsv2rgb(64 + (i * 2), 1, 1));
     }
 
     // Draw text
     drawText(demo->disp, &demo->radiostars, c500, "hello TFT", 10, 64);
 
     // Draw image
-    drawWsg(demo->disp, &demo->megaman[megaIdx], megaPos, (demo->disp->h-demo->megaman[0].h)/2, false, false, 0);
+    drawWsg(demo->disp, &demo->megaman[megaIdx], megaPos, (demo->disp->h - demo->megaman[0].h) / 2, false, false, 0);
 
     // Draw a single white pixel in the middle of the display
     demo->disp->setPx(
@@ -375,11 +375,11 @@ void demoAccelerometerCb(accel_t* accel)
 
 /**
  * @brief TODO
- * 
- * @param samples 
- * @param sampleCnt 
+ *
+ * @param samples
+ * @param sampleCnt
  */
-void demoAudioCb(uint16_t * samples, uint32_t sampleCnt)
+void demoAudioCb(uint16_t* samples, uint32_t sampleCnt)
 {
     bool ledsUpdated = false;
     for(uint32_t idx = 0; idx < sampleCnt; idx++)
@@ -397,7 +397,7 @@ void demoAudioCb(uint16_t * samples, uint32_t sampleCnt)
         }
     }
 }
- 
+
 /**
  * @brief TODO
  *
@@ -473,7 +473,7 @@ void demoConCbFn(p2pInfo* p2p __attribute__((unused)), connectionEvt_t evt)
                     const uint8_t randPayload[] = "zb4o5LBYgsmDuyreOtBcPIi8kINXYW0";
                     p2pSendMsg(p2p, randPayload, sizeof(randPayload), demoMsgTxCbFn);
                     break;
-                } 
+                }
             }
             break;
         }
