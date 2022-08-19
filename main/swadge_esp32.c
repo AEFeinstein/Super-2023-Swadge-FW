@@ -50,6 +50,7 @@
 #include "mode_demo.h"
 #include "fighter_menu.h"
 #include "mode_gamepad.h"
+#include "mode_tunernome.h"
 
 #include "driver/gpio.h"
 
@@ -78,6 +79,7 @@ swadgeMode* swadgeModes[] =
 {
     &modeMainMenu,
     &modeFighter,
+    &tunernomeMode,
     &modeDemo,
     &modeGamepad,
     0,
