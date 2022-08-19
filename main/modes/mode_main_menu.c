@@ -28,11 +28,11 @@ void mainMenuMainLoop(int64_t elapsedUs);
 void mainMenuButtonCb(buttonEvt_t* evt);
 void mainMenuCb(const char* opt);
 
-void mainMenuSetUpTopMenu(void);
+void mainMenuSetUpTopMenu(bool);
 void mainMenuTopLevelCb(const char* opt);
-void mainMenuSetUpGamesMenu(void);
+void mainMenuSetUpGamesMenu(bool);
 void mainMenuGamesCb(const char* opt);
-void mainMenuSetUpToolsMenu(void);
+void mainMenuSetUpToolsMenu(bool);
 void mainMenuToolsCb(const char* opt);
 void mainMenuSetUpSettingsMenu(bool);
 void mainMenuSettingsCb(const char* opt);
@@ -47,6 +47,10 @@ typedef struct
     font_t meleeMenuFont;
     meleeMenu_t* menu;
     bool shouldDraw;
+    uint8_t topLevelPos;
+    uint8_t gamesPos;
+    uint8_t toolsPos;
+    uint8_t settingsPos;
 } mainMenu_t;
 
 //==============================================================================
@@ -91,8 +95,7 @@ char mainMenuMicVol[] = "Mic Volume: 1";
 void mainMenuEnterMode(display_t* disp)
 {
     // Allocate memory for this mode
-    mainMenu = (mainMenu_t*)malloc(sizeof(mainMenu_t));
-    memset(mainMenu, 0, sizeof(mainMenu_t));
+    mainMenu = (mainMenu_t*)calloc(1, sizeof(mainMenu_t));
 
     // Save a pointer to the display
     mainMenu->disp = disp;
@@ -102,7 +105,7 @@ void mainMenuEnterMode(display_t* disp)
 
     // Initialize the menu
     mainMenu->menu = initMeleeMenu(mainMenuTitle, &mainMenu->meleeMenuFont, mainMenuTopLevelCb);
-    mainMenuSetUpTopMenu();
+    mainMenuSetUpTopMenu(true);
 
     // Set it to draw
     mainMenu->shouldDraw = true;
@@ -148,13 +151,22 @@ void mainMenuButtonCb(buttonEvt_t* evt)
 
 /**
  * Set up the top level menu
+ *
+ * @param resetPos true to reset the position to 0, false to leave it where it is
  */
-void mainMenuSetUpTopMenu(void)
+void mainMenuSetUpTopMenu(bool resetPos)
 {
+    // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuTitle, mainMenuTopLevelCb);
     addRowToMeleeMenu(mainMenu->menu, mainMenuGames);
     addRowToMeleeMenu(mainMenu->menu, mainMenuTools);
     addRowToMeleeMenu(mainMenu->menu, mainMenuSettings);
+    // Set the position
+    if(resetPos)
+    {
+        mainMenu->topLevelPos = 0;
+    }
+    mainMenu->menu->selectedRow = mainMenu->topLevelPos;
 }
 
 /**
@@ -164,28 +176,41 @@ void mainMenuSetUpTopMenu(void)
  */
 void mainMenuTopLevelCb(const char* opt)
 {
+    // Save the position
+    mainMenu->topLevelPos = mainMenu->menu->selectedRow;
+
+    // Handle the option
     if(mainMenuGames == opt)
     {
-        mainMenuSetUpGamesMenu();
+        mainMenuSetUpGamesMenu(true);
     }
     else if(mainMenuTools == opt)
     {
-        mainMenuSetUpToolsMenu();
+        mainMenuSetUpToolsMenu(true);
     }
     else if(mainMenuSettings == opt)
     {
-        mainMenuSetUpSettingsMenu(false);
+        mainMenuSetUpSettingsMenu(true);
     }
 }
 
 /**
  * Set up the games menu
+ *
+ * @param resetPos true to reset the position to 0, false to leave it where it is
  */
-void mainMenuSetUpGamesMenu(void)
+void mainMenuSetUpGamesMenu(bool resetPos)
 {
+    // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuGames, mainMenuGamesCb);
     addRowToMeleeMenu(mainMenu->menu, modeFighter.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
+    // Set the position
+    if(resetPos)
+    {
+        mainMenu->gamesPos = 0;
+    }
+    mainMenu->menu->selectedRow = mainMenu->gamesPos;
 }
 
 /**
@@ -195,6 +220,10 @@ void mainMenuSetUpGamesMenu(void)
  */
 void mainMenuGamesCb(const char* opt)
 {
+    // Save the position
+    mainMenu->gamesPos = mainMenu->menu->selectedRow;
+
+    // Handle the option
     if(modeFighter.modeName == opt)
     {
         // Start fighter
@@ -202,19 +231,28 @@ void mainMenuGamesCb(const char* opt)
     }
     else if(mainMenuBack == opt)
     {
-        mainMenuSetUpTopMenu();
+        mainMenuSetUpTopMenu(false);
     }
 }
 
 /**
  * Set up the tools menu
+ *
+ * @param resetPos true to reset the position to 0, false to leave it where it is
  */
-void mainMenuSetUpToolsMenu(void)
+void mainMenuSetUpToolsMenu(bool resetPos)
 {
+    // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuTools, mainMenuToolsCb);
     addRowToMeleeMenu(mainMenu->menu, modeGamepad.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeDemo.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
+    // Set the position
+    if(resetPos)
+    {
+        mainMenu->toolsPos = 0;
+    }
+    mainMenu->menu->selectedRow = mainMenu->toolsPos;
 }
 
 /**
@@ -224,6 +262,10 @@ void mainMenuSetUpToolsMenu(void)
  */
 void mainMenuToolsCb(const char* opt)
 {
+    // Save the position
+    mainMenu->toolsPos = mainMenu->menu->selectedRow;
+
+    // Handle the option
     if(modeGamepad.modeName == opt)
     {
         // Start gamepad
@@ -236,14 +278,16 @@ void mainMenuToolsCb(const char* opt)
     }
     else if(mainMenuBack == opt)
     {
-        mainMenuSetUpTopMenu();
+        mainMenuSetUpTopMenu(false);
     }
 }
 
 /**
  * Set up the settings menu
+ *
+ * @param resetPos true to reset the position to 0, false to leave it where it is
  */
-void mainMenuSetUpSettingsMenu(bool preservePosition)
+void mainMenuSetUpSettingsMenu(bool resetPos)
 {
     // Pick the menu string based on the sound option
     const char* soundOpt;
@@ -262,19 +306,18 @@ void mainMenuSetUpSettingsMenu(bool preservePosition)
     // Print the brightness option
     snprintf(mainMenuMicVol, sizeof(mainMenuMicVol), "Mic Volume: %d", getMicVolume());
 
-    // Save the old position
-    uint8_t selectedRow = mainMenu->menu->selectedRow;
     // Reset the menu
     resetMeleeMenu(mainMenu->menu, mainMenuSettings, mainMenuSettingsCb);
     addRowToMeleeMenu(mainMenu->menu, soundOpt);
     addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuBrightness);
     addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuMicVol);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
-    // Jump to the old position if requested
-    if(preservePosition)
+    // Set the position
+    if(resetPos)
     {
-        mainMenu->menu->selectedRow = selectedRow;
+        mainMenu->settingsPos = 0;
     }
+    mainMenu->menu->selectedRow = mainMenu->settingsPos;
 }
 
 /**
@@ -284,6 +327,10 @@ void mainMenuSetUpSettingsMenu(bool preservePosition)
  */
 void mainMenuSettingsCb(const char* opt)
 {
+    // Save the position
+    mainMenu->settingsPos = mainMenu->menu->selectedRow;
+
+    // Handle the option
     if(mainMenuSoundOff == opt)
     {
         // Sound is off, turn it on
@@ -306,10 +353,10 @@ void mainMenuSettingsCb(const char* opt)
     }
     else if(mainMenuBack == opt)
     {
-        mainMenuSetUpTopMenu();
+        mainMenuSetUpTopMenu(false);
         return;
     }
 
     // Redraw the settings menu with different strings
-    mainMenuSetUpSettingsMenu(true);
+    mainMenuSetUpSettingsMenu(false);
 }
