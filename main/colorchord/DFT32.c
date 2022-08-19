@@ -145,10 +145,10 @@ static uint16_t SquareRootRounded(uint32_t a_nInput)
 
 /**
  * @brief TODO
- * 
- * @param dd 
+ *
+ * @param dd
  */
-void UpdateOutputBins32(dft32_data * dd)
+void UpdateOutputBins32(dft32_data* dd)
 {
     int i;
     int32_t* ipt = &dd->Sdatspace32BOut[0];
@@ -193,11 +193,11 @@ void UpdateOutputBins32(dft32_data * dd)
 
 /**
  * @brief TODO
- * 
- * @param dd 
- * @param sample 
+ *
+ * @param dd
+ * @param sample
  */
-static void HandleInt( dft32_data * dd, int16_t sample )
+static void HandleInt( dft32_data* dd, int16_t sample )
 {
     int i;
     uint16_t adv;
@@ -259,11 +259,11 @@ static void HandleInt( dft32_data * dd, int16_t sample )
 
 /**
  * @brief TODO
- * 
- * @param dd 
- * @return int 
+ *
+ * @param dd
+ * @return int
  */
-int SetupDFTProgressive32(dft32_data * dd)
+int SetupDFTProgressive32(dft32_data* dd)
 {
     int i;
     int j;
@@ -299,11 +299,11 @@ int SetupDFTProgressive32(dft32_data * dd)
 
 /**
  * @brief TODO
- * 
- * @param dd 
- * @param frequencies 
+ *
+ * @param dd
+ * @param frequencies
  */
-void UpdateBins32( dft32_data * dd, const uint16_t* frequencies )
+void UpdateBins32( dft32_data* dd, const uint16_t* frequencies )
 {
     int i;
     int imod = 0;
@@ -320,11 +320,11 @@ void UpdateBins32( dft32_data * dd, const uint16_t* frequencies )
 
 /**
  * @brief TODO
- * 
- * @param dd 
- * @param dat 
+ *
+ * @param dd
+ * @param dat
  */
-void PushSample32(dft32_data * dd, int16_t dat )
+void PushSample32(dft32_data* dd, int16_t dat )
 {
     HandleInt( dd, dat );
     HandleInt( dd, dat );
@@ -334,11 +334,11 @@ void PushSample32(dft32_data * dd, int16_t dat )
 
 /**
  * @brief TODO
- * 
- * @param dd 
- * @param frequencies 
+ *
+ * @param dd
+ * @param frequencies
  */
-void UpdateBinsForDFT32( dft32_data * dd, const float* frequencies )
+void UpdateBinsForDFT32( dft32_data* dd, const float* frequencies )
 {
     int i;
     for( i = 0; i < FIXBINS; i++ )
@@ -350,18 +350,18 @@ void UpdateBinsForDFT32( dft32_data * dd, const float* frequencies )
 
 /**
  * @brief TODO
- * 
- * @param dd 
- * @param outbins 
- * @param frequencies 
- * @param bins 
- * @param databuffer 
- * @param place_in_data_buffer 
- * @param size_of_data_buffer 
- * @param q 
- * @param speedup 
+ *
+ * @param dd
+ * @param outbins
+ * @param frequencies
+ * @param bins
+ * @param databuffer
+ * @param place_in_data_buffer
+ * @param size_of_data_buffer
+ * @param q
+ * @param speedup
  */
-void DoDFTProgressive32( dft32_data * dd, float* outbins, float* frequencies, int bins, const float* databuffer,
+void DoDFTProgressive32( dft32_data* dd, float* outbins, float* frequencies, int bins, const float* databuffer,
                          int place_in_data_buffer, int size_of_data_buffer, float q, float speedup )
 {
     static float backupbins[FIXBINS];
