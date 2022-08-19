@@ -8,6 +8,6 @@
 #ifndef _MODE_TUNERNOME_H_
 #define _MODE_TUNERNOME_H_
 
-extern swadgeMode tunernomeMode;
+extern swadgeMode modeTunernome;
 
 #endif /* _MODE_TUNERNOME_H_ */

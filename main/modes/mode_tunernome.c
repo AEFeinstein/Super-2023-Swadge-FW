@@ -24,6 +24,7 @@
 #include "led_util.h"
 #include "linked_list.h"
 #include "swadgeMode.h"
+#include "settingsManager.h"
 
 #include "mode_tunernome.h"
 
@@ -173,7 +174,7 @@ void tnExitTimerFn(void* arg);
  * Variables
  *==========================================================================*/
 
-swadgeMode tunernomeMode =
+swadgeMode modeTunernome =
 {
     .modeName = "Tunernome",
     .fnEnterMode = tunernomeEnterMode,
@@ -315,7 +316,10 @@ static const timeSignature tSigs[] =
  */
 void tunernomeEnterMode(display_t* disp)
 {
-    tunernome-> disp = disp;
+    // Allocate zero'd memory for the mode
+    tunernome = calloc(1, sizeof(tunernome_t));
+
+    tunernome->disp = disp;
 
     loadFont("tom_thumb.font", &tunernome->tom_thumb);
     loadFont("ibm_vga8.font", &tunernome->ibm_vga8);
@@ -327,10 +331,6 @@ void tunernomeEnterMode(display_t* disp)
     TUNER_FLAT_THRES_X = round(METRONOME_CENTER_X + (intermedX * METRONOME_RADIUS));
     TUNER_THRES_Y = round(METRONOME_CENTER_Y - (ABS(intermedY) * METRONOME_RADIUS));
 
-    // Alloc and clear everything
-    tunernome = (tunernome_t*) malloc(sizeof(tunernome_t));
-    memset(tunernome, 0, sizeof(tunernome_t));
-
     loadWsg("uparrow.png", &(tunernome->upArrowWsg));
     loadWsg("flat.png", &(tunernome->flatWsg));
 
@@ -340,8 +340,6 @@ void tunernomeEnterMode(display_t* disp)
     tunernome->curTunerMode = GUITAR_TUNER;
 
     switchToSubmode(TN_TUNER);
-
-    enableDebounce(true);
 
     InitColorChord(&tunernome->end, &tunernome->dd);
 
@@ -367,8 +365,6 @@ void switchToSubmode(tnMode newMode)
 
             led_t leds[NUM_LEDS] = {{0}};
             setLeds(leds, sizeof(leds));
-
-            enableDebounce(true);
 
             tunernome->disp->clearPx();
 
@@ -396,8 +392,6 @@ void switchToSubmode(tnMode newMode)
 
             led_t leds[NUM_LEDS] = {{0}};
             setLeds(leds, sizeof(leds));
-
-            enableDebounce(false);
 
             tunernome->disp->clearPx();
             break;
@@ -1045,8 +1039,8 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                     }
                     case BTN_A:
                     {
-                        // TODO: re-implement this
-                        cycleColorchordSensitivity();
+                        // Cycle microphone sensitivity
+                        setMicVolume((getMicVolume() + 1) % 10);
                         break;
                     }
                     case RIGHT:

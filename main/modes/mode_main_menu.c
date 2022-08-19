@@ -273,6 +273,11 @@ void mainMenuToolsCb(const char* opt)
         // Start gamepad
         switchToSwadgeMode(&modeGamepad);
     }
+    else if(modeTunernome.modeName == opt)
+    {
+        // Start tunernome
+        switchToSwadgeMode(&modeTunernome);
+    }
     else if(modeDemo.modeName == opt)
     {
         // Start demo
