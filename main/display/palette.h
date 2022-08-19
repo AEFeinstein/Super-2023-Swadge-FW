@@ -222,6 +222,7 @@ typedef enum __attribute__((packed))
     c554,
     c555,
     cTransparent,
-} paletteColor_t;
+}
+paletteColor_t;
 
 #endif

@@ -7,7 +7,7 @@
 #include <string.h>
 #include <esp_log.h>
 #ifdef _TEST_USE_SPIRAM_
-#include <esp_heap_caps.h>
+    #include <esp_heap_caps.h>
 #endif
 
 #include "display.h"
@@ -104,7 +104,7 @@ void transformPixel(int16_t* x, int16_t* y, int16_t transX,
 
 /**
  * @brief Fill a rectangular area on a display with a single color
- * 
+ *
  * @param disp The display to fill an area on
  * @param x1 The x coordinate to start the fill (top left)
  * @param y1 The y coordinate to start the fill (top left)
@@ -112,15 +112,15 @@ void transformPixel(int16_t* x, int16_t* y, int16_t transX,
  * @param y2 The y coordinate to stop the fill (bottom right)
  * @param c  The color to fill
  */
-void fillDisplayArea(display_t * disp, int16_t x1, int16_t y1, int16_t x2,
-    int16_t y2, paletteColor_t c)
+void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
+                     int16_t y2, paletteColor_t c)
 {
     // Only draw on the display
     int16_t xMin = CLAMP(x1, 0, disp->w);
     int16_t xMax = CLAMP(x2, 0, disp->w);
     int16_t yMin = CLAMP(y1, 0, disp->h);
     int16_t yMax = CLAMP(y2, 0, disp->h);
-    
+
     // Set each pixel
     for (int y = yMin; y < yMax; y++)
     {
@@ -133,17 +133,17 @@ void fillDisplayArea(display_t * disp, int16_t x1, int16_t y1, int16_t x2,
 
 /**
  * @brief Load a WSG from ROM to RAM. WSGs placed in the spiffs_image folder
- * before compilation will be automatically flashed to ROM 
- * 
+ * before compilation will be automatically flashed to ROM
+ *
  * @param name The filename of the WSG to load
  * @param wsg  A handle to load the WSG to
  * @return true if the WSG was loaded successfully,
  *         false if the WSG load failed and should not be used
  */
-bool loadWsg(char * name, wsg_t * wsg)
+bool loadWsg(char* name, wsg_t* wsg)
 {
     // Read WSG from file
-    uint8_t * buf = NULL;
+    uint8_t* buf = NULL;
     size_t sz;
     if(!spiffsReadFile(name, &buf, &sz))
     {
@@ -157,13 +157,13 @@ bool loadWsg(char * name, wsg_t * wsg)
 
     // Create the decoder
     size_t copied = 0;
-    heatshrink_decoder * hsd = heatshrink_decoder_alloc(256, 8, 4);
+    heatshrink_decoder* hsd = heatshrink_decoder_alloc(256, 8, 4);
     heatshrink_decoder_reset(hsd);
 
     // Decode the file in chunks
     uint32_t inputIdx = 0;
     uint32_t outputIdx = 0;
-    while(inputIdx < (sz-2))
+    while(inputIdx < (sz - 2))
     {
         // Decode some data
         copied = 0;
@@ -195,9 +195,9 @@ bool loadWsg(char * name, wsg_t * wsg)
     wsg->h = (decompressedBuf[2] << 8) | decompressedBuf[3];
     // The rest of the bytes are pixels
 #ifdef _TEST_USE_SPIRAM_
-    wsg->px = (paletteColor_t *)heap_caps_malloc(sizeof(paletteColor_t) * wsg->w * wsg->h, MALLOC_CAP_SPIRAM);
+    wsg->px = (paletteColor_t*)heap_caps_malloc(sizeof(paletteColor_t) * wsg->w * wsg->h, MALLOC_CAP_SPIRAM);
 #else
-    wsg->px = (paletteColor_t *)malloc(sizeof(paletteColor_t) * wsg->w * wsg->h);
+    wsg->px = (paletteColor_t*)malloc(sizeof(paletteColor_t) * wsg->w * wsg->h);
 #endif
     if(NULL != wsg->px)
     {
@@ -211,10 +211,10 @@ bool loadWsg(char * name, wsg_t * wsg)
 
 /**
  * @brief Free the memory for a loaded WSG
- * 
+ *
  * @param wsg The WSG to free memory from
  */
-void freeWsg(wsg_t * wsg)
+void freeWsg(wsg_t* wsg)
 {
     free(wsg->px);
 }
@@ -313,7 +313,7 @@ void transformPixel(int16_t* x, int16_t* y, int16_t transX,
 
 /**
  * @brief Draw a WSG to the display
- * 
+ *
  * @param disp The display to draw the WSG to
  * @param wsg  The WSG to draw to the display
  * @param xOff The x offset to draw the WSG at
@@ -322,8 +322,8 @@ void transformPixel(int16_t* x, int16_t* y, int16_t transX,
  * @param flipUD true to flip the image across the X axis
  * @param rotateDeg The number of degrees to rotate clockwise, must be 0-359
  */
-void drawWsg(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff,
-    bool flipLR, bool flipUD, int16_t rotateDeg)
+void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
+             bool flipLR, bool flipUD, int16_t rotateDeg)
 {
     if(NULL == wsg->px)
     {
@@ -342,7 +342,7 @@ void drawWsg(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff,
                 int16_t dstX = srcX;
                 int16_t dstY = srcY;
                 transformPixel(&dstX, &dstY, xOff, yOff, flipLR, flipUD,
-                    rotateDeg, wsg->w, wsg->h);
+                               rotateDeg, wsg->w, wsg->h);
                 // Check bounds
                 if(0 <= dstX && dstX < disp->w && 0 <= dstY && dstY <= disp->h)
                 {
@@ -358,17 +358,17 @@ void drawWsg(display_t * disp, wsg_t *wsg, int16_t xOff, int16_t yOff,
  * @brief Load a font from ROM to RAM. Fonts are bitmapped image files that have
  * a single height, all ASCII characters, and a width for each character.
  * PNGs placed in the assets folder before compilation will be automatically
- * flashed to ROM 
- * 
+ * flashed to ROM
+ *
  * @param name The name of the font to load
  * @param font A handle to load the font to
  * @return true if the font was loaded successfully
  *         false if the font failed to load and should not be used
  */
-bool loadFont(const char * name, font_t * font)
+bool loadFont(const char* name, font_t* font)
 {
     // Read font from file
-    uint8_t * buf = NULL;
+    uint8_t* buf = NULL;
     size_t bufIdx = 0;
     size_t sz;
     if(!spiffsReadFile(name, &buf, &sz))
@@ -384,7 +384,7 @@ bool loadFont(const char * name, font_t * font)
     for(char ch = ' '; ch <= '~'; ch++)
     {
         // Get an easy refence to this character
-        font_ch_t * this = &font->chars[ch - ' '];
+        font_ch_t* this = &font->chars[ch - ' '];
 
         // Read the width
         this->w = buf[bufIdx++];
@@ -394,7 +394,7 @@ bool loadFont(const char * name, font_t * font)
         int bytes = (pixels / 8) + ((pixels % 8 == 0) ? 0 : 1);
 
         // Allocate space for this char and copy it over
-        this->bitmap = (uint8_t *) malloc(sizeof(uint8_t) * bytes);
+        this->bitmap = (uint8_t*) malloc(sizeof(uint8_t) * bytes);
         memcpy(this->bitmap, &buf[bufIdx], bytes);
         bufIdx += bytes;
     }
@@ -410,7 +410,7 @@ bool loadFont(const char * name, font_t * font)
  *
  * @param font The font to free memory from
  */
-void freeFont(font_t * font)
+void freeFont(font_t* font)
 {
     for(char ch = ' '; ch <= '~'; ch++)
     {
@@ -421,7 +421,7 @@ void freeFont(font_t * font)
 
 /**
  * @brief Draw a single character from a font to a display
- * 
+ *
  * @param disp  The display to draw a character to
  * @param color The color of the character to draw
  * @param h     The height of the character to draw
@@ -429,7 +429,7 @@ void freeFont(font_t * font)
  * @param xOff  The x offset to draw the char at
  * @param yOff  The y offset to draw the char at
  */
-void drawChar(display_t * disp, paletteColor_t color, uint16_t h, font_ch_t * ch, int16_t xOff, int16_t yOff)
+void drawChar(display_t* disp, paletteColor_t color, uint16_t h, font_ch_t* ch, int16_t xOff, int16_t yOff)
 {
     uint16_t byteIdx = 0;
     uint8_t bitIdx = 0;
@@ -450,7 +450,8 @@ void drawChar(display_t * disp, paletteColor_t color, uint16_t h, font_ch_t * ch
 
             // Iterate over the bit data
             bitIdx++;
-            if(8 == bitIdx) {
+            if(8 == bitIdx)
+            {
                 bitIdx = 0;
                 byteIdx++;
             }
@@ -460,7 +461,7 @@ void drawChar(display_t * disp, paletteColor_t color, uint16_t h, font_ch_t * ch
 
 /**
  * @brief Draw text to a display with the given color and font
- * 
+ *
  * @param disp  The display to draw a character to
  * @param font  The font to use for the text
  * @param color The color of the character to draw
@@ -469,7 +470,7 @@ void drawChar(display_t * disp, paletteColor_t color, uint16_t h, font_ch_t * ch
  * @param yOff  The y offset to draw the text at
  * @return The x offset at the end of the drawn string
  */
-int16_t drawText(display_t * disp, font_t * font, paletteColor_t color, const char * text, int16_t xOff, int16_t yOff)
+int16_t drawText(display_t* disp, font_t* font, paletteColor_t color, const char* text, int16_t xOff, int16_t yOff)
 {
     while(*text != 0)
     {
@@ -495,12 +496,12 @@ int16_t drawText(display_t * disp, font_t * font, paletteColor_t color, const ch
 
 /**
  * @brief Return the pixel width of some text in a given font
- * 
+ *
  * @param font The font to use
  * @param text The text to measure
  * @return The width of the text rendered in the font
  */
-uint16_t textWidth(font_t * font, const char * text)
+uint16_t textWidth(font_t* font, const char* text)
 {
     uint16_t width = 0;
     while(*text != 0)
