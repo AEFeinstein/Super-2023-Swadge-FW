@@ -77,11 +77,8 @@ const char mainMenuSettings[] = "Settings";
 const char mainMenuBack[] = "Back";
 const char mainMenuSoundOn[] = "Sound: On";
 const char mainMenuSoundOff[] = "Sound: Off";
-const char mainMenuBrightness1[] = "Brightness: 1";
-const char mainMenuBrightness2[] = "Brightness: 2";
-const char mainMenuBrightness3[] = "Brightness: 3";
-const char mainMenuBrightness4[] = "Brightness: 4";
-const char mainMenuBrightness5[] = "Brightness: 5";
+char mainMenuBrightness[] = "Brightness: 1";
+char mainMenuMicVol[] = "Mic Volume: 1";
 
 //==============================================================================
 // Functions
@@ -273,44 +270,19 @@ void mainMenuSetUpSettingsMenu(bool preservePosition)
         soundOpt = mainMenuSoundOn;
     }
 
-    // Pick the menu string based on the brightness option
-    const char* brightnessOpt;
-    switch(getBrightness())
-    {
-        default:
-        case 1:
-        {
-            brightnessOpt = mainMenuBrightness1;
-            break;
-        }
-        case 2:
-        {
-            brightnessOpt = mainMenuBrightness2;
-            break;
-        }
-        case 3:
-        {
-            brightnessOpt = mainMenuBrightness3;
-            break;
-        }
-        case 4:
-        {
-            brightnessOpt = mainMenuBrightness4;
-            break;
-        }
-        case 5:
-        {
-            brightnessOpt = mainMenuBrightness5;
-            break;
-        }
-    }
+    // Print the brightness option
+    snprintf(mainMenuBrightness, sizeof(mainMenuBrightness), "Brightness: %d", getBrightness());
+
+    // Print the brightness option
+    snprintf(mainMenuMicVol, sizeof(mainMenuMicVol), "Mic Volume: %d", getMicVolume());
 
     // Save the old position
     uint8_t selectedRow = mainMenu->menu->selectedRow;
     // Reset the menu
     resetMeleeMenu(mainMenu->menu, mainMenuSettings, mainMenuSettingsCb);
     addRowToMeleeMenu(mainMenu->menu, soundOpt);
-    addRowToMeleeMenu(mainMenu->menu, brightnessOpt);
+    addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuBrightness);
+    addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuMicVol);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Jump to the old position if requested
     if(preservePosition)
@@ -336,30 +308,15 @@ void mainMenuSettingsCb(const char* opt)
         // Sound is on, turn it off
         setIsMuted(true);
     }
-    else if (mainMenuBrightness1 == opt)
+    else if (mainMenuBrightness == opt)
     {
-        // Brightness 1 -> 2
-        setBrightness(2);
+        uint8_t newBrightness = (getBrightness() + 1) % 10;
+        setBrightness(newBrightness);
     }
-    else if (mainMenuBrightness2 == opt)
+    else if (mainMenuMicVol == opt)
     {
-        // Brightness 2 -> 3
-        setBrightness(3);
-    }
-    else if (mainMenuBrightness3 == opt)
-    {
-        // Brightness 3 -> 4
-        setBrightness(4);
-    }
-    else if (mainMenuBrightness4 == opt)
-    {
-        // Brightness 4 -> 5
-        setBrightness(5);
-    }
-    else if (mainMenuBrightness5 == opt)
-    {
-        // Brightness 5 -> 1
-        setBrightness(1);
+        uint8_t newVol = (getMicVolume() + 1) % 10;
+        setMicVolume(newVol);
     }
     else if(mainMenuBack == opt)
     {

@@ -53,6 +53,8 @@
 
 #include "driver/gpio.h"
 
+#include "settingsManager.h"
+
 #if defined(EMU)
 #include "emu_esp.h"
 #else
@@ -425,10 +427,22 @@ void mainSwadgeTask(void * arg __attribute((unused)))
         // Process ADC samples
         if(NULL != cSwadgeMode->fnAudioCallback)
         {
+            uint8_t micAmp = getMicAmplitude();
+
             uint16_t adcSamps[BYTES_PER_READ / sizeof(adc_digi_output_data_t)];
             uint32_t sampleCnt = 0;
             while(0 < (sampleCnt = continuous_adc_read(adcSamps)))
             {
+                // Run all samples through an IIR filter
+                for(uint32_t i = 0; i < sampleCnt; i++)
+                {
+                    static uint32_t samp_iir = 0;
+                    samp_iir = samp_iir - (samp_iir >> 10) + adcSamps[i];
+                    adcSamps[i] = (adcSamps[i] - (samp_iir >> 10)) * 16;
+                    // Amplify the sample
+                    adcSamps[i] = (adcSamps[i] * micAmp) >> 4;
+                }
+
                 cSwadgeMode->fnAudioCallback(adcSamps, sampleCnt);
             }
         }

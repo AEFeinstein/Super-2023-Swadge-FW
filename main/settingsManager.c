@@ -14,6 +14,21 @@
 
 const char KEY_MUTE[] = "mute";
 const char KEY_BRIGHT[] = "bright";
+const char KEY_MIC[] = "mic";
+
+const uint8_t micVols[] =
+{
+    26,
+    51,
+    77,
+    102,
+    128,
+    153,
+    179,
+    204,
+    230,
+    255
+};
 
 //==============================================================================
 // Functions
@@ -21,9 +36,9 @@ const char KEY_BRIGHT[] = "bright";
 
 /**
  * TODO doc
- * 
- * @return true 
- * @return false 
+ *
+ * @return true
+ * @return false
  */
 bool getIsMuted(void)
 {
@@ -40,9 +55,9 @@ bool getIsMuted(void)
 
 /**
  * TODO doc
- * 
- * @param isMuted 
- * @return 
+ *
+ * @param isMuted
+ * @return
  */
 bool setIsMuted(bool isMuted)
 {
@@ -52,12 +67,12 @@ bool setIsMuted(bool isMuted)
 
 /**
  * TODO doc
- * 
- * @return int32_t 
+ *
+ * @return int32_t
  */
 int32_t getBrightness(void)
 {
-    int32_t brightness = 1;
+    int32_t brightness = 5;
     // Try reading the value
     if(false == readNvs32(KEY_BRIGHT, &brightness))
     {
@@ -70,12 +85,52 @@ int32_t getBrightness(void)
 
 /**
  * TODO doc
- * 
- * @param brightness 
- * @return 
+ *
+ * @param brightness
+ * @return
  */
 bool setBrightness(int32_t brightness)
 {
     // Write the value
     return writeNvs32(KEY_BRIGHT, brightness);
+}
+
+/**
+ * TODO doc
+ *
+ * @return int32_t
+ */
+int32_t getMicVolume(void)
+{
+    int32_t micVolume = 5;
+    // Try reading the value
+    if(false == readNvs32(KEY_MIC, &micVolume))
+    {
+        // Value didn't exist, so write the default
+        setMicVolume(micVolume);
+    }
+    // Return the read value
+    return micVolume;
+}
+
+/**
+ * TODO doc
+ *
+ * @param micVolume
+ * @return
+ */
+bool setMicVolume(int32_t micVolume)
+{
+    // Write the value
+    return writeNvs32(KEY_MIC, micVolume);
+}
+
+/**
+ * TODO doc
+ *
+ * @return uint8_t
+ */
+uint8_t getMicAmplitude(void)
+{
+    return micVols[getMicVolume()];
 }
