@@ -31,6 +31,16 @@
 #define MIN(x,y) ((x)<(y)?(x):(y))
 #define MIN_LED_HEIGHT 64
 
+#define BG_COLOR  0x191919FF // This color isn't part of the palette
+#define DIV_COLOR 0x808080FF
+
+//==============================================================================
+// Function prototypes
+//==============================================================================
+
+void drawBitmapPixel(uint32_t * bitmapDisplay, int w, int h, int x, int y, uint32_t col);
+void plotRoundedCorners(uint32_t * bitmapDisplay, int w, int h, int r, uint32_t col);
+
 //==============================================================================
 // Variables
 //==============================================================================
@@ -102,6 +112,59 @@ void HandleDestroy()
 }
 
 /**
+ * @brief Helper function to draw to a bitmap display
+ * 
+ * @param bitmapDisplay The display to draw to
+ * @param w The width of the display
+ * @param h The height of the display
+ * @param x The X coordinate to draw a pixel at
+ * @param y The Y coordinate to draw a pixel at
+ * @param col The color to draw the pixel
+ */
+void drawBitmapPixel(uint32_t * bitmapDisplay, int w, int h, int x, int y, uint32_t col)
+{
+    if((y * w) + x < (w * h))
+    {
+        bitmapDisplay[(y * w) + x] = col;
+    }
+}
+
+/**
+ * @brief Helper functions to draw rounded corners to the display
+ * 
+ * @param bitmapDisplay The display to round the corners on
+ * @param w The width of the display
+ * @param h The height of the display
+ * @param r The radius of the rounded corners
+ * @param col The color to draw the rounded corners
+ */
+void plotRoundedCorners(uint32_t * bitmapDisplay, int w, int h, int r, uint32_t col)
+{
+    int or = r;
+    int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
+    do
+    {
+        for(int xLine = 0; xLine <= (or + x); xLine++)
+        {
+            drawBitmapPixel(bitmapDisplay, w, h,     xLine    , h - (or - y) - 1, col); /* I.   Quadrant -x -y */
+            drawBitmapPixel(bitmapDisplay, w, h, w - xLine - 1, h - (or - y) - 1, col); /* II.  Quadrant +x -y */
+            drawBitmapPixel(bitmapDisplay, w, h,     xLine    ,     (or - y)    , col); /* III. Quadrant -x -y */
+            drawBitmapPixel(bitmapDisplay, w, h, w - xLine - 1,     (or - y)    , col); /* IV.  Quadrant +x -y */
+        }
+
+        r = err;
+        if (r <= y)
+        {
+            err += ++y * 2 + 1;    /* e_xy+e_y < 0 */
+        }
+        if (r > x || err > y) /* e_xy+e_x > 0 or no 2nd y-step */
+        {
+            err += ++x * 2 + 1;    /* -> x-step now */
+        }
+    } while (x < 0);
+}
+
+/**
  * @brief The main emulator function. This initializes rawdraw and calls
  * app_main(), then spins in a loop updating the rawdraw UI
  *
@@ -136,7 +199,7 @@ int main(int argc UNUSED, char ** argv UNUSED)
         }
 
         // Grey Background
-        CNFGBGColor = 0x252525FF;
+        CNFGBGColor = BG_COLOR;
         CNFGClearFrame();
 
         // Get the current window dimensions
@@ -196,7 +259,7 @@ int main(int argc UNUSED, char ** argv UNUSED)
         }
 
         // Draw dividing line
-        CNFGColor( 0x808080FF );
+        CNFGColor( DIV_COLOR );
         CNFGTackSegment(0, led_h, window_w, led_h);
 
         // Get the display memory
@@ -205,6 +268,9 @@ int main(int argc UNUSED, char ** argv UNUSED)
 
         if((0 != bitmapWidth) && (0 != bitmapHeight) && (NULL != bitmapDisplay))
         {
+#if defined(CONFIG_GC9307_240x280)
+            plotRoundedCorners(bitmapDisplay, bitmapWidth, bitmapHeight, (bitmapWidth / TFT_WIDTH) * 29, BG_COLOR);
+#endif
             // Update the display, centered
             CNFGBlitImage(bitmapDisplay,
                 (window_w - bitmapWidth) / 2, 
