@@ -531,27 +531,6 @@ void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrum
     }
 }
 
-void plotTopSemiCircle(int xm, int ym, int r, paletteColor_t col)
-{
-    int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
-    do
-    {
-        //tunernome->disp->setPx(xm - x, ym + y, col); /*   I. Quadrant +x +y */
-        //tunernome->disp->setPx(xm - y, ym - x, col); /*  II. Quadrant -x +y */
-        tunernome->disp->setPx(xm + x, ym - y, col);   /* III. Quadrant -x -y */
-        tunernome->disp->setPx(xm + y, ym + x, col);   /*  IV. Quadrant +x -y */
-        r = err;
-        if (r <= y)
-        {
-            err += ++y * 2 + 1; /* e_xy+e_y < 0 */
-        }
-        if (r > x || err > y) /* e_xy+e_x > 0 or no 2nd y-step */
-        {
-            err += ++x * 2 + 1; /* -> x-step now */
-        }
-    } while (x < 0);
-}
-
 /**
  * Instrument-agnostic tuner magic. Updates LEDs
  * @param freqBinIdxs An array of the indices of notes for the instrument's strings. See freqBinIdxsGuitar for an example.
@@ -668,8 +647,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     tunernome->disp->h - tunernome->tom_thumb.h - 1);
 
             char gainStr[16] = {0};
-            // TODO: re-implement this
-            snprintf(gainStr, sizeof(gainStr) - 1, "Gain:%d", 1 /*+ ((CCS.gINITIAL_AMP - AMP_OFFSET) / AMP_STEP_SIZE)*/);
+            snprintf(gainStr, sizeof(gainStr) - 1, "Gain:%d", getMicVolume());
             drawText(tunernome->disp, &tunernome->tom_thumb, c555, gainStr, 8 + afterExit, tunernome->disp->h - tunernome->tom_thumb.h - 1);
 
             // Up/Down arrows in middle of display around current note/mode
@@ -790,7 +768,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     plotLine(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y, TUNER_FLAT_THRES_X, TUNER_THRES_Y, c555, 2);
                     plotLine(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y, TUNER_SHARP_THRES_X, TUNER_THRES_Y, c555, 2);
                     // Plot a semicircle around it all
-                    plotTopSemiCircle(METRONOME_CENTER_X, METRONOME_CENTER_Y, METRONOME_RADIUS, c555);
+                    plotCircleQuadrants(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y, METRONOME_RADIUS, false, false, true, true, c555);
 
                     // Plot text on top of everything else
                     uint8_t semitoneNum = (tunernome->curTunerMode - SEMITONE_0);
