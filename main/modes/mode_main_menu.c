@@ -149,6 +149,8 @@ void mainMenuCb(const char* opt)
     {
         if(opt == swadgeModes[idx]->modeName)
         {
+            ESP_LOGI("FTR", "Implement exit %d", idx);
+
             switchToSwadgeMode(idx);
         }
     }
