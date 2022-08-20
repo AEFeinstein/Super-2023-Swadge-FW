@@ -48,6 +48,7 @@
 
 #include "mode_main_menu.h"
 #include "mode_demo.h"
+#include "jumper_menu.h"
 #include "fighter_menu.h"
 #include "mode_gamepad.h"
 
