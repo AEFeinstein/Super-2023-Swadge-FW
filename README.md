@@ -527,8 +527,10 @@ static const song_t do_re_mi =
     .shouldLoop = false
 };
 
-buzzer_play(&do_re_mi);
+buzzer_play_sfx(&do_re_mi);
 ```
+
+Note that `buzzer_play_bgm()` will play an interruptable background track and `buzzer_play_sfx()` will play a higher priority sound effect.
 
 ## ESP-NOW
 

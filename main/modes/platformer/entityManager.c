@@ -144,7 +144,7 @@ entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint
             createdEntity = createHitBlock(entityManager, x, y);
             break;
         default:
-            ;
+            createdEntity = NULL;
     }
 
     //if(createdEntity != NULL) {

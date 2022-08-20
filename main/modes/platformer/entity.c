@@ -22,19 +22,19 @@
 #define DESPAWN_THRESHOLD 64
 
 #define SIGNOF(x) ((x > 0) - (x < 0))
-#define TO_TILE_COORDS(x) (x >> TILE_SIZE_IN_POWERS_OF_2)
-#define TO_PIXEL_COORDS(x) (x >> SUBPIXEL_RESOLUTION)
-#define TO_SUBPIXEL_COORDS(x) (x << SUBPIXEL_RESOLUTION)
+#define TO_TILE_COORDS(x) ((x) >> TILE_SIZE_IN_POWERS_OF_2)
+#define TO_PIXEL_COORDS(x) ((x) >> SUBPIXEL_RESOLUTION)
+#define TO_SUBPIXEL_COORDS(x) ((x) << SUBPIXEL_RESOLUTION)
 
-static const song_t sndHit =
-{
-    .notes =
-    {
-        {740, 10},{840, 10},{940, 10}
-    },
-    .numNotes = 3,
-    .shouldLoop = false
-};
+// static const song_t sndHit =
+// {
+//     .notes =
+//     {
+//         {740, 10},{840, 10},{940, 10}
+//     },
+//     .numNotes = 3,
+//     .shouldLoop = false
+// };
 
 static const song_t sndCoin =
 {
@@ -404,7 +404,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
             setTile(self->tilemap, tx, ty, TILE_EMPTY);
             self->gameData->coins++;
             self->gameData->score+=50;
-            buzzer_play(&sndCoin);
+            buzzer_play_sfx(&sndCoin);
             break;
         default:
             break;

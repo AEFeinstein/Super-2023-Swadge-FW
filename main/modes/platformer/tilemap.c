@@ -238,6 +238,8 @@ bool loadTiles(tilemap_t *tilemap)
     loadWsg("tile086.wsg", &tilemap->tiles[54]);
     loadWsg("tile087.wsg", &tilemap->tiles[55]);
     loadWsg("tile088.wsg", &tilemap->tiles[56]);
+
+    return true;
 }
 
 void tileSpawnEntity(tilemap_t *tilemap, uint8_t objectIndex, uint8_t tx, uint8_t ty)
