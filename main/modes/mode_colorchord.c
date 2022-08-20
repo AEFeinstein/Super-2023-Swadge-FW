@@ -8,9 +8,29 @@
 #include "led_util.h"
 #include "swadgeMode.h"
 #include "mode_colorchord.h"
+#include "mode_main_menu.h"
+#include "settingsManager.h"
+#include "bresenham.h"
 
 // For colorchord
 #include "embeddedout.h"
+
+//==============================================================================
+// Defines
+//==============================================================================
+
+#define EXIT_TIME_US 1000000
+
+//==============================================================================
+// Enums
+//==============================================================================
+
+typedef enum
+{
+    CC_OPT_GAIN,
+    CC_OPT_LED,
+    COLORCHORD_NUM_OPTS
+} ccOpt_t;
 
 //==============================================================================
 // Functions Prototypes
@@ -35,6 +55,8 @@ typedef struct
     embeddedout_data eod;
     uint8_t samplesProcessed;
     uint16_t maxValue;
+    ccOpt_t optSel;
+    int64_t time_b_pressed;
 } colorchord_t;
 
 colorchord_t* colorchord;
@@ -115,6 +137,76 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
                         binMargin + ((i + 1) * binWidth), (colorchord->disp->h),
                         hsv2rgb((i * 256) / FIXBINS, 255, 255));
     }
+
+    // Draw the HUD text
+    char text[16] = {0};
+
+    // Draw gain indicator
+    snprintf(text, sizeof(text), "Gain: %d", getMicVolume());
+    drawText(colorchord->disp, &colorchord->ibm_vga8, c555, text, 10, 10);
+
+    // Underline it if selected
+    if(CC_OPT_GAIN == colorchord->optSel)
+    {
+        int16_t lineY = 10 + colorchord->ibm_vga8.h + 2;
+        plotLine(colorchord->disp,
+                 10, lineY,
+                 10 + textWidth(&colorchord->ibm_vga8, text) - 1, lineY, c555, 0);
+    }
+
+    // Draw colorchord mode
+    switch(getColorchordMode())
+    {
+        case LINEAR_LEDS:
+        {
+            snprintf(text, sizeof(text), "Rainbow");
+            break;
+        }
+        default:
+        case NUM_CC_MODES:
+        case ALL_SAME_LEDS:
+        {
+            snprintf(text, sizeof(text), "Solid");
+            break;
+        }
+    }
+    int16_t textX = colorchord->disp->w - 10 - textWidth(&colorchord->ibm_vga8, text);
+    drawText(colorchord->disp, &colorchord->ibm_vga8, c555, text,
+             textX, 10);
+
+    // Underline it if selected
+    if(CC_OPT_LED == colorchord->optSel)
+    {
+        int16_t lineY = 10 + colorchord->ibm_vga8.h + 2;
+        plotLine(colorchord->disp,
+                 textX, lineY,
+                 textX + textWidth(&colorchord->ibm_vga8, text) - 1, lineY, c555, 0);
+    }
+
+    // Draw reminder text
+    const char exitText[] = "B to Exit";
+    int16_t exitWidth = textWidth(&colorchord->ibm_vga8, exitText);
+    drawText(colorchord->disp, &colorchord->ibm_vga8, c555, exitText,
+             (colorchord->disp->w - exitWidth) / 2, 10);
+
+    // If b is being held
+    if(0 != colorchord->time_b_pressed)
+    {
+        // Figure out for how long
+        int64_t tHeldUs = esp_timer_get_time() - colorchord->time_b_pressed;
+        // If it has been held for more than the exit time
+        if(tHeldUs > EXIT_TIME_US)
+        {
+            // exit
+            switchToSwadgeMode(&modeMainMenu);
+        }
+        else
+        {
+            // Draw 'progress' bar for exiting
+            int16_t numPx = (tHeldUs * colorchord->disp->w) / EXIT_TIME_US;
+            fillDisplayArea(colorchord->disp, 0, colorchord->disp->h - 10, numPx, colorchord->disp->h, c333);
+        }
+    }
 }
 
 /**
@@ -128,19 +220,103 @@ void colorchordButtonCb(buttonEvt_t* evt)
     {
         switch(evt->button)
         {
-            case UP:
-            case DOWN:
-            case LEFT:
-            case RIGHT:
-            case START:
-            case SELECT:
             case BTN_A:
+            case UP:
+            case START:
+            {
+                switch(colorchord->optSel)
+                {
+                    case COLORCHORD_NUM_OPTS:
+                    case CC_OPT_GAIN:
+                    {
+                        // Gain
+                        uint8_t newVol = (getMicVolume() + 1) % 10;
+                        setMicVolume(newVol);
+                        break;
+                    }
+                    case CC_OPT_LED:
+                    {
+                        // LED Output
+                        colorchordMode_t newMode = (getColorchordMode() + 1) % NUM_CC_MODES;
+                        setColorchordMode(newMode);
+                        break;
+                    }
+                }
+                break;
+            }
+            case DOWN:
+            {
+                switch(colorchord->optSel)
+                {
+                    case COLORCHORD_NUM_OPTS:
+                    case CC_OPT_GAIN:
+                    {
+                        // Gain
+                        uint8_t newVol = getMicVolume();
+                        if(newVol == 0)
+                        {
+                            newVol = 9;
+                        }
+                        else
+                        {
+                            newVol--;
+                        }
+                        setMicVolume(newVol);
+                        break;
+                    }
+                    case CC_OPT_LED:
+                    {
+                        // LED Output
+                        colorchordMode_t newMode = getColorchordMode();
+                        if(newMode == 0)
+                        {
+                            newMode = NUM_CC_MODES - 1;
+                        }
+                        else
+                        {
+                            newMode--;
+                        }
+                        setColorchordMode(newMode);
+                        break;
+                    }
+                }
+                break;
+            }
+            case SELECT:
+            case RIGHT:
+            {
+                // Select option
+                colorchord->optSel++;
+                if(colorchord->optSel >= COLORCHORD_NUM_OPTS)
+                {
+                    colorchord->optSel = 0;
+                }
+                break;
+            }
+            case LEFT:
+            {
+                // Select option
+                if(colorchord->optSel == 0)
+                {
+                    colorchord->optSel = COLORCHORD_NUM_OPTS - 1;
+                }
+                else
+                {
+                    colorchord->optSel--;
+                }
+                break;
+            }
             case BTN_B:
             {
-                // TODO stuff
+                colorchord->time_b_pressed = esp_timer_get_time();
                 break;
             }
         }
+    }
+    else if(BTN_B == evt->button)
+    {
+        // B released
+        colorchord->time_b_pressed = 0;
     }
 }
 
@@ -165,7 +341,21 @@ void colorchordAudioCb(uint16_t* samples, uint32_t sampleCnt)
             // Update LEDs
             colorchord->samplesProcessed = 0;
             HandleFrameInfo(&colorchord->end, &colorchord->dd);
-            UpdateAllSameLEDs(&colorchord->eod, &colorchord->end); // TODO switch mode
+            switch (getColorchordMode())
+            {
+                default:
+                case NUM_CC_MODES:
+                case ALL_SAME_LEDS:
+                {
+                    UpdateAllSameLEDs(&colorchord->eod, &colorchord->end);
+                    break;
+                }
+                case LINEAR_LEDS:
+                {
+                    UpdateLinearLEDs(&colorchord->eod, &colorchord->end);
+                    break;
+                }
+            }
             setLeds((led_t*)colorchord->eod.ledOut, NUM_LEDS);
         }
     }
