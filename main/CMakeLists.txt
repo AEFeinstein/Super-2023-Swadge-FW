@@ -14,6 +14,7 @@ idf_component_register(
         "modes/mode_demo.c"
         "modes/mode_gamepad.c"
         "modes/mode_main_menu.c"
+        "modes/platformer/mode_platformer.c"
         "utils/linked_list.c"
         "p2pConnection.c"
         "swadge_esp32.c"
@@ -29,6 +30,7 @@ idf_component_register(
         "display"
         "modes"
         "modes/fighter"
+        "modes/platformer"
         "utils")
 
 function(spiffs_file_preprocessor)
