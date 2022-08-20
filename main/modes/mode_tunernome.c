@@ -910,16 +910,16 @@ void tunernomeMainLoop(int64_t elapsedUs)
                 }
                 else
                 {
-                    tunernome->bpmButtonAccumulatedUs += elapsedUs;//BPM_CHANGE_REPEAT_MS;
+                    tunernome->bpmButtonAccumulatedUs += elapsedUs;
                     tunernome->bpmButtonCurChangeUs += elapsedUs;
                 }
 
-                if(tunernome->bpmButtonAccumulatedUs >= BPM_CHANGE_FIRST_MS)
+                if(tunernome->bpmButtonAccumulatedUs >= BPM_CHANGE_FIRST_MS * 1000)
                 {
-                    if(tunernome->bpmButtonCurChangeUs >= BPM_CHANGE_REPEAT_MS)
+                    if(tunernome->bpmButtonCurChangeUs >= BPM_CHANGE_REPEAT_MS * 1000)
                     {
                         int16_t mod = 1;
-                        if(tunernome->bpmButtonAccumulatedUs >= BPM_CHANGE_FAST_MS)
+                        if(tunernome->bpmButtonAccumulatedUs >= BPM_CHANGE_FAST_MS * 1000)
                         {
                             mod = 3;
                         }
