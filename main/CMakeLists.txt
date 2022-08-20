@@ -14,6 +14,7 @@ idf_component_register(
         "modes/mode_demo.c"
         "modes/mode_gamepad.c"
         "modes/mode_main_menu.c"
+        "modes/mode_colorchord.c"
         "utils/linked_list.c"
         "p2pConnection.c"
         "swadge_esp32.c"

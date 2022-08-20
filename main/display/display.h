@@ -67,7 +67,7 @@ int16_t drawText(display_t* disp, font_t* font, paletteColor_t color,
 uint16_t textWidth(font_t* font, const char* text);
 void freeFont(font_t* font);
 
-paletteColor_t hsv2rgb(uint16_t h, float s, float v);
+paletteColor_t hsv2rgb( uint8_t hue, uint8_t sat, uint8_t val);
 
 int16_t getSin1024(int16_t degree);
 int16_t getCos1024(int16_t degree);
