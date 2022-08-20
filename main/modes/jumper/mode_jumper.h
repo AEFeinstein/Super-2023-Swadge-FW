@@ -3,8 +3,6 @@
 
 #include "swadgeMode.h"
 
-uint8_t rowOffset[] = {5, 10, 15, 10, 5};
-
 typedef enum{
     BLOCK_STANDARD
 } jumperBlockType_t;
@@ -50,5 +48,8 @@ typedef struct
 
 
 void jumperStartGame(display_t* disp, font_t* mmFont);
+void jumperGameLoop(int64_t elapsedUs);
+void jumperGameButtonCb(buttonEvt_t* evt);
+void jumperExitGame(void);
 
 #endif

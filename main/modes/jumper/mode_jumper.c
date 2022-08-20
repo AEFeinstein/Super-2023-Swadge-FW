@@ -20,6 +20,7 @@
 
 #define TO_SECONDS 1000000
 
+static const uint8_t rowOffset[] = {5, 10, 15, 10, 5};
 
 //===
 // Structs
@@ -28,7 +29,7 @@
 typedef struct
 {
     uint8_t numTiles;
-    int64_t level;
+    int32_t level;
     int32_t time;
     int32_t seconds;
     jumperBlockType_t blocks[30];
@@ -52,20 +53,18 @@ typedef struct
 //==============================================================================
 // Function Prototypes
 //==============================================================================
-void checkPlayerInput();
-void jumperGameLoop(int64_t elapsedUs);
+void checkPlayerInput(void);
 void jumperPlayerInput(void);
-void jumperGameButtonCb(buttonEvt_t* evt);
+void setupState(uint8_t stageIndex);
 
 void drawJumperScene(display_t* d, font_t* font);
 void drawJumperHud(display_t* d, font_t* font);
-void jumperExitGame(void);
 
 //==============================================================================
 // Variables
 //==============================================================================
 
-uint16_t jumperJumpTime = 500000;
+uint64_t jumperJumpTime = 500000;
 
 static jumperGame_t* j = NULL;
 
@@ -127,7 +126,7 @@ void setupState(uint8_t stageIndex)
 {
 }
 
-void checkPlayerInput()
+void checkPlayerInput(void)
 {
 
 }
@@ -157,6 +156,12 @@ void jumperGameLoop(int64_t elapsedUs)
             }
 
             break;   
+        case JUMPER_GAMING:
+        case JUMPER_DEATH:
+        {
+            // TODO something?
+            break;
+        }
     }
 
     jumperPlayerInput();
@@ -196,6 +201,12 @@ void jumperGameLoop(int64_t elapsedUs)
             player->sx = player->x;
             player->sy = player->y;
             break;
+        case CHARACTER_DYING:
+        case CHARACTER_DEAD:
+        {
+            // TODO something?
+            break;
+        }
     }
 
     drawJumperScene(j->d, j->mm_font);
@@ -283,7 +294,7 @@ void drawJumperHud(display_t* d, font_t* font)
     j->scene->seconds = (j->scene->time / TO_SECONDS);
     if (j->currentPhase == JUMPER_COUNTDOWN)
     {
-        char timeBuffer[3];
+        // char timeBuffer[3];
         if (j->scene->seconds <= 0)
         {
             drawText(d, font, c555, "JUMP!", 80, 90);
