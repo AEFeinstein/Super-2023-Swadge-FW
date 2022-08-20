@@ -1,6 +1,6 @@
 CC = gcc
 
-SRC_FILES = spiffs_file_preprocessor.c image_processor.c font_processor.c heatshrink_encoder.c json_processor.c cJSON.c fileUtils.c
+SRC_FILES = spiffs_file_preprocessor.c image_processor.c font_processor.c heatshrink_encoder.c json_processor.c cJSON.c fileUtils.c bin_processor.c
 CFLAGS = -Wall -Wextra -Wno-missing-field-initializers -g -std=c99
 INC_FLAGS = -I.
 LIB_FLAGS = -lm
