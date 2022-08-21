@@ -67,6 +67,17 @@ struct platformer_t
 //==============================================================================
 void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData);
 void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData);
+void changeStateReadyScreen(platformer_t *self);
+void updateReadyScreen(platformer_t *self);
+void drawReadyScreen(display_t *d, font_t *font, gameData_t *gameData);
+void changeStateGame(platformer_t *self);
+void detectGameStateChange(platformer_t *self);
+void changeStateDead(platformer_t *self);
+void updateDead(platformer_t *self);
+void changeStateGameOver(platformer_t *self);
+void updateGameOver(platformer_t *self);
+void drawGameOver(display_t *d, font_t *font, gameData_t *gameData);
+void changeStateTitleScreen(platformer_t *self);
 
 //==============================================================================
 // Variables
@@ -198,6 +209,7 @@ void updateGame(platformer_t *self)
 
     drawTileMap(self->disp, &(self->tilemap));
     drawEntities(self->disp, &(self->entityManager));
+    detectGameStateChange(self);
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
 
     self->gameData.frameCount++;
@@ -227,7 +239,7 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
     char timeStr[8];
     snprintf(timeStr, sizeof(timeStr) - 1, "T:%03d", gameData->countdown);
 
-    if(gameData->frameCount < 10) {
+    if(gameData->frameCount > 10) {
         drawText(d, font, c500, "1UP", 16, 2);
     }
     
@@ -243,12 +255,18 @@ void updateTitleScreen(platformer_t *self)
     // Clear the display
     self->disp->clearPx();
 
+    self->gameData.frameCount++;
+    if(self->gameData.frameCount > 20){
+        self->gameData.frameCount = 0;
+    }
+
     // Handle inputs
     if (
         ((self->gameData.btnState & BTN_B) && !(self->gameData.prevBtnState & BTN_B)) ||
         ((self->gameData.btnState & BTN_A) && !(self->gameData.prevBtnState & BTN_B)))
     {
-        self->update = &updateGame;
+        initializeGameData(&(self->gameData));
+        changeStateReadyScreen(self);
     }
 
     drawPlatformerTitleScreen(self->disp, &(self->radiostars), &(self->gameData));
@@ -261,9 +279,118 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
 {
     drawText(d, font, c555, "Super Swadge Land", 40, 32);
 
-    if (platformer->frameTimer < 2000)
+    if (gameData->frameCount < 10)
     {
-        // Make it blink occaisonally for now...
         drawText(d, font, c555, "Press A or B to start", 20, 128);
     }
+}
+
+void changeStateReadyScreen(platformer_t *self){
+    self->gameData.frameCount = 0;
+    self->update=&updateReadyScreen;
+}
+
+void updateReadyScreen(platformer_t *self){
+    // Clear the display
+    self->disp->clearPx();
+    
+    self->gameData.frameCount++;
+    if(self->gameData.frameCount > 60){
+        changeStateGame(self);
+    }
+
+    drawReadyScreen(self->disp, &(self->radiostars), &(self->gameData));
+}
+
+void drawReadyScreen(display_t *d, font_t *font, gameData_t *gameData){
+    drawPlatformerHud(d, font, gameData);
+    drawText(d, font, c555, "Get Ready!", 80, 128);
+}
+
+void changeStateGame(platformer_t *self){
+    self->gameData.frameCount = 0;
+
+    deactivateAllEntities(&(self->entityManager));
+    loadMapFromFile(&(platformer->tilemap), leveldef[(self->gameData.world-1) * 4 + (self->gameData.level-1)].filename);
+
+    entityManager_t * entityManager = &(self->entityManager);
+    entityManager->viewEntity = createPlayer(entityManager, entityManager->tilemap->warps[0].x * 16, entityManager->tilemap->warps[0].y * 16);
+    entityManager->playerEntity = entityManager->viewEntity;
+
+    self->update = &updateGame;
+}
+
+void detectGameStateChange(platformer_t *self){
+    if(!self->gameData.changeState){
+        return;
+    }
+
+    switch (self->gameData.changeState)
+    {
+         case ST_DEAD:
+            changeStateDead(self);
+            break;
+
+        case ST_READY_SCREEN:
+            changeStateReadyScreen(self);
+            break;
+        
+        default:
+            break;
+    }
+
+    self->gameData.changeState = 0;
+}
+
+void changeStateDead(platformer_t *self){
+    self->gameData.frameCount = 0;
+    self->gameData.lives--;
+
+    self->update=&updateDead;
+}
+
+void updateDead(platformer_t *self){
+    // Clear the display
+    self->disp->clearPx();
+    
+    self->gameData.frameCount++;
+    if(self->gameData.frameCount > 60){
+        if(self->gameData.lives > 0){
+            changeStateReadyScreen(self);
+        } else {
+            changeStateGameOver(self);
+        }
+    }
+
+    updateEntities(&(self->entityManager));
+    drawTileMap(self->disp, &(self->tilemap));
+    drawEntities(self->disp, &(self->entityManager));
+    drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
+}
+
+void updateGameOver(platformer_t *self){
+    // Clear the display
+    self->disp->clearPx();
+    
+    self->gameData.frameCount++;
+    if(self->gameData.frameCount > 60){
+        changeStateTitleScreen(self);
+    }
+
+    drawGameOver(self->disp, &(self->radiostars), &(self->gameData));
+}
+
+void changeStateGameOver(platformer_t *self){
+    self->gameData.frameCount = 0;
+    self->update=&updateGameOver;    
+}
+
+void drawGameOver(display_t *d, font_t *font, gameData_t *gameData){
+    drawPlatformerHud(d, font, gameData);
+    drawText(d, font, c555, "Game Over", 80, 128);
+}
+
+void changeStateTitleScreen(platformer_t *self){
+    self->gameData.frameCount = 0;
+    self->update=&updateTitleScreen;
 }

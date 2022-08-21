@@ -124,6 +124,7 @@ void updatePlayer(entity_t * self) {
     applyDamping(self);
     detectEntityCollisions(self);
     animatePlayer(self);
+    dieWhenFallingOffScreen(self);
 };
 
 void updateTestObject(entity_t * self) {
@@ -465,4 +466,14 @@ bool enemyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8
 
 bool dummyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
     return false;
+}
+
+void dieWhenFallingOffScreen(entity_t *self)
+{
+    if(
+        (self->y >> SUBPIXEL_RESOLUTION) > (self->tilemap->mapOffsetY + TILEMAP_DISPLAY_HEIGHT_PIXELS + DESPAWN_THRESHOLD)
+    ) {
+        self->gameData->changeState = ST_DEAD;
+        destroyEntity(self, true);
+    }
 }
