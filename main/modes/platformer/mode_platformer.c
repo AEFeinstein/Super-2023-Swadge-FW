@@ -229,8 +229,8 @@ void drawPlatformerHud(display_t* d, font_t* font, gameData_t* gameData){
     char scoreStr[8];
     snprintf(scoreStr, sizeof(scoreStr) - 1, "%06d", gameData->score);
 
-    drawText(d, font, c555, coinStr, 127, 0);
-    drawText(d, font, c555, scoreStr, 0, 0);
+    drawText(d, font, c555, coinStr, 141, 16);
+    drawText(d, font, c555, scoreStr, 16, 16);
 }
 
 void updateTitleScreen(platformer_t *self){

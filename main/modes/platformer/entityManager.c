@@ -110,7 +110,7 @@ void viewFollowEntity(tilemap_t * tilemap, entity_t * entity){
     int16_t moveViewByX = (entity->x) >> SUBPIXEL_RESOLUTION;
     int16_t moveViewByY = (entity->y) >> SUBPIXEL_RESOLUTION;
 
-    int16_t centerOfViewX = tilemap->mapOffsetX + 120;
+    int16_t centerOfViewX = tilemap->mapOffsetX + 140;
     int16_t centerOfViewY = tilemap->mapOffsetY + 120;
 
     //if(centerOfViewX != moveViewByX) {
