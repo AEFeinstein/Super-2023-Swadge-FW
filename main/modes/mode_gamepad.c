@@ -117,16 +117,16 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
     if(gamepad->drawDisp || (0 != gamepad->time_exit_pressed))
     {
         // Lower the flag to draw for the next loop
-        gamepad->drawDisp = false;        
+        gamepad->drawDisp = false;
 
         // Clear the display
         gamepad->disp->clearPx();
 
         // Helper function pointer
-        void (*drawFunc)(display_t *, int, int, int, paletteColor_t);
+        void (*drawFunc)(display_t*, int, int, int, paletteColor_t);
 
         // A list of all the hat directions, in order
-        static const uint8_t hatDirs[] = 
+        static const uint8_t hatDirs[] =
         {
             GAMEPAD_HAT_UP,
             GAMEPAD_HAT_UP_RIGHT,
@@ -158,30 +158,30 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
         // Start button
         drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_START) ? &plotCircleFilled : &plotCircle;
         drawFunc(gamepad->disp,
-            (gamepad->disp->w / 2) - START_BTN_RADIUS - START_BTN_SEP,
-            (gamepad->disp->h / 4),
-            START_BTN_RADIUS, c555);
+                 (gamepad->disp->w / 2) - START_BTN_RADIUS - START_BTN_SEP,
+                 (gamepad->disp->h / 4),
+                 START_BTN_RADIUS, c555);
 
         // Select
         drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
         drawFunc(gamepad->disp,
-            (gamepad->disp->w / 2) + START_BTN_RADIUS + START_BTN_SEP,
-            (gamepad->disp->h / 4),
-            START_BTN_RADIUS, c555);
+                 (gamepad->disp->w / 2) + START_BTN_RADIUS + START_BTN_SEP,
+                 (gamepad->disp->h / 4),
+                 START_BTN_RADIUS, c555);
 
         // Button A
         drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_A) ? &plotCircleFilled : &plotCircle;
         drawFunc(gamepad->disp,
-            ((3 * gamepad->disp->w) / 4) - AB_BTN_RADIUS - AB_BTN_SEP,
-            (gamepad->disp->h / 2) + AB_BTN_Y_OFF,
-            AB_BTN_RADIUS, c555);
+                 ((3 * gamepad->disp->w) / 4) - AB_BTN_RADIUS - AB_BTN_SEP,
+                 (gamepad->disp->h / 2) + AB_BTN_Y_OFF,
+                 AB_BTN_RADIUS, c555);
 
         // Button B
         drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_B) ? &plotCircleFilled : &plotCircle;
         drawFunc(gamepad->disp,
-            ((3 * gamepad->disp->w) / 4) + AB_BTN_RADIUS + AB_BTN_SEP,
-            (gamepad->disp->h / 2) - AB_BTN_Y_OFF,
-            AB_BTN_RADIUS, c555);
+                 ((3 * gamepad->disp->w) / 4) + AB_BTN_RADIUS + AB_BTN_SEP,
+                 (gamepad->disp->h / 2) - AB_BTN_Y_OFF,
+                 AB_BTN_RADIUS, c555);
 
         // Draw some reminder text, centered
         const char reminderText[] = "A + B + Start + Select to Exit";
