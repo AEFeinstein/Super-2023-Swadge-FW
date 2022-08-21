@@ -45,7 +45,7 @@ void initButtons(uint8_t numButtons, ...)
 {
     // The order in which keys are initialized
     // Note that the actuall number of buttons initialized may be less than this
-    char keyOrder[] = {'w', 's', 'a', 'd', 'k', 'l', 'i', 'o'};
+    char keyOrder[] = {'w', 's', 'a', 'd', 'l', 'k', 'i', 'o'};
     memcpy(inputKeys, keyOrder, numButtons);
 	buttonState = 0;
 	pthread_mutex_lock(&buttonQueueMutex);
