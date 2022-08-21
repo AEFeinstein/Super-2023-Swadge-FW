@@ -370,10 +370,6 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             GPIO_NUM_38, // rst
             GPIO_NUM_7); // backlight (dummy GPIO for now)
 
-    /* Initialize USB peripheral */
-    tinyusb_config_t tusb_cfg = {};
-    tinyusb_driver_install(&tusb_cfg);
-
     /* Initialize Wifi peripheral */
 #if !defined(EMU)
     if(ESP_NOW == cSwadgeMode->wifiMode)

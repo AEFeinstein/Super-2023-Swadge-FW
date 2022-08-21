@@ -69,4 +69,8 @@ void freeFont(font_t* font);
 
 paletteColor_t hsv2rgb(uint16_t h, float s, float v);
 
+int16_t getSin1024(int16_t degree);
+int16_t getCos1024(int16_t degree);
+int16_t getTan1024(int16_t degree);
+
 #endif
