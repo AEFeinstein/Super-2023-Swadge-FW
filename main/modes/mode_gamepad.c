@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 
+#include "esp_timer.h"
 #include "esp_log.h"
 #include "tinyusb.h"
 #include "tusb_hid_gamepad.h"
@@ -13,6 +14,7 @@
 #include "swadgeMode.h"
 
 #include "mode_gamepad.h"
+#include "mode_main_menu.h"
 
 //==============================================================================
 // Defines
@@ -27,6 +29,8 @@
 #define AB_BTN_RADIUS 25
 #define AB_BTN_Y_OFF   8
 #define AB_BTN_SEP     2
+
+#define EXIT_TIME_US 1000000
 
 //==============================================================================
 // Functions Prototypes
@@ -47,6 +51,8 @@ typedef struct
     display_t* disp;
     hid_gamepad_report_t gpState;
     bool drawDisp;
+    int64_t time_exit_pressed;
+    font_t ibmFont;
 } gamepad_t;
 
 gamepad_t* gamepad;
@@ -83,6 +89,9 @@ void gamepadEnterMode(display_t* disp)
     gamepad->disp = disp;
     gamepad->drawDisp = true;
 
+    // Load the font
+    loadFont("ibm_vga8.font", &(gamepad->ibmFont));
+
     /* Initialize USB peripheral */
     tinyusb_config_t tusb_cfg = {};
     tinyusb_driver_install(&tusb_cfg);
@@ -93,6 +102,7 @@ void gamepadEnterMode(display_t* disp)
  */
 void gamepadExitMode(void)
 {
+    freeFont(&(gamepad->ibmFont));
     free(gamepad);
 }
 
@@ -104,7 +114,7 @@ void gamepadExitMode(void)
 void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
     // If there is something to draw
-    if(gamepad->drawDisp)
+    if(gamepad->drawDisp || (0 != gamepad->time_exit_pressed))
     {
         // Lower the flag to draw for the next loop
         gamepad->drawDisp = false;        
@@ -146,32 +156,56 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
         }
 
         // Start button
-        drawFunc = (gamepad->gpState.buttons == GAMEPAD_BUTTON_START) ? &plotCircleFilled : &plotCircle;
+        drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_START) ? &plotCircleFilled : &plotCircle;
         drawFunc(gamepad->disp,
             (gamepad->disp->w / 2) - START_BTN_RADIUS - START_BTN_SEP,
             (gamepad->disp->h / 4),
             START_BTN_RADIUS, c555);
 
         // Select
-        drawFunc = (gamepad->gpState.buttons == GAMEPAD_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
+        drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
         drawFunc(gamepad->disp,
             (gamepad->disp->w / 2) + START_BTN_RADIUS + START_BTN_SEP,
             (gamepad->disp->h / 4),
             START_BTN_RADIUS, c555);
 
         // Button A
-        drawFunc = (gamepad->gpState.buttons == GAMEPAD_BUTTON_A) ? &plotCircleFilled : &plotCircle;
+        drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_A) ? &plotCircleFilled : &plotCircle;
         drawFunc(gamepad->disp,
             ((3 * gamepad->disp->w) / 4) - AB_BTN_RADIUS - AB_BTN_SEP,
             (gamepad->disp->h / 2) + AB_BTN_Y_OFF,
             AB_BTN_RADIUS, c555);
 
         // Button B
-        drawFunc = (gamepad->gpState.buttons == GAMEPAD_BUTTON_B) ? &plotCircleFilled : &plotCircle;
+        drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_B) ? &plotCircleFilled : &plotCircle;
         drawFunc(gamepad->disp,
             ((3 * gamepad->disp->w) / 4) + AB_BTN_RADIUS + AB_BTN_SEP,
             (gamepad->disp->h / 2) - AB_BTN_Y_OFF,
             AB_BTN_RADIUS, c555);
+
+        // Draw some reminder text, centered
+        const char reminderText[] = "A + B + Start + Select to Exit";
+        int16_t tWidth = textWidth(&gamepad->ibmFont, reminderText);
+        drawText(gamepad->disp, &gamepad->ibmFont, c555, reminderText, (gamepad->disp->w - tWidth) / 2, 10);
+
+        // If b is being held
+        if(0 != gamepad->time_exit_pressed)
+        {
+            // Figure out for how long
+            int64_t tHeldUs = esp_timer_get_time() - gamepad->time_exit_pressed;
+            // If it has been held for more than the exit time
+            if(tHeldUs > EXIT_TIME_US)
+            {
+                // exit
+                switchToSwadgeMode(&modeMainMenu);
+            }
+            else
+            {
+                // Draw 'progress' bar for exiting
+                int16_t numPx = (tHeldUs * gamepad->disp->w) / EXIT_TIME_US;
+                fillDisplayArea(gamepad->disp, 0, gamepad->disp->h - 10, numPx, gamepad->disp->h, c333);
+            }
+        }
     }
 }
 
@@ -204,6 +238,18 @@ void gamepadButtonCb(buttonEvt_t* evt)
         if(evt->state & SELECT)
         {
             btnPressed |= GAMEPAD_BUTTON_SELECT;
+        }
+
+        // Check if the buttons are held to exit
+        if(btnPressed == (GAMEPAD_BUTTON_A | GAMEPAD_BUTTON_B | GAMEPAD_BUTTON_START | GAMEPAD_BUTTON_SELECT))
+        {
+            // Combo pressed, note the time
+            gamepad->time_exit_pressed = esp_timer_get_time();
+        }
+        else
+        {
+            // Combo released, clear the timer
+            gamepad->time_exit_pressed = 0;
         }
 
         // Figure out which way the D-Pad is pointing
