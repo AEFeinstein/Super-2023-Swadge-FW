@@ -21,7 +21,11 @@ typedef struct
     uint32_t score;
     uint8_t lives;
     uint8_t coins;
-    uint8_t countdown;
+    int16_t countdown;
+    uint8_t frameCount;
+
+    uint8_t world;
+    uint8_t level;
 } gameData_t;
 
 //==============================================================================

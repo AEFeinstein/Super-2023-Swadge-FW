@@ -28,11 +28,11 @@
 // Functions Prototypes
 //==============================================================================
 
-void platformerEnterMode(display_t * disp);
+void platformerEnterMode(display_t *disp);
 void platformerExitMode(void);
 void platformerMainLoop(int64_t elapsedUs);
-void platformerButtonCb(buttonEvt_t* evt);
-void platformerCb(const char* opt);
+void platformerButtonCb(buttonEvt_t *evt);
+void platformerCb(const char *opt);
 
 //==============================================================================
 // Structs
@@ -41,7 +41,7 @@ void platformerCb(const char* opt);
 typedef void (*gameUpdateFuncton_t)(platformer_t *self);
 struct platformer_t
 {
-    display_t * disp;
+    display_t *disp;
 
     font_t ibm_vga8;
     font_t radiostars;
@@ -65,42 +65,37 @@ struct platformer_t
 //==============================================================================
 // Function Prototypes
 //==============================================================================
-void drawPlatformerHud(display_t* d, font_t* font, gameData_t* gameData);
-void drawPlatformerTitleScreen(display_t* d, font_t* font, gameData_t* gameData);
+void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData);
+void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData);
 
 //==============================================================================
 // Variables
 //==============================================================================
 
-platformer_t * platformer;
+platformer_t *platformer;
 
 swadgeMode modePlatformer =
-{
-    .modeName = "Platformer",
-    .fnEnterMode = platformerEnterMode,
-    .fnExitMode = platformerExitMode,
-    .fnMainLoop = platformerMainLoop,
-    .fnButtonCallback = platformerButtonCb,
-    .fnTouchCallback = NULL,
-    .wifiMode = NO_WIFI,
-    .fnEspNowRecvCb = NULL,
-    .fnEspNowSendCb = NULL,
-    .fnAccelerometerCallback = NULL,
-    .fnAudioCallback = NULL,
-    .fnTemperatureCallback = NULL
-};
-
-static leveldef_t leveldef[2] ={ 
     {
-        .filename = "level1-1.bin",
-        .timeLimit = 300,
-        .checkpointTimeLimit = 150
-    },{
-        .filename = "level1-1.bin",
-        .timeLimit = 300,
-        .checkpointTimeLimit = 150
-    }
-};
+        .modeName = "Platformer",
+        .fnEnterMode = platformerEnterMode,
+        .fnExitMode = platformerExitMode,
+        .fnMainLoop = platformerMainLoop,
+        .fnButtonCallback = platformerButtonCb,
+        .fnTouchCallback = NULL,
+        .wifiMode = NO_WIFI,
+        .fnEspNowRecvCb = NULL,
+        .fnEspNowSendCb = NULL,
+        .fnAccelerometerCallback = NULL,
+        .fnAudioCallback = NULL,
+        .fnTemperatureCallback = NULL};
+
+static leveldef_t leveldef[2] = {
+    {.filename = "level1-1.bin",
+     .timeLimit = 300,
+     .checkpointTimeLimit = 150},
+    {.filename = "level1-1.bin",
+     .timeLimit = 300,
+     .checkpointTimeLimit = 150}};
 
 //==============================================================================
 // Functions
@@ -110,7 +105,7 @@ static leveldef_t leveldef[2] ={
  * @brief TODO
  *
  */
-void platformerEnterMode(display_t * disp)
+void platformerEnterMode(display_t *disp)
 {
     // Allocate memory for this mode
     platformer = (platformer_t *)malloc(sizeof(platformer_t));
@@ -118,7 +113,7 @@ void platformerEnterMode(display_t * disp)
 
     // Save a pointer to the display
     platformer->disp = disp;
-    
+
     platformer->scrolltesttimer = 127;
     platformer->scroll_xspeed = 2;
     platformer->scroll_yspeed = 0;
@@ -140,7 +135,6 @@ void platformerEnterMode(display_t * disp)
     platformer->update = &updateTitleScreen;
 }
 
-
 /**
  * @brief TODO
  *
@@ -149,12 +143,12 @@ void platformerExitMode(void)
 {
     freeFont(&platformer->ibm_vga8);
     freeFont(&platformer->radiostars);
-    
-    //TODO
-    //freeWsg(platformer->tilemap->tiles);
-    //freeWsg(platformer->tilemap->tilemap_buffer);
 
-    //free(platformer->tilemap);
+    // TODO
+    // freeWsg(platformer->tilemap->tiles);
+    // freeWsg(platformer->tilemap->tilemap_buffer);
+
+    // free(platformer->tilemap);
     free(platformer);
 }
 
@@ -167,22 +161,9 @@ void platformerMainLoop(int64_t elapsedUs)
 {
     // Execute logic at 20fps
     platformer->frameTimer += elapsedUs;
-    if(platformer->frameTimer >= 50000)
+    if (platformer->frameTimer >= 50000)
     {
         platformer->frameTimer -= 50000;
-
-        // Clear the display
-        /*platformer->disp->clearPx();
-    
-        updateEntities(&(platformer->entityManager));
-
-        drawTileMap(platformer->disp, &(platformer->tilemap));
-        drawEntities(platformer->disp, &(platformer->entityManager));
-        drawPlatformerHud(platformer->disp, &(platformer->radiostars), &(platformer->gameData));
-
-        platformer->prevBtnState = platformer->btnState;
-        platformer->gameData.prevBtnState = platformer->prevBtnState;*/
-
         platformer->update(platformer);
     }
 }
@@ -192,7 +173,7 @@ void platformerMainLoop(int64_t elapsedUs)
  *
  * @param evt
  */
-void platformerButtonCb(buttonEvt_t* evt)
+void platformerButtonCb(buttonEvt_t *evt)
 {
     platformer->btnState = evt->state;
     platformer->gameData.btnState = evt->state;
@@ -200,15 +181,16 @@ void platformerButtonCb(buttonEvt_t* evt)
 
 /**
  * @brief TODO
- * 
- * @param opt 
+ *
+ * @param opt
  */
-void platformerCb(const char* opt)
+void platformerCb(const char *opt)
 {
     ESP_LOGI("MNU", "%s", opt);
 }
 
-void updateGame(platformer_t *self){
+void updateGame(platformer_t *self)
+{
     // Clear the display
     self->disp->clearPx();
 
@@ -218,45 +200,70 @@ void updateGame(platformer_t *self){
     drawEntities(self->disp, &(self->entityManager));
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
 
+    self->gameData.frameCount++;
+    if(self->gameData.frameCount > 20){
+        self->gameData.frameCount = 0;
+        self->gameData.countdown--;
+    }
+
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
 }
 
-void drawPlatformerHud(display_t* d, font_t* font, gameData_t* gameData){
+void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
+{
     char coinStr[8];
-    snprintf(coinStr, sizeof(coinStr) - 1, "%02d", gameData->coins);
+    snprintf(coinStr, sizeof(coinStr) - 1, "C:%02d", gameData->coins);
 
     char scoreStr[8];
     snprintf(scoreStr, sizeof(scoreStr) - 1, "%06d", gameData->score);
 
-    drawText(d, font, c555, coinStr, 141, 16);
-    drawText(d, font, c555, scoreStr, 16, 16);
+    char levelStr[12];
+    snprintf(levelStr, sizeof(levelStr) - 1, "Level %d-%d", gameData->world, gameData->level);
+
+    char livesStr[8];
+    snprintf(livesStr, sizeof(livesStr) - 1, "x%d", gameData->lives);
+
+    char timeStr[8];
+    snprintf(timeStr, sizeof(timeStr) - 1, "T:%03d", gameData->countdown);
+
+    if(gameData->frameCount < 10) {
+        drawText(d, font, c500, "1UP", 16, 2);
+    }
+    
+    drawText(d, font, c555, livesStr, 48, 2);
+    drawText(d, font, c555, coinStr, 160, 16);
+    drawText(d, font, c555, scoreStr, 8, 16);
+    drawText(d, font, c555, levelStr, 160, 2);
+    drawText(d, font, c555, timeStr, 224, 16);
 }
 
-void updateTitleScreen(platformer_t *self){
+void updateTitleScreen(platformer_t *self)
+{
     // Clear the display
     self->disp->clearPx();
 
-    //Handle inputs
-    if(
-        ((self->gameData.btnState & BTN_B) && !(self->gameData.prevBtnState & BTN_B))
-        ||
-        ((self->gameData.btnState & BTN_A) && !(self->gameData.prevBtnState & BTN_B))
-    ){
+    // Handle inputs
+    if (
+        ((self->gameData.btnState & BTN_B) && !(self->gameData.prevBtnState & BTN_B)) ||
+        ((self->gameData.btnState & BTN_A) && !(self->gameData.prevBtnState & BTN_B)))
+    {
         self->update = &updateGame;
     }
 
-    drawPlatformerTitleScreen(self->disp,  &(self->radiostars), &(self->gameData));
+    drawPlatformerTitleScreen(self->disp, &(self->radiostars), &(self->gameData));
 
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
 }
 
-void drawPlatformerTitleScreen(display_t* d, font_t* font, gameData_t* gameData){
+void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
+{
     drawText(d, font, c555, "Super Swadge Land", 40, 32);
 
-    if(platformer->frameTimer < 2000) {
-        //Make it blink occaisonally for now...
+    if (platformer->frameTimer < 2000)
+    {
+        // Make it blink occaisonally for now...
         drawText(d, font, c555, "Press A or B to start", 20, 128);
     }
 }
