@@ -1,6 +1,7 @@
 #ifndef _SETTINGS_MANAGER_H_
 #define _SETTINGS_MANAGER_H_
 
+#include "swadgeMode.h"
 #include "mode_colorchord.h"
 
 //==============================================================================
