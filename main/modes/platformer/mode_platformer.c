@@ -9,6 +9,7 @@
 #include "esp_timer.h"
 
 #include "swadgeMode.h"
+#include "musical_buzzer.h"
 #include "mode_platformer.h"
 #include "aabb_utils.h"
 #include "bresenham.h"
@@ -23,6 +24,30 @@
 //==============================================================================
 // Constants
 //==============================================================================
+
+static const song_t sndGameStart =
+{
+    .notes =
+    {
+        {C_4, 50},{SILENCE, 50},{C_4, 100},{SILENCE, 200},{C_5, 100},
+        {SILENCE, 100},{E_4, 100},{SILENCE, 100},{E_4, 100},{SILENCE, 100},
+        {G_4, 100},{C_5, 100},{SILENCE, 100},{G_4, 100}
+    },
+    .numNotes = 14,
+    .shouldLoop = false
+};
+
+static const song_t sndDie =
+{
+    .notes =
+    {
+        {C_SHARP_5, 100},{A_SHARP_4, 100},{G_SHARP_4, 200},{F_SHARP_4, 100},
+        {D_SHARP_4, 100},{SILENCE, 100},{D_4, 100},{SILENCE, 100},
+        {C_SHARP_4, 100}
+    },
+    .numNotes = 9,
+    .shouldLoop = false
+};
 
 //==============================================================================
 // Functions Prototypes
@@ -287,6 +312,7 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
 
 void changeStateReadyScreen(platformer_t *self){
     self->gameData.frameCount = 0;
+    buzzer_play_bgm(&sndGameStart);
     self->update=&updateReadyScreen;
 }
 
@@ -345,6 +371,7 @@ void detectGameStateChange(platformer_t *self){
 void changeStateDead(platformer_t *self){
     self->gameData.frameCount = 0;
     self->gameData.lives--;
+    buzzer_play_bgm(&sndDie);
 
     self->update=&updateDead;
 }

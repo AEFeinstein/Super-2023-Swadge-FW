@@ -21,4 +21,5 @@
     gameData->world = 1;
     gameData->level = 1;
     gameData->frameCount = 0;
+    gameData->coins = 0;
 }
