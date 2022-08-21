@@ -104,22 +104,22 @@
 #define CLEAR_LINES_ANIM_TIME (0.5 * S_TO_MS_FACTOR * MS_TO_US_FACTOR)
 
 // game input
-#define ACCEL_SEG_SIZE 25 // higher value more or less means less sensetive.
-#define ACCEL_JITTER_GUARD 14 // higher = less sensetive.
+#define ACCEL_SEG_SIZE 25 // higher value more or less means less sensitive.
+#define ACCEL_JITTER_GUARD 14 // higher = less sensitive.
 #define SOFT_DROP_FACTOR 8
 #define SOFT_DROP_FX_FACTOR 2
 
 // playfield
 //240x240
-#define GRID_X 90
-#define GRID_Y -8 // NOTE: This works, which is surprising, and potentially concerning.
-#define GRID_UNIT_SIZE 10
+#define GRID_X 80
+#define GRID_Y -13 // NOTE: This works, which is surprising, and potentially concerning.
+#define GRID_UNIT_SIZE 12
 #define GRID_COLS 10
-#define GRID_ROWS 14
+#define GRID_ROWS 21
 
 #define NEXT_GRID_X 210 //96
 #define NEXT_GRID_Y 10
-#define NEXT_GRID_COLS 6
+#define NEXT_GRID_COLS 5
 #define NEXT_GRID_ROWS 5
 
 // scoring, all of these are (* level)
@@ -1897,15 +1897,15 @@ void ttGameDisplay(void)
 
     // Draw the UI.
 
-    uint8_t currY = 0;
+    int16_t currY = 0;
 
-    uint8_t xPad = 2;
-    uint8_t yPad = 1;
+    int16_t xPad = 2;
+    int16_t yPad = 1;
 
     // NEXT
     currY = 4;
-    uint8_t nextHeaderTextStart = 102;
-    uint8_t nextHeaderTextEnd = nextHeaderTextStart + 14;
+    int16_t nextHeaderTextStart = getCenteredTextX(&tom_thumb, "NEXT", 200, display->w);
+    int16_t nextHeaderTextEnd = nextHeaderTextStart + textWidth(&tom_thumb, "NEXT");
     fillDisplayArea(display, nextHeaderTextStart - xPad, currY - yPad, nextHeaderTextEnd + xPad,
                     currY + (tom_thumb.h - 1) + yPad, c000);
     drawText(display, &tom_thumb, c555, "NEXT", nextHeaderTextStart, currY);
@@ -1938,8 +1938,8 @@ void ttGameDisplay(void)
 
     //HIGH
     currY = 4;
-    uint8_t highScoreHeaderTextStart = newHighScore ? 0 : 12;
-    uint8_t highScoreHeaderTextEnd = newHighScore ? highScoreHeaderTextStart + 34 : highScoreHeaderTextStart + 14;
+    int16_t highScoreHeaderTextStart = getCenteredTextX(&tom_thumb, newHighScore ? "HIGH (NEW)" : "HIGH", 0, 80);
+    int16_t highScoreHeaderTextEnd = highScoreHeaderTextStart + textWidth(&tom_thumb, newHighScore ? "HIGH (NEW)" : "HIGH"); 
 
     if (newHighScore)
     {
@@ -1958,13 +1958,13 @@ void ttGameDisplay(void)
     currY += (tom_thumb.h + 1);
     snprintf(uiStr, sizeof(uiStr), "%d", newHighScore ? score : highScores[0]);
     getNumCentering(&tom_thumb, uiStr, 0, GRID_X, &numFieldStart, &numFieldEnd);
-    fillDisplayArea(display, numFieldStart - xPad, currY, numFieldEnd + xPad, currY + (tom_thumb.h - 1) + yPad, c000);
+    fillDisplayArea(display, numFieldStart - xPad, currY, numFieldEnd + xPad, currY + tom_thumb.h + yPad, c000);
     drawText(display, &tom_thumb, c555, uiStr, numFieldStart, currY);
 
     //SCORE
     currY += tom_thumb.h + (tom_thumb.h - 1);
-    uint8_t scoreHeaderTextStart = 10;
-    uint8_t scoreHeaderTextEnd = scoreHeaderTextStart + 18;
+    uint8_t scoreHeaderTextStart = getCenteredTextX(&tom_thumb, "SCORE", 0, 80);
+    uint8_t scoreHeaderTextEnd = scoreHeaderTextStart + textWidth(&tom_thumb, "SCORE");
     fillDisplayArea(display, scoreHeaderTextStart - xPad, currY - yPad, scoreHeaderTextEnd + xPad,
                     currY + (tom_thumb.h - 1) + yPad, c000);
     drawText(display, &tom_thumb, c555, "SCORE", scoreHeaderTextStart, currY);
@@ -1973,13 +1973,13 @@ void ttGameDisplay(void)
     currY += (tom_thumb.h + 1);
     snprintf(uiStr, sizeof(uiStr), "%d", score);
     getNumCentering(&tom_thumb, uiStr, 0, GRID_X, &numFieldStart, &numFieldEnd);
-    fillDisplayArea(display, numFieldStart - xPad, currY, numFieldEnd + xPad, currY + (tom_thumb.h - 1) + yPad, c000);
+    fillDisplayArea(display, numFieldStart - xPad, currY, numFieldEnd + xPad, currY + tom_thumb.h + yPad, c000);
     drawText(display, &tom_thumb, c555, uiStr, numFieldStart, currY);
 
     //LINES
     currY += tom_thumb.h + (tom_thumb.h - 1) + 1;
-    uint8_t linesHeaderTextStart = 10;
-    uint8_t linesHeaderTextEnd = linesHeaderTextStart + 18;
+    uint8_t linesHeaderTextStart = getCenteredTextX(&tom_thumb, "LINES", 0, 80);
+    uint8_t linesHeaderTextEnd = linesHeaderTextStart + textWidth(&tom_thumb, "LINES");
     fillDisplayArea(display, linesHeaderTextStart - xPad, currY - yPad, linesHeaderTextEnd + xPad,
                     currY + (tom_thumb.h - 1) + yPad, c000);
     drawText(display, &tom_thumb, c555, "LINES", linesHeaderTextStart, currY);
@@ -1988,13 +1988,13 @@ void ttGameDisplay(void)
     currY += (tom_thumb.h + 1);
     snprintf(uiStr, sizeof(uiStr), "%d", linesClearedTotal);
     getNumCentering(&tom_thumb, uiStr, 0, GRID_X, &numFieldStart, &numFieldEnd);
-    fillDisplayArea(display, numFieldStart - xPad, currY, numFieldEnd + xPad, currY + (tom_thumb.h - 1) + yPad, c000);
+    fillDisplayArea(display, numFieldStart - xPad, currY, numFieldEnd + xPad, currY + tom_thumb.h + yPad, c000);
     drawText(display, &tom_thumb, c555, uiStr, numFieldStart, currY);
 
     //LEVEL
-    currY += 1;
-    uint8_t levelHeaderTextStart = 100;
-    uint8_t levelHeaderTextEnd = levelHeaderTextStart + 18;
+    currY = 72;
+    uint8_t levelHeaderTextStart = getCenteredTextX(&tom_thumb, "LEVEL", 200, display->w); //TODO: fix magic number
+    uint8_t levelHeaderTextEnd = levelHeaderTextStart + textWidth(&tom_thumb, "LEVEL");
     fillDisplayArea(display, levelHeaderTextStart - xPad, currY - yPad, levelHeaderTextEnd + xPad,
                     currY + (tom_thumb.h - 1) + yPad, c000);
     drawText(display, &tom_thumb, c555, "LEVEL", levelHeaderTextStart, currY);
@@ -2008,23 +2008,23 @@ void ttGameDisplay(void)
     drawText(display, &tom_thumb, c555, uiStr, numFieldStart, currY);
 
     //DROP
-    uint8_t leftControlAreaX0 = 0;
-    uint8_t leftControlAreaY0 = display->h - (tom_thumb.h + 3);
-    uint8_t leftControlAreaX1 = 15;
-    uint8_t leftControlAreaY1 = display->h - 1;
+    int16_t leftControlAreaX0 = 30;
+    int16_t leftControlAreaY0 = display->h - (tom_thumb.h + 3);
+    int16_t leftControlAreaX1 = leftControlAreaX0 + textWidth(&tom_thumb, "DROP") + xPad;
+    int16_t leftControlAreaY1 = display->h - 1;
     fillDisplayArea(display, leftControlAreaX0, leftControlAreaY0, leftControlAreaX1, leftControlAreaY1, c000);
-    uint8_t leftControlTextX = 0;
-    uint8_t leftControlTextY = display->h - (tom_thumb.h + 1);
+    int16_t leftControlTextX = leftControlAreaX0 + 1;
+    int16_t leftControlTextY = display->h - (tom_thumb.h + 1);
     drawText(display, &tom_thumb, c555, "DROP", leftControlTextX, leftControlTextY);
 
     //ROTATE
-    uint8_t rightControlAreaX0 = display->w - 24;
-    uint8_t rightControlAreaY0 = display->h - (tom_thumb.h + 3);
-    uint8_t rightControlAreaX1 = display->w - 1;
-    uint8_t rightControlAreaY1 = display->h - 1;
+    int16_t rightControlAreaX0 = display->w - 30 - textWidth(&tom_thumb, "ROTATE") - xPad;
+    int16_t rightControlAreaY0 = display->h - (tom_thumb.h + 3);
+    int16_t rightControlAreaX1 = display->w - 30;
+    int16_t rightControlAreaY1 = display->h - 1;
     fillDisplayArea(display, rightControlAreaX0, rightControlAreaY0, rightControlAreaX1, rightControlAreaY1, c000);
-    uint8_t rightControlTextX = display->w - 23;
-    uint8_t rightControlTextY = display->h - (tom_thumb.h + 1);
+    int16_t rightControlTextX = rightControlAreaX0 + 1;
+    int16_t rightControlTextY = display->h - (tom_thumb.h + 1);
     drawText(display, &tom_thumb, c555, "ROTATE", rightControlTextX, rightControlTextY);
 }
 
