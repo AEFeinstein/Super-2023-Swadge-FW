@@ -253,6 +253,10 @@ void updateTitleScreen(platformer_t *self){
 }
 
 void drawPlatformerTitleScreen(display_t* d, font_t* font, gameData_t* gameData){
-    drawText(d, font, c555, "Super\n Swadge\n Land", 16, 32);
-    drawText(d, font, c555, "Press A or B to start", 0, 128);
+    drawText(d, font, c555, "Super Swadge Land", 40, 32);
+
+    if(platformer->frameTimer < 2000) {
+        //Make it blink occaisonally for now...
+        drawText(d, font, c555, "Press A or B to start", 20, 128);
+    }
 }
