@@ -103,6 +103,65 @@ void transformPixel(int16_t* x, int16_t* y, int16_t transX,
 //==============================================================================
 
 /**
+ * Integer sine function
+ * 
+ * @param degree The degree, between 0 and 359
+ * @return int16_t The sine of the degree, between -1024 and 1024
+ */
+int16_t getSin1024(int16_t degree)
+{
+    while(degree >= 360)
+    {
+        degree -= 360;
+    }
+    while(degree < 0)
+    {
+        degree += 360;
+    }
+    return sin1024[degree];
+}
+
+/**
+ * Integer cosine function
+ * 
+ * @param degree The degree, between 0 and 359
+ * @return int16_t The cosine of the degree, between -1024 and 1024
+ */
+int16_t getCos1024(int16_t degree)
+{
+    // cos is just sin offset by 90 degrees
+    degree += 90;
+    while(degree >= 360)
+    {
+        degree -= 360;
+    }
+    while(degree < 0)
+    {
+        degree += 360;
+    }
+    return sin1024[degree];
+}
+
+/**
+ * Integer tangent function
+ * 
+ * @param degree The degree, between 0 and 359
+ * @return int16_t The tangent of the degree, between -1024 and 1024
+ */
+int16_t getTan1024(int16_t degree)
+{
+    while(degree >= 360)
+    {
+        degree -= 360;
+    }
+    while(degree < 0)
+    {
+        degree += 360;
+    }
+    return tan1024[degree];
+}
+
+/**
  * @brief Fill a rectangular area on a display with a single color
  *
  * @param disp The display to fill an area on
