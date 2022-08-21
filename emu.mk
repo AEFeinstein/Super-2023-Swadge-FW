@@ -55,9 +55,21 @@ CFLAGS = \
 	-static-libstdc++ \
 	-ggdb
 
-# These are warning flags for the compiler, all files
+# These are warning flags that the IDF uses
 CFLAGS_WARNINGS = \
+	-Wall \
+	-Werror=all \
+	-Wno-error=unused-function \
+	-Wno-error=unused-variable \
+	-Wno-error=deprecated-declarations \
 	-Wextra \
+	-Wno-unused-parameter \
+	-Wno-sign-compare \
+	-Wno-error=unused-but-set-variable \
+	-Wno-old-style-declaration
+	
+# These are warning flags that I like
+CFLAGS_WARNINGS_EXTRA = \
 	-Wundef \
 	-Wformat=2 \
 	-Winvalid-pch \
@@ -65,7 +77,6 @@ CFLAGS_WARNINGS = \
 	-Wmissing-format-attribute \
 	-Wmissing-include-dirs \
 	-Wpointer-arith \
-	-Wunused-but-set-variable \
 	-Wunused-local-typedefs \
 	-Wuninitialized \
 	-Wshadow \
@@ -74,21 +85,17 @@ CFLAGS_WARNINGS = \
 	-Wswitch-enum \
 	-Wcast-align \
 	-Wformat-nonliteral \
-	-Wno-switch-default
-
-# These are warning flags for the compiler, just for files outside $(SDK)
-CFLAGS_WARNINGS_EXTRA = \
-	-Wall \
+	-Wno-switch-default \
 	-Wunused \
 	-Wunused-macros \
 	-Wmissing-declarations \
-	-Wmissing-prototypes
-	# -Wstrict-prototypes
-	# -Wcast-qual \
-	# -Wpedantic \
-	# -Wconversion \
-	# -Wsign-conversion \
-	# -Wdouble-promotion \
+	-Wmissing-prototypes \
+	-Wcast-qual \
+#	-Wstrict-prototypes \
+#	-Wpedantic \
+#	-Wconversion \
+#	-Wsign-conversion \
+#	-Wdouble-promotion
 
 ################################################################################
 # Defines
