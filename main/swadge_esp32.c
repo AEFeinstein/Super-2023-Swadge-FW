@@ -26,7 +26,13 @@
 #include "ssd1306.h"
 #include "hdw-tft.h"
 
+#define QMA7981
+
+#if defined(QMA6981)
 #include "QMA6981.h"
+#elif defined(QMA7981)
+#include "qma7981.h"
+#endif
 
 #include "musical_buzzer.h"
 #include "hdw-mic.h"
@@ -351,7 +357,11 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             GPIO_NUM_17, // SDA
             GPIO_NUM_18, // SCL
             GPIO_PULLUP_DISABLE, 1000000);
+#if defined(QMA6981)
         accelInitialized = QMA6981_setup();
+#elif defined(QMA7981)
+        accelInitialized = (ESP_OK == qma7981_init());
+#endif
     }
 
 #ifdef OLED_ENABLED
@@ -405,7 +415,11 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         if(accelInitialized && NULL != cSwadgeMode->fnAccelerometerCallback)
         {
             accel_t accel = {0};
+#if defined(QMA6981)
             QMA6981_poll(&accel);
+#elif defined(QMA7981)
+            qma7981_get_acce_int(&accel.x, &accel.y, &accel.z);
+#endif
             cSwadgeMode->fnAccelerometerCallback(&accel);
         }
 
