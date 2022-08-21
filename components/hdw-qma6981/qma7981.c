@@ -238,7 +238,7 @@ esp_err_t qma7981_get_acce_int(int16_t *x, int16_t *y, int16_t *z)
 		/* QMA7981's range is 14 bit. Adjust data format */
 		lastKnownAccel.x = data.x >> 2;
 		lastKnownAccel.y = data.y >> 2;
-		lastKnownAccel.x = data.z >> 2;
+		lastKnownAccel.z = data.z >> 2;
 	}
 
 	// Return the values
