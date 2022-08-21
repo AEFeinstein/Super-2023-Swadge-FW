@@ -36,6 +36,9 @@
     #define M_PI 3.14159265358979323846
 #endif
 
+#define CORNER_OFFSET 9
+#define US_TO_QUIT 1048576 // 2^20, makes division easy
+
 #define NUM_GUITAR_STRINGS    6
 #define NUM_VIOLIN_STRINGS    4
 #define NUM_UKULELE_STRINGS   4
@@ -45,16 +48,14 @@
 #define TONAL_DIFF_IN_TUNE_DEVIATION 10
 
 #define METRONOME_CENTER_X    tunernome->disp->w / 2
-#define METRONOME_CENTER_Y    tunernome->disp->h - 10
-#define METRONOME_RADIUS      35
+#define METRONOME_CENTER_Y    tunernome->disp->h - 16 - CORNER_OFFSET
+#define METRONOME_RADIUS      70
 #define INITIAL_BPM           60
 #define MAX_BPM               400
 #define METRONOME_FLASH_MS    35
 #define BPM_CHANGE_FIRST_MS   500
 #define BPM_CHANGE_FAST_MS    2000
 #define BPM_CHANGE_REPEAT_MS  50
-
-#define US_TO_QUIT 1048576 // 2^20, makes division easy
 
 /// Helper macro to return an integer clamped within a range (MIN to MAX)
 #define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
@@ -611,6 +612,8 @@ void instrumentTunerMagic(const uint16_t freqBinIdxs[], uint16_t numStrings, led
  */
 void tunernomeMainLoop(int64_t elapsedUs)
 {
+    tunernome->disp->clearPx();
+
     if(tunernome->exitButtonHeld)
     {
         if(tunernome->exitTimeAccumulatedUs == 0)
@@ -622,7 +625,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
             tunernome->exitTimeAccumulatedUs += elapsedUs;
         }
 
-        if(tunernome->exitTimeAccumulatedUs > US_TO_QUIT)
+        if(tunernome->exitTimeAccumulatedUs >= US_TO_QUIT)
         {
             switchToSwadgeMode(0);
         }
@@ -633,27 +636,25 @@ void tunernomeMainLoop(int64_t elapsedUs)
         default:
         case TN_TUNER:
         {
-            tunernome->disp->clearPx();
-
             // Instructions at top of display
-            drawText(tunernome->disp, &tunernome->tom_thumb, c555, "Blue=Flat", 0, 0);
-            drawText(tunernome->disp, &tunernome->tom_thumb, c555, "White=OK", (tunernome->disp->w - textWidth(&tunernome->tom_thumb, "White=OK")) / 2, 0);
-            drawText(tunernome->disp, &tunernome->tom_thumb, c555, "Red=Sharp", tunernome->disp->w - textWidth(&tunernome->tom_thumb, "Red=Sharp") + 1, 0);
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c115, "Blue=Flat", CORNER_OFFSET, CORNER_OFFSET);
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, "White=OK", (tunernome->disp->w - textWidth(&tunernome->ibm_vga8, "White=OK")) / 2, CORNER_OFFSET);
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c500, "Red=Sharp", tunernome->disp->w - textWidth(&tunernome->ibm_vga8, "Red=Sharp") - CORNER_OFFSET, CORNER_OFFSET);
 
             // Left/Right button functions at bottom of display
-            int16_t afterExit = drawText(tunernome->disp, &tunernome->tom_thumb, c555, leftStr, 0, tunernome->disp->h - tunernome->tom_thumb.h - 1);
-            drawText(tunernome->disp, &tunernome->tom_thumb, c555, rightStrMetronome,
-                    tunernome->disp->w - textWidth(&tunernome->tom_thumb, rightStrMetronome) + 1,
-                    tunernome->disp->h - tunernome->tom_thumb.h - 1);
+            int16_t afterExit = drawText(tunernome->disp, &tunernome->ibm_vga8, c555, leftStr, CORNER_OFFSET, tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrMetronome,
+                    tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrMetronome) - CORNER_OFFSET,
+                    tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
             char gainStr[16] = {0};
             snprintf(gainStr, sizeof(gainStr) - 1, "Gain:%d", getMicVolume());
-            drawText(tunernome->disp, &tunernome->tom_thumb, c555, gainStr, 8 + afterExit, tunernome->disp->h - tunernome->tom_thumb.h - 1);
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, gainStr, 30 + afterExit, tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
             // Up/Down arrows in middle of display around current note/mode
             drawWsg(tunernome->disp, &(tunernome->upArrowWsg),
                     (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
-                    tunernome->tom_thumb.h + 4,
+                    tunernome->ibm_vga8.h + 4,
                     false, false, 0);
             drawWsg(tunernome->disp, &(tunernome->upArrowWsg),
                     (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
@@ -801,15 +802,13 @@ void tunernomeMainLoop(int64_t elapsedUs)
         }
         case TN_METRONOME:
         {
-            tunernome->disp->clearPx();
-
             char bpmStr[32];
             sprintf(bpmStr, "%d bpm, %d/%d", tunernome->bpm, tSigs[tunernome->tSigIdx].top, tSigs[tunernome->tSigIdx].bottom);
 
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, bpmStr, (tunernome->disp->w - textWidth(&tunernome->ibm_vga8, bpmStr)) / 2, 0);
-            drawText(tunernome->disp, &tunernome->tom_thumb, c555, leftStr, 0, tunernome->disp->h - tunernome->tom_thumb.h - 1);
-            drawText(tunernome->disp, &tunernome->tom_thumb, c555, rightStrTuner,
-                     tunernome->disp->w - textWidth(&tunernome->tom_thumb, rightStrTuner), tunernome->disp->h - tunernome->tom_thumb.h - 1);
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, leftStr, CORNER_OFFSET, tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrTuner,
+                     tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrTuner) - CORNER_OFFSET, tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
             if(tunernome->isBlinking)
             {
@@ -960,7 +959,8 @@ void tunernomeMainLoop(int64_t elapsedUs)
     if(tunernome->exitTimeAccumulatedUs > 0)
     {
         // Draw a bar
-        plotLine(tunernome->disp, 0, tunernome->disp->h - 1, (tunernome->disp->w * tunernome->exitTimeAccumulatedUs) / US_TO_QUIT, tunernome->disp->h - 1, c555, 0);
+        // TODO: Fill the rectangle
+        plotRect(tunernome->disp, 0, tunernome->disp->h - 1, (tunernome->disp->w * tunernome->exitTimeAccumulatedUs) / US_TO_QUIT, tunernome->disp->h - CORNER_OFFSET + 2, c555);
     }
 }
 
