@@ -56,6 +56,8 @@ esp_err_t qma7981_set_range(qma_range_t range);
  */
 esp_err_t qma7981_get_acce(float *x, float *y, float *z);
 
+esp_err_t qma7981_get_acce_int(int16_t *x, int16_t *y, int16_t *z);
+
 #ifdef __cplusplus
 }
 #endif

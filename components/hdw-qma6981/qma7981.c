@@ -11,7 +11,8 @@
 // #include "bsp_i2c.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#include "i2c_bus.h"
+#include "driver/i2c.h"
+#include "i2c-conf.h"
 #include "qma7981.h"
 
 #define QMA7981_REG_CHIP_ID 0x00
@@ -44,8 +45,12 @@
 
 static const char *TAG = "qma7981";
 static qma_range_t qma_range = QMA_RANGE_2G;
-static i2c_bus_device_handle_t qma7981_handle;
-static i2c_bus_handle_t i2c_bus_handle;
+
+#define QMA7981_ADDR 0x12
+
+static esp_err_t qma7981_read_byte(uint8_t reg_addr, uint8_t *data);
+static esp_err_t qma7981_write_byte(uint8_t reg_addr, uint8_t data);
+static esp_err_t qma7981_read_bytes(uint8_t reg_addr, size_t data_len, uint8_t *data);
 
 /**
  * @brief 
@@ -56,44 +61,53 @@ static i2c_bus_handle_t i2c_bus_handle;
  */
 static esp_err_t qma7981_read_byte(uint8_t reg_addr, uint8_t *data)
 {
-	return i2c_bus_read_byte(qma7981_handle, reg_addr, data);
+	return qma7981_read_bytes(reg_addr, 1, data);
 }
 
 static esp_err_t qma7981_write_byte(uint8_t reg_addr, uint8_t data)
 {
-	return i2c_bus_write_byte(qma7981_handle, reg_addr, data);
+	i2c_cmd_handle_t cmdHandle = i2c_cmd_link_create();
+    i2c_master_start(cmdHandle);
+
+    i2c_master_write_byte(cmdHandle, QMA7981_ADDR << 1, false);
+    i2c_master_write_byte(cmdHandle, reg_addr, false);
+    i2c_master_write_byte(cmdHandle, data, false);
+
+    i2c_master_stop(cmdHandle);
+    esp_err_t err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmdHandle, 100);
+    i2c_cmd_link_delete(cmdHandle);
+    return err;
 }
 
 static esp_err_t qma7981_read_bytes(uint8_t reg_addr, size_t data_len, uint8_t *data)
 {
-	return i2c_bus_read_bytes(qma7981_handle, reg_addr, data_len, data);
+    i2c_cmd_handle_t cmdHandle = i2c_cmd_link_create();
+    i2c_master_start(cmdHandle);
+    i2c_master_write_byte(cmdHandle, QMA7981_ADDR << 1 | I2C_MASTER_WRITE, false);
+    i2c_master_write_byte(cmdHandle, reg_addr, false);
+    i2c_master_stop(cmdHandle);
+    esp_err_t err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmdHandle, 100); // Hanging on second poll???
+    i2c_cmd_link_delete(cmdHandle);
+
+    if(ESP_OK != err)
+    {
+        return err;
+    }
+
+    cmdHandle = i2c_cmd_link_create();
+    i2c_master_start(cmdHandle);
+    i2c_master_write_byte(cmdHandle, QMA7981_ADDR << 1 | I2C_MASTER_READ, false);
+    i2c_master_read(cmdHandle, data, data_len, I2C_MASTER_LAST_NACK);
+    i2c_master_stop(cmdHandle);
+    err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmdHandle, 100);
+    i2c_cmd_link_delete(cmdHandle);
+
+    return err;
 }
 
 esp_err_t qma7981_init(void)
 {
-	if (NULL != qma7981_handle)
-	{
-		return ESP_FAIL;
-	}
-
 	esp_err_t ret_val = ESP_OK;
-
-	uint32_t clk_speed = 400000;
-
-	i2c_config_t conf = {
-		.mode = I2C_MODE_MASTER,
-		.scl_io_num = 5,
-		.sda_io_num = 4,
-		.scl_pullup_en = GPIO_PULLUP_ENABLE,
-		.sda_pullup_en = GPIO_PULLUP_ENABLE,
-		.master.clk_speed = clk_speed,
-	};
-
-	i2c_bus_handle = i2c_bus_create(0, &conf);
-	assert(i2c_bus_handle != NULL);
-
-	qma7981_handle = i2c_bus_device_create(i2c_bus_handle, 0x12, clk_speed);
-	assert(qma7981_handle != NULL);
 
 	uint8_t id = 0;
 	ret_val |= qma7981_read_byte(0x00, &id);
@@ -182,7 +196,7 @@ esp_err_t qma7981_get_acce(float *x, float *y, float *z)
 		break;
 	}
 
-	ret_val |= qma7981_read_bytes(QMA7981_REG_DX_L, 6, &data);
+	ret_val |= qma7981_read_bytes(QMA7981_REG_DX_L, 6, (uint8_t*)&data);
 
 	/* QMA7981's range is 14 bit. Adjust data format */
 	data.x >>= 2;
@@ -193,6 +207,39 @@ esp_err_t qma7981_get_acce(float *x, float *y, float *z)
 	*x = data.x / (float)(1 << 13) * multiple;
 	*y = data.y / (float)(1 << 13) * multiple;
 	*z = data.z / (float)(1 << 13) * multiple;
+
+	return ret_val;
+}
+
+/**
+ * @brief 
+ * 
+ * @param x 
+ * @param y 
+ * @param z 
+ * @return esp_err_t 
+ */
+esp_err_t qma7981_get_acce_int(int16_t *x, int16_t *y, int16_t *z)
+{
+	esp_err_t ret_val = ESP_OK;
+	struct qma_acce_data_t
+	{
+		int16_t x;
+		int16_t y;
+		int16_t z;
+	} data;
+
+	ret_val |= qma7981_read_bytes(QMA7981_REG_DX_L, 6, (uint8_t*)&data);
+
+	/* QMA7981's range is 14 bit. Adjust data format */
+	data.x >>= 2;
+	data.y >>= 2;
+	data.z >>= 2;
+
+	/* Convert to acceleration of gravity */
+	*x = data.x;
+	*y = data.y;
+	*z = data.z;
 
 	return ret_val;
 }
