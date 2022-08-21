@@ -15,6 +15,7 @@
 #include "meleeMenu.h"
 
 #include "fighter_menu.h"
+#include "mode_tiltrads.h"
 #include "mode_gamepad.h"
 #include "mode_demo.h"
 
@@ -204,6 +205,7 @@ void mainMenuSetUpGamesMenu(bool resetPos)
     // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuGames, mainMenuGamesCb);
     addRowToMeleeMenu(mainMenu->menu, modeFighter.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeTiltrads.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -228,6 +230,11 @@ void mainMenuGamesCb(const char* opt)
     {
         // Start fighter
         switchToSwadgeMode(&modeFighter);
+    }
+    else if(modeTiltrads.modeName == opt)
+    {
+        // Start tiltrads
+        switchToSwadgeMode(&modeTiltrads);
     }
     else if(mainMenuBack == opt)
     {

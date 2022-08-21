@@ -75,15 +75,17 @@
 
 // useful display.
 //TODO: may need to redefine this
-#define OLED_HALF_HEIGHT 32 // (display->h / 2)
+#define DISPLAY_HALF_HEIGHT 120 // (display->h / 2)
 
 // title screen
 #define TUTORIAL_GRID_COLS 10
-#define TUTORIAL_GRID_ROWS 15
+#define TUTORIAL_GRID_ROWS 26
 
 #define TITLE_LEVEL 5 // The level used for calculating drop speed on the title screen.
 
 // score screen
+#define SCORE_SCREEN_TITLE_Y 30
+#define SCORE_SCREEN_SCORE_Y 40
 #define CLEAR_SCORES_HOLD_TIME (5 * S_TO_MS_FACTOR * MS_TO_US_FACTOR)
 
 #define NUM_TT_HIGH_SCORES 3 // Track this many highest scores.
@@ -108,15 +110,16 @@
 #define SOFT_DROP_FX_FACTOR 2
 
 // playfield
-#define GRID_X 38
-#define GRID_Y -8 // NOTE: This works, which is surpising, and potentially concerning.
-#define GRID_UNIT_SIZE 5
+//240x240
+#define GRID_X 90
+#define GRID_Y -8 // NOTE: This works, which is surprising, and potentially concerning.
+#define GRID_UNIT_SIZE 10
 #define GRID_COLS 10
 #define GRID_ROWS 14
 
-#define NEXT_GRID_X 96
+#define NEXT_GRID_X 210 //96
 #define NEXT_GRID_Y 10
-#define NEXT_GRID_COLS 5
+#define NEXT_GRID_COLS 6
 #define NEXT_GRID_ROWS 5
 
 // scoring, all of these are (* level)
@@ -1053,8 +1056,8 @@ uint32_t linesClearedTotal; // The number of lines cleared total.
 uint32_t linesClearedLastDrop; // The number of lines cleared the last time a tetrad landed. (Used for combos)
 uint32_t comboCount; // The combo counter for successive line clears.
 uint32_t currentLevel; // The current difficulty level, increments every 10 line clears.
-uint32_t score; // The current score this game.
-uint32_t highScores[NUM_TT_HIGH_SCORES];
+int32_t score; // The current score this game.
+int32_t highScores[NUM_TT_HIGH_SCORES];
 bool newHighScore;
 //bool galleryUnlock;
 
@@ -1078,8 +1081,8 @@ accel_t ttAccel = {0};
 accel_t ttLastAccel = {0};
 accel_t ttLastTestAccel = {0};
 
-uint8_t ttButtonState = 0;
-uint8_t ttLastButtonState = 0;
+uint16_t ttButtonState = 0;
+uint16_t ttLastButtonState = 0;
 
 // Timer vars.
 //static os_timer_t timerHandleUpdate = {0};
@@ -1198,8 +1201,8 @@ void saveHighScores(void);
 bool updateHighScores(uint32_t newScore);
 
 // Tiltrads score functions.
-uint32_t* ttGetHighScores(void);
-void ttSetHighScores(uint32_t* newHighScores);
+void ttGetHighScores(void);
+void ttSetHighScores(void);
 //uint32_t ttGetLastScore(void);
 //void ttSetLastScore(uint32_t newLastScore);
 
@@ -1234,7 +1237,7 @@ void clearLEDs(uint8_t numLEDs);
 void applyLEDBrightness(uint8_t numLEDs, double brightness);
 
 // Mode struct hook.
-swadgeMode tiltradsMode =
+swadgeMode modeTiltrads =
 {
     .modeName = "Tiltrads",
     .fnEnterMode = ttInit,
@@ -1306,7 +1309,7 @@ void ttAccelerometerCallback(accel_t* accel)
     ttAccel.z = accel->z;
 }
 
-static void ttUpdate(int64_t elapsedUs)
+static void ttUpdate(int64_t elapsedUs __attribute__((unused)))
 {
     // Update time tracking.
     // NOTE: delta time is in microseconds.
@@ -1405,6 +1408,8 @@ static void ttUpdate(int64_t elapsedUs)
             break;
     };
 
+    plotLine(display, 140, 0, 140, 240, c200, 5);
+    plotLine(display, 0, 120, 280, 120, c200, 5);
     // Draw debug FPS counter.
     /*double seconds = ((double)stateTime * (double)US_TO_MS_FACTOR * (double)MS_TO_S_FACTOR);
     int32_t fps = (int)((double)stateFrames / seconds);
@@ -1810,22 +1815,22 @@ void ttTitleDisplay(void)
                           stateTime, c555);
 
     // SCORES   START
-    uint8_t scoresAreaX0 = 0;
-    uint8_t scoresAreaY0 = display->h - (tom_thumb.h + 3);
-    uint8_t scoresAreaX1 = 23;
-    uint8_t scoresAreaY1 = display->h - 1;
+    int16_t scoresAreaX0 = 30;
+    int16_t scoresAreaY0 = display->h - (tom_thumb.h + 2);
+    int16_t scoresAreaX1 = 30 + textWidth(&tom_thumb, "SCORES");
+    int16_t scoresAreaY1 = display->h - 1;
     fillDisplayArea(display, scoresAreaX0, scoresAreaY0, scoresAreaX1, scoresAreaY1, c000);
-    uint8_t scoresTextX = 0;
-    uint8_t scoresTextY = display->h - (tom_thumb.h + 1);
+    int16_t scoresTextX = 30;
+    int16_t scoresTextY = display->h - (tom_thumb.h + 1);
     drawText(display, &tom_thumb, c555, "SCORES", scoresTextX, scoresTextY);
 
-    uint8_t startAreaX0 = display->w - 20;//39;
-    uint8_t startAreaY0 = display->h - (tom_thumb.h + 3);
-    uint8_t startAreaX1 = display->w - 1;
-    uint8_t startAreaY1 = display->h - 1;
+    int16_t startAreaX0 = display->w - textWidth(&tom_thumb, "START") - 30;
+    int16_t startAreaY0 = display->h - (tom_thumb.h + 2);
+    int16_t startAreaX1 = display->w - 31;
+    int16_t startAreaY1 = display->h - 1;
     fillDisplayArea(display, startAreaX0, startAreaY0, startAreaX1, startAreaY1, c000);
-    uint8_t startTextX = display->w - 19;//38;
-    uint8_t startTextY = display->h - (tom_thumb.h + 1);
+    int16_t startTextX = display->w - textWidth(&tom_thumb, "START") - 30;
+    int16_t startTextY = display->h - (tom_thumb.h + 1);
     drawText(display, &tom_thumb, c555, "START", startTextX, startTextY);
 
     // Clear the grid data (may not want to do this every frame)
@@ -1842,18 +1847,18 @@ void ttTitleDisplay(void)
 
     // TILTRADS
 
-    uint8_t titleAreaX0 = 20;
-    uint8_t titleAreaY0 = OLED_HALF_HEIGHT - radiostars.h - 3;
-    uint8_t titleAreaX1 = 108;
-    uint8_t titleAreaY1 = OLED_HALF_HEIGHT - 1;
+    uint8_t titleAreaX0 = getCenteredTextX(&radiostars, "TILTRADS", 0, display->w);
+    uint8_t titleAreaY0 = DISPLAY_HALF_HEIGHT - radiostars.h - 3;
+    uint8_t titleAreaX1 = getCenteredTextX(&radiostars, "TILTRADS", 0, display->w) + textWidth(&radiostars, "TILTRADS");
+    uint8_t titleAreaY1 = DISPLAY_HALF_HEIGHT - 1;
     fillDisplayArea(display, titleAreaX0, titleAreaY0, titleAreaX1, titleAreaY1, c000);
 
-    uint8_t titleTextX = 21;
-    uint8_t titleTextY = OLED_HALF_HEIGHT - radiostars.h - 2;
+    uint8_t titleTextX = getCenteredTextX(&radiostars, "TILTRADS", 0, display->w);
+    uint8_t titleTextY = DISPLAY_HALF_HEIGHT - radiostars.h - 2;
     drawText(display, &radiostars, c555, "TILTRADS", titleTextX, titleTextY);
 
     //Fill in the floor of the grid on-screen for visual consistency.
-    plotLine(display, GRID_X, display->h - 1, xFromGridCol(GRID_X, TUTORIAL_GRID_COLS, GRID_UNIT_SIZE), display->h - 1, c555, 0);
+    plotLine(display, GRID_X, display->h - 1, xFromGridCol(GRID_X, TUTORIAL_GRID_COLS, GRID_UNIT_SIZE) - 1, display->h - 1, c555, 0); //TODO: why is the -1 needed, is my math off?
 }
 
 void ttGameDisplay(void)
@@ -2034,47 +2039,47 @@ void ttScoresDisplay(void)
         display->clearPx();
 
         // HIGH SCORES
-        uint8_t headerTextX = 22;
-        uint8_t headerTextY = 0;
+        int16_t headerTextX = getCenteredTextX(&ibm_vga8, "HIGH SCORES", 0, display->w);
+        int16_t headerTextY = SCORE_SCREEN_TITLE_Y;
         drawText(display, &ibm_vga8, c555, "HIGH SCORES", headerTextX, headerTextY);
 
         char uiStr[32] = {0};
         // 1. 99999
         snprintf(uiStr, sizeof(uiStr), "1. %d", highScores[0]);
-        drawText(display, &ibm_vga8, c555, uiStr, score0X, (1 * (ibm_vga8.h + 2)) + 4);
+        drawText(display, &ibm_vga8, c555, uiStr, score0X, SCORE_SCREEN_SCORE_Y + (1 * (ibm_vga8.h + 2)) + 4);
 
         // 2. 99999
         snprintf(uiStr, sizeof(uiStr), "2. %d", highScores[1]);
-        drawText(display, &ibm_vga8, c555, uiStr, score1X, (2 * (ibm_vga8.h + 2)) + 4);
+        drawText(display, &ibm_vga8, c555, uiStr, score1X, SCORE_SCREEN_SCORE_Y + (2 * (ibm_vga8.h + 2)) + 4);
 
         // 3. 99999
         snprintf(uiStr, sizeof(uiStr), "3. %d", highScores[2]);
-        drawText(display, &ibm_vga8, c555, uiStr, score2X, (3 * (ibm_vga8.h + 2)) + 4);
+        drawText(display, &ibm_vga8, c555, uiStr, score2X, SCORE_SCREEN_SCORE_Y + (3 * (ibm_vga8.h + 2)) + 4);
 
         // YOUR LAST SCORE:
         //snprintf(uiStr, sizeof(uiStr), "YOUR LAST SCORE: %d", ttGetLastScore());
         //drawText(lastScoreX, (9 * tom_thumb.h) + 1, uiStr, TOM_THUMB, c555);
 
         // CLEAR
-        uint8_t clearScoresTextX = 1;
-        uint8_t clearScoresTextY = display->h - (tom_thumb.h + 1);
+        int16_t clearScoresTextX = 31;
+        int16_t clearScoresTextY = display->h - (tom_thumb.h + 1);
         drawText(display, &tom_thumb, c555, "CLEAR SCORES", clearScoresTextX, clearScoresTextY);
 
         // fill the clear scores area depending on how long the button's held down.
         if (clearScoreTimer != 0)
         {
             double holdProgress = ((double)clearScoreTimer / (double)CLEAR_SCORES_HOLD_TIME);
-            uint8_t holdAreaX0 = 0;
-            uint8_t holdAreaY0 = (display->h - (tom_thumb.h + 1)) - 1;
-            double holdAreaWidth = 49;
-            uint8_t holdAreaX1 = (uint8_t)(holdProgress * holdAreaWidth);
-            uint8_t holdAreaY1 = display->h - 1;
+            int16_t holdAreaX0 = 30;
+            int16_t holdAreaY0 = (display->h - (tom_thumb.h + 1)) - 1;
+            double holdAreaWidth = textWidth(&tom_thumb, "CLEAR SCORES") + 3; //TODO: magic number here, check math. 
+            int16_t holdAreaX1 = holdAreaX0 + (int16_t)(holdProgress * holdAreaWidth);
+            int16_t holdAreaY1 = display->h - 1;
             fillDisplayArea(display, holdAreaX0, holdAreaY0, holdAreaX1, holdAreaY1, c555); //TODO: this was INVERSE, repro this?
         }
 
         // TITLE
-        uint8_t titleTextX = display->w - 20;
-        uint8_t titleTextY = display->h - (tom_thumb.h + 1);
+        int16_t titleTextX = display->w - 30 - textWidth(&tom_thumb, "TITLE");
+        int16_t titleTextY = display->h - (tom_thumb.h + 1);
         drawText(display, &tom_thumb, c555, "TITLE", titleTextX, titleTextY);
     }
 }
@@ -3226,7 +3231,7 @@ void loadHighScores(void)
 
 void saveHighScores(void)
 {
-    ttSetHighScores(highScores);
+    ttSetHighScores();
 }
 
 bool updateHighScores(uint32_t newScore)
@@ -3248,7 +3253,7 @@ bool updateHighScores(uint32_t newScore)
     return highScore;
 }
 
-uint32_t* ttGetHighScores(void)
+void ttGetHighScores(void)
 {
     char keyStr[32] = {0};
     for (int32_t i = 0; i < NUM_TT_HIGH_SCORES; i++)
@@ -3259,10 +3264,9 @@ uint32_t* ttGetHighScores(void)
             highScores[i] = 0;
         }
     }
-    return highScores[0];
 }
 
-void ttSetHighScores(uint32_t* newHighScores)
+void ttSetHighScores(void)
 {
     //memcpy(settings.ttHighScores, newHighScores, NUM_TT_HIGH_SCORES * sizeof(uint32_t));
     //SaveSettings();

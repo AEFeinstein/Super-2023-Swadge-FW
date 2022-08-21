@@ -10,6 +10,6 @@
 
 #include "swadgeMode.h"
 
-extern swadgeMode tiltradsMode;
+extern swadgeMode modeTiltrads;
 
 #endif
