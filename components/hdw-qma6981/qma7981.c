@@ -221,25 +221,31 @@ esp_err_t qma7981_get_acce(float *x, float *y, float *z)
  */
 esp_err_t qma7981_get_acce_int(int16_t *x, int16_t *y, int16_t *z)
 {
-	esp_err_t ret_val = ESP_OK;
 	struct qma_acce_data_t
 	{
 		int16_t x;
 		int16_t y;
 		int16_t z;
 	} data;
+	static struct qma_acce_data_t lastKnownAccel;
 
-	ret_val |= qma7981_read_bytes(QMA7981_REG_DX_L, 6, (uint8_t*)&data);
+	// Do the read
+	esp_err_t ret_val = qma7981_read_bytes(QMA7981_REG_DX_L, 6, (uint8_t*)&data);
 
-	/* QMA7981's range is 14 bit. Adjust data format */
-	data.x >>= 2;
-	data.y >>= 2;
-	data.z >>= 2;
+	// If the read was successsful
+	if(ESP_OK == ret_val)
+	{
+		/* QMA7981's range is 14 bit. Adjust data format */
+		lastKnownAccel.x = data.x >> 2;
+		lastKnownAccel.y = data.y >> 2;
+		lastKnownAccel.x = data.z >> 2;
+	}
 
-	/* Convert to acceleration of gravity */
-	*x = data.x;
-	*y = data.y;
-	*z = data.z;
+	// Return the values
+	*x = lastKnownAccel.x;
+	*y = lastKnownAccel.y;
+	*z = lastKnownAccel.z;
 
+	// Return the read status
 	return ret_val;
 }
