@@ -46,7 +46,7 @@ void loadSprites(entityManager_t * entityManager)
     loadWsg("sprite004.wsg", &entityManager->sprites[4]);
     loadWsg("sprite008.wsg", &entityManager->sprites[5]);
     loadWsg("tile064.wsg", &entityManager->sprites[6]);
-    loadWsg("tile032.wsg", &entityManager->sprites[7]);
+     loadWsg("sprite007.wsg", &entityManager->sprites[7]);
 };
 
 void updateEntities(entityManager_t * entityManager)

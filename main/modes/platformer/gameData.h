@@ -22,7 +22,7 @@ typedef struct
     uint8_t lives;
     uint8_t coins;
     int16_t countdown;
-    uint8_t frameCount;
+    uint16_t frameCount;
 
     uint8_t world;
     uint8_t level;

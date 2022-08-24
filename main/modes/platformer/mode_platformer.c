@@ -103,6 +103,9 @@ void changeStateGameOver(platformer_t *self);
 void updateGameOver(platformer_t *self);
 void drawGameOver(display_t *d, font_t *font, gameData_t *gameData);
 void changeStateTitleScreen(platformer_t *self);
+void changeStateLevelClear(platformer_t *self);
+void updateLevelClear(platformer_t *self);
+void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData);
 
 //==============================================================================
 // Variables
@@ -130,8 +133,8 @@ static leveldef_t leveldef[2] = {
      .timeLimit = 300,
      .checkpointTimeLimit = 150},
     {.filename = "level1-1.bin",
-     .timeLimit = 300,
-     .checkpointTimeLimit = 150}};
+     .timeLimit = 180,
+     .checkpointTimeLimit = 90}};
 
 //==============================================================================
 // Functions
@@ -337,7 +340,10 @@ void changeStateGame(platformer_t *self){
     self->gameData.frameCount = 0;
 
     deactivateAllEntities(&(self->entityManager));
-    loadMapFromFile(&(platformer->tilemap), leveldef[(self->gameData.world-1) * 4 + (self->gameData.level-1)].filename);
+
+    uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
+    loadMapFromFile(&(platformer->tilemap), leveldef[levelIndex].filename);
+    self->gameData.countdown = leveldef[levelIndex].timeLimit;
 
     entityManager_t * entityManager = &(self->entityManager);
     entityManager->viewEntity = createPlayer(entityManager, entityManager->tilemap->warps[0].x * 16, entityManager->tilemap->warps[0].y * 16);
@@ -353,7 +359,7 @@ void detectGameStateChange(platformer_t *self){
 
     switch (self->gameData.changeState)
     {
-         case ST_DEAD:
+        case ST_DEAD:
             changeStateDead(self);
             break;
 
@@ -361,6 +367,10 @@ void detectGameStateChange(platformer_t *self){
             changeStateReadyScreen(self);
             break;
         
+        case ST_LEVEL_CLEAR:
+            changeStateLevelClear(self);
+            break;
+
         default:
             break;
     }
@@ -420,4 +430,45 @@ void drawGameOver(display_t *d, font_t *font, gameData_t *gameData){
 void changeStateTitleScreen(platformer_t *self){
     self->gameData.frameCount = 0;
     self->update=&updateTitleScreen;
+}
+
+void changeStateLevelClear(platformer_t *self){
+    self->gameData.frameCount = 0;
+    self->update=&updateLevelClear;
+}
+
+void updateLevelClear(platformer_t *self){
+    // Clear the display
+    self->disp->clearPx();
+    
+    self->gameData.frameCount++;
+
+    if(self->gameData.frameCount > 20){
+        if(self->gameData.countdown > 0){
+            self->gameData.countdown--;
+            self->gameData.score += 50;
+        } else if(self->gameData.frameCount % 20 == 0) {
+            //Hey look, it's a frame rule!
+            
+            //Advance to the next level
+            self->gameData.level += 1;
+            if(self->gameData.level > 4){
+                self->gameData.world++;
+                self->gameData.level = 1;
+            }
+
+            changeStateReadyScreen(self);
+        }
+    }
+
+    updateEntities(&(self->entityManager));
+    drawTileMap(self->disp, &(self->tilemap));
+    drawEntities(self->disp, &(self->entityManager));
+    drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
+    drawLevelClear(self->disp, &(self->radiostars), &(self->gameData));
+}
+
+void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData){
+    drawPlatformerHud(d, font, gameData);
+    drawText(d, font, c555, "Well done!", 80, 128);
 }

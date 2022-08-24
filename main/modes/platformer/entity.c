@@ -310,6 +310,11 @@ void destroyEntity(entity_t *self, bool respawn) {
 }
 
 void animatePlayer(entity_t * self){
+    if(self->spriteIndex == 7){
+        //Win pose has been set; don't change it!
+        return;
+    }
+
     if(self->falling){
         if(self->yspeed < 0) {
             //Jumping
@@ -401,6 +406,36 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
                 }
             }
             break;
+        case TILE_GOAL_100PTS:
+            self->gameData->score += 100;
+            self->spriteIndex = 7;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+            break;
+        case TILE_GOAL_500PTS:
+            self->gameData->score += 200;
+            self->spriteIndex = 7;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+            break;
+        case TILE_GOAL_1000PTS:
+            self->gameData->score += 1000;
+            self->spriteIndex = 7;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+            break;
+        case TILE_GOAL_2000PTS:
+            self->gameData->score += 2000;
+            self->spriteIndex = 7;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+            break;
+        case TILE_GOAL_5000PTS:
+            self->gameData->score += 5000;
+            self->spriteIndex = 7;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+            break;
         case TILE_COIN_1 ... TILE_COIN_3:
             setTile(self->tilemap, tx, ty, TILE_EMPTY);
             self->gameData->coins++;
@@ -476,4 +511,8 @@ void dieWhenFallingOffScreen(entity_t *self)
         self->gameData->changeState = ST_DEAD;
         destroyEntity(self, true);
     }
+}
+
+void updateDummy(entity_t* self){
+    //Do nothing, because that's what dummies do!
 }

@@ -12,10 +12,12 @@ typedef enum {
     ST_READY_SCREEN,
     ST_GAME,
     ST_DEAD,
+    ST_LEVEL_CLEAR,
+    ST_WORLD_CLEAR,
+    ST_GAME_CLEAR,
     ST_GAME_OVER,
     ST_HIGH_SCORE_ENTRY,
-    ST_HIGH_SCORE_TABLE,
-    ST_ENDING
+    ST_HIGH_SCORE_TABLE
 } gameStateEnum_t;
 
 #endif

@@ -105,4 +105,6 @@ bool dummyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8
 
 void dieWhenFallingOffScreen(entity_t *self);
 
+void updateDummy(entity_t* self);
+
 #endif
