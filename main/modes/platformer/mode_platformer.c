@@ -106,6 +106,9 @@ void changeStateTitleScreen(platformer_t *self);
 void changeStateLevelClear(platformer_t *self);
 void updateLevelClear(platformer_t *self);
 void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData);
+void changeStateGameClear(platformer_t *self);
+void updateGameClear(platformer_t *self);
+void drawGameClear(display_t *d, font_t *font, gameData_t *gameData);
 
 //==============================================================================
 // Variables
@@ -130,10 +133,10 @@ swadgeMode modePlatformer =
 
 static leveldef_t leveldef[2] = {
     {.filename = "level1-1.bin",
-     .timeLimit = 300,
-     .checkpointTimeLimit = 150},
-    {.filename = "level1-1.bin",
      .timeLimit = 180,
+     .checkpointTimeLimit = 90},
+    {.filename = "level1-1.bin",
+     .timeLimit = 120,
      .checkpointTimeLimit = 90}};
 
 //==============================================================================
@@ -457,7 +460,12 @@ void updateLevelClear(platformer_t *self){
                 self->gameData.level = 1;
             }
 
-            changeStateReadyScreen(self);
+            uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
+            if(levelIndex >= 2){
+                changeStateGameClear(self);
+            } else {
+                changeStateReadyScreen(self);
+            }
         }
     }
 
@@ -471,4 +479,34 @@ void updateLevelClear(platformer_t *self){
 void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData){
     drawPlatformerHud(d, font, gameData);
     drawText(d, font, c555, "Well done!", 80, 128);
+}
+
+void changeStateGameClear(platformer_t *self){
+    self->gameData.frameCount = 0;
+    self->update=&updateGameClear;
+}
+
+void updateGameClear(platformer_t *self){
+    // Clear the display
+    self->disp->clearPx();
+    
+    self->gameData.frameCount++;
+
+    if(self->gameData.frameCount > 20){
+        if(self->gameData.countdown > 0){
+            self->gameData.lives--;
+            self->gameData.score += 100000;
+        } else if(self->gameData.frameCount % 20 == 0) {
+            changeStateGameOver(self);
+        }
+    }
+
+    drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
+    drawGameClear(self->disp, &(self->radiostars), &(self->gameData));
+}
+
+void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
+    drawPlatformerHud(d, font, gameData);
+    drawText(d, font, c555, "Many more battle scenes will soon be available!", 0, 64);
+    drawText(d, font, c555, "Bonus 100000pts per life!", 24, 128);
 }
