@@ -55,6 +55,7 @@ typedef struct
 //==============================================================================
 void checkPlayerInput(void);
 void jumperPlayerInput(void);
+void CheckLevel(void);
 void setupState(uint8_t stageIndex);
 
 void drawJumperScene(display_t* d, font_t* font);
@@ -86,12 +87,9 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
 
     j->d = disp;
     j->mm_font = mmFont;
-    j->currentPhase = JUMPER_COUNTDOWN;
 
     j->scene = calloc(1, sizeof(jumperStage_t));
-    j->scene->level = 1;
-    j->scene->time = 5 * TO_SECONDS;
-    j->scene->seconds = 5000;
+
 
     loadWsg("block_0a.wsg",&j->block[0]);
     loadWsg("block_0b.wsg",&j->block[1]);
@@ -103,10 +101,6 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
     loadWsg("block_0a.wsg",&j->block[7]);
 
     player = calloc(1, sizeof(jumperCharacter_t));
-    player->state = CHARACTER_IDLE;
-    player->x = 10;
-    player->y = 64;
-    player->frameIndex = 0;
     loadWsg("ki0.wsg", &player->frames[0]);
     loadWsg("ki1.wsg", &player->frames[1]);
     loadWsg("kd0.wsg", &player->frames[2]);
@@ -124,6 +118,27 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
 
 void setupState(uint8_t stageIndex)
 {
+    ESP_LOGI("FTR", "Stage %d %d", stageIndex, j->scene->level);
+    j->currentPhase = JUMPER_COUNTDOWN;
+    j->scene->time = 5 * TO_SECONDS;
+    j->scene->seconds = 5000;
+    j->scene->level = stageIndex + 1;
+
+    player->state = CHARACTER_IDLE;
+    player->x = 10;
+    player->sx = 10;
+    player->y = 64;
+    player->sy = 64;
+    player->frameIndex = 0;
+    player->block = 0;
+    player->dx = 10;
+    player->dy = 64;
+
+    for(uint8_t block = 0; block < 30; block++)
+    {
+        j->scene->blocks[block] = BLOCK_STANDARD;    
+    }   
+
 }
 
 void checkPlayerInput(void)
@@ -141,12 +156,10 @@ void jumperGameLoop(int64_t elapsedUs)
             if (j->scene->seconds < 0)
             {
                 j->controlsEnabled = true;
-                player->jumpReady = true;                
+                player->jumpReady = true;  
+                j->currentPhase = JUMPER_GAMING;              
 
-                if (j->scene->seconds <= -2)
-                {
-                    j->currentPhase = JUMPER_GAMING;
-                }
+                
             }
             break;     
         case JUMPER_GAME_OVER:
@@ -156,6 +169,12 @@ void jumperGameLoop(int64_t elapsedUs)
             }
 
             break;   
+        case JUMPER_WINSTAGE:
+            if (j->scene->seconds < 0)
+            {           
+                setupState(j->scene->level);                
+            }
+            break;
         case JUMPER_GAMING:
         case JUMPER_DEATH:
         {
@@ -184,22 +203,57 @@ void jumperGameLoop(int64_t elapsedUs)
         case CHARACTER_JUMPING:
             player->frameTime = 0;
             player->frameIndex = 3;
+            player->jumping = true;
 
             player->jumpTime += elapsedUs;
             if (player->jumpTime >= jumperJumpTime)
             {
                 player->jumpTime = 0;
                 player->state = CHARACTER_LANDING;
-            }
+                ESP_LOGI("JUM", "Ooof");
 
+                player->x = player->dx;
+                player->y = player->dy;
+            }
+            else{
             // player->x = LERP based on x
+                //(start_value + (end_value - start_value) * pct);
+                float time = (player->jumpTime +.001)/(jumperJumpTime + .001);
+                int per = time * 10;
+                int offset[] = {0, 3, 5, 9, 11, 15, 11, 9, 5, 3, 0};
+                player->x = player->sx + (player->dx - player->sx) * time;
+                player->y = (player->sy + (player->dy - player->sy) * time) - offset[per];
+                ESP_LOGI("JUM", "Distance %f", time);
+            }
             // player->y = LERP based on y
             break;
         case CHARACTER_LANDING:
-            player->frameTime = 0;
+            player->jumping = false;
             player->frameIndex = 2;
             player->sx = player->x;
             player->sy = player->y;
+            player->block = player->dBlock;
+
+            if (j->scene->blocks[player->block] == BLOCK_STANDARD || j->scene->blocks[player->block] == BLOCK_COMPLETE)
+            {
+                j->scene->blocks[player->block] = BLOCK_PLAYERLANDED;
+            }
+
+
+            if (player->frameTime > 150000)
+            {
+                player->state = CHARACTER_IDLE;
+                ESP_LOGI("JUM", "Ready");
+                player->jumpReady = true;
+
+                if (j->scene->blocks[player->block] == BLOCK_PLAYERLANDED)
+                {
+                    j->scene->blocks[player->block] = BLOCK_COMPLETE;
+                }
+
+            }
+            CheckLevel();
+
             break;
         case CHARACTER_DYING:
         case CHARACTER_DEAD:
@@ -211,7 +265,20 @@ void jumperGameLoop(int64_t elapsedUs)
 
     drawJumperScene(j->d, j->mm_font);
 
-    j->scene->level = 1;
+}
+
+void CheckLevel()
+{
+    for(uint8_t block = 0; block < 30; block++)
+    {
+        if (j->scene->blocks[block] == BLOCK_STANDARD) return;    
+    }   
+    
+    j->currentPhase = JUMPER_WINSTAGE;
+    j->controlsEnabled = false;
+    player->jumpReady = false;   
+    j->scene->time = 5 * TO_SECONDS;
+
 }
 
 /**
@@ -225,8 +292,10 @@ void jumperPlayerInput(void)
 {
     if (j->controlsEnabled == false) return;
 
-    if (player->jumpReady)
+    if (player->jumpReady && player->jumping == false)
     {
+        player->sx = player->x;
+        player->sy = player->y;
         if (player->btnState & DOWN)
         {
             player->state = CHARACTER_JUMPCROUCH;
@@ -250,18 +319,18 @@ void jumperPlayerInput(void)
         }
         else if (player->state == CHARACTER_JUMPCROUCH)
         {
-            ESP_LOGI("JUM", "Jumping to block %d", player->dBlock);
+            ESP_LOGI("JUM", "Jumping from %d block to block %d", player->block, player->dBlock);
             //Nothing is pressed. If something was pressed better jump
             player->state = CHARACTER_JUMPING;
             player->jumpReady = false;
+            player->jumping = true;
             player->jumpTime = 0;
-            player->sx = player->x;
-            player->sy = player->y;
-
-
             
-            //uint8_t block = player->destinationBlock
-            //uint8_t row = block / 6;    
+            ESP_LOGI("JUMP", "%d %d", player->sx, player->sy);
+            uint8_t block = player->dBlock;
+            uint8_t row = block / 6;    
+            player->dx = 5 + ((block % 6)* 38) + rowOffset[row %5];
+            player->dy = 64 + (row * 28);
             //drawWsg(d, &j->block[0],((block % 6)* 38) + rowOffset[row % 5], 84 +(row * 28), false, false, 0);
     
         }
@@ -276,10 +345,10 @@ void drawJumperScene(display_t* d, font_t* font)
    for(uint8_t block = 0; block < 30; block++)
    {
     uint8_t row = block / 6;    
-    drawWsg(d, &j->block[0],((block % 6)* 38) + rowOffset[row % 5], 84 +(row * 28), false, false, 0);
+    drawWsg(d, &j->block[j->scene->blocks[block]],((block % 6)* 38) + rowOffset[row % 5], 84 +(row * 28), false, false, 0);
           
    }   
-
+    
    drawWsg(d, &player->frames[player->frameIndex], player->x, player->y, false, false, 0);
    
    drawJumperHud(d, font);
@@ -297,17 +366,33 @@ void drawJumperHud(display_t* d, font_t* font)
         // char timeBuffer[3];
         if (j->scene->seconds <= 0)
         {
-            drawText(d, font, c555, "JUMP!", 80, 90);
+            drawText(d, font, c000, "JUMP!", 82, 129);
+            drawText(d, font, c555, "JUMP!", 80, 128);
         }
         else if (j->scene->seconds <= 3 )
         {
             snprintf(textBuffer, sizeof(textBuffer) -1, "%d", j->scene->seconds);
-            drawText(d, font, c555, textBuffer, 120, 90);
+            drawText(d, font, c555, textBuffer, 120, 128);
         }
         else
         {
-            drawText(d, font, c555, "Ready?", 100, 90);
+            drawText(d, font, c555, "Ready?", 100, 128);
         }
+    }
+    if (j->currentPhase == JUMPER_GAMING)
+    {
+        if (j->scene->seconds <= 0 && j->scene->seconds > -2)
+        {
+            drawText(d, font, c000, "JUMP!", 82, 129);
+            drawText(d, font, c555, "JUMP!", 80, 128);
+
+        }
+    }
+
+    if (j->currentPhase == JUMPER_WINSTAGE)
+    {
+        drawText(d, font, c000, "JUMP COMPLETE!", 22, 129);
+        drawText(d, font, c555, "JUMP COMPLETE!", 20, 128);
     }
 }
 

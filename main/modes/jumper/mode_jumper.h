@@ -4,13 +4,17 @@
 #include "swadgeMode.h"
 
 typedef enum{
-    BLOCK_STANDARD
+    BLOCK_STANDARD = 0,
+    BLOCK_STANDARDLANDED = 1,
+    BLOCK_PLAYERLANDED = 2,
+    BLOCK_COMPLETE = 3,
 } jumperBlockType_t;
 
 typedef enum{
     JUMPER_COUNTDOWN,
     JUMPER_GAMING,
     JUMPER_DEATH,
+    JUMPER_WINSTAGE,
     JUMPER_GAME_OVER
 } jumperGamePhase_t;
 
@@ -34,6 +38,8 @@ typedef struct
     uint16_t sx;
     uint16_t y;
     uint16_t sy;
+    uint16_t dx;
+    uint16_t dy;
     uint8_t row;
     uint8_t column;
     uint8_t block;
@@ -42,6 +48,7 @@ typedef struct
 
     uint32_t btnState;
     bool jumpReady;
+    bool jumping;
     uint64_t jumpTime;
     jumperCharacterState_t state;
 }jumperCharacter_t;
