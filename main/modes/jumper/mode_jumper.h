@@ -8,6 +8,7 @@ typedef enum{
     BLOCK_STANDARDLANDED = 1,
     BLOCK_PLAYERLANDED = 2,
     BLOCK_COMPLETE = 3,
+    BLOCK_WIN = 4,
 } jumperBlockType_t;
 
 typedef enum{
@@ -25,13 +26,14 @@ typedef enum
     CHARACTER_JUMPING,
     CHARACTER_LANDING,
     CHARACTER_DYING,
-    CHARACTER_DEAD
+    CHARACTER_DEAD,
+    CHARACTER_NONEXISTING
 }jumperCharacterState_t;
 
 
 typedef struct 
 {
-    wsg_t frames[7];
+    wsg_t frames[8];
     uint8_t frameIndex;
     uint64_t frameTime;
     uint16_t x;
@@ -46,10 +48,11 @@ typedef struct
     uint8_t dBlock;
 
 
-    uint32_t btnState;
+    uint32_t btnState;    
     bool jumpReady;
     bool jumping;
     uint64_t jumpTime;
+    int32_t respawnTime;
     jumperCharacterState_t state;
 }jumperCharacter_t;
 
