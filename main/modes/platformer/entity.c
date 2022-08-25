@@ -505,8 +505,11 @@ bool dummyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8
 
 void dieWhenFallingOffScreen(entity_t *self)
 {
+    uint16_t deathBoundary = (self->tilemap->mapOffsetY + TILEMAP_DISPLAY_HEIGHT_PIXELS + DESPAWN_THRESHOLD);
     if(
-        (self->y >> SUBPIXEL_RESOLUTION) > (self->tilemap->mapOffsetY + TILEMAP_DISPLAY_HEIGHT_PIXELS + DESPAWN_THRESHOLD)
+        ((self->y >> SUBPIXEL_RESOLUTION) > deathBoundary)
+        &&
+        ((self->y >> SUBPIXEL_RESOLUTION) < deathBoundary + DESPAWN_THRESHOLD)
     ) {
         self->gameData->changeState = ST_DEAD;
         destroyEntity(self, true);
