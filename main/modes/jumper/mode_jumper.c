@@ -10,6 +10,7 @@
 
 #include "linked_list.h"
 #include "led_util.h"
+#include "aabb_utils.h"
 
 #include "mode_jumper.h"
 #include "jumper_menu.h"
@@ -21,35 +22,10 @@
 #define TO_SECONDS 1000000
 
 static const uint8_t rowOffset[] = {5, 10, 15, 10, 5};
-
+static const float aiResponseTime[] = {2, 1, .9, .8, .7, .6, .5, .4, .3, .2}; // level 1 will have a time of 3 
 //===
 // Structs
 //===
-
-typedef struct
-{
-    uint8_t numTiles;
-    int32_t level;
-    int32_t time;
-    int32_t seconds;
-    int8_t blockOffset_x;
-    int8_t blockOffset_y;
-    jumperBlockType_t blocks[30];
-} jumperStage_t;
-
-typedef struct
-{
-    wsg_t block[9];
-    jumperGamePhase_t currentPhase;
-    int64_t frameElapsed;
-    display_t* d;
-    font_t* mm_font;
-    jumperStage_t* scene;
-    bool controlsEnabled;
-
-} jumperGame_t;
-
-
 
 
 //==============================================================================
@@ -58,7 +34,9 @@ typedef struct
 void jumperPlayerInput(void);
 void jumperRemoveEnemies(void);
 void jumperResetPlayer(void);
-void CheckLevel(void);
+void jumperCheckLevel(void);
+void jumperKillPlayer(void);
+void jumperDoEvilDonut(int64_t elapsedUs);
 void jumperSetupState(uint8_t stageIndex);
 
 void drawJumperScene(display_t* d, font_t* font);
@@ -94,6 +72,7 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
 
     j->scene = calloc(1, sizeof(jumperStage_t));
 
+    j->scene->lives = 3;
 
     loadWsg("block_0a.wsg",&j->block[0]);
     loadWsg("block_0b.wsg",&j->block[1]);
@@ -105,6 +84,7 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
     loadWsg("block_0a.wsg",&j->block[7]);
 
     player = calloc(1, sizeof(jumperCharacter_t));
+    
     loadWsg("ki0.wsg", &player->frames[0]);
     loadWsg("ki1.wsg", &player->frames[1]);
     loadWsg("kd0.wsg", &player->frames[2]);
@@ -162,6 +142,8 @@ void jumperResetPlayer()
     player->block = 0;
     player->jumpReady = true;  
     player->jumping  = false;
+    player->flipped = false;
+
 }
 
 void jumperRemoveEnemies()
@@ -170,12 +152,16 @@ void jumperRemoveEnemies()
     evilDonut->x = j->scene->blockOffset_x + rowOffset[0] + 5;
     evilDonut->sx = j->scene->blockOffset_x + rowOffset[0] + 5;
     evilDonut->dx = j->scene->blockOffset_x + rowOffset[0] + 5;
-    evilDonut->y = j->scene->blockOffset_y;
-    evilDonut->sy = j->scene->blockOffset_y;
+    evilDonut->y = 0;
+    evilDonut->sy = 0;
     evilDonut->dy = j->scene->blockOffset_y;
     evilDonut->frameIndex = 0;
     evilDonut->block = 0;
+    evilDonut->dBlock = 0;
     evilDonut->respawnTime = 6 * TO_SECONDS;
+    evilDonut->flipped = false;
+
+    evilDonut->intelligence.resetTime = j->scene->level < 9 ? aiResponseTime[j->scene->level] :  aiResponseTime[9];
 }
 
 
@@ -196,13 +182,6 @@ void jumperGameLoop(int64_t elapsedUs)
                 
             }
             break;     
-        case JUMPER_GAME_OVER:
-            if (j->scene->seconds < 0)
-            {
-                ESP_LOGI("FTP", "BACK TO MENU");
-            }
-
-            break;   
         case JUMPER_WINSTAGE:
             if (j->scene->seconds < 0)
             {           
@@ -219,29 +198,45 @@ void jumperGameLoop(int64_t elapsedUs)
             }
             break;
         case JUMPER_GAMING:
-            if (evilDonut->state == CHARACTER_NONEXISTING || evilDonut->state == CHARACTER_DEAD)
+            jumperDoEvilDonut(elapsedUs);
+            break;
+        case JUMPER_GAME_OVER:
+            //ditty ditty
+            //TODO find the right way to quit back to menu
+            if (j->scene->seconds < 0)
             {
-                evilDonut->respawnTime -= elapsedUs;
-                if (evilDonut->respawnTime <= 0)
-                {
-                    evilDonut->respawnTime = 5 * TO_SECONDS;
-                    evilDonut->state = CHARACTER_LANDING;
-
-                }
+                //Quit game;
+                //ESP_LOGI("JUM","Trying to quit :(");
             }
             break;
         case JUMPER_DEATH:
         {   
-
             if (j->scene->seconds < 0)
             {
-                j->currentPhase = JUMPER_GAMING;
+                if (j->scene->lives == 0)
+                {
+                    j->currentPhase = JUMPER_GAME_OVER;
+                    j->scene->time = 3 * TO_SECONDS;
+                }
+                else{
+                    j->currentPhase = JUMPER_GAMING;
 
-                // CLEAR ENEMIES
-                jumperRemoveEnemies();
+                    // CLEAR ENEMIES
+                    jumperRemoveEnemies();
 
-                // RESET PLAYER
-                jumperResetPlayer();
+                    // RESET PLAYER
+                    jumperResetPlayer();
+
+                    // Clean up blocks
+                    for(uint8_t block = 0; block < 30; block++)
+                    {
+                        if (j->scene->blocks[block] == BLOCK_STANDARDLANDED || j->scene->blocks[block] == BLOCK_PLAYERLANDED)
+                        {
+                            j->scene->blocks[block] = BLOCK_COMPLETE;
+                        }
+                    }
+                }
+
             }
 
             break;
@@ -280,15 +275,14 @@ void jumperGameLoop(int64_t elapsedUs)
                 player->y = player->dy;
             }
             else{
-            // player->x = LERP based on x
-                //(start_value + (end_value - start_value) * pct);
+                
                 float time = (player->jumpTime +.001)/(jumperJumpTime + .001);
                 int per = time * 10;
                 int offset[] = {0, 3, 5, 9, 11, 15, 11, 9, 5, 3, 0};
                 player->x = player->sx + (player->dx - player->sx) * time;
                 player->y = (player->sy + (player->dy - player->sy) * time) - offset[per];
             }
-            // player->y = LERP based on y
+            
             break;
         case CHARACTER_LANDING:
             player->jumping = false;
@@ -315,7 +309,7 @@ void jumperGameLoop(int64_t elapsedUs)
                 }
 
             }
-            CheckLevel();
+            jumperCheckLevel();
 
             break;
         case CHARACTER_DYING:
@@ -333,6 +327,9 @@ void jumperGameLoop(int64_t elapsedUs)
                     j->scene->time = 2 * TO_SECONDS;
 
                     //sub track a life and continue on
+                    j->scene->lives--;
+
+                    
                 }
             }
             break;
@@ -344,11 +341,35 @@ void jumperGameLoop(int64_t elapsedUs)
         }
     }
 
+    //Check collision!
+    if (player->state != CHARACTER_DEAD && player->state != CHARACTER_DYING)
+    {
+        
+        box_t box1 = {
+            .x0 = (player->x + 5) * 2,
+            .y0 = (player->y + 16) * 2,
+            .x1 = (player->x + 5 + 16) * 2,
+            .y1 = (player->y + 8 + 8) * 2,
+        };
+
+        box_t box2 = {
+            .x0 = (evilDonut->x + 5) * 2,
+            .y0 = (evilDonut->y + 8) * 2,
+            .x1 = (evilDonut->x + 5 + 16) * 2,
+            .y1 = (evilDonut->y + 8 + 16) * 2,
+        };
+
+        if (boxesCollide(box1, box2, 1))
+        {
+            ESP_LOGI("JUM", "PLAYER KILLED BY EVIL DONUT");
+            jumperKillPlayer();
+        }
+    }
     drawJumperScene(j->d, j->mm_font);
 
 }
 
-void CheckLevel()
+void jumperCheckLevel()
 {
     for(uint8_t block = 0; block < 30; block++)
     {
@@ -360,7 +381,163 @@ void CheckLevel()
     player->jumpReady = false;   
     j->scene->time = 5 * TO_SECONDS;
 
+}
 
+void jumperDoEvilDonut(int64_t elapsedUs)
+{
+
+    evilDonut->frameTime += elapsedUs;
+    switch (evilDonut->state)
+    {
+        case CHARACTER_IDLE:
+            if (evilDonut->frameTime >= 150000)
+            {
+                evilDonut->frameTime -= 150000;
+
+                evilDonut->frameIndex = (evilDonut->frameIndex + 1) % 2;
+            }
+
+            evilDonut->intelligence.decideTime += elapsedUs;
+            if (evilDonut->intelligence.decideTime > evilDonut->intelligence.resetTime * TO_SECONDS)
+            {
+                ESP_LOGI("JUM","AI RESET");
+                evilDonut->intelligence.decideTime = 0;
+
+                if (player->y > evilDonut->y)
+                {
+                    evilDonut->dBlock = evilDonut->block + 6;
+                    evilDonut->state = CHARACTER_JUMPCROUCH;
+                }
+                else if (player->y < evilDonut->y)
+                {
+                    evilDonut->dBlock = evilDonut->block - 6;
+                    evilDonut->state = CHARACTER_JUMPCROUCH;
+                }
+                else if (player->x > evilDonut->x)
+                {
+                    evilDonut->dBlock = evilDonut->block + 1;
+                    evilDonut->state = CHARACTER_JUMPCROUCH;
+                }
+                else if (player->x < evilDonut->x)
+                {
+                    evilDonut->dBlock = evilDonut->block - 1;
+                    evilDonut->state = CHARACTER_JUMPCROUCH;                    
+                }
+            }
+            break;
+        case CHARACTER_JUMPCROUCH:
+            evilDonut->frameTime = 0;
+            evilDonut->frameIndex = 2;
+        
+            evilDonut->intelligence.decideTime += elapsedUs;
+            if (evilDonut->intelligence.decideTime > .05 * TO_SECONDS)
+            {
+                bool legitJump = true;
+
+                int col = evilDonut->block % 6;
+                int dcol = evilDonut->dBlock % 6;
+                uint8_t block = evilDonut->dBlock;
+                uint8_t row = block / 6; 
+
+                if (col == 0 && dcol == 5) legitJump = false;
+                if (col == 5 && dcol == 0) legitJump = false;
+                if (evilDonut->dBlock >= 30) legitJump = false;
+
+                if (legitJump == false)
+                {   
+                    ESP_LOGI("JUM", "How'd we get to %d", evilDonut->dBlock);
+                    evilDonut->intelligence.decideTime = 0;
+                    evilDonut->state = CHARACTER_IDLE;
+                    return;
+                }
+                evilDonut->state = CHARACTER_JUMPING; 
+                evilDonut->jumpReady = false;
+                evilDonut->jumping = true;
+                evilDonut->jumpTime = 0;
+                
+                evilDonut->dx = 5 + j->scene->blockOffset_x + ((block % 6)* 38) + rowOffset[row %5];
+                evilDonut->dy = j->scene->blockOffset_y + (row * 28);
+                
+                evilDonut->flipped = evilDonut->sx > evilDonut->dx;
+            }
+            break;
+        case CHARACTER_JUMPING:
+            evilDonut->frameTime = 0;
+            evilDonut->frameIndex = 3;
+            evilDonut->jumping = true;
+
+            evilDonut->jumpTime += elapsedUs;
+            if (evilDonut->jumpTime >= jumperJumpTime)
+            {
+                evilDonut->jumpTime = 0;
+                evilDonut->state = CHARACTER_LANDING;
+
+                evilDonut->x = evilDonut->dx;
+                evilDonut->y = evilDonut->dy;
+            }
+            else{
+                
+                float time = (evilDonut->jumpTime +.001)/(jumperJumpTime + .001);
+                int per = time * 10;
+                int offset[] = {0, 3, 5, 9, 11, 15, 11, 9, 5, 3, 0};
+                evilDonut->x = evilDonut->sx + (evilDonut->dx - evilDonut->sx) * time;
+                evilDonut->y = (evilDonut->sy + (evilDonut->dy - evilDonut->sy) * time) - offset[per];
+            }
+            
+            break;
+        case CHARACTER_LANDING:
+            evilDonut->jumping = false;
+            evilDonut->frameIndex = 2;
+            evilDonut->sx = evilDonut->x;
+            evilDonut->sy = evilDonut->y;
+            evilDonut->block = evilDonut->dBlock;
+
+            if (evilDonut->frameTime > 150000)
+            {
+                evilDonut->state = CHARACTER_IDLE;
+                ESP_LOGI("JUM", "Evil Donut Landed");
+                evilDonut->jumpReady = true;
+
+            }
+            jumperCheckLevel();
+
+            break;
+        case CHARACTER_DYING:
+            if (evilDonut->frameTime >= 150000)
+            {
+                evilDonut->frameTime -= 150000;
+
+                evilDonut->frameIndex = evilDonut->frameIndex + 1;
+
+                if (evilDonut->frameIndex >= 7)
+                {
+                    evilDonut->frameIndex = 7;
+                    evilDonut->state = CHARACTER_DEAD;
+                }
+            }
+            break;
+        case CHARACTER_DEAD:
+        case CHARACTER_NONEXISTING:
+        {
+
+            evilDonut->respawnTime -= elapsedUs;
+            if (evilDonut->respawnTime <= 0)
+            {
+                evilDonut->respawnTime = 5 * TO_SECONDS;
+                evilDonut->state = CHARACTER_JUMPING;
+                evilDonut->sy = 0;
+            }
+            break;
+        }
+    }
+            
+}
+
+void jumperKillPlayer()
+{
+    player->state = CHARACTER_DYING;
+    player->frameIndex = 4;
+    player->frameTime = 0;
 }
 
 /**
@@ -376,9 +553,7 @@ void jumperPlayerInput(void)
 
     if (player->btnState & BTN_A && player->state != CHARACTER_DEAD && player->state != CHARACTER_DYING)
     {
-        player->state = CHARACTER_DYING;
-        player->frameIndex = 4;
-        player->frameTime = 0;
+        jumperKillPlayer();
     }
 
 
@@ -431,14 +606,12 @@ void jumperPlayerInput(void)
                 player->jumping = true;
                 player->jumpTime = 0;
                 
-                ESP_LOGI("JUM", "%d %d", player->sx, player->sy);
-                ESP_LOGI("JUM", "FROM ROW %d TO %d", col, dcol);
                 uint8_t block = player->dBlock;
                 uint8_t row = block / 6;    
                 player->dx = 5 + j->scene->blockOffset_x + ((block % 6)* 38) + rowOffset[row %5];
                 player->dy = j->scene->blockOffset_y + (row * 28);
-                //drawWsg(d, &j->block[0],((block % 6)* 38) + rowOffset[row % 5], 84 +(row * 28), false, false, 0);
     
+                player->flipped = player->sx > player->dx;
             }
             else
             {
@@ -463,11 +636,20 @@ void drawJumperScene(display_t* d, font_t* font)
    }   
     
     if (player->state != CHARACTER_DEAD)
-    {
-        drawWsg(d, &player->frames[player->frameIndex], player->x, player->y, false, false, 0);
+    {   
+        drawWsg(d, &player->frames[player->frameIndex], player->x, player->y, player->flipped, false, 0);
     }
    
+    if (evilDonut->state != CHARACTER_DEAD && evilDonut->state != CHARACTER_NONEXISTING)
+    {
+        drawWsg(d, &evilDonut->frames[evilDonut->frameIndex], evilDonut->x, evilDonut->y, evilDonut->flipped, false, 0);
+    }
+
+
    drawJumperHud(d, font);
+    
+    //Draw debug stuff
+   // drawBox(d, player->collision, c555, false, 1);
 }
 
 void drawJumperHud(display_t* d, font_t* font)
@@ -503,7 +685,11 @@ void drawJumperHud(display_t* d, font_t* font)
 
         }
     }
-
+    if (j->currentPhase == JUMPER_GAME_OVER)
+    {
+        drawText(d, font, c000, "GAME OVER", 52, 129);
+        drawText(d, font, c555, "GAME OVER", 50, 128);
+    }
     if (j->currentPhase == JUMPER_WINSTAGE)
     {
         drawText(d, font, c000, "JUMP COMPLETE!", 22, 129);
@@ -529,7 +715,25 @@ void jumperExitGame(void)
         freeWsg(&j->block[4]);
         freeWsg(&j->block[5]);
         freeWsg(&j->block[6]);
+        freeWsg(&j->block[6]);
+        
+        freeWsg(&player->frames[0]);
+        freeWsg(&player->frames[1]);
+        freeWsg(&player->frames[2]);
+        freeWsg(&player->frames[3]);
+        freeWsg(&player->frames[4]);
+        freeWsg(&player->frames[5]);
+        freeWsg(&player->frames[6]);
+        freeWsg(&player->frames[7]);
 
+        freeWsg( &evilDonut->frames[0]);
+        freeWsg( &evilDonut->frames[1]);
+        freeWsg( &evilDonut->frames[2]);
+        freeWsg( &evilDonut->frames[3]);
+        freeWsg( &evilDonut->frames[4]);
+
+        free(evilDonut);
+        free(player);
         free(j);
         j = NULL;
     }

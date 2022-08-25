@@ -2,6 +2,7 @@
 #define _MODE_JUMPER_H_
 
 #include "swadgeMode.h"
+#include "aabb_utils.h"
 
 typedef enum{
     BLOCK_STANDARD = 0,
@@ -31,6 +32,12 @@ typedef enum
 }jumperCharacterState_t;
 
 
+typedef struct
+{
+    float resetTime;
+    uint64_t decideTime;
+} jumperAI_t;
+
 typedef struct 
 {
     wsg_t frames[8];
@@ -47,6 +54,7 @@ typedef struct
     uint8_t block;
     uint8_t dBlock;
 
+    bool flipped;
 
     uint32_t btnState;    
     bool jumpReady;
@@ -54,7 +62,34 @@ typedef struct
     uint64_t jumpTime;
     int32_t respawnTime;
     jumperCharacterState_t state;
+    jumperAI_t intelligence;
 }jumperCharacter_t;
+
+
+typedef struct
+{
+    uint8_t numTiles;
+    uint8_t lives;
+    int32_t level;
+    int32_t time;
+    int32_t seconds;
+    int8_t blockOffset_x;
+    int8_t blockOffset_y;
+    jumperBlockType_t blocks[30];
+} jumperStage_t;
+
+typedef struct
+{
+    wsg_t block[9];
+    jumperGamePhase_t currentPhase;
+    int64_t frameElapsed;
+    display_t* d;
+    font_t* mm_font;
+    jumperStage_t* scene;
+    bool controlsEnabled;
+
+} jumperGame_t;
+
 
 
 void jumperStartGame(display_t* disp, font_t* mmFont);
