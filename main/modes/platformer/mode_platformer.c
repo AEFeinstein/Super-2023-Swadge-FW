@@ -492,11 +492,13 @@ void updateGameClear(platformer_t *self){
     
     self->gameData.frameCount++;
 
-    if(self->gameData.frameCount > 20){
-        if(self->gameData.countdown > 0){
-            self->gameData.lives--;
-            self->gameData.score += 100000;
-        } else if(self->gameData.frameCount % 20 == 0) {
+    if(self->gameData.frameCount > 40){
+        if(self->gameData.lives > 0){
+            if(self->gameData.frameCount % 20 == 0){
+                self->gameData.lives--;
+                self->gameData.score += 100000;
+            }
+        } else if(self->gameData.frameCount % 80 == 0) {
             changeStateGameOver(self);
         }
     }
@@ -507,6 +509,8 @@ void updateGameClear(platformer_t *self){
 
 void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     drawPlatformerHud(d, font, gameData);
-    drawText(d, font, c555, "Many more battle scenes will soon be available!", 0, 64);
-    drawText(d, font, c555, "Bonus 100000pts per life!", 24, 128);
+    drawText(d, font, c555, "Thanks for playing.", 24, 32);
+    drawText(d, font, c555, "Many more battle scenes", 8, 80);
+    drawText(d, font, c555, "will soon be available!", 8, 96);
+    drawText(d, font, c555, "Bonus 100000pts per life!", 8, 144);
 }
