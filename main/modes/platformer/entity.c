@@ -17,8 +17,6 @@
 #define TILE_SIZE_IN_POWERS_OF_2 4
 #define TILE_SIZE 16
 #define HALF_TILE_SIZE 8
-#define TILEMAP_DISPLAY_WIDTH_PIXELS 240   //The screen size
-#define TILEMAP_DISPLAY_HEIGHT_PIXELS 240  //The screen size
 #define DESPAWN_THRESHOLD 64
 
 #define SIGNOF(x) ((x > 0) - (x < 0))
@@ -302,7 +300,7 @@ void despawnWhenOffscreen(entity_t *self){
 
 void destroyEntity(entity_t *self, bool respawn) {
     if(respawn && !(self->homeTileX == 0 && self->homeTileY == 0)){
-        self->tilemap->map[self->homeTileY * self->tilemap->mapWidth + self->homeTileX] = self->type << 7;
+        self->tilemap->map[self->homeTileY * self->tilemap->mapWidth + self->homeTileX] = self->type + 128;
     }
     
     //self->entityManager->activeEntities--;
@@ -518,4 +516,38 @@ void dieWhenFallingOffScreen(entity_t *self)
 
 void updateDummy(entity_t* self){
     //Do nothing, because that's what dummies do!
+}
+
+void updateScrollLockLeft(entity_t* self){
+    self->tilemap->maxMapOffsetX = (self->x >> SUBPIXEL_RESOLUTION) - 8 - TILEMAP_DISPLAY_WIDTH_PIXELS;
+
+    destroyEntity(self, true);
+}
+
+void updateScrollLockRight(entity_t* self){
+    self->tilemap->minMapOffsetX = (self->x >> SUBPIXEL_RESOLUTION) + 8;
+
+    destroyEntity(self, true);
+}
+
+void updateScrollLockUp(entity_t* self){
+    self->tilemap->maxMapOffsetY = (self->y >> SUBPIXEL_RESOLUTION) - 8 - TILEMAP_DISPLAY_HEIGHT_PIXELS;
+
+    destroyEntity(self, true);
+}
+
+void updateScrollLockDown(entity_t* self){
+    self->tilemap->minMapOffsetY = (self->y >> SUBPIXEL_RESOLUTION) - 8;
+
+    destroyEntity(self, true);
+}
+
+void updateScrollUnlock(entity_t* self){
+    self->tilemap->minMapOffsetX = 0;
+    self->tilemap->maxMapOffsetX = self->tilemap->mapWidth * TILE_SIZE - TILEMAP_DISPLAY_WIDTH_PIXELS;
+
+    self->tilemap->minMapOffsetY = 0;
+    self->tilemap->maxMapOffsetY = self->tilemap->mapHeight * TILE_SIZE - TILEMAP_DISPLAY_HEIGHT_PIXELS;
+
+    destroyEntity(self, true);
 }

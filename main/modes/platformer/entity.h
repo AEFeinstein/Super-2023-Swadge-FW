@@ -18,6 +18,11 @@
 typedef enum {
     ENTITY_PLAYER,
     ENTITY_TEST,
+    ENTITY_SCROLL_LOCK_LEFT,
+    ENTITY_SCROLL_LOCK_RIGHT,
+    ENTITY_SCROLL_LOCK_UP,
+    ENTITY_SCROLL_LOCK_DOWN,
+    ENTITY_SCROLL_UNLOCK,
     ENTITY_HIT_BLOCK
 } entityIndex_t;
 
@@ -106,5 +111,11 @@ bool dummyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8
 void dieWhenFallingOffScreen(entity_t *self);
 
 void updateDummy(entity_t* self);
+
+void updateScrollLockLeft(entity_t* self);
+void updateScrollLockRight(entity_t* self);
+void updateScrollLockUp(entity_t* self);
+void updateScrollLockDown(entity_t* self);
+void updateScrollUnlock(entity_t* self);
 
 #endif

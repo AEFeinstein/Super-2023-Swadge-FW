@@ -140,6 +140,21 @@ entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint
         case ENTITY_TEST:
             createdEntity = createTestObject(entityManager, x, y);
             break;
+        case ENTITY_SCROLL_LOCK_LEFT:
+            createdEntity = createScrollLockLeft(entityManager, x, y);
+            break;
+        case ENTITY_SCROLL_LOCK_RIGHT:
+            createdEntity = createScrollLockRight(entityManager, x, y);
+            break;
+        case ENTITY_SCROLL_LOCK_UP:
+            createdEntity = createScrollLockUp(entityManager, x, y);
+            break;
+        case ENTITY_SCROLL_LOCK_DOWN:
+            createdEntity = createScrollLockDown(entityManager, x, y);
+            break;       
+        case ENTITY_SCROLL_UNLOCK:
+            createdEntity = createScrollUnlock(entityManager, x, y);
+            break;
         case ENTITY_HIT_BLOCK:
             createdEntity = createHitBlock(entityManager, x, y);
             break;
@@ -210,6 +225,106 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->updateFunction = &updateTestObject;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &enemyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createScrollLockLeft(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_SCROLL_LOCK_LEFT;
+    entity->updateFunction = &updateScrollLockLeft;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createScrollLockRight(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_SCROLL_LOCK_RIGHT;
+    entity->updateFunction = &updateScrollLockRight;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createScrollLockUp(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_SCROLL_LOCK_UP;
+    entity->updateFunction = &updateScrollLockUp;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createScrollLockDown(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_SCROLL_LOCK_DOWN;
+    entity->updateFunction = &updateScrollLockDown;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createScrollUnlock(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_SCROLL_UNLOCK;
+    entity->updateFunction = &updateScrollUnlock;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
 
     return entity;
 }
