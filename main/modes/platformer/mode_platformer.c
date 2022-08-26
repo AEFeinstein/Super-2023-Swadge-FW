@@ -135,7 +135,7 @@ static leveldef_t leveldef[2] = {
     {.filename = "level1-1.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
-    {.filename = "level1-1.bin",
+    {.filename = "level1-2.bin",
      .timeLimit = 120,
      .checkpointTimeLimit = 90}};
 
