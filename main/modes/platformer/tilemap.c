@@ -12,18 +12,7 @@
 
 #include "../../components/hdw-spiffs/spiffs_manager.h"
 
-//==============================================================================
-// Constants
-//==============================================================================
-#define CLAMP(x, l, u) ((x) < l ? l : ((x) > u ? u : (x)))
 
-#define TILEMAP_DISPLAY_WIDTH_PIXELS 280  // The screen size
-#define TILEMAP_DISPLAY_HEIGHT_PIXELS 240 // The screen size
-#define TILEMAP_DISPLAY_WIDTH_TILES 19    // The screen size in tiles + 1
-#define TILEMAP_DISPLAY_HEIGHT_TILES 16   // The screen size in tiles + 1
-
-#define TILE_SIZE 16
-#define TILE_SIZE_IN_POWERS_OF_2 4
 
 //==============================================================================
 // Functions
@@ -82,7 +71,7 @@ void drawTileMap(display_t *disp, tilemap_t *tilemap)
             }
             else if (tile > 127 && tilemap->tileSpawnEnabled && (tilemap->executeTileSpawnColumn == x || tilemap->executeTileSpawnRow == y))
             {
-                tileSpawnEntity(tilemap, tile >> 7, x, y);
+                tileSpawnEntity(tilemap, tile - 128, x, y);
             }
         }
     }

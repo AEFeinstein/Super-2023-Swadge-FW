@@ -12,6 +12,19 @@
 #include "entityManager.h"
 
 //==============================================================================
+// Constants
+//==============================================================================
+#define CLAMP(x, l, u) ((x) < l ? l : ((x) > u ? u : (x)))
+
+#define TILEMAP_DISPLAY_WIDTH_PIXELS 280  // The screen size
+#define TILEMAP_DISPLAY_HEIGHT_PIXELS 240 // The screen size
+#define TILEMAP_DISPLAY_WIDTH_TILES 19    // The screen size in tiles + 1
+#define TILEMAP_DISPLAY_HEIGHT_TILES 16   // The screen size in tiles + 1
+
+#define TILE_SIZE 16
+#define TILE_SIZE_IN_POWERS_OF_2 4
+
+//==============================================================================
 // Enums
 //==============================================================================
 typedef enum {
