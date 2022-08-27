@@ -110,7 +110,7 @@ esp_err_t qma7981_init(void)
 	esp_err_t ret_val = ESP_OK;
 
 	uint8_t id = 0;
-	ret_val |= qma7981_read_byte(0x00, &id);
+	ret_val |= qma7981_read_byte(QMA7981_REG_CHIP_ID, &id);
 	ESP_LOGW(TAG, "ID : %02X", id);
 
 	/* ******************************** ******************************** */
@@ -133,8 +133,8 @@ esp_err_t qma7981_get_step(uint16_t *data)
 		return ESP_ERR_INVALID_ARG;
 	}
 
-	ret_val |= qma7981_read_byte(0x07, &step_l);
-	ret_val |= qma7981_read_byte(0x08, &step_h);
+	ret_val |= qma7981_read_byte(QMA7981_REG_STEP_L, &step_l);
+	ret_val |= qma7981_read_byte(QMA7981_REG_STEP_H, &step_h);
 
 	*data = (step_h << 8) + step_l;
 
