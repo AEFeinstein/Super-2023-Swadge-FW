@@ -23,6 +23,8 @@
 #include "esp_timer.h"
 #include "led_util.h"
 #include "linked_list.h"
+#include "mode_main_menu.h"
+#include "musical_buzzer.h"
 #include "swadgeMode.h"
 #include "settingsManager.h"
 
@@ -53,6 +55,7 @@
 #define INITIAL_BPM           60
 #define MAX_BPM               400
 #define METRONOME_FLASH_MS    35
+#define METRONOME_CLICK_MS    35
 #define BPM_CHANGE_FIRST_MS   500
 #define BPM_CHANGE_FAST_MS    2000
 #define BPM_CHANGE_REPEAT_MS  50
@@ -308,6 +311,26 @@ static const timeSignature tSigs[] =
     {.top = 5, .bottom = 4},
 };
 
+static const song_t metronome_primary =
+{
+    .notes =
+    {
+        {A_4, METRONOME_CLICK_MS}
+    },
+    .numNotes = 1,
+    .shouldLoop = false
+};
+
+static const song_t metronome_secondary =
+{
+    .notes =
+    {
+        {A_3, METRONOME_CLICK_MS}
+    },
+    .numNotes = 1,
+    .shouldLoop = false
+};
+
 /*============================================================================
  * Functions
  *==========================================================================*/
@@ -364,6 +387,8 @@ void switchToSubmode(tnMode newMode)
         {
             tunernome->mode = newMode;
 
+            buzzer_stop();
+
             led_t leds[NUM_LEDS] = {{0}};
             setLeds(leds, sizeof(leds));
 
@@ -409,6 +434,8 @@ void switchToSubmode(tnMode newMode)
  */
 void tunernomeExitMode(void)
 {
+    buzzer_stop();
+
     freeFont(&tunernome->tom_thumb);
     freeFont(&tunernome->ibm_vga8);
     freeFont(&tunernome->radiostars);
@@ -627,7 +654,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
 
         if(tunernome->exitTimeAccumulatedUs >= US_TO_QUIT)
         {
-            switchToSwadgeMode(0);
+            switchToSwadgeMode(&modeMainMenu);
         }
     }
 
@@ -865,10 +892,12 @@ void tunernomeMainLoop(int64_t elapsedUs)
             {
                 tunernome->beatCtr = (tunernome->beatCtr + 1) % tSigs[tunernome->tSigIdx].top;
 
+                song_t song;
                 led_t leds[NUM_LEDS] = {{0}};
 
                 if(0 == tunernome->beatCtr)
                 {
+                    song = metronome_primary;
                     for(int i = 0; i < NUM_LEDS; i++)
                     {
                         leds[i].r = 0x40;
@@ -878,6 +907,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                 }
                 else
                 {
+                    song = metronome_secondary;
                     for(int i = 0; i < NUM_LEDS; i++)
                     {
                         leds[i].r = 0x40;
@@ -892,6 +922,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     leds[3].b = 0x00;
                 }
 
+                buzzer_play_sfx(&song);
                 setLeds(leds, sizeof(leds));
                 tunernome->isBlinking = true;
                 tunernome->blinkStartUs = esp_timer_get_time();
