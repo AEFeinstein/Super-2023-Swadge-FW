@@ -892,12 +892,12 @@ void tunernomeMainLoop(int64_t elapsedUs)
             {
                 tunernome->beatCtr = (tunernome->beatCtr + 1) % tSigs[tunernome->tSigIdx].top;
 
-                song_t song;
+                song_t* song;
                 led_t leds[NUM_LEDS] = {{0}};
 
                 if(0 == tunernome->beatCtr)
                 {
-                    song = metronome_primary;
+                    song = &metronome_primary;
                     for(int i = 0; i < NUM_LEDS; i++)
                     {
                         leds[i].r = 0x40;
@@ -907,7 +907,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                 }
                 else
                 {
-                    song = metronome_secondary;
+                    song = &metronome_secondary;
                     for(int i = 0; i < NUM_LEDS; i++)
                     {
                         leds[i].r = 0x40;
@@ -922,7 +922,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     leds[3].b = 0x00;
                 }
 
-                buzzer_play_sfx(&song);
+                buzzer_play_sfx(song);
                 setLeds(leds, sizeof(leds));
                 tunernome->isBlinking = true;
                 tunernome->blinkStartUs = esp_timer_get_time();
