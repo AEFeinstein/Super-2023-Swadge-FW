@@ -122,29 +122,45 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
     // Clear everything
     colorchord->disp->clearPx();
 
-    // Draw the spectrum as a bar graph
-
+    // Draw the spectrum as a bar graph. Figure out bar and margin size
     int16_t binWidth = (colorchord->disp->w / FIXBINS);
     int16_t binMargin = (colorchord->disp->w - (binWidth * FIXBINS)) / 2;
 
-    uint16_t mv = colorchord->maxValue;
+    // This is the center line to draw the graph around
     uint8_t centerLine = (TEXT_Y + colorchord->ibm_vga8.h + 2) + (colorchord->disp->h -
                          (TEXT_Y + colorchord->ibm_vga8.h + 2)) / 2;
+
+    // Find the max value
     for(uint16_t i = 0; i < FIXBINS; i++)
     {
         if(colorchord->end.fuzzed_bins[i] > colorchord->maxValue)
         {
             colorchord->maxValue = colorchord->end.fuzzed_bins[i];
         }
-        uint8_t height = ((colorchord->disp->h - colorchord->ibm_vga8.h - 2) * colorchord->end.fuzzed_bins[i]) / mv;
+    }
+
+    // Plot the bars
+    for(uint16_t i = 0; i < FIXBINS; i++)
+    {
+        uint8_t height = ((colorchord->disp->h - colorchord->ibm_vga8.h - 2) * colorchord->end.fuzzed_bins[i]) /
+                         colorchord->maxValue;
+        paletteColor_t color = hsv2rgb((i * 256) / FIXBINS, 255, 255);
+        int16_t x0 = binMargin + (i * binWidth);
+        int16_t x1 = binMargin + ((i + 1) * binWidth);
         if(height < 2)
         {
-            height = 2;
+            // Too small to plot, draw a line
+            plotLine(colorchord->disp,
+                     x0, centerLine,
+                     x1, centerLine, color, 0);
         }
-        fillDisplayArea(colorchord->disp,
-                        binMargin + (i * binWidth),        centerLine - (height / 2),
-                        binMargin + ((i + 1) * binWidth),  centerLine + (height / 2),
-                        hsv2rgb((i * 256) / FIXBINS, 255, 255));
+        else
+        {
+            // Big enough, fill an area
+            fillDisplayArea(colorchord->disp,
+                            x0, centerLine - (height / 2),
+                            x1, centerLine + (height / 2), color);
+        }
     }
 
     // Draw the HUD text
@@ -254,6 +270,8 @@ void colorchordButtonCb(buttonEvt_t* evt)
                     {
                         // Gain
                         incMicGain();
+                        // Reset max val
+                        colorchord->maxValue = 1;
                         break;
                     }
                     case CC_OPT_LED_MODE:
@@ -280,6 +298,8 @@ void colorchordButtonCb(buttonEvt_t* evt)
                     {
                         // Gain
                         decMicGain();
+                        // Reset max val
+                        colorchord->maxValue = 1;
                         break;
                     }
                     case CC_OPT_LED_MODE:
