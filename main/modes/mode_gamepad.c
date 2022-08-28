@@ -50,11 +50,12 @@ void gamepadTouchCb(touch_event_t* evt);
 
 typedef struct
 {
+    int64_t time_exit_pressed;
     display_t* disp;
     hid_gamepad_report_t gpState;
-    bool drawDisp;
-    int64_t time_exit_pressed;
     font_t ibmFont;
+    bool drawDisp;
+    bool isPluggedIn;
 } gamepad_t;
 
 gamepad_t* gamepad;
@@ -115,6 +116,13 @@ void gamepadExitMode(void)
  */
 void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
+    // Check if plugged in or not
+    if(tud_ready() != gamepad->isPluggedIn)
+    {
+        gamepad->drawDisp = true;
+        gamepad->isPluggedIn = tud_ready();
+    }
+
     // If there is something to draw
     if(gamepad->drawDisp || (0 != gamepad->time_exit_pressed))
     {
@@ -124,89 +132,102 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
         // Clear the display
         gamepad->disp->clearPx();
 
-        // Helper function pointer
-        void (*drawFunc)(display_t*, int, int, int, paletteColor_t);
-
-        // A list of all the hat directions, in order
-        static const uint8_t hatDirs[] =
-        {
-            GAMEPAD_HAT_UP,
-            GAMEPAD_HAT_UP_RIGHT,
-            GAMEPAD_HAT_RIGHT,
-            GAMEPAD_HAT_DOWN_RIGHT,
-            GAMEPAD_HAT_DOWN,
-            GAMEPAD_HAT_DOWN_LEFT,
-            GAMEPAD_HAT_LEFT,
-            GAMEPAD_HAT_UP_LEFT
-        };
-
-        // For each hat direction
-        for(uint8_t i = 0; i < ARRAY_SIZE(hatDirs); i++)
-        {
-            // The degree around the cluster
-            int16_t deg = i * 45;
-            // The center of the cluster
-            int16_t xc = gamepad->disp->w / 4;
-            int16_t yc = (gamepad->disp->h / 2) + Y_OFF;
-            // Draw the button around the cluster
-            xc += (( getSin1024(deg) * DPAD_CLUSTER_RADIUS) / 1024);
-            yc += ((-getCos1024(deg) * DPAD_CLUSTER_RADIUS) / 1024);
-
-            // Draw either a filled or outline circle, if this is the direction pressed
-            drawFunc = (gamepad->gpState.hat == hatDirs[i]) ? &plotCircleFilled : &plotCircle;
-            drawFunc(gamepad->disp, xc, yc, DPAD_BTN_RADIUS, hsv2rgb(i * 32, 0xFF, 0xFF));
-        }
-
-        // Start button
-        drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_START) ? &plotCircleFilled : &plotCircle;
-        drawFunc(gamepad->disp,
-                 (gamepad->disp->w / 2) - START_BTN_RADIUS - START_BTN_SEP,
-                 (gamepad->disp->h / 4) + Y_OFF,
-                 START_BTN_RADIUS, c333);
-
-        // Select
-        drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
-        drawFunc(gamepad->disp,
-                 (gamepad->disp->w / 2) + START_BTN_RADIUS + START_BTN_SEP,
-                 (gamepad->disp->h / 4) + Y_OFF,
-                 START_BTN_RADIUS, c333);
-
-        // Button A
-        drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_A) ? &plotCircleFilled : &plotCircle;
-        drawFunc(gamepad->disp,
-                 ((3 * gamepad->disp->w) / 4) + AB_BTN_RADIUS + AB_BTN_SEP,
-                 (gamepad->disp->h / 2) - AB_BTN_Y_OFF + Y_OFF,
-                 AB_BTN_RADIUS, c243);
-
-        // Button B
-        drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_B) ? &plotCircleFilled : &plotCircle;
-        drawFunc(gamepad->disp,
-                 ((3 * gamepad->disp->w) / 4) - AB_BTN_RADIUS - AB_BTN_SEP,
-                 (gamepad->disp->h / 2) + AB_BTN_Y_OFF + Y_OFF,
-                 AB_BTN_RADIUS, c401);
-
-        // Draw some reminder text, centered
+        // Always Draw some reminder text, centered
         const char reminderText[] = "A + B + Start + Select to Exit";
         int16_t tWidth = textWidth(&gamepad->ibmFont, reminderText);
         drawText(gamepad->disp, &gamepad->ibmFont, c555, reminderText, (gamepad->disp->w - tWidth) / 2, 10);
 
-        // If b is being held
-        if(0 != gamepad->time_exit_pressed)
+        // If it's plugged in, draw buttons
+        if(gamepad->isPluggedIn)
         {
-            // Figure out for how long
-            int64_t tHeldUs = esp_timer_get_time() - gamepad->time_exit_pressed;
-            // If it has been held for more than the exit time
-            if(tHeldUs > EXIT_TIME_US)
+            // Helper function pointer
+            void (*drawFunc)(display_t*, int, int, int, paletteColor_t);
+
+            // A list of all the hat directions, in order
+            static const uint8_t hatDirs[] =
             {
-                // exit
-                switchToSwadgeMode(&modeMainMenu);
-            }
-            else
+                GAMEPAD_HAT_UP,
+                GAMEPAD_HAT_UP_RIGHT,
+                GAMEPAD_HAT_RIGHT,
+                GAMEPAD_HAT_DOWN_RIGHT,
+                GAMEPAD_HAT_DOWN,
+                GAMEPAD_HAT_DOWN_LEFT,
+                GAMEPAD_HAT_LEFT,
+                GAMEPAD_HAT_UP_LEFT
+            };
+
+            // For each hat direction
+            for(uint8_t i = 0; i < ARRAY_SIZE(hatDirs); i++)
             {
-                // Draw 'progress' bar for exiting
-                int16_t numPx = (tHeldUs * gamepad->disp->w) / EXIT_TIME_US;
-                fillDisplayArea(gamepad->disp, 0, gamepad->disp->h - 10, numPx, gamepad->disp->h, c333);
+                // The degree around the cluster
+                int16_t deg = i * 45;
+                // The center of the cluster
+                int16_t xc = gamepad->disp->w / 4;
+                int16_t yc = (gamepad->disp->h / 2) + Y_OFF;
+                // Draw the button around the cluster
+                xc += (( getSin1024(deg) * DPAD_CLUSTER_RADIUS) / 1024);
+                yc += ((-getCos1024(deg) * DPAD_CLUSTER_RADIUS) / 1024);
+
+                // Draw either a filled or outline circle, if this is the direction pressed
+                drawFunc = (gamepad->gpState.hat == hatDirs[i]) ? &plotCircleFilled : &plotCircle;
+                drawFunc(gamepad->disp, xc, yc, DPAD_BTN_RADIUS, hsv2rgb(i * 32, 0xFF, 0xFF));
             }
+
+            // Start button
+            drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_START) ? &plotCircleFilled : &plotCircle;
+            drawFunc(gamepad->disp,
+                     (gamepad->disp->w / 2) - START_BTN_RADIUS - START_BTN_SEP,
+                     (gamepad->disp->h / 4) + Y_OFF,
+                     START_BTN_RADIUS, c333);
+
+            // Select
+            drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
+            drawFunc(gamepad->disp,
+                     (gamepad->disp->w / 2) + START_BTN_RADIUS + START_BTN_SEP,
+                     (gamepad->disp->h / 4) + Y_OFF,
+                     START_BTN_RADIUS, c333);
+
+            // Button A
+            drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_A) ? &plotCircleFilled : &plotCircle;
+            drawFunc(gamepad->disp,
+                     ((3 * gamepad->disp->w) / 4) + AB_BTN_RADIUS + AB_BTN_SEP,
+                     (gamepad->disp->h / 2) - AB_BTN_Y_OFF + Y_OFF,
+                     AB_BTN_RADIUS, c243);
+
+            // Button B
+            drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_B) ? &plotCircleFilled : &plotCircle;
+            drawFunc(gamepad->disp,
+                     ((3 * gamepad->disp->w) / 4) - AB_BTN_RADIUS - AB_BTN_SEP,
+                     (gamepad->disp->h / 2) + AB_BTN_Y_OFF + Y_OFF,
+                     AB_BTN_RADIUS, c401);
+
+            // If b is being held
+            if(0 != gamepad->time_exit_pressed)
+            {
+                // Figure out for how long
+                int64_t tHeldUs = esp_timer_get_time() - gamepad->time_exit_pressed;
+                // If it has been held for more than the exit time
+                if(tHeldUs > EXIT_TIME_US)
+                {
+                    // exit
+                    switchToSwadgeMode(&modeMainMenu);
+                }
+                else
+                {
+                    // Draw 'progress' bar for exiting
+                    int16_t numPx = (tHeldUs * gamepad->disp->w) / EXIT_TIME_US;
+                    fillDisplayArea(gamepad->disp, 0, gamepad->disp->h - 10, numPx, gamepad->disp->h, c333);
+                }
+            }
+        }
+        else
+        {
+            // If it's not plugged in, give a hint
+            const char plugInText[] = "Plug USB-C into computer please!";
+            int16_t tWidth = textWidth(&gamepad->ibmFont, plugInText);
+            drawText(gamepad->disp, &gamepad->ibmFont, c555, plugInText,
+                     (gamepad->disp->w - tWidth) / 2,
+                     (gamepad->disp->h - gamepad->ibmFont.h) / 2);
         }
     }
 }
