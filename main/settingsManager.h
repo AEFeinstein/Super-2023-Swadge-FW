@@ -11,12 +11,21 @@
 bool getIsMuted(void);
 bool setIsMuted(bool);
 
-int32_t getBrightness(void);
-bool setBrightness(int32_t);
+int32_t getTftBrightness(void);
+bool incTftBrightness(void);
+bool decTftBrightness(void);
 
-int32_t getMicVolume(void);
-uint8_t getMicAmplitude(void);
-bool setMicVolume(int32_t micVolume);
+int32_t getLedBrightness(void);
+bool incLedBrightness(void);
+bool decLedBrightness(void);
+
+int32_t getMicGain(void);
+uint16_t getMicAmplitude(void);
+bool decMicGain(void);
+bool incMicGain(void);
+
+colorchordMode_t getColorchordMode(void);
+bool setColorchordMode(colorchordMode_t);
 
 colorchordMode_t getColorchordMode(void);
 bool setColorchordMode(colorchordMode_t);
