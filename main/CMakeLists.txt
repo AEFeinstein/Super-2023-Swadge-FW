@@ -12,6 +12,7 @@ idf_component_register(
         "modes/fighter/fighter_json.c"
         "modes/fighter/fighter_menu.c"
         "modes/mode_demo.c"
+        "modes/mode_credits.c"
         "modes/mode_gamepad.c"
         "modes/mode_main_menu.c"
         "modes/mode_colorchord.c"
