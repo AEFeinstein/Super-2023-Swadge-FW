@@ -53,7 +53,6 @@
 #include "advanced_usb_control.h"
 
 #include "mode_main_menu.h"
-#include "mode_demo.h"
 #include "fighter_menu.h"
 #include "mode_gamepad.h"
 

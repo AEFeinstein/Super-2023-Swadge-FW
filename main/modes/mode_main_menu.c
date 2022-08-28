@@ -16,7 +16,6 @@
 
 #include "fighter_menu.h"
 #include "mode_gamepad.h"
-#include "mode_demo.h"
 #include "mode_colorchord.h"
 
 //==============================================================================
@@ -330,7 +329,6 @@ void mainMenuSetUpToolsMenu(bool resetPos)
     resetMeleeMenu(mainMenu->menu, mainMenuTools, mainMenuToolsCb);
     addRowToMeleeMenu(mainMenu->menu, modeGamepad.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeColorchord.modeName);
-    addRowToMeleeMenu(mainMenu->menu, modeDemo.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -360,11 +358,6 @@ void mainMenuToolsCb(const char* opt)
     {
         // Start Colorchord
         switchToSwadgeMode(&modeColorchord);
-    }
-    else if(modeDemo.modeName == opt)
-    {
-        // Start demo
-        switchToSwadgeMode(&modeDemo);
     }
     else if(mainMenuBack == opt)
     {
