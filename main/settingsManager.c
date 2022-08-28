@@ -15,7 +15,7 @@
 
 #define MAX_LED_BRIGHTNESS 8
 #define MAX_TFT_BRIGHTNESS 9
-#define MAX_MIC_GAIN       9
+#define MAX_MIC_GAIN       7
 
 //==============================================================================
 // Variables
@@ -216,20 +216,18 @@ bool decMicGain(void)
 /**
  * @return The amplitude for the microphone when reading samples
  */
-uint8_t getMicAmplitude(void)
+uint16_t getMicAmplitude(void)
 {
-    const uint8_t micVols[] =
+    const uint16_t micVols[] =
     {
-        26,
-        51,
-        77,
-        102,
+        32,
+        64,
+        96,
         128,
-        153,
-        179,
-        204,
-        230,
-        255
+        160,
+        192,
+        224,
+        256,
     };
     return micVols[getMicGain()];
 }

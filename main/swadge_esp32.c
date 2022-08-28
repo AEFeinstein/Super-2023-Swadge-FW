@@ -438,7 +438,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         // Process ADC samples
         if(NULL != cSwadgeMode->fnAudioCallback)
         {
-            uint8_t micAmp = getMicAmplitude();
+            uint16_t micAmp = getMicAmplitude();
 
             uint16_t adcSamps[BYTES_PER_READ / sizeof(adc_digi_output_data_t)];
             uint32_t sampleCnt = 0;
