@@ -104,7 +104,7 @@ void transformPixel(int16_t* x, int16_t* y, int16_t transX,
 
 /**
  * Integer sine function
- * 
+ *
  * @param degree The degree, between 0 and 359
  * @return int16_t The sine of the degree, between -1024 and 1024
  */
@@ -123,7 +123,7 @@ int16_t getSin1024(int16_t degree)
 
 /**
  * Integer cosine function
- * 
+ *
  * @param degree The degree, between 0 and 359
  * @return int16_t The cosine of the degree, between -1024 and 1024
  */
@@ -144,7 +144,7 @@ int16_t getCos1024(int16_t degree)
 
 /**
  * Integer tangent function
- * 
+ *
  * @param degree The degree, between 0 and 359
  * @return int16_t The tangent of the degree, between -1024 and 1024
  */
@@ -647,13 +647,13 @@ paletteColor_t hsv2rgb( uint8_t hue, uint8_t sat, uint8_t val)
     ob >>= 8;
     //back to or, og, ob range 0...255 now.
     //Need to apply saturation and value.
-    or = (or * val) >> 8;
+    or = ( or * val) >> 8;
     og = (og * val) >> 8;
     ob = (ob * val) >> 8;
 
     // Convert to palette color and return
-    or = (or * 6) / 256;
+    or = ( or * 6) / 256;
     og = (og * 6) / 256;
     ob = (ob * 6) / 256;
-    return (paletteColor_t) (or * 36) + (og * 6) + ob;
+    return (paletteColor_t) ( or * 36) + (og * 6) + ob;
 }

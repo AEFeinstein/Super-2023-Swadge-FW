@@ -29,9 +29,9 @@
 #define QMA7981
 
 #if defined(QMA6981)
-#include "QMA6981.h"
+    #include "QMA6981.h"
 #elif defined(QMA7981)
-#include "qma7981.h"
+    #include "qma7981.h"
 #endif
 
 #include "musical_buzzer.h"
