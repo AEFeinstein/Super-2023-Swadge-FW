@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <esp_log.h>
+#include <esp_timer.h>
 
 #include "led_util.h"
 #include "swadgeMode.h"
@@ -20,6 +21,7 @@
 //==============================================================================
 
 #define EXIT_TIME_US 1000000
+#define TEXT_Y 10
 
 //==============================================================================
 // Enums
@@ -28,7 +30,8 @@
 typedef enum
 {
     CC_OPT_GAIN,
-    CC_OPT_LED,
+    CC_OPT_LED_BRIGHT,
+    CC_OPT_LED_MODE,
     COLORCHORD_NUM_OPTS
 } ccOpt_t;
 
@@ -125,6 +128,8 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
     int16_t binMargin = (colorchord->disp->w - (binWidth * FIXBINS)) / 2;
 
     uint16_t mv = colorchord->maxValue;
+    uint8_t centerLine = (TEXT_Y + colorchord->ibm_vga8.h + 2) + (colorchord->disp->h -
+                         (TEXT_Y + colorchord->ibm_vga8.h + 2)) / 2;
     for(uint16_t i = 0; i < FIXBINS; i++)
     {
         if(colorchord->end.fuzzed_bins[i] > colorchord->maxValue)
@@ -132,9 +137,13 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
             colorchord->maxValue = colorchord->end.fuzzed_bins[i];
         }
         uint8_t height = ((colorchord->disp->h - colorchord->ibm_vga8.h - 2) * colorchord->end.fuzzed_bins[i]) / mv;
+        if(height < 2)
+        {
+            height = 2;
+        }
         fillDisplayArea(colorchord->disp,
-                        binMargin + (i * binWidth),        colorchord->disp->h - height,
-                        binMargin + ((i + 1) * binWidth), (colorchord->disp->h),
+                        binMargin + (i * binWidth),        centerLine - (height / 2),
+                        binMargin + ((i + 1) * binWidth),  centerLine + (height / 2),
                         hsv2rgb((i * 256) / FIXBINS, 255, 255));
     }
 
@@ -143,7 +152,7 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
 
     // Draw gain indicator
     snprintf(text, sizeof(text), "Gain: %d", getMicGain());
-    drawText(colorchord->disp, &colorchord->ibm_vga8, c555, text, 10, 10);
+    drawText(colorchord->disp, &colorchord->ibm_vga8, c555, text, 10, TEXT_Y);
 
     // Underline it if selected
     if(CC_OPT_GAIN == colorchord->optSel)
@@ -152,6 +161,20 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
         plotLine(colorchord->disp,
                  10, lineY,
                  10 + textWidth(&colorchord->ibm_vga8, text) - 1, lineY, c555, 0);
+    }
+
+    // Draw LED brightness indicator
+    snprintf(text, sizeof(text), "LED: %d", getLedBrightness());
+    int16_t tWidth = textWidth(&colorchord->ibm_vga8, text);
+    drawText(colorchord->disp, &colorchord->ibm_vga8, c555, text, (colorchord->disp->w - tWidth) / 2, TEXT_Y);
+
+    // Underline it if selected
+    if(CC_OPT_LED_BRIGHT == colorchord->optSel)
+    {
+        int16_t lineY = 10 + colorchord->ibm_vga8.h + 2;
+        plotLine(colorchord->disp,
+                 (colorchord->disp->w - tWidth) / 2, lineY,
+                 (colorchord->disp->w - tWidth) / 2 + tWidth - 1, lineY, c555, 0);
     }
 
     // Draw colorchord mode
@@ -172,10 +195,10 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
     }
     int16_t textX = colorchord->disp->w - 10 - textWidth(&colorchord->ibm_vga8, text);
     drawText(colorchord->disp, &colorchord->ibm_vga8, c555, text,
-             textX, 10);
+             textX, TEXT_Y);
 
     // Underline it if selected
-    if(CC_OPT_LED == colorchord->optSel)
+    if(CC_OPT_LED_MODE == colorchord->optSel)
     {
         int16_t lineY = 10 + colorchord->ibm_vga8.h + 2;
         plotLine(colorchord->disp,
@@ -187,7 +210,7 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
     const char exitText[] = "B to Exit";
     int16_t exitWidth = textWidth(&colorchord->ibm_vga8, exitText);
     drawText(colorchord->disp, &colorchord->ibm_vga8, c555, exitText,
-             (colorchord->disp->w - exitWidth) / 2, 10);
+             (colorchord->disp->w - exitWidth) / 2, colorchord->disp->h - colorchord->ibm_vga8.h);
 
     // If b is being held
     if(0 != colorchord->time_b_pressed)
@@ -233,11 +256,16 @@ void colorchordButtonCb(buttonEvt_t* evt)
                         incMicGain();
                         break;
                     }
-                    case CC_OPT_LED:
+                    case CC_OPT_LED_MODE:
                     {
                         // LED Output
                         colorchordMode_t newMode = (getColorchordMode() + 1) % NUM_CC_MODES;
                         setColorchordMode(newMode);
+                        break;
+                    }
+                    case CC_OPT_LED_BRIGHT:
+                    {
+                        incLedBrightness();
                         break;
                     }
                 }
@@ -254,7 +282,7 @@ void colorchordButtonCb(buttonEvt_t* evt)
                         decMicGain();
                         break;
                     }
-                    case CC_OPT_LED:
+                    case CC_OPT_LED_MODE:
                     {
                         // LED Output
                         colorchordMode_t newMode = getColorchordMode();
@@ -267,6 +295,11 @@ void colorchordButtonCb(buttonEvt_t* evt)
                             newMode--;
                         }
                         setColorchordMode(newMode);
+                        break;
+                    }
+                    case CC_OPT_LED_BRIGHT:
+                    {
+                        decLedBrightness();
                         break;
                     }
                 }
