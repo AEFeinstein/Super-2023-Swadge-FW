@@ -265,37 +265,3 @@ bool setColorchordMode(colorchordMode_t colorchordMode)
     // Write the value
     return writeNvs32(KEY_CC_MODE, colorchordMode);
 }
-
-/**
- * @return The colorchordMode level for the TFT, LINEAR_LEDS or ALL_SAME_LEDS
- */
-colorchordMode_t getColorchordMode(void)
-{
-    colorchordMode_t colorchordMode = ALL_SAME_LEDS;
-    // Try reading the value
-    if(false == readNvs32(KEY_CC_MODE, (int32_t*)&colorchordMode))
-    {
-        // Value didn't exist, so write the default
-        setColorchordMode(colorchordMode);
-    }
-    // Return the read value
-    return colorchordMode;
-}
-
-/**
- * Set the colorchordMode
- *
- * @param colorchordMode The colorchordMode, ALL_SAME_LEDS or LINEAR_LEDS
- * @return true if the setting was saved, false if it was not
- */
-bool setColorchordMode(colorchordMode_t colorchordMode)
-{
-    // Bound the value, just in case
-    if((ALL_SAME_LEDS != colorchordMode) && (LINEAR_LEDS != colorchordMode))
-    {
-        colorchordMode = ALL_SAME_LEDS;
-    }
-
-    // Write the value
-    return writeNvs32(KEY_CC_MODE, colorchordMode);
-}
