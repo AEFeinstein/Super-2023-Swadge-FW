@@ -43,6 +43,7 @@ void gamepadExitMode(void);
 void gamepadMainLoop(int64_t elapsedUs);
 void gamepadButtonCb(buttonEvt_t* evt);
 void gamepadTouchCb(touch_event_t* evt);
+void gamepadAccelCb(accel_t* accel);
 
 //==============================================================================
 // Variables
@@ -71,7 +72,7 @@ swadgeMode modeGamepad =
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
-    .fnAccelerometerCallback = NULL,
+    .fnAccelerometerCallback = gamepadAccelCb,
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL
 };
@@ -241,91 +242,82 @@ void gamepadButtonCb(buttonEvt_t* evt)
 {
     gamepad->drawDisp = true;
 
-    // Only send data if USB is ready
-    if(tud_ready())
+    // Build a list of all independent buttons held down
+    gamepad->gpState.buttons = 0;
+    if(evt->state & BTN_A)
     {
-        // Build a list of all independent buttons held down
-        hid_gamepad_button_bm_t btnPressed = 0;
-        if(evt->state & BTN_A)
-        {
-            btnPressed |= GAMEPAD_BUTTON_A;
-        }
-        if(evt->state & BTN_B)
-        {
-            btnPressed |= GAMEPAD_BUTTON_B;
-        }
-        if(evt->state & START)
-        {
-            btnPressed |= GAMEPAD_BUTTON_START;
-        }
-        if(evt->state & SELECT)
-        {
-            btnPressed |= GAMEPAD_BUTTON_SELECT;
-        }
+        gamepad->gpState.buttons |= GAMEPAD_BUTTON_A;
+    }
+    if(evt->state & BTN_B)
+    {
+        gamepad->gpState.buttons |= GAMEPAD_BUTTON_B;
+    }
+    if(evt->state & START)
+    {
+        gamepad->gpState.buttons |= GAMEPAD_BUTTON_START;
+    }
+    if(evt->state & SELECT)
+    {
+        gamepad->gpState.buttons |= GAMEPAD_BUTTON_SELECT;
+    }
 
-        // Check if the buttons are held to exit
-        if(btnPressed == (GAMEPAD_BUTTON_A | GAMEPAD_BUTTON_B | GAMEPAD_BUTTON_START | GAMEPAD_BUTTON_SELECT))
-        {
-            // Combo pressed, note the time
-            gamepad->time_exit_pressed = esp_timer_get_time();
-        }
-        else
-        {
-            // Combo released, clear the timer
-            gamepad->time_exit_pressed = 0;
-        }
+    // Check if the buttons are held to exit
+    if(gamepad->gpState.buttons == (GAMEPAD_BUTTON_A | GAMEPAD_BUTTON_B | GAMEPAD_BUTTON_START | GAMEPAD_BUTTON_SELECT))
+    {
+        // Combo pressed, note the time
+        gamepad->time_exit_pressed = esp_timer_get_time();
+    }
+    else
+    {
+        // Combo released, clear the timer
+        gamepad->time_exit_pressed = 0;
+    }
 
-        // Figure out which way the D-Pad is pointing
-        hid_gamepad_hat_t hatDir = GAMEPAD_HAT_CENTERED;
-        if(evt->state & UP)
+    // Figure out which way the D-Pad is pointing
+    gamepad->gpState.hat = GAMEPAD_HAT_CENTERED;
+    if(evt->state & UP)
+    {
+        if(evt->state & RIGHT)
         {
-            if(evt->state & RIGHT)
-            {
-                hatDir |= GAMEPAD_HAT_UP_RIGHT;
-            }
-            else if(evt->state & LEFT)
-            {
-                hatDir |= GAMEPAD_HAT_UP_LEFT;
-            }
-            else
-            {
-                hatDir |= GAMEPAD_HAT_UP;
-            }
-        }
-        else if(evt->state & DOWN)
-        {
-            if(evt->state & RIGHT)
-            {
-                hatDir |= GAMEPAD_HAT_DOWN_RIGHT;
-            }
-            else if(evt->state & LEFT)
-            {
-                hatDir |= GAMEPAD_HAT_DOWN_LEFT;
-            }
-            else
-            {
-                hatDir |= GAMEPAD_HAT_DOWN;
-            }
-        }
-        else if(evt->state & RIGHT)
-        {
-            hatDir |= GAMEPAD_HAT_RIGHT;
+            gamepad->gpState.hat |= GAMEPAD_HAT_UP_RIGHT;
         }
         else if(evt->state & LEFT)
         {
-            hatDir |= GAMEPAD_HAT_LEFT;
+            gamepad->gpState.hat |= GAMEPAD_HAT_UP_LEFT;
         }
+        else
+        {
+            gamepad->gpState.hat |= GAMEPAD_HAT_UP;
+        }
+    }
+    else if(evt->state & DOWN)
+    {
+        if(evt->state & RIGHT)
+        {
+            gamepad->gpState.hat |= GAMEPAD_HAT_DOWN_RIGHT;
+        }
+        else if(evt->state & LEFT)
+        {
+            gamepad->gpState.hat |= GAMEPAD_HAT_DOWN_LEFT;
+        }
+        else
+        {
+            gamepad->gpState.hat |= GAMEPAD_HAT_DOWN;
+        }
+    }
+    else if(evt->state & RIGHT)
+    {
+        gamepad->gpState.hat |= GAMEPAD_HAT_RIGHT;
+    }
+    else if(evt->state & LEFT)
+    {
+        gamepad->gpState.hat |= GAMEPAD_HAT_LEFT;
+    }
 
-        // Build and send the state over USB
-        gamepad->gpState.buttons = btnPressed;
-        gamepad->gpState.hat = hatDir;
-        gamepad->gpState.x = 0;
-        gamepad->gpState.y = 0;
-        gamepad->gpState.z = 0;
-        gamepad->gpState.rx = 0;
-        gamepad->gpState.ry = 0;
-        gamepad->gpState.rz = 0;
-
+    // Only send data if USB is ready
+    if(tud_ready())
+    {
+        // Send the state over USB
         tud_gamepad_report(&gamepad->gpState);
     }
 }
@@ -338,4 +330,24 @@ void gamepadButtonCb(buttonEvt_t* evt)
 void gamepadTouchCb(touch_event_t* evt)
 {
     ESP_LOGE("GP", "%s (%d %d %d)", __func__, evt->pad_num, evt->pad_status, evt->pad_val);
+}
+
+/**
+ * Acceleromoeter callback. Save the state and send it over USB
+ *
+ * @param accel The last read acceleration value
+ */
+void gamepadAccelCb(accel_t* accel)
+{
+    // Take 14 bits down to 8 bits, save it
+    gamepad->gpState.rx = (accel->x) >> 6;
+    gamepad->gpState.ry = (accel->y) >> 6;
+    gamepad->gpState.rz = (accel->z) >> 6;
+
+    // Only send data if USB is ready
+    if(tud_ready())
+    {
+        // Send the state over USB
+        tud_gamepad_report(&gamepad->gpState);
+    }
 }
