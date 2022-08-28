@@ -27,7 +27,4 @@ bool incMicGain(void);
 colorchordMode_t getColorchordMode(void);
 bool setColorchordMode(colorchordMode_t);
 
-colorchordMode_t getColorchordMode(void);
-bool setColorchordMode(colorchordMode_t);
-
 #endif
