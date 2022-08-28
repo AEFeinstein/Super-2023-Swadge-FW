@@ -130,7 +130,7 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
         gamepad->drawDisp = false;
 
         // Clear the display
-        gamepad->disp->clearPx();
+        fillDisplayArea(gamepad->disp, 0, 0, gamepad->disp->w, gamepad->disp->h, c213);
 
         // Always Draw some reminder text, centered
         const char reminderText[] = "A + B + Start + Select to Exit";
@@ -170,7 +170,7 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
 
                 // Draw either a filled or outline circle, if this is the direction pressed
                 drawFunc = (gamepad->gpState.hat == hatDirs[i]) ? &plotCircleFilled : &plotCircle;
-                drawFunc(gamepad->disp, xc, yc, DPAD_BTN_RADIUS, hsv2rgb(i * 32, 0xFF, 0xFF));
+                drawFunc(gamepad->disp, xc, yc, DPAD_BTN_RADIUS, c551 /*hsv2rgb(i * 32, 0xFF, 0xFF)*/);
             }
 
             // Start button
