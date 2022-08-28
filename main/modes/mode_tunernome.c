@@ -990,8 +990,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
     if(tunernome->exitTimeAccumulatedUs > 0)
     {
         // Draw a bar
-        // TODO: Fill the rectangle
-        plotRect(tunernome->disp, 0, tunernome->disp->h - 1, (tunernome->disp->w * tunernome->exitTimeAccumulatedUs) / US_TO_QUIT, tunernome->disp->h - CORNER_OFFSET + 2, c555);
+        fillDisplayArea(tunernome->disp, 0, tunernome->disp->h - CORNER_OFFSET + 2, (tunernome->disp->w * tunernome->exitTimeAccumulatedUs) / US_TO_QUIT, tunernome->disp->h, c333);
     }
 }
 
