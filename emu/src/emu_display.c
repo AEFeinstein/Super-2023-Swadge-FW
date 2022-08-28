@@ -585,7 +585,7 @@ void emuDrawDisplayOled(bool drawDiff UNUSED)
  * @param gpio unused
  * @param rmt unused
  * @param numLeds The number of LEDs to display
- * @param brightness The initial LED brightness
+ * @param brightness The initial LED brightness, 0 (off) to 8 (max bright)
  */
 void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds, uint8_t brightness)
 {
@@ -599,7 +599,7 @@ void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds
         // Save the number of LEDs
         rdNumLeds = numLeds;
         // Save the brightness
-        ledBrightness = brightness;
+        ledBrightness = (8 - brightness);
     }
 }
 

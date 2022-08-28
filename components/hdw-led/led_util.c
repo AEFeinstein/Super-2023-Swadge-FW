@@ -83,13 +83,13 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r,
  * @param gpio    The GPIO the LEDs are connect to
  * @param rmt     The RMT channel to control the LEDs with
  * @param numLeds The maximum number of LEDs in the strip
- * @param brightness The initial LED brightness
+ * @param brightness The initial LED brightness, 0 (off) to 8 (max bright)
  */
 void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds, uint8_t brightness)
 {
     ledStrip = led_strip_init(rmt, gpio, numLeds);
     maxNumLeds = numLeds;
-    ledBrightness = brightness;
+    ledBrightness = (8 - brightness);
 }
 
 /**
