@@ -142,7 +142,7 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
     char text[16] = {0};
 
     // Draw gain indicator
-    snprintf(text, sizeof(text), "Gain: %d", getMicVolume());
+    snprintf(text, sizeof(text), "Gain: %d", getMicGain());
     drawText(colorchord->disp, &colorchord->ibm_vga8, c555, text, 10, 10);
 
     // Underline it if selected
@@ -230,8 +230,7 @@ void colorchordButtonCb(buttonEvt_t* evt)
                     case CC_OPT_GAIN:
                     {
                         // Gain
-                        uint8_t newVol = (getMicVolume() + 1) % 10;
-                        setMicVolume(newVol);
+                        incMicGain();
                         break;
                     }
                     case CC_OPT_LED:
@@ -252,16 +251,7 @@ void colorchordButtonCb(buttonEvt_t* evt)
                     case CC_OPT_GAIN:
                     {
                         // Gain
-                        uint8_t newVol = getMicVolume();
-                        if(newVol == 0)
-                        {
-                            newVol = 9;
-                        }
-                        else
-                        {
-                            newVol--;
-                        }
-                        setMicVolume(newVol);
+                        decMicGain();
                         break;
                     }
                     case CC_OPT_LED:

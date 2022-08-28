@@ -11,6 +11,7 @@
 
 led_strip_t* ledStrip = NULL;
 uint16_t maxNumLeds = 0;
+uint8_t ledBrightness = 0;
 
 //==============================================================================
 // Functions
@@ -82,11 +83,29 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r,
  * @param gpio    The GPIO the LEDs are connect to
  * @param rmt     The RMT channel to control the LEDs with
  * @param numLeds The maximum number of LEDs in the strip
+ * @param brightness The initial LED brightness
  */
-void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds)
+void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds, uint8_t brightness)
 {
     ledStrip = led_strip_init(rmt, gpio, numLeds);
     maxNumLeds = numLeds;
+    ledBrightness = brightness;
+}
+
+/**
+ * Set the global LED brightness
+ * 
+ * @param brightness 0 (off) to 8 (max bright)
+ */
+void setLedBrightness(uint8_t brightness)
+{
+    // Bound
+    if(brightness > 8)
+    {
+        brightness = 8;
+    }
+    // Set a value to rshift by
+    ledBrightness = (8 - brightness);
 }
 
 /**
@@ -106,7 +125,10 @@ void setLeds(led_t* leds, uint8_t numLeds)
     // Set each LED
     for(int i = 0; i < numLeds; i++)
     {
-        ledStrip->set_pixel(ledStrip, i, leds[i].r, leds[i].g, leds[i].b);
+        ledStrip->set_pixel(ledStrip, i,
+            leds[i].r >> ledBrightness,
+            leds[i].g >> ledBrightness,
+            leds[i].b >> ledBrightness);
     }
 
     // Push the data to the strip

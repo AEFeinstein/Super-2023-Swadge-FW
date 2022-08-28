@@ -254,6 +254,7 @@ pthread_mutex_t displayMutex = PTHREAD_MUTEX_INITIALIZER;
 // LED state
 uint8_t rdNumLeds = 0;
 led_t * rdLeds = NULL;
+uint8_t ledBrightness = 0;
 
 //==============================================================================
 // Function Prototypes
@@ -584,8 +585,9 @@ void emuDrawDisplayOled(bool drawDiff UNUSED)
  * @param gpio unused
  * @param rmt unused
  * @param numLeds The number of LEDs to display
+ * @param brightness The initial LED brightness
  */
-void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds)
+void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds, uint8_t brightness)
 {
     // If the LEDs haven't been initialized yet
     if(NULL == rdLeds)
@@ -596,7 +598,26 @@ void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds
         pthread_mutex_unlock(&displayMutex);
         // Save the number of LEDs
         rdNumLeds = numLeds;
+        // Save the brightness
+        ledBrightness = brightness;
     }
+}
+
+/**
+ * Set the global LED brightness
+ * 
+ * @param brightness 0 (off) to 8 (max bright)
+ */
+
+void setLedBrightness(uint8_t brightness)
+{
+    // Bound
+    if(brightness > 8)
+    {
+        brightness = 8;
+    }
+    // Set a value to rshift by
+    ledBrightness = (8 - brightness);
 }
 
 /**
@@ -608,7 +629,12 @@ void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds
 void setLeds(led_t* leds, uint8_t numLeds)
 {
 	pthread_mutex_lock(&displayMutex);
-	memcpy(rdLeds, leds, sizeof(led_t) * numLeds);
+    for(int i = 0; i < numLeds; i++)
+    {
+        rdLeds[i].r = leds[i].r >> ledBrightness;
+        rdLeds[i].g = leds[i].g >> ledBrightness;
+        rdLeds[i].b = leds[i].b >> ledBrightness;
+    }
 	pthread_mutex_unlock(&displayMutex);
 }
 

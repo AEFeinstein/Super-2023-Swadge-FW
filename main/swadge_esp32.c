@@ -322,7 +322,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     TOUCH_PAD_NUM13,  // GPIO_NUM_13
                     TOUCH_PAD_NUM14); // GPIO_NUM_14
 
-    initLeds(GPIO_NUM_39, RMT_CHANNEL_0, NUM_LEDS);
+    initLeds(GPIO_NUM_39, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
     buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, getIsMuted());
 
 #if !defined(EMU)
