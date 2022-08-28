@@ -24,7 +24,7 @@
 
 #define TO_SECONDS 1000000
 
-static const uint8_t pseudoRandom[] = {5, 6, 2, 3, 2, 1, 4, 3, 1, 5, 6, 4};
+static const uint8_t pseudoRandom[] = {5, 0, 2, 3, 2, 1, 4, 3, 1, 5, 0, 4};
 static const uint8_t rowOffset[] = {5, 10, 15, 10, 5};
 static const float aiResponseTime[] = {2, 1, .9, .8, .7, .6, .5, .4, .3, .2}; // level 1 will have a time of 3 
 //===
@@ -44,8 +44,8 @@ void jumperDoEvilDonut(int64_t elapsedUs);
 void jumperDoBlump(int64_t elapsedUs);
 void jumperSetupState(uint8_t stageIndex);
 
-void drawJumperScene(display_t* d, font_t* font);
-void drawJumperHud(display_t* d, font_t* font);
+void drawJumperScene(display_t* d);
+void drawJumperHud(display_t* d, font_t* prompt, font_t* font);
 
 //==============================================================================
 // Variables
@@ -68,6 +68,23 @@ static const song_t jumpDeathTune =
         {F_3, 650}
     },
     .numNotes = 5,
+    .shouldLoop = false
+};
+
+static const song_t jumpGameOverTune = 
+{
+    .notes =
+    {
+        {C_4,300}, {SILENCE, 50},
+        {C_4,300}, {SILENCE, 50},
+        {C_4,300}, {SILENCE, 50},
+        {A_3,150}, {SILENCE, 100},
+        {A_SHARP_3,150}, {SILENCE, 100},
+        {C_4,250}, {SILENCE, 100},
+        {G_SHARP_3, 250},{SILENCE, 100}, {G_3, 200},{SILENCE, 100},
+        {F_3, 650}
+    },
+    .numNotes = 17,
     .shouldLoop = false
 };
 
@@ -132,11 +149,14 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
     j = calloc(1, sizeof(jumperGame_t));
 
     j->d = disp;
-    j->mm_font = mmFont;
+    j->promptFont = mmFont;
+    loadFont("radiostars.font", &(j->game_font));
+
 
     j->scene = calloc(1, sizeof(jumperStage_t));
 
     j->scene->lives = 3;
+    loadWsg("minidonut.wsg", &j->scene->livesIcon);
 
     loadWsg("block_0a.wsg",&j->block[0]);
     loadWsg("block_0b.wsg",&j->block[1]);
@@ -231,8 +251,9 @@ void jumperRemoveEnemies()
     evilDonut->frameIndex = 0;
     evilDonut->block = 0;
     evilDonut->dBlock = 0;
-    evilDonut->respawnTime = 6 * TO_SECONDS;
+    evilDonut->respawnTime = 8 * TO_SECONDS;
     evilDonut->flipped = false;
+    evilDonut->intelligence.decideTime = 0;
 
     blump->state = CHARACTER_NONEXISTING;
     blump->x = j->scene->blockOffset_x + rowOffset[0] + 5;
@@ -246,6 +267,7 @@ void jumperRemoveEnemies()
     blump->dBlock = 0;
     blump->respawnTime = 4 * TO_SECONDS;
     blump->flipped = false;
+    blump->intelligence.decideTime = 0;
 
     evilDonut->intelligence.resetTime = j->scene->level < 9 ? aiResponseTime[j->scene->level] :  aiResponseTime[9];
     blump->intelligence.resetTime = .7; //Magic number
@@ -260,7 +282,7 @@ void jumperGameLoop(int64_t elapsedUs)
     {
         case JUMPER_COUNTDOWN:
             
-            if (j->scene->seconds < 0)
+            if (j->scene->seconds < 1)
             {
                 j->controlsEnabled = true;
                 player->jumpReady = true;  
@@ -272,6 +294,10 @@ void jumperGameLoop(int64_t elapsedUs)
         case JUMPER_WINSTAGE:
             if (j->scene->seconds < 0)
             {           
+                if (j->scene->level % 11 == 0 && j->scene->lives < 3)
+                {
+                    j->scene->lives++;                    
+                }
                 jumperSetupState(j->scene->level);                
             }
             else if (j->scene->seconds < 2)
@@ -305,6 +331,9 @@ void jumperGameLoop(int64_t elapsedUs)
             {
                 if (j->scene->lives == 0)
                 {
+                    
+                    buzzer_play_bgm(&jumpGameOverTune);
+
                     j->currentPhase = JUMPER_GAME_OVER;
                     j->scene->time = 3 * TO_SECONDS;
                 }
@@ -470,7 +499,7 @@ void jumperGameLoop(int64_t elapsedUs)
     randomIndex++;
     randomIndex %= 12;
 
-    drawJumperScene(j->d, j->mm_font);
+    drawJumperScene(j->d);
 
 }
 
@@ -622,8 +651,10 @@ void jumperDoBlump(int64_t elapsedUs)
                 blump->block = pseudoRandom[randomIndex];
                 blump->dBlock = pseudoRandom[randomIndex];
                 blump->sx = 5 + j->scene->blockOffset_x + ((blump->block % 6)* 38) + rowOffset[0];
-                blump->dx = 5 + j->scene->blockOffset_x + ((blump->block % 6)* 38) + rowOffset[0];
+                blump->x = blump->sx;
+                blump->dx = blump->sx;
                 blump->dy = j->scene->blockOffset_y;
+                
             }
             break;
         }
@@ -873,7 +904,7 @@ void jumperPlayerInput(void)
     }
 }
 
-void drawJumperScene(display_t* d, font_t* font)
+void drawJumperScene(display_t* d)
 {
     
    d->clearPx();
@@ -901,52 +932,59 @@ void drawJumperScene(display_t* d, font_t* font)
     }
    
 
-   drawJumperHud(d, font);
+   drawJumperHud(d, j->promptFont, &j->game_font);
     
 }
 
-void drawJumperHud(display_t* d, font_t* font)
+void drawJumperHud(display_t* d, font_t* prompt, font_t* font)
 {
     char textBuffer[12];
     snprintf(textBuffer, sizeof(textBuffer) -1, "LEVEL %d", j->scene->level);
-    drawText(d, font, c555, textBuffer, 20, 12);
+    drawText(d, font, c555, textBuffer, 28, 10);
            
+    drawText(d, font, c555, "Lives", 190, 10);
+    for (int i = 0; i < j->scene->lives; i++)
+    {
+        drawWsg(d, &j->scene->livesIcon, 190 + (i * 11), 24, false, false, 0);
+
+        // 
+    }
     if (j->currentPhase == JUMPER_COUNTDOWN)
     {
         if (j->scene->seconds <= 0)
         {
-            drawText(d, font, c000, "JUMP!", 82, 129);
-            drawText(d, font, c555, "JUMP!", 80, 128);
         }
         else if (j->scene->seconds <= 3 )
         {
             snprintf(textBuffer, sizeof(textBuffer) -1, "%d", j->scene->seconds);
-            drawText(d, font, c555, textBuffer, 120, 128);
+            drawText(d, prompt, c000, textBuffer, 142, 128);
+            drawText(d, prompt, c555, textBuffer, 140, 128);
         }
         else
         {
-            drawText(d, font, c555, "Ready?", 100, 128);
+            drawText(d, prompt, c000, "Ready?", 102, 128);
+            drawText(d, prompt, c555, "Ready?", 100, 128);
         }
     }
     if (j->currentPhase == JUMPER_GAMING)
     {
         if (j->scene->seconds <= 0 && j->scene->seconds > -2)
         {
-            drawText(d, font, c000, "JUMP!", 82, 129);
-            drawText(d, font, c555, "JUMP!", 80, 128);
-
+            drawText(d, prompt, c000, "JUMP!", 122, 129);
+            drawText(d, prompt, c555, "JUMP!", 120, 128);
         }
     }
     if (j->currentPhase == JUMPER_GAME_OVER)
     {
-        drawText(d, font, c000, "GAME OVER", 52, 129);
-        drawText(d, font, c555, "GAME OVER", 50, 128);
+        drawText(d, prompt, c000, "GAME OVER", 77, 129);
+        drawText(d, prompt, c555, "GAME OVER", 75, 128);
     }
     if (j->currentPhase == JUMPER_WINSTAGE)
     {
-        drawText(d, font, c000, "JUMP COMPLETE!", 22, 129);
-        drawText(d, font, c555, "JUMP COMPLETE!", 20, 128);
+        drawText(d, prompt, c000, "JUMP COMPLETE!", 22, 129);
+        drawText(d, prompt, c555, "JUMP COMPLETE!", 20, 128);
     }
+
 }
 
 void jumperGameButtonCb(buttonEvt_t* evt)
@@ -960,6 +998,9 @@ void jumperExitGame(void)
     {
         //Clear all tiles
         //clear stage
+
+        freeWsg(&j->scene->livesIcon);
+        freeFont(&(j->game_font));
         
         freeWsg(&j->block[0]);
         freeWsg(&j->block[1]);

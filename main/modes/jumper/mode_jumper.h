@@ -75,6 +75,7 @@ typedef struct
     int32_t seconds;
     int8_t blockOffset_x;
     int8_t blockOffset_y;
+    wsg_t livesIcon;
     jumperBlockType_t blocks[30];
 } jumperStage_t;
 
@@ -84,7 +85,8 @@ typedef struct
     jumperGamePhase_t currentPhase;
     int64_t frameElapsed;
     display_t* d;
-    font_t* mm_font;
+    font_t game_font;
+    font_t* promptFont;
     jumperStage_t* scene;
     bool controlsEnabled;
 
