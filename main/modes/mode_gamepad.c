@@ -202,6 +202,26 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
                      (gamepad->disp->h / 2) + AB_BTN_Y_OFF + Y_OFF,
                      AB_BTN_RADIUS, c401);
 
+            // Set up drawing accel bars
+#define BAR_H 8
+#define MAX_BAR_W 100
+            int16_t barY = (gamepad->disp->h * 3) / 4;
+
+            // Plot X accel
+            int16_t barWidth = ((gamepad->gpState.rx + 128) * MAX_BAR_W) / 256;
+            fillDisplayArea(gamepad->disp, gamepad->disp->w - barWidth, barY, gamepad->disp->w, barY + BAR_H, c500);
+            barY += (BAR_H + 1);
+
+            // Plot Y accel
+            barWidth = ((gamepad->gpState.ry + 128) * MAX_BAR_W) / 256;
+            fillDisplayArea(gamepad->disp, gamepad->disp->w - barWidth, barY, gamepad->disp->w, barY + BAR_H, c050);
+            barY += (BAR_H + 1);
+
+            // Plot Z accel
+            barWidth = ((gamepad->gpState.rz + 128) * MAX_BAR_W) / 256;
+            fillDisplayArea(gamepad->disp, gamepad->disp->w - barWidth, barY, gamepad->disp->w, barY + BAR_H, c005);
+            barY += (BAR_H + 1);
+
             // If b is being held
             if(0 != gamepad->time_exit_pressed)
             {
@@ -343,6 +363,9 @@ void gamepadAccelCb(accel_t* accel)
     gamepad->gpState.rx = (accel->x) >> 6;
     gamepad->gpState.ry = (accel->y) >> 6;
     gamepad->gpState.rz = (accel->z) >> 6;
+
+    // Redraw acceleration bars
+    gamepad->drawDisp = true;
 
     // Only send data if USB is ready
     if(tud_ready())
