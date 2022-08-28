@@ -210,10 +210,10 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                             incLedBrightness();
                         }
                     }
+                    // Redraw menu options
+                    mainMenu->shouldDraw = true;
+                    mainMenuSetUpSettingsMenu(false);
                 }
-                // Redraw menu options
-                mainMenu->shouldDraw = true;
-                mainMenuSetUpSettingsMenu(false);
                 break;
             }
             case BTN_B:
@@ -223,6 +223,7 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                 {
                     // Go back to the main menu
                     mainMenuSetUpTopMenu(false);
+                    mainMenu->shouldDraw = true;
                     return;
                 }
                 break;
