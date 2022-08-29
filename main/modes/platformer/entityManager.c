@@ -39,14 +39,21 @@ void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilema
 
 void loadSprites(entityManager_t * entityManager)
 {
-    loadWsg("sprite000.wsg", &entityManager->sprites[0]);
-    loadWsg("sprite001.wsg", &entityManager->sprites[1]);
-    loadWsg("sprite002.wsg", &entityManager->sprites[2]);
-    loadWsg("sprite003.wsg", &entityManager->sprites[3]);
-    loadWsg("sprite004.wsg", &entityManager->sprites[4]);
-    loadWsg("sprite008.wsg", &entityManager->sprites[5]);
-    loadWsg("tile064.wsg", &entityManager->sprites[6]);
-     loadWsg("sprite007.wsg", &entityManager->sprites[7]);
+    loadWsg("sprite000.wsg", &entityManager->sprites[SP_PLAYER_IDLE]);
+    loadWsg("sprite001.wsg", &entityManager->sprites[SP_PLAYER_WALK1]);
+    loadWsg("sprite002.wsg", &entityManager->sprites[SP_PLAYER_WALK2]);
+    loadWsg("sprite003.wsg", &entityManager->sprites[SP_PLAYER_WALK3]);
+    loadWsg("sprite004.wsg", &entityManager->sprites[SP_PLAYER_JUMP]);
+    loadWsg("sprite005.wsg", &entityManager->sprites[SP_PLAYER_SLIDE]);
+    loadWsg("sprite006.wsg", &entityManager->sprites[SP_PLAYER_HURT]);
+    loadWsg("sprite007.wsg", &entityManager->sprites[SP_PLAYER_CLIMB]);
+    loadWsg("sprite008.wsg", &entityManager->sprites[SP_PLAYER_WIN]);
+    loadWsg("sprite009.wsg", &entityManager->sprites[SP_ENEMY_BASIC]);
+    loadWsg("tile066.wsg", &entityManager->sprites[SP_HITBLOCK_CONTAINER]);
+    loadWsg("tile034.wsg", &entityManager->sprites[SP_HITBLOCK_BRICKS]);
+    loadWsg("sprite012.wsg", &entityManager->sprites[SP_DUSTBUNNY_IDLE]);
+    loadWsg("sprite013.wsg", &entityManager->sprites[SP_DUSTBUNNY_CHARGE]);
+    loadWsg("sprite014.wsg", &entityManager->sprites[SP_DUSTBUNNY_JUMP]);
 };
 
 void updateEntities(entityManager_t * entityManager)
@@ -193,7 +200,7 @@ entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->jumpPower = 0;
 
     entity->type = ENTITY_PLAYER;
-    entity->spriteIndex = 1;
+    entity->spriteIndex = SP_PLAYER_IDLE;
     entity->updateFunction = &updatePlayer;
     entity->collisionHandler = &playerCollisionHandler;
     entity->tileCollisionHandler = &playerTileCollisionHandler;
@@ -221,7 +228,7 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->gravity = 32;
 
     entity->type = ENTITY_TEST;
-    entity->spriteIndex = 5;
+    entity->spriteIndex = SP_ENEMY_BASIC;
     entity->updateFunction = &updateTestObject;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &enemyTileCollisionHandler;
@@ -349,7 +356,7 @@ entity_t* createHitBlock(entityManager_t * entityManager, uint16_t x, uint16_t y
     entity->gravity = 32;
 
     entity->type = ENTITY_TEST;
-    entity->spriteIndex = 6;
+    entity->spriteIndex = SP_HITBLOCK_CONTAINER;
     entity->animationTimer = 0;
     entity->updateFunction = &updateHitBlock;
     entity->collisionHandler = &dummyCollisionHandler;
