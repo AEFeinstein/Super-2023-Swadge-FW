@@ -86,7 +86,7 @@ void drawEntities(display_t * disp, entityManager_t * entityManager)
 
         if(currentEntity.active)
         {
-            drawWsg(disp, &entityManager->sprites[currentEntity.spriteIndex], (currentEntity.x >> SUBPIXEL_RESOLUTION) - 8 - entityManager->tilemap->mapOffsetX, (currentEntity.y >> SUBPIXEL_RESOLUTION)  - entityManager->tilemap->mapOffsetY - 8, currentEntity.spriteFlipHorizontal, false, 0);
+            drawWsg(disp, &entityManager->sprites[currentEntity.spriteIndex], (currentEntity.x >> SUBPIXEL_RESOLUTION) - 8 - entityManager->tilemap->mapOffsetX, (currentEntity.y >> SUBPIXEL_RESOLUTION)  - entityManager->tilemap->mapOffsetY - 8, currentEntity.spriteFlipHorizontal, currentEntity.spriteFlipVertical, 0);
         }
     }
 };
@@ -198,6 +198,7 @@ entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->gravity = 32;
     entity->falling = true;
     entity->jumpPower = 0;
+    entity->spriteFlipVertical = false;
 
     entity->type = ENTITY_PLAYER;
     entity->spriteIndex = SP_PLAYER_IDLE;
@@ -226,6 +227,7 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->yMaxSpeed = 132;
     entity->gravityEnabled = true;
     entity->gravity = 32;
+    entity->spriteFlipVertical = false;
 
     entity->type = ENTITY_TEST;
     entity->spriteIndex = SP_ENEMY_BASIC;
@@ -354,6 +356,8 @@ entity_t* createHitBlock(entityManager_t * entityManager, uint16_t x, uint16_t y
     entity->yMaxSpeed = 132;
     entity->gravityEnabled = true;
     entity->gravity = 32;
+
+    entity->spriteFlipVertical = false;
 
     entity->type = ENTITY_TEST;
     entity->spriteIndex = SP_HITBLOCK_CONTAINER;

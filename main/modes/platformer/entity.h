@@ -23,7 +23,8 @@ typedef enum {
     ENTITY_SCROLL_LOCK_UP,
     ENTITY_SCROLL_LOCK_DOWN,
     ENTITY_SCROLL_UNLOCK,
-    ENTITY_HIT_BLOCK
+    ENTITY_HIT_BLOCK,
+    ENTITY_DEAD
 } entityIndex_t;
 
 //==============================================================================
@@ -60,6 +61,7 @@ struct entity_t
 
     uint8_t spriteIndex;
     bool spriteFlipHorizontal;
+    bool spriteFlipVertical;
     uint8_t animationTimer;
 
     tilemap_t * tilemap;
@@ -117,5 +119,7 @@ void updateScrollLockRight(entity_t* self);
 void updateScrollLockUp(entity_t* self);
 void updateScrollLockDown(entity_t* self);
 void updateScrollUnlock(entity_t* self);
+
+void updateEntityDead(entity_t* self);
 
 #endif
