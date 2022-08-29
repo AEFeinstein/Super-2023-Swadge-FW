@@ -308,7 +308,7 @@ void destroyEntity(entity_t *self, bool respawn) {
 }
 
 void animatePlayer(entity_t * self){
-    if(self->spriteIndex == 7){
+    if(self->spriteIndex == SP_PLAYER_WIN){
         //Win pose has been set; don't change it!
         return;
     }
@@ -316,10 +316,10 @@ void animatePlayer(entity_t * self){
     if(self->falling){
         if(self->yspeed < 0) {
             //Jumping
-            self->spriteIndex = 4;
+            self->spriteIndex = SP_PLAYER_JUMP;
         } else {
             //Falling
-            self->spriteIndex = 1;
+            self->spriteIndex = SP_PLAYER_WALK1;
 
         }
     } else if(self->xspeed != 0) {
@@ -328,7 +328,7 @@ void animatePlayer(entity_t * self){
         self->spriteIndex = 1+((self->spriteIndex + 1) % 3);
     } else {
         //Standing
-        self->spriteIndex = 0;
+        self->spriteIndex = SP_PLAYER_IDLE;
     }
 }
 
@@ -406,31 +406,31 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
             break;
         case TILE_GOAL_100PTS:
             self->gameData->score += 100;
-            self->spriteIndex = 7;
+            self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
             self->gameData->changeState = ST_LEVEL_CLEAR;
             break;
         case TILE_GOAL_500PTS:
             self->gameData->score += 200;
-            self->spriteIndex = 7;
+            self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
             self->gameData->changeState = ST_LEVEL_CLEAR;
             break;
         case TILE_GOAL_1000PTS:
             self->gameData->score += 1000;
-            self->spriteIndex = 7;
+            self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
             self->gameData->changeState = ST_LEVEL_CLEAR;
             break;
         case TILE_GOAL_2000PTS:
             self->gameData->score += 2000;
-            self->spriteIndex = 7;
+            self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
             self->gameData->changeState = ST_LEVEL_CLEAR;
             break;
         case TILE_GOAL_5000PTS:
             self->gameData->score += 5000;
-            self->spriteIndex = 7;
+            self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
             self->gameData->changeState = ST_LEVEL_CLEAR;
             break;
