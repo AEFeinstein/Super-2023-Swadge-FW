@@ -54,6 +54,15 @@ void loadSprites(entityManager_t * entityManager)
     loadWsg("sprite012.wsg", &entityManager->sprites[SP_DUSTBUNNY_IDLE]);
     loadWsg("sprite013.wsg", &entityManager->sprites[SP_DUSTBUNNY_CHARGE]);
     loadWsg("sprite014.wsg", &entityManager->sprites[SP_DUSTBUNNY_JUMP]);
+    loadWsg("sprite015.wsg", &entityManager->sprites[SP_GAMING_1]);
+    loadWsg("sprite016.wsg", &entityManager->sprites[SP_GAMING_2]);
+    loadWsg("sprite017.wsg", &entityManager->sprites[SP_GAMING_3]);
+    loadWsg("sprite018.wsg", &entityManager->sprites[SP_MUSIC_1]);
+    loadWsg("sprite019.wsg", &entityManager->sprites[SP_MUSIC_2]);
+    loadWsg("sprite020.wsg", &entityManager->sprites[SP_MUSIC_3]);
+    loadWsg("sprite021.wsg", &entityManager->sprites[SP_WARP_1]);
+    loadWsg("sprite022.wsg", &entityManager->sprites[SP_WARP_2]);
+    loadWsg("sprite023.wsg", &entityManager->sprites[SP_WARP_3]);
 };
 
 void updateEntities(entityManager_t * entityManager)

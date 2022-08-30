@@ -35,7 +35,16 @@ typedef enum {
     SP_HITBLOCK_BRICKS,
     SP_DUSTBUNNY_IDLE,
     SP_DUSTBUNNY_CHARGE,
-    SP_DUSTBUNNY_JUMP
+    SP_DUSTBUNNY_JUMP,
+    SP_GAMING_1,
+    SP_GAMING_2,
+    SP_GAMING_3,
+    SP_MUSIC_1,
+    SP_MUSIC_2,
+    SP_MUSIC_3,
+    SP_WARP_1,
+    SP_WARP_2,
+    SP_WARP_3
 } spriteDef_t;
 
 #endif
