@@ -359,7 +359,7 @@ entity_t* createHitBlock(entityManager_t * entityManager, uint16_t x, uint16_t y
 
     entity->spriteFlipVertical = false;
 
-    entity->type = ENTITY_TEST;
+    entity->type = ENTITY_HIT_BLOCK;
     entity->spriteIndex = SP_HITBLOCK_CONTAINER;
     entity->animationTimer = 0;
     entity->updateFunction = &updateHitBlock;
