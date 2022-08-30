@@ -174,6 +174,12 @@ entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint
         case ENTITY_HIT_BLOCK:
             createdEntity = createHitBlock(entityManager, x, y);
             break;
+        case ENTITY_POWERUP:
+            createdEntity = createPowerUp(entityManager, x, y);
+            break;
+        case ENTITY_WARP:
+            createdEntity = createWarp(entityManager, x, y);
+            break;
         default:
             createdEntity = NULL;
     }
@@ -377,3 +383,63 @@ entity_t* createHitBlock(entityManager_t * entityManager, uint16_t x, uint16_t y
 
     return entity;
 }
+
+entity_t* createPowerUp(entityManager_t * entityManager, uint16_t x, uint16_t y){
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->xspeed = 0;
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 132;
+    entity->gravityEnabled = true;
+    entity->gravity = 32;
+
+    entity->spriteFlipVertical = false;
+
+    entity->type = ENTITY_POWERUP;
+    entity->spriteIndex = SP_GAMING_1;
+    entity->animationTimer = 0;
+    entity->updateFunction = &updatePowerUp;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+};
+
+entity_t* createWarp(entityManager_t * entityManager, uint16_t x, uint16_t y){
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->xspeed = 0;
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 132;
+    entity->gravityEnabled = true;
+    entity->gravity = 32;
+
+    entity->spriteFlipVertical = false;
+
+    entity->type = ENTITY_WARP;
+    entity->spriteIndex = SP_WARP_1;
+    entity->animationTimer = 0;
+    entity->updateFunction = &updateWarp;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+};

@@ -24,7 +24,9 @@ typedef enum {
     ENTITY_SCROLL_LOCK_DOWN,
     ENTITY_SCROLL_UNLOCK,
     ENTITY_HIT_BLOCK,
-    ENTITY_DEAD
+    ENTITY_DEAD,
+    ENTITY_POWERUP,
+    ENTITY_WARP
 } entityIndex_t;
 
 //==============================================================================
@@ -121,5 +123,8 @@ void updateScrollLockDown(entity_t* self);
 void updateScrollUnlock(entity_t* self);
 
 void updateEntityDead(entity_t* self);
+
+void updatePowerUp(entity_t* self);
+void updateWarp(entity_t* self);
 
 #endif

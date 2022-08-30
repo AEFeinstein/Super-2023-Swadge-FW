@@ -175,6 +175,15 @@ void updateHitBlock(entity_t *self)
                 buzzer_play_sfx(&sndCoin);
                 self->jumpPower = TILE_CONTAINER_2;
                 break;
+            case TILE_CTNR_POW1:
+                createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                self->jumpPower = TILE_CONTAINER_2;
+                break;
+            case TILE_WARP_0 ... TILE_WARP_F: ;
+                entity_t * createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity->jumpPower = aboveTile - TILE_WARP_0;
+                self->jumpPower = TILE_CONTAINER_2;
+                break;
             
             default:
                 break;
@@ -495,7 +504,8 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
 {
     switch (tileId)
     {
-    case TILE_CONTAINER_1 :;
+    case TILE_CONTAINER_1:
+    case TILE_BRICK_BLOCK: ;
         entity_t *hitBlock = createEntity(self->entityManager, ENTITY_HIT_BLOCK, (tx * TILE_SIZE) + HALF_TILE_SIZE, (ty * TILE_SIZE) + HALF_TILE_SIZE);
 
         if (hitBlock != NULL)
@@ -505,6 +515,9 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
             hitBlock->homeTileX = tx;
             hitBlock->homeTileY = ty;
             hitBlock->jumpPower = tileId;
+            if(tileId == TILE_BRICK_BLOCK){
+                hitBlock->spriteIndex = SP_HITBLOCK_BRICKS;
+            }
 
             switch (direction)
             {
@@ -690,5 +703,15 @@ void updateEntityDead(entity_t *self)
     self->x += self->xspeed;
     self->y += self->yspeed;
 
+    despawnWhenOffscreen(self);
+}
+
+void updatePowerUp(entity_t* self){
+    self->spriteIndex = SP_GAMING_1 + ((self->spriteIndex + 1) % 3);
+    despawnWhenOffscreen(self);
+}
+
+void updateWarp(entity_t* self){
+    self->spriteIndex = SP_WARP_1 + ((self->spriteIndex + 1) % 3);
     despawnWhenOffscreen(self);
 }
