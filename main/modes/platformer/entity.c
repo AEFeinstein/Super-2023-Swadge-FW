@@ -60,7 +60,7 @@ void initializeEntity(entity_t *self, entityManager_t *entityManager, tilemap_t 
 
 void updatePlayer(entity_t *self)
 {
-    if (self->gameData->btnState & BTN_A)
+    if (self->gameData->btnState & BTN_B)
     {
         self->xMaxSpeed = 132;
     }
@@ -107,9 +107,9 @@ void updatePlayer(entity_t *self)
         }
     }
 
-    if (self->gameData->btnState & BTN_B)
+    if (self->gameData->btnState & BTN_A)
     {
-        if (!self->falling && !(self->gameData->prevBtnState & BTN_B))
+        if (!self->falling && !(self->gameData->prevBtnState & BTN_A))
         {
             // initiate jump
             self->jumpPower = 180 + (abs(self->xspeed) >> 2);
