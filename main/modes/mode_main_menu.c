@@ -16,7 +16,7 @@
 
 #include "fighter_menu.h"
 #include "mode_gamepad.h"
-#include "mode_demo.h"
+#include "mode_colorchord.h"
 #include "mode_platformer.h"
 
 //==============================================================================
@@ -83,8 +83,9 @@ const char mainMenuSettings[] = "Settings";
 const char mainMenuBack[] = "Back";
 const char mainMenuSoundOn[] = "Sound: On";
 const char mainMenuSoundOff[] = "Sound: Off";
-char mainMenuBrightness[] = "Brightness: 1";
-char mainMenuMicVol[] = "Mic Volume: 1";
+char mainMenuTftBrightness[] = "TFT Brightness: 1";
+char mainMenuLedBrightness[] = "LED Brightness: 1";
+char mainMenuMicGain[] = "Mic Gain: 1";
 
 //==============================================================================
 // Functions
@@ -145,7 +146,89 @@ void mainMenuButtonCb(buttonEvt_t* evt)
 {
     if(evt->down)
     {
-        meleeMenuButton(mainMenu->menu, evt->button);
+        switch(evt->button)
+        {
+            case UP:
+            case DOWN:
+            case BTN_A:
+            case START:
+            case SELECT:
+            {
+                meleeMenuButton(mainMenu->menu, evt->button);
+                break;
+            }
+            case LEFT:
+            case RIGHT:
+            {
+                // If this is the settings menu
+                if(mainMenuSettings == mainMenu->menu->title)
+                {
+                    // Save the position
+                    mainMenu->settingsPos = mainMenu->menu->selectedRow;
+
+                    // Adjust the selected option
+                    if(mainMenuMicGain == mainMenu->menu->rows[mainMenu->menu->selectedRow])
+                    {
+                        if(LEFT == evt->button)
+                        {
+                            decMicGain();
+                        }
+                        else
+                        {
+                            incMicGain();
+                        }
+                    }
+                    else if(mainMenuSoundOn == mainMenu->menu->rows[mainMenu->menu->selectedRow])
+                    {
+                        // Sound is on, turn it off
+                        setIsMuted(true);
+                    }
+                    else if(mainMenuSoundOff == mainMenu->menu->rows[mainMenu->menu->selectedRow])
+                    {
+                        // Sound is off, turn it on
+                        setIsMuted(false);
+                    }
+                    else if(mainMenuTftBrightness == mainMenu->menu->rows[mainMenu->menu->selectedRow])
+                    {
+                        if(LEFT == evt->button)
+                        {
+                            decTftBrightness();
+                        }
+                        else
+                        {
+                            incTftBrightness();
+                        }
+                    }
+                    else if(mainMenuLedBrightness == mainMenu->menu->rows[mainMenu->menu->selectedRow])
+                    {
+                        if(LEFT == evt->button)
+                        {
+                            decLedBrightness();
+                        }
+                        else
+                        {
+                            incLedBrightness();
+                        }
+                    }
+                    // Redraw menu options
+                    mainMenu->shouldDraw = true;
+                    mainMenuSetUpSettingsMenu(false);
+                }
+                break;
+            }
+            case BTN_B:
+            {
+                // If not on the main menu
+                if(mainMenuTitle != mainMenu->menu->title)
+                {
+                    // Go back to the main menu
+                    mainMenuSetUpTopMenu(false);
+                    mainMenu->shouldDraw = true;
+                    return;
+                }
+                break;
+            }
+        }
         mainMenu->shouldDraw = true;
     }
 }
@@ -253,7 +336,7 @@ void mainMenuSetUpToolsMenu(bool resetPos)
     // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuTools, mainMenuToolsCb);
     addRowToMeleeMenu(mainMenu->menu, modeGamepad.modeName);
-    addRowToMeleeMenu(mainMenu->menu, modeDemo.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeColorchord.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -279,10 +362,10 @@ void mainMenuToolsCb(const char* opt)
         // Start gamepad
         switchToSwadgeMode(&modeGamepad);
     }
-    else if(modeDemo.modeName == opt)
+    else if(modeColorchord.modeName == opt)
     {
-        // Start demo
-        switchToSwadgeMode(&modeDemo);
+        // Start Colorchord
+        switchToSwadgeMode(&modeColorchord);
     }
     else if(mainMenuBack == opt)
     {
@@ -308,17 +391,21 @@ void mainMenuSetUpSettingsMenu(bool resetPos)
         soundOpt = mainMenuSoundOn;
     }
 
-    // Print the brightness option
-    snprintf(mainMenuBrightness, sizeof(mainMenuBrightness), "Brightness: %d", getBrightness());
+    // Print the tftBrightness option
+    snprintf(mainMenuTftBrightness, sizeof(mainMenuTftBrightness), "TFT Brightness: %d", getTftBrightness());
 
-    // Print the brightness option
-    snprintf(mainMenuMicVol, sizeof(mainMenuMicVol), "Mic Volume: %d", getMicVolume());
+    // Print the ledBrightness option
+    snprintf(mainMenuLedBrightness, sizeof(mainMenuLedBrightness), "LED Brightness: %d", getLedBrightness());
+
+    // Print the mic gain option
+    snprintf(mainMenuMicGain, sizeof(mainMenuMicGain), "Mic Gain: %d", getMicGain());
 
     // Reset the menu
     resetMeleeMenu(mainMenu->menu, mainMenuSettings, mainMenuSettingsCb);
     addRowToMeleeMenu(mainMenu->menu, soundOpt);
-    addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuBrightness);
-    addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuMicVol);
+    addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuMicGain);
+    addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuTftBrightness);
+    addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuLedBrightness);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -349,15 +436,17 @@ void mainMenuSettingsCb(const char* opt)
         // Sound is on, turn it off
         setIsMuted(true);
     }
-    else if (mainMenuBrightness == opt)
+    else if (mainMenuTftBrightness == opt)
     {
-        uint8_t newBrightness = (getBrightness() + 1) % 10;
-        setBrightness(newBrightness);
+        incTftBrightness();
     }
-    else if (mainMenuMicVol == opt)
+    else if (mainMenuLedBrightness == opt)
     {
-        uint8_t newVol = (getMicVolume() + 1) % 10;
-        setMicVolume(newVol);
+        incLedBrightness();
+    }
+    else if (mainMenuMicGain == opt)
+    {
+        incMicGain();
     }
     else if(mainMenuBack == opt)
     {

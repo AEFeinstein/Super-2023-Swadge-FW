@@ -527,6 +527,9 @@ static const song_t do_re_mi =
     .shouldLoop = false
 };
 
+// Play background music. This probably should loop
+buzzer_play_bgm(&do_re_mi);
+// Play a sound effect. This will interrupt bgm, but bgm will keep correct time in the background
 buzzer_play_sfx(&do_re_mi);
 ```
 

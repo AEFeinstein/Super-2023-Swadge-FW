@@ -26,7 +26,13 @@
 #include "ssd1306.h"
 #include "hdw-tft.h"
 
-#include "QMA6981.h"
+#define QMA7981
+
+#if defined(QMA6981)
+    #include "QMA6981.h"
+#elif defined(QMA7981)
+    #include "qma7981.h"
+#endif
 
 #include "musical_buzzer.h"
 #include "hdw-mic.h"
@@ -47,7 +53,6 @@
 #include "advanced_usb_control.h"
 
 #include "mode_main_menu.h"
-#include "mode_demo.h"
 #include "fighter_menu.h"
 #include "mode_gamepad.h"
 
@@ -322,7 +327,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     TOUCH_PAD_NUM13,  // GPIO_NUM_13
                     TOUCH_PAD_NUM14); // GPIO_NUM_14
 
-    initLeds(GPIO_NUM_39, RMT_CHANNEL_0, NUM_LEDS);
+    initLeds(GPIO_NUM_39, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
     buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, getIsMuted());
 
 #if !defined(EMU)
@@ -351,7 +356,11 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             GPIO_NUM_17, // SDA
             GPIO_NUM_18, // SCL
             GPIO_PULLUP_DISABLE, 1000000);
+#if defined(QMA6981)
         accelInitialized = QMA6981_setup();
+#elif defined(QMA7981)
+        accelInitialized = (ESP_OK == qma7981_init());
+#endif
     }
 
 #ifdef OLED_ENABLED
@@ -369,10 +378,6 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             GPIO_NUM_34, // cs
             GPIO_NUM_38, // rst
             GPIO_NUM_7); // backlight (dummy GPIO for now)
-
-    /* Initialize USB peripheral */
-    tinyusb_config_t tusb_cfg = {};
-    tinyusb_driver_install(&tusb_cfg);
 
     /* Initialize Wifi peripheral */
 #if !defined(EMU)
@@ -405,7 +410,11 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         if(accelInitialized && NULL != cSwadgeMode->fnAccelerometerCallback)
         {
             accel_t accel = {0};
+#if defined(QMA6981)
             QMA6981_poll(&accel);
+#elif defined(QMA7981)
+            qma7981_get_acce_int(&accel.x, &accel.y, &accel.z);
+#endif
             cSwadgeMode->fnAccelerometerCallback(&accel);
         }
 
@@ -438,7 +447,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         // Process ADC samples
         if(NULL != cSwadgeMode->fnAudioCallback)
         {
-            uint8_t micAmp = getMicAmplitude();
+            uint16_t micAmp = getMicAmplitude();
 
             uint16_t adcSamps[BYTES_PER_READ / sizeof(adc_digi_output_data_t)];
             uint32_t sampleCnt = 0;
