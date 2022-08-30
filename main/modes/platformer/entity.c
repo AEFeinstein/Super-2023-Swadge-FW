@@ -166,6 +166,20 @@ void updateHitBlock(entity_t *self)
     }
     if (self->animationTimer > 4)
     {
+        uint8_t aboveTile = self->tilemap->map[(self->homeTileY - 1) * self->tilemap->mapWidth + self->homeTileX];
+        switch (aboveTile)
+        {
+            case TILE_CTNR_COIN:
+                self->gameData->coins++;
+                self->gameData->score += 50;
+                buzzer_play_sfx(&sndCoin);
+                self->jumpPower = TILE_CONTAINER_2;
+                break;
+            
+            default:
+                break;
+        }
+        
         self->tilemap->map[self->homeTileY * self->tilemap->mapWidth + self->homeTileX] = self->jumpPower;
         destroyEntity(self, false);
     }
@@ -481,7 +495,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
 {
     switch (tileId)
     {
-    case TILE_CONTAINER_1 ... TILE_CONTAINER_3:;
+    case TILE_CONTAINER_1 :;
         entity_t *hitBlock = createEntity(self->entityManager, ENTITY_HIT_BLOCK, (tx * TILE_SIZE) + HALF_TILE_SIZE, (ty * TILE_SIZE) + HALF_TILE_SIZE);
 
         if (hitBlock != NULL)
