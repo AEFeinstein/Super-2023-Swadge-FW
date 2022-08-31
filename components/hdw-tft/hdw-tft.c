@@ -16,6 +16,7 @@
 #include "driver/gpio.h"
 #include "hdw-tft.h"
 #include "esp_lcd_panel_interface.h"
+#include "driver/ledc.h"
 
 //==============================================================================
 // Colors
@@ -253,10 +254,6 @@ const uint16_t paletteColors[] =
  */
 #define PARALLEL_LINES 16
 
-/* Backlight levels */
-#define LCD_BK_LIGHT_ON_LEVEL  1
-#define LCD_BK_LIGHT_OFF_LEVEL !LCD_BK_LIGHT_ON_LEVEL
-
 /* Bit number used to represent command and parameter */
 #define LCD_CMD_BITS           8
 #define LCD_PARAM_BITS         8
@@ -338,6 +335,19 @@ static uint16_t *s_lines[2] = {0};
 //==============================================================================
 
 /**
+ * @brief Set TFT Backlight brightness.
+ *
+ * @param intensity    Sets the brightness 0-255
+ */
+void setTFTBacklight(int intensity)
+{
+    assert(intensity>=0 && intensity <=255);
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, 1, 255-intensity);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, 1);
+}
+
+
+/**
  * @brief Initialize a TFT display and return it through a pointer arg
  * 
  * @param disp    The display to initialize
@@ -353,6 +363,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
             gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
             gpio_num_t backlight)
 {
+#if defined(CONFIG_SWADGE_DEVKIT)
     gpio_config_t bk_gpio_config =
     {
         .mode = GPIO_MODE_OUTPUT,
@@ -360,6 +371,25 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     };
     // Initialize the GPIO of backlight
     ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
+#elif defined(CONFIG_SWADGE_PROTOTYPE)
+    ledc_timer_config_t ledc_config_timer =
+    {
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .duty_resolution = LEDC_TIMER_8_BIT,
+        .freq_hz = 50000,
+        .timer_num = 0,
+        .clk_cfg = LEDC_AUTO_CLK,
+    };
+    ESP_ERROR_CHECK(ledc_timer_config(&ledc_config_timer));
+    ledc_channel_config_t ledc_config_backlight =
+    {
+        .gpio_num = backlight,
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel = 1,  //Not sure if 0 is used.
+        .timer_sel = 0,
+        .duty = 255, //Disable to start.
+    };
+#endif
 
     spi_bus_config_t buscfg =
     {
@@ -405,10 +435,6 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
 #error "Please pick a screen size"
 #endif
 
-    // Turn off backlight to avoid unpredictable display on the LCD screen while initializing
-    // the LCD panel driver. (Different LCD screens may need different levels)
-    ESP_ERROR_CHECK(gpio_set_level(backlight, LCD_BK_LIGHT_OFF_LEVEL));
-
     // Reset the display
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
 
@@ -416,7 +442,8 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
 
     // Turn on backlight (Different LCD screens may need different levels)
-    ESP_ERROR_CHECK(gpio_set_level(backlight, LCD_BK_LIGHT_ON_LEVEL));
+    ESP_ERROR_CHECK(ledc_channel_config(&ledc_config_backlight));
+    setTFTBacklight(CONFIG_TFT_DEFAULT_BRIGHTNESS);
 
     // Allocate memory for the pixel buffers
     for (int i = 0; i < 2; i++)
@@ -579,3 +606,4 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
         // }
     }
 }
+
