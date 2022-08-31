@@ -448,7 +448,11 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
 
 #if defined(CONFIG_GC9307_240x280)
     esp_lcd_panel_invert_color(panel_handle, false);
+#if defined(CONFIG_SWADGE_DEVKIT)
     esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[]) {0x28}, 1 ); //MX, MY, RGB mode  (MADCTL)
+#elif defined(CONFIG_SWADGE_PROTOTYPE)
+    esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[]) {0xE8}, 1 ); //MX, MY, RGB mode  (MADCTL)
+#endif
     esp_lcd_panel_io_tx_param(io, 0x35, (uint8_t[]) {0x00}, 1 ); // "tear effect" testing sync pin.
 #elif defined(CONFIG_ST7735_128x160)
     esp_lcd_panel_io_tx_param(io, 0xB1, (uint8_t[]) { 0x05, 0x3C, 0x3C }, 3 );
