@@ -342,11 +342,16 @@ static uint16_t *s_lines[2] = {0};
  * @brief Set TFT Backlight brightness.
  *
  * @param intensity    Sets the brightness 0-255
+ *
+ * @return value is 0 if OK nonzero if error.
  */
-void setTFTBacklight(uint8_t intensity)
+int setTFTBacklight(uint8_t intensity)
 {
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, 1, 255-intensity);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, 1);
+    esp_err_t e;
+    if(intensity>CONFIG_TFT_MAX_BRIGHTNESS) return ESP_ERR_INVALID_ARG;
+    e = ledc_set_duty(LEDC_LOW_SPEED_MODE, 1, 255-intensity);
+    if(e) return e;
+    return ledc_update_duty(LEDC_LOW_SPEED_MODE, 1);
 }
 
 
