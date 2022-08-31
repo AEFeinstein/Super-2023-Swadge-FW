@@ -15,6 +15,9 @@
 #include "display.h"
 #include "emu_display.h"
 
+#include "hdw-tft.h"
+#include "ssd1306.h"
+
 //==============================================================================
 // Palette
 //==============================================================================
@@ -417,6 +420,16 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
     disp->setPx = emuSetPxTft;
     disp->clearPx = emuClearPxTft;
     disp->drawDisplay = emuDrawDisplayTft;
+}
+
+/**
+ * @brief TODO
+ * 
+ * @param intensity 
+ */
+void setTFTBacklight(uint8_t intensity UNUSED)
+{
+	WARN_UNIMPLEMENTED();
 }
 
 /**

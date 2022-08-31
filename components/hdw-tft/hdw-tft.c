@@ -343,9 +343,8 @@ static uint16_t *s_lines[2] = {0};
  *
  * @param intensity    Sets the brightness 0-255
  */
-void setTFTBacklight(int intensity)
+void setTFTBacklight(uint8_t intensity)
 {
-    assert(intensity>=0 && intensity <=255);
     ledc_set_duty(LEDC_LOW_SPEED_MODE, 1, 255-intensity);
     ledc_update_duty(LEDC_LOW_SPEED_MODE, 1);
 }
