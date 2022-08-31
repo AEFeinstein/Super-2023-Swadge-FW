@@ -53,6 +53,7 @@
 #include "advanced_usb_control.h"
 
 #include "mode_main_menu.h"
+#include "jumper_menu.h"
 #include "fighter_menu.h"
 #include "mode_gamepad.h"
 
@@ -75,7 +76,7 @@
 // Make sure one, and only one, build config is enabled
 #if (((defined(CONFIG_SWADGE_DEVKIT)    ? 1 : 0) + \
       (defined(CONFIG_SWADGE_PROTOTYPE) ? 1 : 0)) != 1)
-    #error "Please define CONFIG_SWADGE_DEVKIT or CONFIG_SWADGE_PROTOTYPE"
+#error "Please define CONFIG_SWADGE_DEVKIT or CONFIG_SWADGE_PROTOTYPE"
 #endif
 
 //==============================================================================

@@ -426,10 +426,12 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
  * @brief TODO
  * 
  * @param intensity 
+ * @return value is 0 if OK nonzero if error.
  */
-void setTFTBacklight(uint8_t intensity UNUSED)
+int setTFTBacklight(uint8_t intensity UNUSED)
 {
 	WARN_UNIMPLEMENTED();
+    return 0;
 }
 
 /**
