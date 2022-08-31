@@ -4,7 +4,8 @@
 #include "swadgeMode.h"
 #include "aabb_utils.h"
 
-typedef enum{
+typedef enum
+{
     BLOCK_STANDARD = 0,
     BLOCK_STANDARDLANDED = 1,
     BLOCK_PLAYERLANDED = 2,
@@ -12,7 +13,8 @@ typedef enum{
     BLOCK_WIN = 4,
 } jumperBlockType_t;
 
-typedef enum{
+typedef enum
+{
     JUMPER_COUNTDOWN,
     JUMPER_GAMING,
     JUMPER_DEATH,
@@ -29,7 +31,7 @@ typedef enum
     CHARACTER_DYING,
     CHARACTER_DEAD,
     CHARACTER_NONEXISTING
-}jumperCharacterState_t;
+} jumperCharacterState_t;
 
 
 typedef struct
@@ -38,7 +40,7 @@ typedef struct
     uint64_t decideTime;
 } jumperAI_t;
 
-typedef struct 
+typedef struct
 {
     wsg_t frames[8];
     uint8_t frameIndex;
@@ -56,14 +58,14 @@ typedef struct
 
     bool flipped;
 
-    uint32_t btnState;    
+    uint32_t btnState;
     bool jumpReady;
     bool jumping;
     uint64_t jumpTime;
     int32_t respawnTime;
     jumperCharacterState_t state;
     jumperAI_t intelligence;
-}jumperCharacter_t;
+} jumperCharacter_t;
 
 
 typedef struct
@@ -91,7 +93,7 @@ typedef struct
     font_t* promptFont;
     jumperStage_t* scene;
     bool controlsEnabled;
-    
+
     uint64_t jumperJumpTime;
     uint32_t highScore;
 

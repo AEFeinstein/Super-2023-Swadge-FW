@@ -27,7 +27,7 @@ typedef struct
     display_t* disp;
     jumperScreen_t screen;
     bool menuChanged;
-    
+
 } jumperMenu_t;
 //==============================================================================
 // Function Prototypes
@@ -46,7 +46,8 @@ void jumperMainMenuCb(const char* opt);
 // Variables
 //==============================================================================
 
-swadgeMode modeJumper = {
+swadgeMode modeJumper =
+{
     .modeName = "Jumper",
     .fnEnterMode = jumperEnterMode,
     .fnExitMode = jumperExitMode,
@@ -72,9 +73,9 @@ jumperMenu_t* jm;
 //==============================================================================
 /**
  * @brief Enter the jumper mode by displaying the top level menu
- * 
+ *
  * @param disp The display to draw to
- * 
+ *
  */
 void jumperEnterMode(display_t* disp)
 {
@@ -90,7 +91,7 @@ void jumperEnterMode(display_t* disp)
     setJumperMainMenu();
 
     jm->screen = JUMPER_MENU;
-    
+
 }
 
 void jumperExitMode(void)
@@ -105,7 +106,7 @@ void jumperExitMode(void)
 
 /**
  * Call the appropriate main loop function for the screen being displayed
- * 
+ *
  * @param elapsedUd Time.deltaTime
  */
 void jumperMainLoop(int64_t elapsedUs)
@@ -126,13 +127,13 @@ void jumperMainLoop(int64_t elapsedUs)
             jumperGameLoop(elapsedUs);
             break;
         }
-        //No wifi mode stuff
+            //No wifi mode stuff
     }
 }
 
 /**
  * @brief Call the appropriate button functions for the screen being displayed
- * 
+ *
  * @param evt
  */
 void jumperButtonCb(buttonEvt_t* evt)
@@ -154,7 +155,7 @@ void jumperButtonCb(buttonEvt_t* evt)
             jumperGameButtonCb(evt);
             break;
         }
-        //No wifi mode stuff
+            //No wifi mode stuff
     }
 }
 
@@ -162,7 +163,7 @@ void jumperButtonCb(buttonEvt_t* evt)
 /////////////////////////
 
 /**
- * @brief Sets up the top level menu for Jumper, including callback 
+ * @brief Sets up the top level menu for Jumper, including callback
  */
 void setJumperMainMenu(void)
 {
