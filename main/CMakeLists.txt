@@ -16,6 +16,11 @@ idf_component_register(
         "modes/mode_gamepad.c"
         "modes/mode_main_menu.c"
         "modes/mode_colorchord.c"
+        "modes/platformer/mode_platformer.c"
+        "modes/platformer/entity.c"
+        "modes/platformer/entityManager.c"
+        "modes/platformer/tilemap.c"
+        "gameData.c"
         "utils/linked_list.c"
         "p2pConnection.c"
         "swadge_esp32.c"
@@ -31,6 +36,7 @@ idf_component_register(
         "display"
         "modes"
         "modes/fighter"
+        "modes/platformer"
         "modes/jumper"
         "utils")
 
