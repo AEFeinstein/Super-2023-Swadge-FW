@@ -27,5 +27,10 @@ menu "TFT Configuration"
 		prompt "Select TFT Default Brigthness (0..255)"
 		default 200
 
+	config TFT_MAX_BRIGHTNESS
+		int
+		prompt "Selects the maximum safe brigthness for this paticular swadge"
+		default 200
+
 endmenu
 
