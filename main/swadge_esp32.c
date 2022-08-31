@@ -76,7 +76,7 @@
 // Make sure one, and only one, build config is enabled
 #if (((defined(CONFIG_SWADGE_DEVKIT)    ? 1 : 0) + \
       (defined(CONFIG_SWADGE_PROTOTYPE) ? 1 : 0)) != 1)
-    #error "Please define CONFIG_SWADGE_DEVKIT or CONFIG_SWADGE_PROTOTYPE"
+#error "Please define CONFIG_SWADGE_DEVKIT or CONFIG_SWADGE_PROTOTYPE"
 #endif
 
 //==============================================================================
