@@ -11,6 +11,8 @@ idf_component_register(
         "modes/fighter/mode_fighter.c"
         "modes/fighter/fighter_json.c"
         "modes/fighter/fighter_menu.c"
+        "modes/jumper/jumper_menu.c"
+        "modes/jumper/mode_jumper.c"
         "modes/mode_gamepad.c"
         "modes/mode_main_menu.c"
         "modes/mode_colorchord.c"
@@ -35,6 +37,7 @@ idf_component_register(
         "modes"
         "modes/fighter"
         "modes/platformer"
+        "modes/jumper"
         "utils")
 
 function(spiffs_file_preprocessor)
