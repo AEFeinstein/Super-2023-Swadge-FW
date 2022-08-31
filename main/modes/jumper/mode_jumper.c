@@ -11,7 +11,6 @@
 #include "esp_timer.h"
 #include "esp_random.h"
 
-#include "mode_main_menu.h"
 #include "linked_list.h"
 #include "led_util.h"
 #include "aabb_utils.h"
@@ -333,9 +332,9 @@ void jumperGameLoop(int64_t elapsedUs)
             if (j->scene->seconds < 0)
             {
                 //Quit game;
-                ESP_LOGI("JUM", "Trying to quit :(");
-                switchToSwadgeMode(&modeMainMenu);
-
+                setJumperMainMenu();
+                jumperExitGame();
+                return; // variables free()'d, so return
             }
             break;
         case JUMPER_DEATH:

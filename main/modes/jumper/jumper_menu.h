@@ -5,5 +5,6 @@
 
 extern swadgeMode modeJumper;
 
+void setJumperMainMenu(void);
 
 #endif

@@ -10,6 +10,8 @@
 
 #include "jumper_menu.h"
 #include "mode_jumper.h"
+#include "mode_main_menu.h"
+
 //==============================================================================
 // Enums & Structs
 //==============================================================================
@@ -39,7 +41,6 @@ void jumperExitMode(void);
 void jumperMainLoop(int64_t elapsedUs);
 void jumperButtonCb(buttonEvt_t* evt);
 
-void setJumperMainMenu(void);
 void jumperMainMenuCb(const char* opt);
 
 //==============================================================================
@@ -186,8 +187,7 @@ void jumperMainMenuCb(const char* opt)
 
     if (opt == str_exit)
     {
-        ESP_LOGI("FTR", "Implement exit");
-        //Clear all things jumper
-        switchToSwadgeMode(0);
+        // Exit to main menu
+        switchToSwadgeMode(&modeMainMenu);
     }
 }
