@@ -51,15 +51,7 @@ void drawJumperHud(display_t* d, font_t* prompt, font_t* font);
 // Variables
 //==============================================================================
 
-uint64_t jumperJumpTime = 500000;
-uint8_t randomIndex = 0;
-uint64_t highScore = 5000;
-
 static jumperGame_t* j = NULL;
-
-jumperCharacter_t* player = NULL;
-jumperCharacter_t* evilDonut = NULL;
-jumperCharacter_t* blump = NULL;
 
 static const song_t jumpDeathTune = 
 {
@@ -170,32 +162,36 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
     loadWsg("block_0a.wsg",&j->block[6]);
     loadWsg("block_0a.wsg",&j->block[7]);
 
-    player = calloc(1, sizeof(jumperCharacter_t));
+    j->player = calloc(1, sizeof(jumperCharacter_t));
     
-    loadWsg("ki0.wsg", &player->frames[0]);
-    loadWsg("ki1.wsg", &player->frames[1]);
-    loadWsg("kd0.wsg", &player->frames[2]);
-    loadWsg("kj0.wsg", &player->frames[3]);
-    loadWsg("kk0.wsg", &player->frames[4]);
-    loadWsg("kk1.wsg", &player->frames[5]);
-    loadWsg("kk2.wsg", &player->frames[6]);
-    loadWsg("kk3.wsg", &player->frames[7]);
+    loadWsg("ki0.wsg", &j->player->frames[0]);
+    loadWsg("ki1.wsg", &j->player->frames[1]);
+    loadWsg("kd0.wsg", &j->player->frames[2]);
+    loadWsg("kj0.wsg", &j->player->frames[3]);
+    loadWsg("kk0.wsg", &j->player->frames[4]);
+    loadWsg("kk1.wsg", &j->player->frames[5]);
+    loadWsg("kk2.wsg", &j->player->frames[6]);
+    loadWsg("kk3.wsg", &j->player->frames[7]);
 
-    evilDonut = calloc(1, sizeof(jumperCharacter_t));
-    loadWsg("edi0.wsg", &evilDonut->frames[0]);
-    loadWsg("edi1.wsg", &evilDonut->frames[1]);
-    loadWsg("edd0.wsg", &evilDonut->frames[2]);
-    loadWsg("edj0.wsg", &evilDonut->frames[3]);
-    loadWsg("edi0.wsg", &evilDonut->frames[4]);
+    j->evilDonut = calloc(1, sizeof(jumperCharacter_t));
+    loadWsg("edi0.wsg", &j->evilDonut->frames[0]);
+    loadWsg("edi1.wsg", &j->evilDonut->frames[1]);
+    loadWsg("edd0.wsg", &j->evilDonut->frames[2]);
+    loadWsg("edj0.wsg", &j->evilDonut->frames[3]);
+    loadWsg("edi0.wsg", &j->evilDonut->frames[4]);
 
     
-    blump = calloc(1, sizeof(jumperCharacter_t));
-    loadWsg("blmpi0.wsg", &blump->frames[0]);
-    loadWsg("blmpi1.wsg", &blump->frames[1]);
-    loadWsg("blmpi2.wsg", &blump->frames[2]);
-    loadWsg("blmpi3.wsg", &blump->frames[3]);
-    loadWsg("blmpd0.wsg", &blump->frames[4]);
-    loadWsg("blmpj0.wsg", &blump->frames[5]);
+    j->blump = calloc(1, sizeof(jumperCharacter_t));
+    loadWsg("blmpi0.wsg", &j->blump->frames[0]);
+    loadWsg("blmpi1.wsg", &j->blump->frames[1]);
+    loadWsg("blmpi2.wsg", &j->blump->frames[2]);
+    loadWsg("blmpi3.wsg", &j->blump->frames[3]);
+    loadWsg("blmpd0.wsg", &j->blump->frames[4]);
+    loadWsg("blmpj0.wsg", &j->blump->frames[5]);
+
+    j->jumperJumpTime = 500000;
+    j->randomIndex = 0;
+    j->highScore = 5000;
     
     //Setup LEDS?
 
@@ -228,61 +224,65 @@ void jumperSetupState(uint8_t stageIndex)
 void jumperResetPlayer()
 {
     j->scene->combo = 1;
-    player->state = CHARACTER_IDLE;
-    player->x = j->scene->blockOffset_x + rowOffset[0] + 5;
-    player->sx = j->scene->blockOffset_x + rowOffset[0] + 5;
-    player->dx = j->scene->blockOffset_x + rowOffset[0] + 5;
-    player->y = j->scene->blockOffset_y;
-    player->sy = j->scene->blockOffset_y;
-    player->dy = j->scene->blockOffset_y;
-    player->frameIndex = 0;
-    player->block = 0;
-    player->jumpReady = true;  
-    player->jumping  = false;
-    player->flipped = false;
+    j->player->state = CHARACTER_IDLE;
+    j->player->x = j->scene->blockOffset_x + rowOffset[0] + 5;
+    j->player->sx = j->scene->blockOffset_x + rowOffset[0] + 5;
+    j->player->dx = j->scene->blockOffset_x + rowOffset[0] + 5;
+    j->player->y = j->scene->blockOffset_y;
+    j->player->sy = j->scene->blockOffset_y;
+    j->player->dy = j->scene->blockOffset_y;
+    j->player->frameIndex = 0;
+    j->player->block = 0;
+    j->player->jumpReady = true;  
+    j->player->jumping  = false;
+    j->player->flipped = false;
 
 
 }
 
 void jumperRemoveEnemies()
 {
-    evilDonut->state = CHARACTER_NONEXISTING;
-    evilDonut->x = j->scene->blockOffset_x + rowOffset[0] + 5;
-    evilDonut->sx = j->scene->blockOffset_x + rowOffset[0] + 5;
-    evilDonut->dx = j->scene->blockOffset_x + rowOffset[0] + 5;
-    evilDonut->y = 0;
-    evilDonut->sy = 0;
-    evilDonut->dy = j->scene->blockOffset_y;
-    evilDonut->frameIndex = 0;
-    evilDonut->block = 0;
-    evilDonut->dBlock = 0;
-    evilDonut->respawnTime = 8 * TO_SECONDS;
-    evilDonut->flipped = false;
-    evilDonut->intelligence.decideTime = 0;
-    evilDonut->jumpTime = 0;
+    j->evilDonut->state = CHARACTER_NONEXISTING;
+    j->evilDonut->x = j->scene->blockOffset_x + rowOffset[0] + 5;
+    j->evilDonut->sx = j->scene->blockOffset_x + rowOffset[0] + 5;
+    j->evilDonut->dx = j->scene->blockOffset_x + rowOffset[0] + 5;
+    j->evilDonut->y = 0;
+    j->evilDonut->sy = 0;
+    j->evilDonut->dy = j->scene->blockOffset_y;
+    j->evilDonut->frameIndex = 0;
+    j->evilDonut->block = 0;
+    j->evilDonut->dBlock = 0;
+    j->evilDonut->respawnTime = 8 * TO_SECONDS;
+    j->evilDonut->flipped = false;
+    j->evilDonut->intelligence.decideTime = 0;
+    j->evilDonut->jumpTime = 0;
 
-    blump->state = CHARACTER_NONEXISTING;
-    blump->x = j->scene->blockOffset_x + rowOffset[0] + 5;
-    blump->sx = j->scene->blockOffset_x + rowOffset[0] + 5;
-    blump->dx = j->scene->blockOffset_x + rowOffset[0] + 5;
-    blump->y = 0;
-    blump->sy = 0;
-    blump->dy = j->scene->blockOffset_y;
-    blump->frameIndex = 0;
-    blump->block = 0;
-    blump->dBlock = 0;
-    blump->respawnTime = 4 * TO_SECONDS;
-    blump->flipped = false;
-    blump->intelligence.decideTime = 0;
-    blump->jumpTime = 0;
+    j->blump->state = CHARACTER_NONEXISTING;
+    j->blump->x = j->scene->blockOffset_x + rowOffset[0] + 5;
+    j->blump->sx = j->scene->blockOffset_x + rowOffset[0] + 5;
+    j->blump->dx = j->scene->blockOffset_x + rowOffset[0] + 5;
+    j->blump->y = 0;
+    j->blump->sy = 0;
+    j->blump->dy = j->scene->blockOffset_y;
+    j->blump->frameIndex = 0;
+    j->blump->block = 0;
+    j->blump->dBlock = 0;
+    j->blump->respawnTime = 4 * TO_SECONDS;
+    j->blump->flipped = false;
+    j->blump->intelligence.decideTime = 0;
+    j->blump->jumpTime = 0;
 
-    evilDonut->intelligence.resetTime = j->scene->level < 9 ? aiResponseTime[j->scene->level] :  aiResponseTime[9];
-    blump->intelligence.resetTime = .7; //Magic number
+    j->evilDonut->intelligence.resetTime = j->scene->level < 9 ? aiResponseTime[j->scene->level] :  aiResponseTime[9];
+    j->blump->intelligence.resetTime = .7; //Magic number
 }
 
 
 void jumperGameLoop(int64_t elapsedUs)
 {
+    jumperCharacter_t * player = j->player;
+    jumperCharacter_t * evilDonut = j->evilDonut;
+    jumperCharacter_t * blump = j->blump;
+
     j->scene->time -= elapsedUs;
     j->scene->seconds = (j->scene->time / TO_SECONDS);
     switch(j->currentPhase)
@@ -395,7 +395,7 @@ void jumperGameLoop(int64_t elapsedUs)
             player->jumping = true;
 
             player->jumpTime += elapsedUs;
-            if (player->jumpTime >= jumperJumpTime)
+            if (player->jumpTime >= j->jumperJumpTime)
             {
                 player->jumpTime = 0;
                 player->state = CHARACTER_LANDING;
@@ -405,7 +405,7 @@ void jumperGameLoop(int64_t elapsedUs)
             }
             else{
                 //Player Lerp
-                float time = (player->jumpTime +.001)/(jumperJumpTime + .001);
+                float time = (player->jumpTime +.001)/(j->jumperJumpTime + .001);
                 int per = time * 10;
                 int offset[] = {0, 3, 5, 9, 11, 15, 11, 9, 5, 3, 0};
                 player->x = player->sx + (player->dx - player->sx) * time;
@@ -426,9 +426,9 @@ void jumperGameLoop(int64_t elapsedUs)
                 j->scene->score = j->scene->score + (10 * j->scene->combo);
                 j->scene->combo++;
 
-                if (j->scene->score > highScore)
+                if (j->scene->score > j->highScore)
                 {
-                    highScore = j->scene->score;
+                    j->highScore = j->scene->score;
                 }
             }
             else if (j->scene->blocks[player->block] == BLOCK_COMPLETE)
@@ -518,8 +518,8 @@ void jumperGameLoop(int64_t elapsedUs)
         }
     }
 
-    randomIndex++;
-    randomIndex %= 12;
+    j->randomIndex++;
+    j->randomIndex %= 12;
 
     drawJumperScene(j->d);
 
@@ -536,13 +536,14 @@ void jumperCheckLevel()
     buzzer_play_bgm(&jumpWinTune);
     j->currentPhase = JUMPER_WINSTAGE;
     j->controlsEnabled = false;
-    player->jumpReady = false;   
+    j->player->jumpReady = false;   
     j->scene->time = 5 * TO_SECONDS;
 
 }
 
 void jumperDoBlump(int64_t elapsedUs)
 {
+    jumperCharacter_t * blump = j->blump;
 
     blump->frameTime += elapsedUs;
     switch (blump->state)
@@ -605,7 +606,7 @@ void jumperDoBlump(int64_t elapsedUs)
             blump->jumping = true;
 
             blump->jumpTime += elapsedUs;
-            if (blump->jumpTime >= jumperJumpTime)
+            if (blump->jumpTime >= j->jumperJumpTime)
             {
                 blump->jumpTime = 0;
                 blump->state = CHARACTER_LANDING;
@@ -615,7 +616,7 @@ void jumperDoBlump(int64_t elapsedUs)
             }
             else{
                 //Blump Lerp
-                float time = (blump->jumpTime +.001)/(jumperJumpTime + .001);
+                float time = (blump->jumpTime +.001)/(j->jumperJumpTime + .001);
                 int per = time * 10;
                 int offset[] = {0, 3, 5, 9, 11, 15, 11, 9, 5, 3, 0};
                 blump->x = blump->sx + (blump->dx - blump->sx) * time;
@@ -670,8 +671,8 @@ void jumperDoBlump(int64_t elapsedUs)
                 blump->respawnTime = 5 * TO_SECONDS;
                 blump->state = CHARACTER_JUMPING;
                 blump->sy = 0;
-                blump->block = pseudoRandom[randomIndex];
-                blump->dBlock = pseudoRandom[randomIndex];
+                blump->block = pseudoRandom[j->randomIndex];
+                blump->dBlock = pseudoRandom[j->randomIndex];
                 blump->sx = 5 + j->scene->blockOffset_x + ((blump->block % 6)* 38) + rowOffset[0];
                 blump->x = blump->sx;
                 blump->dx = blump->sx;
@@ -686,6 +687,8 @@ void jumperDoBlump(int64_t elapsedUs)
 
 void jumperDoEvilDonut(int64_t elapsedUs)
 {
+    jumperCharacter_t * player = j->player;
+    jumperCharacter_t * evilDonut = j->evilDonut;
 
     evilDonut->frameTime += elapsedUs;
     switch (evilDonut->state)
@@ -770,7 +773,7 @@ void jumperDoEvilDonut(int64_t elapsedUs)
             evilDonut->jumping = true;
 
             evilDonut->jumpTime += elapsedUs;
-            if (evilDonut->jumpTime >= jumperJumpTime)
+            if (evilDonut->jumpTime >= j->jumperJumpTime)
             {
                 evilDonut->jumpTime = 0;
                 evilDonut->state = CHARACTER_LANDING;
@@ -780,7 +783,7 @@ void jumperDoEvilDonut(int64_t elapsedUs)
             }
             else{
                 
-                float time = (evilDonut->jumpTime +.001)/(jumperJumpTime + .001);
+                float time = (evilDonut->jumpTime +.001)/(j->jumperJumpTime + .001);
                 int per = time * 10;
                 int offset[] = {0, 3, 5, 9, 11, 15, 11, 9, 5, 3, 0};
                 evilDonut->x = evilDonut->sx + (evilDonut->dx - evilDonut->sx) * time;
@@ -840,9 +843,9 @@ void jumperDoEvilDonut(int64_t elapsedUs)
 void jumperKillPlayer()
 {
     buzzer_play_bgm(&jumpDeathTune);
-    player->state = CHARACTER_DYING;
-    player->frameIndex = 4;
-    player->frameTime = 0;
+    j->player->state = CHARACTER_DYING;
+    j->player->frameIndex = 4;
+    j->player->frameTime = 0;
 }
 
 /**
@@ -854,6 +857,8 @@ void jumperKillPlayer()
  */
 void jumperPlayerInput(void)
 {
+    jumperCharacter_t * player = j->player;
+
     if (j->controlsEnabled == false || j->currentPhase != JUMPER_GAMING) return;
 
     if (player->btnState & BTN_A && player->state != CHARACTER_DEAD && player->state != CHARACTER_DYING)
@@ -929,7 +934,10 @@ void jumperPlayerInput(void)
 
 void drawJumperScene(display_t* d)
 {
-    
+    jumperCharacter_t * player = j->player;
+    jumperCharacter_t * evilDonut = j->evilDonut;
+    jumperCharacter_t * blump = j->blump;
+
    d->clearPx();
 
    for(uint8_t block = 0; block < 30; block++)
@@ -977,7 +985,7 @@ void drawJumperHud(display_t* d, font_t* prompt, font_t* font)
     drawText(d, font, c555, textBuffer, 28, 26);
 
     drawText(d, font, c555, "HI SCORE", 178, 10);
-    snprintf(textBuffer, sizeof(textBuffer) -1, "%d", highScore);
+    snprintf(textBuffer, sizeof(textBuffer) -1, "%d", j->highScore);
     drawText(d, font, c555, textBuffer, 204, 26);
     
     for (int i = 0; i < j->scene->lives; i++)
@@ -1025,7 +1033,7 @@ void drawJumperHud(display_t* d, font_t* prompt, font_t* font)
 
 void jumperGameButtonCb(buttonEvt_t* evt)
 {
-    player->btnState = evt->state;
+    j->player->btnState = evt->state;
 }
 
 void jumperExitGame(void)
@@ -1047,32 +1055,33 @@ void jumperExitGame(void)
         freeWsg(&j->block[6]);
         freeWsg(&j->block[7]);      
         
-        freeWsg(&player->frames[0]);
-        freeWsg(&player->frames[1]);
-        freeWsg(&player->frames[2]);
-        freeWsg(&player->frames[3]);
-        freeWsg(&player->frames[4]);
-        freeWsg(&player->frames[5]);
-        freeWsg(&player->frames[6]);
-        freeWsg(&player->frames[7]);
+        freeWsg(&j->player->frames[0]);
+        freeWsg(&j->player->frames[1]);
+        freeWsg(&j->player->frames[2]);
+        freeWsg(&j->player->frames[3]);
+        freeWsg(&j->player->frames[4]);
+        freeWsg(&j->player->frames[5]);
+        freeWsg(&j->player->frames[6]);
+        freeWsg(&j->player->frames[7]);
 
-        freeWsg( &evilDonut->frames[0]);
-        freeWsg( &evilDonut->frames[1]);
-        freeWsg( &evilDonut->frames[2]);
-        freeWsg( &evilDonut->frames[3]);
-        freeWsg( &evilDonut->frames[4]);
+        freeWsg( &j->evilDonut->frames[0]);
+        freeWsg( &j->evilDonut->frames[1]);
+        freeWsg( &j->evilDonut->frames[2]);
+        freeWsg( &j->evilDonut->frames[3]);
+        freeWsg( &j->evilDonut->frames[4]);
 
-        freeWsg( &blump->frames[0]);
-        freeWsg( &blump->frames[1]);
-        freeWsg( &blump->frames[2]);
-        freeWsg( &blump->frames[3]);
-        freeWsg( &blump->frames[4]);
-        freeWsg( &blump->frames[5]);
+        freeWsg( &j->blump->frames[0]);
+        freeWsg( &j->blump->frames[1]);
+        freeWsg( &j->blump->frames[2]);
+        freeWsg( &j->blump->frames[3]);
+        freeWsg( &j->blump->frames[4]);
+        freeWsg( &j->blump->frames[5]);
 
         free(j->scene);
 
-        free(evilDonut);
-        free(player);
+        free(j->evilDonut);
+        free(j->player);
+        free(j->blump);
         free(j);
         j = NULL;
     }

@@ -91,6 +91,14 @@ typedef struct
     font_t* promptFont;
     jumperStage_t* scene;
     bool controlsEnabled;
+    
+    uint64_t jumperJumpTime;
+    uint8_t randomIndex;
+    uint64_t highScore;
+
+    jumperCharacter_t* player;
+    jumperCharacter_t* evilDonut;
+    jumperCharacter_t* blump;
 
 } jumperGame_t;
 
