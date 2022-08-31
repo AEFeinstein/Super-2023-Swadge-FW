@@ -15,6 +15,7 @@
 const char KEY_MUTE[] = "mute";
 const char KEY_BRIGHT[] = "bright";
 const char KEY_MIC[] = "mic";
+const char KEY_QJ_HS[] = "qj";
 
 //==============================================================================
 // Functions
@@ -143,4 +144,32 @@ uint8_t getMicAmplitude(void)
         255
     };
     return micVols[getMicVolume()];
+}
+
+/**
+ * @return the QJumper High Score
+ */
+uint32_t getQJumperHighScore(void)
+{
+    int32_t highScore = 0;
+    // Try reading the value
+    if(false == readNvs32(KEY_QJ_HS, &highScore))
+    {
+        // Value didn't exist, so write the default
+        setQJumperHighScore(highScore);
+    }
+    // Return the read value
+    return highScore;
+}
+
+/**
+ * Set the new QJumper high score
+ *
+ * @param highScore the new high score
+ * @return true if the setting was saved, false if it was not
+ */
+bool setQJumperHighScore(uint32_t highScore)
+{
+    // Write the value
+    return writeNvs32(KEY_QJ_HS, highScore);
 }

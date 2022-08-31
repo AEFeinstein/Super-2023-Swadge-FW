@@ -15,6 +15,7 @@
 #include "linked_list.h"
 #include "led_util.h"
 #include "aabb_utils.h"
+#include "settingsManager.h"
 
 #include "mode_jumper.h"
 #include "jumper_menu.h"
@@ -190,7 +191,7 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
     loadWsg("blmpj0.wsg", &j->blump->frames[5]);
 
     j->jumperJumpTime = 500000;
-    j->highScore = 5000;
+    j->highScore = getQJumperHighScore();
     
     //Setup LEDS?
 
@@ -345,6 +346,11 @@ void jumperGameLoop(int64_t elapsedUs)
 
                     j->currentPhase = JUMPER_GAME_OVER;
                     j->scene->time = 3 * TO_SECONDS;
+
+                    if(j->highScore > getQJumperHighScore())
+                    {
+                        setQJumperHighScore(j->highScore);
+                    }
                 }
                 else{
                     j->currentPhase = JUMPER_GAMING;

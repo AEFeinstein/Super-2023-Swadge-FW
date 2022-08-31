@@ -15,4 +15,7 @@ int32_t getMicVolume(void);
 uint8_t getMicAmplitude(void);
 bool setMicVolume(int32_t micVolume);
 
+uint32_t getQJumperHighScore(void);
+bool setQJumperHighScore(uint32_t highScore);
+
 #endif

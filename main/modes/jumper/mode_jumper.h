@@ -75,7 +75,7 @@ typedef struct
     int32_t seconds;
     int8_t blockOffset_x;
     int8_t blockOffset_y;
-    uint64_t score;
+    uint32_t score;
     uint8_t combo;
     wsg_t livesIcon;
     jumperBlockType_t blocks[30];
@@ -93,7 +93,7 @@ typedef struct
     bool controlsEnabled;
     
     uint64_t jumperJumpTime;
-    uint64_t highScore;
+    uint32_t highScore;
 
     jumperCharacter_t* player;
     jumperCharacter_t* evilDonut;
