@@ -18,6 +18,7 @@
 #include "jumper_menu.h"
 #include "mode_gamepad.h"
 #include "mode_colorchord.h"
+#include "mode_credits.h"
 #include "mode_platformer.h"
 
 //==============================================================================
@@ -87,6 +88,7 @@ const char mainMenuSoundOff[] = "Sound: Off";
 char mainMenuTftBrightness[] = "TFT Brightness: 1";
 char mainMenuLedBrightness[] = "LED Brightness: 1";
 char mainMenuMicGain[] = "Mic Gain: 1";
+const char mainMenuCredits[] = "Credits";
 
 //==============================================================================
 // Functions
@@ -412,6 +414,7 @@ void mainMenuSetUpSettingsMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuMicGain);
     addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuTftBrightness);
     addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuLedBrightness);
+    addRowToMeleeMenu(mainMenu->menu, mainMenuCredits);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -454,7 +457,11 @@ void mainMenuSettingsCb(const char* opt)
     {
         incMicGain();
     }
-    else if(mainMenuBack == opt)
+    else if (mainMenuCredits == opt)
+    {
+        switchToSwadgeMode(&modeCredits);
+    }
+    else if (mainMenuBack == opt)
     {
         mainMenuSetUpTopMenu(false);
         return;
