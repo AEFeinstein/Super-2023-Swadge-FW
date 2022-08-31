@@ -308,8 +308,8 @@ const uint16_t paletteColors[] =
     #define X_OFFSET            20
     #define Y_OFFSET            0
     #define SWAP_XY         true
-    #define MIRROR_X        false
-    #define MIRROR_Y        false
+    #define MIRROR_X        true
+    #define MIRROR_Y        true
 #else
     #error "Please pick a screen size"
 #endif
