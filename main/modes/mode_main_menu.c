@@ -15,10 +15,11 @@
 #include "meleeMenu.h"
 
 #include "fighter_menu.h"
+#include "jumper_menu.h"
 #include "mode_gamepad.h"
-#include "mode_demo.h"
 #include "mode_colorchord.h"
 #include "mode_credits.h"
+#include "mode_platformer.h"
 
 //==============================================================================
 // Functions Prototypes
@@ -290,6 +291,8 @@ void mainMenuSetUpGamesMenu(bool resetPos)
     // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuGames, mainMenuGamesCb);
     addRowToMeleeMenu(mainMenu->menu, modeFighter.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modePlatformer.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeJumper.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -315,6 +318,16 @@ void mainMenuGamesCb(const char* opt)
         // Start fighter
         switchToSwadgeMode(&modeFighter);
     }
+    // Handle the option
+    if(modePlatformer.modeName == opt)
+    {
+        // Start platformer
+        switchToSwadgeMode(&modePlatformer);
+    if(modeJumper.modeName == opt)
+    {
+        // Start jumper
+        switchToSwadgeMode(&modeJumper);
+    }
     else if(mainMenuBack == opt)
     {
         mainMenuSetUpTopMenu(false);
@@ -332,7 +345,6 @@ void mainMenuSetUpToolsMenu(bool resetPos)
     resetMeleeMenu(mainMenu->menu, mainMenuTools, mainMenuToolsCb);
     addRowToMeleeMenu(mainMenu->menu, modeGamepad.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeColorchord.modeName);
-    addRowToMeleeMenu(mainMenu->menu, modeDemo.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -362,11 +374,6 @@ void mainMenuToolsCb(const char* opt)
     {
         // Start Colorchord
         switchToSwadgeMode(&modeColorchord);
-    }
-    else if(modeDemo.modeName == opt)
-    {
-        // Start demo
-        switchToSwadgeMode(&modeDemo);
     }
     else if(mainMenuBack == opt)
     {

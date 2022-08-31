@@ -1,0 +1,17 @@
+menu "Swadge Selection"
+	choice SWADGE_TYPE
+		prompt "Select Type of Swadge"
+		default SWADGE_PROTOTYPE
+		help
+			Configures IO on the board for a specific swadge type.
+		config SWADGE_DEVKIT
+			bool "SWADGE_DEVKIT"
+			help
+				The original Swadge Devkit that was non-form-factor
+		config SWADGE_PROTOTYPE
+			bool "SWADGE_PROTOTYPE"
+			help
+				The first order of swadges
+	endchoice
+endmenu
+

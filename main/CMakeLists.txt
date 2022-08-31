@@ -11,11 +11,17 @@ idf_component_register(
         "modes/fighter/mode_fighter.c"
         "modes/fighter/fighter_json.c"
         "modes/fighter/fighter_menu.c"
-        "modes/mode_demo.c"
         "modes/mode_credits.c"
+        "modes/jumper/jumper_menu.c"
+        "modes/jumper/mode_jumper.c"
         "modes/mode_gamepad.c"
         "modes/mode_main_menu.c"
         "modes/mode_colorchord.c"
+        "modes/platformer/mode_platformer.c"
+        "modes/platformer/entity.c"
+        "modes/platformer/entityManager.c"
+        "modes/platformer/tilemap.c"
+        "gameData.c"
         "utils/linked_list.c"
         "p2pConnection.c"
         "swadge_esp32.c"
@@ -31,6 +37,8 @@ idf_component_register(
         "display"
         "modes"
         "modes/fighter"
+        "modes/platformer"
+        "modes/jumper"
         "utils")
 
 function(spiffs_file_preprocessor)
