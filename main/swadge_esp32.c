@@ -72,12 +72,10 @@
 // Defines
 //==============================================================================
 
-#define SWADGE_PROTOTYPE
-
 // Make sure one, and only one, build config is enabled
-#if (((defined(SWADGE_DEVKIT)    ? 1 : 0) + \
-      (defined(SWADGE_PROTOTYPE) ? 1 : 0)) != 1)
-    #error "Please define SWADGE_DEVKIT or SWADGE_PROTOTYPE"
+#if (((defined(CONFIG_SWADGE_DEVKIT)    ? 1 : 0) + \
+      (defined(CONFIG_SWADGE_PROTOTYPE) ? 1 : 0)) != 1)
+    #error "Please define CONFIG_SWADGE_DEVKIT or CONFIG_SWADGE_PROTOTYPE"
 #endif
 
 //==============================================================================
@@ -213,7 +211,7 @@ void tud_hid_set_report_cb(uint8_t itf,
 
 void app_main(void)
 {
-#if defined(SWADGE_DEVKIT)
+#if defined(CONFIG_SWADGE_DEVKIT)
     // Pull these GPIOs low immediately!!!
     // This prevents overheating on the devkit
     gpio_num_t toPullLow[] =
@@ -323,7 +321,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     initTemperatureSensor();
 
     /* Initialize non-i2c hardware peripherals */
-#if defined(SWADGE_DEVKIT)
+#if defined(CONFIG_SWADGE_DEVKIT)
     initButtons(8,
                 GPIO_NUM_1,
                 GPIO_NUM_0,
@@ -333,7 +331,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                 GPIO_NUM_45,
                 GPIO_NUM_4,
                 GPIO_NUM_15); // GPIO 46 doesn't work b/c it has a permanent pulldown
-#elif defined(SWADGE_PROTOTYPE)
+#elif defined(CONFIG_SWADGE_PROTOTYPE)
     initButtons(8,
                 GPIO_NUM_0,
                 GPIO_NUM_4,
@@ -345,7 +343,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                 GPIO_NUM_5);
 #endif
 
-#if defined(SWADGE_DEVKIT)
+#if defined(CONFIG_SWADGE_DEVKIT)
     initTouchSensor(0.2f, true, 6,
                     TOUCH_PAD_NUM9,   // GPIO_NUM_9
                     TOUCH_PAD_NUM10,  // GPIO_NUM_10
@@ -353,7 +351,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     TOUCH_PAD_NUM12,  // GPIO_NUM_12
                     TOUCH_PAD_NUM13,  // GPIO_NUM_13
                     TOUCH_PAD_NUM14); // GPIO_NUM_14
-#elif defined(SWADGE_PROTOTYPE)
+#elif defined(CONFIG_SWADGE_PROTOTYPE)
     initTouchSensor(0.2f, true, 5,
                     TOUCH_PAD_NUM9,   // GPIO_NUM_9
                     TOUCH_PAD_NUM10,  // GPIO_NUM_10
@@ -362,10 +360,10 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     TOUCH_PAD_NUM13); // GPIO_NUM_13
 #endif
 
-    // Same for SWADGE_DEVKIT and SWADGE_PROTOTYPE
+    // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
     initLeds(GPIO_NUM_39, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
 
-    // Same for SWADGE_DEVKIT and SWADGE_PROTOTYPE
+    // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
     buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, getIsMuted());
 
 #if !defined(EMU)
@@ -377,11 +375,11 @@ void mainSwadgeTask(void* arg __attribute((unused)))
          * esp_wifi_start() and esp_wifi_stop(). Use the return code to see
          * whether the reading is successful.
          */
-#if defined(SWADGE_DEVKIT)
+#if defined(CONFIG_SWADGE_DEVKIT)
         static uint16_t adc1_chan_mask = BIT(2);
         static uint16_t adc2_chan_mask = 0;
         static adc_channel_t channel[] = {ADC1_CHANNEL_7}; // GPIO_NUM_8
-#elif defined(SWADGE_PROTOTYPE)
+#elif defined(CONFIG_SWADGE_PROTOTYPE)
         static uint16_t adc1_chan_mask = BIT(6);
         static uint16_t adc2_chan_mask = 0;
         static adc_channel_t channel[] = {ADC1_CHANNEL_6}; // GPIO_NUM_7
@@ -396,12 +394,12 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 #endif
     {
         /* Initialize i2c peripherals */
-#if defined(SWADGE_DEVKIT)
+#if defined(CONFIG_SWADGE_DEVKIT)
         i2c_master_init(
             GPIO_NUM_17, // SDA
             GPIO_NUM_18, // SCL
             GPIO_PULLUP_DISABLE, 1000000);
-#elif defined(SWADGE_PROTOTYPE)
+#elif defined(CONFIG_SWADGE_PROTOTYPE)
         i2c_master_init(
             GPIO_NUM_3,  // SDA
             GPIO_NUM_41, // SCL
@@ -422,7 +420,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 
     /* Initialize SPI peripherals */
     display_t tftDisp;
-#if defined(SWADGE_DEVKIT)
+#if defined(CONFIG_SWADGE_DEVKIT)
     initTFT(&tftDisp,
             SPI2_HOST,
             GPIO_NUM_36, // sclk
@@ -430,8 +428,9 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             GPIO_NUM_21, // dc
             GPIO_NUM_34, // cs
             GPIO_NUM_38, // rst
-            GPIO_NUM_7); // backlight (dummy GPIO for now)
-#elif defined(SWADGE_PROTOTYPE)
+            GPIO_NUM_7,  // backlight (dummy GPIO for now)
+            false);      // binary backlight
+#elif defined(CONFIG_SWADGE_PROTOTYPE)
     initTFT(&tftDisp,
             SPI2_HOST,
             GPIO_NUM_36, // sclk
@@ -439,7 +438,8 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             GPIO_NUM_21, // dc
             GPIO_NUM_34, // cs
             GPIO_NUM_38, // rst
-            GPIO_NUM_35); // backlight?
+            GPIO_NUM_35, // backlight
+            true);       // PWM backlight
 #endif
 
     /* Initialize Wifi peripheral */

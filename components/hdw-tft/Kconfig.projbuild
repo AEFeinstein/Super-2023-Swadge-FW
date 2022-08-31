@@ -24,8 +24,9 @@ menu "TFT Configuration"
 
 	config TFT_DEFAULT_BRIGHTNESS
 		int
-		prompt "Select TFT Default Brigthness (0..255)"
+		range 0 255
 		default 200
+		prompt "Select TFT Default Brigthness (0..255)"
 
 endmenu
 

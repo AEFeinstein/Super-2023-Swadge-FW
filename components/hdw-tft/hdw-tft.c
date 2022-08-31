@@ -254,6 +254,10 @@ const uint16_t paletteColors[] =
  */
 #define PARALLEL_LINES 16
 
+/* Binary backlight levels */
+#define LCD_BK_LIGHT_ON_LEVEL  1
+#define LCD_BK_LIGHT_OFF_LEVEL !LCD_BK_LIGHT_ON_LEVEL
+
 /* Bit number used to represent command and parameter */
 #define LCD_CMD_BITS           8
 #define LCD_PARAM_BITS         8
@@ -358,38 +362,36 @@ void setTFTBacklight(int intensity)
  * @param cs      The GPIO for the chip select pin
  * @param rst     The GPIO for the RESET pin
  * @param backlight The GPIO used to PWM control the backlight
+ * @param isPwmBacklight true to set up the backlight as PWM, false to have it be on/off
  */
 void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
             gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
-            gpio_num_t backlight)
+            gpio_num_t backlight, bool isPwmBacklight)
 {
-#if defined(CONFIG_SWADGE_DEVKIT)
-    gpio_config_t bk_gpio_config =
+    if(false == isPwmBacklight)
     {
-        .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = 1ULL << backlight
-    };
-    // Initialize the GPIO of backlight
-    ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
-#elif defined(CONFIG_SWADGE_PROTOTYPE)
-    ledc_timer_config_t ledc_config_timer =
+        // Binary backlight
+        gpio_config_t bk_gpio_config =
+        {
+            .mode = GPIO_MODE_OUTPUT,
+            .pin_bit_mask = 1ULL << backlight
+        };
+        // Initialize the GPIO of backlight
+        ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
+    }
+    else
     {
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .duty_resolution = LEDC_TIMER_8_BIT,
-        .freq_hz = 50000,
-        .timer_num = 0,
-        .clk_cfg = LEDC_AUTO_CLK,
-    };
-    ESP_ERROR_CHECK(ledc_timer_config(&ledc_config_timer));
-    ledc_channel_config_t ledc_config_backlight =
-    {
-        .gpio_num = backlight,
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel = 1,  //Not sure if 0 is used.
-        .timer_sel = 0,
-        .duty = 255, //Disable to start.
-    };
-#endif
+        // PWM Backlight
+        ledc_timer_config_t ledc_config_timer =
+        {
+            .speed_mode = LEDC_LOW_SPEED_MODE,
+            .duty_resolution = LEDC_TIMER_8_BIT,
+            .freq_hz = 50000,
+            .timer_num = 0,
+            .clk_cfg = LEDC_AUTO_CLK,
+        };
+        ESP_ERROR_CHECK(ledc_timer_config(&ledc_config_timer));
+    }
 
     spi_bus_config_t buscfg =
     {
@@ -442,8 +444,23 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
 
     // Turn on backlight (Different LCD screens may need different levels)
-    ESP_ERROR_CHECK(ledc_channel_config(&ledc_config_backlight));
-    setTFTBacklight(CONFIG_TFT_DEFAULT_BRIGHTNESS);
+    if(false == isPwmBacklight)
+    {
+        ESP_ERROR_CHECK(gpio_set_level(backlight, LCD_BK_LIGHT_ON_LEVEL));
+    }
+    else
+    {
+        ledc_channel_config_t ledc_config_backlight =
+        {
+            .gpio_num = backlight,
+            .speed_mode = LEDC_LOW_SPEED_MODE,
+            .channel = 1,  //Not sure if 0 is used.
+            .timer_sel = 0,
+            .duty = 255, //Disable to start.
+        };
+        ESP_ERROR_CHECK(ledc_channel_config(&ledc_config_backlight));
+        setTFTBacklight(CONFIG_TFT_DEFAULT_BRIGHTNESS);
+    }
 
     // Allocate memory for the pixel buffers
     for (int i = 0; i < 2; i++)
@@ -475,11 +492,9 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
 
 #if defined(CONFIG_GC9307_240x280)
     esp_lcd_panel_invert_color(panel_handle, false);
-#if defined(CONFIG_SWADGE_DEVKIT)
-    esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[]) {0x28}, 1 ); //MX, MY, RGB mode  (MADCTL)
-#elif defined(CONFIG_SWADGE_PROTOTYPE)
-    esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[]) {0xE8}, 1 ); //MX, MY, RGB mode  (MADCTL)
-#endif
+    // NOTE: the following call would override settings set by esp_lcd_panel_swap_xy() and esp_lcd_panel_mirror()
+    // Both of the prior functions write to the 0x36 register
+    // esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[]) {0xE8}, 1 ); //MX, MY, RGB mode  (MADCTL)
     esp_lcd_panel_io_tx_param(io, 0x35, (uint8_t[]) {0x00}, 1 ); // "tear effect" testing sync pin.
 #elif defined(CONFIG_ST7735_128x160)
     esp_lcd_panel_io_tx_param(io, 0xB1, (uint8_t[]) { 0x05, 0x3C, 0x3C }, 3 );
