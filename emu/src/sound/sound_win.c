@@ -151,7 +151,7 @@ static struct SoundDriverWin * InitWinSound( struct SoundDriverWin * r )
 	int i;
 	WAVEFORMATEX wfmt;
 	memset( &wfmt, 0, sizeof(wfmt) );
-	printf ("WFMT Size (debugging temp for TCC): %d\n", sizeof(wfmt) );
+	printf ("WFMT Size (debugging temp for TCC): %d\n", (uint32_t)sizeof(wfmt) );
 	printf( "WFMT: %d %d %d\n", r->channelsRec, r->sps, r->sps * r->channelsRec );
 	w = r;
 	

@@ -33,7 +33,7 @@ static const led_t borderLedColors[MAX_ROWS] =
 // X axis offset for each row
 static const uint8_t rowOffsets[MAX_ROWS] =
 {
-    70, 45, 20, 39, 29
+    70, 45, 20, 36, 29
 };
 
 //==============================================================================
@@ -141,6 +141,7 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
             }
             break;
         }
+        case SELECT:
         case DOWN:
         {
             // Scroll down, with wraparound
@@ -154,6 +155,7 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
             }
             break;
         }
+        case START:
         case BTN_A:
         {
             // Call the callback function for the given row
