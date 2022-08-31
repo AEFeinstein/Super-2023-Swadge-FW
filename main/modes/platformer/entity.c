@@ -25,14 +25,12 @@
 #define TO_SUBPIXEL_COORDS(x) ((x) << SUBPIXEL_RESOLUTION)
 
 static const song_t sndHit =
- {
-     .notes =
-     {
-         {740, 10},{840, 10},{940, 10}
-     },
-     .numNotes = 3,
-     .shouldLoop = false
-};
+    {
+        .notes =
+            {
+                {740, 10}, {840, 10}, {940, 10}},
+        .numNotes = 3,
+        .shouldLoop = false};
 
 static const song_t sndCoin =
     {
@@ -167,28 +165,37 @@ void updateHitBlock(entity_t *self)
     if (self->animationTimer > 4)
     {
         uint8_t aboveTile = self->tilemap->map[(self->homeTileY - 1) * self->tilemap->mapWidth + self->homeTileX];
+        entity_t *createdEntity;
+
         switch (aboveTile)
         {
-            case TILE_CTNR_COIN:
-                self->gameData->coins++;
-                self->gameData->score += 50;
-                buzzer_play_sfx(&sndCoin);
-                self->jumpPower = TILE_CONTAINER_2;
-                break;
-            case TILE_CTNR_POW1:
-                createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
-                self->jumpPower = TILE_CONTAINER_2;
-                break;
-            case TILE_WARP_0 ... TILE_WARP_F: ;
-                entity_t * createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
-                createdEntity->jumpPower = aboveTile - TILE_WARP_0;
-                self->jumpPower = TILE_CONTAINER_2;
-                break;
-            
-            default:
-                break;
+        case TILE_CTNR_COIN:
+            self->gameData->coins++;
+            self->gameData->score += 50;
+            buzzer_play_sfx(&sndCoin);
+            self->jumpPower = TILE_CONTAINER_2;
+            break;
+        case TILE_CTNR_POW1:
+            createdEntity = createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+            createdEntity->homeTileX = 0;
+            createdEntity->homeTileY = 0;
+
+            self->jumpPower = TILE_CONTAINER_2;
+            break;
+        case TILE_WARP_0 ... TILE_WARP_F:
+            createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+
+            createdEntity->homeTileX = self->homeTileX;
+            createdEntity->homeTileY = self->homeTileY;
+
+            createdEntity->jumpPower = aboveTile - TILE_WARP_0;
+            self->jumpPower = TILE_CONTAINER_2;
+            break;
+
+        default:
+            break;
         }
-        
+
         self->tilemap->map[self->homeTileY * self->tilemap->mapWidth + self->homeTileX] = self->jumpPower;
         destroyEntity(self, false);
     }
@@ -251,7 +258,7 @@ void moveEntityWithTileCollisions(entity_t *self)
                 {
                     if (self->tileCollisionHandler(self, newVerticalTile, tx, newTy, 2 << (self->yspeed > 0)))
                     {
-                        newY = ((newTy + ((ty < newTy)?-1:1)) * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+                        newY = ((newTy + ((ty < newTy) ? -1 : 1)) * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
                     }
                 }
             }
@@ -281,7 +288,7 @@ void moveEntityWithTileCollisions(entity_t *self)
                 {
                     if (self->tileCollisionHandler(self, newHorizontalTile, newTx, ty, (self->xspeed > 0)))
                     {
-                        newX = ((newTx + ((tx < newTx)?-1:1)) * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+                        newX = ((newTx + ((tx < newTx) ? -1 : 1)) * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
                     }
                 }
 
@@ -412,11 +419,14 @@ void animatePlayer(entity_t *self)
     }
     else if (self->xspeed != 0)
     {
-        if(self->gameData->btnState & LEFT || self->gameData->btnState & RIGHT){
+        if (self->gameData->btnState & LEFT || self->gameData->btnState & RIGHT)
+        {
             // Running
             self->spriteFlipHorizontal = (self->xspeed > 0) ? 0 : 1;
             self->spriteIndex = 1 + ((self->spriteIndex + 1) % 3);
-        } else {
+        }
+        else
+        {
             self->spriteIndex = SP_PLAYER_SLIDE;
         }
     }
@@ -466,10 +476,13 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
 
             self->yspeed = -90;
 
-            if(self->gameData->btnState & BTN_B) {
+            if (self->gameData->btnState & BTN_B)
+            {
                 self->jumpPower = 180 + (abs(self->xspeed) >> 2);
-            } 
-        } else {
+            }
+        }
+        else
+        {
             self->updateFunction = &updateEntityDead;
             self->type = ENTITY_DEAD;
             self->xspeed = 0;
@@ -479,6 +492,11 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
         }
 
         self->falling = true;
+        break;
+    case ENTITY_WARP:;
+        self->x = (self->tilemap->warps[other->jumpPower].x * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+        self->y = (self->tilemap->warps[other->jumpPower].y * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+
         break;
     default:;
     }
@@ -505,7 +523,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     switch (tileId)
     {
     case TILE_CONTAINER_1:
-    case TILE_BRICK_BLOCK: ;
+    case TILE_BRICK_BLOCK:;
         entity_t *hitBlock = createEntity(self->entityManager, ENTITY_HIT_BLOCK, (tx * TILE_SIZE) + HALF_TILE_SIZE, (ty * TILE_SIZE) + HALF_TILE_SIZE);
 
         if (hitBlock != NULL)
@@ -515,7 +533,8 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
             hitBlock->homeTileX = tx;
             hitBlock->homeTileY = ty;
             hitBlock->jumpPower = tileId;
-            if(tileId == TILE_BRICK_BLOCK){
+            if (tileId == TILE_BRICK_BLOCK)
+            {
                 hitBlock->spriteIndex = SP_HITBLOCK_BRICKS;
             }
 
@@ -706,12 +725,26 @@ void updateEntityDead(entity_t *self)
     despawnWhenOffscreen(self);
 }
 
-void updatePowerUp(entity_t* self){
+void updatePowerUp(entity_t *self)
+{
     self->spriteIndex = SP_GAMING_1 + ((self->spriteIndex + 1) % 3);
     despawnWhenOffscreen(self);
 }
 
-void updateWarp(entity_t* self){
+void updateWarp(entity_t *self)
+{
     self->spriteIndex = SP_WARP_1 + ((self->spriteIndex + 1) % 3);
-    despawnWhenOffscreen(self);
+
+    //Destroy self and respawn warp container block when offscreen
+    if (
+        (self->x >> SUBPIXEL_RESOLUTION) < (self->tilemap->mapOffsetX - DESPAWN_THRESHOLD) ||
+        (self->x >> SUBPIXEL_RESOLUTION) > (self->tilemap->mapOffsetX + TILEMAP_DISPLAY_WIDTH_PIXELS + DESPAWN_THRESHOLD) ||
+        (self->y >> SUBPIXEL_RESOLUTION) < (self->tilemap->mapOffsetY - DESPAWN_THRESHOLD) ||
+        (self->y >> SUBPIXEL_RESOLUTION) > (self->tilemap->mapOffsetY + TILEMAP_DISPLAY_HEIGHT_PIXELS + DESPAWN_THRESHOLD))
+    {
+        //In destroyEntity, this will overflow to the correct value.
+        self->type = 128 + TILE_CONTAINER_1;
+        
+        destroyEntity(self, true);
+    }
 }
