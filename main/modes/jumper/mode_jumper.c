@@ -9,6 +9,7 @@
 #include "musical_buzzer.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_random.h"
 
 #include "mode_main_menu.h"
 #include "linked_list.h"
@@ -24,7 +25,6 @@
 
 #define TO_SECONDS 1000000
 
-static const uint8_t pseudoRandom[] = {5, 0, 2, 3, 2, 1, 4, 3, 1, 5, 0, 4};
 static const uint8_t rowOffset[] = {5, 10, 15, 10, 5};
 static const float aiResponseTime[] = {2, 1, .9, .8, .7, .6, .5, .4, .3, .2}; // level 1 will have a time of 3 
 //===
@@ -190,7 +190,6 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
     loadWsg("blmpj0.wsg", &j->blump->frames[5]);
 
     j->jumperJumpTime = 500000;
-    j->randomIndex = 0;
     j->highScore = 5000;
     
     //Setup LEDS?
@@ -518,9 +517,6 @@ void jumperGameLoop(int64_t elapsedUs)
         }
     }
 
-    j->randomIndex++;
-    j->randomIndex %= 12;
-
     drawJumperScene(j->d);
 
 }
@@ -671,8 +667,8 @@ void jumperDoBlump(int64_t elapsedUs)
                 blump->respawnTime = 5 * TO_SECONDS;
                 blump->state = CHARACTER_JUMPING;
                 blump->sy = 0;
-                blump->block = pseudoRandom[j->randomIndex];
-                blump->dBlock = pseudoRandom[j->randomIndex];
+                blump->block = esp_random() % 6;
+                blump->dBlock = esp_random() % 6;
                 blump->sx = 5 + j->scene->blockOffset_x + ((blump->block % 6)* 38) + rowOffset[0];
                 blump->x = blump->sx;
                 blump->dx = blump->sx;

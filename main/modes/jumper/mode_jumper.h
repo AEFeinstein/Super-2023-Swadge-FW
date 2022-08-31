@@ -93,7 +93,6 @@ typedef struct
     bool controlsEnabled;
     
     uint64_t jumperJumpTime;
-    uint8_t randomIndex;
     uint64_t highScore;
 
     jumperCharacter_t* player;
