@@ -328,7 +328,6 @@ void jumperGameLoop(int64_t elapsedUs)
             break;
         case JUMPER_GAME_OVER:
             //ditty ditty
-            //TODO find the right way to quit back to menu
             if (j->scene->seconds < 0)
             {
                 //Quit game;
