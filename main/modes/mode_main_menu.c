@@ -15,6 +15,7 @@
 #include "meleeMenu.h"
 
 #include "fighter_menu.h"
+#include "jumper_menu.h"
 #include "mode_tiltrads.h"
 #include "mode_gamepad.h"
 #include "mode_colorchord.h"
