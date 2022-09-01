@@ -342,7 +342,7 @@ void drawReadyScreen(display_t *d, font_t *font, gameData_t *gameData){
 void changeStateGame(platformer_t *self){
     self->gameData.frameCount = 0;
 
-    deactivateAllEntities(&(self->entityManager));
+    deactivateAllEntities(&(self->entityManager), false);
 
     uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
     loadMapFromFile(&(platformer->tilemap), leveldef[levelIndex].filename);
@@ -351,6 +351,7 @@ void changeStateGame(platformer_t *self){
     entityManager_t * entityManager = &(self->entityManager);
     entityManager->viewEntity = createPlayer(entityManager, entityManager->tilemap->warps[0].x * 16, entityManager->tilemap->warps[0].y * 16);
     entityManager->playerEntity = entityManager->viewEntity;
+    self->tilemap.executeTileSpawnAll = true;
 
     self->update = &updateGame;
 }

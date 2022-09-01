@@ -494,8 +494,14 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
         self->falling = true;
         break;
     case ENTITY_WARP:;
+        //Execute warp
         self->x = (self->tilemap->warps[other->jumpPower].x * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
         self->y = (self->tilemap->warps[other->jumpPower].y * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+        self->falling = true;
+
+        unlockScrolling(self->tilemap);
+        deactivateAllEntities(self->entityManager, true);
+        self->tilemap->executeTileSpawnAll = true;
 
         break;
     default:;
@@ -679,40 +685,36 @@ void updateDummy(entity_t *self)
 
 void updateScrollLockLeft(entity_t *self)
 {
-    self->tilemap->maxMapOffsetX = (self->x >> SUBPIXEL_RESOLUTION) - 8 - TILEMAP_DISPLAY_WIDTH_PIXELS;
-
+    self->tilemap->minMapOffsetX = (self->x >> SUBPIXEL_RESOLUTION) - 8;
+    viewFollowEntity(self->entityManager->tilemap, self->entityManager->viewEntity);
     destroyEntity(self, true);
 }
 
 void updateScrollLockRight(entity_t *self)
 {
-    self->tilemap->minMapOffsetX = (self->x >> SUBPIXEL_RESOLUTION) + 8;
-
+    self->tilemap->maxMapOffsetX = (self->x >> SUBPIXEL_RESOLUTION) + 8 - TILEMAP_DISPLAY_WIDTH_PIXELS;
+    viewFollowEntity(self->entityManager->tilemap, self->entityManager->viewEntity);
     destroyEntity(self, true);
 }
 
 void updateScrollLockUp(entity_t *self)
 {
-    self->tilemap->maxMapOffsetY = (self->y >> SUBPIXEL_RESOLUTION) - 8 - TILEMAP_DISPLAY_HEIGHT_PIXELS;
-
+    self->tilemap->minMapOffsetY = (self->y >> SUBPIXEL_RESOLUTION) - 8;
+    viewFollowEntity(self->entityManager->tilemap, self->entityManager->viewEntity);
     destroyEntity(self, true);
 }
 
 void updateScrollLockDown(entity_t *self)
 {
-    self->tilemap->minMapOffsetY = (self->y >> SUBPIXEL_RESOLUTION) - 8;
-
+    self->tilemap->maxMapOffsetY = (self->y >> SUBPIXEL_RESOLUTION) + 8 - TILEMAP_DISPLAY_HEIGHT_PIXELS;
+    viewFollowEntity(self->entityManager->tilemap, self->entityManager->viewEntity);
     destroyEntity(self, true);
 }
 
 void updateScrollUnlock(entity_t *self)
 {
-    self->tilemap->minMapOffsetX = 0;
-    self->tilemap->maxMapOffsetX = self->tilemap->mapWidth * TILE_SIZE - TILEMAP_DISPLAY_WIDTH_PIXELS;
-
-    self->tilemap->minMapOffsetY = 0;
-    self->tilemap->maxMapOffsetY = self->tilemap->mapHeight * TILE_SIZE - TILEMAP_DISPLAY_HEIGHT_PIXELS;
-
+    unlockScrolling(self->tilemap);
+    viewFollowEntity(self->entityManager->tilemap, self->entityManager->viewEntity);
     destroyEntity(self, true);
 }
 
@@ -744,7 +746,7 @@ void updateWarp(entity_t *self)
     {
         //In destroyEntity, this will overflow to the correct value.
         self->type = 128 + TILE_CONTAINER_1;
-        
+
         destroyEntity(self, true);
     }
 }
