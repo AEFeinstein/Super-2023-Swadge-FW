@@ -18,6 +18,7 @@
 #include "jumper_menu.h"
 #include "mode_tiltrads.h"
 #include "mode_gamepad.h"
+#include "mode_tunernome.h"
 #include "mode_colorchord.h"
 #include "mode_credits.h"
 #include "mode_platformer.h"
@@ -351,6 +352,7 @@ void mainMenuSetUpToolsMenu(bool resetPos)
     // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuTools, mainMenuToolsCb);
     addRowToMeleeMenu(mainMenu->menu, modeGamepad.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeTunernome.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeColorchord.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
@@ -376,6 +378,11 @@ void mainMenuToolsCb(const char* opt)
     {
         // Start gamepad
         switchToSwadgeMode(&modeGamepad);
+    }
+    else if(modeTunernome.modeName == opt)
+    {
+        // Start tunernome
+        switchToSwadgeMode(&modeTunernome);
     }
     else if(modeColorchord.modeName == opt)
     {
