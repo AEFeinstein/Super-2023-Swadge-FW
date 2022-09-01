@@ -16,6 +16,7 @@
 
 #include "fighter_menu.h"
 #include "jumper_menu.h"
+#include "mode_tiltrads.h"
 #include "mode_gamepad.h"
 #include "mode_colorchord.h"
 #include "mode_credits.h"
@@ -291,6 +292,7 @@ void mainMenuSetUpGamesMenu(bool resetPos)
     // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuGames, mainMenuGamesCb);
     addRowToMeleeMenu(mainMenu->menu, modeFighter.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeTiltrads.modeName);
     addRowToMeleeMenu(mainMenu->menu, modePlatformer.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeJumper.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
@@ -318,12 +320,17 @@ void mainMenuGamesCb(const char* opt)
         // Start fighter
         switchToSwadgeMode(&modeFighter);
     }
-    // Handle the option
-    if(modePlatformer.modeName == opt)
+    else if(modeTiltrads.modeName == opt)
+    {
+        // Start tiltrads
+        switchToSwadgeMode(&modeTiltrads);
+    }
+    else if(modePlatformer.modeName == opt)
     {
         // Start platformer
         switchToSwadgeMode(&modePlatformer);
-    if(modeJumper.modeName == opt)
+    }
+    else if(modeJumper.modeName == opt)
     {
         // Start jumper
         switchToSwadgeMode(&modeJumper);
