@@ -21,4 +21,17 @@ menu "TFT Configuration"
 			help
 				Display Driver is GC9307_240x280.
 	endchoice
+
+	config TFT_DEFAULT_BRIGHTNESS
+		int
+		range 0 255
+		default 200
+		prompt "Select TFT Default Brigthness (0..255)"
+
+	config TFT_MAX_BRIGHTNESS
+		int
+		prompt "Selects the maximum safe brigthness for this paticular swadge"
+		default 200
+
 endmenu
+
