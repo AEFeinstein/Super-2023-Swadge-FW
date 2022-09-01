@@ -169,9 +169,9 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
     // Check for a test pass
     if(test->buttonsPassed &&
-        test->touchPassed && // TODO
-        test->accelPassed &&
-        test->bzrMicPassed) // TODO) 
+            test->touchPassed && // TODO
+            test->accelPassed &&
+            test->bzrMicPassed) // TODO)
     {
         // Set NVM to indicate the test passed
         setTestModePassed(true);
@@ -293,9 +293,9 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
 
     // Pulse LEDs, each color for 1s
     test->tLedElapsedUs += elapsedUs;
-    while(test->tLedElapsedUs >= (1000000/512))
+    while(test->tLedElapsedUs >= (1000000 / 512))
     {
-        test->tLedElapsedUs -= (1000000/512);
+        test->tLedElapsedUs -= (1000000 / 512);
         switch(test->ledState)
         {
             case R_RISING:
@@ -368,10 +368,10 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
 
 /**
  * @brief Helper function to draw button statuses to the TFT
- * 
- * @param x 
- * @param y 
- * @param state 
+ *
+ * @param x
+ * @param y
+ * @param state
  */
 void plotButtonState(int16_t x, int16_t y, testButtonState_t state)
 {
@@ -506,11 +506,11 @@ void testAudioCb(uint16_t* samples, uint32_t sampleCnt)
             int16_t maxIdx = 0;
             for(uint16_t i = 0; i < FIXBINS; i++)
             {
-               if(test->end.fuzzed_bins[i] > maxVal)
-               {
+                if(test->end.fuzzed_bins[i] > maxVal)
+                {
                     maxVal = test->end.fuzzed_bins[i];
                     maxIdx = i;
-               }
+                }
             }
             // TODO validate maxIdx
             // ESP_LOGE("MIC", "%d", maxIdx);
@@ -520,7 +520,7 @@ void testAudioCb(uint16_t* samples, uint32_t sampleCnt)
 
 /**
  * @brief Callback for the accelerometer. Save and validate data
- * 
+ *
  * @param accel The acceleration vector
  */
 void testAccelerometerCallback(accel_t* accel)
