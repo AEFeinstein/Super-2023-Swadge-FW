@@ -56,6 +56,7 @@
 #include "jumper_menu.h"
 #include "fighter_menu.h"
 #include "mode_gamepad.h"
+#include "mode_test.h"
 
 #include "driver/gpio.h"
 
@@ -93,7 +94,7 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
 //==============================================================================
 
 static RTC_DATA_ATTR swadgeMode* pendingSwadgeMode = NULL;
-static swadgeMode* cSwadgeMode = &modeMainMenu;
+static swadgeMode* cSwadgeMode = &modeTest;
 static bool isSandboxMode = false;
 
 //==============================================================================
@@ -312,6 +313,18 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         }
     }
 #endif
+
+    // If test mode was passed
+    if(getTestModePassed())
+    {
+        // Show the main menu
+        cSwadgeMode = &modeMainMenu;
+    }
+    else
+    {
+        // Otherwise enter test mode
+        cSwadgeMode = &modeTest;
+    }
 
     /* Initialize internal NVS */
     initNvs(true);

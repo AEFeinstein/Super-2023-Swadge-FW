@@ -45,7 +45,7 @@ void initButtons(uint8_t numButtons, ...)
 {
     // The order in which keys are initialized
     // Note that the actuall number of buttons initialized may be less than this
-    char keyOrder[] = {'w', 's', 'a', 'd', 'l', 'k', 'i', 'o'};
+    char keyOrder[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i'};
     memcpy(inputKeys, keyOrder, numButtons);
 	buttonState = 0;
 	pthread_mutex_lock(&buttonQueueMutex);
@@ -244,8 +244,8 @@ esp_err_t qma7981_init(void)
 esp_err_t qma7981_get_acce_int(int16_t *x, int16_t *y, int16_t *z)
 {
     WARN_UNIMPLEMENTED();
-	*x = 0;
-	*y = 0;
-	*z = 0;
+	*x = 4095;
+	*y = (4095 * 2) / 3;
+	*z = 4095 / 3;
 	return ESP_OK;	
 }
