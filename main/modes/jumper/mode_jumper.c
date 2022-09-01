@@ -26,7 +26,7 @@
 #define TO_SECONDS 1000000
 
 static const uint8_t rowOffset[] = {5, 10, 15, 10, 5};
-static const float aiResponseTime[] = {2, 1, .9, .8, .7, .6, .5, .4, .3, .2}; // level 1 will have a time of 3
+static const uint32_t aiResponseTime[] = { 2000000, 1000000, 900000, 800000, 700000, 600000, 500000, 400000, 300000, 200000 }; // level 1 will have a time of 3
 //===
 // Structs
 //===
@@ -201,9 +201,9 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
 
 void jumperSetupState(uint8_t stageIndex)
 {
-    ESP_LOGI("FTR", "Stage %d %d", stageIndex, j->scene->level);
+    // ESP_LOGI("FTR", "Stage %d %d", stageIndex, j->scene->level);
     j->currentPhase = JUMPER_COUNTDOWN;
-    j->scene->time = 5 * TO_SECONDS;
+    j->scene->time = 5000000;
     j->scene->seconds = 5000;
     j->scene->level = stageIndex + 1;
     j->scene->blockOffset_x = 20;
@@ -251,7 +251,7 @@ void jumperRemoveEnemies()
     j->evilDonut->frameIndex = 0;
     j->evilDonut->block = 0;
     j->evilDonut->dBlock = 0;
-    j->evilDonut->respawnTime = 8 * TO_SECONDS;
+    j->evilDonut->respawnTime = 8000000;
     j->evilDonut->flipped = false;
     j->evilDonut->intelligence.decideTime = 0;
     j->evilDonut->jumpTime = 0;
@@ -266,13 +266,13 @@ void jumperRemoveEnemies()
     j->blump->frameIndex = 0;
     j->blump->block = 0;
     j->blump->dBlock = 0;
-    j->blump->respawnTime = 4 * TO_SECONDS;
+    j->blump->respawnTime = 4000000;
     j->blump->flipped = false;
     j->blump->intelligence.decideTime = 0;
     j->blump->jumpTime = 0;
 
     j->evilDonut->intelligence.resetTime = j->scene->level < 9 ? aiResponseTime[j->scene->level] :  aiResponseTime[9];
-    j->blump->intelligence.resetTime = .7; //Magic number
+    j->blump->intelligence.resetTime = 700000; //Magic number
 }
 
 
@@ -346,7 +346,7 @@ void jumperGameLoop(int64_t elapsedUs)
                     buzzer_play_bgm(&jumpGameOverTune);
 
                     j->currentPhase = JUMPER_GAME_OVER;
-                    j->scene->time = 3 * TO_SECONDS;
+                    j->scene->time = 3000000;
 
                     if(j->highScore > getQJumperHighScore())
                     {
@@ -449,7 +449,7 @@ void jumperGameLoop(int64_t elapsedUs)
             if (player->frameTime > 150000)
             {
                 player->state = CHARACTER_IDLE;
-                ESP_LOGI("JUM", "Ready");
+                // ESP_LOGI("JUM", "Ready");
                 player->jumpReady = true;
 
                 if (j->scene->blocks[player->block] == BLOCK_PLAYERLANDED)
@@ -473,7 +473,7 @@ void jumperGameLoop(int64_t elapsedUs)
                     player->frameIndex = 7;
                     player->state = CHARACTER_DEAD;
                     j->currentPhase = JUMPER_DEATH;
-                    j->scene->time = 1 * TO_SECONDS;
+                    j->scene->time = 1000000;
 
                     //sub track a life and continue on
                     j->scene->lives--;
@@ -548,7 +548,7 @@ void jumperCheckLevel()
     j->currentPhase = JUMPER_WINSTAGE;
     j->controlsEnabled = false;
     j->player->jumpReady = false;
-    j->scene->time = 5 * TO_SECONDS;
+    j->scene->time = 5000000;
 
 }
 
@@ -568,9 +568,9 @@ void jumperDoBlump(int64_t elapsedUs)
             }
 
             blump->intelligence.decideTime += elapsedUs;
-            if (blump->intelligence.decideTime > blump->intelligence.resetTime * TO_SECONDS)
+            if (blump->intelligence.decideTime > blump->intelligence.resetTime)
             {
-                ESP_LOGI("JUM", "AI RESET");
+                // ESP_LOGI("JUM", "AI RESET");
                 blump->intelligence.decideTime = 0;
 
                 blump->dBlock = blump->block + 6;
@@ -583,7 +583,7 @@ void jumperDoBlump(int64_t elapsedUs)
             blump->frameIndex = 4;
 
             blump->intelligence.decideTime += elapsedUs;
-            if (blump->intelligence.decideTime > .25 * TO_SECONDS)
+            if (blump->intelligence.decideTime > 250000)
             {
 
                 uint8_t block = blump->dBlock;
@@ -646,13 +646,13 @@ void jumperDoBlump(int64_t elapsedUs)
             if (blump->block == 255)
             {
                 blump->state = CHARACTER_DEAD;
-                blump->respawnTime = 6 * TO_SECONDS;
+                blump->respawnTime = 6000000;
                 return;
             }
             if (blump->frameTime > 150000)
             {
                 blump->state = CHARACTER_IDLE;
-                ESP_LOGI("JUM", "Evil Donut Landed");
+                // ESP_LOGI("JUM", "Evil Donut Landed");
                 blump->jumpReady = true;
 
             }
@@ -680,16 +680,16 @@ void jumperDoBlump(int64_t elapsedUs)
             blump->respawnTime -= elapsedUs;
             if (blump->respawnTime <= 0)
             {
-                blump->respawnTime = 5 * TO_SECONDS;
+                blump->respawnTime = 5000000;
                 blump->state = CHARACTER_JUMPING;
                 blump->sy = 0;
                 blump->block = esp_random() % 6;
-                blump->dBlock = esp_random() % 6;
+                blump->dBlock = blump->block;
                 blump->sx = 5 + j->scene->blockOffset_x + ((blump->block % 6) * 38) + rowOffset[0];
                 blump->x = blump->sx;
                 blump->dx = blump->sx;
                 blump->dy = j->scene->blockOffset_y;
-
+                // ESP_LOGI("JUM", "{%d}", blump->block);
             }
             break;
         }
@@ -714,9 +714,9 @@ void jumperDoEvilDonut(int64_t elapsedUs)
             }
 
             evilDonut->intelligence.decideTime += elapsedUs;
-            if (evilDonut->intelligence.decideTime > evilDonut->intelligence.resetTime * TO_SECONDS)
+            if (evilDonut->intelligence.decideTime > evilDonut->intelligence.resetTime)
             {
-                ESP_LOGI("JUM", "AI RESET");
+                // ESP_LOGI("JUM", "AI RESET");
                 evilDonut->intelligence.decideTime = 0;
 
                 if (player->y > evilDonut->y)
@@ -746,7 +746,7 @@ void jumperDoEvilDonut(int64_t elapsedUs)
             evilDonut->frameIndex = 2;
 
             evilDonut->intelligence.decideTime += elapsedUs;
-            if (evilDonut->intelligence.decideTime > .05 * TO_SECONDS)
+            if (evilDonut->intelligence.decideTime > 50000)
             {
                 bool legitJump = true;
 
@@ -770,7 +770,7 @@ void jumperDoEvilDonut(int64_t elapsedUs)
 
                 if (legitJump == false)
                 {
-                    ESP_LOGI("JUM", "How'd we get to %d", evilDonut->dBlock);
+                    // ESP_LOGI("JUM", "How'd we get to %d", evilDonut->dBlock);
                     evilDonut->intelligence.decideTime = 0;
                     evilDonut->state = CHARACTER_IDLE;
                     return;
@@ -823,7 +823,7 @@ void jumperDoEvilDonut(int64_t elapsedUs)
             if (evilDonut->frameTime > 150000)
             {
                 evilDonut->state = CHARACTER_IDLE;
-                ESP_LOGI("JUM", "Evil Donut Landed");
+                // ESP_LOGI("JUM", "Evil Donut Landed");
                 evilDonut->jumpReady = true;
 
 
@@ -852,7 +852,7 @@ void jumperDoEvilDonut(int64_t elapsedUs)
             evilDonut->respawnTime -= elapsedUs;
             if (evilDonut->respawnTime <= 0)
             {
-                evilDonut->respawnTime = 5 * TO_SECONDS;
+                evilDonut->respawnTime = 5000000;
                 evilDonut->state = CHARACTER_JUMPING;
                 evilDonut->sy = 0;
             }
@@ -921,7 +921,7 @@ void jumperPlayerInput(void)
         }
         else if (player->state == CHARACTER_JUMPCROUCH)
         {
-            ESP_LOGI("JUM", "Jumping from %d block to block %d", player->block, player->dBlock);
+            // ESP_LOGI("JUM", "Jumping from %d block to block %d", player->block, player->dBlock);
 
             bool legitJump = true;
 
