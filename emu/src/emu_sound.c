@@ -187,10 +187,6 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
 void buzzer_init(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, bool isMuted)
 {
 	emuMuted = isMuted;
-	if(emuMuted)
-	{
-		return;
-	}
 
 	buzzer_stop();
 	if (!sounddriver)

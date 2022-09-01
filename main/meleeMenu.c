@@ -18,7 +18,7 @@
 // Colors for the border when each row is selected
 static const paletteColor_t borderColors[MAX_ROWS] =
 {
-    c112, c211, c021, c221, c102
+    c112, c211, c021, c221, c102, c210
 };
 
 static const led_t borderLedColors[MAX_ROWS] =
@@ -27,13 +27,14 @@ static const led_t borderLedColors[MAX_ROWS] =
     {.r = 0x20, .g = 0x10, .b = 0x10},
     {.r = 0x00, .g = 0x20, .b = 0x10},
     {.r = 0x20, .g = 0x20, .b = 0x10},
-    {.r = 0x10, .g = 0x00, .b = 0x20}
+    {.r = 0x10, .g = 0x00, .b = 0x20},
+    {.r = 0x20, .g = 0x10, .b = 0x00}
 };
 
 // X axis offset for each row
 static const uint8_t rowOffsets[MAX_ROWS] =
 {
-    70, 45, 20, 39, 29
+    70, 45, 20, 36, 29, 52
 };
 
 //==============================================================================
@@ -141,6 +142,7 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
             }
             break;
         }
+        case SELECT:
         case DOWN:
         {
             // Scroll down, with wraparound
@@ -154,6 +156,7 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
             }
             break;
         }
+        case START:
         case BTN_A:
         {
             // Call the callback function for the given row

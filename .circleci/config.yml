@@ -75,6 +75,7 @@ jobs:
           name: Build Swadge Emulator
           shell: powershell.exe
           command: |
+            $erroractionpreference = 'stop'
             cd ~\project\esp32-c3-playground
             # Set the path to find msys2 binaries
             $env:path = $env:path.Insert($env:path.ToLower().IndexOf("c:\windows\system32"), "C:\msys64\mingw64\bin;C:\msys64\usr\bin;")
@@ -88,6 +89,7 @@ jobs:
           name: Build Swadge Firmware
           shell: powershell.exe
           command: |
+            $erroractionpreference = 'stop'
             cd ~\project\esp32-c3-playground
             # Set the path to find msys2 binaries
             $env:path = $env:path.Insert($env:path.ToLower().IndexOf("c:\windows\system32"), "C:\msys64\mingw64\bin;C:\msys64\usr\bin;")

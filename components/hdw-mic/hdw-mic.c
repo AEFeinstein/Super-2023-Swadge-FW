@@ -35,7 +35,7 @@ static const char *TAG = "ADC DMA";
  * NOTE: this only supports sampling a single ADC at the moment
  *
  * @param adc1_chan_mask A bit set for each ADC1 channel to start sampling
- * @param adc2_chan_mask A bit set for each ADC1 channel to start sampling
+ * @param adc2_chan_mask A bit set for each ADC2 channel to start sampling
  * @param channel        An array of adc_channel_t to start sampling
  * @param channel_num    The number of adc_channel_t to start sampling
  */

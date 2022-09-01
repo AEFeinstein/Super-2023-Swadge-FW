@@ -94,7 +94,7 @@ void tud_gamepad_report(hid_gamepad_report_t * report UNUSED)
 bool tud_ready(void)
 {
     WARN_UNIMPLEMENTED();
-    return false;
+    return true;
 }
 
 /**

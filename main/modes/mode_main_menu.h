@@ -3,7 +3,6 @@
 
 #include "swadgeMode.h"
 
-extern swadgeMode* swadgeModes[];
 extern swadgeMode modeMainMenu;
 
 #endif
