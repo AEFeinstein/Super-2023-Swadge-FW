@@ -320,11 +320,12 @@ void mainMenuGamesCb(const char* opt)
         switchToSwadgeMode(&modeFighter);
     }
     // Handle the option
-    if(modePlatformer.modeName == opt)
+    else if(modePlatformer.modeName == opt)
     {
         // Start platformer
         switchToSwadgeMode(&modePlatformer);
-    if(modeJumper.modeName == opt)
+    }
+    else if(modeJumper.modeName == opt)
     {
         // Start jumper
         switchToSwadgeMode(&modeJumper);
