@@ -675,7 +675,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
             char gainStr[16] = {0};
-            snprintf(gainStr, sizeof(gainStr) - 1, "Gain:%d", getMicVolume());
+            snprintf(gainStr, sizeof(gainStr) - 1, "Gain:%d", getMicGain());
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, gainStr, 30 + afterExit, tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
             // Up/Down arrows in middle of display around current note/mode
@@ -1048,7 +1048,7 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                     case BTN_A:
                     {
                         // Cycle microphone sensitivity
-                        setMicVolume((getMicVolume() + 1) % 10);
+                        incMicGain();
                         break;
                     }
                     case RIGHT:
