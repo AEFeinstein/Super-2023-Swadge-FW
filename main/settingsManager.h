@@ -27,4 +27,7 @@ bool incMicGain(void);
 colorchordMode_t getColorchordMode(void);
 bool setColorchordMode(colorchordMode_t);
 
+uint32_t getQJumperHighScore(void);
+bool setQJumperHighScore(uint32_t highScore);
+
 #endif

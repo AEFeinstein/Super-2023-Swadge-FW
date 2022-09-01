@@ -21,8 +21,8 @@
 
 #define SIGNOF(x) ((x > 0) - (x < 0))
 #define TO_TILE_COORDS(x) ((x) >> TILE_SIZE_IN_POWERS_OF_2)
-#define TO_PIXEL_COORDS(x) ((x) >> SUBPIXEL_RESOLUTION)
-#define TO_SUBPIXEL_COORDS(x) ((x) << SUBPIXEL_RESOLUTION)
+// #define TO_PIXEL_COORDS(x) ((x) >> SUBPIXEL_RESOLUTION)
+// #define TO_SUBPIXEL_COORDS(x) ((x) << SUBPIXEL_RESOLUTION)
 
 static const song_t sndHit =
     {
@@ -169,31 +169,39 @@ void updateHitBlock(entity_t *self)
 
         switch (aboveTile)
         {
-        case TILE_CTNR_COIN:
-            self->gameData->coins++;
-            self->gameData->score += 50;
-            buzzer_play_sfx(&sndCoin);
-            self->jumpPower = TILE_CONTAINER_2;
-            break;
-        case TILE_CTNR_POW1:
-            createdEntity = createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
-            createdEntity->homeTileX = 0;
-            createdEntity->homeTileY = 0;
+            case TILE_CTNR_COIN:
+            {
+                self->gameData->coins++;
+                self->gameData->score += 50;
+                buzzer_play_sfx(&sndCoin);
+                self->jumpPower = TILE_CONTAINER_2;
+                break;
+            }
+            case TILE_CTNR_POW1:
+            {
+                createdEntity = createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity->homeTileX = 0;
+                createdEntity->homeTileY = 0;
 
-            self->jumpPower = TILE_CONTAINER_2;
-            break;
-        case TILE_WARP_0 ... TILE_WARP_F:
-            createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                self->jumpPower = TILE_CONTAINER_2;
+                break;
+            }
+            case TILE_WARP_0 ... TILE_WARP_F:
+            {
+                createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
 
-            createdEntity->homeTileX = self->homeTileX;
-            createdEntity->homeTileY = self->homeTileY;
+                createdEntity->homeTileX = self->homeTileX;
+                createdEntity->homeTileY = self->homeTileY;
 
-            createdEntity->jumpPower = aboveTile - TILE_WARP_0;
-            self->jumpPower = TILE_CONTAINER_2;
-            break;
+                createdEntity->jumpPower = aboveTile - TILE_WARP_0;
+                self->jumpPower = TILE_CONTAINER_2;
+                break;
+            }
+            default:
+            {
+                break;
+            }
 
-        default:
-            break;
         }
 
         self->tilemap->map[self->homeTileY * self->tilemap->mapWidth + self->homeTileX] = self->jumpPower;
@@ -208,7 +216,7 @@ void moveEntityWithTileCollisions(entity_t *self)
     uint16_t newY = self->y;
     uint8_t tx = TO_TILE_COORDS(self->x >> SUBPIXEL_RESOLUTION);
     uint8_t ty = TO_TILE_COORDS(self->y >> SUBPIXEL_RESOLUTION);
-    bool collision = false;
+    // bool collision = false;
 
     // Are we inside a block? Push self out of block
     uint8_t t = getTile(self->tilemap, tx, ty);
@@ -244,7 +252,7 @@ void moveEntityWithTileCollisions(entity_t *self)
 
             if (isSolid(at))
             {
-                collision = true;
+                // collision = true;
                 newX = ((tx + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
             }
 
@@ -273,7 +281,7 @@ void moveEntityWithTileCollisions(entity_t *self)
 
             if (isSolid(att))
             {
-                collision = true;
+                // collision = true;
                 newY = ((ty + 1) * TILE_SIZE - HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
             }
 
@@ -458,53 +466,58 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
 {
     switch (other->type)
     {
-    case ENTITY_TEST:
-
-        other->xspeed = -other->xspeed;
-
-        if (self->y < other->y && self->yspeed > 0)
+        case ENTITY_TEST:
         {
-            self->gameData->score += 100;
-            other->homeTileX = 0;
-            other->homeTileY = 0;
-            other->falling = true;
-            other->type = ENTITY_DEAD;
-            other->spriteFlipVertical = true;
-            other->updateFunction = &updateEntityDead;
+            other->xspeed = -other->xspeed;
 
-            buzzer_play_sfx(&sndHit);
-
-            self->yspeed = -90;
-
-            if (self->gameData->btnState & BTN_B)
+            if (self->y < other->y && self->yspeed > 0)
             {
-                self->jumpPower = 180 + (abs(self->xspeed) >> 2);
+                self->gameData->score += 100;
+                other->homeTileX = 0;
+                other->homeTileY = 0;
+                other->falling = true;
+                other->type = ENTITY_DEAD;
+                other->spriteFlipVertical = true;
+                other->updateFunction = &updateEntityDead;
+
+                buzzer_play_sfx(&sndHit);
+
+                self->yspeed = -90;
+
+                if (self->gameData->btnState & BTN_B)
+                {
+                    self->jumpPower = 180 + (abs(self->xspeed) >> 2);
+                }
             }
+            else
+            {
+                self->updateFunction = &updateEntityDead;
+                self->type = ENTITY_DEAD;
+                self->xspeed = 0;
+                self->yspeed = -180;
+                self->spriteIndex = SP_PLAYER_HURT;
+                self->gameData->changeState = ST_DEAD;
+            }
+
+            self->falling = true;
+            break;
         }
-        else
+        case ENTITY_WARP:{
+            //Execute warp
+            self->x = (self->tilemap->warps[other->jumpPower].x * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+            self->y = (self->tilemap->warps[other->jumpPower].y * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+            self->falling = true;
+
+            unlockScrolling(self->tilemap);
+            deactivateAllEntities(self->entityManager, true);
+            self->tilemap->executeTileSpawnAll = true;
+
+            break;
+        }
+        default:
         {
-            self->updateFunction = &updateEntityDead;
-            self->type = ENTITY_DEAD;
-            self->xspeed = 0;
-            self->yspeed = -180;
-            self->spriteIndex = SP_PLAYER_HURT;
-            self->gameData->changeState = ST_DEAD;
+            break;
         }
-
-        self->falling = true;
-        break;
-    case ENTITY_WARP:;
-        //Execute warp
-        self->x = (self->tilemap->warps[other->jumpPower].x * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
-        self->y = (self->tilemap->warps[other->jumpPower].y * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
-        self->falling = true;
-
-        unlockScrolling(self->tilemap);
-        deactivateAllEntities(self->entityManager, true);
-        self->tilemap->executeTileSpawnAll = true;
-
-        break;
-    default:;
     }
 }
 
@@ -515,7 +528,10 @@ void enemyCollisionHandler(entity_t *self, entity_t *other)
     case ENTITY_TEST:
         self->xspeed = -self->xspeed;
         break;
-    default:;
+    default:
+    {
+        break;
+    }
     }
 }
 
@@ -529,7 +545,8 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     switch (tileId)
     {
     case TILE_CONTAINER_1:
-    case TILE_BRICK_BLOCK:;
+    case TILE_BRICK_BLOCK:
+    {
         entity_t *hitBlock = createEntity(self->entityManager, ENTITY_HIT_BLOCK, (tx * TILE_SIZE) + HALF_TILE_SIZE, (ty * TILE_SIZE) + HALF_TILE_SIZE);
 
         if (hitBlock != NULL)
@@ -563,44 +580,59 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
             }
         }
         break;
+    }
     case TILE_GOAL_100PTS:
+    {
         self->gameData->score += 100;
         self->spriteIndex = SP_PLAYER_WIN;
         self->updateFunction = &updateDummy;
         self->gameData->changeState = ST_LEVEL_CLEAR;
         break;
+    }
     case TILE_GOAL_500PTS:
+    {
         self->gameData->score += 200;
         self->spriteIndex = SP_PLAYER_WIN;
         self->updateFunction = &updateDummy;
         self->gameData->changeState = ST_LEVEL_CLEAR;
         break;
+    }
     case TILE_GOAL_1000PTS:
+    {
         self->gameData->score += 1000;
         self->spriteIndex = SP_PLAYER_WIN;
         self->updateFunction = &updateDummy;
         self->gameData->changeState = ST_LEVEL_CLEAR;
         break;
+    }
     case TILE_GOAL_2000PTS:
+    {
         self->gameData->score += 2000;
         self->spriteIndex = SP_PLAYER_WIN;
         self->updateFunction = &updateDummy;
         self->gameData->changeState = ST_LEVEL_CLEAR;
         break;
+    }
     case TILE_GOAL_5000PTS:
+    {
         self->gameData->score += 5000;
         self->spriteIndex = SP_PLAYER_WIN;
         self->updateFunction = &updateDummy;
         self->gameData->changeState = ST_LEVEL_CLEAR;
         break;
+    }
     case TILE_COIN_1 ... TILE_COIN_3:
+    {
         setTile(self->tilemap, tx, ty, TILE_EMPTY);
         self->gameData->coins++;
         self->gameData->score += 50;
         buzzer_play_sfx(&sndCoin);
         break;
+    }
     default:
+    {
         break;
+    }
     }
 
     if (isSolid(tileId))

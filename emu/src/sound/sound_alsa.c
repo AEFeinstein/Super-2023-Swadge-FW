@@ -242,6 +242,7 @@ void * RecThread( void * v )
 		r->callback( (struct SoundDriver *)r, samples, 0, err, 0 );
 	} while( 1 );
 	r->recording = 0;
+	return 0;
 }
 
 
@@ -301,6 +302,7 @@ void * PlayThread( void * v )
 	}
 	r->playing = 0;
 	fprintf( stderr, "Warning: Sound Playback Stopped\n" );
+	return 0;
 }
 
 static struct SoundDriverAlsa * InitASound( struct SoundDriverAlsa * r )

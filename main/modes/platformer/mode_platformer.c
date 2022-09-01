@@ -261,13 +261,13 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
     char scoreStr[8];
     snprintf(scoreStr, sizeof(scoreStr) - 1, "%06d", gameData->score);
 
-    char levelStr[12];
+    char levelStr[15];
     snprintf(levelStr, sizeof(levelStr) - 1, "Level %d-%d", gameData->world, gameData->level);
 
     char livesStr[8];
     snprintf(livesStr, sizeof(livesStr) - 1, "x%d", gameData->lives);
 
-    char timeStr[8];
+    char timeStr[10];
     snprintf(timeStr, sizeof(timeStr) - 1, "T:%03d", gameData->countdown);
 
     if(gameData->frameCount > 10) {
