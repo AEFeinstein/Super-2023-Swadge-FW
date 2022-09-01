@@ -531,7 +531,7 @@ void drawChar(display_t* disp, paletteColor_t color, uint16_t h, font_ch_t* ch, 
  */
 int16_t drawText(display_t* disp, font_t* font, paletteColor_t color, const char* text, int16_t xOff, int16_t yOff)
 {
-    while(*text != 0)
+    while(*text >= ' ')
     {
         // Only draw if the char is on the screen
         if (xOff + font->chars[(*text) - ' '].w >= 0)
