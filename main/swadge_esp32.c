@@ -94,7 +94,7 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
 //==============================================================================
 
 static RTC_DATA_ATTR swadgeMode* pendingSwadgeMode = NULL;
-static swadgeMode* cSwadgeMode = &modeTest;
+static swadgeMode* cSwadgeMode = &modeMainMenu;
 static bool isSandboxMode = false;
 
 //==============================================================================
@@ -307,8 +307,13 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         }
         default:
         {
+#if !defined(CONFIG_SWADGE_PROTOTYPE) && !defined(CONFIG_SWADGE_DEVKIT)
             // If test mode was passed
             if(getTestModePassed())
+#else
+            // Ignore test mode for proto and devkit
+            if(true)
+#endif
             {
                 // Show the main menu
                 cSwadgeMode = &modeMainMenu;
@@ -333,7 +338,8 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 
     /* Initialize non-i2c hardware peripherals */
 #if defined(CONFIG_SWADGE_DEVKIT)
-    initButtons(8,
+    initButtons(TIMER_GROUP_0, TIMER_0,
+                8,
                 GPIO_NUM_1,
                 GPIO_NUM_0,
                 GPIO_NUM_3,
@@ -343,7 +349,8 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                 GPIO_NUM_4,
                 GPIO_NUM_15); // GPIO 46 doesn't work b/c it has a permanent pulldown
 #elif defined(CONFIG_SWADGE_PROTOTYPE)
-    initButtons(8,
+    initButtons(TIMER_GROUP_0, TIMER_0,
+                8,
                 GPIO_NUM_0,
                 GPIO_NUM_4,
                 GPIO_NUM_2,
