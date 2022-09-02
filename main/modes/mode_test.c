@@ -246,17 +246,17 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     }
 
     // Plot X accel
-    int16_t barWidth = ((test->accel.x) * MAX_ACCEL_BAR_W) / 4096;
+    int16_t barWidth = ((test->accel.x + 8192) * MAX_ACCEL_BAR_W) / 16384;
     fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
     barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
 
     // Plot Y accel
-    barWidth = ((test->accel.y) * MAX_ACCEL_BAR_W) / 4096;
+    barWidth = ((test->accel.y + 8192) * MAX_ACCEL_BAR_W) / 16384;
     fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
     barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
 
     // Plot Z accel
-    barWidth = ((test->accel.z) * MAX_ACCEL_BAR_W) / 4096;
+    barWidth = ((test->accel.z + 8192) * MAX_ACCEL_BAR_W) / 16384;
     fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
     barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
 
@@ -502,16 +502,16 @@ void testAudioCb(uint16_t* samples, uint32_t sampleCnt)
             HandleFrameInfo(&test->end, &test->dd);
 
             // Check for pass
-            int16_t maxVal = 0;
-            int16_t maxIdx = 0;
-            for(uint16_t i = 0; i < FIXBINS; i++)
-            {
-                if(test->end.fuzzed_bins[i] > maxVal)
-                {
-                    maxVal = test->end.fuzzed_bins[i];
-                    maxIdx = i;
-                }
-            }
+            // int16_t maxVal = 0;
+            // int16_t maxIdx = 0;
+            // for(uint16_t i = 0; i < FIXBINS; i++)
+            // {
+            //     if(test->end.fuzzed_bins[i] > maxVal)
+            //     {
+            //         maxVal = test->end.fuzzed_bins[i];
+            //         maxIdx = i;
+            //     }
+            // }
             // TODO validate maxIdx
             // ESP_LOGE("MIC", "%d", maxIdx);
         }
@@ -534,7 +534,7 @@ void testAccelerometerCallback(accel_t* accel)
     if((accel->x != 0) && (accel->y != 0) && (accel->z != 0))
     {
         // Make sure some value is shook
-        if((accel->x > 1024) && (accel->y > 1024) && (accel->z > 1024))
+        if((accel->x > 4096) || (accel->y > 4096) || (accel->z > 4096))
         {
             // Pass!
             test->accelPassed = true;
