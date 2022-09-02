@@ -307,24 +307,21 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         }
         default:
         {
-            /* Reset cSwadgeMode */
-            cSwadgeMode = &modeMainMenu;
+            // If test mode was passed
+            if(getTestModePassed())
+            {
+                // Show the main menu
+                cSwadgeMode = &modeMainMenu;
+            }
+            else
+            {
+                // Otherwise enter test mode
+                cSwadgeMode = &modeTest;
+            }
             break;
         }
     }
 #endif
-
-    // If test mode was passed
-    if(getTestModePassed())
-    {
-        // Show the main menu
-        cSwadgeMode = &modeMainMenu;
-    }
-    else
-    {
-        // Otherwise enter test mode
-        cSwadgeMode = &modeTest;
-    }
 
     /* Initialize internal NVS */
     initNvs(true);

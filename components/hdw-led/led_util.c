@@ -89,7 +89,7 @@ void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds, uint8_t brig
 {
     ledStrip = led_strip_init(rmt, gpio, numLeds);
     maxNumLeds = numLeds;
-    ledBrightness = (8 - brightness);
+    ledBrightness = (7 - brightness);
 }
 
 /**
@@ -100,12 +100,12 @@ void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds, uint8_t brig
 void setLedBrightness(uint8_t brightness)
 {
     // Bound
-    if(brightness > 8)
+    if(brightness > 7)
     {
-        brightness = 8;
+        brightness = 7;
     }
     // Set a value to rshift by
-    ledBrightness = (8 - brightness);
+    ledBrightness = (7 - brightness);
 }
 
 /**

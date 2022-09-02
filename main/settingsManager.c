@@ -13,8 +13,8 @@
 // Defines
 //==============================================================================
 
-#define MAX_LED_BRIGHTNESS 8
-#define MAX_TFT_BRIGHTNESS 9
+#define MAX_LED_BRIGHTNESS 7
+#define MAX_TFT_BRIGHTNESS 7
 #define MAX_MIC_GAIN       7
 
 //==============================================================================
@@ -112,7 +112,7 @@ bool decTftBrightness(void)
 }
 
 /**
- * @return The Brightness level for the LED, 0-8
+ * @return The Brightness level for the LED, 0-7
  */
 int32_t getLedBrightness(void)
 {
@@ -170,7 +170,7 @@ bool decLedBrightness(void)
  */
 int32_t getMicGain(void)
 {
-    int32_t micGain = 5;
+    int32_t micGain = MAX_MIC_GAIN;
     // Try reading the value
     if(false == readNvs32(KEY_MIC, &micGain))
     {
