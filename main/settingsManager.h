@@ -30,4 +30,7 @@ bool setColorchordMode(colorchordMode_t);
 uint32_t getQJumperHighScore(void);
 bool setQJumperHighScore(uint32_t highScore);
 
+bool getTestModePassed(void);
+bool setTestModePassed(bool status);
+
 #endif

@@ -616,7 +616,7 @@ void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds
         // Save the number of LEDs
         rdNumLeds = numLeds;
         // Save the brightness
-        ledBrightness = (8 - brightness);
+        ledBrightness = (7 - brightness);
     }
 }
 
@@ -634,7 +634,7 @@ void setLedBrightness(uint8_t brightness)
         brightness = 8;
     }
     // Set a value to rshift by
-    ledBrightness = (8 - brightness);
+    ledBrightness = (7 - brightness);
 }
 
 /**

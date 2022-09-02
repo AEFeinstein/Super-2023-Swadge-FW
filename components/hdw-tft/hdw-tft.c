@@ -498,7 +498,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     esp_lcd_panel_invert_color(panel_handle, false);
     // NOTE: the following call would override settings set by esp_lcd_panel_swap_xy() and esp_lcd_panel_mirror()
     // Both of the prior functions write to the 0x36 register
-    // esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[]) {0xE8}, 1 ); //MX, MY, RGB mode  (MADCTL)
+    esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[]) {0xE8}, 1 ); //MX, MY, RGB mode  (MADCTL)
     esp_lcd_panel_io_tx_param(io, 0x35, (uint8_t[]) {0x00}, 1 ); // "tear effect" testing sync pin.
 #elif defined(CONFIG_ST7735_128x160)
     esp_lcd_panel_io_tx_param(io, 0xB1, (uint8_t[]) { 0x05, 0x3C, 0x3C }, 3 );

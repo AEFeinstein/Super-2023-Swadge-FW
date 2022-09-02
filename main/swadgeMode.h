@@ -10,7 +10,7 @@
 #include "touch_sensor.h"
 #include "display.h"
 
-#define NUM_LEDS 6
+#define NUM_LEDS 8
 
 typedef enum __attribute__((packed))
 {
