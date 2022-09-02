@@ -38,10 +38,12 @@ pthread_mutex_t buttonQueueMutex = PTHREAD_MUTEX_INITIALIZER;
 /**
  * @brief Set up the keyboard to act as input buttons
  *
+ * @param group_num The timer group number to poll GPIOs with
+ * @param timer_num The timer number to poll GPIOs with
  * @param numButtons The number of buttons to initialize
  * @param ... A list of GPIOs, which are ignored
  */
-void initButtons(uint8_t numButtons, ...)
+void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButtons, ...)
 {
     // The order in which keys are initialized
     // Note that the actuall number of buttons initialized may be less than this
