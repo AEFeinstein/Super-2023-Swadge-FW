@@ -414,6 +414,42 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
 }
 
 /**
+ * @brief Draw a WSG to the display
+ *
+ * @param disp The display to draw the WSG to
+ * @param wsg  The WSG to draw to the display
+ * @param xOff The x offset to draw the WSG at
+ * @param yOff The y offset to draw the WSG at
+ */
+void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
+{
+    if(NULL == wsg->px)
+    {
+        return;
+    }
+
+     // Only draw in bounds
+    int16_t xMin = CLAMP(xOff, 0, disp->w);
+    int16_t xMax = CLAMP(xOff + wsg->w, 0, disp->w);
+    int16_t yMin = CLAMP(yOff, 0, disp->h);
+    int16_t yMax = CLAMP(yOff + wsg->h, 0, disp->h);
+    
+    // Draw each pixel
+    for (int y = yMin; y < yMax; y++)
+    {
+        for (int x = xMin; x < xMax; x++)
+        {
+            int16_t wsgX = x - xOff;
+            int16_t wsgY = y - yOff;
+            if (cTransparent != wsg->px[(wsgY * wsg->w) + wsgX])
+            {
+                disp->setPx(x, y, wsg->px[(wsgY * wsg->w) + wsgX]);
+            }
+        }
+    }
+}
+
+/**
  * @brief Load a font from ROM to RAM. Fonts are bitmapped image files that have
  * a single height, all ASCII characters, and a width for each character.
  * PNGs placed in the assets folder before compilation will be automatically

@@ -57,6 +57,7 @@ void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
 bool loadWsg(char* name, wsg_t* wsg);
 void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
              bool flipLR, bool flipUD, int16_t rotateDeg);
+void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff);
 void freeWsg(wsg_t* wsg);
 
 bool loadFont(const char* name, font_t* font);
