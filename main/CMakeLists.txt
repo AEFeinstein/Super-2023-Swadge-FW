@@ -14,6 +14,8 @@ idf_component_register(
         "modes/mode_credits.c"
         "modes/jumper/jumper_menu.c"
         "modes/jumper/mode_jumper.c"
+        "modes/picross/picross_menu.c"
+        "modes/picross/mode_picross.c"
         "modes/mode_gamepad.c"
         "modes/mode_main_menu.c"
         "modes/mode_colorchord.c"
