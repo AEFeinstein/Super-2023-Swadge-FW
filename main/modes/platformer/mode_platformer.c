@@ -148,7 +148,7 @@ static leveldef_t leveldef[2] = {
      .timeLimit = 120,
      .checkpointTimeLimit = 90}};
 
-led_t leds[NUM_LEDS];
+led_t platLeds[NUM_LEDS];
 
 //==============================================================================
 // Functions
@@ -327,11 +327,11 @@ void updateTitleScreen(platformer_t *self)
     {
         for (int32_t i = 0; i < NUM_LEDS; i++)
         {
-            leds[i].r = 0xFF;
-            leds[i].g = 0xFF;
-            leds[i].b = 0xFF;
+            platLeds[i].r = 0xFF;
+            platLeds[i].g = 0xFF;
+            platLeds[i].b = 0xFF;
         }
-        setLeds(leds, NUM_LEDS);
+        setLeds(platLeds, NUM_LEDS);
         buzzer_play_sfx(&sndTest);
     } else if (
         (!(self->gameData.btnState & UP) && (self->gameData.prevBtnState & UP))
@@ -341,11 +341,11 @@ void updateTitleScreen(platformer_t *self)
     {
         for (int32_t i = 0; i < NUM_LEDS; i++)
         {
-            leds[i].r = 0x00;
-            leds[i].g = 0x00;
-            leds[i].b = 0x00;
+            platLeds[i].r = 0x00;
+            platLeds[i].g = 0x00;
+            platLeds[i].b = 0x00;
         }
-        setLeds(leds, NUM_LEDS);
+        setLeds(platLeds, NUM_LEDS);
     }
 
 
