@@ -13,8 +13,8 @@
 // Defines
 //==============================================================================
 
-#define MAX_LED_BRIGHTNESS 8
-#define MAX_TFT_BRIGHTNESS 9
+#define MAX_LED_BRIGHTNESS 7
+#define MAX_TFT_BRIGHTNESS 7
 #define MAX_MIC_GAIN       7
 
 //==============================================================================
@@ -27,6 +27,7 @@ const char KEY_MIC[]        = "mic";
 const char KEY_LED_BRIGHT[] = "led";
 const char KEY_CC_MODE[]    = "ccm";
 const char KEY_QJ_HS[]      = "qj";
+const char KEY_TEST[]       = "test";
 
 //==============================================================================
 // Functions
@@ -111,7 +112,7 @@ bool decTftBrightness(void)
 }
 
 /**
- * @return The Brightness level for the LED, 0-8
+ * @return The Brightness level for the LED, 0-7
  */
 int32_t getLedBrightness(void)
 {
@@ -169,7 +170,7 @@ bool decLedBrightness(void)
  */
 int32_t getMicGain(void)
 {
-    int32_t micGain = 5;
+    int32_t micGain = MAX_MIC_GAIN;
     // Try reading the value
     if(false == readNvs32(KEY_MIC, &micGain))
     {
@@ -293,4 +294,32 @@ bool setQJumperHighScore(uint32_t highScore)
 {
     // Write the value
     return writeNvs32(KEY_QJ_HS, highScore);
+}
+
+/**
+ * @return true if the test mode passed
+ */
+bool getTestModePassed(void)
+{
+    int32_t pass = false;
+    // Try reading the value
+    if(false == readNvs32(KEY_TEST, &pass))
+    {
+        // Value didn't exist, so write the default
+        setTestModePassed(false);
+    }
+    // Return the read value
+    return (bool)pass;
+}
+
+/**
+ * Set the new test mode pass status
+ *
+ * @param status true if the test passed, false if it did not
+ * @return true if the setting was saved, false if it was not
+ */
+bool setTestModePassed(bool status)
+{
+    // Write the value
+    return writeNvs32(KEY_TEST, status);
 }
