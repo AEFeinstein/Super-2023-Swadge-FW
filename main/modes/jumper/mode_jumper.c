@@ -45,6 +45,7 @@ void jumperDoBlump(int64_t elapsedUs);
 void jumperSetupState(uint8_t stageIndex);
 
 void drawJumperScene(display_t* d);
+void drawJumperEffects(display_t* d);
 void drawJumperHud(display_t* d, font_t* prompt, font_t* font);
 
 //==============================================================================
@@ -85,34 +86,85 @@ static const song_t jumpWinTune =
 {
     .notes =
     {
-        {E_7, 250}, {SILENCE, 100}, {E_7, 200}, {SILENCE, 100},
-        {C_7, 250}, {SILENCE, 100}, {A_6, 250}, {SILENCE, 100},
-        {C_7, 650}, {SILENCE, 725}, {A_7, 50}, {B_7, 150}
+        {E_4, 250}, {SILENCE, 100}, {D_4, 200}, {SILENCE, 100},
+        {E_4, 250}, {SILENCE, 100}, {G_3, 250}, {SILENCE, 100},
+        {C_4, 350}, {SILENCE, 100}, {C_4, 200}, {SILENCE, 100}
     },
     .numNotes = 12,
     .shouldLoop = false
 };
 
-static const song_t jumpLand =
+static const song_t jumpGameLoop = 
+{
+    .notes = {
+        {F_3, 250}, {F_4, 250},
+        {F_3, 250}, {F_4, 250},
+        {F_3, 250}, {F_4, 250},
+        {F_3, 250}, {F_4, 250},
+        {G_SHARP_3, 250}, {G_SHARP_4, 250},
+        {G_SHARP_3, 250}, {G_SHARP_4, 250},
+        {A_SHARP_3, 250}, {A_SHARP_4, 250},
+        {A_SHARP_3, 250}, {A_SHARP_4, 250},
+    },
+    .numNotes = 16,
+    .shouldLoop = true
+};
+
+static const song_t jumpPerfectTune = 
 {
     .notes =
     {
-        {770, 50}, {800, 50},
-        {830, 50}, {860, 150}
+        {E_6, 250}, {SILENCE, 100}, {E_6, 200}, {SILENCE, 100},
+        {C_6, 250}, {SILENCE, 100}, {A_5, 250}, {SILENCE, 100},
+        {C_6, 650}, {SILENCE, 725}, {A_7, 50}, {B_7, 150}
+    },
+    .numNotes = 12,
+    .shouldLoop = false
+};
+
+static const song_t jumpPlayerJump =
+{
+    .notes =
+    {
+        {G_5, 26}, {G_SHARP_5, 26},
+        {A_5, 26}, {A_SHARP_5, 50}
     },
     .numNotes = 4,
     .shouldLoop = false
 };
 
+static const song_t jumpPlayerBrokeCombo =
+{
+    .notes =
+    {
+        {860, 26}, {830, 26},
+        {800, 26}, {770, 26}
+    },
+    .numNotes = 4,
+    .shouldLoop = false
+};
+
+static const song_t jumpCountdown = 
+{
+    .notes = 
+    {
+        {F_6, 26},
+        {G_SHARP_6, 26},
+        {F_6, 26},
+        {D_SHARP_6, 26},
+    },
+    .numNotes = 4,
+    .shouldLoop = false
+};
 
 static const song_t jumpEvilDonutJump =
 {
     .notes =
     {
-        {F_4, 50}, {A_5, 150},
-        {F_4, 150}
+        {G_4, 26}, {G_SHARP_4, 26},
+        {A_4, 26}, {A_SHARP_4, 50}
     },
-    .numNotes = 3,
+    .numNotes = 4,
     .shouldLoop = false
 };
 
@@ -120,8 +172,8 @@ static const song_t jumpBlumpJump =
 {
     .notes =
     {
-        {C_5, 50}, {E_5, 150},
-        {C_5, 150}
+        {C_5, 26}, {E_5, 50},
+        {C_5, 50}
     },
     .numNotes = 3,
     .shouldLoop = false
@@ -146,12 +198,14 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
 
     loadFont("radiostars.font", &(j->game_font));
 
+    j->multiplier = calloc(3, sizeof(jumperMultiplier_t));
 
     j->scene = calloc(1, sizeof(jumperStage_t));
     j->scene->combo = 1;
     j->scene->score = 0;
     j->scene->lives = 3;
     loadWsg("minidonut.wsg", &j->scene->livesIcon);
+
 
     loadWsg("block_0a.wsg", &j->block[0]);
     loadWsg("block_0b.wsg", &j->block[1]);
@@ -161,6 +215,19 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
     loadWsg("block_0a.wsg", &j->block[5]);
     loadWsg("block_0a.wsg", &j->block[6]);
     loadWsg("block_0a.wsg", &j->block[7]);
+
+    loadWsg("multiplier0.wsg", &j->digit[0]);
+    loadWsg("multiplier1.wsg", &j->digit[1]);
+    loadWsg("multiplier2.wsg", &j->digit[2]);
+    loadWsg("multiplier3.wsg", &j->digit[3]);
+    loadWsg("multiplier4.wsg", &j->digit[4]);
+    loadWsg("multiplier5.wsg", &j->digit[5]);
+    loadWsg("multiplier6.wsg", &j->digit[6]);
+    loadWsg("multiplier7.wsg", &j->digit[7]);
+    loadWsg("multiplier8.wsg", &j->digit[8]);
+    loadWsg("multiplier9.wsg", &j->digit[9]);
+    loadWsg("multiplierx.wsg", &j->digit[10]);
+    loadWsg("perfect.wsg", &j->digit[11]);
 
     j->player = calloc(1, sizeof(jumperCharacter_t));
 
@@ -196,12 +263,10 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
 
     //Setup stage
     jumperSetupState(0);
-    // ESP_LOGI("FTR", "{[%d, %d], [%d, %d], %d}",
 }
 
 void jumperSetupState(uint8_t stageIndex)
 {
-    // ESP_LOGI("FTR", "Stage %d %d", stageIndex, j->scene->level);
     j->currentPhase = JUMPER_COUNTDOWN;
     j->scene->time = 5000000;
     j->scene->seconds = 5000;
@@ -288,13 +353,23 @@ void jumperGameLoop(int64_t elapsedUs)
     {
         case JUMPER_COUNTDOWN:
 
+            
+            
+
+
             if (j->scene->seconds < 1)
             {
                 j->controlsEnabled = true;
                 player->jumpReady = true;
                 j->currentPhase = JUMPER_GAMING;
 
-
+                buzzer_play_bgm(&jumpGameLoop);
+            }
+            else if (j->scene->seconds != j->scene->previousSecond && j->scene->seconds < 4)
+            {
+                ESP_LOGI("JUM", "Play %d", j->scene->seconds);
+                j->scene->previousSecond = j->scene->seconds;
+                buzzer_play_sfx(&jumpCountdown);
             }
             break;
         case JUMPER_WINSTAGE:
@@ -306,7 +381,7 @@ void jumperGameLoop(int64_t elapsedUs)
                 }
                 jumperSetupState(j->scene->level);
             }
-            else if (j->scene->seconds < 2)
+            else if (j->scene->seconds < 2 && j->scene->combo > 30)
             {
                 //YEAH!
                 for(uint8_t block = 0; block < 30; block++)
@@ -327,13 +402,13 @@ void jumperGameLoop(int64_t elapsedUs)
             }
             break;
         case JUMPER_GAME_OVER:
-            //ditty ditty
+        
             if (j->scene->seconds < 0)
             {
-                //Quit game;
+                
                 setJumperMainMenu();
                 jumperExitGame();
-                return; // variables free()'d, so return
+                return;
             }
             break;
         case JUMPER_DEATH:
@@ -356,6 +431,7 @@ void jumperGameLoop(int64_t elapsedUs)
                 else
                 {
                     j->currentPhase = JUMPER_GAMING;
+                    buzzer_play_bgm(&jumpGameLoop);
 
                     // CLEAR ENEMIES
                     jumperRemoveEnemies();
@@ -432,15 +508,55 @@ void jumperGameLoop(int64_t elapsedUs)
             {
                 j->scene->blocks[player->block] = BLOCK_PLAYERLANDED;
                 j->scene->score = j->scene->score + (10 * j->scene->combo);
-                j->scene->combo++;
 
+                
                 if (j->scene->score > j->highScore)
                 {
                     j->highScore = j->scene->score;
                 }
+
+                if (j->scene->combo > 2)
+                {
+                    for(int i = 0; i < 3; i++)
+                    {
+                        if (j->multiplier[i].digits[0] >= 11)
+                        {
+                            j->multiplier[i].x = player->x;
+                            j->multiplier[i].y = player->y + 5;
+                            j->multiplier[i].time = 0;
+                            j->multiplier[i].digits[0] = 10;
+
+                            if (j->scene->combo == 30)
+                            {
+                                j->multiplier[i].digits[0] = 255;
+                                j->multiplier[i].x -= 24;
+                            }
+                            else if (j->scene->combo < 10)
+                            {
+                                j->multiplier[i].digits[1] = j->scene->combo;
+                                j->multiplier[i].digits[2] = 11;
+                                j->multiplier[i].x += 4;
+                            }
+                            else
+                            {
+                                j->multiplier[i].digits[1] = j->scene->combo / 10;
+                                j->multiplier[i].digits[2] = j->scene->combo - (j->multiplier[i].digits[1] * 10);
+                            }
+                            break;
+                        }
+                    }
+                }
+                
+                j->scene->combo++;
             }
             else if (j->scene->blocks[player->block] == BLOCK_COMPLETE)
             {
+
+                if (j->scene->combo > 5)
+                {                    
+                    buzzer_play_sfx(&jumpPlayerBrokeCombo);
+                }
+
                 j->scene->combo = 1;
                 j->scene->blocks[player->block] = BLOCK_PLAYERLANDED;
             }
@@ -529,6 +645,25 @@ void jumperGameLoop(int64_t elapsedUs)
         }
     }
 
+    //clean up special effects
+    for (int i = 0; i < 3; i++)
+    {
+        //if statement to see if mutiplier is active
+        if (j->multiplier[i].time > 2000000) continue;
+        j->multiplier[i].time += elapsedUs;
+
+        if (j->multiplier[i].time <= 250000) j->multiplier[i].y -= 1;
+
+        if (j->multiplier[i].time >= 2000000)
+        {
+            j->multiplier[i].digits[0] = 11;
+        }        
+
+        if (j->multiplier[i].digits[0] >= 11 || j->multiplier[i].digits[0] == 0) continue;
+        
+
+    }
+
     drawJumperScene(j->d);
 
 }
@@ -544,7 +679,14 @@ void jumperCheckLevel()
     }
 
     buzzer_stop();
-    buzzer_play_bgm(&jumpWinTune);
+    if (j->scene->combo < 30)
+    {
+        buzzer_play_bgm(&jumpWinTune);        
+    } 
+    else
+    {
+        buzzer_play_bgm(&jumpPerfectTune);
+    }
     j->currentPhase = JUMPER_WINSTAGE;
     j->controlsEnabled = false;
     j->player->jumpReady = false;
@@ -947,7 +1089,7 @@ void jumperPlayerInput(void)
                 player->jumpReady = false;
                 player->jumping = true;
                 player->jumpTime = 0;
-                buzzer_play_sfx(&jumpLand);
+                buzzer_play_sfx(&jumpPlayerJump);
 
                 uint8_t block = player->dBlock;
                 uint8_t row = block / 6;
@@ -997,9 +1139,36 @@ void drawJumperScene(display_t* d)
         drawWsg(d, &player->frames[player->frameIndex], player->x, player->y, player->flipped, false, 0);
     }
 
-
+    drawJumperEffects(d);
     drawJumperHud(d, j->promptFont, &j->game_font);
 
+}
+
+void drawJumperEffects(display_t* d)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        //if statement to see if mutiplier is active
+        if (j->multiplier[i].digits[0] == 255)
+        {            
+            drawWsg(d, &j->digit[11], j->multiplier[i].x, j->multiplier[i].y, false, false, 0);
+            
+        }
+
+        if (j->multiplier[i].digits[0] >= 11 || j->multiplier[i].digits[0] == 0) continue;
+
+        //if statement to parse numbers
+        for(int digit = 0; digit < 3; digit++)
+        {
+            if (j->multiplier[i].digits[digit] >= 11) 
+            {
+                break;
+            }
+
+            drawWsg(d, &j->digit[j->multiplier[i].digits[digit]], j->multiplier[i].x + (digit * 8), j->multiplier[i].y, false, false, 0);
+        }
+
+    }
 }
 
 void drawJumperHud(display_t* d, font_t* prompt, font_t* font)
@@ -1028,6 +1197,7 @@ void drawJumperHud(display_t* d, font_t* prompt, font_t* font)
     {
         drawWsg(d, &j->scene->livesIcon, 25 + (i * 11), 220, false, false, 0);
     }
+
 
     if (j->currentPhase == JUMPER_COUNTDOWN)
     {
@@ -1064,6 +1234,7 @@ void drawJumperHud(display_t* d, font_t* prompt, font_t* font)
         drawText(d, prompt, c000, "JUMP COMPLETE!", 22, 129);
         drawText(d, prompt, c555, "JUMP COMPLETE!", 20, 128);
     }
+    
 
 }
 
@@ -1091,6 +1262,19 @@ void jumperExitGame(void)
         freeWsg(&j->block[6]);
         freeWsg(&j->block[7]);
 
+        freeWsg(&j->digit[0]);
+        freeWsg(&j->digit[1]);
+        freeWsg(&j->digit[2]);
+        freeWsg(&j->digit[3]);
+        freeWsg(&j->digit[4]);
+        freeWsg(&j->digit[5]);
+        freeWsg(&j->digit[6]);
+        freeWsg(&j->digit[7]);
+        freeWsg(&j->digit[8]);
+        freeWsg(&j->digit[9]);
+        freeWsg(&j->digit[10]);
+        freeWsg(&j->digit[11]);
+
         freeWsg(&j->player->frames[0]);
         freeWsg(&j->player->frames[1]);
         freeWsg(&j->player->frames[2]);
@@ -1114,6 +1298,8 @@ void jumperExitGame(void)
         freeWsg( &j->blump->frames[5]);
 
         free(j->scene);
+
+        free(j->multiplier);
 
         free(j->evilDonut);
         free(j->player);

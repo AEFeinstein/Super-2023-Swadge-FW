@@ -74,6 +74,7 @@ typedef struct
     uint8_t lives;
     int32_t level;
     int32_t time;
+    int32_t previousSecond;
     int32_t seconds;
     int8_t blockOffset_x;
     int8_t blockOffset_y;
@@ -85,7 +86,16 @@ typedef struct
 
 typedef struct
 {
+    uint32_t x;
+    uint32_t y;
+    uint8_t digits[3];
+    uint32_t time;
+} jumperMultiplier_t;
+
+typedef struct
+{
     wsg_t block[9];
+    wsg_t digit[12];
     jumperGamePhase_t currentPhase;
     int64_t frameElapsed;
     display_t* d;
@@ -101,8 +111,9 @@ typedef struct
     jumperCharacter_t* evilDonut;
     jumperCharacter_t* blump;
 
-} jumperGame_t;
+    jumperMultiplier_t* multiplier;
 
+} jumperGame_t;
 
 
 void jumperStartGame(display_t* disp, font_t* mmFont);
