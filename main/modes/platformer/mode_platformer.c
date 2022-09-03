@@ -20,6 +20,7 @@
 #include "gameData.h"
 #include "entityManager.h"
 #include "leveldef.h"
+#include "led_util.h"
 
 //==============================================================================
 // Constants
@@ -49,6 +50,14 @@ static const song_t sndDie =
     .shouldLoop = false
 };
 
+static const song_t sndTest =
+    {
+        .notes =
+            {
+                {1000, 10}
+            },
+        .numNotes = 1,
+        .shouldLoop = false};
 //==============================================================================
 // Functions Prototypes
 //==============================================================================
@@ -138,6 +147,8 @@ static leveldef_t leveldef[2] = {
     {.filename = "level1-2.bin",
      .timeLimit = 120,
      .checkpointTimeLimit = 90}};
+
+led_t leds[NUM_LEDS];
 
 //==============================================================================
 // Functions
@@ -293,12 +304,51 @@ void updateTitleScreen(platformer_t *self)
 
     // Handle inputs
     if (
-        ((self->gameData.btnState & BTN_B) && !(self->gameData.prevBtnState & BTN_B)) ||
-        ((self->gameData.btnState & BTN_A) && !(self->gameData.prevBtnState & BTN_B)))
+        ((self->gameData.btnState & BTN_B) && !(self->gameData.prevBtnState & BTN_B)) 
+        ||
+        ((self->gameData.btnState & BTN_A) && !(self->gameData.prevBtnState & BTN_B))
+    )
     {
         initializeGameData(&(self->gameData));
         changeStateReadyScreen(self);
     }
+
+    if(self->gameData.btnState & LEFT){
+        scrollTileMap(&(platformer->tilemap), -2, 0);
+    } else if(self->gameData.btnState & RIGHT){
+        scrollTileMap(&(platformer->tilemap), 2, 0);
+    }
+
+    if (
+        ((self->gameData.btnState & UP) && !(self->gameData.prevBtnState & UP))
+        ||
+        ((self->gameData.btnState & DOWN) && !(self->gameData.prevBtnState & DOWN))
+    )
+    {
+        for (int32_t i = 0; i < NUM_LEDS; i++)
+        {
+            leds[i].r = 0xFF;
+            leds[i].g = 0xFF;
+            leds[i].b = 0xFF;
+        }
+        setLeds(leds, NUM_LEDS);
+        buzzer_play_sfx(&sndTest);
+    } else if (
+        (!(self->gameData.btnState & UP) && (self->gameData.prevBtnState & UP))
+        ||
+        (!(self->gameData.btnState & DOWN) && (self->gameData.prevBtnState & DOWN))
+    )
+    {
+        for (int32_t i = 0; i < NUM_LEDS; i++)
+        {
+            leds[i].r = 0x00;
+            leds[i].g = 0x00;
+            leds[i].b = 0x00;
+        }
+        setLeds(leds, NUM_LEDS);
+    }
+
+
 
     drawPlatformerTitleScreen(self->disp, &(self->radiostars), &(self->gameData));
 
@@ -308,6 +358,8 @@ void updateTitleScreen(platformer_t *self)
 
 void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
 {
+    drawTileMap(d,&(platformer->tilemap));
+
     drawText(d, font, c555, "Super Swadge Land", 40, 32);
 
     if (gameData->frameCount < 10)
