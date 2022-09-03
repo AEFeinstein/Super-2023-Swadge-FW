@@ -265,11 +265,13 @@ uint8_t ledBrightness = 0;
 
 void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxTft(int16_t x, int16_t y);
+paletteColor_t * emuGetPxFbTft(void);
 void emuClearPxTft(void);
 void emuDrawDisplayTft(bool drawDiff);
 
 void emuSetPxOled(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxOled(int16_t x, int16_t y);
+paletteColor_t * emuGetPxFbOled(void);
 void emuClearPxOled(void);
 void emuDrawDisplayOled(bool drawDiff);
 
@@ -417,6 +419,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
     disp->w = TFT_WIDTH;
     disp->h = TFT_HEIGHT;
     disp->getPx = emuGetPxTft;
+    disp->getPxFb = emuGetPxFbTft;
     disp->setPx = emuSetPxTft;
     disp->clearPx = emuClearPxTft;
     disp->drawDisplay = emuDrawDisplayTft;
@@ -494,6 +497,16 @@ paletteColor_t emuGetPxTft(int16_t x, int16_t y)
 }
 
 /**
+ * @brief Don't return the framebuffer
+ * 
+ * @return paletteColor_t* 
+ */
+paletteColor_t * emuGetPxFbTft(void)
+{
+    return NULL;
+}
+
+/**
  * @brief Clear the entire display to opaque black in one call
  */
 void emuClearPxTft(void)
@@ -539,6 +552,7 @@ bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
     disp->w = 0;
     disp->h = 0;
     disp->getPx = emuGetPxOled;
+    disp->getPxFb = emuGetPxFbOled;
     disp->setPx = emuSetPxOled;
     disp->clearPx = emuClearPxOled;
     disp->drawDisplay = emuDrawDisplayOled;
@@ -571,6 +585,16 @@ paletteColor_t emuGetPxOled(int16_t x UNUSED, int16_t y UNUSED)
 {
 	WARN_UNIMPLEMENTED();
     return c000;
+}
+
+/**
+ * @brief Don't return the framebuffer
+ * 
+ * @return paletteColor_t* 
+ */
+paletteColor_t * emuGetPxFbOled(void)
+{
+    return NULL;
 }
 
 /**

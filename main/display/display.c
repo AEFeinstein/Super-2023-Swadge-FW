@@ -450,6 +450,53 @@ void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
 }
 
 /**
+ * Quickly copy bytes into the framebuffer. This ignores transparency
+ * 
+ * @param disp The display to draw the WSG to
+ * @param wsg  The WSG to draw to the display
+ * @param xOff The x offset to draw the WSG at
+ * @param yOff The y offset to draw the WSG at
+ */
+void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
+{
+    // Check if there is framebuffer access
+    paletteColor_t * fb = disp->getPxFb();
+    if(NULL != fb)
+    {
+        // Bound in the Y direction
+        int32_t yStart = (yOff < 0) ? 0 : yOff;
+        int32_t yEnd   = ((yOff + wsg->h) > disp->h) ? disp->h : (disp->h + wsg->h);
+
+        // Bound in the X direction
+        int32_t copyLen = wsg->w;
+        if(xOff < 0)
+        {
+            copyLen += xOff;
+            xOff = 0;
+        }
+        if(xOff + copyLen > disp->w)
+        {
+            copyLen = (disp->w - xOff);
+        }
+
+        // copy each row
+        for(int32_t y = yStart; y < yEnd; y++)
+        {
+            // Find the index into the framebuffer
+            uint32_t dstIdx = ((y + yOff) * disp->w) + xOff;
+            // Copy the row
+            // TODO probably faster if we can guarantee copyLen is a multiple of 4
+            memcpy(&fb[dstIdx], &wsg->px[y * wsg->w], copyLen);
+        }
+    }
+    else
+    {
+        // No framebuffer access, draw the WSG simply
+        drawWsgSimple(disp, wsg, xOff, yOff);
+    }
+}
+
+/**
  * @brief Load a font from ROM to RAM. Fonts are bitmapped image files that have
  * a single height, all ASCII characters, and a width for each character.
  * PNGs placed in the assets folder before compilation will be automatically
