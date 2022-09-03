@@ -43,6 +43,8 @@ void jumperKillPlayer(void);
 void jumperDoEvilDonut(int64_t elapsedUs);
 void jumperDoBlump(int64_t elapsedUs);
 void jumperSetupState(uint8_t stageIndex);
+void jumperDoEnemyLand(uint8_t blockIndex);
+void jumperClearBlock(uint8_t blockIndex);
 
 void drawJumperScene(display_t* d);
 void drawJumperEffects(display_t* d);
@@ -212,8 +214,8 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
     loadWsg("block_0c.wsg", &j->block[2]);
     loadWsg("block_0d.wsg", &j->block[3]);
     loadWsg("block_0e.wsg", &j->block[4]);
-    loadWsg("block_0a.wsg", &j->block[5]);
-    loadWsg("block_0a.wsg", &j->block[6]);
+    loadWsg("block_1a.wsg", &j->block[5]);
+    loadWsg("block_1b.wsg", &j->block[6]);
     loadWsg("block_0a.wsg", &j->block[7]);
 
     loadWsg("multiplier0.wsg", &j->digit[0]);
@@ -281,6 +283,16 @@ void jumperSetupState(uint8_t stageIndex)
     for(uint8_t block = 0; block < 30; block++)
     {
         j->scene->blocks[block] = BLOCK_STANDARD;
+    }
+
+    switch(j->scene->level % 10)
+    {
+        case 1:
+            break;
+        case 2:
+            j->scene->blocks[7] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[10] = BLOCK_EVILSTANDARD;            
+            break;
     }
 
 }
@@ -351,10 +363,7 @@ void jumperGameLoop(int64_t elapsedUs)
     j->scene->seconds = (j->scene->time / TO_SECONDS);
     switch(j->currentPhase)
     {
-        case JUMPER_COUNTDOWN:
-
-            
-            
+        case JUMPER_COUNTDOWN:            
 
 
             if (j->scene->seconds < 1)
@@ -441,11 +450,8 @@ void jumperGameLoop(int64_t elapsedUs)
 
                     // Clean up blocks
                     for(uint8_t block = 0; block < 30; block++)
-                    {
-                        if (j->scene->blocks[block] == BLOCK_STANDARDLANDED || j->scene->blocks[block] == BLOCK_PLAYERLANDED)
-                        {
-                            j->scene->blocks[block] = BLOCK_COMPLETE;
-                        }
+                    {                        
+                        jumperClearBlock(block);
                     }
                 }
 
@@ -504,74 +510,80 @@ void jumperGameLoop(int64_t elapsedUs)
             player->sy = player->y;
             player->block = player->dBlock;
 
-            if (j->scene->blocks[player->block] == BLOCK_STANDARD)
+            if (j->scene->blocks[player->block] == BLOCK_EVILSTANDARD)
             {
-                j->scene->blocks[player->block] = BLOCK_PLAYERLANDED;
-                j->scene->score = j->scene->score + (10 * j->scene->combo);
-
                 
-                if (j->scene->score > j->highScore)
-                {
-                    j->highScore = j->scene->score;
-                }
+            }
+            switch(j->scene->blocks[player->block])
+            {
+                case BLOCK_STANDARD:
+                    j->scene->blocks[player->block] = BLOCK_PLAYERLANDED;
+                    j->scene->score = j->scene->score + (10 * j->scene->combo);
 
-                if (j->scene->combo > 2)
-                {
-                    for(int i = 0; i < 3; i++)
+                    
+                    if (j->scene->score > j->highScore)
                     {
-                        if (j->multiplier[i].digits[0] >= 11)
-                        {
-                            j->multiplier[i].x = player->x;
-                            j->multiplier[i].y = player->y + 5;
-                            j->multiplier[i].time = 0;
-                            j->multiplier[i].digits[0] = 10;
+                        j->highScore = j->scene->score;
+                    }
 
-                            if (j->scene->combo == 30)
+                    if (j->scene->combo > 2)
+                    {
+                        for(int i = 0; i < 3; i++)
+                        {
+                            if (j->multiplier[i].digits[0] >= 11)
                             {
-                                j->multiplier[i].digits[0] = 255;
-                                j->multiplier[i].x -= 24;
+                                j->multiplier[i].x = player->x;
+                                j->multiplier[i].y = player->y + 5;
+                                j->multiplier[i].time = 0;
+                                j->multiplier[i].digits[0] = 10;
+
+                                if (j->scene->combo == 30)
+                                {
+                                    j->multiplier[i].digits[0] = 255;
+                                    j->multiplier[i].x -= 24;
+                                }
+                                else if (j->scene->combo < 10)
+                                {
+                                    j->multiplier[i].digits[1] = j->scene->combo;
+                                    j->multiplier[i].digits[2] = 11;
+                                    j->multiplier[i].x += 4;
+                                }
+                                else
+                                {
+                                    j->multiplier[i].digits[1] = j->scene->combo / 10;
+                                    j->multiplier[i].digits[2] = j->scene->combo - (j->multiplier[i].digits[1] * 10);
+                                }
+                                break;
                             }
-                            else if (j->scene->combo < 10)
-                            {
-                                j->multiplier[i].digits[1] = j->scene->combo;
-                                j->multiplier[i].digits[2] = 11;
-                                j->multiplier[i].x += 4;
-                            }
-                            else
-                            {
-                                j->multiplier[i].digits[1] = j->scene->combo / 10;
-                                j->multiplier[i].digits[2] = j->scene->combo - (j->multiplier[i].digits[1] * 10);
-                            }
-                            break;
                         }
                     }
-                }
+                    
+                    j->scene->combo++;
+                    break;
+                case BLOCK_COMPLETE:                
+                    if (j->scene->combo > 5)
+                    {                    
+                        buzzer_play_sfx(&jumpPlayerBrokeCombo);
+                    }
+
+                    j->scene->combo = 1;
+                    j->scene->blocks[player->block] = BLOCK_PLAYERLANDED;
+                    break;
                 
-                j->scene->combo++;
-            }
-            else if (j->scene->blocks[player->block] == BLOCK_COMPLETE)
-            {
-
-                if (j->scene->combo > 5)
-                {                    
-                    buzzer_play_sfx(&jumpPlayerBrokeCombo);
-                }
-
-                j->scene->combo = 1;
-                j->scene->blocks[player->block] = BLOCK_PLAYERLANDED;
+                case BLOCK_EVILSTANDARD:
+                    jumperKillPlayer();
+                    j->scene->blocks[player->block] = BLOCK_EVILLANDED;
+                    break;
+                default:
+                    break;
             }
 
-
-            if (player->frameTime > 150000)
+            if (player->frameTime > 150000 && player->state != CHARACTER_DYING)
             {
                 player->state = CHARACTER_IDLE;
                 // ESP_LOGI("JUM", "Ready");
                 player->jumpReady = true;
-
-                if (j->scene->blocks[player->block] == BLOCK_PLAYERLANDED)
-                {
-                    j->scene->blocks[player->block] = BLOCK_COMPLETE;
-                }
+                jumperClearBlock(player->block);
 
             }
             jumperCheckLevel();
@@ -666,6 +678,43 @@ void jumperGameLoop(int64_t elapsedUs)
 
     drawJumperScene(j->d);
 
+}
+
+void jumperClearBlock(uint8_t blockIndex)
+{
+    switch(j->scene->blocks[blockIndex])
+    {
+        case BLOCK_EVILLANDED:
+            j->scene->blocks[blockIndex] = BLOCK_EVILSTANDARD;
+            break;
+        case BLOCK_PLAYERLANDED:
+            j->scene->blocks[blockIndex] = BLOCK_COMPLETE;
+            break;
+        case BLOCK_STANDARDLANDED:
+            j->scene->blocks[blockIndex] = BLOCK_STANDARD;
+            break;
+        default:
+            break;
+    }
+}
+
+void jumperDoEnemyLand(uint8_t blockIndex)
+{
+    
+    switch(j->scene->blocks[blockIndex])
+    {
+        case BLOCK_EVILSTANDARD:
+            j->scene->blocks[blockIndex] = BLOCK_EVILLANDED;
+            break;
+        case BLOCK_COMPLETE:
+            j->scene->blocks[blockIndex] = BLOCK_PLAYERLANDED;
+            break;
+        case BLOCK_STANDARD:
+            j->scene->blocks[blockIndex] = BLOCK_STANDARDLANDED;
+            break;
+        default:
+            break;
+    }
 }
 
 void jumperCheckLevel()
@@ -763,7 +812,7 @@ void jumperDoBlump(int64_t elapsedUs)
             {
                 blump->jumpTime = 0;
                 blump->state = CHARACTER_LANDING;
-
+                
                 blump->x = blump->dx;
                 blump->y = blump->dy;
             }
@@ -791,11 +840,14 @@ void jumperDoBlump(int64_t elapsedUs)
                 blump->respawnTime = 6000000;
                 return;
             }
+
+            jumperDoEnemyLand(blump->block);
             if (blump->frameTime > 150000)
             {
                 blump->state = CHARACTER_IDLE;
                 // ESP_LOGI("JUM", "Evil Donut Landed");
                 blump->jumpReady = true;
+                jumperClearBlock(blump->block);
 
             }
             jumperCheckLevel();
@@ -962,12 +1014,16 @@ void jumperDoEvilDonut(int64_t elapsedUs)
             evilDonut->sy = evilDonut->y;
             evilDonut->block = evilDonut->dBlock;
 
+            jumperDoEnemyLand(evilDonut->block);
+
             if (evilDonut->frameTime > 150000)
             {
                 evilDonut->state = CHARACTER_IDLE;
                 // ESP_LOGI("JUM", "Evil Donut Landed");
                 evilDonut->jumpReady = true;
 
+                
+                jumperClearBlock(evilDonut->block);
 
             }
             jumperCheckLevel();

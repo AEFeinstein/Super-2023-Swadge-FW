@@ -11,6 +11,8 @@ typedef enum
     BLOCK_PLAYERLANDED = 2,
     BLOCK_COMPLETE = 3,
     BLOCK_WIN = 4,
+    BLOCK_EVILSTANDARD = 5,
+    BLOCK_EVILLANDED = 6
 } jumperBlockType_t;
 
 typedef enum
