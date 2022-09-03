@@ -61,6 +61,10 @@ void drawTileMap(display_t *disp, tilemap_t *tilemap)
             }
 
             uint8_t tile = tilemap->map[(y * tilemap->mapWidth) + x];
+            
+            if(tile < TILE_GRASS){
+                continue;
+            }
 
             // Test animated tiles
             if (tile == 64 || tile == 67)
@@ -71,7 +75,7 @@ void drawTileMap(display_t *disp, tilemap_t *tilemap)
             // Draw only non-garbage tiles
             if (tile > 31 && tile < 90)
             {
-                drawWsg(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY, false, false, 0);
+                drawWsgSimple(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
             }
             else if (tile > 127 && tilemap->tileSpawnEnabled && (tilemap->executeTileSpawnColumn == x || tilemap->executeTileSpawnRow == y || tilemap->executeTileSpawnAll))
             {
