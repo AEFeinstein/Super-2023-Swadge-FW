@@ -49,6 +49,7 @@ typedef struct
 
 typedef struct
 {
+    picrossGamePhase_t previousPhase;
     picrossGamePhase_t currentPhase;
     display_t* d;
     font_t game_font;

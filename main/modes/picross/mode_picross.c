@@ -15,6 +15,7 @@
 #include "led_util.h"
 #include "aabb_utils.h"
 #include "settingsManager.h"
+#include "nvs_manager.h"
 
 #include "mode_picross.h"
 #include "picross_menu.h"
@@ -248,6 +249,21 @@ void picrossGameLoop(int64_t elapsedUs)
     }
 
     drawPicrossScene(p->d);
+
+    
+    //todo: this has not been tested yet.
+    if(p->previousPhase == PICROSS_SOLVING && p->currentPhase == PICROSS_YOUAREWIN)
+    {
+        //Save the fact that we won.
+        int32_t victories = 0;
+        readNvs32("picrossSolves", &victories);
+        
+        //shift 1 (0x0001) over levelIndex times, then OR it with victories.
+        victories = victories | (1 << p->levelIndex);
+        //Save.
+        writeNvs32("picrossSolves", victories);
+    }
+    p->previousPhase = p->currentPhase;
 }
 
 void picrossCheckLevel()
