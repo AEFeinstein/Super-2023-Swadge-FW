@@ -47,7 +47,7 @@
 // controls (title)
 #define BTN_TITLE_START_SCORES BTN_B
 #define BTN_TITLE_START_GAME BTN_A
-#define BTN_TITLE_QUIT_MODE SELECT
+#define BTN_TITLE_EXIT_MODE SELECT
 
 // controls (game)
 #define BTN_GAME_DROP BTN_B
@@ -82,6 +82,8 @@
 #define TUTORIAL_GRID_ROWS 26
 
 #define TITLE_LEVEL 5 // The level used for calculating drop speed on the title screen.
+
+#define EXIT_MODE_HOLD_TIME (3 * S_TO_MS_FACTOR * MS_TO_US_FACTOR)
 
 // score screen
 #define SCORE_SCREEN_TITLE_Y 30
@@ -1067,6 +1069,9 @@ typedef struct
     // Title screen vars.
     tetrad_t tutorialTetrad;
     uint32_t tutorialTetradsGrid[TUTORIAL_GRID_ROWS][TUTORIAL_GRID_COLS];
+    int64_t exitTimer;
+    int64_t lastExitTimer;
+    bool holdingExit;
 
     // Score screen vars.
     int64_t clearScoreTimer;
@@ -1498,10 +1503,26 @@ void ttTitleInput(void)
     {
         ttChangeState(TT_SCORES);
     }
-    // button start = exit mode
-    else if(ttIsButtonPressed(BTN_TITLE_QUIT_MODE))
+
+    // button select = exit mode
+    tiltrads->lastExitTimer = tiltrads->exitTimer;
+    if(tiltrads->holdingExit && ttIsButtonDown(BTN_TITLE_EXIT_MODE))
     {
-        switchToSwadgeMode(&modeMainMenu);
+        tiltrads->exitTimer += tiltrads->deltaTime;
+        if (tiltrads->exitTimer >= EXIT_MODE_HOLD_TIME)
+        {
+            tiltrads->exitTimer = 0;
+            switchToSwadgeMode(&modeMainMenu);
+        }
+    }
+    else if(ttIsButtonUp(BTN_TITLE_EXIT_MODE))
+    {
+        tiltrads->exitTimer = 0;
+    }
+    // This is added to prevent people holding select from the previous screen and accidentally quitting the game.
+    else if(ttIsButtonPressed(BTN_TITLE_EXIT_MODE))
+    {
+        tiltrads->holdingExit = true;
     }
 }
 
@@ -1558,18 +1579,6 @@ void ttScoresInput(void)
             saveHighScores();
             loadHighScores();
             //ttSetLastScore(0);
-
-            /*char uiStr[32] = {0};
-            int16_t x0 = 0;
-            int16_t x1 = tiltrads->disp->w - 1;
-            snprintf(uiStr, sizeof(uiStr), "1. %d", highScores[0]);
-            score0X = getCenteredTextX(&ibm_vga8, uiStr, x0, x1);
-            snprintf(uiStr, sizeof(uiStr), "2. %d", highScores[1]);
-            score1X = getCenteredTextX(&ibm_vga8, uiStr, x0, x1);
-            snprintf(uiStr, sizeof(uiStr), "3. %d", highScores[2]);
-            score2X = getCenteredTextX(&ibm_vga8, uiStr, x0, x1);*/
-            // snprintf(uiStr, sizeof(uiStr), "YOUR LAST SCORE: %d", ttGetLastScore());
-            //lastScoreX = getCenteredTextX(x0, x1, uiStr, ibm_vga8);
         }
     }
     else if(ttIsButtonUp(BTN_SCORES_CLEAR_SCORES))
@@ -1942,6 +1951,21 @@ void ttTitleDisplay(void)
     uint16_t exitY = tiltrads->disp->h - tiltrads->ibm_vga8.h - 2;
     drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "SELECT TO EXIT", exitX, exitY);
 
+    // fill the select to exit area depending on how long the button's held down.
+    if (tiltrads->exitTimer != 0)
+    {
+        double holdProgress = ((double)(tiltrads->exitTimer) / (double)EXIT_MODE_HOLD_TIME);
+        int16_t holdAreaX0 = GRID_X + 1;
+        int16_t holdAreaY0 = exitY - 1;
+        double holdAreaWidth = TUTORIAL_GRID_COLS * GRID_UNIT_SIZE; // magic number so that display appears to complete before exit.
+        int16_t holdAreaX1 = holdAreaX0 + (int16_t)(holdProgress * holdAreaWidth);
+        int16_t holdAreaY1 = tiltrads->disp->h - 1;
+        fillDisplayArea(tiltrads->disp, holdAreaX0, holdAreaY0, holdAreaX1, holdAreaY1, c321);
+    }
+
+    // SELECT TO EXIT
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "SELECT TO EXIT", exitX, exitY);
+
     //Fill in the floor of the grid on-screen for visual consistency.
     plotLine(tiltrads->disp, GRID_X, tiltrads->disp->h - 1, xFromGridCol(GRID_X, TUTORIAL_GRID_COLS, GRID_UNIT_SIZE) - 1, tiltrads->disp->h - 1, c224, 0); //TODO: why is the -1 needed, is my math off?
 }
@@ -2301,6 +2325,9 @@ void ttChangeState(tiltradsState_t newState)
     switch( tiltrads->currState )
     {
         case TT_TITLE:
+            tiltrads->exitTimer = 0;
+            tiltrads->holdingExit = false;
+
             clearLandedTetrads();
 
             // Get a random tutorial tetrad.
