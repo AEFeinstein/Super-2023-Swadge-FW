@@ -25,6 +25,7 @@ typedef struct
     uint32_t prevBtnState;
     uint32_t btnState;
     bool movedThisFrame;
+    bool changedLevelThisFrame;
 } picrossInput_t;
 
 typedef struct

@@ -235,39 +235,62 @@ void picrossGameLoop(int64_t elapsedUs)
 
     picrossUserInput();
 
-    //check for victory! Do we need to do this every frame?
-    //or all of it every frame?
-    picrossCheckLevel();
+    //userInput sets this value when we change a block to or from filled.
+    if(p->input->changedLevelThisFrame)
+    {
+        picrossCheckLevel();
+    }
 
     drawPicrossScene(p->d);
 }
 
 void picrossCheckLevel()
 {
-    //Foreach row and column in the hints
-    //check if any row is incomplete
-    picrossHint_t testingHint;
-    for(int i = 0;i<p->puzzle->width;i++)
+    for(int c =0;c<p->puzzle->width;c++)
     {
-        //rows
-        testingHint = newHintFromPuzzle(i,true,p->puzzle->level);
-        if(!hintsMatch(testingHint,p->puzzle->rowHints[i])){
-            return;
+        for(int r = 0;r<p->puzzle->height;r++)
+        {
+            if(p->puzzle->level[r][c] == SPACE_EMPTY || p->puzzle->level[r][c] == SPACE_MARKEMPTY)
+            {
+                if(p->puzzle->completeLevel[r][c] != SPACE_EMPTY){
+                    return;
+                }
+            }else//if space == SPACE_FILLED (we aren't using filled-hints so lets not bother specific if for now)
+            {
+                if(p->puzzle->completeLevel[r][c] != SPACE_FILLED){
+                    return;
+                }
+            }
         }
     }
-    for(int i = 0;i<p->puzzle->height;i++)
-    {
-        //cols
-        //rows
-        testingHint = newHintFromPuzzle(i,false,p->puzzle->level);
-        if(!hintsMatch(testingHint,p->puzzle->colHints[i])){
-            return;
-        }
-    }
-    {
+
+    //Check level by clues.
+    //We use this if we can't ensure there are unique solutions to the clues.
+    //because if you got ANY solution, you should win.
+
+    //but its solwer than just comparing numbers in the grid.
+    // picrossHint_t testingHint;
+    // for(int i = 0;i<p->puzzle->width;i++)
+    // {
+    //     //rows
+    //     testingHint = newHintFromPuzzle(i,true,p->puzzle->level);
+    //     if(!hintsMatch(testingHint,p->puzzle->rowHints[i])){
+    //         return;
+    //     }
+    // }
+    // for(int i = 0;i<p->puzzle->height;i++)
+    // {
+    //     //cols
+    //     //rows
+    //     testingHint = newHintFromPuzzle(i,false,p->puzzle->level);
+    //     if(!hintsMatch(testingHint,p->puzzle->colHints[i])){
+    //         return;
+    //     }
+    // }
+    
     p->currentPhase = PICROSS_YOUAREWIN;
     p->controlsEnabled = false;
-    }
+    
 }
 
 bool hintsMatch(picrossHint_t a, picrossHint_t b)
@@ -295,9 +318,11 @@ void picrossUserInput(void)
 
     //reset
     input-> movedThisFrame = false;
+    input-> changedLevelThisFrame = false;//do we need to check for solution?
 
     if (p->controlsEnabled == false || p->currentPhase != PICROSS_SOLVING)
     {
+        //TODO: return to level select screen on input
         return;
     }
 
@@ -312,9 +337,11 @@ void picrossUserInput(void)
         if(current != SPACE_FILLED)
         {
             current = SPACE_FILLED;
+            input->changedLevelThisFrame = true;
         }else
         {
             current = SPACE_EMPTY;
+            input->changedLevelThisFrame = true;
         }
         //set the toggle.
         p->puzzle->level[x][y] = current;
@@ -390,16 +417,21 @@ void picrossUserInput(void)
     //check for holding input while using d-pad
     if(input->movedThisFrame)
     {
+        //todo: toggle.
         if(input->btnState & BTN_A)
         {
             //held a while moving 
             p->puzzle->level[input->x][input->y] = SPACE_FILLED;
+            input->changedLevelThisFrame = true;//not strictly true, but this behaviour will become toggle in future
         }else if(input->btnState & BTN_B)
         {
             //held b while moving.
             p->puzzle->level[input->x][input->y] = SPACE_MARKEMPTY;
+            input->changedLevelThisFrame = true;//not strictly true, but this behaviour will become toggle in future
         }
     }
+
+    
 
     input->prevBtnState = input->btnState; 
 }
@@ -444,8 +476,16 @@ void drawPicrossScene(display_t* d)
         }
     }
 
-    drawPicrossHud(d, p->promptFont, &p->game_font);
-    drawPicrossInput(d);
+
+    if(p->currentPhase == PICROSS_SOLVING)
+    {
+        drawPicrossHud(d, p->promptFont, &p->game_font);
+        drawPicrossInput(d);
+    }else if (p->currentPhase == PICROSS_YOUAREWIN)
+    {
+    //    drawText(d, p->promptFont, c000, "You are win!", 80, 129);
+    //    drawText(d, p->promptFont, c555, "You are win!", 120, 128); 
+    }
 }
 
 box_t boxFromCoord(int8_t x,int8_t y)
@@ -521,17 +561,6 @@ void drawPicrossHud(display_t* d, font_t* prompt, font_t* font)
             ((i * s) + s + p->topPad) >> 1,
             c111,0);
      
-    }
-
-
-    if (p->currentPhase == PICROSS_SOLVING)
-    {
-        // drawText(d, prompt, c000, "Ready?", 102, 128);
-        // drawText(d, prompt, c555, "Ready?", 100, 128);
-    }else if (p->currentPhase == PICROSS_YOUAREWIN)
-    {
-       drawText(d, prompt, c000, "You are win!", 122, 129);
-       drawText(d, prompt, c555, "You are win!", 120, 128); 
     }
 
     //Draw hints
