@@ -12,7 +12,10 @@ typedef enum
     BLOCK_COMPLETE = 3,
     BLOCK_WIN = 4,
     BLOCK_EVILSTANDARD = 5,
-    BLOCK_EVILLANDED = 6
+    BLOCK_EVILLANDED = 6,
+    BLOCK_WARBLESTANDARD = 7,
+    BLOCK_WARBLELANDEDA = 8,
+    BLOCK_WARBLELANDEDB = 9,
 } jumperBlockType_t;
 
 typedef enum
@@ -57,7 +60,6 @@ typedef struct
     uint8_t column;
     uint8_t block;
     uint8_t dBlock;
-
     bool flipped;
 
     uint32_t btnState;
@@ -82,6 +84,7 @@ typedef struct
     int8_t blockOffset_y;
     uint32_t score;
     uint8_t combo;
+    uint8_t perfect;
     wsg_t livesIcon;
     jumperBlockType_t blocks[30];
 } jumperStage_t;
@@ -96,7 +99,7 @@ typedef struct
 
 typedef struct
 {
-    wsg_t block[9];
+    wsg_t block[10];
     wsg_t digit[12];
     jumperGamePhase_t currentPhase;
     int64_t frameElapsed;

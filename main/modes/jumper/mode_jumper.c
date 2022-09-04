@@ -43,7 +43,7 @@ void jumperKillPlayer(void);
 void jumperDoEvilDonut(int64_t elapsedUs);
 void jumperDoBlump(int64_t elapsedUs);
 void jumperSetupState(uint8_t stageIndex);
-void jumperDoEnemyLand(uint8_t blockIndex);
+bool jumperDoEnemyLand(uint8_t blockIndex);
 void jumperClearBlock(uint8_t blockIndex);
 
 void drawJumperScene(display_t* d);
@@ -216,7 +216,9 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
     loadWsg("block_0e.wsg", &j->block[4]);
     loadWsg("block_1a.wsg", &j->block[5]);
     loadWsg("block_1b.wsg", &j->block[6]);
-    loadWsg("block_0a.wsg", &j->block[7]);
+    loadWsg("block_2.wsg", &j->block[7]);
+    loadWsg("block_2b.wsg", &j->block[8]);
+    loadWsg("block_2c.wsg", &j->block[9]);
 
     loadWsg("multiplier0.wsg", &j->digit[0]);
     loadWsg("multiplier1.wsg", &j->digit[1]);
@@ -285,13 +287,28 @@ void jumperSetupState(uint8_t stageIndex)
         j->scene->blocks[block] = BLOCK_STANDARD;
     }
 
+    j->scene->perfect = 30;
     switch(j->scene->level % 10)
     {
-        case 1:
+        case 1:          
             break;
         case 2:
             j->scene->blocks[7] = BLOCK_EVILSTANDARD;
-            j->scene->blocks[10] = BLOCK_EVILSTANDARD;            
+            j->scene->blocks[10] = BLOCK_EVILSTANDARD;
+            j->scene->perfect = 28;            
+            break;
+            
+        case 3:
+            j->scene->blocks[13] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[14] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[15] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[16] = BLOCK_EVILSTANDARD;
+            j->scene->perfect = 26;            
+            break;
+        case 4:            
+            j->scene->blocks[14] = BLOCK_WARBLESTANDARD;
+            j->scene->blocks[17] = BLOCK_WARBLESTANDARD;
+            j->scene->perfect = 28;  
             break;
     }
 
@@ -376,7 +393,6 @@ void jumperGameLoop(int64_t elapsedUs)
             }
             else if (j->scene->seconds != j->scene->previousSecond && j->scene->seconds < 4)
             {
-                ESP_LOGI("JUM", "Play %d", j->scene->seconds);
                 j->scene->previousSecond = j->scene->seconds;
                 buzzer_play_sfx(&jumpCountdown);
             }
@@ -390,7 +406,7 @@ void jumperGameLoop(int64_t elapsedUs)
                 }
                 jumperSetupState(j->scene->level);
             }
-            else if (j->scene->seconds < 2 && j->scene->combo > 30)
+            else if (j->scene->seconds < 2 && j->scene->combo >= j->scene->perfect)
             {
                 //YEAH!
                 for(uint8_t block = 0; block < 30; block++)
@@ -510,10 +526,6 @@ void jumperGameLoop(int64_t elapsedUs)
             player->sy = player->y;
             player->block = player->dBlock;
 
-            if (j->scene->blocks[player->block] == BLOCK_EVILSTANDARD)
-            {
-                
-            }
             switch(j->scene->blocks[player->block])
             {
                 case BLOCK_STANDARD:
@@ -537,7 +549,7 @@ void jumperGameLoop(int64_t elapsedUs)
                                 j->multiplier[i].time = 0;
                                 j->multiplier[i].digits[0] = 10;
 
-                                if (j->scene->combo == 30)
+                                if (j->scene->combo == j->scene->perfect)
                                 {
                                     j->multiplier[i].digits[0] = 255;
                                     j->multiplier[i].x -= 24;
@@ -560,6 +572,24 @@ void jumperGameLoop(int64_t elapsedUs)
                     
                     j->scene->combo++;
                     break;
+                case BLOCK_WARBLESTANDARD:  
+                    if (j->scene->combo > 5)
+                    {                    
+                        buzzer_play_sfx(&jumpPlayerBrokeCombo);
+                    }
+
+                    if ( esp_random() % 100 > 50)
+                    {
+                        j->scene->blocks[player->block] = BLOCK_WARBLELANDEDA;
+                    }
+                    else
+                    {
+                        j->scene->blocks[player->block] = BLOCK_WARBLELANDEDB;
+                    }
+
+                    j->scene->combo = 1;
+                    break;
+
                 case BLOCK_COMPLETE:                
                     if (j->scene->combo > 5)
                     {                    
@@ -581,7 +611,6 @@ void jumperGameLoop(int64_t elapsedUs)
             if (player->frameTime > 150000 && player->state != CHARACTER_DYING)
             {
                 player->state = CHARACTER_IDLE;
-                // ESP_LOGI("JUM", "Ready");
                 player->jumpReady = true;
                 jumperClearBlock(player->block);
 
@@ -638,7 +667,7 @@ void jumperGameLoop(int64_t elapsedUs)
             .y1 = (evilDonut->y + 8 + 16) * 2,
         };
 
-        if (boxesCollide(box1, box2, 1))
+        if (evilDonut->state != CHARACTER_DYING && evilDonut->state != CHARACTER_DEAD && boxesCollide(box1, box2, 1))
         {
             jumperKillPlayer();
         }
@@ -651,7 +680,7 @@ void jumperGameLoop(int64_t elapsedUs)
             .y1 = (blump->y + 8 + 16) * 2,
         };
 
-        if (boxesCollide(box1, box3, 1))
+        if (blump->state != CHARACTER_DYING && blump->state != CHARACTER_DEAD && boxesCollide(box1, box3, 1))
         {
             jumperKillPlayer();
         }
@@ -693,12 +722,16 @@ void jumperClearBlock(uint8_t blockIndex)
         case BLOCK_STANDARDLANDED:
             j->scene->blocks[blockIndex] = BLOCK_STANDARD;
             break;
+        case BLOCK_WARBLELANDEDA:
+        case BLOCK_WARBLELANDEDB:
+            j->scene->blocks[blockIndex] = BLOCK_WARBLESTANDARD;
+            break;
         default:
             break;
     }
 }
 
-void jumperDoEnemyLand(uint8_t blockIndex)
+bool jumperDoEnemyLand(uint8_t blockIndex)
 {
     
     switch(j->scene->blocks[blockIndex])
@@ -712,9 +745,22 @@ void jumperDoEnemyLand(uint8_t blockIndex)
         case BLOCK_STANDARD:
             j->scene->blocks[blockIndex] = BLOCK_STANDARDLANDED;
             break;
+        case BLOCK_WARBLESTANDARD:
+            if ( esp_random() % 100 > 50)
+            {
+                j->scene->blocks[blockIndex] = BLOCK_WARBLELANDEDA;
+            }
+            else
+            {
+                j->scene->blocks[blockIndex] = BLOCK_WARBLELANDEDB;
+            }
+            return true;
+            break;
         default:
             break;
     }
+
+    return false;
 }
 
 void jumperCheckLevel()
@@ -728,7 +774,7 @@ void jumperCheckLevel()
     }
 
     buzzer_stop();
-    if (j->scene->combo < 30)
+    if (j->scene->combo < j->scene->perfect)
     {
         buzzer_play_bgm(&jumpWinTune);        
     } 
@@ -841,7 +887,11 @@ void jumperDoBlump(int64_t elapsedUs)
                 return;
             }
 
-            jumperDoEnemyLand(blump->block);
+            if(jumperDoEnemyLand(blump->block))
+            {
+                blump->state = CHARACTER_DYING;
+            }
+
             if (blump->frameTime > 150000)
             {
                 blump->state = CHARACTER_IDLE;
@@ -864,6 +914,11 @@ void jumperDoBlump(int64_t elapsedUs)
                 {
                     blump->frameIndex = 7;
                     blump->state = CHARACTER_DEAD;
+                }
+
+                if (blump->block < 30 )
+                {
+                    jumperClearBlock(blump->block);
                 }
             }
             break;
@@ -1014,7 +1069,10 @@ void jumperDoEvilDonut(int64_t elapsedUs)
             evilDonut->sy = evilDonut->y;
             evilDonut->block = evilDonut->dBlock;
 
-            jumperDoEnemyLand(evilDonut->block);
+            if(jumperDoEnemyLand(evilDonut->block))
+            {
+                evilDonut->state = CHARACTER_DYING;
+            }
 
             if (evilDonut->frameTime > 150000)
             {
@@ -1030,6 +1088,8 @@ void jumperDoEvilDonut(int64_t elapsedUs)
 
             break;
         case CHARACTER_DYING:
+
+        
             if (evilDonut->frameTime >= 150000)
             {
                 evilDonut->frameTime -= 150000;
@@ -1041,6 +1101,7 @@ void jumperDoEvilDonut(int64_t elapsedUs)
                     evilDonut->frameIndex = 7;
                     evilDonut->state = CHARACTER_DEAD;
                 }
+                jumperClearBlock(evilDonut->block);
             }
             break;
         case CHARACTER_DEAD:
@@ -1052,7 +1113,14 @@ void jumperDoEvilDonut(int64_t elapsedUs)
             {
                 evilDonut->respawnTime = 5000000;
                 evilDonut->state = CHARACTER_JUMPING;
+                evilDonut->x = j->scene->blockOffset_x + rowOffset[0] + 5;
+                evilDonut->sx = j->scene->blockOffset_x + rowOffset[0] + 5;
+                evilDonut->dx = j->scene->blockOffset_x + rowOffset[0] + 5;
+                evilDonut->block = 0;
+                evilDonut->dBlock = 0;
+                evilDonut->y = 0;
                 evilDonut->sy = 0;
+                evilDonut->dy = j->scene->blockOffset_y;
             }
             break;
         }
@@ -1180,12 +1248,20 @@ void drawJumperScene(display_t* d)
 
     }
 
-    if (evilDonut->state != CHARACTER_DEAD && evilDonut->state != CHARACTER_NONEXISTING)
+    if (evilDonut->state == CHARACTER_DYING)
+    {
+        drawWsg(d, &player->frames[7], evilDonut->x, evilDonut->y, false, false, 0);
+    }
+    else if (evilDonut->state != CHARACTER_DEAD && evilDonut->state != CHARACTER_NONEXISTING)
     {
         drawWsg(d, &evilDonut->frames[evilDonut->frameIndex], evilDonut->x, evilDonut->y, evilDonut->flipped, false, 0);
     }
 
-    if (blump->state != CHARACTER_DEAD && blump->state != CHARACTER_NONEXISTING)
+    if (blump->state == CHARACTER_DYING)
+    {
+        drawWsg(d, &player->frames[7], blump->x, blump->y, false, false, 0);
+    }
+    else if (blump->state != CHARACTER_DEAD && blump->state != CHARACTER_NONEXISTING)
     {
         drawWsg(d, &blump->frames[blump->frameIndex], blump->x, blump->y, blump->flipped, false, 0);
     }
@@ -1317,6 +1393,8 @@ void jumperExitGame(void)
         freeWsg(&j->block[5]);
         freeWsg(&j->block[6]);
         freeWsg(&j->block[7]);
+        freeWsg(&j->block[8]);
+        freeWsg(&j->block[9]);
 
         freeWsg(&j->digit[0]);
         freeWsg(&j->digit[1]);
