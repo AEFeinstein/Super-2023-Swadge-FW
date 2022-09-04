@@ -221,7 +221,6 @@ In Aseprite, hover your mouse over a tile in the tileset to see its Id in the lo
 138. ENTITY_WARP
     - Warp vortex dropped using the TILE_WARPx control tiles.
 139. ENTITY_DUST_BUNNY
-    - (Unimplemented)
     - A stompable bunny enemy that moves only by jumping at random intervals and random angles. Turns around at walls.
 140. ENTITY_WASP
     - (Unimplemented)
