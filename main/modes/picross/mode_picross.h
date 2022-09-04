@@ -3,13 +3,12 @@
 
 #include "swadgeMode.h"
 #include "aabb_utils.h"
-
+#include "picross_select.h"
 typedef enum
 {
     SPACE_EMPTY = 0,
     SPACE_FILLED = 1,
     SPACE_MARKEMPTY = 2,
-    SPACE_HINT = 3,
 } picrossSpaceType_t;
 
 typedef enum
@@ -38,7 +37,6 @@ typedef struct
 
 typedef struct
 {
-    wsg_t completeImage;
     uint8_t width;
     uint8_t height;
     picrossHint_t rowHints[10];
@@ -46,6 +44,8 @@ typedef struct
     picrossSpaceType_t completeLevel[10][10]; 
     picrossSpaceType_t level[10][10]; 
 } picrossPuzzle_t;
+
+typedef void (*picrossExitFunc_t)(void);
 
 typedef struct
 {
@@ -56,14 +56,16 @@ typedef struct
     font_t* promptFont;
     picrossPuzzle_t* puzzle;
     bool controlsEnabled;
-    uint8_t levelIndex;
     picrossInput_t* input;
     uint8_t drawScale;
     uint8_t leftPad;
     uint8_t topPad;
+    picrossLevelDef_t* selectedLevel;
+    picrossExitFunc_t exitFunction;
+    bool exitThisFrame;
 } picrossGame_t;
 
-void picrossStartGame(display_t* disp, font_t* mmFont);
+void picrossStartGame(display_t* disp, font_t* mmFont, picrossExitFunc_t* exitFunc, picrossLevelDef_t* selectedLevel);
 void picrossGameLoop(int64_t elapsedUs);
 void picrossGameButtonCb(buttonEvt_t* evt);
 void picrossExitGame(void);

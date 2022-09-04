@@ -10,6 +10,7 @@
 
 #include "picross_menu.h"
 #include "mode_picross.h"
+#include "picross_select.h"
 #include "mode_main_menu.h"
 
 //==============================================================================
@@ -28,6 +29,7 @@ typedef struct
     font_t mmFont;
     meleeMenu_t* menu;
     display_t* disp;
+    picrossLevelDef_t levels[8];
     picrossScreen_t screen;
     bool menuChanged;
 
@@ -41,8 +43,11 @@ void picrossEnterMode(display_t* disp);
 void picrossExitMode(void);
 void picrossMainLoop(int64_t elapsedUs);
 void picrossButtonCb(buttonEvt_t* evt);
-
+void loadLevels(void);
 void picrossMainMenuCb(const char* opt);
+void SelectPicrossLevel(picrossLevelDef_t* selectedLevel);
+void ReturnToLevelSelect(void);
+
 
 //==============================================================================
 // Variables
@@ -66,6 +71,7 @@ swadgeMode modePicross =
 
 static const char str_picrossTitle[] = "Picross";
 static const char str_picross[] = "Start";
+static const char str_levelSelect[] = "Puzzle Select";
 static const char str_exit[] = "Exit";
 
 picrossMenu_t* pm;
@@ -94,6 +100,8 @@ void picrossEnterMode(display_t* disp)
 
     pm->screen = PICROSS_MENU;
 
+    loadLevels();
+
 }
 
 void picrossExitMode(void)
@@ -102,9 +110,20 @@ void picrossExitMode(void)
     deinitMeleeMenu(pm->menu);
     //p2pDeinit(&jm->p2p);
     freeFont(&(pm->mmFont));
+    
     free(pm);
 }
 
+void loadLevels()
+{
+    loadWsg("test1.wsg", &pm->levels[0].levelWSG);
+    loadWsg("test1_complete.wsg", &pm->levels[0].completedWSG);
+    pm->levels[0].index = 0;
+
+    loadWsg("test2.wsg", &pm->levels[1].levelWSG);
+    loadWsg("test2_c.wsg", &pm->levels[1].completedWSG);
+    pm->levels[1].index = 1;
+}
 
 /**
  * Call the appropriate main loop function for the screen being displayed
@@ -126,14 +145,14 @@ void picrossMainLoop(int64_t elapsedUs)
         }
         case PICROSS_LEVELSELECT:
         {
-
+            picrossLevelSelectLoop(elapsedUs);
+            break;
         }
         case PICROSS_GAME:
         {
             picrossGameLoop(elapsedUs);
             break;
         }
-            //No wifi mode stuff
     }
 }
 
@@ -158,6 +177,7 @@ void picrossButtonCb(buttonEvt_t* evt)
         }
         case PICROSS_LEVELSELECT:
         {
+            picrossLevelSelectButtonCb(evt);
             break;
         }
         case PICROSS_GAME:
@@ -173,30 +193,50 @@ void picrossButtonCb(buttonEvt_t* evt)
 /////////////////////////
 
 /**
- * @brief Sets up the top level menu for Picross, including callback
+ * @brief Sets up the top level menu for Picross
  */
 void setPicrossMainMenu(void)
 {
     resetMeleeMenu(pm->menu, str_picrossTitle, picrossMainMenuCb);
     addRowToMeleeMenu(pm->menu, str_picross);
+    addRowToMeleeMenu(pm->menu, str_levelSelect);
     addRowToMeleeMenu(pm->menu, str_exit);
     pm->menuChanged = true;
     pm->screen = PICROSS_MENU;
 }
 
+//menu button callbacks. Set the screen and call the appropriate start functions
 void picrossMainMenuCb(const char* opt)
 {
     if (opt == str_picross)
     {
-        ESP_LOGI("FTR", "Let's go!");
-        picrossStartGame(pm->disp, &pm->mmFont);
-        pm->screen = PICROSS_GAME;
+        // picrossStartGame(pm->disp, &pm->mmFont);
+        // pm->screen = PICROSS_GAME;
         return;
     }
-
+    if (opt == str_levelSelect)
+    {
+        pm->screen = PICROSS_LEVELSELECT;
+        picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels,(picrossLevelDef_t*)SelectPicrossLevel);
+        return;
+    }
     if (opt == str_exit)
     {
         // Exit to main menu
         switchToSwadgeMode(&modeMainMenu);
+        return;
     }
+}
+
+void SelectPicrossLevel(picrossLevelDef_t* selectedLevel)
+{
+    pm->screen = PICROSS_GAME;
+    picrossStartGame(pm->disp, &pm->mmFont, (void*)ReturnToLevelSelect, selectedLevel);
+}
+
+void ReturnToLevelSelect()
+{
+    //todo: abstract this to function
+    pm->screen = PICROSS_LEVELSELECT;
+    picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels,(picrossLevelDef_t**)SelectPicrossLevel);      
 }

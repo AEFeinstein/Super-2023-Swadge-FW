@@ -8,17 +8,14 @@
 #include "swadgeMode.h"
 #include "musical_buzzer.h"
 #include "esp_log.h"
-#include "esp_timer.h"
-#include "esp_random.h"
 
-#include "linked_list.h"
-#include "led_util.h"
 #include "aabb_utils.h"
-#include "settingsManager.h"
+// #include "settingsManager.h"
 #include "nvs_manager.h"
 
 #include "mode_picross.h"
 #include "picross_menu.h"
+#include "picross_select.h"
 #include "bresenham.h"
 
 //==============================================================================
@@ -37,8 +34,8 @@
 void picrossUserInput(void);
 void picrossResetInput(void);
 void picrossCheckLevel(void);
-void picrossSetupPuzzle(uint8_t levelIndex);
-void setCompleteLevelFromWSG(wsg_t* puzz);
+void picrossSetupPuzzle(void);
+void setCompleteLevelFromWSG(wsg_t puzz);
 void drawSinglePixelFromWSG(display_t* d,int x, int y, wsg_t* image);
 bool hintsMatch(picrossHint_t a, picrossHint_t b);
 box_t boxFromCoord(int8_t x, int8_t y);
@@ -65,15 +62,19 @@ static picrossGame_t* p = NULL;
  *
  */
 //todo: this should receive a levelIndex. allocate memory as appropriate for level size, and pass into setuplevel
-void picrossStartGame(display_t* disp, font_t* mmFont)
+void picrossStartGame(display_t* disp, font_t* mmFont, picrossExitFunc_t* exitFunc, picrossLevelDef_t* selectedLevel)
 {
     p = calloc(1, sizeof(picrossGame_t));
+    p->selectedLevel = selectedLevel;
     p->currentPhase = PICROSS_SOLVING;
     p->d = disp;
     p->promptFont = mmFont;
     p->drawScale = 25;
     p->leftPad = 200;
     p->topPad = 130;
+    p->exitFunction = exitFunc;
+    p->exitThisFrame = false;
+
     loadFont("radiostars.font", &(p->game_font));
 
     p->puzzle = calloc(1, sizeof(picrossPuzzle_t));
@@ -88,21 +89,19 @@ void picrossStartGame(display_t* disp, font_t* mmFont)
     p->controlsEnabled = true;
 
     //Setup level
-    picrossSetupPuzzle(0);
+    picrossSetupPuzzle();
 }
 
-void picrossSetupPuzzle(uint8_t levelIndex)
+void picrossSetupPuzzle()
 {
-    p->levelIndex = levelIndex;
+    
+    wsg_t *levelwsg = &p->selectedLevel->levelWSG;
 
-    wsg_t levelwsg;
-    loadWsg("test1.wsg", &levelwsg);
-    loadWsg("test1_complete.wsg", &p->puzzle->completeImage);
-    setCompleteLevelFromWSG(&levelwsg);
+    setCompleteLevelFromWSG(*levelwsg);
 
     //one step closer to this working correctly!
-    p->puzzle->width = levelwsg.w;
-    p->puzzle->height = levelwsg.h;
+    p->puzzle->width = levelwsg->w;
+    p->puzzle->height = levelwsg->h;
     //maxhints = max(width/2 -1,height/2 -1) i ... think?
 
     //rows
@@ -131,19 +130,17 @@ void picrossSetupPuzzle(uint8_t levelIndex)
     //Write the hint labels for each row and column
 
     picrossResetInput();
-
-    //free now or at the end? We only need the victory one.
-    freeWsg(&levelwsg);
 }
 
-void setCompleteLevelFromWSG(wsg_t* puzz)
+void setCompleteLevelFromWSG(wsg_t puzzle)
 {
+    wsg_t puzz = puzzle;
     //go row by row
     paletteColor_t col = c555;
-    for(int r = 0;r<puzz->h;r++)//todo: puzzles that dont have the right size?
+    for(int r = 0;r<puzz.h;r++)//todo: puzzles that dont have the right size?
     {
-        for(int c=0;c<puzz->w;c++){
-            col = puzz->px[(r * puzz->w) + c];
+        for(int c=0;c<puzz.w;c++){
+            col = puzz.px[(r * puzz.w) + c];
             if(col == cTransparent || col == c555){
                 p->puzzle->completeLevel[c][r] = SPACE_EMPTY;
             }else{
@@ -224,23 +221,32 @@ void picrossResetInput()
 {
     p->input->x = 0;
     p->input->y = 0;
+    p->input->movedThisFrame = false;
+    p->input->changedLevelThisFrame = false;
+    p->input->prevBtnState = 0;
     // p->input->btnState = 0;//?
 }
 
 void picrossGameLoop(int64_t elapsedUs)
 {
-    switch(p->currentPhase)
-    {
-        case PICROSS_YOUAREWIN:
-            //could go to next level
-            //picrossSetupState(j->scene->level);
-            break;
-        case PICROSS_SOLVING:
-            // uh
-            break;
-    }
+    // switch(p->currentPhase)
+    // {
+    //     case PICROSS_YOUAREWIN:
+    //         //could go to next level
+    //         //picrossSetupState(j->scene->level);
+    //         break;
+    //     case PICROSS_SOLVING:
+    //         // uh
+    //         break;
+    // }
 
     picrossUserInput();
+    if(p->exitThisFrame)
+    {
+        picrossExitGame();
+        //dont do more processing, we have switched back to level select screen.
+        return;
+    }
 
     //userInput sets this value when we change a block to or from filled.
     if(p->input->changedLevelThisFrame)
@@ -258,11 +264,13 @@ void picrossGameLoop(int64_t elapsedUs)
         int32_t victories = 0;
         readNvs32("picrossSolves", &victories);
         
-        //shift 1 (0x0001) over levelIndex times, then OR it with victories.
-        victories = victories | (1 << p->levelIndex);
-        //Save.
+        //shift 1 (0x00...001) over levelIndex times, then OR it with victories.
+        //...I think. If this works it means I wrote a bitwise operation first try, which feels unlikely.
+        victories = victories | (1 << (p->selectedLevel->index));
+        //Save new number
         writeNvs32("picrossSolves", victories);
     }
+
     p->previousPhase = p->currentPhase;
 }
 
@@ -287,6 +295,7 @@ void picrossCheckLevel()
     }
 
     //Check level by clues.
+
     //We use this if we can't ensure there are unique solutions to the clues.
     //because if you got ANY solution, you should win.
 
@@ -331,6 +340,7 @@ bool hintsMatch(picrossHint_t a, picrossHint_t b)
  * @brief Process controls
  *
  */
+
 void picrossUserInput(void)
 {
     picrossInput_t* input = p->input;
@@ -342,13 +352,22 @@ void picrossUserInput(void)
     input-> movedThisFrame = false;
     input-> changedLevelThisFrame = false;//do we need to check for solution?
 
+    //check for "exit" button before we escape when not in solving mode.
+    //todo: how should exit work? A button when game is solved?
+    if(input->btnState & SELECT && !(input->prevBtnState & SELECT))
+    {
+        p->exitFunction();
+        p->exitThisFrame = true;
+        return;
+    }
+
     if (p->controlsEnabled == false || p->currentPhase != PICROSS_SOLVING)
     {
-        //TODO: return to level select screen on input
         return;
     }
 
     //Input checks
+    
     if (input->btnState & BTN_A && !(input->prevBtnState & BTN_A))
     {
         //Button has no use here
@@ -491,11 +510,6 @@ void drawPicrossScene(display_t* d)
                         drawBox(d, box, c531, true, 1);
                         break;
                     }
-                    case SPACE_HINT:
-                    {
-                        drawBox(d, box, c050, true, 1);
-                        break;
-                    }
                 }
             }
         }
@@ -508,7 +522,7 @@ void drawPicrossScene(display_t* d)
         {
             for(int j = 0;j<h;j++)
             {
-                drawSinglePixelFromWSG(d,i,j,&p->puzzle->completeImage);
+                drawSinglePixelFromWSG(d,i,j,&p->selectedLevel->completedWSG);
             }
         }
     }
@@ -667,8 +681,9 @@ void picrossExitGame(void)
     if (NULL != p)
     {
         freeFont(&(p->game_font));
-        free(&p->puzzle->completeImage);
-        free(p->puzzle);
+        // free(&p->selectedLevel->completedWSG);
+        // free(&p->selectedLevel);
+        // free(p->puzzle);
         free(p->input);
         free(p);
         p = NULL;
