@@ -14,31 +14,33 @@ typedef enum
 
 typedef enum
 {
-    PICROSS_ENTRY,
-    PICROSS_WINSTAGE,
+    PICROSS_SOLVING,
+    PICROSS_YOUAREWIN,
 } picrossGamePhase_t;
 
 typedef struct
 {
-    uint16_t x;
-    uint16_t y;
-    uint16_t dx;
-    uint16_t dy;
-    uint8_t row;
-    uint8_t column;
-    uint8_t block;
-    uint8_t dBlock;
-    bool flipped;
+    uint8_t x;
+    uint8_t y;
+    uint32_t prevBtnState;
     uint32_t btnState;
-
+    bool movedThisFrame;
 } picrossInput_t;
 
+typedef struct
+{
+    bool complete;
+    bool isRow;
+    uint8_t index;
+    uint8_t hints[5];//have to deal with 'flexible array member'
+} picrossHint_t;
 
 typedef struct
 {
     uint8_t width;
     uint8_t height;
-    picrossInput_t inputSquare;
+    picrossHint_t rowHints[10];
+    picrossHint_t colHints[10];
     picrossSpaceType_t level[10][10]; 
 } picrossPuzzle_t;
 
@@ -50,7 +52,11 @@ typedef struct
     font_t* promptFont;
     picrossPuzzle_t* puzzle;
     bool controlsEnabled;
-
+    uint8_t levelIndex;
+    picrossInput_t* input;
+    uint8_t drawScale;
+    uint8_t leftPad;
+    uint8_t topPad;
 } picrossGame_t;
 
 void picrossStartGame(display_t* disp, font_t* mmFont);
