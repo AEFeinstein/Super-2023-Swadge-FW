@@ -41,6 +41,7 @@ typedef struct
     uint8_t height;
     picrossHint_t rowHints[10];
     picrossHint_t colHints[10];
+    picrossSpaceType_t completeLevel[10][10]; 
     picrossSpaceType_t level[10][10]; 
 } picrossPuzzle_t;
 

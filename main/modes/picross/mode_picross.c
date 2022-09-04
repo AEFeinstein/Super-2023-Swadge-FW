@@ -37,12 +37,14 @@ void picrossUserInput(void);
 void picrossResetInput(void);
 void picrossCheckLevel(void);
 void picrossSetupPuzzle(uint8_t levelIndex);
+void setCompleteLevelFromWSG(wsg_t* puzz);
+bool hintsMatch(picrossHint_t a, picrossHint_t b);
 box_t boxFromCoord(int8_t x, int8_t y);
-picrossHint_t newHint(uint8_t index, bool isRow,uint8_t hints[5]);
+picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t source[10][10]);
 void drawPicrossScene(display_t* d);
 void drawPicrossHud(display_t* d, font_t* prompt, font_t* font);
 void drawHint(display_t* d,font_t* font, picrossHint_t hint);
-
+void drawPicrossInput(display_t* d);
 
 //==============================================================================
 // Variables
@@ -93,30 +95,23 @@ void picrossSetupPuzzle(uint8_t levelIndex)
 {
     p->levelIndex = levelIndex;
 
-    uint8_t sampleRow[5] = {1,0,0,0,0};
-    //rows
-    p->puzzle->rowHints[0] = newHint(0,true,sampleRow);
-    p->puzzle->rowHints[6] = newHint(1,true,sampleRow);
-    p->puzzle->rowHints[1] = newHint(2,true,sampleRow);
-    p->puzzle->rowHints[2] = newHint(3,true,sampleRow);
-    p->puzzle->rowHints[3] = newHint(4,true,sampleRow);
-    p->puzzle->rowHints[4] = newHint(5,true,sampleRow);
-    p->puzzle->rowHints[5] = newHint(6,true,sampleRow);
-    p->puzzle->rowHints[7] = newHint(7,true,sampleRow);
-    p->puzzle->rowHints[8] = newHint(8,true,sampleRow);
-    p->puzzle->rowHints[9] = newHint(9,true,sampleRow);
-    //
-    p->puzzle->colHints[0] = newHint(0,false,sampleRow);
-    p->puzzle->colHints[1] = newHint(1,false,sampleRow);
-    p->puzzle->colHints[2] = newHint(2,false,sampleRow);
-    p->puzzle->colHints[3] = newHint(3,false,sampleRow);
-    p->puzzle->colHints[4] = newHint(4,false,sampleRow);
-    p->puzzle->colHints[5] = newHint(5,false,sampleRow);
-    p->puzzle->colHints[6] = newHint(6,false,sampleRow);
-    p->puzzle->colHints[7] = newHint(7,false,sampleRow);
-    p->puzzle->colHints[8] = newHint(8,false,sampleRow);
-    p->puzzle->colHints[9] = newHint(9,false,sampleRow);
+    wsg_t levelwsg;
+    loadWsg("testLevel2.wsg", &levelwsg);
+    setCompleteLevelFromWSG(&levelwsg);
 
+    //rows
+    for(int i = 0;i<p->puzzle->height;i++)
+    {
+        p->puzzle->rowHints[i] = newHintFromPuzzle(i,true,p->puzzle->completeLevel);  
+    }
+    
+    //cols
+    for(int i = 0;i<p->puzzle->height;i++)
+    {
+        p->puzzle->colHints[i] = newHintFromPuzzle(i,false,p->puzzle->completeLevel);  
+    }
+
+    //Set the actual level to be empty.
     for(int i = 0;i<p->puzzle->width;i++)
     {
         for(int j = 0;j<p->puzzle->height;j++)
@@ -124,27 +119,96 @@ void picrossSetupPuzzle(uint8_t levelIndex)
             p->puzzle->level[i][j] = SPACE_EMPTY;
         }
     }
+
+
     //Get chosen level and load it's data...
 
     //Write the hint labels for each row and column
 
     picrossResetInput();
+    freeWsg(&levelwsg);
+}
+
+void setCompleteLevelFromWSG(wsg_t* puzz)
+{
+    //go row by row
+    paletteColor_t sample;
+    for(int r = 0;r<puzz->h;r++)//todo: puzzles that dont have the right size?
+    {
+        for(int c=0;c<puzz->w;c++){
+            sample = puzz->px[(r * puzz->w) + c];
+            if(sample == cTransparent || sample == c555){
+                p->puzzle->completeLevel[c][r] = SPACE_EMPTY;
+            }else{
+                p->puzzle->completeLevel[c][r] = SPACE_FILLED;
+            }
+        }
+    }
+    
 }
 
 //lol i dont know how to do constructors in c++
-picrossHint_t newHint(uint8_t index, bool isRow, uint8_t hints[5])
+picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t source[10][10])
 {
     picrossHint_t t;
     t.complete = false;
     t.isRow = isRow;
     t.index = index;
-    //everything about this is wrong
+    
+    //set all hints to 0. 5 here is the max number of hints we can display, currently hard-coded.
     for(int i = 0;i<5;i++)
     {
-        t.hints[i] = hints[i];
+         t.hints[i] = 0;
     }
-   
-    
+
+    //todo: non-square puzzles. get width/height passed in from newHint.
+    picrossSpaceType_t prev = SPACE_EMPTY;//starts empty because out of bounds is empty for how hints work.
+    uint8_t blockNumber = 0;
+    if(isRow){
+        for(int i = 0;i<p->puzzle->width;i++)
+        {
+            if(source[i][index] == SPACE_FILLED)//we have a clue.
+            {
+                //Counting up the hint size.
+                if(prev == SPACE_FILLED)
+                {
+                    t.hints[blockNumber]++;
+                }else if(prev == SPACE_EMPTY)//this is a new block
+                {
+                    blockNumber++;//next block! (but we go left to right, which is the clue right to left)
+                    t.hints[blockNumber]++;
+                }
+                prev = SPACE_FILLED;
+            }else // if empty
+            {
+                prev = SPACE_EMPTY;
+                //i continues to increase.
+            }
+            //set prev for next
+        }
+    }else{
+        //same logic but for columns
+        for(int i = 0;i<p->puzzle->height;i++)
+        {
+            if(source[index][i]==SPACE_FILLED)
+            {
+                //Counting up the block size.
+                if(prev == SPACE_FILLED)
+                {
+                    t.hints[blockNumber]++;
+                }else if(prev == SPACE_EMPTY)//this is a new block
+                {
+                    blockNumber++;
+                    t.hints[blockNumber]++;
+                }
+                prev = SPACE_FILLED;
+            }else // if empty
+            {
+                prev = SPACE_EMPTY;
+                //i continues to increase.
+            }
+        }
+    }
 
     return t;
 }
@@ -182,14 +246,41 @@ void picrossCheckLevel()
 {
     //Foreach row and column in the hints
     //check if any row is incomplete
-    
-    //if not...
-    return;
-
+    picrossHint_t testingHint;
+    for(int i = 0;i<p->puzzle->width;i++)
+    {
+        //rows
+        testingHint = newHintFromPuzzle(i,true,p->puzzle->level);
+        if(!hintsMatch(testingHint,p->puzzle->rowHints[i])){
+            return;
+        }
+    }
+    for(int i = 0;i<p->puzzle->height;i++)
+    {
+        //cols
+        //rows
+        testingHint = newHintFromPuzzle(i,false,p->puzzle->level);
+        if(!hintsMatch(testingHint,p->puzzle->colHints[i])){
+            return;
+        }
+    }
+    {
     p->currentPhase = PICROSS_YOUAREWIN;
     p->controlsEnabled = false;
+    }
 }
 
+bool hintsMatch(picrossHint_t a, picrossHint_t b)
+{
+    for(int i = 0;i<5;i++)
+    {
+        if(a.hints[i] != b.hints[i])
+        {
+            return false;
+        }
+    }
+    return true;
+}
 
 /**
  * @brief Process controls
@@ -198,8 +289,8 @@ void picrossCheckLevel()
 void picrossUserInput(void)
 {
     picrossInput_t* input = p->input;
-    uint8_t x = input->x;
-    uint8_t y = input->y;
+    uint8_t x = input->x;//todo: make these pointers
+    uint8_t y = input->y;//todo
     picrossSpaceType_t current = p->puzzle->level[x][y];
 
     //reset
@@ -249,10 +340,10 @@ void picrossUserInput(void)
     if (input->btnState & UP && !(input->prevBtnState & UP))
     {
         input->movedThisFrame = true;
-        if(y == 0)
+        if(input->y == 0)
         {
             //wrap to opposite position
-            y = p->puzzle->height-1; 
+            input->y = p->puzzle->height-1; 
         }else
         {
             input->y = y - 1;
@@ -353,10 +444,8 @@ void drawPicrossScene(display_t* d)
         }
     }
 
-    //Draw player input box
-    box_t inputBox = boxFromCoord(p->input->x,p->input->y); 
-    drawBox(d, inputBox, c050, false, 1);
     drawPicrossHud(d, p->promptFont, &p->game_font);
+    drawPicrossInput(d);
 }
 
 box_t boxFromCoord(int8_t x,int8_t y)
@@ -379,41 +468,59 @@ void drawPicrossHud(display_t* d, font_t* prompt, font_t* font)
 
     drawText(d, font, c555, textBuffer, 230, 220);
 
+    //width of thicker center lines
     uint8_t w = 5;
     //draw a vertical line every 5 units.
-    for(int i=0;i<p->puzzle->width;i=i+5)
+    for(int i=1;i<p->puzzle->width;i++)//skip 0 and skip last. literally the fence post problem.
     {
-        if(i==0)
+        uint8_t s = p->drawScale;
+        if(i%5 == 0)//draw thicker line every 5.
         {
+            box_t box =
+            {
+                .x0 = (i * s) + s + p->leftPad - w/2,
+                .y0 = s + p->topPad,
+                .x1 = (i * s) + s + w/2 + p->leftPad,//3 is width
+                .y1 = (p->puzzle->height * s) + s + p->topPad,
+            };  
+            drawBox(d,box,c441,true,1);
             continue;
         }
-        uint8_t s = p->drawScale;
-      box_t box =
-        {
-            .x0 = (i * s) + s + p->leftPad - w/2,
-            .y0 = s + p->topPad,
-            .x1 = (i * s) + s + w/2 + p->leftPad,//3 is width
-            .y1 = (p->puzzle->height * s) + s + p->topPad,
-        };  
-         drawBox(d,box,c441,true,1);
+        //this could be less confusing.
+        plotLine(d,
+            ((i * s) + s + p->leftPad) >> 1,
+            (s + p->topPad) >> 1,
+            ((i * s) + s + p->leftPad) >> 1,
+            ((p->puzzle->height * s) + s + p->topPad) >> 1,
+            c111,0);
+        
     }
 
      //draw a horizontal line every 5 units.
-    for(int i=0;i<p->puzzle->height;i=i+5)
+     //todo: also do the full grid.
+    for(int i=1;i<p->puzzle->height;i++)
     {
-        if(i==0)
+        uint8_t s = p->drawScale;
+        if(i%5 == 0)
         {
+            box_t box =
+            {
+                .x0 = s + p->leftPad,
+                .y0 = (i * s) + s + p->topPad - w/2,
+                .x1 = (p->puzzle->width * s) + s + p->leftPad,
+                .y1 = (i * s) + s + p->topPad + w/2,
+            };  
+            drawBox(d,box,c441,true,1);
             continue;
         }
-        uint8_t s = p->drawScale;
-      box_t box =
-        {
-            .y0 = (i * s) + s + p->topPad-w/2,
-            .x0 = s + p->leftPad,
-            .y1 = (i * s) + s + w/2 + p->topPad,//5 is width
-            .x1 = (p->puzzle->height * s) + s + p->leftPad,
-        };  
-         drawBox(d,box,c441,true,1);
+        //this should be less confusing.
+        plotLine(d,
+            (s + p->leftPad) >> 1,
+            ((i * s) + s + p->topPad) >> 1,
+            ((p->puzzle->width * s) + s + p->leftPad) >> 1,
+            ((i * s) + s + p->topPad) >> 1,
+            c111,0);
+     
     }
 
 
@@ -437,30 +544,64 @@ void drawPicrossHud(display_t* d, font_t* prompt, font_t* font)
 
 void drawHint(display_t* d,font_t* font, picrossHint_t hint)
 {
+    //todo: handle 10 or double-digit input 
     if(hint.isRow){
+        int j = 0;
         for(int i = 0;i<5;i++)
         {
-            box_t t = boxFromCoord(-i-1,hint.index);
-            char letter[1];
-            // calling sprintf is setting x0 on t to 0. I think its a poking at memory out of bounds
-            // sprintf(letter, "%d", hint.hints[i]);
-            drawBox(d,t,c333,false,1);
-            // drawChar(d,c444, font->h, &font->chars[(*letter) - ' '], t.x0, t.y0);
-        }
-    }else{
-        for(int i = 0;i<5;i++)
-        {
-            int k = -i-1;
-            box_t t = boxFromCoord(hint.index,k);
-            char letter[1];
-            // sprintf(letter, "%d", hint.hints[i]);
-            drawBox(d,t,c333,false,1);
+            box_t hintbox = boxFromCoord(-j-1,hint.index);
+            //we have to flip the hints around. 
+            if(hint.hints[4-i] == 0){
+                //dont increase j.
+                
+               // drawBox(d,hintbox,c333,false,1);//for debugging. we will draw nothing when proper.
+            }else{
+                // wsg_t one;
+                // loadWsg("one.wsg", &one);
+                // drawWsg(d, &one, hintbox.x0 >> 1, hintbox.y0 >> 1, false, false, 0);
+                // freeWsg(&one);
+                drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
 
-            // drawChar(d,c444, font->h, &font->chars[(*letter) - ' '], t.x0, t.y0);
+                char letter[1];
+                sprintf(letter, "%d", hint.hints[4-i]);//this function appears to modify hintbox.x0
+                //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale) >> 1);
+                j++;//the index position, but only for where to draw. shifts the clues to the right.
+            }
+
+            }
+    }else{
+        int j = 0;
+        for(int i = 0;i<5;i++)
+        {
+            box_t hintbox = boxFromCoord(hint.index,-j-1);
+             if(hint.hints[4-i] == 0){               
+               // drawBox(d,hintbox,c333,false,1);//for debugging. we will draw nothing when proper.
+            }else{
+                // wsg_t one;
+                // loadWsg("one.wsg", &one);
+                // drawWsg(d, &one, hintbox.x0 >> 1, hintbox.y0 >> 1, false, false, 0);
+                // freeWsg(&one);
+                drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
+                char letter[1];
+                sprintf(letter, "%d", hint.hints[4-i]);//this function appears to modify hintbox.x0
+                //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale) >> 1);
+                j++;//the index position, but only for where to draw. shifts the clues to the right.
+            }
+
         }
     }
 }
 
+void drawPicrossInput(display_t* d)
+{
+    //Draw player input box
+    box_t inputBox = boxFromCoord(p->input->x,p->input->y);
+    inputBox.x1 = inputBox.x1+1;
+    inputBox.y1 = inputBox.y1+1;//cover up both marking lines
+    drawBox(d, inputBox, c050, false, 1);
+}
 
 void picrossGameButtonCb(buttonEvt_t* evt)
 {
@@ -472,7 +613,7 @@ void picrossExitGame(void)
     if (NULL != p)
     {
         freeFont(&(p->game_font));
-        // free(p->puzzle);
+        free(p->puzzle);
         free(p->input);
         free(p);
         p = NULL;
