@@ -194,6 +194,9 @@ entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint
         case ENTITY_WARP:
             createdEntity = createWarp(entityManager, x, y);
             break;
+        case ENTITY_DUST_BUNNY:
+            createdEntity = createDustBunny(entityManager, x, y);
+            break;
         default:
             createdEntity = NULL;
     }
@@ -457,3 +460,35 @@ entity_t* createWarp(entityManager_t * entityManager, uint16_t x, uint16_t y){
 
     return entity;
 };
+
+entity_t* createDustBunny(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->xspeed = 0;
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 132;
+    entity->xDamping = 0; //This will be repurposed to track state
+    entity->yDamping = 0; //This will be repurposed as a state timer
+    entity->gravityEnabled = true;
+    entity->gravity = 32;
+    entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? true : false;
+    entity->spriteFlipVertical = false;
+
+    entity->type = ENTITY_DUST_BUNNY;
+    entity->spriteIndex = SP_DUSTBUNNY_IDLE;
+    entity->updateFunction = &updateDustBunny;
+    entity->collisionHandler = &enemyCollisionHandler;
+    entity->tileCollisionHandler = &dustBunnyTileCollisionHandler;
+
+    return entity;
+}

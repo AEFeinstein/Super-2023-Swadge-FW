@@ -9,6 +9,7 @@
 #include "gameData.h"
 #include "musical_buzzer.h"
 #include "btn.h"
+#include "esp_random.h"
 
 //==============================================================================
 // Constants
@@ -467,10 +468,11 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
     switch (other->type)
     {
         case ENTITY_TEST:
+        case ENTITY_DUST_BUNNY:
         {
             other->xspeed = -other->xspeed;
 
-            if (self->y < other->y && self->yspeed > 0)
+            if (/*self->y < other->y &&*/ self->yspeed > 0)
             {
                 self->gameData->score += 100;
                 other->homeTileX = 0;
@@ -482,7 +484,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
 
                 buzzer_play_sfx(&sndHit);
 
-                self->yspeed = -90;
+                self->yspeed = -180;
 
                 if (self->gameData->btnState & BTN_B)
                 {
@@ -526,6 +528,9 @@ void enemyCollisionHandler(entity_t *self, entity_t *other)
     switch (other->type)
     {
     case ENTITY_TEST:
+        self->xspeed = -self->xspeed;
+        break;
+    case ENTITY_DUST_BUNNY:
         self->xspeed = -self->xspeed;
         break;
     default:
@@ -782,3 +787,71 @@ void updateWarp(entity_t *self)
         destroyEntity(self, true);
     }
 }
+
+void updateDustBunny(entity_t *self)
+{
+    if(!self->falling){
+        self->yDamping--;
+        if(self->yDamping <= 0){
+            bool directionToPlayer = (self->entityManager->playerEntity->x < self->x);
+            
+            switch(self->xDamping){
+                case 0: {
+                    self->xspeed = (1 + esp_random() % 4) * 16 * ((directionToPlayer)?-1:1);
+                    self->yspeed = (1 + esp_random() % 4) * -64;
+                    self->xDamping = 1;
+                    self->yDamping = (1 + esp_random() % 3) * 10;
+                    self->spriteIndex = SP_DUSTBUNNY_JUMP;
+                    self->spriteFlipHorizontal = !directionToPlayer;
+                    break;
+                }
+                case 1: {
+                    self->xDamping = 0;
+                    self->yDamping = 10;
+                    self->spriteIndex = SP_DUSTBUNNY_CHARGE;
+                    self->spriteFlipHorizontal = !directionToPlayer;
+                    break;
+                }
+                default:
+                    self->xDamping = 0;
+                    break;
+            }
+        }
+    }
+    
+    despawnWhenOffscreen(self);
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
+    detectEntityCollisions(self);
+};
+
+bool dustBunnyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    if (isSolid(tileId))
+    {
+        switch (direction)
+        {
+        case 0: // LEFT
+            self->xspeed = -self->xspeed;
+            break;
+        case 1: // RIGHT
+            self->xspeed = -self->xspeed;
+            break;
+        case 2: // UP
+            self->yspeed = 0;
+            break;
+        case 4: // DOWN
+            // Landed on platform
+            self->falling = false;
+            self->yspeed = 0;
+            self->xspeed = 0;
+            self->spriteIndex = SP_DUSTBUNNY_IDLE;
+            break;
+        default: // Should never hit
+            return false;
+        }
+        // trigger tile collision resolution
+        return true;
+    }
+
+    return false;
+};
