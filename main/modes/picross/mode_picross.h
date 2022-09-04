@@ -38,6 +38,7 @@ typedef struct
 
 typedef struct
 {
+    wsg_t completeImage;
     uint8_t width;
     uint8_t height;
     picrossHint_t rowHints[10];

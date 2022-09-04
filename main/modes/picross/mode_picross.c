@@ -38,6 +38,7 @@ void picrossResetInput(void);
 void picrossCheckLevel(void);
 void picrossSetupPuzzle(uint8_t levelIndex);
 void setCompleteLevelFromWSG(wsg_t* puzz);
+void drawSinglePixelFromWSG(display_t* d,int x, int y, wsg_t* image);
 bool hintsMatch(picrossHint_t a, picrossHint_t b);
 box_t boxFromCoord(int8_t x, int8_t y);
 picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t source[10][10]);
@@ -52,7 +53,6 @@ void drawPicrossInput(display_t* d);
 
 static picrossGame_t* p = NULL;
 
-
 //==============================================================================
 // Functions
 //==============================================================================
@@ -63,6 +63,7 @@ static picrossGame_t* p = NULL;
  * @param mmFont The font used for teh HUD, already loaded
  *
  */
+//todo: this should receive a levelIndex. allocate memory as appropriate for level size, and pass into setuplevel
 void picrossStartGame(display_t* disp, font_t* mmFont)
 {
     p = calloc(1, sizeof(picrossGame_t));
@@ -77,7 +78,6 @@ void picrossStartGame(display_t* disp, font_t* mmFont)
     p->puzzle = calloc(1, sizeof(picrossPuzzle_t));
     p->puzzle->width = 10;
     p->puzzle->height = 10;
-    
 
     p->input = calloc(1, sizeof(picrossInput_t));
     p->input->x=0;
@@ -86,9 +86,8 @@ void picrossStartGame(display_t* disp, font_t* mmFont)
 
     p->controlsEnabled = true;
 
-
     //Setup level
-    picrossSetupPuzzle(0);//<- get this from level select menu
+    picrossSetupPuzzle(0);
 }
 
 void picrossSetupPuzzle(uint8_t levelIndex)
@@ -97,7 +96,13 @@ void picrossSetupPuzzle(uint8_t levelIndex)
 
     wsg_t levelwsg;
     loadWsg("testLevel2.wsg", &levelwsg);
+    loadWsg("testLevel2_complete.wsg", &p->puzzle->completeImage);
     setCompleteLevelFromWSG(&levelwsg);
+
+    //one step closer to this working correctly!
+    p->puzzle->width = levelwsg.w;
+    p->puzzle->height = levelwsg.h;
+    //maxhints = max(width/2 -1,height/2 -1) i ... think?
 
     //rows
     for(int i = 0;i<p->puzzle->height;i++)
@@ -120,12 +125,13 @@ void picrossSetupPuzzle(uint8_t levelIndex)
         }
     }
 
-
     //Get chosen level and load it's data...
 
     //Write the hint labels for each row and column
 
     picrossResetInput();
+
+    //free now or at the end? We only need the victory one.
     freeWsg(&levelwsg);
 }
 
@@ -442,50 +448,61 @@ void drawPicrossScene(display_t* d)
     uint8_t h = p->puzzle->height;
     
     d->clearPx();
-
-    for(int i = 0;i<w;i++)
+    box_t box;
+    if(p->currentPhase == PICROSS_SOLVING)
     {
-        for(int j = 0;j<h;j++)
+        for(int i = 0;i<w;i++)
         {
-            //shapw of boxDraw
-            //we will probably replace with "drawwsg"
-            box_t box1 = boxFromCoord(i,j);          
-            switch(p->puzzle->level[i][j])
+            for(int j = 0;j<h;j++)
             {
-                case SPACE_EMPTY:
+                //shapw of boxDraw
+                //we will probably replace with "drawwsg"
+                box = boxFromCoord(i,j);          
+                switch(p->puzzle->level[i][j])
                 {
-                    drawBox(d, box1, c555, true, 1);
-                    break;
-                }
-                case SPACE_FILLED:
-                {
-                    drawBox(d, box1, c000, true, 1);
-                    break;
-                }
-                case SPACE_MARKEMPTY:
-                {
-                    drawBox(d, box1, c531, true, 1);
-                    break;
-                }
-                case SPACE_HINT:
-                {
-                    drawBox(d, box1, c050, true, 1);
-                    break;
+                    case SPACE_EMPTY:
+                    {
+                        drawBox(d, box, c555, true, 1);
+                        break;
+                    }
+                    case SPACE_FILLED:
+                    {
+                        drawBox(d, box, c000, true, 1);
+                        break;
+                    }
+                    case SPACE_MARKEMPTY:
+                    {
+                        drawBox(d, box, c531, true, 1);
+                        break;
+                    }
+                    case SPACE_HINT:
+                    {
+                        drawBox(d, box, c050, true, 1);
+                        break;
+                    }
                 }
             }
         }
-    }
-
-
-    if(p->currentPhase == PICROSS_SOLVING)
-    {
         drawPicrossHud(d, p->promptFont, &p->game_font);
         drawPicrossInput(d);
-    }else if (p->currentPhase == PICROSS_YOUAREWIN)
+    }//end if phase is solving   
+    else if (p->currentPhase == PICROSS_YOUAREWIN)
     {
-    //    drawText(d, p->promptFont, c000, "You are win!", 80, 129);
-    //    drawText(d, p->promptFont, c555, "You are win!", 120, 128); 
+        for(int i = 0;i<w;i++)
+        {
+            for(int j = 0;j<h;j++)
+            {
+                drawSinglePixelFromWSG(d,i,j,&p->puzzle->completeImage);
+            }
+        }
     }
+}
+
+void drawSinglePixelFromWSG(display_t* d,int x, int y, wsg_t* image)
+{
+    box_t box = boxFromCoord(x,y);
+    paletteColor_t v = image->px[(y * p->puzzle->width) + x];
+    drawBox(d, box, v, true, 1);
 }
 
 box_t boxFromCoord(int8_t x,int8_t y)
@@ -585,10 +602,6 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 
                // drawBox(d,hintbox,c333,false,1);//for debugging. we will draw nothing when proper.
             }else{
-                // wsg_t one;
-                // loadWsg("one.wsg", &one);
-                // drawWsg(d, &one, hintbox.x0 >> 1, hintbox.y0 >> 1, false, false, 0);
-                // freeWsg(&one);
                 drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
 
                 char letter[1];
@@ -607,10 +620,6 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
              if(hint.hints[4-i] == 0){               
                // drawBox(d,hintbox,c333,false,1);//for debugging. we will draw nothing when proper.
             }else{
-                // wsg_t one;
-                // loadWsg("one.wsg", &one);
-                // drawWsg(d, &one, hintbox.x0 >> 1, hintbox.y0 >> 1, false, false, 0);
-                // freeWsg(&one);
                 drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
                 char letter[1];
                 sprintf(letter, "%d", hint.hints[4-i]);//this function appears to modify hintbox.x0
@@ -642,6 +651,7 @@ void picrossExitGame(void)
     if (NULL != p)
     {
         freeFont(&(p->game_font));
+        free(&p->puzzle->completeImage);
         free(p->puzzle);
         free(p->input);
         free(p);
