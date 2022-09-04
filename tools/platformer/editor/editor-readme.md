@@ -39,6 +39,7 @@ editor-readme
 Tiles are arranged within the tileset according to their attributes.
 See the chart below.
 
+```
 ATTRIBUTES                           |  RANGE       |  TOTAL
 ------------------------------------------------------------------------
 nonsolid static background invisible | 0-29         | 30
@@ -50,175 +51,178 @@ nonsolid animated interactive visible| 67-69        | 3
 nonsolid static interactive visible  | 70-79        | 10
 nonsolid static background visible   | 80-127       | 48
 object spawn locations               | 128-255      | 127
+```
 
 ## Detailed overview:
+Tile types are listed below according to their Id.
+In Aseprite, hover your mouse over a tile in the tileset to see its Id in the lower left corner of the window.
 
 ### nonsolid static background invisible
 
-TILE_EMPTY (Id=0)
+0. TILE_EMPTY
     - An empty space of course!
-TILE_WARP_0 (Id=1),
-TILE_WARP_1 (Id=2),
-TILE_WARP_2 (Id=3),
-TILE_WARP_3 (Id=4),
-TILE_WARP_4 (Id=5),
-TILE_WARP_5 (Id=6),
-TILE_WARP_6 (Id=7),
-TILE_WARP_7 (Id=8),
-TILE_WARP_8 (Id=9),
-TILE_WARP_9 (Id=10),
-TILE_WARP_A (Id=11),
-TILE_WARP_B (Id=12),
-TILE_WARP_C (Id=13),
-TILE_WARP_D (Id=14),
-TILE_WARP_E (Id=15),
-TILE_WARP_F (Id=16)
+1. TILE_WARP_0,
+2. TILE_WARP_1,
+3. TILE_WARP_2,
+4. TILE_WARP_3,
+5. TILE_WARP_4,
+6. TILE_WARP_5,
+7. TILE_WARP_6,
+8. TILE_WARP_7,
+9. TILE_WARP_8,
+10. TILE_WARP_9,
+11. TILE_WARP_A,
+12. TILE_WARP_B,
+13. TILE_WARP_C,
+14. TILE_WARP_D,
+15. TILE_WARP_E,
+16. TILE_WARP_F
     - When placed directly above a Container Block or Brick Block:
         - The Container Block or Brick Block will release a Warp Vortex that will
         send the player to the warp destination when touched.
     - Otherwise:
         - Defines the corresponding warp destination. If a warp destination is not defined, it will be set to 0,0.
-TILE_CTNR_COIN (Id=17)
+17. TILE_CTNR_COIN
     - When placed directly above a Container Block or Brick Block, the block will give the player a coin when hit.
-TILE_CTNR_10COIN (Id=18)
+18. TILE_CTNR_10COIN
     - (Unimplemented)
-TILE_CTNR_POW1 (Id=19)
+19. TILE_CTNR_POW1
     - When placed directly above a Container Block or Brick Block, the block will release the a powerup when hit. If the player has not collected a powerup yet, it will release the Joystick powerup, otherwise it will release the Speaker powerup.
-TILE_CTNR_POW2 (Id=20),
-TILE_CTNR_POW3 (Id=21),
+20. TILE_CTNR_POW2,
+21. TILE_CTNR_POW3,
     - (Unimplemented)
-TILE_CTNR_1UP (Id=22)
+22. TILE_CTNR_1UP
     - (Unimplemented)
       - When placed directly above a Container Block or Brick Block, the block will release a 1UP icon when hit.
-TILE_CTRL_LEFT (Id=23),
-TILE_CTRL_RIGHT (Id=24),
-TILE_CTRL_UP (Id=25),
-TILE_CTRL_DOWN (Id=26)
+23. TILE_CTRL_LEFT,
+24. TILE_CTRL_RIGHT,
+25. TILE_CTRL_UP,
+26. TILE_CTRL_DOWN
     - (Unimplemented)
     - When a moving platform touches this location it will move in the direction the arrow points.
-TILE_UNUSED_27 (Id=27),
-TILE_UNUSED_28 (Id=28),
-TILE_UNUSED_29 (Id=29)
+27. TILE_UNUSED_27,
+28. TILE_UNUSED_28,
+29. TILE_UNUSED_29
     - (Unimplemented)
 
 
 ### solid static background invisible 
 
-TILE_INVISIBLE_BLOCK (Id=30),
+30. TILE_INVISIBLE_BLOCK,
     - A solid invisible block. Use these to prevent objects from leaving the intended area.
 
 ### solid static interactive invisible
 
-TILE_INVISIBLE_CONTAINER (Id=31),
+31. TILE_INVISIBLE_CONTAINER,
     - (Unimplemented)
     - An invisible version of Container Block. Can be activated from below OR above.
 
 
 ### solid static interactive visible  
 
-TILE_GRASS (Id=32),
-TILE_GROUND (Id=33),
-TILE_BRICK_BLOCK (Id=34),
-TILE_BLOCK (Id=35),
-TILE_METAL_BLOCK (Id=36),
-TILE_METAL_PIPE_H (Id=37),
-TILE_METAL_PIPE_V (Id=38),
-TILE_METAL_PIPE_HEND (Id=39),
-TILE_METAL_PIPE_VEND (Id=40),
-TILE_GIRDER (Id=41),
-TILE_SOLID_UNUSED_42 (Id=42),
-TILE_SOLID_UNUSED_43 (Id=43),
-TILE_SOLID_UNUSED_44 (Id=44),
-TILE_SOLID_UNUSED_45 (Id=45),
-TILE_SOLID_UNUSED_46 (Id=46),
-TILE_SOLID_UNUSED_47 (Id=47),
-TILE_SOLID_UNUSED_48 (Id=48),
-TILE_SOLID_UNUSED_49 (Id=49),
-TILE_SOLID_UNUSED_50 (Id=50),
-TILE_SOLID_UNUSED_51 (Id=51),
-TILE_SOLID_UNUSED_52 (Id=52),
-TILE_SOLID_UNUSED_53 (Id=53),
-TILE_SOLID_UNUSED_54 (Id=54),
-TILE_SOLID_UNUSED_55 (Id=55),
-TILE_SOLID_UNUSED_56 (Id=56),
-TILE_SOLID_UNUSED_57 (Id=57),
-TILE_SOLID_UNUSED_58 (Id=58),
+32. TILE_GRASS,
+33. TILE_GROUND,
+34. TILE_BRICK_BLOCK,
+35. TILE_BLOCK,
+36. TILE_METAL_BLOCK,
+37. TILE_METAL_PIPE_H,
+38. TILE_METAL_PIPE_V,
+39. TILE_METAL_PIPE_HEND,
+40. TILE_METAL_PIPE_VEND,
+41. TILE_GIRDER,
+42. TILE_SOLID_UNUSED_42,
+43. TILE_SOLID_UNUSED_43,
+44. TILE_SOLID_UNUSED_44,
+45. TILE_SOLID_UNUSED_45,
+46. TILE_SOLID_UNUSED_46,
+47. TILE_SOLID_UNUSED_47,
+48. TILE_SOLID_UNUSED_48,
+49. TILE_SOLID_UNUSED_49,
+50. TILE_SOLID_UNUSED_50,
+51. TILE_SOLID_UNUSED_51,
+52. TILE_SOLID_UNUSED_52,
+53. TILE_SOLID_UNUSED_53,
+54. TILE_SOLID_UNUSED_54,
+55. TILE_SOLID_UNUSED_55,
+56. TILE_SOLID_UNUSED_56,
+57. TILE_SOLID_UNUSED_57,
+58. TILE_SOLID_UNUSED_58,
     - Solid tiles.
-TILE_GOAL_100PTS (Id=59),
-TILE_GOAL_500PTS (Id=60),
-TILE_GOAL_1000PTS (Id=61),
-TILE_GOAL_2000PTS (Id=62),
-TILE_GOAL_5000PTS (Id=63)
+59. TILE_GOAL_100PTS,
+60. TILE_GOAL_500PTS,
+61. TILE_GOAL_1000PTS,
+62. TILE_GOAL_2000PTS,
+63. TILE_GOAL_5000PTS
     - When the player lands on these the level is complete and the appropriate bonus is given.
 
 
 ### solid animated interactive visible
 
-TILE_CONTAINER_1 (Id=64),
+64. TILE_CONTAINER_1,
     - The standard Container Block. Can be activated from any direction. If a CTNR control tile is placed above, the block will yield that item when hit.
-TILE_CONTAINER_2 (Id=65),
-TILE_CONTAINER_3 (Id=66)
+65. TILE_CONTAINER_2,
+66. TILE_CONTAINER_3
     - Animation frames for the Container Block. Don't use these.
 
 
 ### nonsolid animated interactive visible
 
-TILE_COIN_1 (Id=67)
+67. TILE_COIN_1
     - A coin. If the player touches it, it will be collected.
-TILE_COIN_2 (Id=68)
-TILE_COIN_3 (Id=69)
+68. TILE_COIN_2
+69. TILE_COIN_3
     - Animation frames for the Coin. Don't use these.
-TILE_LADDER (Id=70),
+70. TILE_LADDER,
     - (Unimplemented, may not be included in this version of the game)
-TILE_NONSOLID_INTERACTIVE_VISIBLE_71 (Id=71),
-TILE_NONSOLID_INTERACTIVE_VISIBLE_72 (Id=72),
-TILE_NONSOLID_INTERACTIVE_VISIBLE_73 (Id=73),
-TILE_NONSOLID_INTERACTIVE_VISIBLE_74 (Id=74),
-TILE_NONSOLID_INTERACTIVE_VISIBLE_75 (Id=75),
-TILE_NONSOLID_INTERACTIVE_VISIBLE_76 (Id=76),
-TILE_NONSOLID_INTERACTIVE_VISIBLE_77 (Id=77),
-TILE_NONSOLID_INTERACTIVE_VISIBLE_78 (Id=78),
-TILE_NONSOLID_INTERACTIVE_VISIBLE_79 (Id=79),
+71. TILE_NONSOLID_INTERACTIVE_VISIBLE_71,
+72. TILE_NONSOLID_INTERACTIVE_VISIBLE_72,
+73. TILE_NONSOLID_INTERACTIVE_VISIBLE_73,
+74. TILE_NONSOLID_INTERACTIVE_VISIBLE_74,
+75. TILE_NONSOLID_INTERACTIVE_VISIBLE_75,
+76. TILE_NONSOLID_INTERACTIVE_VISIBLE_76,
+77. TILE_NONSOLID_INTERACTIVE_VISIBLE_77,
+78. TILE_NONSOLID_INTERACTIVE_VISIBLE_78,
+79. TILE_NONSOLID_INTERACTIVE_VISIBLE_79,
     - (Unimplemented)
 
 ### nonsolid static background visible
 
-TILE_BG_GOAL_ZONE (Id=80),
-TILE_BG_ARROW_L (Id=81),
-TILE_BG_ARROW_R (Id=82),
-TILE_BG_ARROW_U (Id=83),
-TILE_BG_ARROW_D (Id=84),
-TILE_BG_ARROW_LU (Id=85),
-TILE_BG_ARROW_RU (Id=86),
-TILE_BG_ARROW_LD (Id=87),
-TILE_BG_ARROW_RD (Id=88)
+80. TILE_BG_GOAL_ZONE,
+81. TILE_BG_ARROW_L,
+82. TILE_BG_ARROW_R,
+83. TILE_BG_ARROW_U,
+84. TILE_BG_ARROW_D,
+85. TILE_BG_ARROW_LU,
+86. TILE_BG_ARROW_RU,
+87. TILE_BG_ARROW_LD,
+88. TILE_BG_ARROW_RD
     - Background tiles.
 
 
 ### object spawn locations
 
-ENTITY_PLAYER (Id=128)
+128. ENTITY_PLAYER
     - Spawns a player object. Weird stuff will happen. Don't use it! If you are trying to set a start location for the player, use the START tile (ID=1).
- ENTITY_TEST (Id=129)
+129. ENTITY_TEST
     - Simple stompable enemy. Walks slowly along platforms. Will turn around when it reaches a wall.
-ENTITY_SCROLL_LOCK_LEFT (Id=130)
-ENTITY_SCROLL_LOCK_RIGHT (Id=131),
-ENTITY_SCROLL_LOCK_UP (Id=132),
-ENTITY_SCROLL_LOCK_DOWN (Id=133)
+130. ENTITY_SCROLL_LOCK_LEFT
+131. ENTITY_SCROLL_LOCK_RIGHT,
+132. ENTITY_SCROLL_LOCK_UP,
+133. ENTITY_SCROLL_LOCK_DOWN
     - When spawned, prevents the screen from scrolling past the specified area. The arrow points to the horizontal or vertical line where the screen will be stopped.
-ENTITY_SCROLL_UNLOCK (Id=134)
+134. ENTITY_SCROLL_UNLOCK
     - When spawned, unlocks screen so it can scroll anywhere.
-ENTITY_HIT_BLOCK (Id=135)
+135. ENTITY_HIT_BLOCK
     - The object that makes a Container Block or Brick Block look like it's bounciung. Don't place it with the editor. 
-ENTITY_DEAD (Id=136)
+136. ENTITY_DEAD
     - Represents a defeated player or enemy. Don't place it with the editor.
-ENTITY_POWERUP (Id=137)
+137. ENTITY_POWERUP
     - Powerup dropped by TILE_CTNR_POW1.
-ENTITY_WARP (Id=138)
+138. ENTITY_WARP
     - Warp vortex dropped using the TILE_WARPx control tiles.
-ENTITY_DUST_BUNNY (Id=139)
+139. ENTITY_DUST_BUNNY
     - (Unimplemented)
     - A stompable bunny enemy that moves only by jumping at random intervals and random angles. Turns around at walls.
-ENTITY_WASP (Id=140)
+140. ENTITY_WASP
     - (Unimplemented)
     - A stompable wasp enemy that flies through the air, unaffected by gravity until the player passes underneath it, at which point it will drop straight down. After dropping down, it will stop for a short time when it meets a block, then fly back up. Turns around at walls.
