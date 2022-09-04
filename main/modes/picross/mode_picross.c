@@ -95,8 +95,8 @@ void picrossSetupPuzzle(uint8_t levelIndex)
     p->levelIndex = levelIndex;
 
     wsg_t levelwsg;
-    loadWsg("testLevel2.wsg", &levelwsg);
-    loadWsg("testLevel2_complete.wsg", &p->puzzle->completeImage);
+    loadWsg("test1.wsg", &levelwsg);
+    loadWsg("test1_complete.wsg", &p->puzzle->completeImage);
     setCompleteLevelFromWSG(&levelwsg);
 
     //one step closer to this working correctly!
@@ -138,12 +138,12 @@ void picrossSetupPuzzle(uint8_t levelIndex)
 void setCompleteLevelFromWSG(wsg_t* puzz)
 {
     //go row by row
-    paletteColor_t sample;
+    paletteColor_t col = c555;
     for(int r = 0;r<puzz->h;r++)//todo: puzzles that dont have the right size?
     {
         for(int c=0;c<puzz->w;c++){
-            sample = puzz->px[(r * puzz->w) + c];
-            if(sample == cTransparent || sample == c555){
+            col = puzz->px[(r * puzz->w) + c];
+            if(col == cTransparent || col == c555){
                 p->puzzle->completeLevel[c][r] = SPACE_EMPTY;
             }else{
                 p->puzzle->completeLevel[c][r] = SPACE_FILLED;
