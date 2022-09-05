@@ -7,25 +7,31 @@
 typedef struct {
     uint8_t index;
     wsg_t levelWSG;
-    wsg_t* completedWSG;
-    // bool completed;
+    wsg_t completedWSG;
+    bool completed;
 } picrossLevelDef_t;
 
 typedef void (*picrossSelectLevelFunc_t)(picrossLevelDef_t* level);
 
 typedef struct
 {
+    picrossSelectLevelFunc_t selectLevel;
     display_t* disp;
     font_t* game_font;
+    uint8_t levelCount;
     picrossLevelDef_t levels[8];   
     picrossLevelDef_t* chosenLevel;
     uint8_t gridScale;
-    uint8_t hoverLevelIndex;
-    uint8_t hoverX;
-    uint8_t hoverY;
+    int8_t hoverLevelIndex;
+    int8_t hoverX;
+    int8_t hoverY;
+    uint8_t cols;
     uint16_t prevBtnState;
     uint16_t btnState;
-    picrossSelectLevelFunc_t selectLevel;
+    uint8_t paddingTop;
+    uint8_t paddingLeft;
+    uint8_t gap;
+    wsg_t unknownPuzzle;
 } picrossLevelSelect_t;
 
 

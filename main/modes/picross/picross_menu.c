@@ -110,7 +110,6 @@ void picrossExitMode(void)
     deinitMeleeMenu(pm->menu);
     //p2pDeinit(&jm->p2p);
     freeFont(&(pm->mmFont));
-    
     free(pm);
 }
 

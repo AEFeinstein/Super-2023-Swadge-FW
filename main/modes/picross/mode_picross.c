@@ -35,7 +35,7 @@ void picrossUserInput(void);
 void picrossResetInput(void);
 void picrossCheckLevel(void);
 void picrossSetupPuzzle(void);
-void setCompleteLevelFromWSG(wsg_t puzz);
+void setCompleteLevelFromWSG(wsg_t* puzz);
 void drawSinglePixelFromWSG(display_t* d,int x, int y, wsg_t* image);
 bool hintsMatch(picrossHint_t a, picrossHint_t b);
 box_t boxFromCoord(int8_t x, int8_t y);
@@ -72,7 +72,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossExitFunc_t* exitFu
     p->drawScale = 25;
     p->leftPad = 200;
     p->topPad = 130;
-    p->exitFunction = exitFunc;
+    p->exitFunction = (void*)exitFunc;
     p->exitThisFrame = false;
 
     loadFont("radiostars.font", &(p->game_font));
@@ -93,11 +93,10 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossExitFunc_t* exitFu
 }
 
 void picrossSetupPuzzle()
-{
-    
+{   
     wsg_t *levelwsg = &p->selectedLevel->levelWSG;
 
-    setCompleteLevelFromWSG(*levelwsg);
+    setCompleteLevelFromWSG(levelwsg);
 
     //one step closer to this working correctly!
     p->puzzle->width = levelwsg->w;
@@ -132,15 +131,15 @@ void picrossSetupPuzzle()
     picrossResetInput();
 }
 
-void setCompleteLevelFromWSG(wsg_t puzzle)
+void setCompleteLevelFromWSG(wsg_t* puzz)
 {
-    wsg_t puzz = puzzle;
+    // wsg_t puzz = puzzle;
     //go row by row
     paletteColor_t col = c555;
-    for(int r = 0;r<puzz.h;r++)//todo: puzzles that dont have the right size?
+    for(int r = 0;r<puzz->h;r++)//todo: puzzles that dont have the right size?
     {
-        for(int c=0;c<puzz.w;c++){
-            col = puzz.px[(r * puzz.w) + c];
+        for(int c=0;c<puzz->w;c++){
+            col = puzz->px[(r * puzz->w) + c];
             if(col == cTransparent || col == c555){
                 p->puzzle->completeLevel[c][r] = SPACE_EMPTY;
             }else{
@@ -229,17 +228,6 @@ void picrossResetInput()
 
 void picrossGameLoop(int64_t elapsedUs)
 {
-    // switch(p->currentPhase)
-    // {
-    //     case PICROSS_YOUAREWIN:
-    //         //could go to next level
-    //         //picrossSetupState(j->scene->level);
-    //         break;
-    //     case PICROSS_SOLVING:
-    //         // uh
-    //         break;
-    // }
-
     picrossUserInput();
     if(p->exitThisFrame)
     {
@@ -282,12 +270,14 @@ void picrossCheckLevel()
         {
             if(p->puzzle->level[r][c] == SPACE_EMPTY || p->puzzle->level[r][c] == SPACE_MARKEMPTY)
             {
-                if(p->puzzle->completeLevel[r][c] != SPACE_EMPTY){
+                if(p->puzzle->completeLevel[r][c] != SPACE_EMPTY)
+                {
                     return;
                 }
             }else//if space == SPACE_FILLED (we aren't using filled-hints so lets not bother specific if for now)
             {
-                if(p->puzzle->completeLevel[r][c] != SPACE_FILLED){
+                if(p->puzzle->completeLevel[r][c] != SPACE_FILLED)
+                {
                     return;
                 }
             }
@@ -681,8 +671,6 @@ void picrossExitGame(void)
     if (NULL != p)
     {
         freeFont(&(p->game_font));
-        // free(&p->selectedLevel->completedWSG);
-        // free(&p->selectedLevel);
         // free(p->puzzle);
         free(p->input);
         free(p);
