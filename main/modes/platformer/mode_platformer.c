@@ -140,12 +140,15 @@ swadgeMode modePlatformer =
         .fnAudioCallback = NULL,
         .fnTemperatureCallback = NULL};
 
-static leveldef_t leveldef[2] = {
+static leveldef_t leveldef[3] = {
     {.filename = "level1-1.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
     {.filename = "level1-2.bin",
      .timeLimit = 120,
+     .checkpointTimeLimit = 90},
+    {.filename = "level1-3.bin",
+     .timeLimit = 180,
      .checkpointTimeLimit = 90}};
 
 led_t platLeds[NUM_LEDS];
@@ -515,7 +518,7 @@ void updateLevelClear(platformer_t *self){
             }
 
             uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
-            if(levelIndex >= 2){
+            if(levelIndex >= 3){
                 changeStateGameClear(self);
             } else {
                 changeStateReadyScreen(self);
