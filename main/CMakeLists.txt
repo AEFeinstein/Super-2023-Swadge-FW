@@ -17,6 +17,7 @@ idf_component_register(
         "modes/picross/picross_menu.c"
         "modes/picross/mode_picross.c"
         "modes/picross/picross_select.c"
+        "modes/picross/picross_tutorial.c"
         "modes/mode_gamepad.c"
         "modes/mode_main_menu.c"
         "modes/mode_colorchord.c"

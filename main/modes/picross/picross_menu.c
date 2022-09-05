@@ -13,6 +13,7 @@
 #include "mode_picross.h"
 #include "picross_select.h"
 #include "mode_main_menu.h"
+#include "picross_tutorial.h"
 
 //==============================================================================
 // Enums & Structs
@@ -23,7 +24,8 @@ typedef enum
     PICROSS_MENU,
     PICROSS_LEVELSELECT,
     PICROSS_OPTIONS,
-    PICROSS_GAME
+    PICROSS_GAME,
+    PICROSS_TUTORIAL
 } picrossScreen_t;
 
 typedef struct
@@ -58,12 +60,11 @@ bool PicrossGetSaveFlag(int pos);
 //Todo: these maybe dont need to be static?
 //how are const compiled in c? whats the smart way to do this?
 
-static const char str_picrossTitle[] = "Magcross";
+static const char str_picrossTitle[] = "pi-Cross";
 static const char str_continue[] = "Continue";
 static const char str_levelSelect[] = "Puzzle Select";
 static const char str_howtoplay[] = "How To Play";
 static const char str_exit[] = "Exit";
-
 
 //Options Menu
 static const char str_options[] = "Options";
@@ -75,7 +76,7 @@ static const char str_eraseProgress[] = "Erase Progress";
 
 swadgeMode modePicross =
 {
-    .modeName = "Magcross",//set here and above
+    .modeName = "pi-Cross",//set here and also above
     .fnEnterMode = picrossEnterMode,
     .fnExitMode = picrossExitMode,
     .fnMainLoop = picrossMainLoop,
@@ -88,8 +89,6 @@ swadgeMode modePicross =
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL,
 };
-
-
 
 picrossMenu_t* pm;
 
@@ -192,6 +191,11 @@ void picrossMainLoop(int64_t elapsedUs)
             picrossGameLoop(elapsedUs);
             break;
         }
+        case PICROSS_TUTORIAL:
+        {
+            picrossTutorialLoop(elapsedUs);
+            break;
+        }
     }
 }
 
@@ -223,6 +227,11 @@ void picrossButtonCb(buttonEvt_t* evt)
         case PICROSS_GAME:
         {
             picrossGameButtonCb(evt);
+            break;
+        }
+        case PICROSS_TUTORIAL:
+        {
+            picrossTutorialButtonCb(evt);
             break;
         }
             //No wifi mode stuff
@@ -293,6 +302,12 @@ void returnToPicrossMenu(void)
     setPicrossMainMenu(false);
 }
 
+void exitTutorial(void)
+{
+    pm->screen = PICROSS_MENU;
+    setPicrossMainMenu(false);
+}
+
 //menu button callbacks. Set the screen and call the appropriate start functions
 void picrossMainMenuCb(const char* opt)
 {
@@ -310,7 +325,8 @@ void picrossMainMenuCb(const char* opt)
     }
     if (opt == str_howtoplay)
     {
-        //how... do we play?
+        pm->screen = PICROSS_TUTORIAL;
+        picrossStartTutorial(pm->disp,&pm->mmFont);
         return;
     }
     if (opt == str_levelSelect)

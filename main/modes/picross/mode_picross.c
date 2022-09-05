@@ -394,8 +394,8 @@ bool hintsMatch(picrossHint_t a, picrossHint_t b)
 void picrossUserInput(int64_t elapsedUs)
 {
     picrossInput_t* input = p->input;
-    uint8_t x = input->x;//todo: make these pointers
-    uint8_t y = input->y;//todo
+    uint8_t x = input->x;
+    uint8_t y = input->y;
     picrossSpaceType_t current = p->puzzle->level[x][y];
 
     //reset
