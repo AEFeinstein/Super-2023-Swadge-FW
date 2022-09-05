@@ -68,6 +68,11 @@ int main( int argc, char ** argv )
 	file_timespecs = calloc( sizeof(struct timespec), argc );
 	CheckTimespec( argc, argv );
 
+#ifdef WIN32
+	HANDLE hConsole = GetStdHandle( STD_OUTPUT_HANDLE );
+	system(""); // enable VT100 Escape Sequence for WINDOWS 10 Ver. 1607 
+#endif
+
 	do
 	{
 		int r;
@@ -99,12 +104,16 @@ int main( int argc, char ** argv )
 		}
 		else if( toprint > 0 )
 		{
+#ifdef WIN32
 			write( 1, rdata + 2, toprint );
+#else
+			WriteConsoleA( hConsole, rdata+2, toprint, 0, 0 );
+#endif
 		}
 
 		// Check whatever else.
 		int taint = CheckTimespec( argc, argv );
-		if( taint || first )
+		if( ( taint || first ) && argc > 1 )
 		{
 			struct timespec spec_start, spec_end;
 
