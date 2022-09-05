@@ -6,5 +6,7 @@
 extern swadgeMode modePicross;
 
 void setPicrossMainMenu(void);
+void returnToPicrossMenu(void);
+void selectPicrossLevel(picrossLevelDef_t* selectedLevel);
 
 #endif

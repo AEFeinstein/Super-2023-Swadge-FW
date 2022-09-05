@@ -64,7 +64,7 @@ static picrossGame_t* p = NULL;
  *
  */
 //todo: this should receive a levelIndex. allocate memory as appropriate for level size, and pass into setuplevel
-void picrossStartGame(display_t* disp, font_t* mmFont, picrossExitFunc_t* exitFunc, picrossLevelDef_t* selectedLevel)
+void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* selectedLevel)
 {
     p = calloc(1, sizeof(picrossGame_t));
     p->selectedLevel = selectedLevel;
@@ -75,7 +75,6 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossExitFunc_t* exitFu
     p->leftPad = 200;
     p->topPad = 130;
     p->clueGap = 2;//currently only used for horizontal clues. 
-    p->exitFunction = (void*)exitFunc;
     p->exitThisFrame = false;
 
     loadFont("ibm_vga8.font", &(p->hint_font));
@@ -378,7 +377,7 @@ void picrossUserInput(void)
     //todo: how should exit work? A button when game is solved?
     if(input->btnState & SELECT && !(input->prevBtnState & SELECT) && !(input->btnState & BTN_A))//if we are holding a down when we leave, we instantly select a level on the select screen.
     {
-        p->exitFunction();
+        returnToPicrossMenu();
         p->exitThisFrame = true;//stops drawing to the screen, stops messing with variables, frees memory.
         return;
     }
@@ -709,7 +708,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
 {
     int8_t vHintShift = 2;
     uint8_t h;
-    uint8_t g = p->clueGap;
+    uint8_t g = p->clueGap;//
     //todo: handle 10 or double-digit input 
     if(hint.isRow){
         int j = 0;
@@ -717,8 +716,8 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
         {
             h = hint.hints[4-i];
             box_t hintbox = boxFromCoord(-j-1,hint.index);
-            hintbox.x0 = hintbox.x0 - (p->clueGap * (j));
-            hintbox.x1 = hintbox.x1 - (p->clueGap * (j));
+            hintbox.x0 = hintbox.x0 - (g * (j));
+            hintbox.x1 = hintbox.x1 - (g * (j));
             //we have to flip the hints around. 
             if(h == 0){
                 //dont increase j.

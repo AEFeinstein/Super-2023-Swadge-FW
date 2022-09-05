@@ -56,8 +56,6 @@ typedef struct
     picrossSpaceType_t level[10][10]; 
 } picrossPuzzle_t;
 
-typedef void (*picrossExitFunc_t)(void);
-
 typedef struct
 {
     picrossGamePhase_t previousPhase;
@@ -72,13 +70,12 @@ typedef struct
     uint8_t topPad;
     uint8_t clueGap;
     picrossLevelDef_t* selectedLevel;
-    picrossExitFunc_t exitFunction;
     bool exitThisFrame;
     int8_t count;
     counterState_t countState;
 } picrossGame_t;
 
-void picrossStartGame(display_t* disp, font_t* mmFont, picrossExitFunc_t* exitFunc, picrossLevelDef_t* selectedLevel);
+void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* selectedLevel);
 void picrossGameLoop(int64_t elapsedUs);
 void picrossGameButtonCb(buttonEvt_t* evt);
 void picrossExitGame(void);

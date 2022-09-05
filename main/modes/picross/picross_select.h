@@ -11,11 +11,8 @@ typedef struct {
     bool completed;
 } picrossLevelDef_t;
 
-typedef void (*picrossSelectLevelFunc_t)(picrossLevelDef_t* level);
-
 typedef struct
 {
-    picrossSelectLevelFunc_t selectLevel;
     display_t* disp;
     font_t* game_font;
     uint8_t levelCount;
@@ -36,7 +33,7 @@ typedef struct
 
 
 
-void picrossStartLevelSelect(display_t* disp, font_t* mmFont, picrossLevelDef_t levels[], picrossSelectLevelFunc_t* selectLevelFunc);
+void picrossStartLevelSelect(display_t* disp, font_t* mmFont, picrossLevelDef_t levels[]);
 void picrossLevelSelectLoop(int64_t elapsedUs);
 void picrossLevelSelectButtonCb(buttonEvt_t* evt);
 void picrossExitLevelSelect(void);

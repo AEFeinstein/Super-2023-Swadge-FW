@@ -31,12 +31,11 @@ void drawWsgScaled(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff);
 //====
 
 //Initiation
-void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t levels[], picrossSelectLevelFunc_t* selectLevelFunc)
+void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t levels[])
 {
     ls = calloc(1, sizeof(picrossLevelSelect_t));
     ls->disp = disp;
     ls->game_font = font;
-    ls->selectLevel = (picrossSelectLevelFunc_t*)selectLevelFunc;
     //8 is numLevels
     ls->levelCount = 8;
     loadWsg("unknownPuzzle.wsg",&ls->unknownPuzzle);
@@ -113,13 +112,17 @@ void picrossLevelSelectLoop(int64_t elapsedUs)
 
 void levelSelectInput()
 {
+    if (ls->btnState & SELECT && !(ls->prevBtnState & SELECT) && !(ls->btnState & BTN_A))
+    {
+        //exit to main menu
+        returnToPicrossMenu();
+        return;
+    }
     //Choosing a Level
     if (ls->btnState & BTN_A && !(ls->prevBtnState & BTN_A) && !(ls->btnState & SELECT))
     {
         ls->chosenLevel = &ls->levels[ls->hoverLevelIndex];
-        ls->selectLevel(ls->chosenLevel);
-        //actually we dont do this.
-        // picrossExitLevelSelect();
+        selectPicrossLevel(ls->chosenLevel);
         return;
     }
     //Input Movement checks

@@ -44,9 +44,7 @@ void picrossMainLoop(int64_t elapsedUs);
 void picrossButtonCb(buttonEvt_t* evt);
 void loadLevels(void);
 void picrossMainMenuCb(const char* opt);
-void SelectPicrossLevel(picrossLevelDef_t* selectedLevel);
-void ReturnToLevelSelect(void);
-
+void returnToLevelSelect(void);
 
 //==============================================================================
 // Variables
@@ -54,7 +52,7 @@ void ReturnToLevelSelect(void);
 
 swadgeMode modePicross =
 {
-    .modeName = "Picross",
+    .modeName = "NonogramFest",
     .fnEnterMode = picrossEnterMode,
     .fnExitMode = picrossExitMode,
     .fnMainLoop = picrossMainLoop,
@@ -70,8 +68,7 @@ swadgeMode modePicross =
 
 //Todo: these maybe dont need to be static?
 static const char str_picrossTitle[] = "NonogramFest";
-static const char str_picross[] = "Start";
-// static const char str_howtoplay[] = "How To Play";
+static const char str_howtoplay[] = "How To Play";
 static const char str_levelSelect[] = "Puzzle Select";
 static const char str_exit[] = "Exit";
 
@@ -216,26 +213,34 @@ void picrossButtonCb(buttonEvt_t* evt)
 void setPicrossMainMenu(void)
 {
     resetMeleeMenu(pm->menu, str_picrossTitle, picrossMainMenuCb);
-    addRowToMeleeMenu(pm->menu, str_picross);
     addRowToMeleeMenu(pm->menu, str_levelSelect);
+    addRowToMeleeMenu(pm->menu, str_howtoplay);
     addRowToMeleeMenu(pm->menu, str_exit);
     pm->menuChanged = true;
     pm->screen = PICROSS_MENU;
 }
 
+void returnToPicrossMenu(void)
+{
+    picrossExitLevelSelect();
+    setPicrossMainMenu();
+}
+
 //menu button callbacks. Set the screen and call the appropriate start functions
 void picrossMainMenuCb(const char* opt)
 {
-    if (opt == str_picross)
-    {
+    //if start:
         // picrossStartGame(pm->disp, &pm->mmFont);
         // pm->screen = PICROSS_GAME;
+    if (opt == str_howtoplay)
+    {
+        //how... do we play?
         return;
     }
     if (opt == str_levelSelect)
     {
         pm->screen = PICROSS_LEVELSELECT;
-        picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels,(picrossLevelDef_t*)SelectPicrossLevel);
+        picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels);
         return;
     }
     if (opt == str_exit)
@@ -246,17 +251,17 @@ void picrossMainMenuCb(const char* opt)
     }
 }
 
-void SelectPicrossLevel(picrossLevelDef_t* selectedLevel)
+void selectPicrossLevel(picrossLevelDef_t* selectedLevel)
 {
     //picrossExitLevelSelect();//we do this BEFORE we enter startGame.
     pm->screen = PICROSS_GAME;
-    picrossStartGame(pm->disp, &pm->mmFont, (void*)ReturnToLevelSelect, selectedLevel);
+    picrossStartGame(pm->disp, &pm->mmFont, selectedLevel);
 }
 
-void ReturnToLevelSelect()
+void returnToLevelSelect()
 {
     //todo: abstract this to function
     pm->screen = PICROSS_LEVELSELECT;
     //todo: fix below warning
-    picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels,(picrossLevelDef_t*)SelectPicrossLevel);      
+    picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels);      
 }
