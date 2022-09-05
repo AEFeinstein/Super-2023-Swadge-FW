@@ -405,7 +405,9 @@ void changeStateGame(platformer_t *self){
 
     entityManager_t * entityManager = &(self->entityManager);
     entityManager->viewEntity = createPlayer(entityManager, entityManager->tilemap->warps[0].x * 16, entityManager->tilemap->warps[0].y * 16);
+    
     entityManager->playerEntity = entityManager->viewEntity;
+    viewFollowEntity(&(self->tilemap),entityManager->playerEntity);
 
     self->tilemap.executeTileSpawnAll = true;
 
