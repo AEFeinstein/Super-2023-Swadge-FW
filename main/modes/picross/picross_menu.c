@@ -136,24 +136,28 @@ void loadLevels()
 {
     //LEVEL SETUP AREA
     //DACVAK JUST SEARCH FOR "DACVAK" TO FIND THIS
-    loadWsg("test1.wsg", &pm->levels[0].levelWSG);
-    loadWsg("test1_complete.wsg", &pm->levels[0].completedWSG);
 
-    loadWsg("test2.wsg", &pm->levels[1].levelWSG);
-    loadWsg("test2_c.wsg", &pm->levels[1].completedWSG);
+    //any entry with lowercase names is testing data. CamelCase names are good to go.
+    loadWsg("Cherry_PZL.wsg", &pm->levels[0].levelWSG);
+    loadWsg("Cherry_SLV.wsg", &pm->levels[0].completedWSG);
 
-    loadWsg("3_boat.wsg", &pm->levels[2].levelWSG);
-    loadWsg("3_boat_c.wsg", &pm->levels[2].completedWSG);
+    loadWsg("Strawberry_PZL.wsg", &pm->levels[1].levelWSG);
+    loadWsg("Strawberry_SLV.wsg", &pm->levels[1].completedWSG);
 
-    loadWsg("stairs.wsg", &pm->levels[3].levelWSG);
-    loadWsg("stairs_c.wsg", &pm->levels[3].completedWSG);
-    //the current levelCOunt is set to 8, but 0-9 are not loaded. if you select them, it will just break.
+    loadWsg("Snare_Drum_PZL.wsg", &pm->levels[2].levelWSG);
+    loadWsg("Snare_Drum_SLV.wsg", &pm->levels[2].completedWSG);
 
-    loadWsg("grid.wsg", &pm->levels[4].levelWSG);
-    loadWsg("grid_c.wsg", &pm->levels[4].completedWSG);
+    loadWsg("3_boat.wsg", &pm->levels[3].levelWSG);
+    loadWsg("3_boat_c.wsg", &pm->levels[3].completedWSG);
+
+    loadWsg("test2.wsg", &pm->levels[4].levelWSG);
+    loadWsg("test2_c.wsg", &pm->levels[4].completedWSG);
+
+    loadWsg("test1.wsg", &pm->levels[5].levelWSG);
+    loadWsg("test1_complete.wsg", &pm->levels[5].completedWSG);
 
     //set indices. Used to correctly set save data. levels are loaded without context of their array, so they carry the index data with them.
-    for(int i = 0;i<8;i++)
+    for(int i = 0;i<8;i++)//8 should = number of levels and that should = levelCount.
     {
         pm->levels[i].index = i;
     }
