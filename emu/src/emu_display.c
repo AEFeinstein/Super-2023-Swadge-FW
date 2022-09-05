@@ -628,7 +628,7 @@ void emuDrawDisplayOled(bool drawDiff UNUSED)
  * @param numLeds The number of LEDs to display
  * @param brightness The initial LED brightness, 0 (off) to 8 (max bright)
  */
-void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds, uint8_t brightness)
+void initLeds(gpio_num_t gpio, gpio_num_t gpioAlt, rmt_channel_t rmt, uint16_t numLeds, uint8_t brightness)
 {
     // If the LEDs haven't been initialized yet
     if(NULL == rdLeds)
