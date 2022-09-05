@@ -63,7 +63,7 @@ typedef struct
     picrossGamePhase_t previousPhase;
     picrossGamePhase_t currentPhase;
     display_t* d;
-    font_t game_font;
+    font_t hint_font;
     picrossPuzzle_t* puzzle;
     bool controlsEnabled;
     picrossInput_t* input;
