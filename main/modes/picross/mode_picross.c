@@ -403,7 +403,8 @@ void picrossUserInput(void)
     if(input->btnState & SELECT && !(input->prevBtnState & SELECT) && !(input->btnState & BTN_A))//if we are holding a down when we leave, we instantly select a level on the select screen.
     {
         savePicrossProgress();
-        returnToLevelSelect();
+        // returnToLevelSelect();//im on the fence about how this should behave. to level or main.
+        returnToPicrossMenu();//now that it hovers over continue, i think main is better.
         p->exitThisFrame = true;//stops drawing to the screen, stops messing with variables, frees memory.
         return;
     }
@@ -845,7 +846,7 @@ void picrossExitGame(void)
         freeFont(&(p->hint_font));
         // free(p->puzzle);
         free(p->input);
-        free(p->save);
+        // free(p->save);
         free(p);
         p = NULL;
     }

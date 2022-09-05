@@ -91,13 +91,6 @@ void picrossEnterMode(display_t* disp)
 
     pm->disp = disp;
 
-    //Set continue data to -1 if it does not already exit.
-    if((false == readNvs32("pic_cur_ind", &pm->savedIndex)))
-    {
-        writeNvs32("pic_cur_ind", -1);//if we enter this screen and instantly exist, also set it to -1 and we can just load that.
-        pm->savedIndex = -1;//there is no current index.
-    }
-
     loadFont("mm.font", &(pm->mmFont));
 
     pm->menu = initMeleeMenu(str_picrossTitle, &(pm->mmFont), picrossMainMenuCb);
@@ -222,6 +215,14 @@ void setPicrossMainMenu(void)
     resetMeleeMenu(pm->menu, str_picrossTitle, picrossMainMenuCb);
 
     //only display continue button if we have a game in progress.
+
+    //attempt to read the value. If it doesnt exist, set it to -1.
+    if((false == readNvs32("pic_cur_ind", &pm->savedIndex)))
+    {
+        writeNvs32("pic_cur_ind", -1);//if we enter this screen and instantly exist, also set it to -1 and we can just load that.
+        pm->savedIndex = -1;//there is no current index.
+    }
+
     if(pm->savedIndex >= 0){
         addRowToMeleeMenu(pm->menu, str_continue);
     }

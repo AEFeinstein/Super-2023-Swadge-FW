@@ -32,7 +32,6 @@ typedef struct
 {
     /* data */
     int32_t banks[8];
-    char* bankNames[8][7];
 } picrossSaveData_t;
 
 
