@@ -168,7 +168,7 @@ bool checkButtonQueue(buttonEvt_t* evt)
 {
     // Check if there's an event to dequeue from the ISR
     uint32_t gpio_evt;
-    if (xQueueReceive(gpio_evt_queue, &gpio_evt, 0))
+    while (xQueueReceive(gpio_evt_queue, &gpio_evt, 0))
     {
         // Save the old state, set the new state
         uint32_t oldButtonStates = buttonStates;
