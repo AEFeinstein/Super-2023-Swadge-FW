@@ -44,6 +44,7 @@ void drawPicrossScene(display_t* d);
 void drawPicrossHud(display_t* d, font_t* font);
 void drawHint(display_t* d,font_t* font, picrossHint_t hint);
 void drawPicrossInput(display_t* d);
+void countInput(counterState_t input);
 int8_t getHintShift(uint8_t hint);
 
 //==============================================================================
@@ -88,7 +89,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossExitFunc_t* exitFu
     p->input->y=0;
     p->input->btnState=0;
     p->input->prevBtnState= 0x80 | 0x10 | 0x40 | 0x20;//prevents us from instantly fillling in a square because A is held from selecting level.
-
+    p->countState = PICROSSCOUNTER_IDLE;
     p->controlsEnabled = true;
 
     //Setup level
@@ -236,6 +237,8 @@ void picrossResetInput()
     p->input->movedThisFrame = false;
     p->input->changedLevelThisFrame = false;
     p->input->prevBtnState = 0;
+    p->countState = PICROSSCOUNTER_IDLE;
+    p->count = 1;
     // p->input->btnState = 0;//?
 }
 
@@ -370,7 +373,13 @@ void picrossUserInput(void)
     }
 
     //Input checks
-    
+
+    //Reset the counter by pressing start. It should auto-reset, but it can be wonky.
+    if (input->btnState & START && !(input->prevBtnState & START))
+    {
+        p->count = 1;
+    }
+
     if (input->btnState & BTN_A && !(input->prevBtnState & BTN_A))
     {
         //Button has no use here
@@ -413,6 +422,7 @@ void picrossUserInput(void)
     if (input->btnState & UP && !(input->prevBtnState & UP))
     {
         input->movedThisFrame = true;
+        countInput(PICROSSCOUNTER_UP);
         if(input->y == 0)
         {
             //wrap to opposite position
@@ -425,6 +435,8 @@ void picrossUserInput(void)
     else if (input->btnState & DOWN && !(input->prevBtnState & DOWN))
     {
         input->movedThisFrame = true;
+        countInput(PICROSSCOUNTER_DOWN);
+
         if(input->y == p->puzzle->height-1)
         {
             //wrap to bottom position
@@ -438,6 +450,7 @@ void picrossUserInput(void)
     else if (input->btnState & LEFT && !(input->prevBtnState & LEFT))
     {
         input->movedThisFrame = true;
+        countInput(PICROSSCOUNTER_LEFT);
         if(input->x == 0)
         {
             //wrap to right position
@@ -450,6 +463,7 @@ void picrossUserInput(void)
     else if (input->btnState & RIGHT && !(input->prevBtnState & RIGHT))
     {
         input->movedThisFrame = true;
+        countInput(PICROSSCOUNTER_RIGHT);
         if(input->x == p->puzzle->width-1)
         {
             //wrap to left position
@@ -479,6 +493,29 @@ void picrossUserInput(void)
 
     input->prevBtnState = input->btnState; 
 }
+
+void countInput(counterState_t input)
+{
+    //I need to work out how this should properly behave.
+    //in my game, you can just hold shift to make a counter with a nice tooltip and hoverbox, and move it around. its great.
+    //but we dont have enough inputs here. Maybe you have to activate the counter with start?
+    if(input != p->countState)
+    {
+        if(p->count == 1)
+        {
+            p->count = 2;
+        }else{
+            p->count = 1;
+        }
+    }else{
+        p->count++;
+    }
+    p->countState = input;
+}
+
+
+/// DRAWING SCENE
+
 
 void drawPicrossScene(display_t* d)
 {
@@ -558,10 +595,14 @@ box_t boxFromCoord(int8_t x,int8_t y)
 
 void drawPicrossHud(display_t* d,font_t* font)
 {
-    char textBuffer[12];
+    //Draw coordinates
+    char textBuffer[6];
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%d,%d", p->input->x+1,p->input->y+1);
-
     drawText(d, font, c555, textBuffer, 230, 220);
+
+    //Draw counter
+    snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", p->count);
+    drawText(d, font, c334, textBuffer, 200, 220);
 
     //width of thicker center lines
     uint8_t w = 5;

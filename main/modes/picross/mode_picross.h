@@ -14,9 +14,19 @@ typedef enum
 
 typedef enum
 {
-    PICROSS_SOLVING,
-    PICROSS_YOUAREWIN,
+    PICROSS_SOLVING = 0,
+    PICROSS_YOUAREWIN = 1,
 } picrossGamePhase_t;
+
+typedef enum
+{
+    PICROSSCOUNTER_IDLE = 0,
+    PICROSSCOUNTER_LEFT = 1,
+    PICROSSCOUNTER_RIGHT =2,
+    PICROSSCOUNTER_DOWN = 3,
+    PICROSSCOUNTER_UP =4,
+    
+} counterState_t;
 
 typedef struct
 {
@@ -64,6 +74,8 @@ typedef struct
     picrossLevelDef_t* selectedLevel;
     picrossExitFunc_t exitFunction;
     bool exitThisFrame;
+    int8_t count;
+    counterState_t countState;
 } picrossGame_t;
 
 void picrossStartGame(display_t* disp, font_t* mmFont, picrossExitFunc_t* exitFunc, picrossLevelDef_t* selectedLevel);
