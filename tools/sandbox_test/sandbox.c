@@ -18,7 +18,7 @@ meleeMenu_t * menu;
 font_t meleeMenuFont;
 display_t * disp;
 
-//char buffer[2048];
+char buffer[2048];
 
 const char * menu_MainMenu = "Main Menu";
 const char * menu_Bootload = "Bootloader";
