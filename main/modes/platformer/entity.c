@@ -70,7 +70,7 @@ void updatePlayer(entity_t *self)
 
     if (self->gameData->btnState & LEFT)
     {
-        self->xspeed -= (self->falling) ? 8 : 12;
+        self->xspeed -= (self->falling) ? 12 : 16;
 
         if (self->xspeed < -self->xMaxSpeed)
         {
@@ -79,7 +79,7 @@ void updatePlayer(entity_t *self)
     }
     else if (self->gameData->btnState & RIGHT)
     {
-        self->xspeed += (self->falling) ? 8 : 12;
+        self->xspeed += (self->falling) ? 12 : 16;
 
         if (self->xspeed > self->xMaxSpeed)
         {
@@ -469,6 +469,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
     {
         case ENTITY_TEST:
         case ENTITY_DUST_BUNNY:
+        case ENTITY_WASP:
         {
             other->xspeed = -other->xspeed;
 
@@ -845,6 +846,83 @@ bool dustBunnyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, u
             self->yspeed = 0;
             self->xspeed = 0;
             self->spriteIndex = SP_DUSTBUNNY_IDLE;
+            break;
+        default: // Should never hit
+            return false;
+        }
+        // trigger tile collision resolution
+        return true;
+    }
+
+    return false;
+};
+
+void updateWasp(entity_t *self)
+{
+    switch(self->xDamping){
+        case 0:
+            self->spriteIndex = SP_WASP_1 + ((self->spriteIndex + 1) % 2);
+            self->yDamping--;
+
+            if(self->yDamping < 0 && abs(self->x - self->entityManager->playerEntity->x) < 512) {
+                self->xDamping = 1;
+                self->gravityEnabled = true;
+                self->falling = true;
+                self->spriteIndex = SP_WASP_DIVE;
+                self->xspeed = 0;
+                self->yspeed = 128;
+            }
+            break;
+        case 1:
+            if(!self->falling) {
+                self->yDamping--;
+                if(self->yDamping < 0){
+                    self->xDamping = 2;
+                    self->gravityEnabled = false;
+                    self->falling = false;
+                    self->yspeed = -64;
+                }
+            }
+            break;
+        case 2:
+            self->spriteIndex = SP_WASP_1 + ((self->spriteIndex + 1) % 2);
+            if(self->y <= ((self->homeTileY * TILE_SIZE) << SUBPIXEL_RESOLUTION )) {
+                self->xDamping = 0;
+                self->xspeed = (self->spriteFlipHorizontal)? -32 : 32;
+                self->yspeed = 0;
+                self->yDamping = (1 + esp_random() % 2) * 20;
+            }
+        default:
+            break;
+    }
+    
+    despawnWhenOffscreen(self);
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
+    detectEntityCollisions(self);
+};
+
+bool waspTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    if (isSolid(tileId))
+    {
+        switch (direction)
+        {
+        case 0: // LEFT
+        case 1: // RIGHT
+            self->spriteFlipHorizontal = !self->spriteFlipHorizontal;
+            self->xspeed = -self->xspeed;
+            break;
+        case 2: // UP
+            self->yspeed = 0;
+            break;
+        case 4: // DOWN
+            // Landed on platform
+            self->falling = false;
+            self->yspeed = 0;
+            self->xspeed = 0;
+            self->xDamping = 1;
+            self->yDamping = 40;
+            
             break;
         default: // Should never hit
             return false;

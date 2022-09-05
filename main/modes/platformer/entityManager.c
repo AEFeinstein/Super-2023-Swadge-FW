@@ -33,7 +33,7 @@ void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilema
     entityManager->tilemap = tilemap;
 
     
-    entityManager->viewEntity = createPlayer(entityManager, entityManager->tilemap->warps[0].x * 16, entityManager->tilemap->warps[0].y * 16);
+    //entityManager->viewEntity = createPlayer(entityManager, entityManager->tilemap->warps[0].x * 16, entityManager->tilemap->warps[0].y * 16);
     entityManager->playerEntity = entityManager->viewEntity;
 };
 
@@ -63,6 +63,9 @@ void loadSprites(entityManager_t * entityManager)
     loadWsg("sprite021.wsg", &entityManager->sprites[SP_WARP_1]);
     loadWsg("sprite022.wsg", &entityManager->sprites[SP_WARP_2]);
     loadWsg("sprite023.wsg", &entityManager->sprites[SP_WARP_3]);
+    loadWsg("sprite024.wsg", &entityManager->sprites[SP_WASP_1]);
+    loadWsg("sprite025.wsg", &entityManager->sprites[SP_WASP_2]);
+    loadWsg("sprite026.wsg", &entityManager->sprites[SP_WASP_DIVE]);
 };
 
 void updateEntities(entityManager_t * entityManager)
@@ -196,6 +199,9 @@ entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint
             break;
         case ENTITY_DUST_BUNNY:
             createdEntity = createDustBunny(entityManager, x, y);
+            break;
+        case ENTITY_WASP:
+            createdEntity = createWasp(entityManager, x, y);
             break;
         default:
             createdEntity = NULL;
@@ -489,6 +495,40 @@ entity_t* createDustBunny(entityManager_t * entityManager, uint16_t x, uint16_t 
     entity->updateFunction = &updateDustBunny;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &dustBunnyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createWasp(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 256;
+    entity->xDamping = 0; //This will be repurposed to track state
+    entity->yDamping = 0; //This will be repurposed as a state timer
+    entity->gravityEnabled = false;
+    entity->gravity = 64;
+    entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? false : true;
+    entity->spriteFlipVertical = false;
+
+        
+    entity->xspeed = (entity->spriteFlipHorizontal)? -32 : 32;
+
+    entity->type = ENTITY_WASP;
+    entity->spriteIndex = SP_WASP_1;
+    entity->updateFunction = &updateWasp;
+    entity->collisionHandler = &enemyCollisionHandler;
+    entity->tileCollisionHandler = &waspTileCollisionHandler;
 
     return entity;
 }

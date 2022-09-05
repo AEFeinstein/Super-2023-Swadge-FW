@@ -132,4 +132,7 @@ void updateWarp(entity_t* self);
 void updateDustBunny(entity_t* self);
 bool dustBunnyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
 
+void updateWasp(entity_t* self);
+bool waspTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
+
 #endif
