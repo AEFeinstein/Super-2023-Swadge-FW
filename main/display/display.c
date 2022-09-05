@@ -461,11 +461,16 @@ void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
 {
     // Check if there is framebuffer access
     paletteColor_t * fb = disp->getPxFb();
+    //paletteColor_t * fb = (uint8_t *)malloc(sizeof(paletteColor_t) * 280 * 240);
     if(NULL != fb)
     {
+        if(xOff > disp->w){
+            return;
+        }
+
         // Bound in the Y direction
         int32_t yStart = (yOff < 0) ? 0 : yOff;
-        int32_t yEnd   = ((yOff + wsg->h) > disp->h) ? disp->h : (disp->h + wsg->h);
+        int32_t yEnd   = ((yOff + wsg->h) > disp->h) ? disp->h : (yOff + wsg->h);
 
         // Bound in the X direction
         int32_t copyLen = wsg->w;
@@ -474,19 +479,24 @@ void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
             copyLen += xOff;
             xOff = 0;
         }
+        //239 + 16 > 240
         if(xOff + copyLen > disp->w)
         {
+            //copyLen = 16 - (240-239) = 15
+            //copyLen -= (disp->w - xOff);
             copyLen = (disp->w - xOff);
+            //xOff = 239 - 1
+            //xOff = disp->w - copyLen;
         }
 
         // copy each row
         for(int32_t y = yStart; y < yEnd; y++)
         {
             // Find the index into the framebuffer
-            uint32_t dstIdx = ((y + yOff) * disp->w) + xOff;
+            uint32_t dstIdx = ((y /*+ yOff*/) * disp->w) + xOff;
             // Copy the row
             // TODO probably faster if we can guarantee copyLen is a multiple of 4
-            memcpy(&fb[dstIdx], &wsg->px[y * wsg->w], copyLen);
+            memcpy(&fb[dstIdx], &wsg->px[(wsg->h - (yEnd - y)) * wsg->w], copyLen);
         }
     }
     else
