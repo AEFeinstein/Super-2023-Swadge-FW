@@ -130,6 +130,7 @@ int main( int argc, char ** argv )
 
 		{
 			char temp[1024];
+			if( extra_cflags ) extra_cflags[0] = 0;
 			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/hal/include", idf_path ); appendcflag( temp );
 			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/hal/esp32s2/include", idf_path ); appendcflag( temp );
 			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/esp_wifi/include", idf_path ); appendcflag( temp );
@@ -169,6 +170,7 @@ int main( int argc, char ** argv )
 			appendcflag( "-I../../components/hdw-touch" );
 			appendcflag( "-I../../components/hdw-led" );
 			appendcflag( "-I../../main" );
+			appendcflag( "-I../../main/modes" );
 			appendcflag( "-I../../build/config" );
 		}
 
@@ -397,6 +399,11 @@ int main( int argc, char ** argv )
 			tries = 0;
 
 			usleep( 20000 );
+			
+			printf( "Disabled.\n" );
+			
+			// round up total segment size to a 256-byte boundary (optional)
+			// total_segment_size = (total_segment_size+0xff) | 0xffffff00;
 
 			rdata[0] = 170;
 			rdata[1] = 8;

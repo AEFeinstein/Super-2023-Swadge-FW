@@ -189,7 +189,7 @@ int main()
 	tries = 0;
 
 	// Give it a chance to exit.
-	usleep( 20000 );
+	usleep( 50000 );
 
 	r = DoUpload( "build/sandbox_inst.bin", sandbox_start_address_inst );
 	if( r ) return r;
