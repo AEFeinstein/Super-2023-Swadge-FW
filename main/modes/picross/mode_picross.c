@@ -87,6 +87,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossExitFunc_t* exitFu
     p->input->x=0;
     p->input->y=0;
     p->input->btnState=0;
+    p->input->prevBtnState= 0x80 | 0x10 | 0x40 | 0x20;//prevents us from instantly fillling in a square because A is held from selecting level.
 
     p->controlsEnabled = true;
 
@@ -356,10 +357,10 @@ void picrossUserInput(void)
 
     //check for "exit" button before we escape when not in solving mode.
     //todo: how should exit work? A button when game is solved?
-    if(input->btnState & SELECT && !(input->prevBtnState & SELECT))
+    if(input->btnState & SELECT && !(input->prevBtnState & SELECT) && !(input->btnState & BTN_A))//if we are holding a down when we leave, we instantly select a level on the select screen.
     {
         p->exitFunction();
-        p->exitThisFrame = true;
+        p->exitThisFrame = true;//stops drawing to the screen, stops messing with variables, frees memory.
         return;
     }
 

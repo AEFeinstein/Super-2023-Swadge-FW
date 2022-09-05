@@ -60,7 +60,10 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     ls->hoverX = 0;
     ls->hoverY = 0;
     ls->hoverLevelIndex = 0;
-    ls->prevBtnState = '0xbFFFFFFFF';//when entering this mode, the button may still be held, so we dont want to activate an imput instantly.
+    ls->prevBtnState = 0x80 | 0x10 | 0x40 | 0x20 | 0x1 | 0x2 | 0x4 | 0x8;// = 0xb11111111
+
+
+    
     ls->btnState = 0;
     
     //todo: where to store that?
@@ -91,7 +94,7 @@ void picrossLevelSelectLoop(int64_t elapsedUs)
 void levelSelectInput()
 {
     //Choosing a Level
-    if (ls->btnState & BTN_A && !(ls->prevBtnState & BTN_A))
+    if (ls->btnState & BTN_A && !(ls->prevBtnState & BTN_A) && !(ls->btnState & SELECT))
     {
         ls->chosenLevel = &ls->levels[ls->hoverLevelIndex];
         ls->selectLevel(ls->chosenLevel);

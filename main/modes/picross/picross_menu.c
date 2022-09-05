@@ -68,8 +68,10 @@ swadgeMode modePicross =
     .fnTemperatureCallback = NULL,
 };
 
-static const char str_picrossTitle[] = "Picross";
+//Todo: these maybe dont need to be static?
+static const char str_picrossTitle[] = "NonogramFest";
 static const char str_picross[] = "Start";
+// static const char str_howtoplay[] = "How To Play";
 static const char str_levelSelect[] = "Puzzle Select";
 static const char str_exit[] = "Exit";
 
@@ -105,7 +107,7 @@ void picrossEnterMode(display_t* disp)
 
 void picrossExitMode(void)
 {
-    picrossExitLevelSelect();//this doesnt actually get called as we go in and out of levelselect
+    picrossExitLevelSelect();//this doesnt actually get called as we go in and out of levelselect (because it breaks everything), so lets call it now
 
     picrossExitGame();
     deinitMeleeMenu(pm->menu);
@@ -116,6 +118,8 @@ void picrossExitMode(void)
 
 void loadLevels()
 {
+    //LEVEL SETUP AREA
+    //DACVAK JUST SEARCH FOR "DACVAK" TO FIND THIS
     loadWsg("test1.wsg", &pm->levels[0].levelWSG);
     loadWsg("test1_complete.wsg", &pm->levels[0].completedWSG);
 
