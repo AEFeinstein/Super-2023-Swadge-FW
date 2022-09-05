@@ -383,7 +383,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 #endif
 
     // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
-    initLeds(GPIO_NUM_39, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
+    initLeds(GPIO_NUM_39, GPIO_NUM_18, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
 
     // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
     buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, getIsMuted());

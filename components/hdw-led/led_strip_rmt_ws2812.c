@@ -18,6 +18,7 @@
 #include "esp_attr.h"
 #include "led_strip.h"
 #include "driver/rmt.h"
+#include "esp_rom_gpio.h"
 
 static const char* TAG = "ws2812";
 #define STRIP_CHECK(a, str, goto_tag, ret_value, ...)                             \
@@ -177,7 +178,7 @@ err:
     return ret;
 }
 
-led_strip_t* led_strip_init(uint8_t channel, uint8_t gpio, uint16_t led_num)
+led_strip_t* led_strip_init(uint8_t channel, uint8_t gpio, uint8_t gpioAlt, uint16_t led_num )
 {
     static led_strip_t* pStrip;
 
@@ -190,6 +191,8 @@ led_strip_t* led_strip_init(uint8_t channel, uint8_t gpio, uint16_t led_num)
 
     // install ws2812 driver
     led_strip_config_t strip_config = LED_STRIP_DEFAULT_CONFIG(led_num, (led_strip_dev_t)config.channel);
+
+	esp_rom_gpio_connect_out_signal( gpioAlt, RMT_SIG_OUT0_IDX + channel, false, false );
 
     pStrip = led_strip_new_rmt_ws2812(&strip_config);
 
