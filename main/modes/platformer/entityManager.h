@@ -40,7 +40,7 @@ struct entityManager_t
 void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilemap, gameData_t * gameData);
 void loadSprites(entityManager_t * entityManager);
 void updateEntities(entityManager_t * entityManager);
-void deactivateAllEntities(entityManager_t * entityManager);
+void deactivateAllEntities(entityManager_t * entityManager, bool excludePlayer);
 void drawEntities(display_t * disp, entityManager_t * entityManager);
 entity_t * findInactiveEntity(entityManager_t * entityManager);
 
@@ -56,4 +56,5 @@ entity_t* createScrollUnlock(entityManager_t * entityManager, uint16_t x, uint16
 entity_t* createHitBlock(entityManager_t * entityManager, uint16_t x, uint16_t y);
 entity_t* createPowerUp(entityManager_t * entityManager, uint16_t x, uint16_t y);
 entity_t* createWarp(entityManager_t * entityManager, uint16_t x, uint16_t y);
+entity_t* createDustBunny(entityManager_t * entityManager, uint16_t x, uint16_t y);
 #endif
