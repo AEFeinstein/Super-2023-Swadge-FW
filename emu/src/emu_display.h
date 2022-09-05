@@ -31,11 +31,6 @@ void unlockDisplayMemoryMutex(void);
 uint32_t * getDisplayBitmap(uint16_t * width, uint16_t * height);
 led_t * getLedMemory(uint8_t * numLeds);
 
-void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
-    gpio_num_t sclk UNUSED, gpio_num_t mosi UNUSED, gpio_num_t dc UNUSED,
-    gpio_num_t cs UNUSED, gpio_num_t rst UNUSED, gpio_num_t backlight UNUSED);
-bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED);
-
 void setDisplayBitmapMultiplier(uint8_t multiplier);
 
 void deinitDisplayMemory(void);

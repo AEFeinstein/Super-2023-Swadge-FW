@@ -9,6 +9,7 @@
 #include "list.h"
 
 #include "esp_log.h"
+#include "esp_err.h"
 
 #include "swadge_esp32.h"
 #include "emu_esp.h"
@@ -37,14 +38,16 @@ pthread_mutex_t buttonQueueMutex = PTHREAD_MUTEX_INITIALIZER;
 /**
  * @brief Set up the keyboard to act as input buttons
  *
+ * @param group_num The timer group number to poll GPIOs with
+ * @param timer_num The timer number to poll GPIOs with
  * @param numButtons The number of buttons to initialize
  * @param ... A list of GPIOs, which are ignored
  */
-void initButtons(uint8_t numButtons, ...)
+void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButtons, ...)
 {
     // The order in which keys are initialized
     // Note that the actuall number of buttons initialized may be less than this
-    char keyOrder[] = {'w', 's', 'a', 'd', 'k', 'l', 'i', 'o'};
+    char keyOrder[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i'};
     memcpy(inputKeys, keyOrder, numButtons);
 	buttonState = 0;
 	pthread_mutex_lock(&buttonQueueMutex);
@@ -228,5 +231,23 @@ bool QMA6981_setup(void)
  */
 void QMA6981_poll(accel_t* currentAccel UNUSED)
 {
+	currentAccel->x = 0;
+	currentAccel->y = 0;
+	currentAccel->z = 0;
     WARN_UNIMPLEMENTED();
+}
+
+esp_err_t qma7981_init(void)
+{
+    WARN_UNIMPLEMENTED();
+	return ESP_OK;
+}
+
+esp_err_t qma7981_get_acce_int(int16_t *x, int16_t *y, int16_t *z)
+{
+    WARN_UNIMPLEMENTED();
+	*x = 4095;
+	*y = (4095 * 2) / 3;
+	*z = 4095 / 3;
+	return ESP_OK;	
 }

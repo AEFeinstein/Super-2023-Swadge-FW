@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "esp_log.h"
 #include "cJSON.h"
@@ -274,6 +275,6 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
     fclose(f);
 
     // Display the read contents from the file
-    ESP_LOGD("SPIFFS", "Read from %s: %d bytes", fname, *outsize);
+    ESP_LOGD("SPIFFS", "Read from %s: %d bytes", fname, (uint32_t)(*outsize));
     return true;
 }

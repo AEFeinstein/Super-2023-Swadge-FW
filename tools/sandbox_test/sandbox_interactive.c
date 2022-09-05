@@ -60,12 +60,18 @@ int CheckTimespec( int argc, char ** argv )
 
 int main( int argc, char ** argv )
 {
+	int first = 1;
+
 	hid_init();
 	hd = hid_open( VID, PID, 0 );
 	if( !hd ) { fprintf( stderr, "Could not open USB [interactive]\n" ); return -94; }
 	file_timespecs = calloc( sizeof(struct timespec), argc );
-
 	CheckTimespec( argc, argv );
+
+#ifdef WIN32
+	HANDLE hConsole = GetStdHandle( STD_OUTPUT_HANDLE );
+	system(""); // enable VT100 Escape Sequence for WINDOWS 10 Ver. 1607 
+#endif
 
 	do
 	{
@@ -75,6 +81,12 @@ int main( int argc, char ** argv )
 		uint8_t rdata[513] = { 0 };
 		rdata[0] = 172;
 		r = hid_get_feature_report( hd, rdata, 513 );
+#ifdef WIN32
+		int toprint = r - 3;
+#else
+		int toprint = r - 2;
+#endif
+
 		if( r < 0 )
 		{
 			do
@@ -89,18 +101,19 @@ int main( int argc, char ** argv )
 			} while( !hd );
 
 			continue;
-			
 		}
+		else if( toprint > 0 )
+		{
 #ifdef WIN32
-		int toprint = r - 3;
+			write( 1, rdata + 2, toprint );
 #else
-		int toprint = r - 2;
+			WriteConsoleA( hConsole, rdata+2, toprint, 0, 0 );
 #endif
-		write( 1, rdata + 2, toprint );
+		}
 
 		// Check whatever else.
 		int taint = CheckTimespec( argc, argv );
-		if( taint )
+		if( ( taint || first ) && argc > 1 )
 		{
 			struct timespec spec_start, spec_end;
 
@@ -126,6 +139,7 @@ int main( int argc, char ** argv )
 			uint64_t ns_start = ((uint64_t)spec_start.tv_nsec) + ((uint64_t)spec_start.tv_sec)*1000000000LL;
 			uint64_t ns_end = ((uint64_t)spec_end.tv_nsec) + ((uint64_t)spec_end.tv_sec)*1000000000LL;
 			printf( "Elapsed: %.3f\n", (ns_end-ns_start)/1000000000.0 );
+			first = 0;
 		}
 		
 		usleep( 2000 );

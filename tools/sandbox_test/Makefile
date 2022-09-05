@@ -33,6 +33,9 @@ sandbox_upload : sandbox_upload.c
 sandbox_interactive : sandbox_interactive.c
 	gcc $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
+monitor : sandbox_interactive
+	./sandbox_interactive
+
 interactive : sandbox_interactive build
 	./sandbox_interactive sandbox.c sandbox.S $(SYSELF)
 

@@ -103,6 +103,65 @@ void transformPixel(int16_t* x, int16_t* y, int16_t transX,
 //==============================================================================
 
 /**
+ * Integer sine function
+ *
+ * @param degree The degree, between 0 and 359
+ * @return int16_t The sine of the degree, between -1024 and 1024
+ */
+int16_t getSin1024(int16_t degree)
+{
+    while(degree >= 360)
+    {
+        degree -= 360;
+    }
+    while(degree < 0)
+    {
+        degree += 360;
+    }
+    return sin1024[degree];
+}
+
+/**
+ * Integer cosine function
+ *
+ * @param degree The degree, between 0 and 359
+ * @return int16_t The cosine of the degree, between -1024 and 1024
+ */
+int16_t getCos1024(int16_t degree)
+{
+    // cos is just sin offset by 90 degrees
+    degree += 90;
+    while(degree >= 360)
+    {
+        degree -= 360;
+    }
+    while(degree < 0)
+    {
+        degree += 360;
+    }
+    return sin1024[degree];
+}
+
+/**
+ * Integer tangent function
+ *
+ * @param degree The degree, between 0 and 359
+ * @return int16_t The tangent of the degree, between -1024 and 1024
+ */
+int16_t getTan1024(int16_t degree)
+{
+    while(degree >= 360)
+    {
+        degree -= 360;
+    }
+    while(degree < 0)
+    {
+        degree += 360;
+    }
+    return tan1024[degree];
+}
+
+/**
  * @brief Fill a rectangular area on a display with a single color
  *
  * @param disp The display to fill an area on
@@ -355,6 +414,95 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
 }
 
 /**
+ * @brief Draw a WSG to the display
+ *
+ * @param disp The display to draw the WSG to
+ * @param wsg  The WSG to draw to the display
+ * @param xOff The x offset to draw the WSG at
+ * @param yOff The y offset to draw the WSG at
+ */
+void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
+{
+    if(NULL == wsg->px)
+    {
+        return;
+    }
+
+     // Only draw in bounds
+    int16_t xMin = CLAMP(xOff, 0, disp->w);
+    int16_t xMax = CLAMP(xOff + wsg->w, 0, disp->w);
+    int16_t yMin = CLAMP(yOff, 0, disp->h);
+    int16_t yMax = CLAMP(yOff + wsg->h, 0, disp->h);
+    
+    // Draw each pixel
+    for (int y = yMin; y < yMax; y++)
+    {
+        for (int x = xMin; x < xMax; x++)
+        {
+            int16_t wsgX = x - xOff;
+            int16_t wsgY = y - yOff;
+            if (cTransparent != wsg->px[(wsgY * wsg->w) + wsgX])
+            {
+                disp->setPx(x, y, wsg->px[(wsgY * wsg->w) + wsgX]);
+            }
+        }
+    }
+}
+
+/**
+ * Quickly copy bytes into the framebuffer. This ignores transparency
+ * 
+ * @param disp The display to draw the WSG to
+ * @param wsg  The WSG to draw to the display
+ * @param xOff The x offset to draw the WSG at
+ * @param yOff The y offset to draw the WSG at
+ */
+void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
+{
+    // Check if there is framebuffer access
+    paletteColor_t * fb = disp->getPxFb();
+
+    if(NULL != fb)
+    {
+        if(xOff > disp->w){
+            return;
+        }
+
+        // Bound in the Y direction
+        int32_t yStart = (yOff < 0) ? 0 : yOff;
+        int32_t yEnd   = ((yOff + wsg->h) > disp->h) ? disp->h : (yOff + wsg->h);
+
+        // Bound in the X direction
+        int32_t copyLen = wsg->w;
+        if(xOff < 0)
+        {
+            copyLen += xOff;
+            xOff = 0;
+        }
+        
+        if(xOff + copyLen > disp->w)
+        {
+            copyLen = disp->w - xOff;
+        }
+
+        // copy each row
+        for(int32_t y = yStart; y < yEnd; y++)
+        {
+            // Find the index into the framebuffer
+            uint32_t dstIdx = (y * disp->w) + xOff;
+            // Copy the row
+            // TODO probably faster if we can guarantee copyLen is a multiple of 4
+            memcpy(&fb[dstIdx], &wsg->px[(wsg->h - (yEnd - y)) * wsg->w], copyLen);
+        }
+    }
+    else
+    {
+        // No framebuffer access, draw the WSG simply
+        drawWsgSimple(disp, wsg, xOff, yOff);
+    }
+}
+
+/**
  * @brief Load a font from ROM to RAM. Fonts are bitmapped image files that have
  * a single height, all ASCII characters, and a width for each character.
  * PNGs placed in the assets folder before compilation will be automatically
@@ -472,7 +620,7 @@ void drawChar(display_t* disp, paletteColor_t color, uint16_t h, font_ch_t* ch, 
  */
 int16_t drawText(display_t* disp, font_t* font, paletteColor_t color, const char* text, int16_t xOff, int16_t yOff)
 {
-    while(*text != 0)
+    while(*text >= ' ')
     {
         // Only draw if the char is on the screen
         if (xOff + font->chars[(*text) - ' '].w >= 0)
@@ -518,73 +666,83 @@ uint16_t textWidth(font_t* font, const char* text)
 }
 
 /**
- * @brief Convert hue, saturation, and value to 15-bit RGB representation
+ * @brief Convert hue, saturation, and value to a palette color
  *
- * @param h The input hue
- * @param s The input saturation
- * @param v The input value
+ * @param h The input hue, 0->255
+ * @param s The input saturation, 0->255
+ * @param v The input value, 0->255
  * @return paletteColor_t The output RGB
  */
-paletteColor_t hsv2rgb(uint16_t h, float s, float v)
+paletteColor_t hsv2rgb( uint8_t hue, uint8_t sat, uint8_t val)
 {
-    // TODO FIX THIS!!!
-    return c232;
-    // float hh, p, q, t, ff;
-    // uint16_t i;
-    // paletteColor_t px = {.a=PX_OPAQUE};
+#define SIXTH1 43
+#define SIXTH2 85
+#define SIXTH3 128
+#define SIXTH4 171
+#define SIXTH5 213
+    uint16_t or = 0, og = 0, ob = 0;
 
-    // hh = (h % 360) / 60.0f;
-    // i = (uint16_t)hh;
-    // ff = hh - i;
-    // p = v * (1.0 - s);
-    // q = v * (1.0 - (s * ff));
-    // t = v * (1.0 - (s * (1.0 - ff)));
+    // move in rainbow order RYGCBM as hue from 0 to 255
 
-    // switch (i)
-    // {
-    //     case 0:
-    //     {
-    //         px.r = v * 0x1F;
-    //         px.g = t * 0x1F;
-    //         px.b = p * 0x1F;
-    //         break;
-    //     }
-    //     case 1:
-    //     {
-    //         px.r = q * 0x1F;
-    //         px.g = v * 0x1F;
-    //         px.b = p * 0x1F;
-    //         break;
-    //     }
-    //     case 2:
-    //     {
-    //         px.r = p * 0x1F;
-    //         px.g = v * 0x1F;
-    //         px.b = t * 0x1F;
-    //         break;
-    //     }
-    //     case 3:
-    //     {
-    //         px.r = p * 0x1F;
-    //         px.g = q * 0x1F;
-    //         px.b = v * 0x1F;
-    //         break;
-    //     }
-    //     case 4:
-    //     {
-    //         px.r = t * 0x1F;
-    //         px.g = p * 0x1F;
-    //         px.b = v * 0x1F;
-    //         break;
-    //     }
-    //     case 5:
-    //     default:
-    //     {
-    //         px.r = v * 0x1F;
-    //         px.g = p * 0x1F;
-    //         px.b = q * 0x1F;
-    //         break;
-    //     }
-    // }
-    // return px;
+    if( hue < SIXTH1 ) //Ok: Red->Yellow
+    {
+        or = 255;
+        og = (hue * 255) / (SIXTH1);
+    }
+    else if( hue < SIXTH2 ) //Ok: Yellow->Green
+    {
+        og = 255;
+        or = 255 - (hue - SIXTH1) * 255 / SIXTH1;
+    }
+    else if( hue < SIXTH3 )  //Ok: Green->Cyan
+    {
+        og = 255;
+        ob = (hue - SIXTH2) * 255 / (SIXTH1);
+    }
+    else if( hue < SIXTH4 ) //Ok: Cyan->Blue
+    {
+        ob = 255;
+        og = 255 - (hue - SIXTH3) * 255 / SIXTH1;
+    }
+    else if( hue < SIXTH5 ) //Ok: Blue->Magenta
+    {
+        ob = 255;
+        or = (hue - SIXTH4) * 255 / SIXTH1;
+    }
+    else //Magenta->Red
+    {
+        or = 255;
+        ob = 255 - (hue - SIXTH5) * 255 / SIXTH1;
+    }
+
+    uint16_t rv = val;
+    if( rv > 128 )
+    {
+        rv++;
+    }
+    uint16_t rs = sat;
+    if( rs > 128 )
+    {
+        rs++;
+    }
+
+    //or, og, ob range from 0...255 now.
+    //Apply saturation giving OR..OB == 0..65025
+    or = or * rs + 255 * (256 - rs);
+    og = og * rs + 255 * (256 - rs);
+    ob = ob * rs + 255 * (256 - rs);
+    or >>= 8;
+    og >>= 8;
+    ob >>= 8;
+    //back to or, og, ob range 0...255 now.
+    //Need to apply saturation and value.
+    or = ( or * val) >> 8;
+    og = (og * val) >> 8;
+    ob = (ob * val) >> 8;
+
+    // Convert to palette color and return
+    or = ( or * 6) / 256;
+    og = (og * 6) / 256;
+    ob = (ob * 6) / 256;
+    return (paletteColor_t) ( or * 36) + (og * 6) + ob;
 }

@@ -16,6 +16,7 @@
 #include "driver/gpio.h"
 #include "hdw-tft.h"
 #include "esp_lcd_panel_interface.h"
+#include "driver/ledc.h"
 
 //==============================================================================
 // Colors
@@ -253,7 +254,7 @@ const uint16_t paletteColors[] =
  */
 #define PARALLEL_LINES 16
 
-/* Backlight levels */
+/* Binary backlight levels */
 #define LCD_BK_LIGHT_ON_LEVEL  1
 #define LCD_BK_LIGHT_OFF_LEVEL !LCD_BK_LIGHT_ON_LEVEL
 
@@ -308,8 +309,8 @@ const uint16_t paletteColors[] =
     #define X_OFFSET            20
     #define Y_OFFSET            0
     #define SWAP_XY         true
-    #define MIRROR_X        false
-    #define MIRROR_Y        false
+    #define MIRROR_X        true
+    #define MIRROR_Y        true
 #else
     #error "Please pick a screen size"
 #endif
@@ -320,6 +321,7 @@ const uint16_t paletteColors[] =
 
 void setPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t getPxTft(int16_t x, int16_t y);
+paletteColor_t * getPxFbTft(void);
 void clearPxTft(void);
 void drawDisplayTft(bool drawDiff);
 
@@ -338,6 +340,23 @@ static uint16_t *s_lines[2] = {0};
 //==============================================================================
 
 /**
+ * @brief Set TFT Backlight brightness.
+ *
+ * @param intensity    Sets the brightness 0-255
+ *
+ * @return value is 0 if OK nonzero if error.
+ */
+int setTFTBacklight(uint8_t intensity)
+{
+    esp_err_t e;
+    if(intensity>CONFIG_TFT_MAX_BRIGHTNESS) return ESP_ERR_INVALID_ARG;
+    e = ledc_set_duty(LEDC_LOW_SPEED_MODE, 1, 255-intensity);
+    if(e) return e;
+    return ledc_update_duty(LEDC_LOW_SPEED_MODE, 1);
+}
+
+
+/**
  * @brief Initialize a TFT display and return it through a pointer arg
  * 
  * @param disp    The display to initialize
@@ -348,18 +367,36 @@ static uint16_t *s_lines[2] = {0};
  * @param cs      The GPIO for the chip select pin
  * @param rst     The GPIO for the RESET pin
  * @param backlight The GPIO used to PWM control the backlight
+ * @param isPwmBacklight true to set up the backlight as PWM, false to have it be on/off
  */
 void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
             gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
-            gpio_num_t backlight)
+            gpio_num_t backlight, bool isPwmBacklight)
 {
-    gpio_config_t bk_gpio_config =
+    if(false == isPwmBacklight)
     {
-        .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = 1ULL << backlight
-    };
-    // Initialize the GPIO of backlight
-    ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
+        // Binary backlight
+        gpio_config_t bk_gpio_config =
+        {
+            .mode = GPIO_MODE_OUTPUT,
+            .pin_bit_mask = 1ULL << backlight
+        };
+        // Initialize the GPIO of backlight
+        ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
+    }
+    else
+    {
+        // PWM Backlight
+        ledc_timer_config_t ledc_config_timer =
+        {
+            .speed_mode = LEDC_LOW_SPEED_MODE,
+            .duty_resolution = LEDC_TIMER_8_BIT,
+            .freq_hz = 50000,
+            .timer_num = 0,
+            .clk_cfg = LEDC_AUTO_CLK,
+        };
+        ESP_ERROR_CHECK(ledc_timer_config(&ledc_config_timer));
+    }
 
     spi_bus_config_t buscfg =
     {
@@ -405,10 +442,6 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
 #error "Please pick a screen size"
 #endif
 
-    // Turn off backlight to avoid unpredictable display on the LCD screen while initializing
-    // the LCD panel driver. (Different LCD screens may need different levels)
-    ESP_ERROR_CHECK(gpio_set_level(backlight, LCD_BK_LIGHT_OFF_LEVEL));
-
     // Reset the display
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
 
@@ -416,7 +449,23 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
 
     // Turn on backlight (Different LCD screens may need different levels)
-    ESP_ERROR_CHECK(gpio_set_level(backlight, LCD_BK_LIGHT_ON_LEVEL));
+    if(false == isPwmBacklight)
+    {
+        ESP_ERROR_CHECK(gpio_set_level(backlight, LCD_BK_LIGHT_ON_LEVEL));
+    }
+    else
+    {
+        ledc_channel_config_t ledc_config_backlight =
+        {
+            .gpio_num = backlight,
+            .speed_mode = LEDC_LOW_SPEED_MODE,
+            .channel = 1,  //Not sure if 0 is used.
+            .timer_sel = 0,
+            .duty = 255, //Disable to start.
+        };
+        ESP_ERROR_CHECK(ledc_channel_config(&ledc_config_backlight));
+        setTFTBacklight(CONFIG_TFT_DEFAULT_BRIGHTNESS);
+    }
 
     // Allocate memory for the pixel buffers
     for (int i = 0; i < 2; i++)
@@ -448,7 +497,9 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
 
 #if defined(CONFIG_GC9307_240x280)
     esp_lcd_panel_invert_color(panel_handle, false);
-    esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[]) {0x28}, 1 ); //MX, MY, RGB mode  (MADCTL)
+    // NOTE: the following call would override settings set by esp_lcd_panel_swap_xy() and esp_lcd_panel_mirror()
+    // Both of the prior functions write to the 0x36 register
+    esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[]) {0xE8}, 1 ); //MX, MY, RGB mode  (MADCTL)
     esp_lcd_panel_io_tx_param(io, 0x35, (uint8_t[]) {0x00}, 1 ); // "tear effect" testing sync pin.
 #elif defined(CONFIG_ST7735_128x160)
     esp_lcd_panel_io_tx_param(io, 0xB1, (uint8_t[]) { 0x05, 0x3C, 0x3C }, 3 );
@@ -468,6 +519,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     disp->w = TFT_WIDTH;
     disp->setPx = setPxTft;
     disp->getPx = getPxTft;
+    disp->getPxFb = getPxFbTft;
     disp->clearPx = clearPxTft;
     disp->drawDisplay = drawDisplayTft;
 
@@ -508,6 +560,14 @@ paletteColor_t getPxTft(int16_t x, int16_t y)
         return pixels[(y * TFT_WIDTH) + x];
     }
     return c000;
+}
+
+/**
+ * @return A pointer to the framebuffer
+ */
+paletteColor_t * getPxFbTft(void)
+{
+    return pixels;
 }
 
 /**
@@ -575,3 +635,4 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
         // }
     }
 }
+

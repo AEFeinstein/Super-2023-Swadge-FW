@@ -26,7 +26,13 @@
 #include "ssd1306.h"
 #include "hdw-tft.h"
 
-#include "QMA6981.h"
+#define QMA7981
+
+#if defined(QMA6981)
+    #include "QMA6981.h"
+#elif defined(QMA7981)
+    #include "qma7981.h"
+#endif
 
 #include "musical_buzzer.h"
 #include "hdw-mic.h"
@@ -47,9 +53,10 @@
 #include "advanced_usb_control.h"
 
 #include "mode_main_menu.h"
-#include "mode_demo.h"
+#include "jumper_menu.h"
 #include "fighter_menu.h"
 #include "mode_gamepad.h"
+#include "mode_test.h"
 
 #include "driver/gpio.h"
 
@@ -61,6 +68,16 @@
     #include "soc/dport_access.h"
     #include "soc/periph_defs.h"
     #include "hal/memprot_ll.h"
+#endif
+
+//==============================================================================
+// Defines
+//==============================================================================
+
+// Make sure one, and only one, build config is enabled
+#if (((defined(CONFIG_SWADGE_DEVKIT)    ? 1 : 0) + \
+      (defined(CONFIG_SWADGE_PROTOTYPE) ? 1 : 0)) != 1)
+#error "Please define CONFIG_SWADGE_DEVKIT or CONFIG_SWADGE_PROTOTYPE"
 #endif
 
 //==============================================================================
@@ -196,6 +213,7 @@ void tud_hid_set_report_cb(uint8_t itf,
 
 void app_main(void)
 {
+#if defined(CONFIG_SWADGE_DEVKIT)
     // Pull these GPIOs low immediately!!!
     // This prevents overheating on the devkit
     gpio_num_t toPullLow[] =
@@ -215,6 +233,7 @@ void app_main(void)
         ESP_ERROR_CHECK(gpio_config(&atn_gpio_config));
         ESP_ERROR_CHECK(gpio_set_level(toPullLow[i], 0));
     }
+#endif
 
 #ifdef PRINT_STATS
     /* Print chip information */
@@ -250,6 +269,10 @@ void app_main(void)
      */
     // esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_OFF);
     esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_ON);
+
+    /* Initialize USB peripheral */
+    tinyusb_config_t tusb_cfg = {};
+    tinyusb_driver_install(&tusb_cfg);
 
     // Set up timers
     esp_timer_init();
@@ -288,8 +311,22 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         }
         default:
         {
-            /* Reset cSwadgeMode */
-            cSwadgeMode = &modeMainMenu;
+#if !defined(CONFIG_SWADGE_PROTOTYPE) && !defined(CONFIG_SWADGE_DEVKIT)
+            // If test mode was passed
+            if(getTestModePassed())
+#else
+            // Ignore test mode for proto and devkit
+            if(true)
+#endif
+            {
+                // Show the main menu
+                cSwadgeMode = &modeMainMenu;
+            }
+            else
+            {
+                // Otherwise enter test mode
+                cSwadgeMode = &modeTest;
+            }
             break;
         }
     }
@@ -304,7 +341,9 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     initTemperatureSensor();
 
     /* Initialize non-i2c hardware peripherals */
-    initButtons(8,
+#if defined(CONFIG_SWADGE_DEVKIT)
+    initButtons(TIMER_GROUP_0, TIMER_0,
+                8,
                 GPIO_NUM_1,
                 GPIO_NUM_0,
                 GPIO_NUM_3,
@@ -313,7 +352,20 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                 GPIO_NUM_45,
                 GPIO_NUM_4,
                 GPIO_NUM_15); // GPIO 46 doesn't work b/c it has a permanent pulldown
+#elif defined(CONFIG_SWADGE_PROTOTYPE)
+    initButtons(TIMER_GROUP_0, TIMER_0,
+                8,
+                GPIO_NUM_0,
+                GPIO_NUM_4,
+                GPIO_NUM_2,
+                GPIO_NUM_1,
+                GPIO_NUM_16,
+                GPIO_NUM_15,
+                GPIO_NUM_8,
+                GPIO_NUM_5);
+#endif
 
+#if defined(CONFIG_SWADGE_DEVKIT)
     initTouchSensor(0.2f, true, 6,
                     TOUCH_PAD_NUM9,   // GPIO_NUM_9
                     TOUCH_PAD_NUM10,  // GPIO_NUM_10
@@ -321,8 +373,19 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     TOUCH_PAD_NUM12,  // GPIO_NUM_12
                     TOUCH_PAD_NUM13,  // GPIO_NUM_13
                     TOUCH_PAD_NUM14); // GPIO_NUM_14
+#elif defined(CONFIG_SWADGE_PROTOTYPE)
+    initTouchSensor(0.2f, true, 5,
+                    TOUCH_PAD_NUM9,   // GPIO_NUM_9
+                    TOUCH_PAD_NUM10,  // GPIO_NUM_10
+                    TOUCH_PAD_NUM11,  // GPIO_NUM_11
+                    TOUCH_PAD_NUM12,  // GPIO_NUM_12
+                    TOUCH_PAD_NUM13); // GPIO_NUM_13
+#endif
 
-    initLeds(GPIO_NUM_39, RMT_CHANNEL_0, NUM_LEDS);
+    // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
+    initLeds(GPIO_NUM_39, GPIO_NUM_18, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
+
+    // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
     buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, getIsMuted());
 
 #if !defined(EMU)
@@ -334,9 +397,15 @@ void mainSwadgeTask(void* arg __attribute((unused)))
          * esp_wifi_start() and esp_wifi_stop(). Use the return code to see
          * whether the reading is successful.
          */
+#if defined(CONFIG_SWADGE_DEVKIT)
         static uint16_t adc1_chan_mask = BIT(2);
         static uint16_t adc2_chan_mask = 0;
         static adc_channel_t channel[] = {ADC1_CHANNEL_7}; // GPIO_NUM_8
+#elif defined(CONFIG_SWADGE_PROTOTYPE)
+        static uint16_t adc1_chan_mask = BIT(6);
+        static uint16_t adc2_chan_mask = 0;
+        static adc_channel_t channel[] = {ADC1_CHANNEL_6}; // GPIO_NUM_7
+#endif
         continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
         continuous_adc_start();
     }
@@ -347,11 +416,23 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 #endif
     {
         /* Initialize i2c peripherals */
+#if defined(CONFIG_SWADGE_DEVKIT)
         i2c_master_init(
             GPIO_NUM_17, // SDA
             GPIO_NUM_18, // SCL
             GPIO_PULLUP_DISABLE, 1000000);
+#elif defined(CONFIG_SWADGE_PROTOTYPE)
+        i2c_master_init(
+            GPIO_NUM_3,  // SDA
+            GPIO_NUM_41, // SCL
+            GPIO_PULLUP_DISABLE, 1000000);
+#endif
+
+#if defined(QMA6981)
         accelInitialized = QMA6981_setup();
+#elif defined(QMA7981)
+        accelInitialized = (ESP_OK == qma7981_init());
+#endif
     }
 
 #ifdef OLED_ENABLED
@@ -361,6 +442,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 
     /* Initialize SPI peripherals */
     display_t tftDisp;
+#if defined(CONFIG_SWADGE_DEVKIT)
     initTFT(&tftDisp,
             SPI2_HOST,
             GPIO_NUM_36, // sclk
@@ -368,11 +450,19 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             GPIO_NUM_21, // dc
             GPIO_NUM_34, // cs
             GPIO_NUM_38, // rst
-            GPIO_NUM_7); // backlight (dummy GPIO for now)
-
-    /* Initialize USB peripheral */
-    tinyusb_config_t tusb_cfg = {};
-    tinyusb_driver_install(&tusb_cfg);
+            GPIO_NUM_7,  // backlight (dummy GPIO for now)
+            false);      // binary backlight
+#elif defined(CONFIG_SWADGE_PROTOTYPE)
+    initTFT(&tftDisp,
+            SPI2_HOST,
+            GPIO_NUM_36, // sclk
+            GPIO_NUM_37, // mosi
+            GPIO_NUM_21, // dc
+            GPIO_NUM_34, // cs
+            GPIO_NUM_38, // rst
+            GPIO_NUM_35, // backlight
+            true);       // PWM backlight
+#endif
 
     /* Initialize Wifi peripheral */
 #if !defined(EMU)
@@ -405,7 +495,11 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         if(accelInitialized && NULL != cSwadgeMode->fnAccelerometerCallback)
         {
             accel_t accel = {0};
+#if defined(QMA6981)
             QMA6981_poll(&accel);
+#elif defined(QMA7981)
+            qma7981_get_acce_int(&accel.x, &accel.y, &accel.z);
+#endif
             cSwadgeMode->fnAccelerometerCallback(&accel);
         }
 
@@ -438,7 +532,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         // Process ADC samples
         if(NULL != cSwadgeMode->fnAudioCallback)
         {
-            uint8_t micAmp = getMicAmplitude();
+            uint16_t micAmp = getMicAmplitude();
 
             uint16_t adcSamps[BYTES_PER_READ / sizeof(adc_digi_output_data_t)];
             uint32_t sampleCnt = 0;

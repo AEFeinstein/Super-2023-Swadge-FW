@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "hal/timer_types.h"
 
 typedef enum
 {
@@ -23,7 +24,7 @@ typedef struct
     bool down;
 } buttonEvt_t;
 
-void initButtons(uint8_t numButtons, ...);
+void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButtons, ...);
 void deinitButtons(void);
 bool checkButtonQueue(buttonEvt_t*);
 
