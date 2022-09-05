@@ -34,7 +34,7 @@
 void picrossUserInput(void);
 void picrossResetInput(void);
 void picrossCheckLevel(void);
-void picrossSetupPuzzle(void);
+void picrossSetupPuzzle(bool cont);
 void setCompleteLevelFromWSG(wsg_t* puzz);
 void drawSinglePixelFromWSG(display_t* d,int x, int y, wsg_t* image);
 bool hintsMatch(picrossHint_t a, picrossHint_t b);
@@ -64,7 +64,7 @@ static picrossGame_t* p = NULL;
  *
  */
 //todo: this should receive a levelIndex. allocate memory as appropriate for level size, and pass into setuplevel
-void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* selectedLevel)
+void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* selectedLevel, bool cont)
 {
     p = calloc(1, sizeof(picrossGame_t));
     p->selectedLevel = selectedLevel;
@@ -91,11 +91,27 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->countState = PICROSSCOUNTER_IDLE;
     p->controlsEnabled = true;
 
+    p->save = calloc(1, sizeof(picrossSaveData_t));
+    //save data configure
+    for(int i=0;i<8;i++)
+    {
+        p->save->banks[i] = 0;
+        // //pic_b_i
+        // p->save->bankNames[i][0] = "p";
+        // p->save->bankNames[i][1] = "i";
+        // p->save->bankNames[i][2] = "c";
+        // p->save->bankNames[i][3] = "_";
+        // p->save->bankNames[i][4] = "b";
+        // p->save->bankNames[i][5] = "_";
+        //im way to tired to look up how to case from int to char.
+        //just realized these can basically be random as long as they dont interfere with anyone elses code.
+    }
+
     //Setup level
-    picrossSetupPuzzle();
+    picrossSetupPuzzle(cont);
 }
 
-void picrossSetupPuzzle()
+void picrossSetupPuzzle(bool cont)
 {   
     wsg_t *levelwsg = &p->selectedLevel->levelWSG;
 
@@ -118,12 +134,21 @@ void picrossSetupPuzzle()
         p->puzzle->colHints[i] = newHintFromPuzzle(i,false,p->puzzle->completeLevel);  
     }
 
-    //Set the actual level to be empty.
-    for(int i = 0;i<p->puzzle->width;i++)
+    //Set the current level appropriately.
+    if(cont)
     {
-        for(int j = 0;j<p->puzzle->height;j++)
+        //Set the actual level from save data
+        loadPicrossProgress();
+    }else
+    {
+
+        //Set the actual level to be empty
+        for(int i = 0;i<p->puzzle->width;i++)
         {
-            p->puzzle->level[i][j] = SPACE_EMPTY;
+            for(int j = 0;j<p->puzzle->height;j++)
+            {
+                p->puzzle->level[i][j] = SPACE_EMPTY;
+            }
         }
     }
 
@@ -377,7 +402,8 @@ void picrossUserInput(void)
     //todo: how should exit work? A button when game is solved?
     if(input->btnState & SELECT && !(input->prevBtnState & SELECT) && !(input->btnState & BTN_A))//if we are holding a down when we leave, we instantly select a level on the select screen.
     {
-        returnToPicrossMenu();
+        savePicrossProgress();
+        returnToLevelSelect();
         p->exitThisFrame = true;//stops drawing to the screen, stops messing with variables, frees memory.
         return;
     }
@@ -819,7 +845,74 @@ void picrossExitGame(void)
         freeFont(&(p->hint_font));
         // free(p->puzzle);
         free(p->input);
+        free(p->save);
         free(p);
         p = NULL;
     }
+}
+
+
+///=====
+// SAVING AND LOADING
+//===========
+
+void savePicrossProgress()
+{
+    for(int y = 0;y<10;y++)
+    {
+        for(int x = 0;x<10;x++)
+        {
+            //because level enum is <4, it will only write last 2 bits in the OR
+            p->save->banks[y] =  p->save->banks[y] << 2;
+            p->save->banks[y] = (p->save->banks[y] | p->puzzle->level[x][y]);
+            
+        }
+        writeNvs32(getBankName(y), p->save->banks[y]);
+    }    
+}
+void loadPicrossProgress()
+{
+    uint16_t pos = 0;
+
+    for(int y = 0;y<10;y++)
+    {
+        readNvs32(getBankName(y), &p->save->banks[y]);
+        for(int x = 0;x<10;x++)
+        {
+            //x is flipped because of the bit shifting direction.
+            p->puzzle->level[9-x][y] = p->save->banks[y] & 3;//0x...00000011, we only care about last two bits
+            p->save->banks[y] = p->save->banks[y] >> 2;//shift over twice for next load. Wait are we mangling it here on the load? Does it matter?
+        }
+    }    
+}
+
+//I promise I tried to do a proper index->row/col mapping here, since we only need 100*2 bits of data. (<320 used here) but i kept messing the math up.
+//I know that 120 bits is not a lot, but on principle, it bothers me and I would like to optimize this in the future.
+
+char * getBankName(int i)
+{
+    switch(i)
+    {
+        case 0:
+            return "pic_b_0";
+        case 1:
+            return "pic_b_1";
+        case 2:
+            return "pic_b_2";
+        case 3:
+            return "pic_b_3";
+        case 4:
+            return "pic_b_4";
+        case 5:
+            return "pic_b_5";
+        case 6:
+            return "pic_b_6";
+        case 7:
+            return "pic_b_7";
+        case 8:
+            return "pic_b_8";
+        case 9:
+            return "pic_b_9";
+    }
+    return "pic_b_x";
 }

@@ -122,6 +122,7 @@ void levelSelectInput()
     if (ls->btnState & BTN_A && !(ls->prevBtnState & BTN_A) && !(ls->btnState & SELECT))
     {
         ls->chosenLevel = &ls->levels[ls->hoverLevelIndex];
+        writeNvs32("pic_cur_ind", ls->hoverLevelIndex);//save the selected level before we lose context of the index.
         selectPicrossLevel(ls->chosenLevel);
         return;
     }

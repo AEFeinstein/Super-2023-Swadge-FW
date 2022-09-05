@@ -30,10 +30,18 @@ typedef enum
 
 typedef struct
 {
+    /* data */
+    int32_t banks[8];
+    char* bankNames[8][7];
+} picrossSaveData_t;
+
+
+typedef struct
+{
     uint8_t x;
     uint8_t y;
-    uint32_t prevBtnState;
-    uint32_t btnState;
+    uint16_t prevBtnState;
+    uint16_t btnState;
     bool movedThisFrame;
     bool changedLevelThisFrame;
 } picrossInput_t;
@@ -73,11 +81,15 @@ typedef struct
     bool exitThisFrame;
     int8_t count;
     counterState_t countState;
+    picrossSaveData_t* save;
 } picrossGame_t;
 
-void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* selectedLevel);
+void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* selectedLevel, bool cont);
 void picrossGameLoop(int64_t elapsedUs);
 void picrossGameButtonCb(buttonEvt_t* evt);
 void picrossExitGame(void);
+void loadPicrossProgress(void);
+void savePicrossProgress(void);
+char * getBankName(int i);
 
 #endif

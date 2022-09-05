@@ -7,6 +7,7 @@
 
 #include "swadgeMode.h"
 #include "meleeMenu.h"
+#include "nvs_manager.h"
 
 #include "picross_menu.h"
 #include "mode_picross.h"
@@ -32,7 +33,7 @@ typedef struct
     picrossLevelDef_t levels[8];
     picrossScreen_t screen;
     bool menuChanged;
-
+    int32_t savedIndex;
 } picrossMenu_t;
 //==============================================================================
 // Function Prototypes
@@ -44,7 +45,6 @@ void picrossMainLoop(int64_t elapsedUs);
 void picrossButtonCb(buttonEvt_t* evt);
 void loadLevels(void);
 void picrossMainMenuCb(const char* opt);
-void returnToLevelSelect(void);
 
 //==============================================================================
 // Variables
@@ -68,6 +68,7 @@ swadgeMode modePicross =
 
 //Todo: these maybe dont need to be static?
 static const char str_picrossTitle[] = "NonogramFest";
+static const char str_continue[] = "Continue";
 static const char str_howtoplay[] = "How To Play";
 static const char str_levelSelect[] = "Puzzle Select";
 static const char str_exit[] = "Exit";
@@ -90,6 +91,13 @@ void picrossEnterMode(display_t* disp)
 
     pm->disp = disp;
 
+    //Set continue data to -1 if it does not already exit.
+    if((false == readNvs32("pic_cur_ind", &pm->savedIndex)))
+    {
+        writeNvs32("pic_cur_ind", -1);//if we enter this screen and instantly exist, also set it to -1 and we can just load that.
+        pm->savedIndex = -1;//there is no current index.
+    }
+
     loadFont("mm.font", &(pm->mmFont));
 
     pm->menu = initMeleeMenu(str_picrossTitle, &(pm->mmFont), picrossMainMenuCb);
@@ -99,7 +107,6 @@ void picrossEnterMode(display_t* disp)
     pm->screen = PICROSS_MENU;
 
     loadLevels();
-
 }
 
 void picrossExitMode(void)
@@ -213,6 +220,11 @@ void picrossButtonCb(buttonEvt_t* evt)
 void setPicrossMainMenu(void)
 {
     resetMeleeMenu(pm->menu, str_picrossTitle, picrossMainMenuCb);
+
+    //only display continue button if we have a game in progress.
+    if(pm->savedIndex >= 0){
+        addRowToMeleeMenu(pm->menu, str_continue);
+    }
     addRowToMeleeMenu(pm->menu, str_levelSelect);
     addRowToMeleeMenu(pm->menu, str_howtoplay);
     addRowToMeleeMenu(pm->menu, str_exit);
@@ -229,9 +241,18 @@ void returnToPicrossMenu(void)
 //menu button callbacks. Set the screen and call the appropriate start functions
 void picrossMainMenuCb(const char* opt)
 {
-    //if start:
-        // picrossStartGame(pm->disp, &pm->mmFont);
-        // pm->screen = PICROSS_GAME;
+    if (opt == str_continue)
+    {
+        //get the current level index
+        int currentIndex = 0;//just load 0 if its 0. 
+        readNvs32("pic_cur_ind", &currentIndex);
+
+        //load in the level we selected.
+        //uh. read the currentLevelIndex and get the value from 
+        picrossStartGame(pm->disp, &pm->mmFont, &pm->levels[currentIndex], true);
+        pm->screen = PICROSS_GAME;
+        return;
+    }
     if (opt == str_howtoplay)
     {
         //how... do we play?
@@ -255,7 +276,7 @@ void selectPicrossLevel(picrossLevelDef_t* selectedLevel)
 {
     //picrossExitLevelSelect();//we do this BEFORE we enter startGame.
     pm->screen = PICROSS_GAME;
-    picrossStartGame(pm->disp, &pm->mmFont, selectedLevel);
+    picrossStartGame(pm->disp, &pm->mmFont, selectedLevel, false);
 }
 
 void returnToLevelSelect()
