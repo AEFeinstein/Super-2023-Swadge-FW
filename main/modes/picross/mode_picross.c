@@ -44,6 +44,7 @@ void drawPicrossScene(display_t* d);
 void drawPicrossHud(display_t* d, font_t* font);
 void drawHint(display_t* d,font_t* font, picrossHint_t hint);
 void drawPicrossInput(display_t* d);
+int8_t getHintShift(uint8_t hint);
 
 //==============================================================================
 // Variables
@@ -72,6 +73,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossExitFunc_t* exitFu
     p->drawScale = 25;
     p->leftPad = 200;
     p->topPad = 130;
+    p->clueGap = 4;
     p->exitFunction = (void*)exitFunc;
     p->exitThisFrame = false;
 
@@ -548,9 +550,20 @@ void drawPicrossHud(display_t* d,font_t* font)
     //width of thicker center lines
     uint8_t w = 5;
     //draw a vertical line every 5 units.
-    for(int i=1;i<p->puzzle->width;i++)//skip 0 and skip last. literally the fence post problem.
+    for(int i=0;i<=p->puzzle->width;i++)//skip 0 and skip last. literally the fence post problem.
     {
         uint8_t s = p->drawScale;
+        if(i == 0 || i == p->puzzle->width)
+        {
+            //draw border
+            plotLine(d,
+            ((i * s) + s + p->leftPad) >> 1,
+            (s + p->topPad) >> 1,
+            ((i * s) + s + p->leftPad) >> 1,
+            ((p->puzzle->height * s) + s + p->topPad) >> 1,
+            c115,0);
+            continue;
+        }
         if(i%5 == 0)//draw thicker line every 5.
         {
             box_t box =
@@ -575,9 +588,20 @@ void drawPicrossHud(display_t* d,font_t* font)
 
      //draw a horizontal line every 5 units.
      //todo: also do the full grid.
-    for(int i=1;i<p->puzzle->height;i++)
+    for(int i=0;i<=p->puzzle->height;i++)
     {
         uint8_t s = p->drawScale;
+        if(i == 0 || i == p->puzzle->width)
+        {
+            //draw border
+            plotLine(d,
+            (s + p->leftPad) >> 1,
+            ((i * s) + s + p->topPad) >> 1,
+            ((p->puzzle->width * s) + s + p->leftPad) >> 1,
+            ((i * s) + s + p->topPad) >> 1,
+            c115,0);
+            continue;
+        }
         if(i%5 == 0)
         {
             box_t box =
@@ -610,25 +634,39 @@ void drawPicrossHud(display_t* d,font_t* font)
 
 void drawHint(display_t* d,font_t* font, picrossHint_t hint)
 {
+    uint8_t h;
+    uint8_t g = p->clueGap;
     //todo: handle 10 or double-digit input 
     if(hint.isRow){
         int j = 0;
         for(int i = 0;i<5;i++)
         {
+            h = hint.hints[4-i];
             box_t hintbox = boxFromCoord(-j-1,hint.index);
+            hintbox.x0 = hintbox.x0 - (p->clueGap * (j));
+            hintbox.x1 = hintbox.x1 - (p->clueGap * (j));
             //we have to flip the hints around. 
-            if(hint.hints[4-i] == 0){
+            if(h == 0){
                 //dont increase j.
                 
                // drawBox(d,hintbox,c333,false,1);//for debugging. we will draw nothing when proper.
-            }else{
+            }else if(h < 10){
                 drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
 
                 char letter[1];
-                sprintf(letter, "%d", hint.hints[4-i]);//this function appears to modify hintbox.x0
+                sprintf(letter, "%d", h);//this function appears to modify hintbox.x0
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale) >> 1);
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale) >> 1);
                 j++;//the index position, but only for where to draw. shifts the clues to the right.
+            }else{
+                drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
+                char letter[1];
+                sprintf(letter, "%d", h);
+                //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale)) >> 1, (hintbox.y1-p->drawScale) >> 1);
+                sprintf(letter, "%d", hint.hints[4-i]%10);
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale+p->drawScale/2)) >> 1, (hintbox.y1-p->drawScale) >> 1);
+                j++;
             }
 
             }
@@ -636,20 +674,54 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
         int j = 0;
         for(int i = 0;i<5;i++)
         {
+            h = hint.hints[4-i];
             box_t hintbox = boxFromCoord(hint.index,-j-1);
-             if(hint.hints[4-i] == 0){               
+             if(h == 0){               
                // drawBox(d,hintbox,c333,false,1);//for debugging. we will draw nothing when proper.
+            }else if(h < 10){
+                drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
+                char letter[1];
+                sprintf(letter, "%d", h);
+                //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale) >> 1);
+                j++;//the index position, but only for where to draw. shifts the clues to the right.
             }else{
                 drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
                 char letter[1];
-                sprintf(letter, "%d", hint.hints[4-i]);//this function appears to modify hintbox.x0
+                sprintf(letter, "%d", h);
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale) >> 1);
-                j++;//the index position, but only for where to draw. shifts the clues to the right.
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale) >> 1);
+                sprintf(letter, "%d", hint.hints[4-i]%10);
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale+p->drawScale/2) >> 1, (hintbox.y1-p->drawScale) >> 1);
+                j++;
             }
 
         }
     }
+}
+
+int8_t getHintShift(uint8_t hint)
+{
+    //these values determined by trial and error with the 12pt font.
+    switch(hint)
+    {
+        case 0:
+            return 0;
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+            return 3;
+        case 10:
+            return -8;
+    }
+
+    return 0;
 }
 
 void drawPicrossInput(display_t* d)

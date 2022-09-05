@@ -126,6 +126,8 @@ void loadLevels()
     loadWsg("3_boat.wsg", &pm->levels[2].levelWSG);
     loadWsg("3_boat_c.wsg", &pm->levels[2].completedWSG);
 
+    loadWsg("stairs.wsg", &pm->levels[3].levelWSG);
+    loadWsg("stairs_c.wsg", &pm->levels[3].completedWSG);
     //the current levelCOunt is set to 8, but 0-9 are not loaded. if you select them, it will just break.
 
 

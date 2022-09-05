@@ -59,6 +59,7 @@ typedef struct
     uint8_t drawScale;
     uint8_t leftPad;
     uint8_t topPad;
+    uint8_t clueGap;
     picrossLevelDef_t* selectedLevel;
     picrossExitFunc_t exitFunction;
     bool exitThisFrame;
