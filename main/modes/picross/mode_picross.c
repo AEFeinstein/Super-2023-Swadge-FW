@@ -264,15 +264,31 @@ void picrossGameLoop(int64_t elapsedUs)
     //todo: this has not been tested yet.
     if(p->previousPhase == PICROSS_SOLVING && p->currentPhase == PICROSS_YOUAREWIN)
     {
-        //Save the fact that we won.
         int32_t victories = 0;
-        readNvs32("picross_Solves0", &victories);
-        
-        //shift 1 (0x00...001) over levelIndex times, then OR it with victories.
-        //...I think. If this works it means I wrote a bitwise operation first try, which feels unlikely.
-        victories = victories | (1 << (p->selectedLevel->index));
-        //Save new number
-        writeNvs32("picross_Solves0", victories);
+        if(p->selectedLevel->index <= 32)//levels 0-31
+        {
+            //Save the fact that we won.
+            
+            readNvs32("picross_Solves0", &victories);
+            
+            //shift 1 (0x00...001) over levelIndex times, then OR it with victories.
+            //...I think. If this works it means I wrote a bitwise operation first try, which feels unlikely.
+            victories = victories | (1 << (p->selectedLevel->index));
+            //Save new number
+            writeNvs32("picross_Solves0", victories);
+        }else if(p->selectedLevel->index < 64)//levels 32-64
+        {
+            victories = 0;
+            readNvs32("picross_Solves1", &victories);
+            victories = victories | (1 << (p->selectedLevel->index - 32));
+            writeNvs32("picross_Solves1", victories);
+        }else if(p->selectedLevel->index < 96)//levels 65-95
+        {
+            victories = 0;
+            readNvs32("picross_Solves2", &victories);
+            victories = victories | (1 << (p->selectedLevel->index - 64));
+            writeNvs32("picross_Solves2", victories);
+        }
     }
 
     p->previousPhase = p->currentPhase;

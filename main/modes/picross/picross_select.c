@@ -41,14 +41,34 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     ls->levelCount = 8;
     loadWsg("unknownPuzzle.wsg",&ls->unknownPuzzle);
     //Load in which levels have been completed.
-    int32_t victories = 0;
+    int32_t victories0 = 0;
+    int32_t victories1 = 0;
+    int32_t victories2 = 0;
     //picross_Solves1 would be for levels 33->64
-    readNvs32("picross_Solves0", &victories);
+    readNvs32("picross_Solves0", &victories0);
+    readNvs32("picross_Solves1", &victories1);
+    readNvs32("picross_Solves2", &victories2);
 
+    int32_t v;
+    int j;//bit position of i in appropriate register
     for(int i = 0;i<ls->levelCount;i++)
     {
+        //todo: I bet there is a smarter way to do this.
+        if(i<32){
+            v = victories0;
+            j = i;
+        }else if(i<64)
+        {
+            v = victories1;
+            j = i - 32;
+        }else if(i<96)
+        {
+            v = victories2;
+            j = i - 64;
+        }
+        
         //set completed data from save data.
-        if(1== (victories & ( 1 << i )) >> i){
+        if(1 == (v & ( 1 << j )) >> j){
             levels[i].completed = true;
         }else{
             levels[i].completed = false;
