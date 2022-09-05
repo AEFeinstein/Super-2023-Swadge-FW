@@ -287,42 +287,80 @@ void jumperSetupState(uint8_t stageIndex)
         j->scene->blocks[block] = BLOCK_STANDARD;
     }
 
+
+    j->respawnBlock = 0;
     j->scene->perfect = 30;
     switch(j->scene->level % 10)
     {
-        case 1:          
+        case 1: 
+            break;
+        case 2:   
+            j->scene->blocks[7] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[8] = BLOCK_EVILSTANDARD;
+            j->scene->perfect = 28;
             break;  
-        case 2:
+        case 3:
             j->scene->blocks[7] = BLOCK_EVILSTANDARD;
             j->scene->blocks[10] = BLOCK_EVILSTANDARD;
-            j->scene->perfect = 28;            
+            j->scene->blocks[14] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[15] = BLOCK_EVILSTANDARD;
+            j->scene->perfect = 26;            
             break;
             
-        case 3:
+        case 4:
             j->scene->blocks[13] = BLOCK_EVILSTANDARD;
             j->scene->blocks[14] = BLOCK_EVILSTANDARD;
             j->scene->blocks[15] = BLOCK_EVILSTANDARD;
             j->scene->blocks[16] = BLOCK_EVILSTANDARD;
             j->scene->perfect = 26;            
             break;
-        case 4:            
+        case 5:            
             j->scene->blocks[14] = BLOCK_WARBLESTANDARD;
             j->scene->blocks[17] = BLOCK_WARBLESTANDARD;
             j->scene->perfect = 28;  
             break;
-        case 5:
+        case 6:
             j->scene->blocks[12] = BLOCK_WARBLESTANDARD;
             j->scene->blocks[13] = BLOCK_EVILSTANDARD;
             j->scene->blocks[17] = BLOCK_WARBLESTANDARD;
             j->scene->blocks[16] = BLOCK_EVILSTANDARD;
             j->scene->perfect = 26;
             break;
-        case 6:        
+        case 7:        
             j->scene->blocks[19] = BLOCK_EVILSTANDARD;
             j->scene->blocks[13] = BLOCK_EVILSTANDARD;
             j->scene->blocks[16] = BLOCK_WARBLESTANDARD;
             j->scene->blocks[17] = BLOCK_EVILSTANDARD;
             j->scene->perfect = 26;
+            break;
+        case 8:
+            j->scene->blocks[9] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[13] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[14] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[15] = BLOCK_WARBLESTANDARD;
+            j->scene->blocks[17] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[19] = BLOCK_EVILSTANDARD;
+            j->scene->perfect = 24;
+            break;
+        case 9:
+            j->scene->blocks[7] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[13] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[19] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[20] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[21] = BLOCK_WARBLESTANDARD;
+            j->scene->blocks[22] = BLOCK_EVILSTANDARD;
+            j->scene->perfect = 24;
+            break;
+        case 10:
+            j->scene->blocks[7] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[8] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[6] = BLOCK_WARBLESTANDARD;
+            j->scene->blocks[12] = BLOCK_WARBLESTANDARD;
+            j->scene->blocks[11] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[20] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[21] = BLOCK_WARBLESTANDARD;
+            j->scene->blocks[22] = BLOCK_EVILSTANDARD;
+            j->scene->perfect = 22;           
             break;
     }
 
@@ -330,21 +368,24 @@ void jumperSetupState(uint8_t stageIndex)
 
 void jumperResetPlayer()
 {
+
+    uint8_t block = j->respawnBlock;
+    uint8_t row = j->respawnBlock / 6;
     j->scene->combo = 1;
     j->player->state = CHARACTER_IDLE;
-    j->player->x = j->scene->blockOffset_x + rowOffset[0] + 5;
-    j->player->sx = j->scene->blockOffset_x + rowOffset[0] + 5;
-    j->player->dx = j->scene->blockOffset_x + rowOffset[0] + 5;
-    j->player->y = j->scene->blockOffset_y;
-    j->player->sy = j->scene->blockOffset_y;
-    j->player->dy = j->scene->blockOffset_y;
+    j->player->x = j->scene->blockOffset_x + ((block % 6) * 38) + rowOffset[row % 5] + 5;
+    j->player->sx = j->scene->blockOffset_x + ((block % 6) * 38) + rowOffset[row % 5] + 5;
+    j->player->dx = j->scene->blockOffset_x + ((block % 6) * 38) + rowOffset[row % 5] + 5;
+    j->player->y = j->scene->blockOffset_y + (row * 28);
+    j->player->sy = j->scene->blockOffset_y + (row * 28);
+    j->player->dy = j->scene->blockOffset_y + (row * 28);
     j->player->frameIndex = 0;
-    j->player->block = 0;
+    j->player->block = j->respawnBlock;
     j->player->jumpReady = true;
     j->player->jumping  = false;
     j->player->flipped = false;
 
-
+    
 }
 
 void jumperRemoveEnemies()
@@ -414,6 +455,7 @@ void jumperGameLoop(int64_t elapsedUs)
         case JUMPER_WINSTAGE:
             if (j->scene->seconds < 0)
             {
+                
                 if (j->scene->level % 11 == 0 && j->scene->lives < 3)
                 {
                     j->scene->lives++;
@@ -477,6 +519,8 @@ void jumperGameLoop(int64_t elapsedUs)
 
                     // RESET PLAYER
                     jumperResetPlayer();
+
+
 
                     // Clean up blocks
                     for(uint8_t block = 0; block < 30; block++)
@@ -806,6 +850,7 @@ void jumperCheckLevel()
     j->controlsEnabled = false;
     j->player->jumpReady = false;
     j->scene->time = 5000000;
+    j->respawnBlock = 0;
 
 }
 
@@ -946,7 +991,7 @@ void jumperDoBlump(int64_t elapsedUs)
         case CHARACTER_DEAD:
         case CHARACTER_NONEXISTING:
         {
-
+            //This sets up the section for respawning the Blump. Perhaps I should mimic this for the evil donut            
             blump->respawnTime -= elapsedUs;
             if (blump->respawnTime <= 0)
             {
@@ -959,7 +1004,6 @@ void jumperDoBlump(int64_t elapsedUs)
                 blump->x = blump->sx;
                 blump->dx = blump->sx;
                 blump->dy = j->scene->blockOffset_y;
-                // ESP_LOGI("JUM", "{%d}", blump->block);
             }
             break;
         }
@@ -989,6 +1033,13 @@ void jumperDoEvilDonut(int64_t elapsedUs)
             {
                 // ESP_LOGI("JUM", "AI RESET");
                 evilDonut->intelligence.decideTime = 0;
+
+                ESP_LOGI("JUM", "X  Y distance %d, %d", (player->x - evilDonut->x) >> 2, (player->y - evilDonut->y) >> 2);
+
+                if (((player->x - evilDonut->x) * (player->x - evilDonut->x)) > ((player->y - evilDonut->y) * (player->y - evilDonut->y)) )
+                {
+                    ESP_LOGI("JUM", "X is greater than Y distance %d, %d", (player->x - evilDonut->x) >> 2, (player->y - evilDonut->y) >> 2);
+                }
 
                 if (player->y > evilDonut->y)
                 {
@@ -1129,17 +1180,17 @@ void jumperDoEvilDonut(int64_t elapsedUs)
         case CHARACTER_DEAD:
         case CHARACTER_NONEXISTING:
         {
-
+            //TODO: Make the Evil Donut and Blump have a common way to respawn
             evilDonut->respawnTime -= elapsedUs;
             if (evilDonut->respawnTime <= 0)
             {
                 evilDonut->respawnTime = 5000000;
                 evilDonut->state = CHARACTER_JUMPING;
-                evilDonut->x = j->scene->blockOffset_x + rowOffset[0] + 5;
-                evilDonut->sx = j->scene->blockOffset_x + rowOffset[0] + 5;
-                evilDonut->dx = j->scene->blockOffset_x + rowOffset[0] + 5;
-                evilDonut->block = 0;
-                evilDonut->dBlock = 0;
+                evilDonut->block = esp_random() % 6;
+                evilDonut->dBlock = evilDonut->block;
+                evilDonut->sx = 5 + j->scene->blockOffset_x + ((evilDonut->block % 6) * 38) + rowOffset[0];
+                evilDonut->x = evilDonut->sx;
+                evilDonut->dx = evilDonut->sx;
                 evilDonut->y = 0;
                 evilDonut->sy = 0;
                 evilDonut->dy = j->scene->blockOffset_y;
@@ -1160,6 +1211,14 @@ void jumperKillPlayer()
     j->player->state = CHARACTER_DYING;
     j->player->frameIndex = 4;
     j->player->frameTime = 0;
+    j->respawnBlock = j->player->block;
+
+    if (j->scene->blocks[j->respawnBlock] == BLOCK_EVILSTANDARD ||j->scene->blocks[j->respawnBlock] == BLOCK_EVILLANDED)
+    {
+        j->respawnBlock = 0;
+    }
+
+    ESP_LOGI("JUM", "Player died on %d", j->player->block);
 }
 
 /**
@@ -1390,8 +1449,16 @@ void drawJumperHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
     }
     if (j->currentPhase == JUMPER_WINSTAGE)
     {
+        if (j->scene->combo >= j->scene->perfect)
+        {
+            drawText(d, outline, c000, "AWESOME!", 90, 128);
+            drawText(d, font, c555, "AWESOME!", 90, 128);
+        }
+        else
+        {
             drawText(d, outline, c000, "SWEET!", 100, 128);
             drawText(d, font, c555, "SWEET!", 100, 128);
+        }
     }
     
         

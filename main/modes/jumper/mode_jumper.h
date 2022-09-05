@@ -111,6 +111,8 @@ typedef struct
     jumperStage_t* scene;
     bool controlsEnabled;
 
+    uint8_t respawnBlock;
+
     uint64_t jumperJumpTime;
     uint32_t highScore;
 
