@@ -105,7 +105,9 @@ typedef struct
     int64_t frameElapsed;
     display_t* d;
     font_t game_font;
-    font_t* promptFont;
+    font_t outline_font;
+    font_t fill_font;
+    font_t* prompt_font;
     jumperStage_t* scene;
     bool controlsEnabled;
 

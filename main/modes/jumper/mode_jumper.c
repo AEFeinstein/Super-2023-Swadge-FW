@@ -48,7 +48,7 @@ void jumperClearBlock(uint8_t blockIndex);
 
 void drawJumperScene(display_t* d);
 void drawJumperEffects(display_t* d);
-void drawJumperHud(display_t* d, font_t* prompt, font_t* font);
+void drawJumperHud(display_t* d, font_t* prompt, font_t* font, font_t* outline);
 
 //==============================================================================
 // Variables
@@ -194,11 +194,11 @@ static const song_t jumpBlumpJump =
 void jumperStartGame(display_t* disp, font_t* mmFont)
 {
     j = calloc(1, sizeof(jumperGame_t));
-
     j->d = disp;
-    j->promptFont = mmFont;
-
-    loadFont("radiostars.font", &(j->game_font));
+    j->prompt_font = mmFont;
+    loadFont("early_gameboy_fill.font", &(j->fill_font));
+    loadFont("early_gameboy_outline.font", &(j->outline_font));
+    loadFont("early_gameboy.font", &(j->game_font));
 
     j->multiplier = calloc(3, sizeof(jumperMultiplier_t));
 
@@ -291,7 +291,7 @@ void jumperSetupState(uint8_t stageIndex)
     switch(j->scene->level % 10)
     {
         case 1:          
-            break;
+            break;  
         case 2:
             j->scene->blocks[7] = BLOCK_EVILSTANDARD;
             j->scene->blocks[10] = BLOCK_EVILSTANDARD;
@@ -309,6 +309,20 @@ void jumperSetupState(uint8_t stageIndex)
             j->scene->blocks[14] = BLOCK_WARBLESTANDARD;
             j->scene->blocks[17] = BLOCK_WARBLESTANDARD;
             j->scene->perfect = 28;  
+            break;
+        case 5:
+            j->scene->blocks[12] = BLOCK_WARBLESTANDARD;
+            j->scene->blocks[13] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[17] = BLOCK_WARBLESTANDARD;
+            j->scene->blocks[16] = BLOCK_EVILSTANDARD;
+            j->scene->perfect = 26;
+            break;
+        case 6:        
+            j->scene->blocks[19] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[13] = BLOCK_EVILSTANDARD;
+            j->scene->blocks[16] = BLOCK_WARBLESTANDARD;
+            j->scene->blocks[17] = BLOCK_EVILSTANDARD;
+            j->scene->perfect = 26;
             break;
     }
 
@@ -763,17 +777,23 @@ bool jumperDoEnemyLand(uint8_t blockIndex)
     return false;
 }
 
+
+//Cycle through every block to see if it's still a standard block
 void jumperCheckLevel()
 {
     for(uint8_t block = 0; block < 30; block++)
     {
-        if (j->scene->blocks[block] == BLOCK_STANDARD)
+        //TODO: If we make a multi colored block ("Like you have to jump on it twice to complete it") this won't work
+        if (j->scene->blocks[block] == BLOCK_STANDARD || j->scene->blocks[block] == BLOCK_STANDARDLANDED)
         {
             return;
         }
     }
 
+    //Attempt to stop all sounds
     buzzer_stop();
+
+    //If player landed on all of the blocks without doubling back, play perfect tune
     if (j->scene->combo < j->scene->perfect)
     {
         buzzer_play_bgm(&jumpWinTune);        
@@ -789,6 +809,7 @@ void jumperCheckLevel()
 
 }
 
+//Enemy 1 (Blump) AI
 void jumperDoBlump(int64_t elapsedUs)
 {
     jumperCharacter_t* blump = j->blump;
@@ -946,6 +967,7 @@ void jumperDoBlump(int64_t elapsedUs)
 
 }
 
+//Enemy 2 (Evil Donut) AI
 void jumperDoEvilDonut(int64_t elapsedUs)
 {
     jumperCharacter_t* player = j->player;
@@ -1128,6 +1150,10 @@ void jumperDoEvilDonut(int64_t elapsedUs)
 
 }
 
+/**
+ * @brief Set player state to dying
+ * 
+ */
 void jumperKillPlayer()
 {
     buzzer_play_bgm(&jumpDeathTune);
@@ -1187,8 +1213,7 @@ void jumperPlayerInput(void)
         }
         else if (player->state == CHARACTER_JUMPCROUCH)
         {
-            // ESP_LOGI("JUM", "Jumping from %d block to block %d", player->block, player->dBlock);
-
+            //Asume the player can jump then set to false if not
             bool legitJump = true;
 
             if (player->dBlock >= 30)
@@ -1272,7 +1297,7 @@ void drawJumperScene(display_t* d)
     }
 
     drawJumperEffects(d);
-    drawJumperHud(d, j->promptFont, &j->game_font);
+    drawJumperHud(d, &j->game_font, &j->fill_font, &j->outline_font);
 
 }
 
@@ -1283,8 +1308,7 @@ void drawJumperEffects(display_t* d)
         //if statement to see if mutiplier is active
         if (j->multiplier[i].digits[0] == 255)
         {            
-            drawWsg(d, &j->digit[11], j->multiplier[i].x, j->multiplier[i].y, false, false, 0);
-            
+            drawWsg(d, &j->digit[11], j->multiplier[i].x, j->multiplier[i].y, false, false, 0);            
         }
 
         if (j->multiplier[i].digits[0] >= 11 || j->multiplier[i].digits[0] == 0) continue;
@@ -1303,7 +1327,7 @@ void drawJumperEffects(display_t* d)
     }
 }
 
-void drawJumperHud(display_t* d, font_t* prompt, font_t* font)
+void drawJumperHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
 {
     char textBuffer[12];
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", j->scene->level);
@@ -1317,57 +1341,60 @@ void drawJumperHud(display_t* d, font_t* prompt, font_t* font)
         drawText(d, font, c555, textBuffer, 214, 220);
     }
 
-    drawText(d, font, c555, "SCORE", 28, 10);
+    drawText(d, prompt, c555, "SCORE", 28, 10);
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", j->scene->score);
-    drawText(d, font, c555, textBuffer, 28, 26);
+    drawText(d, prompt, c555, textBuffer, 28, 30);
 
-    drawText(d, font, c555, "HI SCORE", 178, 10);
+    drawText(d, prompt, c555, "HI SCORE", 168, 10);
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", j->highScore);
-    drawText(d, font, c555, textBuffer, 204, 26);
+    drawText(d, prompt, c555, textBuffer, 204, 30);
 
     for (int i = 0; i < j->scene->lives; i++)
     {
         drawWsg(d, &j->scene->livesIcon, 25 + (i * 11), 220, false, false, 0);
     }
 
-
+    //Show countdown sequence
     if (j->currentPhase == JUMPER_COUNTDOWN)
     {
         if (j->scene->seconds <= 0)
         {
+            drawText(d, outline, c000, "JUMP!", 100, 128);
+            drawText(d, font, c555, "JUMP!", 100, 128);
+            
         }
         else if (j->scene->seconds <= 3 )
         {
             snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", j->scene->seconds);
-            drawText(d, prompt, c000, textBuffer, 142, 128);
-            drawText(d, prompt, c555, textBuffer, 140, 128);
+            drawText(d, outline, c000, textBuffer, 140, 128);
+            drawText(d, font, c555, textBuffer, 140, 128);
         }
         else
         {
-            drawText(d, prompt, c000, "Ready?", 102, 128);
-            drawText(d, prompt, c555, "Ready?", 100, 128);
+            drawText(d, outline, c000, "READY", 100, 128);
+            drawText(d, font, c555, "READY", 100, 128);
         }
     }
     if (j->currentPhase == JUMPER_GAMING)
     {
         if (j->scene->seconds <= 0 && j->scene->seconds > -2)
         {
-            drawText(d, prompt, c000, "JUMP!", 122, 129);
-            drawText(d, prompt, c555, "JUMP!", 120, 128);
+            drawText(d, outline, c000, "JUMP!", 100, 128);
+            drawText(d, font, c555, "JUMP!", 100, 128);
         }
     }
     if (j->currentPhase == JUMPER_GAME_OVER)
     {
-        drawText(d, prompt, c000, "GAME OVER", 77, 129);
-        drawText(d, prompt, c555, "GAME OVER", 75, 128);
+        drawText(d, outline, c000, "GAME OVER", 80, 128);
+        drawText(d, font, c555, "GAME OVER", 80, 128);
     }
     if (j->currentPhase == JUMPER_WINSTAGE)
     {
-        drawText(d, prompt, c000, "JUMP COMPLETE!", 22, 129);
-        drawText(d, prompt, c555, "JUMP COMPLETE!", 20, 128);
+            drawText(d, outline, c000, "SWEET!", 100, 128);
+            drawText(d, font, c555, "SWEET!", 100, 128);
     }
     
-
+        
 }
 
 void jumperGameButtonCb(buttonEvt_t* evt)
@@ -1384,6 +1411,8 @@ void jumperExitGame(void)
 
         freeWsg(&j->scene->livesIcon);
         freeFont(&(j->game_font));
+        freeFont(&(j->outline_font));
+        freeFont(&(j->fill_font));
 
         freeWsg(&j->block[0]);
         freeWsg(&j->block[1]);
@@ -1408,6 +1437,7 @@ void jumperExitGame(void)
         freeWsg(&j->digit[9]);
         freeWsg(&j->digit[10]);
         freeWsg(&j->digit[11]);
+
 
         freeWsg(&j->player->frames[0]);
         freeWsg(&j->player->frames[1]);
