@@ -106,6 +106,8 @@ void picrossEnterMode(display_t* disp)
 
 void picrossExitMode(void)
 {
+    picrossExitLevelSelect();//this doesnt actually get called as we go in and out of levelselect
+
     picrossExitGame();
     deinitMeleeMenu(pm->menu);
     //p2pDeinit(&jm->p2p);
@@ -117,11 +119,21 @@ void loadLevels()
 {
     loadWsg("test1.wsg", &pm->levels[0].levelWSG);
     loadWsg("test1_complete.wsg", &pm->levels[0].completedWSG);
-    pm->levels[0].index = 0;
 
     loadWsg("test2.wsg", &pm->levels[1].levelWSG);
     loadWsg("test2_c.wsg", &pm->levels[1].completedWSG);
-    pm->levels[1].index = 1;
+
+    loadWsg("3_boat.wsg", &pm->levels[2].levelWSG);
+    loadWsg("3_boat_c.wsg", &pm->levels[2].completedWSG);
+
+    //the current levelCOunt is set to 8, but 0-9 are not loaded. if you select them, it will just break.
+
+
+    //set indices. Used to correctly set save data. levels are loaded without context of their array, so they carry the index data with them.
+    for(int i = 0;i<8;i++)
+    {
+        pm->levels[i].index = i;
+    }
 }
 
 /**
@@ -229,6 +241,7 @@ void picrossMainMenuCb(const char* opt)
 
 void SelectPicrossLevel(picrossLevelDef_t* selectedLevel)
 {
+    //picrossExitLevelSelect();//we do this BEFORE we enter startGame.
     pm->screen = PICROSS_GAME;
     picrossStartGame(pm->disp, &pm->mmFont, (void*)ReturnToLevelSelect, selectedLevel);
 }
@@ -237,5 +250,6 @@ void ReturnToLevelSelect()
 {
     //todo: abstract this to function
     pm->screen = PICROSS_LEVELSELECT;
-    picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels,(picrossLevelDef_t**)SelectPicrossLevel);      
+    //todo: fix below warning
+    picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels,(picrossLevelDef_t*)SelectPicrossLevel);      
 }

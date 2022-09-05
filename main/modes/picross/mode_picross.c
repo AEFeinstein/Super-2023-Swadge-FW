@@ -41,7 +41,7 @@ bool hintsMatch(picrossHint_t a, picrossHint_t b);
 box_t boxFromCoord(int8_t x, int8_t y);
 picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t source[10][10]);
 void drawPicrossScene(display_t* d);
-void drawPicrossHud(display_t* d, font_t* prompt, font_t* font);
+void drawPicrossHud(display_t* d, font_t* font);
 void drawHint(display_t* d,font_t* font, picrossHint_t hint);
 void drawPicrossInput(display_t* d);
 
@@ -68,7 +68,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossExitFunc_t* exitFu
     p->selectedLevel = selectedLevel;
     p->currentPhase = PICROSS_SOLVING;
     p->d = disp;
-    p->promptFont = mmFont;
+    // p->promptFont = mmFont;
     p->drawScale = 25;
     p->leftPad = 200;
     p->topPad = 130;
@@ -250,13 +250,13 @@ void picrossGameLoop(int64_t elapsedUs)
     {
         //Save the fact that we won.
         int32_t victories = 0;
-        readNvs32("picrossSolves", &victories);
+        readNvs32("picross_Solves0", &victories);
         
         //shift 1 (0x00...001) over levelIndex times, then OR it with victories.
         //...I think. If this works it means I wrote a bitwise operation first try, which feels unlikely.
         victories = victories | (1 << (p->selectedLevel->index));
         //Save new number
-        writeNvs32("picrossSolves", victories);
+        writeNvs32("picross_Solves0", victories);
     }
 
     p->previousPhase = p->currentPhase;
@@ -387,9 +387,11 @@ void picrossUserInput(void)
         if(current != SPACE_MARKEMPTY)
         {
             current = SPACE_MARKEMPTY;
+            input->changedLevelThisFrame = true;//shouldnt be needed
         }else
         {
             current = SPACE_EMPTY;
+            input->changedLevelThisFrame = true;//shouldnt be needed
         }
         //set the toggle.
         p->puzzle->level[x][y] = current;
@@ -462,8 +464,6 @@ void picrossUserInput(void)
         }
     }
 
-    
-
     input->prevBtnState = input->btnState; 
 }
 
@@ -503,7 +503,7 @@ void drawPicrossScene(display_t* d)
                 }
             }
         }
-        drawPicrossHud(d, p->promptFont, &p->game_font);
+        drawPicrossHud(d,&p->game_font);
         drawPicrossInput(d);
     }//end if phase is solving   
     else if (p->currentPhase == PICROSS_YOUAREWIN)
@@ -538,7 +538,7 @@ box_t boxFromCoord(int8_t x,int8_t y)
         return box;
 }
 
-void drawPicrossHud(display_t* d, font_t* prompt, font_t* font)
+void drawPicrossHud(display_t* d,font_t* font)
 {
     char textBuffer[12];
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%d,%d", p->input->x+1,p->input->y+1);

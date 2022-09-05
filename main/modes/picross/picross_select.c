@@ -36,13 +36,14 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     ls = calloc(1, sizeof(picrossLevelSelect_t));
     ls->disp = disp;
     ls->game_font = font;
-    ls->selectLevel = selectLevelFunc;
+    ls->selectLevel = (picrossSelectLevelFunc_t*)selectLevelFunc;
     //8 is numLevels
     ls->levelCount = 8;
     loadWsg("unknownPuzzle.wsg",&ls->unknownPuzzle);
     //Load in which levels have been completed.
     int32_t victories = 0;
-    readNvs32("picrossSolves", &victories);
+    //picross_Solves1 would be for levels 33->64
+    readNvs32("picross_Solves0", &victories);
 
     for(int i = 0;i<ls->levelCount;i++)
     {
@@ -94,7 +95,8 @@ void levelSelectInput()
     {
         ls->chosenLevel = &ls->levels[ls->hoverLevelIndex];
         ls->selectLevel(ls->chosenLevel);
-        picrossExitLevelSelect();
+        //actually we dont do this.
+        // picrossExitLevelSelect();
         return;
     }
     //Input Movement checks
