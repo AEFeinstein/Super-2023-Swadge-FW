@@ -18,12 +18,13 @@ meleeMenu_t * menu;
 font_t meleeMenuFont;
 display_t * disp;
 
+//char buffer[2048];
+
 const char * menu_MainMenu = "Main Menu";
 const char * menu_Bootload = "Bootloader";
 
 //#define REBOOT_TEST
-//#define PROFILE_TEST
-
+#define PROFILE_TEST
 
 // Example to do true inline assembly.  This will actually compile down to be
 // included in the code, itself, and "should" (does in all the tests I've run)
@@ -146,7 +147,6 @@ void sandbox_tick()
 
 	if( menu )
 	    drawMeleeMenu(disp, menu);
-
 }
 
 void sandbox_button(buttonEvt_t* evt)

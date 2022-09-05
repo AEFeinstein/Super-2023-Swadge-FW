@@ -99,10 +99,6 @@ void gamepadEnterMode(display_t* disp)
 
     // Load the font
     loadFont("ibm_vga8.font", &(gamepad->ibmFont));
-
-    /* Initialize USB peripheral */
-    tinyusb_config_t tusb_cfg = {};
-    tinyusb_driver_install(&tusb_cfg);
 }
 
 /**
