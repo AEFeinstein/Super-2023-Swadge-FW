@@ -270,6 +270,10 @@ void app_main(void)
     // esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_OFF);
     esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_ON);
 
+    /* Initialize USB peripheral */
+    tinyusb_config_t tusb_cfg = {};
+    tinyusb_driver_install(&tusb_cfg);
+
     // Set up timers
     esp_timer_init();
 
