@@ -102,7 +102,6 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
 
 void picrossLevelSelectLoop(int64_t elapsedUs)
 {
-    
     //Draw The Screen
     drawLevelSelectScreen(ls->disp,ls->game_font);
 
@@ -110,7 +109,6 @@ void picrossLevelSelectLoop(int64_t elapsedUs)
     //has to happen last so we can free up on exit.
     //todo: make a (free/exit) bool flag.
     levelSelectInput();
-    
 }
 
 void levelSelectInput()
@@ -197,18 +195,7 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
         }
     }
     
-    //draw level choose input
-    x = ls->hoverX;
-    y = ls->hoverY;
     
-    box_t inputBox =
-    {
-        .x0 = (x * s) + ls->paddingLeft+ ls->gap*x,
-        .y0 = (y * s) + ls->paddingTop+ ls->gap*y,
-        .x1 = (x * s) + s + ls->paddingLeft+ ls->gap*x,
-        .y1 = (y * s) + s + ls->paddingTop+ ls->gap*y,
-    }; 
-    drawBox(d,inputBox,c500,false,1);
 
     // //Draw "name" of current level
     // char letter[1];
@@ -217,10 +204,30 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
     // drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], 158, 120);
 
     if(ls->hoverLevelIndex < ls->levelCount){//jic
+        //draw level choose input
+        x = ls->hoverX;
+        y = ls->hoverY;
+        
+        box_t inputBox =
+        {
+            .x0 = (x * s) + ls->paddingLeft+ ls->gap*x,
+            .y0 = (y * s) + ls->paddingTop+ ls->gap*y,
+            .x1 = (x * s) + s + ls->paddingLeft+ ls->gap*x,
+            .y1 = (y * s) + s + ls->paddingTop+ ls->gap*y,
+        }; 
+        
+    
+        
+
+        //draw preview window
         if(ls->levels[ls->hoverLevelIndex].completed){
+            //if completed, show victory image and green hover
             drawPreviewWindow(d,&ls->levels[ls->hoverLevelIndex].completedWSG);
+            drawBox(d,inputBox,c151,false,1);
         }else{
+            //if incomplete, show ? image and red hvoer
             drawPreviewWindow(d,&ls->unknownPuzzle);
+            drawBox(d,inputBox,c511,false,1);
         }
     }
 }

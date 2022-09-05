@@ -22,6 +22,7 @@ typedef enum
 {
     PICROSS_MENU,
     PICROSS_LEVELSELECT,
+    PICROSS_OPTIONS,
     PICROSS_GAME
 } picrossScreen_t;
 
@@ -34,6 +35,8 @@ typedef struct
     picrossScreen_t screen;
     bool menuChanged;
     int32_t savedIndex;
+    uint8_t settingsPos;
+    int32_t options;//bit 0: hints
 } picrossMenu_t;
 //==============================================================================
 // Function Prototypes
@@ -45,14 +48,34 @@ void picrossMainLoop(int64_t elapsedUs);
 void picrossButtonCb(buttonEvt_t* evt);
 void loadLevels(void);
 void picrossMainMenuCb(const char* opt);
+void picrossMenuOptionsCb(const char* opt);
+void PicrossSetSaveFlag(int pos, bool on);
+bool PicrossGetSaveFlag(int pos);
 
 //==============================================================================
 // Variables
 //==============================================================================
+//Todo: these maybe dont need to be static?
+//how are const compiled in c? whats the smart way to do this?
+
+static const char str_picrossTitle[] = "Magcross";
+static const char str_continue[] = "Continue";
+static const char str_levelSelect[] = "Puzzle Select";
+static const char str_howtoplay[] = "How To Play";
+static const char str_exit[] = "Exit";
+
+
+//Options Menu
+static const char str_options[] = "Options";
+
+static const char str_back[] = "Back";
+static const char str_HintsOn[] = "Hints: On";
+static const char str_HintsOff[] = "Hints: Off";
+static const char str_eraseProgress[] = "Erase Progress";
 
 swadgeMode modePicross =
 {
-    .modeName = "NonogramFest",
+    .modeName = "Magcross",//set here and above
     .fnEnterMode = picrossEnterMode,
     .fnExitMode = picrossExitMode,
     .fnMainLoop = picrossMainLoop,
@@ -66,12 +89,7 @@ swadgeMode modePicross =
     .fnTemperatureCallback = NULL,
 };
 
-//Todo: these maybe dont need to be static?
-static const char str_picrossTitle[] = "NonogramFest";
-static const char str_continue[] = "Continue";
-static const char str_howtoplay[] = "How To Play";
-static const char str_levelSelect[] = "Puzzle Select";
-static const char str_exit[] = "Exit";
+
 
 picrossMenu_t* pm;
 
@@ -95,9 +113,10 @@ void picrossEnterMode(display_t* disp)
 
     pm->menu = initMeleeMenu(str_picrossTitle, &(pm->mmFont), picrossMainMenuCb);
 
-    setPicrossMainMenu();
+    setPicrossMainMenu(true);
 
     pm->screen = PICROSS_MENU;
+    pm->options = 0;//todo: read data from disk.
 
     loadLevels();
 }
@@ -149,6 +168,7 @@ void picrossMainLoop(int64_t elapsedUs)
 {
     switch(pm->screen)
     {
+        case PICROSS_OPTIONS:
         case PICROSS_MENU:
         {
             if (pm->menuChanged)
@@ -180,6 +200,7 @@ void picrossButtonCb(buttonEvt_t* evt)
 {
     switch(pm->screen)
     {
+        case PICROSS_OPTIONS:
         case PICROSS_MENU:
         {
             //Pass button events from the Swadge mode to the menu
@@ -210,8 +231,33 @@ void picrossButtonCb(buttonEvt_t* evt)
 /**
  * @brief Sets up the top level menu for Picross
  */
-void setPicrossMainMenu(void)
+void setPicrossMainMenu(bool resetPos)
 {
+    // Set the position of the hovered row
+    if(resetPos)
+    {
+        pm->menu->selectedRow = 0;
+    }
+
+    //override the main menu with the options menu instead.
+    
+    if(pm->screen == PICROSS_OPTIONS)
+    {
+        //Draw the options menu
+        resetMeleeMenu(pm->menu, str_options, picrossMainMenuCb);
+        if(PicrossGetSaveFlag(0))//are hints on?
+        {
+            addRowToMeleeMenu(pm->menu, str_HintsOn);
+        }else{
+            addRowToMeleeMenu(pm->menu, str_HintsOff);
+        }
+        addRowToMeleeMenu(pm->menu, str_eraseProgress);
+        addRowToMeleeMenu(pm->menu, str_back);
+        return;
+    }
+    
+    //otherwise, if we are in ANY game state, this should default (and set) to picross_menu
+
     resetMeleeMenu(pm->menu, str_picrossTitle, picrossMainMenuCb);
 
     //only display continue button if we have a game in progress.
@@ -223,11 +269,15 @@ void setPicrossMainMenu(void)
         pm->savedIndex = -1;//there is no current index.
     }
 
-    if(pm->savedIndex >= 0){
+    //TODO: continue button not appearing?
+    if(pm->savedIndex >= 0)
+    {
         addRowToMeleeMenu(pm->menu, str_continue);
     }
+
     addRowToMeleeMenu(pm->menu, str_levelSelect);
     addRowToMeleeMenu(pm->menu, str_howtoplay);
+    addRowToMeleeMenu(pm->menu, str_options);
     addRowToMeleeMenu(pm->menu, str_exit);
     pm->menuChanged = true;
     pm->screen = PICROSS_MENU;
@@ -235,8 +285,8 @@ void setPicrossMainMenu(void)
 
 void returnToPicrossMenu(void)
 {
-    picrossExitLevelSelect();
-    setPicrossMainMenu();
+    picrossExitLevelSelect();//free data
+    setPicrossMainMenu(false);
 }
 
 //menu button callbacks. Set the screen and call the appropriate start functions
@@ -270,6 +320,41 @@ void picrossMainMenuCb(const char* opt)
         // Exit to main menu
         switchToSwadgeMode(&modeMainMenu);
         return;
+    }else if(opt == str_back)
+    {
+        pm->menuChanged = true;
+        pm->screen = PICROSS_MENU;
+        setPicrossMainMenu(true);
+    }else if(opt == str_options)
+    {
+        pm->menuChanged = true;
+        pm->screen = PICROSS_OPTIONS;
+        setPicrossMainMenu(true);
+    }else if(opt == str_HintsOff)
+    {
+        //turn hints back on
+        PicrossSetSaveFlag(0,true);
+        pm->menuChanged = true;
+        setPicrossMainMenu(false);//re-setup menu with new text, but dont change cursor position
+    }
+    else if(opt == str_HintsOn)
+    {
+        //turn hints off
+        PicrossSetSaveFlag(0,false);
+        pm->menuChanged = true;
+        setPicrossMainMenu(false);
+    }else if(opt == str_eraseProgress)
+    {
+        //Erase all gameplay data
+        //doesnt erase settings.
+        writeNvs32("picross_Solves0", 0);
+        writeNvs32("picross_Solves1", 0);
+        writeNvs32("picross_Solves2", 0);
+        for(int i = 0;i<10;i++)
+        {
+            writeNvs32(getBankName(0), 0);
+        }
+        
     }
 }
 
@@ -280,10 +365,35 @@ void selectPicrossLevel(picrossLevelDef_t* selectedLevel)
     picrossStartGame(pm->disp, &pm->mmFont, selectedLevel, false);
 }
 
-void returnToLevelSelect()
+void returnToLevelSelect()//todo: rename
 {
     //todo: abstract this to function
     pm->screen = PICROSS_LEVELSELECT;
     //todo: fix below warning
     picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels);      
+}
+
+bool PicrossGetSaveFlag(int pos)
+{
+    //read once on loading menu?
+
+    if(false == readNvs32("pic_options", &pm->options))
+    {
+        writeNvs32("pic_options", 0);
+    }
+
+    
+    int val = (pm->options & ( 1 << pos )) >> pos;
+    return val == 1;//hints will be first bit. IT IS DECIDED
+}
+//also sets pm->options
+void PicrossSetSaveFlag(int pos, bool on)
+{
+    if(on)
+    {
+        pm->options = pm->options | (1 << (pos));
+    }else{
+        pm->options = pm->options & ~(1 << (pos));
+    }
+    writeNvs32("pic_options", pm->options);
 }

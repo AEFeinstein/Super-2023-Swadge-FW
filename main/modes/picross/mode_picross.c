@@ -48,7 +48,7 @@ void drawPicrossInput(display_t* d);
 void drawBackground(display_t* d);
 void countInput(picrossDir_t input);
 int8_t getHintShift(uint8_t hint);
-
+void saveCompletedOnSelectedLevel(bool completed);
 //==============================================================================
 // Variables
 //==============================================================================
@@ -85,7 +85,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->puzzle->width = 10;
     p->puzzle->height = 10;
 
-    //todo: im doing a lot of this again in REsetInput, which I don't actually need. Its a holdover from my boilerplate.
+    //todo: im doing a lot of this again in ResetInput. Its a holdover from my boilerplate. todo: I want to most of this into there.
     p->input = calloc(1, sizeof(picrossInput_t));
     p->input->x=0;
     p->input->y=0;
@@ -97,8 +97,10 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->firstDASTime = 500000;//.5 seconds
     p->input->DASTime = 220000;//1,000,000 = 1 second.
     p->input->startHeldType = OUTOFBOUNDS;
-    p->save = calloc(1, sizeof(picrossSaveData_t));
+    p->input->inputBoxColor = c430;
+
     //save data configure
+    p->save = calloc(1, sizeof(picrossSaveData_t));
     for(int i=0;i<8;i++)
     {
         p->save->banks[i] = 0;
@@ -156,6 +158,7 @@ void picrossSetupPuzzle(bool cont)
             }
         }
         savePicrossProgress();//clear out your previous (victory) data.
+        saveCompletedOnSelectedLevel(false);//clear out the fact that you have, perhaps, beaten this level before.
     }
 
     //Get chosen level and load it's data...
@@ -279,7 +282,8 @@ void picrossGameLoop(int64_t elapsedUs)
     picrossUserInput(elapsedUs);
     if(p->exitThisFrame)
     {
-        picrossExitGame();
+        picrossExitGame();//free variables
+        returnToPicrossMenu();//change to menu
         //dont do more processing, we have switched back to level select screen.
         return;
     }
@@ -312,34 +316,8 @@ void picrossGameLoop(int64_t elapsedUs)
 
         setLeds(leds, NUM_LEDS);
 
-        //Save Victory
-        writeNvs32("pic_cur_ind", -1);//Unset the current level so we cant continue a won game.
-
-        int32_t victories = 0;
-        if(p->selectedLevel->index <= 32)//levels 0-31
-        {
-            //Save the fact that we won.
-            
-            readNvs32("picross_Solves0", &victories);
-            
-            //shift 1 (0x00...001) over levelIndex times, then OR it with victories.
-            //...I think. If this works it means I wrote a bitwise operation first try, which feels unlikely.
-            victories = victories | (1 << (p->selectedLevel->index));
-            //Save new number
-            writeNvs32("picross_Solves0", victories);
-        }else if(p->selectedLevel->index < 64)//levels 32-64
-        {
-            victories = 0;
-            readNvs32("picross_Solves1", &victories);
-            victories = victories | (1 << (p->selectedLevel->index - 32));
-            writeNvs32("picross_Solves1", victories);
-        }else if(p->selectedLevel->index < 96)//levels 65-95
-        {
-            victories = 0;
-            readNvs32("picross_Solves2", &victories);
-            victories = victories | (1 << (p->selectedLevel->index - 64));
-            writeNvs32("picross_Solves2", victories);
-        }
+        //save the fact that we won
+        saveCompletedOnSelectedLevel(true);
     }
 
     p->previousPhase = p->currentPhase;
@@ -409,10 +387,9 @@ bool hintsMatch(picrossHint_t a, picrossHint_t b)
     return true;
 }
 
-/**
- * @brief Process controls
- *
- */
+//==============================================
+//CONTROLS & INPUT
+//==============================================
 
 void picrossUserInput(int64_t elapsedUs)
 {
@@ -431,7 +408,7 @@ void picrossUserInput(int64_t elapsedUs)
     {
         savePicrossProgress();
         // returnToLevelSelect();//im on the fence about how this should behave. to level or main.
-        returnToPicrossMenu();//now that it hovers over continue, i think main is better.
+        // returnToPicrossMenu();//now that it hovers over continue, i think main is better.
         p->exitThisFrame = true;//stops drawing to the screen, stops messing with variables, frees memory.
         return;
     }
@@ -678,8 +655,9 @@ void countInput(picrossDir_t input)
     p->countState = input;
 }
 
-
+//==========================================================
 /// DRAWING SCENE
+//========================================================
 
 void drawPicrossScene(display_t* d)
 {
@@ -886,7 +864,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 //drawBox(d,hintbox,c111,false,1);//same as above
                 char letter[1];
                 sprintf(letter, "%d", h);
-                //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
+                //as a "temporary" workaround, we will use x1 and y1 and subtract the drawscale.
                 drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale)) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
                 sprintf(letter, "%d", hint.hints[4-i]%10);
                 drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale+p->drawScale/2)) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
@@ -953,7 +931,13 @@ void drawPicrossInput(display_t* d)
     box_t inputBox = boxFromCoord(p->input->x,p->input->y);
     inputBox.x1 = inputBox.x1+1;
     inputBox.y1 = inputBox.y1+1;//cover up both marking lines
-    drawBox(d, inputBox, c050, false, 1);
+    drawBox(d, inputBox, p->input->inputBoxColor, false, 1);
+    //draw it twice as thicc 
+    inputBox.x0 = inputBox.x0-2; 
+    inputBox.y0 = inputBox.y0-2; 
+    inputBox.x1 = inputBox.x1+2; 
+    inputBox.y1 = inputBox.y1+2;
+    drawBox(d, inputBox, p->input->inputBoxColor, false, 1);
 }
 
 void drawBackground(display_t* d)
@@ -1039,7 +1023,49 @@ void loadPicrossProgress()
         }
     }    
 }
+void saveCompletedOnSelectedLevel(bool completed)
+{
+//Save Victory
+        writeNvs32("pic_cur_ind", -1);//Unset the current level so we cant continue a won game.
 
+        int32_t victories = 0;
+        if(p->selectedLevel->index <= 32)//levels 0-31
+        {
+            //Save the fact that we won.
+            
+            readNvs32("picross_Solves0", &victories);
+            
+            //shift 1 (0x00...001) over levelIndex times, then OR it with victories.
+            if(completed)
+            {
+                victories = victories | (1 << (p->selectedLevel->index));
+            }else{
+                victories = victories & ~(1 << (p->selectedLevel->index));
+            }
+            //Save new number
+            writeNvs32("picross_Solves0", victories);
+        }else if(p->selectedLevel->index < 64)//levels 32-64
+        {
+            victories = 0;
+            readNvs32("picross_Solves1", &victories);
+            if(completed){
+                victories = victories | (1 << (p->selectedLevel->index - 32));
+            }else{
+                victories = victories & ~(1 << (p->selectedLevel->index - 32));
+            }
+            writeNvs32("picross_Solves1", victories);
+        }else if(p->selectedLevel->index < 96)//levels 65-95
+        {
+            victories = 0;
+            readNvs32("picross_Solves2", &victories);
+            if(completed){
+                victories = victories | (1 << (p->selectedLevel->index - 64));
+            }else{
+                victories = victories & ~(1 << (p->selectedLevel->index - 64));
+            }
+            writeNvs32("picross_Solves2", victories);
+        }
+}
 //I promise I tried to do a proper index->row/col mapping here, since we only need 100*2 bits of data. (<320 used here) but i kept messing the math up.
 //I know that 120 bits is not a lot, but on principle, it bothers me and I would like to optimize this in the future.
 

@@ -47,6 +47,7 @@ typedef struct
     picrossDir_t holdingDir;
     int64_t DASTime;
     int64_t firstDASTime;
+    paletteColor_t inputBoxColor;
     bool DASActive;//true after the first DAS input has happened.
 } picrossInput_t;
 
