@@ -6,10 +6,10 @@
 #include "picross_select.h"
 typedef enum
 {
-    SPACE_EMPTY = 0,
-    SPACE_FILLED = 1,
-    SPACE_MARKEMPTY = 2,
-    OUTOFBOUNDS = 3
+    SPACE_EMPTY = 0,//00
+    SPACE_FILLED = 1,//01
+    SPACE_MARKEMPTY = 2,//10
+    OUTOFBOUNDS = 3//11
 } picrossSpaceType_t;
 
 typedef enum
@@ -20,13 +20,12 @@ typedef enum
 
 typedef enum
 {
-    PICROSSCOUNTER_IDLE = 0,
-    PICROSSCOUNTER_LEFT = 1,
-    PICROSSCOUNTER_RIGHT =2,
-    PICROSSCOUNTER_DOWN = 3,
-    PICROSSCOUNTER_UP =4,
-    
-} counterState_t;
+    PICROSSDIR_IDLE = 0,
+    PICROSSDIR_LEFT = 1,
+    PICROSSDIR_RIGHT =2,
+    PICROSSDIR_DOWN = 3,
+    PICROSSDIR_UP =4,
+} picrossDir_t;//this could be made generic and used for counter or 
 
 typedef struct
 {
@@ -37,12 +36,18 @@ typedef struct
 
 typedef struct
 {
+    picrossSpaceType_t startHeldType;
     uint8_t x;
     uint8_t y;
     uint16_t prevBtnState;
     uint16_t btnState;
     bool movedThisFrame;
     bool changedLevelThisFrame;
+    int64_t timeHeldDirection;
+    picrossDir_t holdingDir;
+    int64_t DASTime;
+    int64_t firstDASTime;
+    bool DASActive;//true after the first DAS input has happened.
 } picrossInput_t;
 
 typedef struct
@@ -79,7 +84,7 @@ typedef struct
     picrossLevelDef_t* selectedLevel;
     bool exitThisFrame;
     int8_t count;
-    counterState_t countState;
+    picrossDir_t countState;
     picrossSaveData_t* save;
 } picrossGame_t;
 
@@ -89,6 +94,7 @@ void picrossGameButtonCb(buttonEvt_t* evt);
 void picrossExitGame(void);
 void loadPicrossProgress(void);
 void savePicrossProgress(void);
+
 char * getBankName(int i);
 
 #endif

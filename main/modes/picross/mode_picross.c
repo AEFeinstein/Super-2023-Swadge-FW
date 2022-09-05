@@ -8,6 +8,7 @@
 #include "swadgeMode.h"
 #include "musical_buzzer.h"
 #include "esp_log.h"
+#include "led_util.h"
 
 #include "aabb_utils.h"
 // #include "settingsManager.h"
@@ -31,7 +32,7 @@
 //==============================================================================
 // Function Prototypes
 //==============================================================================
-void picrossUserInput(void);
+void picrossUserInput(int64_t elapsedUs);
 void picrossResetInput(void);
 void picrossCheckLevel(void);
 void picrossSetupPuzzle(bool cont);
@@ -44,7 +45,8 @@ void drawPicrossScene(display_t* d);
 void drawPicrossHud(display_t* d, font_t* font);
 void drawHint(display_t* d,font_t* font, picrossHint_t hint);
 void drawPicrossInput(display_t* d);
-void countInput(counterState_t input);
+void drawBackground(display_t* d);
+void countInput(picrossDir_t input);
 int8_t getHintShift(uint8_t hint);
 
 //==============================================================================
@@ -83,14 +85,18 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->puzzle->width = 10;
     p->puzzle->height = 10;
 
+    //todo: im doing a lot of this again in REsetInput, which I don't actually need. Its a holdover from my boilerplate.
     p->input = calloc(1, sizeof(picrossInput_t));
     p->input->x=0;
     p->input->y=0;
     p->input->btnState=0;
     p->input->prevBtnState= 0x80 | 0x10 | 0x40 | 0x20;//prevents us from instantly fillling in a square because A is held from selecting level.
-    p->countState = PICROSSCOUNTER_IDLE;
+    p->countState = PICROSSDIR_IDLE;
     p->controlsEnabled = true;
-
+    p->input->DASActive = false;
+    p->input->firstDASTime = 500000;//.5 seconds
+    p->input->DASTime = 220000;//1,000,000 = 1 second.
+    p->input->startHeldType = OUTOFBOUNDS;
     p->save = calloc(1, sizeof(picrossSaveData_t));
     //save data configure
     for(int i=0;i<8;i++)
@@ -141,7 +147,6 @@ void picrossSetupPuzzle(bool cont)
         loadPicrossProgress();
     }else
     {
-
         //Set the actual level to be empty
         for(int i = 0;i<p->puzzle->width;i++)
         {
@@ -150,6 +155,7 @@ void picrossSetupPuzzle(bool cont)
                 p->puzzle->level[i][j] = SPACE_EMPTY;
             }
         }
+        savePicrossProgress();//clear out your previous (victory) data.
     }
 
     //Get chosen level and load it's data...
@@ -261,14 +267,16 @@ void picrossResetInput()
     p->input->movedThisFrame = false;
     p->input->changedLevelThisFrame = false;
     p->input->prevBtnState = 0;
-    p->countState = PICROSSCOUNTER_IDLE;
+    p->countState = PICROSSDIR_IDLE;
     p->count = 1;
+    p->input->DASActive = false;
+    p->input->holdingDir = PICROSSDIR_IDLE; 
     // p->input->btnState = 0;//?
 }
 
 void picrossGameLoop(int64_t elapsedUs)
 {
-    picrossUserInput();
+    picrossUserInput(elapsedUs);
     if(p->exitThisFrame)
     {
         picrossExitGame();
@@ -285,9 +293,28 @@ void picrossGameLoop(int64_t elapsedUs)
     drawPicrossScene(p->d);
 
     
-    //todo: this has not been tested yet.
+    //You won! Only called once, since you cant go from win->solving without resetting everything (ie: menu and back)
     if(p->previousPhase == PICROSS_SOLVING && p->currentPhase == PICROSS_YOUAREWIN)
     {
+        //Set LEDs to ON BECAUSE YOU ARE WIN
+        //The game doesn't use a timer, so making them blink ABAB->BABA like I want will have to wait.
+        led_t leds[NUM_LEDS] =
+        {
+            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
+            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
+            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
+            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
+            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
+            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
+            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
+            {.r = 0xFF, .g = 0xFF, .b = 0xFF}
+        };
+
+        setLeds(leds, NUM_LEDS);
+
+        //Save Victory
+        writeNvs32("pic_cur_ind", -1);//Unset the current level so we cant continue a won game.
+
         int32_t victories = 0;
         if(p->selectedLevel->index <= 32)//levels 0-31
         {
@@ -387,7 +414,7 @@ bool hintsMatch(picrossHint_t a, picrossHint_t b)
  *
  */
 
-void picrossUserInput(void)
+void picrossUserInput(int64_t elapsedUs)
 {
     picrossInput_t* input = p->input;
     uint8_t x = input->x;//todo: make these pointers
@@ -415,11 +442,70 @@ void picrossUserInput(void)
     }
 
     //Input checks
-
+    
     //Reset the counter by pressing start. It should auto-reset, but it can be wonky.
     if (input->btnState & START && !(input->prevBtnState & START))
     {
         p->count = 1;
+    }
+    
+    //DAS
+    //todo: we can cache the != checks, so we do 1 butmask instead of 3 (x4)
+    
+    if(input->btnState & UP && !((input->btnState & RIGHT) || (input->btnState & LEFT) || (input->btnState & DOWN)))
+    {
+        if(p->input->holdingDir == PICROSSDIR_UP)
+        {
+            p->input->timeHeldDirection = p->input->timeHeldDirection + elapsedUs;
+        }else{
+            p->input->timeHeldDirection = 0;
+            p->input->holdingDir = PICROSSDIR_UP;
+            p->input->DASActive = false;
+        }
+    }else if(input->btnState & RIGHT && !((input->btnState & DOWN) || (input->btnState & UP) || (input->btnState & LEFT)))
+    {
+        if(p->input->holdingDir == PICROSSDIR_RIGHT)
+        {
+            p->input->timeHeldDirection = p->input->timeHeldDirection + elapsedUs;
+        }else{
+            p->input->timeHeldDirection = 0;
+            p->input->holdingDir = PICROSSDIR_RIGHT;
+            p->input->DASActive = false;
+        }
+    }else if(input->btnState & LEFT && !((input->btnState & DOWN) || (input->btnState & UP) || (input->btnState & RIGHT)))
+    {
+        if(p->input->holdingDir == PICROSSDIR_LEFT)
+        {
+            p->input->timeHeldDirection = p->input->timeHeldDirection + elapsedUs;
+        }else{
+            p->input->timeHeldDirection = 0;
+            p->input->holdingDir = PICROSSDIR_LEFT;
+            p->input->DASActive = false;//active not true till second.
+        }
+    }else if(input->btnState & DOWN && !((input->btnState & LEFT) || (input->btnState & RIGHT) || (input->btnState & UP)))
+    {
+        if(p->input->holdingDir == PICROSSDIR_DOWN)
+        {
+            p->input->timeHeldDirection = p->input->timeHeldDirection + elapsedUs;
+        }else{
+            p->input->timeHeldDirection = 0;
+            p->input->holdingDir = PICROSSDIR_DOWN;
+            p->input->DASActive = false;
+        }
+    }else{
+        //0 or more than one button
+        p->input->timeHeldDirection = 0;
+        p->input->holdingDir = PICROSSDIR_IDLE;
+        p->input->DASActive = false;
+    }//now that checks have been done.
+
+    //if we have been doing DAS and are faster than its the autospeed, OR (das is inactive and) we have held longer than the longer time.
+    if((p->input->DASActive && p->input->timeHeldDirection > p->input->DASTime) || (!p->input->DASActive && p->input->timeHeldDirection > p->input->firstDASTime))
+    {
+        //all buts except l/r/u/d so we dont mess with start/select in the das
+        p->input->prevBtnState = p->input->prevBtnState & ~(LEFT | RIGHT | UP | DOWN);
+        p->input->timeHeldDirection = 0;
+        p->input->DASActive = true;
     }
 
     if (input->btnState & BTN_A && !(input->prevBtnState & BTN_A))
@@ -432,10 +518,12 @@ void picrossUserInput(void)
         if(current != SPACE_FILLED)
         {
             current = SPACE_FILLED;
+            input->startHeldType = SPACE_FILLED;
             input->changedLevelThisFrame = true;
         }else
         {
             current = SPACE_EMPTY;
+            input->startHeldType = SPACE_EMPTY;
             input->changedLevelThisFrame = true;
         }
         //set the toggle.
@@ -451,10 +539,12 @@ void picrossUserInput(void)
         if(current != SPACE_MARKEMPTY)
         {
             current = SPACE_MARKEMPTY;
+            input->startHeldType = SPACE_MARKEMPTY;
             input->changedLevelThisFrame = true;//shouldnt be needed
         }else
         {
             current = SPACE_EMPTY;
+            input->startHeldType = SPACE_EMPTY;
             input->changedLevelThisFrame = true;//shouldnt be needed
         }
         //set the toggle.
@@ -463,56 +553,76 @@ void picrossUserInput(void)
 
     if (input->btnState & UP && !(input->prevBtnState & UP))
     {
-        input->movedThisFrame = true;
-        countInput(PICROSSCOUNTER_UP);
+        
         if(input->y == 0)
         {
-            //wrap to opposite position
-            input->y = p->puzzle->height-1; 
+            if(!input->DASActive){
+                //wrap to opposite position
+                input->y = p->puzzle->height-1; 
+                p->count = 1;//reset counter. Its not helpful to just keep increasing or decreasing, although it is funny.
+                input->movedThisFrame = true;
+                countInput(PICROSSDIR_UP);
+            }
         }else
         {
             input->y = y - 1;
+            input->movedThisFrame = true;
+            countInput(PICROSSDIR_UP);
         }
     }
     else if (input->btnState & DOWN && !(input->prevBtnState & DOWN))
     {
-        input->movedThisFrame = true;
-        countInput(PICROSSCOUNTER_DOWN);
-
-        if(input->y == p->puzzle->height-1)
+        if(input->y == p->puzzle->height-1 )
         {
-            //wrap to bottom position
-            input->y = 0; 
+            if(!input->DASActive){
+                //wrap to bottom position
+                input->y = 0; 
+                p->count = 1;
+                input->movedThisFrame = true;
+                countInput(PICROSSDIR_DOWN);
+            }
         }else
         {
             input->y = input->y + 1;
+            input->movedThisFrame = true;
+            countInput(PICROSSDIR_DOWN);
         } 
-        
     }
     else if (input->btnState & LEFT && !(input->prevBtnState & LEFT))
     {
-        input->movedThisFrame = true;
-        countInput(PICROSSCOUNTER_LEFT);
-        if(input->x == 0)
+        if(input->x == 0 )
         {
-            //wrap to right position
-            input->x = p->puzzle->width-1; 
+            if(!input->DASActive)
+            {
+                //wrap to right position
+                input->x = p->puzzle->width-1;
+                p->count = 1;
+                input->movedThisFrame = true;
+                countInput(PICROSSDIR_LEFT);
+            }
         }else
         {
             input->x = input->x-1;
+            input->movedThisFrame = true;
+            countInput(PICROSSDIR_LEFT);
         }
     }
     else if (input->btnState & RIGHT && !(input->prevBtnState & RIGHT))
     {
-        input->movedThisFrame = true;
-        countInput(PICROSSCOUNTER_RIGHT);
         if(input->x == p->puzzle->width-1)
         {
-            //wrap to left position
-            input->x = 0; 
+            if(!input->DASActive){
+                //wrap to left position
+                input->x = 0;
+                p->count = 1;
+                input->movedThisFrame = true;
+                countInput(PICROSSDIR_RIGHT);
+            }
         }else
         {
             input->x = input->x+1;
+            input->movedThisFrame = true;
+            countInput(PICROSSDIR_RIGHT);
         }
     }
 
@@ -523,20 +633,33 @@ void picrossUserInput(void)
         if(input->btnState & BTN_A)
         {
             //held a while moving 
-            p->puzzle->level[input->x][input->y] = SPACE_FILLED;
-            input->changedLevelThisFrame = true;//not strictly true, but this behaviour will become toggle in future
+            if(input->startHeldType == SPACE_FILLED)
+            {
+                p->puzzle->level[input->x][input->y] = SPACE_FILLED;
+                input->changedLevelThisFrame = true;
+            }else if(input->startHeldType == SPACE_EMPTY)
+            {
+                p->puzzle->level[input->x][input->y] = SPACE_EMPTY;
+                input->changedLevelThisFrame = true;
+            }
         }else if(input->btnState & BTN_B)
         {
-            //held b while moving.
-            p->puzzle->level[input->x][input->y] = SPACE_MARKEMPTY;
-            input->changedLevelThisFrame = true;//not strictly true, but this behaviour will become toggle in future
+            if(input->startHeldType == SPACE_MARKEMPTY)
+            {
+                p->puzzle->level[input->x][input->y] = SPACE_MARKEMPTY;
+                input->changedLevelThisFrame = true;
+            }else if(input->startHeldType == SPACE_EMPTY)
+            {
+                p->puzzle->level[input->x][input->y] = SPACE_EMPTY;
+                input->changedLevelThisFrame = true;
+            }
         }
     }
 
     input->prevBtnState = input->btnState; 
 }
 
-void countInput(counterState_t input)
+void countInput(picrossDir_t input)
 {
     //I need to work out how this should properly behave.
     //in my game, you can just hold shift to make a counter with a nice tooltip and hoverbox, and move it around. its great.
@@ -558,13 +681,14 @@ void countInput(counterState_t input)
 
 /// DRAWING SCENE
 
-
 void drawPicrossScene(display_t* d)
 {
     uint8_t w = p->puzzle->width;
     uint8_t h = p->puzzle->height;
     
     d->clearPx();
+    drawBackground(d);
+
     box_t box;
     if(p->currentPhase == PICROSS_SOLVING)
     {
@@ -749,9 +873,9 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
             if(h == 0){
                 //dont increase j.
                 
-               // drawBox(d,hintbox,c333,false,1);//for debugging. we will draw nothing when proper.
             }else if(h < 10){
-                drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
+                
+                //drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
 
                 char letter[1];
                 sprintf(letter, "%d", h);//this function appears to modify hintbox.x0
@@ -759,7 +883,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
                 j++;//the index position, but only for where to draw. shifts the clues to the right.
             }else{
-                drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
+                //drawBox(d,hintbox,c111,false,1);//same as above
                 char letter[1];
                 sprintf(letter, "%d", h);
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
@@ -768,25 +892,24 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale+p->drawScale/2)) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
                 j++;
             }
-
-            }
+        }
     }else{
         int j = 0;
         for(int i = 0;i<5;i++)
         {
             h = hint.hints[4-i];
             box_t hintbox = boxFromCoord(hint.index,-j-1);
-             if(h == 0){               
-               // drawBox(d,hintbox,c333,false,1);//for debugging. we will draw nothing when proper.
+             if(h == 0){      
+                //         
             }else if(h < 10){
-                drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
+                //drawBox(d,hintbox,c111,false,1);
                 char letter[1];
                 sprintf(letter, "%d", h);
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
                 drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
                 j++;//the index position, but only for where to draw. shifts the clues to the right.
             }else{
-                drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
+                //drawBox(d,hintbox,c111,false,1);//same as above
                 char letter[1];
                 sprintf(letter, "%d", h);
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
@@ -795,7 +918,6 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale+p->drawScale/2) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
                 j++;
             }
-
         }
     }
 }
@@ -834,6 +956,26 @@ void drawPicrossInput(display_t* d)
     drawBox(d, inputBox, c050, false, 1);
 }
 
+void drawBackground(display_t* d)
+{
+    // Draw a dim blue background with a grey grid
+
+    for(int16_t y = 0; y < d->h; y++)
+    {
+        for(int16_t x = 0; x < d->w; x++)
+        {
+            if(((x % 20) == 0) || ((y % 20) == 0))
+            {
+                d->setPx(x, y, c333); // Grid
+            }
+            else
+            {
+                d->setPx(x, y, c111); // Background
+            }
+        }
+    }
+}
+
 void picrossGameButtonCb(buttonEvt_t* evt)
 {
     p->input->btnState = evt->state;
@@ -850,6 +992,20 @@ void picrossExitGame(void)
         free(p);
         p = NULL;
     }
+    //Set LEDs to off
+        led_t leds[NUM_LEDS] =
+        {
+            {.r = 0x00, .g = 0x00, .b = 0x00},
+            {.r = 0x00, .g = 0x00, .b = 0x00},
+            {.r = 0x00, .g = 0x00, .b = 0x00},
+            {.r = 0x00, .g = 0x00, .b = 0x00},
+            {.r = 0x00, .g = 0x00, .b = 0x00},
+            {.r = 0x00, .g = 0x00, .b = 0x00},
+            {.r = 0x00, .g = 0x00, .b = 0x00},
+            {.r = 0x00, .g = 0x00, .b = 0x00},
+        };
+
+        setLeds(leds, NUM_LEDS);
 }
 
 
@@ -865,16 +1021,13 @@ void savePicrossProgress()
         {
             //because level enum is <4, it will only write last 2 bits in the OR
             p->save->banks[y] =  p->save->banks[y] << 2;
-            p->save->banks[y] = (p->save->banks[y] | p->puzzle->level[x][y]);
-            
+            p->save->banks[y] = (p->save->banks[y] | p->puzzle->level[x][y]);  
         }
         writeNvs32(getBankName(y), p->save->banks[y]);
     }    
 }
 void loadPicrossProgress()
 {
-    uint16_t pos = 0;
-
     for(int y = 0;y<10;y++)
     {
         readNvs32(getBankName(y), &p->save->banks[y]);

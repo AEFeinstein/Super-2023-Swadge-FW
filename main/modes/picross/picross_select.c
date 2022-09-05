@@ -26,6 +26,9 @@ picrossLevelSelect_t* ls;
 void levelSelectInput(void);
 void drawLevelSelectScreen(display_t* d,font_t* font);
 void drawWsgScaled(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff);
+void drawSinglePixelAsBox(display_t* d,int x, int y, wsg_t* image);
+void drawPreviewWindow(display_t* d, wsg_t* wsg);
+
 //====
 // Functions
 //====
@@ -88,7 +91,7 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     //todo: where to store that?
 
     //visual settings
-    ls->cols = 4;
+    ls->cols = 5;
     ls->paddingLeft = 40;
     ls->paddingTop = 50;
     ls->gap = 5;
@@ -171,8 +174,8 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
     uint8_t y;
 
     //todo: Draw Choose Level Text.
-    drawText(d, font, c555, "Select", 158, 30); 
-    drawText(d, font, c555, "Level", 158, 60);   
+    drawText(d, font, c555, "Puzzle", 158, 30); 
+    drawText(d, font, c555, "Select", 158, 60);   
   
     //dont have the number of levels stored anywhere... 16 is goal, not 8.
     for(int i=0;i<ls->levelCount;i++)
@@ -207,11 +210,19 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
     }; 
     drawBox(d,inputBox,c500,false,1);
 
-    //Draw "name" of current level
-    char letter[1];
-    sprintf(letter, "%d", ls->hoverLevelIndex+1);//this function appears to modify hintbox.x0
-    //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
-    drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], 158, 120);
+    // //Draw "name" of current level
+    // char letter[1];
+    // sprintf(letter, "%d", ls->hoverLevelIndex+1);//this function appears to modify hintbox.x0
+    // //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
+    // drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], 158, 120);
+
+    if(ls->hoverLevelIndex < ls->levelCount){//jic
+        if(ls->levels[ls->hoverLevelIndex].completed){
+            drawPreviewWindow(d,&ls->levels[ls->hoverLevelIndex].completedWSG);
+        }else{
+            drawPreviewWindow(d,&ls->unknownPuzzle);
+        }
+    }
 }
 
 void picrossLevelSelectButtonCb(buttonEvt_t* evt)
@@ -266,3 +277,29 @@ void drawWsgScaled(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
         }
     }
 }
+
+void drawSinglePixelAsBox(display_t* d,int x, int y, wsg_t* image)
+{   
+    uint8_t s = 7;
+    box_t box =
+        {
+            .x0 = (x * s) + s + ls->paddingLeft+110,
+            .y0 = (y * s) + s + ls->paddingTop+60,
+            .x1 = (x * s) + s + s + ls->paddingLeft+110,
+            .y1 = (y * s) + s + s + ls->paddingTop+60,
+        };  
+    drawBox(d, box, image->px[(y * image->w) + x], true, 0);
+}
+
+void drawPreviewWindow(display_t* d, wsg_t* wsg)
+{
+    for(int i = 0;i<wsg->w;i++)
+    {
+        for(int j = 0;j<wsg->h;j++)
+        {
+            drawSinglePixelAsBox(d,i,j,wsg);
+        }
+    }
+}
+
+
