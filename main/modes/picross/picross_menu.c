@@ -38,7 +38,6 @@ typedef struct
 // Function Prototypes
 //==============================================================================
 
-
 void picrossEnterMode(display_t* disp);
 void picrossExitMode(void);
 void picrossMainLoop(int64_t elapsedUs);
@@ -130,6 +129,8 @@ void loadLevels()
     loadWsg("stairs_c.wsg", &pm->levels[3].completedWSG);
     //the current levelCOunt is set to 8, but 0-9 are not loaded. if you select them, it will just break.
 
+    loadWsg("grid.wsg", &pm->levels[4].levelWSG);
+    loadWsg("grid_c.wsg", &pm->levels[4].completedWSG);
 
     //set indices. Used to correctly set save data. levels are loaded without context of their array, so they carry the index data with them.
     for(int i = 0;i<8;i++)

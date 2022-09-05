@@ -60,7 +60,7 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     ls->hoverX = 0;
     ls->hoverY = 0;
     ls->hoverLevelIndex = 0;
-    ls->prevBtnState = 0;
+    ls->prevBtnState = '0xbFFFFFFFF';//when entering this mode, the button may still be held, so we dont want to activate an imput instantly.
     ls->btnState = 0;
     
     //todo: where to store that?

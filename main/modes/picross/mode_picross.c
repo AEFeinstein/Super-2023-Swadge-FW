@@ -133,6 +133,7 @@ void picrossSetupPuzzle()
     picrossResetInput();
 }
 
+//Scans the levelWSG and creates the finished version of the puzzle in the proper data format (2D array of enum).
 void setCompleteLevelFromWSG(wsg_t* puzz)
 {
     // wsg_t puzz = puzzle;
@@ -152,7 +153,9 @@ void setCompleteLevelFromWSG(wsg_t* puzz)
     
 }
 
-//lol i dont know how to do constructors in c++
+//lol i dont know how to do constructors, im a unity developer! anyway this constructs a source.
+//we use the same data type for rows and columns, hence the bool flag. index is the position in the row/col, and we pass in the level.
+//I guess that could be a pointer? Somebody more experienced with c, code review this and optimize please.
 picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t source[10][10])
 {
     picrossHint_t t;
@@ -167,8 +170,8 @@ picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t so
     }
 
     //todo: non-square puzzles. get width/height passed in from newHint.
-    picrossSpaceType_t prev = SPACE_EMPTY;//starts empty because out of bounds is empty for how hints work.
-    uint8_t blockNumber = 0;
+    picrossSpaceType_t prev = OUTOFBOUNDS;//starts empty because out of bounds is empty for how hints work.
+    int8_t blockNumber = 0;// 
     if(isRow){
         for(int i = 0;i<p->puzzle->width;i++)
         {
@@ -178,13 +181,17 @@ picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t so
                 if(prev == SPACE_FILLED)
                 {
                     t.hints[blockNumber]++;
-                }else if(prev == SPACE_EMPTY)//this is a new block
+                }else if(prev == SPACE_EMPTY)//this is a new block, and not the first block.
                 {
                     blockNumber++;//next block! (but we go left to right, which is the clue right to left)
                     t.hints[blockNumber]++;
+                }else if(prev == OUTOFBOUNDS)//first block in sequence.
+                {
+                    //same as above but dont increase blocknumber.
+                    t.hints[blockNumber]++;
                 }
                 prev = SPACE_FILLED;
-            }else // if empty
+            }else // if the space is empty
             {
                 prev = SPACE_EMPTY;
                 //i continues to increase.
@@ -201,9 +208,12 @@ picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t so
                 if(prev == SPACE_FILLED)
                 {
                     t.hints[blockNumber]++;
-                }else if(prev == SPACE_EMPTY)//this is a new block
+                }else if(prev == SPACE_EMPTY)//this is a new block, and not the first block.
                 {
                     blockNumber++;
+                    t.hints[blockNumber]++;
+                }else if(prev == OUTOFBOUNDS)
+                {
                     t.hints[blockNumber]++;
                 }
                 prev = SPACE_FILLED;
@@ -500,6 +510,11 @@ void drawPicrossScene(display_t* d)
                     case SPACE_MARKEMPTY:
                     {
                         drawBox(d, box, c531, true, 1);
+                        break;
+                    }
+                    case OUTOFBOUNDS:
+                    {
+                        //uh oh!
                         break;
                     }
                 }

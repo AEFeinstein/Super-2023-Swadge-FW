@@ -9,6 +9,7 @@ typedef enum
     SPACE_EMPTY = 0,
     SPACE_FILLED = 1,
     SPACE_MARKEMPTY = 2,
+    OUTOFBOUNDS = 3
 } picrossSpaceType_t;
 
 typedef enum
