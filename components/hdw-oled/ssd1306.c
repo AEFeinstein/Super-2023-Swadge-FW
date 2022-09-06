@@ -367,6 +367,7 @@ void updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t
 
 void setPxOled(int16_t x, int16_t y, paletteColor_t c);
 paletteColor_t getPxOled(int16_t x, int16_t y);
+paletteColor_t * getPxFbOled(void);
 void clearPxOled(void);
 void drawDisplayOled(bool drawDifference);
 
@@ -442,6 +443,16 @@ paletteColor_t getPxOled(int16_t x, int16_t y)
 }
 
 /**
+ * Don't return framebuffer
+ * 
+ * @return paletteColor_t* 
+ */
+paletteColor_t * getPxFbOled(void)
+{
+    return NULL;
+}
+
+/**
  * @brief Clear the entire display to black
  */
 void clearPxOled(void)
@@ -465,6 +476,7 @@ bool initOLED(display_t * disp, bool reset, gpio_num_t rst_gpio)
     disp->w = OLED_WIDTH;
     disp->setPx = setPxOled;
     disp->getPx = getPxOled;
+    disp->getPxFb = getPxFbOled;
     disp->clearPx = clearPxOled;
     disp->drawDisplay = drawDisplayOled;
 
