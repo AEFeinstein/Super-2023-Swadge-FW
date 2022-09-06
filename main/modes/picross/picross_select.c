@@ -83,8 +83,6 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     ls->hoverY = 0;
     ls->hoverLevelIndex = 0;
     ls->prevBtnState = 0x80 | 0x10 | 0x40 | 0x20 | 0x1 | 0x2 | 0x4 | 0x8;// = 0xb11111111
-
-
     
     ls->btnState = 0;
     
@@ -96,9 +94,7 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     ls->paddingTop = 50;
     ls->gap = 5;
     ls->gridScale = 40;
-
 }
-
 
 void picrossLevelSelectLoop(int64_t elapsedUs)
 {
@@ -160,7 +156,6 @@ void levelSelectInput()
     }
 
     ls->hoverLevelIndex = ls->hoverY*ls->cols+ls->hoverX;
-
     ls->prevBtnState = ls->btnState;
 }
 
@@ -194,9 +189,6 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
             drawWsgScaled(d,&ls->unknownPuzzle,x >> 1,y >> 1);
         }
     }
-    
-    
-
     // //Draw "name" of current level
     // char letter[1];
     // sprintf(letter, "%d", ls->hoverLevelIndex+1);//this function appears to modify hintbox.x0

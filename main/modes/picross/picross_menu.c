@@ -146,14 +146,19 @@ void loadLevels()
     loadWsg("Snare_Drum_PZL.wsg", &pm->levels[2].levelWSG);
     loadWsg("Snare_Drum_SLV.wsg", &pm->levels[2].completedWSG);
 
-    loadWsg("3_boat.wsg", &pm->levels[3].levelWSG);
-    loadWsg("3_boat_c.wsg", &pm->levels[3].completedWSG);
+    loadWsg("Danny_PZL.wsg", &pm->levels[3].levelWSG);
+    loadWsg("Danny_SLV.wsg", &pm->levels[3].completedWSG);
+
+    //
 
     loadWsg("test2.wsg", &pm->levels[4].levelWSG);
     loadWsg("test2_c.wsg", &pm->levels[4].completedWSG);
 
     loadWsg("test1.wsg", &pm->levels[5].levelWSG);
     loadWsg("test1_complete.wsg", &pm->levels[5].completedWSG);
+    
+    loadWsg("3_boat.wsg", &pm->levels[6].levelWSG);
+    loadWsg("3_boat_c.wsg", &pm->levels[6].completedWSG);
 
     //set indices. Used to correctly set save data. levels are loaded without context of their array, so they carry the index data with them.
     for(int i = 0;i<8;i++)//8 should = number of levels and that should = levelCount.
