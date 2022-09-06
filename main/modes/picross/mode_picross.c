@@ -20,16 +20,6 @@
 #include "bresenham.h"
 
 //==============================================================================
-// Constants
-//==============================================================================
-
-
-//===
-// Structs
-//===
-
-
-//==============================================================================
 // Function Prototypes
 //==============================================================================
 void picrossUserInput(int64_t elapsedUs);
@@ -49,6 +39,7 @@ void drawBackground(display_t* d);
 void countInput(picrossDir_t input);
 int8_t getHintShift(uint8_t hint);
 void saveCompletedOnSelectedLevel(bool completed);
+void enterSpace(uint8_t x,uint8_t y,picrossSpaceType_t newSpace);
 //==============================================================================
 // Variables
 //==============================================================================
@@ -98,6 +89,43 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->DASTime = 220000;//1,000,000 = 1 second.
     p->input->startHeldType = OUTOFBOUNDS;
     p->input->inputBoxColor = c430;
+    p->input->inputBoxDefaultColor = c430;
+    p->input->inputBoxErrorColor = c500;
+
+    p->input->blinkError = false;
+    p->input->blinkAnimTimer =0;
+    p->input->blinkTime = 120000;//half a blink cycle (on)(off) or full (on/off)(on/off)?
+    p->input->blinkCount = 6;
+    p->input->showHints = picrossGetSaveFlag(0);//0 is showHints.
+
+
+    //cant tell if this is doing things the lazy way or not.
+    for(int i = 0;i<NUM_LEDS;i++)
+    {
+        p->offLEDS[i].r = 0x00;
+        p->offLEDS[i].g = 0x00;
+        p->offLEDS[i].b = 0x00;
+
+        if(i%2 == 0)
+        {
+            p->errorALEDBlinkLEDS[i].r = 0xFF;
+            p->errorALEDBlinkLEDS[i].g = 0x00;
+            p->errorALEDBlinkLEDS[i].b = 0x00;
+
+            p->errorBLEDBlinkLEDS[i].r = 0x00;
+            p->errorBLEDBlinkLEDS[i].g = 0x00;
+            p->errorBLEDBlinkLEDS[i].b = 0x00;
+        }else
+        {
+            p->errorALEDBlinkLEDS[i].r = 0x00;
+            p->errorALEDBlinkLEDS[i].g = 0x00;
+            p->errorALEDBlinkLEDS[i].b = 0x00;
+
+            p->errorBLEDBlinkLEDS[i].r = 0xFF;
+            p->errorBLEDBlinkLEDS[i].g = 0x00;
+            p->errorBLEDBlinkLEDS[i].b = 0x00;
+        }
+    }
 
     //save data configure
     p->save = calloc(1, sizeof(picrossSaveData_t));
@@ -504,7 +532,8 @@ void picrossUserInput(int64_t elapsedUs)
             input->changedLevelThisFrame = true;
         }
         //set the toggle.
-        p->puzzle->level[x][y] = current;
+        // p->puzzle->level[x][y] = current;
+        enterSpace(x,y,current);
     }
 
     if (input->btnState & BTN_B && !(input->prevBtnState & BTN_B))
@@ -525,12 +554,12 @@ void picrossUserInput(int64_t elapsedUs)
             input->changedLevelThisFrame = true;//shouldnt be needed
         }
         //set the toggle.
-        p->puzzle->level[x][y] = current;
+        // p->puzzle->level[x][y] = current;
+        enterSpace(x,y,current);
     }
 
     if (input->btnState & UP && !(input->prevBtnState & UP))
     {
-        
         if(input->y == 0)
         {
             if(!input->DASActive){
@@ -603,38 +632,93 @@ void picrossUserInput(int64_t elapsedUs)
         }
     }
 
+
     //check for holding input while using d-pad
     if(input->movedThisFrame)
     {
         //todo: toggle.
         if(input->btnState & BTN_A)
         {
-            //held a while moving 
             if(input->startHeldType == SPACE_FILLED)
             {
-                p->puzzle->level[input->x][input->y] = SPACE_FILLED;
-                input->changedLevelThisFrame = true;
+                enterSpace(input->x,input->y,SPACE_FILLED);
             }else if(input->startHeldType == SPACE_EMPTY)
             {
-                p->puzzle->level[input->x][input->y] = SPACE_EMPTY;
-                input->changedLevelThisFrame = true;
+                enterSpace(input->x,input->y,SPACE_EMPTY);
             }
         }else if(input->btnState & BTN_B)
         {
             if(input->startHeldType == SPACE_MARKEMPTY)
             {
-                p->puzzle->level[input->x][input->y] = SPACE_MARKEMPTY;
-                input->changedLevelThisFrame = true;
+                enterSpace(input->x,input->y,SPACE_MARKEMPTY);
             }else if(input->startHeldType == SPACE_EMPTY)
             {
-                p->puzzle->level[input->x][input->y] = SPACE_EMPTY;
-                input->changedLevelThisFrame = true;
+                enterSpace(input->x,input->y,SPACE_EMPTY);
             }
         }
-    }
+    }    
+    
+    //lastly, set prevBtnState to btnState
+    input->prevBtnState = input->btnState;
+    
+    //doing prevBtn set below the blink code below breaks it?
 
-    input->prevBtnState = input->btnState; 
+    //blink timer.
+    //if SHOW HINTS.
+    if(input->blinkError)
+    {
+        uint64_t totalTime = input->blinkTime*(input->blinkCount);
+        input->blinkAnimTimer = input->blinkAnimTimer + elapsedUs;
+        if(input->blinkAnimTimer > totalTime)
+        {
+            //finished!
+            input->blinkError = false;//will have to get set back to true elsewhere.
+            input->blinkAnimTimer = 0;
+            
+            //reset default values
+            input->inputBoxColor = input->inputBoxDefaultColor;
+            setLeds(p->offLEDS,NUM_LEDS);
+        }else
+        {
+            //check how many times blinkTime devides into remaining time.
+            int times = (totalTime-input->blinkAnimTimer)/input->blinkTime;
+            //remainder is still in microseconds
+            //lets set it to something else.
+           
+            if(times %2 == 0)
+            {
+                //turn off the LEDs
+                input->inputBoxColor = input->inputBoxDefaultColor;
+                setLeds(p->errorALEDBlinkLEDS,NUM_LEDS);
+            }else{
+                //turn on the LEDs
+                setLeds(p->errorBLEDBlinkLEDS,NUM_LEDS);
+                input->inputBoxColor = input->inputBoxErrorColor;  
+            }
+        }       
+    }
 }
+
+ void enterSpace(uint8_t x,uint8_t y,picrossSpaceType_t newSpace)
+ {
+    //this gets called frequently even if newSpace is current. 
+    if(p->puzzle->level[x][y] != newSpace)
+    {
+        p->puzzle->level[x][y] = newSpace;
+        //if SHOW HINTS is active
+        //showing hints for the "mark as empty" felt wrong. its a note, not a commitment, and you can use it to remember locations too.
+        if(newSpace == SPACE_FILLED && newSpace != p->puzzle->completeLevel[x][y])
+        {
+            if(p->input->showHints)
+            {
+                p->input->blinkError = true;
+            }
+        }
+        //force validation check
+        p->input->changedLevelThisFrame = true;
+    }
+ }
+
 
 void countInput(picrossDir_t input)
 {
@@ -950,7 +1034,7 @@ void drawBackground(display_t* d)
         {
             if(((x % 20) == 0) || ((y % 20) == 0))
             {
-                d->setPx(x, y, c333); // Grid
+                d->setPx(x, y, c222); // Grid
             }
             else
             {
@@ -967,6 +1051,9 @@ void picrossGameButtonCb(buttonEvt_t* evt)
 
 void picrossExitGame(void)
 {
+    //set LED's to off.
+    setLeds(p->offLEDS, NUM_LEDS);
+
     if (NULL != p)
     {
         freeFont(&(p->hint_font));
@@ -975,21 +1062,7 @@ void picrossExitGame(void)
         // free(p->save);
         free(p);
         p = NULL;
-    }
-    //Set LEDs to off
-        led_t leds[NUM_LEDS] =
-        {
-            {.r = 0x00, .g = 0x00, .b = 0x00},
-            {.r = 0x00, .g = 0x00, .b = 0x00},
-            {.r = 0x00, .g = 0x00, .b = 0x00},
-            {.r = 0x00, .g = 0x00, .b = 0x00},
-            {.r = 0x00, .g = 0x00, .b = 0x00},
-            {.r = 0x00, .g = 0x00, .b = 0x00},
-            {.r = 0x00, .g = 0x00, .b = 0x00},
-            {.r = 0x00, .g = 0x00, .b = 0x00},
-        };
-
-        setLeds(leds, NUM_LEDS);
+    }    
 }
 
 

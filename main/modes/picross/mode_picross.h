@@ -4,6 +4,8 @@
 #include "swadgeMode.h"
 #include "aabb_utils.h"
 #include "picross_select.h"
+#include "led_util.h"
+
 typedef enum
 {
     SPACE_EMPTY = 0,//00
@@ -27,6 +29,7 @@ typedef enum
     PICROSSDIR_UP =4,
 } picrossDir_t;//this could be made generic and used for counter or 
 
+//todo: remove this
 typedef struct
 {
     /* data */
@@ -48,8 +51,18 @@ typedef struct
     int64_t DASTime;
     int64_t firstDASTime;
     paletteColor_t inputBoxColor;
+    paletteColor_t inputBoxDefaultColor;
+    paletteColor_t inputBoxErrorColor;
+    //blinking
+    bool blinkError;
+    uint64_t blinkAnimTimer;
+    uint64_t blinkTime;//half a blink cycle (on)(off) or full (on/off)(on/off)?
+    uint8_t blinkCount;
+    bool showHints;
     bool DASActive;//true after the first DAS input has happened.
 } picrossInput_t;
+
+
 
 typedef struct
 {
@@ -87,6 +100,10 @@ typedef struct
     int8_t count;
     picrossDir_t countState;
     picrossSaveData_t* save;
+    led_t errorALEDBlinkLEDS[NUM_LEDS];
+    led_t errorBLEDBlinkLEDS[NUM_LEDS];
+    led_t offLEDS[NUM_LEDS];//todo: is this a constant or stored somewhere else?
+
 } picrossGame_t;
 
 void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* selectedLevel, bool cont);

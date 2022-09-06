@@ -51,8 +51,6 @@ void picrossButtonCb(buttonEvt_t* evt);
 void loadLevels(void);
 void picrossMainMenuCb(const char* opt);
 void picrossMenuOptionsCb(const char* opt);
-void PicrossSetSaveFlag(int pos, bool on);
-bool PicrossGetSaveFlag(int pos);
 
 //==============================================================================
 // Variables
@@ -124,7 +122,7 @@ void picrossExitMode(void)
 {
     picrossExitLevelSelect();//this doesnt actually get called as we go in and out of levelselect (because it breaks everything), so lets call it now
 
-    picrossExitGame();
+    // picrossExitGame();//this is already getting called! hooray.
     deinitMeleeMenu(pm->menu);
     //p2pDeinit(&jm->p2p);
     freeFont(&(pm->mmFont));
@@ -263,7 +261,7 @@ void setPicrossMainMenu(bool resetPos)
     {
         //Draw the options menu
         resetMeleeMenu(pm->menu, str_options, picrossMainMenuCb);
-        if(PicrossGetSaveFlag(0))//are hints on?
+        if(picrossGetSaveFlag(0))//are hints on?
         {
             addRowToMeleeMenu(pm->menu, str_HintsOn);
         }else{
@@ -358,14 +356,14 @@ void picrossMainMenuCb(const char* opt)
     }else if(opt == str_HintsOff)
     {
         //turn hints back on
-        PicrossSetSaveFlag(0,true);
+        picrossSetSaveFlag(0,true);
         pm->menuChanged = true;
         setPicrossMainMenu(false);//re-setup menu with new text, but dont change cursor position
     }
     else if(opt == str_HintsOn)
     {
         //turn hints off
-        PicrossSetSaveFlag(0,false);
+        picrossSetSaveFlag(0,false);
         pm->menuChanged = true;
         setPicrossMainMenu(false);
     }else if(opt == str_eraseProgress)
@@ -398,7 +396,7 @@ void returnToLevelSelect()//todo: rename
     picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels);      
 }
 
-bool PicrossGetSaveFlag(int pos)
+bool picrossGetSaveFlag(int pos)
 {
     //read once on loading menu?
 
@@ -412,7 +410,7 @@ bool PicrossGetSaveFlag(int pos)
     return val == 1;//hints will be first bit. IT IS DECIDED
 }
 //also sets pm->options
-void PicrossSetSaveFlag(int pos, bool on)
+void picrossSetSaveFlag(int pos, bool on)
 {
     if(on)
     {

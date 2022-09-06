@@ -10,5 +10,7 @@ void returnToPicrossMenu(void);
 void returnToLevelSelect(void);
 void selectPicrossLevel(picrossLevelDef_t* selectedLevel);
 void exitTutorial(void);
+void picrossSetSaveFlag(int pos, bool on);
+bool picrossGetSaveFlag(int pos);
 
 #endif
