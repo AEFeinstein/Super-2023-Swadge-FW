@@ -6,6 +6,13 @@
 //==============================================================================
 
 #include <stdint.h>
+#include "led_util.h"
+#include "common_typedef.h"
+
+//==============================================================================
+// Constants
+//==============================================================================
+#define NUM_LEDS 8 //Also defined in swadgeMode.h
 
 //==============================================================================
 // Structs
@@ -26,11 +33,14 @@ typedef struct
 
     uint8_t world;
     uint8_t level;
+    
+    led_t leds[NUM_LEDS];
 } gameData_t;
 
 //==============================================================================
 // Functions
 //==============================================================================
- void initializeGameData(gameData_t * gameData);
+void initializeGameData(gameData_t * gameData);
+void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData);
 
 #endif

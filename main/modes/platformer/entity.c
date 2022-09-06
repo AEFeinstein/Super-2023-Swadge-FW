@@ -134,6 +134,14 @@ void updatePlayer(entity_t *self)
         self->yspeed = self->yspeed >> 2; // technically shouldn't do this with a signed int
     }
 
+    if(self->invincibilityFrames > 0){
+        self->invincibilityFrames--;
+        self->visible = (self->invincibilityFrames % 2);
+        if(self->invincibilityFrames <= 0){
+            self->visible = true;
+        }
+    }
+
     moveEntityWithTileCollisions(self);
     applyGravity(self);
     applyDamping(self);
@@ -492,14 +500,22 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                     self->jumpPower = 180 + (abs(self->xspeed) >> 2);
                 }
             }
-            else
+            else if(self->invincibilityFrames <= 0)
             {
-                self->updateFunction = &updateEntityDead;
-                self->type = ENTITY_DEAD;
-                self->xspeed = 0;
-                self->yspeed = -180;
-                self->spriteIndex = SP_PLAYER_HURT;
-                self->gameData->changeState = ST_DEAD;
+                self->hp--;
+                updateLedsHpMeter(self->entityManager, self->gameData);
+                if(self->hp <= 0){
+                    self->updateFunction = &updateEntityDead;
+                    self->type = ENTITY_DEAD;
+                    self->xspeed = 0;
+                    self->yspeed = -180;
+                    self->spriteIndex = SP_PLAYER_HURT;
+                    self->gameData->changeState = ST_DEAD;
+                } else {
+                    self->xspeed = 0;
+                    self->yspeed = 0;
+                    self->invincibilityFrames = 40;
+                }
             }
 
             self->falling = true;
@@ -515,6 +531,16 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
             deactivateAllEntities(self->entityManager, true);
             self->tilemap->executeTileSpawnAll = true;
 
+            break;
+        }
+        case ENTITY_POWERUP:{
+            self->hp++;
+            if(self->hp > 3){
+                self->hp = 3;
+            }
+            self->gameData->score += 1000;
+            updateLedsHpMeter(self->entityManager, self->gameData);
+            destroyEntity(other, false);
             break;
         }
         default:
@@ -711,6 +737,8 @@ void dieWhenFallingOffScreen(entity_t *self)
         ((self->y >> SUBPIXEL_RESOLUTION) > deathBoundary) &&
         ((self->y >> SUBPIXEL_RESOLUTION) < deathBoundary + DESPAWN_THRESHOLD))
     {
+        self->hp = 0;
+        updateLedsHpMeter(self->entityManager, self->gameData);
         self->gameData->changeState = ST_DEAD;
         destroyEntity(self, true);
     }

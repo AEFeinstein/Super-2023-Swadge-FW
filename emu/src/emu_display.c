@@ -672,9 +672,9 @@ void setLeds(led_t* leds, uint8_t numLeds)
 	pthread_mutex_lock(&displayMutex);
     for(int i = 0; i < numLeds; i++)
     {
-        rdLeds[i].r = leds[i].r >> ledBrightness;
-        rdLeds[i].g = leds[i].g >> ledBrightness;
-        rdLeds[i].b = leds[i].b >> ledBrightness;
+        rdLeds[i].r = leds[i].r;// >> ledBrightness;
+        rdLeds[i].g = leds[i].g;// >> ledBrightness;
+        rdLeds[i].b = leds[i].b;// >> ledBrightness;
     }
 	pthread_mutex_unlock(&displayMutex);
 }

@@ -4,10 +4,7 @@
 
 #include <stdlib.h>
 #include "gameData.h"
-
-//==============================================================================
-// Constants
-//==============================================================================
+#include "entityManager.h"
 
 //==============================================================================
 // Functions
@@ -22,4 +19,37 @@
     gameData->level = 1;
     gameData->frameCount = 0;
     gameData->coins = 0;
+}
+
+void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData){
+    if(entityManager->playerEntity == NULL){
+        return;
+    }
+
+    uint8_t hp = entityManager->playerEntity->hp;
+    if(hp > 3){
+        hp = 3;
+    }
+
+    //HP meter led pairs:
+    //3 4
+    //2 5
+    //1 6
+    for (int32_t i = 1; i < 7; i++)
+    {
+        gameData->leds[i].r = 0x80;
+        gameData->leds[i].g = 0x00;
+        gameData->leds[i].b = 0x00;
+    }
+
+    for (int32_t i = 1; i < 1+hp; i++)
+    {
+        gameData->leds[i].r = 0x00;
+        gameData->leds[i].g = 0x80;
+
+        gameData->leds[7-i].r = 0x00;
+        gameData->leds[7-i].g = 0x80;
+    }
+
+    setLeds(gameData->leds, NUM_LEDS);
 }

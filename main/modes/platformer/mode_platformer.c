@@ -50,14 +50,6 @@ static const song_t sndDie =
     .shouldLoop = false
 };
 
-static const song_t sndTest =
-    {
-        .notes =
-            {
-                {1000, 10}
-            },
-        .numNotes = 1,
-        .shouldLoop = false};
 //==============================================================================
 // Functions Prototypes
 //==============================================================================
@@ -321,7 +313,7 @@ void updateTitleScreen(platformer_t *self)
     } else if(self->gameData.btnState & RIGHT){
         scrollTileMap(&(platformer->tilemap), 2, 0);
     }
-
+    /*
     if (
         ((self->gameData.btnState & UP) && !(self->gameData.prevBtnState & UP))
         ||
@@ -350,8 +342,7 @@ void updateTitleScreen(platformer_t *self)
         }
         setLeds(platLeds, NUM_LEDS);
     }
-
-
+    */
 
     drawPlatformerTitleScreen(self->disp, &(self->radiostars), &(self->gameData));
 
@@ -408,6 +399,7 @@ void changeStateGame(platformer_t *self){
     
     entityManager->playerEntity = entityManager->viewEntity;
     viewFollowEntity(&(self->tilemap),entityManager->playerEntity);
+    updateLedsHpMeter(&(self->entityManager),&(self->gameData));
 
     self->tilemap.executeTileSpawnAll = true;
 

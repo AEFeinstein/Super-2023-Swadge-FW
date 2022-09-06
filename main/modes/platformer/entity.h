@@ -75,6 +75,10 @@ struct entity_t
     uint8_t homeTileY;
 
     int16_t jumpPower;
+
+    bool visible;
+    uint8_t hp;
+    int8_t invincibilityFrames;
     
     //entity_t *entities;
     entityManager_t *entityManager;
