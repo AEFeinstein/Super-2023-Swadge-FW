@@ -99,7 +99,7 @@ typedef struct
     picrossSaveData_t* save;
     led_t errorALEDBlinkLEDS[NUM_LEDS];
     led_t errorBLEDBlinkLEDS[NUM_LEDS];
-    led_t offLEDS[NUM_LEDS];//todo: is this a constant or stored somewhere else?
+    led_t offLEDS[NUM_LEDS];
 
 } picrossGame_t;
 
