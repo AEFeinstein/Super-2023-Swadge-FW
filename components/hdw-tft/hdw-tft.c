@@ -321,6 +321,7 @@ const uint16_t paletteColors[] =
 
 void setPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t getPxTft(int16_t x, int16_t y);
+paletteColor_t * getPxFbTft(void);
 void clearPxTft(void);
 void drawDisplayTft(bool drawDiff);
 
@@ -518,6 +519,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     disp->w = TFT_WIDTH;
     disp->setPx = setPxTft;
     disp->getPx = getPxTft;
+    disp->getPxFb = getPxFbTft;
     disp->clearPx = clearPxTft;
     disp->drawDisplay = drawDisplayTft;
 
@@ -558,6 +560,14 @@ paletteColor_t getPxTft(int16_t x, int16_t y)
         return pixels[(y * TFT_WIDTH) + x];
     }
     return c000;
+}
+
+/**
+ * @return A pointer to the framebuffer
+ */
+paletteColor_t * getPxFbTft(void)
+{
+    return pixels;
 }
 
 /**

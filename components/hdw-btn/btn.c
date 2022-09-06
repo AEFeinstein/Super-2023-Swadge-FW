@@ -123,7 +123,7 @@ void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButt
     timer_set_counter_value(group_num, timer_num, 0);
 
     // Configure the alarm value and the interrupt on alarm.
-    timer_set_alarm_value(group_num, timer_num, TIMER_SCALE / 1000); // 1ms timer
+    timer_set_alarm_value(group_num, timer_num, TIMER_SCALE / 5000); // 0.2ms timer
     timer_enable_intr(group_num, timer_num);
 
     // Configure the ISR
@@ -168,7 +168,7 @@ bool checkButtonQueue(buttonEvt_t* evt)
 {
     // Check if there's an event to dequeue from the ISR
     uint32_t gpio_evt;
-    if (xQueueReceive(gpio_evt_queue, &gpio_evt, 0))
+    while (xQueueReceive(gpio_evt_queue, &gpio_evt, 0))
     {
         // Save the old state, set the new state
         uint32_t oldButtonStates = buttonStates;

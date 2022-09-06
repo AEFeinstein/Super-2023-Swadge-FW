@@ -15,7 +15,7 @@ typedef struct __attribute__((packed))
 }
 led_t;
 
-void initLeds(gpio_num_t gpio, rmt_channel_t rmt, uint16_t numLeds, uint8_t brightness);
+void initLeds(gpio_num_t gpio, gpio_num_t gpioAlt, rmt_channel_t rmt, uint16_t numLeds, uint8_t brightness);
 void setLedBrightness(uint8_t brightness);
 void setLeds(led_t* leds, uint8_t numLeds);
 
