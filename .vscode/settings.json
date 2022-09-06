@@ -113,7 +113,10 @@
         "linked_list.h": "c",
         "mode_fighter.h": "c",
         "esp_attr.h": "c",
-        "emu_gpio.c": "c"
+        "emu_gpio.c": "c",
+        "mode_picross.h": "c",
+        "xlocnum": "c",
+        "xlocale": "c"
     },
     "idf.adapterTargetName": "esp32s2",
     "makefile.makefilePath": "./emu.mk"
