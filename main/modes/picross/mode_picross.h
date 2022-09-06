@@ -36,7 +36,6 @@ typedef struct
     int32_t banks[8];
 } picrossSaveData_t;
 
-
 typedef struct
 {
     picrossSpaceType_t startHeldType;
@@ -61,8 +60,6 @@ typedef struct
     bool showHints;
     bool DASActive;//true after the first DAS input has happened.
 } picrossInput_t;
-
-
 
 typedef struct
 {

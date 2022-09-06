@@ -40,6 +40,7 @@ void countInput(picrossDir_t input);
 int8_t getHintShift(uint8_t hint);
 void saveCompletedOnSelectedLevel(bool completed);
 void enterSpace(uint8_t x,uint8_t y,picrossSpaceType_t newSpace);
+
 //==============================================================================
 // Variables
 //==============================================================================
@@ -97,7 +98,6 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->blinkTime = 120000;//half a blink cycle (on)(off) or full (on/off)(on/off)?
     p->input->blinkCount = 6;
     p->input->showHints = picrossGetSaveFlag(0);//0 is showHints.
-
 
     //cant tell if this is doing things the lazy way or not.
     for(int i = 0;i<NUM_LEDS;i++)

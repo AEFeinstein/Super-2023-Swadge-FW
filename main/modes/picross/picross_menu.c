@@ -240,7 +240,6 @@ void picrossButtonCb(buttonEvt_t* evt)
     }
 }
 
-
 /////////////////////////
 
 /**
@@ -376,7 +375,6 @@ void picrossMainMenuCb(const char* opt)
         {
             writeNvs32(getBankName(0), 0);
         }
-        
     }
 }
 
@@ -404,7 +402,6 @@ bool picrossGetSaveFlag(int pos)
         writeNvs32("pic_options", 0);
     }
 
-    
     int val = (pm->options & ( 1 << pos )) >> pos;
     return val == 1;//hints will be first bit. IT IS DECIDED
 }
