@@ -11,6 +11,7 @@
 #include "aabb_utils.h"
 #include "nvs_manager.h"
 
+#include "picross_menu.h"
 #include "picross_select.h"
 #include "picross_menu.h"
 #include "bresenham.h"
@@ -26,8 +27,8 @@ picrossLevelSelect_t* ls;
 void levelSelectInput(void);
 void drawLevelSelectScreen(display_t* d,font_t* font);
 void drawWsgScaled(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff);
-void drawSinglePixelAsBox(display_t* d,int x, int y, wsg_t* image);
-void drawPreviewWindow(display_t* d, wsg_t* wsg);
+void drawPicrossSinglePixelAsBox(display_t* d,int x, int y, wsg_t* image);
+void drawPicrossPreviewWindow(display_t* d, wsg_t* wsg);
 
 //====
 // Functions
@@ -82,11 +83,9 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     ls->hoverX = 0;
     ls->hoverY = 0;
     ls->hoverLevelIndex = 0;
-    ls->prevBtnState = 0x80 | 0x10 | 0x40 | 0x20 | 0x1 | 0x2 | 0x4 | 0x8;// = 0xb11111111
+    ls->prevBtnState = SELECT | START | BTN_A | BTN_B | UP | DOWN | LEFT | RIGHT;
     
     ls->btnState = 0;
-    
-    //todo: where to store that?
 
     //visual settings
     ls->cols = 5;
@@ -277,20 +276,24 @@ void drawWsgScaled(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
     }
 }
 
-void drawSinglePixelAsBox(display_t* d,int x, int y, wsg_t* image)
+//todo: remove this function and fold it into drawpicrossPreviewWindow
+void drawPicrossSinglePixelAsBox(display_t* d,int x, int y, wsg_t* image)
 {   
     uint8_t s = 7;
     box_t box =
         {
-            .x0 = (x * s) + s + ls->paddingLeft+110,
-            .y0 = (y * s) + s + ls->paddingTop+60,
+            .x0 = (x * s) + s + ls->paddingLeft+110,//110=left offet for image
+            .y0 = (y * s) + s + ls->paddingTop+60,//60=topoffset for image below text
             .x1 = (x * s) + s + s + ls->paddingLeft+110,
             .y1 = (y * s) + s + s + ls->paddingTop+60,
         };  
     drawBox(d, box, image->px[(y * image->w) + x], true, 0);
 }
 
-void drawPreviewWindow(display_t* d, wsg_t* wsg)
+/// @brief Draws the picross preview of the level. Really, it just draws a wsg at a very specific location using drawBox calls.It can likely be optimized (by pulling the actual drawing code from drawBox into here?)
+/// @param d display
+/// @param wsg image to draw. on hover, it will be told to draw the image of the level we are hoving over - a '?' image or the completed one, as appopriate. 
+void drawPicrossPreviewWindow(display_t* d, wsg_t* wsg)
 {
     for(int i = 0;i<wsg->w;i++)
     {
