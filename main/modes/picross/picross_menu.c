@@ -121,7 +121,6 @@ void picrossEnterMode(display_t* disp)
 void picrossExitMode(void)
 {
     picrossExitLevelSelect();//this doesnt actually get called as we go in and out of levelselect (because it breaks everything), so lets call it now
-
     // picrossExitGame();//this is already getting called! hooray.
     deinitMeleeMenu(pm->menu);
     //p2pDeinit(&jm->p2p);

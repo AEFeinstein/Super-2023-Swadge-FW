@@ -719,7 +719,6 @@ void picrossUserInput(int64_t elapsedUs)
     }
  }
 
-
 void countInput(picrossDir_t input)
 {
     //I need to work out how this should properly behave.
@@ -1065,7 +1064,6 @@ void picrossExitGame(void)
     }    
 }
 
-
 ///=====
 // SAVING AND LOADING
 //===========
@@ -1098,9 +1096,7 @@ void loadPicrossProgress()
 }
 void saveCompletedOnSelectedLevel(bool completed)
 {
-//Save Victory
-        writeNvs32("pic_cur_ind", -1);//Unset the current level so we cant continue a won game.
-
+        //Save Victory
         int32_t victories = 0;
         if(p->selectedLevel->index <= 32)//levels 0-31
         {
