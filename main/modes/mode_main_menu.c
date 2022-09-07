@@ -14,6 +14,7 @@
 #include "settingsManager.h"
 #include "meleeMenu.h"
 
+#include "picross_menu.h"
 #include "fighter_menu.h"
 #include "jumper_menu.h"
 #include "mode_tiltrads.h"
@@ -22,6 +23,8 @@
 #include "mode_colorchord.h"
 #include "mode_credits.h"
 #include "mode_platformer.h"
+#include "mode_picross.h"
+// #include "picross_select.h"
 
 //==============================================================================
 // Functions Prototypes
@@ -296,6 +299,7 @@ void mainMenuSetUpGamesMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, modeTiltrads.modeName);
     addRowToMeleeMenu(mainMenu->menu, modePlatformer.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeJumper.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modePicross.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -335,6 +339,9 @@ void mainMenuGamesCb(const char* opt)
     {
         // Start jumper
         switchToSwadgeMode(&modeJumper);
+    }else if(modePicross.modeName == opt)
+    {
+        switchToSwadgeMode(&modePicross);
     }
     else if(mainMenuBack == opt)
     {
