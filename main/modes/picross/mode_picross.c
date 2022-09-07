@@ -930,33 +930,49 @@ void drawPicrossHud(display_t* d,font_t* font)
      
     }
 
-    //Draw hints
-    for(int i=0;i<10;i++)
+    //Draw the hints.
+    //With square puzzles, we don't need two for loops. Perhaps this is... aspirational.
+    for(int i=0;i<p->puzzle->height;i++)
     {
         drawHint(d,font,p->puzzle->rowHints[i]);
+    }
+    for(int i=0;i<p->puzzle->width;i++)
+    {
         drawHint(d,font,p->puzzle->colHints[i]);
     }
+
 }
 
 void drawHint(display_t* d,font_t* font, picrossHint_t hint)
 {
     int8_t vHintShift = 2;
     uint8_t h;
-    uint8_t g = p->clueGap;//
-    //todo: handle 10 or double-digit input 
+    uint8_t g = p->clueGap;
+    box_t hintbox = boxFromCoord(-1,hint.index);
+    paletteColor_t hintShadeColor = c001;//todo: move to struct if we decide to keep this.
     if(hint.isRow){
         int j = 0;
+
+        //if current row, draw background squares.
+        if(hint.index == p->input->y)
+        {
+            hintbox = boxFromCoord(-1,hint.index);
+            hintbox.x0 = hintbox.x0 - p->drawScale*4;
+            drawBox(d,hintbox,hintShadeColor,true,1);
+        }
+        
+        //draw clues if they... are a thing
         for(int i = 0;i<5;i++)
         {
             h = hint.hints[4-i];
-            box_t hintbox = boxFromCoord(-j-1,hint.index);
+            hintbox = boxFromCoord(-j-1,hint.index);
             hintbox.x0 = hintbox.x0 - (g * (j));
             hintbox.x1 = hintbox.x1 - (g * (j));
             //we have to flip the hints around. 
             if(h == 0){
                 //dont increase j.
                 
-            }else if(h < 10){
+            }else if(h < 10){//single digit draws
                 
                 //drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
 
@@ -965,8 +981,9 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
                 drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
                 j++;//the index position, but only for where to draw. shifts the clues to the right.
-            }else{
-                //drawBox(d,hintbox,c111,false,1);//same as above
+            }else{//double digit draws
+
+                
                 char letter[4];
                 sprintf(letter, "%d", h);
                 //as a "temporary" workaround, we will use x1 and y1 and subtract the drawscale.
@@ -978,10 +995,20 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
         }
     }else{
         int j = 0;
+         //if current col, draw background square
+        if(hint.index == p->input->x)
+        {
+            hintbox = boxFromCoord(hint.index,-1);
+            hintbox.y0 = hintbox.y0 - p->drawScale*4;
+            drawBox(d,hintbox,hintShadeColor,true,1);
+        }
+
+        //draw hints
         for(int i = 0;i<5;i++)
         {
             h = hint.hints[4-i];
-            box_t hintbox = boxFromCoord(hint.index,-j-1);
+            hintbox = boxFromCoord(hint.index,-j-1);          
+
              if(h == 0){      
                 //         
             }else if(h < 10){
