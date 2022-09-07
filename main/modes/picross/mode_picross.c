@@ -742,6 +742,10 @@ void countInput(picrossDir_t input)
 /// DRAWING SCENE
 //========================================================
 
+/**
+ * @brief Master draw function for picross gameplay. Draws the board and calls other picross draw functions.
+ * 
+ */
 void drawPicrossScene(display_t* d)
 {
     uint8_t w = p->puzzle->width;
@@ -751,20 +755,31 @@ void drawPicrossScene(display_t* d)
     drawBackground(d);
 
     box_t box;
+    //todo: move color selection to constants somewhere
+    paletteColor_t emptySpaceCol = c555;
+    paletteColor_t hoverSpaceCol = c445;//I wish I could tint this less than I can. What if, instead, we tint the border-lines surrounding the spaces, and not the spaces?
     if(p->currentPhase == PICROSS_SOLVING)
     {
         for(int i = 0;i<w;i++)
         {
             for(int j = 0;j<h;j++)
             {
-                //shapw of boxDraw
+                //shape of boxDraw
                 //we will probably replace with "drawwsg"
                 box = boxFromCoord(i,j);          
                 switch(p->puzzle->level[i][j])
                 {
                     case SPACE_EMPTY:
                     {
-                        drawBox(d, box, c555, true, 1);
+                        //slightly tint rows or columns
+                        //todo: move this logic around to make code more efficient? 
+                        if(!(p->input->x == i) != !(p->input->y == j))//this is a strange boolean logic hack to do (x==i XOR y==j)
+                        {
+                            drawBox(d, box, hoverSpaceCol, true, 1);
+                        }else
+                        {
+                            drawBox(d, box, emptySpaceCol, true, 1);
+                        }
                         break;
                     }
                     case SPACE_FILLED:
@@ -807,6 +822,13 @@ void drawSinglePixelFromWSG(display_t* d,int x, int y, wsg_t* image)
     drawBox(d, box, v, true, 1);
 }
 
+//*
+// * @brief Creates a box_t struct given the x/y coordinates. I haven't gotten to totally standardizing the coordinate system for picross yet, but if we are trying to adjust where on screen something goes, this function determines _most_ of it.
+// * 
+// * @param x 
+// * @param y 
+// * @return box_t 
+// */
 box_t boxFromCoord(int8_t x,int8_t y)
 {
     uint8_t s = p->drawScale;
