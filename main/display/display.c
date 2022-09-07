@@ -404,11 +404,11 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
                 if(flipLR || flipUD || !rotateDeg)
                 {
                     transformPixel(&dstX, &dstY, xOff, yOff, flipLR, flipUD,
-                                rotateDeg, wsg->w, wsg->h);
+                                   rotateDeg, wsg->w, wsg->h);
                 }
                 // Check bounds
                 if(0 <= dstX && dstX < disp->w &&
-                   0 <= dstY && dstY < disp->h)
+                        0 <= dstY && dstY < disp->h)
                 {
                     // Draw the pixel
                     SET_PIXEL(disp, dstX, dstY, wsg->px[srcIdx]);
@@ -433,12 +433,12 @@ void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
         return;
     }
 
-     // Only draw in bounds
+    // Only draw in bounds
     int16_t xMin = CLAMP(xOff, 0, disp->w);
     int16_t xMax = CLAMP(xOff + wsg->w, 0, disp->w);
     int16_t yMin = CLAMP(yOff, 0, disp->h);
     int16_t yMax = CLAMP(yOff + wsg->h, 0, disp->h);
-    
+
     // Draw each pixel
     for (int y = yMin; y < yMax; y++)
     {
@@ -457,7 +457,7 @@ void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
 
 /**
  * Quickly copy bytes into the framebuffer. This ignores transparency
- * 
+ *
  * @param disp The display to draw the WSG to
  * @param wsg  The WSG to draw to the display
  * @param xOff The x offset to draw the WSG at
@@ -468,7 +468,8 @@ void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
     // Check if there is framebuffer access
     if(NULL != disp->pxFb)
     {
-        if(xOff > disp->w){
+        if(xOff > disp->w)
+        {
             return;
         }
 
@@ -483,7 +484,7 @@ void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
             copyLen += xOff;
             xOff = 0;
         }
-        
+
         if(xOff + copyLen > disp->w)
         {
             copyLen = disp->w - xOff;
