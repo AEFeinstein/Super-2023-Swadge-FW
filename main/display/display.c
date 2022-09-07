@@ -25,7 +25,7 @@
 // Constant data
 //==============================================================================
 
-const uint32_t sin1024[] =
+const int32_t sin1024[] =
 {
     0, 18, 36, 54, 71, 89, 107, 125, 143, 160, 178, 195, 213, 230, 248, 265,
     282, 299, 316, 333, 350, 367, 384, 400, 416, 433, 449, 465, 481, 496, 512,
@@ -57,7 +57,7 @@ const uint32_t sin1024[] =
     -36, -18
 };
 
-const uint32_t tan1024[] =
+const int32_t tan1024[] =
 {
     0, 18, 36, 54, 72, 90, 108, 126, 144, 162, 181, 199, 218, 236, 255, 274, 294,
     313, 333, 353, 373, 393, 414, 435, 456, 477, 499, 522, 544, 568, 591, 615,
@@ -174,22 +174,25 @@ int16_t getTan1024(int16_t degree)
 void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
                      int16_t y2, paletteColor_t c)
 {
+    // Note: int16_t vs int data types tested for speed.
+
     // Only draw on the display
-    int16_t xMin = CLAMP(x1, 0, disp->w);
-    int16_t xMax = CLAMP(x2, 0, disp->w);
-    int16_t yMin = CLAMP(y1, 0, disp->h);
-    int16_t yMax = CLAMP(y2, 0, disp->h);
+    int xMin = CLAMP(x1, 0, disp->w);
+    int xMax = CLAMP(x2, 0, disp->w);
+    int yMin = CLAMP(y1, 0, disp->h);
+    int yMax = CLAMP(y2, 0, disp->h);
+
+    paletteColor_t * pxs = disp->pxFb[0];
+
+    int copyLen = xMax - xMin;
 
     // Set each pixel
     for (int y = yMin; y < yMax; y++)
     {
-        for (int x = xMin; x < xMax; x++)
-        {
-            SET_PIXEL(disp, x, y, c);
-        }
+        uint8_t * line = pxs + y * disp->w + xMin;
+        memset( line, c, copyLen );
     }
 }
-
 /**
  * @brief Load a WSG from ROM to RAM. WSGs placed in the spiffs_image folder
  * before compilation will be automatically flashed to ROM
