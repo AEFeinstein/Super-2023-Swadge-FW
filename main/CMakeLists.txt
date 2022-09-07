@@ -46,6 +46,7 @@ idf_component_register(
         "modes/fighter"
         "modes/platformer"
         "modes/jumper"
+        "modes/picross"
         "utils")
 
 function(spiffs_file_preprocessor)
