@@ -96,6 +96,6 @@ paletteColor_t hsv2rgb( uint8_t hue, uint8_t sat, uint8_t val);
 
 int16_t getSin1024(int16_t degree);
 int16_t getCos1024(int16_t degree);
-int16_t getTan1024(int16_t degree);
+int32_t getTan512(int16_t degree);
 
 #endif
