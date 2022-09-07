@@ -823,7 +823,7 @@ box_t boxFromCoord(int8_t x,int8_t y)
 void drawPicrossHud(display_t* d,font_t* font)
 {
     //Draw coordinates
-    char textBuffer[6];
+    char textBuffer[9];
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%d,%d", p->input->x+1,p->input->y+1);
     drawText(d, font, c555, textBuffer, 230, 220);
 
@@ -938,14 +938,14 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 
                 //drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
 
-                char letter[1];
+                char letter[4];
                 sprintf(letter, "%d", h);//this function appears to modify hintbox.x0
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
                 drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
                 j++;//the index position, but only for where to draw. shifts the clues to the right.
             }else{
                 //drawBox(d,hintbox,c111,false,1);//same as above
-                char letter[1];
+                char letter[4];
                 sprintf(letter, "%d", h);
                 //as a "temporary" workaround, we will use x1 and y1 and subtract the drawscale.
                 drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale)) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
@@ -964,14 +964,14 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 //         
             }else if(h < 10){
                 //drawBox(d,hintbox,c111,false,1);
-                char letter[1];
+                char letter[4];
                 sprintf(letter, "%d", h);
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
                 drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
                 j++;//the index position, but only for where to draw. shifts the clues to the right.
             }else{
                 //drawBox(d,hintbox,c111,false,1);//same as above
-                char letter[1];
+                char letter[4];
                 sprintf(letter, "%d", h);
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
                 drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);

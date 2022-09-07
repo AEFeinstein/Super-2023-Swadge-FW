@@ -213,11 +213,11 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
         //draw preview window
         if(ls->levels[ls->hoverLevelIndex].completed){
             //if completed, show victory image and green hover
-            drawPreviewWindow(d,&ls->levels[ls->hoverLevelIndex].completedWSG);
+            drawPicrossPreviewWindow(d,&ls->levels[ls->hoverLevelIndex].completedWSG);
             drawBox(d,inputBox,c151,false,1);
         }else{
             //if incomplete, show ? image and red hvoer
-            drawPreviewWindow(d,&ls->unknownPuzzle);
+            drawPicrossPreviewWindow(d,&ls->unknownPuzzle);
             drawBox(d,inputBox,c511,false,1);
         }
     }
@@ -299,7 +299,7 @@ void drawPicrossPreviewWindow(display_t* d, wsg_t* wsg)
     {
         for(int j = 0;j<wsg->h;j++)
         {
-            drawSinglePixelAsBox(d,i,j,wsg);
+            drawPicrossSinglePixelAsBox(d,i,j,wsg);
         }
     }
 }
