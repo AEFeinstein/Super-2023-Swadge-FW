@@ -355,7 +355,7 @@ The TFT display uses 8-bit web-safe color palette. This means that the red, gree
 
 You do not have to call any functions to draw the current framebuffer to the physical display. That is handled by the system firmware. Just draw your frame and it will get pushed out as fast as possible.
 
-There are a few convenient ways to draw your frame. You can use the `display_t` struct's `clearPx()` function to clear the entire frame before drawing, unless you're only redrawing specific elements. If you really want to draw a single pixel at a time, you can call the `display_t` struct's `setPx()` function. Likewise, `getPx()` will return a pixel from the current frame. This may be useful for collision detection or something.
+There are a few convenient ways to draw your frame. You can use the `display_t` struct's `clearPx()` function to clear the entire frame before drawing, unless you're only redrawing specific elements. If you really want to draw a single pixel at a time, you can call the `display_t` struct's `setPx()` function. Likewise, `getPx()` will return a pixel from the current frame. This may be useful for collision detection or something. The macros `SET_PIXEL()` and `GET_PIXEL()` macros are faster versions of `setPx()` and `getPx()` that directly access the framebuffer, but do not do bounds checking. `SET_PIXEL_BOUNDS()` does do bounds checking, which makes it a little slower.
 
 `bresenham.h` contains functions for drawing shapes like lines, rectangles, circles, or curves. Note that these shapes are not filled in. If you want filled shapes, or other shapes, we'll need to work on that. Remember that more complex polygons are just series of lines.
 

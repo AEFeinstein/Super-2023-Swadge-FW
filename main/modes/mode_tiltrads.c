@@ -2907,7 +2907,7 @@ void plotGrid(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8_t
         {
             //plotSquare(x0 + (x * unitSize) + 1, y0 + (y * unitSize) + 1, unitSize, c555);
             // Draw a centered pixel on empty grid units.
-            //if (gridData[y][x] == EMPTY) disp->setPx(x0 + x * unitSize + (unitSize / 2), y0 + y * unitSize + (unitSize / 2), c555);
+            //if (gridData[y][x] == EMPTY) SET_PIXEL_BOUNDS(disp, x0 + x * unitSize + (unitSize / 2), y0 + y * unitSize + (unitSize / 2), c555);
         }
     }
 }
@@ -2930,17 +2930,17 @@ void plotTetrad(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8
                 {
                     case I_TETRAD:
                         // thatch
-                        /*disp->setPx(px + 1, py + 1, col);
-                        disp->setPx(px + (unitSize - 2), py + 1, col);
-                        disp->setPx(px + 1, py + (unitSize - 2), col);
-                        disp->setPx(px + (unitSize - 2), py + (unitSize - 2), col);*/
+                        /*SET_PIXEL_BOUNDS(disp, px + 1, py + 1, col);
+                        SET_PIXEL_BOUNDS(disp, px + (unitSize - 2), py + 1, col);
+                        SET_PIXEL_BOUNDS(disp, px + 1, py + (unitSize - 2), col);
+                        SET_PIXEL_BOUNDS(disp, px + (unitSize - 2), py + (unitSize - 2), col);*/
                         // diagonals both
                         plotLine(disp, px, py, px + (unitSize - 1), py + (unitSize - 1), borderColor, 0);
                         plotLine(disp, px, py + (unitSize - 1), px + (unitSize - 1), py, borderColor, 0);
                         break;
                     case O_TETRAD:
                         // full walls and center dots.
-                        disp->setPx(px + (unitSize / 2), py + (unitSize / 2), borderColor);
+                        SET_PIXEL_BOUNDS(disp, px + (unitSize / 2), py + (unitSize / 2), borderColor);
                         plotSquare(disp, px, py, unitSize, borderColor);
                         break;
                     case T_TETRAD:
@@ -3050,8 +3050,8 @@ void plotTetrad(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8
                 }
                 else
                 {
-                    disp->setPx(px, py, borderColor);
-                    disp->setPx(px + (unitSize - 1), py, borderColor);
+                    SET_PIXEL_BOUNDS(disp, px, py, borderColor);
+                    SET_PIXEL_BOUNDS(disp, px + (unitSize - 1), py, borderColor);
                 }
 
                 //bot
@@ -3061,8 +3061,8 @@ void plotTetrad(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8
                 }
                 else
                 {
-                    disp->setPx(px, py + (unitSize - 1), borderColor);
-                    disp->setPx(px + (unitSize - 1), py + (unitSize - 1), borderColor);
+                    SET_PIXEL_BOUNDS(disp, px, py + (unitSize - 1), borderColor);
+                    SET_PIXEL_BOUNDS(disp, px + (unitSize - 1), py + (unitSize - 1), borderColor);
                 }
 
                 //left
@@ -3072,8 +3072,8 @@ void plotTetrad(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8
                 }
                 else
                 {
-                    disp->setPx(px, py, borderColor);
-                    disp->setPx(px, py + (unitSize - 1), borderColor);
+                    SET_PIXEL_BOUNDS(disp, px, py, borderColor);
+                    SET_PIXEL_BOUNDS(disp, px, py + (unitSize - 1), borderColor);
                 }
 
                 //right
@@ -3083,8 +3083,8 @@ void plotTetrad(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8
                 }
                 else
                 {
-                    disp->setPx(px + (unitSize - 1), py, borderColor);
-                    disp->setPx(px + (unitSize - 1), py, borderColor);
+                    SET_PIXEL_BOUNDS(disp, px + (unitSize - 1), py, borderColor);
+                    SET_PIXEL_BOUNDS(disp, px + (unitSize - 1), py, borderColor);
                 }
             }
         }

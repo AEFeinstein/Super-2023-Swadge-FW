@@ -185,7 +185,7 @@ void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
     {
         for (int x = xMin; x < xMax; x++)
         {
-            disp->setPx(x, y, c);
+            SET_PIXEL(disp, x, y, c);
         }
     }
 }
@@ -395,18 +395,23 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
         for(int16_t srcX = 0; srcX < wsg->w; srcX++)
         {
             // Draw if not transparent
-            if (cTransparent != wsg->px[(srcY * wsg->w) + srcX])
+            uint16_t srcIdx = (srcY * wsg->w) + srcX;
+            if (cTransparent != wsg->px[srcIdx])
             {
                 // Transform this pixel's draw location as necessary
                 int16_t dstX = srcX;
                 int16_t dstY = srcY;
-                transformPixel(&dstX, &dstY, xOff, yOff, flipLR, flipUD,
-                               rotateDeg, wsg->w, wsg->h);
+                if(flipLR || flipUD || !rotateDeg)
+                {
+                    transformPixel(&dstX, &dstY, xOff, yOff, flipLR, flipUD,
+                                rotateDeg, wsg->w, wsg->h);
+                }
                 // Check bounds
-                if(0 <= dstX && dstX < disp->w && 0 <= dstY && dstY <= disp->h)
+                if(0 <= dstX && dstX < disp->w &&
+                   0 <= dstY && dstY < disp->h)
                 {
                     // Draw the pixel
-                    disp->setPx(dstX, dstY, wsg->px[(srcY * wsg->w) + srcX]);
+                    SET_PIXEL(disp, dstX, dstY, wsg->px[srcIdx]);
                 }
             }
         }
@@ -441,9 +446,10 @@ void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
         {
             int16_t wsgX = x - xOff;
             int16_t wsgY = y - yOff;
-            if (cTransparent != wsg->px[(wsgY * wsg->w) + wsgX])
+            int16_t wsgIdx = (wsgY * wsg->w) + wsgX;
+            if (cTransparent != wsg->px[wsgIdx])
             {
-                disp->setPx(x, y, wsg->px[(wsgY * wsg->w) + wsgX]);
+                SET_PIXEL(disp, x, y, wsg->px[wsgIdx]);
             }
         }
     }
@@ -460,9 +466,7 @@ void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
 void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
 {
     // Check if there is framebuffer access
-    paletteColor_t * fb = disp->getPxFb();
-
-    if(NULL != fb)
+    if(NULL != disp->pxFb)
     {
         if(xOff > disp->w){
             return;
@@ -488,11 +492,9 @@ void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
         // copy each row
         for(int32_t y = yStart; y < yEnd; y++)
         {
-            // Find the index into the framebuffer
-            uint32_t dstIdx = (y * disp->w) + xOff;
             // Copy the row
             // TODO probably faster if we can guarantee copyLen is a multiple of 4
-            memcpy(&fb[dstIdx], &wsg->px[(wsg->h - (yEnd - y)) * wsg->w], copyLen);
+            memcpy(&disp->pxFb[y][xOff], &wsg->px[(wsg->h - (yEnd - y)) * wsg->w], copyLen);
         }
     }
     else
@@ -584,16 +586,35 @@ void drawChar(display_t* disp, paletteColor_t color, uint16_t h, font_ch_t* ch, 
     // Iterate over the character bitmap
     for (int y = 0; y < h; y++)
     {
+        // Figure out where to draw
+        int drawY = y + yOff;
+        // Check Y bounds
+        if(drawY < 0)
+        {
+            // Above the display, continue drawing top to bottom
+            continue;
+        }
+        else if(drawY >= disp->h)
+        {
+            // Below the display, definitely done
+            return;
+        }
+
         for (int x = 0; x < ch->w; x++)
         {
             // Figure out where to draw
             int drawX = x + xOff;
-            int drawY = y + yOff;
+            // Check X bounds
+            if((drawX < 0) || (disp->w <= drawX))
+            {
+                continue;
+            }
+
             // If there is a pixel
             if (ch->bitmap[byteIdx] & (1 << bitIdx))
             {
                 // Draw the pixel
-                disp->setPx(drawX, drawY, color);
+                SET_PIXEL(disp, drawX, drawY, color);
             }
 
             // Iterate over the bit data
