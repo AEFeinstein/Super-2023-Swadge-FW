@@ -160,15 +160,28 @@ void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
     int yMin = CLAMP(y1, 0, disp->h);
     int yMax = CLAMP(y2, 0, disp->h);
 
-    paletteColor_t * pxs = disp->pxFb[0];
-
-    int copyLen = xMax - xMin;
-
-    // Set each pixel
-    for (int y = yMin; y < yMax; y++)
+    if(NULL != disp->pxFb)
     {
-        uint8_t * line = pxs + y * disp->w + xMin;
-        memset( line, c, copyLen );
+        paletteColor_t * pxs = disp->pxFb[0];
+
+        int copyLen = xMax - xMin;
+
+        // Set each pixel
+        for (int y = yMin; y < yMax; y++)
+        {
+            uint8_t * line = pxs + y * disp->w + xMin;
+            memset( line, c, copyLen );
+        }
+    }
+    else
+    {
+        for(int y = yMin; y < yMax; y++)
+        {
+            for(int x = xMin; x < xMax; x++)
+            {
+                SET_PIXEL(disp, x, y, c);
+            }
+        }
     }
 }
 /**
