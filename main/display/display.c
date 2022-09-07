@@ -25,7 +25,7 @@
 // Constant data
 //==============================================================================
 
-const uint32_t sin1024[] =
+const int16_t sin1024[] =
 {
     0, 18, 36, 54, 71, 89, 107, 125, 143, 160, 178, 195, 213, 230, 248, 265,
     282, 299, 316, 333, 350, 367, 384, 400, 416, 433, 449, 465, 481, 496, 512,
@@ -57,7 +57,10 @@ const uint32_t sin1024[] =
     -36, -18
 };
 
-const uint32_t tan1024[] =
+// Only need 180 degrees because of symmetry.
+// One note: Originally, this table was 1024, I saw no ill effects when
+// shrinking it so I kept it that way.
+const uint16_t tan1024[90] =
 {
     0, 18, 36, 54, 72, 90, 108, 126, 144, 162, 181, 199, 218, 236, 255, 274, 294,
     313, 333, 353, 373, 393, 414, 435, 456, 477, 499, 522, 544, 568, 591, 615,
@@ -65,29 +68,7 @@ const uint32_t tan1024[] =
     1098, 1137, 1178, 1220, 1265, 1311, 1359, 1409, 1462, 1518, 1577, 1639, 1704,
     1774, 1847, 1926, 2010, 2100, 2196, 2300, 2412, 2534, 2668, 2813, 2974,
     3152, 3349, 3571, 3822, 4107, 4435, 4818, 5268, 5807, 6465, 7286, 8340, 9743,
-    11704, 14644, 19539, 29324, 58665, 67108863, -58665, -29324, -19539, -14644,
-    -11704, -9743, -8340, -7286, -6465, -5807, -5268, -4818, -4435, -4107, -3822,
-    -3571, -3349, -3152, -2974, -2813, -2668, -2534, -2412, -2300, -2196, -2100,
-    -2010, -1926, -1847, -1774, -1704, -1639, -1577, -1518, -1462, -1409,
-    -1359, -1311, -1265, -1220, -1178, -1137, -1098, -1060, -1024, -989, -955,
-    -922, -890, -859, -829, -800, -772, -744, -717, -691, -665, -640, -615, -591,
-    -568, -544, -522, -499, -477, -456, -435, -414, -393, -373, -353, -333, -313,
-    -294, -274, -255, -236, -218, -199, -181, -162, -144, -126, -108, -90, -72,
-    -54, -36, -18, 0, 18, 36, 54, 72, 90, 108, 126, 144, 162, 181, 199, 218,
-    236, 255, 274, 294, 313, 333, 353, 373, 393, 414, 435, 456, 477, 499, 522,
-    544, 568, 591, 615, 640, 665, 691, 717, 744, 772, 800, 829, 859, 890, 922, 955,
-    989, 1024, 1060, 1098, 1137, 1178, 1220, 1265, 1311, 1359, 1409, 1462,
-    1518, 1577, 1639, 1704, 1774, 1847, 1926, 2010, 2100, 2196, 2300, 2412, 2534,
-    2668, 2813, 2974, 3152, 3349, 3571, 3822, 4107, 4435, 4818, 5268, 5807, 6465,
-    7286, 8340, 9743, 11704, 14644, 19539, 29324, 58665, 67108863, -58665, -29324,
-    -19539, -14644, -11704, -9743, -8340, -7286, -6465, -5807, -5268, -4818,
-    -4435, -4107, -3822, -3571, -3349, -3152, -2974, -2813, -2668, -2534, -2412,
-    -2300, -2196, -2100, -2010, -1926, -1847, -1774, -1704, -1639, -1577, -1518,
-    -1462, -1409, -1359, -1311, -1265, -1220, -1178, -1137, -1098, -1060, -1024,
-    -989, -955, -922, -890, -859, -829, -800, -772, -744, -717, -691, -665,
-    -640, -615, -591, -568, -544, -522, -499, -477, -456, -435, -414, -393, -373,
-    -353, -333, -313, -294, -274, -255, -236, -218, -199, -181, -162, -144, -126,
-    -108, -90, -72, -54, -36, -18
+    11704, 14644, 19539, 29324, 58665, 65535,
 };
 
 //==============================================================================
@@ -148,17 +129,14 @@ int16_t getCos1024(int16_t degree)
  * @param degree The degree, between 0 and 359
  * @return int16_t The tangent of the degree, between -1024 and 1024
  */
-int16_t getTan1024(int16_t degree)
+int32_t getTan1024(int16_t degree)
 {
-    while(degree >= 360)
-    {
-        degree -= 360;
-    }
-    while(degree < 0)
-    {
-        degree += 360;
-    }
-    return tan1024[degree];
+    // Force always positive modulus math.
+    degree = ( ( degree % 180 ) + 180 ) % 180;
+	if( degree < 90 )
+		return tan1024[degree];
+	else
+		return -tan1024[degree-90];
 }
 
 /**
@@ -174,22 +152,25 @@ int16_t getTan1024(int16_t degree)
 void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
                      int16_t y2, paletteColor_t c)
 {
+    // Note: int16_t vs int data types tested for speed.
+
     // Only draw on the display
-    int16_t xMin = CLAMP(x1, 0, disp->w);
-    int16_t xMax = CLAMP(x2, 0, disp->w);
-    int16_t yMin = CLAMP(y1, 0, disp->h);
-    int16_t yMax = CLAMP(y2, 0, disp->h);
+    int xMin = CLAMP(x1, 0, disp->w);
+    int xMax = CLAMP(x2, 0, disp->w);
+    int yMin = CLAMP(y1, 0, disp->h);
+    int yMax = CLAMP(y2, 0, disp->h);
+
+    paletteColor_t * pxs = disp->pxFb[0];
+
+    int copyLen = xMax - xMin;
 
     // Set each pixel
     for (int y = yMin; y < yMax; y++)
     {
-        for (int x = xMin; x < xMax; x++)
-        {
-            disp->setPx(x, y, c);
-        }
+        uint8_t * line = pxs + y * disp->w + xMin;
+        memset( line, c, copyLen );
     }
 }
-
 /**
  * @brief Load a WSG from ROM to RAM. WSGs placed in the spiffs_image folder
  * before compilation will be automatically flashed to ROM
@@ -395,18 +376,23 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
         for(int16_t srcX = 0; srcX < wsg->w; srcX++)
         {
             // Draw if not transparent
-            if (cTransparent != wsg->px[(srcY * wsg->w) + srcX])
+            uint16_t srcIdx = (srcY * wsg->w) + srcX;
+            if (cTransparent != wsg->px[srcIdx])
             {
                 // Transform this pixel's draw location as necessary
                 int16_t dstX = srcX;
                 int16_t dstY = srcY;
-                transformPixel(&dstX, &dstY, xOff, yOff, flipLR, flipUD,
-                               rotateDeg, wsg->w, wsg->h);
+                if(flipLR || flipUD || !rotateDeg)
+                {
+                    transformPixel(&dstX, &dstY, xOff, yOff, flipLR, flipUD,
+                                   rotateDeg, wsg->w, wsg->h);
+                }
                 // Check bounds
-                if(0 <= dstX && dstX < disp->w && 0 <= dstY && dstY <= disp->h)
+                if(0 <= dstX && dstX < disp->w &&
+                        0 <= dstY && dstY < disp->h)
                 {
                     // Draw the pixel
-                    disp->setPx(dstX, dstY, wsg->px[(srcY * wsg->w) + srcX]);
+                    SET_PIXEL(disp, dstX, dstY, wsg->px[srcIdx]);
                 }
             }
         }
@@ -428,12 +414,12 @@ void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
         return;
     }
 
-     // Only draw in bounds
+    // Only draw in bounds
     int16_t xMin = CLAMP(xOff, 0, disp->w);
     int16_t xMax = CLAMP(xOff + wsg->w, 0, disp->w);
     int16_t yMin = CLAMP(yOff, 0, disp->h);
     int16_t yMax = CLAMP(yOff + wsg->h, 0, disp->h);
-    
+
     // Draw each pixel
     for (int y = yMin; y < yMax; y++)
     {
@@ -441,9 +427,10 @@ void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
         {
             int16_t wsgX = x - xOff;
             int16_t wsgY = y - yOff;
-            if (cTransparent != wsg->px[(wsgY * wsg->w) + wsgX])
+            int16_t wsgIdx = (wsgY * wsg->w) + wsgX;
+            if (cTransparent != wsg->px[wsgIdx])
             {
-                disp->setPx(x, y, wsg->px[(wsgY * wsg->w) + wsgX]);
+                SET_PIXEL(disp, x, y, wsg->px[wsgIdx]);
             }
         }
     }
@@ -451,7 +438,7 @@ void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
 
 /**
  * Quickly copy bytes into the framebuffer. This ignores transparency
- * 
+ *
  * @param disp The display to draw the WSG to
  * @param wsg  The WSG to draw to the display
  * @param xOff The x offset to draw the WSG at
@@ -460,11 +447,10 @@ void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
 void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
 {
     // Check if there is framebuffer access
-    paletteColor_t * fb = disp->getPxFb();
-
-    if(NULL != fb)
+    if(NULL != disp->pxFb)
     {
-        if(xOff > disp->w){
+        if(xOff > disp->w)
+        {
             return;
         }
 
@@ -479,7 +465,7 @@ void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
             copyLen += xOff;
             xOff = 0;
         }
-        
+
         if(xOff + copyLen > disp->w)
         {
             copyLen = disp->w - xOff;
@@ -488,11 +474,9 @@ void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
         // copy each row
         for(int32_t y = yStart; y < yEnd; y++)
         {
-            // Find the index into the framebuffer
-            uint32_t dstIdx = (y * disp->w) + xOff;
             // Copy the row
             // TODO probably faster if we can guarantee copyLen is a multiple of 4
-            memcpy(&fb[dstIdx], &wsg->px[(wsg->h - (yEnd - y)) * wsg->w], copyLen);
+            memcpy(&disp->pxFb[y][xOff], &wsg->px[(wsg->h - (yEnd - y)) * wsg->w], copyLen);
         }
     }
     else
@@ -584,16 +568,35 @@ void drawChar(display_t* disp, paletteColor_t color, uint16_t h, font_ch_t* ch, 
     // Iterate over the character bitmap
     for (int y = 0; y < h; y++)
     {
+        // Figure out where to draw
+        int drawY = y + yOff;
+        // Check Y bounds
+        if(drawY < 0)
+        {
+            // Above the display, continue drawing top to bottom
+            continue;
+        }
+        else if(drawY >= disp->h)
+        {
+            // Below the display, definitely done
+            return;
+        }
+
         for (int x = 0; x < ch->w; x++)
         {
             // Figure out where to draw
             int drawX = x + xOff;
-            int drawY = y + yOff;
+            // Check X bounds
+            if((drawX < 0) || (disp->w <= drawX))
+            {
+                continue;
+            }
+
             // If there is a pixel
             if (ch->bitmap[byteIdx] & (1 << bitIdx))
             {
                 // Draw the pixel
-                disp->setPx(drawX, drawY, color);
+                SET_PIXEL(disp, drawX, drawY, color);
             }
 
             // Iterate over the bit data

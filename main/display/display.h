@@ -9,6 +9,27 @@
 #include <stdbool.h>
 #include "palette.h"
 
+#if defined(EMU)
+// Draw a pixel directly to the framebuffer
+#define SET_PIXEL(d, x, y, c)        d->setPx(x, y, c)
+// Draw a pixel to the framebuffer with bounds checking
+#define SET_PIXEL_BOUNDS(d, x, y, c) d->setPx(x, y, c)
+// Get a pixel directly from the framebuffer
+#define GET_PIXEL(d, x, y)           d->getPx(x, y)
+#else
+// Draw a pixel directly to the framebuffer
+#define SET_PIXEL(d, x, y, c) (d)->pxFb[(y)][(x)] = (c)
+// Draw a pixel to the framebuffer with bounds checking
+#define SET_PIXEL_BOUNDS(d, x, y, c) \
+    do{ \
+        if(0 <= (x) && (x) < (d)->w && 0 <= (y) && (y) < (d)->h) { \
+            (d)->pxFb[(y)][(x)] = (c); \
+        } \
+    } while(0)
+// Get a pixel directly from the framebuffer
+#define GET_PIXEL(d, x, y) (d)->pxFb[(y)][(x)]
+#endif
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -22,7 +43,7 @@ typedef struct
 
 typedef void (*pxSetFunc_t)(int16_t x, int16_t y, paletteColor_t px);
 typedef paletteColor_t (*pxGetFunc_t)(int16_t x, int16_t y);
-typedef paletteColor_t * (*pxFbGetFunc_t)(void);
+typedef paletteColor_t* (*pxFbGetFunc_t)(void);
 typedef void (*pxClearFunc_t)(void);
 typedef void (*drawDisplayFunc_t)(bool drawDiff);
 
@@ -30,11 +51,11 @@ typedef struct
 {
     pxSetFunc_t setPx;
     pxGetFunc_t getPx;
-    pxFbGetFunc_t getPxFb;
     pxClearFunc_t clearPx;
     drawDisplayFunc_t drawDisplay;
     uint16_t w;
     uint16_t h;
+    paletteColor_t** pxFb; // may be null
 } display_t;
 
 typedef struct
@@ -75,6 +96,6 @@ paletteColor_t hsv2rgb( uint8_t hue, uint8_t sat, uint8_t val);
 
 int16_t getSin1024(int16_t degree);
 int16_t getCos1024(int16_t degree);
-int16_t getTan1024(int16_t degree);
+int32_t getTan512(int16_t degree);
 
 #endif

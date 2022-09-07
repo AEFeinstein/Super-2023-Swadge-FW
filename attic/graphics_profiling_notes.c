@@ -453,8 +453,10 @@ void drawWsgLocalFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
     }
 
 	uint32_t w = disp->w;
+	uint32_t h = disp->h;
 	uint32_t pxmax = w * disp->h;
 	paletteColor_t * px = disp->pxFb[0];
+	
 	
 	if(rotateDeg)
 	{
@@ -544,7 +546,7 @@ void drawWsgLocalFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
 				uint8_t color = linein[srcX];
 				if (cTransparent != color)
 				{
-					int32_t pxoffset = dstx + lineOffset;
+					uint32_t pxoffset = dstx + lineOffset;
 					if( pxoffset >= 0 && pxoffset < pxmax )
 					{
 						px[pxoffset] = color;

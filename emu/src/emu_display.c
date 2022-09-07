@@ -265,13 +265,11 @@ uint8_t ledBrightness = 0;
 
 void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxTft(int16_t x, int16_t y);
-paletteColor_t * emuGetPxFbTft(void);
 void emuClearPxTft(void);
 void emuDrawDisplayTft(bool drawDiff);
 
 void emuSetPxOled(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxOled(int16_t x, int16_t y);
-paletteColor_t * emuGetPxFbOled(void);
 void emuClearPxOled(void);
 void emuDrawDisplayOled(bool drawDiff);
 
@@ -419,10 +417,10 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
     disp->w = TFT_WIDTH;
     disp->h = TFT_HEIGHT;
     disp->getPx = emuGetPxTft;
-    disp->getPxFb = emuGetPxFbTft;
     disp->setPx = emuSetPxTft;
     disp->clearPx = emuClearPxTft;
     disp->drawDisplay = emuDrawDisplayTft;
+    disp->pxFb = NULL;
 }
 
 /**
@@ -497,16 +495,6 @@ paletteColor_t emuGetPxTft(int16_t x, int16_t y)
 }
 
 /**
- * @brief Don't return the framebuffer
- * 
- * @return paletteColor_t* 
- */
-paletteColor_t * emuGetPxFbTft(void)
-{
-    return NULL;
-}
-
-/**
  * @brief Clear the entire display to opaque black in one call
  */
 void emuClearPxTft(void)
@@ -552,10 +540,10 @@ bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
     disp->w = 0;
     disp->h = 0;
     disp->getPx = emuGetPxOled;
-    disp->getPxFb = emuGetPxFbOled;
     disp->setPx = emuSetPxOled;
     disp->clearPx = emuClearPxOled;
     disp->drawDisplay = emuDrawDisplayOled;
+    disp->pxFb = NULL;
 
     return true;
 }
@@ -585,16 +573,6 @@ paletteColor_t emuGetPxOled(int16_t x UNUSED, int16_t y UNUSED)
 {
 	WARN_UNIMPLEMENTED();
     return c000;
-}
-
-/**
- * @brief Don't return the framebuffer
- * 
- * @return paletteColor_t* 
- */
-paletteColor_t * emuGetPxFbOled(void)
-{
-    return NULL;
 }
 
 /**
@@ -628,7 +606,7 @@ void emuDrawDisplayOled(bool drawDiff UNUSED)
  * @param numLeds The number of LEDs to display
  * @param brightness The initial LED brightness, 0 (off) to 8 (max bright)
  */
-void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds, uint8_t brightness)
+void initLeds(gpio_num_t gpio, gpio_num_t gpioAlt, rmt_channel_t rmt, uint16_t numLeds, uint8_t brightness)
 {
     // If the LEDs haven't been initialized yet
     if(NULL == rdLeds)

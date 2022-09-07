@@ -321,7 +321,6 @@ const uint16_t paletteColors[] =
 
 void setPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t getPxTft(int16_t x, int16_t y);
-paletteColor_t * getPxFbTft(void);
 void clearPxTft(void);
 void drawDisplayTft(bool drawDiff);
 
@@ -330,7 +329,7 @@ void drawDisplayTft(bool drawDiff);
 //==============================================================================
 
 esp_lcd_panel_handle_t panel_handle = NULL;
-static paletteColor_t * pixels = NULL;
+static paletteColor_t ** pixels = NULL;
 static uint16_t *s_lines[2] = {0};
 // static uint64_t tFpsStart = 0;
 // static int framesDrawn = 0;
@@ -519,14 +518,19 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     disp->w = TFT_WIDTH;
     disp->setPx = setPxTft;
     disp->getPx = getPxTft;
-    disp->getPxFb = getPxFbTft;
     disp->clearPx = clearPxTft;
     disp->drawDisplay = drawDisplayTft;
 
     if(NULL == pixels)
     {
-        pixels = malloc(sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
+        pixels = (paletteColor_t **)malloc(sizeof(paletteColor_t *) * disp->h);
+        pixels[0] = (paletteColor_t *)malloc(sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
+        for(int y = 1; y < disp->h; y++)
+        {
+            pixels[y] = &(pixels[0][y * disp->w]);
+        }
     }
+    disp->pxFb = pixels;
 }
 
 /**
@@ -542,7 +546,7 @@ void setPxTft(int16_t x, int16_t y, paletteColor_t px)
 {
     if(0 <= x && x <= TFT_WIDTH && 0 <= y && y < TFT_HEIGHT && cTransparent != px)
     {
-        pixels[(y * TFT_WIDTH) + x] = px;
+        pixels[y][x] = px;
     }
 }
 
@@ -557,17 +561,9 @@ paletteColor_t getPxTft(int16_t x, int16_t y)
 {
     if(0 <= x && x <= TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
-        return pixels[(y * TFT_WIDTH) + x];
+        return pixels[y][x];
     }
     return c000;
-}
-
-/**
- * @return A pointer to the framebuffer
- */
-paletteColor_t * getPxFbTft(void)
-{
-    return pixels;
 }
 
 /**
@@ -575,7 +571,7 @@ paletteColor_t * getPxFbTft(void)
  */
 void clearPxTft(void)
 {
-    memset(pixels, 0, sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
+    memset(pixels[0], 0, sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
 }
 
 /**
@@ -611,7 +607,7 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
             {
                 for (uint16_t x = 0; x < TFT_WIDTH; x++)
                 {
-                    s_lines[calc_line][destIdx++] = paletteColors[pixels[(yp * TFT_WIDTH) + x]];
+                    s_lines[calc_line][destIdx++] = paletteColors[pixels[yp][x]];
                 }
             }
 
