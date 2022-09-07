@@ -48,9 +48,9 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     int32_t victories1 = 0;
     int32_t victories2 = 0;
     //picross_Solves1 would be for levels 33->64
-    readNvs32("picross_Solves0", &victories0);
-    readNvs32("picross_Solves1", &victories1);
-    readNvs32("picross_Solves2", &victories2);
+    readNvs32(picrossCompletedLevelData1, &victories0);
+    readNvs32(picrossCompletedLevelData2, &victories1);
+    readNvs32(picrossCompletedLevelData3, &victories2);
 
     int32_t v;
     int j;//bit position of i in appropriate register
@@ -118,7 +118,7 @@ void levelSelectInput()
     if (ls->btnState & BTN_A && !(ls->prevBtnState & BTN_A) && !(ls->btnState & SELECT))
     {
         ls->chosenLevel = &ls->levels[ls->hoverLevelIndex];
-        writeNvs32("pic_cur_ind", ls->hoverLevelIndex);//save the selected level before we lose context of the index.
+        writeNvs32(picrossCurrentPuzzleIndexKey, ls->hoverLevelIndex);//save the selected level before we lose context of the index.
         selectPicrossLevel(ls->chosenLevel);
         return;
     }

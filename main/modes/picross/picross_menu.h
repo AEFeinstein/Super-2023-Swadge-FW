@@ -4,6 +4,12 @@
 #include "mode_picross.h"
 
 extern swadgeMode modePicross;
+extern const char picrossCurrentPuzzleIndexKey[];
+extern const char picrossSavedOptionsKey[];
+extern const char picrossCompletedLevelData1[];
+extern const char picrossCompletedLevelData2[];
+extern const char picrossCompletedLevelData3[];
+
 
 void setPicrossMainMenu(bool resetPos);
 void returnToPicrossMenu(void);

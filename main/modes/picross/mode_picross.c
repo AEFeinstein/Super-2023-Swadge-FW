@@ -1151,7 +1151,7 @@ void saveCompletedOnSelectedLevel(bool completed)
         {
             //Save the fact that we won.
             
-            readNvs32("picross_Solves0", &victories);
+            readNvs32(picrossCompletedLevelData1, &victories);
             
             //shift 1 (0x00...001) over levelIndex times, then OR it with victories.
             if(completed)
@@ -1161,27 +1161,27 @@ void saveCompletedOnSelectedLevel(bool completed)
                 victories = victories & ~(1 << (p->selectedLevel->index));
             }
             //Save new number
-            writeNvs32("picross_Solves0", victories);
+            writeNvs32(picrossCompletedLevelData1, victories);
         }else if(p->selectedLevel->index < 64)//levels 32-64
         {
             victories = 0;
-            readNvs32("picross_Solves1", &victories);
+            readNvs32(picrossCompletedLevelData2, &victories);
             if(completed){
                 victories = victories | (1 << (p->selectedLevel->index - 32));
             }else{
                 victories = victories & ~(1 << (p->selectedLevel->index - 32));
             }
-            writeNvs32("picross_Solves1", victories);
+            writeNvs32(picrossCompletedLevelData2, victories);
         }else if(p->selectedLevel->index < 96)//levels 65-95
         {
             victories = 0;
-            readNvs32("picross_Solves2", &victories);
+            readNvs32(picrossCompletedLevelData3, &victories);
             if(completed){
                 victories = victories | (1 << (p->selectedLevel->index - 64));
             }else{
                 victories = victories & ~(1 << (p->selectedLevel->index - 64));
             }
-            writeNvs32("picross_Solves2", victories);
+            writeNvs32(picrossCompletedLevelData3, victories);
         }
 }
 //I promise I tried to do a proper index->row/col mapping here, since we only need 100*2 bits of data. (<320 used here) but i kept messing the math up.

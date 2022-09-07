@@ -55,9 +55,15 @@ void picrossMenuOptionsCb(const char* opt);
 //==============================================================================
 // Variables
 //==============================================================================
-//Todo: these maybe dont need to be static?
-//how are const compiled in c? whats the smart way to do this?
 
+//Key values for persistent save data.
+const char picrossCurrentPuzzleIndexKey[] = "pic_cur_ind";
+const char picrossSavedOptionsKey[] = "picross_options"; 
+const char picrossCompletedLevelData1[] = "picross_Solves1";
+const char picrossCompletedLevelData2[] = "picross_Solves2";
+const char picrossCompletedLevelData3[] = "picross_Solves3";
+
+//Main menu strings
 static const char str_picrossTitle[] = "pi-Cross";
 static const char str_continue[] = "Continue";
 static const char str_levelSelect[] = "Puzzle Select";
@@ -277,9 +283,9 @@ void setPicrossMainMenu(bool resetPos)
     //only display continue button if we have a game in progress.
 
     //attempt to read the value. If it doesnt exist, set it to -1.
-    if((false == readNvs32("pic_cur_ind", &pm->savedIndex)))
+    if((false == readNvs32(picrossCurrentPuzzleIndexKey, &pm->savedIndex)))
     {
-        writeNvs32("pic_cur_ind", -1);//if we enter this screen and instantly exist, also set it to -1 and we can just load that.
+        writeNvs32(picrossCurrentPuzzleIndexKey, -1);//if we enter this screen and instantly exist, also set it to -1 and we can just load that.
         pm->savedIndex = -1;//there is no current index.
     }
 
@@ -316,7 +322,7 @@ void picrossMainMenuCb(const char* opt)
     {
         //get the current level index
         int currentIndex = 0;//just load 0 if its 0. 
-        readNvs32("pic_cur_ind", &currentIndex);
+        readNvs32(picrossCurrentPuzzleIndexKey, &currentIndex);
 
         //load in the level we selected.
         //uh. read the currentLevelIndex and get the value from 
@@ -368,9 +374,9 @@ void picrossMainMenuCb(const char* opt)
     {
         //Erase all gameplay data
         //doesnt erase settings.
-        writeNvs32("picross_Solves0", 0);
-        writeNvs32("picross_Solves1", 0);
-        writeNvs32("picross_Solves2", 0);
+        writeNvs32(picrossCompletedLevelData1, 0);
+        writeNvs32(picrossCompletedLevelData2, 0);
+        writeNvs32(picrossCompletedLevelData3, 0);
         for(int i = 0;i<10;i++)
         {
             writeNvs32(getBankName(0), 0);
@@ -397,9 +403,9 @@ bool picrossGetSaveFlag(int pos)
 {
     //read once on loading menu?
 
-    if(false == readNvs32("pic_options", &pm->options))
+    if(false == readNvs32(picrossSavedOptionsKey, &pm->options))
     {
-        writeNvs32("pic_options", 0);
+        writeNvs32(picrossSavedOptionsKey, 0);
     }
 
     int val = (pm->options & ( 1 << pos )) >> pos;
@@ -414,5 +420,5 @@ void picrossSetSaveFlag(int pos, bool on)
     }else{
         pm->options = pm->options & ~(1 << (pos));
     }
-    writeNvs32("pic_options", pm->options);
+    writeNvs32(picrossSavedOptionsKey, pm->options);
 }
