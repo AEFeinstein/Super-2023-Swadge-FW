@@ -172,10 +172,12 @@ void loadLevels()
     loadWsg("Controller_PZL.wsg", &pm->levels[4].levelWSG);
     loadWsg("Controller_SLV.wsg", &pm->levels[4].completedWSG);
  
+    loadWsg("Pear_PZL.wsg", &pm->levels[5].levelWSG);
+    loadWsg("Pear_SLV.wsg", &pm->levels[5].completedWSG);
     //
 
-    loadWsg("test1.wsg", &pm->levels[5].levelWSG);
-    loadWsg("test1_complete.wsg", &pm->levels[5].completedWSG);
+    loadWsg("test1.wsg", &pm->levels[8].levelWSG);
+    loadWsg("test1_complete.wsg", &pm->levels[8].completedWSG);
     
     loadWsg("3_boat.wsg", &pm->levels[6].levelWSG);
     loadWsg("3_boat_c.wsg", &pm->levels[6].completedWSG);
