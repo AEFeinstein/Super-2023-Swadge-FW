@@ -125,6 +125,7 @@ void fighterEnterMode(display_t* disp)
 
     // Save the display pointer
     fm->disp = disp;
+    disp->frameRateUs = FRAME_TIME_MS * 1000; // 20FPS
 
     // Each menu needs a font, so load that first
     loadFont("mm.font", &(fm->mmFont));
