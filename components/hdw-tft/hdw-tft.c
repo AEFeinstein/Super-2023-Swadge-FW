@@ -334,7 +334,7 @@ const uint16_t paletteColors[] =
 void setPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t getPxTft(int16_t x, int16_t y);
 void clearPxTft(void);
-void drawDisplayTft(bool drawDiff);
+void drawDisplayTft(bool drawDiff, uint32_t frameRate);
 
 //==============================================================================
 // Variables
@@ -532,6 +532,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     disp->getPx = getPxTft;
     disp->clearPx = clearPxTft;
     disp->drawDisplay = drawDisplayTft;
+    disp->frameRateUs = 33333;
 
     if(NULL == pixels)
     {
@@ -591,15 +592,14 @@ void clearPxTft(void)
  * calculate the next line while the previous one is being sent.
  * 
  * @param drawDiff unused
+ * @param frameRate The frame rate to draw at, in microseconds
  */
-
-void drawDisplayTft(bool drawDiff __attribute__((unused)))
+void drawDisplayTft(bool drawDiff __attribute__((unused)), uint32_t frameRate)
 {
     // Limit drawing to 30fps
     static uint64_t tLastDraw = 0;
     uint64_t tNow = esp_timer_get_time();
-    
-    if (tNow - tLastDraw > 33333)
+    if (tNow - tLastDraw > frameRate)
     {
         tLastDraw = tNow;
         // Indexes of the line currently being sent to the LCD and the line we're calculating
