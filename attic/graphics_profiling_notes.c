@@ -33,8 +33,7 @@ font_t meleeMenuFont;
 wsg_t example_sprite;
 extern const int16_t sin1024[];
 extern const uint16_t tan1024[];
-
-
+font_t meleeMenuFont;
 #endif
 
 // Example to do true inline assembly.  This will actually compile down to be
@@ -86,6 +85,7 @@ void sandbox_main(display_t * disp_in)
 #endif
 
 #ifdef PROFILE_GRAPHICS
+	loadFont("mm.font", &meleeMenuFont);
 	loadWsg("sprite005.wsg", &example_sprite);
 #endif
 	ESP_LOGI( "sandbox", "Loaded" );
@@ -101,9 +101,11 @@ void sandbox_exit()
 		freeFont(&meleeMenuFont);
 	}
 #endif
+#ifdef PROFILE_GRAPHICS
+	freeFont(&meleeMenuFont);
+#endif
 	ESP_LOGI( "sandbox", "Exit" );
 }
-
 int gx, gy;
 
 #ifdef PROFILE_GRAPHICS
@@ -131,7 +133,7 @@ void fillDisplayAreaIRAM(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
         }
     }
 }
-
+/*
 void fillDisplayAreaFast(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
                      int16_t y2, paletteColor_t c)
 {
@@ -154,11 +156,49 @@ void fillDisplayAreaFast(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
 		memset( line, c, copyLen );
     }
 }
+*/
+void fillDisplayAreaFast(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
+                     int16_t y2, paletteColor_t c)
+{
+    // Note: int16_t vs int data types tested for speed.
+
+    // Only draw on the display
+    int xMin = CLAMP(x1, 0, disp->w);
+    int xMax = CLAMP(x2, 0, disp->w);
+    int yMin = CLAMP(y1, 0, disp->h);
+    int yMax = CLAMP(y2, 0, disp->h);
+
+	uint32_t dw = disp->w;
+#ifdef DISPLAY_HAS_FB
+    {
+        paletteColor_t * pxs = disp->pxFb + yMin * dw + xMin;
+
+        int copyLen = xMax - xMin;
+
+        // Set each pixel
+        for (int y = yMin; y < yMax; y++)
+        {
+            memset( pxs, c, copyLen );
+			pxs += dw;
+        }
+    }
+#else
+    {
+        for(int y = yMin; y < yMax; y++)
+        {
+            for(int x = xMin; x < xMax; x++)
+            {
+                SET_PIXEL(disp, x, y, c);
+            }
+        }
+    }
+#endif
+}
 
 void drawWsgTileLocal(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
 {
     // Check if there is framebuffer access
-    if(NULL != disp->pxFb)
+#ifdef DISPLAY_HAS_FB
     {
         if(xOff > disp->w)
         {
@@ -169,11 +209,18 @@ void drawWsgTileLocal(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
         int32_t yStart = (yOff < 0) ? 0 : yOff;
         int32_t yEnd   = ((yOff + wsg->h) > disp->h) ? disp->h : (yOff + wsg->h);
 
+		int wWidth = wsg->w;
+		int dWidth = disp->w;
+		paletteColor_t * pxWsg = &wsg->px[(wsg->h - (yEnd - yStart)) * wWidth];
+		paletteColor_t * pxDisp = &disp->pxFb[yStart*dWidth+xOff];
+
         // Bound in the X direction
         int32_t copyLen = wsg->w;
         if(xOff < 0)
         {
             copyLen += xOff;
+			pxDisp -= xOff;
+			pxWsg -= xOff;
             xOff = 0;
         }
 
@@ -182,19 +229,23 @@ void drawWsgTileLocal(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
             copyLen = disp->w - xOff;
         }
 
+
         // copy each row
         for(int32_t y = yStart; y < yEnd; y++)
         {
             // Copy the row
             // TODO probably faster if we can guarantee copyLen is a multiple of 4
-            memcpy(&disp->pxFb[y][xOff], &wsg->px[(wsg->h - (yEnd - y)) * wsg->w], copyLen);
+            memcpy(pxDisp, pxWsg, copyLen);
+			pxDisp += dWidth;
+			pxWsg += wWidth;
         }
     }
-    else
+#else
     {
         // No framebuffer access, draw the WSG simply
         drawWsgSimple(disp, wsg, xOff, yOff);
     }
+#endif
 }
 
 
@@ -235,22 +286,23 @@ void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
     }
 
     // Only draw in bounds
-    int xMin = CLAMP(xOff, 0, disp->w);
-    int xMax = CLAMP(xOff + wsg->w, 0, disp->w);
+	int dWidth = disp->w;
+	int wWidth = wsg->w;
+    int xMin = CLAMP(xOff, 0, dWidth);
+    int xMax = CLAMP(xOff + wWidth, 0, dWidth);
     int yMin = CLAMP(yOff, 0, disp->h);
     int yMax = CLAMP(yOff + wsg->h, 0, disp->h);
-	paletteColor_t * px = disp->pxFb[0];
-	int xpx = xMax - xMin;
+	paletteColor_t * px = disp->pxFb;
+	int numX = xMax - xMin;
+	int wsgY = (yMin - yOff);
+	int wsgX = (xMin - xOff);
+	paletteColor_t * lineout = &px[(yMin * dWidth) + xMin];
+	paletteColor_t * linein = &wsg->px[wsgY * wWidth + wsgX];
 	
     // Draw each pixel
     for (int y = yMin; y < yMax; y++)
     {
-		int wsgY = (y - yOff);
-		int wsgX = (xMin - xOff);
-		paletteColor_t * lineout = &px[(y * disp->w) + xMin];
-		paletteColor_t * linein = &wsg->px[wsgY * wsg->w + wsgX];
-		
-        for (int x = 0; x < xpx; x++)
+        for (int x = 0; x < numX; x++)
         {
 			int px = linein[x];
 			if( px != cTransparent )
@@ -258,6 +310,9 @@ void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
 				lineout[x] = px;
 			}
         }
+		lineout += dWidth;
+		linein += wWidth;
+		wsgY++;
     }
 }
 
@@ -452,11 +507,10 @@ void drawWsgLocalFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
         return;
     }
 
-	uint32_t w = disp->w;
 	uint32_t h = disp->h;
-	uint32_t pxmax = w * disp->h;
-	paletteColor_t * px = disp->pxFb[0];
-	
+	uint32_t w = disp->w;
+	uint32_t pxmax = w * h;
+	paletteColor_t * px = disp->pxFb;
 	
 	if(rotateDeg)
 	{
@@ -496,7 +550,7 @@ void drawWsgLocalFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
 					tx += xOff;
 					ty += yOff;
 					int offset = tx + ty * w;
-					if( offset >= 0 && offset < pxmax )
+					if( tx < w && tx >= 0 && ty < h && ty >= 0 )
 					{
 						px[offset] = color;
 					}
@@ -508,9 +562,54 @@ void drawWsgLocalFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
 	}
 	else
 	{
-		// Draw the image's pixels
+		// Draw the image's pixels (no rotation or transformation)
+
 		uint16_t wsgw = wsg->w;
 		uint16_t wsgh = wsg->h;
+	
+		int xstart = 0;
+		int xend = wsgw;
+		int xinc = 1;
+		
+		// Reflect over Y axis?
+		if (flipLR)
+		{
+			xstart = wsgw-1;
+			xend = -1;
+			xinc = -1;
+		}
+
+		if( xOff < 0 )
+		{
+			if( xinc > 0 )
+			{
+				xstart -= xOff;
+				if( xstart >= xend ) return;
+			}
+			else
+			{
+				xstart += xOff;
+				if( xend >= xstart ) return;
+			}
+			xOff = 0;
+		}
+
+		if( xOff + wsgw > w )
+		{
+			int peelBack = (xOff + wsgw)-w;
+			if( xinc > 0 )
+			{
+				xend -= peelBack;
+				if( xstart >= xend ) return;
+			}
+			else
+			{
+				xend += peelBack;
+				if( xend >= xstart ) return;
+			}
+		}
+			
+
 		for(int16_t srcY = 0; srcY < wsgh; srcY++)
 		{
 			int usey = srcY;
@@ -523,30 +622,18 @@ void drawWsgLocalFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
 
 			paletteColor_t * linein = &wsg->px[usey * wsgw];
 
-			int xstart = 0;
-			int xend = wsgw;
-			int xinc = 1;
-			
-			// Reflect over Y axis?
-			if (flipLR)
-			{
-				xstart = wsgw-1;
-				xend = -1;
-				xinc = -1;
-			}
-
 			// Transform this pixel's draw location as necessary
-			int16_t dstY = srcY + yOff;
+			int dstY = srcY + yOff;
 			int dstx = xOff;
 			int lineOffset = dstY * w;
-			
-			for(int16_t srcX = xstart; srcX != xend; srcX+=xinc)
+
+			for(int srcX = xstart; srcX != xend; srcX+=xinc)
 			{
 				// Draw if not transparent
 				uint8_t color = linein[srcX];
 				if (cTransparent != color)
 				{
-					uint32_t pxoffset = dstx + lineOffset;
+					int32_t pxoffset = dstx + lineOffset;
 					if( pxoffset >= 0 && pxoffset < pxmax )
 					{
 						px[pxoffset] = color;
@@ -559,6 +646,96 @@ void drawWsgLocalFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
 }
 
 
+void drawCharLocal(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16_t xOff, int16_t yOff)
+{
+	//  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
+
+#ifdef DISPLAY_HAS_FB
+	paletteColor_t * pxOutput = disp->pxFb + yOff * disp->w;
+#endif
+
+    int bitIdx = 0;
+	uint8_t * bitmap = ch->bitmap;
+	int wch = ch->w;
+
+	// Don't draw off the bottom of the screen.
+	if( yOff + h > disp->h )
+	{
+		h = disp->h - yOff;
+	}
+
+	// Check Y bounds
+	if(yOff < 0)
+	{
+		// Above the display, do wacky math with -yOff
+		bitIdx -= yOff * wch;
+		bitmap += bitIdx>>3;
+		bitIdx &= 7;
+		h += yOff;
+		yOff = 0;
+	}
+
+    for (int y = 0; y < h; y++)
+    {
+        // Figure out where to draw
+        int drawY = y + yOff;
+		
+		int truncate = 0;
+
+		int startX = xOff;
+		if( xOff < 0 )
+		{
+			// Track how many groups of pixels we are skipping over
+			// that weren't displayed on the left of the screen.
+			startX = 0;
+			bitIdx += -xOff;
+			bitmap += bitIdx>>3;
+			bitIdx &= 7;
+		}
+		int endX = xOff + wch;
+		if( endX > disp->w )
+		{
+			// Track how many groups of pixels we are skipping over,
+			// if the letter falls off the end of the screen.
+			truncate = endX - disp->w;
+			endX = disp->w;
+		}
+
+		uint8_t thisByte = *bitmap;
+        for (int drawX = startX; drawX < endX; drawX++)
+        {
+            // Figure out where to draw
+            // Check X bounds
+            if(thisByte & (1 << bitIdx))
+			{
+				// Draw the pixel
+#ifdef DISPLAY_HAS_FB
+				pxOutput[drawX] = color;
+#else
+				SET_PIXEL(disp, drawX, drawY, color);
+#endif
+			}
+
+            // Iterate over the bit data
+            if( 8 == ++bitIdx )
+            {
+                bitIdx = 0;
+                thisByte = *(++bitmap);
+            }
+        }
+
+		// Handle any remaining bits if we have ended off the end of the display.
+		bitIdx += truncate;
+		bitmap += bitIdx>>3;
+		bitIdx &= 7;
+#ifdef DISPLAY_HAS_FB
+		pxOutput += disp->w;
+#endif
+    }
+}
+
+
+
 void sandbox_tick()
 {
 #ifdef PROFILE_GRAPHICS
@@ -567,8 +744,8 @@ void sandbox_tick()
 	uint32_t start, end;
 	int x = gx;
 	int y = gy;
-	uint8_t ** pxarray = disp->pxFb;
-	uint8_t * px = pxarray[0];
+	uint8_t * pxarray = disp->pxFb;
+	uint8_t * px = pxarray;
 	uint16_t w = 240;
 	
 	fillDisplayAreaFast(disp, 0, 0, disp->w, disp->h, 0);
@@ -595,11 +772,13 @@ void sandbox_tick()
 	//fillDisplayAreaFast(disp, 0, 0, disp->w, disp->h, 20); // Before optimizations, 48250 cycles (-O3), 541739 (-Os)
 
 	//drawWsgTile(disp, &example_sprite, 0, 0 );	// 1576-2576 (Flash)
-	//drawWsgTileLocal(disp, &example_sprite, 0, 0 ); // Always 1029 (IRAM)
+	//drawWsgTileLocal(disp, &example_sprite, 0, 0 ); // Always 1029 (IRAM), then to 828 with inner loop cinching
+	//drawWsgTileLocal(disp, &example_sprite, 270+((frame>>3)%20), 50 ); // When @ 50,50, is 1421
 
 	//drawWsgSimple(disp, &example_sprite, 0, 0 );	// 5260-6260 (Flash)
 	//drawWsgSimpleLocal(disp, &example_sprite, 0, 0 );	// 5093 (IRAM)
-	//drawWsgSimpleFast(disp, &example_sprite, 93, 91 );	// 3632 (IRAM)
+	//drawWsgSimpleFast(disp, &example_sprite, 93, 91 );	// 3632 (IRAM)  Eventually 3020
+	//drawWsgSimpleFast(disp, &example_sprite, -10+((frame>>3)%20), 91 );
 
 	//drawWsg(disp, &example_sprite, 100, 100, 0, 0, 0 );// (Flash) 18322 bool flipLR, bool flipUD, int16_t rotateDeg)
 	//drawWsgLocal(disp, &example_sprite, 100, 100, 0, 0, 0 );// (IRAM) 17833 bool flipLR, bool flipUD, int16_t rotateDeg)
@@ -613,12 +792,15 @@ void sandbox_tick()
 	//  * 5945->4929 by avoiding the 2D array lookup when getting the wsg pixel data by computing it per line.
 	//    -> Also with the current implementation, flipped X/Y is slightly faster for some reason?
 	//  * 4929->4055 by separately running destination and source X/Y
-	//  * 4055->4022 by exporting the Y coord.
+	//  * 4055->4022 by exporting the Y coord.  NOTE This and the above optimizations had to be compromised.
 	
 	// Now to fix rotation.
 	// Turns out that was pretty simple.
-	drawWsgLocalFast(disp, &example_sprite, 100, 100, 0, 1, frame%360 );// (IRAM) 17417 bool flipLR, bool flipUD, int16_t rotateDeg)
+	//drawWsgLocalFast(disp, &example_sprite, 100, 100, 0, 0, frame%360 );// (IRAM) 17417 bool flipLR, bool flipUD, int16_t rotateDeg)
 	//drawWsg(disp, &example_sprite, 100, 100, 0, 0, frame%360 );// (IRAM) 17417 bool flipLR, bool flipUD, int16_t rotateDeg)
+
+	//drawChar( disp, 13, meleeMenuFont.h, &meleeMenuFont.chars['A' - ' '], 70, 70 ); // 13678
+	//drawCharLocal( disp, 13, meleeMenuFont.h, &meleeMenuFont.chars['A' - ' '], 70, -10+((frame>>3)%20) ); // 13023 -> 7795? 7989 with optimizations --> 5898 after all optimizations.
 
 	asm volatile( "nop" );
 	end = get_ccount()-3;

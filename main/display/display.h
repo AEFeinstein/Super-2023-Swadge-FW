@@ -9,7 +9,11 @@
 #include <stdbool.h>
 #include "palette.h"
 
-#if defined(EMU)
+#if !defined(EMU)
+#define DISPLAY_HAS_FB
+#endif
+
+#if !defined(DISPLAY_HAS_FB)
 // Draw a pixel directly to the framebuffer
 #define SET_PIXEL(d, x, y, c)        d->setPx(x, y, c)
 // Draw a pixel to the framebuffer with bounds checking
@@ -18,16 +22,16 @@
 #define GET_PIXEL(d, x, y)           d->getPx(x, y)
 #else
 // Draw a pixel directly to the framebuffer
-#define SET_PIXEL(d, x, y, c) (d)->pxFb[(y)][(x)] = (c)
+#define SET_PIXEL(d, x, y, c) (d)->pxFb[((y)*((d)->w))+(x)] = (c)
 // Draw a pixel to the framebuffer with bounds checking
 #define SET_PIXEL_BOUNDS(d, x, y, c) \
     do{ \
         if(0 <= (x) && (x) < (d)->w && 0 <= (y) && (y) < (d)->h) { \
-            (d)->pxFb[(y)][(x)] = (c); \
+            (d)->pxFb[((y)*((d)->w))+(x)] = (c); \
         } \
     } while(0)
 // Get a pixel directly from the framebuffer
-#define GET_PIXEL(d, x, y) (d)->pxFb[(y)][(x)]
+#define GET_PIXEL(d, x, y) (d)->pxFb[((y)*((d)->w))+(x)]
 #endif
 
 //==============================================================================
@@ -55,7 +59,7 @@ typedef struct
     drawDisplayFunc_t drawDisplay;
     uint16_t w;
     uint16_t h;
-    paletteColor_t** pxFb; // may be null
+    paletteColor_t * pxFb; // may be null
 } display_t;
 
 typedef struct
@@ -85,7 +89,7 @@ void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff);
 void freeWsg(wsg_t* wsg);
 
 bool loadFont(const char* name, font_t* font);
-void drawChar(display_t* disp, paletteColor_t color, uint16_t h, font_ch_t* ch,
+void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch,
               int16_t xOff, int16_t yOff);
 int16_t drawText(display_t* disp, font_t* font, paletteColor_t color,
                  const char* text, int16_t xOff, int16_t yOff);

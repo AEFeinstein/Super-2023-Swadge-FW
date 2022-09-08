@@ -329,7 +329,7 @@ void drawDisplayTft(bool drawDiff);
 //==============================================================================
 
 esp_lcd_panel_handle_t panel_handle = NULL;
-static paletteColor_t ** pixels = NULL;
+static paletteColor_t * pixels = NULL;
 static uint16_t *s_lines[2] = {0};
 // static uint64_t tFpsStart = 0;
 // static int framesDrawn = 0;
@@ -523,12 +523,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
 
     if(NULL == pixels)
     {
-        pixels = (paletteColor_t **)malloc(sizeof(paletteColor_t *) * disp->h);
-        pixels[0] = (paletteColor_t *)malloc(sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
-        for(int y = 1; y < disp->h; y++)
-        {
-            pixels[y] = &(pixels[0][y * disp->w]);
-        }
+        pixels = (paletteColor_t *)malloc(sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
     }
     disp->pxFb = pixels;
 }
@@ -546,7 +541,7 @@ void setPxTft(int16_t x, int16_t y, paletteColor_t px)
 {
     if(0 <= x && x <= TFT_WIDTH && 0 <= y && y < TFT_HEIGHT && cTransparent != px)
     {
-        pixels[y][x] = px;
+        pixels[y*TFT_WIDTH+x] = px;
     }
 }
 
@@ -561,7 +556,7 @@ paletteColor_t getPxTft(int16_t x, int16_t y)
 {
     if(0 <= x && x <= TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
-        return pixels[y][x];
+        return pixels[y*TFT_WIDTH+x];
     }
     return c000;
 }
@@ -571,7 +566,7 @@ paletteColor_t getPxTft(int16_t x, int16_t y)
  */
 void clearPxTft(void)
 {
-    memset(pixels[0], 0, sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
+    memset(pixels, 0, sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
 }
 
 /**
@@ -585,15 +580,16 @@ void clearPxTft(void)
  * 
  * @param drawDiff unused
  */
+
 void drawDisplayTft(bool drawDiff __attribute__((unused)))
 {
     // Limit drawing to 30fps
     static uint64_t tLastDraw = 0;
     uint64_t tNow = esp_timer_get_time();
+    
     if (tNow - tLastDraw > 33333)
     {
         tLastDraw = tNow;
-
         // Indexes of the line currently being sent to the LCD and the line we're calculating
         uint8_t sending_line = 0;
         uint8_t calc_line = 0;
@@ -602,23 +598,38 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
         for (uint16_t y = 0; y < TFT_HEIGHT; y += PARALLEL_LINES)
         {
             // Calculate a line
-            uint16_t destIdx = 0;
+
+			// Profiled at 60,000 cycles @ 160 MHz
+            uint16_t * outColor = s_lines[calc_line];
+            uint8_t  * inColor = &pixels[y*TFT_WIDTH];
             for (uint16_t yp = y; yp < y + PARALLEL_LINES; yp++)
             {
                 for (uint16_t x = 0; x < TFT_WIDTH; x++)
                 {
-                    s_lines[calc_line][destIdx++] = paletteColors[pixels[yp][x]];
+                    *(outColor++) = paletteColors[*(inColor++)];
                 }
             }
 
             sending_line = calc_line;
             calc_line = !calc_line;
 
+			// (When operating @ 160 MHz)
+			// This code takes 35k cycles when y == 0, but
+			// this code takes 100k cycles when y != 0...
+			// TODO NOTE:
+			//  *** You have 600us here, to do whatever you want.  For free. ***
+			//  You should avoid when y == 0, but that means you get 14 chunks
+			//  every frame.
+			//
+			// This is because esp_lcd_panel_draw_bitmap blocks until the chunk 
+			// of frames has been sent.
+
             // Send the calculated data
             esp_lcd_panel_draw_bitmap(panel_handle, 0, y,
                                       TFT_WIDTH, y + PARALLEL_LINES,
                                       s_lines[sending_line]);
         }
+        
 
         // Debug printing for frames-per-second
         // framesDrawn++;
