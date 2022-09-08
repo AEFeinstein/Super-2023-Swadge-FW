@@ -18,6 +18,18 @@
 #include "esp_lcd_panel_interface.h"
 #include "driver/ledc.h"
 
+ 
+//#define PROCPROFILE
+
+#ifdef PROCPROFILE
+static inline uint32_t get_ccount()
+{
+    uint32_t ccount;
+    asm volatile("rsr %0,ccount":"=a" (ccount));
+    return ccount;
+}
+#endif
+
 //==============================================================================
 // Colors
 //==============================================================================
@@ -594,30 +606,49 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
         uint8_t sending_line = 0;
         uint8_t calc_line = 0;
 
+#ifdef PROCPROFILE
+        uint32_t start, mid, final;
+#endif
+
         // Send the frame, ping ponging the send buffer
         for (uint16_t y = 0; y < TFT_HEIGHT; y += PARALLEL_LINES)
         {
             // Calculate a line
 
-            // Profiled at 60,000 cycles @ 160 MHz
-            uint16_t * outColor = s_lines[calc_line];
-            uint8_t  * inColor = &pixels[y*TFT_WIDTH];
+#ifdef PROCPROFILE
+            start = get_ccount();
+#endif
+
+            // Naive approach is ~100k cycles, later optimization at 60k cycles @ 160 MHz
+            // If you quad-pixel it, so you operate on 4 pixels at the same time, you can get it down to 37k cycles.
+            // Also FYI - I tried going palette-less, it only saved 18k per chunk (1.6ms per frame)
+            uint32_t * outColor = (uint32_t*)s_lines[calc_line];
+            uint32_t * inColor = (uint32_t*)&pixels[y*TFT_WIDTH];
             for (uint16_t yp = y; yp < y + PARALLEL_LINES; yp++)
             {
-                for (uint16_t x = 0; x < TFT_WIDTH; x++)
+                for (uint16_t x = 0; x < TFT_WIDTH/4; x++)
                 {
-                    *(outColor++) = paletteColors[*(inColor++)];
+                    uint32_t colors = *(inColor++);
+                    uint32_t word1 = paletteColors[(colors>> 0)&0xff] | (paletteColors[(colors>> 8)&0xff]<<16);
+                    uint32_t word2 = paletteColors[(colors>>16)&0xff] | (paletteColors[(colors>>24)&0xff]<<16);
+                    outColor[0] = word1;
+                    outColor[1] = word2;
+                    outColor += 2;
                 }
             }
+
+#ifdef PROCPROFILE
+            mid = get_ccount();
+#endif
 
             sending_line = calc_line;
             calc_line = !calc_line;
 
             // (When operating @ 160 MHz)
             // This code takes 35k cycles when y == 0, but
-            // this code takes 100k cycles when y != 0...
+            // this code takes ~~100k~~ 125k cycles when y != 0...
             // TODO NOTE:
-            //  *** You have 600us here, to do whatever you want.  For free. ***
+            //  *** You have 780us here, to do whatever you want.  For free. ***
             //  You should avoid when y == 0, but that means you get 14 chunks
             //  every frame.
             //
@@ -628,9 +659,16 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
             esp_lcd_panel_draw_bitmap(panel_handle, 0, y,
                                       TFT_WIDTH, y + PARALLEL_LINES,
                                       s_lines[sending_line]);
+
+#ifdef PROCPROFILE
+            final = get_ccount();
+#endif
         }
         
-
+#ifdef PROCPROFILE
+        ESP_LOGI( "tft", "%d/%d", mid-start, final-mid );
+#endif
+        
         // Debug printing for frames-per-second
         // framesDrawn++;
         // if (framesDrawn == 120)
