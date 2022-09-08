@@ -106,8 +106,11 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->blinkAnimTimer =0;
     p->input->blinkTime = 120000;//half a blink cycle (on)(off) or full (on/off)(on/off)?
     p->input->blinkCount = 6;
-    p->input->showHints = picrossGetSaveFlag(0);
+
+    //load options data
+    p->input->showHints = picrossGetSaveFlag(0,false);
     p->input->showGuides = picrossGetLoadedSaveFlag(1);
+    p->animateBG = picrossGetLoadedSaveFlag(2);
 
     //cant tell if this is doing things the lazy way or not.
     for(int i = 0;i<NUM_LEDS;i++)
@@ -1097,26 +1100,40 @@ void drawPicrossInput(display_t* d)
  */
 void drawBackground(display_t* d)
 {
-    if(p->bgScrollTimer >= p->bgScrollSpeed)
+    if(p->animateBG)
     {
-        p->bgScrollTimer = 0;
-        p->bgScrollXFrame++;
-        p->bgScrollYFrame += p->bgScrollXFrame%2;//scroll y twice as slowly as x
-        //loop frames
-        p->bgScrollXFrame = p->bgScrollXFrame%20;
-        p->bgScrollYFrame = p->bgScrollYFrame%20;
-    }
-    for(int16_t y = 0; y < d->h; y++)
-    {
-        for(int16_t x = 0; x < d->w; x++)
+        if(p->bgScrollTimer >= p->bgScrollSpeed)
         {
-            if(((x % 20) == 19-p->bgScrollXFrame) && ((y % 20) == p->bgScrollYFrame))
+            p->bgScrollTimer = 0;
+            p->bgScrollXFrame++;
+            p->bgScrollYFrame += p->bgScrollXFrame%2;//scroll y twice as slowly as x
+            //loop frames
+            p->bgScrollXFrame = p->bgScrollXFrame%20;
+            p->bgScrollYFrame = p->bgScrollYFrame%20;
+        }
+        
+        for(int16_t y = 0; y < d->h; y++)
+        {
+            for(int16_t x = 0; x < d->w; x++)
             {
-                d->setPx(x, y, c222); // Grid
+                if(((x % 20) == 19-p->bgScrollXFrame) && ((y % 20) == p->bgScrollYFrame))
+                {
+                    d->setPx(x, y, c111); // Grid
+                }
+                else
+                {
+                   // d->setPx(x, y, c111); // Background
+                }
             }
-            else
+        }
+    }else
+    {
+        //dont animate bg
+        for(int16_t y = 0; y < d->h; y++)
+        {
+            for(int16_t x = 0; x < d->w; x++)
             {
-                d->setPx(x, y, c111); // Background
+                //d->setPx(x, y, c111); // Background. todo: save color values somewhere.
             }
         }
     }

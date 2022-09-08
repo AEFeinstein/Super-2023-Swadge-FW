@@ -97,7 +97,7 @@ typedef struct
     uint64_t bgScrollSpeed;
     uint8_t bgScrollXFrame;
     uint8_t bgScrollYFrame;
-
+    bool animateBG;
     picrossLevelDef_t* selectedLevel;
     bool exitThisFrame;
     int8_t count;

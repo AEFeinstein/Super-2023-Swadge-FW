@@ -78,6 +78,8 @@ static const char str_HintsOn[] = "Hints: On";
 static const char str_HintsOff[] = "Hints: Off";
 static const char str_GuidesOn[] = "Guides: On";
 static const char str_GuidesOff[] = "Guides: Off";
+static const char str_AnimateBGOn[] = "BG Animate: On";
+static const char str_AnimateBGOff[] = "BG Animate: Off";
 static const char str_eraseProgress[] = "Erase Progress";
 
 swadgeMode modePicross =
@@ -124,6 +126,12 @@ void picrossEnterMode(display_t* disp)
     pm->options = 0;//todo: read data from disk.
 
     loadLevels();
+    
+    
+    if(false == readNvs32(picrossSavedOptionsKey, &pm->options))
+    {
+        writeNvs32(picrossSavedOptionsKey, 4);//100 = bg on, guide off, options off
+    }
 }
 
 void picrossExitMode(void)
@@ -282,11 +290,19 @@ void setPicrossMainMenu(bool resetPos)
         }else{
             addRowToMeleeMenu(pm->menu, str_HintsOff);
         }
+
         if(picrossGetLoadedSaveFlag(1))//are guides on? (getHints loaded from perma, we can skip doing that again and just read local)
         {
             addRowToMeleeMenu(pm->menu, str_GuidesOn);
         }else{
             addRowToMeleeMenu(pm->menu, str_GuidesOff);
+        }
+
+        if(picrossGetLoadedSaveFlag(2))//Bg animate on?
+        {
+            addRowToMeleeMenu(pm->menu, str_AnimateBGOn);
+        }else{
+            addRowToMeleeMenu(pm->menu, str_AnimateBGOff);
         }
         addRowToMeleeMenu(pm->menu, str_eraseProgress);
         addRowToMeleeMenu(pm->menu, str_back);
@@ -409,6 +425,19 @@ void picrossMainMenuCb(const char* opt)
         picrossSetSaveFlag(1,false);
         pm->menuChanged = true;
         setPicrossMainMenu(false);
+    }else if(opt == str_AnimateBGOff)
+    {
+        //turn bgAnimate back on
+        picrossSetSaveFlag(2,true);
+        pm->menuChanged = true;
+        setPicrossMainMenu(false);//re-setup menu with new text, but dont change cursor position
+    }
+    else if(opt == str_AnimateBGOn)
+    {
+        //turn bgAnimate off
+        picrossSetSaveFlag(2,false);
+        pm->menuChanged = true;
+        setPicrossMainMenu(false);
     }else if(opt == str_eraseProgress)
     {
         //Erase all gameplay data
@@ -447,6 +476,7 @@ void returnToLevelSelect()//todo: rename
  * @brief Save data is stored in a single integer, using the register as 32 flags. 
  * Hints on/off is pos 0.
  * Guide on/off is pos 1
+ * BG Animation is pos 2
  * 
  * @param pos Pos (<32) which flag to get.
  * @return true 
