@@ -24,7 +24,7 @@ typedef void (*pxSetFunc_t)(int16_t x, int16_t y, paletteColor_t px);
 typedef paletteColor_t (*pxGetFunc_t)(int16_t x, int16_t y);
 typedef paletteColor_t * (*pxFbGetFunc_t)(void);
 typedef void (*pxClearFunc_t)(void);
-typedef void (*drawDisplayFunc_t)(bool drawDiff);
+typedef void (*drawDisplayFunc_t)(bool drawDiff, uint32_t frameRate);
 
 typedef struct
 {
@@ -35,6 +35,7 @@ typedef struct
     drawDisplayFunc_t drawDisplay;
     uint16_t w;
     uint16_t h;
+    uint32_t frameRateUs;
 } display_t;
 
 typedef struct

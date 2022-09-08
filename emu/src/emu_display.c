@@ -10,6 +10,7 @@
 #include "gpio_types.h"
 #include "hal/spi_types.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 
 #include "emu_esp.h"
 #include "display.h"
@@ -267,13 +268,13 @@ void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxTft(int16_t x, int16_t y);
 paletteColor_t * emuGetPxFbTft(void);
 void emuClearPxTft(void);
-void emuDrawDisplayTft(bool drawDiff);
+void emuDrawDisplayTft(bool drawDiff, uint32_t frameRate);
 
 void emuSetPxOled(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxOled(int16_t x, int16_t y);
 paletteColor_t * emuGetPxFbOled(void);
 void emuClearPxOled(void);
-void emuDrawDisplayOled(bool drawDiff);
+void emuDrawDisplayOled(bool drawDiff, uint32_t frameRate);
 
 //==============================================================================
 // Functions
@@ -423,6 +424,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
     disp->setPx = emuSetPxTft;
     disp->clearPx = emuClearPxTft;
     disp->drawDisplay = emuDrawDisplayTft;
+    disp->frameRateUs = 33333;
 }
 
 /**
@@ -524,15 +526,23 @@ void emuClearPxTft(void)
  * called from a pthread, so it raises a flag to draw on the main thread
  *
  * @param drawDiff unused, the whole display is always drawn
+ * @param frameRate The frame rate to draw at, in microseconds
  */
-void emuDrawDisplayTft(bool drawDiff UNUSED)
+void emuDrawDisplayTft(bool drawDiff UNUSED, uint32_t frameRate)
 {
-	/* Copy the current framebuffer to memory that won't be modified by the
-     * Swadge mode. rawdraw will use this non-changing bitmap to draw
-     */
-	pthread_mutex_lock(&displayMutex);
-    memcpy(constBitmapDisplay, bitmapDisplay, sizeof(uint32_t) * TFT_HEIGHT * displayMult * TFT_WIDTH * displayMult);
-	pthread_mutex_unlock(&displayMutex);
+    // Limit drawing to 30fps
+    static uint64_t tLastDraw = 0;
+    uint64_t tNow = esp_timer_get_time();
+    if (tNow - tLastDraw > frameRate)
+    {
+        tLastDraw = tNow;
+        /* Copy the current framebuffer to memory that won't be modified by the
+        * Swadge mode. rawdraw will use this non-changing bitmap to draw
+        */
+        pthread_mutex_lock(&displayMutex);
+        memcpy(constBitmapDisplay, bitmapDisplay, sizeof(uint32_t) * TFT_HEIGHT * displayMult * TFT_WIDTH * displayMult);
+        pthread_mutex_unlock(&displayMutex);
+    }
 }
 
 //==============================================================================
@@ -556,6 +566,7 @@ bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
     disp->setPx = emuSetPxOled;
     disp->clearPx = emuClearPxOled;
     disp->drawDisplay = emuDrawDisplayOled;
+    disp->frameRateUs = 33333;
 
     return true;
 }
@@ -610,8 +621,9 @@ void emuClearPxOled(void)
  * called from a pthread, so it raises a flag to draw on the main thread
  *
  * @param drawDiff unused, the whole display is always drawn
+ * @param frameRate The frame rate to draw at, in microseconds
  */
-void emuDrawDisplayOled(bool drawDiff UNUSED)
+void emuDrawDisplayOled(bool drawDiff UNUSED, uint32_t frameRate)
 {
 	WARN_UNIMPLEMENTED();
 }

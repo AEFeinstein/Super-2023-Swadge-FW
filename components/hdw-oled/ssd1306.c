@@ -369,7 +369,7 @@ void setPxOled(int16_t x, int16_t y, paletteColor_t c);
 paletteColor_t getPxOled(int16_t x, int16_t y);
 paletteColor_t * getPxFbOled(void);
 void clearPxOled(void);
-void drawDisplayOled(bool drawDifference);
+void drawDisplayOled(bool drawDifference, uint32_t frameRate);
 
 //==============================================================================
 // Variables
@@ -479,6 +479,7 @@ bool initOLED(display_t * disp, bool reset, gpio_num_t rst_gpio)
     disp->getPxFb = getPxFbOled;
     disp->clearPx = clearPxOled;
     disp->drawDisplay = drawDisplayOled;
+    disp->frameRateUs = 33333;
 
     // Clear the RAM
     clearPxOled();
@@ -571,8 +572,9 @@ void updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t
  *
  * @param drawDifference true to only draw differences from the prior frame
  *                       false to draw the entire frame
+ * @param frameRate The frame rate to draw at, in microseconds
  */
-void drawDisplayOled(bool drawDifference)
+void drawDisplayOled(bool drawDifference, uint32_t frameRate)
 {
     //Before sending the actual data, we do housekeeping. This can take between 57 and 200 uS
     //But ensures the visual data stays consistent.
