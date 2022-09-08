@@ -169,10 +169,10 @@ void loadLevels()
     loadWsg("Danny_PZL.wsg", &pm->levels[3].levelWSG);
     loadWsg("Danny_SLV.wsg", &pm->levels[3].completedWSG);
 
+    loadWsg("Controller_PZL.wsg", &pm->levels[4].levelWSG);
+    loadWsg("Controller_SLV.wsg", &pm->levels[4].completedWSG);
+ 
     //
-
-    loadWsg("test2.wsg", &pm->levels[4].levelWSG);
-    loadWsg("test2_c.wsg", &pm->levels[4].completedWSG);
 
     loadWsg("test1.wsg", &pm->levels[5].levelWSG);
     loadWsg("test1_complete.wsg", &pm->levels[5].completedWSG);
@@ -180,6 +180,8 @@ void loadLevels()
     loadWsg("3_boat.wsg", &pm->levels[6].levelWSG);
     loadWsg("3_boat_c.wsg", &pm->levels[6].completedWSG);
 
+    loadWsg("test2.wsg", &pm->levels[7].levelWSG);
+    loadWsg("test2_c.wsg", &pm->levels[7].completedWSG);
     //set indices. Used to correctly set save data. levels are loaded without context of the levels array, so they carry the index info with them so we can save victories.
     for(int i = 0;i<8;i++)//8 should = number of levels and that should = levelCount.
     {
