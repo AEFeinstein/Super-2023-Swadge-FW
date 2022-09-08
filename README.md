@@ -615,7 +615,7 @@ void demoMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
 
 // Send a message
 const char tMsg[] = "Test Message";
-p2pSendMsg(&(demo->p), "tst", tMsg, sizeof(tMsg), demoMsgTxCbFn);
+p2pSendMsg(&(demo->p), "tst", tMsg, sizeof(tMsg), true, demoMsgTxCbFn);
 ```
 
 ## Best Practices

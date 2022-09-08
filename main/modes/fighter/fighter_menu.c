@@ -145,7 +145,7 @@ void fighterEnterMode(display_t* disp)
     fm->stage = NO_STAGE;
 
     // Initialize p2p
-    p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, 0);
+    p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
 }
 
 /**
@@ -399,7 +399,7 @@ void fighterMultiplayerCharMenuCb(const char* opt)
         CHAR_SEL_MSG,
         fm->characters[charIdx]
     };
-    p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), true, fighterP2pMsgTxCbFn);
     fm->lastSentMsg = CHAR_SEL_MSG;
 
     if(GOING_FIRST == fm->p2p.cnc.playOrder)
@@ -465,7 +465,7 @@ void fighterMultiplayerStageMenuCb(const char* opt)
         STAGE_SEL_MSG,
         fm->stage
     };
-    p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), true, fighterP2pMsgTxCbFn);
     fm->lastSentMsg = STAGE_SEL_MSG;
 }
 
@@ -635,7 +635,8 @@ void fighterSendButtonsToOther(int32_t btnState)
         BUTTON_INPUT_MSG,
         btnState // This clips 32 bits to 8 bits, but there are 8 buttons anyway
     };
-    p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
+    // TODO don't ack, retry until the scene is received
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), true, fighterP2pMsgTxCbFn);
     fm->lastSentMsg = BUTTON_INPUT_MSG;
 }
 
@@ -649,6 +650,7 @@ void fighterSendSceneToOther(fighterScene_t* scene, uint8_t len)
 {
     // Insert the message type (this byte should be empty)
     ((uint8_t*)scene)[0] = SCENE_COMPOSED_MSG;
-    p2pSendMsg(&fm->p2p, (const uint8_t*)scene, len, fighterP2pMsgTxCbFn);
+    // TODO don't ack, retry until buttons are received
+    p2pSendMsg(&fm->p2p, (const uint8_t*)scene, len, true, fighterP2pMsgTxCbFn);
     fm->lastSentMsg = SCENE_COMPOSED_MSG;
 }
