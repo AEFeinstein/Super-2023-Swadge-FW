@@ -21,13 +21,13 @@
    "attacks":[
       {
          "type":"utilt",
-         "startupLag":4,
+         "startupLag":100,
          "startupLagSpr":"kid0.wsg",
          "onlyFirstHit":true,
          "iframe_timer":0,
          "attack_frames":[
             {
-               "duration":11,
+               "duration":275,
                "sprite":"kid0.wsg",
                "sprite_offset_x":0,
                "sprite_offset_y":0,
@@ -50,7 +50,7 @@
                ]
             },
             {
-               "duration":14,
+               "duration":250,
                "sprite":"kid0.wsg",
                "hitboxes":[
                   {
@@ -66,16 +66,16 @@
                ]
             }
          ],
-         "endLag":8,
+         "endLag":200,
          "endLagSpr":"kid0.wsg"
       },
       {
          "type":"dtilt",
-         "startupLag":6,
+         "startupLag":150,
          "startupLagSpr":"kid0.wsg",
          "attack_frames":[
             {
-               "duration":24,
+               "duration":600,
                "sprite":"kid0.wsg",
                "hitboxes":[
                   {
@@ -101,16 +101,16 @@
                ]
             }
          ],
-         "endLag":10,
+         "endLag":250,
          "endLagSpr":"kid0.wsg"
       },
       {
          "type":"dash",
-         "startupLag":2,
+         "startupLag":50,
          "startupLagSpr":"kid0.wsg",
          "attack_frames":[
             {
-               "duration":15,
+               "duration":375,
                "sprite":"kid0.wsg",
                "velo_x":30000,
                "hitboxes":[
@@ -127,16 +127,16 @@
                ]
             }
          ],
-         "endLag":12,
+         "endLag":300,
          "endLagSpr":"kid0.wsg"
       },
       {
          "type":"neutral",
-         "startupLag":9,
+         "startupLag":225,
          "startupLagSpr":"kid0.wsg",
          "attack_frames":[
             {
-               "duration":12,
+               "duration":300,
                "sprite":"kid0.wsg",
                "hitboxes":[
                   {
@@ -159,17 +159,17 @@
                ]
             }
          ],
-         "endLag":14,
+         "endLag":350,
          "endLagSpr":"kid0.wsg",
          "landing_lag":14
       },
       {
          "type":"nair",
-         "startupLag":9,
+         "startupLag":225,
          "startupLagSpr":"kid0.wsg",
          "attack_frames":[
             {
-               "duration":12,
+               "duration":300,
                "sprite":"kid0.wsg",
                "hitboxes":[
                   {
@@ -192,17 +192,17 @@
                ]
             }
          ],
-         "endLag":14,
+         "endLag":350,
          "endLagSpr":"kid0.wsg",
          "landing_lag":14
       },
       {
          "type":"fair",
-         "startupLag":7,
+         "startupLag":175,
          "startupLagSpr":"kid0.wsg",
          "attack_frames":[
             {
-               "duration":14,
+               "duration":350,
                "sprite":"kid0.wsg",
                "hitboxes":[
                   {
@@ -218,17 +218,17 @@
                ]
             }
          ],
-         "endLag":12,
+         "endLag":300,
          "endLagSpr":"kid0.wsg",
          "landing_lag":12
       },
       {
          "type":"bair",
-         "startupLag":12,
+         "startupLag":300,
          "startupLagSpr":"kid0.wsg",
          "attack_frames":[
             {
-               "duration":16,
+               "duration":400,
                "sprite":"kid0.wsg",
                "hitboxes":[
                   {
@@ -244,17 +244,17 @@
                ]
             }
          ],
-         "endLag":11,
+         "endLag":275,
          "endLagSpr":"kid0.wsg",
          "landing_lag":11
       },
       {
          "type":"uair",
-         "startupLag":2,
+         "startupLag":50,
          "startupLagSpr":"kid0.wsg",
          "attack_frames":[
             {
-               "duration":8,
+               "duration":200,
                "sprite":"kid0.wsg",
                "velo_x":0,
                "velo_y":-4000,
@@ -272,7 +272,7 @@
                ]
             },
             {
-               "duration":16,
+               "duration":400,
                "sprite":"kid0.wsg",
                "velo_x":4000,
                "velo_y":-25000,
@@ -290,7 +290,7 @@
                ]
             },
             {
-               "duration":10,
+               "duration":250,
                "sprite":"kid0.wsg",
                "velo_x":0,
                "velo_y":-8000,
@@ -308,7 +308,7 @@
                ]
             },
             {
-               "duration":16,
+               "duration":400,
                "sprite":"kid0.wsg",
                "velo_x":10000,
                "velo_y":25000,
@@ -326,17 +326,17 @@
                ]
             }
          ],
-         "endLag":11,
+         "endLag":275,
          "endLagSpr":"kid0.wsg",
          "landing_lag":11
       },
       {
          "type":"dair",
-         "startupLag":9,
+         "startupLag":225,
          "startupLagSpr":"kid0.wsg",
          "attack_frames":[
             {
-               "duration":22,
+               "duration":550,
                "sprite":"kid0.wsg",
                "velo_y":10000,
                "hitboxes":[
@@ -353,7 +353,7 @@
                ]
             }
          ],
-         "endLag":14,
+         "endLag":350,
          "endLagSpr":"kid0.wsg",
          "landing_lag":14
       }
