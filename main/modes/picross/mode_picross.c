@@ -71,13 +71,22 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->clueGap = 2;//currently only used for horizontal clues. 
     p->exitThisFrame = false;
 
+    //bg scrolling
+    p->bgScrollTimer = 0;
+    p->bgScrollSpeed = 50000;
+    p->bgScrollXFrame = 0;
+    p->bgScrollYFrame = 0;
+    //font
     loadFont("ibm_vga8.font", &(p->hint_font));
 
+    //Puzzle
     p->puzzle = calloc(1, sizeof(picrossPuzzle_t));
     p->puzzle->width = 10;
     p->puzzle->height = 10;
 
-    //todo: im doing a lot of this again in ResetInput. Its a holdover from my boilerplate. todo: I want to most of this into there.
+    //Input
+
+    //todo: im doing a lot of this again in ResetInput. Its a holdover from my boilerplate. I want to move that here.
     p->input = calloc(1, sizeof(picrossInput_t));
     p->input->x=0;
     p->input->y=0;
@@ -97,7 +106,8 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->blinkAnimTimer =0;
     p->input->blinkTime = 120000;//half a blink cycle (on)(off) or full (on/off)(on/off)?
     p->input->blinkCount = 6;
-    p->input->showHints = picrossGetSaveFlag(0);//0 is showHints.
+    p->input->showHints = picrossGetSaveFlag(0);
+    p->input->showGuides = picrossGetLoadedSaveFlag(1);
 
     //cant tell if this is doing things the lazy way or not.
     for(int i = 0;i<NUM_LEDS;i++)
@@ -307,6 +317,8 @@ void picrossResetInput()
 
 void picrossGameLoop(int64_t elapsedUs)
 {
+    p->bgScrollTimer += elapsedUs;
+
     picrossUserInput(elapsedUs);
     if(p->exitThisFrame)
     {
@@ -757,7 +769,13 @@ void drawPicrossScene(display_t* d)
     box_t box;
     //todo: move color selection to constants somewhere
     paletteColor_t emptySpaceCol = c555;
-    paletteColor_t hoverSpaceCol = c445;//I wish I could tint this less than I can. What if, instead, we tint the border-lines surrounding the spaces, and not the spaces?
+    paletteColor_t hoverSpaceCol = emptySpaceCol;//this value is only different if guides are turned on.
+    if(p->input->showGuides)
+    {
+        //I wish I could tint this less than I can. What if, instead, we tint the border-lines surrounding the spaces, and not the spaces?
+        hoverSpaceCol = c445;
+    }
+
     if(p->currentPhase == PICROSS_SOLVING)
     {
         for(int i = 0;i<w;i++)
@@ -954,7 +972,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
         int j = 0;
 
         //if current row, draw background squares.
-        if(hint.index == p->input->y)
+        if(p->input->showGuides && hint.index == p->input->y)
         {
             hintbox = boxFromCoord(-1,hint.index);
             hintbox.x0 = hintbox.x0 - p->drawScale*4;
@@ -996,7 +1014,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
     }else{
         int j = 0;
          //if current col, draw background square
-        if(hint.index == p->input->x)
+        if(p->input->showGuides && hint.index == p->input->x)
         {
             hintbox = boxFromCoord(hint.index,-1);
             hintbox.y0 = hintbox.y0 - p->drawScale*4;
@@ -1072,15 +1090,27 @@ void drawPicrossInput(display_t* d)
     drawBox(d, inputBox, p->input->inputBoxColor, false, 1);
 }
 
+/**
+ * @brief Draws the background. 
+ * 
+ * @param d display to draw to.
+ */
 void drawBackground(display_t* d)
 {
-    // Draw a dim blue background with a grey grid
-
+    if(p->bgScrollTimer >= p->bgScrollSpeed)
+    {
+        p->bgScrollTimer = 0;
+        p->bgScrollXFrame++;
+        p->bgScrollYFrame += p->bgScrollXFrame%2;//scroll y twice as slowly as x
+        //loop frames
+        p->bgScrollXFrame = p->bgScrollXFrame%20;
+        p->bgScrollYFrame = p->bgScrollYFrame%20;
+    }
     for(int16_t y = 0; y < d->h; y++)
     {
         for(int16_t x = 0; x < d->w; x++)
         {
-            if(((x % 20) == 0) || ((y % 20) == 0))
+            if(((x % 20) == 19-p->bgScrollXFrame) && ((y % 20) == p->bgScrollYFrame))
             {
                 d->setPx(x, y, c222); // Grid
             }
@@ -1092,11 +1122,21 @@ void drawBackground(display_t* d)
     }
 }
 
+/**
+ * @brief Called by the swadge system. We cache inputs and process them in the game loop.
+ * 
+ * @param evt 
+ */
 void picrossGameButtonCb(buttonEvt_t* evt)
 {
     p->input->btnState = evt->state;
 }
 
+/**
+ * @brief Turn of LEDS, Free up memory, and exit.
+ * I think this gets called when the swadge gets reset, so maybe I could put a savePicrossProgress() call here, but I want to double-check how this function is actually being used.
+ * 
+ */
 void picrossExitGame(void)
 {
     //set LED's to off.
@@ -1117,6 +1157,17 @@ void picrossExitGame(void)
 // SAVING AND LOADING
 //===========
 
+/**
+ * @brief Saves the current level to permastore. 
+ * Each row gets its own int32. Each square needs 2 bits (enum is 4 options, 3 used by actual level and an outofbounds = 2 bits).
+ * We save the data in the last 2 bits, then move the bank over 2 bits. repeat.
+ * a 32 bit integer means we can support up to 16 values per row.
+ * One integer per row means we don't have to re-write this code to deal with levels of different size.
+ * We save the current level index elsewhere, and re-create the entire puzzle on loading, so we dont have to store any clues or w/h info.
+ * 
+ * Currently the puzzle only saves when we hit select to exit. Once I test performance on device, I would like to add saving it when you also hit start,
+ * or as frequently as every time you make a change.
+ */
 void savePicrossProgress()
 {
     for(int y = 0;y<10;y++)

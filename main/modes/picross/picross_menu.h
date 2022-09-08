@@ -18,5 +18,6 @@ void selectPicrossLevel(picrossLevelDef_t* selectedLevel);
 void exitTutorial(void);
 void picrossSetSaveFlag(int pos, bool on);
 bool picrossGetSaveFlag(int pos);
+bool picrossGetLoadedSaveFlag(int pos);
 
 #endif

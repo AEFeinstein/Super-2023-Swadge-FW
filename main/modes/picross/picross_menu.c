@@ -64,7 +64,7 @@ const char picrossCompletedLevelData2[] = "picross_Solves2";
 const char picrossCompletedLevelData3[] = "picross_Solves3";
 
 //Main menu strings
-static const char str_picrossTitle[] = "pi-Cross";
+static const char str_picrossTitle[] = "pi-cross";//set game name here for top in-picross-menu name. Should match below.
 static const char str_continue[] = "Continue";
 static const char str_levelSelect[] = "Puzzle Select";
 static const char str_howtoplay[] = "How To Play";
@@ -76,11 +76,13 @@ static const char str_options[] = "Options";
 static const char str_back[] = "Back";
 static const char str_HintsOn[] = "Hints: On";
 static const char str_HintsOff[] = "Hints: Off";
+static const char str_GuidesOn[] = "Guides: On";
+static const char str_GuidesOff[] = "Guides: Off";
 static const char str_eraseProgress[] = "Erase Progress";
 
 swadgeMode modePicross =
 {
-    .modeName = "pi-Cross",//set here and also above
+    .modeName = "pi-cross",//set name here for how name appears in "games" menu. Should match above.
     .fnEnterMode = picrossEnterMode,
     .fnExitMode = picrossExitMode,
     .fnMainLoop = picrossMainLoop,
@@ -134,12 +136,19 @@ void picrossExitMode(void)
     free(pm);
 }
 
+/**
+ * @brief Loads in all of the level files. Each level is made up of a black/white data file, and a completed color version.
+ * The black.white version can be white or transparent for empty spaces, and any other pixel value for filled spaces.
+ * Clues and level size is determined by the images, but only 10x10 is currently supported. It will completely break if it's not 10x10 right now.
+ * I would like to support any size that is <=15, including non-square puzzles. First is getting them to render and not write out of bounds, second is scaling and placing the puzzle on screen correctly.
+ * 
+ */
 void loadLevels()
 {
     //LEVEL SETUP AREA
     //DACVAK JUST SEARCH FOR "DACVAK" TO FIND THIS
 
-    //any entry with lowercase names is testing data. CamelCase names are good to go.
+    //any entry with lowercase names is testing data. CamelCase names are good to go. This is not convention, just nature of dac sending me files vs. my testing ones.
     loadWsg("Cherry_PZL.wsg", &pm->levels[0].levelWSG);
     loadWsg("Cherry_SLV.wsg", &pm->levels[0].completedWSG);
 
@@ -163,7 +172,7 @@ void loadLevels()
     loadWsg("3_boat.wsg", &pm->levels[6].levelWSG);
     loadWsg("3_boat_c.wsg", &pm->levels[6].completedWSG);
 
-    //set indices. Used to correctly set save data. levels are loaded without context of their array, so they carry the index data with them.
+    //set indices. Used to correctly set save data. levels are loaded without context of the levels array, so they carry the index info with them so we can save victories.
     for(int i = 0;i<8;i++)//8 should = number of levels and that should = levelCount.
     {
         pm->levels[i].index = i;
@@ -253,10 +262,11 @@ void picrossButtonCb(buttonEvt_t* evt)
  */
 void setPicrossMainMenu(bool resetPos)
 {
+    uint8_t rowPos = pm->menu->selectedRow;
     // Set the position of the hovered row
     if(resetPos)
     {
-        pm->menu->selectedRow = 0;
+        rowPos = 0;
     }
 
     //override the main menu with the options menu instead.
@@ -265,11 +275,18 @@ void setPicrossMainMenu(bool resetPos)
     {
         //Draw the options menu
         resetMeleeMenu(pm->menu, str_options, picrossMainMenuCb);
+        pm->menu->selectedRow = rowPos;//reset sets this to 0, so lets ... set it back.
         if(picrossGetSaveFlag(0))//are hints on?
         {
             addRowToMeleeMenu(pm->menu, str_HintsOn);
         }else{
             addRowToMeleeMenu(pm->menu, str_HintsOff);
+        }
+        if(picrossGetLoadedSaveFlag(1))//are guides on? (getHints loaded from perma, we can skip doing that again and just read local)
+        {
+            addRowToMeleeMenu(pm->menu, str_GuidesOn);
+        }else{
+            addRowToMeleeMenu(pm->menu, str_GuidesOff);
         }
         addRowToMeleeMenu(pm->menu, str_eraseProgress);
         addRowToMeleeMenu(pm->menu, str_back);
@@ -279,17 +296,18 @@ void setPicrossMainMenu(bool resetPos)
     //otherwise, if we are in ANY game state, this should default (and set) to picross_menu
 
     resetMeleeMenu(pm->menu, str_picrossTitle, picrossMainMenuCb);
+    pm->menu->selectedRow = rowPos;
 
     //only display continue button if we have a game in progress.
 
-    //attempt to read the value. If it doesnt exist, set it to -1.
+    //attempt to read the saved index. If it doesnt exist, set it to -1.
     if((false == readNvs32(picrossCurrentPuzzleIndexKey, &pm->savedIndex)))
     {
         writeNvs32(picrossCurrentPuzzleIndexKey, -1);//if we enter this screen and instantly exist, also set it to -1 and we can just load that.
         pm->savedIndex = -1;//there is no current index.
     }
 
-    //TODO: continue button not appearing?
+    //only show continue button if we have saved data.
     if(pm->savedIndex >= 0)
     {
         addRowToMeleeMenu(pm->menu, str_continue);
@@ -303,19 +321,27 @@ void setPicrossMainMenu(bool resetPos)
     pm->screen = PICROSS_MENU;
 }
 
+/**
+ * @brief Frees level select menu and returns to the picross menu. Should not be called by not-the-level-select-menu.
+ * 
+ */
 void returnToPicrossMenu(void)
 {
     picrossExitLevelSelect();//free data
     setPicrossMainMenu(false);
 }
 
+/**
+ * @brief Exits the tutorial mode.
+ * 
+ */
 void exitTutorial(void)
 {
     pm->screen = PICROSS_MENU;
     setPicrossMainMenu(false);
 }
 
-//menu button callbacks. Set the screen and call the appropriate start functions
+//menu button & options menu callbacks. Set the screen and call the appropriate start functions
 void picrossMainMenuCb(const char* opt)
 {
     if (opt == str_continue)
@@ -370,6 +396,19 @@ void picrossMainMenuCb(const char* opt)
         picrossSetSaveFlag(0,false);
         pm->menuChanged = true;
         setPicrossMainMenu(false);
+    }else if(opt == str_GuidesOff)
+    {
+        //turn guides back on
+        picrossSetSaveFlag(1,true);
+        pm->menuChanged = true;
+        setPicrossMainMenu(false);//re-setup menu with new text, but dont change cursor position
+    }
+    else if(opt == str_GuidesOn)
+    {
+        //turn guides off
+        picrossSetSaveFlag(1,false);
+        pm->menuChanged = true;
+        setPicrossMainMenu(false);
     }else if(opt == str_eraseProgress)
     {
         //Erase all gameplay data
@@ -384,6 +423,11 @@ void picrossMainMenuCb(const char* opt)
     }
 }
 
+/**
+ * @brief Selects a picross level then starts the game. Called by level select, and sends us into mode_picross.c Doesn't free memory.
+ * 
+ * @param selectedLevel Pointer to the a level struct.
+ */
 void selectPicrossLevel(picrossLevelDef_t* selectedLevel)
 {
     //picrossExitLevelSelect();//we do this BEFORE we enter startGame.
@@ -399,19 +443,47 @@ void returnToLevelSelect()//todo: rename
     picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels);      
 }
 
+/**
+ * @brief Save data is stored in a single integer, using the register as 32 flags. 
+ * Hints on/off is pos 0.
+ * Guide on/off is pos 1
+ * 
+ * @param pos Pos (<32) which flag to get.
+ * @return true 
+ * @return false 
+ */
 bool picrossGetSaveFlag(int pos)
 {
-    //read once on loading menu?
-
     if(false == readNvs32(picrossSavedOptionsKey, &pm->options))
     {
         writeNvs32(picrossSavedOptionsKey, 0);
     }
 
-    int val = (pm->options & ( 1 << pos )) >> pos;
-    return val == 1;//hints will be first bit. IT IS DECIDED
+    return picrossGetLoadedSaveFlag(pos);
 }
+
+/**
+ * @brief once you have called picrossGetSaveFlag for any position, you don't need to call it again until an option changes.
+ * As we often read a bunch of values in a row, this function can be used after the first one to save on uneccesary read calls.
+ * 
+ * @param pos 
+ * @return true 
+ * @return false 
+ */
+bool picrossGetLoadedSaveFlag(int pos)
+{
+    int val = (pm->options & ( 1 << pos )) >> pos;
+    return val == 1;
+}
+
 //also sets pm->options
+/**
+ * @brief Sets a flag. Sets pm->options, which is actually used by the game without necessarily having to (repeatedly) call picrossGetSaveFlag.
+ * Of course, it also also saves it to perma.
+ * 
+ * @param pos index to get. 0<pos<32.
+ * @param on save vale.
+ */
 void picrossSetSaveFlag(int pos, bool on)
 {
     if(on)

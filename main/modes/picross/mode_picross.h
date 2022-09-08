@@ -58,6 +58,7 @@ typedef struct
     uint64_t blinkTime;//half a blink cycle (on)(off) or full (on/off)(on/off)?
     uint8_t blinkCount;
     bool showHints;
+    bool showGuides;
     bool DASActive;//true after the first DAS input has happened.
 } picrossInput_t;
 
@@ -92,6 +93,11 @@ typedef struct
     uint8_t leftPad;
     uint8_t topPad;
     uint8_t clueGap;
+    uint64_t bgScrollTimer;
+    uint64_t bgScrollSpeed;
+    uint8_t bgScrollXFrame;
+    uint8_t bgScrollYFrame;
+
     picrossLevelDef_t* selectedLevel;
     bool exitThisFrame;
     int8_t count;
