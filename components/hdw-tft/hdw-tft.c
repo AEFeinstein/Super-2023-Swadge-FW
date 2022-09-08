@@ -599,7 +599,7 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
         {
             // Calculate a line
 
-			// Profiled at 60,000 cycles @ 160 MHz
+            // Profiled at 60,000 cycles @ 160 MHz
             uint16_t * outColor = s_lines[calc_line];
             uint8_t  * inColor = &pixels[y*TFT_WIDTH];
             for (uint16_t yp = y; yp < y + PARALLEL_LINES; yp++)
@@ -613,16 +613,16 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
             sending_line = calc_line;
             calc_line = !calc_line;
 
-			// (When operating @ 160 MHz)
-			// This code takes 35k cycles when y == 0, but
-			// this code takes 100k cycles when y != 0...
-			// TODO NOTE:
-			//  *** You have 600us here, to do whatever you want.  For free. ***
-			//  You should avoid when y == 0, but that means you get 14 chunks
-			//  every frame.
-			//
-			// This is because esp_lcd_panel_draw_bitmap blocks until the chunk 
-			// of frames has been sent.
+            // (When operating @ 160 MHz)
+            // This code takes 35k cycles when y == 0, but
+            // this code takes 100k cycles when y != 0...
+            // TODO NOTE:
+            //  *** You have 600us here, to do whatever you want.  For free. ***
+            //  You should avoid when y == 0, but that means you get 14 chunks
+            //  every frame.
+            //
+            // This is because esp_lcd_panel_draw_bitmap blocks until the chunk 
+            // of frames has been sent.
 
             // Send the calculated data
             esp_lcd_panel_draw_bitmap(panel_handle, 0, y,
