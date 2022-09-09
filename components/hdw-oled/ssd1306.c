@@ -459,7 +459,7 @@ void clearPxOled(void)
  * @param rst_gpio The GPIO for the reset pin
  * @return true if it initialized, false if it failed
  */
-bool initOLED(display_t * disp, bool reset, gpio_num_t rst_gpio)
+bool initOLED(display_t* disp, bool reset, gpio_num_t rst_gpio)
 {
     disp->h = OLED_HEIGHT;
     disp->w = OLED_WIDTH;
@@ -731,14 +731,14 @@ int processDisplayCommands( const uint8_t* buffer, uint8_t flags )
 
 /**
  * @brief Empty Initializer when the OLED is disabled
- * 
- * @param disp 
- * @param reset 
- * @param rst_gpio 
- * @return true 
- * @return false 
+ *
+ * @param disp
+ * @param reset
+ * @param rst_gpio
+ * @return true
+ * @return false
  */
-bool initOLED(display_t * disp, bool reset, gpio_num_t rst_gpio)
+bool initOLED(display_t* disp, bool reset, gpio_num_t rst_gpio)
 {
     return false;
 }

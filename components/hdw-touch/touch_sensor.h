@@ -25,7 +25,7 @@ typedef struct
 //==============================================================================
 
 void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
-    uint8_t numTouchPads, ...);
-bool checkTouchSensor(touch_event_t *);
+                     uint8_t numTouchPads, ...);
+bool checkTouchSensor(touch_event_t*);
 
 #endif /* _TOUCH_SENSOR_H_ */

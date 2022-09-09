@@ -15,7 +15,8 @@
 // Structs
 //==============================================================================
 
-typedef struct touch_msg {
+typedef struct touch_msg
+{
     touch_pad_intr_mask_t intr_mask;
     touch_pad_t pad_num;
     uint32_t pad_status;
@@ -34,7 +35,7 @@ static uint32_t tpState = 0;
 // Prototypes
 //==============================================================================
 
-static void touchsensor_interrupt_cb(void *arg);
+static void touchsensor_interrupt_cb(void* arg);
 
 //==============================================================================
 // Functions
@@ -42,14 +43,14 @@ static void touchsensor_interrupt_cb(void *arg);
 
 /**
  * @brief Initialize touchpad sensors
- * 
+ *
  * @param touchPadSensitivity The sensitivity to set for these touchpads
  * @param denoiseEnable true to denoise the input, false to use it raw
  * @param numTouchPads The number of touchpads to initialize
  * @param ... A list of touchpads to initialize (touch_pad_t)
  */
 void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
-    uint8_t numTouchPads, ...)
+                     uint8_t numTouchPads, ...)
 {
     ESP_LOGD("TOUCH", "Initializing touch pad");
 
@@ -114,7 +115,7 @@ void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
 
     /* Register touch interrupt ISR, enable intr type. */
     ESP_ERROR_CHECK(touch_pad_isr_register(touchsensor_interrupt_cb, NULL,
-        TOUCH_PAD_INTR_MASK_ALL));
+                                           TOUCH_PAD_INTR_MASK_ALL));
 
     /* Enable interrupts, but not TOUCH_PAD_INTR_MASK_SCAN_DONE */
     ESP_ERROR_CHECK(touch_pad_intr_enable(TOUCH_PAD_INTR_MASK_ACTIVE   |
@@ -137,7 +138,7 @@ void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
         /* set interrupt threshold */
         ESP_ERROR_CHECK(touch_pad_set_thresh(touchPads[i], touch_value * touchPadSensitivity));
         ESP_LOGD("TOUCH", "touch pad [%d] base %d, thresh %d", touchPads[i],
-                        touch_value, (uint32_t)(touch_value * touchPadSensitivity));
+                 touch_value, (uint32_t)(touch_value * touchPadSensitivity));
     }
 }
 
@@ -147,7 +148,7 @@ void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
  *
  * @param arg unused
  */
-static void touchsensor_interrupt_cb(void *arg)
+static void touchsensor_interrupt_cb(void* arg)
 {
     int task_awoken = pdFALSE;
     touch_isr_event_t evt;
@@ -165,11 +166,11 @@ static void touchsensor_interrupt_cb(void *arg)
 
 /**
  * @brief Call this function periodically to check the touch pad interrupt queue
- * 
+ *
  * @param evt Return a touch event through this arg if there was one
  * @return true if there was a touch event, false if there was not
  */
-bool checkTouchSensor(touch_event_t * evt)
+bool checkTouchSensor(touch_event_t* evt)
 {
     /* Check the queue, but don't block */
     touch_isr_event_t isrEvt;
@@ -219,7 +220,7 @@ bool checkTouchSensor(touch_event_t * evt)
     evt->state = tpState;
 
     /* LUT the location */
-    const uint8_t touchLoc[] = 
+    const uint8_t touchLoc[] =
     {
         128, // 00000
         0,   // 00001
