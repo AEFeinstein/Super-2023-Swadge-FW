@@ -9,8 +9,8 @@
    "size_y":24,
    "nJumps":2,
    "landing_lag":1,
-   "idle_spr_0":"kid0.wsg",
-   "idle_spr_1":"kid1.wsg",
+   "idle_spr_0":"bid0.wsg",
+   "idle_spr_1":"bid1.wsg",
    "run_spr_0":"kru0.wsg",
    "run_spr_1":"kru1.wsg",
    "jump_spr":"kjm0.wsg",
@@ -22,13 +22,13 @@
       {
          "type":"utilt",
          "startupLag":100,
-         "startupLagSpr":"kid0.wsg",
+         "startupLagSpr":"bid0.wsg",
          "onlyFirstHit":true,
          "iframe_timer":0,
          "attack_frames":[
             {
                "duration":275,
-               "sprite":"kid0.wsg",
+               "sprite":"bid0.wsg",
                "sprite_offset_x":0,
                "sprite_offset_y":0,
                "hurtbox_offset_x":0,
@@ -51,7 +51,7 @@
             },
             {
                "duration":250,
-               "sprite":"kid0.wsg",
+               "sprite":"bid0.wsg",
                "hitboxes":[
                   {
                      "relativePos_x":12,
@@ -67,16 +67,16 @@
             }
          ],
          "endLag":200,
-         "endLagSpr":"kid0.wsg"
+         "endLagSpr":"bid0.wsg"
       },
       {
          "type":"dtilt",
          "startupLag":150,
-         "startupLagSpr":"kid0.wsg",
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
                "duration":600,
-               "sprite":"kid0.wsg",
+               "sprite":"bid0.wsg",
                "hitboxes":[
                   {
                      "relativePos_x":-12,
@@ -102,16 +102,16 @@
             }
          ],
          "endLag":250,
-         "endLagSpr":"kid0.wsg"
+         "endLagSpr":"bid0.wsg"
       },
       {
          "type":"dash",
          "startupLag":50,
-         "startupLagSpr":"kid0.wsg",
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
                "duration":375,
-               "sprite":"kid0.wsg",
+               "sprite":"bid0.wsg",
                "velo_x":30000,
                "hitboxes":[
                   {
@@ -128,16 +128,16 @@
             }
          ],
          "endLag":300,
-         "endLagSpr":"kid0.wsg"
+         "endLagSpr":"bid0.wsg"
       },
       {
          "type":"neutral",
          "startupLag":225,
-         "startupLagSpr":"kid0.wsg",
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
                "duration":300,
-               "sprite":"kid0.wsg",
+               "sprite":"bid0.wsg",
                "hitboxes":[
                   {
                      "relativePos_x":0,
@@ -160,17 +160,17 @@
             }
          ],
          "endLag":350,
-         "endLagSpr":"kid0.wsg",
+         "endLagSpr":"bid0.wsg",
          "landing_lag":14
       },
       {
          "type":"nair",
          "startupLag":225,
-         "startupLagSpr":"kid0.wsg",
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
                "duration":300,
-               "sprite":"kid0.wsg",
+               "sprite":"bid0.wsg",
                "hitboxes":[
                   {
                      "relativePos_x":0,
@@ -193,17 +193,17 @@
             }
          ],
          "endLag":350,
-         "endLagSpr":"kid0.wsg",
+         "endLagSpr":"bid0.wsg",
          "landing_lag":14
       },
       {
          "type":"fair",
          "startupLag":175,
-         "startupLagSpr":"kid0.wsg",
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
                "duration":350,
-               "sprite":"kid0.wsg",
+               "sprite":"bid0.wsg",
                "hitboxes":[
                   {
                      "relativePos_x":28,
@@ -219,17 +219,17 @@
             }
          ],
          "endLag":300,
-         "endLagSpr":"kid0.wsg",
+         "endLagSpr":"bid0.wsg",
          "landing_lag":12
       },
       {
          "type":"bair",
          "startupLag":300,
-         "startupLagSpr":"kid0.wsg",
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
                "duration":400,
-               "sprite":"kid0.wsg",
+               "sprite":"bid0.wsg",
                "hitboxes":[
                   {
                      "relativePos_x":-24,
@@ -245,17 +245,17 @@
             }
          ],
          "endLag":275,
-         "endLagSpr":"kid0.wsg",
+         "endLagSpr":"bid0.wsg",
          "landing_lag":11
       },
       {
          "type":"uair",
          "startupLag":50,
-         "startupLagSpr":"kid0.wsg",
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
                "duration":200,
-               "sprite":"kid0.wsg",
+               "sprite":"bid0.wsg",
                "velo_x":0,
                "velo_y":-4000,
                "hitboxes":[
@@ -273,7 +273,7 @@
             },
             {
                "duration":400,
-               "sprite":"kid0.wsg",
+               "sprite":"bid0.wsg",
                "velo_x":4000,
                "velo_y":-25000,
                "hitboxes":[
@@ -291,7 +291,7 @@
             },
             {
                "duration":250,
-               "sprite":"kid0.wsg",
+               "sprite":"bid0.wsg",
                "velo_x":0,
                "velo_y":-8000,
                "hitboxes":[
@@ -309,7 +309,7 @@
             },
             {
                "duration":400,
-               "sprite":"kid0.wsg",
+               "sprite":"bid0.wsg",
                "velo_x":10000,
                "velo_y":25000,
                "hitboxes":[
@@ -327,17 +327,17 @@
             }
          ],
          "endLag":275,
-         "endLagSpr":"kid0.wsg",
+         "endLagSpr":"bid0.wsg",
          "landing_lag":11
       },
       {
          "type":"dair",
          "startupLag":225,
-         "startupLagSpr":"kid0.wsg",
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
                "duration":550,
-               "sprite":"kid0.wsg",
+               "sprite":"bid0.wsg",
                "velo_y":10000,
                "hitboxes":[
                   {
@@ -354,7 +354,7 @@
             }
          ],
          "endLag":350,
-         "endLagSpr":"kid0.wsg",
+         "endLagSpr":"bid0.wsg",
          "landing_lag":14
       }
    ]
