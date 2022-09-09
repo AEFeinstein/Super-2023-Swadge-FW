@@ -388,8 +388,6 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
 {
     WARN_UNIMPLEMENTED();
 	
-	emuDisp = disp;
-
 	// ARGB pixels
 	pthread_mutex_lock(&displayMutex);
 
@@ -508,7 +506,7 @@ void emuDrawDisplayTft(display_t * disp, bool drawDiff UNUSED, fnBackgroundDrawC
             }
         }        
 
-		if( ( y & 0xf ) == 0 )
+		if( ( y & 0xf ) == 0 && fnBackgroundDrawCallback)
 		{
 			fnBackgroundDrawCallback( disp, 0, y, TFT_WIDTH, 16, y/16, TFT_HEIGHT/16 );
 		}
