@@ -175,7 +175,7 @@ void updateHitBlock(entity_t *self)
     if (self->animationTimer > 4)
     {
         uint8_t aboveTile = self->tilemap->map[(self->homeTileY - 1) * self->tilemap->mapWidth + self->homeTileX];
-        entity_t *createdEntity;
+        entity_t *createdEntity = NULL;
 
         switch (aboveTile)
         {
@@ -214,7 +214,13 @@ void updateHitBlock(entity_t *self)
 
         }
 
+        if(self->jumpPower == TILE_BRICK_BLOCK && self->yspeed >=0 && createdEntity == NULL ) {
+            self->jumpPower = TILE_EMPTY;
+            self->gameData->score += 10;
+        }
+
         self->tilemap->map[self->homeTileY * self->tilemap->mapWidth + self->homeTileX] = self->jumpPower;
+
         destroyEntity(self, false);
     }
 };
@@ -607,7 +613,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
                 hitBlock->yspeed = -64;
                 break;
             case 4:
-                hitBlock->yspeed = 64;
+                hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
                 break;
             default:
                 break;
