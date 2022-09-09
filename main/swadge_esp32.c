@@ -589,7 +589,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                 // Draw the display at the given frame rate
 
 #ifdef OLED_ENABLED
-                oledDisp.drawDisplay(&tftDisp, true, cSwadgeMode->fnBackgroundDrawCallback);
+                oledDisp.drawDisplay(&oledDisp, true, cSwadgeMode->fnBackgroundDrawCallback);
 #endif
                 tftDisp.drawDisplay(&tftDisp, true, cSwadgeMode->fnBackgroundDrawCallback);
             }
