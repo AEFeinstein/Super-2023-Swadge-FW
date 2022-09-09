@@ -72,14 +72,6 @@ const uint16_t tan1024[91] =
 };
 
 //==============================================================================
-// Function Prototypes
-//==============================================================================
-
-void transformPixel(int16_t* x, int16_t* y, int16_t transX,
-                    int16_t transY, bool flipLR, bool flipUD,
-                    int16_t rotateDeg, int16_t width, int16_t height);
-
-//==============================================================================
 // Functions
 //==============================================================================
 
@@ -147,7 +139,6 @@ void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
     int yMax = CLAMP(y2, 0, disp->h);
 
     uint32_t dw = disp->w;
-#ifdef DISPLAY_HAS_FB
     {
         paletteColor_t * pxs = disp->pxFb + yMin * dw + xMin;
 
@@ -160,17 +151,6 @@ void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
             pxs += dw;
         }
     }
-#else
-    {
-        for(int y = yMin; y < yMax; y++)
-        {
-            for(int x = xMin; x < xMax; x++)
-            {
-                SET_PIXEL(disp, x, y, c);
-            }
-        }
-    }
-#endif
 }
 
 /**
@@ -535,10 +515,10 @@ void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
     {
         for (int x = 0; x < numX; x++)
         {
-            int px = linein[x];
-            if( px != cTransparent )
+            int color = linein[x];
+            if( color != cTransparent )
             {
-                lineout[x] = px;
+                lineout[x] = color;
             }
         }
         lineout += dWidth;
@@ -546,6 +526,7 @@ void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
         wsgY++;
     }
 }
+
 /**
  * Quickly copy bytes into the framebuffer. This ignores transparency
  *
@@ -557,7 +538,6 @@ void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
 void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
 {
     // Check if there is framebuffer access
-#ifdef DISPLAY_HAS_FB
     {
         if(xOff > disp->w)
         {
@@ -599,13 +579,6 @@ void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
             pxWsg += wWidth;
         }
     }
-#else
-    {
-        // No framebuffer access, draw the WSG simply
-        drawWsgSimple(disp, wsg, xOff, yOff);
-    }
-#endif
-
 }
 
 /**
@@ -686,7 +659,6 @@ void freeFont(font_t* font)
 void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16_t xOff, int16_t yOff)
 {
     //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
-
     paletteColor_t * pxOutput = disp->pxFb + yOff * disp->w;
 
     int bitIdx = 0;

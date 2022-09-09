@@ -93,7 +93,7 @@ void p2pModeMsgFailure(void* arg);
  *                      is received for the swadge mode
  * @param connectionRssi The strength needed to start a connection with another
  *                      swadge. A positive value means swadges are quite close.
- *                      I've seen RSSI go as low as -70
+ *                      I've seen RSSI go as low as -70. 0 is practically touching
  */
 void p2pInitialize(p2pInfo* p2p, uint8_t modeId, p2pConCbFn conCbFn,
                    p2pMsgRxCbFn msgRxCbFn, int8_t connectionRssi)
@@ -303,10 +303,11 @@ void p2pTxAllRetriesTimeout(void* arg)
  * @param p2p       The p2pInfo struct with all the state information
  * @param payload   A byte array to be copied to the payload for this message
  * @param len       The length of the byte array
+ * @param shouldAck true to have this message ACKed and retried. false to send it once
  * @param msgTxCbFn A callback function when this message is ACKed or dropped
  */
 void p2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len,
-                p2pMsgTxCbFn msgTxCbFn)
+    bool shouldAck, p2pMsgTxCbFn msgTxCbFn)
 {
     //ESP_LOGD("P2P", "%s", __func__);
 
@@ -316,7 +317,7 @@ void p2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len,
     // Build the header
     builtMsg.hdr.startByte = P2P_START_BYTE;
     builtMsg.hdr.modeId = p2p->modeId;
-    builtMsg.hdr.messageType = P2P_MSG_DATA;
+    builtMsg.hdr.messageType = shouldAck ? P2P_MSG_DATA : P2P_MSG_DATA_NO_ACK;
     builtMsg.hdr.seqNum = 0;
     memcpy(builtMsg.hdr.macAddr, p2p->cnc.otherMac, sizeof(builtMsg.hdr.macAddr));
 
@@ -329,7 +330,7 @@ void p2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len,
 
     // Send it
     p2p->msgTxCbFn = msgTxCbFn;
-    p2pSendMsgEx(p2p, (uint8_t*)&builtMsg, builtMsgLen, true, p2pModeMsgSuccess, p2pModeMsgFailure);
+    p2pSendMsgEx(p2p, (uint8_t*)&builtMsg, builtMsgLen, shouldAck, p2pModeMsgSuccess, p2pModeMsgFailure);
 }
 
 /**
@@ -511,7 +512,8 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
     // By here, we know the received message matches our message ID, either a
     // broadcast or for us. If this isn't an ack message, ack it
     if(len >= sizeof(p2pCommonHeader_t) &&
-            p2pHdr->messageType != P2P_MSG_ACK)
+            p2pHdr->messageType != P2P_MSG_ACK &&
+            p2pHdr->messageType != P2P_MSG_DATA_NO_ACK)
     {
         p2pSendAckToMac(p2p, mac_addr);
     }

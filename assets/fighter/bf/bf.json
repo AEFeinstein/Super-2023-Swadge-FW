@@ -9,26 +9,26 @@
    "size_y":24,
    "nJumps":2,
    "landing_lag":1,
-   "idle_spr_0":"ki0.wsg",
-   "idle_spr_1":"ki1.wsg",
-   "run_spr_0":"kr0.wsg",
-   "run_spr_1":"kr1.wsg",
-   "jump_spr":"kj0.wsg",
-   "duck_spr":"kd0.wsg",
-   "land_lag_spr":"ki0.wsg",
-   "hitstun_ground_sprite":"ki0.wsg",
-   "hitstun_air_sprite":"ki0.wsg",
+   "idle_spr_0":"bid0.wsg",
+   "idle_spr_1":"bid1.wsg",
+   "run_spr_0":"kru0.wsg",
+   "run_spr_1":"kru1.wsg",
+   "jump_spr":"kjm0.wsg",
+   "duck_spr":"kdu0.wsg",
+   "land_lag_spr":"kll0.wsg",
+   "hitstun_ground_sprite":"ksg0.wsg",
+   "hitstun_air_sprite":"ksa0.wsg",
    "attacks":[
       {
          "type":"utilt",
-         "startupLag":4,
-         "startupLagSpr":"ki0.wsg",
+         "startupLag":100,
+         "startupLagSpr":"bid0.wsg",
          "onlyFirstHit":true,
          "iframe_timer":0,
          "attack_frames":[
             {
-               "duration":11,
-               "sprite":"ki0.wsg",
+               "duration":275,
+               "sprite":"bid0.wsg",
                "sprite_offset_x":0,
                "sprite_offset_y":0,
                "hurtbox_offset_x":0,
@@ -50,8 +50,8 @@
                ]
             },
             {
-               "duration":14,
-               "sprite":"ki0.wsg",
+               "duration":250,
+               "sprite":"bid0.wsg",
                "hitboxes":[
                   {
                      "relativePos_x":12,
@@ -66,17 +66,17 @@
                ]
             }
          ],
-         "endLag":8,
-         "endLagSpr":"ki0.wsg"
+         "endLag":200,
+         "endLagSpr":"bid0.wsg"
       },
       {
          "type":"dtilt",
-         "startupLag":6,
-         "startupLagSpr":"ki0.wsg",
+         "startupLag":150,
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
-               "duration":24,
-               "sprite":"ki0.wsg",
+               "duration":600,
+               "sprite":"bid0.wsg",
                "hitboxes":[
                   {
                      "relativePos_x":-12,
@@ -101,17 +101,17 @@
                ]
             }
          ],
-         "endLag":10,
-         "endLagSpr":"ki0.wsg"
+         "endLag":250,
+         "endLagSpr":"bid0.wsg"
       },
       {
          "type":"dash",
-         "startupLag":2,
-         "startupLagSpr":"ki0.wsg",
+         "startupLag":50,
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
-               "duration":15,
-               "sprite":"ki0.wsg",
+               "duration":375,
+               "sprite":"bid0.wsg",
                "velo_x":30000,
                "hitboxes":[
                   {
@@ -127,17 +127,17 @@
                ]
             }
          ],
-         "endLag":12,
-         "endLagSpr":"ki0.wsg"
+         "endLag":300,
+         "endLagSpr":"bid0.wsg"
       },
       {
          "type":"neutral",
-         "startupLag":9,
-         "startupLagSpr":"ki0.wsg",
+         "startupLag":225,
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
-               "duration":12,
-               "sprite":"ki0.wsg",
+               "duration":300,
+               "sprite":"bid0.wsg",
                "hitboxes":[
                   {
                      "relativePos_x":0,
@@ -159,18 +159,18 @@
                ]
             }
          ],
-         "endLag":14,
-         "endLagSpr":"ki0.wsg",
+         "endLag":350,
+         "endLagSpr":"bid0.wsg",
          "landing_lag":14
       },
       {
          "type":"nair",
-         "startupLag":9,
-         "startupLagSpr":"ki0.wsg",
+         "startupLag":225,
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
-               "duration":12,
-               "sprite":"ki0.wsg",
+               "duration":300,
+               "sprite":"bid0.wsg",
                "hitboxes":[
                   {
                      "relativePos_x":0,
@@ -192,18 +192,18 @@
                ]
             }
          ],
-         "endLag":14,
-         "endLagSpr":"ki0.wsg",
+         "endLag":350,
+         "endLagSpr":"bid0.wsg",
          "landing_lag":14
       },
       {
          "type":"fair",
-         "startupLag":7,
-         "startupLagSpr":"ki0.wsg",
+         "startupLag":175,
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
-               "duration":14,
-               "sprite":"ki0.wsg",
+               "duration":350,
+               "sprite":"bid0.wsg",
                "hitboxes":[
                   {
                      "relativePos_x":28,
@@ -218,18 +218,18 @@
                ]
             }
          ],
-         "endLag":12,
-         "endLagSpr":"ki0.wsg",
+         "endLag":300,
+         "endLagSpr":"bid0.wsg",
          "landing_lag":12
       },
       {
          "type":"bair",
-         "startupLag":12,
-         "startupLagSpr":"ki0.wsg",
+         "startupLag":300,
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
-               "duration":16,
-               "sprite":"ki0.wsg",
+               "duration":400,
+               "sprite":"bid0.wsg",
                "hitboxes":[
                   {
                      "relativePos_x":-24,
@@ -244,18 +244,18 @@
                ]
             }
          ],
-         "endLag":11,
-         "endLagSpr":"ki0.wsg",
+         "endLag":275,
+         "endLagSpr":"bid0.wsg",
          "landing_lag":11
       },
       {
          "type":"uair",
-         "startupLag":2,
-         "startupLagSpr":"ki0.wsg",
+         "startupLag":50,
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
-               "duration":8,
-               "sprite":"ki0.wsg",
+               "duration":200,
+               "sprite":"bid0.wsg",
                "velo_x":0,
                "velo_y":-4000,
                "hitboxes":[
@@ -272,8 +272,8 @@
                ]
             },
             {
-               "duration":16,
-               "sprite":"ki0.wsg",
+               "duration":400,
+               "sprite":"bid0.wsg",
                "velo_x":4000,
                "velo_y":-25000,
                "hitboxes":[
@@ -290,8 +290,8 @@
                ]
             },
             {
-               "duration":10,
-               "sprite":"ki0.wsg",
+               "duration":250,
+               "sprite":"bid0.wsg",
                "velo_x":0,
                "velo_y":-8000,
                "hitboxes":[
@@ -308,8 +308,8 @@
                ]
             },
             {
-               "duration":16,
-               "sprite":"ki0.wsg",
+               "duration":400,
+               "sprite":"bid0.wsg",
                "velo_x":10000,
                "velo_y":25000,
                "hitboxes":[
@@ -326,18 +326,18 @@
                ]
             }
          ],
-         "endLag":11,
-         "endLagSpr":"ki0.wsg",
+         "endLag":275,
+         "endLagSpr":"bid0.wsg",
          "landing_lag":11
       },
       {
          "type":"dair",
-         "startupLag":9,
-         "startupLagSpr":"ki0.wsg",
+         "startupLag":225,
+         "startupLagSpr":"bid0.wsg",
          "attack_frames":[
             {
-               "duration":22,
-               "sprite":"ki0.wsg",
+               "duration":550,
+               "sprite":"bid0.wsg",
                "velo_y":10000,
                "hitboxes":[
                   {
@@ -353,8 +353,8 @@
                ]
             }
          ],
-         "endLag":14,
-         "endLagSpr":"ki0.wsg",
+         "endLag":350,
+         "endLagSpr":"bid0.wsg",
          "landing_lag":14
       }
    ]

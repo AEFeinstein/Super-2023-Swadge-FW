@@ -598,99 +598,86 @@ void clearPxTft(void)
 
 void drawDisplayTft(bool drawDiff __attribute__((unused)), void (*fnBackgroundDrawCallback)(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum ))
 {
-    // Limit drawing to 30fps
-    static uint64_t tLastDraw = 0;
-    uint64_t tNow = esp_timer_get_time();
-    
-    if (tNow - tLastDraw > 33333)
+    // Indexes of the line currently being sent to the LCD and the line we're calculating
+    uint8_t sending_line = 0;
+    uint8_t calc_line = 0;
+
+#ifdef PROCPROFILE
+    uint32_t start, mid, final;
+#endif
+
+    // Send the frame, ping ponging the send buffer
+    for (uint16_t y = 0; y < TFT_HEIGHT; y += PARALLEL_LINES)
     {
-        tLastDraw = tNow;
-        // Indexes of the line currently being sent to the LCD and the line we're calculating
-        uint8_t sending_line = 0;
-        uint8_t calc_line = 0;
+        // Calculate a line
 
 #ifdef PROCPROFILE
-        uint32_t start, mid, final;
+        start = get_ccount();
 #endif
 
-        // Send the frame, ping ponging the send buffer
-        for (uint16_t y = 0; y < TFT_HEIGHT; y += PARALLEL_LINES)
-        {
-            // Calculate a line
+        // Naive approach is ~100k cycles, later optimization at 60k cycles @ 160 MHz
+        // If you quad-pixel it, so you operate on 4 pixels at the same time, you can get it down to 37k cycles.
+        // Also FYI - I tried going palette-less, it only saved 18k per chunk (1.6ms per frame)
+        uint32_t * outColor = (uint32_t*)s_lines[calc_line];
+        uint32_t * inColor = (uint32_t*)&pixels[y*TFT_WIDTH];
+		for (uint16_t x = 0; x < TFT_WIDTH/4*PARALLEL_LINES; x++)
+		{
+			uint32_t colors = *(inColor++);
+			uint32_t word1 = paletteColors[(colors>> 0)&0xff] | (paletteColors[(colors>> 8)&0xff]<<16);
+			uint32_t word2 = paletteColors[(colors>>16)&0xff] | (paletteColors[(colors>>24)&0xff]<<16);
+			outColor[0] = word1;
+			outColor[1] = word2;
+			outColor += 2;
+		}
 
 #ifdef PROCPROFILE
-            start = get_ccount();
+		mid = get_ccount();
 #endif
 
-            // Naive approach is ~100k cycles, later optimization at 60k cycles @ 160 MHz
-            // If you quad-pixel it, so you operate on 4 pixels at the same time, you can get it down to 37k cycles.
-            // Also FYI - I tried going palette-less, it only saved 18k per chunk (1.6ms per frame)
-            uint32_t * outColor = (uint32_t*)s_lines[calc_line];
-            uint32_t * inColor = (uint32_t*)&pixels[y*TFT_WIDTH];
-            for (uint16_t yp = y; yp < y + PARALLEL_LINES; yp++)
-            {
-                for (uint16_t x = 0; x < TFT_WIDTH/4; x++)
-                {
-                    uint32_t colors = *(inColor++);
-                    uint32_t word1 = paletteColors[(colors>> 0)&0xff] | (paletteColors[(colors>> 8)&0xff]<<16);
-                    uint32_t word2 = paletteColors[(colors>>16)&0xff] | (paletteColors[(colors>>24)&0xff]<<16);
-                    outColor[0] = word1;
-                    outColor[1] = word2;
-                    outColor += 2;
-                }
-            }
+		sending_line = calc_line;
+		calc_line = !calc_line;
+
+		if( y != 0 && fnBackgroundDrawCallback )
+		{
+			fnBackgroundDrawCallback( tftDisp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
+		}
+
+		// (When operating @ 160 MHz)
+		// This code takes 35k cycles when y == 0, but
+		// this code takes ~~100k~~ 125k cycles when y != 0...
+		// TODO NOTE:
+		//  *** You have 780us here, to do whatever you want.  For free. ***
+		//  You should avoid when y == 0, but that means you get 14 chunks
+		//  every frame.
+		//
+		// This is because esp_lcd_panel_draw_bitmap blocks until the chunk 
+		// of frames has been sent.
+
+		// Send the calculated data
+		esp_lcd_panel_draw_bitmap(panel_handle, 0, y,
+								  TFT_WIDTH, y + PARALLEL_LINES,
+								  s_lines[sending_line]);
+
+		if( y == 0 && fnBackgroundDrawCallback )
+		{
+			fnBackgroundDrawCallback( tftDisp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
+		}
+
+		final = get_ccount();
+	}
 
 #ifdef PROCPROFILE
-            mid = get_ccount();
+    ESP_LOGI( "tft", "%d/%d", mid-start, final-mid );
 #endif
-
-            sending_line = calc_line;
-            calc_line = !calc_line;
-
-			if( y != 0 && fnBackgroundDrawCallback )
-			{
-				fnBackgroundDrawCallback( tftDisp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
-			}
-
-            // (When operating @ 160 MHz)
-            // This code takes 35k cycles when y == 0, but
-            // this code takes ~~100k~~ 125k cycles when y != 0...
-            // TODO NOTE:
-            //  *** You have 780us here, to do whatever you want.  For free. ***
-            //  You should avoid when y == 0, but that means you get 14 chunks
-            //  every frame.
-            //
-            // This is because esp_lcd_panel_draw_bitmap blocks until the chunk 
-            // of frames has been sent.
-
-            // Send the calculated data
-            esp_lcd_panel_draw_bitmap(panel_handle, 0, y,
-                                      TFT_WIDTH, y + PARALLEL_LINES,
-                                      s_lines[sending_line]);
-
-			if( y == 0 && fnBackgroundDrawCallback )
-			{
-				fnBackgroundDrawCallback( tftDisp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
-			}
-
-#ifdef PROCPROFILE
-            final = get_ccount();
-#endif
-        }
-        
-#ifdef PROCPROFILE
-        ESP_LOGI( "tft", "%d/%d", mid-start, final-mid );
-#endif
-        
-        // Debug printing for frames-per-second
-        // framesDrawn++;
-        // if (framesDrawn == 120)
-        // {
-        //     uint64_t tFpsEnd = esp_timer_get_time();
-        //     ESP_LOGD("TFT", "%f FPS", 120 / ((tFpsEnd - tFpsStart) / 1000000.0f));
-        //     tFpsStart = tFpsEnd;
-        //     framesDrawn = 0;
-        // }
-    }
+    
+    // Debug printing for frames-per-second
+    // framesDrawn++;
+    // if (framesDrawn == 120)
+    // {
+    //     uint64_t tFpsEnd = esp_timer_get_time();
+    //     ESP_LOGD("TFT", "%f FPS", 120 / ((tFpsEnd - tFpsStart) / 1000000.0f));
+    //     tFpsStart = tFpsEnd;
+    //     framesDrawn = 0;
+    // }
 }
 
