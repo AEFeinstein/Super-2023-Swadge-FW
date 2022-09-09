@@ -143,11 +143,12 @@ void updatePlayer(entity_t *self)
     }
 
     moveEntityWithTileCollisions(self);
+    dieWhenFallingOffScreen(self);
     applyGravity(self);
     applyDamping(self);
     detectEntityCollisions(self);
     animatePlayer(self);
-    dieWhenFallingOffScreen(self);
+    
 };
 
 void updateTestObject(entity_t *self)
@@ -526,6 +527,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
             self->x = (self->tilemap->warps[other->jumpPower].x * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
             self->y = (self->tilemap->warps[other->jumpPower].y * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
             self->falling = true;
+            viewFollowEntity(self->tilemap, self->entityManager->playerEntity);
 
             unlockScrolling(self->tilemap);
             deactivateAllEntities(self->entityManager, true);
