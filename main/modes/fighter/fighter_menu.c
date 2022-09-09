@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <esp_log.h>
 
+#include "swadge_esp32.h"
 #include "swadgeMode.h"
 #include "meleeMenu.h"
 #include "p2pConnection.h"
@@ -125,7 +126,7 @@ void fighterEnterMode(display_t* disp)
 
     // Save the display pointer
     fm->disp = disp;
-    disp->frameRateUs = FRAME_TIME_MS * 1000; // 20FPS
+    setFrameRateUs(FRAME_TIME_MS * 1000); // 20FPS
 
     // Each menu needs a font, so load that first
     loadFont("mm.font", &(fm->mmFont));

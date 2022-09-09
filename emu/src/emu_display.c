@@ -267,12 +267,12 @@ uint8_t ledBrightness = 0;
 void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxTft(int16_t x, int16_t y);
 void emuClearPxTft(void);
-void emuDrawDisplayTft(bool drawDiff, uint32_t frameRate);
+void emuDrawDisplayTft(bool drawDiff);
 
 void emuSetPxOled(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxOled(int16_t x, int16_t y);
 void emuClearPxOled(void);
-void emuDrawDisplayOled(bool drawDiff, uint32_t frameRate);
+void emuDrawDisplayOled(bool drawDiff);
 
 //==============================================================================
 // Functions
@@ -513,24 +513,16 @@ void emuClearPxTft(void)
  * called from a pthread, so it raises a flag to draw on the main thread
  *
  * @param drawDiff unused, the whole display is always drawn
- * @param frameRate The frame rate to draw at, in microseconds
  */
-void emuDrawDisplayTft(bool drawDiff UNUSED, uint32_t frameRate)
+void emuDrawDisplayTft(bool drawDiff UNUSED)
 {
-    // Limit drawing to 30fps
-    static uint64_t tLastDraw = 0;
-    uint64_t tNow = esp_timer_get_time();
-    if (tNow - tLastDraw > frameRate)
-    {
-        tLastDraw = tNow;
-        /* Copy the current framebuffer to memory that won't be modified by the
-        * Swadge mode. rawdraw will use this non-changing bitmap to draw
-        */
-        pthread_mutex_lock(&displayMutex);
-        memcpy(constBitmapDisplay, bitmapDisplay, sizeof(uint32_t) * TFT_HEIGHT * displayMult * TFT_WIDTH * displayMult);
-        pthread_mutex_unlock(&displayMutex);
-    }
-}
+    /* Copy the current framebuffer to memory that won't be modified by the
+    * Swadge mode. rawdraw will use this non-changing bitmap to draw
+    */
+    pthread_mutex_lock(&displayMutex);
+    memcpy(constBitmapDisplay, bitmapDisplay, sizeof(uint32_t) * TFT_HEIGHT * displayMult * TFT_WIDTH * displayMult);
+    pthread_mutex_unlock(&displayMutex);
+ }
 
 //==============================================================================
 // OLED
@@ -597,9 +589,8 @@ void emuClearPxOled(void)
  * called from a pthread, so it raises a flag to draw on the main thread
  *
  * @param drawDiff unused, the whole display is always drawn
- * @param frameRate The frame rate to draw at, in microseconds
  */
-void emuDrawDisplayOled(bool drawDiff UNUSED, uint32_t frameRate)
+void emuDrawDisplayOled(bool drawDiff UNUSED)
 {
 	WARN_UNIMPLEMENTED();
 }
