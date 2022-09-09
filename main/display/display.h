@@ -86,7 +86,7 @@ void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
 bool loadWsg(char* name, wsg_t* wsg);
 void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
              bool flipLR, bool flipUD, int16_t rotateDeg);
-void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff);
+void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff);
 void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff);
 void freeWsg(wsg_t* wsg);
 
@@ -102,6 +102,6 @@ paletteColor_t hsv2rgb( uint8_t hue, uint8_t sat, uint8_t val);
 
 int16_t getSin1024(int16_t degree);
 int16_t getCos1024(int16_t degree);
-int32_t getTan512(int16_t degree);
+int32_t getTan1024(int16_t degree);
 
 #endif

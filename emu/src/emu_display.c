@@ -10,6 +10,7 @@
 #include "gpio_types.h"
 #include "hal/spi_types.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 
 #include "emu_esp.h"
 #include "display.h"
@@ -515,13 +516,13 @@ void emuClearPxTft(void)
  */
 void emuDrawDisplayTft(bool drawDiff UNUSED)
 {
-	/* Copy the current framebuffer to memory that won't be modified by the
-     * Swadge mode. rawdraw will use this non-changing bitmap to draw
-     */
-	pthread_mutex_lock(&displayMutex);
+    /* Copy the current framebuffer to memory that won't be modified by the
+    * Swadge mode. rawdraw will use this non-changing bitmap to draw
+    */
+    pthread_mutex_lock(&displayMutex);
     memcpy(constBitmapDisplay, bitmapDisplay, sizeof(uint32_t) * TFT_HEIGHT * displayMult * TFT_WIDTH * displayMult);
-	pthread_mutex_unlock(&displayMutex);
-}
+    pthread_mutex_unlock(&displayMutex);
+ }
 
 //==============================================================================
 // OLED
