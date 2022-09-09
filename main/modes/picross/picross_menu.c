@@ -174,20 +174,23 @@ void loadLevels()
  
     loadWsg("Pear_PZL.wsg", &pm->levels[5].levelWSG);
     loadWsg("Pear_SLV.wsg", &pm->levels[5].completedWSG);
-    //
 
     loadWsg("Cherry_PZL.wsg", &pm->levels[6].levelWSG);
     loadWsg("Cherry_SLV.wsg", &pm->levels[6].completedWSG);
+    //
+
+    loadWsg("CoffeeBean_PZL.wsg", &pm->levels[7].levelWSG);//coffeBean is pretty hard for a 10x10
+    loadWsg("CoffeeBean_SLV.wsg", &pm->levels[7].completedWSG);
     
-    loadWsg("3_boat.wsg", &pm->levels[7].levelWSG);
-    loadWsg("3_boat_c.wsg", &pm->levels[7].completedWSG);
+    loadWsg("3_boat.wsg", &pm->levels[8].levelWSG);
+    loadWsg("3_boat_c.wsg", &pm->levels[8].completedWSG);
 
     //TESTING
-    loadWsg("pic_five.wsg", &pm->levels[8].levelWSG);
-    loadWsg("pic_five_c.wsg", &pm->levels[8].completedWSG);
+    loadWsg("pic_five.wsg", &pm->levels[9].levelWSG);
+    loadWsg("pic_five_c.wsg", &pm->levels[9].completedWSG);
 
-    loadWsg("oblongTest.wsg", &pm->levels[9].levelWSG);
-    loadWsg("oblongTest_c.wsg", &pm->levels[9].completedWSG);
+    loadWsg("oblongTest.wsg", &pm->levels[10].levelWSG);
+    loadWsg("oblongTest_c.wsg", &pm->levels[10].completedWSG);
     //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_menu.h) when adding levels.
 
     //set indices. Used to correctly set save data. levels are loaded without context of the levels array, so they carry the index info with them so we can save victories.

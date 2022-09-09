@@ -28,6 +28,7 @@ void picrossSetupPuzzle(bool cont);
 void setCompleteLevelFromWSG(wsg_t* puzz);
 void drawSinglePixelFromWSG(display_t* d,int x, int y, wsg_t* image);
 bool hintsMatch(picrossHint_t a, picrossHint_t b);
+bool hintIsFilledIn(picrossHint_t* hint);
 box_t boxFromCoord(int8_t x, int8_t y);
 picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t source[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE]);
 void drawPicrossScene(display_t* d);
@@ -259,6 +260,7 @@ picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t so
 {
     picrossHint_t t;
     t.complete = false;
+    t.filledIn = false;
     t.isRow = isRow;
     t.index = index;
     
@@ -398,7 +400,27 @@ void picrossGameLoop(int64_t elapsedUs)
 
 void picrossCheckLevel()
 {
-    for(int c =0;c<p->puzzle->width;c++)
+    bool allFilledIn = false;
+    bool f = false;
+    //Update if the puzzle is filled in, which we use to grey-out hints when drawing them.
+    //if performance is bad, lets just cut this feature.
+    for(int i = 0;i<p->puzzle->height;i++)
+    {
+        f = hintIsFilledIn(&p->puzzle->rowHints[i]);
+        p->puzzle->rowHints[i].filledIn = f;
+        allFilledIn = allFilledIn | f;
+    }
+    for(int i = 0;i<p->puzzle->width;i++)
+    {
+        f = hintIsFilledIn(&p->puzzle->colHints[i]);
+        p->puzzle->rowHints[i].filledIn = f;
+        allFilledIn = allFilledIn | f;
+    }
+
+    //we only need to do this if the puzzle is completely filled in, and we already checked that above. 
+
+    //check if the puzzle is correctly completed.
+    for(int c = 0;c<p->puzzle->width;c++)
     {
         for(int r = 0;r<p->puzzle->height;r++)//flipped
         {
@@ -457,6 +479,29 @@ bool hintsMatch(picrossHint_t a, picrossHint_t b)
             return false;
         }
     }
+    return true;
+}
+bool hintIsFilledIn(picrossHint_t* hint)
+{
+    if(hint->isRow)
+    {
+        for(uint8_t i = 0;i<p->puzzle->width;i++)
+        {
+            if(p->puzzle->level[hint->index][i] == SPACE_EMPTY)
+            {
+                return false;
+            }
+        }
+    }else{
+        for(uint8_t i = 0;i<p->puzzle->height;i++)
+        {
+            if(p->puzzle->level[i][hint->index] == SPACE_EMPTY)
+            {
+                return false;
+            }
+        }
+    }
+
     return true;
 }
 
@@ -1001,6 +1046,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
     uint8_t g = p->clueGap;
     box_t hintbox = boxFromCoord(-1,hint.index);
     paletteColor_t hintShadeColor = c001;//todo: move to struct if we decide to keep this.
+    paletteColor_t hintColor = hint.filledIn ? c333 : c555;
     if(hint.isRow){
         int j = 0;
 
@@ -1031,17 +1077,16 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 char letter[4];
                 sprintf(letter, "%d", h);//this function appears to modify hintbox.x0
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale), (hintbox.y1-p->drawScale+vHintShift));
+                drawChar(d,hintColor, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale), (hintbox.y1-p->drawScale+vHintShift));
                 j++;//the index position, but only for where to draw. shifts the clues to the right.
             }else{//double digit draws
 
-                
                 char letter[4];
                 sprintf(letter, "%d", h);
                 //as a "temporary" workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale)), (hintbox.y1-p->drawScale+vHintShift));
-                sprintf(letter, "%d", hint.hints[4-i]%10);
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale+p->drawScale/2)), (hintbox.y1-p->drawScale+vHintShift));
+                drawChar(d,hintColor, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale)), (hintbox.y1-p->drawScale+vHintShift));
+                sprintf(letter, "%d", hint.hints[PICROSS_MAX_HINTCOUNT-1-i]%10);
+                drawChar(d,hintColor, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale+p->drawScale/2)), (hintbox.y1-p->drawScale+vHintShift));
                 j++;
             }
         }
@@ -1068,16 +1113,16 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 char letter[4];
                 sprintf(letter, "%d", h);
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale), (hintbox.y1-p->drawScale+vHintShift));
+                drawChar(d,hintColor, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale), (hintbox.y1-p->drawScale+vHintShift));
                 j++;//the index position, but only for where to draw. shifts the clues to the right.
             }else{
                 //drawBox(d,hintbox,c111,false,1);//same as above
                 char letter[4];
                 sprintf(letter, "%d", h);
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale), (hintbox.y1-p->drawScale+vHintShift));
-                sprintf(letter, "%d", hint.hints[4-i]%10);
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale+p->drawScale/2), (hintbox.y1-p->drawScale+vHintShift));
+                drawChar(d,hintColor, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale), (hintbox.y1-p->drawScale+vHintShift));
+                sprintf(letter, "%d", hint.hints[PICROSS_MAX_HINTCOUNT-1-i]%10);
+                drawChar(d,hintColor, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale+p->drawScale/2), (hintbox.y1-p->drawScale+vHintShift));
                 j++;
             }
         }

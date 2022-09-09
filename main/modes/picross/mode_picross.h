@@ -57,6 +57,7 @@ typedef struct
 
 typedef struct
 {
+    bool filledIn;
     bool complete;
     bool isRow;
     uint8_t index;
