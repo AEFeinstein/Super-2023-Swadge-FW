@@ -34,6 +34,7 @@ static inline uint32_t get_ccount()
 }
 
 wsg_t example_sprite;
+uint8_t * localram;
 
 void sandbox_main(display_t * disp_in)
 {
@@ -52,7 +53,10 @@ void sandbox_main(display_t * disp_in)
 	}
 	ESP_ERROR_CHECK( esp_partition_mmap(partition, 0, partition->size, SPI_FLASH_MMAP_DATA, (void*)&map_ptr, &map_handle));
 
-
+	localram = 
+		//heap_caps_malloc(54200, MALLOC_CAP_SPIRAM);
+		malloc( 110000 );
+	
 	ESP_LOGI( "sandbox", "Loaded" );
 }
 
@@ -68,6 +72,7 @@ void sandbox_exit()
 	{
 		spi_flash_munmap( map_handle );
 	}
+	if( localram ) free( localram );
 	ESP_LOGI( "sandbox", "Exit" );
 }
 
@@ -90,8 +95,6 @@ void sandbox_tick()
 	global_i++;
 }
 
-uint8_t localram[128*128];
-
 void sandboxBackgroundDrawCallback(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum )
 {
 	int i;
@@ -104,7 +107,7 @@ void sandboxBackgroundDrawCallback(display_t* disp, int16_t x, int16_t y, int16_
 	{
 		//*px = map_ptr[(((uint8_t*)map_ptr)[lx*13+ly])*17];
 		//*px = map_ptr[(((uint8_t*)localram)[lx*45+ly])*7+y*9];
-		*px = ((uint8_t*)map_ptr)[(lx*45237+ly*3893)&0x7fff];
+		*px = ((uint8_t*)localram)[(lx*45237+ly*3893)&0x7fff];
 		px++;
 	}
 

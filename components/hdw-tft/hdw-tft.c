@@ -536,7 +536,8 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
 
     if(NULL == pixels)
     {
-        pixels = (paletteColor_t *)malloc(sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
+        //pixels = (paletteColor_t *)malloc(sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
+		pixels = heap_caps_malloc(sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH, MALLOC_CAP_SPIRAM);
     }
     disp->pxFb = pixels;
 }
