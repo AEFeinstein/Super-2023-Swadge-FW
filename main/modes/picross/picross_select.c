@@ -40,9 +40,9 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     ls = calloc(1, sizeof(picrossLevelSelect_t));
     ls->disp = disp;
     ls->game_font = font;
-    //8 is numLevels
-    ls->levelCount = 8;
+
     loadWsg("unknownPuzzle.wsg",&ls->unknownPuzzle);
+
     //Load in which levels have been completed.
     int32_t victories0 = 0;
     int32_t victories1 = 0;
@@ -54,7 +54,7 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
 
     int32_t v;
     int j;//bit position of i in appropriate register
-    for(int i = 0;i<ls->levelCount;i++)
+    for(int i = 0;i<PICROSS_LEVEL_COUNT;i++)
     {
         //todo: I bet there is a smarter way to do this.
         if(i<32){
@@ -169,8 +169,8 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
     drawText(d, font, c555, "Puzzle", 158, 30); 
     drawText(d, font, c555, "Select", 158, 60);   
   
-    //dont have the number of levels stored anywhere... 16 is goal, not 8.
-    for(int i=0;i<ls->levelCount;i++)
+    
+    for(int i=0;i<PICROSS_LEVEL_COUNT;i++)
     {
         y = i / ls->cols;
         x = 0;
@@ -194,7 +194,7 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
     // //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
     // drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], 158, 120);
 
-    if(ls->hoverLevelIndex < ls->levelCount){//jic
+    if(ls->hoverLevelIndex < PICROSS_LEVEL_COUNT){//jic
         //draw level choose input
         x = ls->hoverX;
         y = ls->hoverY;
@@ -206,10 +206,6 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
             .x1 = (x * s) + s + ls->paddingLeft+ ls->gap*x,
             .y1 = (y * s) + s + ls->paddingTop+ ls->gap*y,
         }; 
-        
-    
-        
-
         //draw preview window
         if(ls->levels[ls->hoverLevelIndex].completed){
             //if completed, show victory image and green hover

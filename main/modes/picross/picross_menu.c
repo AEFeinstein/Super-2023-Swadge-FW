@@ -14,7 +14,7 @@
 #include "picross_select.h"
 #include "mode_main_menu.h"
 #include "picross_tutorial.h"
-
+#include "picross_consts.h"
 //==============================================================================
 // Enums & Structs
 //==============================================================================
@@ -33,7 +33,7 @@ typedef struct
     font_t mmFont;
     meleeMenu_t* menu;
     display_t* disp;
-    picrossLevelDef_t levels[8];
+    picrossLevelDef_t levels[PICROSS_LEVEL_COUNT];
     picrossScreen_t screen;
     bool menuChanged;
     int32_t savedIndex;
@@ -157,8 +157,8 @@ void loadLevels()
     //DACVAK JUST SEARCH FOR "DACVAK" TO FIND THIS
 
     //any entry with lowercase names is testing data. CamelCase names are good to go. This is not convention, just nature of dac sending me files vs. my testing ones.
-    loadWsg("Cherry_PZL.wsg", &pm->levels[0].levelWSG);
-    loadWsg("Cherry_SLV.wsg", &pm->levels[0].completedWSG);
+    loadWsg("fifteen.wsg", &pm->levels[0].levelWSG);
+    loadWsg("fifteen_c.wsg", &pm->levels[0].completedWSG);
 
     loadWsg("Strawberry_PZL.wsg", &pm->levels[1].levelWSG);
     loadWsg("Strawberry_SLV.wsg", &pm->levels[1].completedWSG);
@@ -176,16 +176,22 @@ void loadLevels()
     loadWsg("Pear_SLV.wsg", &pm->levels[5].completedWSG);
     //
 
-    loadWsg("test1.wsg", &pm->levels[8].levelWSG);
-    loadWsg("test1_complete.wsg", &pm->levels[8].completedWSG);
+    loadWsg("Cherry_PZL.wsg", &pm->levels[6].levelWSG);
+    loadWsg("Cherry_SLV.wsg", &pm->levels[6].completedWSG);
     
-    loadWsg("3_boat.wsg", &pm->levels[6].levelWSG);
-    loadWsg("3_boat_c.wsg", &pm->levels[6].completedWSG);
+    loadWsg("3_boat.wsg", &pm->levels[7].levelWSG);
+    loadWsg("3_boat_c.wsg", &pm->levels[7].completedWSG);
 
-    loadWsg("test2.wsg", &pm->levels[7].levelWSG);
-    loadWsg("test2_c.wsg", &pm->levels[7].completedWSG);
+    //TESTING
+    loadWsg("pic_five.wsg", &pm->levels[8].levelWSG);
+    loadWsg("pic_five_c.wsg", &pm->levels[8].completedWSG);
+
+    loadWsg("oblongTest.wsg", &pm->levels[9].levelWSG);
+    loadWsg("oblongTest_c.wsg", &pm->levels[9].completedWSG);
+    //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_menu.h) when adding levels.
+
     //set indices. Used to correctly set save data. levels are loaded without context of the levels array, so they carry the index info with them so we can save victories.
-    for(int i = 0;i<8;i++)//8 should = number of levels and that should = levelCount.
+    for(int i = 0;i<PICROSS_LEVEL_COUNT;i++)//8 should = number of levels and that should = levelCount.
     {
         pm->levels[i].index = i;
     }

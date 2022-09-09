@@ -11,26 +11,25 @@
 #include "led_util.h"
 
 #include "aabb_utils.h"
-// #include "settingsManager.h"
 #include "nvs_manager.h"
 
 #include "mode_picross.h"
 #include "picross_menu.h"
 #include "picross_select.h"
 #include "bresenham.h"
+#include "picross_consts.h"//wait already included by mode_picross.h? i gotta look up how includes work
 
 //==============================================================================
 // Function Prototypes
 //==============================================================================
 void picrossUserInput(int64_t elapsedUs);
-void picrossResetInput(void);
 void picrossCheckLevel(void);
 void picrossSetupPuzzle(bool cont);
 void setCompleteLevelFromWSG(wsg_t* puzz);
 void drawSinglePixelFromWSG(display_t* d,int x, int y, wsg_t* image);
 bool hintsMatch(picrossHint_t a, picrossHint_t b);
 box_t boxFromCoord(int8_t x, int8_t y);
-picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t source[10][10]);
+picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t source[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE]);
 void drawPicrossScene(display_t* d);
 void drawPicrossHud(display_t* d, font_t* font);
 void drawHint(display_t* d,font_t* font, picrossHint_t hint);
@@ -57,18 +56,12 @@ static picrossGame_t* p = NULL;
  * @param mmFont The font used for teh HUD, already loaded
  *
  */
-//todo: this should receive a levelIndex. allocate memory as appropriate for level size, and pass into setuplevel
 void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* selectedLevel, bool cont)
 {
     p = calloc(1, sizeof(picrossGame_t));
     p->selectedLevel = selectedLevel;
     p->currentPhase = PICROSS_SOLVING;
     p->d = disp;
-    // p->promptFont = mmFont;
-    p->drawScale = 25;
-    p->leftPad = 200;
-    p->topPad = 130;
-    p->clueGap = 2;//currently only used for horizontal clues. 
     p->exitThisFrame = false;
 
     //bg scrolling
@@ -80,13 +73,11 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     loadFont("ibm_vga8.font", &(p->hint_font));
 
     //Puzzle
-    p->puzzle = calloc(1, sizeof(picrossPuzzle_t));
-    p->puzzle->width = 10;
-    p->puzzle->height = 10;
-
+    p->puzzle = calloc(1, sizeof(picrossPuzzle_t));    
+    //puzzle stuff gets set in picrossSetupPuzzle.
+    
+    
     //Input
-
-    //todo: im doing a lot of this again in ResetInput. Its a holdover from my boilerplate. I want to move that here.
     p->input = calloc(1, sizeof(picrossInput_t));
     p->input->x=0;
     p->input->y=0;
@@ -104,11 +95,15 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
 
     p->input->blinkError = false;
     p->input->blinkAnimTimer =0;
-    p->input->blinkTime = 120000;//half a blink cycle (on)(off) or full (on/off)(on/off)?
+    p->input->blinkTime = 120000;//half a blink cycle (on)(off).
     p->input->blinkCount = 6;
+    p->input->movedThisFrame = false;
+    p->input->changedLevelThisFrame = false;
+    p->count = 1;
+    p->input->holdingDir = PICROSSDIR_IDLE; 
 
     //load options data
-    p->input->showHints = picrossGetSaveFlag(0,false);
+    p->input->showHints = picrossGetSaveFlag(0);
     p->input->showGuides = picrossGetLoadedSaveFlag(1);
     p->animateBG = picrossGetLoadedSaveFlag(2);
 
@@ -141,19 +136,9 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     }
 
     //save data configure
-    p->save = calloc(1, sizeof(picrossSaveData_t));
-    for(int i=0;i<8;i++)
+    for(int i=0;i<PICROSS_MAX_LEVELSIZE;i++)
     {
-        p->save->banks[i] = 0;
-        // //pic_b_i
-        // p->save->bankNames[i][0] = "p";
-        // p->save->bankNames[i][1] = "i";
-        // p->save->bankNames[i][2] = "c";
-        // p->save->bankNames[i][3] = "_";
-        // p->save->bankNames[i][4] = "b";
-        // p->save->bankNames[i][5] = "_";
-        //im way to tired to look up how to case from int to char.
-        //just realized these can basically be random as long as they dont interfere with anyone elses code.
+        p->saveBanks[i] = 0;
     }
 
     //Setup level
@@ -166,19 +151,20 @@ void picrossSetupPuzzle(bool cont)
 
     setCompleteLevelFromWSG(levelwsg);
 
-    //one step closer to this working correctly!
     p->puzzle->width = levelwsg->w;
     p->puzzle->height = levelwsg->h;
-    //maxhints = max(width/2 -1,height/2 -1) i ... think?
+    
+    //Calculate display information, now that we know the width/height of the puzzle.
 
     //rows
     for(int i = 0;i<p->puzzle->height;i++)
     {
+        //todo: incompatible pointer type here?
         p->puzzle->rowHints[i] = newHintFromPuzzle(i,true,p->puzzle->completeLevel);  
     }
     
     //cols
-    for(int i = 0;i<p->puzzle->height;i++)
+    for(int i = 0;i<p->puzzle->width;i++)
     {
         p->puzzle->colHints[i] = newHintFromPuzzle(i,false,p->puzzle->completeLevel);  
     }
@@ -198,15 +184,35 @@ void picrossSetupPuzzle(bool cont)
                 p->puzzle->level[i][j] = SPACE_EMPTY;
             }
         }
-        savePicrossProgress();//clear out your previous (victory) data.
-        saveCompletedOnSelectedLevel(false);//clear out the fact that you have, perhaps, beaten this level before.
+        savePicrossProgress();//clear out your previous data.
+        saveCompletedOnSelectedLevel(false);//clear out victory data: opening a level resets victory.
     }
 
-    //Get chosen level and load it's data...
-
     //Write the hint labels for each row and column
+    
+    //TFT_WIDTH = 240. max width is width+(ceil(width/2)) (15+8 = 23) = 10
 
-    picrossResetInput();
+    //max w/h. Non-square puzzles? I hope to write it so they will just... kind of work!
+    
+    uint16_t totalXCount = p->puzzle->width+p->maxHintsX+1;
+    uint16_t totalYCount = p->puzzle->height+p->maxHintsY+1;
+    uint16_t size = (((totalXCount) > (totalYCount)) ? (totalXCount) : (totalYCount)) ;//+1
+    uint16_t screenWidth = (p->d->w);
+    uint16_t screenHeight = (p->d->h);
+
+    p->clueGap = 2;//this only being used for horizontal clues has added some complexity.
+    uint16_t clueGapTotal = (p->maxHintsX-1)*p->clueGap;
+
+    //x/y rounds down, x(+y-1)/y rounds up. for positive numbers.
+    p->drawScale = (screenWidth-(2*p->maxHintsX)+(size-1)-PICROSS_EXTRA_PADDING-clueGapTotal)/(size);//h drawscale
+    uint16_t vdrawScale = (screenHeight-(2*p->maxHintsY)+(size-1)-PICROSS_EXTRA_PADDING)/(size);
+    //min between hDrawScale and vDrawScale
+    p->drawScale = (((vdrawScale) < (p->drawScale)) ? (vdrawScale) : (p->drawScale));
+    //paddingL = (TFTWidth - (totalCount*scale))/2;
+
+    //My bug right now is the /2. I need to make it ceil not floor
+    p->leftPad = (screenWidth - ((totalXCount*p->drawScale)))/2 + p->maxHintsX*p->drawScale;
+    p->topPad = (screenHeight - ((totalYCount*p->drawScale)))/2 + p->maxHintsY*p->drawScale;
 }
 
 //Scans the levelWSG and creates the finished version of the puzzle in the proper data format (2D array of enum).
@@ -215,14 +221,31 @@ void setCompleteLevelFromWSG(wsg_t* puzz)
     // wsg_t puzz = puzzle;
     //go row by row
     paletteColor_t col = c555;
-    for(int r = 0;r<puzz->h;r++)//todo: puzzles that dont have the right size?
+    //we can't ignore out of bounds data, because we want to be able to reset without reading garbage
+    for(int r = 0;r<PICROSS_MAX_LEVELSIZE;r++)//todo: puzzles that dont have the right size?
     {
-        for(int c=0;c<puzz->w;c++){
-            col = puzz->px[(r * puzz->w) + c];
-            if(col == cTransparent || col == c555){
-                p->puzzle->completeLevel[c][r] = SPACE_EMPTY;
-            }else{
-                p->puzzle->completeLevel[c][r] = SPACE_FILLED;
+        if(r < puzz->h){
+            for(int c=0;c<PICROSS_MAX_LEVELSIZE;c++){
+                if(c < puzz->w){
+                    col = puzz->px[(r * puzz->w) + c];
+                    if(col == cTransparent || col == c555){
+                        p->puzzle->completeLevel[c][r] = SPACE_EMPTY;
+                        continue;
+                    }else{
+                        p->puzzle->completeLevel[c][r] = SPACE_FILLED;
+                        continue;
+                    }
+                }else{
+                    p->puzzle->completeLevel[c][r] = OUTOFBOUNDS;
+                    continue;
+                }
+            }
+        }else{
+            for(int c=0;c<PICROSS_MAX_LEVELSIZE;c++){
+                if(c < puzz->h){
+                    p->puzzle->completeLevel[c][r] = OUTOFBOUNDS;
+                    continue; 
+                }
             }
         }
     }
@@ -232,15 +255,17 @@ void setCompleteLevelFromWSG(wsg_t* puzz)
 //lol i dont know how to do constructors, im a unity developer! anyway this constructs a source.
 //we use the same data type for rows and columns, hence the bool flag. index is the position in the row/col, and we pass in the level.
 //I guess that could be a pointer? Somebody more experienced with c, code review this and optimize please.
-picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t source[10][10])
+picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t source[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE])
 {
     picrossHint_t t;
     t.complete = false;
     t.isRow = isRow;
     t.index = index;
     
-    //set all hints to 0. 5 here is the max number of hints we can display, currently hard-coded.
-    for(int i = 0;i<5;i++)
+    //set all hints to 0.
+    //for smaller levels than 15x15, we should set this dynamically to the current max hint size.
+    //bit things will _work_ with larger hints, so its a minor refactor later.
+    for(int i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
     {
          t.hints[i] = 0;
     }
@@ -251,6 +276,11 @@ picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t so
     if(isRow){
         for(int i = 0;i<p->puzzle->width;i++)
         {
+            if(source[i][index] == OUTOFBOUNDS)
+            {
+                continue;
+            }
+
             if(source[i][index] == SPACE_FILLED)//we have a clue.
             {
                 //Counting up the hint size.
@@ -272,12 +302,21 @@ picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t so
                 prev = SPACE_EMPTY;
                 //i continues to increase.
             }
-            //set prev for next
+        }
+        //Store the maximum number of actual visible hints, used for calculating display position.
+        if(blockNumber > p->maxHintsX)
+        {
+            p->maxHintsX = blockNumber;
         }
     }else{
         //same logic but for columns
         for(int i = 0;i<p->puzzle->height;i++)
         {
+            if(source[index][i] == OUTOFBOUNDS)
+            {
+                continue;
+            }
+
             if(source[index][i]==SPACE_FILLED)
             {
                 //Counting up the block size.
@@ -299,27 +338,18 @@ picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t so
                 //i continues to increase.
             }
         }
+         //Store the maximum number of actual visible hints, used for calculating display position.
+        if(blockNumber > p->maxHintsY)
+        {
+            p->maxHintsY = blockNumber;
+        }
     }
-
     return t;
-}
-
-void picrossResetInput()
-{
-    p->input->x = 0;
-    p->input->y = 0;
-    p->input->movedThisFrame = false;
-    p->input->changedLevelThisFrame = false;
-    p->input->prevBtnState = 0;
-    p->countState = PICROSSDIR_IDLE;
-    p->count = 1;
-    p->input->DASActive = false;
-    p->input->holdingDir = PICROSSDIR_IDLE; 
-    // p->input->btnState = 0;//?
 }
 
 void picrossGameLoop(int64_t elapsedUs)
 {
+
     p->bgScrollTimer += elapsedUs;
 
     picrossUserInput(elapsedUs);
@@ -370,17 +400,17 @@ void picrossCheckLevel()
 {
     for(int c =0;c<p->puzzle->width;c++)
     {
-        for(int r = 0;r<p->puzzle->height;r++)
+        for(int r = 0;r<p->puzzle->height;r++)//flipped
         {
-            if(p->puzzle->level[r][c] == SPACE_EMPTY || p->puzzle->level[r][c] == SPACE_MARKEMPTY)
+            if(p->puzzle->level[c][r] == SPACE_EMPTY || p->puzzle->level[c][r] == SPACE_MARKEMPTY)
             {
-                if(p->puzzle->completeLevel[r][c] != SPACE_EMPTY)
+                if(p->puzzle->completeLevel[c][r] != SPACE_EMPTY)
                 {
                     return;
                 }
             }else//if space == SPACE_FILLED (we aren't using filled-hints so lets not bother specific if for now)
             {
-                if(p->puzzle->completeLevel[r][c] != SPACE_FILLED)
+                if(p->puzzle->completeLevel[c][r] != SPACE_FILLED)
                 {
                     return;
                 }
@@ -420,7 +450,7 @@ void picrossCheckLevel()
 
 bool hintsMatch(picrossHint_t a, picrossHint_t b)
 {
-    for(int i = 0;i<5;i++)
+    for(int i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
     {
         if(a.hints[i] != b.hints[i])
         {
@@ -796,21 +826,21 @@ void drawPicrossScene(display_t* d)
                         //todo: move this logic around to make code more efficient? 
                         if(!(p->input->x == i) != !(p->input->y == j))//this is a strange boolean logic hack to do (x==i XOR y==j)
                         {
-                            drawBox(d, box, hoverSpaceCol, true, 1);
+                            drawBox(d, box, hoverSpaceCol, true, 0);
                         }else
                         {
-                            drawBox(d, box, emptySpaceCol, true, 1);
+                            drawBox(d, box, emptySpaceCol, true, 0);
                         }
                         break;
                     }
                     case SPACE_FILLED:
                     {
-                        drawBox(d, box, c000, true, 1);
+                        drawBox(d, box, c000, true, 0);
                         break;
                     }
                     case SPACE_MARKEMPTY:
                     {
-                        drawBox(d, box, c531, true, 1);
+                        drawBox(d, box, c531, true, 0);
                         break;
                     }
                     case OUTOFBOUNDS:
@@ -840,7 +870,7 @@ void drawSinglePixelFromWSG(display_t* d,int x, int y, wsg_t* image)
 {
     box_t box = boxFromCoord(x,y);
     paletteColor_t v = image->px[(y * p->puzzle->width) + x];
-    drawBox(d, box, v, true, 1);
+    drawBox(d, box, v, true, 0);
 }
 
 //*
@@ -868,11 +898,11 @@ void drawPicrossHud(display_t* d,font_t* font)
     //Draw coordinates
     char textBuffer[9];
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%d,%d", p->input->x+1,p->input->y+1);
-    drawText(d, font, c555, textBuffer, 230, 220);
+    drawText(d, font, c555, textBuffer, 10, 20);
 
     //Draw counter
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", p->count);
-    drawText(d, font, c334, textBuffer, 200, 220);
+    drawText(d, font, c334, textBuffer, 10, 20+font->h*2);
 
     //width of thicker center lines
     uint8_t w = 5;
@@ -884,10 +914,10 @@ void drawPicrossHud(display_t* d,font_t* font)
         {
             //draw border
             plotLine(d,
-            ((i * s) + s + p->leftPad) >> 1,
-            (s + p->topPad) >> 1,
-            ((i * s) + s + p->leftPad) >> 1,
-            ((p->puzzle->height * s) + s + p->topPad) >> 1,
+            ((i * s) + s + p->leftPad),
+            (s + p->topPad),
+            ((i * s) + s + p->leftPad),
+            ((p->puzzle->height * s) + s + p->topPad),
             c115,0);
             continue;
         }
@@ -900,15 +930,15 @@ void drawPicrossHud(display_t* d,font_t* font)
                 .x1 = (i * s) + s + w/2 + p->leftPad,//3 is width
                 .y1 = (p->puzzle->height * s) + s + p->topPad,
             };  
-            drawBox(d,box,c441,true,1);
+            drawBox(d,box,c441,true,0);
             continue;
         }
         //this could be less confusing.
         plotLine(d,
-            ((i * s) + s + p->leftPad) >> 1,
-            (s + p->topPad) >> 1,
-            ((i * s) + s + p->leftPad) >> 1,
-            ((p->puzzle->height * s) + s + p->topPad) >> 1,
+            ((i * s) + s + p->leftPad),
+            (s + p->topPad),
+            ((i * s) + s + p->leftPad),
+            ((p->puzzle->height * s) + s + p->topPad),
             c111,0);
         
     }
@@ -918,14 +948,14 @@ void drawPicrossHud(display_t* d,font_t* font)
     for(int i=0;i<=p->puzzle->height;i++)
     {
         uint8_t s = p->drawScale;
-        if(i == 0 || i == p->puzzle->width)
+        if(i == 0 || i == p->puzzle->height)
         {
             //draw border
             plotLine(d,
-            (s + p->leftPad) >> 1,
-            ((i * s) + s + p->topPad) >> 1,
-            ((p->puzzle->width * s) + s + p->leftPad) >> 1,
-            ((i * s) + s + p->topPad) >> 1,
+            (s + p->leftPad),
+            ((i * s) + s + p->topPad),
+            ((p->puzzle->width * s) + s + p->leftPad),
+            ((i * s) + s + p->topPad),
             c115,0);
             continue;
         }
@@ -938,15 +968,15 @@ void drawPicrossHud(display_t* d,font_t* font)
                 .x1 = (p->puzzle->width * s) + s + p->leftPad,
                 .y1 = (i * s) + s + p->topPad + w/2,
             };  
-            drawBox(d,box,c441,true,1);
+            drawBox(d,box,c441,true,0);
             continue;
         }
         //this should be less confusing.
         plotLine(d,
-            (s + p->leftPad) >> 1,
-            ((i * s) + s + p->topPad) >> 1,
-            ((p->puzzle->width * s) + s + p->leftPad) >> 1,
-            ((i * s) + s + p->topPad) >> 1,
+            (s + p->leftPad),
+            ((i * s) + s + p->topPad),
+            ((p->puzzle->width * s) + s + p->leftPad),
+            ((i * s) + s + p->topPad),
             c111,0);
      
     }
@@ -978,14 +1008,15 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
         if(p->input->showGuides && hint.index == p->input->y)
         {
             hintbox = boxFromCoord(-1,hint.index);
-            hintbox.x0 = hintbox.x0 - p->drawScale*4;
-            drawBox(d,hintbox,hintShadeColor,true,1);
+            hintbox.x0 = 0;
+            drawBox(d,hintbox,hintShadeColor,true,0);
         }
         
-        //draw clues if they... are a thing
-        for(int i = 0;i<5;i++)
+        //draw clues if they... are a thing.
+        //todo: do the math on the max number of hints that _this_ level has, and just use that for all the math.
+        for(int i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
         {
-            h = hint.hints[4-i];
+            h = hint.hints[PICROSS_MAX_HINTCOUNT-1-i];
             hintbox = boxFromCoord(-j-1,hint.index);
             hintbox.x0 = hintbox.x0 - (g * (j));
             hintbox.x1 = hintbox.x1 - (g * (j));
@@ -1000,7 +1031,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 char letter[4];
                 sprintf(letter, "%d", h);//this function appears to modify hintbox.x0
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale), (hintbox.y1-p->drawScale+vHintShift));
                 j++;//the index position, but only for where to draw. shifts the clues to the right.
             }else{//double digit draws
 
@@ -1008,9 +1039,9 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 char letter[4];
                 sprintf(letter, "%d", h);
                 //as a "temporary" workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale)) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale)), (hintbox.y1-p->drawScale+vHintShift));
                 sprintf(letter, "%d", hint.hints[4-i]%10);
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale+p->drawScale/2)) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale+p->drawScale/2)), (hintbox.y1-p->drawScale+vHintShift));
                 j++;
             }
         }
@@ -1020,33 +1051,33 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
         if(p->input->showGuides && hint.index == p->input->x)
         {
             hintbox = boxFromCoord(hint.index,-1);
-            hintbox.y0 = hintbox.y0 - p->drawScale*4;
-            drawBox(d,hintbox,hintShadeColor,true,1);
+            hintbox.y0 = 0;
+            drawBox(d,hintbox,hintShadeColor,true,0);
         }
 
         //draw hints
-        for(int i = 0;i<5;i++)
+        for(int i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
         {
-            h = hint.hints[4-i];
+            h = hint.hints[PICROSS_MAX_HINTCOUNT-1-i];
             hintbox = boxFromCoord(hint.index,-j-1);          
 
              if(h == 0){      
                 //         
-            }else if(h < 10){
+            }else if(h < 10){//single digit numbers
                 //drawBox(d,hintbox,c111,false,1);
                 char letter[4];
                 sprintf(letter, "%d", h);
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale), (hintbox.y1-p->drawScale+vHintShift));
                 j++;//the index position, but only for where to draw. shifts the clues to the right.
             }else{
                 //drawBox(d,hintbox,c111,false,1);//same as above
                 char letter[4];
                 sprintf(letter, "%d", h);
                 //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale), (hintbox.y1-p->drawScale+vHintShift));
                 sprintf(letter, "%d", hint.hints[4-i]%10);
-                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale+p->drawScale/2) >> 1, (hintbox.y1-p->drawScale+vHintShift) >> 1);
+                drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale+p->drawScale/2), (hintbox.y1-p->drawScale+vHintShift));
                 j++;
             }
         }
@@ -1084,13 +1115,13 @@ void drawPicrossInput(display_t* d)
     box_t inputBox = boxFromCoord(p->input->x,p->input->y);
     inputBox.x1 = inputBox.x1+1;
     inputBox.y1 = inputBox.y1+1;//cover up both marking lines
-    drawBox(d, inputBox, p->input->inputBoxColor, false, 1);
+    drawBox(d, inputBox, p->input->inputBoxColor, false, 0);
     //draw it twice as thicc 
-    inputBox.x0 = inputBox.x0-2; 
-    inputBox.y0 = inputBox.y0-2; 
-    inputBox.x1 = inputBox.x1+2; 
-    inputBox.y1 = inputBox.y1+2;
-    drawBox(d, inputBox, p->input->inputBoxColor, false, 1);
+    inputBox.x0 = inputBox.x0-1; 
+    inputBox.y0 = inputBox.y0-1; 
+    inputBox.x1 = inputBox.x1+1; 
+    inputBox.y1 = inputBox.y1+1;
+    drawBox(d, inputBox, p->input->inputBoxColor, false, 0);
 }
 
 /**
@@ -1187,27 +1218,28 @@ void picrossExitGame(void)
  */
 void savePicrossProgress()
 {
-    for(int y = 0;y<10;y++)
+    //should we zero out unused rows? I Don't think we need to, but it kinda feels wrong not to lol.
+    for(int y = 0;y<p->puzzle->height;y++)
     {
-        for(int x = 0;x<10;x++)
+        for(int x = 0;x<p->puzzle->width;x++)
         {
             //because level enum is <4, it will only write last 2 bits in the OR
-            p->save->banks[y] =  p->save->banks[y] << 2;
-            p->save->banks[y] = (p->save->banks[y] | p->puzzle->level[x][y]);  
+            p->saveBanks[y] =  p->saveBanks[y] << 2;
+            p->saveBanks[y] = (p->saveBanks[y] | p->puzzle->level[x][y]);
         }
-        writeNvs32(getBankName(y), p->save->banks[y]);
+        writeNvs32(getBankName(y), p->saveBanks[y]);
     }    
 }
 void loadPicrossProgress()
 {
-    for(int y = 0;y<10;y++)
+    for(int y = 0;y<p->puzzle->height;y++)
     {
-        readNvs32(getBankName(y), &p->save->banks[y]);
-        for(int x = 0;x<10;x++)
+        readNvs32(getBankName(y), &p->saveBanks[y]);
+        for(int x = 0;x<p->puzzle->width;x++)
         {
             //x is flipped because of the bit shifting direction.
-            p->puzzle->level[9-x][y] = p->save->banks[y] & 3;//0x...00000011, we only care about last two bits
-            p->save->banks[y] = p->save->banks[y] >> 2;//shift over twice for next load. Wait are we mangling it here on the load? Does it matter?
+            p->puzzle->level[p->puzzle->width-1-x][y] = p->saveBanks[y] & 3;//0x...00000011, we only care about last two bits
+            p->saveBanks[y] = p->saveBanks[y] >> 2;//shift over twice for next load. Wait are we mangling it here on the load? Does it matter?
         }
     }    
 }
@@ -1254,9 +1286,11 @@ void saveCompletedOnSelectedLevel(bool completed)
 }
 //I promise I tried to do a proper index->row/col mapping here, since we only need 100*2 bits of data. (<320 used here) but i kept messing the math up.
 //I know that 120 bits is not a lot, but on principle, it bothers me and I would like to optimize this in the future.
+//update: now that I am storing up to 15x15 puzzles (30 bits of data in 32 bits of space, its only 15rows*2 bits of wasted bits. nice.)
 
 char * getBankName(int i)
 {
+    //this is what it is.
     switch(i)
     {
         case 0:
@@ -1279,6 +1313,18 @@ char * getBankName(int i)
             return "pic_b_8";
         case 9:
             return "pic_b_9";
+        case 10:
+            return "pic_b_10";
+        case 11:
+            return "pic_b_11";
+        case 12:
+            return "pic_b_12";
+        case 13:
+            return "pic_b_13";
+        case 14:
+            return "pic_b_14";
+        case 15:
+            return "pic_b_15";
     }
     return "pic_b_x";
 }

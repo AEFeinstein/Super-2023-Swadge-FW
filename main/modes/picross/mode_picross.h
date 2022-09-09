@@ -29,13 +29,6 @@ typedef enum
     PICROSSDIR_UP =4,
 } picrossDir_t;//this could be made generic and used for counter or 
 
-//todo: remove this
-typedef struct
-{
-    /* data */
-    int32_t banks[8];
-} picrossSaveData_t;
-
 typedef struct
 {
     picrossSpaceType_t startHeldType;
@@ -67,17 +60,17 @@ typedef struct
     bool complete;
     bool isRow;
     uint8_t index;
-    uint8_t hints[5];//have to deal with 'flexible array member'
+    uint8_t hints[PICROSS_MAX_HINTCOUNT];//have to deal with 'flexible array member'
 } picrossHint_t;
 
 typedef struct
 {
     uint8_t width;
     uint8_t height;
-    picrossHint_t rowHints[10];
-    picrossHint_t colHints[10];
-    picrossSpaceType_t completeLevel[10][10]; 
-    picrossSpaceType_t level[10][10]; 
+    picrossHint_t rowHints[PICROSS_MAX_LEVELSIZE];
+    picrossHint_t colHints[PICROSS_MAX_LEVELSIZE];
+    picrossSpaceType_t completeLevel[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE]; 
+    picrossSpaceType_t level[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE]; 
 } picrossPuzzle_t;
 
 typedef struct
@@ -89,9 +82,11 @@ typedef struct
     picrossPuzzle_t* puzzle;
     bool controlsEnabled;
     picrossInput_t* input;
-    uint8_t drawScale;
-    uint8_t leftPad;
-    uint8_t topPad;
+    uint16_t drawScale;
+    uint16_t leftPad;
+    uint16_t topPad;
+    uint8_t maxHintsX;
+    uint8_t maxHintsY;
     uint8_t clueGap;
     uint64_t bgScrollTimer;
     uint64_t bgScrollSpeed;
@@ -102,10 +97,10 @@ typedef struct
     bool exitThisFrame;
     int8_t count;
     picrossDir_t countState;
-    picrossSaveData_t* save;
     led_t errorALEDBlinkLEDS[NUM_LEDS];
     led_t errorBLEDBlinkLEDS[NUM_LEDS];
     led_t offLEDS[NUM_LEDS];
+    int32_t saveBanks[PICROSS_MAX_LEVELSIZE];
 
 } picrossGame_t;
 
