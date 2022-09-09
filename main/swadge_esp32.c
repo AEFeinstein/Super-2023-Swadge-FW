@@ -465,6 +465,9 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             true);       // PWM backlight
 #endif
 
+    // Set the brightness from settings on boot
+    setTFTBacklight(getTftIntensity());
+
     /* Initialize Wifi peripheral */
 #if !defined(EMU)
     if(ESP_NOW == cSwadgeMode->wifiMode)
