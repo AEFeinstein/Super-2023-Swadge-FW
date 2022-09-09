@@ -334,7 +334,7 @@ const uint16_t paletteColors[] =
 void setPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t getPxTft(int16_t x, int16_t y);
 void clearPxTft(void);
-void drawDisplayTft(bool drawDiff __attribute__((unused)), void (*fnBackgroundDrawCallback)(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum ));
+void drawDisplayTft(display_t * disp,bool drawDiff,fnBackgroundDrawCallback_t cb);
 
 //==============================================================================
 // Variables
@@ -343,7 +343,7 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)), void (*fnBackgroundDr
 esp_lcd_panel_handle_t panel_handle = NULL;
 static paletteColor_t * pixels = NULL;
 static uint16_t *s_lines[2] = {0};
-display_t * tftDisp = NULL;
+
 // static uint64_t tFpsStart = 0;
 // static int framesDrawn = 0;
 
@@ -385,8 +385,6 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
             gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
             gpio_num_t backlight, bool isPwmBacklight)
 {
-    tftDisp = disp;
-
     if(false == isPwmBacklight)
     {
         // Binary backlight
@@ -596,7 +594,7 @@ void clearPxTft(void)
  * @param drawDiff unused
  */
 
-void drawDisplayTft(bool drawDiff __attribute__((unused)), void (*fnBackgroundDrawCallback)(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum ))
+void drawDisplayTft(display_t * disp, bool drawDiff __attribute__((unused)), fnBackgroundDrawCallback_t fnBackgroundDrawCallback)
 {
     // Indexes of the line currently being sent to the LCD and the line we're calculating
     uint8_t sending_line = 0;
@@ -639,7 +637,7 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)), void (*fnBackgroundDr
 
         if( y != 0 && fnBackgroundDrawCallback )
         {
-            fnBackgroundDrawCallback( tftDisp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
+            fnBackgroundDrawCallback( disp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
         }
 
         // (When operating @ 160 MHz)
@@ -660,7 +658,7 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)), void (*fnBackgroundDr
 
         if( y == 0 && fnBackgroundDrawCallback )
         {
-            fnBackgroundDrawCallback( tftDisp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
+            fnBackgroundDrawCallback( disp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
         }
 
 #ifdef PROCPROFILE

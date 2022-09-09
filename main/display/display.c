@@ -257,8 +257,8 @@ static void rotatePixel(int16_t* x, int16_t* y, int16_t rotateDeg, int16_t width
 {
     //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
 
-    int wx = *x;
-    int wy = *y;
+    int32_t wx = *x;
+    int32_t wy = *y;
     // First rotate the sprite around the sprite's center point
 
     // This solves the aliasing problem, but because of tan() it's only safe
@@ -334,26 +334,32 @@ static void rotatePixel(int16_t* x, int16_t* y, int16_t rotateDeg, int16_t width
 void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
              bool flipLR, bool flipUD, int16_t rotateDeg)
 {
-    //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
+    //  This function has been micro optimized by cnlohr on 2022-09-08, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
+   
+    /* Btw quick test code for second case is:
+    for( int mode = 0; mode < 8; mode++ )
+    {
+        drawWsgLocal( disp, &example_sprite, 50+mode*20, (global_i%20)-10, !!(mode&1), !!(mode & 2), (mode & 4)*10);
+        drawWsgLocal( disp, &example_sprite, 50+mode*20, (global_i%20)+230, !!(mode&1), !!(mode & 2), (mode & 4)*10);
+        drawWsgLocal( disp, &example_sprite, (global_i%20)-10, 50+mode*20, !!(mode&1), !!(mode & 2), (mode & 4)*10);
+        drawWsgLocal( disp, &example_sprite, (global_i%20)+270, 50+mode*20, !!(mode&1), !!(mode & 2), (mode & 4)*10);
+    }
+    */
 
     if(NULL == wsg->px)
     {
         return;
     }
 
-    uint32_t h = disp->h;
-    uint32_t w = disp->w;
-    uint32_t pxmax = w * h;
-    paletteColor_t * px = disp->pxFb;
-    
     if(rotateDeg)
     {
+        SETUP_FOR_TURBO( disp );
         uint32_t wsgw = wsg->w;
         uint32_t wsgh = wsg->h;
-        for(int16_t srcY = 0; srcY < wsgh; srcY++)
+        for(int32_t srcY = 0; srcY < wsgh; srcY++)
         {
-            int usey = srcY;
-            
+            int32_t usey = srcY;
+
             // Reflect over X axis?
             if(flipUD)
             {
@@ -363,31 +369,28 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
             paletteColor_t * linein = &wsg->px[usey * wsgw];
             
             // Reflect over Y axis?
-            int readX = 0;
-            int advanceX = 1;
+            uint32_t readX = 0;
+            uint32_t advanceX = 1;
             if (flipLR)
             {
                 readX = wsgw;
                 advanceX = -1;
             }
-            
-            int16_t localX = 0;
-            for(int16_t srcX = 0; srcX != wsgw; srcX++)
+
+            int32_t localX = 0;
+            for(int32_t srcX = 0; srcX != wsgw; srcX++)
             {
                 // Draw if not transparent
                 uint8_t color = linein[readX];
                 if (cTransparent != color)
                 {
-                    int16_t tx = localX;
-                    int16_t ty = srcY;
-                    rotatePixel(&tx, &ty, rotateDeg, wsgw, wsgh );
+                    uint16_t tx = localX;
+                    uint16_t ty = srcY;
+
+                    rotatePixel((int16_t*)&tx, (int16_t*)&ty, rotateDeg, wsgw, wsgh );
                     tx += xOff;
                     ty += yOff;
-                    int offset = tx + ty * w;
-                    if( tx < w && tx >= 0 && ty < h && ty >= 0 )
-                    {
-                        px[offset] = color;
-                    }
+                    TURBO_SET_PIXEL_BOUNDS( disp, tx, ty, color ); 
                 }
                 localX++;
                 readX += advanceX;
@@ -397,13 +400,15 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
     else
     {
         // Draw the image's pixels (no rotation or transformation)
+        uint32_t w = disp->w;
+        paletteColor_t * px = disp->pxFb;
 
         uint16_t wsgw = wsg->w;
         uint16_t wsgh = wsg->h;
     
-        int xstart = 0;
-        int xend = wsgw;
-        int xinc = 1;
+        int32_t xstart = 0;
+        int16_t xend = wsgw;
+        int32_t xinc = 1;
         
         // Reflect over Y axis?
         if (flipLR)
@@ -430,7 +435,7 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
 
         if( xOff + wsgw > w )
         {
-            int peelBack = (xOff + wsgw)-w;
+            int32_t peelBack = (xOff + wsgw)-w;
             if( xinc > 0 )
             {
                 xend -= peelBack;
@@ -446,7 +451,7 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
 
         for(int16_t srcY = 0; srcY < wsgh; srcY++)
         {
-            int usey = srcY;
+            int32_t usey = srcY;
             
             // Reflect over X axis?
             if(flipUD)
@@ -457,21 +462,22 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
             paletteColor_t * linein = &wsg->px[usey * wsgw];
 
             // Transform this pixel's draw location as necessary
-            int dstY = srcY + yOff;
-            int dstx = xOff;
-            int lineOffset = dstY * w;
+            uint32_t dstY = srcY + yOff;
+            
+            // It is too complicated to detect both directions and backoff correctly, so we just do this here.
+            // It does slow things down a "tiny" bit.  People in the future could optimze out this check.
+            if( dstY >= disp->h ) continue;
 
-            for(int srcX = xstart; srcX != xend; srcX+=xinc)
+            int32_t lineOffset = dstY * w;
+            int32_t dstx = xOff + lineOffset;
+
+            for(int32_t srcX = xstart; srcX != xend; srcX+=xinc)
             {
                 // Draw if not transparent
                 uint8_t color = linein[srcX];
                 if (cTransparent != color)
                 {
-                    int32_t pxoffset = dstx + lineOffset;
-                    if( pxoffset >= 0 && pxoffset < pxmax )
-                    {
-                        px[pxoffset] = color;
-                    }
+                    px[dstx] = color;
                 }
                 dstx++;
             }

@@ -255,8 +255,6 @@ int bitmapHeight = 0;
 int displayMult = 1;
 pthread_mutex_t displayMutex = PTHREAD_MUTEX_INITIALIZER;
 
-display_t * emuDisp;
-
 // LED state
 uint8_t rdNumLeds = 0;
 led_t * rdLeds = NULL;
@@ -269,7 +267,7 @@ uint8_t ledBrightness = 0;
 void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxTft(int16_t x, int16_t y);
 void emuClearPxTft(void);
-void emuDrawDisplayTft(bool drawDiff,void (*fnBackgroundDrawCallback)(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum ));
+void emuDrawDisplayTft(display_t *,bool,fnBackgroundDrawCallback_t);
 
 void emuSetPxOled(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxOled(int16_t x, int16_t y);
@@ -489,7 +487,7 @@ void emuClearPxTft(void)
  *
  * @param drawDiff unused, the whole display is always drawn
  */
-void emuDrawDisplayTft(bool drawDiff UNUSED, void (*fnBackgroundDrawCallback)(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum ))
+void emuDrawDisplayTft(display_t * disp, bool drawDiff UNUSED, fnBackgroundDrawCallback_t fnBackgroundDrawCallback )
 {
     /* Copy the current framebuffer to memory that won't be modified by the
     * Swadge mode. rawdraw will use this non-changing bitmap to draw
@@ -512,7 +510,7 @@ void emuDrawDisplayTft(bool drawDiff UNUSED, void (*fnBackgroundDrawCallback)(di
 
 		if( ( y & 0xf ) == 0 )
 		{
-			fnBackgroundDrawCallback( emuDisp, 0, y, TFT_WIDTH, 16, y/16, TFT_HEIGHT/16 );
+			fnBackgroundDrawCallback( disp, 0, y, TFT_WIDTH, 16, y/16, TFT_HEIGHT/16 );
 		}
 
     }
