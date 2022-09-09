@@ -106,7 +106,7 @@ void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButt
     buttonStates = dedic_gpio_bundle_read_in(bundle);
 
     // create a queue to handle polling GPIO from ISR
-    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    gpio_evt_queue = xQueueCreate(64, sizeof(uint32_t));
 
     // Initialize the timer
     timer_config_t config =
@@ -123,7 +123,7 @@ void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButt
     timer_set_counter_value(group_num, timer_num, 0);
 
     // Configure the alarm value and the interrupt on alarm.
-    timer_set_alarm_value(group_num, timer_num, TIMER_SCALE / 5000); // 0.2ms timer
+    timer_set_alarm_value(group_num, timer_num, TIMER_SCALE / 1000); // 0.2ms timer
     timer_enable_intr(group_num, timer_num);
 
     // Configure the ISR
@@ -151,9 +151,17 @@ void deinitButtons(void)
 static bool IRAM_ATTR btn_timer_isr_cb(void* args __attribute__((unused)))
 {
     BaseType_t high_task_awoken = pdFALSE;
-    // Read GPIOs and enqueue for main task
+    // Static variable lives forever!
+    static uint32_t lastEvt = 0;
+    // Read GPIOs
     uint32_t evt = dedic_gpio_bundle_read_in(bundle);
-    xQueueSendFromISR(gpio_evt_queue, &evt, &high_task_awoken);
+    // Only queue changes
+    if(lastEvt != evt)
+    {
+        xQueueSendFromISR(gpio_evt_queue, &evt, &high_task_awoken);
+    }
+    // save the event
+    lastEvt = evt;
     // return whether we need to yield at the end of ISR
     return high_task_awoken == pdTRUE;
 }
@@ -168,7 +176,7 @@ bool checkButtonQueue(buttonEvt_t* evt)
 {
     // Check if there's an event to dequeue from the ISR
     uint32_t gpio_evt;
-    if (xQueueReceive(gpio_evt_queue, &gpio_evt, 0))
+    while (xQueueReceive(gpio_evt_queue, &gpio_evt, 0))
     {
         // Save the old state, set the new state
         uint32_t oldButtonStates = buttonStates;

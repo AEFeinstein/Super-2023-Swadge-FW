@@ -24,7 +24,6 @@ const char * menu_Bootload = "Bootloader";
 //#define REBOOT_TEST
 //#define PROFILE_TEST
 
-
 // Example to do true inline assembly.  This will actually compile down to be
 // included in the code, itself, and "should" (does in all the tests I've run)
 // execute in one clock cycle since there is no function call and rsr only
@@ -146,7 +145,6 @@ void sandbox_tick()
 
 	if( menu )
 	    drawMeleeMenu(disp, menu);
-
 }
 
 void sandbox_button(buttonEvt_t* evt)
@@ -190,4 +188,3 @@ swadgeMode sandbox_mode =
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL
 };
-

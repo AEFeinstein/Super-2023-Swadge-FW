@@ -13,7 +13,7 @@
 #define PID 0x4004
 
 const char * sym_dump_cmd = "objdump -t %s > build/system_symbols.txt";
-const char * compile_cmd = "xtensa-esp32s2-elf-gcc  -mlongcalls %s -DHAVE_CONFIG_H  -ffunction-sections -fdata-sections -Wall -Werror=all -Wno-error=unused-function -Wno-error=unused-variable -Wno-error=deprecated-declarations -Wextra -Wno-unused-parameter -Wno-sign-compare -ggdb -O2 -fmacro-prefix-map=/home/cnlohr/git/esp32-c3-playground=. -fmacro-prefix-map=/home/cnlohr/esp/esp-idf=IDF -fstrict-volatile-bitfields -Wno-error=unused-but-set-variable -fno-jump-tables -fno-tree-switch-conversion sandbox.c sandbox.S -T build/sandbox.lds -o build/sandbox.o -nodefaultlibs -nostartfiles";
+const char * compile_cmd = "xtensa-esp32s2-elf-gcc -mlongcalls %s -DHAVE_CONFIG_H  -ffunction-sections -fdata-sections -Wall -Werror=all -Wno-error=unused-function -Wno-error=unused-variable -Wno-error=deprecated-declarations -Wextra -Wno-unused-parameter -Wno-sign-compare -ggdb -O2 -fmacro-prefix-map=/home/cnlohr/git/esp32-c3-playground=. -fmacro-prefix-map=/home/cnlohr/esp/esp-idf=IDF -fstrict-volatile-bitfields -Wno-error=unused-but-set-variable -fno-jump-tables -fno-tree-switch-conversion sandbox.c sandbox.S -T build/sandbox.lds -o build/sandbox.o -nodefaultlibs -nostartfiles";
 const char * sym_comp_dump_cmd = "objdump -t build/sandbox.o > build/sandbox_symbols.txt";
 const char * ocpy_cmd_inst = "xtensa-esp32s2-elf-objcopy -j .inst -O binary build/sandbox.o build/sandbox_inst.bin";
 const char * ocpy_cmd_data = "xtensa-esp32s2-elf-objcopy -j .data -O binary build/sandbox.o build/sandbox_data.bin";
@@ -130,6 +130,7 @@ int main( int argc, char ** argv )
 
 		{
 			char temp[1024];
+			if( extra_cflags ) extra_cflags[0] = 0;
 			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/hal/include", idf_path ); appendcflag( temp );
 			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/hal/esp32s2/include", idf_path ); appendcflag( temp );
 			snprintf( temp, sizeof( temp ) - 1, "-I%s/components/esp_wifi/include", idf_path ); appendcflag( temp );
@@ -169,6 +170,7 @@ int main( int argc, char ** argv )
 			appendcflag( "-I../../components/hdw-touch" );
 			appendcflag( "-I../../components/hdw-led" );
 			appendcflag( "-I../../main" );
+			appendcflag( "-I../../main/modes" );
 			appendcflag( "-I../../build/config" );
 		}
 
@@ -397,6 +399,11 @@ int main( int argc, char ** argv )
 			tries = 0;
 
 			usleep( 20000 );
+			
+			printf( "Disabled.\n" );
+			
+			// round up total segment size to a 256-byte boundary (optional)
+			// total_segment_size = (total_segment_size+0xff) | 0xffffff00;
 
 			rdata[0] = 170;
 			rdata[1] = 8;

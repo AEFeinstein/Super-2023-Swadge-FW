@@ -130,7 +130,7 @@ led_strip_t* led_strip_new_rmt_ws2812(const led_strip_config_t* config);
  * @return
  *      LED strip instance or NULL
  */
-led_strip_t* led_strip_init(uint8_t channel, uint8_t gpio, uint16_t led_num);
+led_strip_t* led_strip_init(uint8_t channel, uint8_t gpio, uint8_t gpioAlt, uint16_t led_num);
 
 /**
  * @brief Denit the RMT peripheral.

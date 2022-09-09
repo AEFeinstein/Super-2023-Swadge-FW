@@ -96,6 +96,7 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
 static RTC_DATA_ATTR swadgeMode* pendingSwadgeMode = NULL;
 static swadgeMode* cSwadgeMode = &modeMainMenu;
 static bool isSandboxMode = false;
+static uint32_t frameRateUs = 33333;
 
 //==============================================================================
 // Functions
@@ -270,6 +271,10 @@ void app_main(void)
     // esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_OFF);
     esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_ON);
 
+    /* Initialize USB peripheral */
+    tinyusb_config_t tusb_cfg = {};
+    tinyusb_driver_install(&tusb_cfg);
+
     // Set up timers
     esp_timer_init();
 
@@ -379,7 +384,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 #endif
 
     // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
-    initLeds(GPIO_NUM_39, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
+    initLeds(GPIO_NUM_39, GPIO_NUM_18, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
 
     // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
     buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, getIsMuted());
@@ -549,32 +554,49 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         }
 
         // Run the mode's event loop
-        static int64_t tLastCallUs = 0;
-        if(0 == tLastCallUs)
+        static int64_t tLastLoopUs = 0;
+        if(0 == tLastLoopUs)
         {
-            tLastCallUs = esp_timer_get_time();
+            tLastLoopUs = esp_timer_get_time();
         }
         else
         {
+            // Track the elapsed time between loop calls
             int64_t tNowUs = esp_timer_get_time();
-            int64_t tElapsedUs = tNowUs - tLastCallUs;
-            tLastCallUs = tNowUs;
+            int64_t tElapsedUs = tNowUs - tLastLoopUs;
+            tLastLoopUs = tNowUs;
 
-            if(NULL != cSwadgeMode->fnMainLoop)
+            // Track the elapsed time between draw + fnMainLoop() calls
+            static uint64_t tAccumDraw = 0;
+            tAccumDraw += tElapsedUs;
+            if(tAccumDraw >= frameRateUs)
             {
-                cSwadgeMode->fnMainLoop(tElapsedUs);
-            }
+                // Decrement the accumulation
+                tAccumDraw -= frameRateUs;
 
+                // Call the mode's main loop
+                if(NULL != cSwadgeMode->fnMainLoop)
+                {
+                    // Keep track of the time between main loop calls
+                    static uint64_t tLastMainLoopCall = 0;
+                    if(0 != tLastMainLoopCall)
+                    {
+                        cSwadgeMode->fnMainLoop(tNowUs - tLastMainLoopCall);
+                    }
+                    tLastMainLoopCall = tNowUs;
+                }
+
+                // Draw the display at the given frame rate
+#ifdef OLED_ENABLED
+                oledDisp.drawDisplay(true);
+#endif
+                tftDisp.drawDisplay(true);
+            }
 #if defined(EMU)
             check_esp_timer(tElapsedUs);
 #endif
         }
 
-        // Update outputs
-#ifdef OLED_ENABLED
-        oledDisp.drawDisplay(true);
-#endif
-        tftDisp.drawDisplay(true);
         buzzer_check_next_note();
 
         /* If the mode should be switched, do it now */
@@ -655,3 +677,12 @@ void overrideToSwadgeMode( swadgeMode* mode )
     isSandboxMode = true;
 }
 
+/**
+ * Set the frame rate for all displays
+ * 
+ * @param frameRate The time to wait between drawing frames, in microseconds
+ */
+void setFrameRateUs(uint32_t frameRate)
+{
+    frameRateUs = frameRate;
+}

@@ -76,7 +76,7 @@ void oddEvenFill(display_t* disp, int x0, int y0, int x1, int y1,
         for(int x = x0; x < x1; x++)
         {
             // If a boundary is hit
-            if(boundaryColor == disp->getPx(x, y))
+            if(boundaryColor == GET_PIXEL(disp, x, y))
             {
                 // Flip this boolean, don't color the boundary
                 isInside = !isInside;
@@ -84,7 +84,7 @@ void oddEvenFill(display_t* disp, int x0, int y0, int x1, int y1,
             else if(isInside)
             {
                 // If we're in-bounds, color the pixel
-                disp->setPx(x, y, fillColor);
+                SET_PIXEL_BOUNDS(disp, x, y, fillColor);
             }
         }
     }
@@ -104,7 +104,7 @@ void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
         {
             if(dashDraw)
             {
-                disp->setPx(x0, y0, col);
+                SET_PIXEL_BOUNDS(disp, x0, y0, col);
             }
             dashCnt++;
             if(dashWidth == dashCnt)
@@ -115,7 +115,7 @@ void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
         }
         else
         {
-            disp->setPx(x0, y0, col);
+            SET_PIXEL_BOUNDS(disp, x0, y0, col);
         }
         e2 = 2 * err;
         if (e2 >= dy)   /* e_xy+e_x > 0 */
@@ -144,15 +144,15 @@ void plotRect(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
     // Vertical lines
     for(int y = y0; y < y1; y++)
     {
-        disp->setPx(x0, y, col);
-        disp->setPx(x1 - 1, y, col);
+        SET_PIXEL_BOUNDS(disp, x0, y, col);
+        SET_PIXEL_BOUNDS(disp, x1 - 1, y, col);
     }
 
     // Horizontal lines
     for(int x = x0; x < x1; x++)
     {
-        disp->setPx(x, y0, col);
-        disp->setPx(x, y1 - 1, col);
+        SET_PIXEL_BOUNDS(disp, x, y0, col);
+        SET_PIXEL_BOUNDS(disp, x, y1 - 1, col);
     }
 }
 
@@ -163,10 +163,10 @@ void plotEllipse(display_t* disp, int xm, int ym, int a, int b, paletteColor_t c
 
     do
     {
-        disp->setPx(xm - x, ym + y, col); /*   I. Quadrant */
-        disp->setPx(xm + x, ym + y, col); /*  II. Quadrant */
-        disp->setPx(xm + x, ym - y, col); /* III. Quadrant */
-        disp->setPx(xm - x, ym - y, col); /*  IV. Quadrant */
+        SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant */
+        SET_PIXEL_BOUNDS(disp, xm + x, ym + y, col); /*  II. Quadrant */
+        SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant */
+        SET_PIXEL_BOUNDS(disp, xm - x, ym - y, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 >= (x * 2 + 1) * (long) b * b) /* e_xy+e_x > 0 */
         {
@@ -180,8 +180,8 @@ void plotEllipse(display_t* disp, int xm, int ym, int a, int b, paletteColor_t c
 
     while (y++ < b)   /* too early stop of flat ellipses a=1, */
     {
-        disp->setPx(xm, ym + y, col); /* -> finish tip of ellipse */
-        disp->setPx(xm, ym - y, col);
+        SET_PIXEL_BOUNDS(disp, xm, ym + y, col); /* -> finish tip of ellipse */
+        SET_PIXEL_BOUNDS(disp, xm, ym - y, col);
     }
 }
 
@@ -193,10 +193,10 @@ void plotOptimizedEllipse(display_t* disp, int xm, int ym, int a, int b, palette
 
     do
     {
-        disp->setPx(xm - x, ym + y, col); /*   I. Quadrant */
-        disp->setPx(xm + x, ym + y, col); /*  II. Quadrant */
-        disp->setPx(xm + x, ym - y, col); /* III. Quadrant */
-        disp->setPx(xm - x, ym - y, col); /*  IV. Quadrant */
+        SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant */
+        SET_PIXEL_BOUNDS(disp, xm + x, ym + y, col); /*  II. Quadrant */
+        SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant */
+        SET_PIXEL_BOUNDS(disp, xm - x, ym - y, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 >= dx)
         {
@@ -212,8 +212,8 @@ void plotOptimizedEllipse(display_t* disp, int xm, int ym, int a, int b, palette
 
     while (y++ < b)   /* too early stop for flat ellipses with a=1, */
     {
-        disp->setPx(xm, ym + y, col); /* -> finish tip of ellipse */
-        disp->setPx(xm, ym - y, col);
+        SET_PIXEL_BOUNDS(disp, xm, ym + y, col); /* -> finish tip of ellipse */
+        SET_PIXEL_BOUNDS(disp, xm, ym - y, col);
     }
 }
 
@@ -230,19 +230,19 @@ void plotCircleQuadrants(display_t* disp, int xm, int ym, int r, bool q1,
     {
         if(q1)
         {
-            disp->setPx(xm - x, ym + y, col); /*   I. Quadrant +x +y */
+            SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant +x +y */
         }
         if(q2)
         {
-            disp->setPx(xm - y, ym - x, col); /*  II. Quadrant -x +y */
+            SET_PIXEL_BOUNDS(disp, xm - y, ym - x, col); /*  II. Quadrant -x +y */
         }
         if(q3)
         {
-            disp->setPx(xm + x, ym - y, col); /* III. Quadrant -x -y */
+            SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant -x -y */
         }
         if(q4)
         {
-            disp->setPx(xm + y, ym + x, col); /*  IV. Quadrant +x -y */
+            SET_PIXEL_BOUNDS(disp, xm + y, ym + x, col); /*  IV. Quadrant +x -y */
         }
         r = err;
         if (r <= y)
@@ -263,8 +263,8 @@ void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col
     {
         for (int lineX = xm + x; lineX <= xm - x; lineX++)
         {
-            disp->setPx(lineX, ym - y, col);
-            disp->setPx(lineX, ym + y, col);
+            SET_PIXEL_BOUNDS(disp, lineX, ym - y, col);
+            SET_PIXEL_BOUNDS(disp, lineX, ym + y, col);
         }
 
         r = err;
@@ -302,10 +302,10 @@ void plotEllipseRect(display_t* disp, int x0, int y0, int x1,
 
     do
     {
-        disp->setPx(x1, y0, col); /*   I. Quadrant */
-        disp->setPx(x0, y0, col); /*  II. Quadrant */
-        disp->setPx(x0, y1, col); /* III. Quadrant */
-        disp->setPx(x1, y1, col); /*  IV. Quadrant */
+        SET_PIXEL_BOUNDS(disp, x1, y0, col); /*   I. Quadrant */
+        SET_PIXEL_BOUNDS(disp, x0, y0, col); /*  II. Quadrant */
+        SET_PIXEL_BOUNDS(disp, x0, y1, col); /* III. Quadrant */
+        SET_PIXEL_BOUNDS(disp, x1, y1, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 <= dy)
         {
@@ -323,10 +323,10 @@ void plotEllipseRect(display_t* disp, int x0, int y0, int x1,
 
     while (y0 - y1 <= b)   /* too early stop of flat ellipses a=1 */
     {
-        disp->setPx(x0 - 1, y0, col); /* -> finish tip of ellipse */
-        disp->setPx(x1 + 1, y0++, col);
-        disp->setPx(x0 - 1, y1, col);
-        disp->setPx(x1 + 1, y1--, col);
+        SET_PIXEL_BOUNDS(disp, x0 - 1, y0, col); /* -> finish tip of ellipse */
+        SET_PIXEL_BOUNDS(disp, x1 + 1, y0++, col);
+        SET_PIXEL_BOUNDS(disp, x0 - 1, y1, col);
+        SET_PIXEL_BOUNDS(disp, x1 + 1, y1--, col);
     }
 }
 
@@ -370,7 +370,7 @@ void plotQuadBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2,
         err = dx + dy + xy; /* error 1st step */
         do
         {
-            disp->setPx(x0, y0, col); /* plot curve */
+            SET_PIXEL_BOUNDS(disp, x0, y0, col); /* plot curve */
             if (x0 == x2 && y0 == y2)
             {
                 return;    /* last pixel -> curve finished */
@@ -492,7 +492,7 @@ void plotQuadRationalBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, 
         err = dx + dy - xy; /* error 1.step */
         do
         {
-            disp->setPx(x0, y0, col); /* plot curve */
+            SET_PIXEL_BOUNDS(disp, x0, y0, col); /* plot curve */
             if (x0 == x2 && y0 == y2)
             {
                 return;    /* last pixel -> curve finished */
@@ -718,7 +718,7 @@ void plotCubicBezierSeg(display_t* disp, int x0, int y0, float x1, float y1, flo
 
         for (pxy = &xy, fx = fy = f; x0 != x3 && y0 != y3;)
         {
-            disp->setPx(x0, y0, col); /* plot curve */
+            SET_PIXEL_BOUNDS(disp, x0, y0, col); /* plot curve */
             do   /* move sub-steps of one pixel */
             {
                 if (dx > *pxy || dy < *pxy)

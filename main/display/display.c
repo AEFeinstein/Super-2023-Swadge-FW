@@ -25,7 +25,7 @@
 // Constant data
 //==============================================================================
 
-const uint32_t sin1024[] =
+const int16_t sin1024[] =
 {
     0, 18, 36, 54, 71, 89, 107, 125, 143, 160, 178, 195, 213, 230, 248, 265,
     282, 299, 316, 333, 350, 367, 384, 400, 416, 433, 449, 465, 481, 496, 512,
@@ -57,7 +57,10 @@ const uint32_t sin1024[] =
     -36, -18
 };
 
-const uint32_t tan1024[] =
+// Only need 180 degrees because of symmetry.
+// One note: Originally, this table was 1024, I saw no ill effects when
+// shrinking it so I kept it that way.
+const uint16_t tan1024[91] =
 {
     0, 18, 36, 54, 72, 90, 108, 126, 144, 162, 181, 199, 218, 236, 255, 274, 294,
     313, 333, 353, 373, 393, 414, 435, 456, 477, 499, 522, 544, 568, 591, 615,
@@ -65,38 +68,8 @@ const uint32_t tan1024[] =
     1098, 1137, 1178, 1220, 1265, 1311, 1359, 1409, 1462, 1518, 1577, 1639, 1704,
     1774, 1847, 1926, 2010, 2100, 2196, 2300, 2412, 2534, 2668, 2813, 2974,
     3152, 3349, 3571, 3822, 4107, 4435, 4818, 5268, 5807, 6465, 7286, 8340, 9743,
-    11704, 14644, 19539, 29324, 58665, 67108863, -58665, -29324, -19539, -14644,
-    -11704, -9743, -8340, -7286, -6465, -5807, -5268, -4818, -4435, -4107, -3822,
-    -3571, -3349, -3152, -2974, -2813, -2668, -2534, -2412, -2300, -2196, -2100,
-    -2010, -1926, -1847, -1774, -1704, -1639, -1577, -1518, -1462, -1409,
-    -1359, -1311, -1265, -1220, -1178, -1137, -1098, -1060, -1024, -989, -955,
-    -922, -890, -859, -829, -800, -772, -744, -717, -691, -665, -640, -615, -591,
-    -568, -544, -522, -499, -477, -456, -435, -414, -393, -373, -353, -333, -313,
-    -294, -274, -255, -236, -218, -199, -181, -162, -144, -126, -108, -90, -72,
-    -54, -36, -18, 0, 18, 36, 54, 72, 90, 108, 126, 144, 162, 181, 199, 218,
-    236, 255, 274, 294, 313, 333, 353, 373, 393, 414, 435, 456, 477, 499, 522,
-    544, 568, 591, 615, 640, 665, 691, 717, 744, 772, 800, 829, 859, 890, 922, 955,
-    989, 1024, 1060, 1098, 1137, 1178, 1220, 1265, 1311, 1359, 1409, 1462,
-    1518, 1577, 1639, 1704, 1774, 1847, 1926, 2010, 2100, 2196, 2300, 2412, 2534,
-    2668, 2813, 2974, 3152, 3349, 3571, 3822, 4107, 4435, 4818, 5268, 5807, 6465,
-    7286, 8340, 9743, 11704, 14644, 19539, 29324, 58665, 67108863, -58665, -29324,
-    -19539, -14644, -11704, -9743, -8340, -7286, -6465, -5807, -5268, -4818,
-    -4435, -4107, -3822, -3571, -3349, -3152, -2974, -2813, -2668, -2534, -2412,
-    -2300, -2196, -2100, -2010, -1926, -1847, -1774, -1704, -1639, -1577, -1518,
-    -1462, -1409, -1359, -1311, -1265, -1220, -1178, -1137, -1098, -1060, -1024,
-    -989, -955, -922, -890, -859, -829, -800, -772, -744, -717, -691, -665,
-    -640, -615, -591, -568, -544, -522, -499, -477, -456, -435, -414, -393, -373,
-    -353, -333, -313, -294, -274, -255, -236, -218, -199, -181, -162, -144, -126,
-    -108, -90, -72, -54, -36, -18
+    11704, 14644, 19539, 29324, 58665, 65535,
 };
-
-//==============================================================================
-// Function Prototypes
-//==============================================================================
-
-void transformPixel(int16_t* x, int16_t* y, int16_t transX,
-                    int16_t transY, bool flipLR, bool flipUD,
-                    int16_t rotateDeg, int16_t width, int16_t height);
 
 //==============================================================================
 // Functions
@@ -110,14 +83,7 @@ void transformPixel(int16_t* x, int16_t* y, int16_t transX,
  */
 int16_t getSin1024(int16_t degree)
 {
-    while(degree >= 360)
-    {
-        degree -= 360;
-    }
-    while(degree < 0)
-    {
-        degree += 360;
-    }
+    degree = ( (degree % 360) + 360 ) % 360;
     return sin1024[degree];
 }
 
@@ -130,15 +96,7 @@ int16_t getSin1024(int16_t degree)
 int16_t getCos1024(int16_t degree)
 {
     // cos is just sin offset by 90 degrees
-    degree += 90;
-    while(degree >= 360)
-    {
-        degree -= 360;
-    }
-    while(degree < 0)
-    {
-        degree += 360;
-    }
+    degree = ( (degree % 360) + 450 ) % 360;
     return sin1024[degree];
 }
 
@@ -148,17 +106,14 @@ int16_t getCos1024(int16_t degree)
  * @param degree The degree, between 0 and 359
  * @return int16_t The tangent of the degree, between -1024 and 1024
  */
-int16_t getTan1024(int16_t degree)
+int32_t getTan1024(int16_t degree)
 {
-    while(degree >= 360)
-    {
-        degree -= 360;
-    }
-    while(degree < 0)
-    {
-        degree += 360;
-    }
-    return tan1024[degree];
+    // Force always positive modulus math.
+    degree = ( ( degree % 180 ) + 180 ) % 180;
+    if( degree < 90 )
+        return tan1024[degree];
+    else
+        return -tan1024[degree-90];
 }
 
 /**
@@ -174,18 +129,26 @@ int16_t getTan1024(int16_t degree)
 void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
                      int16_t y2, paletteColor_t c)
 {
-    // Only draw on the display
-    int16_t xMin = CLAMP(x1, 0, disp->w);
-    int16_t xMax = CLAMP(x2, 0, disp->w);
-    int16_t yMin = CLAMP(y1, 0, disp->h);
-    int16_t yMax = CLAMP(y2, 0, disp->h);
+    // Note: int16_t vs int data types tested for speed.
+    //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
 
-    // Set each pixel
-    for (int y = yMin; y < yMax; y++)
+    // Only draw on the display
+    int xMin = CLAMP(x1, 0, disp->w);
+    int xMax = CLAMP(x2, 0, disp->w);
+    int yMin = CLAMP(y1, 0, disp->h);
+    int yMax = CLAMP(y2, 0, disp->h);
+
+    uint32_t dw = disp->w;
     {
-        for (int x = xMin; x < xMax; x++)
+        paletteColor_t * pxs = disp->pxFb + yMin * dw + xMin;
+
+        int copyLen = xMax - xMin;
+
+        // Set each pixel
+        for (int y = yMin; y < yMax; y++)
         {
-            disp->setPx(x, y, c);
+            memset( pxs, c, copyLen );
+            pxs += dw;
         }
     }
 }
@@ -286,89 +249,76 @@ void freeWsg(wsg_t* wsg)
  *
  * @param x The x coordinate of the pixel location to transform
  * @param y The y coordinate of the pixel location to trasform
- * @param transX The number of pixels to translate X by
- * @param transY The number of pixels to translate Y by
- * @param flipLR true to flip over the Y axis, false to do nothing
- * @param flipUD true to flip over the X axis, false to do nothing
  * @param rotateDeg The number of degrees to rotate clockwise, must be 0-359
  * @param width  The width of the image
  * @param height The height of the image
  */
-void transformPixel(int16_t* x, int16_t* y, int16_t transX,
-                    int16_t transY, bool flipLR, bool flipUD,
-                    int16_t rotateDeg, int16_t width, int16_t height)
+static void rotatePixel(int16_t* x, int16_t* y, int16_t rotateDeg, int16_t width, int16_t height)
 {
+    //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
+
+    int wx = *x;
+    int wy = *y;
     // First rotate the sprite around the sprite's center point
-    if (0 < rotateDeg && rotateDeg < 360)
+
+    // This solves the aliasing problem, but because of tan() it's only safe
+    // to rotate by 0 to 90 degrees. So rotate by a multiple of 90 degrees
+    // first, which doesn't need trig, then rotate the rest with shears
+    // See http://datagenetics.com/blog/august32013/index.html
+    // See https://graphicsinterface.org/wp-content/uploads/gi1986-15.pdf
+
+    // Center around (0, 0)
+    wx -= (width / 2);
+    wy -= (height / 2);
+
+    // First rotate to the nearest 90 degree boundary, which is trivial
+    if(rotateDeg >= 270)
     {
-        // This solves the aliasing problem, but because of tan() it's only safe
-        // to rotate by 0 to 90 degrees. So rotate by a multiple of 90 degrees
-        // first, which doesn't need trig, then rotate the rest with shears
-        // See http://datagenetics.com/blog/august32013/index.html
-        // See https://graphicsinterface.org/wp-content/uploads/gi1986-15.pdf
+        // (x, y) -> (y, -x)
+        int16_t tmp = wx;
+        wx = wy;
+        wy = -tmp;
+        rotateDeg -= 270;
+    }
+    else if(rotateDeg >= 180)
+    {
+        // (x, y) -> (-x, -y)
+        wx = -wx;
+        wy = -wy;
+        rotateDeg -= 180;
+    }
+    else if(rotateDeg >= 90)
+    {
+        // (x, y) -> (-y, x)
+        int16_t tmp = wx;
+        wx = -wy;
+        wy = tmp;
+        rotateDeg -= 90;
+    }
+    // Now that it's rotated to a 90 degree boundary, find out how much more
+    // there is to rotate by shearing
 
-        // Center around (0, 0)
-        (*x) -= (width / 2);
-        (*y) -= (height / 2);
+    // If there's any more to rotate, apply three shear matrices in order
+    // if(rotateDeg > 1 && rotateDeg < 89)
 
-        // First rotate to the nearest 90 degree boundary, which is trivial
-        if(rotateDeg >= 270)
-        {
-            // (x, y) -> (y, -x)
-            int16_t tmp = (*x);
-            (*x) = (*y);
-            (*y) = -tmp;
-        }
-        else if(rotateDeg >= 180)
-        {
-            // (x, y) -> (-x, -y)
-            (*x) = -(*x);
-            (*y) = -(*y);
-        }
-        else if(rotateDeg >= 90)
-        {
-            // (x, y) -> (-y, x)
-            int16_t tmp = (*x);
-            (*x) = -(*y);
-            (*y) = tmp;
-        }
-        // Now that it's rotated to a 90 degree boundary, find out how much more
-        // there is to rotate by shearing
-        rotateDeg = rotateDeg % 90;
-
-        // If there's any more to rotate, apply three shear matrices in order
-        // if(rotateDeg > 1 && rotateDeg < 89)
-        if(rotateDeg > 0)
-        {
-            // 1st shear
-            (*x) = (*x) - (((*y) * tan1024[rotateDeg / 2]) + 512) / 1024;
-            // 2nd shear
-            (*y) = (((*x) * sin1024[rotateDeg]) + 512) / 1024 + (*y);
-            // 3rd shear
-            (*x) = (*x) - (((*y) * tan1024[rotateDeg / 2]) + 512) / 1024;
-        }
-
-        // Return pixel to original position
-        (*x) = (*x) + (width / 2);
-        (*y) = (*y) + (height / 2);
+    if(rotateDeg > 0)
+    {
+        // 1st shear
+        wx = wx - ((wy * tan1024[rotateDeg / 2]) + 512) / 1024;
+        // 2nd shear
+        wy = ((wx * sin1024[rotateDeg]) + 512) / 1024 + wy;
+        // 3rd shear
+        wx = wx - ((wy * tan1024[rotateDeg / 2]) + 512) / 1024;
     }
 
-    // Then reflect over Y axis
-    if (flipLR)
-    {
-        (*x) = width - 1 - (*x);
-    }
+    // Return pixel to original position
+    wx += (width / 2);
+    wy += (height / 2);
 
-    // Then reflect over X axis
-    if(flipUD)
-    {
-        (*y) = height - 1 - (*y);
-    }
-
-    // Then translate
-    (*x) += transX;
-    (*y) += transY;
+    *x = wx;
+    *y = wy;
 }
+
 
 /**
  * @brief Draw a WSG to the display
@@ -384,30 +334,146 @@ void transformPixel(int16_t* x, int16_t* y, int16_t transX,
 void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
              bool flipLR, bool flipUD, int16_t rotateDeg)
 {
+    //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
+
     if(NULL == wsg->px)
     {
         return;
     }
 
-    // Draw the image's pixels
-    for(int16_t srcY = 0; srcY < wsg->h; srcY++)
+    uint32_t h = disp->h;
+    uint32_t w = disp->w;
+    uint32_t pxmax = w * h;
+    paletteColor_t * px = disp->pxFb;
+    
+    if(rotateDeg)
     {
-        for(int16_t srcX = 0; srcX < wsg->w; srcX++)
+        uint32_t wsgw = wsg->w;
+        uint32_t wsgh = wsg->h;
+        for(int16_t srcY = 0; srcY < wsgh; srcY++)
         {
-            // Draw if not transparent
-            if (cTransparent != wsg->px[(srcY * wsg->w) + srcX])
+            int usey = srcY;
+            
+            // Reflect over X axis?
+            if(flipUD)
             {
-                // Transform this pixel's draw location as necessary
-                int16_t dstX = srcX;
-                int16_t dstY = srcY;
-                transformPixel(&dstX, &dstY, xOff, yOff, flipLR, flipUD,
-                               rotateDeg, wsg->w, wsg->h);
-                // Check bounds
-                if(0 <= dstX && dstX < disp->w && 0 <= dstY && dstY <= disp->h)
+                usey = wsg->h - 1 - usey;
+            }
+
+            paletteColor_t * linein = &wsg->px[usey * wsgw];
+            
+            // Reflect over Y axis?
+            int readX = 0;
+            int advanceX = 1;
+            if (flipLR)
+            {
+                readX = wsgw;
+                advanceX = -1;
+            }
+            
+            int16_t localX = 0;
+            for(int16_t srcX = 0; srcX != wsgw; srcX++)
+            {
+                // Draw if not transparent
+                uint8_t color = linein[readX];
+                if (cTransparent != color)
                 {
-                    // Draw the pixel
-                    disp->setPx(dstX, dstY, wsg->px[(srcY * wsg->w) + srcX]);
+                    int16_t tx = localX;
+                    int16_t ty = srcY;
+                    rotatePixel(&tx, &ty, rotateDeg, wsgw, wsgh );
+                    tx += xOff;
+                    ty += yOff;
+                    int offset = tx + ty * w;
+                    if( tx < w && tx >= 0 && ty < h && ty >= 0 )
+                    {
+                        px[offset] = color;
+                    }
                 }
+                localX++;
+                readX += advanceX;
+            }
+        }        
+    }
+    else
+    {
+        // Draw the image's pixels (no rotation or transformation)
+
+        uint16_t wsgw = wsg->w;
+        uint16_t wsgh = wsg->h;
+    
+        int xstart = 0;
+        int xend = wsgw;
+        int xinc = 1;
+        
+        // Reflect over Y axis?
+        if (flipLR)
+        {
+            xstart = wsgw-1;
+            xend = -1;
+            xinc = -1;
+        }
+
+        if( xOff < 0 )
+        {
+            if( xinc > 0 )
+            {
+                xstart -= xOff;
+                if( xstart >= xend ) return;
+            }
+            else
+            {
+                xstart += xOff;
+                if( xend >= xstart ) return;
+            }
+            xOff = 0;
+        }
+
+        if( xOff + wsgw > w )
+        {
+            int peelBack = (xOff + wsgw)-w;
+            if( xinc > 0 )
+            {
+                xend -= peelBack;
+                if( xstart >= xend ) return;
+            }
+            else
+            {
+                xend += peelBack;
+                if( xend >= xstart ) return;
+            }
+        }
+            
+
+        for(int16_t srcY = 0; srcY < wsgh; srcY++)
+        {
+            int usey = srcY;
+            
+            // Reflect over X axis?
+            if(flipUD)
+            {
+                usey = wsgh - 1 - usey;
+            }
+
+            paletteColor_t * linein = &wsg->px[usey * wsgw];
+
+            // Transform this pixel's draw location as necessary
+            int dstY = srcY + yOff;
+            int dstx = xOff;
+            int lineOffset = dstY * w;
+
+            for(int srcX = xstart; srcX != xend; srcX+=xinc)
+            {
+                // Draw if not transparent
+                uint8_t color = linein[srcX];
+                if (cTransparent != color)
+                {
+                    int32_t pxoffset = dstx + lineOffset;
+                    if( pxoffset >= 0 && pxoffset < pxmax )
+                    {
+                        px[pxoffset] = color;
+                    }
+                }
+                dstx++;
             }
         }
     }
@@ -421,37 +487,49 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
  * @param xOff The x offset to draw the WSG at
  * @param yOff The y offset to draw the WSG at
  */
-void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
+void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
 {
+    //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
+
     if(NULL == wsg->px)
     {
         return;
     }
 
-     // Only draw in bounds
-    int16_t xMin = CLAMP(xOff, 0, disp->w);
-    int16_t xMax = CLAMP(xOff + wsg->w, 0, disp->w);
-    int16_t yMin = CLAMP(yOff, 0, disp->h);
-    int16_t yMax = CLAMP(yOff + wsg->h, 0, disp->h);
+    // Only draw in bounds
+    int dWidth = disp->w;
+    int wWidth = wsg->w;
+    int xMin = CLAMP(xOff, 0, dWidth);
+    int xMax = CLAMP(xOff + wWidth, 0, dWidth);
+    int yMin = CLAMP(yOff, 0, disp->h);
+    int yMax = CLAMP(yOff + wsg->h, 0, disp->h);
+    paletteColor_t * px = disp->pxFb;
+    int numX = xMax - xMin;
+    int wsgY = (yMin - yOff);
+    int wsgX = (xMin - xOff);
+    paletteColor_t * lineout = &px[(yMin * dWidth) + xMin];
+    paletteColor_t * linein = &wsg->px[wsgY * wWidth + wsgX];
     
     // Draw each pixel
     for (int y = yMin; y < yMax; y++)
     {
-        for (int x = xMin; x < xMax; x++)
+        for (int x = 0; x < numX; x++)
         {
-            int16_t wsgX = x - xOff;
-            int16_t wsgY = y - yOff;
-            if (cTransparent != wsg->px[(wsgY * wsg->w) + wsgX])
+            int color = linein[x];
+            if( color != cTransparent )
             {
-                disp->setPx(x, y, wsg->px[(wsgY * wsg->w) + wsgX]);
+                lineout[x] = color;
             }
         }
+        lineout += dWidth;
+        linein += wWidth;
+        wsgY++;
     }
 }
 
 /**
  * Quickly copy bytes into the framebuffer. This ignores transparency
- * 
+ *
  * @param disp The display to draw the WSG to
  * @param wsg  The WSG to draw to the display
  * @param xOff The x offset to draw the WSG at
@@ -460,11 +538,9 @@ void drawWsgSimple(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
 void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
 {
     // Check if there is framebuffer access
-    paletteColor_t * fb = disp->getPxFb();
-
-    if(NULL != fb)
     {
-        if(xOff > disp->w){
+        if(xOff > disp->w)
+        {
             return;
         }
 
@@ -472,33 +548,36 @@ void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
         int32_t yStart = (yOff < 0) ? 0 : yOff;
         int32_t yEnd   = ((yOff + wsg->h) > disp->h) ? disp->h : (yOff + wsg->h);
 
+        int wWidth = wsg->w;
+        int dWidth = disp->w;
+        paletteColor_t * pxWsg = &wsg->px[(wsg->h - (yEnd - yStart)) * wWidth];
+        paletteColor_t * pxDisp = &disp->pxFb[yStart*dWidth+xOff];
+
         // Bound in the X direction
         int32_t copyLen = wsg->w;
         if(xOff < 0)
         {
             copyLen += xOff;
+            pxDisp -= xOff;
+            pxWsg -= xOff;
             xOff = 0;
         }
-        
+
         if(xOff + copyLen > disp->w)
         {
             copyLen = disp->w - xOff;
         }
 
+
         // copy each row
         for(int32_t y = yStart; y < yEnd; y++)
         {
-            // Find the index into the framebuffer
-            uint32_t dstIdx = (y * disp->w) + xOff;
             // Copy the row
             // TODO probably faster if we can guarantee copyLen is a multiple of 4
-            memcpy(&fb[dstIdx], &wsg->px[(wsg->h - (yEnd - y)) * wsg->w], copyLen);
+            memcpy(pxDisp, pxWsg, copyLen);
+            pxDisp += dWidth;
+            pxWsg += wWidth;
         }
-    }
-    else
-    {
-        // No framebuffer access, draw the WSG simply
-        drawWsgSimple(disp, wsg, xOff, yOff);
     }
 }
 
@@ -577,35 +656,83 @@ void freeFont(font_t* font)
  * @param xOff  The x offset to draw the char at
  * @param yOff  The y offset to draw the char at
  */
-void drawChar(display_t* disp, paletteColor_t color, uint16_t h, font_ch_t* ch, int16_t xOff, int16_t yOff)
+void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16_t xOff, int16_t yOff)
 {
-    uint16_t byteIdx = 0;
-    uint8_t bitIdx = 0;
-    // Iterate over the character bitmap
+    //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
+    paletteColor_t * pxOutput = disp->pxFb + yOff * disp->w;
+
+    int bitIdx = 0;
+    uint8_t * bitmap = ch->bitmap;
+    int wch = ch->w;
+
+    // Don't draw off the bottom of the screen.
+    if( yOff + h > disp->h )
+    {
+        h = disp->h - yOff;
+    }
+
+    // Check Y bounds
+    if(yOff < 0)
+    {
+        // Above the display, do wacky math with -yOff
+        bitIdx -= yOff * wch;
+        bitmap += bitIdx>>3;
+        bitIdx &= 7;
+        h += yOff;
+        yOff = 0;
+    }
+
     for (int y = 0; y < h; y++)
     {
-        for (int x = 0; x < ch->w; x++)
+        // Figure out where to draw
+        int truncate = 0;
+
+        int startX = xOff;
+        if( xOff < 0 )
+        {
+            // Track how many groups of pixels we are skipping over
+            // that weren't displayed on the left of the screen.
+            startX = 0;
+            bitIdx += -xOff;
+            bitmap += bitIdx>>3;
+            bitIdx &= 7;
+        }
+        int endX = xOff + wch;
+        if( endX > disp->w )
+        {
+            // Track how many groups of pixels we are skipping over,
+            // if the letter falls off the end of the screen.
+            truncate = endX - disp->w;
+            endX = disp->w;
+        }
+
+        uint8_t thisByte = *bitmap;
+        for (int drawX = startX; drawX < endX; drawX++)
         {
             // Figure out where to draw
-            int drawX = x + xOff;
-            int drawY = y + yOff;
-            // If there is a pixel
-            if (ch->bitmap[byteIdx] & (1 << bitIdx))
+            // Check X bounds
+            if(thisByte & (1 << bitIdx))
             {
                 // Draw the pixel
-                disp->setPx(drawX, drawY, color);
+                pxOutput[drawX] = color;
             }
 
             // Iterate over the bit data
-            bitIdx++;
-            if(8 == bitIdx)
+            if( 8 == ++bitIdx )
             {
                 bitIdx = 0;
-                byteIdx++;
+                thisByte = *(++bitmap);
             }
         }
+
+        // Handle any remaining bits if we have ended off the end of the display.
+        bitIdx += truncate;
+        bitmap += bitIdx>>3;
+        bitIdx &= 7;
+        pxOutput += disp->w;
     }
 }
+
 
 /**
  * @brief Draw text to a display with the given color and font
