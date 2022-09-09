@@ -587,21 +587,16 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                 }
 
                 // Draw the display at the given frame rate
+
 #ifdef OLED_ENABLED
-                oledDisp.drawDisplay(true);
+                oledDisp.drawDisplay(true, cSwadgeMode->fnBackgroundDrawCallback);
 #endif
-                tftDisp.drawDisplay(true);
+                tftDisp.drawDisplay(true, cSwadgeMode->fnBackgroundDrawCallback);
             }
 #if defined(EMU)
             check_esp_timer(tElapsedUs);
 #endif
         }
-
-        // Update outputs
-#ifdef OLED_ENABLED
-        oledDisp.drawDisplay(true, cSwadgeMode->fnBackgroundDrawCallback);
-#endif
-        tftDisp.drawDisplay(true, cSwadgeMode->fnBackgroundDrawCallback);
 
         buzzer_check_next_note();
 

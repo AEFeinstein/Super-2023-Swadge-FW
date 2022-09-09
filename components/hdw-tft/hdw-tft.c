@@ -663,7 +663,9 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)), void (*fnBackgroundDr
 			fnBackgroundDrawCallback( tftDisp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
 		}
 
+#ifdef PROCPROFILE
 		final = get_ccount();
+#endif
 	}
 
 #ifdef PROCPROFILE
