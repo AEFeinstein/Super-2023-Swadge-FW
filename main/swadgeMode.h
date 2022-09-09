@@ -98,6 +98,20 @@ typedef struct _swadgeMode
     void (*fnTemperatureCallback)(float temperature);
 
     /**
+     * This function is called when the display driver wishes to update a
+	 * section of the display.
+     *
+     * @param disp The display to draw to
+     * @param x the x coordiante that should be updated
+     * @param y the x coordiante that should be updated
+     * @param w the width of the rectangle to be updated
+     * @param h the height of the rectangle to be updated
+     * @param up update number
+     * @param numUp update number denominator
+     */
+    void (*fnBackgroundDrawCallback)(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum );
+
+    /**
      * This is a setting, not a function pointer. Set it to one of these
      * values to have the system configure the swadge's WiFi
      *

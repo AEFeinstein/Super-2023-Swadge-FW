@@ -334,7 +334,7 @@ const uint16_t paletteColors[] =
 void setPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t getPxTft(int16_t x, int16_t y);
 void clearPxTft(void);
-void drawDisplayTft(bool drawDiff);
+void drawDisplayTft(display_t * disp,bool drawDiff,fnBackgroundDrawCallback_t cb);
 
 //==============================================================================
 // Variables
@@ -343,6 +343,7 @@ void drawDisplayTft(bool drawDiff);
 esp_lcd_panel_handle_t panel_handle = NULL;
 static paletteColor_t * pixels = NULL;
 static uint16_t *s_lines[2] = {0};
+
 // static uint64_t tFpsStart = 0;
 // static int framesDrawn = 0;
 
@@ -592,7 +593,8 @@ void clearPxTft(void)
  * 
  * @param drawDiff unused
  */
-void drawDisplayTft(bool drawDiff __attribute__((unused)))
+
+void drawDisplayTft(display_t * disp, bool drawDiff __attribute__((unused)), fnBackgroundDrawCallback_t fnBackgroundDrawCallback)
 {
     // Indexes of the line currently being sent to the LCD and the line we're calculating
     uint8_t sending_line = 0;
@@ -616,17 +618,14 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
         // Also FYI - I tried going palette-less, it only saved 18k per chunk (1.6ms per frame)
         uint32_t * outColor = (uint32_t*)s_lines[calc_line];
         uint32_t * inColor = (uint32_t*)&pixels[y*TFT_WIDTH];
-        for (uint16_t yp = y; yp < y + PARALLEL_LINES; yp++)
+        for (uint16_t x = 0; x < TFT_WIDTH/4*PARALLEL_LINES; x++)
         {
-            for (uint16_t x = 0; x < TFT_WIDTH/4; x++)
-            {
-                uint32_t colors = *(inColor++);
-                uint32_t word1 = paletteColors[(colors>> 0)&0xff] | (paletteColors[(colors>> 8)&0xff]<<16);
-                uint32_t word2 = paletteColors[(colors>>16)&0xff] | (paletteColors[(colors>>24)&0xff]<<16);
-                outColor[0] = word1;
-                outColor[1] = word2;
-                outColor += 2;
-            }
+            uint32_t colors = *(inColor++);
+            uint32_t word1 = paletteColors[(colors>> 0)&0xff] | (paletteColors[(colors>> 8)&0xff]<<16);
+            uint32_t word2 = paletteColors[(colors>>16)&0xff] | (paletteColors[(colors>>24)&0xff]<<16);
+            outColor[0] = word1;
+            outColor[1] = word2;
+            outColor += 2;
         }
 
 #ifdef PROCPROFILE
@@ -635,6 +634,11 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
 
         sending_line = calc_line;
         calc_line = !calc_line;
+
+        if( y != 0 && fnBackgroundDrawCallback )
+        {
+            fnBackgroundDrawCallback( disp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
+        }
 
         // (When operating @ 160 MHz)
         // This code takes 35k cycles when y == 0, but
@@ -649,14 +653,19 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
 
         // Send the calculated data
         esp_lcd_panel_draw_bitmap(panel_handle, 0, y,
-                                    TFT_WIDTH, y + PARALLEL_LINES,
-                                    s_lines[sending_line]);
+                                  TFT_WIDTH, y + PARALLEL_LINES,
+                                  s_lines[sending_line]);
+
+        if( y == 0 && fnBackgroundDrawCallback )
+        {
+            fnBackgroundDrawCallback( disp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
+        }
 
 #ifdef PROCPROFILE
         final = get_ccount();
 #endif
     }
-    
+
 #ifdef PROCPROFILE
     ESP_LOGI( "tft", "%d/%d", mid-start, final-mid );
 #endif
