@@ -269,7 +269,7 @@ int main(int argc UNUSED, char ** argv UNUSED)
         if((0 != bitmapWidth) && (0 != bitmapHeight) && (NULL != bitmapDisplay))
         {
 #if defined(CONFIG_GC9307_240x280)
-            plotRoundedCorners(bitmapDisplay, bitmapWidth, bitmapHeight, (bitmapWidth / TFT_WIDTH) * 29, BG_COLOR);
+            plotRoundedCorners(bitmapDisplay, bitmapWidth, bitmapHeight, (bitmapWidth / TFT_WIDTH) * 40, BG_COLOR);
 #endif
             // Update the display, centered
             CNFGBlitImage(bitmapDisplay,

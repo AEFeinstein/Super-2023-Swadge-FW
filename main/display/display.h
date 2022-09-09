@@ -9,18 +9,6 @@
 #include <stdbool.h>
 #include "palette.h"
 
-#if !defined(EMU)
-#define DISPLAY_HAS_FB
-#endif
-
-#if !defined(DISPLAY_HAS_FB)
-// Draw a pixel directly to the framebuffer
-#define SET_PIXEL(d, x, y, c)        d->setPx(x, y, c)
-// Draw a pixel to the framebuffer with bounds checking
-#define SET_PIXEL_BOUNDS(d, x, y, c) d->setPx(x, y, c)
-// Get a pixel directly from the framebuffer
-#define GET_PIXEL(d, x, y)           d->getPx(x, y)
-#else
 // A technique to turbo time set pixels (not yet in use)
 #define TURBO_SET_PIXEL(x, y, px, val, width, temp, temp2) asm volatile( "mul16u %[temp2], %[width], %[y]\nadd %[temp, %[px], %[x]\nadd %[temp], %[temp2], %[px]\ns8i %[val],%[temp], 0" : [temp]"+a"(temp),[temp2]"+a"(temp2) : [x]"a"(x),[y]"a"(y),[px]"g"(px),[val]"a"(val),[width]"a"(width) : ); // 5/4 cycles
 // Draw a pixel directly to the framebuffer
@@ -34,7 +22,6 @@
     } while(0)
 // Get a pixel directly from the framebuffer
 #define GET_PIXEL(d, x, y) (d)->pxFb[((y)*((d)->w))+(x)]
-#endif
 
 //==============================================================================
 // Structs

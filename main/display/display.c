@@ -72,16 +72,6 @@ const uint16_t tan1024[91] =
 };
 
 //==============================================================================
-// Function Prototypes
-//==============================================================================
-
-#if !defined(DISPLAY_HAS_FB)
-void transformPixel(int16_t* x, int16_t* y, int16_t transX,
-                    int16_t transY, bool flipLR, bool flipUD,
-                    int16_t rotateDeg, int16_t width, int16_t height);
-#endif
-
-//==============================================================================
 // Functions
 //==============================================================================
 
@@ -148,7 +138,6 @@ void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
     int yMin = CLAMP(y1, 0, disp->h);
     int yMax = CLAMP(y2, 0, disp->h);
 
-#ifdef DISPLAY_HAS_FB
     uint32_t dw = disp->w;
     {
         paletteColor_t * pxs = disp->pxFb + yMin * dw + xMin;
@@ -162,17 +151,6 @@ void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
             pxs += dw;
         }
     }
-#else
-    {
-        for(int y = yMin; y < yMax; y++)
-        {
-            for(int x = xMin; x < xMax; x++)
-            {
-                SET_PIXEL(disp, x, y, c);
-            }
-        }
-    }
-#endif
 }
 
 /**
@@ -356,7 +334,6 @@ static void rotatePixel(int16_t* x, int16_t* y, int16_t rotateDeg, int16_t width
 void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
              bool flipLR, bool flipUD, int16_t rotateDeg)
 {
-#ifdef DISPLAY_HAS_FB
     //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
 
     if(NULL == wsg->px)
@@ -500,125 +477,7 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
             }
         }
     }
-#else
-    // Draw the image's pixels
-    for(int16_t srcY = 0; srcY < wsg->h; srcY++)
-    {
-        for(int16_t srcX = 0; srcX < wsg->w; srcX++)
-        {
-            // Draw if not transparent
-            if (cTransparent != wsg->px[(srcY * wsg->w) + srcX])
-            {
-                // Transform this pixel's draw location as necessary
-                int16_t dstX = srcX;
-                int16_t dstY = srcY;
-                transformPixel(&dstX, &dstY, xOff, yOff, flipLR, flipUD,
-                               rotateDeg, wsg->w, wsg->h);
-                // Check bounds
-                if(0 <= dstX && dstX < disp->w && 0 <= dstY && dstY <= disp->h)
-                {
-                    // Draw the pixel
-                    disp->setPx(dstX, dstY, wsg->px[(srcY * wsg->w) + srcX]);
-                }
-            }
-        }
-    }
-#endif
 }
-
-#if !defined(DISPLAY_HAS_FB)
-/**
- * Transform a pixel's coordinates by rotation around the sprite's center point,
- * then reflection over Y axis, then reflection over X axis, then translation
- *
- * This is only used when there is no framebuffer access
- *
- * @param x The x coordinate of the pixel location to transform
- * @param y The y coordinate of the pixel location to trasform
- * @param transX The number of pixels to translate X by
- * @param transY The number of pixels to translate Y by
- * @param flipLR true to flip over the Y axis, false to do nothing
- * @param flipUD true to flip over the X axis, false to do nothing
- * @param rotateDeg The number of degrees to rotate clockwise, must be 0-359
- * @param width  The width of the image
- * @param height The height of the image
- */
-void transformPixel(int16_t* x, int16_t* y, int16_t transX,
-                    int16_t transY, bool flipLR, bool flipUD,
-                    int16_t rotateDeg, int16_t width, int16_t height)
-{
-    // First rotate the sprite around the sprite's center point
-    if (0 < rotateDeg && rotateDeg < 360)
-    {
-        // This solves the aliasing problem, but because of tan() it's only safe
-        // to rotate by 0 to 90 degrees. So rotate by a multiple of 90 degrees
-        // first, which doesn't need trig, then rotate the rest with shears
-        // See http://datagenetics.com/blog/august32013/index.html
-        // See https://graphicsinterface.org/wp-content/uploads/gi1986-15.pdf
-
-        // Center around (0, 0)
-        (*x) -= (width / 2);
-        (*y) -= (height / 2);
-
-        // First rotate to the nearest 90 degree boundary, which is trivial
-        if(rotateDeg >= 270)
-        {
-            // (x, y) -> (y, -x)
-            int16_t tmp = (*x);
-            (*x) = (*y);
-            (*y) = -tmp;
-        }
-        else if(rotateDeg >= 180)
-        {
-            // (x, y) -> (-x, -y)
-            (*x) = -(*x);
-            (*y) = -(*y);
-        }
-        else if(rotateDeg >= 90)
-        {
-            // (x, y) -> (-y, x)
-            int16_t tmp = (*x);
-            (*x) = -(*y);
-            (*y) = tmp;
-        }
-        // Now that it's rotated to a 90 degree boundary, find out how much more
-        // there is to rotate by shearing
-        rotateDeg = rotateDeg % 90;
-
-        // If there's any more to rotate, apply three shear matrices in order
-        // if(rotateDeg > 1 && rotateDeg < 89)
-        if(rotateDeg > 0)
-        {
-            // 1st shear
-            (*x) = (*x) - (((*y) * tan1024[rotateDeg / 2]) + 512) / 1024;
-            // 2nd shear
-            (*y) = (((*x) * sin1024[rotateDeg]) + 512) / 1024 + (*y);
-            // 3rd shear
-            (*x) = (*x) - (((*y) * tan1024[rotateDeg / 2]) + 512) / 1024;
-        }
-
-        // Return pixel to original position
-        (*x) = (*x) + (width / 2);
-        (*y) = (*y) + (height / 2);
-    }
-
-    // Then reflect over Y axis
-    if (flipLR)
-    {
-        (*x) = width - 1 - (*x);
-    }
-
-    // Then reflect over X axis
-    if(flipUD)
-    {
-        (*y) = height - 1 - (*y);
-    }
-
-    // Then translate
-    (*x) += transX;
-    (*y) += transY;
-}
-#endif
 
 /**
  * @brief Draw a WSG to the display
@@ -630,7 +489,6 @@ void transformPixel(int16_t* x, int16_t* y, int16_t transX,
  */
 void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
 {
-#ifdef DISPLAY_HAS_FB
     //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
 
     if(NULL == wsg->px)
@@ -667,10 +525,6 @@ void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
         linein += wWidth;
         wsgY++;
     }
-#else
-    // Unoptimized, no framebuffer access
-    drawWsg(disp, wsg, xOff, yOff, false, false, 0);
-#endif
 }
 
 /**
@@ -684,7 +538,6 @@ void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
 void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
 {
     // Check if there is framebuffer access
-#ifdef DISPLAY_HAS_FB
     {
         if(xOff > disp->w)
         {
@@ -726,11 +579,6 @@ void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
             pxWsg += wWidth;
         }
     }
-#else
-    // Unoptimized, no framebuffer access
-    drawWsgSimpleFast(disp, wsg, xOff, yOff);
-#endif
-
 }
 
 /**
@@ -811,7 +659,6 @@ void freeFont(font_t* font)
 void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16_t xOff, int16_t yOff)
 {
     //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
-#ifdef DISPLAY_HAS_FB
     paletteColor_t * pxOutput = disp->pxFb + yOff * disp->w;
 
     int bitIdx = 0;
@@ -884,35 +731,6 @@ void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16
         bitIdx &= 7;
         pxOutput += disp->w;
     }
-#else
-    // Unoptimized, no framebuffer access
-    uint16_t byteIdx = 0;
-    uint8_t bitIdx = 0;
-    // Iterate over the character bitmap
-    for (int y = 0; y < h; y++)
-    {
-        for (int x = 0; x < ch->w; x++)
-        {
-            // Figure out where to draw
-            int drawX = x + xOff;
-            int drawY = y + yOff;
-            // If there is a pixel
-            if (ch->bitmap[byteIdx] & (1 << bitIdx))
-            {
-                // Draw the pixel
-                disp->setPx(drawX, drawY, color);
-            }
-
-            // Iterate over the bit data
-            bitIdx++;
-            if(8 == bitIdx)
-            {
-                bitIdx = 0;
-                byteIdx++;
-            }
-        }
-    }
-#endif
 }
 
 
