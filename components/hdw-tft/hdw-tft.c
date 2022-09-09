@@ -385,7 +385,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
             gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
             gpio_num_t backlight, bool isPwmBacklight)
 {
-	tftDisp = disp;
+    tftDisp = disp;
 
     if(false == isPwmBacklight)
     {
@@ -620,53 +620,53 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)), void (*fnBackgroundDr
         // Also FYI - I tried going palette-less, it only saved 18k per chunk (1.6ms per frame)
         uint32_t * outColor = (uint32_t*)s_lines[calc_line];
         uint32_t * inColor = (uint32_t*)&pixels[y*TFT_WIDTH];
-		for (uint16_t x = 0; x < TFT_WIDTH/4*PARALLEL_LINES; x++)
-		{
-			uint32_t colors = *(inColor++);
-			uint32_t word1 = paletteColors[(colors>> 0)&0xff] | (paletteColors[(colors>> 8)&0xff]<<16);
-			uint32_t word2 = paletteColors[(colors>>16)&0xff] | (paletteColors[(colors>>24)&0xff]<<16);
-			outColor[0] = word1;
-			outColor[1] = word2;
-			outColor += 2;
-		}
+        for (uint16_t x = 0; x < TFT_WIDTH/4*PARALLEL_LINES; x++)
+        {
+            uint32_t colors = *(inColor++);
+            uint32_t word1 = paletteColors[(colors>> 0)&0xff] | (paletteColors[(colors>> 8)&0xff]<<16);
+            uint32_t word2 = paletteColors[(colors>>16)&0xff] | (paletteColors[(colors>>24)&0xff]<<16);
+            outColor[0] = word1;
+            outColor[1] = word2;
+            outColor += 2;
+        }
 
 #ifdef PROCPROFILE
-		mid = get_ccount();
+        mid = get_ccount();
 #endif
 
-		sending_line = calc_line;
-		calc_line = !calc_line;
+        sending_line = calc_line;
+        calc_line = !calc_line;
 
-		if( y != 0 && fnBackgroundDrawCallback )
-		{
-			fnBackgroundDrawCallback( tftDisp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
-		}
+        if( y != 0 && fnBackgroundDrawCallback )
+        {
+            fnBackgroundDrawCallback( tftDisp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
+        }
 
-		// (When operating @ 160 MHz)
-		// This code takes 35k cycles when y == 0, but
-		// this code takes ~~100k~~ 125k cycles when y != 0...
-		// TODO NOTE:
-		//  *** You have 780us here, to do whatever you want.  For free. ***
-		//  You should avoid when y == 0, but that means you get 14 chunks
-		//  every frame.
-		//
-		// This is because esp_lcd_panel_draw_bitmap blocks until the chunk 
-		// of frames has been sent.
+        // (When operating @ 160 MHz)
+        // This code takes 35k cycles when y == 0, but
+        // this code takes ~~100k~~ 125k cycles when y != 0...
+        // TODO NOTE:
+        //  *** You have 780us here, to do whatever you want.  For free. ***
+        //  You should avoid when y == 0, but that means you get 14 chunks
+        //  every frame.
+        //
+        // This is because esp_lcd_panel_draw_bitmap blocks until the chunk 
+        // of frames has been sent.
 
-		// Send the calculated data
-		esp_lcd_panel_draw_bitmap(panel_handle, 0, y,
-								  TFT_WIDTH, y + PARALLEL_LINES,
-								  s_lines[sending_line]);
+        // Send the calculated data
+        esp_lcd_panel_draw_bitmap(panel_handle, 0, y,
+                                  TFT_WIDTH, y + PARALLEL_LINES,
+                                  s_lines[sending_line]);
 
-		if( y == 0 && fnBackgroundDrawCallback )
-		{
-			fnBackgroundDrawCallback( tftDisp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
-		}
+        if( y == 0 && fnBackgroundDrawCallback )
+        {
+            fnBackgroundDrawCallback( tftDisp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
+        }
 
 #ifdef PROCPROFILE
-		final = get_ccount();
+        final = get_ccount();
 #endif
-	}
+    }
 
 #ifdef PROCPROFILE
     ESP_LOGI( "tft", "%d/%d", mid-start, final-mid );
