@@ -21,6 +21,7 @@ typedef struct
     int8_t hoverLevelIndex;
     int8_t hoverX;
     int8_t hoverY;
+    uint8_t rows;
     uint8_t cols;
     uint16_t prevBtnState;
     uint16_t btnState;
