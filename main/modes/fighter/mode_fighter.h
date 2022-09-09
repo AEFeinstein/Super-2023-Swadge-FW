@@ -280,8 +280,8 @@ void fighterGameLoop(int64_t elapsedUs);
 void fighterGameButtonCb(buttonEvt_t* evt);
 
 void fighterRxButtonInput(int32_t btnState);
+void fighterRxScene(fighterScene_t* scene);
 
 void drawFighterScene(display_t* d, fighterScene_t* sceneData);
-void fighterDrawSceneAfterAck(void);
 
 #endif

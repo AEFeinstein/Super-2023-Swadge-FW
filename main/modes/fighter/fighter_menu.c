@@ -564,7 +564,7 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
     else if(payload[0] == SCENE_COMPOSED_MSG)
     {
         // Receive a scene, so draw it
-        drawFighterScene(fm->disp, (fighterScene_t*) payload);
+        fighterRxScene((fighterScene_t*) payload);
     }
 }
 
@@ -585,15 +585,6 @@ void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
             if (fm->lastSentMsg == CHAR_SEL_MSG || fm->lastSentMsg == STAGE_SEL_MSG)
             {
                 fighterCheckGameBegin();
-            }
-            else if (fm->lastSentMsg == BUTTON_INPUT_MSG)
-            {
-                // TODO don't really care after buttons are acked?
-            }
-            else if (fm->lastSentMsg == SCENE_COMPOSED_MSG)
-            {
-                // After the scene is acked, render it
-                fighterDrawSceneAfterAck();
             }
             break;
         }
@@ -636,8 +627,8 @@ void fighterSendButtonsToOther(int32_t btnState)
         BUTTON_INPUT_MSG,
         btnState // This clips 32 bits to 8 bits, but there are 8 buttons anyway
     };
-    // TODO don't ack, retry until the scene is received
-    p2pSendMsg(&fm->p2p, payload, sizeof(payload), true, fighterP2pMsgTxCbFn);
+    // Don't ack, retry until the scene is received
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), false, fighterP2pMsgTxCbFn);
     fm->lastSentMsg = BUTTON_INPUT_MSG;
 }
 
@@ -651,7 +642,7 @@ void fighterSendSceneToOther(fighterScene_t* scene, uint8_t len)
 {
     // Insert the message type (this byte should be empty)
     ((uint8_t*)scene)[0] = SCENE_COMPOSED_MSG;
-    // TODO don't ack, retry until buttons are received
-    p2pSendMsg(&fm->p2p, (const uint8_t*)scene, len, true, fighterP2pMsgTxCbFn);
+    // Don't ack, retry until buttons are received
+    p2pSendMsg(&fm->p2p, (const uint8_t*)scene, len, false, fighterP2pMsgTxCbFn);
     fm->lastSentMsg = SCENE_COMPOSED_MSG;
 }

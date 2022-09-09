@@ -60,7 +60,9 @@ typedef struct
     fightingStage_t stageIdx;
     fightingGameType_t type;
     uint8_t playerIdx;
+    bool shouldSendButtonInput;
     bool buttonInputReceived;
+    bool shouldSendScene;
     fighterScene_t* composedScene;
     uint8_t composedSceneLen;
     uint32_t hitstopTimer;
@@ -345,6 +347,13 @@ void fighterExitGame(void)
         // Free sprites
         freeFighterSprites(&(f->loadedSprites));
 
+        // Free the composed scene if it exists
+        if(NULL != f->composedScene)
+        {
+            free(f->composedScene);
+            f->composedScene = NULL;
+        }
+
         // Free game data
         free(f);
         f = NULL;
@@ -555,8 +564,8 @@ void fighterGameLoop(int64_t elapsedUs)
                 // Start by sending your buttons to the other swadge
                 if(1 == f->playerIdx)
                 {
-                    // Just send buttons to player 0
-                    fighterSendButtonsToOther(f->fighters[f->playerIdx].btnState);
+                    // Raise flag to send button input to player 0
+                    f->shouldSendButtonInput = true;
                 }
                 break;
             }
@@ -611,28 +620,24 @@ void fighterGameLoop(int64_t elapsedUs)
         // Check for collisions between projectiles and hurtboxes
         checkFighterProjectileCollisions(&f->projectiles);
 
+        // Free scene before composing another
+        if(NULL != f->composedScene)
+        {
+            free(f->composedScene);
+            f->composedScene = NULL;
+        }
         f->composedSceneLen = 0;
         f->composedScene = composeFighterScene(f->stageIdx, &f->fighters[0], &f->fighters[1], &f->projectiles,
                                                &(f->composedSceneLen));
 
-        // Render based on game type
-        switch(f->type)
+        // Raise flag to send to other if this is multiplayer
+        if(MULTIPLAYER == f->type)
         {
-            case MULTIPLAYER:
-            {
-                fighterSendSceneToOther(f->composedScene, f->composedSceneLen);
-                // render and free scene upon ACK
-                break;
-            }
-            case HR_CONTEST:
-            {
-                // Render the scene immediately
-                drawFighterScene(f->d, f->composedScene);
-                free(f->composedScene);
-                f->composedSceneLen = 0;
-                break;
-            }
+            f->shouldSendScene = true;
         }
+
+        // Render the scene
+        drawFighterScene(f->d, f->composedScene);
 
         // char dbgStr[256];
         // box_t hb;
@@ -652,17 +657,22 @@ void fighterGameLoop(int64_t elapsedUs)
         //     f->fighters[0].velocity.y,
         //     f->fighters[0].relativePos);
     }
-}
 
-/**
- * This function is called after receiving the ACK to the SCENE_COMPOSED_MSG
- * It draws the screen on this swadge and frees the composed scene
- */
-void fighterDrawSceneAfterAck(void)
-{
-    drawFighterScene(f->d, f->composedScene);
-    free(f->composedScene);
-    f->composedSceneLen = 0;
+    // If this is multiplayer, manage transmissions
+    if(MULTIPLAYER == f->type)
+    {
+        // Blast the buttons until the scene is received
+        if(f->shouldSendButtonInput)
+        {
+            fighterSendButtonsToOther(f->fighters[f->playerIdx].btnState);
+        }
+
+        // Blast the scene until the bottons are received
+        if(f->shouldSendScene)
+        {
+            fighterSendSceneToOther(f->composedScene, f->composedSceneLen);
+        }
+    }
 }
 
 /**
@@ -2363,4 +2373,16 @@ void fighterRxButtonInput(int32_t btnState)
     f->fighters[1].btnState = btnState;
     // Set to true to run main loop with input
     f->buttonInputReceived = true;
+    f->shouldSendScene = false;
+}
+
+/**
+ * @brief Receive a scene to render from another swadge
+ * 
+ * @param scene The scene to render
+ */
+void fighterRxScene(fighterScene_t* scene)
+{
+    f->shouldSendButtonInput = false;
+    drawFighterScene(f->d, scene);
 }
