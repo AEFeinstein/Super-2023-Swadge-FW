@@ -212,8 +212,11 @@ void tud_hid_set_report_cb(uint8_t itf,
  * task itself.
  */
 
+esp_err_t esp_partition_mmap();
+
 void app_main(void)
 {
+	if( rand() == 0 ) esp_partition_mmap();
 #if defined(CONFIG_SWADGE_DEVKIT)
     // Pull these GPIOs low immediately!!!
     // This prevents overheating on the devkit

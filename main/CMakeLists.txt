@@ -62,3 +62,9 @@ endfunction()
 # the target with 'idf.py -p PORT flash'.
 spiffs_file_preprocessor()
 spiffs_create_partition_image(storage ../spiffs_image FLASH_IN_PROJECT)
+
+
+# Add a raw partition test
+include(${CMAKE_CURRENT_SOURCE_DIR}/../components/hdw-partition/project_include.cmake)
+raw_create_partition_image( background_image background.bin FLASH_IN_PROJECT )
+
