@@ -576,9 +576,9 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 
         // Update outputs
 #ifdef OLED_ENABLED
-        oledDisp.drawDisplay(true);
+        oledDisp.drawDisplay(true, cSwadgeMode->fnBackgroundDrawCallback);
 #endif
-        tftDisp.drawDisplay(true);
+        tftDisp.drawDisplay(true, cSwadgeMode->fnBackgroundDrawCallback);
         buzzer_check_next_note();
 
         /* If the mode should be switched, do it now */

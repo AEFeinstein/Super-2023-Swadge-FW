@@ -334,7 +334,7 @@ const uint16_t paletteColors[] =
 void setPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t getPxTft(int16_t x, int16_t y);
 void clearPxTft(void);
-void drawDisplayTft(bool drawDiff);
+void drawDisplayTft(bool drawDiff __attribute__((unused)), void (*fnBackgroundDrawCallback)(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum ));
 
 //==============================================================================
 // Variables
@@ -343,6 +343,7 @@ void drawDisplayTft(bool drawDiff);
 esp_lcd_panel_handle_t panel_handle = NULL;
 static paletteColor_t * pixels = NULL;
 static uint16_t *s_lines[2] = {0};
+display_t * tftDisp = NULL;
 // static uint64_t tFpsStart = 0;
 // static int framesDrawn = 0;
 
@@ -384,6 +385,8 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
             gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
             gpio_num_t backlight, bool isPwmBacklight)
 {
+	tftDisp = disp;
+
     if(false == isPwmBacklight)
     {
         // Binary backlight
@@ -593,7 +596,7 @@ void clearPxTft(void)
  * @param drawDiff unused
  */
 
-void drawDisplayTft(bool drawDiff __attribute__((unused)))
+void drawDisplayTft(bool drawDiff __attribute__((unused)), void (*fnBackgroundDrawCallback)(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum ))
 {
     // Limit drawing to 30fps
     static uint64_t tLastDraw = 0;
@@ -644,6 +647,11 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
             sending_line = calc_line;
             calc_line = !calc_line;
 
+			if( y != 0 && fnBackgroundDrawCallback )
+			{
+				fnBackgroundDrawCallback( tftDisp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
+			}
+
             // (When operating @ 160 MHz)
             // This code takes 35k cycles when y == 0, but
             // this code takes ~~100k~~ 125k cycles when y != 0...
@@ -659,6 +667,11 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
             esp_lcd_panel_draw_bitmap(panel_handle, 0, y,
                                       TFT_WIDTH, y + PARALLEL_LINES,
                                       s_lines[sending_line]);
+
+			if( y == 0 && fnBackgroundDrawCallback )
+			{
+				fnBackgroundDrawCallback( tftDisp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
+			}
 
 #ifdef PROCPROFILE
             final = get_ccount();

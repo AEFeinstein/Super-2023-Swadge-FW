@@ -47,13 +47,15 @@ typedef struct
     uint16_t h;
 } wsg_t;
 
+struct display;
+
 typedef void (*pxSetFunc_t)(int16_t x, int16_t y, paletteColor_t px);
 typedef paletteColor_t (*pxGetFunc_t)(int16_t x, int16_t y);
 typedef paletteColor_t* (*pxFbGetFunc_t)(void);
 typedef void (*pxClearFunc_t)(void);
-typedef void (*drawDisplayFunc_t)(bool drawDiff);
+typedef void (*drawDisplayFunc_t)(bool drawDiff,void (*fnBackgroundDrawCallback)(struct display* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum ));
 
-typedef struct
+struct display
 {
     pxSetFunc_t setPx;
     pxGetFunc_t getPx;
@@ -62,7 +64,9 @@ typedef struct
     uint16_t w;
     uint16_t h;
     paletteColor_t * pxFb; // may be null
-} display_t;
+};
+
+typedef struct display display_t;
 
 typedef struct
 {

@@ -368,7 +368,7 @@ void updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t
 void setPxOled(int16_t x, int16_t y, paletteColor_t c);
 paletteColor_t getPxOled(int16_t x, int16_t y);
 void clearPxOled(void);
-void drawDisplayOled(bool drawDifference);
+void drawDisplayOled(bool drawDifference,void (*fnBackgroundDrawCallback)(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum )));
 
 //==============================================================================
 // Variables
@@ -378,6 +378,8 @@ uint8_t currentFb[(OLED_WIDTH * (OLED_HEIGHT / 8))] = {0};
 uint8_t priorFb[(OLED_WIDTH * (OLED_HEIGHT / 8))] = {0};
 
 bool fbChanges = false;
+
+display_t oledDisp;
 
 //==============================================================================
 // Functions
@@ -468,6 +470,8 @@ bool initOLED(display_t * disp, bool reset, gpio_num_t rst_gpio)
     disp->clearPx = clearPxOled;
     disp->drawDisplay = drawDisplayOled;
     disp->pxFb = NULL;
+	
+	oledDisp = disp;
 
     // Clear the RAM
     clearPxOled();
@@ -497,7 +501,7 @@ bool initOLED(display_t * disp, bool reset, gpio_num_t rst_gpio)
     }
 
     // Also clear the display's RAM on boot
-    drawDisplayOled(false);
+    drawDisplayOled(false, 0);
 
     return true;
 }
@@ -561,7 +565,7 @@ void updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t
  * @param drawDifference true to only draw differences from the prior frame
  *                       false to draw the entire frame
  */
-void drawDisplayOled(bool drawDifference)
+void drawDisplayOled(bool drawDifference, void (*fnBackgroundDrawCallback)(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum ))
 {
     //Before sending the actual data, we do housekeeping. This can take between 57 and 200 uS
     //But ensures the visual data stays consistent.
@@ -659,6 +663,11 @@ void drawDisplayOled(bool drawDifference)
     {
         updateOLEDScreenRange( 0, OLED_WIDTH - 1, 0, SSD1306_NUM_PAGES - 1 );
     }
+	
+	if( fnBackgroundDrawCallback )
+	{
+		fnBackgroundDrawCallback( oledDisp, 0, 0, OLED_WIDTH, OLED_HEIGHT, 0, 1 );
+	}
 }
 
 //==============================================================================
