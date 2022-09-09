@@ -12,11 +12,12 @@
 // Structs
 //==============================================================================
 
-typedef struct touch_msg {
-    touch_pad_intr_mask_t intr_mask;
-    touch_pad_t pad_num;
-    uint32_t pad_status;
-    uint32_t pad_val;
+typedef struct
+{
+    uint16_t state;
+    touch_pad_t pad;
+    bool down;
+    int16_t position;
 } touch_event_t;
 
 //==============================================================================
