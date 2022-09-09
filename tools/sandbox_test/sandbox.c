@@ -25,6 +25,10 @@ const char * menu_Bootload = "Bootloader";
 //#define PROFILE_TEST
 #define MODE7_TEST
 
+#ifdef MODE7_TEST
+int mode7timing;
+#endif
+
 // Example to do true inline assembly.  This will actually compile down to be
 // included in the code, itself, and "should" (does in all the tests I've run)
 // execute in one clock cycle since there is no function call and rsr only
@@ -61,7 +65,14 @@ void menuCb(const char* opt)
 
 void sandbox_main(display_t * disp_in)
 {
-//	memset( &meleeMenuFont, 0, sizeof( meleeMenuFont ) );
+#ifdef REBOOT_TEST
+	// Uncomment this to reboot the chip into the bootloader.
+	// This is to test to make sure we can call ROM functions.
+	REG_WRITE(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
+	void software_reset( uint32_t x );
+	software_reset( 0 );
+#endif
+
 	menu = 0; disp = disp_in;
 	ESP_LOGI( "sandbox", "Running from IRAM. %d", global_i );
 
@@ -160,6 +171,7 @@ void sandbox_tick()
 	drawWsg( disp, &example_sprite, 100, 100, 0, 0, 0); // 19600-20400
 	uint32_t end = get_ccount();
 
+#ifdef MODE7_TEST
 	for( int mode = 0; mode < 8; mode++ )
 	{
 		drawWsg( disp, &example_sprite, 50+mode*20, (global_i%20)-10, !!(mode&1), !!(mode & 2), (mode & 4)*10);
@@ -167,16 +179,22 @@ void sandbox_tick()
 		drawWsg( disp, &example_sprite, (global_i%20)-10, 50+mode*20, !!(mode&1), !!(mode & 2), (mode & 4)*10);
 		drawWsg( disp, &example_sprite, (global_i%20)+270, 50+mode*20, !!(mode&1), !!(mode & 2), (mode & 4)*10);
 	}
-		
-	ESP_LOGI( "sandbox", "SPROF: %d\n", end-start );
+
+	ESP_LOGI( "sandbox", "SPROF: %d / Mode7: %d", end-start, mode7timing );
+#endif
 }
 
 void sandboxBackgroundDrawCallback(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum )
 {
+#ifdef MODE7_TEST
 	int i;
+
+	uint32_t start = get_ccount();
 	fillDisplayArea(disp, x, y, x+w, y+h, 0 );
 	for( i = 0; i < 16; i++ )
-		fillDisplayArea(disp, i*16+8, y, i*16+16+8, y+h, up*16+i );
+		fillDisplayArea(disp, i*16+8, y, i*16+16+8, y+16, up*16+i );
+	mode7timing = get_ccount() - start;
+#endif
 }
 
 void sandbox_button(buttonEvt_t* evt)
