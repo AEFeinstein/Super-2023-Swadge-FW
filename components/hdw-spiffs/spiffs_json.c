@@ -3,7 +3,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifndef EMU
 #include "esp_log.h"
+#endif
 #include "spiffs_manager.h"
 #include "heatshrink_decoder.h"
 #include "spiffs_json.h"
@@ -23,8 +25,12 @@ char* loadJson(const char* name)
     size_t sz;
     if(!spiffsReadFile(name, &buf, &sz))
     {
+#ifndef EMU
         ESP_LOGE("JSON", "Failed to read %s", name);
-        return NULL;
+#else
+		printf( "JSON: Failed to read %s\n", name );
+#endif
+	return NULL;
     }
 
 #ifndef JSON_COMPRESSION

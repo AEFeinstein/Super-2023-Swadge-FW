@@ -216,7 +216,7 @@ bool loadWsg(char* name, wsg_t* wsg)
     wsg->w = (decompressedBuf[0] << 8) | decompressedBuf[1];
     wsg->h = (decompressedBuf[2] << 8) | decompressedBuf[3];
     // The rest of the bytes are pixels
-#ifdef _TEST_USE_SPIRAM_
+#if defined( _TEST_USE_SPIRAM_ ) && !defined( EMU )
     wsg->px = (paletteColor_t*)heap_caps_malloc(sizeof(paletteColor_t) * wsg->w * wsg->h, MALLOC_CAP_SPIRAM);
 #else
     wsg->px = (paletteColor_t*)malloc(sizeof(paletteColor_t) * wsg->w * wsg->h);
