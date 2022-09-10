@@ -163,6 +163,7 @@ void updatePlayer(entity_t *self)
         }
     }
 
+/*
     if (self->gameData->btnState & UP)
     {
         self->yspeed -= 16;
@@ -181,6 +182,7 @@ void updatePlayer(entity_t *self)
             self->yspeed = self->yMaxSpeed;
         }
     }
+*/
 
     if (self->gameData->btnState & BTN_A)
     {
@@ -268,7 +270,7 @@ void updateHitBlock(entity_t *self)
             case TILE_CTNR_COIN:
             {
                 self->gameData->coins++;
-                self->gameData->score += 50;
+                scorePoints(self->gameData, 10);
                 buzzer_play_sfx(&sndCoin);
                 self->jumpPower = TILE_CONTAINER_2;
                 break;
@@ -302,7 +304,7 @@ void updateHitBlock(entity_t *self)
 
         if(self->jumpPower == TILE_BRICK_BLOCK && (self->yspeed > 0 || self->yDamping == 1) && createdEntity == NULL ) {
             self->jumpPower = TILE_EMPTY;
-            self->gameData->score += 10;
+            scorePoints(self->gameData, 10);
             buzzer_play_sfx(&sndBreak);
         }
 
@@ -577,7 +579,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
 
             if (self->y < other->y || self->yspeed > 0)
             {
-                self->gameData->score += 100;
+                scorePoints(self->gameData, 100);
 
                 killEnemy(other);
                 buzzer_play_sfx(&sndSquish);
@@ -590,6 +592,8 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
             {
                 self->hp--;
                 updateLedsHpMeter(self->entityManager, self->gameData);
+                self->gameData->comboTimer = 0;
+                
                 if(self->hp <= 0){
                     self->updateFunction = &updateEntityDead;
                     self->type = ENTITY_DEAD;
@@ -627,7 +631,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
             if(self->hp > 3){
                 self->hp = 3;
             }
-            self->gameData->score += 1000;
+            scorePoints(self->gameData, 1000);
             buzzer_play_sfx(&sndPowerUp);
             updateLedsHpMeter(self->entityManager, self->gameData);
             destroyEntity(other, false);
@@ -760,7 +764,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     {
         setTile(self->tilemap, tx, ty, TILE_EMPTY);
         self->gameData->coins++;
-        self->gameData->score += 50;
+        scorePoints(self->gameData, 50);
         buzzer_play_sfx(&sndCoin);
         break;
     }
