@@ -307,7 +307,7 @@ void p2pTxAllRetriesTimeout(void* arg)
  * @param msgTxCbFn A callback function when this message is ACKed or dropped
  */
 void p2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len,
-    bool shouldAck, p2pMsgTxCbFn msgTxCbFn)
+                bool shouldAck, p2pMsgTxCbFn msgTxCbFn)
 {
     //ESP_LOGD("P2P", "%s", __func__);
 

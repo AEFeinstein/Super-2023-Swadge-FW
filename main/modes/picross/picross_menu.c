@@ -35,7 +35,6 @@ typedef struct
     display_t* disp;
     picrossLevelDef_t levels[PICROSS_LEVEL_COUNT];
     picrossScreen_t screen;
-    bool menuChanged;
     int32_t savedIndex;
     uint8_t settingsPos;
     int32_t options;//bit 0: hints
@@ -212,11 +211,7 @@ void picrossMainLoop(int64_t elapsedUs)
         case PICROSS_OPTIONS:
         case PICROSS_MENU:
         {
-            if (pm->menuChanged)
-            {
-                drawMeleeMenu(pm->disp, pm->menu);
-                pm->menuChanged = false;
-            }
+            drawMeleeMenu(pm->disp, pm->menu);
             break;
         }
         case PICROSS_LEVELSELECT:
@@ -252,7 +247,6 @@ void picrossButtonCb(buttonEvt_t* evt)
             //Pass button events from the Swadge mode to the menu
             if (evt->down)
             {
-                pm->menuChanged = true;
                 meleeMenuButton(pm->menu, evt->button);
             }
             break;
@@ -346,7 +340,6 @@ void setPicrossMainMenu(bool resetPos)
     addRowToMeleeMenu(pm->menu, str_howtoplay);
     addRowToMeleeMenu(pm->menu, str_options);
     addRowToMeleeMenu(pm->menu, str_exit);
-    pm->menuChanged = true;
     pm->screen = PICROSS_MENU;
 }
 
@@ -404,26 +397,22 @@ void picrossMainMenuCb(const char* opt)
         return;
     }else if(opt == str_back)
     {
-        pm->menuChanged = true;
         pm->screen = PICROSS_MENU;
         setPicrossMainMenu(true);
     }else if(opt == str_options)
     {
-        pm->menuChanged = true;
         pm->screen = PICROSS_OPTIONS;
         setPicrossMainMenu(true);
     }else if(opt == str_HintsOff)
     {
         //turn hints back on
         picrossSetSaveFlag(0,true);
-        pm->menuChanged = true;
         setPicrossMainMenu(false);//re-setup menu with new text, but dont change cursor position
     }
     else if(opt == str_HintsOn)
     {
         //turn hints off
         picrossSetSaveFlag(0,false);
-        pm->menuChanged = true;
         setPicrossMainMenu(false);
     }else if(opt == str_GuidesOff)
     {

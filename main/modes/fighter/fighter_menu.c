@@ -41,7 +41,6 @@ typedef struct
     display_t* disp;
     fighterScreen_t screen;
     p2pInfo p2p;
-    bool menuChanged;
     fightingCharacter_t characters[2];
     fightingStage_t stage;
     fighterMessageType_t lastSentMsg;
@@ -172,12 +171,7 @@ void fighterMainLoop(int64_t elapsedUs)
     {
         case FIGHTER_MENU:
         {
-            // Redraw the menu if there's been a change
-            if(fm->menuChanged)
-            {
-                drawMeleeMenu(fm->disp, fm->menu);
-                fm->menuChanged = false;
-            }
+            drawMeleeMenu(fm->disp, fm->menu);
             break;
         }
         case FIGHTER_GAME:
@@ -217,7 +211,6 @@ void fighterButtonCb(buttonEvt_t* evt)
             // Pass button events from the Swadge mode to the menu
             if(evt->down)
             {
-                fm->menuChanged = true;
                 meleeMenuButton(fm->menu, evt->button);
             }
             break;
@@ -252,7 +245,6 @@ void setFighterMainMenu(void)
     addRowToMeleeMenu(fm->menu, str_multiplayer);
     addRowToMeleeMenu(fm->menu, str_hrContest);
     addRowToMeleeMenu(fm->menu, str_exit);
-    fm->menuChanged = true;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -294,7 +286,6 @@ void setFighterHrMenu(void)
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
     addRowToMeleeMenu(fm->menu, str_back);
-    fm->menuChanged = true;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -354,7 +345,6 @@ void setFighterMultiplayerCharSelMenu(void)
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
     addRowToMeleeMenu(fm->menu, str_back);
-    fm->menuChanged = true;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -426,7 +416,6 @@ void setFighterMultiplayerStageSelMenu(void)
     addRowToMeleeMenu(fm->menu, str_stgBF);
     addRowToMeleeMenu(fm->menu, str_stgFD);
     addRowToMeleeMenu(fm->menu, str_back);
-    fm->menuChanged = true;
     fm->screen = FIGHTER_MENU;
 }
 

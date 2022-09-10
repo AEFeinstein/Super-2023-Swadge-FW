@@ -16,6 +16,11 @@ else
     endif
 endif
 
+FIND:=find
+ifeq ($(HOST_OS),Windows)
+	FIND:=$(shell cygpath `where find | grep bin`)
+endif
+
 ################################################################################
 # Programs to use
 ################################################################################
@@ -38,9 +43,9 @@ SRC_DIRS_FLAT = main
 # This is a list of files to compile directly. There's no scanning here
 SRC_FILES = components/hdw-spiffs/heatshrink_decoder.c components/hdw-spiffs/spiffs_json.c
 # This is all the source directories combined
-SRC_DIRS = $(shell find $(SRC_DIRS_RECURSIVE) -type d) $(SRC_DIRS_FLAT)
+SRC_DIRS = $(shell $(FIND) $(SRC_DIRS_RECURSIVE) -type d) $(SRC_DIRS_FLAT)
 # This is all the source files combined
-SOURCES   = $(shell find $(SRC_DIRS) -maxdepth 1 -iname "*.[c]") $(SRC_FILES)
+SOURCES   = $(shell $(FIND) $(SRC_DIRS) -maxdepth 1 -iname "*.[c]") $(SRC_FILES)
 
 ################################################################################
 # Compiler Flags
@@ -130,7 +135,7 @@ DEFINES = $(patsubst %, -D%, $(DEFINES_LIST))
 # Look for folders with .h files in these directories, recursively
 INC_DIRS_RECURSIVE = components
 # Treat every source directory as one to search for headers in, also add a few more
-INC_DIRS = $(SRC_DIRS) $(shell find $(INC_DIRS_RECURSIVE) -type d)
+INC_DIRS = $(SRC_DIRS) $(shell $(FIND) $(INC_DIRS_RECURSIVE) -type d)
 # Prefix the directories for gcc
 INC = $(patsubst %, -I%, $(INC_DIRS) )
 

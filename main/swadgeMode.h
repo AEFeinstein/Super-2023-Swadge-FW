@@ -99,7 +99,7 @@ typedef struct _swadgeMode
 
     /**
      * This function is called when the display driver wishes to update a
-	 * section of the display.
+     * section of the display.
      *
      * @param disp The display to draw to
      * @param x the x coordiante that should be updated
@@ -109,7 +109,8 @@ typedef struct _swadgeMode
      * @param up update number
      * @param numUp update number denominator
      */
-    void (*fnBackgroundDrawCallback)(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum );
+    void (*fnBackgroundDrawCallback)(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up,
+                                     int16_t upNum );
 
     /**
      * This is a setting, not a function pointer. Set it to one of these

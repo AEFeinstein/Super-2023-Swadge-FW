@@ -13,24 +13,24 @@
 
 // A technique to turbo time set pixels (not yet in use)
 #define SETUP_FOR_TURBO( disp ) \
-	register uint32_t dispWidth = disp->w; \
-	register uint32_t dispHeight = disp->h; \
-	register uint32_t dispPx = (uint32_t)disp->pxFb; \
+    register uint32_t dispWidth = disp->w; \
+    register uint32_t dispHeight = disp->h; \
+    register uint32_t dispPx = (uint32_t)disp->pxFb; \
 
 // 5/4 cycles -- note you can do better if you don't need arbitrary X/Y's.
 #define TURBO_SET_PIXEL(disp, opxc, opy, colorVal ) \
-	asm volatile( "mul16u a4, %[width], %[y]\nadd a4, a4, %[px]\nadd a4, a4, %[opx]\ns8i %[val],a4, 0" \
-		: : [opx]"a"(opxc),[y]"a"(opy),[px]"a"(dispPx),[val]"a"(colorVal),[width]"a"(dispWidth) : "a4" );
+    asm volatile( "mul16u a4, %[width], %[y]\nadd a4, a4, %[px]\nadd a4, a4, %[opx]\ns8i %[val],a4, 0" \
+                  : : [opx]"a"(opxc),[y]"a"(opy),[px]"a"(dispPx),[val]"a"(colorVal),[width]"a"(dispWidth) : "a4" );
 
-// Very tricky: 
+// Very tricky:
 //   We do bgeui which checks to make sure 0 <= x < MAX
 //   Other than that, it's basically the same as above.
 #define TURBO_SET_PIXEL_BOUNDS(disp, opxc, opy, colorVal ) \
-	asm volatile( "bgeu %[opx], %[width], failthrough%=\nbgeu %[y], %[height], failthrough%=\nmul16u a4, %[width], %[y]\nadd a4, a4, %[px]\nadd a4, a4, %[opx]\ns8i %[val],a4, 0\nfailthrough%=:\n" \
-		: : [opx]"a"(opxc),[y]"a"(opy),[px]"a"(dispPx),[val]"a"(colorVal),[width]"a"(dispWidth),[height]"a"(dispHeight) : "a4" );
+    asm volatile( "bgeu %[opx], %[width], failthrough%=\nbgeu %[y], %[height], failthrough%=\nmul16u a4, %[width], %[y]\nadd a4, a4, %[px]\nadd a4, a4, %[opx]\ns8i %[val],a4, 0\nfailthrough%=:\n" \
+                  : : [opx]"a"(opxc),[y]"a"(opy),[px]"a"(dispPx),[val]"a"(colorVal),[width]"a"(dispWidth),[height]"a"(dispHeight) : "a4" );
 
 #else
-#define SETUP_FOR_TURBO( disp ) 
+#define SETUP_FOR_TURBO( disp )
 #define TURBO_SET_PIXEL SET_PIXEL
 #define TURBO_SET_PIXEL_BOUNDS SET_PIXEL_BOUNDS
 #endif
@@ -60,13 +60,14 @@ typedef struct
 
 struct display;
 
-typedef void (*fnBackgroundDrawCallback_t)(struct display* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum);
+typedef void (*fnBackgroundDrawCallback_t)(struct display* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up,
+        int16_t upNum);
 
 typedef void (*pxSetFunc_t)(int16_t x, int16_t y, paletteColor_t px);
 typedef paletteColor_t (*pxGetFunc_t)(int16_t x, int16_t y);
 typedef paletteColor_t* (*pxFbGetFunc_t)(void);
 typedef void (*pxClearFunc_t)(void);
-typedef void (*drawDisplayFunc_t)(struct display * disp,bool drawDiff,fnBackgroundDrawCallback_t cb);
+typedef void (*drawDisplayFunc_t)(struct display* disp, bool drawDiff, fnBackgroundDrawCallback_t cb);
 
 struct display
 {
@@ -76,7 +77,7 @@ struct display
     drawDisplayFunc_t drawDisplay;
     uint16_t w;
     uint16_t h;
-    paletteColor_t * pxFb; // may be null
+    paletteColor_t* pxFb;  // may be null
 };
 
 typedef struct display display_t;
