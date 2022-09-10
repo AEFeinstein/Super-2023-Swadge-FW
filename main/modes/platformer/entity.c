@@ -29,8 +29,26 @@ static const song_t sndHit =
     {
         .notes =
             {
+                {C_4, 25}, {C_5, 25}},
+        .numNotes = 2,
+        .shouldLoop = false
+    };
+
+static const song_t sndSquish =
+    {
+        .notes =
+            {
                 {740, 10}, {840, 10}, {940, 10}},
         .numNotes = 3,
+        .shouldLoop = false
+    };
+
+static const song_t sndBreak =
+    {
+        .notes =
+            {
+                {C_5, 25}, {C_4, 25}, {A_4, 25}, {A_SHARP_3, 25}, {A_3, 25}},
+        .numNotes = 5,
         .shouldLoop = false
     };
 
@@ -285,6 +303,7 @@ void updateHitBlock(entity_t *self)
         if(self->jumpPower == TILE_BRICK_BLOCK && (self->yspeed > 0 || self->yDamping == 1) && createdEntity == NULL ) {
             self->jumpPower = TILE_EMPTY;
             self->gameData->score += 10;
+            buzzer_play_sfx(&sndBreak);
         }
 
         self->tilemap->map[self->homeTileY * self->tilemap->mapWidth + self->homeTileX] = self->jumpPower;
@@ -566,7 +585,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                 other->spriteFlipVertical = true;
                 other->updateFunction = &updateEntityDead;
 
-                buzzer_play_sfx(&sndHit);
+                buzzer_play_sfx(&sndSquish);
 
                 self->yspeed = -512;
 
@@ -694,6 +713,8 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
             default:
                 break;
             }
+
+            buzzer_play_sfx(&sndHit);
         }
         break;
     }
