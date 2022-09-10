@@ -130,9 +130,15 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
     {
         gamepad->isPluggedIn = tud_ready();
     }
-
+	
+	int start = getCycleCount();
+	portDISABLE_INTERRUPTS();
     // Clear the display
     fillDisplayArea(gamepad->disp, 0, 0, gamepad->disp->w, gamepad->disp->h, c213);
+
+
+	// Originally, A+B down = 224625 cycles.
+	// Then 162025
 
     // Always Draw some reminder text, centered
     const char reminderText[] = "Start + Select to Exit";
@@ -252,6 +258,16 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
                  (gamepad->disp->w - tWidth) / 2,
                  (gamepad->disp->h - gamepad->ibmFont.h) / 2);
     }
+
+	int end = getCycleCount();
+	
+	portENABLE_INTERRUPTS();
+    char promptText[64];
+	sprintf( promptText, "%d", end-start );
+    drawText(gamepad->disp, &gamepad->ibmFont, c555, promptText, (gamepad->disp->w - tWidth) / 2, 20);
+
+
+	ESP_LOGI( "gamepad", "Time: %d", end-start );
 }
 
 /**
