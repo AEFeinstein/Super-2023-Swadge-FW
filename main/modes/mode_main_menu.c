@@ -54,7 +54,6 @@ typedef struct
     display_t* disp;
     font_t meleeMenuFont;
     meleeMenu_t* menu;
-    bool shouldDraw;
     uint8_t topLevelPos;
     uint8_t gamesPos;
     uint8_t toolsPos;
@@ -116,9 +115,6 @@ void mainMenuEnterMode(display_t* disp)
     // Initialize the menu
     mainMenu->menu = initMeleeMenu(mainMenuTitle, &mainMenu->meleeMenuFont, mainMenuTopLevelCb);
     mainMenuSetUpTopMenu(true);
-
-    // Set it to draw
-    mainMenu->shouldDraw = true;
 }
 
 /**
@@ -138,11 +134,7 @@ void mainMenuExitMode(void)
  */
 void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
-    if(mainMenu->shouldDraw)
-    {
-        mainMenu->shouldDraw = false;
-        drawMeleeMenu(mainMenu->disp, mainMenu->menu);
-    }
+    drawMeleeMenu(mainMenu->disp, mainMenu->menu);
 }
 
 /**
@@ -219,7 +211,6 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                         }
                     }
                     // Redraw menu options
-                    mainMenu->shouldDraw = true;
                     mainMenuSetUpSettingsMenu(false);
                 }
                 break;
@@ -231,13 +222,11 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                 {
                     // Go back to the main menu
                     mainMenuSetUpTopMenu(false);
-                    mainMenu->shouldDraw = true;
                     return;
                 }
                 break;
             }
         }
-        mainMenu->shouldDraw = true;
     }
 }
 
