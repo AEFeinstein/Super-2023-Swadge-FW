@@ -255,6 +255,8 @@ void updateGame(platformer_t *self)
         self->gameData.countdown--;
     }
 
+    updateComboTimer(&(self->gameData));
+
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
 }
@@ -264,7 +266,7 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
     char coinStr[8];
     snprintf(coinStr, sizeof(coinStr) - 1, "C:%02d", gameData->coins);
 
-    char scoreStr[8];
+    char scoreStr[32];
     snprintf(scoreStr, sizeof(scoreStr) - 1, "%06d", gameData->score);
 
     char levelStr[15];
@@ -285,6 +287,13 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
     drawText(d, font, c555, scoreStr, 8, 16);
     drawText(d, font, c555, levelStr, 152, 2);
     drawText(d, font, c555, timeStr, 220, 16);
+
+    if(gameData->comboTimer == 0){
+        return;
+    }
+
+    snprintf(scoreStr, sizeof(scoreStr) - 1, "+%d (x%d)", gameData->comboScore, gameData->combo);
+    drawText(d, font, c050, scoreStr, 8, 30);
 }
 
 void updateTitleScreen(platformer_t *self)
@@ -299,50 +308,19 @@ void updateTitleScreen(platformer_t *self)
 
     // Handle inputs
     if (
-        ((self->gameData.btnState & BTN_B) && !(self->gameData.prevBtnState & BTN_B)) 
-        ||
-        ((self->gameData.btnState & BTN_A) && !(self->gameData.prevBtnState & BTN_B))
+        self->gameData.btnState & START
     )
     {
         initializeGameData(&(self->gameData));
         changeStateReadyScreen(self);
     }
 
-    if(self->gameData.btnState & LEFT){
-        scrollTileMap(&(platformer->tilemap), -2, 0);
-    } else if(self->gameData.btnState & RIGHT){
-        scrollTileMap(&(platformer->tilemap), 2, 0);
+
+    scrollTileMap(&(platformer->tilemap), 2, 0);
+    if(self->tilemap.mapOffsetX >= self->tilemap.maxMapOffsetX && self->frameTimer > 19){
+        self->tilemap.mapOffsetX = 0;
     }
-    /*
-    if (
-        ((self->gameData.btnState & UP) && !(self->gameData.prevBtnState & UP))
-        ||
-        ((self->gameData.btnState & DOWN) && !(self->gameData.prevBtnState & DOWN))
-    )
-    {
-        for (int32_t i = 0; i < NUM_LEDS; i++)
-        {
-            platLeds[i].r = 0xFF;
-            platLeds[i].g = 0xFF;
-            platLeds[i].b = 0xFF;
-        }
-        setLeds(platLeds, NUM_LEDS);
-        buzzer_play_sfx(&sndTest);
-    } else if (
-        (!(self->gameData.btnState & UP) && (self->gameData.prevBtnState & UP))
-        ||
-        (!(self->gameData.btnState & DOWN) && (self->gameData.prevBtnState & DOWN))
-    )
-    {
-        for (int32_t i = 0; i < NUM_LEDS; i++)
-        {
-            platLeds[i].r = 0x00;
-            platLeds[i].g = 0x00;
-            platLeds[i].b = 0x00;
-        }
-        setLeds(platLeds, NUM_LEDS);
-    }
-    */
+    
 
     drawPlatformerTitleScreen(self->disp, &(self->radiostars), &(self->gameData));
 
@@ -358,7 +336,7 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
 
     if (gameData->frameCount < 10)
     {
-        drawText(d, font, c555, "Press A or B to start", 20, 128);
+        drawText(d, font, c555, "- Press START button -", 20, 128);
     }
 }
 
@@ -435,6 +413,9 @@ void detectGameStateChange(platformer_t *self){
 void changeStateDead(platformer_t *self){
     self->gameData.frameCount = 0;
     self->gameData.lives--;
+    self->gameData.combo = 0;
+    self->gameData.comboTimer = 0;
+
     buzzer_play_bgm(&sndDie);
 
     self->update=&updateDead;

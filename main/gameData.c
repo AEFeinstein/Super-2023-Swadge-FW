@@ -19,6 +19,8 @@
     gameData->level = 1;
     gameData->frameCount = 0;
     gameData->coins = 0;
+    gameData->combo = 0;
+    gameData->comboTimer = 0;
 }
 
 void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData){
@@ -53,3 +55,22 @@ void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData){
 
     setLeds(gameData->leds, NUM_LEDS);
 }
+
+void scorePoints(gameData_t * gameData, uint16_t points){
+    gameData->combo++;
+    uint16_t comboPoints = points * gameData->combo;
+
+    gameData->score += comboPoints;
+    gameData->comboScore = comboPoints;
+    
+    gameData->comboTimer = 80;
+}
+
+void updateComboTimer(gameData_t * gameData){
+    gameData->comboTimer--;
+
+    if(gameData->comboTimer < 0){
+        gameData->comboTimer = 0;
+        gameData->combo = 0;
+    }
+};

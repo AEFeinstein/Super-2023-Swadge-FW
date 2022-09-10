@@ -33,6 +33,10 @@ typedef struct
 
     uint8_t world;
     uint8_t level;
+
+    uint16_t combo;
+    int16_t comboTimer;
+    uint16_t comboScore;
     
     led_t leds[NUM_LEDS];
 } gameData_t;
@@ -42,5 +46,7 @@ typedef struct
 //==============================================================================
 void initializeGameData(gameData_t * gameData);
 void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData);
+void scorePoints(gameData_t * gameData, uint16_t points);
+void updateComboTimer(gameData_t * gameData);
 
 #endif
