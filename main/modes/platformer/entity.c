@@ -77,6 +77,26 @@ static const song_t sndJump3 =
                 {G_5, 50}, {C_6, 50}, {G_5, 50}},
         .numNotes = 3,
         .shouldLoop = false
+    };
+
+static const song_t sndWarp =
+    {
+        .notes =
+            { 
+                {D_5, 50}, {A_4, 50}, {E_4, 50},{D_5, 50}, {A_4, 50}, {E_4, 50},{D_5, 50}, {A_4, 50}, {E_4, 50}
+            },
+        .numNotes = 9,
+        .shouldLoop = false
+    };
+
+static const song_t sndHurt =
+    {
+        .notes =
+            { 
+                {E_4, 50}, {D_SHARP_4, 50}, {D_4, 50},{C_SHARP_4, 50}, {C_4, 50}, {C_5, 50}, {C_4, 50}
+            },
+        .numNotes = 6,
+        .shouldLoop = false
     };                 
 
 //==============================================================================
@@ -188,6 +208,7 @@ void updatePlayer(entity_t *self)
             self->visible = true;
         }
     }
+
 
     moveEntityWithTileCollisions(self);
     dieWhenFallingOffScreen(self);
@@ -547,11 +568,12 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
 
                 buzzer_play_sfx(&sndHit);
 
-                self->yspeed = -180;
+                self->yspeed = -512;
 
-                if (self->gameData->btnState & BTN_B)
+                //if (self->gameData->btnState & BTN_B)
                 {
                     self->jumpPower = 180 + (abs(self->xspeed) >> 2);
+                    self->falling = true;
                 }
             }
             else if(self->invincibilityFrames <= 0)
@@ -565,14 +587,16 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                     self->yspeed = -180;
                     self->spriteIndex = SP_PLAYER_HURT;
                     self->gameData->changeState = ST_DEAD;
+                    self->falling = true;
                 } else {
                     self->xspeed = 0;
                     self->yspeed = 0;
+                    self->jumpPower = 0;
                     self->invincibilityFrames = 40;
+                    buzzer_play_sfx(&sndHurt);
                 }
             }
-
-            self->falling = true;
+       
             break;
         }
         case ENTITY_WARP:{
@@ -585,7 +609,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
             unlockScrolling(self->tilemap);
             deactivateAllEntities(self->entityManager, true);
             self->tilemap->executeTileSpawnAll = true;
-
+            buzzer_play_sfx(&sndWarp);
             break;
         }
         case ENTITY_POWERUP:{
@@ -648,7 +672,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
             if (tileId == TILE_BRICK_BLOCK)
             {
                 hitBlock->spriteIndex = SP_HITBLOCK_BRICKS;
-                 if(abs(self->xspeed) > 131){ 
+                 if(abs(self->xspeed) > 131 && self->yspeed <= 0){ 
                     hitBlock->yDamping = 1;
                 }
             }
