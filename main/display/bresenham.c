@@ -50,6 +50,8 @@
 void oddEvenFill(display_t* disp, int x0, int y0, int x1, int y1,
                  paletteColor_t boundaryColor, paletteColor_t fillColor)
 {
+    SETUP_FOR_TURBO( disp );
+
     // Adjust the bounding box if it's out of bounds
     if(x0 < 0)
     {
@@ -84,7 +86,7 @@ void oddEvenFill(display_t* disp, int x0, int y0, int x1, int y1,
             else if(isInside)
             {
                 // If we're in-bounds, color the pixel
-                SET_PIXEL_BOUNDS(disp, x, y, fillColor);
+                TURBO_SET_PIXEL_BOUNDS(disp, x, y, fillColor);
             }
         }
     }
@@ -92,6 +94,7 @@ void oddEvenFill(display_t* disp, int x0, int y0, int x1, int y1,
 
 void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth)
 {
+    SETUP_FOR_TURBO( disp );
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
     int err = dx + dy, e2; /* error value e_xy */
@@ -115,7 +118,7 @@ void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
         }
         else
         {
-            SET_PIXEL_BOUNDS(disp, x0, y0, col);
+            TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col);
         }
         e2 = 2 * err;
         if (e2 >= dy)   /* e_xy+e_x > 0 */
@@ -141,32 +144,35 @@ void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
 
 void plotRect(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col)
 {
+    SETUP_FOR_TURBO( disp );
     // Vertical lines
     for(int y = y0; y < y1; y++)
     {
-        SET_PIXEL_BOUNDS(disp, x0, y, col);
-        SET_PIXEL_BOUNDS(disp, x1 - 1, y, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, x0, y, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, x1 - 1, y, col);
     }
 
     // Horizontal lines
     for(int x = x0; x < x1; x++)
     {
-        SET_PIXEL_BOUNDS(disp, x, y0, col);
-        SET_PIXEL_BOUNDS(disp, x, y1 - 1, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, x, y0, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, x, y1 - 1, col);
     }
 }
 
 void plotEllipse(display_t* disp, int xm, int ym, int a, int b, paletteColor_t col)
 {
+    SETUP_FOR_TURBO( disp );
+
     int x = -a, y = 0; /* II. quadrant from bottom left to top right */
     long e2 = (long) b * b, err = (long) x * (2 * e2 + x) + e2; /* error of 1.step */
 
     do
     {
-        SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant */
-        SET_PIXEL_BOUNDS(disp, xm + x, ym + y, col); /*  II. Quadrant */
-        SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant */
-        SET_PIXEL_BOUNDS(disp, xm - x, ym - y, col); /*  IV. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xm + x, ym + y, col); /*  II. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xm - x, ym - y, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 >= (x * 2 + 1) * (long) b * b) /* e_xy+e_x > 0 */
         {
@@ -180,23 +186,25 @@ void plotEllipse(display_t* disp, int xm, int ym, int a, int b, paletteColor_t c
 
     while (y++ < b)   /* too early stop of flat ellipses a=1, */
     {
-        SET_PIXEL_BOUNDS(disp, xm, ym + y, col); /* -> finish tip of ellipse */
-        SET_PIXEL_BOUNDS(disp, xm, ym - y, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xm, ym + y, col); /* -> finish tip of ellipse */
+        TURBO_SET_PIXEL_BOUNDS(disp, xm, ym - y, col);
     }
 }
 
 void plotOptimizedEllipse(display_t* disp, int xm, int ym, int a, int b, paletteColor_t col)
 {
+    SETUP_FOR_TURBO( disp );
+
     long x = -a, y = 0; /* II. quadrant from bottom left to top right */
     long e2 = b, dx = (1 + 2 * x) * e2 * e2; /* error increment  */
     long dy = x * x, err = dx + dy; /* error of 1.step */
 
     do
     {
-        SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant */
-        SET_PIXEL_BOUNDS(disp, xm + x, ym + y, col); /*  II. Quadrant */
-        SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant */
-        SET_PIXEL_BOUNDS(disp, xm - x, ym - y, col); /*  IV. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xm + x, ym + y, col); /*  II. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xm - x, ym - y, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 >= dx)
         {
@@ -212,37 +220,57 @@ void plotOptimizedEllipse(display_t* disp, int xm, int ym, int a, int b, palette
 
     while (y++ < b)   /* too early stop for flat ellipses with a=1, */
     {
-        SET_PIXEL_BOUNDS(disp, xm, ym + y, col); /* -> finish tip of ellipse */
-        SET_PIXEL_BOUNDS(disp, xm, ym - y, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xm, ym + y, col); /* -> finish tip of ellipse */
+        TURBO_SET_PIXEL_BOUNDS(disp, xm, ym - y, col);
     }
 }
 
 void plotCircle(display_t* disp, int xm, int ym, int r, paletteColor_t col)
 {
-    plotCircleQuadrants(disp, xm, ym, r, true, true, true, true, col);
+    SETUP_FOR_TURBO( disp );
+
+    int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
+    do
+    {
+		TURBO_SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant +x +y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xm - y, ym - x, col); /*  II. Quadrant -x +y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant -x -y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xm + y, ym + x, col); /*  IV. Quadrant +x -y */
+        r = err;
+        if (r <= y)
+        {
+            err += ++y * 2 + 1;    /* e_xy+e_y < 0 */
+        }
+        if (r > x || err > y) /* e_xy+e_x > 0 or no 2nd y-step */
+        {
+            err += ++x * 2 + 1;    /* -> x-step now */
+        }
+    } while (x < 0);
 }
 
 void plotCircleQuadrants(display_t* disp, int xm, int ym, int r, bool q1,
                          bool q2, bool q3, bool q4, paletteColor_t col)
 {
+    SETUP_FOR_TURBO( disp );
+
     int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
     do
     {
         if(q1)
         {
-            SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant +x +y */
+            TURBO_SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant +x +y */
         }
         if(q2)
         {
-            SET_PIXEL_BOUNDS(disp, xm - y, ym - x, col); /*  II. Quadrant -x +y */
+            TURBO_SET_PIXEL_BOUNDS(disp, xm - y, ym - x, col); /*  II. Quadrant -x +y */
         }
         if(q3)
         {
-            SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant -x -y */
+            TURBO_SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant -x -y */
         }
         if(q4)
         {
-            SET_PIXEL_BOUNDS(disp, xm + y, ym + x, col); /*  IV. Quadrant +x -y */
+            TURBO_SET_PIXEL_BOUNDS(disp, xm + y, ym + x, col); /*  IV. Quadrant +x -y */
         }
         r = err;
         if (r <= y)
@@ -258,13 +286,15 @@ void plotCircleQuadrants(display_t* disp, int xm, int ym, int r, bool q1,
 
 void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col)
 {
+    SETUP_FOR_TURBO( disp );
+
     int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
     do
     {
         for (int lineX = xm + x; lineX <= xm - x; lineX++)
         {
-            SET_PIXEL_BOUNDS(disp, lineX, ym - y, col);
-            SET_PIXEL_BOUNDS(disp, lineX, ym + y, col);
+            TURBO_SET_PIXEL_BOUNDS(disp, lineX, ym - y, col);
+            TURBO_SET_PIXEL_BOUNDS(disp, lineX, ym + y, col);
         }
 
         r = err;
@@ -282,6 +312,8 @@ void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col
 void plotEllipseRect(display_t* disp, int x0, int y0, int x1,
                      int y1, paletteColor_t col)   /* rectangular parameter enclosing the ellipse */
 {
+    SETUP_FOR_TURBO( disp );
+
     long a = abs(x1 - x0), b = abs(y1 - y0), b1 = b & 1; /* diameter */
     double dx = 4 * (1.0 - a) * b * b, dy = 4 * (b1 + 1) * a * a; /* error increment */
     double err = dx + dy + b1 * a * a, e2; /* error of 1.step */
@@ -302,10 +334,10 @@ void plotEllipseRect(display_t* disp, int x0, int y0, int x1,
 
     do
     {
-        SET_PIXEL_BOUNDS(disp, x1, y0, col); /*   I. Quadrant */
-        SET_PIXEL_BOUNDS(disp, x0, y0, col); /*  II. Quadrant */
-        SET_PIXEL_BOUNDS(disp, x0, y1, col); /* III. Quadrant */
-        SET_PIXEL_BOUNDS(disp, x1, y1, col); /*  IV. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, x1, y0, col); /*   I. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col); /*  II. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, x0, y1, col); /* III. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, x1, y1, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 <= dy)
         {
@@ -323,16 +355,18 @@ void plotEllipseRect(display_t* disp, int x0, int y0, int x1,
 
     while (y0 - y1 <= b)   /* too early stop of flat ellipses a=1 */
     {
-        SET_PIXEL_BOUNDS(disp, x0 - 1, y0, col); /* -> finish tip of ellipse */
-        SET_PIXEL_BOUNDS(disp, x1 + 1, y0++, col);
-        SET_PIXEL_BOUNDS(disp, x0 - 1, y1, col);
-        SET_PIXEL_BOUNDS(disp, x1 + 1, y1--, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, x0 - 1, y0, col); /* -> finish tip of ellipse */
+        TURBO_SET_PIXEL_BOUNDS(disp, x1 + 1, y0++, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, x0 - 1, y1, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, x1 + 1, y1--, col);
     }
 }
 
 void plotQuadBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2,
                        int y2, paletteColor_t col)   /* plot a limited quadratic Bezier segment */
 {
+    SETUP_FOR_TURBO( disp );
+
     int sx = x2 - x1, sy = y2 - y1;
     long xx = x0 - x1, yy = y0 - y1, xy; /* relative values for checks */
     double dx, dy, err, cur = xx * sy - yy * sx; /* curvature */
@@ -370,7 +404,7 @@ void plotQuadBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2,
         err = dx + dy + xy; /* error 1st step */
         do
         {
-            SET_PIXEL_BOUNDS(disp, x0, y0, col); /* plot curve */
+            TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col); /* plot curve */
             if (x0 == x2 && y0 == y2)
             {
                 return;    /* last pixel -> curve finished */
@@ -442,6 +476,8 @@ void plotQuadBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2,
 void plotQuadRationalBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2,
                                float w, paletteColor_t col)   /* plot a limited rational Bezier segment, squared weight */
 {
+    SETUP_FOR_TURBO( disp );
+
     int sx = x2 - x1, sy = y2 - y1; /* relative values for checks */
     double dx = x0 - x2, dy = y0 - y2, xx = x0 - x1, yy = y0 - y1;
     double xy = xx * sy + yy * sx, cur = xx * sy - yy * sx, err; /* curvature */
@@ -492,7 +528,7 @@ void plotQuadRationalBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, 
         err = dx + dy - xy; /* error 1.step */
         do
         {
-            SET_PIXEL_BOUNDS(disp, x0, y0, col); /* plot curve */
+            TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col); /* plot curve */
             if (x0 == x2 && y0 == y2)
             {
                 return;    /* last pixel -> curve finished */
@@ -643,6 +679,8 @@ void plotRotatedEllipseRect(display_t* disp, int x0, int y0, int x1, int y1,
 void plotCubicBezierSeg(display_t* disp, int x0, int y0, float x1, float y1, float x2, float y2,
                         int x3, int y3, paletteColor_t col)   /* plot limited cubic Bezier segment */
 {
+    SETUP_FOR_TURBO( disp );
+
     int f, fx, fy, leg = 1;
     int sx = x0 < x3 ? 1 : -1, sy = y0 < y3 ? 1 : -1; /* step direction */
     float xc = -fabs(x0 + x1 - x2 - x3), xa = xc - 4 * sx * (x1 - x2), xb = sx
@@ -718,7 +756,7 @@ void plotCubicBezierSeg(display_t* disp, int x0, int y0, float x1, float y1, flo
 
         for (pxy = &xy, fx = fy = f; x0 != x3 && y0 != y3;)
         {
-            SET_PIXEL_BOUNDS(disp, x0, y0, col); /* plot curve */
+            TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col); /* plot curve */
             do   /* move sub-steps of one pixel */
             {
                 if (dx > *pxy || dy < *pxy)
