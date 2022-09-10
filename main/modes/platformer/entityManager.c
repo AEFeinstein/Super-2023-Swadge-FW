@@ -399,6 +399,7 @@ entity_t* createHitBlock(entityManager_t * entityManager, uint16_t x, uint16_t y
     
     entity->xspeed = 0;
     entity->yspeed = 0;
+    entity->yDamping = 0;
     entity->xMaxSpeed = 132;
     entity->yMaxSpeed = 132;
     entity->gravityEnabled = true;

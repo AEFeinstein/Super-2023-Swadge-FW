@@ -214,7 +214,7 @@ void updateHitBlock(entity_t *self)
 
         }
 
-        if(self->jumpPower == TILE_BRICK_BLOCK && self->yspeed >=0 && createdEntity == NULL ) {
+        if(self->jumpPower == TILE_BRICK_BLOCK && (self->yspeed > 0 || self->yDamping == 1) && createdEntity == NULL ) {
             self->jumpPower = TILE_EMPTY;
             self->gameData->score += 10;
         }
@@ -278,7 +278,7 @@ void moveEntityWithTileCollisions(entity_t *self)
             {
                 uint8_t newVerticalTile = getTile(self->tilemap, tx, newTy);
 
-                if (newVerticalTile > TILE_INVISIBLE_BLOCK && newVerticalTile < TILE_BG_GOAL_ZONE)
+                if (newVerticalTile > TILE_UNUSED_29 && newVerticalTile < TILE_BG_GOAL_ZONE)
                 {
                     if (self->tileCollisionHandler(self, newVerticalTile, tx, newTy, 2 << (self->yspeed > 0)))
                     {
@@ -308,7 +308,7 @@ void moveEntityWithTileCollisions(entity_t *self)
             {
                 uint8_t newHorizontalTile = getTile(self->tilemap, newTx, ty);
 
-                if (newHorizontalTile > TILE_INVISIBLE_BLOCK && newHorizontalTile < TILE_BG_GOAL_ZONE)
+                if (newHorizontalTile > TILE_UNUSED_29 && newHorizontalTile < TILE_BG_GOAL_ZONE)
                 {
                     if (self->tileCollisionHandler(self, newHorizontalTile, newTx, ty, (self->xspeed > 0)))
                     {
@@ -586,6 +586,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     {
     case TILE_CONTAINER_1:
     case TILE_BRICK_BLOCK:
+    case TILE_INVISIBLE_CONTAINER:
     {
         entity_t *hitBlock = createEntity(self->entityManager, ENTITY_HIT_BLOCK, (tx * TILE_SIZE) + HALF_TILE_SIZE, (ty * TILE_SIZE) + HALF_TILE_SIZE);
 
@@ -599,6 +600,9 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
             if (tileId == TILE_BRICK_BLOCK)
             {
                 hitBlock->spriteIndex = SP_HITBLOCK_BRICKS;
+                 if(abs(self->xspeed) > 131){ 
+                    hitBlock->yDamping = 1;
+                }
             }
 
             switch (direction)
