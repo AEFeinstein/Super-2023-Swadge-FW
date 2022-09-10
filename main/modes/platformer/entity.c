@@ -703,7 +703,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
                 hitBlock->xspeed = 64;
                 break;
             case 2:
-                hitBlock->yspeed = -64;
+                hitBlock->yspeed = -128;
                 break;
             case 4:
                 hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
