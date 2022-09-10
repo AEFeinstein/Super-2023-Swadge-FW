@@ -423,13 +423,11 @@ void picrossCheckLevel()
     for(int i = 0;i<p->puzzle->height;i++)
     {
         f = hintIsFilledIn(&p->puzzle->rowHints[i]);
-        p->puzzle->rowHints[i].filledIn = f;
         allFilledIn = allFilledIn | f;
     }
     for(int i = 0;i<p->puzzle->width;i++)
     {
         f = hintIsFilledIn(&p->puzzle->colHints[i]);
-        p->puzzle->rowHints[i].filledIn = f;
         allFilledIn = allFilledIn | f;
     }
 
@@ -503,21 +501,23 @@ bool hintIsFilledIn(picrossHint_t* hint)
     {
         for(uint8_t i = 0;i<p->puzzle->width;i++)
         {
-            if(p->puzzle->level[hint->index][i] == SPACE_EMPTY)
+            if(p->puzzle->level[i][hint->index] == SPACE_EMPTY)
             {
+                hint->filledIn = false;
                 return false;
             }
         }
     }else{
         for(uint8_t i = 0;i<p->puzzle->height;i++)
         {
-            if(p->puzzle->level[i][hint->index] == SPACE_EMPTY)
+            if(p->puzzle->level[hint->index][i] == SPACE_EMPTY)
             {
+                hint->filledIn = false;
                 return false;
             }
         }
     }
-
+    hint->filledIn = true;
     return true;
 }
 
@@ -966,8 +966,8 @@ void drawPicrossHud(display_t* d,font_t* font)
     drawText(d, font, c334, textBuffer, 10, 20+font->h*2);
 
     //width of thicker center lines
-    uint8_t w = 5;
-    //draw a vertical line every 5 units.
+    uint8_t w = 2;//p->drawScale/4;
+    //draw a vertical line every grid
     for(int i=0;i<=p->puzzle->width;i++)//skip 0 and skip last. literally the fence post problem.
     {
         uint8_t s = p->drawScale;
@@ -1171,6 +1171,8 @@ int8_t getHintShift(uint8_t hint)
 
 void drawPicrossInput(display_t* d)
 {
+    //todo: rewrite this
+
     //Draw player input box
     box_t inputBox = boxFromCoord(p->input->x,p->input->y);
     inputBox.x1 = inputBox.x1+1;

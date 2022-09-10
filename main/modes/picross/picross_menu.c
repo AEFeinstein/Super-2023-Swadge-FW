@@ -156,41 +156,44 @@ void loadLevels()
     //DACVAK JUST SEARCH FOR "DACVAK" TO FIND THIS
 
     //any entry with lowercase names is testing data. CamelCase names are good to go. This is not convention, just nature of dac sending me files vs. my testing ones.
-    loadWsg("fifteen.wsg", &pm->levels[0].levelWSG);
+    loadWsg("fifteen.wsg", &pm->levels[0].levelWSG);//15x15 testing
     loadWsg("fifteen_c.wsg", &pm->levels[0].completedWSG);
 
-    loadWsg("Strawberry_PZL.wsg", &pm->levels[1].levelWSG);
-    loadWsg("Strawberry_SLV.wsg", &pm->levels[1].completedWSG);
+    loadWsg("Bliss.wsg", &pm->levels[1].levelWSG);//5x10
+    loadWsg("Bliss_c.wsg", &pm->levels[1].completedWSG);
 
-    loadWsg("Snare_Drum_PZL.wsg", &pm->levels[2].levelWSG);
+    loadWsg("Snare_Drum_PZL.wsg", &pm->levels[2].levelWSG);//10x10
     loadWsg("Snare_Drum_SLV.wsg", &pm->levels[2].completedWSG);
 
-    loadWsg("Danny_PZL.wsg", &pm->levels[3].levelWSG);
+    loadWsg("Danny_PZL.wsg", &pm->levels[3].levelWSG);//10x10
     loadWsg("Danny_SLV.wsg", &pm->levels[3].completedWSG);
 
-    loadWsg("Controller_PZL.wsg", &pm->levels[4].levelWSG);
+    loadWsg("Controller_PZL.wsg", &pm->levels[4].levelWSG);//10x10
     loadWsg("Controller_SLV.wsg", &pm->levels[4].completedWSG);
  
-    loadWsg("Pear_PZL.wsg", &pm->levels[5].levelWSG);
+    loadWsg("Pear_PZL.wsg", &pm->levels[5].levelWSG);//10x10
     loadWsg("Pear_SLV.wsg", &pm->levels[5].completedWSG);
 
-    loadWsg("Cherry_PZL.wsg", &pm->levels[6].levelWSG);
+    loadWsg("Cherry_PZL.wsg", &pm->levels[6].levelWSG);//10x10
     loadWsg("Cherry_SLV.wsg", &pm->levels[6].completedWSG);
-    //
-
-    loadWsg("CoffeeBean_PZL.wsg", &pm->levels[7].levelWSG);//coffeBean is pretty hard for a 10x10
-    loadWsg("CoffeeBean_SLV.wsg", &pm->levels[7].completedWSG);
     
-    loadWsg("3_boat.wsg", &pm->levels[8].levelWSG);
-    loadWsg("3_boat_c.wsg", &pm->levels[8].completedWSG);
+    loadWsg("Strawberry_PZL.wsg", &pm->levels[7].levelWSG);//10x10
+    loadWsg("Strawberry_SLV.wsg", &pm->levels[7].completedWSG);
+
+    loadWsg("CoffeeBean_PZL.wsg", &pm->levels[8].levelWSG);//coffeBean is pretty hard for a 10x10
+    loadWsg("CoffeeBean_SLV.wsg", &pm->levels[8].completedWSG);
+    
+    loadWsg("3_boat.wsg", &pm->levels[9].levelWSG);//10x10
+    loadWsg("3_boat_c.wsg", &pm->levels[9].completedWSG);
 
     //TESTING
-    loadWsg("pic_five.wsg", &pm->levels[9].levelWSG);
-    loadWsg("pic_five_c.wsg", &pm->levels[9].completedWSG);
+    loadWsg("pic_five.wsg", &pm->levels[10].levelWSG);//5x5 testing
+    loadWsg("pic_five_c.wsg", &pm->levels[10].completedWSG);
 
-    loadWsg("oblongTest.wsg", &pm->levels[10].levelWSG);
-    loadWsg("oblongTest_c.wsg", &pm->levels[10].completedWSG);
-    //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_menu.h) when adding levels.
+    loadWsg("oblongTest.wsg", &pm->levels[11].levelWSG);//10x5 testing
+    loadWsg("oblongTest_c.wsg", &pm->levels[11].completedWSG);
+
+    //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_consts.h) when adding levels.
 
     //set indices. Used to correctly set save data. levels are loaded without context of the levels array, so they carry the index info with them so we can save victories.
     for(int i = 0;i<PICROSS_LEVEL_COUNT;i++)//8 should = number of levels and that should = levelCount.
