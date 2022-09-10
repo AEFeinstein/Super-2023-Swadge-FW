@@ -126,12 +126,13 @@ bool decTftBrightness(void)
 
 /**
  * @brief Get the Tft Intensity, passed into setTFTBacklight()
- * 
+ *
  * @return The TFT intensity
  */
 uint8_t getTftIntensity(void)
 {
-    return (CONFIG_TFT_MIN_BRIGHTNESS + (((CONFIG_TFT_MAX_BRIGHTNESS - CONFIG_TFT_MIN_BRIGHTNESS) * getTftBrightness()) / MAX_TFT_BRIGHTNESS));
+    return (CONFIG_TFT_MIN_BRIGHTNESS + (((CONFIG_TFT_MAX_BRIGHTNESS - CONFIG_TFT_MIN_BRIGHTNESS) * getTftBrightness()) /
+                                         MAX_TFT_BRIGHTNESS));
 }
 
 /**

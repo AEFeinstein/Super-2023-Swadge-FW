@@ -24,7 +24,7 @@ char* loadJson(const char* name)
     if(!spiffsReadFile(name, &buf, &sz))
     {
         ESP_LOGE("JSON", "Failed to read %s", name);
-        return NULL;
+		return NULL;
     }
 
 #ifndef JSON_COMPRESSION
