@@ -28,9 +28,8 @@ typedef struct
     meleeMenu_t* menu;
     display_t* disp;
     jumperScreen_t screen;
-    bool menuChanged;
-
 } jumperMenu_t;
+
 //==============================================================================
 // Function Prototypes
 //==============================================================================
@@ -116,11 +115,7 @@ void jumperMainLoop(int64_t elapsedUs)
     {
         case JUMPER_MENU:
         {
-            if (jm->menuChanged)
-            {
-                drawMeleeMenu(jm->disp, jm->menu);
-                jm->menuChanged = false;
-            }
+            drawMeleeMenu(jm->disp, jm->menu);
             break;
         }
         case JUMPER_GAME:
@@ -146,7 +141,6 @@ void jumperButtonCb(buttonEvt_t* evt)
             //Pass button events from the Swadge mode to the menu
             if (evt->down)
             {
-                jm->menuChanged = true;
                 meleeMenuButton(jm->menu, evt->button);
             }
             break;
@@ -171,7 +165,6 @@ void setJumperMainMenu(void)
     resetMeleeMenu(jm->menu, str_jumpTitle, jumperMainMenuCb);
     addRowToMeleeMenu(jm->menu, str_jump);
     addRowToMeleeMenu(jm->menu, str_exit);
-    jm->menuChanged = true;
     jm->screen = JUMPER_MENU;
 }
 

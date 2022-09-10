@@ -14,6 +14,7 @@ bool setIsMuted(bool);
 int32_t getTftBrightness(void);
 bool incTftBrightness(void);
 bool decTftBrightness(void);
+uint8_t getTftIntensity(void);
 
 int32_t getLedBrightness(void);
 bool incLedBrightness(void);

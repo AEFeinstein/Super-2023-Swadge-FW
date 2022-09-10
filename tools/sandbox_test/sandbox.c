@@ -23,22 +23,18 @@ const char * menu_Bootload = "Bootloader";
 
 //#define REBOOT_TEST
 //#define PROFILE_TEST
+#define MODE7_TEST
 
-// Example to do true inline assembly.  This will actually compile down to be
-// included in the code, itself, and "should" (does in all the tests I've run)
-// execute in one clock cycle since there is no function call and rsr only
-// takes one cycle to complete. 
-static inline uint32_t get_ccount()
-{
-	uint32_t ccount;
-	asm volatile("rsr %0,ccount":"=a" (ccount));
-	return ccount;
-}
+#ifdef MODE7_TEST
+int mode7timing;
+#endif
 
 // External functions defined in .S file for you assembly people.
 void minimal_function();
 uint32_t test_function( uint32_t x );
 uint32_t asm_read_gpio();
+
+wsg_t example_sprite;
 
 void menuCb(const char* opt)
 {
@@ -58,7 +54,14 @@ void menuCb(const char* opt)
 
 void sandbox_main(display_t * disp_in)
 {
-//	memset( &meleeMenuFont, 0, sizeof( meleeMenuFont ) );
+#ifdef REBOOT_TEST
+	// Uncomment this to reboot the chip into the bootloader.
+	// This is to test to make sure we can call ROM functions.
+	REG_WRITE(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
+	void software_reset( uint32_t x );
+	software_reset( 0 );
+#endif
+
 	menu = 0; disp = disp_in;
 	ESP_LOGI( "sandbox", "Running from IRAM. %d", global_i );
 
@@ -68,6 +71,8 @@ void sandbox_main(display_t * disp_in)
 	menu = initMeleeMenu("USB Sandbox", &meleeMenuFont, menuCb);
 	addRowToMeleeMenu(menu, menu_MainMenu);
 	addRowToMeleeMenu(menu, menu_Bootload);
+
+	loadWsg("sprite005.wsg", &example_sprite);
 
 	ESP_LOGI( "sandbox", "Loaded" );
 }
@@ -80,7 +85,10 @@ void sandbox_exit()
 		deinitMeleeMenu(menu);
 		freeFont(&meleeMenuFont);
 	}
-
+	if( example_sprite.px )
+	{
+		freeWsg( &example_sprite ); 
+	}
 	ESP_LOGI( "sandbox", "Exit" );
 }
 
@@ -92,48 +100,48 @@ void sandbox_tick()
 
 	// Profile function call into assembly land
 	// Mostly used to understand function call overhead.
-	start = get_ccount();
+	start = getCycleCount();
 	minimal_function();
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[0] = end-start-1;
 
 	// Profile a nop (Should be 1, because profiling takes 1 cycle)
-	start = get_ccount();
+	start = getCycleCount();
 	asm volatile( "nop" );
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[1] = end-start-1;
 
 	// Profile reading a register (will be slow)
-	start = get_ccount();
+	start = getCycleCount();
 	READ_PERI_REG( GPIO_ENABLE_W1TS_REG );
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[2] = end-start-1;
 
 	// Profile writing a regsiter (will be fast)
 	// The ESP32-S2 can "write" to memory and keep executing
-	start = get_ccount();
+	start = getCycleCount();
 	WRITE_PERI_REG( GPIO_ENABLE_W1TS_REG, 0 );
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[3] = end-start-1;
 
 	// Profile subsequent writes (will be slow)
 	// The ESP32-S2 can only write once in a buffered write.
-	start = get_ccount();
+	start = getCycleCount();
 	WRITE_PERI_REG( GPIO_ENABLE_W1TS_REG, 0 );
 	WRITE_PERI_REG( GPIO_ENABLE_W1TS_REG, 0 );
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[4] = end-start-1;
 
 	// Profile a more interesting assembly instruction
-	start = get_ccount();
+	start = getCycleCount();
 	uint32_t tfret = test_function( 0xaaaa );
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[5] = end-start-1;
 
 	// Profile a more interesting assembly instruction
-	start = get_ccount();
+	start = getCycleCount();
 	uint32_t tfret2 = asm_read_gpio( );
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[6] = end-start-1;
 
 	vTaskDelay(1);
@@ -143,8 +151,39 @@ void sandbox_tick()
 	ESP_LOGI( "sandbox", "global_i: %d", global_i++ );
 #endif
 
+#ifndef MODE7_TEST
 	if( menu )
 	    drawMeleeMenu(disp, menu);
+#endif
+
+	uint32_t start = getCycleCount();
+	drawWsg( disp, &example_sprite, 100, 100, 0, 0, 0); // 19600-20400
+	uint32_t end = getCycleCount();
+
+#ifdef MODE7_TEST
+	for( int mode = 0; mode < 8; mode++ )
+	{
+		drawWsg( disp, &example_sprite, 50+mode*20, (global_i%20)-10, !!(mode&1), !!(mode & 2), (mode & 4)*10);
+		drawWsg( disp, &example_sprite, 50+mode*20, (global_i%20)+230, !!(mode&1), !!(mode & 2), (mode & 4)*10);
+		drawWsg( disp, &example_sprite, (global_i%20)-10, 50+mode*20, !!(mode&1), !!(mode & 2), (mode & 4)*10);
+		drawWsg( disp, &example_sprite, (global_i%20)+270, 50+mode*20, !!(mode&1), !!(mode & 2), (mode & 4)*10);
+	}
+
+	ESP_LOGI( "sandbox", "SPROF: %d / Mode7: %d", end-start, mode7timing );
+#endif
+}
+
+void sandboxBackgroundDrawCallback(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum )
+{
+#ifdef MODE7_TEST
+	int i;
+
+	uint32_t start = getCycleCount();
+	fillDisplayArea(disp, x, y, x+w, y+h, 0 );
+	for( i = 0; i < 16; i++ )
+		fillDisplayArea(disp, i*16+8, y, i*16+16+8, y+16, up*16+i );
+	mode7timing = getCycleCount() - start;
+#endif
 }
 
 void sandbox_button(buttonEvt_t* evt)
@@ -180,6 +219,7 @@ swadgeMode sandbox_mode =
     .fnExitMode = sandbox_exit,
     .fnMainLoop = sandbox_tick,
     .fnButtonCallback = sandbox_button,
+	.fnBackgroundDrawCallback = sandboxBackgroundDrawCallback,
     .fnTouchCallback = NULL,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,

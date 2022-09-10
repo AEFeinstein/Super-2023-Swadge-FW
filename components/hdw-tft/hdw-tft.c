@@ -18,7 +18,7 @@
 #include "esp_lcd_panel_interface.h"
 #include "driver/ledc.h"
 
- 
+
 //#define PROCPROFILE
 
 #ifdef PROCPROFILE
@@ -34,7 +34,7 @@ static inline uint32_t get_ccount()
 // Colors
 //==============================================================================
 
-const uint16_t paletteColors[] = 
+const uint16_t paletteColors[] =
 {
     0x0000,
     0x0600,
@@ -334,7 +334,7 @@ const uint16_t paletteColors[] =
 void setPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t getPxTft(int16_t x, int16_t y);
 void clearPxTft(void);
-void drawDisplayTft(bool drawDiff);
+void drawDisplayTft(display_t * disp,bool drawDiff,fnBackgroundDrawCallback_t cb);
 
 //==============================================================================
 // Variables
@@ -343,6 +343,7 @@ void drawDisplayTft(bool drawDiff);
 esp_lcd_panel_handle_t panel_handle = NULL;
 static paletteColor_t * pixels = NULL;
 static uint16_t *s_lines[2] = {0};
+
 // static uint64_t tFpsStart = 0;
 // static int framesDrawn = 0;
 
@@ -360,16 +361,22 @@ static uint16_t *s_lines[2] = {0};
 int setTFTBacklight(uint8_t intensity)
 {
     esp_err_t e;
-    if(intensity>CONFIG_TFT_MAX_BRIGHTNESS) return ESP_ERR_INVALID_ARG;
-    e = ledc_set_duty(LEDC_LOW_SPEED_MODE, 1, 255-intensity);
-    if(e) return e;
+    if(intensity > CONFIG_TFT_MAX_BRIGHTNESS)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    e = ledc_set_duty(LEDC_LOW_SPEED_MODE, 1, 255 - intensity);
+    if(e)
+    {
+        return e;
+    }
     return ledc_update_duty(LEDC_LOW_SPEED_MODE, 1);
 }
 
 
 /**
  * @brief Initialize a TFT display and return it through a pointer arg
- * 
+ *
  * @param disp    The display to initialize
  * @param spiHost The SPI host to use for this display
  * @param sclk    The GPIO for the SCLK pin
@@ -380,9 +387,9 @@ int setTFTBacklight(uint8_t intensity)
  * @param backlight The GPIO used to PWM control the backlight
  * @param isPwmBacklight true to set up the backlight as PWM, false to have it be on/off
  */
-void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
-            gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
-            gpio_num_t backlight, bool isPwmBacklight)
+void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
+             gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
+             gpio_num_t backlight, bool isPwmBacklight)
 {
     if(false == isPwmBacklight)
     {
@@ -491,7 +498,8 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     esp_lcd_panel_set_gap(panel_handle, X_OFFSET, Y_OFFSET);
 
 #if defined(CONFIG_GC9307_240x280) || defined(CONFIG_ST7735_128x160)
-    typedef struct {
+    typedef struct
+    {
         esp_lcd_panel_t base;
         esp_lcd_panel_io_handle_t io;
         int reset_gpio_num;
@@ -502,7 +510,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
         uint8_t madctl_val; // save current value of LCD_CMD_MADCTL register
         uint8_t colmod_cal; // save surrent value of LCD_CMD_COLMOD register
     } st7789_panel_internal_t;
-    st7789_panel_internal_t *st7789 = __containerof(panel_handle, st7789_panel_internal_t, base);
+    st7789_panel_internal_t* st7789 = __containerof(panel_handle, st7789_panel_internal_t, base);
     esp_lcd_panel_io_handle_t io = st7789->io;
 #endif
 
@@ -510,17 +518,47 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
     esp_lcd_panel_invert_color(panel_handle, false);
     // NOTE: the following call would override settings set by esp_lcd_panel_swap_xy() and esp_lcd_panel_mirror()
     // Both of the prior functions write to the 0x36 register
-    esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[]) {0xE8}, 1 ); //MX, MY, RGB mode  (MADCTL)
-    esp_lcd_panel_io_tx_param(io, 0x35, (uint8_t[]) {0x00}, 1 ); // "tear effect" testing sync pin.
+    esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[])
+    {
+        0xE8
+    }, 1 ); //MX, MY, RGB mode  (MADCTL)
+    esp_lcd_panel_io_tx_param(io, 0x35, (uint8_t[])
+    {
+        0x00
+    }, 1 ); // "tear effect" testing sync pin.
 #elif defined(CONFIG_ST7735_128x160)
-    esp_lcd_panel_io_tx_param(io, 0xB1, (uint8_t[]) { 0x05, 0x3C, 0x3C }, 3 );
-    esp_lcd_panel_io_tx_param(io, 0xB2, (uint8_t[]) { 0x05, 0x3C, 0x3C }, 3 );
-    esp_lcd_panel_io_tx_param(io, 0xB3, (uint8_t[]) { 0x05, 0x3C, 0x3C, 0x05, 0x3C, 0x3C }, 6 );
-    esp_lcd_panel_io_tx_param(io, 0xB4, (uint8_t[]) {0x00}, 1 ); //00 Dot inversion,  //07 column inversion
-    esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[]) {0xa0}, 1 ); //MX, MY, RGB mode  (MADCTL)
-    esp_lcd_panel_io_tx_param(io, 0xE0, (uint8_t[]) {0x04,0x22,0x07,0x0A,0x2E,0x30,0x25,0x2A,0x28,0x26,0x2E,0x3A,0x00,0x01,0x03,0x13}, 16 );
-    esp_lcd_panel_io_tx_param(io, 0xE1, (uint8_t[]) {0x04,0x16,0x06,0x0D,0x2D,0x26,0x23,0x27,0x27,0x25,0x2D,0x3B,0x00,0x01,0x04,0x13}, 16 );
-    esp_lcd_panel_io_tx_param(io, 0x20, (uint8_t[]) { 0 }, 0 ); // buffer color inversion
+    esp_lcd_panel_io_tx_param(io, 0xB1, (uint8_t[])
+    {
+        0x05, 0x3C, 0x3C
+    }, 3 );
+    esp_lcd_panel_io_tx_param(io, 0xB2, (uint8_t[])
+    {
+        0x05, 0x3C, 0x3C
+    }, 3 );
+    esp_lcd_panel_io_tx_param(io, 0xB3, (uint8_t[])
+    {
+        0x05, 0x3C, 0x3C, 0x05, 0x3C, 0x3C
+    }, 6 );
+    esp_lcd_panel_io_tx_param(io, 0xB4, (uint8_t[])
+    {
+        0x00
+    }, 1 ); //00 Dot inversion,  //07 column inversion
+    esp_lcd_panel_io_tx_param(io, 0x36, (uint8_t[])
+    {
+        0xa0
+    }, 1 ); //MX, MY, RGB mode  (MADCTL)
+    esp_lcd_panel_io_tx_param(io, 0xE0, (uint8_t[])
+    {
+        0x04, 0x22, 0x07, 0x0A, 0x2E, 0x30, 0x25, 0x2A, 0x28, 0x26, 0x2E, 0x3A, 0x00, 0x01, 0x03, 0x13
+    }, 16 );
+    esp_lcd_panel_io_tx_param(io, 0xE1, (uint8_t[])
+    {
+        0x04, 0x16, 0x06, 0x0D, 0x2D, 0x26, 0x23, 0x27, 0x27, 0x25, 0x2D, 0x3B, 0x00, 0x01, 0x04, 0x13
+    }, 16 );
+    esp_lcd_panel_io_tx_param(io, 0x20, (uint8_t[])
+    {
+        0
+    }, 0 ); // buffer color inversion
 #else
     esp_lcd_panel_invert_color(panel_handle, true);
 #endif
@@ -535,16 +573,16 @@ void initTFT(display_t * disp, spi_host_device_t spiHost, gpio_num_t sclk,
 
     if(NULL == pixels)
     {
-        pixels = (paletteColor_t *)malloc(sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
+        pixels = (paletteColor_t*)malloc(sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
     }
     disp->pxFb = pixels;
 }
 
 /**
  * @brief Set a single pixel in the display, with bounds check
- * 
+ *
  * TODO handle transparency
- * 
+ *
  * @param x The x coordinate of the pixel to set
  * @param y The y coordinate of the pixel to set
  * @param px The color of the pixel to set
@@ -553,13 +591,13 @@ void setPxTft(int16_t x, int16_t y, paletteColor_t px)
 {
     if(0 <= x && x <= TFT_WIDTH && 0 <= y && y < TFT_HEIGHT && cTransparent != px)
     {
-        pixels[y*TFT_WIDTH+x] = px;
+        pixels[y * TFT_WIDTH + x] = px;
     }
 }
 
 /**
  * @brief Get a single pixel in the display
- * 
+ *
  * @param x The x coordinate of the pixel to get
  * @param y The y coordinate of the pixel to get
  * @return paletteColor_t The color of the given pixel, or black if out of bounds
@@ -568,7 +606,7 @@ paletteColor_t getPxTft(int16_t x, int16_t y)
 {
     if(0 <= x && x <= TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
-        return pixels[y*TFT_WIDTH+x];
+        return pixels[y * TFT_WIDTH + x];
     }
     return c000;
 }
@@ -583,16 +621,17 @@ void clearPxTft(void)
 
 /**
  * @brief Send the current framebuffer to the TFT display over the SPI bus.
- * 
+ *
  * This function can be called as quickly as possible and will limit frames to
  * 30fps max
  *
  * Because the SPI driver handles transactions in the background, we can
  * calculate the next line while the previous one is being sent.
- * 
+ *
  * @param drawDiff unused
  */
-void drawDisplayTft(bool drawDiff __attribute__((unused)))
+
+void drawDisplayTft(display_t * disp, bool drawDiff __attribute__((unused)), fnBackgroundDrawCallback_t fnBackgroundDrawCallback)
 {
     // Indexes of the line currently being sent to the LCD and the line we're calculating
     uint8_t sending_line = 0;
@@ -616,17 +655,14 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
         // Also FYI - I tried going palette-less, it only saved 18k per chunk (1.6ms per frame)
         uint32_t * outColor = (uint32_t*)s_lines[calc_line];
         uint32_t * inColor = (uint32_t*)&pixels[y*TFT_WIDTH];
-        for (uint16_t yp = y; yp < y + PARALLEL_LINES; yp++)
+        for (uint16_t x = 0; x < TFT_WIDTH/4*PARALLEL_LINES; x++)
         {
-            for (uint16_t x = 0; x < TFT_WIDTH/4; x++)
-            {
-                uint32_t colors = *(inColor++);
-                uint32_t word1 = paletteColors[(colors>> 0)&0xff] | (paletteColors[(colors>> 8)&0xff]<<16);
-                uint32_t word2 = paletteColors[(colors>>16)&0xff] | (paletteColors[(colors>>24)&0xff]<<16);
-                outColor[0] = word1;
-                outColor[1] = word2;
-                outColor += 2;
-            }
+            uint32_t colors = *(inColor++);
+            uint32_t word1 = paletteColors[(colors>> 0)&0xff] | (paletteColors[(colors>> 8)&0xff]<<16);
+            uint32_t word2 = paletteColors[(colors>>16)&0xff] | (paletteColors[(colors>>24)&0xff]<<16);
+            outColor[0] = word1;
+            outColor[1] = word2;
+            outColor += 2;
         }
 
 #ifdef PROCPROFILE
@@ -636,6 +672,11 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
         sending_line = calc_line;
         calc_line = !calc_line;
 
+        if( y != 0 && fnBackgroundDrawCallback )
+        {
+            fnBackgroundDrawCallback( disp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
+        }
+
         // (When operating @ 160 MHz)
         // This code takes 35k cycles when y == 0, but
         // this code takes ~~100k~~ 125k cycles when y != 0...
@@ -644,23 +685,28 @@ void drawDisplayTft(bool drawDiff __attribute__((unused)))
         //  You should avoid when y == 0, but that means you get 14 chunks
         //  every frame.
         //
-        // This is because esp_lcd_panel_draw_bitmap blocks until the chunk 
+        // This is because esp_lcd_panel_draw_bitmap blocks until the chunk
         // of frames has been sent.
 
         // Send the calculated data
         esp_lcd_panel_draw_bitmap(panel_handle, 0, y,
-                                    TFT_WIDTH, y + PARALLEL_LINES,
-                                    s_lines[sending_line]);
+                                  TFT_WIDTH, y + PARALLEL_LINES,
+                                  s_lines[sending_line]);
+
+        if( y == 0 && fnBackgroundDrawCallback )
+        {
+            fnBackgroundDrawCallback( disp, 0, y, TFT_WIDTH, PARALLEL_LINES, y/PARALLEL_LINES, TFT_HEIGHT/PARALLEL_LINES );
+        }
 
 #ifdef PROCPROFILE
         final = get_ccount();
 #endif
     }
-    
+
 #ifdef PROCPROFILE
-    ESP_LOGI( "tft", "%d/%d", mid-start, final-mid );
+    ESP_LOGI( "tft", "%d/%d", mid - start, final - mid );
 #endif
-    
+
     // Debug printing for frames-per-second
     // framesDrawn++;
     // if (framesDrawn == 120)

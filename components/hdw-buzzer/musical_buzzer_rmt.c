@@ -10,7 +10,7 @@
 // Structs
 //==============================================================================
 
-typedef struct 
+typedef struct
 {
     const song_t* song;
     uint32_t note_index;
@@ -23,7 +23,7 @@ typedef struct
     uint32_t counter_clk_hz;
     buzzerTrack_t bgm;
     buzzerTrack_t sfx;
-    const musicalNote_t * playNote;
+    const musicalNote_t* playNote;
     bool stopSong;
     bool isMuted;
 } rmt_buzzer_t;
@@ -33,7 +33,7 @@ typedef struct
 //==============================================================================
 
 static void play_note(const musicalNote_t* notation);
-static bool buzzer_track_check_next_note(buzzerTrack_t * track, bool isActive);
+static bool buzzer_track_check_next_note(buzzerTrack_t* track, bool isActive);
 
 //==============================================================================
 // Variables
@@ -47,7 +47,7 @@ rmt_buzzer_t rmt_buzzer;
 
 /**
  * @brief Initialize a buzzer peripheral
- * 
+ *
  * @param gpio The GPIO the buzzer is connected to
  * @param rmt  The RMT channel to control the buzzer with
  * @param isMuted true to mute the buzzer, false to make it buzz
@@ -102,7 +102,7 @@ void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, bool isMuted)
 /**
  * @brief Start playing a sound effect on the buzzer. This has higher priority
  * than background music
- * 
+ *
  * @param song The song to play as a sequence of notes
  */
 void buzzer_play_sfx(const song_t* song)
@@ -126,7 +126,7 @@ void buzzer_play_sfx(const song_t* song)
 /**
  * @brief Start playing a background music on the buzzer. This has lower priority
  * than sound effects
- * 
+ *
  * @param song The song to play as a sequence of notes
  */
 void buzzer_play_bgm(const song_t* song)
@@ -155,21 +155,21 @@ void buzzer_play_bgm(const song_t* song)
  * Check a specific track for notes to be played and queue them for playing.
  * This will always advance through notes in a song, even if it's not the active
  * track
- * 
+ *
  * @param track The track to advance notes in
  * @param isActive true if this is active and should set a note to be played
  *                 false to just advance notes without playing
  * @return true  if this track is playing a note
  *         false if this track is not playing a note
  */
-static bool buzzer_track_check_next_note(buzzerTrack_t * track, bool isActive)
+static bool buzzer_track_check_next_note(buzzerTrack_t* track, bool isActive)
 {
     // Check if there is a song and there are still notes
     if((NULL != track->song) && (track->note_index < track->song->numNotes))
     {
         // Get the current time
         int64_t cTime = esp_timer_get_time();
-        
+
         // Check if it's time to play the next note
         if (cTime - track->start_time >= (1000 * track->song->notes[track->note_index].timeMs))
         {
@@ -219,7 +219,7 @@ static bool buzzer_track_check_next_note(buzzerTrack_t * track, bool isActive)
 
 /**
  * @brief Check if there is a new note to play on the buzzer. This must be
- * called periodically 
+ * called periodically
  */
 void buzzer_check_next_note(void)
 {
@@ -305,14 +305,14 @@ void buzzer_stop(void)
 
     // Stop transmitting
     rmt_tx_stop(rmt_buzzer.channel);
-    
+
     // Clear internal variables
     rmt_buzzer.bgm.note_index = 0;
-    rmt_buzzer.bgm.song = NULL; 
+    rmt_buzzer.bgm.song = NULL;
     rmt_buzzer.bgm.start_time = 0;
 
     rmt_buzzer.sfx.note_index = 0;
-    rmt_buzzer.sfx.song = NULL; 
+    rmt_buzzer.sfx.song = NULL;
     rmt_buzzer.sfx.start_time = 0;
 
     rmt_buzzer.playNote = NULL;

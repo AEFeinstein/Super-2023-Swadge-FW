@@ -80,6 +80,8 @@
 #error "Please define CONFIG_SWADGE_DEVKIT or CONFIG_SWADGE_PROTOTYPE"
 #endif
 
+#define EXIT_TIME_US 1000000
+
 //==============================================================================
 // Function Prototypes
 //==============================================================================
@@ -465,6 +467,9 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             true);       // PWM backlight
 #endif
 
+    // Set the brightness from settings on boot
+    setTFTBacklight(getTftIntensity());
+
     /* Initialize Wifi peripheral */
 #if !defined(EMU)
     if(ESP_NOW == cSwadgeMode->wifiMode)
@@ -478,6 +483,8 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     {
         cSwadgeMode->fnEnterMode(&tftDisp);
     }
+
+    int64_t time_exit_pressed = 0;
 
     /* Loop forever! */
 #if defined(EMU)
@@ -514,6 +521,16 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         buttonEvt_t bEvt = {0};
         if(checkButtonQueue(&bEvt))
         {
+            // Monitor start + select
+            if((&modeMainMenu != cSwadgeMode) && (bEvt.state & START) && (bEvt.state & SELECT))
+            {
+                time_exit_pressed = esp_timer_get_time();
+            }
+            else
+            {
+                time_exit_pressed = 0;
+            }
+
             if(NULL != cSwadgeMode->fnButtonCallback)
             {
                 cSwadgeMode->fnButtonCallback(&bEvt);
@@ -586,11 +603,30 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     tLastMainLoopCall = tNowUs;
                 }
 
+                // If start & select  being held
+                if(0 != time_exit_pressed)
+                {
+                    // Figure out for how long
+                    int64_t tHeldUs = tNowUs - time_exit_pressed;
+                    // If it has been held for more than the exit time
+                    if(tHeldUs > EXIT_TIME_US)
+                    {
+                        // exit
+                        switchToSwadgeMode(&modeMainMenu);
+                    }
+                    else
+                    {
+                        // Draw 'progress' bar for exiting
+                        int16_t numPx = (tHeldUs * tftDisp.w) / EXIT_TIME_US;
+                        fillDisplayArea(&tftDisp, 0, tftDisp.h - 10, numPx, tftDisp.h, c333);
+                    }
+                }
+
                 // Draw the display at the given frame rate
 #ifdef OLED_ENABLED
-                oledDisp.drawDisplay(true);
+                oledDisp.drawDisplay(&oledDisp, true, cSwadgeMode->fnBackgroundDrawCallback);
 #endif
-                tftDisp.drawDisplay(true);
+                tftDisp.drawDisplay(&tftDisp, true, cSwadgeMode->fnBackgroundDrawCallback);
             }
 #if defined(EMU)
             check_esp_timer(tElapsedUs);
@@ -679,7 +715,7 @@ void overrideToSwadgeMode( swadgeMode* mode )
 
 /**
  * Set the frame rate for all displays
- * 
+ *
  * @param frameRate The time to wait between drawing frames, in microseconds
  */
 void setFrameRateUs(uint32_t frameRate)
