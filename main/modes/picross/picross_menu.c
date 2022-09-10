@@ -119,14 +119,14 @@ void picrossEnterMode(display_t* disp)
 
     pm->menu = initMeleeMenu(str_picrossTitle, &(pm->mmFont), picrossMainMenuCb);
 
+    pm->screen = PICROSS_MENU;
+    
     setPicrossMainMenu(true);
 
-    pm->screen = PICROSS_MENU;
-    pm->options = 0;//todo: read data from disk.
 
     loadLevels();
     
-    
+    //set default options
     if(false == readNvs32(picrossSavedOptionsKey, &pm->options))
     {
         writeNvs32(picrossSavedOptionsKey, 4);//100 = bg on, guide off, options off

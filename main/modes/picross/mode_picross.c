@@ -403,8 +403,12 @@ void picrossGameLoop(int64_t elapsedUs)
 
         setLeds(leds, NUM_LEDS);
 
+        //Unsave progress. Hides "current" in the main menu. we dont need to zero-out the actual data that will just happen when we load a new level.
+        writeNvs32(picrossCurrentPuzzleIndexKey, -1);
+
         //save the fact that we won
         saveCompletedOnSelectedLevel(true);
+
     }
 
     p->previousPhase = p->currentPhase;
