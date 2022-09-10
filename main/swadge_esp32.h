@@ -13,14 +13,12 @@
 // there is no function call and rsr only takes one cycle to complete. 
 static inline uint32_t getCycleCount()
 {
-	uint32_t ccount;
-	asm volatile("rsr %0,ccount":"=a" (ccount));
-	return ccount;
+    uint32_t ccount;
+    asm volatile("rsr %0,ccount":"=a" (ccount));
+    return ccount;
 }
 
 void app_main(void);
 void setFrameRateUs(uint32_t frameRate);
-
-
 
 #endif
