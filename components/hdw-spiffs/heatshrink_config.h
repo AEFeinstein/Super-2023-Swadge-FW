@@ -8,7 +8,8 @@
 
 #if HEATSHRINK_DYNAMIC_ALLOC
     /* Optional replacement of malloc/free */
-#ifdef _TEST_USE_SPIRAM_
+#define _TEST_USE_SPIRAM_
+#if defined( _TEST_USE_SPIRAM_ ) && !defined( EMU )
     #include <esp_heap_caps.h>
     #define HEATSHRINK_MALLOC(SZ) heap_caps_malloc(SZ, MALLOC_CAP_SPIRAM)
 #else

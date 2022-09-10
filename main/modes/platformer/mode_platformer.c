@@ -20,6 +20,7 @@
 #include "gameData.h"
 #include "entityManager.h"
 #include "leveldef.h"
+#include "led_util.h"
 
 //==============================================================================
 // Constants
@@ -49,6 +50,14 @@ static const song_t sndDie =
     .shouldLoop = false
 };
 
+static const song_t sndTest =
+    {
+        .notes =
+            {
+                {1000, 10}
+            },
+        .numNotes = 1,
+        .shouldLoop = false};
 //==============================================================================
 // Functions Prototypes
 //==============================================================================
@@ -131,13 +140,18 @@ swadgeMode modePlatformer =
         .fnAudioCallback = NULL,
         .fnTemperatureCallback = NULL};
 
-static leveldef_t leveldef[2] = {
+static leveldef_t leveldef[3] = {
     {.filename = "level1-1.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
     {.filename = "level1-2.bin",
      .timeLimit = 120,
+     .checkpointTimeLimit = 90},
+    {.filename = "level1-3.bin",
+     .timeLimit = 180,
      .checkpointTimeLimit = 90}};
+
+led_t platLeds[NUM_LEDS];
 
 //==============================================================================
 // Functions
@@ -293,12 +307,51 @@ void updateTitleScreen(platformer_t *self)
 
     // Handle inputs
     if (
-        ((self->gameData.btnState & BTN_B) && !(self->gameData.prevBtnState & BTN_B)) ||
-        ((self->gameData.btnState & BTN_A) && !(self->gameData.prevBtnState & BTN_B)))
+        ((self->gameData.btnState & BTN_B) && !(self->gameData.prevBtnState & BTN_B)) 
+        ||
+        ((self->gameData.btnState & BTN_A) && !(self->gameData.prevBtnState & BTN_B))
+    )
     {
         initializeGameData(&(self->gameData));
         changeStateReadyScreen(self);
     }
+
+    if(self->gameData.btnState & LEFT){
+        scrollTileMap(&(platformer->tilemap), -2, 0);
+    } else if(self->gameData.btnState & RIGHT){
+        scrollTileMap(&(platformer->tilemap), 2, 0);
+    }
+
+    if (
+        ((self->gameData.btnState & UP) && !(self->gameData.prevBtnState & UP))
+        ||
+        ((self->gameData.btnState & DOWN) && !(self->gameData.prevBtnState & DOWN))
+    )
+    {
+        for (int32_t i = 0; i < NUM_LEDS; i++)
+        {
+            platLeds[i].r = 0xFF;
+            platLeds[i].g = 0xFF;
+            platLeds[i].b = 0xFF;
+        }
+        setLeds(platLeds, NUM_LEDS);
+        buzzer_play_sfx(&sndTest);
+    } else if (
+        (!(self->gameData.btnState & UP) && (self->gameData.prevBtnState & UP))
+        ||
+        (!(self->gameData.btnState & DOWN) && (self->gameData.prevBtnState & DOWN))
+    )
+    {
+        for (int32_t i = 0; i < NUM_LEDS; i++)
+        {
+            platLeds[i].r = 0x00;
+            platLeds[i].g = 0x00;
+            platLeds[i].b = 0x00;
+        }
+        setLeds(platLeds, NUM_LEDS);
+    }
+
+
 
     drawPlatformerTitleScreen(self->disp, &(self->radiostars), &(self->gameData));
 
@@ -308,6 +361,8 @@ void updateTitleScreen(platformer_t *self)
 
 void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
 {
+    drawTileMap(d,&(platformer->tilemap));
+
     drawText(d, font, c555, "Super Swadge Land", 40, 32);
 
     if (gameData->frameCount < 10)
@@ -342,7 +397,7 @@ void drawReadyScreen(display_t *d, font_t *font, gameData_t *gameData){
 void changeStateGame(platformer_t *self){
     self->gameData.frameCount = 0;
 
-    deactivateAllEntities(&(self->entityManager));
+    deactivateAllEntities(&(self->entityManager), false);
 
     uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
     loadMapFromFile(&(platformer->tilemap), leveldef[levelIndex].filename);
@@ -351,6 +406,8 @@ void changeStateGame(platformer_t *self){
     entityManager_t * entityManager = &(self->entityManager);
     entityManager->viewEntity = createPlayer(entityManager, entityManager->tilemap->warps[0].x * 16, entityManager->tilemap->warps[0].y * 16);
     entityManager->playerEntity = entityManager->viewEntity;
+
+    self->tilemap.executeTileSpawnAll = true;
 
     self->update = &updateGame;
 }
@@ -461,7 +518,7 @@ void updateLevelClear(platformer_t *self){
             }
 
             uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
-            if(levelIndex >= 2){
+            if(levelIndex >= 3){
                 changeStateGameClear(self);
             } else {
                 changeStateReadyScreen(self);

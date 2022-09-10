@@ -14,6 +14,6 @@
 #include "hal/gpio_types.h"
 #include "../../main/display/display.h"
 
-bool initOLED(display_t * disp, bool reset, gpio_num_t rst);
+bool initOLED(display_t* disp, bool reset, gpio_num_t rst);
 
 #endif /* _SSD1306_H_ */

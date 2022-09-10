@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <esp_log.h>
 
+#include "swadge_esp32.h"
 #include "swadgeMode.h"
 #include "meleeMenu.h"
 #include "p2pConnection.h"
@@ -40,7 +41,6 @@ typedef struct
     display_t* disp;
     fighterScreen_t screen;
     p2pInfo p2p;
-    bool menuChanged;
     fightingCharacter_t characters[2];
     fightingStage_t stage;
     fighterMessageType_t lastSentMsg;
@@ -125,6 +125,7 @@ void fighterEnterMode(display_t* disp)
 
     // Save the display pointer
     fm->disp = disp;
+    setFrameRateUs(FRAME_TIME_MS * 1000); // 20FPS
 
     // Each menu needs a font, so load that first
     loadFont("mm.font", &(fm->mmFont));
@@ -144,7 +145,7 @@ void fighterEnterMode(display_t* disp)
     fm->stage = NO_STAGE;
 
     // Initialize p2p
-    p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, 0);
+    p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
 }
 
 /**
@@ -170,12 +171,7 @@ void fighterMainLoop(int64_t elapsedUs)
     {
         case FIGHTER_MENU:
         {
-            // Redraw the menu if there's been a change
-            if(fm->menuChanged)
-            {
-                drawMeleeMenu(fm->disp, fm->menu);
-                fm->menuChanged = false;
-            }
+            drawMeleeMenu(fm->disp, fm->menu);
             break;
         }
         case FIGHTER_GAME:
@@ -215,7 +211,6 @@ void fighterButtonCb(buttonEvt_t* evt)
             // Pass button events from the Swadge mode to the menu
             if(evt->down)
             {
-                fm->menuChanged = true;
                 meleeMenuButton(fm->menu, evt->button);
             }
             break;
@@ -250,7 +245,6 @@ void setFighterMainMenu(void)
     addRowToMeleeMenu(fm->menu, str_multiplayer);
     addRowToMeleeMenu(fm->menu, str_hrContest);
     addRowToMeleeMenu(fm->menu, str_exit);
-    fm->menuChanged = true;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -292,7 +286,6 @@ void setFighterHrMenu(void)
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
     addRowToMeleeMenu(fm->menu, str_back);
-    fm->menuChanged = true;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -352,7 +345,6 @@ void setFighterMultiplayerCharSelMenu(void)
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
     addRowToMeleeMenu(fm->menu, str_back);
-    fm->menuChanged = true;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -398,7 +390,7 @@ void fighterMultiplayerCharMenuCb(const char* opt)
         CHAR_SEL_MSG,
         fm->characters[charIdx]
     };
-    p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), true, fighterP2pMsgTxCbFn);
     fm->lastSentMsg = CHAR_SEL_MSG;
 
     if(GOING_FIRST == fm->p2p.cnc.playOrder)
@@ -424,7 +416,6 @@ void setFighterMultiplayerStageSelMenu(void)
     addRowToMeleeMenu(fm->menu, str_stgBF);
     addRowToMeleeMenu(fm->menu, str_stgFD);
     addRowToMeleeMenu(fm->menu, str_back);
-    fm->menuChanged = true;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -464,7 +455,7 @@ void fighterMultiplayerStageMenuCb(const char* opt)
         STAGE_SEL_MSG,
         fm->stage
     };
-    p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), true, fighterP2pMsgTxCbFn);
     fm->lastSentMsg = STAGE_SEL_MSG;
 }
 
@@ -634,7 +625,8 @@ void fighterSendButtonsToOther(int32_t btnState)
         BUTTON_INPUT_MSG,
         btnState // This clips 32 bits to 8 bits, but there are 8 buttons anyway
     };
-    p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
+    // TODO don't ack, retry until the scene is received
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), true, fighterP2pMsgTxCbFn);
     fm->lastSentMsg = BUTTON_INPUT_MSG;
 }
 
@@ -648,6 +640,7 @@ void fighterSendSceneToOther(fighterScene_t* scene, uint8_t len)
 {
     // Insert the message type (this byte should be empty)
     ((uint8_t*)scene)[0] = SCENE_COMPOSED_MSG;
-    p2pSendMsg(&fm->p2p, (const uint8_t*)scene, len, fighterP2pMsgTxCbFn);
+    // TODO don't ack, retry until buttons are received
+    p2pSendMsg(&fm->p2p, (const uint8_t*)scene, len, true, fighterP2pMsgTxCbFn);
     fm->lastSentMsg = SCENE_COMPOSED_MSG;
 }

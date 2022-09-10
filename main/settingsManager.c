@@ -8,6 +8,7 @@
 #include "nvs_manager.h"
 #include "settingsManager.h"
 #include "led_util.h"
+#include "hdw-tft.h"
 
 //==============================================================================
 // Defines
@@ -86,8 +87,14 @@ bool incTftBrightness(void)
 {
     // Increment the value
     uint8_t brightness = (getTftBrightness() + 1) % (MAX_TFT_BRIGHTNESS + 1);
+
     // Write the value
-    return writeNvs32(KEY_TFT_BRIGHT, brightness);
+    bool retVal = writeNvs32(KEY_TFT_BRIGHT, brightness);
+
+    // Set the brightness
+    setTFTBacklight(getTftIntensity());
+
+    return retVal;
 }
 
 /**
@@ -107,8 +114,25 @@ bool decTftBrightness(void)
     {
         brightness--;
     }
+
     // Write the value
-    return writeNvs32(KEY_TFT_BRIGHT, brightness);
+    bool retVal = writeNvs32(KEY_TFT_BRIGHT, brightness);
+
+    // Set the brightness
+    setTFTBacklight(getTftIntensity());
+
+    return retVal;
+}
+
+/**
+ * @brief Get the Tft Intensity, passed into setTFTBacklight()
+ *
+ * @return The TFT intensity
+ */
+uint8_t getTftIntensity(void)
+{
+    return (CONFIG_TFT_MIN_BRIGHTNESS + (((CONFIG_TFT_MAX_BRIGHTNESS - CONFIG_TFT_MIN_BRIGHTNESS) * getTftBrightness()) /
+                                         MAX_TFT_BRIGHTNESS));
 }
 
 /**

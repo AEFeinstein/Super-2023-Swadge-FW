@@ -671,7 +671,8 @@ const song_t* landSFX[NUM_LAND_FX] =
     &lineOneSFX
 };
 
-const song_t titleMusic = {
+const song_t titleMusic =
+{
     .notes = {
         {.note = C_6, .timeMs = 159},
         {.note = SILENCE, .timeMs = 1},
@@ -1182,43 +1183,45 @@ bool ttIsButtonUp(uint8_t button);
 
 // grid management.
 void copyGrid(coord_t srcOffset, uint8_t srcCols, uint8_t srcRows, const uint32_t src[][srcCols],
-                                uint8_t dstCols, uint8_t dstRows, uint32_t dst[][dstCols]);
+              uint8_t dstCols, uint8_t dstRows, uint32_t dst[][dstCols]);
 void transferGrid(coord_t srcOffset, uint8_t srcCols, uint8_t srcRows,
-                                    const uint32_t src[][srcCols], uint8_t dstCols, uint8_t dstRows, uint32_t dst[][dstCols], uint32_t transferVal);
+                  const uint32_t src[][srcCols], uint8_t dstCols, uint8_t dstRows, uint32_t dst[][dstCols], uint32_t transferVal);
 void clearGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]);
 void refreshTetradsGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols],
-        list_t* fieldTetrads, tetrad_t* movingTetrad, bool includeMovingTetrad);
+                        list_t* fieldTetrads, tetrad_t* movingTetrad, bool includeMovingTetrad);
 int16_t xFromGridCol(int16_t x0, int16_t gridCol, uint8_t unitSize);
 int16_t yFromGridRow(int16_t y0, int16_t gridRow, uint8_t unitSize);
 
 // tetrad operations.
 bool rotateTetrad(tetrad_t* tetrad, int32_t newRotation, uint8_t gridCols, uint8_t gridRows,
-                                    uint32_t gridData[][gridCols]);
+                  uint32_t gridData[][gridCols]);
 void softDropTetrad(void);
 bool moveTetrad(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
-                                  uint32_t gridData[][gridCols]);
+                uint32_t gridData[][gridCols]);
 bool dropTetrad(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
-                                  uint32_t gridData[][gridCols]);
+                uint32_t gridData[][gridCols]);
 tetrad_t spawnTetrad(tetradType_t type, uint32_t gridValue, coord_t gridCoord, int32_t rotation);
 void spawnNextTetrad(tetrad_t* newTetrad, tetradRandomizer_t randomType, uint32_t gridValue,
-                                       uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]);
+                     uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]);
 int32_t getLowestActiveRow(tetrad_t* tetrad);
 int32_t getHighestActiveRow(tetrad_t* tetrad);
 int32_t getFallDistance(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
-        const uint32_t gridData[][gridCols]);
+                        const uint32_t gridData[][gridCols]);
 
 // drawing functions.
 void plotSquare(display_t* disp, int16_t x0, int16_t y0, uint8_t size, paletteColor_t col);
 void plotGrid(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8_t gridCols, uint8_t gridRows,
-                                uint32_t gridData[][gridCols], bool clearLineAnimation, paletteColor_t col);
+              uint32_t gridData[][gridCols], bool clearLineAnimation, paletteColor_t col);
 void plotTetrad(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8_t tetradCols, uint8_t tetradRows,
-                                  uint32_t shape[][tetradCols], uint8_t tetradFill, int32_t fillRotation, paletteColor_t borderColor, paletteColor_t fillColor);
+                uint32_t shape[][tetradCols], uint8_t tetradFill, int32_t fillRotation, paletteColor_t borderColor,
+                paletteColor_t fillColor);
 void plotPerspectiveEffect(display_t* disp, int16_t leftSrc, int16_t leftDst, int16_t rightSrc, int16_t rightDst,
-        int16_t y0, int16_t y1, int32_t numVerticalLines, int32_t numHorizontalLines, double lineTweenTimeS,
-        uint32_t currentTimeUS,
-        paletteColor_t col);
+                           int16_t y0, int16_t y1, int32_t numVerticalLines, int32_t numHorizontalLines, double lineTweenTimeS,
+                           uint32_t currentTimeUS,
+                           paletteColor_t col);
 uint16_t getCenteredTextX(font_t* font, const char* text, int16_t x0, int16_t x1);
-void getNumCentering(font_t* font, const char* text, int16_t achorX0, int16_t anchorX1, int16_t* textX0, int16_t* textX1);
+void getNumCentering(font_t* font, const char* text, int16_t achorX0, int16_t anchorX1, int16_t* textX0,
+                     int16_t* textX1);
 
 // randomizer operations.
 void initTypeOrder(void);
@@ -1252,13 +1255,13 @@ double getDropFXTimeFactor(uint32_t level);
 
 bool isLineCleared(int32_t line, uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]);
 int32_t checkLineClears(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols],
-        list_t* fieldTetrads);
+                        list_t* fieldTetrads);
 int32_t clearLines(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols],
-                                     list_t* fieldTetrads);
+                   list_t* fieldTetrads);
 
 bool checkCollision(coord_t newPos, uint8_t tetradCols, uint8_t tetradRows,
-                                      const uint32_t shape[][tetradCols], uint8_t gridCols, uint8_t gridRows, const uint32_t gridData[][gridCols],
-                                      uint32_t selfGridValue);
+                    const uint32_t shape[][tetradCols], uint8_t gridCols, uint8_t gridRows, const uint32_t gridData[][gridCols],
+                    uint32_t selfGridValue);
 
 // LED FX functions.
 void singlePulseLEDs(uint8_t numLEDs, led_t fxColor, double progress);
@@ -1291,7 +1294,7 @@ swadgeMode modeTiltrads =
 void ttInit(display_t* disp)
 {
     // Give us responsive input. Supposedly no longer needed with this HW. TODO: confirm on device.
-    //enableDebounce(false); 
+    //enableDebounce(false);
 
     // Reset mode time tracking.
     modeStartTime = esp_timer_get_time();
@@ -1320,7 +1323,7 @@ void ttDeInit(void)
     freeFont(&tom_thumb);
     freeFont(&ibm_vga8);
     freeFont(&radiostars);
-    freeFont(&mmFont);  
+    freeFont(&mmFont);
 
     buzzer_stop();
 
@@ -1862,7 +1865,8 @@ void ttTitleDisplay(void)
     fillDisplayArea(display, GRID_X, 0, xFromGridCol(GRID_X, TUTORIAL_GRID_COLS, GRID_UNIT_SIZE) - 1, display->h, c000);
 
     // Draw demo-scene title FX.
-    plotPerspectiveEffect(display, GRID_X, 0, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), display->w - 1, 0, display->h, 3, 3,
+    plotPerspectiveEffect(display, GRID_X, 0, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), display->w - 1, 0,
+                          display->h, 3, 3,
                           2.0,
                           stateTime, c112);
 
@@ -1892,10 +1896,12 @@ void ttTitleDisplay(void)
     // Draw the active tetrad.
     plotTetrad(display, xFromGridCol(GRID_X, tutorialTetrad.topLeft.c, GRID_UNIT_SIZE),
                yFromGridRow(GRID_Y, tutorialTetrad.topLeft.r, GRID_UNIT_SIZE), GRID_UNIT_SIZE, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE,
-               tutorialTetrad.shape, tutorialTetrad.type, tutorialTetrad.rotation, borderColors[tutorialTetrad.type-1], fillColors[tutorialTetrad.type-1]);
+               tutorialTetrad.shape, tutorialTetrad.type, tutorialTetrad.rotation, borderColors[tutorialTetrad.type - 1],
+               fillColors[tutorialTetrad.type - 1]);
 
     // Draw the background grid. NOTE: (make sure everything that needs to be in tetradsGrid is in there now).
-    plotGrid(display, GRID_X, GRID_Y, GRID_UNIT_SIZE, TUTORIAL_GRID_COLS, TUTORIAL_GRID_ROWS, tutorialTetradsGrid, false, c224);
+    plotGrid(display, GRID_X, GRID_Y, GRID_UNIT_SIZE, TUTORIAL_GRID_COLS, TUTORIAL_GRID_ROWS, tutorialTetradsGrid, false,
+             c224);
 
     // TILTRADS
 
@@ -1910,7 +1916,8 @@ void ttTitleDisplay(void)
     drawText(display, &radiostars, c540, "TILTRADS", titleTextX, titleTextY);
 
     //Fill in the floor of the grid on-screen for visual consistency.
-    plotLine(display, GRID_X, display->h - 1, xFromGridCol(GRID_X, TUTORIAL_GRID_COLS, GRID_UNIT_SIZE) - 1, display->h - 1, c224, 0); //TODO: why is the -1 needed, is my math off?
+    plotLine(display, GRID_X, display->h - 1, xFromGridCol(GRID_X, TUTORIAL_GRID_COLS, GRID_UNIT_SIZE) - 1, display->h - 1,
+             c224, 0); //TODO: why is the -1 needed, is my math off?
 }
 
 void ttGameDisplay(void)
@@ -1941,14 +1948,16 @@ void ttGameDisplay(void)
 
     // Draw the BG FX.
     // Goal: noticeable speed-ups when level increases and when soft drop is being held or released.
-    plotPerspectiveEffect(display, GRID_X, 0, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), display->w - 1, 0, display->h, 3, 3,
+    plotPerspectiveEffect(display, GRID_X, 0, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), display->w - 1, 0,
+                          display->h, 3, 3,
                           5.0,
                           dropFXTime, c112);
 
     // Draw the active tetrad.
     plotTetrad(display, xFromGridCol(GRID_X, activeTetrad.topLeft.c, GRID_UNIT_SIZE),
                yFromGridRow(GRID_Y, activeTetrad.topLeft.r, GRID_UNIT_SIZE), GRID_UNIT_SIZE, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE,
-               activeTetrad.shape, activeTetrad.type, activeTetrad.rotation, borderColors[activeTetrad.type-1], fillColors[activeTetrad.type-1]);
+               activeTetrad.shape, activeTetrad.type, activeTetrad.rotation, borderColors[activeTetrad.type - 1],
+               fillColors[activeTetrad.type - 1]);
 
     // Draw all the landed tetrads.
     node_t* current = landedTetrads->first;
@@ -1957,7 +1966,8 @@ void ttGameDisplay(void)
         tetrad_t* currentTetrad = (tetrad_t*)current->val;
         plotTetrad(display, xFromGridCol(GRID_X, currentTetrad->topLeft.c, GRID_UNIT_SIZE),
                    yFromGridRow(GRID_Y, currentTetrad->topLeft.r, GRID_UNIT_SIZE), GRID_UNIT_SIZE, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE,
-                   currentTetrad->shape, currentTetrad->type, currentTetrad->rotation, borderColors[currentTetrad->type-1], fillColors[currentTetrad->type-1]);
+                   currentTetrad->shape, currentTetrad->type, currentTetrad->rotation, borderColors[currentTetrad->type - 1],
+                   fillColors[currentTetrad->type - 1]);
         current = current->next;
     }
 
@@ -1991,13 +2001,15 @@ void ttGameDisplay(void)
     tetrad_t nextTetrad = spawnTetrad(nextTetradType, tetradCounter + 1, nextTetradPoint, TETRAD_SPAWN_ROT);
     plotTetrad(display, xFromGridCol(NEXT_GRID_X, nextTetradPoint.c, GRID_UNIT_SIZE),
                yFromGridRow(NEXT_GRID_Y, nextTetradPoint.r, GRID_UNIT_SIZE), GRID_UNIT_SIZE, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE,
-               nextTetrad.shape, nextTetrad.type, nextTetrad.rotation, borderColors[nextTetrad.type-1], fillColors[nextTetrad.type-1]);
+               nextTetrad.shape, nextTetrad.type, nextTetrad.rotation, borderColors[nextTetrad.type - 1],
+               fillColors[nextTetrad.type - 1]);
 
     // Draw the grid holding the next tetrad.
     clearGrid(NEXT_GRID_COLS, NEXT_GRID_ROWS, nextTetradGrid);
     copyGrid(nextTetrad.topLeft, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE, nextTetrad.shape, NEXT_GRID_COLS, NEXT_GRID_ROWS,
              nextTetradGrid);
-    plotGrid(display, NEXT_GRID_X, NEXT_GRID_Y, GRID_UNIT_SIZE, NEXT_GRID_COLS, NEXT_GRID_ROWS, nextTetradGrid, false, c224);
+    plotGrid(display, NEXT_GRID_X, NEXT_GRID_Y, GRID_UNIT_SIZE, NEXT_GRID_COLS, NEXT_GRID_ROWS, nextTetradGrid, false,
+             c224);
 
     // Draw the left-side score UI.
 
@@ -2009,7 +2021,7 @@ void ttGameDisplay(void)
     //HIGH
     currY = NEXT_GRID_Y - 2 - tom_thumb.h;
     int16_t highScoreHeaderTextStart = getCenteredTextX(&tom_thumb, newHighScore ? "HIGH (NEW)" : "HIGH", 0, 80);
-    int16_t highScoreHeaderTextEnd = highScoreHeaderTextStart + textWidth(&tom_thumb, newHighScore ? "HIGH (NEW)" : "HIGH"); 
+    int16_t highScoreHeaderTextEnd = highScoreHeaderTextStart + textWidth(&tom_thumb, newHighScore ? "HIGH (NEW)" : "HIGH");
 
     /*if (newHighScore)
     {
@@ -2119,17 +2131,20 @@ void ttScoresDisplay(void)
     fillDisplayArea(display, GRID_X, 0, xFromGridCol(GRID_X, TUTORIAL_GRID_COLS, GRID_UNIT_SIZE) - 1, display->h, c000);
 
     // Draw demo-scene title FX.
-    plotPerspectiveEffect(display, GRID_X, 0, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), display->w - 1, 0, display->h, 3, 3,
+    plotPerspectiveEffect(display, GRID_X, 0, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), display->w - 1, 0,
+                          display->h, 3, 3,
                           2.0,
                           stateTime, c112);
 
     // Draw the background grid. NOTE: (make sure everything that needs to be in tetradsGrid is in there now).
-    plotGrid(display, GRID_X, GRID_Y, GRID_UNIT_SIZE, TUTORIAL_GRID_COLS, TUTORIAL_GRID_ROWS, tutorialTetradsGrid, false, c224);
+    plotGrid(display, GRID_X, GRID_Y, GRID_UNIT_SIZE, TUTORIAL_GRID_COLS, TUTORIAL_GRID_ROWS, tutorialTetradsGrid, false,
+             c224);
 
     //Fill in the floor of the grid on-screen for visual consistency.
-    plotLine(display, GRID_X, display->h - 1, xFromGridCol(GRID_X, TUTORIAL_GRID_COLS, GRID_UNIT_SIZE) - 1, display->h - 1, c224, 0); //TODO: why is the -1 needed, is my math off?
+    plotLine(display, GRID_X, display->h - 1, xFromGridCol(GRID_X, TUTORIAL_GRID_COLS, GRID_UNIT_SIZE) - 1, display->h - 1,
+             c224, 0); //TODO: why is the -1 needed, is my math off?
 
-    
+
     // HIGH SCORES
     int16_t headerTextX = getCenteredTextX(&ibm_vga8, "HIGH SCORES", 0, display->w);
     int16_t headerTextY = SCORE_SCREEN_TITLE_Y;
@@ -2162,7 +2177,7 @@ void ttScoresDisplay(void)
         double holdProgress = ((double)clearScoreTimer / (double)CLEAR_SCORES_HOLD_TIME);
         int16_t holdAreaX0 = clearScoresTextX - 1;
         int16_t holdAreaY0 = (display->h - (tom_thumb.h + 1)) - 1;
-        double holdAreaWidth = textWidth(&tom_thumb, "CLEAR SCORES") + 3; //TODO: magic number here, check math. 
+        double holdAreaWidth = textWidth(&tom_thumb, "CLEAR SCORES") + 3; //TODO: magic number here, check math.
         int16_t holdAreaX1 = holdAreaX0 + (int16_t)(holdProgress * holdAreaWidth);
         int16_t holdAreaY1 = display->h - 1;
         fillDisplayArea(display, holdAreaX0, holdAreaY0, holdAreaX1, holdAreaY1, c555); //TODO: this was INVERSE, repro this?
@@ -2186,7 +2201,8 @@ void ttGameoverDisplay(void)
         // Draw the active tetrad that was the killing tetrad once so that the flash effect works.
         plotTetrad(display, xFromGridCol(GRID_X, activeTetrad.topLeft.c, GRID_UNIT_SIZE),
                    yFromGridRow(GRID_Y, activeTetrad.topLeft.r, GRID_UNIT_SIZE), GRID_UNIT_SIZE, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE,
-                   activeTetrad.shape, activeTetrad.type, activeTetrad.rotation, borderColors[activeTetrad.type-1], fillColors[activeTetrad.type-1]);
+                   activeTetrad.shape, activeTetrad.type, activeTetrad.rotation, borderColors[activeTetrad.type - 1],
+                   fillColors[activeTetrad.type - 1]);
 
         // Draw a centered bordered window.
         uint8_t leftWindowXMargin = 82;
@@ -2202,8 +2218,10 @@ void ttGameoverDisplay(void)
         uint8_t controlTextXPadding = 2;
 
         // Draw a centered bordered window.
-        fillDisplayArea(display, leftWindowXMargin, windowYMarginTop, display->w - rightWindowXMargin, display->h - windowYMarginBot, c000);
-        plotRect(display, leftWindowXMargin, windowYMarginTop, display->w - rightWindowXMargin, display->h - windowYMarginBot, c540);
+        fillDisplayArea(display, leftWindowXMargin, windowYMarginTop, display->w - rightWindowXMargin,
+                        display->h - windowYMarginBot, c000);
+        plotRect(display, leftWindowXMargin, windowYMarginTop, display->w - rightWindowXMargin, display->h - windowYMarginBot,
+                 c540);
 
         // GAME OVER
         int16_t headerTextX = getCenteredTextX(&ibm_vga8, "GAME OVER", 0, display->w);
@@ -2228,24 +2246,27 @@ void ttGameoverDisplay(void)
 
         // TITLE    RESTART
         drawText(display, &tom_thumb, c540, "TITLE", leftWindowXMargin + controlTextXPadding, controlTextYOffset);
-        drawText(display, &tom_thumb, c540, "RESTART", display->w - rightWindowXMargin - 27 - controlTextXPadding, controlTextYOffset);
+        drawText(display, &tom_thumb, c540, "RESTART", display->w - rightWindowXMargin - 27 - controlTextXPadding,
+                 controlTextYOffset);
     }
 
     gameoverLEDAnimCycle = ((double)stateTime * US_TO_MS_FACTOR) / DISPLAY_REFRESH_MS;
     //paletteColor_t killTetradColor = gameoverLEDAnimCycle % 2 == 0 ? c555 : c000;
 
     // Flash the active tetrad that was the killing tetrad.
-    if (gameoverLEDAnimCycle % 2 == 0) 
+    if (gameoverLEDAnimCycle % 2 == 0)
     {
         plotTetrad(display, xFromGridCol(GRID_X, activeTetrad.topLeft.c, GRID_UNIT_SIZE),
-               yFromGridRow(GRID_Y, activeTetrad.topLeft.r, GRID_UNIT_SIZE), GRID_UNIT_SIZE, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE,
-               activeTetrad.shape, activeTetrad.type, activeTetrad.rotation, borderColors[activeTetrad.type-1], fillColors[activeTetrad.type-1]);
+                   yFromGridRow(GRID_Y, activeTetrad.topLeft.r, GRID_UNIT_SIZE), GRID_UNIT_SIZE, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE,
+                   activeTetrad.shape, activeTetrad.type, activeTetrad.rotation, borderColors[activeTetrad.type - 1],
+                   fillColors[activeTetrad.type - 1]);
     }
-    else 
+    else
     {
         plotTetrad(display, xFromGridCol(GRID_X, activeTetrad.topLeft.c, GRID_UNIT_SIZE),
-               yFromGridRow(GRID_Y, activeTetrad.topLeft.r, GRID_UNIT_SIZE), GRID_UNIT_SIZE, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE,
-               activeTetrad.shape, activeTetrad.type, activeTetrad.rotation, fillColors[activeTetrad.type-1], borderColors[activeTetrad.type-1]);
+                   yFromGridRow(GRID_Y, activeTetrad.topLeft.r, GRID_UNIT_SIZE), GRID_UNIT_SIZE, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE,
+                   activeTetrad.shape, activeTetrad.type, activeTetrad.rotation, fillColors[activeTetrad.type - 1],
+                   borderColors[activeTetrad.type - 1]);
     }
 }
 
@@ -2397,7 +2418,7 @@ bool ttIsButtonUp(uint8_t button)
 }
 
 void copyGrid(coord_t srcOffset, uint8_t srcCols, uint8_t srcRows, const uint32_t src[][srcCols],
-                                uint8_t dstCols, uint8_t dstRows, uint32_t dst[][dstCols])
+              uint8_t dstCols, uint8_t dstRows, uint32_t dst[][dstCols])
 {
     for (int32_t r = 0; r < srcRows; r++)
     {
@@ -2414,7 +2435,7 @@ void copyGrid(coord_t srcOffset, uint8_t srcCols, uint8_t srcRows, const uint32_
 }
 
 void transferGrid(coord_t srcOffset, uint8_t srcCols, uint8_t srcRows,
-                                    const uint32_t src[][srcCols], uint8_t dstCols, uint8_t dstRows, uint32_t dst[][dstCols], uint32_t transferVal)
+                  const uint32_t src[][srcCols], uint8_t dstCols, uint8_t dstRows, uint32_t dst[][dstCols], uint32_t transferVal)
 {
     for (int32_t r = 0; r < srcRows; r++)
     {
@@ -2446,7 +2467,7 @@ void clearGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]
 
 // NOTE: the grid value of every tetrad is reassigned on refresh to fix a bug that occurs where every 3 tetrads seems to ignore collision, cause unknown.
 void refreshTetradsGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols],
-        list_t* fieldTetrads, tetrad_t* movingTetrad, bool includeMovingTetrad)
+                        list_t* fieldTetrads, tetrad_t* movingTetrad, bool includeMovingTetrad)
 {
     clearGrid(gridCols, gridRows, gridData);
 
@@ -2478,7 +2499,7 @@ int16_t yFromGridRow(int16_t y0, int16_t gridRow, uint8_t unitSize)
 
 // This assumes only complete tetrads can be rotated.
 bool rotateTetrad(tetrad_t* tetrad, int32_t newRotation, uint8_t gridCols, uint8_t gridRows,
-                                    uint32_t gridData[][gridCols])
+                  uint32_t gridData[][gridCols])
 {
     newRotation %= NUM_ROTATIONS;
     bool rotationClear = false;
@@ -2645,7 +2666,7 @@ void softDropTetrad()
 }
 
 bool moveTetrad(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
-                                  uint32_t gridData[][gridCols])
+                uint32_t gridData[][gridCols])
 {
     // 0 = min top left
     // 9 = max top left
@@ -2673,18 +2694,18 @@ bool moveTetrad(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
     }
 
     // Emulator only (control with d pad)
-    #ifdef EMU
+#ifdef EMU
     targetPos.c = tetrad->topLeft.c;
     //ESP_LOGW("EMU", "%d modeFrames", modeFrames);
-    if (ttIsButtonPressed(LEFT)) 
+    if (ttIsButtonPressed(LEFT))
     {
         targetPos.c -= 1;
     }
-    else if (ttIsButtonPressed(RIGHT)) 
+    else if (ttIsButtonPressed(RIGHT))
     {
         targetPos.c += 1;
     }
-    #endif
+#endif
 
     bool moveClear = true;
     while (targetPos.c != tetrad->topLeft.c && moveClear)
@@ -2708,7 +2729,7 @@ bool moveTetrad(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
 }
 
 bool dropTetrad(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
-                                  uint32_t gridData[][gridCols])
+                uint32_t gridData[][gridCols])
 {
     coord_t dropPos = tetrad->topLeft;
     dropPos.r++;
@@ -2770,7 +2791,7 @@ tetrad_t spawnTetrad(tetradType_t type, uint32_t gridValue, coord_t gridCoord, i
 }
 
 void spawnNextTetrad(tetrad_t* newTetrad, tetradRandomizer_t randomType, uint32_t currentTetradCount,
-                                       uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols])
+                     uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols])
 {
     coord_t spawnPos;
     spawnPos.c = TETRAD_SPAWN_X;
@@ -2830,7 +2851,7 @@ int32_t getHighestActiveRow(tetrad_t* tetrad)
 }
 
 int32_t getFallDistance(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
-        const uint32_t gridData[][gridCols])
+                        const uint32_t gridData[][gridCols])
 {
     int32_t fallDistance = gridRows;
     int32_t currFallDistance;
@@ -2888,7 +2909,7 @@ void plotSquare(display_t* disp, int16_t x0, int16_t y0, uint8_t size, paletteCo
 }
 
 void plotGrid(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8_t gridCols, uint8_t gridRows,
-                                uint32_t gridData[][gridCols], bool clearLineAnimation, paletteColor_t col)
+              uint32_t gridData[][gridCols], bool clearLineAnimation, paletteColor_t col)
 {
     // Draw the border
     // TODO: the +2 moves the border down so that distinct tetrads don't clip ground.
@@ -2900,20 +2921,22 @@ void plotGrid(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8_t
         // Draw lines that are cleared.
         if (clearLineAnimation && isLineCleared(y, gridCols, gridRows, gridData))
         {
-            fillDisplayArea(display, x0 + 1, y0 + (unitSize * y) + 1, x0 + (unitSize * gridCols), y0 + (unitSize * (y + 1)) + 1, c555);
+            fillDisplayArea(display, x0 + 1, y0 + (unitSize * y) + 1, x0 + (unitSize * gridCols), y0 + (unitSize * (y + 1)) + 1,
+                            c555);
         }
 
         for (int32_t x = 0; x < gridCols; x++)
         {
             //plotSquare(x0 + (x * unitSize) + 1, y0 + (y * unitSize) + 1, unitSize, c555);
             // Draw a centered pixel on empty grid units.
-            //if (gridData[y][x] == EMPTY) disp->setPx(x0 + x * unitSize + (unitSize / 2), y0 + y * unitSize + (unitSize / 2), c555);
+            //if (gridData[y][x] == EMPTY) SET_PIXEL_BOUNDS(disp, x0 + x * unitSize + (unitSize / 2), y0 + y * unitSize + (unitSize / 2), c555);
         }
     }
 }
 
 void plotTetrad(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8_t tetradCols, uint8_t tetradRows,
-                                  uint32_t shape[][tetradCols], uint8_t tetradFill, int32_t fillRotation, paletteColor_t borderColor, paletteColor_t fillColor)
+                uint32_t shape[][tetradCols], uint8_t tetradFill, int32_t fillRotation, paletteColor_t borderColor,
+                paletteColor_t fillColor)
 {
     bool patternRotated = fillRotation % 2 != 0;
     for (int32_t y = 0; y < tetradRows; y++)
@@ -2930,17 +2953,17 @@ void plotTetrad(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8
                 {
                     case I_TETRAD:
                         // thatch
-                        /*disp->setPx(px + 1, py + 1, col);
-                        disp->setPx(px + (unitSize - 2), py + 1, col);
-                        disp->setPx(px + 1, py + (unitSize - 2), col);
-                        disp->setPx(px + (unitSize - 2), py + (unitSize - 2), col);*/
+                        /*SET_PIXEL_BOUNDS(disp, px + 1, py + 1, col);
+                        SET_PIXEL_BOUNDS(disp, px + (unitSize - 2), py + 1, col);
+                        SET_PIXEL_BOUNDS(disp, px + 1, py + (unitSize - 2), col);
+                        SET_PIXEL_BOUNDS(disp, px + (unitSize - 2), py + (unitSize - 2), col);*/
                         // diagonals both
                         plotLine(disp, px, py, px + (unitSize - 1), py + (unitSize - 1), borderColor, 0);
                         plotLine(disp, px, py + (unitSize - 1), px + (unitSize - 1), py, borderColor, 0);
                         break;
                     case O_TETRAD:
                         // full walls and center dots.
-                        disp->setPx(px + (unitSize / 2), py + (unitSize / 2), borderColor);
+                        SET_PIXEL_BOUNDS(disp, px + (unitSize / 2), py + (unitSize / 2), borderColor);
                         plotSquare(disp, px, py, unitSize, borderColor);
                         break;
                     case T_TETRAD:
@@ -3050,8 +3073,8 @@ void plotTetrad(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8
                 }
                 else
                 {
-                    disp->setPx(px, py, borderColor);
-                    disp->setPx(px + (unitSize - 1), py, borderColor);
+                    SET_PIXEL_BOUNDS(disp, px, py, borderColor);
+                    SET_PIXEL_BOUNDS(disp, px + (unitSize - 1), py, borderColor);
                 }
 
                 //bot
@@ -3061,8 +3084,8 @@ void plotTetrad(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8
                 }
                 else
                 {
-                    disp->setPx(px, py + (unitSize - 1), borderColor);
-                    disp->setPx(px + (unitSize - 1), py + (unitSize - 1), borderColor);
+                    SET_PIXEL_BOUNDS(disp, px, py + (unitSize - 1), borderColor);
+                    SET_PIXEL_BOUNDS(disp, px + (unitSize - 1), py + (unitSize - 1), borderColor);
                 }
 
                 //left
@@ -3072,8 +3095,8 @@ void plotTetrad(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8
                 }
                 else
                 {
-                    disp->setPx(px, py, borderColor);
-                    disp->setPx(px, py + (unitSize - 1), borderColor);
+                    SET_PIXEL_BOUNDS(disp, px, py, borderColor);
+                    SET_PIXEL_BOUNDS(disp, px, py + (unitSize - 1), borderColor);
                 }
 
                 //right
@@ -3083,8 +3106,8 @@ void plotTetrad(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8
                 }
                 else
                 {
-                    disp->setPx(px + (unitSize - 1), py, borderColor);
-                    disp->setPx(px + (unitSize - 1), py, borderColor);
+                    SET_PIXEL_BOUNDS(disp, px + (unitSize - 1), py, borderColor);
+                    SET_PIXEL_BOUNDS(disp, px + (unitSize - 1), py, borderColor);
                 }
             }
         }
@@ -3092,9 +3115,9 @@ void plotTetrad(display_t* disp, int16_t x0, int16_t y0, uint8_t unitSize, uint8
 }
 
 void plotPerspectiveEffect(display_t* disp, int16_t leftSrc, int16_t leftDst, int16_t rightSrc, int16_t rightDst,
-        int16_t y0, int16_t y1, int32_t numVerticalLines, int32_t numHorizontalLines, double lineTweenTimeS,
-        uint32_t currentTimeUS,
-        paletteColor_t col)
+                           int16_t y0, int16_t y1, int32_t numVerticalLines, int32_t numHorizontalLines, double lineTweenTimeS,
+                           uint32_t currentTimeUS,
+                           paletteColor_t col)
 {
     // Drawing some fake 3D demo-scene like lines for effect.
 
@@ -3143,7 +3166,8 @@ uint16_t getCenteredTextX(font_t* font, const char* text, int16_t x0, int16_t x1
     return centeredX;
 }
 
-void getNumCentering(font_t* font, const char* text, int16_t achorX0, int16_t anchorX1, int16_t* textX0, int16_t* textX1)
+void getNumCentering(font_t* font, const char* text, int16_t achorX0, int16_t anchorX1, int16_t* textX0,
+                     int16_t* textX1)
 {
     uint8_t txtWidth = textWidth(font, text);
 
@@ -3385,7 +3409,7 @@ void ttGetHighScores(void)
 void ttSetHighScores(void)
 {
     char keyStr[32] = {0};
-    for (int32_t i = 0; i < NUM_TT_HIGH_SCORES; i++) 
+    for (int32_t i = 0; i < NUM_TT_HIGH_SCORES; i++)
     {
         snprintf(keyStr, sizeof(keyStr), "tt_high_score_%d", i);
         writeNvs32(keyStr, highScores[i]);
@@ -3600,7 +3624,7 @@ double getDropFXTimeFactor(uint32_t level)
 }
 
 bool isLineCleared(int32_t line, uint8_t gridCols, uint8_t gridRows __attribute__((unused)),
-                                     uint32_t gridData[][gridCols])
+                   uint32_t gridData[][gridCols])
 {
     bool clear = true;
     for (int32_t c = 0; c < gridCols; c++)
@@ -3614,7 +3638,7 @@ bool isLineCleared(int32_t line, uint8_t gridCols, uint8_t gridRows __attribute_
 }
 
 int32_t checkLineClears(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols],
-        list_t* fieldTetrads)
+                        list_t* fieldTetrads)
 {
     //Refresh the tetrads grid before checking for any clears.
     refreshTetradsGrid(gridCols, gridRows, gridData, fieldTetrads, NULL, false);
@@ -3637,7 +3661,7 @@ int32_t checkLineClears(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][
 }
 
 int32_t clearLines(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols],
-                                     list_t* fieldTetrads)
+                   list_t* fieldTetrads)
 {
     //Refresh the tetrads grid before checking for any clears.
     refreshTetradsGrid(gridCols, gridRows, gridData, fieldTetrads, NULL, false);
@@ -3725,8 +3749,8 @@ int32_t clearLines(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridC
 
 // what is the best way to handle collisions above the grid space?
 bool checkCollision(coord_t newPos, uint8_t tetradCols, uint8_t tetradRows __attribute__((unused)),
-                                      const uint32_t shape[][tetradCols], uint8_t gridCols, uint8_t gridRows, const uint32_t gridData[][gridCols],
-                                      uint32_t selfGridValue)
+                    const uint32_t shape[][tetradCols], uint8_t gridCols, uint8_t gridRows, const uint32_t gridData[][gridCols],
+                    uint32_t selfGridValue)
 {
     for (int32_t r = 0; r < TETRAD_GRID_SIZE; r++)
     {

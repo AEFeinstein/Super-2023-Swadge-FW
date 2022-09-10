@@ -5,7 +5,7 @@
 
 /**
  * @brief Initialize the I2C bus
- * 
+ *
  * @param sda The GPIO for SDA
  * @param scl The GPIO for SCL
  * @param pullup GPIO_PULLUP_ENABLE or GPIO_PULLUP_DISABLE for SDA and SCL

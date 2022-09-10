@@ -9,6 +9,7 @@
 #include "gameData.h"
 #include "musical_buzzer.h"
 #include "btn.h"
+#include "esp_random.h"
 
 //==============================================================================
 // Constants
@@ -25,14 +26,12 @@
 // #define TO_SUBPIXEL_COORDS(x) ((x) << SUBPIXEL_RESOLUTION)
 
 static const song_t sndHit =
- {
-     .notes =
-     {
-         {740, 10},{840, 10},{940, 10}
-     },
-     .numNotes = 3,
-     .shouldLoop = false
-};
+    {
+        .notes =
+            {
+                {740, 10}, {840, 10}, {940, 10}},
+        .numNotes = 3,
+        .shouldLoop = false};
 
 static const song_t sndCoin =
     {
@@ -167,6 +166,8 @@ void updateHitBlock(entity_t *self)
     if (self->animationTimer > 4)
     {
         uint8_t aboveTile = self->tilemap->map[(self->homeTileY - 1) * self->tilemap->mapWidth + self->homeTileX];
+        entity_t *createdEntity;
+
         switch (aboveTile)
         {
             case TILE_CTNR_COIN:
@@ -179,24 +180,31 @@ void updateHitBlock(entity_t *self)
             }
             case TILE_CTNR_POW1:
             {
-                createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity = createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity->homeTileX = 0;
+                createdEntity->homeTileY = 0;
+
                 self->jumpPower = TILE_CONTAINER_2;
                 break;
             }
             case TILE_WARP_0 ... TILE_WARP_F:
             {
-                entity_t * createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+
+                createdEntity->homeTileX = self->homeTileX;
+                createdEntity->homeTileY = self->homeTileY;
+
                 createdEntity->jumpPower = aboveTile - TILE_WARP_0;
                 self->jumpPower = TILE_CONTAINER_2;
                 break;
             }
             default:
             {
-                self->jumpPower = TILE_EMPTY;
                 break;
             }
+
         }
-        
+
         self->tilemap->map[self->homeTileY * self->tilemap->mapWidth + self->homeTileX] = self->jumpPower;
         destroyEntity(self, false);
     }
@@ -259,7 +267,7 @@ void moveEntityWithTileCollisions(entity_t *self)
                 {
                     if (self->tileCollisionHandler(self, newVerticalTile, tx, newTy, 2 << (self->yspeed > 0)))
                     {
-                        newY = ((newTy + ((ty < newTy)?-1:1)) * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+                        newY = ((newTy + ((ty < newTy) ? -1 : 1)) * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
                     }
                 }
             }
@@ -289,7 +297,7 @@ void moveEntityWithTileCollisions(entity_t *self)
                 {
                     if (self->tileCollisionHandler(self, newHorizontalTile, newTx, ty, (self->xspeed > 0)))
                     {
-                        newX = ((newTx + ((tx < newTx)?-1:1)) * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+                        newX = ((newTx + ((tx < newTx) ? -1 : 1)) * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
                     }
                 }
 
@@ -420,11 +428,14 @@ void animatePlayer(entity_t *self)
     }
     else if (self->xspeed != 0)
     {
-        if(self->gameData->btnState & LEFT || self->gameData->btnState & RIGHT){
+        if (self->gameData->btnState & LEFT || self->gameData->btnState & RIGHT)
+        {
             // Running
             self->spriteFlipHorizontal = (self->xspeed > 0) ? 0 : 1;
             self->spriteIndex = 1 + ((self->spriteIndex + 1) % 3);
-        } else {
+        }
+        else
+        {
             self->spriteIndex = SP_PLAYER_SLIDE;
         }
     }
@@ -456,42 +467,59 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
 {
     switch (other->type)
     {
-    case ENTITY_TEST:
-
-        other->xspeed = -other->xspeed;
-
-        if (self->y < other->y && self->yspeed > 0)
+        case ENTITY_TEST:
+        case ENTITY_DUST_BUNNY:
         {
-            self->gameData->score += 100;
-            other->homeTileX = 0;
-            other->homeTileY = 0;
-            other->falling = true;
-            other->type = ENTITY_DEAD;
-            other->spriteFlipVertical = true;
-            other->updateFunction = &updateEntityDead;
+            other->xspeed = -other->xspeed;
 
-            buzzer_play_sfx(&sndHit);
+            if (/*self->y < other->y &&*/ self->yspeed > 0)
+            {
+                self->gameData->score += 100;
+                other->homeTileX = 0;
+                other->homeTileY = 0;
+                other->falling = true;
+                other->type = ENTITY_DEAD;
+                other->spriteFlipVertical = true;
+                other->updateFunction = &updateEntityDead;
 
-            self->yspeed = -90;
+                buzzer_play_sfx(&sndHit);
 
-            if(self->gameData->btnState & BTN_B) {
-                self->jumpPower = 180 + (abs(self->xspeed) >> 2);
-            } 
-        } else {
-            self->updateFunction = &updateEntityDead;
-            self->type = ENTITY_DEAD;
-            self->xspeed = 0;
-            self->yspeed = -180;
-            self->spriteIndex = SP_PLAYER_HURT;
-            self->gameData->changeState = ST_DEAD;
+                self->yspeed = -180;
+
+                if (self->gameData->btnState & BTN_B)
+                {
+                    self->jumpPower = 180 + (abs(self->xspeed) >> 2);
+                }
+            }
+            else
+            {
+                self->updateFunction = &updateEntityDead;
+                self->type = ENTITY_DEAD;
+                self->xspeed = 0;
+                self->yspeed = -180;
+                self->spriteIndex = SP_PLAYER_HURT;
+                self->gameData->changeState = ST_DEAD;
+            }
+
+            self->falling = true;
+            break;
         }
+        case ENTITY_WARP:{
+            //Execute warp
+            self->x = (self->tilemap->warps[other->jumpPower].x * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+            self->y = (self->tilemap->warps[other->jumpPower].y * TILE_SIZE + HALF_TILE_SIZE) << SUBPIXEL_RESOLUTION;
+            self->falling = true;
 
-        self->falling = true;
-        break;
-    default:
-    {
-        break;
-    }
+            unlockScrolling(self->tilemap);
+            deactivateAllEntities(self->entityManager, true);
+            self->tilemap->executeTileSpawnAll = true;
+
+            break;
+        }
+        default:
+        {
+            break;
+        }
     }
 }
 
@@ -500,6 +528,9 @@ void enemyCollisionHandler(entity_t *self, entity_t *other)
     switch (other->type)
     {
     case ENTITY_TEST:
+        self->xspeed = -self->xspeed;
+        break;
+    case ENTITY_DUST_BUNNY:
         self->xspeed = -self->xspeed;
         break;
     default:
@@ -530,7 +561,8 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
             hitBlock->homeTileX = tx;
             hitBlock->homeTileY = ty;
             hitBlock->jumpPower = tileId;
-            if(tileId == TILE_BRICK_BLOCK){
+            if (tileId == TILE_BRICK_BLOCK)
+            {
                 hitBlock->spriteIndex = SP_HITBLOCK_BRICKS;
             }
 
@@ -690,40 +722,36 @@ void updateDummy(entity_t *self)
 
 void updateScrollLockLeft(entity_t *self)
 {
-    self->tilemap->maxMapOffsetX = (self->x >> SUBPIXEL_RESOLUTION) - 8 - TILEMAP_DISPLAY_WIDTH_PIXELS;
-
+    self->tilemap->minMapOffsetX = (self->x >> SUBPIXEL_RESOLUTION) - 8;
+    viewFollowEntity(self->entityManager->tilemap, self->entityManager->viewEntity);
     destroyEntity(self, true);
 }
 
 void updateScrollLockRight(entity_t *self)
 {
-    self->tilemap->minMapOffsetX = (self->x >> SUBPIXEL_RESOLUTION) + 8;
-
+    self->tilemap->maxMapOffsetX = (self->x >> SUBPIXEL_RESOLUTION) + 8 - TILEMAP_DISPLAY_WIDTH_PIXELS;
+    viewFollowEntity(self->entityManager->tilemap, self->entityManager->viewEntity);
     destroyEntity(self, true);
 }
 
 void updateScrollLockUp(entity_t *self)
 {
-    self->tilemap->maxMapOffsetY = (self->y >> SUBPIXEL_RESOLUTION) - 8 - TILEMAP_DISPLAY_HEIGHT_PIXELS;
-
+    self->tilemap->minMapOffsetY = (self->y >> SUBPIXEL_RESOLUTION) - 8;
+    viewFollowEntity(self->entityManager->tilemap, self->entityManager->viewEntity);
     destroyEntity(self, true);
 }
 
 void updateScrollLockDown(entity_t *self)
 {
-    self->tilemap->minMapOffsetY = (self->y >> SUBPIXEL_RESOLUTION) - 8;
-
+    self->tilemap->maxMapOffsetY = (self->y >> SUBPIXEL_RESOLUTION) + 8 - TILEMAP_DISPLAY_HEIGHT_PIXELS;
+    viewFollowEntity(self->entityManager->tilemap, self->entityManager->viewEntity);
     destroyEntity(self, true);
 }
 
 void updateScrollUnlock(entity_t *self)
 {
-    self->tilemap->minMapOffsetX = 0;
-    self->tilemap->maxMapOffsetX = self->tilemap->mapWidth * TILE_SIZE - TILEMAP_DISPLAY_WIDTH_PIXELS;
-
-    self->tilemap->minMapOffsetY = 0;
-    self->tilemap->maxMapOffsetY = self->tilemap->mapHeight * TILE_SIZE - TILEMAP_DISPLAY_HEIGHT_PIXELS;
-
+    unlockScrolling(self->tilemap);
+    viewFollowEntity(self->entityManager->tilemap, self->entityManager->viewEntity);
     destroyEntity(self, true);
 }
 
@@ -736,12 +764,94 @@ void updateEntityDead(entity_t *self)
     despawnWhenOffscreen(self);
 }
 
-void updatePowerUp(entity_t* self){
+void updatePowerUp(entity_t *self)
+{
     self->spriteIndex = SP_GAMING_1 + ((self->spriteIndex + 1) % 3);
     despawnWhenOffscreen(self);
 }
 
-void updateWarp(entity_t* self){
+void updateWarp(entity_t *self)
+{
     self->spriteIndex = SP_WARP_1 + ((self->spriteIndex + 1) % 3);
-    despawnWhenOffscreen(self);
+
+    //Destroy self and respawn warp container block when offscreen
+    if (
+        (self->x >> SUBPIXEL_RESOLUTION) < (self->tilemap->mapOffsetX - DESPAWN_THRESHOLD) ||
+        (self->x >> SUBPIXEL_RESOLUTION) > (self->tilemap->mapOffsetX + TILEMAP_DISPLAY_WIDTH_PIXELS + DESPAWN_THRESHOLD) ||
+        (self->y >> SUBPIXEL_RESOLUTION) < (self->tilemap->mapOffsetY - DESPAWN_THRESHOLD) ||
+        (self->y >> SUBPIXEL_RESOLUTION) > (self->tilemap->mapOffsetY + TILEMAP_DISPLAY_HEIGHT_PIXELS + DESPAWN_THRESHOLD))
+    {
+        //In destroyEntity, this will overflow to the correct value.
+        self->type = 128 + TILE_CONTAINER_1;
+
+        destroyEntity(self, true);
+    }
 }
+
+void updateDustBunny(entity_t *self)
+{
+    if(!self->falling){
+        self->yDamping--;
+        if(self->yDamping <= 0){
+            bool directionToPlayer = (self->entityManager->playerEntity->x < self->x);
+            
+            switch(self->xDamping){
+                case 0: {
+                    self->xspeed = (1 + esp_random() % 4) * 16 * ((directionToPlayer)?-1:1);
+                    self->yspeed = (1 + esp_random() % 4) * -64;
+                    self->xDamping = 1;
+                    self->yDamping = (1 + esp_random() % 3) * 10;
+                    self->spriteIndex = SP_DUSTBUNNY_JUMP;
+                    self->spriteFlipHorizontal = !directionToPlayer;
+                    break;
+                }
+                case 1: {
+                    self->xDamping = 0;
+                    self->yDamping = 10;
+                    self->spriteIndex = SP_DUSTBUNNY_CHARGE;
+                    self->spriteFlipHorizontal = !directionToPlayer;
+                    break;
+                }
+                default:
+                    self->xDamping = 0;
+                    break;
+            }
+        }
+    }
+    
+    despawnWhenOffscreen(self);
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
+    detectEntityCollisions(self);
+};
+
+bool dustBunnyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    if (isSolid(tileId))
+    {
+        switch (direction)
+        {
+        case 0: // LEFT
+            self->xspeed = -self->xspeed;
+            break;
+        case 1: // RIGHT
+            self->xspeed = -self->xspeed;
+            break;
+        case 2: // UP
+            self->yspeed = 0;
+            break;
+        case 4: // DOWN
+            // Landed on platform
+            self->falling = false;
+            self->yspeed = 0;
+            self->xspeed = 0;
+            self->spriteIndex = SP_DUSTBUNNY_IDLE;
+            break;
+        default: // Should never hit
+            return false;
+        }
+        // trigger tile collision resolution
+        return true;
+    }
+
+    return false;
+};
