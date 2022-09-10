@@ -31,7 +31,8 @@ static const song_t sndHit =
             {
                 {740, 10}, {840, 10}, {940, 10}},
         .numNotes = 3,
-        .shouldLoop = false};
+        .shouldLoop = false
+    };
 
 static const song_t sndCoin =
     {
@@ -39,7 +40,44 @@ static const song_t sndCoin =
             {
                 {1000, 50}, {1200, 100}},
         .numNotes = 2,
-        .shouldLoop = false};
+        .shouldLoop = false
+    };
+
+static const song_t sndPowerUp =
+    {
+        .notes =
+            { 
+                {C_4, 100}, {G_4, 100}, {E_4, 100}, {C_5, 100}, {G_4, 100}, {D_5, 100}, {C_5, 100}},
+        .numNotes = 7,
+        .shouldLoop = false
+    };
+
+static const song_t sndJump1 =
+    {
+        .notes =
+            { 
+                {C_5, 50}, {E_5, 50}, {C_5, 50}},
+        .numNotes = 3,
+        .shouldLoop = false
+    };         
+
+static const song_t sndJump2 =
+    {
+        .notes =
+            { 
+                {E_5, 50}, {G_5, 50}, {E_5, 50}},
+        .numNotes = 3,
+        .shouldLoop = false
+    };         
+
+static const song_t sndJump3 =
+    {
+        .notes =
+            { 
+                {G_5, 50}, {C_6, 50}, {G_5, 50}},
+        .numNotes = 3,
+        .shouldLoop = false
+    };                 
 
 //==============================================================================
 // Functions
@@ -114,12 +152,21 @@ void updatePlayer(entity_t *self)
             self->jumpPower = 180 + (abs(self->xspeed) >> 2);
             self->yspeed = -self->jumpPower;
             self->falling = true;
+            buzzer_play_sfx(&sndJump1);
         }
         else if (self->jumpPower > 0 && self->yspeed < 0)
         {
             // jump dampening
             self->jumpPower -= 16; // 32
             self->yspeed = -self->jumpPower;
+            
+            if(self->jumpPower > 112 && self->jumpPower < 128){
+                buzzer_play_sfx(&sndJump2);
+            }
+
+            if(self->yspeed > -24 && self->yspeed < -16){
+                buzzer_play_sfx(&sndJump3);
+            }
 
             if (self->jumpPower < 0)
             {
@@ -547,6 +594,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                 self->hp = 3;
             }
             self->gameData->score += 1000;
+            buzzer_play_sfx(&sndPowerUp);
             updateLedsHpMeter(self->entityManager, self->gameData);
             destroyEntity(other, false);
             break;
