@@ -133,7 +133,7 @@ int main( int argc, char ** argv )
 #ifdef RAW_OUT
 #elif HUMAN_OUT
 #else
-	printf( "#include <stdint.h>\nconst uint16_t model3d = {\n\t" );
+	printf( "#include <stdint.h>\nconst uint16_t model3d[] = {\n\t" );
 #endif
 
 

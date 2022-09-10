@@ -26,20 +26,23 @@
 #include <string.h>
 #include <stdlib.h>
 #include <malloc.h>
-
+#include "mode_flight.h"
 #include "flight/3denv.h"
 
 // TODO     linkedInfo_t* invYmnu;
-#define invYmnu 0
+// XXX TODO HOW TO DO SAVE DATA
+flightSimSaveData_t savedata;
+flightSimSaveData_t * getFlightSaveData() { return &savedata; }
+
+
+
+
 
 #define FLIGHT_HIGH_SCORE_NAME_LEN 4
-
 
 /*============================================================================
  * Defines, Structs, Enums
  *==========================================================================*/
-
-#define FLIGHT_UPDATE_MS 33
 
 //XXX TODO: Refactor - these should probably be unified.
 #define MAXRINGS 15
@@ -54,6 +57,8 @@ typedef enum
     FLIGHT_GAME_OVER,
     FLIGHT_HIGH_SCORE_ENTRY,
     FLIGHT_SHOW_HIGH_SCORES,
+    FLIGHT_PERFTEST,
+    FLIGHT_TRIANGLES,
 } flightModeScreen;
 
 typedef struct
@@ -97,6 +102,10 @@ typedef struct
     tdModel ** environment;
 
     meleeMenu_t * menu;
+	font_t ibm;
+	font_t tom_thumb;
+	font_t radiostars;
+	font_t meleeMenuFont;
 
     int beans;
     int ondonut;
@@ -108,8 +117,11 @@ typedef struct
     flLEDAnimation ledAnimation;
     uint8_t        ledAnimationTime;
 
+	int invertYRow;
+
     uint8_t beangotmask[MAXRINGS];
 } flight_t;
+
 
 int renderlinecolor = CNDRAW_WHITE;
 
@@ -117,15 +129,13 @@ int renderlinecolor = CNDRAW_WHITE;
  * Prototypes
  *==========================================================================*/
 
-void flightEnterMode(display_t * disp);
-void flightExitMode(void);
-void flightButtonCallback(uint8_t state __attribute__((unused)),
-        int button, int down);
-
+static void flightEnterMode(display_t * disp);
+static void flightExitMode(void);
+static void flightButtonCallback( buttonEvt_t* evt );
 static void flightUpdate(void* arg __attribute__((unused)));
 static void flightMenuCb(const char* menuItem);
-static void flightStartGame(void);
-static bool flightRender(void);
+static void flightStartGame(flightModeScreen mode);
+static void flightRender(void);
 static void flightGameUpdate( flight_t * tflight );
 static void flightUpdateLEDs(flight_t * tflight);
 static void flightLEDAnimate( flLEDAnimation anim );
@@ -137,10 +147,11 @@ static void flightTimeHighScoreInsert( int insertplace, bool is100percent, char 
 void iplotRectB( display_t * d, int x1, int y1, int x2, int y2 );
 
 //Forward libc declarations.
+#ifndef EMU
 void qsort(void *base, size_t nmemb, size_t size,
           int (*compar)(const void *, const void *));
 int abs(int j);
-
+#endif
 
 /*============================================================================
  * Variables
@@ -166,6 +177,12 @@ static const char fl_title[]  = "Flightsim";
 static const char fl_flight_env[] = "Take Flight";
 static const char fl_flight_invertY0_env[] = "Y NOT INVERTED";
 static const char fl_flight_invertY1_env[] = "Y INVERTED";
+static const char fl_flight_perf[] = "Perf Test";
+static const char fl_flight_triangles[] = "Tri Test";
+static const char str_quit[] = "Quit";
+static const char str_high_scores[] = "High Scores";
+
+
 
 /*============================================================================
  * Functions
@@ -186,7 +203,7 @@ void iplotRectB( display_t * disp, int x1, int y1, int x2, int y2 )
 /**
  * Initializer for flight
  */
-void flightEnterMode(display_t * disp)
+static void flightEnterMode(display_t * disp)
 {
     // Alloc and clear everything
     flight = malloc(sizeof(flight_t));
@@ -195,8 +212,7 @@ void flightEnterMode(display_t * disp)
     flight->mode = FLIGHT_MENU;
 	flight->disp = disp;
 
-    uint32_t retlen;
-    uint16_t * data = (uint16_t*)getAsset( "3denv.obj", &retlen );
+    uint16_t * data = model3d;//(uint16_t*)getAsset( "3denv.obj", &retlen );
     data+=2; //header
     flight->enviromodels = *(data++);
     flight->environment = malloc( sizeof(tdModel *) * flight->enviromodels );
@@ -207,41 +223,28 @@ void flightEnterMode(display_t * disp)
         data += 8 + m->nrvertnums + m->nrfaces * m->indices_per_face;
     }
 
-    flight->menu = initMenu(fl_title, flightMenuCb);
-    addRowToMenu(flight->menu);
-    // addItemToRow(flight->menu, fl_flight_perf);
-    // addItemToRow(flight->menu, fl_flight_triangles);
-    addItemToRow(flight->menu, fl_flight_env);
-    addRowToMenu(flight->menu);
-    addItemToRow(flight->menu, str_quit);
+	loadFont("ibm_vga8.font", &flight->ibm);
+	loadFont("tom_thumb.font", &flight->tom_thumb);
+	loadFont("radiostars.font", &flight->radiostars);
 
-    addRowToMenu(flight->menu);
-  // XXX TODO
-  //  flight->invYmnu = addItemToRow(flight->menu,
-  //      getFlightSaveData()->flightInvertY?
-  //          fl_flight_invertY1_env:
-  //          fl_flight_invertY0_env );
-
-    addRowToMenu(flight->menu);
-    addItemToRow(flight->menu, str_high_scores );
-
-    drawMenu(flight->menu);
-
-    timerDisarm(&(flight->updateTimer));
-    timerSetFn(&(flight->updateTimer), flightUpdate, NULL);
-    timerArm(&(flight->updateTimer), FLIGHT_UPDATE_MS, true);
-    enableDebounce(false);
+	loadFont("mm.font", &flight->meleeMenuFont);
+	flight->menu = initMeleeMenu(fl_title, &flight->meleeMenuFont, flightMenuCb);
+	addRowToMeleeMenu(flight->menu, fl_flight_env);
+    addRowToMeleeMenu(flight->menu, fl_flight_perf);
+	flight->invertYRow = addRowToMeleeMenu( flight->menu, flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env );
+    addRowToMeleeMenu(flight->menu, fl_flight_triangles);
+	addRowToMeleeMenu(flight->menu, str_quit);
+	addRowToMeleeMenu(flight->menu, str_high_scores);
 }
 
 /**
  * Called when flight is exited
  */
-void flightExitMode(void)
+static void flightExitMode(void)
 {
-    timerDisarm(&(flight->updateTimer));
-    timerFlush();
-    deinitMenu(flight->menu);
-    os_free(flight);
+	deinitMeleeMenu(flight->menu);
+	freeFont(&flight->meleeMenuFont);
+    free(flight);
 }
 
 /**
@@ -251,32 +254,30 @@ void flightExitMode(void)
  */
 static void flightMenuCb(const char* menuItem)
 {
-    /*
+    
     if( fl_flight_triangles == menuItem )
     {
-        flightStartGame(FL_TRIANGLES);
+        flightStartGame(FLIGHT_TRIANGLES);
     }
     else if( fl_flight_perf == menuItem )
     {
-        flightStartGame(FL_PERFTEST);
+        flightStartGame(FLIGHT_PERFTEST);
     }
-    else */ if (fl_flight_env == menuItem)
+    else if (fl_flight_env == menuItem)
     {
-        flightStartGame();
+        flightStartGame(FLIGHT_GAME);
     }
     else if ( fl_flight_invertY0_env == menuItem )
     {
-        flightSimSaveData_t * sd = getFlightSaveData();
-        sd->flightInvertY = 1;
-        setFlightSaveData( sd );
-        flight->invYmnu->item.name = fl_flight_invertY1_env;
+		// XXX TODO SAVE DEFAULT FOR FLIGHT DATA
+		flight->inverty = 1;
+        flight->menu->rows[flight->invertYRow] = fl_flight_invertY1_env;
     }
     else if ( fl_flight_invertY1_env == menuItem )
     {
-        flightSimSaveData_t * sd = getFlightSaveData();
-        sd->flightInvertY = 0;
-        setFlightSaveData( sd );
-        flight->invYmnu->item.name = fl_flight_invertY0_env;
+		// XXX TODO SAVE DEFAULT FOR FLIGHT DATA
+		flight->inverty = 0;
+        flight->menu->rows[flight->invertYRow] = fl_flight_invertY0_env;
     }
     else if ( str_high_scores == menuItem )
     {
@@ -293,7 +294,9 @@ static void flightEndGame()
     if( flightTimeHighScorePlace( flight->wintime, flight->beans == MAX_BEANS ) < NUM_FLIGHTSIM_TOP_SCORES )
     {
         flight->mode = FLIGHT_HIGH_SCORE_ENTRY;
-        textEntryStart( FLIGHT_HIGH_SCORE_NAME_LEN+1, flight->highScoreNameBuffer );
+       // textEntryStart( FLIGHT_HIGH_SCORE_NAME_LEN+1, flight->highScoreNameBuffer );
+		/* XXX TODO XXX TODO */
+
     }
     else
     {
@@ -310,7 +313,7 @@ static void flightLEDAnimate( flLEDAnimation anim )
 
 static void flightUpdateLEDs(flight_t * tflight)
 {
-    led_t leds[NUM_LIN_LEDS] = {{0}};
+    led_t leds[NUM_LEDS] = {{0}};
 
     uint8_t        ledAnimationTime = tflight->ledAnimationTime++;
 
@@ -322,30 +325,35 @@ static void flightUpdateLEDs(flight_t * tflight)
         break;
     case FLIGHT_LED_ENDING:
         leds[0] = SafeEHSVtoHEXhelper(ledAnimationTime*4+0, 255, 2200-10*ledAnimationTime, 1 );
-        leds[1] = SafeEHSVtoHEXhelper(ledAnimationTime*4+50, 255, 2200-10*ledAnimationTime, 1 );
-        leds[2] = SafeEHSVtoHEXhelper(ledAnimationTime*4+100, 255, 2200-10*ledAnimationTime, 1 );
-        leds[3] = SafeEHSVtoHEXhelper(ledAnimationTime*4+150, 255, 2200-10*ledAnimationTime, 1 );
-        leds[4] = SafeEHSVtoHEXhelper(ledAnimationTime*4+200, 255, 2200-10*ledAnimationTime, 1 );
-        leds[5] = SafeEHSVtoHEXhelper(ledAnimationTime*4+250, 255, 2200-10*ledAnimationTime, 1 );
+        leds[1] = SafeEHSVtoHEXhelper(ledAnimationTime*4+32, 255, 2200-10*ledAnimationTime, 1 );
+        leds[2] = SafeEHSVtoHEXhelper(ledAnimationTime*4+64, 255, 2200-10*ledAnimationTime, 1 );
+        leds[3] = SafeEHSVtoHEXhelper(ledAnimationTime*4+96, 255, 2200-10*ledAnimationTime, 1 );
+        leds[4] = SafeEHSVtoHEXhelper(ledAnimationTime*4+128, 255, 2200-10*ledAnimationTime, 1 );
+        leds[5] = SafeEHSVtoHEXhelper(ledAnimationTime*4+160, 255, 2200-10*ledAnimationTime, 1 );
+        leds[6] = SafeEHSVtoHEXhelper(ledAnimationTime*4+192, 255, 2200-10*ledAnimationTime, 1 );
+        leds[7] = SafeEHSVtoHEXhelper(ledAnimationTime*4+224, 255, 2200-10*ledAnimationTime, 1 );
         if( ledAnimationTime == 255 ) flightLEDAnimate( FLIGHT_LED_NONE );
         break;
     case FLIGHT_LED_GAME_START:
     case FLIGHT_LED_DONUT:
-        leds[0] = leds[5] = SafeEHSVtoHEXhelper(ledAnimationTime*8+0, 255, 200-10*ledAnimationTime, 1 );
-        leds[1] = leds[4] = SafeEHSVtoHEXhelper(ledAnimationTime*8+90, 255, 200-10*ledAnimationTime, 1 );
-        leds[2] = leds[3] = SafeEHSVtoHEXhelper(ledAnimationTime*8+180, 255, 200-10*ledAnimationTime, 1 );
+        leds[0] = leds[7] = SafeEHSVtoHEXhelper(ledAnimationTime*8+0, 255, 200-10*ledAnimationTime, 1 );
+        leds[1] = leds[6] = SafeEHSVtoHEXhelper(ledAnimationTime*8+60, 255, 200-10*ledAnimationTime, 1 );
+        leds[2] = leds[5] = SafeEHSVtoHEXhelper(ledAnimationTime*8+120, 255, 200-10*ledAnimationTime, 1 );
+        leds[3] = leds[4] = SafeEHSVtoHEXhelper(ledAnimationTime*8+180, 255, 200-10*ledAnimationTime, 1 );
         if( ledAnimationTime == 30 ) flightLEDAnimate( FLIGHT_LED_NONE );
         break;
     case FLIGHT_LED_MENU_TICK:
-        leds[0] = leds[5] = SafeEHSVtoHEXhelper(0, 0, 60 - 40*abs(ledAnimationTime-2), 1 );
-        leds[1] = leds[4] = SafeEHSVtoHEXhelper(0, 0, 60 - 40*abs(ledAnimationTime-6), 1 );
-        leds[2] = leds[3] = SafeEHSVtoHEXhelper(0, 0, 60 - 40*abs(ledAnimationTime-10), 1 );
+        leds[0] = leds[7] = SafeEHSVtoHEXhelper(0, 0, 60 - 40*abs(ledAnimationTime-2), 1 );
+        leds[1] = leds[6] = SafeEHSVtoHEXhelper(0, 0, 60 - 40*abs(ledAnimationTime-6), 1 );
+        leds[2] = leds[5] = SafeEHSVtoHEXhelper(0, 0, 60 - 40*abs(ledAnimationTime-10), 1 );
+        leds[3] = leds[4] = SafeEHSVtoHEXhelper(0, 0, 60 - 40*abs(ledAnimationTime-14), 1 );
         if( ledAnimationTime == 50 ) flightLEDAnimate( FLIGHT_LED_NONE );
         break;
     case FLIGHT_LED_BEAN:
-        leds[0] = leds[5] = SafeEHSVtoHEXhelper(ledAnimationTime*16, 128, 150 - 40*abs(ledAnimationTime-2), 1 );
-        leds[1] = leds[4] = SafeEHSVtoHEXhelper(ledAnimationTime*16, 128, 150 - 40*abs(ledAnimationTime-6), 1 );
-        leds[2] = leds[3] = SafeEHSVtoHEXhelper(ledAnimationTime*16, 128, 150 - 40*abs(ledAnimationTime-10), 1 );
+        leds[0] = leds[7] = SafeEHSVtoHEXhelper(ledAnimationTime*16, 128, 150 - 40*abs(ledAnimationTime-2), 1 );
+        leds[1] = leds[6] = SafeEHSVtoHEXhelper(ledAnimationTime*16, 128, 150 - 40*abs(ledAnimationTime-6), 1 );
+        leds[2] = leds[5] = SafeEHSVtoHEXhelper(ledAnimationTime*16, 128, 150 - 40*abs(ledAnimationTime-10), 1 );
+        leds[3] = leds[4] = SafeEHSVtoHEXhelper(ledAnimationTime*16, 128, 150 - 40*abs(ledAnimationTime-14), 1 );
         if( ledAnimationTime == 30 ) flightLEDAnimate( FLIGHT_LED_NONE );
         break;
     }
@@ -360,9 +368,9 @@ static void flightUpdateLEDs(flight_t * tflight)
  * @param type
  * @param difficulty
  */
-static void flightStartGame(void)
+static void flightStartGame( flightModeScreen mode )
 {
-    flight->mode = FLIGHT_GAME;
+    flight->mode = mode;
     flight->frames = 0;
 
 
@@ -383,8 +391,6 @@ static void flightStartGame(void)
     flight->pitchmoment = 0;
     flight->yawmoment = 0;
 
-    flight->inverty = getFlightSaveData()->flightInvertY;
-
     memset(flight->beangotmask, 0, sizeof( flight->beangotmask) );
 
     flightLEDAnimate( FLIGHT_LED_GAME_START );
@@ -403,7 +409,7 @@ static void flightUpdate(void* arg __attribute__((unused)))
         default:
         case FLIGHT_MENU:
         {
-            drawMenu(flight->menu);
+       	    drawMeleeMenu(flight->disp, flight->menu);
             break;
         }
         case FLIGHT_GAME:
@@ -494,7 +500,7 @@ static const uint8_t sintable[128] = { 0, 6, 12, 18, 25, 31, 37, 43, 49, 55, 62,
 int16_t ModelviewMatrix[16];
 int16_t ProjectionMatrix[16];
 
-static int16_t tdSIN( uint8_t iv )
+int16_t tdSIN( uint8_t iv )
 {
     if( iv > 127 )
     {
@@ -861,7 +867,7 @@ int mdlctcmp( const void * va, const void * vb )
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static bool flightRender(void)
+static void flightRender(void)
 {
     flight_t * tflight = flight;
     tflight->tframes++;
@@ -1016,24 +1022,24 @@ static bool flightRender(void)
         //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
         int elapsed = (system_get_time()-tflight->timeOfStart)/10000;
         ets_snprintf(framesStr, sizeof(framesStr), "%d/%d, %d", tflight->ondonut, MAX_DONUTS, tflight->beans );
-        int16_t width = textWidth(framesStr, TOM_THUMB);
-        iplotRectB(0, 0, width, FONT_HEIGHT_TOMTHUMB + 1);
-        plotText(0, 0, framesStr, TOM_THUMB, CNDRAW_WHITE);
+        int16_t width = textWidth(&flight->tom_thumb, framesStr);
+        iplotRectB(0, 0, width, &flight->tom_thumb.h + 1);
+        drawText(flight->disp, &flight->tom_thumb, CNDRAW_WHITE, frameStr, 0, 0 );
 
         ets_snprintf(framesStr, sizeof(framesStr), "%d.%02d", elapsed/100, elapsed%100 );
-        width = textWidth(framesStr, TOM_THUMB);
+        width = textWidth(&flight->tom_thumb, framesStr);
         iplotRectB(OLED_WIDTH - width, 0, OLED_WIDTH, FONT_HEIGHT_TOMTHUMB + 1);
-        plotText(OLED_WIDTH - width + 1, 0, framesStr, TOM_THUMB, CNDRAW_WHITE);
+        drawText(flight->disp, &flight->tom_thumb, CNDRAW_WHITE, frameStr, OLED_WIDTH - width + 1, 0 );
 
         ets_snprintf(framesStr, sizeof(framesStr), "%d", tflight->speed);
-        width = textWidth(framesStr, TOM_THUMB);
+        width = textWidth(&flight->tom_thumb, framesStr);
         iplotRectB(OLED_WIDTH - width, OLED_HEIGHT - FONT_HEIGHT_TOMTHUMB - 1, OLED_WIDTH, OLED_HEIGHT);
-        plotText(OLED_WIDTH - width + 1, OLED_HEIGHT - FONT_HEIGHT_TOMTHUMB, framesStr, TOM_THUMB, CNDRAW_WHITE);
+        drawText(flight->disp, &flight->tom_thumb, CNDRAW_WHITE, frameStr, OLED_WIDTH - width + 1, OLED_HEIGHT - FONT_HEIGHT_TOMTHUMB );
 
         if(flight->oob)
         {
-            width = textWidth("TURN AROUND", IBM_VGA_8);
-            plotText((OLED_WIDTH - width) / 2, (OLED_HEIGHT - FONT_HEIGHT_IBMVGA8) / 2, "TURN AROUND", IBM_VGA_8, CNDRAW_WHITE);
+            width = textWidth(&flight->ibm, "TURN AROUND");
+            plotText(flight->disp, &flight->ibm, CNDRAW_WHITE, (OLED_WIDTH - width) / 2, (OLED_HEIGHT - FONT_HEIGHT_IBMVGA8) / 2, "TURN AROUND");
         }
     }
     else

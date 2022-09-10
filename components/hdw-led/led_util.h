@@ -21,4 +21,8 @@ void setLeds(led_t* leds, uint8_t numLeds);
 
 void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r, uint8_t* g, uint8_t* b);
 
+uint32_t EHSVtoHEX( uint8_t hue, uint8_t sat, uint8_t val);
+uint32_t EHSVtoHEXhelper( uint8_t hue, uint8_t sat, uint8_t val, bool applyGamma);
+led_t SafeEHSVtoHEXhelper( int16_t hue, int16_t sat, int16_t val, bool applyGamma );
+
 #endif
