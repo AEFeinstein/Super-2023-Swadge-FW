@@ -81,6 +81,10 @@ jobs:
             $env:path = $env:path.Insert($env:path.ToLower().IndexOf("c:\windows\system32"), "C:\msys64\mingw64\bin;C:\msys64\usr\bin;")
             # Build the emulator
             make -f emu.mk all -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+            # Make sure it exists
+            $file = "swadge_emulator.exe"
+            $CheckFile = Test-Path -Path $file
+            if (!($CheckFile))  {exit 1 } 
             # zip everything up and move it to where circleci expects
             zip << pipeline.parameters.windows-emu-artifact >> -r swadge_emulator.exe spiffs_image version.txt
             zip << pipeline.parameters.windows-emu-artifact >> -j "C:\msys64\mingw64\bin\libwinpthread-1.dll"
@@ -97,6 +101,10 @@ jobs:
             ~\esp\esp-idf\export.ps1
             # Build the firmware
             idf.py all build dfu
+            # Make sure it exists
+            $file = "build\swadge-esp32.bin"
+            $CheckFile = Test-Path -Path $file
+            if (!($CheckFile))  {exit 1 } 
             # zip everything up and move it to where circleci expects
             zip << pipeline.parameters.firmware-artifact >> -j build\bootloader\bootloader.bin build\partition_table\partition-table.bin build\swadge-esp32.bin build\storage.bin build\dfu.bin version.txt
             # Move the zips to where circleci expects it so that it gets uploaded as an artifact
