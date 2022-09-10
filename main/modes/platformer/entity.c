@@ -575,7 +575,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
         {
             other->xspeed = -other->xspeed;
 
-            if (/*self->y < other->y &&*/ self->yspeed > 0)
+            if (self->y < other->y || self->yspeed > 0)
             {
                 self->gameData->score += 100;
 
@@ -583,12 +583,8 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                 buzzer_play_sfx(&sndSquish);
 
                 self->yspeed = -512;
-
-                //if (self->gameData->btnState & BTN_B)
-                {
-                    self->jumpPower = 180 + (abs(self->xspeed) >> 2);
-                    self->falling = true;
-                }
+                self->jumpPower = 180 + (abs(self->xspeed) >> 2);
+                self->falling = true;
             }
             else if(self->invincibilityFrames <= 0)
             {
