@@ -28,7 +28,6 @@ void levelSelectInput(void);
 void drawLevelSelectScreen(display_t* d,font_t* font);
 void drawPicrossLevelWSG(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff);
 void drawPicrossPreviewWindow(display_t* d, wsg_t* wsg);
-
 //====
 // Functions
 //====
@@ -46,12 +45,14 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     int32_t victories0 = 0;
     int32_t victories1 = 0;
     int32_t victories2 = 0;
+
     //picross_Solves1 would be for levels 33->64
     readNvs32(picrossCompletedLevelData1, &victories0);
     readNvs32(picrossCompletedLevelData2, &victories1);
     readNvs32(picrossCompletedLevelData3, &victories2);
 
     int32_t v;
+    ls->allLevelsComplete = true;
     int j;//bit position of i in appropriate register
     for(int i = 0;i<PICROSS_LEVEL_COUNT;i++)
     {
@@ -74,6 +75,7 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
             levels[i].completed = true;
         }else{
             levels[i].completed = false;
+            ls->allLevelsComplete = false;
         }
 
         ls->levels[i] = levels[i];
@@ -110,6 +112,8 @@ void picrossLevelSelectLoop(int64_t elapsedUs)
 
 void levelSelectInput()
 {
+    //todo: quit with both start+select
+
     if (ls->btnState & SELECT && !(ls->prevBtnState & SELECT) && !(ls->btnState & BTN_A))
     {
         //exit to main menu
@@ -217,6 +221,12 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
             drawPicrossPreviewWindow(d,&ls->unknownPuzzle);
             drawBox(d,inputBox,c511,false,0);
         }
+    }
+
+    if(ls->allLevelsComplete)
+    {
+        drawText(d,ls->game_font,c000,"You Are Win!",53,103);
+        drawText(d,ls->game_font,c555,"You Are Win!",50,100);
     }
 }
 

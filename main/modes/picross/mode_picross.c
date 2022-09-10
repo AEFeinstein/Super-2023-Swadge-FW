@@ -263,7 +263,6 @@ void setCompleteLevelFromWSG(wsg_t* puzz)
             }
         }
     }
-    
 }
 
 //lol i dont know how to do constructors, im a unity developer! anyway this constructs a source.

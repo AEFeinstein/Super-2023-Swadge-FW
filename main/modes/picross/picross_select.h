@@ -29,6 +29,7 @@ typedef struct
     uint8_t paddingLeft;
     uint8_t gap;
     wsg_t unknownPuzzle;
+    bool allLevelsComplete;
     picrossLevelDef_t levels[PICROSS_LEVEL_COUNT];   
 } picrossLevelSelect_t;
 
