@@ -418,27 +418,23 @@ void picrossMainMenuCb(const char* opt)
     {
         //turn guides back on
         picrossSetSaveFlag(1,true);
-        pm->menuChanged = true;
         setPicrossMainMenu(false);//re-setup menu with new text, but dont change cursor position
     }
     else if(opt == str_GuidesOn)
     {
         //turn guides off
         picrossSetSaveFlag(1,false);
-        pm->menuChanged = true;
         setPicrossMainMenu(false);
     }else if(opt == str_AnimateBGOff)
     {
         //turn bgAnimate back on
         picrossSetSaveFlag(2,true);
-        pm->menuChanged = true;
         setPicrossMainMenu(false);//re-setup menu with new text, but dont change cursor position
     }
     else if(opt == str_AnimateBGOn)
     {
         //turn bgAnimate off
         picrossSetSaveFlag(2,false);
-        pm->menuChanged = true;
         setPicrossMainMenu(false);
     }else if(opt == str_eraseProgress)
     {
