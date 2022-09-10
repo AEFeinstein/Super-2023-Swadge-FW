@@ -578,13 +578,8 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
             if (/*self->y < other->y &&*/ self->yspeed > 0)
             {
                 self->gameData->score += 100;
-                other->homeTileX = 0;
-                other->homeTileY = 0;
-                other->falling = true;
-                other->type = ENTITY_DEAD;
-                other->spriteFlipVertical = true;
-                other->updateFunction = &updateEntityDead;
 
+                killEnemy(other);
                 buzzer_play_sfx(&sndSquish);
 
                 self->yspeed = -512;
@@ -653,16 +648,23 @@ void enemyCollisionHandler(entity_t *self, entity_t *other)
 {
     switch (other->type)
     {
-    case ENTITY_TEST:
-        self->xspeed = -self->xspeed;
-        break;
-    case ENTITY_DUST_BUNNY:
-        self->xspeed = -self->xspeed;
-        break;
-    default:
-    {
-        break;
-    }
+        case ENTITY_TEST:
+            self->xspeed = -self->xspeed;
+            break;
+        case ENTITY_DUST_BUNNY:
+            self->xspeed = -self->xspeed;
+            break;
+        case ENTITY_HIT_BLOCK:
+            self->xspeed = other->xspeed*2;
+            self->yspeed = other->yspeed*2;
+            self->gameData->score+=100;
+            buzzer_play_sfx(&sndSquish);
+            killEnemy(self);
+            break;
+        default:
+        {
+            break;
+        }
     }
 }
 
@@ -1066,3 +1068,12 @@ bool waspTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_
 
     return false;
 };
+
+void killEnemy(entity_t* target){
+    target->homeTileX = 0;
+    target->homeTileY = 0;
+    target->falling = true;
+    target->type = ENTITY_DEAD;
+    target->spriteFlipVertical = true;
+    target->updateFunction = &updateEntityDead;
+}
