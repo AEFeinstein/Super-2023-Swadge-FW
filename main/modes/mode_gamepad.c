@@ -36,6 +36,10 @@
 #define ACCEL_BAR_SEP     1
 #define MAX_ACCEL_BAR_W 100
 
+#define TOUCHBAR_WIDTH  100
+#define TOUCHBAR_HEIGHT  20
+#define TOUCHBAR_Y_OFF   55
+
 #define EXIT_TIME_US 1000000
 
 //==============================================================================
@@ -79,6 +83,15 @@ swadgeMode modeGamepad =
     .fnAccelerometerCallback = gamepadAccelCb,
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL
+};
+
+const hid_gamepad_button_bm_t touchMap[] = 
+{
+    GAMEPAD_BUTTON_C,
+    GAMEPAD_BUTTON_X,
+    GAMEPAD_BUTTON_Y,
+    GAMEPAD_BUTTON_Z,
+    GAMEPAD_BUTTON_TL,
 };
 
 //==============================================================================
@@ -174,15 +187,15 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
                 drawFunc(gamepad->disp, xc, yc, DPAD_BTN_RADIUS, c551 /*hsv2rgb(i * 32, 0xFF, 0xFF)*/);
             }
 
-            // Start button
-            drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_START) ? &plotCircleFilled : &plotCircle;
+            // Select button
+            drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
             drawFunc(gamepad->disp,
                      (gamepad->disp->w / 2) - START_BTN_RADIUS - START_BTN_SEP,
                      (gamepad->disp->h / 4) + Y_OFF,
                      START_BTN_RADIUS, c333);
 
-            // Select
-            drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
+            // Start button
+            drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_START) ? &plotCircleFilled : &plotCircle;
             drawFunc(gamepad->disp,
                      (gamepad->disp->w / 2) + START_BTN_RADIUS + START_BTN_SEP,
                      (gamepad->disp->h / 4) + Y_OFF,
@@ -201,6 +214,28 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
                      ((3 * gamepad->disp->w) / 4) - AB_BTN_RADIUS - AB_BTN_SEP,
                      (gamepad->disp->h / 2) + AB_BTN_Y_OFF + Y_OFF,
                      AB_BTN_RADIUS, c401);
+
+            // Draw touch strip
+            int16_t tBarX = gamepad->disp->w - TOUCHBAR_WIDTH;
+            uint8_t numTouchElem = (sizeof(touchMap) / sizeof(touchMap[0]));
+            for(uint8_t touchIdx = 0; touchIdx < numTouchElem; touchIdx++)
+            {
+                if(gamepad->gpState.buttons & touchMap[touchIdx])
+                {
+                    fillDisplayArea(gamepad->disp,
+                        tBarX - 1, TOUCHBAR_Y_OFF,
+                        tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                        c111);
+                }
+                else
+                {
+                    plotRect(gamepad->disp,
+                        tBarX - 1, TOUCHBAR_Y_OFF,
+                        tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                        c111);
+                }
+                tBarX += (TOUCHBAR_WIDTH / numTouchElem);
+            }
 
             // Set up drawing accel bars
             int16_t barY = (gamepad->disp->h * 3) / 4;
@@ -258,8 +293,6 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
  */
 void gamepadButtonCb(buttonEvt_t* evt)
 {
-    gamepad->drawDisp = true;
-
     // Build a list of all independent buttons held down
     gamepad->gpState.buttons = 0;
     if(evt->state & BTN_A)
@@ -332,6 +365,9 @@ void gamepadButtonCb(buttonEvt_t* evt)
         gamepad->gpState.hat |= GAMEPAD_HAT_LEFT;
     }
 
+    // Redraw buttons
+    gamepad->drawDisp = true;
+
     // Only send data if USB is ready
     if(tud_ready())
     {
@@ -347,7 +383,27 @@ void gamepadButtonCb(buttonEvt_t* evt)
  */
 void gamepadTouchCb(touch_event_t* evt)
 {
-    ESP_LOGE("GP", "%s (%d %d %d)", __func__, evt->pad_num, evt->pad_status, evt->pad_val);
+    if(evt->down)
+    {
+        gamepad->gpState.buttons |= touchMap[evt->pad];
+    }
+    else
+    {
+        gamepad->gpState.buttons &= ~touchMap[evt->pad];
+    }
+
+    // Gamepad expects -128->127, but position is 0->255
+    gamepad->gpState.z = (evt->position - 128);
+
+    // Redraw state
+    gamepad->drawDisp = true;
+
+    // Only send data if USB is ready
+    if(tud_ready())
+    {
+        // Send the state over USB
+        tud_gamepad_report(&gamepad->gpState);
+    }
 }
 
 /**
