@@ -30,7 +30,10 @@
                   : : [opx]"a"(opxc),[y]"a"(opy),[px]"a"(dispPx),[val]"a"(colorVal),[width]"a"(dispWidth),[height]"a"(dispHeight) : "a4" );
 
 #else
-#define SETUP_FOR_TURBO( disp )
+#define SETUP_FOR_TURBO( disp )\
+    __attribute__((unused)) uint32_t dispWidth = disp->w; \
+    __attribute__((unused)) uint32_t dispHeight = disp->h;
+
 #define TURBO_SET_PIXEL SET_PIXEL
 #define TURBO_SET_PIXEL_BOUNDS SET_PIXEL_BOUNDS
 #endif

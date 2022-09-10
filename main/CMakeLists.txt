@@ -4,6 +4,7 @@ idf_component_register(
         "colorchord/embeddednf.c"
         "colorchord/embeddedout.c"
         "display/bresenham.c"
+        "display/cndraw.c"
         "display/display.c"
         "display/palette.c"
         "meleeMenu.c"
