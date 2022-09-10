@@ -59,6 +59,7 @@ static picrossGame_t* p = NULL;
  */
 void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* selectedLevel, bool cont)
 {
+    //calloc is 0'd and malloc leaves memory uninitialized. I dont know which to use so im not gonna touch it, and doing things once on load can be slower.
     p = calloc(1, sizeof(picrossGame_t));
     p->selectedLevel = selectedLevel;
     p->currentPhase = PICROSS_SOLVING;
@@ -70,15 +71,12 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->bgScrollSpeed = 50000;
     p->bgScrollXFrame = 0;
     p->bgScrollYFrame = 0;
-    //font
-    loadFont("ibm_vga8.font", &(p->hint_font));
 
     //Puzzle
     p->puzzle = calloc(1, sizeof(picrossPuzzle_t));    
-    //puzzle stuff gets set in picrossSetupPuzzle.
+    //puzzle gets set in picrossSetupPuzzle.
     
-    
-    //Input
+    //Input Setup
     p->input = calloc(1, sizeof(picrossInput_t));
     p->input->x=0;
     p->input->y=0;
@@ -87,21 +85,22 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->countState = PICROSSDIR_IDLE;
     p->controlsEnabled = true;
     p->input->DASActive = false;
-    p->input->firstDASTime = 500000;//.5 seconds
-    p->input->DASTime = 220000;//1,000,000 = 1 second.
+    p->input->blinkError = false;
+    p->input->blinkAnimTimer =0;
     p->input->startHeldType = OUTOFBOUNDS;
     p->input->inputBoxColor = c430;
     p->input->inputBoxDefaultColor = c430;
     p->input->inputBoxErrorColor = c500;
-
-    p->input->blinkError = false;
-    p->input->blinkAnimTimer =0;
-    p->input->blinkTime = 120000;//half a blink cycle (on)(off).
-    p->input->blinkCount = 6;
     p->input->movedThisFrame = false;
     p->input->changedLevelThisFrame = false;
     p->count = 1;
     p->input->holdingDir = PICROSSDIR_IDLE; 
+
+    //input settings (adjust these)
+    p->input->firstDASTime = 400000;//.5 seconds
+    p->input->DASTime = 180000;//1,000,000 = 1 second.
+    p->input->blinkTime = 120000;//error blink. half a blink cycle (on)(off).
+    p->input->blinkCount = 6;//twice blink count (3 blinks)
 
     //load options data
     p->input->showHints = picrossGetSaveFlag(0);
@@ -214,6 +213,20 @@ void picrossSetupPuzzle(bool cont)
     //My bug right now is the /2. I need to make it ceil not floor
     p->leftPad = (screenWidth - ((totalXCount*p->drawScale)))/2 + p->maxHintsX*p->drawScale;
     p->topPad = (screenHeight - ((totalYCount*p->drawScale)))/2 + p->maxHintsY*p->drawScale;
+
+    //load the font
+    if(p->drawScale < 12)
+    {
+        //font
+        loadFont("tom_thumb.font", &(p->hint_font));
+    }else if(p->drawScale < 24){
+        loadFont("ibm_vga8.font", &(p->hint_font));
+    }else{
+        loadFont("early_gameboy.font", &(p->hint_font));
+    }
+    p->vFontPad = (p->drawScale - p->hint_font.h)/2;
+    //Calculate the shift to move the font square to the center of the level square.
+    //fontShiftLeft = p->hont_font->w
 }
 
 //Scans the levelWSG and creates the finished version of the puzzle in the proper data format (2D array of enum).
@@ -1041,15 +1054,15 @@ void drawPicrossHud(display_t* d,font_t* font)
 
 void drawHint(display_t* d,font_t* font, picrossHint_t hint)
 {
-    int8_t vHintShift = 2;
+    int8_t vHintShift = p->vFontPad;//was 2
     uint8_t h;
     uint8_t g = p->clueGap;
     box_t hintbox = boxFromCoord(-1,hint.index);
     paletteColor_t hintShadeColor = c001;//todo: move to struct if we decide to keep this.
     paletteColor_t hintColor = hint.filledIn ? c333 : c555;
+
     if(hint.isRow){
         int j = 0;
-
         //if current row, draw background squares.
         if(p->input->showGuides && hint.index == p->input->y)
         {
@@ -1069,7 +1082,6 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
             //we have to flip the hints around. 
             if(h == 0){
                 //dont increase j.
-                
             }else if(h < 10){//single digit draws
                 
                 //drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
@@ -1131,13 +1143,13 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
 
 int8_t getHintShift(uint8_t hint)
 {
-    //these values determined by trial and error with the hint_font.
+    
     switch(hint)
     {
         case 0:
             return 0;
         case 1:
-            return 7;
+            return p->vFontPad + 2;
         case 2:
         case 3:
         case 4:
@@ -1146,9 +1158,9 @@ int8_t getHintShift(uint8_t hint)
         case 7:
         case 8:
         case 9:
-            return 5;
+            return p->vFontPad + 2;
         case 10:
-            return -4;
+            return p->vFontPad - 4;
     }
 
     return 0;

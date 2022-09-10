@@ -80,6 +80,7 @@ typedef struct
     picrossGamePhase_t currentPhase;
     display_t* d;
     font_t hint_font;
+    uint16_t vFontPad;
     picrossPuzzle_t* puzzle;
     bool controlsEnabled;
     picrossInput_t* input;
