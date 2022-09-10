@@ -328,7 +328,8 @@ void mainMenuGamesCb(const char* opt)
     {
         // Start jumper
         switchToSwadgeMode(&modeJumper);
-    }else if(modePicross.modeName == opt)
+    }
+    else if(modePicross.modeName == opt)
     {
         switchToSwadgeMode(&modePicross);
     }

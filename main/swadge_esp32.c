@@ -715,7 +715,7 @@ void overrideToSwadgeMode( swadgeMode* mode )
 
 /**
  * Set the frame rate for all displays
- * 
+ *
  * @param frameRate The time to wait between drawing frames, in microseconds
  */
 void setFrameRateUs(uint32_t frameRate)

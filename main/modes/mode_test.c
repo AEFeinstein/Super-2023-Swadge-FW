@@ -263,25 +263,25 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
             case BTN_NOT_PRESSED:
             {
                 plotRect(test->disp,
-                    tBarX - 1, TOUCHBAR_Y_OFF,
-                    tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
-                    c500);
+                         tBarX - 1, TOUCHBAR_Y_OFF,
+                         tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                         c500);
                 break;
             }
             case BTN_PRESSED:
             {
                 fillDisplayArea(test->disp,
-                    tBarX - 1, TOUCHBAR_Y_OFF,
-                    tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
-                    c005);
+                                tBarX - 1, TOUCHBAR_Y_OFF,
+                                tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                                c005);
                 break;
             }
             case BTN_RELEASED:
             {
                 fillDisplayArea(test->disp,
-                    tBarX - 1, TOUCHBAR_Y_OFF,
-                    tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
-                    c050);
+                                tBarX - 1, TOUCHBAR_Y_OFF,
+                                tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                                c050);
                 break;
             }
         }
@@ -550,7 +550,7 @@ void testButtonCb(buttonEvt_t* evt)
 
 /**
  * @brief Touch callback
- * 
+ *
  * @param evt the touch event
  */
 void testTouchCb(touch_event_t* evt)

@@ -81,7 +81,7 @@ swadgeMode modeGamepad =
     .fnTemperatureCallback = NULL
 };
 
-const hid_gamepad_button_bm_t touchMap[] = 
+const hid_gamepad_button_bm_t touchMap[] =
 {
     GAMEPAD_BUTTON_C,
     GAMEPAD_BUTTON_X,
@@ -178,30 +178,30 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
         // Select button
         drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
         drawFunc(gamepad->disp,
-                    (gamepad->disp->w / 2) - START_BTN_RADIUS - START_BTN_SEP,
-                    (gamepad->disp->h / 4) + Y_OFF,
-                    START_BTN_RADIUS, c333);
+                 (gamepad->disp->w / 2) - START_BTN_RADIUS - START_BTN_SEP,
+                 (gamepad->disp->h / 4) + Y_OFF,
+                 START_BTN_RADIUS, c333);
 
         // Start button
         drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_START) ? &plotCircleFilled : &plotCircle;
         drawFunc(gamepad->disp,
-                    (gamepad->disp->w / 2) + START_BTN_RADIUS + START_BTN_SEP,
-                    (gamepad->disp->h / 4) + Y_OFF,
-                    START_BTN_RADIUS, c333);
+                 (gamepad->disp->w / 2) + START_BTN_RADIUS + START_BTN_SEP,
+                 (gamepad->disp->h / 4) + Y_OFF,
+                 START_BTN_RADIUS, c333);
 
         // Button A
         drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_A) ? &plotCircleFilled : &plotCircle;
         drawFunc(gamepad->disp,
-                    ((3 * gamepad->disp->w) / 4) + AB_BTN_RADIUS + AB_BTN_SEP,
-                    (gamepad->disp->h / 2) - AB_BTN_Y_OFF + Y_OFF,
-                    AB_BTN_RADIUS, c243);
+                 ((3 * gamepad->disp->w) / 4) + AB_BTN_RADIUS + AB_BTN_SEP,
+                 (gamepad->disp->h / 2) - AB_BTN_Y_OFF + Y_OFF,
+                 AB_BTN_RADIUS, c243);
 
         // Button B
         drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_B) ? &plotCircleFilled : &plotCircle;
         drawFunc(gamepad->disp,
-                    ((3 * gamepad->disp->w) / 4) - AB_BTN_RADIUS - AB_BTN_SEP,
-                    (gamepad->disp->h / 2) + AB_BTN_Y_OFF + Y_OFF,
-                    AB_BTN_RADIUS, c401);
+                 ((3 * gamepad->disp->w) / 4) - AB_BTN_RADIUS - AB_BTN_SEP,
+                 (gamepad->disp->h / 2) + AB_BTN_Y_OFF + Y_OFF,
+                 AB_BTN_RADIUS, c401);
 
         // Draw touch strip
         int16_t tBarX = gamepad->disp->w - TOUCHBAR_WIDTH;
@@ -211,16 +211,16 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
             if(gamepad->gpState.buttons & touchMap[touchIdx])
             {
                 fillDisplayArea(gamepad->disp,
-                    tBarX - 1, TOUCHBAR_Y_OFF,
-                    tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
-                    c111);
+                                tBarX - 1, TOUCHBAR_Y_OFF,
+                                tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                                c111);
             }
             else
             {
                 plotRect(gamepad->disp,
-                    tBarX - 1, TOUCHBAR_Y_OFF,
-                    tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
-                    c111);
+                         tBarX - 1, TOUCHBAR_Y_OFF,
+                         tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                         c111);
             }
             tBarX += (TOUCHBAR_WIDTH / numTouchElem);
         }
@@ -249,8 +249,8 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
         const char plugInText[] = "Plug USB-C into computer please!";
         tWidth = textWidth(&gamepad->ibmFont, plugInText);
         drawText(gamepad->disp, &gamepad->ibmFont, c555, plugInText,
-                    (gamepad->disp->w - tWidth) / 2,
-                    (gamepad->disp->h - gamepad->ibmFont.h) / 2);
+                 (gamepad->disp->w - tWidth) / 2,
+                 (gamepad->disp->h - gamepad->ibmFont.h) / 2);
     }
 }
 
