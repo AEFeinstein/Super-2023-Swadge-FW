@@ -111,9 +111,13 @@ int32_t getTan1024(int16_t degree)
     // Force always positive modulus math.
     degree = ( ( degree % 180 ) + 180 ) % 180;
     if( degree < 90 )
+    {
         return tan1024[degree];
+    }
     else
-        return -tan1024[degree-90];
+    {
+        return -tan1024[degree - 90];
+    }
 }
 
 /**
@@ -140,7 +144,7 @@ void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
 
     uint32_t dw = disp->w;
     {
-        paletteColor_t * pxs = disp->pxFb + yMin * dw + xMin;
+        paletteColor_t* pxs = disp->pxFb + yMin * dw + xMin;
 
         int copyLen = xMax - xMin;
 
@@ -335,7 +339,7 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
              bool flipLR, bool flipUD, int16_t rotateDeg)
 {
     //  This function has been micro optimized by cnlohr on 2022-09-08, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
-   
+
     /* Btw quick test code for second case is:
     for( int mode = 0; mode < 8; mode++ )
     {
@@ -366,8 +370,8 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
                 usey = wsg->h - 1 - usey;
             }
 
-            paletteColor_t * linein = &wsg->px[usey * wsgw];
-            
+            paletteColor_t* linein = &wsg->px[usey * wsgw];
+
             // Reflect over Y axis?
             uint32_t readX = 0;
             uint32_t advanceX = 1;
@@ -390,30 +394,30 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
                     rotatePixel((int16_t*)&tx, (int16_t*)&ty, rotateDeg, wsgw, wsgh );
                     tx += xOff;
                     ty += yOff;
-                    TURBO_SET_PIXEL_BOUNDS( disp, tx, ty, color ); 
+                    TURBO_SET_PIXEL_BOUNDS( disp, tx, ty, color );
                 }
                 localX++;
                 readX += advanceX;
             }
-        }        
+        }
     }
     else
     {
         // Draw the image's pixels (no rotation or transformation)
         uint32_t w = disp->w;
-        paletteColor_t * px = disp->pxFb;
+        paletteColor_t* px = disp->pxFb;
 
         uint16_t wsgw = wsg->w;
         uint16_t wsgh = wsg->h;
-    
+
         int32_t xstart = 0;
         int16_t xend = wsgw;
         int32_t xinc = 1;
-        
+
         // Reflect over Y axis?
         if (flipLR)
         {
-            xstart = wsgw-1;
+            xstart = wsgw - 1;
             xend = -1;
             xinc = -1;
         }
@@ -423,55 +427,70 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
             if( xinc > 0 )
             {
                 xstart -= xOff;
-                if( xstart >= xend ) return;
+                if( xstart >= xend )
+                {
+                    return;
+                }
             }
             else
             {
                 xstart += xOff;
-                if( xend >= xstart ) return;
+                if( xend >= xstart )
+                {
+                    return;
+                }
             }
             xOff = 0;
         }
 
         if( xOff + wsgw > w )
         {
-            int32_t peelBack = (xOff + wsgw)-w;
+            int32_t peelBack = (xOff + wsgw) - w;
             if( xinc > 0 )
             {
                 xend -= peelBack;
-                if( xstart >= xend ) return;
+                if( xstart >= xend )
+                {
+                    return;
+                }
             }
             else
             {
                 xend += peelBack;
-                if( xend >= xstart ) return;
+                if( xend >= xstart )
+                {
+                    return;
+                }
             }
         }
-            
+
 
         for(int16_t srcY = 0; srcY < wsgh; srcY++)
         {
             int32_t usey = srcY;
-            
+
             // Reflect over X axis?
             if(flipUD)
             {
                 usey = wsgh - 1 - usey;
             }
 
-            paletteColor_t * linein = &wsg->px[usey * wsgw];
+            paletteColor_t* linein = &wsg->px[usey * wsgw];
 
             // Transform this pixel's draw location as necessary
             uint32_t dstY = srcY + yOff;
-            
+
             // It is too complicated to detect both directions and backoff correctly, so we just do this here.
             // It does slow things down a "tiny" bit.  People in the future could optimze out this check.
-            if( dstY >= disp->h ) continue;
+            if( dstY >= disp->h )
+            {
+                continue;
+            }
 
             int32_t lineOffset = dstY * w;
             int32_t dstx = xOff + lineOffset;
 
-            for(int32_t srcX = xstart; srcX != xend; srcX+=xinc)
+            for(int32_t srcX = xstart; srcX != xend; srcX += xinc)
             {
                 // Draw if not transparent
                 uint8_t color = linein[srcX];
@@ -509,13 +528,13 @@ void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
     int xMax = CLAMP(xOff + wWidth, 0, dWidth);
     int yMin = CLAMP(yOff, 0, disp->h);
     int yMax = CLAMP(yOff + wsg->h, 0, disp->h);
-    paletteColor_t * px = disp->pxFb;
+    paletteColor_t* px = disp->pxFb;
     int numX = xMax - xMin;
     int wsgY = (yMin - yOff);
     int wsgX = (xMin - xOff);
-    paletteColor_t * lineout = &px[(yMin * dWidth) + xMin];
-    paletteColor_t * linein = &wsg->px[wsgY * wWidth + wsgX];
-    
+    paletteColor_t* lineout = &px[(yMin * dWidth) + xMin];
+    paletteColor_t* linein = &wsg->px[wsgY * wWidth + wsgX];
+
     // Draw each pixel
     for (int y = yMin; y < yMax; y++)
     {
@@ -556,8 +575,8 @@ void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
 
         int wWidth = wsg->w;
         int dWidth = disp->w;
-        paletteColor_t * pxWsg = &wsg->px[(wsg->h - (yEnd - yStart)) * wWidth];
-        paletteColor_t * pxDisp = &disp->pxFb[yStart*dWidth+xOff];
+        paletteColor_t* pxWsg = &wsg->px[(wsg->h - (yEnd - yStart)) * wWidth];
+        paletteColor_t* pxDisp = &disp->pxFb[yStart * dWidth + xOff];
 
         // Bound in the X direction
         int32_t copyLen = wsg->w;
@@ -665,10 +684,10 @@ void freeFont(font_t* font)
 void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16_t xOff, int16_t yOff)
 {
     //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
-    paletteColor_t * pxOutput = disp->pxFb + yOff * disp->w;
+    paletteColor_t* pxOutput = disp->pxFb + yOff * disp->w;
 
     int bitIdx = 0;
-    uint8_t * bitmap = ch->bitmap;
+    uint8_t* bitmap = ch->bitmap;
     int wch = ch->w;
 
     // Don't draw off the bottom of the screen.
@@ -682,7 +701,7 @@ void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16
     {
         // Above the display, do wacky math with -yOff
         bitIdx -= yOff * wch;
-        bitmap += bitIdx>>3;
+        bitmap += bitIdx >> 3;
         bitIdx &= 7;
         h += yOff;
         yOff = 0;
@@ -700,7 +719,7 @@ void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16
             // that weren't displayed on the left of the screen.
             startX = 0;
             bitIdx += -xOff;
-            bitmap += bitIdx>>3;
+            bitmap += bitIdx >> 3;
             bitIdx &= 7;
         }
         int endX = xOff + wch;
@@ -733,7 +752,7 @@ void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16
 
         // Handle any remaining bits if we have ended off the end of the display.
         bitIdx += truncate;
-        bitmap += bitIdx>>3;
+        bitmap += bitIdx >> 3;
         bitIdx &= 7;
         pxOutput += disp->w;
     }
