@@ -174,6 +174,7 @@ void picrossSetupPuzzle(bool cont)
     {
         //Set the actual level from save data
         loadPicrossProgress();
+        p->input->changedLevelThisFrame = true;//Force a check on load, so fil hints get greyed out.
     }else
     {
         //Set the actual level to be empty
@@ -369,6 +370,17 @@ void picrossGameLoop(int64_t elapsedUs)
 
     p->bgScrollTimer += elapsedUs;
 
+    //We do this at the top of the loop for 2 reasons. THe first is so that changedLevelThisFrame doesn't get reset, so when we set it from loading (true) or new (false), it updates.
+    //the second is so that when you hit the puzzle on a victory, the check might be a little slower, and we want to draw the last filled in block and let that flash on screen for a frame before jumping to the slv
+    //which is pretty minor but feels important.
+    //frankly, in a full game we would't pop instantly but hide it all under a smooth celebration animation and sound before revealing the puzzle. May explore that.
+
+    //userInput sets this value when we change a block to or from filled.
+    if(p->input->changedLevelThisFrame)
+    {
+        picrossCheckLevel();
+    }
+
     picrossUserInput(elapsedUs);
     if(p->exitThisFrame)
     {
@@ -378,11 +390,7 @@ void picrossGameLoop(int64_t elapsedUs)
         return;
     }
 
-    //userInput sets this value when we change a block to or from filled.
-    if(p->input->changedLevelThisFrame)
-    {
-        picrossCheckLevel();
-    }
+    
 
     drawPicrossScene(p->d);
 
@@ -1044,7 +1052,6 @@ void drawPicrossHud(display_t* d,font_t* font)
             ((p->puzzle->width * s) + s + p->leftPad),
             ((i * s) + s + p->topPad),
             c111,0);
-     
     }
 
     //Draw the hints.
