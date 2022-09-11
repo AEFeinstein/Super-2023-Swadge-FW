@@ -17,7 +17,7 @@
 #include "picross_menu.h"
 #include "picross_select.h"
 #include "bresenham.h"
-#include "picross_consts.h"//wait already included by mode_picross.h? i gotta look up how includes work
+// #include "picross_consts.h"
 
 //==============================================================================
 // Function Prototypes
@@ -880,7 +880,6 @@ void drawPicrossScene(display_t* d)
             for(int j = 0;j<h;j++)
             {
                 //shape of boxDraw
-                //we will probably replace with "drawwsg"
                 box = boxFromCoord(i,j);          
                 switch(p->puzzle->level[i][j])
                 {
@@ -928,8 +927,6 @@ void drawPicrossScene(display_t* d)
             }
         }
 
-        
-
         //Draw the title of the puzzle, centered.
         //We Should get the y position from the 0 y position 
         // uint16_t y = p->drawScale + p->topPad - p->UIFont.h;//this is y1 of boxFromCoords solved for position 0, then shifted up the height of the font.
@@ -941,7 +938,6 @@ void drawPicrossScene(display_t* d)
         t = (((int)d->w) - t)/2;//turn t into padding.
         
         drawText(d,&p->UIFont,c555,p->selectedLevel->title,t,14);
-
     }
 }
 
@@ -961,7 +957,7 @@ void drawSinglePixelFromWSG(display_t* d,int x, int y, wsg_t* image)
 // */
 box_t boxFromCoord(int8_t x,int8_t y)
 {
-    uint8_t s = p->drawScale;
+    uint16_t s = p->drawScale;
     box_t box =
         {
             .x0 = (x * s) + s + p->leftPad,
@@ -974,21 +970,12 @@ box_t boxFromCoord(int8_t x,int8_t y)
 
 void drawPicrossHud(display_t* d,font_t* font)
 {
-    //Draw coordinates
-    char textBuffer[9];
-    snprintf(textBuffer, sizeof(textBuffer) - 1, "%d,%d", p->input->x+1,p->input->y+1);
-    drawText(d, &(p->UIFont), c555, textBuffer, 10, 20);
-
-    //Draw counter
-    snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", p->count);
-    drawText(d, &(p->UIFont), c334, textBuffer, 10, 20+p->UIFont.h*2);
-
     //width of thicker center lines
-    uint8_t w = 2;//p->drawScale/4;
+    uint16_t w = 2;//p->drawScale/4;
     //draw a vertical line every grid
     for(int i=0;i<=p->puzzle->width;i++)//skip 0 and skip last. literally the fence post problem.
     {
-        uint8_t s = p->drawScale;
+        uint16_t s = p->drawScale;
         if(i == 0 || i == p->puzzle->width)
         {
             //draw border
@@ -1024,7 +1011,7 @@ void drawPicrossHud(display_t* d,font_t* font)
 
      //draw a horizontal line every 5 units.
      //todo: also do the full grid.
-    for(int i=0;i<=p->puzzle->height;i++)
+    for(uint8_t i=0;i<=p->puzzle->height;i++)
     {
         uint8_t s = p->drawScale;
         if(i == 0 || i == p->puzzle->height)
@@ -1062,14 +1049,26 @@ void drawPicrossHud(display_t* d,font_t* font)
 
     //Draw the hints.
     //With square puzzles, we don't need two for loops. Perhaps this is... aspirational.
-    for(int i=0;i<p->puzzle->height;i++)
+    for(uint8_t i=0;i<p->puzzle->height;i++)
     {
         drawHint(d,font,p->puzzle->rowHints[i]);
     }
-    for(int i=0;i<p->puzzle->width;i++)
+    for(uint8_t i=0;i<p->puzzle->width;i++)
     {
         drawHint(d,font,p->puzzle->colHints[i]);
     }
+
+    //Draw the UI last, so it goes above the guidelines (which are done in drawHint).
+    //This means they COULD cover hints, since we don't really check for that procedurally. So keep an eye out when making puzzles.
+
+    //Draw coordinates
+    char textBuffer[9];
+    snprintf(textBuffer, sizeof(textBuffer) - 1, "%d,%d", p->input->x+1,p->input->y+1);
+    drawText(d, &(p->UIFont), c555, textBuffer, 10, 20);
+
+    //Draw counter
+    snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", p->count);
+    drawText(d, &(p->UIFont), c334, textBuffer, 10, 20+p->UIFont.h*2);
 
 }
 
@@ -1083,7 +1082,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
     paletteColor_t hintColor = hint.filledIn ? c333 : c555;
 
     if(hint.isRow){
-        int j = 0;
+        uint8_t j = 0;
         //if current row, draw background squares.
         if(p->input->showGuides && hint.index == p->input->y)
         {
@@ -1094,7 +1093,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
         
         //draw clues if they... are a thing.
         //todo: do the math on the max number of hints that _this_ level has, and just use that for all the math.
-        for(int i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
+        for(uint8_t i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
         {
             h = hint.hints[PICROSS_MAX_HINTCOUNT-1-i];
             hintbox = boxFromCoord(-j-1,hint.index);
@@ -1124,7 +1123,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
             }
         }
     }else{
-        int j = 0;
+        uint8_t j = 0;
          //if current col, draw background square
         if(p->input->showGuides && hint.index == p->input->x)
         {
@@ -1134,7 +1133,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
         }
 
         //draw hints
-        for(int i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
+        for(uint8_t i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
         {
             h = hint.hints[PICROSS_MAX_HINTCOUNT-1-i];
             hintbox = boxFromCoord(hint.index,-j-1);          

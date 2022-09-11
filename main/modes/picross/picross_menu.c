@@ -199,14 +199,17 @@ void loadLevels()
     loadWsg("3_boat.wsg", &pm->levels[9].levelWSG);//10x10
     loadWsg("3_boat_c.wsg", &pm->levels[9].completedWSG);
 
-    pm->levels[10].title = "Longer Title Test";
-    loadWsg("pic_five.wsg", &pm->levels[10].levelWSG);//5x5 testing
-    loadWsg("pic_five_c.wsg", &pm->levels[10].completedWSG);
+    pm->levels[10].title = "Note";
+    loadWsg("Note_PZL.wsg", &pm->levels[10].levelWSG);//15x15
+    loadWsg("Note_SLV.wsg", &pm->levels[10].completedWSG);
 
-    pm->levels[11].title = "oblong test";
-    loadWsg("oblongTest.wsg", &pm->levels[11].levelWSG);//10x5 testing
-    loadWsg("oblongTest_c.wsg", &pm->levels[11].completedWSG);
+    pm->levels[11].title = "Banana";
+    loadWsg("Banana_PZL.wsg", &pm->levels[11].levelWSG);//15x15
+    loadWsg("Banana_SLV.wsg", &pm->levels[11].completedWSG);
 
+    pm->levels[12].title = "Power Plug";
+    loadWsg("Plug_PZL.wsg", &pm->levels[12].levelWSG);//15x15
+    loadWsg("Plug_SLV.wsg", &pm->levels[12].completedWSG);
     //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_consts.h) when adding levels.
 
     //set indices. Used to correctly set save data. levels are loaded without context of the levels array, so they carry the index info with them so we can save victories.
