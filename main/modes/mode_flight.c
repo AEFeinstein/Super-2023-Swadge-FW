@@ -875,6 +875,10 @@ int mdlctcmp( const void * va, const void * vb )
 
 static void flightRender()
 {
+
+#ifndef EMU
+	if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('R');
+#endif
     flightUpdate( 0 );
 
     flight_t * tflight = flight;
@@ -886,8 +890,7 @@ static void flightRender()
 
     SetupMatrix();
 
-#ifndef EMU
-    uint32_t start = getCycleCount();
+
     static uint32_t fps;
     static uint32_t nowframes;
     static uint32_t lasttimeframe;
@@ -903,18 +906,20 @@ static void flightRender()
         lasttimeframe+=1000000;
     }
     nowframes++;
-    if( flight->mode == FLIGHT_PERFTEST )
-        portDISABLE_INTERRUPTS();
+
+#ifndef EMU
+    uint32_t start = getCycleCount();
+//  if( flight->mode == FLIGHT_PERFTEST )
+//        portDISABLE_INTERRUPTS();
+#ifndef EMU
+	if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('1');
+#endif
+
 #else
     cndrawPerfcounter = 0;
     uint32_t start = cndrawPerfcounter;
 #endif
 
-#ifndef EMU
-    //PIN_FUNC_SELECT( PERIPHS_IO_MUX_U0TXD_U, 3); //Set to GPIO.
-    //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 0 );
-    //OVERCLOCK_SECTION_ENABLE();
-#endif
 
     tdRotateEA( ProjectionMatrix, tflight->hpr[1]/16, tflight->hpr[0]/16, 0 );
     tdTranslate( ModelviewMatrix, -tflight->planeloc[0], -tflight->planeloc[1], -tflight->planeloc[2] );
@@ -984,6 +989,7 @@ static void flightRender()
     }
 
 #ifndef EMU
+	if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('2');
     uint32_t mid1 = getCycleCount();
 #else
     uint32_t mid1 = cndrawPerfcounter;
@@ -993,6 +999,7 @@ static void flightRender()
     qsort( mrp, mdlct, sizeof( struct ModelRangePair ), mdlctcmp );
 
 #ifndef EMU
+	if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('3');
     uint32_t mid2 = getCycleCount();
 #else
     uint32_t mid2 = cndrawPerfcounter;
@@ -1055,9 +1062,10 @@ static void flightRender()
         //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 1 );
 #endif
 #ifndef EMU
+	if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('4');
     uint32_t stop = getCycleCount();
-    if( flight->mode == FLIGHT_PERFTEST )
-        portENABLE_INTERRUPTS();
+//    if( flight->mode == FLIGHT_PERFTEST )
+//        portENABLE_INTERRUPTS();
 #else
     uint32_t stop = cndrawPerfcounter;
 #endif
@@ -1132,6 +1140,10 @@ static void flightRender()
 
     //If perf test, force full frame refresh
     //Otherwise, don't force full-screen refresh
+
+#ifndef EMU	
+	if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('5');
+#endif
     return;
 }
 

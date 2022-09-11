@@ -22,6 +22,7 @@
 //#define PROCPROFILE
 
 #ifdef PROCPROFILE
+void uart_tx_one_char( char c );
 static inline uint32_t get_ccount()
 {
     uint32_t ccount;
@@ -392,7 +393,7 @@ void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
              gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
              gpio_num_t backlight, bool isPwmBacklight)
 {
-	tftBacklightPin = backlight;
+    tftBacklightPin = backlight;
 
     if(false == isPwmBacklight)
     {
@@ -587,8 +588,8 @@ void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
  */
 void disableTFTBacklight()
 {
-	gpio_reset_pin( tftBacklightPin );
-	gpio_set_level( tftBacklightPin, 0 );
+    gpio_reset_pin( tftBacklightPin );
+    gpio_set_level( tftBacklightPin, 0 );
 }
 
 /**
@@ -652,6 +653,7 @@ void drawDisplayTft(display_t * disp, bool drawDiff __attribute__((unused)), fnB
 
 #ifdef PROCPROFILE
     uint32_t start, mid, final;
+    uart_tx_one_char('f');
 #endif
 
     // Send the frame, ping ponging the send buffer
@@ -679,6 +681,7 @@ void drawDisplayTft(display_t * disp, bool drawDiff __attribute__((unused)), fnB
         }
 
 #ifdef PROCPROFILE
+        uart_tx_one_char('g');
         mid = get_ccount();
 #endif
 
@@ -713,11 +716,13 @@ void drawDisplayTft(display_t * disp, bool drawDiff __attribute__((unused)), fnB
 
 #ifdef PROCPROFILE
         final = get_ccount();
+        uart_tx_one_char('h');
 #endif
     }
 
 #ifdef PROCPROFILE
-    ESP_LOGI( "tft", "%d/%d", mid - start, final - mid );
+    uart_tx_one_char('i');
+    //ESP_LOGI( "tft", "%d/%d", mid - start, final - mid );
 #endif
 
     // Debug printing for frames-per-second

@@ -26,6 +26,12 @@ static inline uint32_t getCycleCount()
     return ccount;
 }
 
+/**
+ * @brief Special ROM function for printing one char to the UART with very low
+ *    overhead; useful for profiling.
+ */
+void uart_tx_one_char( char c );
+
 uint32_t EHSVtoHEXhelper( uint8_t hue, uint8_t sat, uint8_t val, bool applyGamma);
 led_t SafeEHSVtoHEXhelper( int16_t hue, int16_t sat, int16_t val, bool applyGamma );
 
