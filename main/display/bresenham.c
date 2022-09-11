@@ -107,7 +107,7 @@ void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
         {
             if(dashDraw)
             {
-                SET_PIXEL_BOUNDS(disp, x0, y0, col);
+                TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col);
             }
             dashCnt++;
             if(dashWidth == dashCnt)

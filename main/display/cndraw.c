@@ -130,12 +130,13 @@ void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int
  * @param y1, y0 Row of the display, 0 is at the top
  *
  */
-void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y1, bool thicc, paletteColor_t color )
+void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y1, paletteColor_t color )
 {	
 	SETUP_FOR_TURBO( disp );
     //Tune this as a function of the size of your viewing window, line accuracy, and worst-case scenario incoming lines.
 #define FIXEDPOINT 16
 #define FIXEDPOINTD2 15
+#define THICC 0 // Add extra point at end of edge when stepping across pixels or not.
     int dx = (x1 - x0);
     int dy = (y1 - y0);
     int sdx = (dx > 0) ? 1 : -1;
@@ -147,19 +148,13 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
     int cx = x0;
     int cy = y0;
 
-    if( cx < 0 && x1 < 0 )
+	// Checks if both edges are outside of bounds
+	// writing it this way simultaneously checks for < 0 AND >= dispWidth
+    if( (uint32_t)cx >= (uint32_t)dispWidth && (uint32_t)x1 >= (uint32_t)dispWidth )
     {
         return;
     }
-    if( cy < 0 && y1 < 0 )
-    {
-        return;
-    }
-    if( cx >= (int)dispWidth && x1 >= (int)dispWidth )
-    {
-        return;
-    }
-    if( cy >= (int)dispHeight && y1 >= (int)dispHeight )
+    if( (uint32_t)cy >= (uint32_t)dispHeight && (uint32_t)y1 >= (uint32_t)dispHeight )
     {
         return;
     }
@@ -326,10 +321,9 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
                 {
                     return;
                 }
-                if( thicc )
-                {
-                    TURBO_SET_PIXEL( disp, cx, cy, color );
-                }
+#if THICC
+                TURBO_SET_PIXEL( disp, cx, cy, color );
+#endif
                 xerr -= 1 << FIXEDPOINT;
             }
         }
@@ -369,10 +363,9 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
                 {
                     return;
                 }
-                if( thicc )
-                {
-                    TURBO_SET_PIXEL( disp, cx, cy, color );
-                }
+#if THICC
+                TURBO_SET_PIXEL( disp, cx, cy, color );
+#endif
                 yerr -= 1 << FIXEDPOINT;
             }
         }

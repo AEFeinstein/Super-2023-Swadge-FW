@@ -343,6 +343,7 @@ void drawDisplayTft(display_t * disp,bool drawDiff,fnBackgroundDrawCallback_t cb
 esp_lcd_panel_handle_t panel_handle = NULL;
 static paletteColor_t * pixels = NULL;
 static uint16_t *s_lines[2] = {0};
+static gpio_num_t tftBacklightPin;
 
 // static uint64_t tFpsStart = 0;
 // static int framesDrawn = 0;
@@ -391,6 +392,8 @@ void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
              gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
              gpio_num_t backlight, bool isPwmBacklight)
 {
+	tftBacklightPin = backlight;
+
     if(false == isPwmBacklight)
     {
         // Binary backlight
@@ -576,6 +579,16 @@ void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
         pixels = (paletteColor_t*)malloc(sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
     }
     disp->pxFb = pixels;
+}
+
+/**
+ * @brief Disable the backlight (for powerdown)
+ *
+ */
+void disableTFTBacklight()
+{
+	gpio_reset_pin( tftBacklightPin );
+	gpio_set_level( tftBacklightPin, 0 );
 }
 
 /**

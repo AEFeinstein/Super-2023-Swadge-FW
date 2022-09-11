@@ -58,9 +58,9 @@ int textEntryInput( uint8_t down, uint8_t button ){ return false;}
 #define MAX_BEANS 69
 
 
-#define CROSSHAIR_COLOR 92 // was 200
+#define CROSSHAIR_COLOR 200
 #define CNDRAW_BLACK 0
-#define CNDRAW_WHITE 18 // actually green
+#define CNDRAW_WHITE 18 // actually greenish
 #define PROMPT_COLOR 92
 
 
@@ -104,7 +104,7 @@ typedef enum
 typedef struct
 {
     flightModeScreen mode;
-	display_t * disp;
+    display_t * disp;
     int frames, tframes;
     uint8_t buttonState;
 
@@ -120,9 +120,9 @@ typedef struct
     const tdModel ** environment;
 
     meleeMenu_t * menu;
-	font_t ibm;
-	font_t radiostars;
-	font_t meleeMenuFont;
+    font_t ibm;
+    font_t radiostars;
+    font_t meleeMenuFont;
 
     int beans;
     int ondonut;
@@ -134,9 +134,9 @@ typedef struct
     flLEDAnimation ledAnimation;
     uint8_t        ledAnimationTime;
 
-	int invertYRow;
+    int invertYRow;
 
-	char highScoreNameBuffer[FLIGHT_HIGH_SCORE_NAME_LEN];
+    char highScoreNameBuffer[FLIGHT_HIGH_SCORE_NAME_LEN];
     uint8_t beangotmask[MAXRINGS];
 } flight_t;
 
@@ -176,11 +176,11 @@ int abs(int j);
 
 swadgeMode modeFlight =
 {
-    .modeName = "Bean Bazzle",
+    .modeName = "Flyin Donut",
     .fnEnterMode = flightEnterMode,
     .fnExitMode = flightExitMode,
     .fnButtonCallback = flightButtonCallback,
-	.fnBackgroundDrawCallback = flightBackground,
+    .fnBackgroundDrawCallback = flightBackground,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
@@ -218,8 +218,11 @@ static void flightEnterMode(display_t * disp)
     flight = malloc(sizeof(flight_t));
     memset(flight, 0, sizeof(flight_t));
 
+    // Hmm this seems not to be obeyed, at least not well?
+    setFrameRateUs( 33333 );
+
     flight->mode = FLIGHT_MENU;
-	flight->disp = disp;
+    flight->disp = disp;
 
     const uint16_t * data = model3d;//(uint16_t*)getAsset( "3denv.obj", &retlen );
     data+=2; //header
@@ -232,16 +235,16 @@ static void flightEnterMode(display_t * disp)
         data += 8 + m->nrvertnums + m->nrfaces * m->indices_per_face;
     }
 
-	loadFont("ibm_vga8.font", &flight->ibm);
-	loadFont("radiostars.font", &flight->radiostars);
+    loadFont("ibm_vga8.font", &flight->ibm);
+    loadFont("radiostars.font", &flight->radiostars);
 
-	loadFont("mm.font", &flight->meleeMenuFont);
-	flight->menu = initMeleeMenu(fl_title, &flight->meleeMenuFont, flightMenuCb);
-	addRowToMeleeMenu(flight->menu, fl_flight_env);
+    loadFont("mm.font", &flight->meleeMenuFont);
+    flight->menu = initMeleeMenu(fl_title, &flight->meleeMenuFont, flightMenuCb);
+    addRowToMeleeMenu(flight->menu, fl_flight_env);
     addRowToMeleeMenu(flight->menu, fl_flight_perf);
-	flight->invertYRow = addRowToMeleeMenu( flight->menu, flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env );
-	addRowToMeleeMenu(flight->menu, str_quit);
-	addRowToMeleeMenu(flight->menu, str_high_scores);
+    flight->invertYRow = addRowToMeleeMenu( flight->menu, flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env );
+    addRowToMeleeMenu(flight->menu, str_quit);
+    addRowToMeleeMenu(flight->menu, str_high_scores);
 }
 
 /**
@@ -249,8 +252,8 @@ static void flightEnterMode(display_t * disp)
  */
 static void flightExitMode(void)
 {
-	deinitMeleeMenu(flight->menu);
-	freeFont(&flight->meleeMenuFont);
+    deinitMeleeMenu(flight->menu);
+    freeFont(&flight->meleeMenuFont);
     free(flight);
 }
 
@@ -272,14 +275,14 @@ static void flightMenuCb(const char* menuItem)
     }
     else if ( fl_flight_invertY0_env == menuItem )
     {
-		// XXX TODO SAVE DEFAULT FOR FLIGHT DATA
-		flight->inverty = 1;
+        // XXX TODO SAVE DEFAULT FOR FLIGHT DATA
+        flight->inverty = 1;
         flight->menu->rows[flight->invertYRow] = fl_flight_invertY1_env;
     }
     else if ( fl_flight_invertY1_env == menuItem )
     {
-		// XXX TODO SAVE DEFAULT FOR FLIGHT DATA
-		flight->inverty = 0;
+        // XXX TODO SAVE DEFAULT FOR FLIGHT DATA
+        flight->inverty = 0;
         flight->menu->rows[flight->invertYRow] = fl_flight_invertY0_env;
     }
     else if ( str_high_scores == menuItem )
@@ -298,7 +301,7 @@ static void flightEndGame()
     {
         flight->mode = FLIGHT_HIGH_SCORE_ENTRY;
        // textEntryStart( FLIGHT_HIGH_SCORE_NAME_LEN+1, flight->highScoreNameBuffer );
-		/* XXX TODO XXX TODO */
+        /* XXX TODO XXX TODO */
 
     }
     else
@@ -406,17 +409,17 @@ static void flightStartGame( flightModeScreen mode )
  */
 static void flightUpdate(void* arg __attribute__((unused)))
 {
-	display_t * disp = flight->disp;
+    display_t * disp = flight->disp;
     static const char * EnglishNumberSuffix[] = { "st", "nd", "rd", "th" };
     switch(flight->mode)
     {
         default:
         case FLIGHT_MENU:
         {
-       	    drawMeleeMenu(flight->disp, flight->menu);
+               drawMeleeMenu(flight->disp, flight->menu);
             break;
         }
-		case FLIGHT_PERFTEST:
+        case FLIGHT_PERFTEST:
         case FLIGHT_GAME:
         {
             // Increment the frame count
@@ -433,7 +436,7 @@ static void flightUpdate(void* arg __attribute__((unused)))
         }
         case FLIGHT_SHOW_HIGH_SCORES:
         {
-			fillDisplayArea( disp, 0, 0, disp->w, disp->h, CNDRAW_BLACK );
+            fillDisplayArea( disp, 0, 0, disp->w, disp->h, CNDRAW_BLACK );
 
             char buffer[32];
             flightSimSaveData_t * sd = getFlightSaveData();
@@ -736,7 +739,7 @@ int LocalToScreenspace( const int16_t * coords_3v, int16_t * o1, int16_t * o2 )
     return 0;
 }
 
-
+// Note: Function unused.  For illustration purposes.
 void Draw3DSegment( display_t * disp, const int16_t * c1, const int16_t * c2 )
 {
     int16_t sx0, sy0, sx1, sy1;
@@ -744,7 +747,7 @@ void Draw3DSegment( display_t * disp, const int16_t * c1, const int16_t * c2 )
         LocalToScreenspace( c2, &sx1, &sy1 ) ) return;
 
     //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 0 );
-    speedyLine( disp, sx0, sy0, sx1, sy1, 0, CNDRAW_WHITE );
+    speedyLine( disp, sx0, sy0, sx1, sy1, CNDRAW_WHITE );
     //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 1 );
 
     //plotLine( sx0, sy0, sx1, sy1, CNDRAW_WHITE );
@@ -818,7 +821,7 @@ void tdDrawModel( display_t * disp, const tdModel * m )
 
             if( cv1[2] != 2 && cv2[2] != 2 )
             {
-                speedyLine( disp, cv1[0], cv1[1], cv2[0], cv2[1], 0, renderlinecolor );
+                speedyLine( disp, cv1[0], cv1[1], cv2[0], cv2[1], renderlinecolor );
             }
         }
     }
@@ -872,20 +875,18 @@ int mdlctcmp( const void * va, const void * vb )
 
 static void flightRender()
 {
-	flightUpdate( 0 );
+    flightUpdate( 0 );
 
     flight_t * tflight = flight;
-	display_t * disp = tflight->disp;
+    display_t * disp = tflight->disp;
     tflight->tframes++;
-    if( tflight->mode != FLIGHT_GAME && tflight->mode != FLIGHT_GAME_OVER ) return;
+    if( tflight->mode != FLIGHT_GAME && tflight->mode != FLIGHT_GAME_OVER && tflight->mode != FLIGHT_PERFTEST ) return;
 
     // First clear the OLED
 
     SetupMatrix();
 
-#ifdef EMU
-    //uint32_t start = 0; 
-#else
+#ifndef EMU
     uint32_t start = getCycleCount();
 #endif
 
@@ -962,8 +963,16 @@ static void flightRender()
         mdlct++;
     }
 
+#ifndef EMU
+    uint32_t mid1 = getCycleCount();
+#endif
+
     //Painter's algorithm
     qsort( mrp, mdlct, sizeof( struct ModelRangePair ), mdlctcmp );
+
+#ifndef EMU
+    uint32_t mid2 = getCycleCount();
+#endif
 
     for( i = 0; i < mdlct; i++ )
     {
@@ -1001,16 +1010,16 @@ static void flightRender()
         else if( draw == 2 || draw == 3 )
         {
             if( draw == 2 )
-			{
-				// Originally, (tflight->frames&1)?CNDRAW_WHITE:CNDRAW_BLACK;
-				// Now, let's go buck wild.
+            {
+                // Originally, (tflight->frames&1)?CNDRAW_WHITE:CNDRAW_BLACK;
+                // Now, let's go buck wild.
                 renderlinecolor = (tflight->frames*7)&127;
-			}
+            }
             if( draw == 3 )
-			{
+            {
                 //renderlinecolor = (tflight->frames&1)?CNDRAW_BLACK:CNDRAW_WHITE;
                 renderlinecolor = ((tflight->frames+i))&127;
-			}
+            }
             tdDrawModel( disp, m );
             renderlinecolor = CNDRAW_WHITE;
         }
@@ -1021,14 +1030,12 @@ static void flightRender()
         //OVERCLOCK_SECTION_DISABLE();
         //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 1 );
 #endif
-#ifdef EMU
-    //uint32_t stop = 0;
-#else
+#ifndef EMU
     uint32_t stop = getCycleCount();
 #endif
 
 
-    if( flight->mode == FLIGHT_GAME )
+    if( flight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_PERFTEST )
     {
         char framesStr[32] = {0};
 
@@ -1044,14 +1051,17 @@ static void flightRender()
         snprintf(framesStr, sizeof(framesStr), "%d.%02d", elapsed/100, elapsed%100 );
         width = textWidth(&flight->radiostars, framesStr);
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, 0 );
-		
-		
-		if( flight->mode==FLIGHT_PERFTEST )
-		{
-			snprintf(framesStr, sizeof(framesStr), "%d", stop - start );
-			width = textWidth(&flight->radiostars, framesStr);
-			drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h );
-		}
+        
+        
+        if( flight->mode == FLIGHT_PERFTEST )
+        {
+            snprintf(framesStr, sizeof(framesStr), "%d", mid1 - start );
+            drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h+1 );
+            snprintf(framesStr, sizeof(framesStr), "%d", mid2 - mid1 );
+            drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*2+2 );
+            snprintf(framesStr, sizeof(framesStr), "%d", stop - mid2 );
+            drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*3+3 );
+        }
 
         snprintf(framesStr, sizeof(framesStr), "%d", tflight->speed);
         width = textWidth(&flight->radiostars, framesStr);
@@ -1064,11 +1074,11 @@ static void flightRender()
             drawText(disp, &flight->ibm, PROMPT_COLOR, "TURN AROUND", (TFT_WIDTH - width) / 2, (TFT_HEIGHT - flight->ibm.h) / 2);
         }
 
-		// Draw crosshairs.
-		int centerx = TFT_WIDTH/2;
-		int centery = TFT_HEIGHT/2;
-		speedyLine(disp, centerx-4, centery, centerx+4, centery, 0, CROSSHAIR_COLOR );
-		speedyLine(disp, centerx, centery-4, centerx, centery+4, 0, CROSSHAIR_COLOR );
+        // Draw crosshairs.
+        int centerx = TFT_WIDTH/2;
+        int centery = TFT_HEIGHT/2;
+        speedyLine(disp, centerx-4, centery, centerx+4, centery, CROSSHAIR_COLOR );
+        speedyLine(disp, centerx, centery-4, centerx, centery+4, CROSSHAIR_COLOR );
     }
     else
     {
@@ -1116,7 +1126,7 @@ static void flightGameUpdate( flight_t * tflight )
         flightEndGame();
     }
 
-    if( tflight->mode == FLIGHT_GAME )
+    if( tflight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_PERFTEST )
     {
         if( bs & 4 ) dpitch += thruster_accel;
         if( bs & 8 ) dpitch -= thruster_accel;
@@ -1209,9 +1219,9 @@ static void flightGameUpdate( flight_t * tflight )
  */
 void flightButtonCallback( buttonEvt_t* evt )
 {
-	uint8_t state = evt->state;
-	int button = evt->button;
-	int down = evt->down;
+    uint8_t state = evt->state;
+    int button = evt->button;
+    int down = evt->down;
 
     switch (flight->mode)
     {
@@ -1221,7 +1231,7 @@ void flightButtonCallback( buttonEvt_t* evt )
             if(down)
             {
                 flightLEDAnimate( FLIGHT_LED_MENU_TICK );
-				meleeMenuButton(flight->menu, evt->button);
+                meleeMenuButton(flight->menu, evt->button);
                 //menuButton(flight->menu, button);
             }
             break;
@@ -1254,7 +1264,7 @@ void flightButtonCallback( buttonEvt_t* evt )
             break;
         }
         case FLIGHT_GAME_OVER:
-		case FLIGHT_PERFTEST:
+        case FLIGHT_PERFTEST:
         case FLIGHT_GAME:
         {
             flight->buttonState = state;

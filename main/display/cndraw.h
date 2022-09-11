@@ -16,6 +16,6 @@ void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int
 void outlineTriangle( struct display* disp, int16_t v0x, int16_t v0y, int16_t v1x, int16_t v1y,
                                         int16_t v2x, int16_t v2y, paletteColor_t colorA, paletteColor_t colorB );
 
-void speedyLine(struct display* disp, int16_t x0, int16_t y0, int16_t x1, int16_t y1, bool thicc, paletteColor_t color );
+void speedyLine(struct display* disp, int16_t x0, int16_t y0, int16_t x1, int16_t y1, paletteColor_t color );
 
 #endif

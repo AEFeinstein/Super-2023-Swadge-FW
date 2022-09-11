@@ -666,7 +666,19 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             else
             {
                 // Deep sleep, wake up, and switch to pendingSwadgeMode
+
+				// We have to do this otherwise the backlight can glitch 
+				disableTFTBacklight();
+				
+				// Prevent bootloader on reboot if rebooting from originally bootloaded instance
 				REG_WRITE(RTC_CNTL_OPTION1_REG, 0);
+				
+				// Only an issue if originally coming from bootloader.  This is actually a ROM function.
+				// It prevents the USB from glitching out on the reboot after the reboot after coming
+				// out of bootloader
+				void chip_usb_set_persist_flags(uint32_t flags);
+				chip_usb_set_persist_flags(1<<31); // USBDC_PERSIST_ENA
+
                 esp_sleep_enable_timer_wakeup(1);
                 esp_deep_sleep_start();
             }
