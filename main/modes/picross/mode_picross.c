@@ -1192,7 +1192,7 @@ int8_t getHintShift(uint8_t hint)
         case 12:
         case 13:
         case 14:
-        case 15
+        case 15:
             return p->vFontPad - 2;
     }
 
