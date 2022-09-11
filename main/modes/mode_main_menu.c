@@ -24,6 +24,7 @@
 #include "mode_credits.h"
 #include "mode_platformer.h"
 #include "mode_picross.h"
+#include "mode_flight.h"
 // #include "picross_select.h"
 
 //==============================================================================
@@ -289,6 +290,7 @@ void mainMenuSetUpGamesMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, modePlatformer.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeJumper.modeName);
     addRowToMeleeMenu(mainMenu->menu, modePicross.modeName);
+	addRowToMeleeMenu(mainMenu->menu, modeFlight.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -332,6 +334,10 @@ void mainMenuGamesCb(const char* opt)
     else if(modePicross.modeName == opt)
     {
         switchToSwadgeMode(&modePicross);
+    }
+    else if(modeFlight.modeName == opt)
+    {
+        switchToSwadgeMode(&modeFlight);
     }
     else if(mainMenuBack == opt)
     {

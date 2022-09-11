@@ -7,30 +7,7 @@
 
 #include "display.h"
 #include "cndraw.h"
-
-#if 0
-/**
- * Fill a rectangular display area with a single color
- *
- * @param x1 The X pixel to start at
- * @param y1 The Y pixel to start at
- * @param x2 The X pixel to end at
- * @param y2 The Y pixel to end at
- * @param c  The color to fill
- */
-void fillDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int16_t y2, color c)
-{
-	SETUP_FOR_TURBO( disp );
-    int16_t x, y;
-    for (x = x1; x <= x2; x++)
-    {
-        for (y = y1; y <= y2; y++)
-        {
-            TURBO_SET_PIXEL_BOUNDS( disp, x, y, c);
-        }
-    }
-}
-#endif
+#include <stdio.h>
 
 /**
  * 'Shade' an area by drawing black pixels over it in a ordered-dithering way
@@ -44,9 +21,41 @@ void fillDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int1
 void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint8_t shadeLevel)
 {
 	SETUP_FOR_TURBO( disp );
-    for(int16_t dy = y1; dy < y2; dy++)
+	int16_t xMin, yMin, xMax, yMax;
+	if( x1 < x2 )
+	{
+		xMin = x1;
+		xMax = x2;
+	}
+	else
+	{
+		xMin = x2;
+		xMax = x1;
+	}
+	if( y1 < y2 )
+	{
+		yMin = y1;
+		yMax = y2;
+	}
+	else
+	{
+		yMin = y2;
+		yMax = y1;
+	}
+
+	if( xMin < 0 ) xMin = 0;
+	if( xMax >= (int16_t)dispWidth ) xMax = dispWidth - 1;
+	if( xMin >= (int16_t)dispWidth ) return;
+	if( xMax < 0 ) return;
+
+	if( yMin < 0 ) yMin = 0;
+	if( yMax >= (int16_t)dispHeight ) yMax = dispHeight - 1;
+	if( yMin >= (int16_t)dispHeight ) return;
+	if( yMax < 0 ) return;
+
+    for(int16_t dy = yMin; dy <= yMax; dy++)
     {
-        for(int16_t dx = x1; dx < x2; dx++)
+        for(int16_t dx = xMin; dx < xMax; dx++)
         {
             switch(shadeLevel)
             {
@@ -145,11 +154,11 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
     {
         return;
     }
-    if( cx >= dispWidth && x1 >= dispWidth )
+    if( cx >= (int)dispWidth && x1 >= (int)dispWidth )
     {
         return;
     }
-    if( cy >= dispHeight && y1 >= dispHeight )
+    if( cy >= (int)dispHeight && y1 >= (int)dispHeight )
     {
         return;
     }
@@ -166,10 +175,10 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
             dxA = 0 - cx;
             cx = 0;
         }
-        if( cx > dispWidth - 1 )
+        if( cx > (int)dispWidth - 1 )
         {
-            dxA = (cx - (dispWidth - 1));
-            cx = dispWidth - 1;
+            dxA = (cx - ((int)dispWidth - 1));
+            cx = (int)dispWidth - 1;
         }
         if( dxA || xerrdiv <= yerrdiv )
         {
@@ -182,7 +191,7 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
                 {
                     return;
                 }
-                if( cy > dispHeight - 1 && y1 > dispHeight - 1 )
+                if( cy > (int)dispHeight - 1 && y1 > (int)dispHeight - 1 )
                 {
                     return;
                 }
@@ -198,10 +207,10 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
             dyA = 0 - cy;
             cy = 0;
         }
-        if( cy > dispHeight - 1 )
+        if( cy > (int)dispHeight - 1 )
         {
-            dyA = (cy - (dispHeight - 1));
-            cy = dispHeight - 1;
+            dyA = (cy - ((int)dispHeight - 1));
+            cy = (int)dispHeight - 1;
         }
         if( dyA || xerrdiv > yerrdiv )
         {
@@ -214,7 +223,7 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
                 {
                     return;
                 }
-                if( cx > dispWidth - 1 && x1 > dispWidth - 1 )
+                if( cx > (int)dispWidth - 1 && x1 > (int)dispWidth - 1 )
                 {
                     return;
                 }
@@ -232,7 +241,7 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
     //Also this checks for vertical/horizontal violations.
     if( dx > 0 )
     {
-        if( cx > dispWidth - 1 )
+        if( cx > (int)dispWidth - 1 )
         {
             return;
         }
@@ -255,7 +264,7 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
 
     if( dy > 0 )
     {
-        if( cy > dispHeight - 1 )
+        if( cy > (int)dispHeight - 1 )
         {
             return;
         }
@@ -290,9 +299,9 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
         {
             x1 = 0;
         }
-        if( x1 > dispWidth - 1)
+        if( x1 > (int)dispWidth - 1)
         {
-            x1 = dispWidth - 1;
+            x1 = (int)dispWidth - 1;
         }
         x1 += sdx; //Tricky - make sure the "next" mark we hit doesn't overflow.
 
@@ -300,9 +309,9 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
         {
             y1 = 0;
         }
-        if( y1 > dispHeight - 1 )
+        if( y1 > (int)dispHeight - 1 )
         {
-            y1 = dispHeight - 1;
+            y1 = (int)dispHeight - 1;
         }
 
         for( ; cy != y1; cy += sdy )
@@ -333,9 +342,9 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
         {
             y1 = 0;
         }
-        if( y1 > dispHeight - 1 )
+        if( y1 > (int)dispHeight - 1 )
         {
-            y1 = dispHeight - 1;
+            y1 = (int)dispHeight - 1;
         }
         y1 += sdy;        //Tricky: Make sure the NEXT mark we hit doens't overflow.
 
@@ -343,9 +352,9 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
         {
             x1 = 0;
         }
-        if( x1 > dispWidth - 1)
+        if( x1 > (int)dispWidth - 1)
         {
-            x1 = dispWidth - 1;
+            x1 = (int)dispWidth - 1;
         }
 
         for( ; cx != x1; cx += sdx )
@@ -384,6 +393,7 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
                                         int16_t v2x, int16_t v2y, paletteColor_t colorA, paletteColor_t colorB )
 {
 	SETUP_FOR_TURBO( disp );
+	
     int16_t i16tmp;
 
     //Sort triangle such that v0 is the top-most vertex.
@@ -511,27 +521,33 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             int endx = x0B;
             int suppress = 1;
 
-            if( y >= 0 && y <= (dispHeight - 1) )
+            if( y >= 0 && y < (int)dispHeight )
             {
                 suppress = 0;
                 if( x < 0 )
                 {
                     x = 0;
                 }
-                if( endx > (dispWidth) )
+                if( endx > (int)(dispWidth) )
                 {
-                    endx = (dispWidth);
+                    endx = (int)(dispWidth);
                 }
-                if( x0A >= 0  && x0A <= (dispWidth - 1) )
+				
+				// Draw left line
+                if( x0A >= 0  && x0A < (int)dispWidth )
                 {
                     TURBO_SET_PIXEL( disp, x0A, y, colorB );
                     x++;
                 }
+				
+				// Draw body
                 for( ; x < endx; x++ )
                 {
                     TURBO_SET_PIXEL( disp, x, y, colorA );
                 }
-                if( x0B <= (dispWidth - 1) && x0B >= 0 )
+				
+				// Draw right line
+                if( x0B < (int)dispWidth && x0B >= 0 )
                 {
                     TURBO_SET_PIXEL( disp, x0B, y, colorB );
                 }
@@ -544,7 +560,7 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             {
                 x0A += sdxA;
                 //if( x0A < 0 || x0A > (dispWidth-1) ) break;
-                if( x0A >= 0 && x0A <= (dispWidth - 1) && !suppress )
+                if( x0A >= 0 && x0A < (int)dispWidth && !suppress )
                 {
                     TURBO_SET_PIXEL( disp, x0A, y, colorB );
                 }
@@ -554,7 +570,7 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             {
                 x0B += sdxB;
                 //if( x0B < 0 || x0B > (dispWidth-1) ) break;
-                if( x0B >= 0 && x0B <= (dispWidth - 1) && !suppress )
+                if( x0B >= 0 && x0B < (int)dispWidth && !suppress )
                 {
                     TURBO_SET_PIXEL( disp, x0B, y, colorB );
                 }
@@ -610,9 +626,9 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             errB = 1 << FIXEDPOINTD2;
         }
 
-        if( yend > (dispHeight - 1) )
+        if( yend > (int)(dispHeight - 1) )
         {
-            yend = dispHeight - 1;
+            yend = (int)dispHeight - 1;
         }
 
 
@@ -631,7 +647,7 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             }
             if( x0A == x0B )
             {
-                if( x0A >= 0 && x0A <= (dispWidth - 1) && y >= 0 && y <= (dispHeight - 1) )
+                if( x0A >= 0 && x0A < (int)dispWidth && y >= 0 && y < (int)dispHeight )
                 {
                     TURBO_SET_PIXEL( disp, x0A, y, colorB );
                 }
@@ -645,27 +661,33 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             int endx = x0B;
             int suppress = 1;
 
-            if( y >= 0 && y <= (dispHeight - 1) )
+            if( y >= 0 && y <= (int)(dispHeight - 1) )
             {
                 suppress = 0;
                 if( x < 0 )
                 {
                     x = 0;
                 }
-                if( endx >= (dispWidth) )
+                if( endx >= (int)(dispWidth) )
                 {
                     endx = (dispWidth);
                 }
-                if( x0A >= 0  && x0A <= (dispWidth - 1) )
+				
+				// Draw left line
+                if( x0A >= 0  && x0A < (int)(dispWidth) )
                 {
                     TURBO_SET_PIXEL( disp, x0A, y, colorB );
                     x++;
                 }
+				
+				// Draw body
                 for( ; x < endx; x++ )
                 {
                     TURBO_SET_PIXEL( disp, x, y, colorA );
                 }
-                if( x0B <= (dispWidth - 1) && x0B >= 0 )
+				
+				// Draw right line
+                if( x0B < (int)(dispWidth) && x0B >= 0 )
                 {
                     TURBO_SET_PIXEL( disp, x0B, y, colorB );
                 }
@@ -678,7 +700,7 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             {
                 x0A += sdxA;
                 //if( x0A < 0 || x0A > (dispWidth-1) ) break;
-                if( x0A >= 0 && x0A <= (dispWidth - 1) && !suppress )
+                if( x0A >= 0 && x0A < (int)(dispWidth) && !suppress )
                 {
                     TURBO_SET_PIXEL( disp, x0A, y, colorB );
                 }
@@ -691,7 +713,7 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             while( errB >= (1 << FIXEDPOINT) )
             {
                 x0B += sdxB;
-                if( x0B >= 0 && x0B <= (dispWidth - 1) && !suppress )
+                if( x0B >= 0 && x0B < (int)(dispWidth) && !suppress )
                 {
                     TURBO_SET_PIXEL( disp, x0B, y, colorB );
                 }

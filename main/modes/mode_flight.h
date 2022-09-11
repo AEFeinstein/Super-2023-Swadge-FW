@@ -8,7 +8,7 @@
 #ifndef MODES_MODE_FLIGHT_H_
 #define MODES_MODE_FLIGHT_H_
 
-extern swadgeMode flightMode;
+extern swadgeMode modeFlight;
 
 #define NUM_FLIGHTSIM_TOP_SCORES 4
 #define FLIGHT_HIGH_SCORE_NAME_LEN 4

@@ -16,29 +16,40 @@
  *==========================================================================*/
 
 #include "cndraw.h"
+#include "esp_timer.h"
 #include "swadgeMode.h"
 #include "swadge_esp32.h"
 #include "led_util.h" // leds
 #include "meleeMenu.h"
 #include "mode_main_menu.h"
+#include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
 #include <malloc.h>
+#include "swadge_util.h"
 #include "mode_flight.h"
 #include "flight/3denv.h"
 
 // TODO     linkedInfo_t* invYmnu;
 // XXX TODO HOW TO DO SAVE DATA
 flightSimSaveData_t savedata;
+
+flightSimSaveData_t * getFlightSaveData();
+void setFlightSaveData( flightSimSaveData_t * sd );
+void textEntryDraw();
+void textEntryEnd();
+int textEntryInput( uint8_t down, uint8_t button );
+
 flightSimSaveData_t * getFlightSaveData() { return &savedata; }
+void setFlightSaveData( flightSimSaveData_t * sd ) { }
+void textEntryDraw() { }
+void textEntryEnd() { }
+int textEntryInput( uint8_t down, uint8_t button ){ return false;} 
 
 
-
-
-
-#define FLIGHT_HIGH_SCORE_NAME_LEN 4
+#define FLIGHT_HIGH_SCORE_NAME_LEN 14
 
 /*============================================================================
  * Defines, Structs, Enums
@@ -49,6 +60,10 @@ flightSimSaveData_t * getFlightSaveData() { return &savedata; }
 #define MAX_DONUTS 14
 #define MAX_BEANS 69
 
+#define OLED_WIDTH 280
+#define OLED_HEIGHT 240
+#define FBW 280
+#define FBH 240
 
 typedef enum
 {
@@ -99,7 +114,7 @@ typedef struct
     bool oob;
 
     int enviromodels;
-    tdModel ** environment;
+    const tdModel ** environment;
 
     meleeMenu_t * menu;
 	font_t ibm;
@@ -119,6 +134,7 @@ typedef struct
 
 	int invertYRow;
 
+	char highScoreNameBuffer[FLIGHT_HIGH_SCORE_NAME_LEN];
     uint8_t beangotmask[MAXRINGS];
 } flight_t;
 
@@ -129,18 +145,18 @@ int renderlinecolor = CNDRAW_WHITE;
  * Prototypes
  *==========================================================================*/
 
+static void flightRender();
 static void flightEnterMode(display_t * disp);
 static void flightExitMode(void);
 static void flightButtonCallback( buttonEvt_t* evt );
 static void flightUpdate(void* arg __attribute__((unused)));
 static void flightMenuCb(const char* menuItem);
 static void flightStartGame(flightModeScreen mode);
-static void flightRender(void);
 static void flightGameUpdate( flight_t * tflight );
 static void flightUpdateLEDs(flight_t * tflight);
 static void flightLEDAnimate( flLEDAnimation anim );
 int tdModelVisibilitycheck( const tdModel * m );
-void tdDrawModel( const tdModel * m );
+void tdDrawModel( display_t * disp, const tdModel * m );
 static int flightTimeHighScorePlace( int wintime, bool is100percent );
 static void flightTimeHighScoreInsert( int insertplace, bool is100percent, char * name, int timeCentiseconds );
 
@@ -157,9 +173,9 @@ int abs(int j);
  * Variables
  *==========================================================================*/
 
-swadgeMode flightMode =
+swadgeMode modeFlight =
 {
-    .modeName = "flight",
+    .modeName = "Bean Bazzle",
     .fnEnterMode = flightEnterMode,
     .fnExitMode = flightExitMode,
     .fnButtonCallback = flightButtonCallback,
@@ -170,7 +186,6 @@ swadgeMode flightMode =
     .fnAccelerometerCallback = NULL,
     .fnAudioCallback = NULL,
 };
-
 flight_t* flight;
 
 static const char fl_title[]  = "Flightsim";
@@ -212,14 +227,14 @@ static void flightEnterMode(display_t * disp)
     flight->mode = FLIGHT_MENU;
 	flight->disp = disp;
 
-    uint16_t * data = model3d;//(uint16_t*)getAsset( "3denv.obj", &retlen );
+    const uint16_t * data = model3d;//(uint16_t*)getAsset( "3denv.obj", &retlen );
     data+=2; //header
     flight->enviromodels = *(data++);
-    flight->environment = malloc( sizeof(tdModel *) * flight->enviromodels );
+    flight->environment = malloc( sizeof(const tdModel *) * flight->enviromodels );
     int i;
     for( i = 0; i < flight->enviromodels; i++ )
     {
-        tdModel * m = flight->environment[i] = (tdModel*)data;
+        const tdModel * m = flight->environment[i] = (const tdModel*)data;
         data += 8 + m->nrvertnums + m->nrfaces * m->indices_per_face;
     }
 
@@ -376,7 +391,7 @@ static void flightStartGame( flightModeScreen mode )
 
     flight->ondonut = 0; //Set to 14 to b-line it to the end for testing.
     flight->beans = 0; //Set to MAX_BEANS for 100% instant.
-    flight->timeOfStart = system_get_time();//-1000000*190; (Do this to force extra coursetime)
+    flight->timeOfStart = esp_timer_get_time();//-1000000*190; (Do this to force extra coursetime)
     flight->timeGot100Percent = 0;
     flight->wintime = 0;
     flight->speed = 0;
@@ -403,6 +418,7 @@ static void flightStartGame( flightModeScreen mode )
  */
 static void flightUpdate(void* arg __attribute__((unused)))
 {
+	display_t * disp = flight->disp;
     static const char * EnglishNumberSuffix[] = { "st", "nd", "rd", "th" };
     switch(flight->mode)
     {
@@ -428,20 +444,20 @@ static void flightUpdate(void* arg __attribute__((unused)))
         }
         case FLIGHT_SHOW_HIGH_SCORES:
         {
-            clearDisplay();
+			fillDisplayArea( disp, 0, 0, disp->w, disp->h, CNDRAW_BLACK );
 
             char buffer[32];
             flightSimSaveData_t * sd = getFlightSaveData();
             int line;
 
-            plotText( 20, 1, "ANY %", IBM_VGA_8, CNDRAW_WHITE );
-            plotText( 84, 1, "100 %", IBM_VGA_8, CNDRAW_WHITE );
+            drawText( flight->disp, &flight->ibm, CNDRAW_WHITE, "ANY %", 20, 1 );
+            drawText( flight->disp, &flight->ibm, CNDRAW_WHITE, "100 %", 84, 1 );
 
             for( line = 0; line < NUM_FLIGHTSIM_TOP_SCORES; line++ )
             {
                 int anyp = 0;
-                ets_snprintf( buffer, sizeof(buffer), "%d%s", line+1, EnglishNumberSuffix[line] );
-                plotText( 3, (line+1)*10+10, buffer, TOM_THUMB, CNDRAW_WHITE );
+                snprintf( buffer, sizeof(buffer), "%d%s", line+1, EnglishNumberSuffix[line] );
+                drawText( flight->disp, &flight->tom_thumb, CNDRAW_WHITE, buffer, 3, (line+1)*10+10 );
 
                 for( anyp = 0; anyp < 2; anyp++ )
                 {
@@ -450,8 +466,8 @@ static void flightUpdate(void* arg __attribute__((unused)))
                     char namebuff[FLIGHT_HIGH_SCORE_NAME_LEN+1];    //Force pad of null.
                     memcpy( namebuff, name, FLIGHT_HIGH_SCORE_NAME_LEN );
                     namebuff[FLIGHT_HIGH_SCORE_NAME_LEN] = 0;
-                    ets_snprintf( buffer, sizeof(buffer), "%4s %3d.%02d", namebuff, cs/100,cs%100 );
-                    plotText( anyp?81:17, (line+1)*10+10, buffer, TOM_THUMB, CNDRAW_WHITE );
+                    snprintf( buffer, sizeof(buffer), "%4s %3d.%02d", namebuff, cs/100,cs%100 );
+                    drawText( flight->disp, &flight->tom_thumb, CNDRAW_WHITE, buffer, anyp?81:17, (line+1)*10+10 );
                 }
             }
             break;
@@ -462,11 +478,13 @@ static void flightUpdate(void* arg __attribute__((unused)))
             textEntryDraw();
 
             char placeStr[32] = {0};
-            ets_snprintf(placeStr, sizeof(placeStr), "%d%s %s", place + 1, EnglishNumberSuffix[place],
+            snprintf(placeStr, sizeof(placeStr), "%d%s %s", place + 1, EnglishNumberSuffix[place],
                 (flight->beans == MAX_BEANS)?"100%":"ANY%" );
-            plotText(65,2, placeStr, IBM_VGA_8, CNDRAW_WHITE);
+            drawText( flight->disp, &flight->ibm, CNDRAW_WHITE, placeStr, 65,2);
             break;
         }
+		case FLIGHT_PERFTEST:
+		case FLIGHT_TRIANGLES:
     }
 
     flightUpdateLEDs( flight );
@@ -488,9 +506,9 @@ void tdRotateEA( int16_t * f, int16_t x, int16_t y, int16_t z );
 void tdScale( int16_t * f, int16_t x, int16_t y, int16_t z );
 void td4Transform( int16_t * pin, int16_t * f, int16_t * pout );
 void tdTranslate( int16_t * f, int16_t x, int16_t y, int16_t z );
-void Draw3DSegment( const int16_t * c1, const int16_t * c2 );
+void Draw3DSegment( display_t * disp, const int16_t * c1, const int16_t * c2 );
 uint16_t tdSQRT( uint32_t inval );
-int16_t tdDist( int16_t * a, int16_t * b );
+int16_t tdDist( const int16_t * a, const int16_t * b );
 
 
 //From https://github.com/cnlohr/channel3/blob/master/user/3d.c
@@ -539,7 +557,7 @@ uint16_t tdSQRT( uint32_t inval )
     return res;
 }
 
-int16_t tdDist( int16_t * a, int16_t * b )
+int16_t tdDist( const int16_t * a, const int16_t * b )
 {
     int32_t dx = a[0] - b[0];
     int32_t dy = a[1] - b[1];
@@ -555,8 +573,6 @@ void tdIdentity( int16_t * matrix )
     matrix[12] = 0; matrix[13] = 0; matrix[14] = 0; matrix[15] = 256;
 }
 
-#define FBW 128
-#define FBH 64
 
 #define m00 0
 #define m01 1
@@ -610,7 +626,7 @@ void SetupMatrix( void )
     tdIdentity( ProjectionMatrix );
     tdIdentity( ModelviewMatrix );
 
-    Perspective( 600, 128 /* 0.5 */, 50, 8192, ProjectionMatrix );
+    Perspective( 1200, 128 /* 0.5 */, 50, 8192, ProjectionMatrix );
 }
 
 void tdMultiply( int16_t * fin1, int16_t * fin2, int16_t * fout )
@@ -637,7 +653,7 @@ void tdMultiply( int16_t * fin1, int16_t * fin2, int16_t * fout )
     fotmp[m32] = ((int32_t)fin1[m30] * (int32_t)fin2[m02] + (int32_t)fin1[m31] * (int32_t)fin2[m12] + (int32_t)fin1[m32] * (int32_t)fin2[m22] + (int32_t)fin1[m33] * (int32_t)fin2[m32])>>8;
     fotmp[m33] = ((int32_t)fin1[m30] * (int32_t)fin2[m03] + (int32_t)fin1[m31] * (int32_t)fin2[m13] + (int32_t)fin1[m32] * (int32_t)fin2[m23] + (int32_t)fin1[m33] * (int32_t)fin2[m33])>>8;
 
-    ets_memcpy( fout, fotmp, sizeof( fotmp ) );
+    memcpy( fout, fotmp, sizeof( fotmp ) );
 }
 
 
@@ -734,14 +750,14 @@ int LocalToScreenspace( const int16_t * coords_3v, int16_t * o1, int16_t * o2 )
 }
 
 
-void Draw3DSegment( const int16_t * c1, const int16_t * c2 )
+void Draw3DSegment( display_t * disp, const int16_t * c1, const int16_t * c2 )
 {
     int16_t sx0, sy0, sx1, sy1;
     if( LocalToScreenspace( c1, &sx0, &sy0 ) ||
         LocalToScreenspace( c2, &sx1, &sy1 ) ) return;
 
     //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 0 );
-    speedyCNDRAW_WHITELine( sx0, sy0, sx1, sy1, false );
+    speedyLine( disp, sx0, sy0, sx1, sy1, 0, CNDRAW_WHITE );
     //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 1 );
 
     //plotLine( sx0, sy0, sx1, sy1, CNDRAW_WHITE );
@@ -776,13 +792,13 @@ int tdModelVisibilitycheck( const tdModel * m )
     }
 }
 
-void tdDrawModel( const tdModel * m )
+void tdDrawModel( display_t * disp, const tdModel * m )
 {
     int i;
 
     int nrv = m->nrvertnums;
     int nri = m->nrfaces*m->indices_per_face;
-    int16_t * verticesmark = (int16_t*)&m->indices_and_vertices[nri];
+    const int16_t * verticesmark = (const int16_t*)&m->indices_and_vertices[nri];
 
     if( tdModelVisibilitycheck( m ) < 0 )
     {
@@ -815,7 +831,7 @@ void tdDrawModel( const tdModel * m )
 
             if( cv1[2] != 2 && cv2[2] != 2 )
             {
-                speedyLine( cv1[0], cv1[1], cv2[0], cv2[1], false, renderlinecolor );
+                speedyLine( disp, cv1[0], cv1[1], cv2[0], cv2[1], 0, renderlinecolor );
             }
         }
     }
@@ -840,7 +856,7 @@ void tdDrawModel( const tdModel * m )
                 int Vx = cv2[0] - cv1[0];
                 int Vy = cv2[1] - cv1[1];
                 if( Ux*Vy-Uy*Vx >= 0 )
-                    outlineTriangle( cv1[0], cv1[1], cv2[0], cv2[1], cv3[0], cv3[1], CNDRAW_BLACK, CNDRAW_WHITE );
+                    outlineTriangle( disp, cv1[0], cv1[1], cv2[0], cv2[1], cv3[0], cv3[1], CNDRAW_BLACK, CNDRAW_WHITE );
             }
         }
     }
@@ -849,7 +865,7 @@ void tdDrawModel( const tdModel * m )
 
 struct ModelRangePair
 {
-    tdModel * model;
+    const tdModel * model;
     int       mrange;
 };
 
@@ -857,8 +873,8 @@ struct ModelRangePair
 int mdlctcmp( const void * va, const void * vb );
 int mdlctcmp( const void * va, const void * vb )
 {
-    struct ModelRangePair * a = (struct ModelRangePair *)va;
-    struct ModelRangePair * b = (struct ModelRangePair *)vb;
+    const struct ModelRangePair * a = (const struct ModelRangePair *)va;
+    const struct ModelRangePair * b = (const struct ModelRangePair *)vb;
     return b->mrange - a->mrange;
 }
 
@@ -867,18 +883,21 @@ int mdlctcmp( const void * va, const void * vb )
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static void flightRender(void)
+static void flightRender()
 {
+	flightUpdate( 0 );
+
     flight_t * tflight = flight;
+	display_t * disp = tflight->disp;
     tflight->tframes++;
-    if( tflight->mode != FLIGHT_GAME && tflight->mode != FLIGHT_GAME_OVER ) return false;
+    if( tflight->mode != FLIGHT_GAME && tflight->mode != FLIGHT_GAME_OVER ) return;
 
     // First clear the OLED
 
     SetupMatrix();
 
 #ifdef EMU
-    uint32_t start = 0;
+    //uint32_t start = 0; 
 #else
     // uint32_t start = xthal_get_ccount();
 #endif
@@ -889,7 +908,7 @@ static void flightRender(void)
     OVERCLOCK_SECTION_ENABLE();
 #endif
 
-    clearDisplay();
+    fillDisplayArea( disp, 0, 0, disp->w, disp->h, CNDRAW_BLACK );
     tdRotateEA( ProjectionMatrix, tflight->hpr[1]/16, tflight->hpr[0]/16, 0 );
     tdTranslate( ModelviewMatrix, -tflight->planeloc[0], -tflight->planeloc[1], -tflight->planeloc[2] );
 
@@ -902,7 +921,7 @@ static void flightRender(void)
     int i;
     for( i = 0; i < tflight->enviromodels;i++ )
     {
-        tdModel * m = tflight->environment[i];
+        const tdModel * m = tflight->environment[i];
 
         int label = m->label;
         int draw = 1;
@@ -942,7 +961,7 @@ static void flightRender(void)
                 {
                     flightLEDAnimate( FLIGHT_LED_ENDING );
                     tflight->frames = 0;
-                    tflight->wintime = (system_get_time() - tflight->timeOfStart)/10000;
+                    tflight->wintime = (esp_timer_get_time() - tflight->timeOfStart)/10000;
                     tflight->mode = FLIGHT_GAME_OVER;
                 }
             }
@@ -962,7 +981,7 @@ static void flightRender(void)
 
     for( i = 0; i < mdlct; i++ )
     {
-        tdModel * m = mrp[i].model;
+        const tdModel * m = mrp[i].model;
         int label = m->label;
         int draw = 1;
         if( label )
@@ -992,14 +1011,14 @@ static void flightRender(void)
         //draw = 2 = flashing
         //draw = 3 = other flashing
         if( draw == 1 )
-            tdDrawModel( m );
+            tdDrawModel( disp, m );
         else if( draw == 2 || draw == 3 )
         {
             if( draw == 2 )
                 renderlinecolor = (tflight->frames&1)?CNDRAW_WHITE:CNDRAW_BLACK;
             if( draw == 3 )
                 renderlinecolor = (tflight->frames&1)?CNDRAW_BLACK:CNDRAW_WHITE;
-            tdDrawModel( m );
+            tdDrawModel( disp, m );
             renderlinecolor = CNDRAW_WHITE;
         }
     }
@@ -1010,7 +1029,7 @@ static void flightRender(void)
         GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 1 );
 #endif
 #ifdef EMU
-    uint32_t stop = 0;
+    //uint32_t stop = 0;
 #else
     // uint32_t stop = xthal_get_ccount();
 #endif
@@ -1020,52 +1039,52 @@ static void flightRender(void)
     {
         char framesStr[32] = {0};
         //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
-        int elapsed = (system_get_time()-tflight->timeOfStart)/10000;
-        ets_snprintf(framesStr, sizeof(framesStr), "%d/%d, %d", tflight->ondonut, MAX_DONUTS, tflight->beans );
+        int elapsed = (esp_timer_get_time()-tflight->timeOfStart)/10000;
+        snprintf(framesStr, sizeof(framesStr), "%d/%d, %d", tflight->ondonut, MAX_DONUTS, tflight->beans );
         int16_t width = textWidth(&flight->tom_thumb, framesStr);
-        iplotRectB(0, 0, width, &flight->tom_thumb.h + 1);
-        drawText(flight->disp, &flight->tom_thumb, CNDRAW_WHITE, frameStr, 0, 0 );
+        iplotRectB(disp, 0, 0, width, flight->tom_thumb.h + 1);
+        drawText(disp, &flight->tom_thumb, CNDRAW_WHITE, framesStr, 0, 0 );
 
-        ets_snprintf(framesStr, sizeof(framesStr), "%d.%02d", elapsed/100, elapsed%100 );
+        snprintf(framesStr, sizeof(framesStr), "%d.%02d", elapsed/100, elapsed%100 );
         width = textWidth(&flight->tom_thumb, framesStr);
-        iplotRectB(OLED_WIDTH - width, 0, OLED_WIDTH, FONT_HEIGHT_TOMTHUMB + 1);
-        drawText(flight->disp, &flight->tom_thumb, CNDRAW_WHITE, frameStr, OLED_WIDTH - width + 1, 0 );
+        iplotRectB(disp, OLED_WIDTH - width, 0, OLED_WIDTH, flight->tom_thumb.h + 1);
+        drawText(disp, &flight->tom_thumb, CNDRAW_WHITE, framesStr, OLED_WIDTH - width + 1, 0 );
 
-        ets_snprintf(framesStr, sizeof(framesStr), "%d", tflight->speed);
+        snprintf(framesStr, sizeof(framesStr), "%d", tflight->speed);
         width = textWidth(&flight->tom_thumb, framesStr);
-        iplotRectB(OLED_WIDTH - width, OLED_HEIGHT - FONT_HEIGHT_TOMTHUMB - 1, OLED_WIDTH, OLED_HEIGHT);
-        drawText(flight->disp, &flight->tom_thumb, CNDRAW_WHITE, frameStr, OLED_WIDTH - width + 1, OLED_HEIGHT - FONT_HEIGHT_TOMTHUMB );
+        iplotRectB(disp, OLED_WIDTH - width, OLED_HEIGHT - flight->tom_thumb.h - 1, OLED_WIDTH, OLED_HEIGHT);
+        drawText(disp, &flight->tom_thumb, CNDRAW_WHITE, framesStr, OLED_WIDTH - width + 1, OLED_HEIGHT - flight->tom_thumb.h );
 
         if(flight->oob)
         {
             width = textWidth(&flight->ibm, "TURN AROUND");
-            plotText(flight->disp, &flight->ibm, CNDRAW_WHITE, (OLED_WIDTH - width) / 2, (OLED_HEIGHT - FONT_HEIGHT_IBMVGA8) / 2, "TURN AROUND");
+            drawText(disp, &flight->ibm, CNDRAW_WHITE, "TURN AROUND", (OLED_WIDTH - width) / 2, (OLED_HEIGHT - flight->ibm.h) / 2);
         }
     }
     else
     {
         char framesStr[32] = {0};
         //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
-        ets_snprintf(framesStr, sizeof(framesStr), "YOU  WIN:" );
-        plotText(20, 0, framesStr, RADIOSTARS, CNDRAW_WHITE);
-        ets_snprintf(framesStr, sizeof(framesStr), "TIME:%d.%02d", tflight->wintime/100,tflight->wintime%100 );
-        plotText((tflight->wintime>10000)?14:20, 18, framesStr, RADIOSTARS, CNDRAW_WHITE);
-        ets_snprintf(framesStr, sizeof(framesStr), "BEANS:%2d",tflight->beans );
-        plotText(20, 36, framesStr, RADIOSTARS, CNDRAW_WHITE);
+        snprintf(framesStr, sizeof(framesStr), "YOU  WIN:" );
+        drawText(disp, &flight->radiostars, CNDRAW_WHITE, framesStr, 20, 0);
+        snprintf(framesStr, sizeof(framesStr), "TIME:%d.%02d", tflight->wintime/100,tflight->wintime%100 );
+        drawText(disp, &flight->radiostars, CNDRAW_WHITE, framesStr, (tflight->wintime>10000)?14:20, 18);
+        snprintf(framesStr, sizeof(framesStr), "BEANS:%2d",tflight->beans );
+        drawText(disp, &flight->radiostars, CNDRAW_WHITE, framesStr, 20, 36);
     }
 
     if( tflight->beans >= MAX_BEANS )
     {
         if( tflight->timeGot100Percent == 0 )
-            tflight->timeGot100Percent = (system_get_time() - tflight->timeOfStart);
+            tflight->timeGot100Percent = (esp_timer_get_time() - tflight->timeOfStart);
 
-        int crazy = ((system_get_time() - tflight->timeOfStart)-tflight->timeGot100Percent) < 3000000;
-        plotText(10, 52, "100% 100% 100%", IBM_VGA_8, crazy?( tflight->tframes & 1)?CNDRAW_WHITE:CNDRAW_BLACK:CNDRAW_WHITE );
+        int crazy = ((esp_timer_get_time() - tflight->timeOfStart)-tflight->timeGot100Percent) < 3000000;
+        drawText( disp, &flight->ibm, crazy?( tflight->tframes & 1)?CNDRAW_WHITE:CNDRAW_BLACK:CNDRAW_WHITE, "100% 100% 100%", 10, 52 );
     }
 
     //If perf test, force full frame refresh
     //Otherwise, don't force full-screen refresh
-    return false;
+    return;
 }
 
 static void flightGameUpdate( flight_t * tflight )
@@ -1090,10 +1109,10 @@ static void flightGameUpdate( flight_t * tflight )
 
     if( tflight->mode == FLIGHT_GAME )
     {
-        if( bs & 1 ) dpitch += thruster_accel;
-        if( bs & 4 ) dpitch -= thruster_accel;
-        if( bs & 2 ) dyaw += thruster_accel;
-        if( bs & 8 ) dyaw -= thruster_accel;
+        if( bs & 4 ) dpitch += thruster_accel;
+        if( bs & 8 ) dpitch -= thruster_accel;
+        if( bs & 1 ) dyaw += thruster_accel;
+        if( bs & 2 ) dyaw -= thruster_accel;
 
         if( tflight->inverty ) dyaw *= -1;
 
@@ -1184,6 +1203,7 @@ void flightButtonCallback( buttonEvt_t* evt )
 	uint8_t state = evt->state;
 	int button = evt->button;
 	int down = evt->down;
+
     switch (flight->mode)
     {
         default:
@@ -1192,7 +1212,8 @@ void flightButtonCallback( buttonEvt_t* evt )
             if(down)
             {
                 flightLEDAnimate( FLIGHT_LED_MENU_TICK );
-                menuButton(flight->menu, button);
+				meleeMenuButton(flight->menu, evt->button);
+                //menuButton(flight->menu, button);
             }
             break;
         }
@@ -1229,6 +1250,9 @@ void flightButtonCallback( buttonEvt_t* evt )
             flight->buttonState = state;
             break;
         }
+		case FLIGHT_TRIANGLES:
+		case FLIGHT_PERFTEST:
+			break;
     }
 }
 
