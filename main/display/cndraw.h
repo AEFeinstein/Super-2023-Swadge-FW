@@ -11,6 +11,10 @@
 #include <stdint.h>
 #include "display.h"
 
+#ifdef EMU
+extern uint32_t cndrawPerfcounter;
+#endif
+
 void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint8_t shadeLevel, paletteColor_t color);
 
 void outlineTriangle( struct display* disp, int16_t v0x, int16_t v0y, int16_t v1x, int16_t v1y,

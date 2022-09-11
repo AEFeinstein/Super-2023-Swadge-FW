@@ -888,6 +888,26 @@ static void flightRender()
 
 #ifndef EMU
     uint32_t start = getCycleCount();
+    static uint32_t fps;
+    static uint32_t nowframes;
+    static uint32_t lasttimeframe;
+    if( nowframes == 0 )
+    {
+        lasttimeframe = esp_timer_get_time();
+        nowframes = 1;
+    }
+    if( ((uint32_t)esp_timer_get_time()) - lasttimeframe > 1000000 )
+    {
+        fps = nowframes;
+        nowframes = 1;
+        lasttimeframe+=1000000;
+    }
+    nowframes++;
+    if( flight->mode == FLIGHT_PERFTEST )
+        portDISABLE_INTERRUPTS();
+#else
+    cndrawPerfcounter = 0;
+    uint32_t start = cndrawPerfcounter;
 #endif
 
 #ifndef EMU
@@ -965,6 +985,8 @@ static void flightRender()
 
 #ifndef EMU
     uint32_t mid1 = getCycleCount();
+#else
+    uint32_t mid1 = cndrawPerfcounter;
 #endif
 
     //Painter's algorithm
@@ -972,6 +994,8 @@ static void flightRender()
 
 #ifndef EMU
     uint32_t mid2 = getCycleCount();
+#else
+    uint32_t mid2 = cndrawPerfcounter;
 #endif
 
     for( i = 0; i < mdlct; i++ )
@@ -1032,6 +1056,10 @@ static void flightRender()
 #endif
 #ifndef EMU
     uint32_t stop = getCycleCount();
+    if( flight->mode == FLIGHT_PERFTEST )
+        portENABLE_INTERRUPTS();
+#else
+    uint32_t stop = cndrawPerfcounter;
 #endif
 
 
@@ -1052,7 +1080,6 @@ static void flightRender()
         width = textWidth(&flight->radiostars, framesStr);
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, 0 );
         
-        #ifndef EMU
         if( flight->mode == FLIGHT_PERFTEST )
         {
             snprintf(framesStr, sizeof(framesStr), "%d", mid1 - start );
@@ -1061,8 +1088,9 @@ static void flightRender()
             drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*2+2 );
             snprintf(framesStr, sizeof(framesStr), "%d", stop - mid2 );
             drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*3+3 );
+            snprintf(framesStr, sizeof(framesStr), "%d", fps );
+            drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*4+4 );
         }
-		#endif
 
         snprintf(framesStr, sizeof(framesStr), "%d", tflight->speed);
         width = textWidth(&flight->radiostars, framesStr);

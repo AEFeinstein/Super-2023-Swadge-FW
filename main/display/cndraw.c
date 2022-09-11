@@ -9,6 +9,13 @@
 #include "cndraw.h"
 #include <stdio.h>
 
+#ifdef EMU
+uint32_t cndrawPerfcounter;
+#define PERFHIT {cndrawPerfcounter++;}
+#else
+#define PERFHIT
+#endif
+
 /**
  * 'Shade' an area by drawing black pixels over it in a ordered-dithering way
  *
@@ -58,6 +65,7 @@ void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int
     {
         for(int16_t dx = xMin; dx < xMax; dx++)
         {
+			PERFHIT
             switch(shadeLevel)
             {
                 case 0:
@@ -195,6 +203,8 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
         }
     }
 
+	PERFHIT
+
     if( xerrdiv > 0 )
     {
         int dyA = 0;
@@ -227,6 +237,8 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
         }
     }
 
+	PERFHIT
+
     if( x1 == cx && y1 == cy )
     {
         TURBO_SET_PIXEL( disp, cx, cy, color );
@@ -257,6 +269,8 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
             return;
         }
     }
+
+	PERFHIT
 
     if( dy > 0 )
     {
@@ -312,10 +326,12 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
 
         for( ; cy != y1; cy += sdy )
         {
+			PERFHIT
             TURBO_SET_PIXEL( disp, cx, cy, color );
             xerr += xerrnumerator;
             while( xerr >= (1 << FIXEDPOINT) )
             {
+				PERFHIT
                 cx += sdx;
                 if( cx == x1 )
                 {
@@ -354,10 +370,12 @@ void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y
 
         for( ; cx != x1; cx += sdx )
         {
+			PERFHIT
             TURBO_SET_PIXEL( disp, cx, cy, color );
             yerr += yerrnumerator;
             while( yerr >= 1 << FIXEDPOINT )
             {
+				PERFHIT
                 cy += sdy;
                 if( cy == y1 )
                 {
@@ -501,6 +519,8 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
         }
     */
 
+	PERFHIT
+
     {
         //Section 1 only.
         int yend = (v1y < v2y) ? v1y : v2y;
@@ -514,6 +534,8 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             int x = x0A;
             int endx = x0B;
             int suppress = 1;
+			
+			PERFHIT
 
             if( y >= 0 && y < (int)dispHeight )
             {
@@ -537,6 +559,7 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
 				// Draw body
                 for( ; x < endx; x++ )
                 {
+					PERFHIT
                     TURBO_SET_PIXEL( disp, x, y, colorA );
                 }
 				
@@ -552,6 +575,7 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             errB += xerrnumeratorB;
             while( errA >= (1 << FIXEDPOINT) && x0A != v1x )
             {
+				PERFHIT
                 x0A += sdxA;
                 //if( x0A < 0 || x0A > (dispWidth-1) ) break;
                 if( x0A >= 0 && x0A < (int)dispWidth && !suppress )
@@ -562,6 +586,7 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             }
             while( errB >= (1 << FIXEDPOINT) && x0B != v2x )
             {
+				PERFHIT
                 x0B += sdxB;
                 //if( x0B < 0 || x0B > (dispWidth-1) ) break;
                 if( x0B >= 0 && x0B < (int)dispWidth && !suppress )
@@ -654,6 +679,7 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             int x = x0A;
             int endx = x0B;
             int suppress = 1;
+			PERFHIT
 
             if( y >= 0 && y <= (int)(dispHeight - 1) )
             {
@@ -677,6 +703,7 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
 				// Draw body
                 for( ; x < endx; x++ )
                 {
+					PERFHIT
                     TURBO_SET_PIXEL( disp, x, y, colorA );
                 }
 				
@@ -692,6 +719,7 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             errB += xerrnumeratorB;
             while( errA >= (1 << FIXEDPOINT) )
             {
+				PERFHIT
                 x0A += sdxA;
                 //if( x0A < 0 || x0A > (dispWidth-1) ) break;
                 if( x0A >= 0 && x0A < (int)(dispWidth) && !suppress )
@@ -706,6 +734,7 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
             }
             while( errB >= (1 << FIXEDPOINT) )
             {
+				PERFHIT
                 x0B += sdxB;
                 if( x0B >= 0 && x0B < (int)(dispWidth) && !suppress )
                 {
