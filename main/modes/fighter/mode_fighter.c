@@ -41,8 +41,7 @@ typedef enum
     COUNTING_IN,
     HR_BARRIER_UP,
     HR_BARRIER_DOWN,
-    HR_PARABOLA_ANIM,
-    GAME_OVER
+    MP_GAME
 } fighterGamePhase_t;
 
 //==============================================================================
@@ -192,9 +191,9 @@ static const stage_t hrStadium =
         {
             .area =
             {
-                .x0 = (32) << SF,
+                .x0 = (50) << SF,
                            .y0 = (200) << SF,
-                           .x1 = (240 - 32) << SF,
+                           .x1 = (280 - 50) << SF,
                            .y1 = (200 + 4) << SF,
             },
             .canFallThrough = false
@@ -249,7 +248,8 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
     // Load fighter data
     for(int i = 0; i < NUM_FIGHTERS; i++)
     {
-        switch (fightingCharacter[i])
+        f->fighters[i].character = fightingCharacter[i];
+        switch (f->fighters[i].character)
         {
             case KING_DONUT:
             {
@@ -273,17 +273,15 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
                 break;
             }
         }
+
         setFighterRelPos(&(f->fighters[i]), NOT_TOUCHING_PLATFORM, NULL, NULL, true);
         f->fighters[i].cAttack = NO_ATTACK;
-        // Invincible after spawning
-        f->fighters[i].iFrameTimer = IFRAMES_AFTER_SPAWN;
-        f->fighters[i].isInvincible = true;
 
         // Set the initial sprites
         setFighterState((&f->fighters[i]), FS_IDLE, f->fighters[i].idleSprite0, 0, NULL);
 
-        // Start both fighters in the middle of the stage
-        f->fighters[i].pos.x = (f->d->w / 2) << SF;
+        // Spawn fighters in respective positions
+        f->fighters[i].pos.x = ((((1 + i) * f->d->w) / 3) - ((f->fighters[i].size.x >> SF) / 2)) << SF;
 
         switch(type)
         {
@@ -291,18 +289,25 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
             {
                 // Start with three stocks
                 f->fighters[i].stocks = 3;
+                // Invincible after spawning
+                f->fighters[i].iFrameTimer = IFRAMES_AFTER_SPAWN;
+                f->fighters[i].isInvincible = true;
                 break;
             }
             case HR_CONTEST:
             {
                 // No stocks for HR Contest
                 f->fighters[i].stocks = 0;
-
-                f->gamePhase = COUNTING_IN;
-                f->gameTimerUs = 3000000;
+                // No iframes
+                f->fighters[i].iFrameTimer = 0;
+                f->fighters[i].isInvincible = false;
                 break;
             }
         }
+
+        // Start counting in the match
+        f->gamePhase = COUNTING_IN;
+        f->gameTimerUs = 3000000;
     }
 
     // Set some LEDs, just because
@@ -519,8 +524,16 @@ void fighterGameLoop(int64_t elapsedUs)
             f->gameTimerUs -= elapsedUs;
             if(f->gameTimerUs <= 0)
             {
-                f->gameTimerUs = 15000000; // 15s total
-                f->gamePhase = HR_BARRIER_UP;
+                // After count-in, transition to the appropriate state
+                if(MULTIPLAYER == f->type)
+                {
+                    f->gamePhase = MP_GAME;
+                }
+                else if (HR_CONTEST == f->type)
+                {
+                    f->gameTimerUs = 15000000; // 15s total
+                    f->gamePhase = HR_BARRIER_UP;
+                }
             }
             break;
         }
@@ -539,14 +552,18 @@ void fighterGameLoop(int64_t elapsedUs)
             if(f->gameTimerUs <= 0)
             {
                 f->gameTimerUs = 0;
-                f->gamePhase = HR_PARABOLA_ANIM;
+                // Initialize the result
+                fighterShowHrResult(f->fighters[0].character, f->fighters[1].pos, f->fighters[1].velocity, f->fighters[1].gravity);
+                // Deinit the game
+                fighterExitGame();
+                // Return after deinit
+                return;
             }
             break;
         }
-        case HR_PARABOLA_ANIM:
-        case GAME_OVER:
+        case MP_GAME:
         {
-            // TODO
+            // No timer in this state
             break;
         }
     }
@@ -596,12 +613,9 @@ void fighterGameLoop(int64_t elapsedUs)
     {
         f->buttonInputReceived = false;
 
-        if(f->gamePhase != COUNTING_IN)
-        {
-            // Check fighter button inputs
-            checkFighterButtonInput(&f->fighters[0]);
-            checkFighterButtonInput(&f->fighters[1]);
-        }
+        // Check fighter button inputs
+        checkFighterButtonInput(&f->fighters[0]);
+        checkFighterButtonInput(&f->fighters[1]);
 
         // Move fighters
         updateFighterPosition(&f->fighters[0], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
@@ -1177,6 +1191,13 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     // Initial velocity before this frame's calculations
     vector_t v0 = ftr->velocity;
 
+    // Save initial state for potential rollback
+    vector_t origPos = ftr->pos;
+    platformPos_t origRelPos = ftr->relativePos;
+    const platform_t* origTouchingPlatform = ftr->touchingPlatform;
+    const platform_t* origPassingThroughPlatform = ftr->passingThroughPlatform;
+    bool origIsInair = ftr->isInAir;
+
     // Only allow movement in these states
     bool movementInput = false;
     switch(ftr->state)
@@ -1684,6 +1705,16 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         }
     }
 
+    // Revert position if dashing and dashed off a platform
+    if((DASH_GROUND == ftr->cAttack) && (ftr->relativePos != ABOVE_PLATFORM))
+    {
+        // Dead stop
+        ftr->velocity.x = 0;
+        // Revert position
+        ftr->pos = origPos;
+        setFighterRelPos(ftr, origRelPos, origTouchingPlatform, origPassingThroughPlatform, origIsInair);
+    }
+
     // Check kill zone
     if(hbox.y0 > (600 << SF))
     {
@@ -1806,8 +1837,8 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                             knockback.x = -((hbx->knockback.x * knockbackScalar) / 64);
                         }
                         knockback.y = ((hbx->knockback.y * knockbackScalar) / 64);
-                        otherFtr->velocity.x += knockback.x;
-                        otherFtr->velocity.y += knockback.y;
+                        otherFtr->velocity.x = knockback.x;
+                        otherFtr->velocity.y = knockback.y;
 
                         // Knock the fighter into the air
                         if(!otherFtr->isInAir)
@@ -1889,8 +1920,8 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                             knockback.x = -((proj->knockback.x * knockbackScalar) / 64);
                         }
                         knockback.y = ((proj->knockback.y * knockbackScalar) / 64);
-                        ftr->velocity.x += knockback.x;
-                        ftr->velocity.y += knockback.y;
+                        ftr->velocity.x = knockback.x;
+                        ftr->velocity.y = knockback.y;
 
                         // Knock the fighter into the air
                         if(!ftr->isInAir)
@@ -2224,11 +2255,24 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
     xPos = (2 * (d->w / 3)) - (tWidth / 2);
     drawText(d, font, c555, dmgStr, xPos, d->h - font->h - 2);
 
-    // Draw the timer
-    char timeStr[32];
-    snprintf(timeStr, sizeof(timeStr) - 1, "%d.%03d", f->gameTimerUs / 1000000, (f->gameTimerUs / 1000) % 1000);
-    tWidth = textWidth(font, "9.999"); // If this isn't constant, the time jiggles a lot
-    drawText(d, font, c555, timeStr, (d->w - tWidth) / 2, 0);
+    switch(f->gamePhase)
+    {
+        case COUNTING_IN:
+        case HR_BARRIER_UP:
+        case HR_BARRIER_DOWN:
+        {
+            // Draw the timer
+            char timeStr[32];
+            snprintf(timeStr, sizeof(timeStr) - 1, "%d.%03d", f->gameTimerUs / 1000000, (f->gameTimerUs / 1000) % 1000);
+            tWidth = textWidth(font, "9.999"); // If this isn't constant, the time jiggles a lot
+            drawText(d, font, c555, timeStr, (d->w - tWidth) / 2, 0);
+        }
+        case MP_GAME:
+        {
+            // No timer
+            break;
+        }
+    }
 }
 
 #ifdef DRAW_DEBUG_BOXES
@@ -2359,8 +2403,12 @@ void drawProjectileDebugBox(display_t* d, list_t* projectiles)
  */
 void fighterGameButtonCb(buttonEvt_t* evt)
 {
-    // Save the state to check synchronously
-    f->fighters[f->playerIdx].btnState = evt->state;
+    // Ignore button input while counting in
+    if(f->gamePhase != COUNTING_IN)
+    {
+        // Save the state to check synchronously
+        f->fighters[f->playerIdx].btnState = evt->state;
+    }
 }
 
 /**
@@ -2378,7 +2426,7 @@ void fighterRxButtonInput(int32_t btnState)
 
 /**
  * @brief Receive a scene to render from another swadge
- * 
+ *
  * @param scene The scene to render
  */
 void fighterRxScene(fighterScene_t* scene)
