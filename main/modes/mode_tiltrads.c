@@ -104,8 +104,8 @@
 #define CLEAR_LINES_ANIM_TIME (0.5 * S_TO_MS_FACTOR * MS_TO_US_FACTOR)
 
 // game input
-#define ACCEL_SEG_SIZE 300 // higher value more or less means less sensitive.
-#define ACCEL_JITTER_GUARD 150 // higher = less sensitive.
+#define ACCEL_SEG_SIZE 25 // higher value more or less means less sensitive.
+#define ACCEL_JITTER_GUARD 14 // higher = less sensitive.
 #define SOFT_DROP_FACTOR 8
 #define SOFT_DROP_FX_FACTOR 2
 
