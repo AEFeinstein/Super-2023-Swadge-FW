@@ -1340,7 +1340,15 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         int32_t decel = ftr->run_decel;
         if(ftr->isInAir)
         {
-            decel >>= 1;
+            if(SANDBAG == ftr->character)
+            {
+                // Sandbag doesn't decel in the air, only on the ground
+                decel = 0;
+            }
+            else
+            {
+                decel >>= 1;
+            }
         }
 
         // Neither left nor right buttons are being pressed. Slow down!
