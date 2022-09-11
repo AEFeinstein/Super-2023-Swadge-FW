@@ -155,41 +155,55 @@ void loadLevels()
     //LEVEL SETUP AREA
     //DACVAK JUST SEARCH FOR "DACVAK" TO FIND THIS
 
+    //Todo: we can cut our memory use down by about 2/3 if we use a naming convention and the titles to pull the wsg names.
+    //snprint into loadWsg, i think. Make sure it all works with, say, apostophes and spaces.
+
     //any entry with lowercase names is testing data. CamelCase names are good to go. This is not convention, just nature of dac sending me files vs. my testing ones.
+    pm->levels[0].title = "Fifteen";
     loadWsg("fifteen.wsg", &pm->levels[0].levelWSG);//15x15 testing
     loadWsg("fifteen_c.wsg", &pm->levels[0].completedWSG);
 
+    pm->levels[1].title = "Bliss";
     loadWsg("Bliss.wsg", &pm->levels[1].levelWSG);//5x10
     loadWsg("Bliss_c.wsg", &pm->levels[1].completedWSG);
 
+    pm->levels[2].title = "Snare Drum";
     loadWsg("Snare_Drum_PZL.wsg", &pm->levels[2].levelWSG);//10x10
     loadWsg("Snare_Drum_SLV.wsg", &pm->levels[2].completedWSG);
 
+    pm->levels[3].title = "Danny";
     loadWsg("Danny_PZL.wsg", &pm->levels[3].levelWSG);//10x10
     loadWsg("Danny_SLV.wsg", &pm->levels[3].completedWSG);
 
+    pm->levels[4].title = "Controller";
     loadWsg("Controller_PZL.wsg", &pm->levels[4].levelWSG);//10x10
     loadWsg("Controller_SLV.wsg", &pm->levels[4].completedWSG);
- 
+
+    pm->levels[5].title = "Pear";
     loadWsg("Pear_PZL.wsg", &pm->levels[5].levelWSG);//10x10
     loadWsg("Pear_SLV.wsg", &pm->levels[5].completedWSG);
-
+    
+    pm->levels[6].title = "Cherry";
     loadWsg("Cherry_PZL.wsg", &pm->levels[6].levelWSG);//10x10
     loadWsg("Cherry_SLV.wsg", &pm->levels[6].completedWSG);
-    
+
+    pm->levels[7].title = "Strawberry";
     loadWsg("Strawberry_PZL.wsg", &pm->levels[7].levelWSG);//10x10
     loadWsg("Strawberry_SLV.wsg", &pm->levels[7].completedWSG);
 
+    pm->levels[8].title = "Coffee Bean";
     loadWsg("CoffeeBean_PZL.wsg", &pm->levels[8].levelWSG);//coffeBean is pretty hard for a 10x10
     loadWsg("CoffeeBean_SLV.wsg", &pm->levels[8].completedWSG);
-    
+
+    pm->levels[9].title = "Boat";   
     loadWsg("3_boat.wsg", &pm->levels[9].levelWSG);//10x10
     loadWsg("3_boat_c.wsg", &pm->levels[9].completedWSG);
 
-    //TESTING
+    pm->levels[10].title = "Longer Title Test";
     loadWsg("pic_five.wsg", &pm->levels[10].levelWSG);//5x5 testing
     loadWsg("pic_five_c.wsg", &pm->levels[10].completedWSG);
 
+    pm->levels[11].title = "oblong test";
     loadWsg("oblongTest.wsg", &pm->levels[11].levelWSG);//10x5 testing
     loadWsg("oblongTest_c.wsg", &pm->levels[11].completedWSG);
 

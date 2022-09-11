@@ -215,16 +215,19 @@ void picrossSetupPuzzle(bool cont)
     p->topPad = (screenHeight - ((totalYCount*p->drawScale)))/2 + p->maxHintsY*p->drawScale;
 
     //load the font
+    //UIFont:
+    loadFont("early_gameboy.font",&(p->UIFont));
+    //Hint font:
     if(p->drawScale < 12)
     {
         //font
-        loadFont("tom_thumb.font", &(p->hint_font));
+        loadFont("tom_thumb.font", &(p->hintFont));
     }else if(p->drawScale < 24){
-        loadFont("ibm_vga8.font", &(p->hint_font));
+        loadFont("ibm_vga8.font", &(p->hintFont));
     }else{
-        loadFont("early_gameboy.font", &(p->hint_font));
+        loadFont("early_gameboy.font", &(p->hintFont));
     }
-    p->vFontPad = (p->drawScale - p->hint_font.h)/2;
+    p->vFontPad = (p->drawScale - p->hintFont.h)/2;
     //Calculate the shift to move the font square to the center of the level square.
     //fontShiftLeft = p->hont_font->w
 }
@@ -912,7 +915,7 @@ void drawPicrossScene(display_t* d)
                 }
             }
         }
-        drawPicrossHud(d,&p->hint_font);
+        drawPicrossHud(d,&p->hintFont);
         drawPicrossInput(d);
     }//end if phase is solving   
     else if (p->currentPhase == PICROSS_YOUAREWIN)
@@ -924,6 +927,21 @@ void drawPicrossScene(display_t* d)
                 drawSinglePixelFromWSG(d,i,j,&p->selectedLevel->completedWSG);
             }
         }
+
+        
+
+        //Draw the title of the puzzle, centered.
+        //We Should get the y position from the 0 y position 
+        // uint16_t y = p->drawScale + p->topPad - p->UIFont.h;//this is y1 of boxFromCoords solved for position 0, then shifted up the height of the font.
+        //I don't know if I want the title drawn right above the puzzle or just at the top. at the top for now.
+
+        //TODO: still not quite centered.
+        int t = strlen(p->selectedLevel->title);//get character count of title
+        t = t * PICROSS_UIFONT_WIDTH;//p->UIFont.h is not quite w, so we hardcode it. This gets pixel count of title.
+        t = (((int)d->w) - t)/2;//turn t into padding.
+        
+        drawText(d,&p->UIFont,c555,p->selectedLevel->title,t,14);
+
     }
 }
 
@@ -959,11 +977,11 @@ void drawPicrossHud(display_t* d,font_t* font)
     //Draw coordinates
     char textBuffer[9];
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%d,%d", p->input->x+1,p->input->y+1);
-    drawText(d, font, c555, textBuffer, 10, 20);
+    drawText(d, &(p->UIFont), c555, textBuffer, 10, 20);
 
     //Draw counter
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", p->count);
-    drawText(d, font, c334, textBuffer, 10, 20+font->h*2);
+    drawText(d, &(p->UIFont), c334, textBuffer, 10, 20+p->UIFont.h*2);
 
     //width of thicker center lines
     uint8_t w = 2;//p->drawScale/4;
@@ -1171,7 +1189,7 @@ int8_t getHintShift(uint8_t hint)
 
 void drawPicrossInput(display_t* d)
 {
-    //todo: rewrite this
+    //todo: rewrite this. Use faster Bresenham functions and dont use drawBox.
 
     //Draw player input box
     box_t inputBox = boxFromCoord(p->input->x,p->input->y);
@@ -1254,10 +1272,10 @@ void picrossExitGame(void)
 
     if (NULL != p)
     {
-        freeFont(&(p->hint_font));
-        // free(p->puzzle);
+        freeFont(&(p->hintFont));
+        freeFont(&(p->UIFont));
+        free(p->puzzle);
         free(p->input);
-        // free(p->save);
         free(p);
         p = NULL;
     }    
