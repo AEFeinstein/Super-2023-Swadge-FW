@@ -1170,7 +1170,8 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
 
 int8_t getHintShift(uint8_t hint)
 {
-    
+    //todo: we have three fonts (drawScale 0-12, 12-24, 24+). Offsets need to be calibrated for each one.
+
     switch(hint)
     {
         case 0:
@@ -1187,7 +1188,12 @@ int8_t getHintShift(uint8_t hint)
         case 9:
             return p->vFontPad + 2;
         case 10:
-            return p->vFontPad - 4;
+        case 11:
+        case 12:
+        case 13:
+        case 14:
+        case 15
+            return p->vFontPad - 2;
     }
 
     return 0;
