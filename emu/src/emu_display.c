@@ -432,6 +432,14 @@ int setTFTBacklight(uint8_t intensity UNUSED)
 }
 
 /**
+ * @brief Disable backlight (For switching modes)
+ */
+void disableTFTBacklight()
+{
+	WARN_UNIMPLEMENTED();
+}
+
+/**
  * @brief Set a single pixel on the emulated TFT. This converts from 5 bit color
  * to 8 bit color
  *
@@ -491,7 +499,8 @@ void emuDrawDisplayTft(display_t * disp, bool drawDiff UNUSED, fnBackgroundDrawC
     * Swadge mode. rawdraw will use this non-changing bitmap to draw
     */
     pthread_mutex_lock(&displayMutex);
-    for(int16_t y = 0; y < TFT_HEIGHT; y++)
+	int16_t y;
+    for(y = 0; y < TFT_HEIGHT; y++)
     {
         for(int16_t x = 0; x < TFT_WIDTH; x++)
         {
@@ -506,12 +515,17 @@ void emuDrawDisplayTft(display_t * disp, bool drawDiff UNUSED, fnBackgroundDrawC
             }
         }        
 
-		if( ( y & 0xf ) == 0 && fnBackgroundDrawCallback)
+		if( ( y & 0xf ) == 0 && fnBackgroundDrawCallback && y > 0 )
 		{
-			fnBackgroundDrawCallback( disp, 0, y, TFT_WIDTH, 16, y/16, TFT_HEIGHT/16 );
+			fnBackgroundDrawCallback( disp, 0, y-16, TFT_WIDTH, 16, y/16, TFT_HEIGHT/16 );
 		}
-
     }
+
+	if( fnBackgroundDrawCallback )
+	{
+		fnBackgroundDrawCallback( disp, 0, y-16, TFT_WIDTH, 16, y/16, TFT_HEIGHT/16 );
+	}
+
     pthread_mutex_unlock(&displayMutex);
 }
 

@@ -1052,7 +1052,7 @@ static void flightRender()
         width = textWidth(&flight->radiostars, framesStr);
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, 0 );
         
-        
+        #ifndef EMU
         if( flight->mode == FLIGHT_PERFTEST )
         {
             snprintf(framesStr, sizeof(framesStr), "%d", mid1 - start );
@@ -1062,6 +1062,7 @@ static void flightRender()
             snprintf(framesStr, sizeof(framesStr), "%d", stop - mid2 );
             drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*3+3 );
         }
+		#endif
 
         snprintf(framesStr, sizeof(framesStr), "%d", tflight->speed);
         width = textWidth(&flight->radiostars, framesStr);
