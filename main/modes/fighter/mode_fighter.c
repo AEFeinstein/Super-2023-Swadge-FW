@@ -66,6 +66,7 @@ typedef struct
     uint8_t composedSceneLen;
     uint32_t hitstopTimer;
     int32_t gameTimerUs;
+    int32_t printGoTimerUs;
     fighterGamePhase_t gamePhase;
 } fightingGame_t;
 
@@ -534,6 +535,8 @@ void fighterGameLoop(int64_t elapsedUs)
                     f->gameTimerUs = 15000000; // 15s total
                     f->gamePhase = HR_BARRIER_UP;
                 }
+                // Print GO!!! for 1s after COUNTING_IN elapses
+                f->printGoTimerUs = 1000000;
             }
             break;
         }
@@ -566,6 +569,12 @@ void fighterGameLoop(int64_t elapsedUs)
             // No timer in this state
             break;
         }
+    }
+
+    // Don't print GO!!! forever
+    if(f->printGoTimerUs > 0)
+    {
+        f->printGoTimerUs -= elapsedUs;
     }
 
     // Keep track of time and only calculate frames every FRAME_TIME_MS
@@ -2299,6 +2308,14 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
             // No timer
             break;
         }
+    }
+
+    // Print GO!!! after the COUNTING_IN phase finishes
+    if(f->printGoTimerUs > 0)
+    {
+        char goStr[] = "GO!!!";
+        tWidth = textWidth(f->mm_font, goStr);
+        drawText(f->d, f->mm_font, c555, goStr, (f->d->w - tWidth) / 2, f->d->h / 3);
     }
 }
 
