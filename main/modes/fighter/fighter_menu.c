@@ -678,11 +678,11 @@ void fighterSendSceneToOther(fighterScene_t* scene, uint8_t len)
 
 /**
  * @brief Initialize and start showing the result after a Home Run contest
- * 
- * @param character 
- * @param position 
- * @param velocity 
- * @param gravity 
+ *
+ * @param character
+ * @param position
+ * @param velocity
+ * @param gravity
  */
 void fighterShowHrResult(fightingCharacter_t character, vector_t position, vector_t velocity, int32_t gravity)
 {
