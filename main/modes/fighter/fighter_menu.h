@@ -7,5 +7,7 @@ extern swadgeMode modeFighter;
 
 void fighterSendButtonsToOther(int32_t btnState);
 void fighterSendSceneToOther(fighterScene_t* scene, uint8_t len);
+void fighterShowHrResult(fightingCharacter_t character, vector_t position, vector_t velocity, int32_t gravity);
+void fighterShowMpResult(void);
 
 #endif

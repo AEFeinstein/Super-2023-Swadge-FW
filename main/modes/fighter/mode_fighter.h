@@ -157,6 +157,7 @@ typedef struct
 
 typedef struct
 {
+    fightingCharacter_t character;
     vector_t pos;
     vector_t hurtbox_offset;
     vector_t size;

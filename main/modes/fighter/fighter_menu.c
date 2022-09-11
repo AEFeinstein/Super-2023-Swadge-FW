@@ -13,6 +13,7 @@
 #include "mode_main_menu.h"
 #include "fighter_menu.h"
 #include "mode_fighter.h"
+#include "fighter_hr_result.h"
 
 //==============================================================================
 // Enums & Structs
@@ -23,7 +24,9 @@ typedef enum
     FIGHTER_MENU,
     FIGHTER_CONNECTING,
     FIGHTER_WAITING,
-    FIGHTER_GAME
+    FIGHTER_GAME,
+    FIGHTER_HR_RESULT,
+    FIGHTER_MP_RESULT,
 } fighterScreen_t;
 
 typedef enum
@@ -194,6 +197,17 @@ void fighterMainLoop(int64_t elapsedUs)
             drawText(fm->disp, &fm->mmFont, c543, "Waiting", 0, 0);
             break;
         }
+        case FIGHTER_HR_RESULT:
+        {
+            // Draw result after a Home Run Contest
+            fighterHrResultLoop(elapsedUs);
+            break;
+        }
+        case FIGHTER_MP_RESULT:
+        {
+            // TODO draw results, stocks, damage, etc.
+            break;
+        }
     }
 }
 
@@ -229,6 +243,21 @@ void fighterButtonCb(buttonEvt_t* evt)
         case FIGHTER_WAITING:
         {
             // TODO cancel button?
+            break;
+        }
+        case FIGHTER_HR_RESULT:
+        {
+            // START or SELECT exits the HR Result
+            if(evt->down && ((START == evt->button) || (SELECT == evt->button)))
+            {
+                deinitFighterHrResult();
+                fm->screen = FIGHTER_MENU;
+            }
+            break;
+        }
+        case FIGHTER_MP_RESULT:
+        {
+            // TODO handle button transition to FIGHTER_MENU
             break;
         }
     }
@@ -634,4 +663,27 @@ void fighterSendSceneToOther(fighterScene_t* scene, uint8_t len)
     // Don't ack, retry until buttons are received
     p2pSendMsg(&fm->p2p, (const uint8_t*)scene, len, false, fighterP2pMsgTxCbFn);
     fm->lastSentMsg = SCENE_COMPOSED_MSG;
+}
+
+/**
+ * @brief Initialize and start showing the result after a Home Run contest
+ * 
+ * @param character 
+ * @param position 
+ * @param velocity 
+ * @param gravity 
+ */
+void fighterShowHrResult(fightingCharacter_t character, vector_t position, vector_t velocity, int32_t gravity)
+{
+    initFighterHrResult(fm->disp, &fm->mmFont, character, position, velocity, gravity);
+    fm->screen = FIGHTER_HR_RESULT;
+}
+
+/**
+ * @brief TODO
+ *
+ */
+void fighterShowMpResult(void)
+{
+    fm->screen = FIGHTER_MP_RESULT;
 }
