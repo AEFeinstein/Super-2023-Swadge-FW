@@ -17,8 +17,9 @@
  * @param x2 The X pixel to end at
  * @param y2 The Y pixel to end at
  * @param shadeLevel The level of shading, Higher means more shaded. Must be 0 to 4
+ * @param color the color to draw with
  */
-void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint8_t shadeLevel)
+void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint8_t shadeLevel, paletteColor_t color)
 {
 	SETUP_FOR_TURBO( disp );
 	int16_t xMin, yMin, xMax, yMax;
@@ -64,7 +65,7 @@ void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int
                     // 25% faded
                     if(dy % 2 == 0 && dx % 2 == 0)
                     {
-                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, CNDRAW_BLACK);
+                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, color);
                     }
                     break;
                 }
@@ -73,11 +74,11 @@ void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int
                     // 37.5% faded
                     if(dy % 2 == 0 && dx % 2 == 0)
                     {
-                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, CNDRAW_BLACK);
+                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, color);
                     }
                     else if (dx % 4 == 0)
                     {
-                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, CNDRAW_BLACK);
+                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, color);
                     }
                     break;
                 }
@@ -86,7 +87,7 @@ void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int
                     // 50% faded
                     if((dy % 2) == (dx % 2))
                     {
-                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, CNDRAW_BLACK);
+                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, color);
                     }
                     break;
                 }
@@ -95,11 +96,11 @@ void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int
                     // 62.5% faded
                     if(dy % 2 == 0 && dx % 2 == 0)
                     {
-                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, CNDRAW_BLACK);
+                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, color);
                     }
                     else if (dx % 4 < 3)
                     {
-                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, CNDRAW_BLACK);
+                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, color);
                     }
                     break;
                 }
@@ -108,7 +109,7 @@ void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int
                     // 75% faded
                     if(dy % 2 == 0 || dx % 2 == 0)
                     {
-                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, CNDRAW_BLACK);
+                        TURBO_SET_PIXEL_BOUNDS( disp, dx, dy, color);
                     }
                     break;
                 }

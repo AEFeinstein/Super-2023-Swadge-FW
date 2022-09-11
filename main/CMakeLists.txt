@@ -12,6 +12,7 @@ idf_component_register(
         "modes/fighter/mode_fighter.c"
         "modes/fighter/fighter_json.c"
         "modes/fighter/fighter_menu.c"
+        "modes/mode_flight.c"
         "modes/mode_credits.c"
         "modes/jumper/jumper_menu.c"
         "modes/jumper/mode_jumper.c"
@@ -35,6 +36,7 @@ idf_component_register(
         "swadge_esp32.c"
         "settingsManager.c"
         "advanced_usb_control.c"
+        "swadge_util.c"
     INCLUDE_DIRS
         "."
         "../components/hdw-buzzer/"

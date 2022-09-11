@@ -48,9 +48,6 @@ void textEntryDraw() { }
 void textEntryEnd() { }
 int textEntryInput( uint8_t down, uint8_t button ){ return false;} 
 
-
-#define FLIGHT_HIGH_SCORE_NAME_LEN 14
-
 /*============================================================================
  * Defines, Structs, Enums
  *==========================================================================*/
@@ -60,10 +57,17 @@ int textEntryInput( uint8_t down, uint8_t button ){ return false;}
 #define MAX_DONUTS 14
 #define MAX_BEANS 69
 
-#define OLED_WIDTH 280
-#define OLED_HEIGHT 240
-#define FBW 280
-#define FBH 240
+
+#define CROSSHAIR_COLOR 200
+#define CNDRAW_BLACK 0
+#define CNDRAW_WHITE 18 // actually green
+#define PROMPT_COLOR 92
+
+
+#define TFT_WIDTH 280
+#define TFT_HEIGHT 240
+#define TFT_WIDTH 280
+#define TFT_HEIGHT 240
 
 typedef enum
 {
@@ -118,7 +122,6 @@ typedef struct
 
     meleeMenu_t * menu;
 	font_t ibm;
-	font_t tom_thumb;
 	font_t radiostars;
 	font_t meleeMenuFont;
 
@@ -146,6 +149,7 @@ int renderlinecolor = CNDRAW_WHITE;
  *==========================================================================*/
 
 static void flightRender();
+static void flightBackground(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum );
 static void flightEnterMode(display_t * disp);
 static void flightExitMode(void);
 static void flightButtonCallback( buttonEvt_t* evt );
@@ -179,6 +183,7 @@ swadgeMode modeFlight =
     .fnEnterMode = flightEnterMode,
     .fnExitMode = flightExitMode,
     .fnButtonCallback = flightButtonCallback,
+	.fnBackgroundDrawCallback = flightBackground,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
@@ -215,6 +220,11 @@ void iplotRectB( display_t * disp, int x1, int y1, int x2, int y2 )
     }
 }
 
+static void flightBackground(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum )
+{
+    fillDisplayArea( disp, x, y, x+w, h+y, CNDRAW_BLACK );
+}
+
 /**
  * Initializer for flight
  */
@@ -239,7 +249,6 @@ static void flightEnterMode(display_t * disp)
     }
 
 	loadFont("ibm_vga8.font", &flight->ibm);
-	loadFont("tom_thumb.font", &flight->tom_thumb);
 	loadFont("radiostars.font", &flight->radiostars);
 
 	loadFont("mm.font", &flight->meleeMenuFont);
@@ -391,7 +400,7 @@ static void flightStartGame( flightModeScreen mode )
 
     flight->ondonut = 0; //Set to 14 to b-line it to the end for testing.
     flight->beans = 0; //Set to MAX_BEANS for 100% instant.
-    flight->timeOfStart = esp_timer_get_time();//-1000000*190; (Do this to force extra coursetime)
+    flight->timeOfStart = (uint32_t)esp_timer_get_time();//-1000000*190; (Do this to force extra coursetime)
     flight->timeGot100Percent = 0;
     flight->wintime = 0;
     flight->speed = 0;
@@ -457,7 +466,7 @@ static void flightUpdate(void* arg __attribute__((unused)))
             {
                 int anyp = 0;
                 snprintf( buffer, sizeof(buffer), "%d%s", line+1, EnglishNumberSuffix[line] );
-                drawText( flight->disp, &flight->tom_thumb, CNDRAW_WHITE, buffer, 3, (line+1)*10+10 );
+                drawText( flight->disp, &flight->radiostars, CNDRAW_WHITE, buffer, 3, (line+1)*10+10 );
 
                 for( anyp = 0; anyp < 2; anyp++ )
                 {
@@ -467,7 +476,7 @@ static void flightUpdate(void* arg __attribute__((unused)))
                     memcpy( namebuff, name, FLIGHT_HIGH_SCORE_NAME_LEN );
                     namebuff[FLIGHT_HIGH_SCORE_NAME_LEN] = 0;
                     snprintf( buffer, sizeof(buffer), "%4s %3d.%02d", namebuff, cs/100,cs%100 );
-                    drawText( flight->disp, &flight->tom_thumb, CNDRAW_WHITE, buffer, anyp?81:17, (line+1)*10+10 );
+                    drawText( flight->disp, &flight->radiostars, CNDRAW_WHITE, buffer, anyp?81:17, (line+1)*10+10 );
                 }
             }
             break;
@@ -485,6 +494,7 @@ static void flightUpdate(void* arg __attribute__((unused)))
         }
 		case FLIGHT_PERFTEST:
 		case FLIGHT_TRIANGLES:
+			break;
     }
 
     flightUpdateLEDs( flight );
@@ -741,8 +751,8 @@ int LocalToScreenspace( const int16_t * coords_3v, int16_t * o1, int16_t * o2 )
     td4Transform( tmppt, ModelviewMatrix, tmppt );
     td4Transform( tmppt, ProjectionMatrix, tmppt );
     if( tmppt[3] >= -4 ) { return -1; }
-    int calcx = ((256 * tmppt[0] / tmppt[3])/16+(FBW/2));
-    int calcy = ((256 * tmppt[1] / tmppt[3])/8+(FBH/2));
+    int calcx = ((256 * tmppt[0] / tmppt[3])/16+(TFT_WIDTH/2));
+    int calcy = ((256 * tmppt[1] / tmppt[3])/8+(TFT_HEIGHT/2));
     if( calcx < -16000 || calcx > 16000 || calcy < -16000 || calcy > 16000 ) return -2;
     *o1 = calcx;
     *o2 = calcy;
@@ -772,12 +782,12 @@ int tdModelVisibilitycheck( const tdModel * m )
     td4Transform( tmppt, ProjectionMatrix, tmppt );
     if( tmppt[3] < -2 )
     {
-        int scx = ((256 * tmppt[0] / tmppt[3])/16+(OLED_WIDTH/2));
-        int scy = ((256 * tmppt[1] / tmppt[3])/8+(OLED_HEIGHT/2));
+        int scx = ((256 * tmppt[0] / tmppt[3])/16+(TFT_WIDTH/2));
+        int scy = ((256 * tmppt[1] / tmppt[3])/8+(TFT_HEIGHT/2));
        // int scz = ((65536 * tmppt[2] / tmppt[3]));
         int scd = ((-256 * 2 * m->radius / tmppt[3])/8);
         scd += 3; //Slack
-        if( scx < -scd || scy < -scd || scx >= OLED_WIDTH + scd || scy >= OLED_HEIGHT + scd )
+        if( scx < -scd || scy < -scd || scx >= TFT_WIDTH + scd || scy >= TFT_HEIGHT + scd )
         {
             return -1;
         }
@@ -903,12 +913,11 @@ static void flightRender()
 #endif
 
 #ifndef EMU
-    PIN_FUNC_SELECT( PERIPHS_IO_MUX_U0TXD_U, 3); //Set to GPIO.
-    GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 0 );
-    OVERCLOCK_SECTION_ENABLE();
+    //PIN_FUNC_SELECT( PERIPHS_IO_MUX_U0TXD_U, 3); //Set to GPIO.
+    //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 0 );
+    //OVERCLOCK_SECTION_ENABLE();
 #endif
 
-    fillDisplayArea( disp, 0, 0, disp->w, disp->h, CNDRAW_BLACK );
     tdRotateEA( ProjectionMatrix, tflight->hpr[1]/16, tflight->hpr[0]/16, 0 );
     tdTranslate( ModelviewMatrix, -tflight->planeloc[0], -tflight->planeloc[1], -tflight->planeloc[2] );
 
@@ -961,7 +970,7 @@ static void flightRender()
                 {
                     flightLEDAnimate( FLIGHT_LED_ENDING );
                     tflight->frames = 0;
-                    tflight->wintime = (esp_timer_get_time() - tflight->timeOfStart)/10000;
+                    tflight->wintime = ((uint32_t)esp_timer_get_time() - tflight->timeOfStart)/10000;
                     tflight->mode = FLIGHT_GAME_OVER;
                 }
             }
@@ -1015,9 +1024,16 @@ static void flightRender()
         else if( draw == 2 || draw == 3 )
         {
             if( draw == 2 )
-                renderlinecolor = (tflight->frames&1)?CNDRAW_WHITE:CNDRAW_BLACK;
+			{
+				// Originally, (tflight->frames&1)?CNDRAW_WHITE:CNDRAW_BLACK;
+				// Now, let's go buck wild.
+                renderlinecolor = (tflight->frames*7)&127;
+			}
             if( draw == 3 )
-                renderlinecolor = (tflight->frames&1)?CNDRAW_BLACK:CNDRAW_WHITE;
+			{
+                //renderlinecolor = (tflight->frames&1)?CNDRAW_BLACK:CNDRAW_WHITE;
+                renderlinecolor = ((tflight->frames+i))&127;
+			}
             tdDrawModel( disp, m );
             renderlinecolor = CNDRAW_WHITE;
         }
@@ -1025,8 +1041,8 @@ static void flightRender()
 
 
 #ifndef EMU
-        OVERCLOCK_SECTION_DISABLE();
-        GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 1 );
+        //OVERCLOCK_SECTION_DISABLE();
+        //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 1 );
 #endif
 #ifdef EMU
     //uint32_t stop = 0;
@@ -1038,48 +1054,56 @@ static void flightRender()
     if( flight->mode == FLIGHT_GAME )
     {
         char framesStr[32] = {0};
+
+        iplotRectB(disp, 0, 0, TFT_WIDTH, flight->radiostars.h + 1);
+
         //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
-        int elapsed = (esp_timer_get_time()-tflight->timeOfStart)/10000;
+        int elapsed = ((uint32_t)esp_timer_get_time()-tflight->timeOfStart)/10000;
+
         snprintf(framesStr, sizeof(framesStr), "%d/%d, %d", tflight->ondonut, MAX_DONUTS, tflight->beans );
-        int16_t width = textWidth(&flight->tom_thumb, framesStr);
-        iplotRectB(disp, 0, 0, width, flight->tom_thumb.h + 1);
-        drawText(disp, &flight->tom_thumb, CNDRAW_WHITE, framesStr, 0, 0 );
+        int16_t width = textWidth(&flight->radiostars, framesStr);
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 50, 0 );
 
         snprintf(framesStr, sizeof(framesStr), "%d.%02d", elapsed/100, elapsed%100 );
-        width = textWidth(&flight->tom_thumb, framesStr);
-        iplotRectB(disp, OLED_WIDTH - width, 0, OLED_WIDTH, flight->tom_thumb.h + 1);
-        drawText(disp, &flight->tom_thumb, CNDRAW_WHITE, framesStr, OLED_WIDTH - width + 1, 0 );
+        width = textWidth(&flight->radiostars, framesStr);
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - width + 1-50, 0 );
 
         snprintf(framesStr, sizeof(framesStr), "%d", tflight->speed);
-        width = textWidth(&flight->tom_thumb, framesStr);
-        iplotRectB(disp, OLED_WIDTH - width, OLED_HEIGHT - flight->tom_thumb.h - 1, OLED_WIDTH, OLED_HEIGHT);
-        drawText(disp, &flight->tom_thumb, CNDRAW_WHITE, framesStr, OLED_WIDTH - width + 1, OLED_HEIGHT - flight->tom_thumb.h );
+        width = textWidth(&flight->radiostars, framesStr);
+        iplotRectB(disp, TFT_WIDTH - width-50, TFT_HEIGHT - flight->radiostars.h - 1, TFT_WIDTH, TFT_HEIGHT);
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - width + 1-50, TFT_HEIGHT - flight->radiostars.h );
 
         if(flight->oob)
         {
             width = textWidth(&flight->ibm, "TURN AROUND");
-            drawText(disp, &flight->ibm, CNDRAW_WHITE, "TURN AROUND", (OLED_WIDTH - width) / 2, (OLED_HEIGHT - flight->ibm.h) / 2);
+            drawText(disp, &flight->ibm, PROMPT_COLOR, "TURN AROUND", (TFT_WIDTH - width) / 2, (TFT_HEIGHT - flight->ibm.h) / 2);
         }
+
+		// Draw crosshairs.
+		int centerx = TFT_WIDTH/2;
+		int centery = TFT_HEIGHT/2;
+		speedyLine(disp, centerx-4, centery, centerx+4, centery, 0, CROSSHAIR_COLOR );
+		speedyLine(disp, centerx, centery-4, centerx, centery+4, 0, CROSSHAIR_COLOR );
     }
     else
     {
         char framesStr[32] = {0};
         //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
         snprintf(framesStr, sizeof(framesStr), "YOU  WIN:" );
-        drawText(disp, &flight->radiostars, CNDRAW_WHITE, framesStr, 20, 0);
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+80, 50);
         snprintf(framesStr, sizeof(framesStr), "TIME:%d.%02d", tflight->wintime/100,tflight->wintime%100 );
-        drawText(disp, &flight->radiostars, CNDRAW_WHITE, framesStr, (tflight->wintime>10000)?14:20, 18);
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, ((tflight->wintime>10000)?14:20)+80, 18+50);
         snprintf(framesStr, sizeof(framesStr), "BEANS:%2d",tflight->beans );
-        drawText(disp, &flight->radiostars, CNDRAW_WHITE, framesStr, 20, 36);
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+80, 36+50);
     }
 
     if( tflight->beans >= MAX_BEANS )
     {
         if( tflight->timeGot100Percent == 0 )
-            tflight->timeGot100Percent = (esp_timer_get_time() - tflight->timeOfStart);
+            tflight->timeGot100Percent = ((uint32_t)esp_timer_get_time() - tflight->timeOfStart);
 
-        int crazy = ((esp_timer_get_time() - tflight->timeOfStart)-tflight->timeGot100Percent) < 3000000;
-        drawText( disp, &flight->ibm, crazy?( tflight->tframes & 1)?CNDRAW_WHITE:CNDRAW_BLACK:CNDRAW_WHITE, "100% 100% 100%", 10, 52 );
+        int crazy = (((uint32_t)esp_timer_get_time() - tflight->timeOfStart)-tflight->timeGot100Percent) < 3000000;
+        drawText( disp, &flight->ibm, crazy?( tflight->tframes * 9 ):PROMPT_COLOR, "100% 100% 100%", 10+80, 52+50 );
     }
 
     //If perf test, force full frame refresh

@@ -11,13 +11,8 @@
 #include <stdint.h>
 #include "display.h"
 
+void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint8_t shadeLevel, paletteColor_t color);
 
-#define CNDRAW_BLACK 0
-#define CNDRAW_WHITE 5
-
-
-//void fillDisplayArea(struct display* disp, int16_t x1, int16_t y1, int16_t x2, int16_t y2, paletteColor_t c);
-void shadeDisplayArea(struct display* disp, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint8_t shadeLevel);
 void outlineTriangle( struct display* disp, int16_t v0x, int16_t v0y, int16_t v1x, int16_t v1y,
                                         int16_t v2x, int16_t v2y, paletteColor_t colorA, paletteColor_t colorB );
 
