@@ -29,17 +29,6 @@ const char * menu_Bootload = "Bootloader";
 int mode7timing;
 #endif
 
-// Example to do true inline assembly.  This will actually compile down to be
-// included in the code, itself, and "should" (does in all the tests I've run)
-// execute in one clock cycle since there is no function call and rsr only
-// takes one cycle to complete. 
-static inline uint32_t get_ccount()
-{
-	uint32_t ccount;
-	asm volatile("rsr %0,ccount":"=a" (ccount));
-	return ccount;
-}
-
 // External functions defined in .S file for you assembly people.
 void minimal_function();
 uint32_t test_function( uint32_t x );
@@ -111,48 +100,48 @@ void sandbox_tick()
 
 	// Profile function call into assembly land
 	// Mostly used to understand function call overhead.
-	start = get_ccount();
+	start = getCycleCount();
 	minimal_function();
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[0] = end-start-1;
 
 	// Profile a nop (Should be 1, because profiling takes 1 cycle)
-	start = get_ccount();
+	start = getCycleCount();
 	asm volatile( "nop" );
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[1] = end-start-1;
 
 	// Profile reading a register (will be slow)
-	start = get_ccount();
+	start = getCycleCount();
 	READ_PERI_REG( GPIO_ENABLE_W1TS_REG );
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[2] = end-start-1;
 
 	// Profile writing a regsiter (will be fast)
 	// The ESP32-S2 can "write" to memory and keep executing
-	start = get_ccount();
+	start = getCycleCount();
 	WRITE_PERI_REG( GPIO_ENABLE_W1TS_REG, 0 );
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[3] = end-start-1;
 
 	// Profile subsequent writes (will be slow)
 	// The ESP32-S2 can only write once in a buffered write.
-	start = get_ccount();
+	start = getCycleCount();
 	WRITE_PERI_REG( GPIO_ENABLE_W1TS_REG, 0 );
 	WRITE_PERI_REG( GPIO_ENABLE_W1TS_REG, 0 );
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[4] = end-start-1;
 
 	// Profile a more interesting assembly instruction
-	start = get_ccount();
+	start = getCycleCount();
 	uint32_t tfret = test_function( 0xaaaa );
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[5] = end-start-1;
 
 	// Profile a more interesting assembly instruction
-	start = get_ccount();
+	start = getCycleCount();
 	uint32_t tfret2 = asm_read_gpio( );
-	end = get_ccount();
+	end = getCycleCount();
 	profiles[6] = end-start-1;
 
 	vTaskDelay(1);
@@ -167,9 +156,9 @@ void sandbox_tick()
 	    drawMeleeMenu(disp, menu);
 #endif
 
-	uint32_t start = get_ccount();
+	uint32_t start = getCycleCount();
 	drawWsg( disp, &example_sprite, 100, 100, 0, 0, 0); // 19600-20400
-	uint32_t end = get_ccount();
+	uint32_t end = getCycleCount();
 
 #ifdef MODE7_TEST
 	for( int mode = 0; mode < 8; mode++ )
@@ -189,11 +178,11 @@ void sandboxBackgroundDrawCallback(display_t* disp, int16_t x, int16_t y, int16_
 #ifdef MODE7_TEST
 	int i;
 
-	uint32_t start = get_ccount();
+	uint32_t start = getCycleCount();
 	fillDisplayArea(disp, x, y, x+w, y+h, 0 );
 	for( i = 0; i < 16; i++ )
 		fillDisplayArea(disp, i*16+8, y, i*16+16+8, y+16, up*16+i );
-	mode7timing = get_ccount() - start;
+	mode7timing = getCycleCount() - start;
 #endif
 }
 
