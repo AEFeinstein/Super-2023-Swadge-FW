@@ -26,6 +26,8 @@
 #include "ssd1306.h"
 #include "hdw-tft.h"
 
+#include "soc/rtc_cntl_reg.h"
+
 #define QMA7981
 
 #if defined(QMA6981)
@@ -664,6 +666,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             else
             {
                 // Deep sleep, wake up, and switch to pendingSwadgeMode
+				REG_WRITE(RTC_CNTL_OPTION1_REG, 0);
                 esp_sleep_enable_timer_wakeup(1);
                 esp_deep_sleep_start();
             }

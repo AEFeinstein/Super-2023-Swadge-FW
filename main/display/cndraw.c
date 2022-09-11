@@ -131,7 +131,7 @@ void shadeDisplayArea( display_t * disp, int16_t x1, int16_t y1, int16_t x2, int
  *
  */
 void speedyLine( display_t * disp, int16_t x0, int16_t y0, int16_t x1, int16_t y1, bool thicc, paletteColor_t color )
-{
+{	
 	SETUP_FOR_TURBO( disp );
     //Tune this as a function of the size of your viewing window, line accuracy, and worst-case scenario incoming lines.
 #define FIXEDPOINT 16

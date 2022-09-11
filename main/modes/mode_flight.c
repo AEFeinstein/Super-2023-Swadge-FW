@@ -58,7 +58,7 @@ int textEntryInput( uint8_t down, uint8_t button ){ return false;}
 #define MAX_BEANS 69
 
 
-#define CROSSHAIR_COLOR 200
+#define CROSSHAIR_COLOR 92 // was 200
 #define CNDRAW_BLACK 0
 #define CNDRAW_WHITE 18 // actually green
 #define PROMPT_COLOR 92
@@ -77,7 +77,6 @@ typedef enum
     FLIGHT_HIGH_SCORE_ENTRY,
     FLIGHT_SHOW_HIGH_SCORES,
     FLIGHT_PERFTEST,
-    FLIGHT_TRIANGLES,
 } flightModeScreen;
 
 typedef struct
@@ -164,8 +163,6 @@ void tdDrawModel( display_t * disp, const tdModel * m );
 static int flightTimeHighScorePlace( int wintime, bool is100percent );
 static void flightTimeHighScoreInsert( int insertplace, bool is100percent, char * name, int timeCentiseconds );
 
-void iplotRectB( display_t * d, int x1, int y1, int x2, int y2 );
-
 //Forward libc declarations.
 #ifndef EMU
 void qsort(void *base, size_t nmemb, size_t size,
@@ -198,7 +195,6 @@ static const char fl_flight_env[] = "Take Flight";
 static const char fl_flight_invertY0_env[] = "Y NOT INVERTED";
 static const char fl_flight_invertY1_env[] = "Y INVERTED";
 static const char fl_flight_perf[] = "Perf Test";
-static const char fl_flight_triangles[] = "Tri Test";
 static const char str_quit[] = "Quit";
 static const char str_high_scores[] = "High Scores";
 
@@ -207,18 +203,6 @@ static const char str_high_scores[] = "High Scores";
 /*============================================================================
  * Functions
  *==========================================================================*/
-
-void iplotRectB( display_t * disp, int x1, int y1, int x2, int y2 )
-{
-	SETUP_FOR_TURBO( disp );
-
-    int x;
-    for( ; y1 < y2; y1++ )
-    for( x = x1; x < x2; x++ )
-    {
-        TURBO_SET_PIXEL( disp, x, y1, CNDRAW_BLACK );
-    }
-}
 
 static void flightBackground(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum )
 {
@@ -256,7 +240,6 @@ static void flightEnterMode(display_t * disp)
 	addRowToMeleeMenu(flight->menu, fl_flight_env);
     addRowToMeleeMenu(flight->menu, fl_flight_perf);
 	flight->invertYRow = addRowToMeleeMenu( flight->menu, flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env );
-    addRowToMeleeMenu(flight->menu, fl_flight_triangles);
 	addRowToMeleeMenu(flight->menu, str_quit);
 	addRowToMeleeMenu(flight->menu, str_high_scores);
 }
@@ -279,11 +262,7 @@ static void flightExitMode(void)
 static void flightMenuCb(const char* menuItem)
 {
     
-    if( fl_flight_triangles == menuItem )
-    {
-        flightStartGame(FLIGHT_TRIANGLES);
-    }
-    else if( fl_flight_perf == menuItem )
+    if( fl_flight_perf == menuItem )
     {
         flightStartGame(FLIGHT_PERFTEST);
     }
@@ -437,6 +416,7 @@ static void flightUpdate(void* arg __attribute__((unused)))
        	    drawMeleeMenu(flight->disp, flight->menu);
             break;
         }
+		case FLIGHT_PERFTEST:
         case FLIGHT_GAME:
         {
             // Increment the frame count
@@ -492,9 +472,6 @@ static void flightUpdate(void* arg __attribute__((unused)))
             drawText( flight->disp, &flight->ibm, CNDRAW_WHITE, placeStr, 65,2);
             break;
         }
-		case FLIGHT_PERFTEST:
-		case FLIGHT_TRIANGLES:
-			break;
     }
 
     flightUpdateLEDs( flight );
@@ -909,7 +886,7 @@ static void flightRender()
 #ifdef EMU
     //uint32_t start = 0; 
 #else
-    // uint32_t start = xthal_get_ccount();
+    uint32_t start = getCycleCount();
 #endif
 
 #ifndef EMU
@@ -1047,7 +1024,7 @@ static void flightRender()
 #ifdef EMU
     //uint32_t stop = 0;
 #else
-    // uint32_t stop = xthal_get_ccount();
+    uint32_t stop = getCycleCount();
 #endif
 
 
@@ -1055,7 +1032,7 @@ static void flightRender()
     {
         char framesStr[32] = {0};
 
-        iplotRectB(disp, 0, 0, TFT_WIDTH, flight->radiostars.h + 1);
+        fillDisplayArea(disp, 0, 0, TFT_WIDTH, flight->radiostars.h + 1, CNDRAW_BLACK);
 
         //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
         int elapsed = ((uint32_t)esp_timer_get_time()-tflight->timeOfStart)/10000;
@@ -1066,11 +1043,19 @@ static void flightRender()
 
         snprintf(framesStr, sizeof(framesStr), "%d.%02d", elapsed/100, elapsed%100 );
         width = textWidth(&flight->radiostars, framesStr);
-        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - width + 1-50, 0 );
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, 0 );
+		
+		
+		if( flight->mode==FLIGHT_PERFTEST )
+		{
+			snprintf(framesStr, sizeof(framesStr), "%d", stop - start );
+			width = textWidth(&flight->radiostars, framesStr);
+			drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h );
+		}
 
         snprintf(framesStr, sizeof(framesStr), "%d", tflight->speed);
         width = textWidth(&flight->radiostars, framesStr);
-        iplotRectB(disp, TFT_WIDTH - width-50, TFT_HEIGHT - flight->radiostars.h - 1, TFT_WIDTH, TFT_HEIGHT);
+        fillDisplayArea(disp, TFT_WIDTH - width-50, TFT_HEIGHT - flight->radiostars.h - 1, TFT_WIDTH, TFT_HEIGHT, CNDRAW_BLACK);
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - width + 1-50, TFT_HEIGHT - flight->radiostars.h );
 
         if(flight->oob)
@@ -1123,7 +1108,7 @@ static void flightGameUpdate( flight_t * tflight )
     const int thruster_decay = 4;
     const int FLIGHT_SPEED_DEC = 10;
     const int flight_max_speed = 150;
-    const int flight_min_speed = 10;
+    const int flight_min_speed = (flight->mode==FLIGHT_PERFTEST)?0:10;
 
     //If we're at the ending screen and the user presses a button end game.
     if( tflight->mode == FLIGHT_GAME_OVER && ( bs & 16 ) && flight->frames > 199 )
@@ -1269,14 +1254,12 @@ void flightButtonCallback( buttonEvt_t* evt )
             break;
         }
         case FLIGHT_GAME_OVER:
+		case FLIGHT_PERFTEST:
         case FLIGHT_GAME:
         {
             flight->buttonState = state;
             break;
         }
-		case FLIGHT_TRIANGLES:
-		case FLIGHT_PERFTEST:
-			break;
     }
 }
 
