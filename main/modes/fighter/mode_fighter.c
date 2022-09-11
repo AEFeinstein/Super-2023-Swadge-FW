@@ -621,6 +621,12 @@ void fighterGameLoop(int64_t elapsedUs)
         updateFighterPosition(&f->fighters[0], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
         updateFighterPosition(&f->fighters[1], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
 
+        // If the home run contest ended early, this will be NULL
+        if(NULL == f)
+        {
+            return;
+        }
+
         // Update timers. This transitions between states and spawns projectiles
         checkFighterTimer(&f->fighters[0]);
         checkFighterTimer(&f->fighters[1]);
@@ -1723,8 +1729,21 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         setFighterRelPos(ftr, origRelPos, origTouchingPlatform, origPassingThroughPlatform, origIsInair);
     }
 
-    // Check kill zone
-    if(hbox.y0 > (600 << SF))
+    // Check if the sandbag has landed
+    if(SANDBAG == ftr->character)
+    {
+        if(hbox.y1 > (f->d->h << SF))
+        {
+            // Initialize the result
+            fighterShowHrResult(f->fighters[0].character, f->fighters[1].pos, f->fighters[1].velocity, f->fighters[1].gravity);
+            // Deinit the game
+            fighterExitGame();
+            // Return after deinit
+            return;
+        }
+    }
+    // Check kill zone for all other characters
+    else if(hbox.y0 > (600 << SF))
     {
         // Decrement stocks
         if(ftr->stocks > 0)

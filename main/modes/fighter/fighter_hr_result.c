@@ -16,13 +16,13 @@ int32_t rotDeg = 0;
 
 /**
  * @brief Initialize the result display after a home run contest
- * 
- * @param disp 
- * @param font 
- * @param character 
- * @param pos 
- * @param vel 
- * @param gravity 
+ *
+ * @param disp
+ * @param font
+ * @param character
+ * @param pos
+ * @param vel
+ * @param gravity
  */
 void initFighterHrResult(display_t* disp, font_t* font, fightingCharacter_t character, vector_t pos, vector_t vel,
                          int32_t gravity)
@@ -47,7 +47,7 @@ void deinitFighterHrResult(void)
 
 /**
  * @brief Main loop to draw the display for a home run contest result
- * 
+ *
  * @param elapsedUs The time elapsed since this was last called
  */
 void fighterHrResultLoop(int64_t elapsedUs)
