@@ -188,3 +188,116 @@ bool readNvs32(const char* key, int32_t* outVal)
         }
     }
 }
+
+/**
+ * @brief Write a blob to NVS with a given string key
+ *
+ * @param key The key for the value to write
+ * @param value The blob value to write
+ * @param length The length of the blob
+ * @return true if the value was written, false if it was not
+ */
+bool writeNvsBlob(const char* key, const void* value, size_t length)
+{
+    nvs_handle_t handle;
+    esp_err_t openErr = nvs_open(PARTITION_NAME, NVS_READWRITE, &handle);
+    switch(openErr)
+    {
+        case ESP_OK:
+        {
+            // Assume the commit is bad
+            bool commitOk = false;
+            // Write the NVS
+            esp_err_t writeErr = nvs_set_blob(handle, key, value, length);
+            // Check the write error
+            switch(writeErr)
+            {
+                case ESP_OK:
+                {
+                    // Commit NVS
+                    commitOk = (ESP_OK == nvs_commit(handle));
+                    break;
+                }
+                default:
+                case ESP_ERR_NVS_INVALID_HANDLE:
+                case ESP_ERR_NVS_READ_ONLY:
+                case ESP_ERR_NVS_INVALID_NAME:
+                case ESP_ERR_NVS_NOT_ENOUGH_SPACE:
+                case ESP_ERR_NVS_REMOVE_FAILED:
+                {
+                    ESP_LOGE("NVS", "%s err %s", __func__, esp_err_to_name(writeErr));
+                    break;
+                }
+            }
+
+            // Close the handle
+            nvs_close(handle);
+            return commitOk;
+        }
+        default:
+        case ESP_ERR_NVS_NOT_INITIALIZED:
+        case ESP_ERR_NVS_PART_NOT_FOUND:
+        case ESP_ERR_NVS_NOT_FOUND:
+        case ESP_ERR_NVS_INVALID_NAME:
+        case ESP_ERR_NO_MEM:
+        {
+            ESP_LOGE("NVS", "%s openErr %s", __func__, esp_err_to_name(openErr));
+            return false;
+        }
+    }
+}
+
+/**
+ * @brief Read a blob from NVS with a given string key
+ * 
+ * @param key The key for the value to read
+ * @param out_value The value will be written to this memory. It must be allocated before calling readNvsBlob()
+ * @param length The length of the value that was read
+ * @return true if the value was read, false if it was not
+ */
+bool readNvsBlob(const char* key, void* out_value, size_t* length)
+{
+    nvs_handle_t handle;
+    esp_err_t openErr = nvs_open(PARTITION_NAME, NVS_READONLY, &handle);
+    switch(openErr)
+    {
+        case ESP_OK:
+        {
+            // Assume the commit is bad
+            bool readOk = false;
+            // Write the NVS
+            esp_err_t readErr = nvs_get_blob(handle, key, out_value, length);
+            // Check the write error
+            switch(readErr)
+            {
+                case ESP_OK:
+                {
+                    readOk = true;
+                    break;
+                }
+                default:
+                case ESP_ERR_NVS_NOT_FOUND: // This is the error when a nonexistent key is read
+                case ESP_ERR_NVS_INVALID_HANDLE:
+                case ESP_ERR_NVS_INVALID_NAME:
+                case ESP_ERR_NVS_INVALID_LENGTH:
+                {
+                    ESP_LOGE("NVS", "%s readErr %s", __func__, esp_err_to_name(readErr));
+                    break;
+                }
+            }
+            // Close the handle
+            nvs_close(handle);
+            return readOk;
+        }
+        default:
+        case ESP_ERR_NVS_NOT_INITIALIZED:
+        case ESP_ERR_NVS_PART_NOT_FOUND:
+        case ESP_ERR_NVS_NOT_FOUND:
+        case ESP_ERR_NVS_INVALID_NAME:
+        case ESP_ERR_NO_MEM:
+        {
+            ESP_LOGE("NVS", "%s openErr %s", __func__, esp_err_to_name(openErr));
+            return false;
+        }
+    }
+}
