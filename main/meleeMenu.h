@@ -28,6 +28,7 @@ typedef struct
     meleeMenuCb cbFunc;
     uint8_t numRows;
     uint8_t selectedRow;
+    uint8_t allowLEDControl;
 } meleeMenu_t;
 
 //==============================================================================

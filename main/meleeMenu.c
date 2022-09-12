@@ -70,6 +70,7 @@ meleeMenu_t* initMeleeMenu(const char* title, font_t* font, meleeMenuCb cbFunc)
     newMenu->title = title;
     newMenu->cbFunc = cbFunc;
     newMenu->font = font;
+    newMenu->allowLEDControl = 1;
     // Return the menu
     return newMenu;
 }
@@ -118,7 +119,7 @@ int addRowToMeleeMenu(meleeMenu_t* menu, const char* label)
         menu->rows[menu->numRows] = label;
         return menu->numRows++;
     }
-	return -1;
+    return -1;
 }
 
 /**
@@ -245,12 +246,15 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
                           (row == menu->selectedRow));
     }
 
-    led_t leds[NUM_LEDS] = {0};
-    for(uint8_t i = 0; i < NUM_LEDS; i++)
+    if( menu->allowLEDControl )
     {
-        leds[i] = borderLedColors[menu->selectedRow];
+        led_t leds[NUM_LEDS] = {0};
+        for(uint8_t i = 0; i < NUM_LEDS; i++)
+        {
+            leds[i] = borderLedColors[menu->selectedRow];
+        }
+        setLeds(leds, NUM_LEDS);
     }
-    setLeds(leds, NUM_LEDS);
 }
 
 /**

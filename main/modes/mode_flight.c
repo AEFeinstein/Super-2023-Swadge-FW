@@ -128,6 +128,7 @@ typedef struct
     uint32_t timeGot100Percent;
     int wintime;
     bool inverty;
+	uint8_t menuEntryForInvertY;
 
     flLEDAnimation ledAnimation;
     uint8_t        ledAnimationTime;
@@ -190,8 +191,8 @@ flight_t* flight;
 
 static const char fl_title[]  = "Flightsim";
 static const char fl_flight_env[] = "Take Flight";
-static const char fl_flight_invertY0_env[] = "Y NOT INVERTED";
-static const char fl_flight_invertY1_env[] = "Y INVERTED";
+static const char fl_flight_invertY0_env[] = "[ ] Y Invert";
+static const char fl_flight_invertY1_env[] = "[*] Y Invert";
 static const char fl_flight_perf[] = "Perf Test";
 static const char str_quit[] = "Quit";
 static const char str_high_scores[] = "High Scores";
@@ -238,9 +239,11 @@ static void flightEnterMode(display_t * disp)
     loadFont("mm.font", &flight->meleeMenuFont);
 
     flight->menu = initMeleeMenu(fl_title, &flight->meleeMenuFont, flightMenuCb);
+	flight->menu->allowLEDControl = 0; // we manage the LEDs
+
     addRowToMeleeMenu(flight->menu, fl_flight_env);
     addRowToMeleeMenu(flight->menu, fl_flight_perf);
-    flight->invertYRow = addRowToMeleeMenu( flight->menu, flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env );
+    flight->menuEntryForInvertY = flight->invertYRow = addRowToMeleeMenu( flight->menu, flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env );
     addRowToMeleeMenu(flight->menu, str_quit);
     addRowToMeleeMenu(flight->menu, str_high_scores);
 }
@@ -489,9 +492,7 @@ static void flightUpdate(void* arg __attribute__((unused)))
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//int16_t tdCOS( uint8_t iv );
 void tdIdentity( int16_t * matrix );
-//static int16_t tdSIN( uint8_t iv );
 void Perspective( int fovx, int aspect, int zNear, int zFar, int16_t * out );
 int LocalToScreenspace( const int16_t * coords_3v, int16_t * o1, int16_t * o2 );
 void SetupMatrix( void );
@@ -507,27 +508,8 @@ int16_t tdDist( const int16_t * a, const int16_t * b );
 
 //From https://github.com/cnlohr/channel3/blob/master/user/3d.c
 
-//static const uint8_t sintable[128] = { 0, 6, 12, 18, 25, 31, 37, 43, 49, 55, 62, 68, 74, 80, 86, 91, 97, 103, 109, 114, 120, 125, 131, 136, 141, 147, 152, 157, 162, 166, 171, 176, 180, 185, 189, 193, 197, 201, 205, 208, 212, 215, 219, 222, 225, 228, 230, 233, 236, 238, 240, 242, 244, 246, 247, 249, 250, 251, 252, 253, 254, 254, 255, 255, 255, 255, 255, 254, 254, 253, 252, 251, 250, 249, 247, 246, 244, 242, 240, 238, 236, 233, 230, 228, 225, 222, 219, 215, 212, 208, 205, 201, 197, 193, 189, 185, 180, 176, 171, 166, 162, 157, 152, 147, 141, 136, 131, 125, 120, 114, 109, 103, 97, 91, 86, 80, 74, 68, 62, 55, 49, 43, 37, 31, 25, 18, 12, 6, };
-
 int16_t ModelviewMatrix[16];
 int16_t ProjectionMatrix[16];
-/*
-int16_t tdSIN( uint8_t iv )
-{
-    if( iv > 127 )
-    {
-        return -sintable[iv-128];
-    }
-    else
-    {
-        return sintable[iv];
-    }
-}
-
-int16_t tdCOS( uint8_t iv )
-{
-    return tdSIN( iv + 64 );
-}*/
 
 uint16_t tdSQRT( uint32_t inval )
 {
@@ -584,6 +566,7 @@ void tdIdentity( int16_t * matrix )
 #define m31 13
 #define m32 14
 #define m33 15
+
 /*
 int vTransform( flight_t * flightsim, int16_t * xformed, const int16_t * input )
 {
@@ -1164,7 +1147,7 @@ static void flightGameUpdate( flight_t * tflight )
     const int thruster_decay = 4;
     const int FLIGHT_SPEED_DEC = 10;
     const int flight_max_speed = 150;
-    const int flight_min_speed = (flight->mode==FLIGHT_PERFTEST)?0:10;
+    const int flight_min_speed = (flight->mode==FLIGHT_PERFTEST)?0:5;
 
     //If we're at the ending screen and the user presses a button end game.
     if( tflight->mode == FLIGHT_GAME_OVER && ( bs & 16 ) && flight->frames > 199 )
@@ -1283,7 +1266,13 @@ void flightButtonCallback( buttonEvt_t* evt )
             {
                 flightLEDAnimate( FLIGHT_LED_MENU_TICK );
                 meleeMenuButton(flight->menu, evt->button);
-                //menuButton(flight->menu, button);
+				
+				// If we are left-and-right on Y not inverted then we invert y or not.
+				if( ( button & ( LEFT | RIGHT ) ) && flight->menu->selectedRow == flight->menuEntryForInvertY )
+				{
+					flight->inverty ^= 1;
+					flight->menu->rows[flight->menuEntryForInvertY] = flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env;
+				}
             }
             break;
         }
