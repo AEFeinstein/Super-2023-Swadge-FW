@@ -5,7 +5,7 @@
 //==============================================================================
 
 #include "embeddedout.h"
-#include "led_util.h"
+#include "swadge_util.h"
 
 //==============================================================================
 // Functions
@@ -332,7 +332,5 @@ uint32_t ECCtoHEX( uint8_t note, uint8_t sat, uint8_t val )
     }
     hue >>= 8;
 
-    uint8_t r, g, b;
-    led_strip_hsv2rgb(hue, sat, val, &r, &g, &b);
-    return (r << 16) | (g << 8) | (b);
+    return EHSVtoHEXhelper(hue, sat, val, true);
 }

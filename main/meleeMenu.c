@@ -70,6 +70,7 @@ meleeMenu_t* initMeleeMenu(const char* title, font_t* font, meleeMenuCb cbFunc)
     newMenu->title = title;
     newMenu->cbFunc = cbFunc;
     newMenu->font = font;
+    newMenu->allowLEDControl = 1;
     // Return the menu
     return newMenu;
 }
@@ -107,16 +108,18 @@ void deinitMeleeMenu(meleeMenu_t* menu)
  * @param menu  The menu to add a row to
  * @param label The label for this row. The underlying memory isn't copied, so
  *              this string must persist for the lifetime of the menu.
+ * @return value is row number that was inserted, or -1 if error.
  */
-void addRowToMeleeMenu(meleeMenu_t* menu, const char* label)
+int addRowToMeleeMenu(meleeMenu_t* menu, const char* label)
 {
     // Make sure there's space for this row
     if(menu->numRows < MAX_ROWS)
     {
         // Add the row
         menu->rows[menu->numRows] = label;
-        menu->numRows++;
+        return menu->numRows++;
     }
+    return -1;
 }
 
 /**
@@ -243,12 +246,15 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
                           (row == menu->selectedRow));
     }
 
-    led_t leds[NUM_LEDS] = {0};
-    for(uint8_t i = 0; i < NUM_LEDS; i++)
+    if( menu->allowLEDControl )
     {
-        leds[i] = borderLedColors[menu->selectedRow];
+        led_t leds[NUM_LEDS] = {0};
+        for(uint8_t i = 0; i < NUM_LEDS; i++)
+        {
+            leds[i] = borderLedColors[menu->selectedRow];
+        }
+        setLeds(leds, NUM_LEDS);
     }
-    setLeds(leds, NUM_LEDS);
 }
 
 /**

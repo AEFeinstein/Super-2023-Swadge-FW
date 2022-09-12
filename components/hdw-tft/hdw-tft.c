@@ -22,6 +22,7 @@
 //#define PROCPROFILE
 
 #ifdef PROCPROFILE
+void uart_tx_one_char( char c );
 static inline uint32_t get_ccount()
 {
     uint32_t ccount;
@@ -343,6 +344,7 @@ void drawDisplayTft(display_t * disp,bool drawDiff,fnBackgroundDrawCallback_t cb
 esp_lcd_panel_handle_t panel_handle = NULL;
 static paletteColor_t * pixels = NULL;
 static uint16_t *s_lines[2] = {0};
+static gpio_num_t tftBacklightPin;
 
 // static uint64_t tFpsStart = 0;
 // static int framesDrawn = 0;
@@ -391,6 +393,8 @@ void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
              gpio_num_t mosi, gpio_num_t dc, gpio_num_t cs, gpio_num_t rst,
              gpio_num_t backlight, bool isPwmBacklight)
 {
+    tftBacklightPin = backlight;
+
     if(false == isPwmBacklight)
     {
         // Binary backlight
@@ -579,6 +583,16 @@ void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
 }
 
 /**
+ * @brief Disable the backlight (for powerdown)
+ *
+ */
+void disableTFTBacklight()
+{
+    gpio_reset_pin( tftBacklightPin );
+    gpio_set_level( tftBacklightPin, 0 );
+}
+
+/**
  * @brief Set a single pixel in the display, with bounds check
  *
  * TODO handle transparency
@@ -639,6 +653,7 @@ void drawDisplayTft(display_t * disp, bool drawDiff __attribute__((unused)), fnB
 
 #ifdef PROCPROFILE
     uint32_t start, mid, final;
+    uart_tx_one_char('f');
 #endif
 
     // Send the frame, ping ponging the send buffer
@@ -666,6 +681,7 @@ void drawDisplayTft(display_t * disp, bool drawDiff __attribute__((unused)), fnB
         }
 
 #ifdef PROCPROFILE
+        uart_tx_one_char('g');
         mid = get_ccount();
 #endif
 
@@ -700,11 +716,13 @@ void drawDisplayTft(display_t * disp, bool drawDiff __attribute__((unused)), fnB
 
 #ifdef PROCPROFILE
         final = get_ccount();
+        uart_tx_one_char('h');
 #endif
     }
 
 #ifdef PROCPROFILE
-    ESP_LOGI( "tft", "%d/%d", mid - start, final - mid );
+    uart_tx_one_char('i');
+    //ESP_LOGI( "tft", "%d/%d", mid - start, final - mid );
 #endif
 
     // Debug printing for frames-per-second
