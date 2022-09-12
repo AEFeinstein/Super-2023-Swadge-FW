@@ -25,6 +25,7 @@
 void picrossUserInput(int64_t elapsedUs);
 void picrossCheckLevel(void);
 void picrossSetupPuzzle(bool cont);
+void picrossCalculateHoverHint(void);
 void setCompleteLevelFromWSG(wsg_t* puzz);
 void drawSinglePixelFromWSG(display_t* d,int x, int y, wsg_t* image);
 bool hintsMatch(picrossHint_t a, picrossHint_t b);
@@ -37,6 +38,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint);
 void drawPicrossInput(display_t* d);
 void drawBackground(display_t* d);
 void countInput(picrossDir_t input);
+void drawNumberAtCoord(display_t* d, font_t* font, paletteColor_t color, uint8_t number, int8_t x, int8_t y, int16_t xOff, int16_t yOff);
 int8_t getHintShift(uint8_t hint);
 void saveCompletedOnSelectedLevel(bool completed);
 void enterSpace(uint8_t x,uint8_t y,picrossSpaceType_t newSpace);
@@ -80,6 +82,8 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input = calloc(1, sizeof(picrossInput_t));
     p->input->x=0;
     p->input->y=0;
+    p->input->hoverBlockSizeX = 0;
+    p->input->hoverBlockSizeY = 0;
     p->input->btnState=0;
     p->input->prevBtnState= 0x80 | 0x10 | 0x40 | 0x20;//prevents us from instantly fillling in a square because A is held from selecting level.
     p->countState = PICROSSDIR_IDLE;
@@ -197,7 +201,8 @@ void picrossSetupPuzzle(bool cont)
     
     uint16_t totalXCount = p->puzzle->width+p->maxHintsX+1;
     uint16_t totalYCount = p->puzzle->height+p->maxHintsY+1;
-    uint16_t size = (((totalXCount) > (totalYCount)) ? (totalXCount) : (totalYCount)) ;//+1
+    uint16_t size = (((totalXCount) > (totalYCount)) ? (totalXCount) : (totalYCount)) ;
+    size = size + (p->input->showGuides ? 1 : 0);//add an extra space for the right-bottom side hover hints.
     uint16_t screenWidth = (p->d->w);
     uint16_t screenHeight = (p->d->h);
 
@@ -390,8 +395,9 @@ void picrossGameLoop(int64_t elapsedUs)
         return;
     }
 
-    
-
+    if(p->input->showGuides){
+        picrossCalculateHoverHint();
+    }
     drawPicrossScene(p->d);
 
     
@@ -535,6 +541,71 @@ bool hintIsFilledIn(picrossHint_t* hint)
 //==============================================
 //CONTROLS & INPUT
 //==============================================
+
+void picrossCalculateHoverHint()
+{
+    //if ShowGuides is off, skip.
+
+    //Determines the size of the blocks the player is hovering over.
+    p->input->hoverBlockSizeX = 0;
+    p->input->hoverBlockSizeY = 0;
+    picrossSpaceType_t space;
+
+    //get horizontal hit.
+
+    //from current to the right
+    for(int x = p->input->x;x<p->puzzle->width;x++)
+    {
+        space = p->puzzle->level[x][p->input->y];
+        if(space == SPACE_FILLED)
+        {
+            p->input->hoverBlockSizeX++;
+            continue;
+        }else{
+            break;
+        }
+    }
+    //from zero to left if the block under us is filled (ie: hint is at least 1)
+    if(p->input->hoverBlockSizeX >= 1){
+        for(int x = p->input->x-1;x>=0;x--)
+        {
+            space = p->puzzle->level[x][p->input->y];
+            if(space == SPACE_FILLED)
+            {
+                p->input->hoverBlockSizeX++;
+                continue;
+            }else{
+                break;
+            }
+        }
+    }
+    //from current to top
+    for(int y = p->input->y;y<p->puzzle->height;y++)
+    {
+        space = p->puzzle->level[p->input->x][y];
+        if(space == SPACE_FILLED)
+        {
+            p->input->hoverBlockSizeY++;
+            continue;
+        }else{
+            break;
+        }
+    }
+    //from current-1 to bottom, but only if there is a block under the input box.
+    if(p->input->hoverBlockSizeY >= 1){
+        for(int y = p->input->y-1;y>=0;y--)
+        {
+            space = p->puzzle->level[p->input->x][y];
+            if(space == SPACE_FILLED)
+            {
+                p->input->hoverBlockSizeY++;
+                continue;
+            }else{
+                break;
+            }
+        }
+    }
+}
 
 void picrossUserInput(int64_t elapsedUs)
 {
@@ -1065,10 +1136,22 @@ void drawPicrossHud(display_t* d,font_t* font)
         drawHint(d,font,p->puzzle->colHints[i]);
     }
 
+    if(p->input->showGuides){
+        //Draw hover guide on right side.
+        if(p->input->hoverBlockSizeX != 0)
+        {
+            drawNumberAtCoord(d,font,c445,p->input->hoverBlockSizeX,p->puzzle->width,p->input->y,3,0);
+        }
+        //draw hover guide on bottom
+        if(p->input->hoverBlockSizeY != 0){
+            drawNumberAtCoord(d,font,c445,p->input->hoverBlockSizeY,p->input->x,p->puzzle->height,0,3);
+        }
+    }
+
     //Draw the UI last, so it goes above the guidelines (which are done in drawHint).
     //This means they COULD cover hints, since we don't really check for that procedurally. So keep an eye out when making puzzles.
 
-    //Draw coordinates
+    //Draw current coordinates
     char textBuffer[9];
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%d,%d", p->input->x+1,p->input->y+1);
     drawText(d, &(p->UIFont), c555, textBuffer, 10, 20);
@@ -1081,9 +1164,7 @@ void drawPicrossHud(display_t* d,font_t* font)
 
 void drawHint(display_t* d,font_t* font, picrossHint_t hint)
 {
-    int8_t vHintShift = p->vFontPad;//was 2
     uint8_t h;
-    uint8_t g = p->clueGap;
     box_t hintbox = boxFromCoord(-1,hint.index);
     paletteColor_t hintShadeColor = c001;//todo: move to struct if we decide to keep this.
     paletteColor_t hintColor = hint.filledIn ? c333 : c555;
@@ -1097,35 +1178,15 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
             hintbox.x0 = 0;
             drawBox(d,hintbox,hintShadeColor,true,0);
         }
-        
+
         //draw clues if they... are a thing.
         //todo: do the math on the max number of hints that _this_ level has, and just use that for all the math.
         for(uint8_t i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
         {
             h = hint.hints[PICROSS_MAX_HINTCOUNT-1-i];
-            hintbox = boxFromCoord(-j-1,hint.index);
-            hintbox.x0 = hintbox.x0 - (g * (j));
-            hintbox.x1 = hintbox.x1 - (g * (j));
-            //we have to flip the hints around. 
-            if(h == 0){
+            if(h != 0){
                 //dont increase j.
-            }else if(h < 10){//single digit draws
-                
-                //drawBox(d,hintbox,c111,false,1);//for debugging. we will draw nothing when proper.
-
-                char letter[4];
-                sprintf(letter, "%d", h);//this function appears to modify hintbox.x0
-                //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,hintColor, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale), (hintbox.y1-p->drawScale+vHintShift));
-                j++;//the index position, but only for where to draw. shifts the clues to the right.
-            }else{//double digit draws
-
-                char letter[4];
-                sprintf(letter, "%d", h);
-                //as a "temporary" workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,hintColor, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale)), (hintbox.y1-p->drawScale+vHintShift));
-                sprintf(letter, "%d", hint.hints[PICROSS_MAX_HINTCOUNT-1-i]%10);
-                drawChar(d,hintColor, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+(hintbox.x1-p->drawScale+p->drawScale/2)), (hintbox.y1-p->drawScale+vHintShift));
+                drawNumberAtCoord(d,font,hintColor,h,-j-1,hint.index,0,0);//xOff: -(p->clueGap)*j
                 j++;
             }
         }
@@ -1139,39 +1200,52 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
             drawBox(d,hintbox,hintShadeColor,true,0);
         }
 
-        //draw hints
+        //draw the line of hints
         for(uint8_t i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
         {
-            h = hint.hints[PICROSS_MAX_HINTCOUNT-1-i];
-            hintbox = boxFromCoord(hint.index,-j-1);          
-
-             if(h == 0){      
-                //         
-            }else if(h < 10){//single digit numbers
-                //drawBox(d,hintbox,c111,false,1);
-                char letter[4];
-                sprintf(letter, "%d", h);
-                //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,hintColor, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale), (hintbox.y1-p->drawScale+vHintShift));
-                j++;//the index position, but only for where to draw. shifts the clues to the right.
-            }else{
-                //drawBox(d,hintbox,c111,false,1);//same as above
-                char letter[4];
-                sprintf(letter, "%d", h);
-                //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
-                drawChar(d,hintColor, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale), (hintbox.y1-p->drawScale+vHintShift));
-                sprintf(letter, "%d", hint.hints[PICROSS_MAX_HINTCOUNT-1-i]%10);
-                drawChar(d,hintColor, font->h, &font->chars[(*letter) - ' '], (getHintShift(h)+hintbox.x1-p->drawScale+p->drawScale/2), (hintbox.y1-p->drawScale+vHintShift));
+            h = hint.hints[PICROSS_MAX_HINTCOUNT-1-i];      
+            if(h != 0){
+                drawNumberAtCoord(d,font,hintColor,h,hint.index,-j-1,0,0);
                 j++;
             }
         }
+    }
+}
+/**
+ * @brief Draws a number at a coordinate position. This will draw the number 0, although we never draw it in practice.
+ * On principle it felt wrong to write a function "drawNumber" that can't write "0". 
+ * 
+ * @param d display
+ * @param font font
+ * @param color color
+ * @param number The number to print to the screen (<= 2 digits)
+ * @param x //x coordinate to draw at. top left of board is 0,0; hints are in a negative direction.
+ * @param y //y cooridnate to draw at
+ * @param xOff //additional x offset in pixels
+ * @param yOff //additional y offset in pixels
+ */
+void drawNumberAtCoord(display_t* d, font_t* font, paletteColor_t color, uint8_t number, int8_t x, int8_t y, int16_t xOff, int16_t yOff)
+{
+    box_t box = boxFromCoord(x,y);
+    if(number < 10)
+    {
+        char letter[4];
+        sprintf(letter, "%d", number);
+        drawChar(d,color, font->h, &font->chars[(*letter) - ' '], getHintShift(number)+box.x0+xOff, ((int16_t)box.y0+p->vFontPad)+yOff);
+    }else{//double digit draws
+
+        char letter[4];
+        sprintf(letter, "%d", number);
+        //as a "temporary" workaround, we will use x1 and y1 and subtract the drawscale.
+        drawChar(d,color, font->h, &font->chars[(*letter) - ' '], getHintShift(number)+box.x0+xOff, box.y0+p->vFontPad+yOff);
+        sprintf(letter, "%d", number%10);
+        drawChar(d,color, font->h, &font->chars[(*letter) - ' '], getHintShift(number)+box.x0+p->drawScale/2+xOff, box.y0+p->vFontPad+yOff);
     }
 }
 
 int8_t getHintShift(uint8_t hint)
 {
     //todo: we have three fonts (drawScale 0-12, 12-24, 24+). Offsets need to be calibrated for each one.
-
     switch(hint)
     {
         case 0:

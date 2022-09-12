@@ -34,6 +34,8 @@ typedef struct
     picrossSpaceType_t startHeldType;
     uint8_t x;
     uint8_t y;
+    uint8_t hoverBlockSizeX;
+    uint8_t hoverBlockSizeY;
     uint16_t prevBtnState;
     uint16_t btnState;
     bool movedThisFrame;

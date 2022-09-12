@@ -73,8 +73,8 @@ static const char str_exit[] = "Exit";
 static const char str_options[] = "Options";
 
 static const char str_back[] = "Back";
-static const char str_HintsOn[] = "Hints: On";
-static const char str_HintsOff[] = "Hints: Off";
+static const char str_HintsOn[] = "Mistake Alert: On";
+static const char str_HintsOff[] = "Mistake Alert: Off";
 static const char str_GuidesOn[] = "Guides: On";
 static const char str_GuidesOff[] = "Guides: Off";
 static const char str_AnimateBGOn[] = "BG Animate: On";
@@ -320,14 +320,8 @@ void setPicrossMainMenu(bool resetPos)
         //Draw the options menu
         resetMeleeMenu(pm->menu, str_options, picrossMainMenuCb);
         pm->menu->selectedRow = rowPos;//reset sets this to 0, so lets ... set it back.
-        if(picrossGetSaveFlag(0))//are hints on?
-        {
-            addRowToMeleeMenu(pm->menu, str_HintsOn);
-        }else{
-            addRowToMeleeMenu(pm->menu, str_HintsOff);
-        }
 
-        if(picrossGetLoadedSaveFlag(1))//are guides on? (getHints loaded from perma, we can skip doing that again and just read local)
+        if(picrossGetSaveFlag(1))//are guides on? (getHints loaded from perma, we can skip doing that again and just read local)
         {
             addRowToMeleeMenu(pm->menu, str_GuidesOn);
         }else{
@@ -340,6 +334,14 @@ void setPicrossMainMenu(bool resetPos)
         }else{
             addRowToMeleeMenu(pm->menu, str_AnimateBGOff);
         }
+
+        if(picrossGetLoadedSaveFlag(0))//are hints on?
+        {
+            addRowToMeleeMenu(pm->menu, str_HintsOn);
+        }else{
+            addRowToMeleeMenu(pm->menu, str_HintsOff);
+        }
+
         addRowToMeleeMenu(pm->menu, str_eraseProgress);
         addRowToMeleeMenu(pm->menu, str_back);
         return;
