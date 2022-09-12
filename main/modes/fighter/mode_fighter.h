@@ -217,6 +217,8 @@ typedef struct
     /* Animation timer */
     int32_t animTimer;
     uint8_t currentSprite;
+    uint32_t hitstopTimer;
+    uint8_t hitstopShake;
 } fighter_t;
 
 typedef struct
