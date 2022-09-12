@@ -64,7 +64,6 @@ typedef struct
     bool shouldSendScene;
     fighterScene_t* composedScene;
     uint8_t composedSceneLen;
-    uint32_t hitstopTimer;
     int32_t gameTimerUs;
     int32_t printGoTimerUs;
     fighterGamePhase_t gamePhase;
@@ -82,7 +81,7 @@ void setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* to
                       const platform_t* passingThroughPlatform, bool isInAir);
 void checkFighterButtonInput(fighter_t* ftr);
 void updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
-void checkFighterTimer(fighter_t* ftr);
+void checkFighterTimer(fighter_t* ftr, bool hitstopActive);
 void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr);
 void checkFighterProjectileCollisions(list_t* projectiles);
 
@@ -602,33 +601,24 @@ void fighterGameLoop(int64_t elapsedUs)
                 break;
             }
         }
-
-        // If the hitstop timer is active
-        if(f->hitstopTimer)
-        {
-            // Decrement it
-            f->hitstopTimer--;
-        }
     }
 
-    // If the hitstop timer is active
-    if(f->hitstopTimer)
-    {
-        // Don't do anything
-        return;
-    }
+    bool hitstopActive = (f->fighters[0].hitstopTimer || f->fighters[1].hitstopTimer);
 
     if(f->buttonInputReceived)
     {
         f->buttonInputReceived = false;
 
-        // Check fighter button inputs
-        checkFighterButtonInput(&f->fighters[0]);
-        checkFighterButtonInput(&f->fighters[1]);
+        if(!hitstopActive)
+        {
+            // Check fighter button inputs
+            checkFighterButtonInput(&f->fighters[0]);
+            checkFighterButtonInput(&f->fighters[1]);
 
-        // Move fighters
-        updateFighterPosition(&f->fighters[0], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
-        updateFighterPosition(&f->fighters[1], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
+            // Move fighters
+            updateFighterPosition(&f->fighters[0], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
+            updateFighterPosition(&f->fighters[1], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
+        }
 
         // If the home run contest ended early, this will be NULL
         if(NULL == f)
@@ -637,17 +627,20 @@ void fighterGameLoop(int64_t elapsedUs)
         }
 
         // Update timers. This transitions between states and spawns projectiles
-        checkFighterTimer(&f->fighters[0]);
-        checkFighterTimer(&f->fighters[1]);
+        checkFighterTimer(&f->fighters[0], hitstopActive);
+        checkFighterTimer(&f->fighters[1], hitstopActive);
 
-        // Update projectile timers. This moves projectiles and despawns if necessary
-        checkProjectileTimer(&f->projectiles, stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
+        if(!hitstopActive)
+        {
+            // Update projectile timers. This moves projectiles and despawns if necessary
+            checkProjectileTimer(&f->projectiles, stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
 
-        // Check for collisions between hitboxes and hurtboxes
-        checkFighterHitboxCollisions(&f->fighters[0], &f->fighters[1]);
-        checkFighterHitboxCollisions(&f->fighters[1], &f->fighters[0]);
-        // Check for collisions between projectiles and hurtboxes
-        checkFighterProjectileCollisions(&f->projectiles);
+            // Check for collisions between hitboxes and hurtboxes
+            checkFighterHitboxCollisions(&f->fighters[0], &f->fighters[1]);
+            checkFighterHitboxCollisions(&f->fighters[1], &f->fighters[0]);
+            // Check for collisions between projectiles and hurtboxes
+            checkFighterProjectileCollisions(&f->projectiles);
+        }
 
         // Free scene before composing another
         if(NULL != f->composedScene)
@@ -656,8 +649,8 @@ void fighterGameLoop(int64_t elapsedUs)
             f->composedScene = NULL;
         }
         f->composedSceneLen = 0;
-        f->composedScene = composeFighterScene(f->stageIdx, &f->fighters[0], &f->fighters[1], &f->projectiles,
-                                               &(f->composedSceneLen));
+        f->composedScene = composeFighterScene(f->stageIdx, &f->fighters[0], &f->fighters[1],
+                                               &f->projectiles, &(f->composedSceneLen));
 
         // Raise flag to send to other if this is multiplayer
         if(MULTIPLAYER == f->type)
@@ -710,9 +703,27 @@ void fighterGameLoop(int64_t elapsedUs)
  * Create a projectile if the attack state transitioned to is one.
  *
  * @param ftr The fighter to to check timers for
+ * @param hitstopActive true if hitstop is active and some timers should be ignored
  */
-void checkFighterTimer(fighter_t* ftr)
+void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
 {
+    // Tick down the hitstop timer
+    if(ftr->hitstopTimer)
+    {
+        ftr->hitstopTimer--;
+        ftr->hitstopShake = (ftr->hitstopShake + 1) % 2;
+    }
+    else
+    {
+        ftr->hitstopTimer = 0;
+    }
+
+    // Don't check other timers if hitstop is active
+    if(hitstopActive)
+    {
+        return;
+    }
+
     // Tick down the iframe timer
     if(ftr->iFrameTimer > 0)
     {
@@ -1789,8 +1800,8 @@ inline uint32_t getHitstop(uint16_t damage)
 {
     // In ultimate, it's
     // frames == floor(damage * 0.65 + 6)
-    // but an ultimate frame is 60fps, and this is 40fps, so this works
-    return ((damage * 4) + 36) / 9;
+    // but an ultimate frame is 60fps, and this is 20fps, so this works
+    return 4 * (((damage * 112) / 512) + 2);
 }
 
 /**
@@ -1857,8 +1868,8 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         // Tally the damage
                         otherFtr->damage += hbx->damage;
 
-                        // Set the hitstun timer
-                        f->hitstopTimer = getHitstop(hbx->damage);
+                        // Set the hitstop timer
+                        otherFtr->hitstopTimer = getHitstop(hbx->damage);
 
                         // Apply the knockback, scaled by damage
                         // roughly (1 + (0.02 * dmg))
@@ -2068,6 +2079,7 @@ void getSpritePos(fighter_t* ftr, vector_t* spritePos)
     {
         spritePos->x = ((ftr->pos.x + ftr->originalSize.x) >> SF) - currentSprite->w;
     }
+    spritePos->x += ftr->hitstopShake;
     spritePos->y = ftr->pos.y >> SF;
 
     // If this is an attack frame
