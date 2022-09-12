@@ -1801,7 +1801,7 @@ inline uint32_t getHitstop(uint16_t damage)
     // In ultimate, it's
     // frames == floor(damage * 0.65 + 6)
     // but an ultimate frame is 60fps, and this is 20fps, so this works
-    return 4 * (((damage * 112) / 512) + 2);
+    return (((damage * 112) / 512) + 2);
 }
 
 /**
