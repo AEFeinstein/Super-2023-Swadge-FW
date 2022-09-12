@@ -21,7 +21,7 @@
 
 /**
  * @brief Initialize the nonvolatile storage
- * 
+ *
  * @param firstTry true if this is the first time NVS is initialized this boot,
  *                 false otherwise
  * @return true if NVS was initialized and can be used, false if it failed
@@ -137,7 +137,7 @@ bool writeNvs32(const char* key, int32_t val)
 
 /**
  * @brief Read a 32 bit value from NVS with a given string key
- * 
+ *
  * @param key The key for the value to read
  * @param outVal The value that was read
  * @return true if the value was read, false if it was not

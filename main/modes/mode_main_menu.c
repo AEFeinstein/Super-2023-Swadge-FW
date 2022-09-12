@@ -14,6 +14,7 @@
 #include "settingsManager.h"
 #include "meleeMenu.h"
 
+#include "picross_menu.h"
 #include "fighter_menu.h"
 #include "jumper_menu.h"
 #include "mode_tiltrads.h"
@@ -22,6 +23,8 @@
 #include "mode_colorchord.h"
 #include "mode_credits.h"
 #include "mode_platformer.h"
+#include "mode_picross.h"
+// #include "picross_select.h"
 
 //==============================================================================
 // Functions Prototypes
@@ -51,7 +54,6 @@ typedef struct
     display_t* disp;
     font_t meleeMenuFont;
     meleeMenu_t* menu;
-    bool shouldDraw;
     uint8_t topLevelPos;
     uint8_t gamesPos;
     uint8_t toolsPos;
@@ -113,9 +115,6 @@ void mainMenuEnterMode(display_t* disp)
     // Initialize the menu
     mainMenu->menu = initMeleeMenu(mainMenuTitle, &mainMenu->meleeMenuFont, mainMenuTopLevelCb);
     mainMenuSetUpTopMenu(true);
-
-    // Set it to draw
-    mainMenu->shouldDraw = true;
 }
 
 /**
@@ -135,11 +134,7 @@ void mainMenuExitMode(void)
  */
 void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
-    if(mainMenu->shouldDraw)
-    {
-        mainMenu->shouldDraw = false;
-        drawMeleeMenu(mainMenu->disp, mainMenu->menu);
-    }
+    drawMeleeMenu(mainMenu->disp, mainMenu->menu);
 }
 
 /**
@@ -216,7 +211,6 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                         }
                     }
                     // Redraw menu options
-                    mainMenu->shouldDraw = true;
                     mainMenuSetUpSettingsMenu(false);
                 }
                 break;
@@ -228,13 +222,11 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                 {
                     // Go back to the main menu
                     mainMenuSetUpTopMenu(false);
-                    mainMenu->shouldDraw = true;
                     return;
                 }
                 break;
             }
         }
-        mainMenu->shouldDraw = true;
     }
 }
 
@@ -296,6 +288,7 @@ void mainMenuSetUpGamesMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, modeTiltrads.modeName);
     addRowToMeleeMenu(mainMenu->menu, modePlatformer.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeJumper.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modePicross.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -335,6 +328,10 @@ void mainMenuGamesCb(const char* opt)
     {
         // Start jumper
         switchToSwadgeMode(&modeJumper);
+    }
+    else if(modePicross.modeName == opt)
+    {
+        switchToSwadgeMode(&modePicross);
     }
     else if(mainMenuBack == opt)
     {

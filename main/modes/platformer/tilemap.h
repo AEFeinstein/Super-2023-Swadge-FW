@@ -147,6 +147,7 @@ typedef struct {
     bool tileSpawnEnabled;
     int16_t executeTileSpawnColumn;
     int16_t executeTileSpawnRow;
+    bool executeTileSpawnAll;
 
     entityManager_t *entityManager;
 
@@ -167,5 +168,6 @@ void tileSpawnEntity(tilemap_t * tilemap, uint8_t objectIndex, uint8_t tx, uint8
 uint8_t getTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty);
 void setTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty, uint8_t newTileId);
 bool isSolid(uint8_t tileId);
+void unlockScrolling(tilemap_t *tilemap);
 
 #endif

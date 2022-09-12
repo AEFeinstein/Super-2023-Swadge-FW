@@ -186,11 +186,11 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
         {
             if(((x % 12) == 0) || ((y % 12) == 0))
             {
-                d->setPx(x, y, c111); // Grid
+                SET_PIXEL(d, x, y, c111); // Grid
             }
             else
             {
-                d->setPx(x, y, c001); // Background
+                SET_PIXEL(d, x, y, c001); // Background
             }
         }
     }

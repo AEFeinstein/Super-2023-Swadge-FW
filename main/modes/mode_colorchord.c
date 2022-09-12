@@ -59,7 +59,6 @@ typedef struct
     uint8_t samplesProcessed;
     uint16_t maxValue;
     ccOpt_t optSel;
-    int64_t time_b_pressed;
 } colorchord_t;
 
 colorchord_t* colorchord;
@@ -223,29 +222,10 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
     }
 
     // Draw reminder text
-    const char exitText[] = "B to Exit";
+    const char exitText[] = "Start + Select to Exit";
     int16_t exitWidth = textWidth(&colorchord->ibm_vga8, exitText);
     drawText(colorchord->disp, &colorchord->ibm_vga8, c555, exitText,
              (colorchord->disp->w - exitWidth) / 2, colorchord->disp->h - colorchord->ibm_vga8.h);
-
-    // If b is being held
-    if(0 != colorchord->time_b_pressed)
-    {
-        // Figure out for how long
-        int64_t tHeldUs = esp_timer_get_time() - colorchord->time_b_pressed;
-        // If it has been held for more than the exit time
-        if(tHeldUs > EXIT_TIME_US)
-        {
-            // exit
-            switchToSwadgeMode(&modeMainMenu);
-        }
-        else
-        {
-            // Draw 'progress' bar for exiting
-            int16_t numPx = (tHeldUs * colorchord->disp->w) / EXIT_TIME_US;
-            fillDisplayArea(colorchord->disp, 0, colorchord->disp->h - 10, numPx, colorchord->disp->h, c333);
-        }
-    }
 }
 
 /**
@@ -290,6 +270,7 @@ void colorchordButtonCb(buttonEvt_t* evt)
                 break;
             }
             case DOWN:
+            case BTN_B:
             {
                 switch(colorchord->optSel)
                 {
@@ -349,17 +330,7 @@ void colorchordButtonCb(buttonEvt_t* evt)
                 }
                 break;
             }
-            case BTN_B:
-            {
-                colorchord->time_b_pressed = esp_timer_get_time();
-                break;
-            }
         }
-    }
-    else if(BTN_B == evt->button)
-    {
-        // B released
-        colorchord->time_b_pressed = 0;
     }
 }
 

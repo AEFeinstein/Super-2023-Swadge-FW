@@ -14,6 +14,10 @@ idf_component_register(
         "modes/mode_credits.c"
         "modes/jumper/jumper_menu.c"
         "modes/jumper/mode_jumper.c"
+        "modes/picross/picross_menu.c"
+        "modes/picross/mode_picross.c"
+        "modes/picross/picross_select.c"
+        "modes/picross/picross_tutorial.c"
         "modes/mode_gamepad.c"
         "modes/mode_main_menu.c"
         "modes/mode_colorchord.c"
@@ -42,6 +46,7 @@ idf_component_register(
         "modes/fighter"
         "modes/platformer"
         "modes/jumper"
+        "modes/picross"
         "utils")
 
 function(spiffs_file_preprocessor)
