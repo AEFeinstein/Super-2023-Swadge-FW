@@ -30,7 +30,10 @@
                   : : [opx]"a"(opxc),[y]"a"(opy),[px]"a"(dispPx),[val]"a"(colorVal),[width]"a"(dispWidth),[height]"a"(dispHeight) : "a4" );
 
 #else
-#define SETUP_FOR_TURBO( disp )
+#define SETUP_FOR_TURBO( disp )\
+    __attribute__((unused)) uint32_t dispWidth = disp->w; \
+    __attribute__((unused)) uint32_t dispHeight = disp->h;
+
 #define TURBO_SET_PIXEL SET_PIXEL
 #define TURBO_SET_PIXEL_BOUNDS SET_PIXEL_BOUNDS
 #endif
@@ -117,6 +120,9 @@ uint16_t textWidth(font_t* font, const char* text);
 void freeFont(font_t* font);
 
 paletteColor_t hsv2rgb( uint8_t hue, uint8_t sat, uint8_t val);
+
+// If you want to do your own thing.
+extern const int16_t sin1024[360];
 
 int16_t getSin1024(int16_t degree);
 int16_t getCos1024(int16_t degree);
