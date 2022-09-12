@@ -22,6 +22,7 @@
 #include "led_util.h" // leds
 #include "meleeMenu.h"
 #include "mode_main_menu.h"
+#include "nvs_manager.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -34,7 +35,8 @@
 
 // TODO     linkedInfo_t* invYmnu;
 // XXX TODO HOW TO DO SAVE DATA
-flightSimSaveData_t savedata;
+static flightSimSaveData_t savedata;
+static int didFlightsimDataLoad;
 
 flightSimSaveData_t * getFlightSaveData();
 void setFlightSaveData( flightSimSaveData_t * sd );
@@ -42,8 +44,28 @@ void textEntryDraw();
 void textEntryEnd();
 int textEntryInput( uint8_t down, uint8_t button );
 
-flightSimSaveData_t * getFlightSaveData() { return &savedata; }
-void setFlightSaveData( flightSimSaveData_t * sd ) { }
+flightSimSaveData_t * getFlightSaveData()
+{
+    if( !didFlightsimDataLoad )
+    {
+        size_t size = sizeof(savedata);
+        bool r = readNvsBlob( "flightsim", &savedata, &size );
+        if( !r || size != sizeof( savedata ) )
+        {
+            memset( &savedata, 0, sizeof( savedata ) );
+        }
+        didFlightsimDataLoad = 1;
+    }
+    return &savedata;
+}
+
+void setFlightSaveData( flightSimSaveData_t * sd )
+{
+    if( sd != &savedata )
+        memcpy( &savedata, sd, sizeof( savedata ) );
+    writeNvsBlob( "flightsim", &savedata, sizeof( savedata ) );
+}
+
 void textEntryDraw() { }
 void textEntryEnd() { }
 int textEntryInput( uint8_t down, uint8_t button ){ return false;} 
@@ -128,12 +150,11 @@ typedef struct
     uint32_t timeGot100Percent;
     int wintime;
     bool inverty;
-	uint8_t menuEntryForInvertY;
+    uint8_t menuEntryForInvertY;
 
     flLEDAnimation ledAnimation;
     uint8_t        ledAnimationTime;
 
-    int invertYRow;
 
     char highScoreNameBuffer[FLIGHT_HIGH_SCORE_NAME_LEN];
     uint8_t beangotmask[MAXRINGS];
@@ -239,11 +260,13 @@ static void flightEnterMode(display_t * disp)
     loadFont("mm.font", &flight->meleeMenuFont);
 
     flight->menu = initMeleeMenu(fl_title, &flight->meleeMenuFont, flightMenuCb);
-	flight->menu->allowLEDControl = 0; // we manage the LEDs
+    flight->menu->allowLEDControl = 0; // we manage the LEDs
+
+    flight->inverty = getFlightSaveData()->flightInvertY;
 
     addRowToMeleeMenu(flight->menu, fl_flight_env);
     addRowToMeleeMenu(flight->menu, fl_flight_perf);
-    flight->menuEntryForInvertY = flight->invertYRow = addRowToMeleeMenu( flight->menu, flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env );
+    flight->menuEntryForInvertY = addRowToMeleeMenu( flight->menu, flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env );
     addRowToMeleeMenu(flight->menu, str_quit);
     addRowToMeleeMenu(flight->menu, str_high_scores);
 }
@@ -257,10 +280,10 @@ static void flightExitMode(void)
     freeFont(&flight->meleeMenuFont);
     freeFont(&flight->radiostars);
     freeFont(&flight->ibm);
-	if( flight->environment )
-	{
-		free( flight->environment );
-	}
+    if( flight->environment )
+    {
+        free( flight->environment );
+    }
     free(flight);
 }
 
@@ -284,13 +307,13 @@ static void flightMenuCb(const char* menuItem)
     {
         // XXX TODO SAVE DEFAULT FOR FLIGHT DATA
         flight->inverty = 1;
-        flight->menu->rows[flight->invertYRow] = fl_flight_invertY1_env;
+        flight->menu->rows[flight->menuEntryForInvertY] = fl_flight_invertY1_env;
     }
     else if ( fl_flight_invertY1_env == menuItem )
     {
         // XXX TODO SAVE DEFAULT FOR FLIGHT DATA
         flight->inverty = 0;
-        flight->menu->rows[flight->invertYRow] = fl_flight_invertY0_env;
+        flight->menu->rows[flight->menuEntryForInvertY] = fl_flight_invertY0_env;
     }
     else if ( str_high_scores == menuItem )
     {
@@ -649,7 +672,7 @@ void tdRotateEA( int16_t * f, int16_t x, int16_t y, int16_t z )
     int16_t ftmp[16];
 
     //x,y,z must be negated for some reason
-	const int16_t * stable = sin1024;
+    const int16_t * stable = sin1024;
     int16_t cx = stable[((x>=270)?(x-270):(x+90))]>>2;
     int16_t sx = stable[x]>>2;
     int16_t cy = stable[((y>=270)?(y-270):(y+90))]>>2;
@@ -865,7 +888,7 @@ static void flightRender()
 {
 
 #ifndef EMU
-	if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('R');
+    if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('R');
 #endif
     flightUpdate( 0 );
 
@@ -900,7 +923,7 @@ static void flightRender()
 //  if( flight->mode == FLIGHT_PERFTEST )
 //        portDISABLE_INTERRUPTS();
 #ifndef EMU
-	if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('1');
+    if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('1');
 #endif
 
 #else
@@ -977,7 +1000,7 @@ static void flightRender()
     }
 
 #ifndef EMU
-	if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('2');
+    if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('2');
     uint32_t mid1 = getCycleCount();
 #else
     uint32_t mid1 = cndrawPerfcounter;
@@ -987,7 +1010,7 @@ static void flightRender()
     qsort( mrp, mdlct, sizeof( struct ModelRangePair ), mdlctcmp );
 
 #ifndef EMU
-	if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('3');
+    if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('3');
     uint32_t mid2 = getCycleCount();
 #else
     uint32_t mid2 = cndrawPerfcounter;
@@ -1050,7 +1073,7 @@ static void flightRender()
         //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 1 );
 #endif
 #ifndef EMU
-	if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('4');
+    if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('4');
     uint32_t stop = getCycleCount();
 //    if( flight->mode == FLIGHT_PERFTEST )
 //        portENABLE_INTERRUPTS();
@@ -1110,11 +1133,11 @@ static void flightRender()
         char framesStr[32] = {0};
         //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
         snprintf(framesStr, sizeof(framesStr), "YOU  WIN:" );
-        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+80, 50);
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+75, 50);
         snprintf(framesStr, sizeof(framesStr), "TIME:%d.%02d", tflight->wintime/100,tflight->wintime%100 );
-        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, ((tflight->wintime>10000)?14:20)+80, 18+50);
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, ((tflight->wintime>10000)?14:20)+75, 18+50);
         snprintf(framesStr, sizeof(framesStr), "BEANS:%2d",tflight->beans );
-        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+80, 36+50);
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+75, 36+50);
     }
 
     if( tflight->beans >= MAX_BEANS )
@@ -1123,14 +1146,14 @@ static void flightRender()
             tflight->timeGot100Percent = ((uint32_t)esp_timer_get_time() - tflight->timeOfStart);
 
         int crazy = (((uint32_t)esp_timer_get_time() - tflight->timeOfStart)-tflight->timeGot100Percent) < 3000000;
-        drawText( disp, &flight->ibm, crazy?( tflight->tframes * 9 ):PROMPT_COLOR, "100% 100% 100%", 10+80, 52+50 );
+        drawText( disp, &flight->ibm, crazy?( tflight->tframes * 9 ):PROMPT_COLOR, "100% 100% 100%", 10+75, 52+50 );
     }
 
     //If perf test, force full frame refresh
     //Otherwise, don't force full-screen refresh
 
-#ifndef EMU	
-	if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('5');
+#ifndef EMU    
+    if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('5');
 #endif
     return;
 }
@@ -1190,11 +1213,11 @@ static void flightGameUpdate( flight_t * tflight )
 
         tflight->hpr[0] += tflight->pitchmoment;
         tflight->hpr[1] += tflight->yawmoment;
-		
-		if( tflight->hpr[0] > 3960 ) tflight->hpr[0] -= 3960;
-		if( tflight->hpr[0] < 0 ) tflight->hpr[0] += 3960;
-		if( tflight->hpr[1] > 3960 ) tflight->hpr[1] -= 3960;
-		if( tflight->hpr[1] < 0 ) tflight->hpr[1] += 3960;
+        
+        if( tflight->hpr[0] > 3960 ) tflight->hpr[0] -= 3960;
+        if( tflight->hpr[0] < 0 ) tflight->hpr[0] += 3960;
+        if( tflight->hpr[1] > 3960 ) tflight->hpr[1] -= 3960;
+        if( tflight->hpr[1] < 0 ) tflight->hpr[1] += 3960;
 
 
         if( bs & 16 ) tflight->speed++;
@@ -1266,13 +1289,17 @@ void flightButtonCallback( buttonEvt_t* evt )
             {
                 flightLEDAnimate( FLIGHT_LED_MENU_TICK );
                 meleeMenuButton(flight->menu, evt->button);
-				
-				// If we are left-and-right on Y not inverted then we invert y or not.
-				if( ( button & ( LEFT | RIGHT ) ) && flight->menu->selectedRow == flight->menuEntryForInvertY )
-				{
-					flight->inverty ^= 1;
-					flight->menu->rows[flight->menuEntryForInvertY] = flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env;
-				}
+                
+                // If we are left-and-right on Y not inverted then we invert y or not.
+                if( ( button & ( LEFT | RIGHT ) ) && flight->menu->selectedRow == flight->menuEntryForInvertY )
+                {
+                    flight->inverty ^= 1;
+                    flight->menu->rows[flight->menuEntryForInvertY] = flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env;
+
+                    flightSimSaveData_t * sd = getFlightSaveData();
+                    sd->flightInvertY = flight->inverty;
+                    setFlightSaveData( sd );
+                }
             }
             break;
         }
