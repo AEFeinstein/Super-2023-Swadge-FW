@@ -119,8 +119,6 @@ int16_t drawText(display_t* disp, font_t* font, paletteColor_t color,
 uint16_t textWidth(font_t* font, const char* text);
 void freeFont(font_t* font);
 
-paletteColor_t hsv2rgb( uint8_t hue, uint8_t sat, uint8_t val);
-
 // If you want to do your own thing.
 extern const int16_t sin1024[360];
 

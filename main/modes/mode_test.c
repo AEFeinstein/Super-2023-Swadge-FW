@@ -11,6 +11,7 @@
 #include "bresenham.h"
 #include "musical_buzzer.h"
 #include "led_util.h"
+#include "swadge_util.h"
 
 #include "mode_test.h"
 
@@ -215,7 +216,7 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     {
         uint8_t height = ((test->disp->h / 2) * test->end.fuzzed_bins[i]) /
                          test->maxValue;
-        paletteColor_t color = hsv2rgb((i * 256) / FIXBINS, 255, 255);
+        paletteColor_t color = paletteHsvToHex((i * 256) / FIXBINS, 255, 255);
         int16_t x0 = binMargin + (i * binWidth);
         int16_t x1 = binMargin + ((i + 1) * binWidth);
         // Big enough, fill an area

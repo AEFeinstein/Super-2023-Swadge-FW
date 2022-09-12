@@ -5,6 +5,7 @@
 // need to be the same between emu and swadge.
 
 #include "led_util.h"
+#include "display.h"
 
 #define IS_ARRAY(arr)   ((void*)&(arr) == &(arr)[0])
 #define STATIC_EXP(e)   (0 * sizeof (struct { int ARRAY_SIZE_FAILED:(2 * (e) - 1);}))
@@ -34,5 +35,6 @@ void uart_tx_one_char( char c );
 
 uint32_t EHSVtoHEXhelper( uint8_t hue, uint8_t sat, uint8_t val, bool applyGamma);
 led_t SafeEHSVtoHEXhelper( int16_t hue, int16_t sat, int16_t val, bool applyGamma );
+paletteColor_t paletteHsvToHex( int16_t hue, int16_t sat, int16_t val);
 
 #endif

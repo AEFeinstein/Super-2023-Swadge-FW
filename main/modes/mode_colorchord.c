@@ -12,6 +12,7 @@
 #include "mode_main_menu.h"
 #include "settingsManager.h"
 #include "bresenham.h"
+#include "swadge_util.h"
 
 // For colorchord
 #include "embeddedout.h"
@@ -22,6 +23,7 @@
 
 #define EXIT_TIME_US 1000000
 #define TEXT_Y 10
+#define TEXT_MARGIN 20
 
 //==============================================================================
 // Enums
@@ -143,7 +145,7 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
     {
         uint8_t height = ((colorchord->disp->h - colorchord->ibm_vga8.h - 2) * colorchord->end.fuzzed_bins[i]) /
                          colorchord->maxValue;
-        paletteColor_t color = hsv2rgb((i * 256) / FIXBINS, 255, 255);
+        paletteColor_t color = paletteHsvToHex((i * 256) / FIXBINS, 255, 255);
         int16_t x0 = binMargin + (i * binWidth);
         int16_t x1 = binMargin + ((i + 1) * binWidth);
         if(height < 2)
@@ -167,15 +169,15 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
 
     // Draw gain indicator
     snprintf(text, sizeof(text), "Gain: %d", getMicGain());
-    drawText(colorchord->disp, &colorchord->ibm_vga8, c555, text, 10, TEXT_Y);
+    drawText(colorchord->disp, &colorchord->ibm_vga8, c555, text, TEXT_MARGIN, TEXT_Y);
 
     // Underline it if selected
     if(CC_OPT_GAIN == colorchord->optSel)
     {
         int16_t lineY = 10 + colorchord->ibm_vga8.h + 2;
         plotLine(colorchord->disp,
-                 10, lineY,
-                 10 + textWidth(&colorchord->ibm_vga8, text) - 1, lineY, c555, 0);
+                 TEXT_MARGIN, lineY,
+                 TEXT_MARGIN + textWidth(&colorchord->ibm_vga8, text) - 1, lineY, c555, 0);
     }
 
     // Draw LED brightness indicator
@@ -186,7 +188,7 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
     // Underline it if selected
     if(CC_OPT_LED_BRIGHT == colorchord->optSel)
     {
-        int16_t lineY = 10 + colorchord->ibm_vga8.h + 2;
+        int16_t lineY = TEXT_Y + colorchord->ibm_vga8.h + 2;
         plotLine(colorchord->disp,
                  (colorchord->disp->w - tWidth) / 2, lineY,
                  (colorchord->disp->w - tWidth) / 2 + tWidth - 1, lineY, c555, 0);
@@ -208,14 +210,14 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
             break;
         }
     }
-    int16_t textX = colorchord->disp->w - 10 - textWidth(&colorchord->ibm_vga8, text);
+    int16_t textX = colorchord->disp->w - TEXT_MARGIN - textWidth(&colorchord->ibm_vga8, text);
     drawText(colorchord->disp, &colorchord->ibm_vga8, c555, text,
              textX, TEXT_Y);
 
     // Underline it if selected
     if(CC_OPT_LED_MODE == colorchord->optSel)
     {
-        int16_t lineY = 10 + colorchord->ibm_vga8.h + 2;
+        int16_t lineY = TEXT_Y + colorchord->ibm_vga8.h + 2;
         plotLine(colorchord->disp,
                  textX, lineY,
                  textX + textWidth(&colorchord->ibm_vga8, text) - 1, lineY, c555, 0);
