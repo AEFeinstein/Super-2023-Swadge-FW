@@ -66,8 +66,6 @@ int textEntryInput( uint8_t down, uint8_t button ){ return false;}
 
 #define TFT_WIDTH 280
 #define TFT_HEIGHT 240
-#define TFT_WIDTH 280
-#define TFT_HEIGHT 240
 
 typedef enum
 {
@@ -237,8 +235,8 @@ static void flightEnterMode(display_t * disp)
 
     loadFont("ibm_vga8.font", &flight->ibm);
     loadFont("radiostars.font", &flight->radiostars);
-
     loadFont("mm.font", &flight->meleeMenuFont);
+
     flight->menu = initMeleeMenu(fl_title, &flight->meleeMenuFont, flightMenuCb);
     addRowToMeleeMenu(flight->menu, fl_flight_env);
     addRowToMeleeMenu(flight->menu, fl_flight_perf);
@@ -254,6 +252,12 @@ static void flightExitMode(void)
 {
     deinitMeleeMenu(flight->menu);
     freeFont(&flight->meleeMenuFont);
+    freeFont(&flight->radiostars);
+    freeFont(&flight->ibm);
+	if( flight->environment )
+	{
+		free( flight->environment );
+	}
     free(flight);
 }
 
@@ -485,9 +489,9 @@ static void flightUpdate(void* arg __attribute__((unused)))
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int16_t tdCOS( uint8_t iv );
+//int16_t tdCOS( uint8_t iv );
 void tdIdentity( int16_t * matrix );
-static int16_t tdSIN( uint8_t iv );
+//static int16_t tdSIN( uint8_t iv );
 void Perspective( int fovx, int aspect, int zNear, int zFar, int16_t * out );
 int LocalToScreenspace( const int16_t * coords_3v, int16_t * o1, int16_t * o2 );
 void SetupMatrix( void );
@@ -503,11 +507,11 @@ int16_t tdDist( const int16_t * a, const int16_t * b );
 
 //From https://github.com/cnlohr/channel3/blob/master/user/3d.c
 
-static const uint8_t sintable[128] = { 0, 6, 12, 18, 25, 31, 37, 43, 49, 55, 62, 68, 74, 80, 86, 91, 97, 103, 109, 114, 120, 125, 131, 136, 141, 147, 152, 157, 162, 166, 171, 176, 180, 185, 189, 193, 197, 201, 205, 208, 212, 215, 219, 222, 225, 228, 230, 233, 236, 238, 240, 242, 244, 246, 247, 249, 250, 251, 252, 253, 254, 254, 255, 255, 255, 255, 255, 254, 254, 253, 252, 251, 250, 249, 247, 246, 244, 242, 240, 238, 236, 233, 230, 228, 225, 222, 219, 215, 212, 208, 205, 201, 197, 193, 189, 185, 180, 176, 171, 166, 162, 157, 152, 147, 141, 136, 131, 125, 120, 114, 109, 103, 97, 91, 86, 80, 74, 68, 62, 55, 49, 43, 37, 31, 25, 18, 12, 6, };
+//static const uint8_t sintable[128] = { 0, 6, 12, 18, 25, 31, 37, 43, 49, 55, 62, 68, 74, 80, 86, 91, 97, 103, 109, 114, 120, 125, 131, 136, 141, 147, 152, 157, 162, 166, 171, 176, 180, 185, 189, 193, 197, 201, 205, 208, 212, 215, 219, 222, 225, 228, 230, 233, 236, 238, 240, 242, 244, 246, 247, 249, 250, 251, 252, 253, 254, 254, 255, 255, 255, 255, 255, 254, 254, 253, 252, 251, 250, 249, 247, 246, 244, 242, 240, 238, 236, 233, 230, 228, 225, 222, 219, 215, 212, 208, 205, 201, 197, 193, 189, 185, 180, 176, 171, 166, 162, 157, 152, 147, 141, 136, 131, 125, 120, 114, 109, 103, 97, 91, 86, 80, 74, 68, 62, 55, 49, 43, 37, 31, 25, 18, 12, 6, };
 
 int16_t ModelviewMatrix[16];
 int16_t ProjectionMatrix[16];
-
+/*
 int16_t tdSIN( uint8_t iv )
 {
     if( iv > 127 )
@@ -523,7 +527,7 @@ int16_t tdSIN( uint8_t iv )
 int16_t tdCOS( uint8_t iv )
 {
     return tdSIN( iv + 64 );
-}
+}*/
 
 uint16_t tdSQRT( uint32_t inval )
 {
@@ -662,12 +666,13 @@ void tdRotateEA( int16_t * f, int16_t x, int16_t y, int16_t z )
     int16_t ftmp[16];
 
     //x,y,z must be negated for some reason
-    int16_t cx = tdCOS(x);
-    int16_t sx = tdSIN(x);
-    int16_t cy = tdCOS(y);
-    int16_t sy = tdSIN(y);
-    int16_t cz = tdCOS(z);
-    int16_t sz = tdSIN(z);
+	const int16_t * stable = sin1024;
+    int16_t cx = stable[((x>=270)?(x-270):(x+90))]>>2;
+    int16_t sx = stable[x]>>2;
+    int16_t cy = stable[((y>=270)?(y-270):(y+90))]>>2;
+    int16_t sy = stable[y]>>2;
+    int16_t cz = stable[((z>=270)?(z-270):(z+90))]>>2;
+    int16_t sz = stable[z]>>2;
 
     //Row major
     //manually transposed
@@ -921,7 +926,7 @@ static void flightRender()
 #endif
 
 
-    tdRotateEA( ProjectionMatrix, tflight->hpr[1]/16, tflight->hpr[0]/16, 0 );
+    tdRotateEA( ProjectionMatrix, tflight->hpr[1]/11, tflight->hpr[0]/11, 0 );
     tdTranslate( ModelviewMatrix, -tflight->planeloc[0], -tflight->planeloc[1], -tflight->planeloc[2] );
 
     struct ModelRangePair mrp[tflight->enviromodels];
@@ -1202,6 +1207,11 @@ static void flightGameUpdate( flight_t * tflight )
 
         tflight->hpr[0] += tflight->pitchmoment;
         tflight->hpr[1] += tflight->yawmoment;
+		
+		if( tflight->hpr[0] > 3960 ) tflight->hpr[0] -= 3960;
+		if( tflight->hpr[0] < 0 ) tflight->hpr[0] += 3960;
+		if( tflight->hpr[1] > 3960 ) tflight->hpr[1] -= 3960;
+		if( tflight->hpr[1] < 0 ) tflight->hpr[1] += 3960;
 
 
         if( bs & 16 ) tflight->speed++;
@@ -1212,9 +1222,9 @@ static void flightGameUpdate( flight_t * tflight )
 
     //If game over, just keep status quo.
 
-    tflight->planeloc[0] += (tflight->speed * tdSIN( tflight->hpr[0]/16 ) )>>FLIGHT_SPEED_DEC;
-    tflight->planeloc[2] += (tflight->speed * tdCOS( tflight->hpr[0]/16 ) )>>FLIGHT_SPEED_DEC;
-    tflight->planeloc[1] -= (tflight->speed * tdSIN( tflight->hpr[1]/16 ) )>>FLIGHT_SPEED_DEC;
+    tflight->planeloc[0] += (tflight->speed * getSin1024( tflight->hpr[0]/11 ) )>>FLIGHT_SPEED_DEC;
+    tflight->planeloc[2] += (tflight->speed * getCos1024( tflight->hpr[0]/11 ) )>>FLIGHT_SPEED_DEC;
+    tflight->planeloc[1] -= (tflight->speed * getSin1024( tflight->hpr[1]/11 ) )>>FLIGHT_SPEED_DEC;
 
     // Bound the area
     tflight->oob = false;

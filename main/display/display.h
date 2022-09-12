@@ -121,6 +121,9 @@ void freeFont(font_t* font);
 
 paletteColor_t hsv2rgb( uint8_t hue, uint8_t sat, uint8_t val);
 
+// If you want to do your own thing.
+extern const int16_t sin1024[360];
+
 int16_t getSin1024(int16_t degree);
 int16_t getCos1024(int16_t degree);
 int32_t getTan1024(int16_t degree);

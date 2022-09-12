@@ -290,7 +290,7 @@ void mainMenuSetUpGamesMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, modePlatformer.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeJumper.modeName);
     addRowToMeleeMenu(mainMenu->menu, modePicross.modeName);
-	addRowToMeleeMenu(mainMenu->menu, modeFlight.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeFlight.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
