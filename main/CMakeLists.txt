@@ -28,7 +28,7 @@ idf_component_register(
         "modes/mode_tiltrads.c"
         "modes/mode_tunernome.c"
         "modes/mode_test.c"
-        "gameData.c"
+        "modes/platformer/gameData.c"
         "utils/linked_list.c"
         "p2pConnection.c"
         "swadge_esp32.c"
