@@ -30,14 +30,16 @@ typedef time_t os_time_t;
  */
 void os_sleep(os_time_t sec, os_time_t usec);
 
-struct os_time {
-	os_time_t sec;
-	suseconds_t usec;
+struct os_time
+{
+    os_time_t sec;
+    suseconds_t usec;
 };
 
 #define os_reltime os_time
 
-struct os_tm {
+struct os_tm
+{
     int sec; /* 0..59 or 60 for leap seconds */
     int min; /* 0..59 */
     int hour; /* 0..23 */
@@ -51,24 +53,24 @@ struct os_tm {
  * @t: Pointer to buffer for the time
  * Returns: 0 on success, -1 on failure
  */
-int os_get_time(struct os_time *t);
+int os_get_time(struct os_time* t);
 #define os_get_reltime os_get_time
 
 /* Helper macros for handling struct os_time */
 
 #define os_time_before(a, b) \
-	((a)->sec < (b)->sec || \
-	 ((a)->sec == (b)->sec && (a)->usec < (b)->usec))
+    ((a)->sec < (b)->sec || \
+     ((a)->sec == (b)->sec && (a)->usec < (b)->usec))
 
 #define os_reltime_before os_time_before
 #define os_time_sub(a, b, res) do { \
-	(res)->sec = (a)->sec - (b)->sec; \
-	(res)->usec = (a)->usec - (b)->usec; \
-	if ((res)->usec < 0) { \
-		(res)->sec--; \
-		(res)->usec += 1000000; \
-	} \
-} while (0)
+        (res)->sec = (a)->sec - (b)->sec; \
+        (res)->usec = (a)->usec - (b)->usec; \
+        if ((res)->usec < 0) { \
+            (res)->sec--; \
+            (res)->usec += 1000000; \
+        } \
+    } while (0)
 #define os_reltime_sub os_time_sub
 
 /**
@@ -87,22 +89,22 @@ int os_get_time(struct os_time *t);
  * which is used by POSIX mktime().
  */
 int os_mktime(int year, int month, int day, int hour, int min, int sec,
-	      os_time_t *t);
+              os_time_t* t);
 
-int os_gmtime(os_time_t t, struct os_tm *tm);
+int os_gmtime(os_time_t t, struct os_tm* tm);
 
 /**
  * os_daemonize - Run in the background (detach from the controlling terminal)
  * @pid_file: File name to write the process ID to or %NULL to skip this
  * Returns: 0 on success, -1 on failure
  */
-int os_daemonize(const char *pid_file);
+int os_daemonize(const char* pid_file);
 
 /**
  * os_daemonize_terminate - Stop running in the background (remove pid file)
  * @pid_file: File name to write the process ID to or %NULL to skip this
  */
-void os_daemonize_terminate(const char *pid_file);
+void os_daemonize_terminate(const char* pid_file);
 
 /**
  * os_get_random - Get cryptographically strong pseudo random data
@@ -110,7 +112,7 @@ void os_daemonize_terminate(const char *pid_file);
  * @len: Length of the buffer
  * Returns: 0 on success, -1 on failure
  */
-int os_get_random(unsigned char *buf, size_t len);
+int os_get_random(unsigned char* buf, size_t len);
 
 /**
  * os_random - Get pseudo random value (not necessarily very strong)
@@ -131,7 +133,7 @@ unsigned long os_random(void);
  * configuration files when os_daemonize() may have changed the current working
  * directory and relative path would be pointing to a different location.
  */
-char * os_rel2abs_path(const char *rel_path);
+char* os_rel2abs_path(const char* rel_path);
 
 /**
  * os_program_init - Program initialization (called at start)
@@ -163,7 +165,7 @@ void os_program_deinit(void);
  * This function is only used for wpa_cli action scripts. OS wrapper does not
  * need to implement this if such functionality is not needed.
  */
-int os_setenv(const char *name, const char *value, int overwrite);
+int os_setenv(const char* name, const char* value, int overwrite);
 
 /**
  * os_unsetenv - Delete environent variable
@@ -173,7 +175,7 @@ int os_setenv(const char *name, const char *value, int overwrite);
  * This function is only used for wpa_cli action scripts. OS wrapper does not
  * need to implement this if such functionality is not needed.
  */
-int os_unsetenv(const char *name);
+int os_unsetenv(const char* name);
 
 /**
  * os_readfile - Read a file to an allocated memory buffer
@@ -185,7 +187,7 @@ int os_unsetenv(const char *name);
  * binary and text files can be read with this function. The caller is
  * responsible for freeing the returned buffer with os_free().
  */
-char * os_readfile(const char *name, size_t *len);
+char* os_readfile(const char* name, size_t* len);
 
 /*
  * The following functions are wrapper for standard ANSI C or POSIX functions.
@@ -204,114 +206,116 @@ char * os_readfile(const char *name, size_t *len);
  */
 
 #ifndef os_malloc
-#define os_malloc(s) malloc((s))
+    #define os_malloc(s) malloc((s))
 #endif
 #ifndef os_realloc
-#define os_realloc(p, s) realloc((p), (s))
+    #define os_realloc(p, s) realloc((p), (s))
 #endif
 #ifndef os_zalloc
-#define os_zalloc(s) calloc(1, (s))
+    #define os_zalloc(s) calloc(1, (s))
 #endif
 #ifndef os_calloc
-#define os_calloc(p, s) calloc((p), (s))
+    #define os_calloc(p, s) calloc((p), (s))
 #endif
 
 #ifndef os_free
-#define os_free(p) free((p))
+    #define os_free(p) free((p))
 #endif
 
 #ifndef os_bzero
-#define os_bzero(s, n) bzero(s, n)
+    #define os_bzero(s, n) bzero(s, n)
 #endif
 
 
 #ifndef os_strdup
-#ifdef _MSC_VER
-#define os_strdup(s) _strdup(s)
-#else
-#define os_strdup(s) strdup(s)
+    #ifdef _MSC_VER
+        #define os_strdup(s) _strdup(s)
+    #else
+        #define os_strdup(s) strdup(s)
+    #endif
 #endif
-#endif
-char * ets_strdup(const char *s);
+char* ets_strdup(const char* s);
 
 #ifndef os_memcpy
-#define os_memcpy(d, s, n) memcpy((d), (s), (n))
+    #define os_memcpy(d, s, n) memcpy((d), (s), (n))
 #endif
 #ifndef os_memmove
-#define os_memmove(d, s, n) memmove((d), (s), (n))
+    #define os_memmove(d, s, n) memmove((d), (s), (n))
 #endif
 #ifndef os_memset
-#define os_memset(s, c, n) memset(s, c, n)
+    #define os_memset(s, c, n) memset(s, c, n)
 #endif
 #ifndef os_memcmp
-#define os_memcmp(s1, s2, n) memcmp((s1), (s2), (n))
+    #define os_memcmp(s1, s2, n) memcmp((s1), (s2), (n))
 #endif
 #ifndef os_memcmp_const
-#define os_memcmp_const(s1, s2, n) memcmp((s1), (s2), (n))
+    #define os_memcmp_const(s1, s2, n) memcmp((s1), (s2), (n))
 #endif
 
 
 #ifndef os_strlen
-#define os_strlen(s) strlen(s)
+    #define os_strlen(s) strlen(s)
 #endif
 #ifndef os_strcasecmp
-#ifdef _MSC_VER
-#define os_strcasecmp(s1, s2) _stricmp((s1), (s2))
-#else
-#define os_strcasecmp(s1, s2) strcasecmp((s1), (s2))
-#endif
+    #ifdef _MSC_VER
+        #define os_strcasecmp(s1, s2) _stricmp((s1), (s2))
+    #else
+        #define os_strcasecmp(s1, s2) strcasecmp((s1), (s2))
+    #endif
 #endif
 #ifndef os_strncasecmp
-#ifdef _MSC_VER
-#define os_strncasecmp(s1, s2, n) _strnicmp((s1), (s2), (n))
-#else
-#define os_strncasecmp(s1, s2, n) strncasecmp((s1), (s2), (n))
-#endif
+    #ifdef _MSC_VER
+        #define os_strncasecmp(s1, s2, n) _strnicmp((s1), (s2), (n))
+    #else
+        #define os_strncasecmp(s1, s2, n) strncasecmp((s1), (s2), (n))
+    #endif
 #endif
 #ifndef os_strchr
-#define os_strchr(s, c) strchr((s), (c))
+    #define os_strchr(s, c) strchr((s), (c))
 #endif
 #ifndef os_strcmp
-#define os_strcmp(s1, s2) strcmp((s1), (s2))
+    #define os_strcmp(s1, s2) strcmp((s1), (s2))
 #endif
 #ifndef os_strncmp
-#define os_strncmp(s1, s2, n) strncmp((s1), (s2), (n))
+    #define os_strncmp(s1, s2, n) strncmp((s1), (s2), (n))
 #endif
 #ifndef os_strncpy
-#define os_strncpy(d, s, n) strncpy((d), (s), (n))
+    #define os_strncpy(d, s, n) strncpy((d), (s), (n))
 #endif
 #ifndef os_strrchr
-#define os_strrchr(s, c)  strrchr((s), (c))
+    #define os_strrchr(s, c)  strrchr((s), (c))
 #endif
 #ifndef os_strstr
-#define os_strstr(h, n) strstr((h), (n))
+    #define os_strstr(h, n) strstr((h), (n))
 #endif
 #ifndef os_strlcpy
-#define os_strlcpy(d, s, n) strlcpy((d), (s), (n))
+    #define os_strlcpy(d, s, n) strlcpy((d), (s), (n))
 #endif
 
 #ifndef os_snprintf
-#ifdef _MSC_VER
-#define os_snprintf _snprintf
-#else
-#define os_snprintf snprintf
-#endif
+    #ifdef _MSC_VER
+        #define os_snprintf _snprintf
+    #else
+        #define os_snprintf snprintf
+    #endif
 #endif
 
 static inline int os_snprintf_error(size_t size, int res)
 {
-        return res < 0 || (unsigned int) res >= size;
+    return res < 0 || (unsigned int) res >= size;
 }
 
-static inline void * os_realloc_array(void *ptr, size_t nmemb, size_t size)
+static inline void* os_realloc_array(void* ptr, size_t nmemb, size_t size)
 {
-	if (size && nmemb > (~(size_t) 0) / size)
-		return NULL;
-	return os_realloc(ptr, nmemb * size);
+    if (size && nmemb > (~(size_t) 0) / size)
+    {
+        return NULL;
+    }
+    return os_realloc(ptr, nmemb * size);
 }
 
 #ifdef USE_MBEDTLS_CRYPTO
-void forced_memzero(void *ptr, size_t len);
+void forced_memzero(void* ptr, size_t len);
 #else
 /* Try to prevent most compilers from optimizing out clearing of memory that
  * becomes unaccessible after this function is called. This is mostly the case
@@ -321,15 +325,16 @@ void forced_memzero(void *ptr, size_t len);
  * try go a bit further by storing the first octet (now zero) to make this even
  * a bit more difficult to optimize out. Once memset_s() is available, that
  * could be used here instead. */
-static void * (* const volatile memset_func)(void *, int, size_t) = memset;
+static void* (* const volatile memset_func)(void*, int, size_t) = memset;
 static uint8_t forced_memzero_val;
 
-static inline void forced_memzero(void *ptr, size_t len)
+static inline void forced_memzero(void* ptr, size_t len)
 {
-	memset_func(ptr, 0, len);
-	if (len) {
-		forced_memzero_val = ((uint8_t *) ptr)[0];
-	}
+    memset_func(ptr, 0, len);
+    if (len)
+    {
+        forced_memzero_val = ((uint8_t*) ptr)[0];
+    }
 }
 #endif
 #endif /* OS_H */

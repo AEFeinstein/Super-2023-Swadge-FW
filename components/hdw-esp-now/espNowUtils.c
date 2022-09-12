@@ -105,7 +105,7 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
             .password = "",                /**< Password of target AP. */
             .scan_method = WIFI_FAST_SCAN, /**< do all channel scan or fast scan */
             .bssid_set = false,            /**< whether set MAC address of target AP or not. Generally, station_config.bssid_set needs to be 0 = 0, and it needs to be 1 only when users need to check the MAC address of the AP.*/
-            .bssid = {0,0,0,0,0,0},        /**< MAC address of target AP*/
+            .bssid = {0, 0, 0, 0, 0, 0},   /**< MAC address of target AP*/
             .channel = ESPNOW_CHANNEL,     /**< channel of target AP. Set to 1~13 to scan starting from the specified channel before connecting to AP. If the channel of AP is unknown, set it to 0.*/
             .listen_interval = 3,          /**< Listen interval for ESP32 station to receive beacon when WIFI_PS_MAX_MODEM is set. Units: AP beacon intervals. Defaults to 3 if set to 0. */
             .sort_method = WIFI_CONNECT_AP_BY_SIGNAL, /**< sort the connect AP in the list by rssi or security mode */
@@ -301,13 +301,13 @@ void espNowSend(const char* data, uint8_t len)
 void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
     ESP_LOGD("ESPNOW", "%s, MAC: %02X:%02X:%02X:%02X:%02X:%02X",
-        status == ESP_NOW_SEND_SUCCESS ? "ESP_NOW_SEND_SUCCESS" : "ESP_NOW_SEND_FAIL",
-           mac_addr[0],
-           mac_addr[1],
-           mac_addr[2],
-           mac_addr[3],
-           mac_addr[4],
-           mac_addr[5]);
+             status == ESP_NOW_SEND_SUCCESS ? "ESP_NOW_SEND_SUCCESS" : "ESP_NOW_SEND_FAIL",
+             mac_addr[0],
+             mac_addr[1],
+             mac_addr[2],
+             mac_addr[3],
+             mac_addr[4],
+             mac_addr[5]);
 
     switch(status)
     {

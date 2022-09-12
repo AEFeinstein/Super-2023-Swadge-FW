@@ -27,13 +27,13 @@ const char WPA_TAG[] = "WPA";
 
 bool wpa_attach(void)
 {
-    ESP_LOGI(WPA_TAG,"%s",__func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return true;
 }
 
 bool wpa_deattach(void)
 {
-    ESP_LOGI(WPA_TAG,"%s",__func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
     return true;
 }
 
@@ -157,7 +157,7 @@ bool wpa_deattach(void)
 
 void wpa_config_done(void)
 {
-    ESP_LOGI(WPA_TAG,"%s",__func__);
+    ESP_LOGI(WPA_TAG, "%s", __func__);
 }
 
 // #if 0
@@ -173,10 +173,11 @@ void wpa_config_done(void)
 int esp_supplicant_init(void)
 {
     int ret = ESP_OK;
-    struct wpa_funcs *wpa_cb;
+    struct wpa_funcs* wpa_cb;
 
-    wpa_cb = (struct wpa_funcs *)os_zalloc(sizeof(struct wpa_funcs));
-    if (!wpa_cb) {
+    wpa_cb = (struct wpa_funcs*)os_zalloc(sizeof(struct wpa_funcs));
+    if (!wpa_cb)
+    {
         return ESP_ERR_NO_MEM;
     }
 
@@ -208,7 +209,8 @@ int esp_supplicant_init(void)
 #endif
     // ret = esp_supplicant_common_init(wpa_cb);
 
-    if (ret != 0) {
+    if (ret != 0)
+    {
         return ret;
     }
 
@@ -229,7 +231,7 @@ int esp_supplicant_deinit(void)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-int os_get_time(struct os_time *t)
+int os_get_time(struct os_time* t)
 {
     struct timeval tv;
     int ret = gettimeofday(&tv, NULL);
@@ -243,7 +245,7 @@ unsigned long os_random(void)
     return esp_random();
 }
 
-int os_get_random(unsigned char *buf, size_t len)
+int os_get_random(unsigned char* buf, size_t len)
 {
     esp_fill_random(buf, len);
     return 0;
@@ -276,14 +278,14 @@ int os_get_random(unsigned char *buf, size_t len)
 // }
 
 // int hmac_sha256_vector(const unsigned char *key, int key_len, int num_elem,
-// 			                   const unsigned char *addr[], const int *len, unsigned char *mac)
+//                             const unsigned char *addr[], const int *len, unsigned char *mac)
 // {
 //     ESP_LOGI(WPA_TAG, "%s", __func__);
 //     return 0;
 // }
 
 // int sha256_prf(const unsigned char *key, int key_len, const char *label,
-// 	                           const unsigned char *data, int data_len, unsigned char *buf, int buf_len)
+//                             const unsigned char *data, int data_len, unsigned char *buf, int buf_len)
 // {
 //     ESP_LOGI(WPA_TAG, "%s", __func__);
 //     return 0;
@@ -419,7 +421,8 @@ int os_get_random(unsigned char *buf, size_t len)
  * API's otherwise. We recommend setting the flag since MbedTLS API's utilize hardware acceleration while
  * native API's are use software implementations.
  */
-const wpa_crypto_funcs_t g_wifi_default_wpa_crypto_funcs = {
+const wpa_crypto_funcs_t g_wifi_default_wpa_crypto_funcs =
+{
     .size = sizeof(wpa_crypto_funcs_t),
     .version = ESP_WIFI_CRYPTO_VERSION,
     .aes_wrap = NULL, // (esp_aes_wrap_t)esp_aes_wrap,
@@ -449,7 +452,8 @@ const wpa_crypto_funcs_t g_wifi_default_wpa_crypto_funcs = {
     .aes_gmac = NULL, // (esp_aes_gmac_t)esp_aes_gmac,
 };
 
-const mesh_crypto_funcs_t g_wifi_default_mesh_crypto_funcs = {
+const mesh_crypto_funcs_t g_wifi_default_mesh_crypto_funcs =
+{
     .aes_128_encrypt = NULL, // (esp_aes_128_encrypt_t)aes_128_cbc_encrypt,
     .aes_128_decrypt = NULL, // (esp_aes_128_decrypt_t)aes_128_cbc_decrypt,
 };

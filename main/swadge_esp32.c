@@ -26,6 +26,10 @@
 #include "ssd1306.h"
 #include "hdw-tft.h"
 
+#ifndef EMU
+#include "soc/rtc_cntl_reg.h"
+#endif
+
 #define QMA7981
 
 #if defined(QMA6981)
@@ -79,6 +83,8 @@
       (defined(CONFIG_SWADGE_PROTOTYPE) ? 1 : 0)) != 1)
 #error "Please define CONFIG_SWADGE_DEVKIT or CONFIG_SWADGE_PROTOTYPE"
 #endif
+
+#define EXIT_TIME_US 1000000
 
 //==============================================================================
 // Function Prototypes
@@ -465,6 +471,9 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             true);       // PWM backlight
 #endif
 
+    // Set the brightness from settings on boot
+    setTFTBacklight(getTftIntensity());
+
     /* Initialize Wifi peripheral */
 #if !defined(EMU)
     if(ESP_NOW == cSwadgeMode->wifiMode)
@@ -478,6 +487,8 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     {
         cSwadgeMode->fnEnterMode(&tftDisp);
     }
+
+    int64_t time_exit_pressed = 0;
 
     /* Loop forever! */
 #if defined(EMU)
@@ -514,6 +525,16 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         buttonEvt_t bEvt = {0};
         if(checkButtonQueue(&bEvt))
         {
+            // Monitor start + select
+            if((&modeMainMenu != cSwadgeMode) && (bEvt.state & START) && (bEvt.state & SELECT))
+            {
+                time_exit_pressed = esp_timer_get_time();
+            }
+            else
+            {
+                time_exit_pressed = 0;
+            }
+
             if(NULL != cSwadgeMode->fnButtonCallback)
             {
                 cSwadgeMode->fnButtonCallback(&bEvt);
@@ -586,11 +607,30 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     tLastMainLoopCall = tNowUs;
                 }
 
+                // If start & select  being held
+                if(0 != time_exit_pressed)
+                {
+                    // Figure out for how long
+                    int64_t tHeldUs = tNowUs - time_exit_pressed;
+                    // If it has been held for more than the exit time
+                    if(tHeldUs > EXIT_TIME_US)
+                    {
+                        // exit
+                        switchToSwadgeMode(&modeMainMenu);
+                    }
+                    else
+                    {
+                        // Draw 'progress' bar for exiting
+                        int16_t numPx = (tHeldUs * tftDisp.w) / EXIT_TIME_US;
+                        fillDisplayArea(&tftDisp, 0, tftDisp.h - 10, numPx, tftDisp.h, c333);
+                    }
+                }
+
                 // Draw the display at the given frame rate
 #ifdef OLED_ENABLED
-                oledDisp.drawDisplay(true);
+                oledDisp.drawDisplay(&oledDisp, true, cSwadgeMode->fnBackgroundDrawCallback);
 #endif
-                tftDisp.drawDisplay(true);
+                tftDisp.drawDisplay(&tftDisp, true, cSwadgeMode->fnBackgroundDrawCallback);
             }
 #if defined(EMU)
             check_esp_timer(tElapsedUs);
@@ -628,6 +668,20 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             else
             {
                 // Deep sleep, wake up, and switch to pendingSwadgeMode
+
+                // We have to do this otherwise the backlight can glitch 
+                disableTFTBacklight();
+
+#ifndef EMU                
+                // Prevent bootloader on reboot if rebooting from originally bootloaded instance
+                REG_WRITE(RTC_CNTL_OPTION1_REG, 0);
+                
+                // Only an issue if originally coming from bootloader.  This is actually a ROM function.
+                // It prevents the USB from glitching out on the reboot after the reboot after coming
+                // out of bootloader
+                void chip_usb_set_persist_flags(uint32_t flags);
+                chip_usb_set_persist_flags(1<<31); // USBDC_PERSIST_ENA
+#endif
                 esp_sleep_enable_timer_wakeup(1);
                 esp_deep_sleep_start();
             }
@@ -679,7 +733,7 @@ void overrideToSwadgeMode( swadgeMode* mode )
 
 /**
  * Set the frame rate for all displays
- * 
+ *
  * @param frameRate The time to wait between drawing frames, in microseconds
  */
 void setFrameRateUs(uint32_t frameRate)

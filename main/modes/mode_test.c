@@ -11,6 +11,7 @@
 #include "bresenham.h"
 #include "musical_buzzer.h"
 #include "led_util.h"
+#include "swadge_util.h"
 
 #include "mode_test.h"
 
@@ -26,6 +27,10 @@
 #define ACCEL_BAR_H      8
 #define ACCEL_BAR_SEP    1
 #define MAX_ACCEL_BAR_W 60
+
+#define TOUCHBAR_WIDTH  100
+#define TOUCHBAR_HEIGHT  20
+#define TOUCHBAR_Y_OFF   32
 
 //==============================================================================
 // Enums
@@ -57,6 +62,7 @@ void testExitMode(void);
 void testMainLoop(int64_t elapsedUs);
 void testAudioCb(uint16_t* samples, uint32_t sampleCnt);
 void testButtonCb(buttonEvt_t* evt);
+void testTouchCb(touch_event_t* evt);
 void testAccelerometerCallback(accel_t* accel);
 
 void plotButtonState(int16_t x, int16_t y, testButtonState_t state);
@@ -69,6 +75,10 @@ typedef struct
 {
     font_t ibm_vga8;
     display_t* disp;
+    wsg_t kd_idle0;
+    wsg_t kd_idle1;
+    uint64_t tSpriteElapsedUs;
+    uint8_t spriteFrame;
     // Microphone test
     dft32_data dd;
     embeddednf_data end;
@@ -77,6 +87,8 @@ typedef struct
     uint16_t maxValue;
     // Button
     testButtonState_t buttonStates[8];
+    // Touch
+    testButtonState_t touchStates[5];
     // Accelerometer
     accel_t accel;
     // LED
@@ -99,7 +111,7 @@ swadgeMode modeTest =
     .fnExitMode = testExitMode,
     .fnMainLoop = testMainLoop,
     .fnButtonCallback = testButtonCb,
-    .fnTouchCallback = NULL,
+    .fnTouchCallback = testTouchCb,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
@@ -142,6 +154,10 @@ void testEnterMode(display_t* disp)
     // Load a font
     loadFont("ibm_vga8.font", &test->ibm_vga8);
 
+    // Load a sprite
+    loadWsg("kid0.wsg", &test->kd_idle0);
+    loadWsg("kid1.wsg", &test->kd_idle1);
+
     // Init CC
     InitColorChord(&test->end, &test->dd);
     test->maxValue = 1;
@@ -157,6 +173,8 @@ void testEnterMode(display_t* disp)
 void testExitMode(void)
 {
     freeFont(&test->ibm_vga8);
+    freeWsg(&test->kd_idle0);
+    freeWsg(&test->kd_idle1);
     free(test);
 }
 
@@ -169,7 +187,7 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
     // Check for a test pass
     if(test->buttonsPassed &&
-            test->touchPassed && // TODO
+            test->touchPassed &&
             test->accelPassed &&
             test->bzrMicPassed) // TODO)
     {
@@ -198,7 +216,7 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     {
         uint8_t height = ((test->disp->h / 2) * test->end.fuzzed_bins[i]) /
                          test->maxValue;
-        paletteColor_t color = hsv2rgb((i * 256) / FIXBINS, 255, 255);
+        paletteColor_t color = paletteHsvToHex((i * 256) / FIXBINS, 255, 255);
         int16_t x0 = binMargin + (i * binWidth);
         int16_t x1 = binMargin + ((i + 1) * binWidth);
         // Big enough, fill an area
@@ -236,8 +254,43 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     // BTN_A
     plotButtonState(btnX, centerLine - AB_SEP, test->buttonStates[4]);
 
+    // Draw touch strip
+    int16_t tBarX = test->disp->w - TOUCHBAR_WIDTH;
+    uint8_t numTouchElem = (sizeof(test->touchStates) / sizeof(test->touchStates[0]));
+    for(uint8_t touchIdx = 0; touchIdx < numTouchElem; touchIdx++)
+    {
+        switch(test->touchStates[touchIdx])
+        {
+            case BTN_NOT_PRESSED:
+            {
+                plotRect(test->disp,
+                         tBarX - 1, TOUCHBAR_Y_OFF,
+                         tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                         c500);
+                break;
+            }
+            case BTN_PRESSED:
+            {
+                fillDisplayArea(test->disp,
+                                tBarX - 1, TOUCHBAR_Y_OFF,
+                                tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                                c005);
+                break;
+            }
+            case BTN_RELEASED:
+            {
+                fillDisplayArea(test->disp,
+                                tBarX - 1, TOUCHBAR_Y_OFF,
+                                tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                                c050);
+                break;
+            }
+        }
+        tBarX += (TOUCHBAR_WIDTH / numTouchElem);
+    }
+
     // Set up drawing accel bars
-    int16_t barY = centerLine - ACCEL_BAR_H - ACCEL_BAR_SEP;
+    int16_t barY = TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT + 4;
 
     paletteColor_t accelColor = c500;
     if(test->accelPassed)
@@ -260,13 +313,15 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
     barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
 
-    // TODO sprite plot?
-
     // Plot some text depending on test status
     char dbgStr[32] = {0};
     if(false == test->buttonsPassed)
     {
         sprintf(dbgStr, "Test Buttons");
+    }
+    else if(false == test->touchPassed)
+    {
+        sprintf(dbgStr, "Test Touch Strip");
     }
     else if(false == test->accelPassed)
     {
@@ -276,20 +331,35 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     {
         sprintf(dbgStr, "Test Buzzer & Mic");
     }
-    else if(false == test->touchPassed)
-    {
-        sprintf(dbgStr, "Test Touch Strip");
-    }
     else if (getTestModePassed())
     {
         sprintf(dbgStr, "All Tests Passed");
     }
+
     int16_t tWidth = textWidth(&test->ibm_vga8, dbgStr);
     drawText(test->disp, &test->ibm_vga8, c555, dbgStr, (test->disp->w - tWidth) / 2, 0);
 
     sprintf(dbgStr, "Verify RGB LEDs");
     tWidth = textWidth(&test->ibm_vga8, dbgStr);
     drawText(test->disp, &test->ibm_vga8, c555, dbgStr, (test->disp->w - tWidth) / 2, test->ibm_vga8.h + 8);
+
+    // Animate a sprite
+    test->tSpriteElapsedUs += elapsedUs;
+    while(test->tSpriteElapsedUs >= 500000)
+    {
+        test->tSpriteElapsedUs -= 500000;
+        test->spriteFrame = (test->spriteFrame + 1) % 2;
+    }
+
+    // Draw the sprite
+    if(0 == test->spriteFrame)
+    {
+        drawWsg(test->disp, &test->kd_idle0, 32, 4, false, false, 0);
+    }
+    else
+    {
+        drawWsg(test->disp, &test->kd_idle1, 32, 4, false, false, 0);
+    }
 
     // Pulse LEDs, each color for 1s
     test->tLedElapsedUs += elapsedUs;
@@ -475,6 +545,40 @@ void testButtonCb(buttonEvt_t* evt)
         if(BTN_RELEASED != test->buttonStates[i])
         {
             test->buttonsPassed = false;
+        }
+    }
+}
+
+/**
+ * @brief Touch callback
+ *
+ * @param evt the touch event
+ */
+void testTouchCb(touch_event_t* evt)
+{
+    // Transition states
+    if(evt->down)
+    {
+        if(BTN_NOT_PRESSED == test->touchStates[evt->pad])
+        {
+            test->touchStates[evt->pad] = BTN_PRESSED;
+        }
+    }
+    else
+    {
+        if(BTN_PRESSED == test->touchStates[evt->pad])
+        {
+            test->touchStates[evt->pad] = BTN_RELEASED;
+        }
+    }
+
+    // Check if all buttons have passed
+    test->touchPassed = true;
+    for(uint8_t i = 0; i < 5; i++)
+    {
+        if(BTN_RELEASED != test->touchStates[i])
+        {
+            test->touchPassed = false;
         }
     }
 }
