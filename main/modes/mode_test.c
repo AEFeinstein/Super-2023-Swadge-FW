@@ -14,6 +14,7 @@
 #include "swadge_util.h"
 
 #include "mode_test.h"
+#include "mode_main_menu.h"
 
 //==============================================================================
 // Defines
@@ -53,6 +54,14 @@ typedef enum
     B_FALLING
 } testLedState_t;
 
+typedef enum
+{
+    NOTHING_DETECTECD,
+    A_8_DETECTED,
+    B_8_DETECTED,
+    G_8_DETECTED
+} testSndState_t;
+
 //==============================================================================
 // Functions Prototypes
 //==============================================================================
@@ -85,6 +94,8 @@ typedef struct
     embeddedout_data eod;
     uint8_t samplesProcessed;
     uint16_t maxValue;
+    uint16_t maxIdx;
+    testSndState_t sndState;
     // Button
     testButtonState_t buttonStates[8];
     // Touch
@@ -123,16 +134,11 @@ swadgeMode modeTest =
 const song_t cMajorScale  =
 {
     .notes = {
-        {.note = C_5, .timeMs = 300},
-        {.note = D_5, .timeMs = 300},
-        {.note = E_5, .timeMs = 300},
-        {.note = F_5, .timeMs = 300},
-        {.note = G_5, .timeMs = 300},
-        {.note = A_5, .timeMs = 300},
-        {.note = B_5, .timeMs = 300},
-        {.note = C_6, .timeMs = 300},
+        {.note = G_8, .timeMs = 1000},
+        {.note = A_8, .timeMs = 1000},
+        {.note = B_8, .timeMs = 1000},
     },
-    .numNotes = 8,
+    .numNotes = 3,
     .shouldLoop = true
 };
 
@@ -164,6 +170,7 @@ void testEnterMode(display_t* disp)
 
     // Play a song
     setIsMuted(false);
+    setMicGain(7);
     buzzer_play_bgm(&cMajorScale);
 }
 
@@ -189,10 +196,15 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     if(test->buttonsPassed &&
             test->touchPassed &&
             test->accelPassed &&
-            test->bzrMicPassed) // TODO)
+            test->bzrMicPassed)
     {
         // Set NVM to indicate the test passed
         setTestModePassed(true);
+
+        if(getTestModePassed())
+        {
+            switchToSwadgeMode(&modeMainMenu);
+        }
     }
 
     // Clear everything
@@ -216,7 +228,7 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     {
         uint8_t height = ((test->disp->h / 2) * test->end.fuzzed_bins[i]) /
                          test->maxValue;
-        paletteColor_t color = paletteHsvToHex((i * 256) / FIXBINS, 255, 255);
+        paletteColor_t color = test->bzrMicPassed ? c050 : c500; //paletteHsvToHex((i * 256) / FIXBINS, 255, 255);
         int16_t x0 = binMargin + (i * binWidth);
         int16_t x1 = binMargin + ((i + 1) * binWidth);
         // Big enough, fill an area
@@ -224,6 +236,13 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
                         x0, test->disp->h - height,
                         x1, test->disp->h, color);
     }
+
+    char sndTest[16];
+    sprintf(sndTest, "%d (%d)", test->maxIdx, test->sndState);
+    int16_t tWidth2 = textWidth(&test->ibm_vga8, sndTest);
+    int16_t wOffset = (test->disp->w - tWidth2) / 2;
+    int16_t hOffset = (test->disp->h - test->ibm_vga8.h) / 2;
+    drawText(test->disp, &test->ibm_vga8, c555, sndTest, wOffset, hOffset);
 
     // Draw button states
     int16_t centerLine = test->disp->h / 4;
@@ -606,18 +625,52 @@ void testAudioCb(uint16_t* samples, uint32_t sampleCnt)
             HandleFrameInfo(&test->end, &test->dd);
 
             // Check for pass
-            // int16_t maxVal = 0;
-            // int16_t maxIdx = 0;
-            // for(uint16_t i = 0; i < FIXBINS; i++)
-            // {
-            //     if(test->end.fuzzed_bins[i] > maxVal)
-            //     {
-            //         maxVal = test->end.fuzzed_bins[i];
-            //         maxIdx = i;
-            //     }
-            // }
-            // TODO validate maxIdx
-            // ESP_LOGE("MIC", "%d", maxIdx);
+            int16_t maxVal = 0;
+            test->maxIdx = 0;
+            for(uint16_t i = 0; i < FIXBINS; i++)
+            {
+                if(test->end.fuzzed_bins[i] > maxVal)
+                {
+                    maxVal = test->end.fuzzed_bins[i];
+                    test->maxIdx = i;
+                }
+            }
+
+            // TODO switch to listening for three stable notes
+            switch(test->sndState)
+            {
+                case NOTHING_DETECTECD:
+                {
+                    if(97 <= test->maxIdx && test->maxIdx <= 101)
+                    {
+                        test->sndState = A_8_DETECTED;
+                    }
+                    break;
+                }
+                case A_8_DETECTED:
+                {
+                    if(48 <= test->maxIdx && test->maxIdx <= 52)
+                    {
+                        test->sndState = B_8_DETECTED;
+                    }
+                    break;
+                }
+                case B_8_DETECTED:
+                {
+                    if(59 <= test->maxIdx && test->maxIdx <= 63)
+                    {
+                        test->sndState = G_8_DETECTED;
+                    }
+                    break;
+                }
+                case G_8_DETECTED:
+                {
+                    // Pass!
+                    test->bzrMicPassed = true;
+                    buzzer_stop();
+                    break;
+                }
+            }
         }
     }
 }
