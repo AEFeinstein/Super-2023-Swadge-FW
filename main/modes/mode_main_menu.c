@@ -25,6 +25,7 @@
 #include "mode_platformer.h"
 #include "mode_picross.h"
 #include "mode_flight.h"
+#include "mode_racer.h"
 // #include "picross_select.h"
 
 //==============================================================================
@@ -286,6 +287,7 @@ void mainMenuSetUpGamesMenu(bool resetPos)
     // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuGames, mainMenuGamesCb);
     addRowToMeleeMenu(mainMenu->menu, modeFighter.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeRacer.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeTiltrads.modeName);
     addRowToMeleeMenu(mainMenu->menu, modePlatformer.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeJumper.modeName);
@@ -315,6 +317,11 @@ void mainMenuGamesCb(const char* opt)
     {
         // Start fighter
         switchToSwadgeMode(&modeFighter);
+    }
+    else if(modeRacer.modeName == opt)
+    {
+        // Start racer
+        switchToSwadgeMode(&modeRacer);
     }
     else if(modeTiltrads.modeName == opt)
     {
