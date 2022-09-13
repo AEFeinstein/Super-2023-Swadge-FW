@@ -37,8 +37,10 @@
 #define BTN_TITLE_EXIT_MODE SELECT
 
 // controls (game)
-#define BTN_GAME_DROP BTN_B
-#define BTN_GAME_ROTATE BTN_A
+#define BTN_GAME_SOFT_DROP DOWN
+#define BTN_GAME_HARD_DROP UP
+#define BTN_GAME_ROTATE_CW BTN_A
+#define BTN_GAME_ROTATE_ACW BTN_B
 
 // controls (scores)
 #define BTN_SCORES_CLEAR_SCORES BTN_B
@@ -78,7 +80,6 @@
 
 // game screen
 #define EMPTY 0
-#define ROTATE_DIR 1 // 1 for clockwise, -1 for anti-clockwise.
 #define NUM_ROTATIONS 4
 #define NUM_TETRAD_TYPES 7
 
@@ -115,6 +116,7 @@
 #define SCORE_QUAD 800
 // this is per cell
 #define SCORE_SOFT_DROP 1
+#define SCORE_HARD_DROP 2
 // this is (* count * level)
 #define SCORE_COMBO 50
 
@@ -379,7 +381,6 @@ const uint32_t zTetradRotations [4][TETRAD_GRID_SIZE][TETRAD_GRID_SIZE] =
     3>>0    ( 0, 0) ( 1, 0) (-2, 0) ( 1,-2) (-2, 1)
 */
 
-// NOTE: These tables need to be updated if anti-clockwise rotation needs to be a supported option.
 const coord_t iTetradRotationTests [4][5] =
 {
     {{0, 0}, {-2, 0}, {1, 0}, {-2, 1}, {1, -2}},
@@ -1174,6 +1175,8 @@ void refreshTetradsGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][
                         list_t* fieldTetrads, tetrad_t* movingTetrad, bool includeMovingTetrad);
 int16_t xFromGridCol(int16_t x0, int16_t gridCol, uint8_t unitSize);
 int16_t yFromGridRow(int16_t y0, int16_t gridRow, uint8_t unitSize);
+void debugPrintGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]);
+
 
 // tetrad operations.
 bool rotateTetrad(tetrad_t* tetrad, int32_t newRotation, uint8_t gridCols, uint8_t gridRows,
@@ -1516,28 +1519,46 @@ void ttGameInput(void)
     // Only respond to input when the clear animation isn't running.
     if (!tiltrads->inClearAnimation)
     {
-        // button a = rotate piece
-        if(ttIsButtonPressed(BTN_GAME_ROTATE))
+        // button a,b = rotate piece
+        if(ttIsButtonPressed(BTN_GAME_ROTATE_CW))
         {
-            tiltrads->activeTetradChange = rotateTetrad(&(tiltrads->activeTetrad), tiltrads->activeTetrad.rotation + ROTATE_DIR, GRID_COLS, GRID_ROWS,
+            tiltrads->activeTetradChange = rotateTetrad(&(tiltrads->activeTetrad), tiltrads->activeTetrad.rotation + 1, GRID_COLS, GRID_ROWS,
+                                              tiltrads->tetradsGrid);
+        }
+        else if(ttIsButtonPressed(BTN_GAME_ROTATE_ACW))
+        {
+            tiltrads->activeTetradChange = rotateTetrad(&(tiltrads->activeTetrad), tiltrads->activeTetrad.rotation - 1, GRID_COLS, GRID_ROWS,
                                               tiltrads->tetradsGrid);
         }
 
 #ifdef NO_STRESS_TRIS
-        if(ttIsButtonPressed(BTN_GAME_DROP))
+        if(ttIsButtonPressed(BTN_GAME_SOFT_DROP))
         {
             tiltrads->dropTimer = tiltrads->dropTime;
         }
 #else
-        // button b = soft drop piece
-        if(ttIsButtonDown(BTN_GAME_DROP))
+        // button down = soft drop piece
+        if(ttIsButtonDown(BTN_GAME_SOFT_DROP))
         {
             softDropTetrad();
+        }
+        // button up = hard drop piece
+        else if (ttIsButtonPressed(BTN_GAME_HARD_DROP)) 
+        {
+            // drop piece as far as it will go before landing.
+            int32_t dropDistance = 0;
+            while (dropTetrad(&(tiltrads->activeTetrad), GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid))
+            {
+                dropDistance++;
+            }
+            tiltrads->score += dropDistance * SCORE_HARD_DROP;
+            // set the drop timer so it will land on update.
+            tiltrads->dropTimer = tiltrads->dropTime;
         }
 #endif
 
         // Only move tetrads left and right when the fast drop button isn't being held down.
-        if(ttIsButtonUp(BTN_GAME_DROP))
+        if(ttIsButtonUp(BTN_GAME_SOFT_DROP) && ttIsButtonUp(BTN_GAME_HARD_DROP))
         {
             tiltrads->activeTetradChange = tiltrads->activeTetradChange || moveTetrad(&(tiltrads->activeTetrad), GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid);
         }
@@ -1685,7 +1706,7 @@ void ttGameUpdate(void)
             // The active tetrad has either dropped or landed, redraw required either way.
             tiltrads->activeTetradChange = true;
 
-            if (ttIsButtonDown(BTN_GAME_DROP))
+            if (ttIsButtonDown(BTN_GAME_SOFT_DROP))
             {
                 tiltrads->score += SCORE_SOFT_DROP;
             }
@@ -2423,11 +2444,29 @@ int16_t yFromGridRow(int16_t y0, int16_t gridRow, uint8_t unitSize)
     return (y0 + 1) + (gridRow * unitSize);
 }
 
+void debugPrintGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols])
+{
+    ESP_LOGW("EMU", "Grid Dimensions: c%d x r%d", gridCols, gridRows);
+    for (int32_t y = 0; y < gridRows; y++)
+    {
+        for (int32_t x = 0; x < gridCols; x++)
+        {
+            printf(" %2d ", gridData[y][x]);
+        }
+        printf("\n");
+    }
+}
+
 // This assumes only complete tetrads can be rotated.
 bool rotateTetrad(tetrad_t* tetrad, int32_t newRotation, uint8_t gridCols, uint8_t gridRows,
                   uint32_t gridData[][gridCols])
 {
     newRotation %= NUM_ROTATIONS;
+    if (newRotation < 0) 
+    {
+        newRotation += NUM_ROTATIONS;
+    }
+
     bool rotationClear = false;
 
     switch (tetrad->type)
@@ -2600,7 +2639,6 @@ bool moveTetrad(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
 
     bool moved = false;
 
-    //TODO: test and tweak this.
     //ESP_LOGW("EMU", "ttAccel.y: %d", tiltrads->ttAccel.y);
     int32_t yMod = -tiltrads->ttAccel.y / ACCEL_SEG_SIZE;
     //ESP_LOGW("EMU", "yMod: %d", yMod);
