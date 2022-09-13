@@ -101,8 +101,8 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->holdingDir = PICROSSDIR_IDLE; 
 
     //input settings (adjust these)
-    p->input->firstDASTime = 400000;//.5 seconds
-    p->input->DASTime = 180000;//1,000,000 = 1 second.
+    p->input->firstDASTime = 300000;//.5 seconds
+    p->input->DASTime = 100000;//1,000,000 = 1 second.
     p->input->blinkTime = 120000;//error blink. half a blink cycle (on)(off).
     p->input->blinkCount = 6;//twice blink count (3 blinks)
 

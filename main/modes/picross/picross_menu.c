@@ -191,49 +191,53 @@ void loadLevels()
     loadWsg("Controller_PZL.wsg", &pm->levels[7].levelWSG);//10x10
     loadWsg("Controller_SLV.wsg", &pm->levels[7].completedWSG);
 
-    pm->levels[8].title = "Pear";
-    loadWsg("Pear_PZL.wsg", &pm->levels[8].levelWSG);//10x10
-    loadWsg("Pear_SLV.wsg", &pm->levels[8].completedWSG);
+    pm->levels[8].title = "Cat";
+    loadWsg("Cat_PZL.wsg", &pm->levels[8].levelWSG);//10x10
+    loadWsg("Cat_SLV.wsg", &pm->levels[8].completedWSG);
+
+    pm->levels[9].title = "Pear";
+    loadWsg("Pear_PZL.wsg", &pm->levels[9].levelWSG);//10x10
+    loadWsg("Pear_SLV.wsg", &pm->levels[9].completedWSG);
     
-    pm->levels[9].title = "Cherry";
-    loadWsg("Cherry_PZL.wsg", &pm->levels[9].levelWSG);//10x10
-    loadWsg("Cherry_SLV.wsg", &pm->levels[9].completedWSG);
+    pm->levels[10].title = "Cherry";
+    loadWsg("Cherry_PZL.wsg", &pm->levels[10].levelWSG);//10x10
+    loadWsg("Cherry_SLV.wsg", &pm->levels[10].completedWSG);
 
-    pm->levels[10].title = "Strawberry";
-    loadWsg("Strawberry_PZL.wsg", &pm->levels[10].levelWSG);//10x10
-    loadWsg("Strawberry_SLV.wsg", &pm->levels[10].completedWSG);
+    pm->levels[11].title = "Strawberry";
+    loadWsg("Strawberry_PZL.wsg", &pm->levels[11].levelWSG);//10x10
+    loadWsg("Strawberry_SLV.wsg", &pm->levels[11].completedWSG);
 
-    pm->levels[11].title = "Coffee Bean";
-    loadWsg("CoffeeBean_PZL.wsg", &pm->levels[11].levelWSG);//coffeBean is pretty hard for a 10x10
-    loadWsg("CoffeeBean_SLV.wsg", &pm->levels[11].completedWSG);
+    pm->levels[12].title = "Coffee Bean";
+    loadWsg("CoffeeBean_PZL.wsg", &pm->levels[12].levelWSG);//coffeBean is pretty hard for a 10x10
+    loadWsg("CoffeeBean_SLV.wsg", &pm->levels[12].completedWSG);
 
-    pm->levels[12].title = "Boat";   
-    loadWsg("3_boat.wsg", &pm->levels[12].levelWSG);//10x10
-    loadWsg("3_boat_c.wsg", &pm->levels[12].completedWSG);
+    pm->levels[13].title = "Boat";   
+    loadWsg("3_boat.wsg", &pm->levels[13].levelWSG);//10x10
+    loadWsg("3_boat_c.wsg", &pm->levels[13].completedWSG);
 
-    pm->levels[13].title = "Mouse";
-    loadWsg("Mouse_PZL.wsg", &pm->levels[13].levelWSG);//15x15
-    loadWsg("Mouse_SLV.wsg", &pm->levels[13].completedWSG);
+    pm->levels[14].title = "Mouse";
+    loadWsg("Mouse_PZL.wsg", &pm->levels[14].levelWSG);//15x15
+    loadWsg("Mouse_SLV.wsg", &pm->levels[14].completedWSG);
 
-    pm->levels[14].title = "Note";
-    loadWsg("Note_PZL.wsg", &pm->levels[14].levelWSG);//15x15
-    loadWsg("Note_SLV.wsg", &pm->levels[14].completedWSG);
+    pm->levels[15].title = "Note";
+    loadWsg("Note_PZL.wsg", &pm->levels[15].levelWSG);//15x15
+    loadWsg("Note_SLV.wsg", &pm->levels[15].completedWSG);
 
-    pm->levels[15].title = "Banana";
-    loadWsg("Banana_PZL.wsg", &pm->levels[15].levelWSG);//15x15
-    loadWsg("Banana_SLV.wsg", &pm->levels[15].completedWSG);
+    pm->levels[16].title = "Banana";
+    loadWsg("Banana_PZL.wsg", &pm->levels[16].levelWSG);//15x15
+    loadWsg("Banana_SLV.wsg", &pm->levels[16].completedWSG);
 
-    pm->levels[16].title = "Fountain Pen";
-    loadWsg("Fountain_Pen_PZL.wsg", &pm->levels[16].levelWSG);//15x15
-    loadWsg("Fountain_Pen_SLV.wsg", &pm->levels[16].completedWSG);
+    pm->levels[17].title = "Fountain Pen";
+    loadWsg("Fountain_Pen_PZL.wsg", &pm->levels[17].levelWSG);//15x15
+    loadWsg("Fountain_Pen_SLV.wsg", &pm->levels[17].completedWSG);
 
-    pm->levels[17].title = "Power Plug";
-    loadWsg("Plug_PZL.wsg", &pm->levels[17].levelWSG);//15x15 - This one is on the harder side of things.
-    loadWsg("Plug_SLV.wsg", &pm->levels[17].completedWSG);
+    pm->levels[18].title = "Power Plug";
+    loadWsg("Plug_PZL.wsg", &pm->levels[18].levelWSG);//15x15 - This one is on the harder side of things.
+    loadWsg("Plug_SLV.wsg", &pm->levels[18].completedWSG);
 
-    pm->levels[18].title = "Never Gonna";//give you up, but title too long for single line.
-    loadWsg("RR_PZL.wsg", &pm->levels[18].levelWSG);//10x10
-    loadWsg("RR_SLV.wsg", &pm->levels[18].completedWSG);
+    pm->levels[19].title = "Never Gonna";//give you up, but title too long for single line.
+    loadWsg("RR_PZL.wsg", &pm->levels[19].levelWSG);//10x10
+    loadWsg("RR_SLV.wsg", &pm->levels[19].completedWSG);
 
     //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_consts.h) when adding levels.
 
