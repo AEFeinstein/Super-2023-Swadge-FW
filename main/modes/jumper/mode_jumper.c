@@ -135,6 +135,24 @@ static const song_t jumpPlayerJump =
     .shouldLoop = false
 };
 
+
+static const song_t jumperPlayerCollect =
+{
+    .notes =
+    {
+        {B_5, 100}, {C_5, 100},
+        {C_SHARP_5, 100}, {A_5, 100},
+        {B_5, 100}, {C_5, 100},
+        {C_SHARP_5, 100}, {A_5, 100},
+        {B_5, 100}, {C_5, 100},
+        {C_SHARP_5, 100}, {A_5, 100},
+        {B_5, 100}, {C_5, 100},
+        {C_SHARP_5, 100}, {A_5, 100}
+    },
+    .numNotes = 16,
+    .shouldLoop = false
+};
+
 static const song_t jumpPlayerBrokeCombo =
 {
     .notes =
@@ -206,7 +224,9 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
     j->scene->combo = 1;
     j->scene->score = 0;
     j->scene->lives = 3;
-    loadWsg("minidonut.wsg", &j->scene->livesIcon);
+    j->scene->currentPowerup = calloc(1, sizeof(jumperPowerup_t));
+    loadWsg("livesdonut.wsg", &j->livesIcon);
+    loadWsg("sprite017.wsg", &j->powerup);
 
 
     loadWsg("block_0a.wsg", &j->block[0]);
@@ -277,6 +297,9 @@ void jumperSetupState(uint8_t stageIndex)
     j->scene->level = stageIndex + 1;
     j->scene->blockOffset_x = 20;
     j->scene->blockOffset_y = 54;
+    j->scene->currentPowerup->powerupSpawned = false;
+    j->scene->currentPowerup->powerupTime = (esp_random() % 6);
+
     jumperResetPlayer();
 
 
@@ -481,6 +504,25 @@ void jumperGameLoop(int64_t elapsedUs)
                 jumperDoEvilDonut(elapsedUs);
                 jumperDoBlump(elapsedUs);
             }
+
+            if (j->scene->currentPowerup->powerupSpawned == false && j->scene->currentPowerup->powerupTime >= j->scene->seconds)
+            {
+                j->scene->currentPowerup->powerupSpawned = true;
+                j->scene->currentPowerup->collected = false;                
+
+                uint8_t block = 5 + esp_random() % 25;
+
+                while(block == player->block)
+                {
+                    block = 5 + esp_random() % 25;
+                }
+
+                ESP_LOGI("JUM", "SPAWNED %d", block);
+                j->scene->currentPowerup->x = 8 + j->scene->blockOffset_x + ((block % 6) * 38) + rowOffset[(block / 6) % 5];
+                j->scene->currentPowerup->y = 8 + j->scene->blockOffset_y + ((block / 6) * 28);
+
+            }
+
             break;
         case JUMPER_GAME_OVER:
         
@@ -535,8 +577,10 @@ void jumperGameLoop(int64_t elapsedUs)
         }
     }
 
+    //Do player input
     jumperPlayerInput();
 
+    //Do player animation setup
     player->frameTime += elapsedUs;
     switch (player->state)
     {
@@ -587,6 +631,7 @@ void jumperGameLoop(int64_t elapsedUs)
             switch(j->scene->blocks[player->block])
             {
                 case BLOCK_STANDARD:
+                case BLOCK_STANDARDLANDED:
                     j->scene->blocks[player->block] = BLOCK_PLAYERLANDED;
                     j->scene->score = j->scene->score + (10 * j->scene->combo);
 
@@ -631,6 +676,8 @@ void jumperGameLoop(int64_t elapsedUs)
                     j->scene->combo++;
                     break;
                 case BLOCK_WARBLESTANDARD:  
+                case BLOCK_WARBLELANDEDA:
+                case BLOCK_WARBLELANDEDB:
                     if (j->scene->combo > 5)
                     {                    
                         buzzer_play_sfx(&jumpPlayerBrokeCombo);
@@ -659,9 +706,12 @@ void jumperGameLoop(int64_t elapsedUs)
                     break;
                 
                 case BLOCK_EVILSTANDARD:
+                case BLOCK_EVILLANDED:
                     jumperKillPlayer();
                     j->scene->blocks[player->block] = BLOCK_EVILLANDED;
                     break;
+                case BLOCK_PLAYERLANDED:
+                case BLOCK_WIN:
                 default:
                     break;
             }
@@ -708,23 +758,23 @@ void jumperGameLoop(int64_t elapsedUs)
     //Check collision!
     if (player->state != CHARACTER_DEAD && player->state != CHARACTER_DYING)
     {
-
         box_t box1 =
         {
-            .x0 = (player->x + 5) * 2,
+            .x0 = (player->x + 8) * 2,
             .y0 = (player->y + 16) * 2,
-            .x1 = (player->x + 5 + 16) * 2,
+            .x1 = (player->x + 8 + 16) * 2,
             .y1 = (player->y + 8 + 8) * 2,
         };
 
         box_t box2 =
         {
-            .x0 = (evilDonut->x + 5) * 2,
+            .x0 = (evilDonut->x + 8) * 2,
             .y0 = (evilDonut->y + 8) * 2,
-            .x1 = (evilDonut->x + 5 + 16) * 2,
+            .x1 = (evilDonut->x + 8 + 16) * 2,
             .y1 = (evilDonut->y + 8 + 16) * 2,
         };
 
+        //Detect collision of player with Evil Donut
         if (evilDonut->state != CHARACTER_DYING && evilDonut->state != CHARACTER_DEAD && boxesCollide(box1, box2, 1))
         {
             jumperKillPlayer();
@@ -732,15 +782,55 @@ void jumperGameLoop(int64_t elapsedUs)
 
         box_t box3 =
         {
-            .x0 = (blump->x + 5) * 2,
+            .x0 = (blump->x + 8) * 2,
             .y0 = (blump->y + 8) * 2,
-            .x1 = (blump->x + 5 + 16) * 2,
+            .x1 = (blump->x + 8 + 16) * 2,
             .y1 = (blump->y + 8 + 16) * 2,
         };
 
+
+        //Detect collision of player with Blump
         if (blump->state != CHARACTER_DYING && blump->state != CHARACTER_DEAD && boxesCollide(box1, box3, 1))
         {
             jumperKillPlayer();
+        }
+
+        //Sets powerup location
+        box_t box4 = 
+        {
+            .x0 = (j->scene->currentPowerup->x + 8) * 2,
+            .y0 = (j->scene->currentPowerup->y ) * 2,
+            .x1 = (j->scene->currentPowerup->x + 8 + 16) * 2,
+            .y1 = (j->scene->currentPowerup->y + 16) * 2,
+        };
+
+        //Check if powerup is active and player collects it
+        if (j->scene->currentPowerup->powerupSpawned && !j->scene->currentPowerup->collected && boxesCollide(box1, box4, 1))
+        {
+            j->scene->currentPowerup->collected = true;
+            ESP_LOGI("JUM", "Got the powerup");
+            buzzer_play_sfx(&jumperPlayerCollect);
+            j->scene->score += 2000;
+
+            if (blump->state != CHARACTER_DYING && blump->state != CHARACTER_DEAD && blump->state != CHARACTER_NONEXISTING)
+            {
+                blump->state = CHARACTER_DYING;
+            }
+            else
+            {
+                blump->respawnTime = 6000000;                
+            }
+
+            if (evilDonut->state != CHARACTER_DYING && evilDonut->state != CHARACTER_DEAD && evilDonut->state != CHARACTER_NONEXISTING)
+            {                
+                evilDonut->state = CHARACTER_DYING;
+                evilDonut->respawnTime = 8000000;
+            }
+            else
+            {
+                evilDonut->respawnTime = 8000000;
+            }
+
         }
     }
 
@@ -767,11 +857,13 @@ void jumperGameLoop(int64_t elapsedUs)
 
 }
 
+//When level reset, set all blocks to appear to be unoccupied
 void jumperClearBlock(uint8_t blockIndex)
 {
     switch(j->scene->blocks[blockIndex])
     {
         case BLOCK_EVILLANDED:
+        case BLOCK_EVILSTANDARD:
             j->scene->blocks[blockIndex] = BLOCK_EVILSTANDARD;
             break;
         case BLOCK_PLAYERLANDED:
@@ -780,30 +872,39 @@ void jumperClearBlock(uint8_t blockIndex)
         case BLOCK_STANDARDLANDED:
             j->scene->blocks[blockIndex] = BLOCK_STANDARD;
             break;
+        case BLOCK_WARBLESTANDARD:
         case BLOCK_WARBLELANDEDA:
         case BLOCK_WARBLELANDEDB:
             j->scene->blocks[blockIndex] = BLOCK_WARBLESTANDARD;
             break;
+        case BLOCK_WIN:
+        case BLOCK_STANDARD:
+        case BLOCK_COMPLETE:
         default:
             break;
     }
 }
 
+//Return true if the block should kill the enemy
 bool jumperDoEnemyLand(uint8_t blockIndex)
 {
     
     switch(j->scene->blocks[blockIndex])
     {
         case BLOCK_EVILSTANDARD:
+        case BLOCK_EVILLANDED:
             j->scene->blocks[blockIndex] = BLOCK_EVILLANDED;
             break;
         case BLOCK_COMPLETE:
             j->scene->blocks[blockIndex] = BLOCK_PLAYERLANDED;
             break;
         case BLOCK_STANDARD:
+        case BLOCK_STANDARDLANDED:
             j->scene->blocks[blockIndex] = BLOCK_STANDARDLANDED;
             break;
         case BLOCK_WARBLESTANDARD:
+        case BLOCK_WARBLELANDEDA:
+        case BLOCK_WARBLELANDEDB:
             if ( esp_random() % 100 > 50)
             {
                 j->scene->blocks[blockIndex] = BLOCK_WARBLELANDEDA;
@@ -814,6 +915,8 @@ bool jumperDoEnemyLand(uint8_t blockIndex)
             }
             return true;
             break;
+        case BLOCK_WIN:
+        case BLOCK_PLAYERLANDED:
         default:
             break;
     }
@@ -1034,12 +1137,14 @@ void jumperDoEvilDonut(int64_t elapsedUs)
                 // ESP_LOGI("JUM", "AI RESET");
                 evilDonut->intelligence.decideTime = 0;
 
+                //Additional AI things I want to try before code lock
+                /*
                 ESP_LOGI("JUM", "X  Y distance %d, %d", (player->x - evilDonut->x) >> 2, (player->y - evilDonut->y) >> 2);
 
                 if (((player->x - evilDonut->x) * (player->x - evilDonut->x)) > ((player->y - evilDonut->y) * (player->y - evilDonut->y)) )
                 {
                     ESP_LOGI("JUM", "X is greater than Y distance %d, %d", (player->x - evilDonut->x) >> 2, (player->y - evilDonut->y) >> 2);
-                }
+                }*/
 
                 if (player->y > evilDonut->y)
                 {
@@ -1207,6 +1312,8 @@ void jumperDoEvilDonut(int64_t elapsedUs)
  */
 void jumperKillPlayer()
 {
+    if (j->player->state == CHARACTER_DYING) return;
+
     buzzer_play_bgm(&jumpDeathTune);
     j->player->state = CHARACTER_DYING;
     j->player->frameIndex = 4;
@@ -1218,7 +1325,6 @@ void jumperKillPlayer()
         j->respawnBlock = 0;
     }
 
-    ESP_LOGI("JUM", "Player died on %d", j->player->block);
 }
 
 /**
@@ -1331,6 +1437,11 @@ void drawJumperScene(display_t* d)
                 20 + j->scene->blockOffset_y + (row * 28), false, false, 0);
 
     }
+    
+    if (j->scene->currentPowerup->powerupSpawned && !j->scene->currentPowerup->collected)
+    {
+        drawWsg(d, &j->powerup, j->scene->currentPowerup->x, j->scene->currentPowerup->y, false, false, 0);        
+    }
 
     if (evilDonut->state == CHARACTER_DYING)
     {
@@ -1349,6 +1460,7 @@ void drawJumperScene(display_t* d)
     {
         drawWsg(d, &blump->frames[blump->frameIndex], blump->x, blump->y, blump->flipped, false, 0);
     }
+
 
     if (player->state != CHARACTER_DEAD)
     {
@@ -1389,15 +1501,15 @@ void drawJumperEffects(display_t* d)
 void drawJumperHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
 {
     char textBuffer[12];
-    snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", j->scene->level);
+    snprintf(textBuffer, sizeof(textBuffer) - 1, "LVL %d", j->scene->level);
 
     if (j->scene->level < 10)
     {
-        drawText(d, font, c555, textBuffer, 230, 220);
+        drawText(d, font, c555, textBuffer, 190, 220);
     }
     else
     {
-        drawText(d, font, c555, textBuffer, 214, 220);
+        drawText(d, font, c555, textBuffer, 174, 220);
     }
 
     drawText(d, prompt, c555, "SCORE", 28, 10);
@@ -1410,7 +1522,7 @@ void drawJumperHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
 
     for (int i = 0; i < j->scene->lives; i++)
     {
-        drawWsg(d, &j->scene->livesIcon, 25 + (i * 11), 220, false, false, 0);
+        drawWsg(d, &j->livesIcon, 25 + (i * 17), 220, false, false, 0);
     }
 
     //Show countdown sequence
@@ -1419,8 +1531,7 @@ void drawJumperHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
         if (j->scene->seconds <= 0)
         {
             drawText(d, outline, c000, "JUMP!", 100, 128);
-            drawText(d, font, c555, "JUMP!", 100, 128);
-            
+            drawText(d, font, c555, "JUMP!", 100, 128);            
         }
         else if (j->scene->seconds <= 3 )
         {
@@ -1434,6 +1545,7 @@ void drawJumperHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
             drawText(d, font, c555, "READY", 100, 128);
         }
     }
+
     if (j->currentPhase == JUMPER_GAMING)
     {
         if (j->scene->seconds <= 0 && j->scene->seconds > -2)
@@ -1442,11 +1554,13 @@ void drawJumperHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
             drawText(d, font, c555, "JUMP!", 100, 128);
         }
     }
+
     if (j->currentPhase == JUMPER_GAME_OVER)
     {
         drawText(d, outline, c000, "GAME OVER", 80, 128);
         drawText(d, font, c555, "GAME OVER", 80, 128);
     }
+
     if (j->currentPhase == JUMPER_WINSTAGE)
     {
         if (j->scene->combo >= j->scene->perfect)
@@ -1476,7 +1590,8 @@ void jumperExitGame(void)
         //Clear all tiles
         //clear stage
 
-        freeWsg(&j->scene->livesIcon);
+        freeWsg(&j->livesIcon);
+        freeWsg(&j->powerup);
         freeFont(&(j->game_font));
         freeFont(&(j->outline_font));
         freeFont(&(j->fill_font));
@@ -1527,6 +1642,8 @@ void jumperExitGame(void)
         freeWsg( &j->blump->frames[3]);
         freeWsg( &j->blump->frames[4]);
         freeWsg( &j->blump->frames[5]);
+
+        free(j->scene->currentPowerup);
 
         free(j->scene);
 
