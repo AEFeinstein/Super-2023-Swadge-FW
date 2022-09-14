@@ -58,12 +58,10 @@ void picrossMenuOptionsCb(const char* opt);
 //Key values for persistent save data.
 const char picrossCurrentPuzzleIndexKey[] = "pic_cur_ind";
 const char picrossSavedOptionsKey[] = "picross_options"; 
-const char picrossCompletedLevelData1[] = "picross_Solves1";
-const char picrossCompletedLevelData2[] = "picross_Solves2";
-const char picrossCompletedLevelData3[] = "picross_Solves3";
-
+const char picrossCompletedLevelData[] = "picross_victories";
+const char picrossProgressData[] = "picross_progress";
 //Main menu strings
-static const char str_picrossTitle[] = "pi-cross";//set game name here for top in-picross-menu name. Should match below.
+static char str_picrossTitle[] = "pi-cross";
 static const char str_continue[] = "Continue";
 static const char str_levelSelect[] = "Puzzle Select";
 static const char str_howtoplay[] = "How To Play";
@@ -83,7 +81,7 @@ static const char str_eraseProgress[] = "Erase Progress";
 
 swadgeMode modePicross =
 {
-    .modeName = "pi-cross",//set name here for how name appears in "games" menu. Should match above.
+    .modeName = str_picrossTitle,
     .fnEnterMode = picrossEnterMode,
     .fnExitMode = picrossExitMode,
     .fnMainLoop = picrossMainLoop,
@@ -123,13 +121,12 @@ void picrossEnterMode(display_t* disp)
     
     setPicrossMainMenu(true);
 
-
     loadLevels();
     
     //set default options
     if(false == readNvs32(picrossSavedOptionsKey, &pm->options))
     {
-        writeNvs32(picrossSavedOptionsKey, 4);//100 = bg on, guide off, options off
+        writeNvs32(picrossSavedOptionsKey, 4);//100 = bg on, guide off, options off. On the fence on guides on or off.
     }
 }
 
@@ -368,7 +365,6 @@ void setPicrossMainMenu(bool resetPos)
     }
     
     //otherwise, if we are in ANY game state, this should default (and set) to picross_menu
-
     resetMeleeMenu(pm->menu, str_picrossTitle, picrossMainMenuCb);
     pm->menu->selectedRow = rowPos;
 
@@ -401,7 +397,7 @@ void setPicrossMainMenu(bool resetPos)
 void returnToPicrossMenu(void)
 {
     picrossExitLevelSelect();//free data
-    setPicrossMainMenu(false);
+    setPicrossMainMenu(true);
 }
 
 /**
@@ -420,7 +416,7 @@ void picrossMainMenuCb(const char* opt)
     if (opt == str_continue)
     {
         //get the current level index
-        int currentIndex = 0;//just load 0 if its 0. 
+        int32_t currentIndex = 0;//just load 0 if its 0. 
         readNvs32(picrossCurrentPuzzleIndexKey, &currentIndex);
 
         //load in the level we selected.
@@ -489,15 +485,13 @@ void picrossMainMenuCb(const char* opt)
         setPicrossMainMenu(false);
     }else if(opt == str_eraseProgress)
     {
-        //Erase all gameplay data
-        //doesnt erase settings.
-        writeNvs32(picrossCompletedLevelData1, 0);
-        writeNvs32(picrossCompletedLevelData2, 0);
-        writeNvs32(picrossCompletedLevelData3, 0);
-        for(int i = 0;i<10;i++)
-        {
-            writeNvs32(getBankName(0), 0);
-        }
+        //Next time we load a puzzle it will re-save and zero-out the data, we just have to tell the mennu not to show the 'continue' option.
+        writeNvs32(picrossCurrentPuzzleIndexKey,-1);
+
+        size_t size = sizeof(picrossVictoryData_t);
+        picrossVictoryData_t* victData = calloc(1,size);//zero out = reset.
+        writeNvsBlob(picrossCompletedLevelData,victData,size);
+        free(victData);
     }
 }
 

@@ -139,12 +139,6 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
         }
     }
 
-    //save data configure
-    for(int i=0;i<PICROSS_MAX_LEVELSIZE;i++)
-    {
-        p->saveBanks[i] = 0;
-    }
-
     //Setup level
     picrossSetupPuzzle(cont);
 }
@@ -622,7 +616,10 @@ void picrossUserInput(int64_t elapsedUs)
     //todo: how should exit work? A button when game is solved?
     if(input->btnState & SELECT && !(input->prevBtnState & SELECT) && !(input->btnState & BTN_A))//if we are holding a down when we leave, we instantly select a level on the select screen.
     {
-        savePicrossProgress();
+        //dont bother saving if we are leaving victory screen.
+        if(p->currentPhase == PICROSS_SOLVING){
+            savePicrossProgress();
+        }
         // returnToLevelSelect();//im on the fence about how this should behave. to level or main.
         // returnToPicrossMenu();//now that it hovers over continue, i think main is better.
         p->exitThisFrame = true;//stops drawing to the screen, stops messing with variables, frees memory.
@@ -1006,16 +1003,9 @@ void drawPicrossScene(display_t* d)
             }
         }
 
-        //Draw the title of the puzzle, centered.
-        //We Should get the y position from the 0 y position 
-        // uint16_t y = p->drawScale + p->topPad - p->UIFont.h;//this is y1 of boxFromCoords solved for position 0, then shifted up the height of the font.
-        //I don't know if I want the title drawn right above the puzzle or just at the top. at the top for now.
-
-        //TODO: still not quite centered.
-        int t = strlen(p->selectedLevel->title);//get character count of title
-        t = t * PICROSS_UIFONT_WIDTH;//p->UIFont.h is not quite w, so we hardcode it. This gets pixel count of title.
-        t = (((int)d->w) - t)/2;//turn t into padding.
-        
+        //Draw the title of the puzzle, centered.       
+        int16_t t = textWidth(&p->UIFont,p->selectedLevel->title);
+        t = ((d->w) - t)/2;//from text width into padding.
         drawText(d,&p->UIFont,c555,p->selectedLevel->title,t,14);
     }
 }
@@ -1372,125 +1362,66 @@ void picrossExitGame(void)
 //===========
 
 /**
- * @brief Saves the current level to permastore. 
- * Each row gets its own int32. Each square needs 2 bits (enum is 4 options, 3 used by actual level and an outofbounds = 2 bits).
- * We save the data in the last 2 bits, then move the bank over 2 bits. repeat.
- * a 32 bit integer means we can support up to 16 values per row.
- * One integer per row means we don't have to re-write this code to deal with levels of different size.
+ * @brief Saves the current level to permastore.
  * We save the current level index elsewhere, and re-create the entire puzzle on loading, so we dont have to store any clues or w/h info.
- * 
+ * Saving the index elsewhere also means we don't need to load the entire puzzle just to see if we should have it say "Continue" in the menu
  * Currently the puzzle only saves when we hit select to exit. Once I test performance on device, I would like to add saving it when you also hit start,
  * or as frequently as every time you make a change.
  */
 void savePicrossProgress()
 {
-    //should we zero out unused rows? I Don't think we need to, but it kinda feels wrong not to lol.
-    for(int y = 0;y<p->puzzle->height;y++)
+    //save level progress
+    size_t size = sizeof(picrossProgressData_t);
+    picrossProgressData_t* progress = malloc(size);
+    //I know im doing things a kind of brute-force way here, copying over every value 1 by 1. I should be, i dunno, just swapping pointers around? and...freeing up the old pointer?
+    //also, we dont need to save OUTOFBOUNDS for smaller levels, since it shouldnt get read. while debugging and poking around at what its saving, I prefer not having garbage getting saved.
+    
+    for(int y = 0;y<PICROSS_MAX_LEVELSIZE;y++)
     {
-        for(int x = 0;x<p->puzzle->width;x++)
+        for(int x = 0;x<PICROSS_MAX_LEVELSIZE;x++)
         {
-            //because level enum is <4, it will only write last 2 bits in the OR
-            p->saveBanks[y] =  p->saveBanks[y] << 2;
-            p->saveBanks[y] = (p->saveBanks[y] | p->puzzle->level[x][y]);
+            if(x < p->puzzle->width && y < p->puzzle->height){
+                progress->level[x][y] = p->puzzle->level[x][y];
+            }else{
+                progress->level[x][y] = OUTOFBOUNDS;
+            }
         }
-        writeNvs32(getBankName(y), p->saveBanks[y]);
-    }    
+    }
+    writeNvsBlob(picrossProgressData,progress,size);
+
+    free(progress);
 }
+/**
+ * @brief Loads the current picross level in from dataStore. 
+ * Current Level Index also needs to be set, but that already must have happened in order to know what level to set and have the menus work correctly.
+ * 
+ */
 void loadPicrossProgress()
 {
+    picrossProgressData_t progress;
+    size_t size = sizeof(progress);//why is size 0
+    readNvsBlob(picrossProgressData,&progress,&size);
+
     for(int y = 0;y<p->puzzle->height;y++)
     {
-        readNvs32(getBankName(y), &p->saveBanks[y]);
         for(int x = 0;x<p->puzzle->width;x++)
         {
-            //x is flipped because of the bit shifting direction.
-            p->puzzle->level[p->puzzle->width-1-x][y] = p->saveBanks[y] & 3;//0x...00000011, we only care about last two bits
-            p->saveBanks[y] = p->saveBanks[y] >> 2;//shift over twice for next load. Wait are we mangling it here on the load? Does it matter?
+            p->puzzle->level[x][y] = progress.level[x][y];
         }
-    }    
+    }
 }
+
+//**
+// * @brief Sets the "we beat this level" victory status for the current level.
+// * 
+// * @param completed. True to mark as victories (When we win), false to reset to incomplete (when we reselect the puzzle).
+// */
 void saveCompletedOnSelectedLevel(bool completed)
 {
-        //Save Victory
-        int32_t victories = 0;
-        if(p->selectedLevel->index <= 32)//levels 0-31
-        {
-            //Save the fact that we won.
-            
-            readNvs32(picrossCompletedLevelData1, &victories);
-            
-            //shift 1 (0x00...001) over levelIndex times, then OR it with victories.
-            if(completed)
-            {
-                victories = victories | (1 << (p->selectedLevel->index));
-            }else{
-                victories = victories & ~(1 << (p->selectedLevel->index));
-            }
-            //Save new number
-            writeNvs32(picrossCompletedLevelData1, victories);
-        }else if(p->selectedLevel->index < 64)//levels 32-64
-        {
-            victories = 0;
-            readNvs32(picrossCompletedLevelData2, &victories);
-            if(completed){
-                victories = victories | (1 << (p->selectedLevel->index - 32));
-            }else{
-                victories = victories & ~(1 << (p->selectedLevel->index - 32));
-            }
-            writeNvs32(picrossCompletedLevelData2, victories);
-        }else if(p->selectedLevel->index < 96)//levels 65-95
-        {
-            victories = 0;
-            readNvs32(picrossCompletedLevelData3, &victories);
-            if(completed){
-                victories = victories | (1 << (p->selectedLevel->index - 64));
-            }else{
-                victories = victories & ~(1 << (p->selectedLevel->index - 64));
-            }
-            writeNvs32(picrossCompletedLevelData3, victories);
-        }
-}
-//I promise I tried to do a proper index->row/col mapping here, since we only need 100*2 bits of data. (<320 used here) but i kept messing the math up.
-//I know that 120 bits is not a lot, but on principle, it bothers me and I would like to optimize this in the future.
-//update: now that I am storing up to 15x15 puzzles (30 bits of data in 32 bits of space, its only 15rows*2 bits of wasted bits. nice.)
-
-char * getBankName(int i)
-{
-    //this is what it is.
-    switch(i)
-    {
-        case 0:
-            return "pic_b_0";
-        case 1:
-            return "pic_b_1";
-        case 2:
-            return "pic_b_2";
-        case 3:
-            return "pic_b_3";
-        case 4:
-            return "pic_b_4";
-        case 5:
-            return "pic_b_5";
-        case 6:
-            return "pic_b_6";
-        case 7:
-            return "pic_b_7";
-        case 8:
-            return "pic_b_8";
-        case 9:
-            return "pic_b_9";
-        case 10:
-            return "pic_b_10";
-        case 11:
-            return "pic_b_11";
-        case 12:
-            return "pic_b_12";
-        case 13:
-            return "pic_b_13";
-        case 14:
-            return "pic_b_14";
-        case 15:
-            return "pic_b_15";
-    }
-    return "pic_b_x";
+    size_t size = sizeof(picrossVictoryData_t);
+    picrossVictoryData_t* victData = calloc(1,size);//zero out. if data doesnt exist, then its been correctly initialized to all 0s. 
+    readNvsBlob(picrossCompletedLevelData,victData,&size);
+    victData->victories[(int)p->selectedLevel->index] = completed;
+    writeNvsBlob(picrossCompletedLevelData,victData,size);
+    free(victData);
 }

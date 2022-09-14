@@ -6,7 +6,7 @@
 #include "picross_consts.h"
 
 typedef struct {
-    uint8_t index;
+    int8_t index;
     wsg_t levelWSG;
     wsg_t completedWSG;
     bool completed;

@@ -42,37 +42,15 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
 
     loadWsg("unknownPuzzle.wsg",&ls->unknownPuzzle);
 
-    //Load in which levels have been completed.
-    int32_t victories0 = 0;
-    int32_t victories1 = 0;
-    int32_t victories2 = 0;
+    size_t size = sizeof(picrossVictoryData_t);
+    picrossVictoryData_t* victData = calloc(1,size);//zero out. if data doesnt exist, then its been correctly initialized to all 0s. 
+    readNvsBlob(picrossCompletedLevelData,victData,&size);
 
-    //picross_Solves1 would be for levels 33->64
-    readNvs32(picrossCompletedLevelData1, &victories0);
-    readNvs32(picrossCompletedLevelData2, &victories1);
-    readNvs32(picrossCompletedLevelData3, &victories2);
-
-    int32_t v;
     ls->allLevelsComplete = true;
-    int j;//bit position of i in appropriate register
     for(int i = 0;i<PICROSS_LEVEL_COUNT;i++)
     {
-        //todo: We will switch to blob storage once I get around to it, bypassing this hack with int32s.
-        if(i<32){
-            v = victories0;
-            j = i;
-        }else if(i<64)
-        {
-            v = victories1;
-            j = i - 32;
-        }else if(i<96)
-        {
-            v = victories2;
-            j = i - 64;
-        }
-        
         //set completed data from save data.
-        if(1 == (v & ( 1 << j )) >> j){
+        if(victData->victories[i] == true){
             levels[i].completed = true;
         }else{
             levels[i].completed = false;
@@ -98,6 +76,8 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     ls->paddingTop = 20;
     ls->gap = 5;
     ls->gridScale = 30;//PICROSS_MAX_SIZE * 2
+
+    free(victData);
 }
 
 void picrossLevelSelectLoop(int64_t elapsedUs)
@@ -126,6 +106,11 @@ void levelSelectInput()
     {
         ls->chosenLevel = &ls->levels[ls->hoverLevelIndex];
         writeNvs32(picrossCurrentPuzzleIndexKey, ls->hoverLevelIndex);//save the selected level before we lose context of the index.
+
+        size_t size = sizeof(picrossProgressData_t);
+        picrossProgressData_t* progress = calloc(1,size);//zero out. if data doesnt exist, then its been correctly initialized to all 0s. 
+        readNvsBlob(picrossCompletedLevelData,progress,&size);
+
         selectPicrossLevel(ls->chosenLevel);
         return;
     }

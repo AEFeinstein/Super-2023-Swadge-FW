@@ -31,6 +31,19 @@ typedef enum
 
 typedef struct
 {
+    bool victories[PICROSS_LEVEL_COUNT];
+}picrossVictoryData_t;
+
+typedef struct
+{
+    //input x position
+    //input y position
+    picrossSpaceType_t level[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE]; 
+}picrossProgressData_t;
+
+
+typedef struct
+{
     picrossSpaceType_t startHeldType;
     uint8_t x;
     uint8_t y;
@@ -105,7 +118,6 @@ typedef struct
     led_t errorALEDBlinkLEDS[NUM_LEDS];
     led_t errorBLEDBlinkLEDS[NUM_LEDS];
     led_t offLEDS[NUM_LEDS];
-    int32_t saveBanks[PICROSS_MAX_LEVELSIZE];
 
 } picrossGame_t;
 
@@ -115,7 +127,5 @@ void picrossGameButtonCb(buttonEvt_t* evt);
 void picrossExitGame(void);
 void loadPicrossProgress(void);
 void savePicrossProgress(void);
-
-char * getBankName(int i);
 
 #endif
