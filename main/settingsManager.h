@@ -22,6 +22,7 @@ bool decLedBrightness(void);
 
 int32_t getMicGain(void);
 uint16_t getMicAmplitude(void);
+bool setMicGain(uint8_t newGain);
 bool decMicGain(void);
 bool incMicGain(void);
 

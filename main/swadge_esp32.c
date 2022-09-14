@@ -298,6 +298,9 @@ void app_main(void)
  */
 void mainSwadgeTask(void* arg __attribute((unused)))
 {
+    /* Initialize internal NVS. Do this first to get test mode status */
+    initNvs(true);
+
 #if !defined(EMU)
     /* Check why this ESP woke up */
     switch (esp_sleep_get_wakeup_cause())
@@ -318,11 +321,11 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         }
         default:
         {
-#if !defined(CONFIG_SWADGE_PROTOTYPE) && !defined(CONFIG_SWADGE_DEVKIT)
+#if !defined(CONFIG_SWADGE_DEVKIT)
             // If test mode was passed
             if(getTestModePassed())
 #else
-            // Ignore test mode for proto and devkit
+            // Ignore test mode for devkit
             if(true)
 #endif
             {
@@ -338,9 +341,6 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         }
     }
 #endif
-
-    /* Initialize internal NVS */
-    initNvs(true);
 
     /* Initialize SPIFFS */
     initSpiffs();
