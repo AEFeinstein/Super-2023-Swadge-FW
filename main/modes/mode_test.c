@@ -664,7 +664,7 @@ void testAudioCb(uint16_t* samples, uint32_t sampleCnt)
             {
                 // Check if the index is in the current range
                 if((test->cMicFreqIdxMin <= maxIdx) &&
-                   (maxIdx <= test->cMicFreqIdxMax))
+                        (maxIdx <= test->cMicFreqIdxMax))
                 {
                     // Frequency is still in range, carry on
                 }
@@ -690,13 +690,13 @@ void testAudioCb(uint16_t* samples, uint32_t sampleCnt)
                         // Lasted long enough to be considered a detection 3/4th of the note time
                         // ESP_LOGE("TST","[%d -> %d] for %llu\n", test->cMicFreqIdxMin, test->cMicFreqIdxMax, tNote);
                         int32_t noteIdxDetected = (test->cMicFreqIdxMax + test->cMicFreqIdxMin) / 2;
-                        
+
                         // Look through the array of detected notes
                         for(uint8_t i = 0; i < NUM_DETECTED_NOTES; i++)
                         {
                             // Check if the note was already detected
                             if((test->detectedNoteIdxs[i] - (MIC_IDX_RANGE / 2) <= noteIdxDetected) &&
-                               (noteIdxDetected <= test->detectedNoteIdxs[i] + (MIC_IDX_RANGE / 2)))
+                                    (noteIdxDetected <= test->detectedNoteIdxs[i] + (MIC_IDX_RANGE / 2)))
                             {
                                 // Note already detected
                                 break;
