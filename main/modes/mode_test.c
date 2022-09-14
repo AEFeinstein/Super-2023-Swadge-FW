@@ -91,7 +91,6 @@ typedef struct
     embeddedout_data eod;
     uint8_t samplesProcessed;
     uint16_t maxValue;
-    uint16_t maxIdx;
     int16_t cMicFreqIdxMin;
     int16_t cMicFreqIdxMax;
     uint64_t cMicFreqStart;
@@ -131,7 +130,7 @@ swadgeMode modeTest =
     .fnTemperatureCallback = NULL
 };
 
-const song_t cMajorScale =
+const song_t notesToDetect =
 {
     .notes =
     {
@@ -176,6 +175,8 @@ void testEnterMode(display_t* disp)
     // Init CC
     InitColorChord(&test->end, &test->dd);
     test->maxValue = 1;
+
+    // Init buzzer listening variables
     test->cMicFreqIdxMin = -1;
     test->cMicFreqIdxMax = -1;
     for(uint8_t i = 0; i < NUM_DETECTED_NOTES; i++)
@@ -183,10 +184,12 @@ void testEnterMode(display_t* disp)
         test->detectedNoteIdxs[i] = -1;
     }
 
-    // Play a song
+    // Set the mic to listen
     setIsMuted(false);
     setMicGain(7);
-    buzzer_play_bgm(&cMajorScale);
+
+    // Play a song
+    buzzer_play_bgm(&notesToDetect);
 }
 
 /**
@@ -251,13 +254,6 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
                         x0, test->disp->h - height,
                         x1, test->disp->h, color);
     }
-
-    // char sndTest[16];
-    // sprintf(sndTest, "%d", test->maxIdx);
-    // int16_t tWidth2 = textWidth(&test->ibm_vga8, sndTest);
-    // int16_t wOffset = (test->disp->w - tWidth2) / 2;
-    // int16_t hOffset = (test->disp->h - test->ibm_vga8.h) / 2;
-    // drawText(test->disp, &test->ibm_vga8, c555, sndTest, wOffset, hOffset);
 
     // Draw button states
     int16_t centerLine = test->disp->h / 4;
@@ -641,13 +637,13 @@ void testAudioCb(uint16_t* samples, uint32_t sampleCnt)
 
             // Keep track of max value for the spectrogram
             int16_t maxVal = 0;
-            test->maxIdx = 0;
+            int16_t maxIdx = 0;
             for(uint16_t i = 0; i < FIXBINS; i++)
             {
                 if(test->end.fuzzed_bins[i] > maxVal)
                 {
                     maxVal = test->end.fuzzed_bins[i];
-                    test->maxIdx = i;
+                    maxIdx = i;
                 }
             }
 
@@ -660,29 +656,29 @@ void testAudioCb(uint16_t* samples, uint32_t sampleCnt)
             // Listen for NUM_DETECTED_NOTES stable notes
             if(-1 == test->cMicFreqIdxMin)
             {
-                test->cMicFreqIdxMin = test->maxIdx;
-                test->cMicFreqIdxMax = test->maxIdx;
+                test->cMicFreqIdxMin = maxIdx;
+                test->cMicFreqIdxMax = maxIdx;
                 test->cMicFreqStart = esp_timer_get_time();
             }
             else
             {
                 // Check if the index is in the current range
-                if((test->cMicFreqIdxMin <= test->maxIdx) &&
-                   (test->maxIdx <= test->cMicFreqIdxMax))
+                if((test->cMicFreqIdxMin <= maxIdx) &&
+                   (maxIdx <= test->cMicFreqIdxMax))
                 {
                     // Frequency is still in range, carry on
                 }
-                else if ((test->cMicFreqIdxMax - MIC_IDX_RANGE <= test->maxIdx) &&
-                         (test->maxIdx <= test->cMicFreqIdxMin + MIC_IDX_RANGE))
+                else if ((test->cMicFreqIdxMax - MIC_IDX_RANGE <= maxIdx) &&
+                         (maxIdx <= test->cMicFreqIdxMin + MIC_IDX_RANGE))
                 {
                     // Frequency within acceptable range, adjust bounds
-                    if(test->maxIdx < test->cMicFreqIdxMin)
+                    if(maxIdx < test->cMicFreqIdxMin)
                     {
-                        test->cMicFreqIdxMin = test->maxIdx;
+                        test->cMicFreqIdxMin = maxIdx;
                     }
-                    else if (test->maxIdx > test->cMicFreqIdxMax)
+                    else if (maxIdx > test->cMicFreqIdxMax)
                     {
-                        test->cMicFreqIdxMax = test->maxIdx;
+                        test->cMicFreqIdxMax = maxIdx;
                     }
                 }
                 else
@@ -692,7 +688,7 @@ void testAudioCb(uint16_t* samples, uint32_t sampleCnt)
                     if(tNote >= ((NOTE_TIME_MS * 1000 * 3) / 4))
                     {
                         // Lasted long enough to be considered a detection 3/4th of the note time
-                        ESP_LOGE("TST","[%d -> %d] for %llu\n", test->cMicFreqIdxMin, test->cMicFreqIdxMax, tNote);
+                        // ESP_LOGE("TST","[%d -> %d] for %llu\n", test->cMicFreqIdxMin, test->cMicFreqIdxMax, tNote);
                         int32_t noteIdxDetected = (test->cMicFreqIdxMax + test->cMicFreqIdxMin) / 2;
                         
                         // Look through the array of detected notes
@@ -734,8 +730,8 @@ void testAudioCb(uint16_t* samples, uint32_t sampleCnt)
                     }
 
                     // New frequency detected, start over
-                    test->cMicFreqIdxMin = test->maxIdx;
-                    test->cMicFreqIdxMax = test->maxIdx;
+                    test->cMicFreqIdxMin = maxIdx;
+                    test->cMicFreqIdxMax = maxIdx;
                     test->cMicFreqStart = esp_timer_get_time();
                 }
             }
