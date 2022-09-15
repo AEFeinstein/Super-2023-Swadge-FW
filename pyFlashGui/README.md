@@ -13,28 +13,26 @@ The UI will be green when a Swadge is successfully flashed. It will be red if th
 This script requires ``python3`` which can be installed from https://www.python.org/downloads/.
 
 The following Python modules must be installed:
-| Module  | URL | PIP |
+| Module | URL | PIP |
 | ------------- | ------------- | ------------- |
-| ``tkinter``  | https://tkdocs.com/tutorial/install.html  | Tkinter (and, since Python 3.1, ttk, the interface to the newer themed widgets) is included in the Python standard library. | 
-| ``pyserial``  | https://pyserial.readthedocs.io/en/latest/pyserial.html  | ```pip install pyserial```| 
+| ``tkinter`` | https://tkdocs.com/tutorial/install.html | Tkinter (and, since Python 3.1, ttk, the interface to the newer themed widgets) is included in the Python standard library. | 
+| ``pyserial`` | https://pyserial.readthedocs.io/en/latest/pyserial.html | ```pip install pyserial```| 
 | ``esptool`` | https://docs.espressif.com/projects/esptool/en/latest/esp32s2/installation.html | ```pip install esptool``` |
 
-For the script to actually flash firmware, the following files must be in a directory called ``bin`` at the same level as ``pyFlashGui.py``:
+For the script to actually flash firmware, the following files must be in the same directory as ``pyFlashGui.py``:
 
-| File  | Relative Path |
+| File | Relative Path |
 | ------------- | ------------- |
-| ``bootloader.bin``  | ``../build/bootloader/bootloader.bin``  |
+| ``bootloader.bin`` | ``../build/bootloader/bootloader.bin`` |
 | ``swadge-esp32.bin`` | ``../build/swadge-esp32.bin`` |
 | ``partition-table.bin`` | ``../build/partition_table/partition-table.bin`` |
-|``storage.bin`` | ``../build/storage.bin``|
+| ``storage.bin`` | ``../build/storage.bin`` |
 
-Assuming you've checked out the whole repository, set up the IDF, and are in the `pyFlashGui` folder, then this should build and place the files:
+Assuming you've checked out the whole repository, set up the IDF, and are in the `Super-2023-Swadge-FW` folder, then this should build and place the files:
 
 ```bash
-mkdir bin
-cd ../
 idf.py build
-cp ./build/bootloader/bootloader.bin ./build/swadge-esp32.bin ./build/partition_table/partition-table.bin ./build/storage.bin ./pyFlashGui/bin/
+cp ./build/bootloader/bootloader.bin ./build/swadge-esp32.bin ./build/partition_table/partition-table.bin ./build/storage.bin ./pyFlashGui/
 ```
 
 # Instructions
