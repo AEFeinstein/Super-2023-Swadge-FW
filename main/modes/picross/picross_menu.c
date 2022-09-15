@@ -57,9 +57,9 @@ void picrossMenuOptionsCb(const char* opt);
 
 //Key values for persistent save data.
 const char picrossCurrentPuzzleIndexKey[] = "pic_cur_ind";
-const char picrossSavedOptionsKey[] = "picross_options"; 
-const char picrossCompletedLevelData[] = "picross_victories";
-const char picrossProgressData[] = "picross_progress";
+const char picrossSavedOptionsKey[]       = "pic_opts"; 
+const char picrossCompletedLevelData[]    = "pic_victs";
+const char picrossProgressData[]          = "pic_prog";
 //Main menu strings
 static char str_picrossTitle[] = "pi-cross";
 static const char str_continue[] = "Continue";
