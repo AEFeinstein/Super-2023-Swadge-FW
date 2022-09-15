@@ -20,6 +20,11 @@ typedef enum
 
 typedef enum
 {
+    POWERUP_JOYSTICK,
+} jumperPowerType_t;
+
+typedef enum
+{
     JUMPER_COUNTDOWN,
     JUMPER_GAMING,
     JUMPER_DEATH,
@@ -74,6 +79,17 @@ typedef struct
 
 typedef struct
 {
+    
+    uint32_t powerupTime;
+    bool powerupSpawned;
+
+    uint16_t x;
+    uint16_t y;
+    bool collected;
+} jumperPowerup_t;
+
+typedef struct
+{
     uint8_t numTiles;
     uint8_t lives;
     int32_t level;
@@ -85,7 +101,10 @@ typedef struct
     uint32_t score;
     uint8_t combo;
     uint8_t perfect;
-    wsg_t livesIcon;
+
+    jumperPowerup_t* currentPowerup;
+
+
     jumperBlockType_t blocks[30];
 } jumperStage_t;
 
@@ -101,6 +120,8 @@ typedef struct
 {
     wsg_t block[10];
     wsg_t digit[12];
+    wsg_t livesIcon;
+    wsg_t powerup;
     jumperGamePhase_t currentPhase;
     int64_t frameElapsed;
     display_t* d;
@@ -110,7 +131,6 @@ typedef struct
     font_t* prompt_font;
     jumperStage_t* scene;
     bool controlsEnabled;
-
     uint8_t respawnBlock;
 
     uint64_t jumperJumpTime;

@@ -57,30 +57,11 @@ This project uses CircleCI to build the firmware each time code is committed to 
 
 ## Windows (Powershell)
 
-To set up the ESP32 build environment, you can run this powershell script. It will install the IDF in `~/esp/esp-idf` and the tools in `~/.espressif`. I don't recommend changing those paths.
+To set up the build environment, the first thing you'll need to install is the latest [Python for Windows](https://www.python.org/downloads/windows/). When installing Python, make sure to check off "Add Python to environment variables":
 
-```powershell
-# Make an esp folder and move into it
-mkdir ~/esp
-cd ~/esp
+![image](https://user-images.githubusercontent.com/231180/190054131-fa0d2d12-a520-41c1-88fc-6eb45e23654d.png)
 
-# Clone the IDF and move into it
-git clone -b v4.4.1 --recursive https://github.com/espressif/esp-idf.git esp-idf
-cd ~/esp/esp-idf
-
-# Initialize submodules
-git submodule update --init --recursive
-
-# Install tools
-./install.ps1
-
-# Export paths and variables
-./export.ps1
-```
-
-Note that `./export.ps1` does not make any permanent changes and it must be run each time you open a new terminal for a build.
-
-To set up the emulator build environment, you'll need to install [msys2](https://www.msys2.org/). You can do that with their installer. The command to install required packages for building from an msys2 terinal after installing msys2 is:
+Next, you'll need to install [msys2](https://www.msys2.org/). You can do that with their installer. Once you have an msys2 shell, the command to install required packages for building from an msys2 terinal after installing msys2 is:
 
 ```bash
 pacman -S base-devel mingw-w64-x86_64-toolchain make zip mingw-w64-x86_64-python-pip
@@ -109,7 +90,40 @@ C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'
 C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel mingw-w64-x86_64-toolchain git make zip mingw-w64-x86_64-python-pip python-pip'
 ```
 
-After installing msys2, you'll need to add it to Windows's path variable. [Here are some instructions on how to do that](https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/). You must add `C:\msys64\mingw64\bin` and `C:\msys64\usr\bin` to the path, in that order, and **before** `C:\Windows\System32`. That's because two different `find.exe` programs exist, one in msys2 and one in System32, and the makefile expects the msys2 one. I also recommend adding the msys2 path variables **after** any Python installs you already have on your system. The new path will take effect for any new shells, so restart any shells you happen to have open.
+After installing msys2, you'll need to add it to Windows's path variable. [Here are some instructions on how to do that](https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/). You must add `C:\msys64\mingw64\bin` and `C:\msys64\usr\bin` to the path, in that order, and **before** `C:\Windows\System32`. That's because two different `find.exe` programs exist, one in msys2 and one in System32, and the makefile expects the msys2 one.
+
+The msys2 path variables must come **after** the Python path variables. You may have to move the Python variables up the list. If you don't see the Python variables, and you're sure you checked off the option in the Python installer, they may be in the Path in User variables rather than System variables. If so, cut and paste them from the Path list in User Variables to the Path list in System variables.
+
+When it's all set up, it should look something like this:
+
+![image](https://user-images.githubusercontent.com/231180/190054544-dc26830a-28e7-4f2f-8f7f-84550ff9d3a8.png)
+
+To set up the ESP32 toolchain, you can run this powershell script. It will install the IDF in `~/esp/esp-idf` and the tools in `~/.espressif`. I don't recommend changing those paths.
+
+```powershell
+# Make an esp folder and move into it
+mkdir ~/esp
+cd ~/esp
+
+# Clone the IDF and move into it
+git clone -b v4.4.1 --recursive https://github.com/espressif/esp-idf.git esp-idf
+cd ~/esp/esp-idf
+
+# Initialize submodules
+git submodule update --init --recursive
+
+# Install tools
+./install.ps1
+
+# Export paths and variables
+./export.ps1
+```
+
+Note that `./export.ps1` does not make any permanent changes and it must be run each time you open a new terminal for a build.
+
+> ⚠ Warning ⚠
+> 
+> Sometimes `install.ps1` can be a bit finnicky and not install everything it's supposed to. If it doesn't create a `~/.espressif/python_env` folder, try running it again. And again. And again. As a last resort you can try editing `install.ps1` and swap the `"Setting up Python environment"` and `"Installing ESP-IDF tools"` sections to set up the Python environment first.
 
 ## Linux
 

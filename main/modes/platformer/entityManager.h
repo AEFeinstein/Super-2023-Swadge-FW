@@ -19,7 +19,7 @@
 
 struct entityManager_t
 {
-    wsg_t sprites[25];
+    wsg_t sprites[27];
     entity_t * entities;
     uint8_t activeEntities;
 
@@ -57,4 +57,5 @@ entity_t* createHitBlock(entityManager_t * entityManager, uint16_t x, uint16_t y
 entity_t* createPowerUp(entityManager_t * entityManager, uint16_t x, uint16_t y);
 entity_t* createWarp(entityManager_t * entityManager, uint16_t x, uint16_t y);
 entity_t* createDustBunny(entityManager_t * entityManager, uint16_t x, uint16_t y);
+entity_t* createWasp(entityManager_t * entityManager, uint16_t x, uint16_t y);
 #endif

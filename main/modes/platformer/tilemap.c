@@ -80,10 +80,11 @@ void drawTileMap(display_t *disp, tilemap_t *tilemap)
             else if (tile > 127 && tilemap->tileSpawnEnabled && (tilemap->executeTileSpawnColumn == x || tilemap->executeTileSpawnRow == y || tilemap->executeTileSpawnAll))
             {
                 tileSpawnEntity(tilemap, tile - 128, x, y);
-                tilemap->executeTileSpawnAll = 0;
             }
         }
     }
+
+    tilemap->executeTileSpawnAll = 0;
 }
 
 void scrollTileMap(tilemap_t *tilemap, int16_t x, int16_t y)

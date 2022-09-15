@@ -72,10 +72,10 @@ void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, bool isMuted)
         .flags = 0,
         .tx_config =
         {
-            .carrier_freq_hz = 38000,
+            .carrier_freq_hz = 44100,
             .carrier_level = RMT_CARRIER_LEVEL_HIGH,
             .idle_level = RMT_IDLE_LEVEL_LOW,
-            .carrier_duty_percent = 33,
+            .carrier_duty_percent = 50,
             .carrier_en = false,
             .loop_en = true, // not default
 #if SOC_RMT_SUPPORT_TX_LOOP_COUNT
@@ -88,11 +88,6 @@ void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, bool isMuted)
     // Install RMT driver
     ESP_ERROR_CHECK(rmt_config(&dev_config));
     ESP_ERROR_CHECK(rmt_driver_install(rmt, 0, 0));
-
-#if SOC_RMT_SUPPORT_TX_LOOP_AUTOSTOP
-    // Enable autostopping when the loop count hits the threshold
-    ESP_ERROR_CHECK(rmt_enable_tx_loop_autostop(rmt, true));
-#endif
 
     // Save the channel and clock frequency
     rmt_buzzer.channel = rmt;
@@ -143,7 +138,7 @@ void buzzer_play_bgm(const song_t* song)
     rmt_buzzer.bgm.start_time = esp_timer_get_time();
 
     // If there is no current SFX
-    if(NULL != rmt_buzzer.sfx.song)
+    if(NULL == rmt_buzzer.sfx.song)
     {
         // Start playing BGM
         rmt_buzzer.playNote = &(rmt_buzzer.bgm.song->notes[rmt_buzzer.bgm.note_index]);
@@ -277,8 +272,8 @@ static void play_note(const musicalNote_t* notation)
         // Copy RMT item format
         notation_code.duration1 = notation_code.duration0;
 
-        // convert duration to RMT loop count
-        rmt_set_tx_loop_count(rmt_buzzer.channel, notation->timeMs * notation->note / 1000);
+        // loop until manually stopped
+        rmt_set_tx_loop_count(rmt_buzzer.channel, 1);
 
         // start TX
         rmt_write_items(rmt_buzzer.channel, &notation_code, 1, false);
