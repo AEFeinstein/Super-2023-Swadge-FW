@@ -149,14 +149,21 @@ void updateScrollUnlock(entity_t* self);
 void updateEntityDead(entity_t* self);
 
 void updatePowerUp(entity_t* self);
+void update1up(entity_t* self);
 void updateWarp(entity_t* self);
 
 void updateDustBunny(entity_t* self);
+void updateDustBunnyL2(entity_t* self);
+void updateDustBunnyL3(entity_t* self);
 bool dustBunnyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
 
 void updateWasp(entity_t* self);
+void updateWaspL2(entity_t* self);
+void updateWaspL3(entity_t* self);
 bool waspTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
 
 void killEnemy(entity_t* target);
+
+void updateBgCol(entity_t* self);
 
 #endif
