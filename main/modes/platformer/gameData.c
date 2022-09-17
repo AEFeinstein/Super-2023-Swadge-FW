@@ -21,7 +21,7 @@
     gameData->coins = 0;
     gameData->combo = 0;
     gameData->comboTimer = 0;
-    gameData->bgColor = c335;
+    gameData->bgColor = c000;
 }
 
 void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData){
