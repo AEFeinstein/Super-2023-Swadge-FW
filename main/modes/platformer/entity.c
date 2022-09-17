@@ -295,6 +295,15 @@ void updateHitBlock(entity_t *self)
                 self->jumpPower = TILE_CONTAINER_2;
                 break;
             }
+            case TILE_CTNR_1UP:
+            {
+                createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity->homeTileX = 0;
+                createdEntity->homeTileY = 0;
+
+                self->jumpPower = TILE_CONTAINER_2;
+                break;
+            }
             default:
             {
                 break;
@@ -903,6 +912,12 @@ void updateEntityDead(entity_t *self)
 void updatePowerUp(entity_t *self)
 {
     self->spriteIndex = SP_GAMING_1 + ((self->spriteIndex + 1) % 3);
+    despawnWhenOffscreen(self);
+}
+
+void update1up(entity_t *self)
+{
+    self->spriteIndex = SP_1UP_1 + ((self->spriteIndex + 1) % 3);
     despawnWhenOffscreen(self);
 }
 
