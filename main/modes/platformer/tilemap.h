@@ -169,5 +169,6 @@ uint8_t getTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty);
 void setTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty, uint8_t newTileId);
 bool isSolid(uint8_t tileId);
 void unlockScrolling(tilemap_t *tilemap);
+bool needsTransparency(uint8_t tileId);
 
 #endif

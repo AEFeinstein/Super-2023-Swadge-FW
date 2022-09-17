@@ -75,7 +75,12 @@ void drawTileMap(display_t *disp, tilemap_t *tilemap)
             // Draw only non-garbage tiles
             if (tile > 31 && tile < 90)
             {
-                drawWsgTile(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
+                if(needsTransparency(tile)){
+                    drawWsgSimpleFast(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
+                }
+                else {
+                    drawWsgTile(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
+                }
             }
             else if (tile > 127 && tilemap->tileSpawnEnabled && (tilemap->executeTileSpawnColumn == x || tilemap->executeTileSpawnRow == y || tilemap->executeTileSpawnAll))
             {
@@ -308,4 +313,17 @@ void unlockScrolling(tilemap_t *tilemap){
 
     tilemap->minMapOffsetY = 0;
     tilemap->maxMapOffsetY = tilemap->mapHeight * TILE_SIZE - TILEMAP_DISPLAY_HEIGHT_PIXELS;
+}
+
+bool needsTransparency(uint8_t tileId){
+    switch(tileId) {
+        case TILE_GIRDER:
+        case TILE_CONTAINER_1 ... TILE_CONTAINER_3:
+        case TILE_COIN_1 ... TILE_COIN_3:
+        case TILE_LADDER:
+        case TILE_BG_GOAL_ZONE ... TILE_BG_ARROW_RD:
+            return true;
+        default:
+            return false;
+    }
 }
