@@ -66,6 +66,29 @@ void loadSprites(entityManager_t * entityManager)
     loadWsg("sprite024.wsg", &entityManager->sprites[SP_WASP_1]);
     loadWsg("sprite025.wsg", &entityManager->sprites[SP_WASP_2]);
     loadWsg("sprite026.wsg", &entityManager->sprites[SP_WASP_DIVE]);
+    loadWsg("sprite027.wsg", &entityManager->sprites[SP_1UP_1]);
+    loadWsg("sprite028.wsg", &entityManager->sprites[SP_1UP_2]);
+    loadWsg("sprite029.wsg", &entityManager->sprites[SP_1UP_3]);
+    loadWsg("sprite030.wsg", &entityManager->sprites[SP_WAVEBALL_1]);
+    loadWsg("sprite031.wsg", &entityManager->sprites[SP_WAVEBALL_2]);
+    loadWsg("sprite032.wsg", &entityManager->sprites[SP_WAVEBALL_3]);
+    loadWsg("sprite033.wsg", &entityManager->sprites[SP_ENEMY_BUSH_L2]);
+    loadWsg("sprite034.wsg", &entityManager->sprites[SP_ENEMY_BUSH_L3]);
+    loadWsg("sprite035.wsg", &entityManager->sprites[SP_DUSTBUNNY_L2_IDLE]);
+    loadWsg("sprite036.wsg", &entityManager->sprites[SP_DUSTBUNNY_L2_CHARGE]);
+    loadWsg("sprite037.wsg", &entityManager->sprites[SP_DUSTBUNNY_L2_JUMP]);
+    loadWsg("sprite038.wsg", &entityManager->sprites[SP_DUSTBUNNY_L3_IDLE]);
+    loadWsg("sprite039.wsg", &entityManager->sprites[SP_DUSTBUNNY_L3_CHARGE]);
+    loadWsg("sprite040.wsg", &entityManager->sprites[SP_DUSTBUNNY_L3_JUMP]);
+    loadWsg("sprite041.wsg", &entityManager->sprites[SP_WASP_L2_1]);
+    loadWsg("sprite042.wsg", &entityManager->sprites[SP_WASP_L2_2]);
+    loadWsg("sprite043.wsg", &entityManager->sprites[SP_WASP_L2_DIVE]);
+    loadWsg("sprite044.wsg", &entityManager->sprites[SP_WASP_L3_1]);
+    loadWsg("sprite045.wsg", &entityManager->sprites[SP_WASP_L3_2]);
+    loadWsg("sprite046.wsg", &entityManager->sprites[SP_WASP_L3_DIVE]);
+    loadWsg("sprite047.wsg", &entityManager->sprites[SP_CHECKPOINT_INACTIVE]);
+    loadWsg("sprite048.wsg", &entityManager->sprites[SP_CHECKPOINT_ACTIVE_1]);
+    loadWsg("sprite049.wsg", &entityManager->sprites[SP_CHECKPOINT_ACTIVE_2]);
 };
 
 void updateEntities(entityManager_t * entityManager)

@@ -19,7 +19,7 @@
 
 struct entityManager_t
 {
-    wsg_t sprites[27];
+    wsg_t sprites[50];
     entity_t * entities;
     uint8_t activeEntities;
 
