@@ -226,6 +226,61 @@ entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint
         case ENTITY_WASP:
             createdEntity = createWasp(entityManager, x, y);
             break;
+        case ENTITY_BUSH_2:
+            createdEntity = createEnemyBushL2(entityManager, x, y);
+            break;
+        case ENTITY_BUSH_3:
+            createdEntity = createEnemyBushL3(entityManager, x, y);
+            break;
+        case ENTITY_DUST_BUNNY_2:
+            createdEntity = createDustBunnyL2(entityManager, x, y);
+            break;
+        case ENTITY_DUST_BUNNY_3:
+            createdEntity = createDustBunnyL3(entityManager, x, y);
+            break;
+        case ENTITY_WASP_2:
+            createdEntity = createWaspL2(entityManager, x, y);
+            break;
+        case ENTITY_WASP_3:
+            createdEntity = createWaspL3(entityManager, x, y);
+            break;
+        case ENTITY_BGCOL_BLUE:
+            createdEntity = createBgColBlue(entityManager, x, y);
+            break;
+        case ENTITY_BGCOL_YELLOW:
+            createdEntity = createBgColYellow(entityManager, x, y);
+            break;
+        case ENTITY_BGCOL_ORANGE:
+            createdEntity = createBgColOrange(entityManager, x, y);
+            break;
+        case ENTITY_BGCOL_PURPLE:
+            createdEntity = createBgColPurple(entityManager, x, y);
+            break;
+        case ENTITY_BGCOL_DARK_PURPLE:
+            createdEntity = createBgColDarkPurple(entityManager, x, y);
+            break;
+        case ENTITY_BGCOL_BLACK:
+            createdEntity = createBgColBlack(entityManager, x, y);
+            break;
+        case ENTITY_BGCOL_NEUTRAL_GREEN:
+            createdEntity = createBgColNeutralGreen(entityManager, x, y);
+            break;
+        case ENTITY_BGCOL_DARK_RED:
+            createdEntity = createBgColNeutralDarkRed(entityManager, x, y);
+            break;
+        case ENTITY_BGCOL_DARK_GREEN:
+            createdEntity = createBgColNeutralDarkGreen(entityManager, x, y);
+            break;
+        case ENTITY_1UP:
+            createdEntity = create1up(entityManager, x, y);
+            break;
+        case ENTITY_WAVE_BALL:
+            createdEntity = createWaveBall(entityManager, x, y);
+            break;
+        case ENTITY_CHECKPOINT:
+            createdEntity = createCheckpoint(entityManager, x, y);
+            break;
+
         default:
             createdEntity = NULL;
     }
@@ -569,3 +624,481 @@ entity_t* createWasp(entityManager_t * entityManager, uint16_t x, uint16_t y)
 
     return entity;
 }
+
+entity_t* createEnemyBushL2(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->xspeed = (x < (entityManager->tilemap->mapOffsetX + 120)) ? 16 : -16;
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 132;
+    entity->gravityEnabled = true;
+    entity->gravity = 32;
+    entity->spriteFlipVertical = false;
+
+    entity->type = ENTITY_BUSH_2;
+    entity->spriteIndex = SP_ENEMY_BUSH_L2;
+    entity->updateFunction = &updateTestObject;
+    entity->collisionHandler = &enemyCollisionHandler;
+    entity->tileCollisionHandler = &enemyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createEnemyBushL3(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->xspeed = (x < (entityManager->tilemap->mapOffsetX + 120)) ? 16 : -16;
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 132;
+    entity->gravityEnabled = true;
+    entity->gravity = 32;
+    entity->spriteFlipVertical = false;
+
+    entity->type = ENTITY_BUSH_3;
+    entity->spriteIndex = SP_ENEMY_BUSH_L3;
+    entity->updateFunction = &updateTestObject;
+    entity->collisionHandler = &enemyCollisionHandler;
+    entity->tileCollisionHandler = &enemyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createDustBunnyL2(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->xspeed = 0;
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 132;
+    entity->xDamping = 0; //This will be repurposed to track state
+    entity->yDamping = 0; //This will be repurposed as a state timer
+    entity->gravityEnabled = true;
+    entity->gravity = 32;
+    entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? true : false;
+    entity->spriteFlipVertical = false;
+
+    entity->type = ENTITY_DUST_BUNNY_2;
+    entity->spriteIndex = SP_DUSTBUNNY_L2_IDLE;
+    entity->updateFunction = &updateDustBunny;
+    entity->collisionHandler = &enemyCollisionHandler;
+    entity->tileCollisionHandler = &dustBunnyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createDustBunnyL3(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->xspeed = 0;
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 132;
+    entity->xDamping = 0; //This will be repurposed to track state
+    entity->yDamping = 0; //This will be repurposed as a state timer
+    entity->gravityEnabled = true;
+    entity->gravity = 32;
+    entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? true : false;
+    entity->spriteFlipVertical = false;
+
+    entity->type = ENTITY_DUST_BUNNY_3;
+    entity->spriteIndex = SP_DUSTBUNNY_L3_IDLE;
+    entity->updateFunction = &updateDustBunny;
+    entity->collisionHandler = &enemyCollisionHandler;
+    entity->tileCollisionHandler = &dustBunnyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createWaspL2(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 256;
+    entity->xDamping = 0; //This will be repurposed to track state
+    entity->yDamping = 0; //This will be repurposed as a state timer
+    entity->gravityEnabled = false;
+    entity->gravity = 64;
+    entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? false : true;
+    entity->spriteFlipVertical = false;
+
+        
+    entity->xspeed = (entity->spriteFlipHorizontal)? -32 : 32;
+
+    entity->type = ENTITY_WASP_2;
+    entity->spriteIndex = SP_WASP_L2_1;
+    entity->updateFunction = &updateWasp;
+    entity->collisionHandler = &enemyCollisionHandler;
+    entity->tileCollisionHandler = &waspTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createWaspL3(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 256;
+    entity->xDamping = 0; //This will be repurposed to track state
+    entity->yDamping = 0; //This will be repurposed as a state timer
+    entity->gravityEnabled = false;
+    entity->gravity = 64;
+    entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? false : true;
+    entity->spriteFlipVertical = false;
+
+        
+    entity->xspeed = (entity->spriteFlipHorizontal)? -32 : 32;
+
+    entity->type = ENTITY_WASP_3;
+    entity->spriteIndex = SP_WASP_L3_1;
+    entity->updateFunction = &updateWasp;
+    entity->collisionHandler = &enemyCollisionHandler;
+    entity->tileCollisionHandler = &waspTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createBgColBlue(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_BGCOL_BLUE;
+    entity->updateFunction = &updateScrollUnlock;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createBgColYellow(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_BGCOL_YELLOW;
+    entity->updateFunction = &updateScrollUnlock;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createBgColOrange(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_BGCOL_ORANGE;
+    entity->updateFunction = &updateScrollUnlock;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createBgColPurple(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_BGCOL_PURPLE;
+    entity->updateFunction = &updateScrollUnlock;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createBgColDarkPurple(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_BGCOL_DARK_PURPLE;
+    entity->updateFunction = &updateScrollUnlock;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createBgColBlack(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_BGCOL_BLACK;
+    entity->updateFunction = &updateScrollUnlock;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createBgColNeutralGreen(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_BGCOL_NEUTRAL_GREEN;
+    entity->updateFunction = &updateScrollUnlock;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createBgColNeutralDarkRed(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_BGCOL_DARK_RED;
+    entity->updateFunction = &updateScrollUnlock;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* createBgColNeutralDarkGreen(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->type = ENTITY_BGCOL_DARK_GREEN;
+    entity->updateFunction = &updateScrollUnlock;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+}
+
+entity_t* create1up(entityManager_t * entityManager, uint16_t x, uint16_t y){
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->xspeed = 0;
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 132;
+    entity->gravityEnabled = true;
+    entity->gravity = 32;
+    entity->spriteFlipHorizontal = false;
+    entity->spriteFlipVertical = false;
+
+    entity->type = ENTITY_1UP;
+    entity->spriteIndex = SP_1UP_1;
+    entity->animationTimer = 0;
+    entity->updateFunction = &updatePowerUp;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+};
+
+entity_t* createWaveBall(entityManager_t * entityManager, uint16_t x, uint16_t y){
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->xspeed = 0;
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 132;
+    entity->gravityEnabled = true;
+    entity->gravity = 32;
+    entity->spriteFlipHorizontal = false;
+    entity->spriteFlipVertical = false;
+
+    entity->type = ENTITY_1UP;
+    entity->spriteIndex = SP_1UP_1;
+    entity->animationTimer = 0;
+    entity->updateFunction = &updatePowerUp;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+};
+
+entity_t* createCheckpoint(entityManager_t * entityManager, uint16_t x, uint16_t y){
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = true;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    
+    entity->xspeed = 0;
+    entity->yspeed = 0;
+    entity->xMaxSpeed = 132;
+    entity->yMaxSpeed = 132;
+    entity->gravityEnabled = true;
+    entity->gravity = 32;
+    entity->spriteFlipHorizontal = false;
+    entity->spriteFlipVertical = false;
+
+    entity->type = ENTITY_CHECKPOINT;
+    entity->spriteIndex = SP_CHECKPOINT_INACTIVE;
+    entity->animationTimer = 0;
+    entity->updateFunction = &updateDummy;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+
+    return entity;
+};
