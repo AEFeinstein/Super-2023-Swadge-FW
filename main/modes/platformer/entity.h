@@ -156,6 +156,9 @@ void updateDustBunny(entity_t* self);
 void updateDustBunnyL2(entity_t* self);
 void updateDustBunnyL3(entity_t* self);
 bool dustBunnyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
+bool dustBunnyL2TileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
+bool dustBunnyL3TileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
+
 
 void updateWasp(entity_t* self);
 void updateWaspL2(entity_t* self);

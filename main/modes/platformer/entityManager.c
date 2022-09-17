@@ -711,9 +711,9 @@ entity_t* createDustBunnyL2(entityManager_t * entityManager, uint16_t x, uint16_
 
     entity->type = ENTITY_DUST_BUNNY_2;
     entity->spriteIndex = SP_DUSTBUNNY_L2_IDLE;
-    entity->updateFunction = &updateDustBunny;
+    entity->updateFunction = &updateDustBunnyL2;
     entity->collisionHandler = &enemyCollisionHandler;
-    entity->tileCollisionHandler = &dustBunnyTileCollisionHandler;
+    entity->tileCollisionHandler = &dustBunnyL2TileCollisionHandler;
 
     return entity;
 }
@@ -744,9 +744,9 @@ entity_t* createDustBunnyL3(entityManager_t * entityManager, uint16_t x, uint16_
 
     entity->type = ENTITY_DUST_BUNNY_3;
     entity->spriteIndex = SP_DUSTBUNNY_L3_IDLE;
-    entity->updateFunction = &updateDustBunny;
+    entity->updateFunction = &updateDustBunnyL3;
     entity->collisionHandler = &enemyCollisionHandler;
-    entity->tileCollisionHandler = &dustBunnyTileCollisionHandler;
+    entity->tileCollisionHandler = &dustBunnyL3TileCollisionHandler;
 
     return entity;
 }
@@ -779,7 +779,7 @@ entity_t* createWaspL2(entityManager_t * entityManager, uint16_t x, uint16_t y)
 
     entity->type = ENTITY_WASP_2;
     entity->spriteIndex = SP_WASP_L2_1;
-    entity->updateFunction = &updateWasp;
+    entity->updateFunction = &updateWaspL2;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &waspTileCollisionHandler;
 
@@ -814,7 +814,7 @@ entity_t* createWaspL3(entityManager_t * entityManager, uint16_t x, uint16_t y)
 
     entity->type = ENTITY_WASP_3;
     entity->spriteIndex = SP_WASP_L3_1;
-    entity->updateFunction = &updateWasp;
+    entity->updateFunction = &updateWaspL3;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &waspTileCollisionHandler;
 
