@@ -1319,3 +1319,9 @@ void killEnemy(entity_t* target){
     target->spriteFlipVertical = true;
     target->updateFunction = &updateEntityDead;
 }
+
+void updateBgCol(entity_t *self)
+{
+    self->gameData->bgColor = self->xDamping;
+    destroyEntity(self, true);
+}

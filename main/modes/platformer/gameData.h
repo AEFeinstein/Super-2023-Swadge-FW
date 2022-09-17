@@ -9,6 +9,7 @@
 #include "led_util.h"
 #include "common_typedef.h"
 #include "swadgeMode.h"
+#include "palette.h"
 
 //==============================================================================
 // Constants
@@ -40,6 +41,8 @@ typedef struct
     uint16_t comboScore;
     
     led_t leds[NUM_LEDS];
+
+    paletteColor_t bgColor;
 } gameData_t;
 
 //==============================================================================

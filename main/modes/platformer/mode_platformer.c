@@ -21,6 +21,7 @@
 #include "entityManager.h"
 #include "leveldef.h"
 #include "led_util.h"
+#include "palette.h"
 
 //==============================================================================
 // Constants
@@ -110,6 +111,7 @@ void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData);
 void changeStateGameClear(platformer_t *self);
 void updateGameClear(platformer_t *self);
 void drawGameClear(display_t *d, font_t *font, gameData_t *gameData);
+static void platformerBackground(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum );
 
 //==============================================================================
 // Variables
@@ -124,6 +126,7 @@ swadgeMode modePlatformer =
         .fnExitMode = platformerExitMode,
         .fnMainLoop = platformerMainLoop,
         .fnButtonCallback = platformerButtonCb,
+        //.fnBackgroundDrawCallback = platformerBackground,
         .fnTouchCallback = NULL,
         .wifiMode = NO_WIFI,
         .fnEspNowRecvCb = NULL,
@@ -133,7 +136,7 @@ swadgeMode modePlatformer =
         .fnTemperatureCallback = NULL};
 
 static leveldef_t leveldef[3] = {
-    {.filename = "level1-1.bin",
+    {.filename = "debug.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
     {.filename = "level1-2.bin",
@@ -237,10 +240,16 @@ void platformerCb(const char *opt)
     ESP_LOGI("MNU", "%s", opt);
 }
 
+
+static void platformerBackground(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum )
+{
+    fillDisplayArea( disp, x, y, x+w, h+y, c333);
+}
+
 void updateGame(platformer_t *self)
 {
     // Clear the display
-    self->disp->clearPx();
+    fillDisplayArea( self->disp, 0, 0, 280, 240, self->gameData.bgColor);
 
     updateEntities(&(self->entityManager));
 
@@ -423,7 +432,7 @@ void changeStateDead(platformer_t *self){
 
 void updateDead(platformer_t *self){
     // Clear the display
-    self->disp->clearPx();
+    fillDisplayArea( self->disp, 0, 0, 280, 240, self->gameData.bgColor);
     
     self->gameData.frameCount++;
     if(self->gameData.frameCount > 60){

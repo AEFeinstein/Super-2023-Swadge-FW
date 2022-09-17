@@ -8,6 +8,7 @@
 
 #include "entityManager.h"
 #include "esp_random.h"
+#include "palette.h"
 
 #include "../../components/hdw-spiffs/spiffs_manager.h"
 
@@ -833,9 +834,10 @@ entity_t* createBgColBlue(entityManager_t * entityManager, uint16_t x, uint16_t 
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
+    entity->xDamping = c335;
     
     entity->type = ENTITY_BGCOL_BLUE;
-    entity->updateFunction = &updateScrollUnlock;
+    entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
 
@@ -854,9 +856,10 @@ entity_t* createBgColYellow(entityManager_t * entityManager, uint16_t x, uint16_
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
+    entity->xDamping = c542;
     
     entity->type = ENTITY_BGCOL_YELLOW;
-    entity->updateFunction = &updateScrollUnlock;
+    entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
 
@@ -875,9 +878,10 @@ entity_t* createBgColOrange(entityManager_t * entityManager, uint16_t x, uint16_
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
-    
+    entity->xDamping = c532;
+
     entity->type = ENTITY_BGCOL_ORANGE;
-    entity->updateFunction = &updateScrollUnlock;
+    entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
 
@@ -896,9 +900,10 @@ entity_t* createBgColPurple(entityManager_t * entityManager, uint16_t x, uint16_
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
+    entity->xDamping = c214;
     
     entity->type = ENTITY_BGCOL_PURPLE;
-    entity->updateFunction = &updateScrollUnlock;
+    entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
 
@@ -917,9 +922,10 @@ entity_t* createBgColDarkPurple(entityManager_t * entityManager, uint16_t x, uin
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
-    
+    entity->xDamping = c103;
+
     entity->type = ENTITY_BGCOL_DARK_PURPLE;
-    entity->updateFunction = &updateScrollUnlock;
+    entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
 
@@ -938,9 +944,11 @@ entity_t* createBgColBlack(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
-    
+    entity->xDamping = c000;
+
+
     entity->type = ENTITY_BGCOL_BLACK;
-    entity->updateFunction = &updateScrollUnlock;
+    entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
 
@@ -959,9 +967,10 @@ entity_t* createBgColNeutralGreen(entityManager_t * entityManager, uint16_t x, u
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
-    
+    entity->xDamping = c133;
+
     entity->type = ENTITY_BGCOL_NEUTRAL_GREEN;
-    entity->updateFunction = &updateScrollUnlock;
+    entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
 
@@ -980,9 +989,10 @@ entity_t* createBgColNeutralDarkRed(entityManager_t * entityManager, uint16_t x,
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
+    entity->xDamping = c200;
     
     entity->type = ENTITY_BGCOL_DARK_RED;
-    entity->updateFunction = &updateScrollUnlock;
+    entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
 
@@ -1001,9 +1011,10 @@ entity_t* createBgColNeutralDarkGreen(entityManager_t * entityManager, uint16_t 
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
-    
+     entity->xDamping = c010;
+
     entity->type = ENTITY_BGCOL_DARK_GREEN;
-    entity->updateFunction = &updateScrollUnlock;
+    entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
 
