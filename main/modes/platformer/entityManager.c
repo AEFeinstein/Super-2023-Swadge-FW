@@ -1034,7 +1034,7 @@ entity_t* create1up(entityManager_t * entityManager, uint16_t x, uint16_t y){
     entity->type = ENTITY_1UP;
     entity->spriteIndex = SP_1UP_1;
     entity->animationTimer = 0;
-    entity->updateFunction = &updatePowerUp;
+    entity->updateFunction = &update1up;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
 
