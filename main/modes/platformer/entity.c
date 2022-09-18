@@ -949,10 +949,10 @@ void updateDustBunny(entity_t *self)
             
             switch(self->xDamping){
                 case 0: {
-                    self->xspeed = (1 + esp_random() % 4) * 16 * ((directionToPlayer)?-1:1);
-                    self->yspeed = (1 + esp_random() % 4) * -64;
+                    self->yspeed = (2 + esp_random() % 3) * -64;
+                    self->falling = true;
                     self->xDamping = 1;
-                    self->yDamping = (1 + esp_random() % 3) * 10;
+                    self->yDamping = (1 + esp_random() % 3) * 3;
                     self->spriteIndex = SP_DUSTBUNNY_JUMP;
                     self->spriteFlipHorizontal = directionToPlayer;
                     break;
@@ -982,23 +982,23 @@ void updateDustBunnyL2(entity_t *self)
     if(!self->falling){
         self->yDamping--;
         if(self->yDamping <= 0){
-            bool directionToPlayer = (self->entityManager->playerEntity->x < self->x);
+            //bool directionToPlayer = (self->entityManager->playerEntity->x < self->x);
             
             switch(self->xDamping){
                 case 0: {
-                    self->xspeed = (1 + esp_random() % 4) * 16 * ((directionToPlayer)?-1:1);
+                    self->xspeed = (1 + esp_random() % 4) * 16 * ((self->spriteFlipHorizontal)?-1:1);
                     self->yspeed = (1 + esp_random() % 4) * -64;
                     self->xDamping = 1;
-                    self->yDamping = (1 + esp_random() % 3) * 10;
+                    self->yDamping = (esp_random() % 3) * 2;
                     self->spriteIndex = SP_DUSTBUNNY_L2_JUMP;
-                    self->spriteFlipHorizontal = directionToPlayer;
+                    //self->spriteFlipHorizontal = directionToPlayer;
                     break;
                 }
                 case 1: {
                     self->xDamping = 0;
-                    self->yDamping = 10;
+                    self->yDamping = 5;
                     self->spriteIndex = SP_DUSTBUNNY_L2_CHARGE;
-                    self->spriteFlipHorizontal = directionToPlayer;
+                    //self->spriteFlipHorizontal = directionToPlayer;
                     break;
                 }
                 default:
@@ -1089,9 +1089,11 @@ bool dustBunnyL2TileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx,
         {
         case 0: // LEFT
             self->xspeed = -self->xspeed;
+            self->spriteFlipHorizontal = false;
             break;
         case 1: // RIGHT
             self->xspeed = -self->xspeed;
+            self->spriteFlipHorizontal = true;
             break;
         case 2: // UP
             self->yspeed = 0;

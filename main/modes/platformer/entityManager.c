@@ -707,7 +707,7 @@ entity_t* createDustBunnyL2(entityManager_t * entityManager, uint16_t x, uint16_
     entity->yDamping = 0; //This will be repurposed as a state timer
     entity->gravityEnabled = true;
     entity->gravity = 32;
-    entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? true : false;
+    entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? false : true;
     entity->spriteFlipVertical = false;
 
     entity->type = ENTITY_DUST_BUNNY_2;
