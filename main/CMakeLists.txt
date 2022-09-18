@@ -31,6 +31,7 @@ idf_component_register(
         "modes/mode_tunernome.c"
         "modes/mode_test.c"
         "modes/platformer/gameData.c"
+        "modes/mode_paint.c"
         "utils/linked_list.c"
         "p2pConnection.c"
         "swadge_esp32.c"
