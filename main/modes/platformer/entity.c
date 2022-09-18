@@ -131,6 +131,7 @@ void initializeEntity(entity_t *self, entityManager_t *entityManager, tilemap_t 
     self->falling = false;
     self->entityManager = entityManager;
     self->spriteFlipVertical = false;
+    self->fallOffTileHandler = &defaultFallOffTileHandler;
 };
 
 void updatePlayer(entity_t *self)
@@ -420,7 +421,7 @@ void moveEntityWithTileCollisions(entity_t *self)
 
                     if (!isSolid(newBelowTile))
                     {
-                        self->falling = true;
+                        self->fallOffTileHandler(self);
                     }
                 }
             }
@@ -429,6 +430,10 @@ void moveEntityWithTileCollisions(entity_t *self)
 
     self->x = newX + self->xspeed;
     self->y = newY + self->yspeed;
+}
+
+void defaultFallOffTileHandler(entity_t *self){
+    self->falling = true;
 }
 
 void applyDamping(entity_t *self)
@@ -1326,4 +1331,10 @@ void updateBgCol(entity_t *self)
 {
     self->gameData->bgColor = self->xDamping;
     destroyEntity(self, true);
+}
+
+void turnAroundAtEdgeOfTileHandler(entity_t *self){
+    self->falling = true;
+    self->xspeed = -self->xspeed;
+    self->yspeed = -self->gravity*4;
 }

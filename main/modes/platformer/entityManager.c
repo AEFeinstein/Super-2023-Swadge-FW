@@ -324,7 +324,7 @@ entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->updateFunction = &updatePlayer;
     entity->collisionHandler = &playerCollisionHandler;
     entity->tileCollisionHandler = &playerTileCollisionHandler;
-
+    entity->fallOffTileHandler = &defaultFallOffTileHandler;
     return entity;
 }
 
@@ -354,6 +354,7 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->updateFunction = &updateTestObject;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &enemyTileCollisionHandler;
+    entity->fallOffTileHandler = &defaultFallOffTileHandler;
 
     return entity;
 }
@@ -375,7 +376,7 @@ entity_t* createScrollLockLeft(entityManager_t * entityManager, uint16_t x, uint
     entity->updateFunction = &updateScrollLockLeft;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
-
+    
     return entity;
 }
 
@@ -523,6 +524,7 @@ entity_t* createPowerUp(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->updateFunction = &updatePowerUp;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->fallOffTileHandler = &defaultFallOffTileHandler;
 
     return entity;
 };
@@ -587,6 +589,7 @@ entity_t* createDustBunny(entityManager_t * entityManager, uint16_t x, uint16_t 
     entity->updateFunction = &updateDustBunny;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &dustBunnyTileCollisionHandler;
+    entity->fallOffTileHandler = &defaultFallOffTileHandler;
 
     return entity;
 }
@@ -639,7 +642,7 @@ entity_t* createEnemyBushL2(entityManager_t * entityManager, uint16_t x, uint16_
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
     
-    entity->xspeed = (x < (entityManager->tilemap->mapOffsetX + 120)) ? 16 : -16;
+    entity->xspeed = (x < (entityManager->tilemap->mapOffsetX + 120)) ? 24 : -24;
     entity->yspeed = 0;
     entity->xMaxSpeed = 132;
     entity->yMaxSpeed = 132;
@@ -652,6 +655,7 @@ entity_t* createEnemyBushL2(entityManager_t * entityManager, uint16_t x, uint16_
     entity->updateFunction = &updateTestObject;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &enemyTileCollisionHandler;
+    entity->fallOffTileHandler = &turnAroundAtEdgeOfTileHandler;
 
     return entity;
 }
@@ -669,7 +673,7 @@ entity_t* createEnemyBushL3(entityManager_t * entityManager, uint16_t x, uint16_
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
     
-    entity->xspeed = (x < (entityManager->tilemap->mapOffsetX + 120)) ? 16 : -16;
+    entity->xspeed = (x < (entityManager->tilemap->mapOffsetX + 120)) ? 32 : -32;
     entity->yspeed = 0;
     entity->xMaxSpeed = 132;
     entity->yMaxSpeed = 132;
@@ -682,6 +686,7 @@ entity_t* createEnemyBushL3(entityManager_t * entityManager, uint16_t x, uint16_
     entity->updateFunction = &updateTestObject;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &enemyTileCollisionHandler;
+    entity->fallOffTileHandler = &turnAroundAtEdgeOfTileHandler;
 
     return entity;
 }
@@ -715,6 +720,7 @@ entity_t* createDustBunnyL2(entityManager_t * entityManager, uint16_t x, uint16_
     entity->updateFunction = &updateDustBunnyL2;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &dustBunnyL2TileCollisionHandler;
+    entity->fallOffTileHandler = &defaultFallOffTileHandler;
 
     return entity;
 }
@@ -748,6 +754,7 @@ entity_t* createDustBunnyL3(entityManager_t * entityManager, uint16_t x, uint16_
     entity->updateFunction = &updateDustBunnyL3;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &dustBunnyL3TileCollisionHandler;
+    entity->fallOffTileHandler = &defaultFallOffTileHandler;
 
     return entity;
 }
@@ -1048,6 +1055,7 @@ entity_t* create1up(entityManager_t * entityManager, uint16_t x, uint16_t y){
     entity->updateFunction = &update1up;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->fallOffTileHandler = &defaultFallOffTileHandler;
 
     return entity;
 };
@@ -1079,6 +1087,7 @@ entity_t* createWaveBall(entityManager_t * entityManager, uint16_t x, uint16_t y
     entity->updateFunction = &updatePowerUp;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->fallOffTileHandler = &defaultFallOffTileHandler;
 
     return entity;
 };

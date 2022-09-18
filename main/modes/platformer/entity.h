@@ -56,6 +56,7 @@ typedef enum {
 typedef void(*updateFunction_t)(struct entity_t *self);
 typedef void(*collisionHandler_t)(struct entity_t *self, struct entity_t *other);
 typedef bool(*tileCollisionHandler_t)(struct entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
+typedef void(*fallOffTileHandler_t)(struct entity_t *self);
 
 struct entity_t
 {
@@ -103,6 +104,7 @@ struct entity_t
 
     collisionHandler_t collisionHandler;
     tileCollisionHandler_t tileCollisionHandler;
+    fallOffTileHandler_t fallOffTileHandler;
 };
 
 //==============================================================================
@@ -115,6 +117,7 @@ void updateTestObject(entity_t * self);
 void updateHitBlock(entity_t * self);
 
 void moveEntityWithTileCollisions(entity_t * self);
+void defaultFallOffTileHandler(entity_t *self);
 
 void despawnWhenOffscreen(entity_t *self);
 
@@ -168,5 +171,7 @@ bool waspTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_
 void killEnemy(entity_t* target);
 
 void updateBgCol(entity_t* self);
+
+void turnAroundAtEdgeOfTileHandler(entity_t *self);
 
 #endif
