@@ -51,6 +51,36 @@ static const song_t sndDie =
     .shouldLoop = false
 };
 
+static const song_t sndMenuSelect =
+{
+    .notes =
+    {
+        {C_5, 50},{C_4, 50}
+    },
+    .numNotes = 2,
+    .shouldLoop = false
+};
+
+static const song_t sndMenuConfirm =
+{
+    .notes =
+    {
+        {C_6, 50},{C_5, 50},{C_4, 50}
+    },
+    .numNotes = 2,
+    .shouldLoop = false
+};
+
+static const song_t sndMenuDeny =
+{
+    .notes =
+    {
+        {C_3, 50},{SILENCE, 50},{C_3, 50}
+    },
+    .numNotes = 3,
+    .shouldLoop = false
+};
+
 //==============================================================================
 // Functions Prototypes
 //==============================================================================
@@ -70,16 +100,14 @@ struct platformer_t
 {
     display_t *disp;
 
-    font_t ibm_vga8;
     font_t radiostars;
 
     tilemap_t tilemap;
     entityManager_t entityManager;
     gameData_t gameData;
 
-    int8_t scrolltesttimer;
-    int16_t scroll_xspeed;
-    int16_t scroll_yspeed;
+    uint8_t menuState;
+    uint8_t menuSelection;
 
     int16_t btnState;
     int16_t prevBtnState;
@@ -136,7 +164,7 @@ swadgeMode modePlatformer =
         .fnTemperatureCallback = NULL};
 
 static leveldef_t leveldef[3] = {
-    {.filename = "debug.bin",
+    {.filename = "level1-1.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
     {.filename = "level1-2.bin",
@@ -145,6 +173,8 @@ static leveldef_t leveldef[3] = {
     {.filename = "level1-3.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90}};
+
+#define NUM_LEVELS 3
 
 led_t platLeds[NUM_LEDS];
 
@@ -165,9 +195,8 @@ void platformerEnterMode(display_t *disp)
     // Save a pointer to the display
     platformer->disp = disp;
 
-    platformer->scrolltesttimer = 127;
-    platformer->scroll_xspeed = 2;
-    platformer->scroll_yspeed = 0;
+    platformer->menuState = 0;
+    platformer->menuSelection = 0;
     platformer->btnState = 0;
     platformer->prevBtnState = 0;
 
@@ -192,14 +221,12 @@ void platformerEnterMode(display_t *disp)
  */
 void platformerExitMode(void)
 {
-    freeFont(&platformer->ibm_vga8);
     freeFont(&platformer->radiostars);
 
     // TODO
     // freeWsg(platformer->tilemap->tiles);
     // freeWsg(platformer->tilemap->tilemap_buffer);
 
-    // free(platformer->tilemap);
     free(platformer);
 }
 
@@ -238,12 +265,6 @@ void platformerButtonCb(buttonEvt_t *evt)
 void platformerCb(const char *opt)
 {
     ESP_LOGI("MNU", "%s", opt);
-}
-
-
-static void platformerBackground(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum )
-{
-    fillDisplayArea( disp, x, y, x+w, h+y, c333);
 }
 
 void updateGame(platformer_t *self)
@@ -316,12 +337,111 @@ void updateTitleScreen(platformer_t *self)
     }
 
     // Handle inputs
-    if (
-        self->gameData.btnState & START
-    )
-    {
-        initializeGameData(&(self->gameData));
-        changeStateReadyScreen(self);
+    switch(platformer->menuState){
+        case 0:{
+            if (
+                (self->gameData.btnState & START)
+                &&
+                !(self->gameData.prevBtnState & START)
+            )
+            {
+                buzzer_play_sfx(&sndMenuConfirm);
+                platformer->menuState = 1;
+            }
+
+            break;
+        }
+        case 1:{
+            if (
+                self->gameData.btnState & START
+                &&
+                !(self->gameData.prevBtnState & START)
+            )
+            {
+                uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
+                if(levelIndex >= NUM_LEVELS){
+                    buzzer_play_sfx(&sndMenuDeny);
+                    break;
+                }
+
+                initializeGameDataFromTitleScreen(&(self->gameData));
+                changeStateReadyScreen(self);
+            } else if (
+                    (
+                    self->gameData.btnState & UP
+                    &&
+                    !(self->gameData.prevBtnState & UP)
+                )
+            )
+            {
+                if(platformer->menuSelection > 0){
+                    platformer->menuSelection--;
+                    buzzer_play_sfx(&sndMenuSelect);
+                }
+            } else if (
+                    (
+                    self->gameData.btnState & DOWN
+                    &&
+                    !(self->gameData.prevBtnState & DOWN)
+                )
+            )
+            {
+                if(platformer->menuSelection < 1){
+                    platformer->menuSelection++;
+                    buzzer_play_sfx(&sndMenuSelect);
+                }
+            } else if (
+                    (
+                    self->gameData.btnState & LEFT
+                    &&
+                    !(self->gameData.prevBtnState & LEFT)
+                )
+            )
+            {
+                if(platformer->menuSelection == 1){
+                    platformer->gameData.level--;
+                    if(platformer->gameData.level < 1){
+                        platformer->gameData.level = 4;
+                        if(platformer->gameData.world > 1){
+                            platformer->gameData.world--;
+                        }
+                    }
+                    buzzer_play_sfx(&sndMenuSelect);
+                }
+            } else if (
+                    (
+                    self->gameData.btnState & RIGHT
+                    &&
+                    !(self->gameData.prevBtnState & RIGHT)
+                )
+            )
+            {
+                if(platformer->menuSelection == 1){
+                    platformer->gameData.level++;
+                    if(platformer->gameData.level > 4){
+                        platformer->gameData.level = 1;
+                        if(platformer->gameData.world < 8){
+                            platformer->gameData.world++;
+                        }
+                    }
+                    buzzer_play_sfx(&sndMenuSelect);
+                }
+            } else if (
+                    (
+                    self->gameData.btnState & BTN_B
+                    &&
+                    !(self->gameData.prevBtnState & BTN_B)
+                )
+            )
+            {
+                platformer->menuState = 0;
+                buzzer_play_sfx(&sndMenuConfirm);
+            }
+            break;
+        }
+        default:
+            platformer->menuState = 0;
+            break;
     }
 
 
@@ -343,9 +463,29 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
 
     drawText(d, font, c555, "Super Swadge Land", 40, 32);
 
-    if (gameData->frameCount < 10)
-    {
-        drawText(d, font, c555, "- Press START button -", 20, 128);
+    switch(platformer->menuState){
+        case 0: {
+            if (gameData->frameCount < 10)
+            {
+                drawText(d, font, c555, "- Press START button -", 20, 128);
+            }
+            break;
+        }
+         
+        case 1: {
+            drawText(d, font, c555, "Start Game", 48, 128);
+
+            char levelStr[24];
+            snprintf(levelStr, sizeof(levelStr) - 1, "Level Select: %d-%d", gameData->world, gameData->level);
+            drawText(d, font, c555, levelStr, 48, 144);
+
+            drawText(d, font, c555, "->", 32, 128 + platformer->menuSelection * 16);
+
+            break;
+        }
+        
+        default:
+            break;
     }
 }
 
@@ -483,7 +623,7 @@ void changeStateLevelClear(platformer_t *self){
 
 void updateLevelClear(platformer_t *self){
     // Clear the display
-    self->disp->clearPx();
+    fillDisplayArea( self->disp, 0, 0, 280, 240, self->gameData.bgColor);
     
     self->gameData.frameCount++;
 
@@ -502,7 +642,7 @@ void updateLevelClear(platformer_t *self){
             }
 
             uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
-            if(levelIndex >= 3){
+            if(levelIndex >= NUM_LEVELS){
                 changeStateGameClear(self);
             } else {
                 changeStateReadyScreen(self);

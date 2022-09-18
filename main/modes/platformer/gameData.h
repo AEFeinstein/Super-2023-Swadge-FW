@@ -49,6 +49,7 @@ typedef struct
 // Functions
 //==============================================================================
 void initializeGameData(gameData_t * gameData);
+void initializeGameDataFromTitleScreen(gameData_t * gameData);
 void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData);
 void scorePoints(gameData_t * gameData, uint16_t points);
 void updateComboTimer(gameData_t * gameData);
