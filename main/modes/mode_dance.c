@@ -101,7 +101,6 @@ typedef struct
 
     uint8_t danceIdx;
 
-    bool updateScreen;
     bool resetDance;
     bool blankScreen;
 
@@ -139,7 +138,6 @@ void danceEnterMode(display_t* disp)
 
     danceState->danceIdx = 0;
 
-    danceState->updateScreen = true;
     danceState->resetDance = true;
     danceState->blankScreen = false;
 
@@ -160,10 +158,7 @@ void danceMainLoop(int64_t elapsedUs)
 {
     ledDances[danceState->danceIdx].func(elapsedUs, ledDances[danceState->danceIdx].arg, danceState->resetDance);
 
-    if (danceState->updateScreen)
-    {
-        danceRedrawScreen();
-    }
+    danceRedrawScreen();
 
     danceState->resetDance = false;
 }
@@ -177,14 +172,12 @@ void danceButtonCb(buttonEvt_t* evt)
             case UP:
             {
                 incLedBrightness();
-                danceState->updateScreen = true;
                 break;
             }
 
             case DOWN:
             {
                 decLedBrightness();
-                danceState->updateScreen = true;
                 break;
             }
 
@@ -203,7 +196,6 @@ void danceButtonCb(buttonEvt_t* evt)
             case BTN_A:
             {
                 danceState->blankScreen = !danceState->blankScreen;
-                danceState->updateScreen = true;
                 break;
             }
 
@@ -226,11 +218,10 @@ void danceButtonCb(buttonEvt_t* evt)
 }
 
 /**
- * @brief Blanks and redraws the entire screen, and clears danceState->updateScreen
+ * @brief Blanks and redraws the entire screen
  */
 void danceRedrawScreen()
 {
-    danceState->updateScreen = false;
     danceState->disp->clearPx();
 
     if (!danceState->blankScreen)
@@ -1244,7 +1235,6 @@ void selectPrevDance()
         danceState->danceIdx = getNumDances() - 1;
     }
 
-    danceState->updateScreen = true;
     danceState->resetDance = true;
 }
 
@@ -1262,6 +1252,5 @@ void selectNextDance()
         danceState->danceIdx = 0;
     }
 
-    danceState->updateScreen = true;
     danceState->resetDance = true;
 }
