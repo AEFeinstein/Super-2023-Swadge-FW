@@ -663,15 +663,22 @@ void enemyCollisionHandler(entity_t *self, entity_t *other)
     switch (other->type)
     {
         case ENTITY_TEST:
-            self->xspeed = -self->xspeed;
-            break;
         case ENTITY_DUST_BUNNY:
-            self->xspeed = -self->xspeed;
+        case ENTITY_WASP:
+        case ENTITY_BUSH_2:
+        case ENTITY_BUSH_3:
+        case ENTITY_DUST_BUNNY_2:
+        case ENTITY_DUST_BUNNY_3:
+        case ENTITY_WASP_2:
+        case ENTITY_WASP_3:
+            if((self->xspeed > 0 && self->x < other->x) || (self->xspeed < 0 && self->x > other->x)){
+                self->xspeed = -self->xspeed;
+            }
             break;
         case ENTITY_HIT_BLOCK:
             self->xspeed = other->xspeed*2;
             self->yspeed = other->yspeed*2;
-            self->gameData->score+=100;
+            scorePoints(self->gameData, 100);
             buzzer_play_sfx(&sndSquish);
             killEnemy(self);
             break;
