@@ -29,7 +29,7 @@
 //==============================================================================
 
 #define MIN(x,y) ((x)<(y)?(x):(y))
-#define MIN_LED_HEIGHT 64
+#define MIN_LED_WIDTH 64
 
 #define BG_COLOR  0x191919FF // This color isn't part of the palette
 #define DIV_COLOR 0x808080FF
@@ -38,8 +38,8 @@
 // Function prototypes
 //==============================================================================
 
-void drawBitmapPixel(uint32_t * bitmapDisplay, int w, int h, int x, int y, uint32_t col);
-void plotRoundedCorners(uint32_t * bitmapDisplay, int w, int h, int r, uint32_t col);
+void drawBitmapPixel(uint32_t* bitmapDisplay, int w, int h, int x, int y, uint32_t col);
+void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t col);
 
 //==============================================================================
 // Variables
@@ -113,7 +113,7 @@ void HandleDestroy()
 
 /**
  * @brief Helper function to draw to a bitmap display
- * 
+ *
  * @param bitmapDisplay The display to draw to
  * @param w The width of the display
  * @param h The height of the display
@@ -121,7 +121,7 @@ void HandleDestroy()
  * @param y The Y coordinate to draw a pixel at
  * @param col The color to draw the pixel
  */
-void drawBitmapPixel(uint32_t * bitmapDisplay, int w, int h, int x, int y, uint32_t col)
+void drawBitmapPixel(uint32_t* bitmapDisplay, int w, int h, int x, int y, uint32_t col)
 {
     if((y * w) + x < (w * h))
     {
@@ -131,14 +131,14 @@ void drawBitmapPixel(uint32_t * bitmapDisplay, int w, int h, int x, int y, uint3
 
 /**
  * @brief Helper functions to draw rounded corners to the display
- * 
+ *
  * @param bitmapDisplay The display to round the corners on
  * @param w The width of the display
  * @param h The height of the display
  * @param r The radius of the rounded corners
  * @param col The color to draw the rounded corners
  */
-void plotRoundedCorners(uint32_t * bitmapDisplay, int w, int h, int r, uint32_t col)
+void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t col)
 {
     int or = r;
     int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
@@ -172,15 +172,15 @@ void plotRoundedCorners(uint32_t * bitmapDisplay, int w, int h, int r, uint32_t 
  * @param argv unused
  * @return 0 on success, a nonzero value for any errors
  */
-int main(int argc UNUSED, char ** argv UNUSED)
+int main(int argc UNUSED, char** argv UNUSED)
 {
     // First initialize rawdraw
     // Screen-specific configurations
     // Save window dimensions from the last loop
     short lastWindow_w = 0;
     short lastWindow_h = 0;
-    int16_t led_h = MIN_LED_HEIGHT;
-    CNFGSetup( "Swadge S2 Emulator", (TFT_WIDTH * 2), (TFT_HEIGHT * 2) + led_h + 1);
+    int16_t led_w = MIN_LED_WIDTH;
+    CNFGSetup( "SQUAREWAVEBIRD Simulator", (TFT_WIDTH * 2) + (led_w * 4) + 2, (TFT_HEIGHT * 2));
 
     // This is the 'main' that gets called when the ESP boots
     app_main();
@@ -210,20 +210,20 @@ int main(int argc UNUSED, char ** argv UNUSED)
         if((lastWindow_h != window_h) || (lastWindow_w != window_w))
         {
             // Figure out how much the TFT should be scaled by
-            uint8_t widthMult = window_w / TFT_WIDTH;
+            uint8_t widthMult = (window_w - (4 * MIN_LED_WIDTH) - 2) / TFT_WIDTH;
             if(0 == widthMult)
             {
                 widthMult = 1;
             }
-            uint8_t heightMult = (window_h - MIN_LED_HEIGHT - 1) / TFT_HEIGHT;
+            uint8_t heightMult = window_h / TFT_HEIGHT;
             if(0 == heightMult)
             {
                 heightMult = 1;
             }
             uint8_t screenMult = MIN(widthMult, heightMult);
 
-            // LEDs take up the rest of the vertical space
-            led_h = window_h - 1 - (screenMult * TFT_HEIGHT);
+            // LEDs take up the rest of the horizontal space
+            led_w = (window_w - 2 - (screenMult * TFT_WIDTH)) / 4;
 
             // Set the multiplier
             setDisplayBitmapMultiplier(screenMult);
@@ -238,33 +238,56 @@ int main(int argc UNUSED, char ** argv UNUSED)
 
         // Get the LED memory
         uint8_t numLeds;
-        led_t * leds = getLedMemory(&numLeds);
+        led_t* leds = getLedMemory(&numLeds);
+
+        // Where LEDs are drawn, kinda
+        const int16_t ledOffsets[8][2] =
+        {
+            {1, 2},
+            {0, 3},
+            {0, 1},
+            {1, 0},
+            {2, 0},
+            {3, 1},
+            {3, 3},
+            {2, 2},
+        };
 
         // Draw simulated LEDs
         if (numLeds > 0 && NULL != leds)
         {
-            short led_w = window_w / numLeds;
+            short led_h = window_h / (numLeds / 2);
             for(int i = 0; i < numLeds; i++)
             {
                 CNFGColor( (leds[i].r << 24) | (leds[i].g << 16) | (leds[i].b << 8) | 0xFF);
-                if(i == numLeds - 1)
+
+                int16_t xOffset = 0;
+                if(ledOffsets[i][0] < 2)
                 {
-                    CNFGTackRectangle(i * led_w, 0, window_w, led_h);
+                    xOffset = ledOffsets[i][0] * (led_w / 2);
                 }
                 else
                 {
-                    CNFGTackRectangle(i * led_w, 0, (i + 1) * led_w, led_h);
+                    xOffset = window_w - led_w - ((4 - ledOffsets[i][0]) * (led_w / 2));
                 }
+
+                int16_t yOffset = ledOffsets[i][1] * led_h;
+
+                // Draw the LED
+                CNFGTackRectangle(
+                    xOffset, yOffset,
+                    xOffset + (led_w * 3) / 2, yOffset + led_h);
             }
         }
 
-        // Draw dividing line
+        // Draw dividing lines
         CNFGColor( DIV_COLOR );
-        CNFGTackSegment(0, led_h, window_w, led_h);
+        CNFGTackSegment(led_w * 2, 0, led_w * 2, window_h);
+        CNFGTackSegment(window_w - (led_w * 2), 0, window_w - (led_w * 2), window_h);
 
         // Get the display memory
         uint16_t bitmapWidth, bitmapHeight;
-        uint32_t * bitmapDisplay = getDisplayBitmap(&bitmapWidth, &bitmapHeight);
+        uint32_t* bitmapDisplay = getDisplayBitmap(&bitmapWidth, &bitmapHeight);
 
         if((0 != bitmapWidth) && (0 != bitmapHeight) && (NULL != bitmapDisplay))
         {
@@ -273,9 +296,8 @@ int main(int argc UNUSED, char ** argv UNUSED)
 #endif
             // Update the display, centered
             CNFGBlitImage(bitmapDisplay,
-                (window_w - bitmapWidth) / 2, 
-                (led_h + 1) + ((window_h - (led_h + 1) - bitmapHeight) / 2),
-                bitmapWidth, bitmapHeight);
+                          (led_w * 2) + 1, (window_h - bitmapHeight) / 2,
+                          bitmapWidth, bitmapHeight);
         }
 
         //Display the image and wait for time to display next frame.
