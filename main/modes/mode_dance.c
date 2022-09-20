@@ -1228,6 +1228,7 @@ void selectPrevDance()
     }
 
     danceState->updateScreen = true;
+    danceState->resetDance = true;
 }
 
 /**
@@ -1245,4 +1246,5 @@ void selectNextDance()
     }
 
     danceState->updateScreen = true;
+    danceState->resetDance = true;
 }
