@@ -81,9 +81,22 @@ void fighterCheckGameBegin(void);
 // Variables
 //==============================================================================
 
+static const char str_swadgeBros[]  = "Swadge Bros";
+static const char str_multiplayer[] = "Multiplayer";
+static const char str_hrContest[]   = "HR Contest";
+static const char str_exit[]        = "Exit";
+
+static const char str_charKD[]      = "King Donut";
+static const char str_charSN[]      = "Sunny";
+static const char str_charBF[]      = "Big Funkus";
+static const char str_back[]        = "Back";
+
+static const char str_stgBF[]       = "Battlefield";
+static const char str_stgFD[]       = "Final Destination";
+
 swadgeMode modeFighter =
 {
-    .modeName = "Fighter",
+    .modeName = str_swadgeBros,
     .fnEnterMode = fighterEnterMode,
     .fnExitMode = fighterExitMode,
     .fnMainLoop = fighterMainLoop,
@@ -96,19 +109,6 @@ swadgeMode modeFighter =
     .fnAudioCallback = NULL, // fighterAudioCb,
     .fnTemperatureCallback = NULL, // fighterTemperatureCb
 };
-
-static const char str_clobber[]     = "Clobber";
-static const char str_multiplayer[] = "Multiplayer";
-static const char str_hrContest[]   = "HR Contest";
-static const char str_exit[]        = "Exit";
-
-static const char str_charKD[]      = "King Donut";
-static const char str_charSN[]      = "Sunny";
-static const char str_charBF[]      = "Big Funkus";
-static const char str_back[]        = "Back";
-
-static const char str_stgBF[]       = "Battlefield";
-static const char str_stgFD[]       = "Final Destination";
 
 fighterMenu_t* fm;
 
@@ -134,7 +134,7 @@ void fighterEnterMode(display_t* disp)
     loadFont("mm.font", &(fm->mmFont));
 
     // Create the menu
-    fm->menu = initMeleeMenu(str_clobber, &(fm->mmFont), fighterMainMenuCb);
+    fm->menu = initMeleeMenu(str_swadgeBros, &(fm->mmFont), fighterMainMenuCb);
 
     // Set the main menu
     setFighterMainMenu();
@@ -270,7 +270,7 @@ void fighterButtonCb(buttonEvt_t* evt)
  */
 void setFighterMainMenu(void)
 {
-    resetMeleeMenu(fm->menu, str_clobber, fighterMainMenuCb);
+    resetMeleeMenu(fm->menu, str_swadgeBros, fighterMainMenuCb);
     addRowToMeleeMenu(fm->menu, str_multiplayer);
     addRowToMeleeMenu(fm->menu, str_hrContest);
     addRowToMeleeMenu(fm->menu, str_exit);
