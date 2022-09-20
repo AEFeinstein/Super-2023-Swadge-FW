@@ -441,6 +441,7 @@ void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset)
     static bool rising[NUM_LEDS / 2] = {true, true, true};
     static uint8_t angle = 0;
     static uint32_t tAccumulated = 0;
+    static uint8_t ledRemap[NUM_LEDS] = {1, 0, 2, 3, 4, 5, 7, 6};
 
     if(reset)
     {
@@ -494,13 +495,13 @@ void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset)
             {
                 if(levels[i] > 0)
                 {
-                    leds[i].r = (levels[i] * ((color >>  0) & 0xFF) >> 8);
-                    leds[i].g = (levels[i] * ((color >>  8) & 0xFF) >> 8);
-                    leds[i].b = (levels[i] * ((color >> 16) & 0xFF) >> 8);
+                    leds[ledRemap[i]].r = (levels[i] * ((color >>  0) & 0xFF) >> 8);
+                    leds[ledRemap[i]].g = (levels[i] * ((color >>  8) & 0xFF) >> 8);
+                    leds[ledRemap[i]].b = (levels[i] * ((color >> 16) & 0xFF) >> 8);
 
-                    leds[NUM_LEDS - 1 - i].r = (levels[i] * ((color >>  0) & 0xFF) >> 8);
-                    leds[NUM_LEDS - 1 - i].g = (levels[i] * ((color >>  8) & 0xFF) >> 8);
-                    leds[NUM_LEDS - 1 - i].b = (levels[i] * ((color >> 16) & 0xFF) >> 8);
+                    leds[ledRemap[NUM_LEDS - 1 - i]].r = (levels[i] * ((color >>  0) & 0xFF) >> 8);
+                    leds[ledRemap[NUM_LEDS - 1 - i]].g = (levels[i] * ((color >>  8) & 0xFF) >> 8);
+                    leds[ledRemap[NUM_LEDS - 1 - i]].b = (levels[i] * ((color >> 16) & 0xFF) >> 8);
                 }
             }
         }
@@ -510,13 +511,13 @@ void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset)
             {
                 if(levels[i] > 0)
                 {
-                    leds[i].r = (levels[i] * ARG_R(arg)) >> 8;
-                    leds[i].g = (levels[i] * ARG_G(arg)) >> 8;
-                    leds[i].b = (levels[i] * ARG_B(arg)) >> 8;
+                    leds[ledRemap[i]].r = (levels[i] * ARG_R(arg)) >> 8;
+                    leds[ledRemap[i]].g = (levels[i] * ARG_G(arg)) >> 8;
+                    leds[ledRemap[i]].b = (levels[i] * ARG_B(arg)) >> 8;
 
-                    leds[NUM_LEDS - 1 - i].r = (levels[i] * ARG_R(arg)) >> 8;
-                    leds[NUM_LEDS - 1 - i].g = (levels[i] * ARG_G(arg)) >> 8;
-                    leds[NUM_LEDS - 1 - i].b = (levels[i] * ARG_B(arg)) >> 8;
+                    leds[ledRemap[NUM_LEDS - 1 - i]].r = (levels[i] * ARG_R(arg)) >> 8;
+                    leds[ledRemap[NUM_LEDS - 1 - i]].g = (levels[i] * ARG_G(arg)) >> 8;
+                    leds[ledRemap[NUM_LEDS - 1 - i]].b = (levels[i] * ARG_B(arg)) >> 8;
                 }
             }
         }
