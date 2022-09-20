@@ -14,7 +14,7 @@
 
 #include "mode_main_menu.h"
 
-static const char paintTitle[] = "MAGPaint";
+static const char paintTitle[] = "MFPaint";
 static const char menuOptDraw[] = "Draw";
 static const char menuOptGallery[] = "Gallery";
 static const char menuOptReceive[] = "Receive";
