@@ -143,10 +143,9 @@ void danceEnterMode(display_t* disp)
     danceState->resetDance = true;
     danceState->blankScreen = false;
 
-    // TODO move font to var
-    if (!loadFont("radiostars.font", &(danceState->infoFont)))
+    if (!loadFont(DANCE_INFO_FONT, &(danceState->infoFont)))
     {
-        ESP_LOGE("Dance", "Error loading radiostars.font");
+        ESP_LOGE("Dance", "Error loading " DANCE_INFO_FONT);
     }
 }
 
