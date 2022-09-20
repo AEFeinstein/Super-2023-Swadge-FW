@@ -21,6 +21,7 @@ static const char menuOptReceive[] = "Receive";
 static const char menuOptExit[] = "Exit";
 
 #define PIXEL_STACK_MIN_SIZE 2
+#define MAX_PICK_POINTS 16
 
 #define CURSOR_POINTS 8
 static const int8_t cursorShapeX[CURSOR_POINTS] = {-2, -1,  0,  0,  1, 2, 0, 0};
@@ -57,6 +58,9 @@ typedef enum
 
     // The brush requires a number of points to be picked first, and then it is drawn
     PICK_POINT,
+
+    // The brush requires a number of points that always connect back to the first point
+    PICK_POINT_LOOP,
 } brushMode_t;
 
 typedef struct
@@ -125,7 +129,7 @@ typedef struct
     uint8_t brushWidth;
 
     // An array of points that have been selected for the current brush
-    point_t pickPoints[8];
+    point_t pickPoints[MAX_PICK_POINTS];
     
     // The number of points already selected
     size_t pickCount;
@@ -186,6 +190,7 @@ void paintDrawFilledRectangle(display_t*, point_t*, uint8_t, uint16_t, paletteCo
 void paintDrawCircle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawFilledCircle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawEllipse(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawPolygon(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawPaintBucket(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawClear(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 
@@ -200,6 +205,7 @@ static const brush_t brushes[] =
     { .name = "Circle",     .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCircle },
     { .name = "Filled Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledCircle },
     { .name = "Ellipse",    .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawEllipse },
+    { .name = "Polygon",    .mode = PICK_POINT_LOOP, .maxPoints = MAX_PICK_POINTS, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawPolygon },
     { .name = "Paint Bucket", .mode = PICK_POINT, .maxPoints = 1, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawPaintBucket },
     { .name = "Clear",      .mode = INSTANT, .maxPoints = 0, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawClear },
 };
@@ -693,9 +699,11 @@ void paintRenderToolbar()
         }
     }
 
+    // Draw the brush name
     uint16_t textX = 30, textY = 4;
     drawText(paintState->disp, &paintState->toolbarFont, c000, paintState->brush->name, textX, textY);
 
+    // Draw the brush size, if applicable and not constant
     char text[16];
     if (paintState->brush->minSize > 0 && paintState->brush->maxSize > 0 && paintState->brush->minSize != paintState->brush->maxSize)
     {
@@ -705,7 +713,24 @@ void paintRenderToolbar()
 
     if (paintState->brush->mode == PICK_POINT && paintState->brush->maxPoints > 1)
     {
+        // Draw the number of picks made / total
         snprintf(text, sizeof(text), "%ld/%d", paintState->pickCount, paintState->brush->maxPoints);
+        drawText(paintState->disp, &paintState->toolbarFont, c000, text, 220, 4);
+    }
+    else if (paintState->brush->mode == PICK_POINT_LOOP && paintState->brush->maxPoints > 1)
+    {
+        // Draw the number of remaining picks
+        uint8_t maxPicks = paintState->brush->maxPoints < MAX_PICK_POINTS ? paintState->brush->maxPoints : MAX_PICK_POINTS;
+
+        if (paintState->pickCount + 1 == maxPicks - 1)
+        {
+            snprintf(text, sizeof(text), "Last");
+        }
+        else
+        {
+            snprintf(text, sizeof(text), "%ld", maxPicks - paintState->pickCount - 1);
+        }
+
         drawText(paintState->disp, &paintState->toolbarFont, c000, text, 220, 4);
     }
 }
@@ -877,6 +902,14 @@ void paintDrawEllipse(display_t* disp, point_t* points, uint8_t numPoints, uint1
     popPx();
 }
 
+void paintDrawPolygon(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+{
+    for (uint8_t i = 0; i < numPoints - 1; i++)
+    {
+        plotLine(disp, points[i].x, points[i].y, points[i+1].x, points[i+1].y, col, 0);
+    }
+}
+
 void paintDrawPaintBucket(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
     floodFill(disp, points[0].x, points[0].y, col);
@@ -901,16 +934,40 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 
         drawNow = true;
     }
-    else if (paintState->brush->mode == PICK_POINT)
+    else if (paintState->brush->mode == PICK_POINT || paintState->brush->mode == PICK_POINT_LOOP)
     {
         paintState->pickPoints[paintState->pickCount].x = x;
         paintState->pickPoints[paintState->pickCount].y = y;
 
+        ESP_LOGD("Paint", "pick[%02ld] = (%03d, %03d)", paintState->pickCount, x, y);
+
         // Save the pixel underneath the selection, then draw a temporary pixel to mark it
         pushPx(x, y);
         paintState->disp->setPx(x, y, paintState->fgColor);
-        
-        if (++paintState->pickCount == paintState->brush->maxPoints)
+
+        if (paintState->brush->mode == PICK_POINT_LOOP)
+        {
+            if (paintState->pickCount > 0 && paintState->pickPoints[0].x == x && paintState->pickPoints[0].y == y)
+            {
+                // If this isn't the first pick, and it's in the same position as the first pick, we're done!
+                drawNow = true;
+            }
+            else if (paintState->pickCount + 1 == MAX_PICK_POINTS - 1 || paintState->pickCount + 1 == paintState->brush->maxPoints - 1)
+            {
+                // Special case: If we're on the next-to-last possible point, we have to add the start again as the last point
+                ++paintState->pickCount;
+                paintState->pickPoints[paintState->pickCount].x = paintState->pickPoints[0].x;
+                paintState->pickPoints[paintState->pickCount].y = paintState->pickPoints[0].y;
+
+                ESP_LOGD("Paint", "pick[%02ld] = (%03d, %03d) (last!)", paintState->pickCount, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
+
+                drawNow = true;
+            }
+
+            ++paintState->pickCount;
+        }
+        // only for non-loop brushes
+        else if (++paintState->pickCount == paintState->brush->maxPoints)
         {
             drawNow = true;
         }
