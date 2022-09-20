@@ -313,10 +313,9 @@ void paintMainLoop(int64_t elapsedUs)
         {
             if (paintState->aHeld)
             {
-                // TODO use different tools
                 paintDoTool(PAINT_CANVAS_X_OFFSET + paintState->cursorX, PAINT_CANVAS_Y_OFFSET + paintState->cursorY, paintState->fgColor);
 
-                if (!paintState->toolHoldable)
+                if (paintState->brush->mode != HOLD_DRAW)
                 {
                     paintState->aHeld = false;
                 }
