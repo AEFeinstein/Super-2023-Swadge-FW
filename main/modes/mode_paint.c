@@ -14,6 +14,25 @@
 
 #include "mode_main_menu.h"
 
+/*
+ * REMAINING BIG THINGS TO DO:
+ *
+ * - Fix swapping fg/bg color sometimes causing current color not to be the first in the color picker list
+ * (makes it so if you change a tool, it also changes your color)
+ * - Draw icons for the tools?
+ * - Move the pixelStack implementation into a self-contained struct so we can have separate ones for e.g. custom cursors
+ * - Scaling support: abstract away all the drawing functions... how will we deal with polygons and such???
+ * - Airbrush tool
+ * - Stamp tool?
+ * - Copy/paste???
+ * - Easter egg?
+ *
+ *
+ * MORE MINOR POLISH THINGS:
+ * - Always draw the cursor in a contrasting color
+ * - Use different pick markers / cursors for each brush (e.g. crosshair for circle pen, two L-shaped crosshairs for box pen...)
+ */
+
 static const char paintTitle[] = "MFPaint";
 static const char menuOptDraw[] = "Draw";
 static const char menuOptGallery[] = "Gallery";
