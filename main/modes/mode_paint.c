@@ -20,6 +20,8 @@ static const char menuOptGallery[] = "Gallery";
 static const char menuOptReceive[] = "Receive";
 static const char menuOptExit[] = "Exit";
 
+#define PIXEL_STACK_MIN_SIZE 2
+
 #define CURSOR_POINTS 8
 static const int8_t cursorShapeX[CURSOR_POINTS] = {-2, -1,  0,  0,  1, 2, 0, 0};
 static const int8_t cursorShapeY[CURSOR_POINTS] = { 0,  0, -2, -1,  0, 0, 1, 2};
@@ -55,7 +57,6 @@ typedef enum
 
     // The brush requires a number of points to be picked first, and then it is drawn
     PICK_POINT,
-
 } brushMode_t;
 
 typedef struct
@@ -97,28 +98,11 @@ typedef struct
     void (*fnDraw)(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col);
 } brush_t;
 
-/*typedef enum
+typedef struct
 {
-    // Draws a square
-    TOOL_PEN_SQUARE,
-    TOOL_PEN_CIRCLE,
-    TOOL_FLOOD_FILL,
-    TOOL_ERASER,
-    TOOL_LINE,
-    TOOL_CURVE,
-    TOOL_BOX_EMPTY,
-    TOOL_BOX_FILL,
-    TOOL_CIRCLE_EMPTY,
-    TOOL_CIRCLE_FILL,
-    TOOL_ELLIPSE,
-    TOOL_SELECT,
-} brush_t;*/
-
-typedef enum
-{
-    PICK_START,
-    PICK_END,
-} brushState_t;
+    uint16_t x, y;
+    paletteColor_t col;
+} pxVal_t;
 
 typedef struct
 {
@@ -140,17 +124,15 @@ typedef struct
     // The current brush width
     uint8_t brushWidth;
 
-    // TODO: Delete
-    brushState_t brushState;
-
     // An array of points that have been selected for the current brush
     point_t pickPoints[8];
     
     // The number of points already selected
     size_t pickCount;
 
-    // TODO: Delete
-    uint16_t pickX, pickY;
+    pxVal_t* pxStack;
+    size_t pxStackSize;
+    int32_t pxStackIndex;
 
 
     bool aHeld;
@@ -158,7 +140,6 @@ typedef struct
     bool clearScreen;
     bool redrawToolbar;
     bool showCursor;
-    bool toolHoldable;
     bool doSave, saveInProgress;
     bool wasSaved;
 
@@ -210,17 +191,17 @@ void paintDrawClear(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 
 static const brush_t brushes[] =
 {
-    { .name = "Square Pen", .mode = HOLD_DRAW, .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawSquarePen },
-    { .name = "Circle Pen", .mode = HOLD_DRAW, .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawCirclePen },
-    { .name = "Line", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawLine },
-    { .name = "Curve", .mode = PICK_POINT, .maxPoints = 4, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCurve },
-    { .name = "Rectangle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawRectangle },
+    { .name = "Square Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawSquarePen },
+    { .name = "Circle Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawCirclePen },
+    { .name = "Line",       .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawLine },
+    { .name = "Curve",      .mode = PICK_POINT, .maxPoints = 4, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCurve },
+    { .name = "Rectangle",  .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawRectangle },
     { .name = "Filled Rectangle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledRectangle },
-    { .name = "Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCircle },
+    { .name = "Circle",     .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCircle },
     { .name = "Filled Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledCircle },
-    { .name = "Ellipse", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawEllipse },
+    { .name = "Ellipse",    .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawEllipse },
     { .name = "Paint Bucket", .mode = PICK_POINT, .maxPoints = 1, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawPaintBucket },
-    { .name = "Clear", .mode = INSTANT, .maxPoints = 0, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawClear },
+    { .name = "Clear",      .mode = INSTANT, .maxPoints = 0, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawClear },
 };
 
 paintMenu_t* paintState;
@@ -239,8 +220,11 @@ void paintPrevTool();
 void paintNextTool();
 void paintSave(uint8_t slot);
 void paintLoad(uint8_t slot);
-void _MyFill(uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
-void MyFillCore(uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
+void pushPx(uint16_t x, uint16_t y);
+bool popPx();
+void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col);
+void _floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
+void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
 
 
 // Mode struct function implemetations
@@ -264,8 +248,12 @@ void paintExitMode()
     paintSave(0);
     deinitMeleeMenu(paintState->menu);
     freeFont(&(paintState->menuFont));
+
+    if (paintState->pxStack != NULL)
+    {
+        free(paintState->pxStack);
+    }
     free(paintState);
-    //pm = NULL;
 }
 
 void paintMainLoop(int64_t elapsedUs)
@@ -434,12 +422,14 @@ void paintButtonCb(buttonEvt_t* evt)
                 else if (evt->button & BTN_A)
                 {
                     paintState->brushWidth++;
+                    paintState->redrawToolbar = true;
                 }
                 else if (evt->button & BTN_B)
                 {
                     if (paintState->brushWidth > 1)
                     {
                         paintState->brushWidth--;
+                        paintState->redrawToolbar = true;
                     }
                 }
             }
@@ -502,8 +492,9 @@ void paintInitialize()
     paintState->canvasW = PAINT_CANVAS_WIDTH;
     paintState->canvasH = PAINT_CANVAS_HEIGHT;
 
+    paintState->pxStackIndex = -1;
+
     paintState->brush = &(brushes[0]);
-    paintState->toolHoldable = true;
     paintState->brushWidth = 1;
 
     paintState->disp->clearPx();
@@ -578,9 +569,6 @@ void paintClearCanvas()
 
 void paintRenderAll()
 {
-    ESP_LOGD("Paint", "Re-rendering all");
-    //paintState->disp->clearPx();
-
     paintRenderToolbar();
     paintRenderCursor();
 }
@@ -589,7 +577,7 @@ void saveCursorPixels(bool useLast)
 {
     for (uint8_t i = 0; i < CURSOR_POINTS; i++)
     {
-        paintState->underCursor[i] = paintState->disp->getPx(CANVAS_X((useLast ? paintState->lastCursorX : paintState->cursorX) + cursorShapeX[i]), CANVAS_Y((useLast ? paintState->lastCursorY : paintState->cursorY) + cursorShapeY[i]));
+        paintState->underCursor[i] = paintState->disp->getPx(CNV2SCR_X((useLast ? paintState->lastCursorX : paintState->cursorX) + cursorShapeX[i]), CNV2SCR_Y((useLast ? paintState->lastCursorY : paintState->cursorY) + cursorShapeY[i]));
     }
 }
 
@@ -597,7 +585,7 @@ void restoreCursorPixels(bool useLast)
 {
     for (uint8_t i = 0; i < CURSOR_POINTS; i++)
     {
-        paintState->disp->setPx(CANVAS_X((useLast ? paintState->lastCursorX : paintState->cursorX) + cursorShapeX[i]), CANVAS_Y((useLast ? paintState->lastCursorY : paintState->cursorY) + cursorShapeY[i]), paintState->underCursor[i]);
+        paintState->disp->setPx(CNV2SCR_X((useLast ? paintState->lastCursorX : paintState->cursorX) + cursorShapeX[i]), CNV2SCR_Y((useLast ? paintState->lastCursorY : paintState->cursorY) + cursorShapeY[i]), paintState->underCursor[i]);
     }
 }
 
@@ -605,7 +593,7 @@ void plotCursor()
 {
     for (int i = 0; i < CURSOR_POINTS; i++)
     {
-        paintState->disp->setPx(CANVAS_X(paintState->cursorX + cursorShapeX[i]), CANVAS_Y(paintState->cursorY + cursorShapeY[i]), c300);
+        paintState->disp->setPx(CNV2SCR_X(paintState->cursorX + cursorShapeX[i]), CNV2SCR_Y(paintState->cursorY + cursorShapeY[i]), c300);
     }
 }
 
@@ -657,8 +645,6 @@ void plotRectFilled(display_t* disp, int x0, int y0, int x1, int y1, paletteColo
 
 void paintRenderToolbar()
 {
-    ESP_LOGD("Paint", "Rendering UI");
-
     //////// Background
 
     // Fill top bar
@@ -709,22 +695,35 @@ void paintRenderToolbar()
 
     uint16_t textX = 30, textY = 4;
     drawText(paintState->disp, &paintState->toolbarFont, c000, paintState->brush->name, textX, textY);
+
+    char text[16];
+    if (paintState->brush->minSize > 0 && paintState->brush->maxSize > 0 && paintState->brush->minSize != paintState->brush->maxSize)
+    {
+        snprintf(text, sizeof(text), "%d", paintState->brushWidth);
+        drawText(paintState->disp, &paintState->toolbarFont, c000, text, 200, 4);
+    }
+
+    if (paintState->brush->mode == PICK_POINT && paintState->brush->maxPoints > 1)
+    {
+        snprintf(text, sizeof(text), "%ld/%d", paintState->pickCount, paintState->brush->maxPoints);
+        drawText(paintState->disp, &paintState->toolbarFont, c000, text, 220, 4);
+    }
 }
 
 
 // adapted from http://www.adammil.net/blog/v126_A_More_Efficient_Flood_Fill.html
-void floodFill(uint16_t x, uint16_t y, paletteColor_t col)
+void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col)
 {
-    if (paintState->disp->getPx(x, y) == col)
+    if (disp->getPx(x, y) == col)
     {
         // makes no sense to fill with the same color, so just don't
         return;
     }
 
-    _MyFill(x, y, paintState->disp->getPx(x, y), col);
+    _floodFill(disp, x, y, disp->getPx(x, y), col);
 }
 
-void _MyFill(uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill)
+void _floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill)
 {
     // at this point, we know array[y,x] is clear, and we want to move as far as possible to the upper-left. moving
     // up is much more important than moving left, so we could try to make this smarter by sometimes moving to
@@ -732,15 +731,15 @@ void _MyFill(uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill)
     while(true)
     {
         uint16_t ox = x, oy = y;
-        while(y != PAINT_CANVAS_Y_OFFSET && paintState->disp->getPx(x, y-1) == search) y--;
-        while(x != PAINT_CANVAS_X_OFFSET && paintState->disp->getPx(x-1, y) == search) x--;
+        while(y != PAINT_CANVAS_Y_OFFSET && disp->getPx(x, y-1) == search) y--;
+        while(x != PAINT_CANVAS_X_OFFSET && disp->getPx(x-1, y) == search) x--;
         if(x == ox && y == oy) break;
     }
-    MyFillCore(x, y, search, fill);
+    _floodFillInner(disp, x, y, search, fill);
 }
 
 
-void MyFillCore(uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill)
+void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill)
 {
     // at this point, we know that array[y,x] is clear, and array[y-1,x] and array[y,x-1] are set.
     // we'll begin scanning down and to the right, attempting to fill an entire rectangular block
@@ -752,12 +751,12 @@ void MyFillCore(uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fi
         // the second row we find the first  | **| cell is filled, ending our rectangular scan. rather than handling
         // this via the recursion below, we'll increase the starting value of 'x' and reduce the last row length to
         // match. then we'll continue trying to set the narrower rectangular block
-        if(lastRowLength != 0 && paintState->disp->getPx(x, y) != search) // if this is not the first row and the leftmost cell is filled...
+        if(lastRowLength != 0 && disp->getPx(x, y) != search) // if this is not the first row and the leftmost cell is filled...
         {
             do
             {
                 if(--lastRowLength == 0) return; // shorten the row. if it's full, we're done
-            } while(paintState->disp->getPx(++x, y) != search); // otherwise, update the starting point of the main scan to match
+            } while(disp->getPx(++x, y) != search); // otherwise, update the starting point of the main scan to match
             sx = x;
         }
         // we also want to handle the opposite case, | **|, where we begin scanning a 2-wide rectangular block and
@@ -765,21 +764,21 @@ void MyFillCore(uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fi
         // with recursion but we'd prefer to adjust x and lastRowLength instead
         else
         {
-            for(; x != PAINT_CANVAS_X_OFFSET && paintState->disp->getPx(x-1, y) == search; rowLength++, lastRowLength++)
+            for(; x != PAINT_CANVAS_X_OFFSET && disp->getPx(x-1, y) == search; rowLength++, lastRowLength++)
             {
-                paintState->disp->setPx(--x, y, fill); // to avoid scanning the cells twice, we'll fill them and update rowLength here
+                disp->setPx(--x, y, fill); // to avoid scanning the cells twice, we'll fill them and update rowLength here
                 // if there's something above the new starting point, handle that recursively. this deals with cases
                 // like |* **| when we begin filling from (2,0), move down to (2,1), and then move left to (0,1).
                 // the  |****| main scan assumes the portion of the previous row from x to x+lastRowLength has already
                 // been filled. adjusting x and lastRowLength breaks that assumption in this case, so we must fix it
-                if(y != PAINT_CANVAS_Y_OFFSET && paintState->disp->getPx(x, y-1) == search) _MyFill(x, y-1, search, fill); // use _Fill since there may be more up and left
+                if(y != PAINT_CANVAS_Y_OFFSET && disp->getPx(x, y-1) == search) _floodFill(disp, x, y-1, search, fill); // use _Fill since there may be more up and left
             }
         }
 
         // now at this point we can begin to scan the current row in the rectangular block. the span of the previous
         // row from x (inclusive) to x+lastRowLength (exclusive) has already been filled, so we don't need to
         // check it. so scan across to the right in the current row
-        for(; sx < PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_WIDTH && paintState->disp->getPx(sx, y) == search; rowLength++, sx++) paintState->disp->setPx(sx, y, fill);
+        for(; sx < PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_WIDTH && disp->getPx(sx, y) == search; rowLength++, sx++) disp->setPx(sx, y, fill);
         // now we've scanned this row. if the block is rectangular, then the previous row has already been scanned,
         // so we don't need to look upwards and we're going to scan the next row in the next iteration so we don't
         // need to look downwards. however, if the block is not rectangular, we may need to look upwards or rightwards
@@ -790,7 +789,7 @@ void MyFillCore(uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fi
         {
             for(int end=x+lastRowLength; ++sx < end; ) // 'end' is the end of the previous row, so scan the current row to
             {   // there. any clear cells would have been connected to the previous
-                if(paintState->disp->getPx(sx, y) == search) MyFillCore(sx, y, search, fill); // row. the cells up and left must be set so use FillCore
+                if(disp->getPx(sx, y) == search) _floodFillInner(disp, sx, y, search, fill); // row. the cells up and left must be set so use FillCore
             }
         }
         // alternately, if this row is longer than the previous row, as in the case |*** *| then we must look above
@@ -799,7 +798,7 @@ void MyFillCore(uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fi
         {
             for(int ux=x+lastRowLength; ++ux<sx; ) // sx is the end of the current row
             {
-                if(paintState->disp->getPx(ux, y-1) == search) _MyFill(ux, y-1, search, fill); // since there may be clear cells up and left, use _Fill
+                if(disp->getPx(ux, y-1) == search) _floodFill(disp, ux, y-1, search, fill); // since there may be clear cells up and left, use _Fill
             }
         }
         lastRowLength = rowLength; // record the new row length
@@ -867,18 +866,26 @@ void paintDrawFilledCircle(display_t* disp, point_t* points, uint8_t numPoints, 
 
 void paintDrawEllipse(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
+    // for some reason, plotting an ellipse also plots 2 extra points outside of the ellipse
+    // let's just work around that
+    pushPx((points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[0].y - 2 : points[1].y - 2);
+    pushPx((points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[1].y + 2 : points[0].y + 2);
+
     plotEllipseRect(disp, points[0].x, points[0].y, points[1].x, points[1].y, col);
+
+    popPx();
+    popPx();
 }
 
 void paintDrawPaintBucket(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    floodFill(points[0].x, points[0].y, col);
+    floodFill(disp, points[0].x, points[0].y, col);
 }
 
 void paintDrawClear(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
     disp->clearPx();
-    floodFill(CANVAS_X(0), CANVAS_Y(0), col);
+    floodFill(disp, CNV2SCR_X(0), CNV2SCR_Y(0), col);
 }
 
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
@@ -891,12 +898,17 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         paintState->pickPoints[0].x = x;
         paintState->pickPoints[0].y = y;
         paintState->pickCount = 1;
+
         drawNow = true;
     }
     else if (paintState->brush->mode == PICK_POINT)
     {
         paintState->pickPoints[paintState->pickCount].x = x;
         paintState->pickPoints[paintState->pickCount].y = y;
+
+        // Save the pixel underneath the selection, then draw a temporary pixel to mark it
+        pushPx(x, y);
+        paintState->disp->setPx(x, y, paintState->fgColor);
         
         if (++paintState->pickCount == paintState->brush->maxPoints)
         {
@@ -910,12 +922,91 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 
     if (drawNow)
     {
+        if (paintState->brush->mode == PICK_POINT)
+        {
+            for (size_t i = 0; i < paintState->pickCount; i++)
+            {
+                popPx();
+            }
+        }
+
+
         paintState->brush->fnDraw(paintState->disp, paintState->pickPoints, paintState->pickCount, paintState->brushWidth, col);
         paintState->pickCount = 0;
     }
 
     enableCursor();
     paintRenderToolbar();
+}
+
+/**
+ * The color at the given pixel coordinates is pushed onto the pixel stack,
+ * along with its coordinates. If the pixel stack is uninitialized, it will
+ * be allocated. If the pixel stack is full, its size will be doubled.
+ *
+ * @brief Pushes a pixel onto the pixel stack so that it can be restored later
+ * @param x The screen X coordinate of the pixel to save
+ * @param y The screen Y coordinate of the pixel to save
+ *
+ */
+void pushPx(uint16_t x, uint16_t y)
+{
+    if (paintState->pxStack == NULL)
+    {
+        paintState->pxStackSize = PIXEL_STACK_MIN_SIZE;
+        ESP_LOGD("Paint", "Allocating pixel stack with size %ld", paintState->pxStackSize);
+        paintState->pxStack = malloc(sizeof(pxVal_t) * paintState->pxStackSize);
+        paintState->pxStackIndex = -1;
+    }
+
+    if (++paintState->pxStackIndex >= paintState->pxStackSize)
+    {
+        paintState->pxStackSize *= 2;
+        ESP_LOGD("Paint", "Expanding pixel stack to size %ld", paintState->pxStackSize);
+        paintState->pxStack = realloc(paintState->pxStack, sizeof(pxVal_t) * paintState->pxStackSize);
+    }
+
+    paintState->pxStack[paintState->pxStackIndex].x = x;
+    paintState->pxStack[paintState->pxStackIndex].y = y;
+    paintState->pxStack[paintState->pxStackIndex].col = paintState->disp->getPx(x, y);
+
+    ESP_LOGD("Paint", "Saved pixel %d at (%d, %d)", paintState->pxStackIndex, x, y);
+}
+
+/**
+ * Removes the pixel from the top of the stack and draws its color at its coordinates.
+ * If the stack is already empty, no pixels will be drawn. If the pixel stack's size is
+ * at least 4 times its number of entries, its size will be halved, at most to the minimum size.
+ * Returns `true` if a value was popped, and `false` if the stack was empty and no value was popped.
+ *
+ * @brief Pops a pixel from the stack and restores it to the screen
+ * @return `true` if a pixel was popped, and `false` if the stack was empty.
+ */
+bool popPx()
+{
+    // Make sure the stack isn't empty
+    if (paintState->pxStackIndex >= 0)
+    {
+        ESP_LOGD("Paint", "Popping pixel %d...", paintState->pxStackIndex);
+
+        // Draw the pixel from the top of the stack
+        paintState->disp->setPx(paintState->pxStack[paintState->pxStackIndex].x, paintState->pxStack[paintState->pxStackIndex].y, paintState->pxStack[paintState->pxStackIndex].col);
+        paintState->pxStackIndex--;
+
+        // If the stack is at least 4 times bigger than it needs to be, shrink it by half
+        // (but only if the stack is bigger than the minimum)
+        if (paintState->pxStackIndex >= 0 && paintState->pxStackIndex * 4 <= paintState->pxStackSize && paintState->pxStackSize > PIXEL_STACK_MIN_SIZE)
+        {
+            paintState->pxStackSize /= 2;
+            ESP_LOGD("Paint", "Shrinking pixel stack to %ld", paintState->pxStackSize);
+            paintState->pxStack = realloc(paintState->pxStack, sizeof(pxVal_t) * paintState->pxStackSize);
+            ESP_LOGD("Paint", "Done shrinking pixel stack");
+        }
+
+        return true;
+    }
+
+    return false;
 }
 
 void paintPrevTool()
@@ -929,6 +1020,12 @@ void paintPrevTool()
         paintState->brushIndex = sizeof(brushes) / sizeof(brush_t) - 1;
     }
     paintState->brush = &(brushes[paintState->brushIndex]);
+
+    // Reset the pick state
+    paintState->pickCount = 0;
+
+    // Remove any stored temporary pixels
+    while (popPx());
 }
 
 void paintNextTool()
@@ -942,6 +1039,12 @@ void paintNextTool()
         paintState->brushIndex = 0;
     }
     paintState->brush = &(brushes[paintState->brushIndex]);
+
+    // Reset the pick state
+    paintState->pickCount = 0;
+
+    // Remove any stored temporary pixels
+    while (popPx());
 }
 
 void paintUpdateRecents(uint8_t selectedIndex)
@@ -957,7 +1060,6 @@ void paintUpdateRecents(uint8_t selectedIndex)
 
 void paintMoveCursorRel(int8_t xDiff, int8_t yDiff)
 {
-    ESP_LOGD("Paint", "aHeld: %d", paintState->aHeld);
     paintState->lastCursorX = paintState->cursorX;
     paintState->lastCursorY = paintState->cursorY;
     // TODO: prevent overflow when bounds checking
@@ -985,8 +1087,6 @@ void paintMoveCursorRel(int8_t xDiff, int8_t yDiff)
     {
         paintState->cursorY += yDiff;
     }
-
-    ESP_LOGD("Paint", "Cursor moved by (%d, %d) to (%d, %d)", xDiff, yDiff, paintState->cursorX, paintState->cursorY);
 }
 
 void paintSave(uint8_t slot)

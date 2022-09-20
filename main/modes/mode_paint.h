@@ -11,8 +11,13 @@
 #define PAINT_CANVAS_WIDTH 256 // 70
 #define PAINT_CANVAS_HEIGHT 192 // 60
 
-#define CANVAS_X(x) (PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_SCALE * x)
-#define CANVAS_Y(y) (PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_SCALE * y)
+// Convert from canvas coordinates to screen coordinates
+#define CNV2SCR_X(x) (PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_SCALE * x)
+#define CNV2SCR_Y(y) (PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_SCALE * y)
+
+// Convert from world coordinates to canvas coordinates
+#define SCR2CNV_X(x) ((x - PAINT_CANVAS_X_OFFSET) / PAINT_CANVAS_SCALE)
+#define SCR2CNV_Y(y) ((y - PAINT_CANVAS_Y_OFFSET) / PAINT_CANVAS_SCALE)
 
 #define PAINT_TOOLBAR_BG c333
 
