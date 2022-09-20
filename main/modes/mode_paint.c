@@ -380,8 +380,6 @@ void paintButtonCb(buttonEvt_t* evt)
         }
         else
         {
-            ESP_LOGD("Paint", "Release Buttons: %x", evt->button);
-
             if (evt->button & SELECT)
             {
                 paintUpdateRecents(paintState->paletteSelect);
@@ -959,6 +957,8 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
                 paintState->pickPoints[paintState->pickCount].x = paintState->pickPoints[0].x;
                 paintState->pickPoints[paintState->pickCount].y = paintState->pickPoints[0].y;
 
+                pushPx(paintState->pickPoints[0].x, paintState->pickPoints[0].y);
+
                 ESP_LOGD("Paint", "pick[%02ld] = (%03d, %03d) (last!)", paintState->pickCount, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
 
                 drawNow = true;
@@ -979,7 +979,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 
     if (drawNow)
     {
-        if (paintState->brush->mode == PICK_POINT)
+        if (paintState->brush->mode == PICK_POINT || paintState->brush->mode == PICK_POINT_LOOP)
         {
             for (size_t i = 0; i < paintState->pickCount; i++)
             {
