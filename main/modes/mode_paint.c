@@ -388,7 +388,7 @@ void paintButtonCb(buttonEvt_t* evt)
                 paintState->redrawToolbar = true;
             }
 
-            if (evt->button & START && !paintState->saveInProgress)
+            if (paintState->screen == PAINT_DRAW && evt->button & START && !paintState->saveInProgress)
             {
                 paintState->doSave = true;
             }
@@ -979,6 +979,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 
     if (drawNow)
     {
+        // Restore the pixels under the pick markers BEFORE the tool draws
         if (paintState->brush->mode == PICK_POINT || paintState->brush->mode == PICK_POINT_LOOP)
         {
             for (size_t i = 0; i < paintState->pickCount; i++)
@@ -986,7 +987,6 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
                 popPx();
             }
         }
-
 
         paintState->brush->fnDraw(paintState->disp, paintState->pickPoints, paintState->pickCount, paintState->brushWidth, col);
         paintState->pickCount = 0;
