@@ -283,8 +283,8 @@ uint32_t danceRand(uint32_t bound)
     return rand() % bound;
 }
 
-/** This animation is set to be called every 100 ms
- * Rotate a single white LED around the hexagon
+/**
+ * Rotate a single white LED around the swadge
  *
  * @param tElapsedUs The time elapsed since last call, in microseconds
  * @param reset      true to reset this dance's variables
@@ -363,7 +363,7 @@ void danceComet(uint32_t tElapsedUs, uint32_t arg, bool reset)
     }
 }
 
-/** This animation is set to be called every 100ms
+/**
  * Blink all LEDs red for on for 500ms, then off for 500ms
  *
  * @param tElapsedUs The time elapsed since last call, in microseconds
@@ -437,8 +437,8 @@ void dancePulse(uint32_t tElapsedUs, uint32_t arg, bool reset)
     }
 }
 
-/** This animation is set to be called every 100 ms
- * Rotate a single white LED around the hexagon
+/**
+ * Rotate a single white LED around the swadge
  *
  * @param tElapsedUs The time elapsed since last call, in microseconds
  * @param reset      true to reset this dance's variables
@@ -538,7 +538,7 @@ void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset)
     }
 }
 
-/** Smoothly rotate a color wheel around the hexagon
+/** Smoothly rotate a color wheel around the swadge
  *
  * @param tElapsedUs The time elapsed since last call, in microseconds
  * @param reset      true to reset this dance's variables
@@ -585,7 +585,7 @@ void danceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg , bool reset)
     }
 }
 
-/** Sharply rotate a color wheel around the hexagon
+/** Sharply rotate a color wheel around the swadge
  *
  * @param tElapsedUs The time elapsed since last call, in microseconds
  * @param reset      true to reset this dance's variables
@@ -829,7 +829,7 @@ void dancePoliceSiren(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)),
         tAccumulated -= 120000;
         ledsUpdated = true;
 
-        // Skip to the next LED around the hexagon
+        // Skip to the next LED around the swadge
         ledCount = ledCount + 1;
         if(ledCount > NUM_LEDS)
         {
@@ -996,7 +996,7 @@ void danceRainbowSolid(uint32_t tElapsedUs, uint32_t arg __attribute__((unused))
     }
 }
 
-/** Called ever 1ms
+/**
  * Pick a random dance mode and call it at its period for 4.5s. Then pick
  * another random dance and repeat
  *
