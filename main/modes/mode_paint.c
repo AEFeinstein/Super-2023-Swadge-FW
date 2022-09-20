@@ -53,7 +53,7 @@ typedef enum
     // The brush is drawn immediately upon selection without picking or drawing any points
     INSTANT,
 
-    // The brush is drawn whenever A is pressed or held
+    // The brush is drawn whenever A is pressed or held and dragged
     HOLD_DRAW,
 
     // The brush requires a number of points to be picked first, and then it is drawn
@@ -199,7 +199,7 @@ static const brush_t brushes[] =
     { .name = "Square Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawSquarePen },
     { .name = "Circle Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawCirclePen },
     { .name = "Line",       .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawLine },
-    { .name = "Curve",      .mode = PICK_POINT, .maxPoints = 4, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCurve },
+    { .name = "Bezier Curve",      .mode = PICK_POINT, .maxPoints = 4, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCurve },
     { .name = "Rectangle",  .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawRectangle },
     { .name = "Filled Rectangle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledRectangle },
     { .name = "Circle",     .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCircle },
@@ -471,8 +471,20 @@ void paintButtonCb(buttonEvt_t* evt)
         break;
     }
 
-    default:
-        break;
+    case PAINT_VIEW:
+    break;
+
+    case PAINT_HELP:
+    break;
+
+    case PAINT_GALLERY:
+    break;
+
+    case PAINT_SHARE:
+    break;
+
+    case PAINT_RECEIVE:
+    break;
     }
 }
 
@@ -661,6 +673,7 @@ void paintRenderToolbar()
     if (PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT < paintState->disp->h)
     {
         fillDisplayArea(paintState->disp, 0, PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT, paintState->disp->w, paintState->disp->h, PAINT_TOOLBAR_BG);
+        fillDisplayArea(paintState->disp, 0, paintState->disp->h - 10, paintState->disp->w, paintState->disp->h - 10, c000);
     }
 
     // Fill right bar, if there's room
@@ -668,6 +681,9 @@ void paintRenderToolbar()
     {
         fillDisplayArea(paintState->disp, PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_WIDTH, 0, paintState->disp->w, paintState->disp->h, PAINT_TOOLBAR_BG);
     }
+
+    // Draw border around canvas
+    plotRect(paintState->disp, PAINT_CANVAS_X_OFFSET - 1, PAINT_CANVAS_Y_OFFSET - 1, PAINT_CANVAS_X_OFFSET + paintState->canvasW + 1, PAINT_CANVAS_Y_OFFSET + paintState->canvasH + 1, c000);
 
     //////// Active Colors
     plotRectFilled(paintState->disp, 4, PAINT_CANVAS_Y_OFFSET + 4, 4 + 8, PAINT_CANVAS_Y_OFFSET + 4 + 8, paintState->bgColor);
@@ -677,24 +693,34 @@ void paintRenderToolbar()
     int16_t colorBoxSize = 8;
     int16_t colorBoxStartY = PAINT_CANVAS_Y_OFFSET + 16 + spaceBetween * 2;
     int16_t colorBoxStartX = PAINT_CANVAS_X_OFFSET / 2 - colorBoxSize / 2;
-    //////// Recent Colors
+    int dashLen = false;
+    paletteColor_t topShadow = PAINT_COLORBOX_SHADOW_TOP, bottomShadow = PAINT_COLORBOX_SHADOW_BOTTOM;
+
+    //////// Recent Colors (palette)
     for (int i = 0; i < PAINT_MAX_COLORS; i++)
     {
+        // When SELECT is held and this is the selected color box, draw the border dashed and black
+        dashLen = (paintState->selectHeld && paintState->paletteSelect == i) ? 1 : 0;
+        topShadow = (paintState->selectHeld && paintState->paletteSelect == i) ? c000 : PAINT_COLORBOX_SHADOW_TOP;
+        bottomShadow = (paintState->selectHeld && paintState->paletteSelect == i) ? c000 : PAINT_COLORBOX_SHADOW_BOTTOM;
+
         if (paintState->recentColors[i] == cTransparent)
         {
-            plotRectFilled(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize / 2 - 1, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize / 2, c111);
-            plotRectFilled(paintState->disp, colorBoxStartX + (colorBoxSize / 2) - 1, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize - 1, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize / 2, c444);
-            plotRectFilled(paintState->disp, colorBoxStartX, (colorBoxSize / 2) + colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize / 2 - 1, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, c444);
-            plotRectFilled(paintState->disp, colorBoxStartX + (colorBoxSize / 2) - 1, (colorBoxSize / 2) + colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize - 1, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, c111);
+            plotRectFilled(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize / 2, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize / 2, c111);
+            plotRectFilled(paintState->disp, colorBoxStartX + (colorBoxSize / 2), colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize / 2, c555);
+            plotRectFilled(paintState->disp, colorBoxStartX, (colorBoxSize / 2) + colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize / 2, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, c555);
+            plotRectFilled(paintState->disp, colorBoxStartX + (colorBoxSize / 2), (colorBoxSize / 2) + colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, c111);
         }
         else
         {
-            plotRectFilled(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize - 1, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, paintState->recentColors[i]);
+            plotRectFilled(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, paintState->recentColors[i]);
         }
-        if (paintState->selectHeld && paintState->paletteSelect == i)
-        {
-            plotRect(paintState->disp, colorBoxStartX - 1, colorBoxStartY + (spaceBetween + colorBoxSize) * i - 1, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize + 1, c500);
-        }
+
+
+        plotLine(paintState->disp, colorBoxStartX - 1,  colorBoxStartY + i * (spaceBetween + colorBoxSize) - spaceBetween + 1, colorBoxStartX + colorBoxSize - 1, colorBoxStartY + i * (spaceBetween + colorBoxSize) - spaceBetween + 1, topShadow, dashLen);
+        plotLine(paintState->disp, colorBoxStartX - 1, colorBoxStartY + i * (spaceBetween + colorBoxSize), colorBoxStartX - 1, colorBoxStartY + i * (spaceBetween + colorBoxSize) + colorBoxSize - 1, topShadow, dashLen);
+        plotLine(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, colorBoxStartX + colorBoxSize - 1, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, bottomShadow, dashLen);
+        plotLine(paintState->disp, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (colorBoxSize + spaceBetween) * i - spaceBetween + colorBoxSize + 1, bottomShadow, dashLen);
     }
 
     // Draw the brush name
