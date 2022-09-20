@@ -130,7 +130,7 @@ typedef struct
 
     // An array of points that have been selected for the current brush
     point_t pickPoints[MAX_PICK_POINTS];
-    
+
     // The number of points already selected
     size_t pickCount;
 
@@ -626,7 +626,7 @@ void paintRenderCursor()
 
             // Save the pixels that will be under the cursor
             saveCursorPixels(false);
-            
+
             // Draw the cursor
             plotCursor();
         }
@@ -675,7 +675,9 @@ void paintRenderToolbar()
     if (PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT < paintState->disp->h)
     {
         fillDisplayArea(paintState->disp, 0, PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT, paintState->disp->w, paintState->disp->h, PAINT_TOOLBAR_BG);
-        fillDisplayArea(paintState->disp, 0, paintState->disp->h - 10, paintState->disp->w, paintState->disp->h - 10, c000);
+
+        // Draw a black rectangle under where the exit progress bar will be so it can be seen
+        fillDisplayArea(paintState->disp, 0, paintState->disp->h - 11, paintState->disp->w, paintState->disp->h, c000);
     }
 
     // Fill right bar, if there's room
@@ -691,20 +693,26 @@ void paintRenderToolbar()
     plotRectFilled(paintState->disp, 4, PAINT_CANVAS_Y_OFFSET + 4, 4 + 8, PAINT_CANVAS_Y_OFFSET + 4 + 8, paintState->bgColor);
     plotRectFilled(paintState->disp, 4 + 4, PAINT_CANVAS_Y_OFFSET + 4 + 4, 4 + 4 + 8, PAINT_CANVAS_Y_OFFSET + 4 + 4 + 8, paintState->fgColor);
 
+    // The number of vertical pixels between each color box (not including borders)
     int16_t spaceBetween = 2;
+    // The width and height of the color box, not including borders
     int16_t colorBoxSize = 8;
+
+    // The starting X and Y of the first color box, not including borders
     int16_t colorBoxStartY = PAINT_CANVAS_Y_OFFSET + 16 + spaceBetween * 2;
     int16_t colorBoxStartX = PAINT_CANVAS_X_OFFSET / 2 - colorBoxSize / 2;
-    int dashLen = false;
-    paletteColor_t topShadow = PAINT_COLORBOX_SHADOW_TOP, bottomShadow = PAINT_COLORBOX_SHADOW_BOTTOM;
+
+    // The color to use for the top and bottom shadow / border
+    paletteColor_t topBorder, bottomBorder;
+    int dashLen;
 
     //////// Recent Colors (palette)
     for (int i = 0; i < PAINT_MAX_COLORS; i++)
     {
         // When SELECT is held and this is the selected color box, draw the border dashed and black
         dashLen = (paintState->selectHeld && paintState->paletteSelect == i) ? 1 : 0;
-        topShadow = (paintState->selectHeld && paintState->paletteSelect == i) ? c000 : PAINT_COLORBOX_SHADOW_TOP;
-        bottomShadow = (paintState->selectHeld && paintState->paletteSelect == i) ? c000 : PAINT_COLORBOX_SHADOW_BOTTOM;
+        topBorder = (paintState->selectHeld && paintState->paletteSelect == i) ? c000 : PAINT_COLORBOX_SHADOW_TOP;
+        bottomBorder = (paintState->selectHeld && paintState->paletteSelect == i) ? c000 : PAINT_COLORBOX_SHADOW_BOTTOM;
 
         if (paintState->recentColors[i] == cTransparent)
         {
@@ -719,10 +727,15 @@ void paintRenderToolbar()
         }
 
 
-        plotLine(paintState->disp, colorBoxStartX - 1,  colorBoxStartY + i * (spaceBetween + colorBoxSize) - spaceBetween + 1, colorBoxStartX + colorBoxSize - 1, colorBoxStartY + i * (spaceBetween + colorBoxSize) - spaceBetween + 1, topShadow, dashLen);
-        plotLine(paintState->disp, colorBoxStartX - 1, colorBoxStartY + i * (spaceBetween + colorBoxSize), colorBoxStartX - 1, colorBoxStartY + i * (spaceBetween + colorBoxSize) + colorBoxSize - 1, topShadow, dashLen);
-        plotLine(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, colorBoxStartX + colorBoxSize - 1, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, bottomShadow, dashLen);
-        plotLine(paintState->disp, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (colorBoxSize + spaceBetween) * i - spaceBetween + colorBoxSize + 1, bottomShadow, dashLen);
+        // Top border
+        plotLine(paintState->disp, colorBoxStartX - 1,  colorBoxStartY + i * (spaceBetween + colorBoxSize) - spaceBetween + 1, colorBoxStartX + colorBoxSize - 1, colorBoxStartY + i * (spaceBetween + colorBoxSize) - spaceBetween + 1, topBorder, dashLen);
+        // Left border
+        plotLine(paintState->disp, colorBoxStartX - 1, colorBoxStartY + i * (spaceBetween + colorBoxSize) - 1, colorBoxStartX - 1, colorBoxStartY + i * (spaceBetween + colorBoxSize) + colorBoxSize - 1, topBorder, dashLen);
+
+        // Bottom border
+        plotLine(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, colorBoxStartX + colorBoxSize - 1, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, bottomBorder, dashLen);
+        // Right border
+        plotLine(paintState->disp, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (colorBoxSize + spaceBetween) * i - spaceBetween + colorBoxSize + 1, bottomBorder, dashLen);
     }
 
     // Draw the brush name
@@ -902,7 +915,7 @@ void paintDrawCircle(display_t* disp, point_t* points, uint8_t numPoints, uint16
     uint16_t dX = abs(points[0].x - points[1].x);
     uint16_t dY = abs(points[0].y - points[1].y);
     uint16_t r = (uint16_t)(sqrt(dX*dX+dY*dY) + 0.5);
-    
+
     plotCircle(disp, points[0].x, points[0].y, r, col);
 }
 
@@ -911,7 +924,7 @@ void paintDrawFilledCircle(display_t* disp, point_t* points, uint8_t numPoints, 
     uint16_t dX = abs(points[0].x - points[1].x);
     uint16_t dY = abs(points[0].y - points[1].y);
     uint16_t r = (uint16_t)(sqrt(dX*dX+dY*dY) + 0.5);
-    
+
     plotCircleFilled(disp, points[0].x, points[1].x, r, col);
 }
 
