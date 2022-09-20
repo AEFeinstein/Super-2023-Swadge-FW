@@ -749,23 +749,23 @@ void danceFire(uint32_t tElapsedUs, uint32_t arg, bool reset)
 
         // Base
         randC = danceRand(105) + 150;
-        leds[0].r = (randC * ARG_R(arg)) / 256;
-        leds[0].g = (randC * ARG_G(arg)) / 256;
-        leds[0].b = (randC * ARG_B(arg)) / 256;
-        randC = danceRand(105) + 150;
-        leds[7].r = (randC * ARG_R(arg)) / 256;
-        leds[7].g = (randC * ARG_G(arg)) / 256;
-        leds[7].b = (randC * ARG_B(arg)) / 256;
-
-        // Mid-low
-        randC = danceRand(48) + 32;
         leds[1].r = (randC * ARG_R(arg)) / 256;
         leds[1].g = (randC * ARG_G(arg)) / 256;
         leds[1].b = (randC * ARG_B(arg)) / 256;
-        randC = danceRand(48) + 32;
+        randC = danceRand(105) + 150;
         leds[6].r = (randC * ARG_R(arg)) / 256;
         leds[6].g = (randC * ARG_G(arg)) / 256;
         leds[6].b = (randC * ARG_B(arg)) / 256;
+
+        // Mid-low
+        randC = danceRand(48) + 32;
+        leds[0].r = (randC * ARG_R(arg)) / 256;
+        leds[0].g = (randC * ARG_G(arg)) / 256;
+        leds[0].b = (randC * ARG_B(arg)) / 256;
+        randC = danceRand(48) + 32;
+        leds[7].r = (randC * ARG_R(arg)) / 256;
+        leds[7].g = (randC * ARG_G(arg)) / 256;
+        leds[7].b = (randC * ARG_B(arg)) / 256;
 
         // Mid-high
         randC = danceRand(32) + 16;
