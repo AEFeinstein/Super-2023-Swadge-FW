@@ -348,6 +348,7 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->gravityEnabled = true;
     entity->gravity = 32;
     entity->spriteFlipVertical = false;
+    entity->scoreValue = 100;
 
     entity->type = ENTITY_TEST;
     entity->spriteIndex = SP_ENEMY_BASIC;
@@ -584,6 +585,8 @@ entity_t* createDustBunny(entityManager_t * entityManager, uint16_t x, uint16_t 
     entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? true : false;
     entity->spriteFlipVertical = false;
 
+    entity->scoreValue = 150;
+
     entity->type = ENTITY_DUST_BUNNY;
     entity->spriteIndex = SP_DUSTBUNNY_IDLE;
     entity->updateFunction = &updateDustBunny;
@@ -616,7 +619,7 @@ entity_t* createWasp(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->gravity = 64;
     entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? false : true;
     entity->spriteFlipVertical = false;
-
+    entity->scoreValue = 200;
         
     entity->xspeed = (entity->spriteFlipHorizontal)? -32 : 32;
 
@@ -625,6 +628,7 @@ entity_t* createWasp(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->updateFunction = &updateWasp;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &waspTileCollisionHandler;
+    entity->fallOffTileHandler = &defaultFallOffTileHandler;
 
     return entity;
 }
@@ -649,6 +653,7 @@ entity_t* createEnemyBushL2(entityManager_t * entityManager, uint16_t x, uint16_
     entity->gravityEnabled = true;
     entity->gravity = 32;
     entity->spriteFlipVertical = false;
+    entity->scoreValue = 150;
 
     entity->type = ENTITY_BUSH_2;
     entity->spriteIndex = SP_ENEMY_BUSH_L2;
@@ -680,10 +685,13 @@ entity_t* createEnemyBushL3(entityManager_t * entityManager, uint16_t x, uint16_
     entity->gravityEnabled = true;
     entity->gravity = 32;
     entity->spriteFlipVertical = false;
+    entity->scoreValue = 250;
+
+    entity->yDamping = 20; //This will be repurposed as a state timer
 
     entity->type = ENTITY_BUSH_3;
     entity->spriteIndex = SP_ENEMY_BUSH_L3;
-    entity->updateFunction = &updateTestObject;
+    entity->updateFunction = &updateEnemyBushL3;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &enemyTileCollisionHandler;
     entity->fallOffTileHandler = &turnAroundAtEdgeOfTileHandler;
@@ -714,6 +722,7 @@ entity_t* createDustBunnyL2(entityManager_t * entityManager, uint16_t x, uint16_
     entity->gravity = 32;
     entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? false : true;
     entity->spriteFlipVertical = false;
+    entity->scoreValue = 200;
 
     entity->type = ENTITY_DUST_BUNNY_2;
     entity->spriteIndex = SP_DUSTBUNNY_L2_IDLE;
@@ -748,6 +757,7 @@ entity_t* createDustBunnyL3(entityManager_t * entityManager, uint16_t x, uint16_
     entity->gravity = 32;
     entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? true : false;
     entity->spriteFlipVertical = false;
+    entity->scoreValue = 300;
 
     entity->type = ENTITY_DUST_BUNNY_3;
     entity->spriteIndex = SP_DUSTBUNNY_L3_IDLE;
@@ -777,19 +787,22 @@ entity_t* createWaspL2(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->yMaxSpeed = 256;
     entity->xDamping = 0; //This will be repurposed to track state
     entity->yDamping = 0; //This will be repurposed as a state timer
+    entity->jumpPower = (1 + esp_random() % 4) * 256;
     entity->gravityEnabled = false;
     entity->gravity = 64;
     entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? false : true;
     entity->spriteFlipVertical = false;
-
-        
-    entity->xspeed = (entity->spriteFlipHorizontal)? -32 : 32;
+    entity->falling = false;
+    entity->scoreValue = 300;
+    
+    entity->xspeed = (entity->spriteFlipHorizontal)? -48 : 48;
 
     entity->type = ENTITY_WASP_2;
     entity->spriteIndex = SP_WASP_L2_1;
     entity->updateFunction = &updateWaspL2;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &waspTileCollisionHandler;
+    entity->fallOffTileHandler = &defaultFallOffTileHandler;
 
     return entity;
 }
@@ -812,19 +825,21 @@ entity_t* createWaspL3(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->yMaxSpeed = 256;
     entity->xDamping = 0; //This will be repurposed to track state
     entity->yDamping = 0; //This will be repurposed as a state timer
+    entity->jumpPower = (1 + esp_random() % 4) * 256;
     entity->gravityEnabled = false;
     entity->gravity = 64;
     entity->spriteFlipHorizontal = (x < (entityManager->tilemap->mapOffsetX + 120)) ? false : true;
     entity->spriteFlipVertical = false;
-
+    entity->scoreValue = 400;
         
-    entity->xspeed = (entity->spriteFlipHorizontal)? -32 : 32;
+    entity->xspeed = (entity->spriteFlipHorizontal)? -64 : 64;
 
     entity->type = ENTITY_WASP_3;
     entity->spriteIndex = SP_WASP_L3_1;
     entity->updateFunction = &updateWaspL3;
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &waspTileCollisionHandler;
+    entity->fallOffTileHandler = &defaultFallOffTileHandler;
 
     return entity;
 }

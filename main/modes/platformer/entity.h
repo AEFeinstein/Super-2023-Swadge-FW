@@ -98,6 +98,7 @@ struct entity_t
     bool visible;
     uint8_t hp;
     int8_t invincibilityFrames;
+    uint16_t scoreValue;
     
     //entity_t *entities;
     entityManager_t *entityManager;
@@ -173,5 +174,7 @@ void killEnemy(entity_t* target);
 void updateBgCol(entity_t* self);
 
 void turnAroundAtEdgeOfTileHandler(entity_t *self);
+
+void updateEnemyBushL3(entity_t* self);
 
 #endif
