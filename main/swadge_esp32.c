@@ -655,6 +655,8 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     cSwadgeMode->fnExitMode();
                 }
 
+                buzzer_stop();
+
                 // Switch the mode IDX
                 cSwadgeMode = pendingSwadgeMode;
                 pendingSwadgeMode = NULL;
