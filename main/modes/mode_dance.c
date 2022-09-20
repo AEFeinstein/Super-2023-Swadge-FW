@@ -173,37 +173,55 @@ void danceButtonCb(buttonEvt_t* evt)
 {
     if (evt->down)
     {
-        if (evt->state & UP)
+        switch(evt->button)
         {
-            incLedBrightness();
-            danceState->updateScreen = true;
-        }
+            case UP:
+            {
+                incLedBrightness();
+                danceState->updateScreen = true;
+                break;
+            }
 
-        if (evt->state & DOWN)
-        {
-            decLedBrightness();
-            danceState->updateScreen = true;
-        }
+            case DOWN:
+            {
+                decLedBrightness();
+                danceState->updateScreen = true;
+                break;
+            }
 
-        if (evt->state & LEFT)
-        {
-            selectPrevDance();
-        }
+            case LEFT:
+            {
+                selectPrevDance();
+                break;
+            }
 
-        if (evt->state & RIGHT)
-        {
-            selectNextDance();
-        }
+            case RIGHT:
+            {
+                selectNextDance();
+                break;
+            }
 
-        if (evt->state & BTN_A)
-        {
-            danceState->blankScreen = !danceState->blankScreen;
-            danceState->updateScreen = true;
-        }
+            case BTN_A:
+            {
+                danceState->blankScreen = !danceState->blankScreen;
+                danceState->updateScreen = true;
+                break;
+            }
 
-        if (evt->state & BTN_B)
-        {
+            case BTN_B:
+            {
+                break;
+            }
 
+            case SELECT:
+            {
+                break;
+            }
+
+            case START:
+            {
+                break;
+            }
         }
     }
 }
