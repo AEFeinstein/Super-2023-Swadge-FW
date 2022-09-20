@@ -8,10 +8,15 @@
 #ifndef MODE_DANCE_H_
 #define MODE_DANCE_H_
 
+#include "swadgeMode.h"
+
 extern swadgeMode modeDance;
 
-void danceLeds(uint8_t danceIdx);
-void setDanceBrightness(uint8_t brightness);
+void danceEnterMode(display_t* display);
+void danceExitMode();
+void danceMainLoop(int64_t elapsedUs);
+void danceButtonCb(buttonEvt_t* evt);
+
 uint8_t getNumDances(void);
 void danceClearVars(uint8_t idx);
 char* getDanceName(uint8_t idx);

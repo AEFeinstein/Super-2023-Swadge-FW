@@ -21,6 +21,7 @@
 #include "mode_gamepad.h"
 #include "mode_tunernome.h"
 #include "mode_colorchord.h"
+#include "mode_dance.h"
 #include "mode_credits.h"
 #include "mode_platformer.h"
 #include "mode_picross.h"
@@ -357,6 +358,7 @@ void mainMenuSetUpToolsMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, modeGamepad.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeTunernome.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeColorchord.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeDance.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -391,6 +393,11 @@ void mainMenuToolsCb(const char* opt)
     {
         // Start Colorchord
         switchToSwadgeMode(&modeColorchord);
+    }
+    else if(modeDance.modeName == opt)
+    {
+        // Start Light Dances
+        switchToSwadgeMode(&modeDance);
     }
     else if(mainMenuBack == opt)
     {

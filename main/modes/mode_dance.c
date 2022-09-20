@@ -12,13 +12,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <esp_log.h>
 
-#include "esp_timer.h"
-#include "ccconfig.h"
-#include "swadgeMode.h"
-#include "embeddedout.h"
 #include "mode_dance.h"
+#include "embeddedout.h"
+#include "bresenham.h"
 #include "swadge_util.h"
+#include "settingsManager.h"
 
 /*============================================================================
  * Typedefs
@@ -42,8 +42,10 @@ typedef struct
  * Prototypes
  *==========================================================================*/
 
-void setDanceLeds(led_t* ledData, uint8_t ledDataLen);
 uint32_t danceRand(uint32_t upperBound);
+void danceRedrawScreen();
+void selectNextDance();
+void selectPrevDance();
 
 void danceComet(uint32_t tElapsedUs, uint32_t arg, bool reset);
 void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset);
@@ -93,11 +95,139 @@ static const ledDanceArg ledDances[] =
     {.func = danceRandomDance,   .arg = 0, .name = "???"},
 };
 
-uint8_t danceBrightness = 1;
+typedef struct
+{
+    display_t* disp;
+
+    uint8_t danceIdx;
+
+    bool updateScreen;
+    bool resetDance;
+    bool blankScreen;
+
+    font_t infoFont;
+} danceMode_t;
+
+
+swadgeMode modeDance =
+{
+    .modeName = "Light Dances",
+    .fnEnterMode = danceEnterMode,
+    .fnExitMode = danceExitMode,
+    .fnMainLoop = danceMainLoop,
+    .fnButtonCallback = danceButtonCb,
+    .fnTouchCallback = NULL,
+    .wifiMode = NO_WIFI,
+    .fnEspNowRecvCb = NULL,
+    .fnEspNowSendCb = NULL,
+    .fnAccelerometerCallback = NULL,
+    .fnAudioCallback = NULL,
+    .fnTemperatureCallback = NULL,
+};
+
+danceMode_t* danceState;
 
 /*============================================================================
  * Functions
  *==========================================================================*/
+
+void danceEnterMode(display_t* disp)
+{
+    danceState = calloc(1, sizeof(danceMode_t));
+
+    danceState->disp = disp;
+
+    danceState->danceIdx = 0;
+
+    danceState->updateScreen = true;
+    danceState->resetDance = true;
+    danceState->blankScreen = false;
+
+    // TODO move font to var
+    if (!loadFont("radiostars.font", &(danceState->infoFont)))
+    {
+        ESP_LOGE("Dance", "Error loading radiostars.font");
+    }
+}
+
+void danceExitMode()
+{
+    freeFont(&(danceState->infoFont));
+    free(danceState);
+    danceState = NULL;
+}
+
+void danceMainLoop(int64_t elapsedUs)
+{
+    ledDances[danceState->danceIdx].func(elapsedUs, ledDances[danceState->danceIdx].arg, danceState->resetDance);
+
+    if (danceState->updateScreen)
+    {
+        danceRedrawScreen();
+    }
+
+    danceState->resetDance = false;
+}
+
+void danceButtonCb(buttonEvt_t* evt)
+{
+    if (evt->down)
+    {
+        if (evt->state & UP)
+        {
+            incLedBrightness();
+            danceState->updateScreen = true;
+        }
+
+        if (evt->state & DOWN)
+        {
+            decLedBrightness();
+            danceState->updateScreen = true;
+        }
+
+        if (evt->state & LEFT)
+        {
+            selectPrevDance();
+        }
+
+        if (evt->state & RIGHT)
+        {
+            selectNextDance();
+        }
+
+        if (evt->state & BTN_A)
+        {
+            danceState->blankScreen = !danceState->blankScreen;
+            danceState->updateScreen = true;
+        }
+
+        if (evt->state & BTN_B)
+        {
+
+        }
+    }
+}
+
+/**
+ * @brief Blanks and redraws the entire screen, and clears danceState->updateScreen
+ */
+void danceRedrawScreen()
+{
+    danceState->updateScreen = false;
+    danceState->disp->clearPx();
+
+    if (!danceState->blankScreen)
+    {
+        uint16_t width = textWidth(&(danceState->infoFont), ledDances[danceState->danceIdx].name);
+        drawText(danceState->disp, &(danceState->infoFont), c555, ledDances[danceState->danceIdx].name, (danceState->disp->w - width) / 2, 60);
+
+        char brightnessText[14];
+
+        snprintf(brightnessText, sizeof(brightnessText), "Brightness: %d", getLedBrightness());
+        width = textWidth(&(danceState->infoFont), brightnessText);
+        drawText(danceState->disp, &(danceState->infoFont), c555, brightnessText, (danceState->disp->w - width) / 2, 10);
+    }
+}
 
 /** @return The number of different tances
  */
@@ -125,37 +255,6 @@ void danceClearVars(uint8_t idx)
     ledDances[idx].func(0, ledDances[idx].arg, true);
 }
 
-/** Set the brightness index
- *
- * @param brightness LEDs get divided by this before being set
- */
-void setDanceBrightness(uint8_t brightness)
-{
-    if (0 == brightness)
-    {
-        brightness = 1;
-    }
-    danceBrightness = brightness;
-}
-
-/** Intermediate function which adjusts brightness and sets the LEDs
- *
- * @param ledData    The LEDs to be scaled, then set
- * @param ledDataLen The length of the LEDs to set
- */
-void setDanceLeds(led_t* ledData, uint8_t ledDataLen)
-{
-    led_t ledDataTmp[ledDataLen / sizeof(led_t)];
-    uint8_t i;
-    for(i = 0; i < ledDataLen / sizeof(led_t); i++)
-    {
-        ledDataTmp[i].r = ledData[i].r / danceBrightness;
-        ledDataTmp[i].g = ledData[i].g / danceBrightness;
-        ledDataTmp[i].b = ledData[i].b / danceBrightness;
-    }
-    setLeds(ledDataTmp, ledDataLen);
-}
-
 /** Get a random number from a range.
  *
  * This isn't true-random, unless bound is a power of 2. But it's close enough?
@@ -174,27 +273,6 @@ uint32_t danceRand(uint32_t bound)
         return 0;
     }
     return rand() % bound;
-}
-
-/** Call this to animate LEDs. Dances use the system time for animations, so this
- * should be called reasonably fast for smooth operation
- *
- * @param danceIdx The index of the dance to display.
- */
-void danceLeds(uint8_t danceIdx)
-{
-    static uint32_t tLast = 0;
-    if(0 == tLast)
-    {
-        tLast = esp_timer_get_time();
-    }
-    else
-    {
-        uint32_t tNow = esp_timer_get_time();
-        uint32_t tElapsedUs = tNow - tLast;
-        tLast = tNow;
-        ledDances[danceIdx].func(tElapsedUs, ledDances[danceIdx].arg, false);
-    }
 }
 
 /** This animation is set to be called every 100 ms
@@ -273,7 +351,7 @@ void danceComet(uint32_t tElapsedUs, uint32_t arg, bool reset)
 
     if(ledsUpdated)
     {
-        setDanceLeds(leds, sizeof(leds));
+        setLeds(leds, sizeof(leds));
     }
 }
 
@@ -347,7 +425,7 @@ void dancePulse(uint32_t tElapsedUs, uint32_t arg, bool reset)
 
     if(ledsUpdated)
     {
-        setDanceLeds(leds, sizeof(leds));
+        setLeds(leds, sizeof(leds));
     }
 }
 
@@ -447,7 +525,7 @@ void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset)
 
     if(ledsUpdated)
     {
-        setDanceLeds(leds, sizeof(leds));
+        setLeds(leds, sizeof(leds));
     }
 }
 
@@ -494,7 +572,7 @@ void danceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg , bool reset)
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setDanceLeds(leds, sizeof(leds));
+        setLeds(leds, sizeof(leds));
     }
 }
 
@@ -545,7 +623,7 @@ void danceSharpRainbow(uint32_t tElapsedUs, uint32_t arg __attribute__((unused))
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setDanceLeds(leds, sizeof(leds));
+        setLeds(leds, sizeof(leds));
     }
 }
 
@@ -635,7 +713,7 @@ void danceBinaryCounter(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setDanceLeds(leds, sizeof(leds));
+        setLeds(leds, sizeof(leds));
     }
 }
 
@@ -675,33 +753,43 @@ void danceFire(uint32_t tElapsedUs, uint32_t arg, bool reset)
         leds[0].g = (randC * ARG_G(arg)) / 256;
         leds[0].b = (randC * ARG_B(arg)) / 256;
         randC = danceRand(105) + 150;
+        leds[7].r = (randC * ARG_R(arg)) / 256;
+        leds[7].g = (randC * ARG_G(arg)) / 256;
+        leds[7].b = (randC * ARG_B(arg)) / 256;
+
+        // Mid-low
+        randC = danceRand(48) + 32;
+        leds[1].r = (randC * ARG_R(arg)) / 256;
+        leds[1].g = (randC * ARG_G(arg)) / 256;
+        leds[1].b = (randC * ARG_B(arg)) / 256;
+        randC = danceRand(48) + 32;
+        leds[6].r = (randC * ARG_R(arg)) / 256;
+        leds[6].g = (randC * ARG_G(arg)) / 256;
+        leds[6].b = (randC * ARG_B(arg)) / 256;
+
+        // Mid-high
+        randC = danceRand(32) + 16;
+        leds[2].r = (randC * ARG_R(arg)) / 256;
+        leds[2].g = (randC * ARG_G(arg)) / 256;
+        leds[2].b = (randC * ARG_B(arg)) / 256;
+        randC = danceRand(32) + 16;
         leds[5].r = (randC * ARG_R(arg)) / 256;
         leds[5].g = (randC * ARG_G(arg)) / 256;
         leds[5].b = (randC * ARG_B(arg)) / 256;
 
-        // Mid
-        randC = danceRand(32) + 16;
-        leds[1].r = (randC * ARG_R(arg)) / 256;
-        leds[1].g = (randC * ARG_G(arg)) / 256;
-        leds[1].b = (randC * ARG_B(arg)) / 256;
-        randC = danceRand(32) + 16;
-        leds[4].r = (randC * ARG_R(arg)) / 256;
-        leds[4].g = (randC * ARG_G(arg)) / 256;
-        leds[4].b = (randC * ARG_B(arg)) / 256;
-
         // Tip
-        randC = danceRand(16) + 4;
-        leds[2].r = (randC * ARG_R(arg)) / 256;
-        leds[2].g = (randC * ARG_G(arg)) / 256;
-        leds[2].b = (randC * ARG_B(arg)) / 256;
         randC = danceRand(16) + 4;
         leds[3].r = (randC * ARG_R(arg)) / 256;
         leds[3].g = (randC * ARG_G(arg)) / 256;
         leds[3].b = (randC * ARG_B(arg)) / 256;
+        randC = danceRand(16) + 4;
+        leds[4].r = (randC * ARG_R(arg)) / 256;
+        leds[4].g = (randC * ARG_G(arg)) / 256;
+        leds[4].b = (randC * ARG_B(arg)) / 256;
     }
     if(ledsUpdated)
     {
-        setDanceLeds(leds, sizeof(leds));
+        setLeds(leds, sizeof(leds));
     }
 }
 
@@ -765,7 +853,7 @@ void dancePoliceSiren(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)),
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setDanceLeds(leds, sizeof(leds));
+        setLeds(leds, sizeof(leds));
     }
 }
 
@@ -842,7 +930,7 @@ void dancePureRandom(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)), 
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setDanceLeds(leds, sizeof(leds));
+        setLeds(leds, sizeof(leds));
     }
 }
 
@@ -895,7 +983,7 @@ void danceRainbowSolid(uint32_t tElapsedUs, uint32_t arg __attribute__((unused))
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setDanceLeds(leds, sizeof(leds));
+        setLeds(leds, sizeof(leds));
     }
 }
 
@@ -1103,7 +1191,7 @@ void danceChristmas(uint32_t tElapsedUs, uint32_t arg, bool reset)
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setDanceLeds(leds, sizeof(leds));
+        setLeds(leds, sizeof(leds));
     }
 }
 
@@ -1120,6 +1208,40 @@ void danceNone(uint32_t tElapsedUs __attribute__((unused)),
     if(reset)
     {
         led_t leds[NUM_LEDS] = {{0}};
-        setDanceLeds(leds, sizeof(leds));
+        setLeds(leds, sizeof(leds));
     }
+}
+
+/**
+ * @brief Switches to the previous dance in the list, with wrapping
+ */
+void selectPrevDance()
+{
+    if (danceState->danceIdx > 0)
+    {
+        danceState->danceIdx--;
+    }
+    else
+    {
+        danceState->danceIdx = getNumDances() - 1;
+    }
+
+    danceState->updateScreen = true;
+}
+
+/**
+ * @brief Switches to the next dance in the list, with wrapping
+ */
+void selectNextDance()
+{
+    if (danceState->danceIdx < getNumDances() - 1)
+    {
+        danceState->danceIdx++;
+    }
+    else
+    {
+        danceState->danceIdx = 0;
+    }
+
+    danceState->updateScreen = true;
 }
