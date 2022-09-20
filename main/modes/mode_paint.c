@@ -350,6 +350,8 @@ void paintButtonCb(buttonEvt_t* evt)
                 paintState->selectHeld = true;
                 paintState->redrawToolbar = true;
                 paintState->aHeld = false;
+                paintState->moveX = 0;
+                paintState->moveY = 0;
             }
 
             if (!paintState->selectHeld)
@@ -388,7 +390,7 @@ void paintButtonCb(buttonEvt_t* evt)
                 paintState->redrawToolbar = true;
             }
 
-            if (paintState->screen == PAINT_DRAW && evt->button & START && !paintState->saveInProgress)
+            if (paintState->screen == PAINT_DRAW && evt->button & START && !paintState->saveInProgress && !paintState->selectHeld)
             {
                 paintState->doSave = true;
             }
