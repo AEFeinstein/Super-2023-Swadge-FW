@@ -715,7 +715,7 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
     }
     else
     {
-        ftr->hitstopTimer = 0;
+        ftr->hitstopShake = 0;
     }
 
     // Don't check other timers if hitstop is active
