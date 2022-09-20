@@ -163,7 +163,7 @@ swadgeMode modePlatformer =
         .fnAudioCallback = NULL,
         .fnTemperatureCallback = NULL};
 
-static leveldef_t leveldef[3] = {
+static leveldef_t leveldef[4] = {
     {.filename = "level1-1.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
@@ -172,9 +172,12 @@ static leveldef_t leveldef[3] = {
      .checkpointTimeLimit = 90},
     {.filename = "level1-3.bin",
      .timeLimit = 180,
+     .checkpointTimeLimit = 90},
+    {.filename = "debug.bin",
+     .timeLimit = 180,
      .checkpointTimeLimit = 90}};
 
-#define NUM_LEVELS 3
+#define NUM_LEVELS 4
 
 led_t platLeds[NUM_LEDS];
 
