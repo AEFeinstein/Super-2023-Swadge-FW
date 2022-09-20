@@ -20,6 +20,10 @@ static const char menuOptGallery[] = "Gallery";
 static const char menuOptReceive[] = "Receive";
 static const char menuOptExit[] = "Exit";
 
+#define CURSOR_POINTS 8
+static const int8_t cursorShapeX[CURSOR_POINTS] = {-2, -1,  0,  0,  1, 2, 0, 0};
+static const int8_t cursorShapeY[CURSOR_POINTS] = { 0,  0, -2, -1,  0, 0, 1, 2};
+
 typedef enum
 {
     // Top menu
@@ -38,16 +42,62 @@ typedef enum
     PAINT_RECEIVE,
 } paintScreen_t;
 
+/**
+ * Defines different brush behaviors for when A is pressed
+ */
 typedef enum
 {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST,
-    NONE,
-} direction_t;
+    // The brush is drawn immediately upon selection without picking or drawing any points
+    INSTANT,
 
-typedef enum
+    // The brush is drawn whenever A is pressed or held
+    HOLD_DRAW,
+
+    // The brush requires a number of points to be picked first, and then it is drawn
+    PICK_POINT,
+
+} brushMode_t;
+
+typedef struct
+{
+    uint16_t x, y;
+} point_t;
+
+typedef struct
+{
+    /**
+     * @brief The behavior mode of this brush
+     */
+    brushMode_t mode;
+
+    /**
+     * @brief The number of points this brush can use
+     */
+    uint8_t maxPoints;
+
+
+    /**
+     * @brief The minimum size (e.g. stroke width) of the brush
+     */
+    uint16_t minSize;
+
+    /**
+     * @brief The maximum size of the brush
+     */
+    uint16_t maxSize;
+
+    /**
+     * @brief The display name of this brush
+     */
+    char* name;
+
+    /**
+     * @brief Called when all necessary points have been selected and the final shape should be drawn
+     */
+    void (*fnDraw)(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col);
+} brush_t;
+
+/*typedef enum
 {
     // Draws a square
     TOOL_PEN_SQUARE,
@@ -62,7 +112,7 @@ typedef enum
     TOOL_CIRCLE_FILL,
     TOOL_ELLIPSE,
     TOOL_SELECT,
-} brush_t;
+} brush_t;*/
 
 typedef enum
 {
@@ -80,12 +130,28 @@ typedef struct
 
     paletteColor_t fgColor, bgColor;
     paletteColor_t recentColors[PAINT_MAX_COLORS];
-    paletteColor_t underCursor[4]; // top left right bottom
+    paletteColor_t underCursor[CURSOR_POINTS]; // top left right bottom
 
-    brush_t brush;
+    // Index of the currently selected brush
+    uint8_t brushIndex;
+    // A pointer to the currently selected brush's definition
+    brush_t *brush;
+
+    // The current brush width
     uint8_t brushWidth;
+
+    // TODO: Delete
     brushState_t brushState;
+
+    // An array of points that have been selected for the current brush
+    point_t pickPoints[8];
+    
+    // The number of points already selected
+    size_t pickCount;
+
+    // TODO: Delete
     uint16_t pickX, pickY;
+
 
     bool aHeld;
     bool selectHeld;
@@ -129,6 +195,34 @@ swadgeMode modePaint =
     .fnTemperatureCallback = NULL,
 };
 
+// Brush function declarations
+void paintDrawSquarePen(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawCirclePen(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawLine(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawCurve(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawRectangle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawFilledRectangle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawCircle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawFilledCircle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawEllipse(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawPaintBucket(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawClear(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+
+static const brush_t brushes[] =
+{
+    { .name = "Square Pen", .mode = HOLD_DRAW, .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawSquarePen },
+    { .name = "Circle Pen", .mode = HOLD_DRAW, .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawCirclePen },
+    { .name = "Line", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawLine },
+    { .name = "Curve", .mode = PICK_POINT, .maxPoints = 4, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCurve },
+    { .name = "Rectangle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawRectangle },
+    { .name = "Filled Rectangle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledRectangle },
+    { .name = "Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCircle },
+    { .name = "Filled Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledCircle },
+    { .name = "Ellipse", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawEllipse },
+    { .name = "Paint Bucket", .mode = PICK_POINT, .maxPoints = 1, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawPaintBucket },
+    { .name = "Clear", .mode = INSTANT, .maxPoints = 0, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawClear },
+};
+
 paintMenu_t* paintState;
 
 // Util function declarations
@@ -137,10 +231,10 @@ void paintInitialize();
 void paintRenderAll();
 void paintRenderCursor();
 void paintRenderToolbar();
+void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
 void paintMoveCursorRel(int8_t xDiff, int8_t yDiff);
 void paintClearCanvas();
 void paintUpdateRecents(uint8_t selectedIndex);
-void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
 void paintPrevTool();
 void paintNextTool();
 void paintSave(uint8_t slot);
@@ -409,7 +503,7 @@ void paintInitialize()
     paintState->canvasW = PAINT_CANVAS_WIDTH;
     paintState->canvasH = PAINT_CANVAS_HEIGHT;
 
-    paintState->brush = TOOL_PEN_SQUARE;
+    paintState->brush = &(brushes[0]);
     paintState->toolHoldable = true;
     paintState->brushWidth = 1;
 
@@ -419,10 +513,17 @@ void paintInitialize()
     paintState->bgColor = c555; // white
 
     // this is kind of a hack but oh well
-    paintState->underCursor[0] = PAINT_TOOLBAR_BG;
-    paintState->underCursor[1] = PAINT_TOOLBAR_BG;
-    paintState->underCursor[2] = paintState->bgColor;
-    paintState->underCursor[3] = paintState->bgColor;
+    for (uint8_t i = 0; i < CURSOR_POINTS; i++)
+    {
+        if (cursorShapeX[i] < 0 || cursorShapeY[i] < 0)
+        {
+            paintState->underCursor[i] = PAINT_TOOLBAR_BG;
+        }
+        else
+        {
+            paintState->underCursor[i] = paintState->bgColor;
+        }
+    }
 
     // pick some colors to start with
     paintState->recentColors[0] = c000; // black
@@ -485,28 +586,44 @@ void paintRenderAll()
     paintRenderCursor();
 }
 
+void saveCursorPixels(bool useLast)
+{
+    for (uint8_t i = 0; i < CURSOR_POINTS; i++)
+    {
+        paintState->underCursor[i] = paintState->disp->getPx(CANVAS_X((useLast ? paintState->lastCursorX : paintState->cursorX) + cursorShapeX[i]), CANVAS_Y((useLast ? paintState->lastCursorY : paintState->cursorY) + cursorShapeY[i]));
+    }
+}
+
+void restoreCursorPixels(bool useLast)
+{
+    for (uint8_t i = 0; i < CURSOR_POINTS; i++)
+    {
+        paintState->disp->setPx(CANVAS_X((useLast ? paintState->lastCursorX : paintState->cursorX) + cursorShapeX[i]), CANVAS_Y((useLast ? paintState->lastCursorY : paintState->cursorY) + cursorShapeY[i]), paintState->underCursor[i]);
+    }
+}
+
+void plotCursor()
+{
+    for (int i = 0; i < CURSOR_POINTS; i++)
+    {
+        paintState->disp->setPx(CANVAS_X(paintState->cursorX + cursorShapeX[i]), CANVAS_Y(paintState->cursorY + cursorShapeY[i]), c300);
+    }
+}
+
 void paintRenderCursor()
 {
-    ESP_LOGD("Paint", "Rendering cursor...");
     if (paintState->showCursor)
     {
-        ESP_LOGD("Paint", "Actualy no");
         if (paintState->lastCursorX != paintState->cursorX || paintState->lastCursorY != paintState->cursorY)
         {
             // Restore the pixels under the last cursor position
-            paintState->disp->setPx(PAINT_CANVAS_X_OFFSET + paintState->lastCursorX, PAINT_CANVAS_Y_OFFSET + paintState->lastCursorY - 1, paintState->underCursor[0]);
-            paintState->disp->setPx(PAINT_CANVAS_X_OFFSET + paintState->lastCursorX - 1, PAINT_CANVAS_Y_OFFSET + paintState->lastCursorY, paintState->underCursor[1]);
-            paintState->disp->setPx(PAINT_CANVAS_X_OFFSET + paintState->lastCursorX + 1, PAINT_CANVAS_Y_OFFSET + paintState->lastCursorY, paintState->underCursor[2]);
-            paintState->disp->setPx(PAINT_CANVAS_X_OFFSET + paintState->lastCursorX, PAINT_CANVAS_Y_OFFSET + paintState->lastCursorY + 1, paintState->underCursor[3]);
+            restoreCursorPixels(true);
 
             // Save the pixels that will be under the cursor
-            paintState->underCursor[0] = paintState->disp->getPx(PAINT_CANVAS_X_OFFSET + paintState->cursorX, PAINT_CANVAS_Y_OFFSET + paintState->cursorY - 1);
-            paintState->underCursor[1] = paintState->disp->getPx(PAINT_CANVAS_X_OFFSET + paintState->cursorX - 1, PAINT_CANVAS_Y_OFFSET + paintState->cursorY);
-            paintState->underCursor[2] = paintState->disp->getPx(PAINT_CANVAS_X_OFFSET + paintState->cursorX + 1, PAINT_CANVAS_Y_OFFSET + paintState->cursorY);
-            paintState->underCursor[3] = paintState->disp->getPx(PAINT_CANVAS_X_OFFSET + paintState->cursorX, PAINT_CANVAS_Y_OFFSET + paintState->cursorY + 1);
-
+            saveCursorPixels(false);
+            
             // Draw the cursor
-            plotCircle(paintState->disp, PAINT_CANVAS_X_OFFSET + paintState->cursorX, PAINT_CANVAS_Y_OFFSET + paintState->cursorY, 1, c300);
+            plotCursor();
         }
     }
 }
@@ -516,14 +633,11 @@ void enableCursor()
     if (!paintState->showCursor)
     {
         // Save the pixels under the cursor we're about to draw over
-        paintState->underCursor[0] = paintState->disp->getPx(PAINT_CANVAS_X_OFFSET + paintState->cursorX, PAINT_CANVAS_Y_OFFSET + paintState->cursorY - 1);
-        paintState->underCursor[1] = paintState->disp->getPx(PAINT_CANVAS_X_OFFSET + paintState->cursorX - 1, PAINT_CANVAS_Y_OFFSET + paintState->cursorY);
-        paintState->underCursor[2] = paintState->disp->getPx(PAINT_CANVAS_X_OFFSET + paintState->cursorX + 1, PAINT_CANVAS_Y_OFFSET + paintState->cursorY);
-        paintState->underCursor[3] = paintState->disp->getPx(PAINT_CANVAS_X_OFFSET + paintState->cursorX, PAINT_CANVAS_Y_OFFSET + paintState->cursorY + 1);
+        saveCursorPixels(false);
 
         paintState->showCursor = true;
 
-        plotCircle(paintState->disp, PAINT_CANVAS_X_OFFSET + paintState->cursorX, PAINT_CANVAS_Y_OFFSET + paintState->cursorY, 1, c300);
+        plotCursor();
     }
 }
 
@@ -531,10 +645,7 @@ void disableCursor()
 {
     if (paintState->showCursor)
     {
-        paintState->disp->setPx(PAINT_CANVAS_X_OFFSET + paintState->cursorX, PAINT_CANVAS_Y_OFFSET + paintState->cursorY - 1, paintState->underCursor[0]);
-        paintState->disp->setPx(PAINT_CANVAS_X_OFFSET + paintState->cursorX - 1, PAINT_CANVAS_Y_OFFSET + paintState->cursorY, paintState->underCursor[1]);
-        paintState->disp->setPx(PAINT_CANVAS_X_OFFSET + paintState->cursorX + 1, PAINT_CANVAS_Y_OFFSET + paintState->cursorY, paintState->underCursor[2]);
-        paintState->disp->setPx(PAINT_CANVAS_X_OFFSET + paintState->cursorX, PAINT_CANVAS_Y_OFFSET + paintState->cursorY + 1, paintState->underCursor[3]);
+        restoreCursorPixels(false);
 
         paintState->showCursor = false;
     }
@@ -598,51 +709,8 @@ void paintRenderToolbar()
     }
 
     uint16_t textX = 30, textY = 4;
-    switch (paintState->brush)
-    {
-    case TOOL_PEN_SQUARE:
-        drawText(paintState->disp, &paintState->toolbarFont, c000, "Square Pen", textX, textY);
-        break;
-
-    case TOOL_PEN_CIRCLE:
-        drawText(paintState->disp, &paintState->toolbarFont, c000, "Circle Pen", textX, textY);
-        break;
-
-    case TOOL_BOX_EMPTY:
-        drawText(paintState->disp, &paintState->toolbarFont, c000, "Rectangle", textX, textY);
-        break;
-
-    case TOOL_BOX_FILL:
-        drawText(paintState->disp, &paintState->toolbarFont, c000, "Filled Rectangle", textX, textY);
-        break;
-
-    case TOOL_CIRCLE_EMPTY:
-        drawText(paintState->disp, &paintState->toolbarFont, c000, "Circle", textX, textY);
-        break;
-
-    case TOOL_CIRCLE_FILL:
-        drawText(paintState->disp, &paintState->toolbarFont, c000, "Filled Circle", textX, textY);
-        break;
-
-    case TOOL_ELLIPSE:
-        drawText(paintState->disp, &paintState->toolbarFont, c000, "Ellipse", textX, textY);
-        break;
-
-    case TOOL_LINE:
-        drawText(paintState->disp, &paintState->toolbarFont, c000, "Line", textX, textY);
-        break;
-
-    case TOOL_FLOOD_FILL:
-        drawText(paintState->disp, &paintState->toolbarFont, c000, "Paint Bucket", textX, textY);
-        break;
-
-    default:
-        drawText(paintState->disp, &paintState->toolbarFont, c000, "???", textX, textY);
-        break;
-    }
+    drawText(paintState->disp, &paintState->toolbarFont, c000, paintState->brush->name, textX, textY);
 }
-
-
 
 
 // adapted from http://www.adammil.net/blog/v126_A_More_Efficient_Flood_Fill.html
@@ -738,282 +806,143 @@ void MyFillCore(uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fi
         lastRowLength = rowLength; // record the new row length
     } while(lastRowLength != 0 && ++y < PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT); // if we get to a full row or to the bottom, we're done
 }
-/*
-void floodFillSub(uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t replace, direction_t skipDirection)
+
+// void (*fnDraw)(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col);
+void paintDrawSquarePen(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    ESP_LOGD("Paint", "Filling (%d, %d)", x, y);
-
-    paintState->disp->setPx(x, y, replace);
-
-    if (skipDirection != WEST && x > PAINT_CANVAS_X_OFFSET && paintState->disp->getPx(x - 1, y) == search)
-    {
-        floodFillSub(x - 1, y, search, replace, EAST);
-    }
-
-    if (skipDirection != NORTH && y > PAINT_CANVAS_Y_OFFSET && paintState->disp->getPx(x, y - 1) == search)
-    {
-        floodFillSub(x, y - 1, search, replace, SOUTH);
-    }
-
-    if (skipDirection != EAST && x < (PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_WIDTH) && paintState->disp->getPx(x + 1, y) == search)
-    {
-        floodFillSub(x + 1, y, search, replace, WEST);
-    }
-
-    if (skipDirection != SOUTH && y < (PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT) && paintState->disp->getPx(x, y + 1) == search)
-    {
-        floodFillSub(x, y + 1, search, replace, NORTH);
-    }
+    plotRectFilled(disp, points[0].x, points[0].y, points[0].x + size, points[0].y + size, col);
 }
 
-void floodFill(uint16_t x, uint16_t y, paletteColor_t col) {
-    ESP_LOGD("Paint", "Filling (%d, %d)", x, y);
-    floodFillSub(x, y, paintState->disp->getPx(x, y), col, NONE);
-}*/
+void paintDrawCirclePen(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+{
+    plotCircleFilled(disp, points[0].x, points[0].y, size, col);
+}
+
+void paintDrawLine(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+{
+    plotLine(paintState->disp, points[0].x, points[0].y, points[1].x, points[1].y, col, 0);
+}
+
+void paintDrawCurve(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+{
+    plotCubicBezier(disp, points[0].x, points[0].y, points[1].x, points[1].y, points[2].x, points[2].y, points[3].x, points[3].y, col);
+}
+
+void paintDrawRectangle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+{
+    uint16_t x0 = (points[0].x > points[1].x) ? points[1].x : points[0].x;
+    uint16_t y0 = (points[0].y > points[1].y) ? points[1].y : points[0].y;
+    uint16_t x1 = (points[0].x > points[1].x) ? points[0].x : points[1].x;
+    uint16_t y1 = (points[0].y > points[1].y) ? points[0].y : points[1].y;
+
+    plotRect(disp, x0, y0, x1 + 1, y1 + 1, col);
+}
+
+void paintDrawFilledRectangle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+{
+    uint16_t x0 = (points[0].x > points[1].x) ? points[1].x : points[0].x;
+    uint16_t y0 = (points[0].y > points[1].y) ? points[1].y : points[0].y;
+    uint16_t x1 = (points[0].x > points[1].x) ? points[0].x : points[1].x;
+    uint16_t y1 = (points[0].y > points[1].y) ? points[0].y : points[1].y;
+
+    plotRectFilled(disp, x0, y0, x1 + 1, y1 + 1, col);
+}
+
+void paintDrawCircle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+{
+    uint16_t dX = abs(points[0].x - points[1].x);
+    uint16_t dY = abs(points[0].y - points[1].y);
+    uint16_t r = (uint16_t)(sqrt(dX*dX+dY*dY) + 0.5);
+    
+    plotCircle(disp, points[0].x, points[0].y, r, col);
+}
+
+void paintDrawFilledCircle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+{
+    uint16_t dX = abs(points[0].x - points[1].x);
+    uint16_t dY = abs(points[0].y - points[1].y);
+    uint16_t r = (uint16_t)(sqrt(dX*dX+dY*dY) + 0.5);
+    
+    plotCircleFilled(disp, points[0].x, points[1].x, r, col);
+}
+
+void paintDrawEllipse(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+{
+    plotEllipseRect(disp, points[0].x, points[0].y, points[1].x, points[1].y, col);
+}
+
+void paintDrawPaintBucket(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+{
+    floodFill(points[0].x, points[0].y, col);
+}
+
+void paintDrawClear(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+{
+    disp->clearPx();
+    floodFill(CANVAS_X(0), CANVAS_Y(0), col);
+}
 
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 {
     disableCursor();
+    bool drawNow = false;
 
-    // TODO encapsulate picking logic better
-
-    switch (paintState->brush)
+    if (paintState->brush->mode == HOLD_DRAW)
     {
-    case TOOL_PEN_SQUARE:
-    {
-        plotRectFilled(paintState->disp, x, y, x + paintState->brushWidth, y + paintState->brushWidth, col);
-        break;
+        paintState->pickPoints[0].x = x;
+        paintState->pickPoints[0].y = y;
+        paintState->pickCount = 1;
+        drawNow = true;
     }
-
-    case TOOL_PEN_CIRCLE:
+    else if (paintState->brush->mode == PICK_POINT)
     {
-        plotCircleFilled(paintState->disp, x, y, paintState->brushWidth, col);
-        break;
-    }
-    case TOOL_BOX_EMPTY:
-    case TOOL_BOX_FILL:
-    {
-        if (paintState->brushState == PICK_START)
+        paintState->pickPoints[paintState->pickCount].x = x;
+        paintState->pickPoints[paintState->pickCount].y = y;
+        
+        if (++paintState->pickCount == paintState->brush->maxPoints)
         {
-            paintState->pickX = x;
-            paintState->pickY = y;
-            paintState->brushState = PICK_END;
-        } else {
-            if (paintState->pickX > x)
-            {
-                paintState->pickX ^= x;
-                x ^= paintState->pickX;
-                paintState->pickX ^= x;
-            }
-
-            if (paintState->pickY > y)
-            {
-                paintState->pickY ^= y;
-                y ^= paintState->pickY;
-                paintState->pickY ^= y;
-            }
-            if (paintState->brush == TOOL_BOX_EMPTY)
-            {
-                plotRect(paintState->disp, paintState->pickX, paintState->pickY, x + 1, y + 1, col);
-            }
-            else
-            {
-                plotRectFilled(paintState->disp, paintState->pickX, paintState->pickY, x + 1, y + 1, col);
-            }
-
-            paintState->brushState = PICK_START;
-        }
-        break;
-    }
-    case TOOL_CIRCLE_EMPTY:
-    case TOOL_CIRCLE_FILL:
-    {
-        if (paintState->brushState == PICK_START)
-        {
-            paintState->pickX = x;
-            paintState->pickY = y;
-            paintState->brushState = PICK_END;
-        }
-        else
-        {
-            uint16_t dX = abs(x - paintState->pickX);
-            uint16_t dY = abs(y - paintState->pickY);
-            uint16_t r = (uint16_t)(sqrt(dX*dX+dY*dY) + 0.5);
-            if (paintState->brush == TOOL_CIRCLE_EMPTY)
-            {
-                plotCircle(paintState->disp, paintState->pickX, paintState->pickY, r, col);
-            }
-            else
-            {
-                plotCircleFilled(paintState->disp, paintState->pickX, paintState->pickY, r, col);
-            }
-            paintState->brushState = PICK_START;
-        }
-        break;
-    }
-
-    case TOOL_ELLIPSE:
-    {
-        if (paintState->brushState == PICK_START)
-        {
-            paintState->pickX = x;
-            paintState->pickY = y;
-            paintState->brushState = PICK_END;
-        } else {
-            plotEllipseRect(paintState->disp, paintState->pickX, paintState->pickY, x, y, col);
-
-            paintState->brushState = PICK_START;
-        }
-        break;
-    }
-
-    case TOOL_FLOOD_FILL:
-    {
-        floodFill(x, y, col);
-        break;
-    }
-
-    case TOOL_LINE:
-    {
-        if (paintState->brushState == PICK_START)
-        {
-            ESP_LOGD("Paint", "First pick: (%d, %d)", x, y);
-            paintState->pickX = x;
-            paintState->pickY = y;
-            paintState->brushState = PICK_END;
-        }
-        else
-        {
-            ESP_LOGD("Paint", "Second pick: (%d, %d)", x, y);
-            plotLine(paintState->disp, paintState->pickX, paintState->pickY, x, y, col, 0);
-            paintState->brushState = PICK_START;
-            paintState->pickX = 0;
-            paintState->pickY = 0;
+            drawNow = true;
         }
     }
-
-    case TOOL_CURVE:
-    case TOOL_SELECT:
-    default:
-        break;
+    else if (paintState->brush->mode == INSTANT)
+    {
+        drawNow = true;
     }
+
+    if (drawNow)
+    {
+        paintState->brush->fnDraw(paintState->disp, paintState->pickPoints, paintState->pickCount, paintState->brushWidth, col);
+        paintState->pickCount = 0;
+    }
+
     enableCursor();
     paintRenderToolbar();
 }
 
 void paintPrevTool()
 {
-    switch (paintState->brush)
+    if (paintState->brushIndex > 0)
     {
-    case TOOL_PEN_SQUARE:
-        paintState->brush = TOOL_PEN_CIRCLE;
-        break;
-
-    case TOOL_PEN_CIRCLE:
-        paintState->brush = TOOL_BOX_EMPTY;
-        break;
-
-    case TOOL_BOX_EMPTY:
-        paintState->brush = TOOL_BOX_FILL;
-        break;
-
-    case TOOL_BOX_FILL:
-        paintState->brush = TOOL_CIRCLE_EMPTY;
-        break;
-
-    case TOOL_CIRCLE_EMPTY:
-        paintState->brush = TOOL_CIRCLE_FILL;
-        break;
-
-    case TOOL_CIRCLE_FILL:
-        paintState->brush = TOOL_ELLIPSE;
-        break;
-
-    case TOOL_ELLIPSE:
-        paintState->brush = TOOL_LINE;
-        break;
-
-    case TOOL_LINE:
-        paintState->brush = TOOL_FLOOD_FILL;
-        break;
-
-    case TOOL_FLOOD_FILL:
-        paintState->brush = TOOL_PEN_SQUARE;
-        break;
-
-    default:
-        paintState->brush = TOOL_PEN_SQUARE;
-        break;
-    }
-
-    paintState->brushState = PICK_START;
-
-    if (paintState->brush == TOOL_PEN_SQUARE || paintState->brush == TOOL_PEN_CIRCLE)
-    {
-        paintState->toolHoldable = true;
+        paintState->brushIndex--;
     }
     else
     {
-        paintState->toolHoldable = false;
+        paintState->brushIndex = sizeof(brushes) / sizeof(brush_t) - 1;
     }
+    paintState->brush = &(brushes[paintState->brushIndex]);
 }
 
 void paintNextTool()
 {
-
-    switch (paintState->brush)
+    if (paintState->brushIndex < sizeof(brushes) / sizeof(brush_t) - 1)
     {
-    case TOOL_PEN_SQUARE:
-        paintState->brush = TOOL_FLOOD_FILL;
-        break;
-
-    case TOOL_PEN_CIRCLE:
-        paintState->brush = TOOL_PEN_SQUARE;
-        break;
-
-    case TOOL_BOX_EMPTY:
-        paintState->brush = TOOL_PEN_CIRCLE;
-        break;
-
-    case TOOL_BOX_FILL:
-        paintState->brush = TOOL_BOX_EMPTY;
-        break;
-
-    case TOOL_CIRCLE_EMPTY:
-        paintState->brush = TOOL_BOX_FILL;
-        break;
-
-    case TOOL_CIRCLE_FILL:
-        paintState->brush = TOOL_CIRCLE_EMPTY;
-        break;
-
-    case TOOL_ELLIPSE:
-        paintState->brush = TOOL_CIRCLE_FILL;
-        break;
-
-    case TOOL_LINE:
-        paintState->brush = TOOL_ELLIPSE;
-        break;
-
-    case TOOL_FLOOD_FILL:
-        paintState->brush = TOOL_LINE;
-        break;
-
-    default:
-        paintState->brush = TOOL_PEN_SQUARE;
-        break;
-    }
-
-    paintState->brushState = PICK_START;
-
-    if (paintState->brush == TOOL_PEN_SQUARE || paintState->brush == TOOL_PEN_CIRCLE)
-    {
-        paintState->toolHoldable = true;
+        paintState->brushIndex++;
     }
     else
     {
-        paintState->toolHoldable = false;
+        paintState->brushIndex = 0;
     }
+    paintState->brush = &(brushes[paintState->brushIndex]);
 }
 
 void paintUpdateRecents(uint8_t selectedIndex)
@@ -1262,13 +1191,6 @@ void paintLoad(uint8_t slot)
             y0 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE) + (n * 2)) / paintState->canvasW;
             x1 = PAINT_CANVAS_X_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE) + (n * 2 + 1)) % paintState->canvasW;
             y1 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE) + (n * 2 + 1)) / paintState->canvasW;
-
-            if (i == 0)
-            {
-                ESP_LOGD("Paint", "[%03d]      = %04x", n, imgChunk[n]);
-                ESP_LOGD("Paint", "(%03d, %03d) = %02x", x0, y0, (imgChunk[n] >> 4) & 0xF);
-                ESP_LOGD("Paint", "(%03d, %03d) = %02x", x1, y1, imgChunk[n] & 0xF);
-            }
 
             // prevent out-of-bounds drawing
             if (y0 >= PAINT_CANVAS_Y_OFFSET + paintState->canvasH)
