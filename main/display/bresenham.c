@@ -142,6 +142,56 @@ void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
     }
 }
 
+void plotLineTranslate(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth, translateFn_t xTr, translateFn_t yTr)
+{
+    SETUP_FOR_TURBO( disp );
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy, e2; /* error value e_xy */
+    int dashCnt = 0;
+    bool dashDraw = true;
+
+    for (;;)   /* loop */
+    {
+        if(dashWidth)
+        {
+            if(dashDraw)
+            {
+                TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y0), col);
+            }
+            dashCnt++;
+            if(dashWidth == dashCnt)
+            {
+                dashCnt = 0;
+                dashDraw = !dashDraw;
+            }
+        }
+        else
+        {
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y0), col);
+        }
+        e2 = 2 * err;
+        if (e2 >= dy)   /* e_xy+e_x > 0 */
+        {
+            if (x0 == x1)
+            {
+                break;
+            }
+            err += dy;
+            x0 += sx;
+        }
+        if (e2 <= dx)   /* e_xy+e_y < 0 */
+        {
+            if (y0 == y1)
+            {
+                break;
+            }
+            err += dx;
+            y0 += sy;
+        }
+    }
+}
+
 void plotRect(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col)
 {
     SETUP_FOR_TURBO( disp );
@@ -157,6 +207,25 @@ void plotRect(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
     {
         TURBO_SET_PIXEL_BOUNDS(disp, x, y0, col);
         TURBO_SET_PIXEL_BOUNDS(disp, x, y1 - 1, col);
+    }
+}
+
+void plotRectTranslate(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)
+{
+    SETUP_FOR_TURBO( disp );
+
+    // Vertical lines
+    for(int y = y0; y < y1; y++)
+    {
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y), col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x1 - 1), yTr(y), col);
+    }
+
+    // Horizontal lines
+    for(int x = x0; x < x1; x++)
+    {
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x), yTr(y0), col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x), yTr(y1 - 1), col);
     }
 }
 
@@ -188,6 +257,37 @@ void plotEllipse(display_t* disp, int xm, int ym, int a, int b, paletteColor_t c
     {
         TURBO_SET_PIXEL_BOUNDS(disp, xm, ym + y, col); /* -> finish tip of ellipse */
         TURBO_SET_PIXEL_BOUNDS(disp, xm, ym - y, col);
+    }
+}
+
+void plotEllipseTranslate(display_t* disp, int xm, int ym, int a, int b, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)
+{
+    SETUP_FOR_TURBO( disp );
+
+    int x = -a, y = 0; /* II. quadrant from bottom left to top right */
+    long e2 = (long) b * b, err = (long) x * (2 * e2 + x) + e2; /* error of 1.step */
+
+    do
+    {
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm - x), yTr(ym + y), col); /*   I. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm + x), yTr(ym + y), col); /*  II. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm + x), yTr(ym - y), col); /* III. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm - x), yTr(ym - y), col); /*  IV. Quadrant */
+        e2 = 2 * err;
+        if (e2 >= (x * 2 + 1) * (long) b * b) /* e_xy+e_x > 0 */
+        {
+            err += (++x * 2 + 1) * (long) b * b;
+        }
+        if (e2 <= (y * 2 + 1) * (long) a * a) /* e_xy+e_y < 0 */
+        {
+            err += (++y * 2 + 1) * (long) a * a;
+        }
+    } while (x <= 0);
+
+    while (y++ < b)   /* too early stop of flat ellipses a=1, */
+    {
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm), yTr(ym + y), col); /* -> finish tip of ellipse */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm), yTr(ym - y), col);
     }
 }
 
@@ -236,6 +336,29 @@ void plotCircle(display_t* disp, int xm, int ym, int r, paletteColor_t col)
 		TURBO_SET_PIXEL_BOUNDS(disp, xm - y, ym - x, col); /*  II. Quadrant -x +y */
 		TURBO_SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant -x -y */
 		TURBO_SET_PIXEL_BOUNDS(disp, xm + y, ym + x, col); /*  IV. Quadrant +x -y */
+        r = err;
+        if (r <= y)
+        {
+            err += ++y * 2 + 1;    /* e_xy+e_y < 0 */
+        }
+        if (r > x || err > y) /* e_xy+e_x > 0 or no 2nd y-step */
+        {
+            err += ++x * 2 + 1;    /* -> x-step now */
+        }
+    } while (x < 0);
+}
+
+void plotCircleTranslate(display_t* disp, int xm, int ym, int r, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)
+{
+    SETUP_FOR_TURBO( disp );
+
+    int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
+    do
+    {
+		TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm - x), yTr(ym + y), col); /*   I. Quadrant +x +y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm - y), yTr(ym - x), col); /*  II. Quadrant -x +y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm + x), yTr(ym - y), col); /* III. Quadrant -x -y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm + y), yTr(ym + x), col); /*  IV. Quadrant +x -y */
         r = err;
         if (r <= y)
         {
@@ -309,6 +432,31 @@ void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col
     } while (x < 0);
 }
 
+void plotCircleFilledTranslate(display_t* disp, int xm, int ym, int r, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)
+{
+    SETUP_FOR_TURBO( disp );
+
+    int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
+    do
+    {
+        for (int lineX = xm + x; lineX <= xm - x; lineX++)
+        {
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr(lineX), yTr(ym - y), col);
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr(lineX), yTr(ym + y), col);
+        }
+
+        r = err;
+        if (r <= y)
+        {
+            err += ++y * 2 + 1;    /* e_xy+e_y < 0 */
+        }
+        if (r > x || err > y) /* e_xy+e_x > 0 or no 2nd y-step */
+        {
+            err += ++x * 2 + 1;    /* -> x-step now */
+        }
+    } while (x < 0);
+}
+
 void plotEllipseRect(display_t* disp, int x0, int y0, int x1,
                      int y1, paletteColor_t col)   /* rectangular parameter enclosing the ellipse */
 {
@@ -359,6 +507,59 @@ void plotEllipseRect(display_t* disp, int x0, int y0, int x1,
         TURBO_SET_PIXEL_BOUNDS(disp, x1 + 1, y0++, col);
         TURBO_SET_PIXEL_BOUNDS(disp, x0 - 1, y1, col);
         TURBO_SET_PIXEL_BOUNDS(disp, x1 + 1, y1--, col);
+    }
+}
+
+void plotEllipseRectTranslate(display_t* disp, int x0, int y0, int x1,
+                     int y1, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)   /* rectangular parameter enclosing the ellipse */
+{
+    SETUP_FOR_TURBO( disp );
+
+    long a = abs(x1 - x0), b = abs(y1 - y0), b1 = b & 1; /* diameter */
+    double dx = 4 * (1.0 - a) * b * b, dy = 4 * (b1 + 1) * a * a; /* error increment */
+    double err = dx + dy + b1 * a * a, e2; /* error of 1.step */
+
+    if (x0 > x1)
+    {
+        x0 = x1;
+        x1 += a;
+    } /* if called with swapped points */
+    if (y0 > y1)
+    {
+        y0 = y1;    /* .. exchange them */
+    }
+    y0 += (b + 1) / 2;
+    y1 = y0 - b1; /* starting pixel */
+    a = 8 * a * a;
+    b1 = 8 * b * b;
+
+    do
+    {
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x1), yTr(y0), col); /*   I. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y0), col); /*  II. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y1), col); /* III. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x1), yTr(y1), col); /*  IV. Quadrant */
+        e2 = 2 * err;
+        if (e2 <= dy)
+        {
+            y0++;
+            y1--;
+            err += dy += a;
+        } /* y step */
+        if (e2 >= dx || 2 * err > dy)
+        {
+            x0++;
+            x1--;
+            err += dx += b1;
+        } /* x step */
+    } while (x0 <= x1);
+
+    while (y0 - y1 <= b)   /* too early stop of flat ellipses a=1 */
+    {
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0 - 1), yTr(y0), col); /* -> finish tip of ellipse */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x1 + 1), yTr(y0++), col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0 - 1), yTr(y1), col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x1 + 1), yTr(y1--), col);
     }
 }
 

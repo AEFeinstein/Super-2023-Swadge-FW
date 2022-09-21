@@ -10,18 +10,26 @@
 
 #include "display.h"
 
+typedef int (*translateFn_t)(int);
+
 void oddEvenFill(display_t* disp, int x0, int y0, int x1, int y1,
                  paletteColor_t boundaryColor, paletteColor_t fillColor);
 
+void plotLineTranslate(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth, translateFn_t xTr, translateFn_t yTr);
 void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth);
 void plotRect(display_t*, int x0, int y0, int x1, int y1, paletteColor_t col);
+void plotRectTranslate(display_t*, int x0, int y0, int x1, int y1, paletteColor_t col, translateFn_t xTr, translateFn_t yTr);
 void plotEllipse(display_t*, int xm, int ym, int a, int b, paletteColor_t col);
+void plotEllipseTranslate(display_t*, int xm, int ym, int a, int b, paletteColor_t col, translateFn_t xTr, translateFn_t yTr);
 void plotOptimizedEllipse(display_t*, int xm, int ym, int a, int b, paletteColor_t col);
 void plotCircle(display_t*, int xm, int ym, int r, paletteColor_t col);
+void plotCircleTranslate(display_t*, int xm, int ym, int r, paletteColor_t col, translateFn_t xTr, translateFn_t yTr);
 void plotCircleQuadrants(display_t* disp, int xm, int ym, int r, bool q1,
                          bool q2, bool q3, bool q4, paletteColor_t col);
 void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col);
+void plotCircleFilledTranslate(display_t* disp, int xm, int ym, int r, paletteColor_t col, translateFn_t xTr, translateFn_t yTr);
 void plotEllipseRect(display_t*, int x0, int y0, int x1, int y1, paletteColor_t col);
+void plotEllipseRectTranslate(display_t*, int x0, int y0, int x1, int y1, paletteColor_t col, translateFn_t xTr, translateFn_t yTr);
 void plotQuadBezierSeg(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, paletteColor_t col);
 void plotQuadBezier(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, paletteColor_t col);
 void plotQuadRationalBezierSeg(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, float w, paletteColor_t col);
