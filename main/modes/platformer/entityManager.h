@@ -14,12 +14,18 @@
 #include "display.h"
 
 //==============================================================================
+// Constants
+//==============================================================================
+#define MAX_ENTITIES 16
+#define SPRITESET_SIZE 50
+
+//==============================================================================
 // Structs
 //==============================================================================
 
 struct entityManager_t
 {
-    wsg_t sprites[50];
+    wsg_t sprites[SPRITESET_SIZE];
     entity_t * entities;
     uint8_t activeEntities;
 
@@ -28,11 +34,6 @@ struct entityManager_t
 
     tilemap_t * tilemap;
 };
-
-//==============================================================================
-// Constants
-//==============================================================================
-#define MAX_ENTITIES 16
 
 //==============================================================================
 // Prototypes
@@ -76,7 +77,7 @@ entity_t* createBgColNeutralDarkGreen(entityManager_t * entityManager, uint16_t 
 entity_t* create1up(entityManager_t * entityManager, uint16_t x, uint16_t y);
 entity_t* createWaveBall(entityManager_t * entityManager, uint16_t x, uint16_t y);
 entity_t* createCheckpoint(entityManager_t * entityManager, uint16_t x, uint16_t y);
-
+void freeEntityManager(entityManager_t * entityManager);
 
 
 

@@ -327,3 +327,25 @@ bool needsTransparency(uint8_t tileId){
             return false;
     }
 }
+
+void freeTilemap(tilemap_t *tilemap){
+    free(tilemap->map);
+    for(u_int8_t i=0; i<TILESET_SIZE; i++){
+        switch(i){
+            //Skip all placeholder tiles, since they reuse other tiles
+            //(see loadTiles)
+            case 8:
+            case 10 ... 26:
+            case 39 ... 47:
+            {
+                break;
+            }
+            default: {
+                freeWsg(&tilemap->tiles[i]);
+                break;
+            }
+        }
+    }
+
+
+}

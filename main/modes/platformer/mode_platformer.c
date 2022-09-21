@@ -243,11 +243,8 @@ void platformerExitMode(void)
 {
     savePlatformerHighScores(platformer);
     freeFont(&platformer->radiostars);
-
-    // TODO
-    // freeWsg(platformer->tilemap->tiles);
-    // freeWsg(platformer->tilemap->tilemap_buffer);
-
+    freeTilemap(&(platformer->tilemap));
+    freeEntityManager(&(platformer->entityManager));
     free(platformer);
 }
 

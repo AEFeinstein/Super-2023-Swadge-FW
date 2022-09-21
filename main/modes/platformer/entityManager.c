@@ -1137,3 +1137,10 @@ entity_t* createCheckpoint(entityManager_t * entityManager, uint16_t x, uint16_t
 
     return entity;
 };
+
+void freeEntityManager(entityManager_t * self){
+    free(self->entities);
+    for(u_int8_t i=0; i<SPRITESET_SIZE; i++){
+        freeWsg(&self->sprites[i]);
+    }
+}
