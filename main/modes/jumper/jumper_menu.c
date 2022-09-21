@@ -28,6 +28,8 @@ typedef struct
     meleeMenu_t* menu;
     display_t* disp;
     jumperScreen_t screen;
+    bool ledEnabled;
+    uint8_t menuEntryForLEDs;
 } jumperMenu_t;
 
 //==============================================================================
@@ -66,6 +68,9 @@ static const char str_jumpTitle[] = "Donut Jump!";
 static const char str_jump[] = "Jump";
 static const char str_exit[] = "Exit";
 
+static const char str_LEDOn[] = "LED [X]";
+static const char str_LEDOff[] = "LED [ ]";
+
 jumperMenu_t* jm;
 
 //==============================================================================
@@ -83,6 +88,7 @@ void jumperEnterMode(display_t* disp)
     jm = calloc(1, sizeof(jumperMenu_t));
 
     jm->disp = disp;
+    jm->ledEnabled = true;
 
     loadFont("mm.font", &(jm->mmFont));
 
@@ -115,6 +121,7 @@ void jumperMainLoop(int64_t elapsedUs)
     {
         case JUMPER_MENU:
         {
+            
             drawMeleeMenu(jm->disp, jm->menu);
             break;
         }
@@ -162,19 +169,56 @@ void jumperButtonCb(buttonEvt_t* evt)
  */
 void setJumperMainMenu(void)
 {
-    resetMeleeMenu(jm->menu, str_jumpTitle, jumperMainMenuCb);
+    resetMeleeMenu(jm->menu, str_jumpTitle, jumperMainMenuCb); //ledEnabled
     addRowToMeleeMenu(jm->menu, str_jump);
+    jm->menuEntryForLEDs = addRowToMeleeMenu(jm->menu, (jm->ledEnabled ? str_LEDOn : str_LEDOff));
     addRowToMeleeMenu(jm->menu, str_exit);
+
+    /*
+
+    addRowToMeleeMenu(flight->menu, fl_flight_perf);
+    flight->menuEntryForInvertY = addRowToMeleeMenu( flight->menu, flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env );
+    */
     jm->screen = JUMPER_MENU;
 }
+
+/*
+jumperSaveData_t * getFlightSaveData()
+{
+    if( !didFlightsimDataLoad )
+    {
+        size_t size = sizeof(savedata);
+        bool r = readNvsBlob( "flightsim", &savedata, &size );
+        if( !r || size != sizeof( savedata ) )
+        {
+            memset( &savedata, 0, sizeof( savedata ) );
+        }
+        didFlightsimDataLoad = 1;
+    }
+    return &savedata;
+}*/
 
 void jumperMainMenuCb(const char* opt)
 {
     if (opt == str_jump)
     {
-        ESP_LOGI("FTR", "Let's go!");
-        jumperStartGame(jm->disp, &jm->mmFont);
+        ESP_LOGI("JUM", "Let's go!");
+        jumperStartGame(jm->disp, &jm->mmFont, jm->ledEnabled);
         jm->screen = JUMPER_GAME;
+        return;
+    }
+
+    if (opt == str_LEDOn)
+    {
+        jm->menu->rows[jm->menuEntryForLEDs] = str_LEDOff;
+        jm->ledEnabled = false;
+        return;
+    }
+
+    if (opt == str_LEDOff)
+    {
+        jm->menu->rows[jm->menuEntryForLEDs] = str_LEDOn;
+        jm->ledEnabled = true;
         return;
     }
 
@@ -182,5 +226,6 @@ void jumperMainMenuCb(const char* opt)
     {
         // Exit to main menu
         switchToSwadgeMode(&modeMainMenu);
+        return;
     }
 }

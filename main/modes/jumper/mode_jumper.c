@@ -209,14 +209,24 @@ static const song_t jumpBlumpJump =
  * @param mmFont The font used for teh HUD, already loaded
  *
  */
-void jumperStartGame(display_t* disp, font_t* mmFont)
+void jumperStartGame(display_t* disp, font_t* mmFont, bool ledEnabled)
 {
     j = calloc(1, sizeof(jumperGame_t));
     j->d = disp;
     j->prompt_font = mmFont;
+    
     loadFont("early_gameboy_fill.font", &(j->fill_font));
     loadFont("early_gameboy_outline.font", &(j->outline_font));
     loadFont("early_gameboy.font", &(j->game_font));
+
+    if (ledEnabled)
+    {
+        ESP_LOGI("JUM", "LED ON");
+    }
+    else
+    {        
+        ESP_LOGI("JUM", "LED OFF");
+    }
 
     j->multiplier = calloc(3, sizeof(jumperMultiplier_t));
 
@@ -289,6 +299,7 @@ void jumperStartGame(display_t* disp, font_t* mmFont)
     jumperSetupState(0);
 }
 
+
 void jumperSetupState(uint8_t stageIndex)
 {
     j->currentPhase = JUMPER_COUNTDOWN;
@@ -299,6 +310,7 @@ void jumperSetupState(uint8_t stageIndex)
     j->scene->blockOffset_y = 54;
     j->scene->currentPowerup->powerupSpawned = false;
     j->scene->currentPowerup->powerupTime = (esp_random() % 6);
+    j->scene->freezeTimer = 0;
 
     jumperResetPlayer();
 
@@ -407,6 +419,7 @@ void jumperResetPlayer()
     j->player->jumpReady = true;
     j->player->jumping  = false;
     j->player->flipped = false;
+    j->scene->freezeTimer = 0;
 
     
 }
@@ -454,6 +467,7 @@ void jumperGameLoop(int64_t elapsedUs)
     jumperCharacter_t* evilDonut = j->evilDonut;
     jumperCharacter_t* blump = j->blump;
 
+
     j->scene->time -= elapsedUs;
     j->scene->seconds = (j->scene->time / TO_SECONDS);
     switch(j->currentPhase)
@@ -499,7 +513,14 @@ void jumperGameLoop(int64_t elapsedUs)
             }
             break;
         case JUMPER_GAMING:
-            if (player->state != CHARACTER_DYING)
+        
+            if (j->scene->freezeTimer > 0) 
+            {
+                j->scene->freezeTimer -= elapsedUs;
+                ESP_LOGI("JUM", "FEEZE %d", j->scene->freezeTimer);
+            }
+
+            if (player->state != CHARACTER_DYING && j->scene->freezeTimer <= 0)
             {
                 jumperDoEvilDonut(elapsedUs);
                 jumperDoBlump(elapsedUs);
@@ -812,24 +833,8 @@ void jumperGameLoop(int64_t elapsedUs)
             buzzer_play_sfx(&jumperPlayerCollect);
             j->scene->score += 2000;
 
-            if (blump->state != CHARACTER_DYING && blump->state != CHARACTER_DEAD && blump->state != CHARACTER_NONEXISTING)
-            {
-                blump->state = CHARACTER_DYING;
-            }
-            else
-            {
-                blump->respawnTime = 6000000;                
-            }
+            j->scene->freezeTimer = 10000000;
 
-            if (evilDonut->state != CHARACTER_DYING && evilDonut->state != CHARACTER_DEAD && evilDonut->state != CHARACTER_NONEXISTING)
-            {                
-                evilDonut->state = CHARACTER_DYING;
-                evilDonut->respawnTime = 8000000;
-            }
-            else
-            {
-                evilDonut->respawnTime = 8000000;
-            }
 
         }
     }

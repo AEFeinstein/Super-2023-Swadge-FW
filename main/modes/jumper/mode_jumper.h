@@ -95,6 +95,7 @@ typedef struct
     int32_t level;
     int32_t time;
     int32_t previousSecond;
+    int32_t freezeTimer;
     int32_t seconds;
     int8_t blockOffset_x;
     int8_t blockOffset_y;
@@ -131,6 +132,7 @@ typedef struct
     font_t* prompt_font;
     jumperStage_t* scene;
     bool controlsEnabled;
+    bool ledEnabled;
     uint8_t respawnBlock;
 
     uint64_t jumperJumpTime;
@@ -145,7 +147,7 @@ typedef struct
 } jumperGame_t;
 
 
-void jumperStartGame(display_t* disp, font_t* mmFont);
+void jumperStartGame(display_t* disp, font_t* mmFont,  bool ledEnabled);
 void jumperGameLoop(int64_t elapsedUs);
 void jumperGameButtonCb(buttonEvt_t* evt);
 void jumperExitGame(void);
