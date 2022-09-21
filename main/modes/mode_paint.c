@@ -14,14 +14,21 @@
 
 #include "mode_main_menu.h"
 
+
 /*
  * REMAINING BIG THINGS TO DO:
  *
  * - Fix swapping fg/bg color sometimes causing current color not to be the first in the color picker list
- * (makes it so if you change a tool, it also changes your color)
+ * (sometimes this makes it so if you change a tool, it also changes your color)
  * - Draw icons for the tools?
  * - Move the pixelStack implementation into a self-contained struct so we can have separate ones for e.g. custom cursors
- * - Scaling support: abstract away all the drawing functions... how will we deal with polygons and such???
+ * - Move basically everything to work in the canvas coordinate space. translateX()/translateY() will take care of the rest!
+ * - Probably related, figure out why only square pen is double-translating???
+ * - Fix the pick markers not really working
+ * - Explicitly mark everything that doesn't work in the canvas coordinate space for whatever reason
+ * - Make the pixel push/pop work for Big PixelsTM
+ * - Sharing! How will that work...
+ * -
  * - Airbrush tool
  * - Stamp tool?
  * - Copy/paste???
@@ -29,6 +36,7 @@
  *
  *
  * MORE MINOR POLISH THINGS:
+ *
  * - Always draw the cursor in a contrasting color
  * - Use different pick markers / cursors for each brush (e.g. crosshair for circle pen, two L-shaped crosshairs for box pen...)
  */
@@ -41,6 +49,8 @@ static const char menuOptExit[] = "Exit";
 
 #define PIXEL_STACK_MIN_SIZE 2
 #define MAX_PICK_POINTS 16
+// hold button for .3s to repeat
+#define BUTTON_REPEAT_TIME 300000
 
 #define CURSOR_POINTS 8
 static const int8_t cursorShapeX[CURSOR_POINTS] = {-2, -1,  0,  0,  1, 2, 0, 0};
@@ -166,6 +176,11 @@ typedef struct
     bool doSave, saveInProgress;
     bool wasSaved;
 
+    bool firstMove;
+    int64_t btnHoldTime;
+
+    int subPixelOffsetX, subPixelOffsetY;
+
     uint8_t paletteSelect;
 
     int16_t cursorX, cursorY;
@@ -233,6 +248,8 @@ paintMenu_t* paintState;
 
 // Util function declarations
 
+int xTranslate(int x);
+int yTranslate(int y);
 void paintInitialize();
 void paintRenderAll();
 void paintRenderCursor();
@@ -253,6 +270,15 @@ void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t sea
 
 
 // Mode struct function implemetations
+
+int xTranslate(int x)
+{
+    return (x - PAINT_CANVAS_X_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_X_OFFSET + paintState->subPixelOffsetX;
+}
+int yTranslate(int y)
+{
+    return (y - PAINT_CANVAS_Y_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_Y_OFFSET + paintState->subPixelOffsetY;
+}
 
 void paintEnterMode(display_t* disp)
 {
@@ -326,7 +352,7 @@ void paintMainLoop(int64_t elapsedUs)
         {
             if (paintState->aHeld)
             {
-                paintDoTool(PAINT_CANVAS_X_OFFSET + paintState->cursorX, PAINT_CANVAS_Y_OFFSET + paintState->cursorY, paintState->fgColor);
+                paintDoTool(PAINT_CANVAS_X_OFFSET + paintState->cursorX / PAINT_CANVAS_SCALE, PAINT_CANVAS_Y_OFFSET + paintState->cursorY / PAINT_CANVAS_SCALE, paintState->fgColor);
 
                 if (paintState->brush->mode != HOLD_DRAW)
                 {
@@ -336,8 +362,15 @@ void paintMainLoop(int64_t elapsedUs)
 
             if (paintState->moveX || paintState->moveY)
             {
-                paintMoveCursorRel(paintState->moveX, paintState->moveY);
-                paintRenderAll();
+                paintState->btnHoldTime += elapsedUs;
+                if (paintState->firstMove || paintState->btnHoldTime >= BUTTON_REPEAT_TIME)
+                {
+
+                    paintMoveCursorRel(paintState->moveX, paintState->moveY);
+                    paintRenderAll();
+
+                    paintState->firstMove = false;
+                }
             }
             break;
         }
@@ -382,19 +415,23 @@ void paintButtonCb(buttonEvt_t* evt)
 
                 if (evt->button & UP)
                 {
+                    paintState->firstMove = true;
                     paintState->moveY = -1;
                 }
                 else if (evt->button & DOWN)
                 {
+                    paintState->firstMove = true;
                     paintState->moveY = 1;
                 }
 
                 if (evt->button & LEFT)
                 {
+                    paintState->firstMove = true;
                     paintState->moveX = -1;
                 }
                 else if (evt->button & RIGHT)
                 {
+                    paintState->firstMove = true;
                     paintState->moveX = 1;
                 }
             }
@@ -481,11 +518,23 @@ void paintButtonCb(buttonEvt_t* evt)
                 if (evt->button & (UP | DOWN))
                 {
                     paintState->moveY = 0;
+
+                    // Reset the button hold time, but only if we're not holding another direction
+                    // This lets you make turns quickly instead of waiting for the repeat timeout in the middle
+                    if (!paintState->moveX)
+                    {
+                        paintState->btnHoldTime = 0;
+                    }
                 }
 
                 if (evt->button & (LEFT | RIGHT))
                 {
                     paintState->moveX = 0;
+
+                    if (!paintState->moveY)
+                    {
+                        paintState->btnHoldTime = 0;
+                    }
                 }
             }
         }
@@ -601,7 +650,7 @@ void paintMainMenuCb(const char* opt)
 
 void paintClearCanvas()
 {
-    fillDisplayArea(paintState->disp, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_X_OFFSET + paintState->canvasW, PAINT_CANVAS_Y_OFFSET + paintState->canvasH, paintState->bgColor);
+    fillDisplayArea(paintState->disp, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_X_OFFSET + paintState->canvasW * PAINT_CANVAS_SCALE, PAINT_CANVAS_Y_OFFSET + paintState->canvasH * PAINT_CANVAS_SCALE, paintState->bgColor);
 }
 
 void paintRenderAll()
@@ -677,7 +726,7 @@ void disableCursor()
 
 void plotRectFilled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col)
 {
-    fillDisplayArea(disp, x0, y0, x1, y1, col);
+    fillDisplayArea(disp, xTranslate(x0), yTranslate(y0), xTranslate(x1) + PAINT_CANVAS_SCALE - 1, yTranslate(y1) + PAINT_CANVAS_SCALE - 1, col);
 }
 
 void paintRenderToolbar()
@@ -690,32 +739,37 @@ void paintRenderToolbar()
     // Fill left side bar
     fillDisplayArea(paintState->disp, 0, 0, PAINT_CANVAS_X_OFFSET, paintState->disp->h, PAINT_TOOLBAR_BG);
 
-    // Fill bottom bar, if there's room
-    if (PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT < paintState->disp->h)
+    // Fill right bar, if there's room
+    if (PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_HEIGHT * PAINT_CANVAS_SCALE < paintState->disp->w)
     {
-        fillDisplayArea(paintState->disp, 0, PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT, paintState->disp->w, paintState->disp->h, PAINT_TOOLBAR_BG);
+        fillDisplayArea(paintState->disp, PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_WIDTH * PAINT_CANVAS_SCALE, 0, paintState->disp->w, paintState->disp->h, PAINT_TOOLBAR_BG);
+    }
+
+    // Fill bottom bar, if there's room
+    if (PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT * PAINT_CANVAS_SCALE < paintState->disp->h)
+    {
+        fillDisplayArea(paintState->disp, 0, PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT * PAINT_CANVAS_SCALE, paintState->disp->w, paintState->disp->h, PAINT_TOOLBAR_BG);
 
         // Draw a black rectangle under where the exit progress bar will be so it can be seen
         fillDisplayArea(paintState->disp, 0, paintState->disp->h - 11, paintState->disp->w, paintState->disp->h, c000);
     }
 
-    // Fill right bar, if there's room
-    if (PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_HEIGHT < paintState->disp->w)
-    {
-        fillDisplayArea(paintState->disp, PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_WIDTH, 0, paintState->disp->w, paintState->disp->h, PAINT_TOOLBAR_BG);
-    }
-
     // Draw border around canvas
-    plotRect(paintState->disp, PAINT_CANVAS_X_OFFSET - 1, PAINT_CANVAS_Y_OFFSET - 1, PAINT_CANVAS_X_OFFSET + paintState->canvasW + 1, PAINT_CANVAS_Y_OFFSET + paintState->canvasH + 1, c000);
+    plotRect(paintState->disp, PAINT_CANVAS_X_OFFSET - 1, PAINT_CANVAS_Y_OFFSET - 1, PAINT_CANVAS_X_OFFSET + paintState->canvasW * PAINT_CANVAS_SCALE + 1, PAINT_CANVAS_Y_OFFSET + paintState->canvasH * PAINT_CANVAS_SCALE + 1, c000);
 
-    //////// Active Colors
-    plotRectFilled(paintState->disp, 4, PAINT_CANVAS_Y_OFFSET + 4, 4 + 8, PAINT_CANVAS_Y_OFFSET + 4 + 8, paintState->bgColor);
-    plotRectFilled(paintState->disp, 4 + 4, PAINT_CANVAS_Y_OFFSET + 4 + 4, 4 + 4 + 8, PAINT_CANVAS_Y_OFFSET + 4 + 4 + 8, paintState->fgColor);
+
+
+    int16_t activeColorOffsetX = 4;
+    int16_t activeColorOffsetY = 4;
 
     // The number of vertical pixels between each color box (not including borders)
     int16_t spaceBetween = 2;
     // The width and height of the color box, not including borders
     int16_t colorBoxSize = 8;
+
+    //////// Active Colors
+    fillDisplayArea(paintState->disp, activeColorOffsetX, PAINT_CANVAS_Y_OFFSET + activeColorOffsetY, activeColorOffsetX + colorBoxSize, PAINT_CANVAS_Y_OFFSET + activeColorOffsetY + colorBoxSize, paintState->bgColor);
+    fillDisplayArea(paintState->disp, activeColorOffsetX + colorBoxSize / 2, PAINT_CANVAS_Y_OFFSET + activeColorOffsetY + colorBoxSize / 2, activeColorOffsetX + colorBoxSize / 2 + colorBoxSize, PAINT_CANVAS_Y_OFFSET + activeColorOffsetY + colorBoxSize / 2 + colorBoxSize, paintState->fgColor);
 
     // The starting X and Y of the first color box, not including borders
     int16_t colorBoxStartY = PAINT_CANVAS_Y_OFFSET + 16 + spaceBetween * 2;
@@ -735,14 +789,14 @@ void paintRenderToolbar()
 
         if (paintState->recentColors[i] == cTransparent)
         {
-            plotRectFilled(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize / 2, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize / 2, c111);
-            plotRectFilled(paintState->disp, colorBoxStartX + (colorBoxSize / 2), colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize / 2, c555);
-            plotRectFilled(paintState->disp, colorBoxStartX, (colorBoxSize / 2) + colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize / 2, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, c555);
-            plotRectFilled(paintState->disp, colorBoxStartX + (colorBoxSize / 2), (colorBoxSize / 2) + colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, c111);
+            fillDisplayArea(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize / 2, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize / 2, c111);
+            fillDisplayArea(paintState->disp, colorBoxStartX + (colorBoxSize / 2), colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize / 2, c555);
+            fillDisplayArea(paintState->disp, colorBoxStartX, (colorBoxSize / 2) + colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize / 2, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, c555);
+            fillDisplayArea(paintState->disp, colorBoxStartX + (colorBoxSize / 2), (colorBoxSize / 2) + colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, c111);
         }
         else
         {
-            plotRectFilled(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, paintState->recentColors[i]);
+            fillDisplayArea(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, paintState->recentColors[i]);
         }
 
 
@@ -861,7 +915,7 @@ void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t sea
         // now at this point we can begin to scan the current row in the rectangular block. the span of the previous
         // row from x (inclusive) to x+lastRowLength (exclusive) has already been filled, so we don't need to
         // check it. so scan across to the right in the current row
-        for(; sx < PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_WIDTH && disp->getPx(sx, y) == search; rowLength++, sx++) disp->setPx(sx, y, fill);
+        for(; sx < PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_WIDTH * PAINT_CANVAS_SCALE && disp->getPx(sx, y) == search; rowLength++, sx++) disp->setPx(sx, y, fill);
         // now we've scanned this row. if the block is rectangular, then the previous row has already been scanned,
         // so we don't need to look upwards and we're going to scan the next row in the next iteration so we don't
         // need to look downwards. however, if the block is not rectangular, we may need to look upwards or rightwards
@@ -885,23 +939,26 @@ void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t sea
             }
         }
         lastRowLength = rowLength; // record the new row length
-    } while(lastRowLength != 0 && ++y < PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT); // if we get to a full row or to the bottom, we're done
+    } while(lastRowLength != 0 && ++y < PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT * PAINT_CANVAS_SCALE); // if we get to a full row or to the bottom, we're done
 }
 
 // void (*fnDraw)(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col);
 void paintDrawSquarePen(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    plotRectFilled(disp, points[0].x, points[0].y, points[0].x + size, points[0].y + size, col);
+    if (paintState->subPixelOffsetX == 0 && paintState->subPixelOffsetY == 0)
+    {
+        plotRectFilled(disp, points[0].x, points[0].y, points[0].x + size, points[0].y + size, col);
+    }
 }
 
 void paintDrawCirclePen(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    plotCircleFilled(disp, points[0].x, points[0].y, size, col);
+    plotCircleFilledTranslate(disp, points[0].x, points[0].y, size, col, xTranslate, yTranslate);
 }
 
 void paintDrawLine(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    plotLine(paintState->disp, points[0].x, points[0].y, points[1].x, points[1].y, col, 0);
+    plotLineTranslate(paintState->disp, points[0].x, points[0].y, points[1].x, points[1].y, col, 0, xTranslate, yTranslate);
 }
 
 void paintDrawCurve(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
@@ -916,7 +973,7 @@ void paintDrawRectangle(display_t* disp, point_t* points, uint8_t numPoints, uin
     uint16_t x1 = (points[0].x > points[1].x) ? points[0].x : points[1].x;
     uint16_t y1 = (points[0].y > points[1].y) ? points[0].y : points[1].y;
 
-    plotRect(disp, x0, y0, x1 + 1, y1 + 1, col);
+    plotRectTranslate(disp, x0, y0, x1 + 1, y1 + 1, col, xTranslate, yTranslate);
 }
 
 void paintDrawFilledRectangle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
@@ -926,7 +983,11 @@ void paintDrawFilledRectangle(display_t* disp, point_t* points, uint8_t numPoint
     uint16_t x1 = (points[0].x > points[1].x) ? points[0].x : points[1].x;
     uint16_t y1 = (points[0].y > points[1].y) ? points[0].y : points[1].y;
 
-    plotRectFilled(disp, x0, y0, x1 + 1, y1 + 1, col);
+    // This function takes care of its own scaling because it's very easy and will save a lot of unnecessary draws
+    if (paintState->subPixelOffsetX == 0 && paintState->subPixelOffsetY == 0)
+    {
+        plotRectFilled(disp, x0, y0, x1 + 1, y1 + 1, col);
+    }
 }
 
 void paintDrawCircle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
@@ -935,7 +996,7 @@ void paintDrawCircle(display_t* disp, point_t* points, uint8_t numPoints, uint16
     uint16_t dY = abs(points[0].y - points[1].y);
     uint16_t r = (uint16_t)(sqrt(dX*dX+dY*dY) + 0.5);
 
-    plotCircle(disp, points[0].x, points[0].y, r, col);
+    plotCircleTranslate(disp, points[0].x, points[0].y, r, col, xTranslate, yTranslate);
 }
 
 void paintDrawFilledCircle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
@@ -944,7 +1005,7 @@ void paintDrawFilledCircle(display_t* disp, point_t* points, uint8_t numPoints, 
     uint16_t dY = abs(points[0].y - points[1].y);
     uint16_t r = (uint16_t)(sqrt(dX*dX+dY*dY) + 0.5);
 
-    plotCircleFilled(disp, points[0].x, points[1].x, r, col);
+    plotCircleFilledTranslate(disp, points[0].x, points[1].x, r, col, xTranslate, yTranslate);
 }
 
 void paintDrawEllipse(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
@@ -954,7 +1015,7 @@ void paintDrawEllipse(display_t* disp, point_t* points, uint8_t numPoints, uint1
     pushPx((points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[0].y - 2 : points[1].y - 2);
     pushPx((points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[1].y + 2 : points[0].y + 2);
 
-    plotEllipseRect(disp, points[0].x, points[0].y, points[1].x, points[1].y, col);
+    plotEllipseRectTranslate(disp, points[0].x, points[0].y, points[1].x, points[1].y, col, xTranslate, yTranslate);
 
     popPx();
     popPx();
@@ -964,19 +1025,25 @@ void paintDrawPolygon(display_t* disp, point_t* points, uint8_t numPoints, uint1
 {
     for (uint8_t i = 0; i < numPoints - 1; i++)
     {
-        plotLine(disp, points[i].x, points[i].y, points[i+1].x, points[i+1].y, col, 0);
+        plotLineTranslate(disp, points[i].x, points[i].y, points[i+1].x, points[i+1].y, col, 0, xTranslate, yTranslate);
     }
 }
 
 void paintDrawPaintBucket(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    floodFill(disp, points[0].x, points[0].y, col);
+    if (paintState->subPixelOffsetX == 0 && paintState->subPixelOffsetY == 0)
+    {
+        floodFill(disp, xTranslate(points[0].x), yTranslate(points[0].y), col);
+    }
 }
 
 void paintDrawClear(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    disp->clearPx();
-    floodFill(disp, CNV2SCR_X(0), CNV2SCR_Y(0), col);
+    // No need to translate here, so only draw once
+    if (paintState->subPixelOffsetX == 0 && paintState->subPixelOffsetY == 0)
+    {
+        fillDisplayArea(disp, CNV2SCR_X(0), CNV2SCR_Y(0), CNV2SCR_X(PAINT_CANVAS_WIDTH), CNV2SCR_Y(PAINT_CANVAS_HEIGHT), col);
+    }
 }
 
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
@@ -1048,7 +1115,20 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
             }
         }
 
-        paintState->brush->fnDraw(paintState->disp, paintState->pickPoints, paintState->pickCount, paintState->brushWidth, col);
+        for (size_t i = 0; i < paintState->pickCount; i++)
+        {
+            paintState->pickPoints[i].x = (paintState->pickPoints[i].x - PAINT_CANVAS_X_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_X_OFFSET;
+            paintState->pickPoints[i].y = (paintState->pickPoints[i].y - PAINT_CANVAS_Y_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_Y_OFFSET;
+        }
+
+        for (paintState->subPixelOffsetX = 0; paintState->subPixelOffsetX < PAINT_CANVAS_SCALE; paintState->subPixelOffsetX++)
+        {
+            for (paintState->subPixelOffsetY = 0; paintState->subPixelOffsetY < PAINT_CANVAS_SCALE; paintState->subPixelOffsetY++)
+            {
+                paintState->brush->fnDraw(paintState->disp, paintState->pickPoints, paintState->pickCount, paintState->brushWidth, col);
+            }
+        }
+
         paintState->pickCount = 0;
     }
 
@@ -1179,6 +1259,7 @@ void paintMoveCursorRel(int8_t xDiff, int8_t yDiff)
 {
     paintState->lastCursorX = paintState->cursorX;
     paintState->lastCursorY = paintState->cursorY;
+
     // TODO: prevent overflow when bounds checking
     if (paintState->cursorX + xDiff < 0)
     {
@@ -1421,6 +1502,15 @@ void paintLoad(uint8_t slot)
             }
             paintState->disp->setPx(x1, y1, paintState->recentColors[imgChunk[n] & 0xF]);
         }
+    }
+
+    // This should't be necessary but whenever I change the canvas dimensions it breaks stuff
+    if (paintState->canvasH > PAINT_CANVAS_HEIGHT || paintState->canvasW > PAINT_CANVAS_WIDTH)
+    {
+        paintState->canvasH = PAINT_CANVAS_HEIGHT;
+        paintState->canvasW = PAINT_CANVAS_WIDTH;
+
+        ESP_LOGW("Paint", "Loaded image had invalid bounds. Resetting to %d x %d", paintState->canvasW, paintState->canvasH);
     }
 
     free(imgChunk);
