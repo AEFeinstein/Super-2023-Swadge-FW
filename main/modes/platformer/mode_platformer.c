@@ -22,6 +22,7 @@
 #include "leveldef.h"
 #include "led_util.h"
 #include "palette.h"
+#include "nvs_manager.h"
 
 //==============================================================================
 // Constants
@@ -114,6 +115,8 @@ struct platformer_t
 
     int32_t frameTimer;
 
+    platformerHighScores_t highScores;
+
     gameUpdateFuncton_t update;
 };
 
@@ -139,7 +142,11 @@ void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData);
 void changeStateGameClear(platformer_t *self);
 void updateGameClear(platformer_t *self);
 void drawGameClear(display_t *d, font_t *font, gameData_t *gameData);
-static void platformerBackground(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum );
+void loadPlatformerHighScores(platformer_t* self);
+void drawPlatformerHighScores(display_t *d, font_t *font, platformerHighScores_t *highScores);
+uint8_t getHighScoreRank(platformerHighScores_t *highScores, uint32_t newScore);
+void insertScoreIntoHighScores(platformerHighScores_t *highScores, uint32_t newScore, char newInitials[], uint8_t rank);
+
 
 //==============================================================================
 // Variables
@@ -202,6 +209,9 @@ void platformerEnterMode(display_t *disp)
     platformer->menuSelection = 0;
     platformer->btnState = 0;
     platformer->prevBtnState = 0;
+
+    loadPlatformerHighScores(platformer);
+    insertScoreIntoHighScores(&(platformer->highScores), 1000000, "EFV", getHighScoreRank(&(platformer->highScores), 1000000));
 
     loadFont("radiostars.font", &platformer->radiostars);
 
@@ -455,7 +465,7 @@ void updateTitleScreen(platformer_t *self)
     
 
     drawPlatformerTitleScreen(self->disp, &(self->radiostars), &(self->gameData));
-
+    drawPlatformerHighScores(self->disp, &(self->radiostars), &(self->highScores));
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
 }
@@ -697,4 +707,63 @@ void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     drawText(d, font, c555, "Many more battle scenes", 8, 96);
     drawText(d, font, c555, "will soon be available!", 8, 112);
     drawText(d, font, c555, "Bonus 100000pts per life!", 8, 160);
+}
+
+void loadPlatformerHighScores(platformer_t* self)
+{
+    // Try reading the value
+    if(false == readNvsBlob("pf_scores", &(self->highScores), (size_t)sizeof(platformerHighScores_t)))
+    {
+        // Value didn't exist, so write the default
+        self->highScores.scores[0] = 100000;
+        self->highScores.scores[1] = 80000;
+        self->highScores.scores[2] = 40000;
+        self->highScores.scores[3] = 20000;
+        self->highScores.scores[4] = 10000;
+
+        for(uint8_t i=0; i<NUM_PLATFORMER_HIGH_SCORES; i++){
+            self->highScores.initials[i][0] = 'J';
+            self->highScores.initials[i][1] = 'P';
+            self->highScores.initials[i][2] = 'V';
+        }
+    }
+}
+
+void drawPlatformerHighScores(display_t *d, font_t *font, platformerHighScores_t *highScores){
+    for(uint8_t i=0; i<NUM_PLATFORMER_HIGH_SCORES; i++){
+        char rowStr[32];
+        snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06d   %c%c%c", i+1, highScores->scores[i], highScores->initials[i][0], highScores->initials[i][1], highScores->initials[i][2]);
+        drawText(d, font, c555, rowStr, 64, 128 + i*16);
+    }
+}
+
+uint8_t getHighScoreRank(platformerHighScores_t *highScores, uint32_t newScore){
+    uint8_t i;
+    for(i=0; i<NUM_PLATFORMER_HIGH_SCORES; i++){
+        if(highScores->scores[i] < newScore){
+            break;
+        }
+    }
+
+    return i;
+}
+
+void insertScoreIntoHighScores(platformerHighScores_t *highScores, uint32_t newScore, char newInitials[], uint8_t rank){
+
+    if(rank >= NUM_PLATFORMER_HIGH_SCORES){
+        return;
+    }
+
+    for(uint8_t i=NUM_PLATFORMER_HIGH_SCORES - 1; i>rank; i--){
+        highScores->scores[i] = highScores->scores[i-1];
+        highScores->initials[i][0] = highScores->initials[i-1][0];
+        highScores->initials[i][1] = highScores->initials[i-1][1];
+        highScores->initials[i][2] = highScores->initials[i-1][2];
+    }
+
+    highScores->scores[rank] = newScore;
+    highScores->initials[rank][0] = newInitials[0];
+    highScores->initials[rank][1] = newInitials[1];
+    highScores->initials[rank][2] = newInitials[2];
+    
 }
