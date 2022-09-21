@@ -509,24 +509,52 @@ bool hintsMatch(picrossHint_t a, picrossHint_t b)
 }
 bool hintIsFilledIn(picrossHint_t* hint)
 {
-    if(hint->isRow)
+    uint8_t segmentIndex = 0;
+    uint8_t segmentLengths[PICROSS_MAX_HINTCOUNT] = {0};
+    picrossSpaceType_t lastSpace = OUTOFBOUNDS;
+
+    uint8_t colInc = hint->isRow ? 1 : 0;
+    uint8_t rowInc = hint->isRow ? 0 : 1;
+    uint8_t row = (hint->isRow) ? hint->index : 0;
+    uint8_t col = (hint->isRow) ? 0 : hint->index;
+
+    for (; row < p->puzzle->height && col < p->puzzle->width; row += rowInc, col += colInc)
     {
-        for(uint8_t i = 0;i<p->puzzle->width;i++)
+        switch (p->puzzle->level[col][row])
         {
-            if(p->puzzle->level[i][hint->index] == SPACE_EMPTY)
+            case SPACE_EMPTY:
+            case SPACE_MARKEMPTY:
+            case OUTOFBOUNDS:
+            if (lastSpace == SPACE_FILLED)
             {
-                hint->filledIn = false;
-                return false;
+                segmentIndex++;
             }
+            lastSpace = SPACE_EMPTY;
+            break;
+
+            case SPACE_FILLED:
+            segmentLengths[segmentIndex]++;
+            lastSpace = SPACE_FILLED;
+            break;
         }
-    }else{
-        for(uint8_t i = 0;i<p->puzzle->height;i++)
+    }
+
+    uint8_t skippedHints = 0;
+    for (uint8_t hintIndex = 0; hintIndex < PICROSS_MAX_HINTCOUNT; hintIndex++)
+    {
+        // if the first hint is 0, we need to skip it so the segments match up
+        // but only skip the first one, otherwise we would mark it as filled
+        // even if there are extra segments after the ones that match the hints
+        if (hint->hints[hintIndex] == 0 && skippedHints == 0)
         {
-            if(p->puzzle->level[hint->index][i] == SPACE_EMPTY)
-            {
-                hint->filledIn = false;
-                return false;
-            }
+            skippedHints++;
+            continue;
+        }
+
+        if (segmentLengths[hintIndex-skippedHints] != hint->hints[hintIndex])
+        {
+            hint->filledIn = false;
+            return false;
         }
     }
     hint->filledIn = true;
