@@ -25,6 +25,7 @@
     gameData->initials[0] = 'A';
     gameData->initials[1] = 'A';
     gameData->initials[2] = 'A';
+    gameData->rank = 5;
 }
 
  void initializeGameDataFromTitleScreen(gameData_t * gameData){

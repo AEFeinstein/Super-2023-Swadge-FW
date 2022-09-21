@@ -82,6 +82,8 @@ static const song_t sndMenuDeny =
     .shouldLoop = false
 };
 
+static const paletteColor_t highScoreNewEntryColors[3] = {c050, c055, c005};
+
 //==============================================================================
 // Functions Prototypes
 //==============================================================================
@@ -144,7 +146,7 @@ void updateGameClear(platformer_t *self);
 void drawGameClear(display_t *d, font_t *font, gameData_t *gameData);
 void loadPlatformerHighScores(platformer_t* self);
 void savePlatformerHighScores(platformer_t* self);
-void drawPlatformerHighScores(display_t *d, font_t *font, platformerHighScores_t *highScores);
+void drawPlatformerHighScores(display_t *d, font_t *font, platformerHighScores_t *highScores, gameData_t *gameData);
 uint8_t getHighScoreRank(platformerHighScores_t *highScores, uint32_t newScore);
 void insertScoreIntoHighScores(platformerHighScores_t *highScores, uint32_t newScore, char newInitials[], uint8_t rank);
 void changeStateNameEntry(platformer_t *self);
@@ -741,12 +743,12 @@ void savePlatformerHighScores(platformer_t* self){
     writeNvsBlob( "pf_scores", &(self->highScores), size);
 }
 
-void drawPlatformerHighScores(display_t *d, font_t *font, platformerHighScores_t *highScores){
+void drawPlatformerHighScores(display_t *d, font_t *font, platformerHighScores_t *highScores, gameData_t *gameData){
     drawText(d, font, c555, "RANK  SCORE  NAME", 48, 96);
     for(uint8_t i=0; i<NUM_PLATFORMER_HIGH_SCORES; i++){
         char rowStr[32];
         snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06d   %c%c%c", i+1, highScores->scores[i], highScores->initials[i][0], highScores->initials[i][1], highScores->initials[i][2]);
-        drawText(d, font, c555, rowStr, 60, 128 + i*16);
+        drawText(d, font, (gameData->rank == i) ? highScoreNewEntryColors[gameData->frameCount % 3] : c555, rowStr, 60, 128 + i*16);
     }
 }
 
@@ -877,13 +879,13 @@ void updateShowHighScores(platformer_t *self){
     }
 
     drawShowHighScores(self->disp, &(self->radiostars), self->menuState);
-    drawPlatformerHighScores(self->disp, &(self->radiostars), &(self->highScores));
+    drawPlatformerHighScores(self->disp, &(self->radiostars), &(self->highScores), &(self->gameData));
 }
 
 void drawShowHighScores(display_t *d, font_t *font, uint8_t menuState){
     if(menuState == 3){
-        drawText(d, font, c555, "Your name registrated.", 24, 64);
+        drawText(d, font, c555, "Your name registrated.", 24, 32);
     } else {
-        drawText(d, font, c555, "Do your best!", 72, 64);
+        drawText(d, font, c555, "Do your best!", 72, 32);
     }
 }
