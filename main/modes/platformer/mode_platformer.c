@@ -151,7 +151,7 @@ uint8_t getHighScoreRank(platformerHighScores_t *highScores, uint32_t newScore);
 void insertScoreIntoHighScores(platformerHighScores_t *highScores, uint32_t newScore, char newInitials[], uint8_t rank);
 void changeStateNameEntry(platformer_t *self);
 void updateNameEntry(platformer_t *self);
-void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData);
+void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData, uint8_t currentInitial);
 void changeStateShowHighScores(platformer_t *self);
 void updateShowHighScores(platformer_t *self);
 void drawShowHighScores(display_t *d, font_t *font, uint8_t menuState);
@@ -800,6 +800,8 @@ void changeStateNameEntry(platformer_t *self){
 void updateNameEntry(platformer_t *self){
     self->disp->clearPx();
 
+    self->gameData.frameCount++;
+
     if(
         self->gameData.btnState & LEFT
         &&
@@ -807,11 +809,12 @@ void updateNameEntry(platformer_t *self){
     ) {
         self->menuSelection--;
 
-        if(self->menuSelection < 30){
+        if(self->menuSelection < 32){
             self->menuSelection = 90;
         }
 
-         self->gameData.initials[self->menuState]=self->menuSelection;
+        self->gameData.initials[self->menuState]=self->menuSelection;
+        buzzer_play_sfx(&sndMenuSelect);
     } else if(
         self->gameData.btnState & RIGHT
         &&
@@ -820,10 +823,11 @@ void updateNameEntry(platformer_t *self){
         self->menuSelection++;
 
         if(self->menuSelection > 90){
-            self->menuSelection = 30;
+            self->menuSelection = 32;
         }
 
          self->gameData.initials[self->menuState]=self->menuSelection;
+         buzzer_play_sfx(&sndMenuSelect);
     } else if(
         self->gameData.btnState & BTN_B
         &&
@@ -831,6 +835,9 @@ void updateNameEntry(platformer_t *self){
     ) {
         if(self->menuState > 0){
             self->menuState--;
+            buzzer_play_sfx(&sndMenuSelect);
+        } else {
+            buzzer_play_sfx(&sndMenuDeny);
         }
     } else if(
         self->gameData.btnState & BTN_A
@@ -843,23 +850,30 @@ void updateNameEntry(platformer_t *self){
             insertScoreIntoHighScores(&(self->highScores), self->gameData.score, self->gameData.initials, self->gameData.rank);
             savePlatformerHighScores(self);
             changeStateShowHighScores(self);
+            buzzer_play_sfx(&sndMenuConfirm);
         } else {
             self->menuSelection = self->gameData.initials[self->menuState];
+            buzzer_play_sfx(&sndMenuSelect);
         }
     }
     
-    drawNameEntry(self->disp, &(self->radiostars), &(self->gameData));
+    drawNameEntry(self->disp, &(self->radiostars), &(self->gameData), self->menuState);
 
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
 }
 
-void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData){
+void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData, uint8_t currentInitial){
     drawText(d, font, c555, "Enter your initials!", 48, 64);
 
     char rowStr[32];
-    snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06d   %c%c%c", gameData->rank+1, gameData->score, gameData->initials[0], gameData->initials[1], gameData->initials[2]);
+    snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06d", gameData->rank+1, gameData->score);
     drawText(d, font, c555, rowStr, 64, 128);
+
+    for(uint8_t i=0; i<3; i++){
+        snprintf(rowStr, sizeof(rowStr) - 1, "%c", gameData->initials[i]);
+        drawText(d, font, (currentInitial == i) ? highScoreNewEntryColors[gameData->frameCount % 3] : c555, rowStr, 192+16*i, 128);
+    }
 }
 
 void changeStateShowHighScores(platformer_t *self){
