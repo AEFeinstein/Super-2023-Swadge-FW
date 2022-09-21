@@ -352,14 +352,17 @@ void deinitDisplayMemory(void)
 	if(NULL != frameBuffer)
 	{
 		free(frameBuffer);
+        frameBuffer = NULL;
 	}
     if(NULL != scaledBitmapDisplay)
     {
         free(scaledBitmapDisplay);
+        scaledBitmapDisplay = NULL;
     }
     if(NULL != rdLeds)
     {
         free(rdLeds);
+        rdLeds = NULL;
     }
 	pthread_mutex_unlock(&displayMutex);
 }
