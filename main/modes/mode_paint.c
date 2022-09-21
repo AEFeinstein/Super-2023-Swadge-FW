@@ -18,17 +18,13 @@
 /*
  * REMAINING BIG THINGS TO DO:
  *
- * - Fix swapping fg/bg color sometimes causing current color not to be the first in the color picker list
- * (sometimes this makes it so if you change a tool, it also changes your color)
  * - Draw icons for the tools?
- * - Move the pixelStack implementation into a self-contained struct so we can have separate ones for e.g. custom cursors
  * - Move basically everything to work in the canvas coordinate space. translateX()/translateY() will take care of the rest!
  * - Probably related, figure out why only square pen is double-translating???
- * - Fix the pick markers not really working
+ * - Fix the pick markers being placed in unscaled position
  * - Explicitly mark everything that doesn't work in the canvas coordinate space for whatever reason
  * - Make the pixel push/pop work for Big PixelsTM
  * - Sharing! How will that work...
- * -
  * - Airbrush tool
  * - Stamp tool?
  * - Copy/paste???
@@ -37,6 +33,8 @@
  *
  * MORE MINOR POLISH THINGS:
  *
+ * - Fix swapping fg/bg color sometimes causing current color not to be the first in the color picker list
+ *   (sometimes this makes it so if you change a tool, it also changes your color)
  * - Always draw the cursor in a contrasting color
  * - Use different pick markers / cursors for each brush (e.g. crosshair for circle pen, two L-shaped crosshairs for box pen...)
  */
@@ -176,6 +174,7 @@ typedef struct
     size_t pickCount;
 
     pxStack_t pxStack;
+    pxStack_t cursorPxs;
 
     bool aHeld;
     bool selectHeld;
@@ -363,7 +362,7 @@ void paintMainLoop(int64_t elapsedUs)
         {
             if (paintState->aHeld)
             {
-                paintDoTool(PAINT_CANVAS_X_OFFSET + paintState->cursorX / PAINT_CANVAS_SCALE, PAINT_CANVAS_Y_OFFSET + paintState->cursorY / PAINT_CANVAS_SCALE, paintState->fgColor);
+                paintDoTool(PAINT_CANVAS_X_OFFSET + paintState->cursorX, PAINT_CANVAS_Y_OFFSET + paintState->cursorY, paintState->fgColor);
 
                 if (paintState->brush->mode != HOLD_DRAW)
                 {
@@ -737,7 +736,12 @@ void disableCursor()
 
 void plotRectFilled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col)
 {
-    fillDisplayArea(disp, xTranslate(x0), yTranslate(y0), xTranslate(x1) + PAINT_CANVAS_SCALE - 1, yTranslate(y1) + PAINT_CANVAS_SCALE - 1, col);
+    fillDisplayArea(disp, x0, y0, x1 - 1, y1 - 1, col);
+}
+
+void plotRectFilledTranslate(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)
+{
+    fillDisplayArea(disp, xTr(x0), yTr(y0), xTr(x1 - 1), yTr(y1 - 1), col);
 }
 
 void paintRenderToolbar()
@@ -958,7 +962,7 @@ void paintDrawSquarePen(display_t* disp, point_t* points, uint8_t numPoints, uin
 {
     if (paintState->subPixelOffsetX == 0 && paintState->subPixelOffsetY == 0)
     {
-        plotRectFilled(disp, points[0].x, points[0].y, points[0].x + size, points[0].y + size, col);
+        plotRectFilledTranslate(disp, points[0].x, points[0].y, points[0].x + (size - 1) + PAINT_CANVAS_SCALE - 1, points[0].y + (size - 1) + PAINT_CANVAS_SCALE - 1, col, xTranslate, yTranslate);
     }
 }
 
@@ -997,7 +1001,7 @@ void paintDrawFilledRectangle(display_t* disp, point_t* points, uint8_t numPoint
     // This function takes care of its own scaling because it's very easy and will save a lot of unnecessary draws
     if (paintState->subPixelOffsetX == 0 && paintState->subPixelOffsetY == 0)
     {
-        plotRectFilled(disp, x0, y0, x1 + 1, y1 + 1, col);
+        plotRectFilledTranslate(disp, x0, y0, x1 + PAINT_CANVAS_SCALE - 1, y1 + PAINT_CANVAS_SCALE - 1, col, xTranslate, yTranslate);
     }
 }
 
@@ -1061,6 +1065,23 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 {
     disableCursor();
     bool drawNow = false;
+    bool lastPick = false;
+
+    // Determine if this is the last pick for the tool
+    // This is so we don't draw a pick-marker that will be immediately removed
+    switch (paintState->brush->mode)
+    {
+        case PICK_POINT:
+        lastPick = (paintState->pickCount + 1 == paintState->brush->maxPoints);
+        break;
+
+        case PICK_POINT_LOOP:
+        lastPick = paintState->pickCount + 1 == MAX_PICK_POINTS - 1 || paintState->pickCount + 1 == paintState->brush->maxPoints - 1;
+        break;
+
+        default:
+        break;
+    }
 
     if (paintState->brush->mode == HOLD_DRAW)
     {
@@ -1075,11 +1096,21 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         paintState->pickPoints[paintState->pickCount].x = x;
         paintState->pickPoints[paintState->pickCount].y = y;
 
-        ESP_LOGD("Paint", "pick[%02ld] = (%03d, %03d)", paintState->pickCount, x, y);
+        ESP_LOGD("Paint", "pick[%02ld] = SCR(%03d, %03d) / CNV(%d, %d)", paintState->pickCount, x, y, (x - PAINT_CANVAS_X_OFFSET), (y - PAINT_CANVAS_Y_OFFSET));
 
         // Save the pixel underneath the selection, then draw a temporary pixel to mark it
-        pushPx(&paintState->pxStack, paintState->disp, x, y);
-        paintState->disp->setPx(x, y, paintState->fgColor);
+        // But don't bother if this is the last pick point, since it will never actually be seen
+        if (!lastPick)
+        {
+            for (int xo = 0; xo < PAINT_CANVAS_SCALE; xo++)
+            {
+                for (int yo = 0; yo < PAINT_CANVAS_SCALE; yo++)
+                {
+                    pushPx(&paintState->pxStack, paintState->disp, (x - PAINT_CANVAS_X_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_X_OFFSET + xo, (y - PAINT_CANVAS_Y_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_Y_OFFSET + yo);
+                    paintState->disp->setPx((x - PAINT_CANVAS_X_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_X_OFFSET + xo, (y - PAINT_CANVAS_Y_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_Y_OFFSET + yo, paintState->fgColor);
+                }
+            }
+        }
 
         if (paintState->brush->mode == PICK_POINT_LOOP)
         {
@@ -1088,14 +1119,17 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
                 // If this isn't the first pick, and it's in the same position as the first pick, we're done!
                 drawNow = true;
             }
-            else if (paintState->pickCount + 1 == MAX_PICK_POINTS - 1 || paintState->pickCount + 1 == paintState->brush->maxPoints - 1)
+            else if (lastPick)
             {
                 // Special case: If we're on the next-to-last possible point, we have to add the start again as the last point
                 ++paintState->pickCount;
+
+                //instead maybe memcpy(&(paintState->pickPoints[0]), &(paintState->pickPoints[paintState->pickCount]), sizeof(point_t));
                 paintState->pickPoints[paintState->pickCount].x = paintState->pickPoints[0].x;
                 paintState->pickPoints[paintState->pickCount].y = paintState->pickPoints[0].y;
 
-                pushPx(&paintState->pxStack, paintState->disp, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
+                // This is going to get cleared immediately, don't do that
+                //pushPx(&paintState->pxStack, paintState->disp, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
 
                 ESP_LOGD("Paint", "pick[%02ld] = (%03d, %03d) (last!)", paintState->pickCount, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
 
@@ -1120,16 +1154,10 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         // Restore the pixels under the pick markers BEFORE the tool draws
         if (paintState->brush->mode == PICK_POINT || paintState->brush->mode == PICK_POINT_LOOP)
         {
-            for (size_t i = 0; i < paintState->pickCount; i++)
+            for (size_t i = 0; i < (paintState->pickCount - 1) * PAINT_CANVAS_SCALE * PAINT_CANVAS_SCALE; i++)
             {
                 popPx(&paintState->pxStack, paintState->disp);
             }
-        }
-
-        for (size_t i = 0; i < paintState->pickCount; i++)
-        {
-            paintState->pickPoints[i].x = (paintState->pickPoints[i].x - PAINT_CANVAS_X_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_X_OFFSET;
-            paintState->pickPoints[i].y = (paintState->pickPoints[i].y - PAINT_CANVAS_Y_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_Y_OFFSET;
         }
 
         for (paintState->subPixelOffsetX = 0; paintState->subPixelOffsetX < PAINT_CANVAS_SCALE; paintState->subPixelOffsetX++)
@@ -1232,7 +1260,8 @@ bool popPx(pxStack_t* pxStack, display_t* disp)
         disp->setPx(pxStack->data[pxStack->index].x, pxStack->data[pxStack->index].y, pxStack->data[pxStack->index].col);
         pxStack->index--;
 
-        maybeShrinkPxStack(pxStack);
+        // Is this really necessary? The stack empties often so maybe it's better not to reallocate constantly
+        //maybeShrinkPxStack(pxStack);
 
         return true;
     }
