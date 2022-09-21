@@ -30,7 +30,7 @@ typedef struct _swadgeMode
      * This swadge mode's name, mostly for debugging.
      * This is not a function pointer.
      */
-    char* modeName;
+    const char* modeName;
 
     /**
      * This function is called when this mode is started. It should initialize
