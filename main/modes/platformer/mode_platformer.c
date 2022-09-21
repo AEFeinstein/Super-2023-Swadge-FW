@@ -886,6 +886,8 @@ void updateShowHighScores(platformer_t *self){
     self->gameData.frameCount++;
 
     if(self->gameData.frameCount > 100){
+        self->menuState = 0;
+        self->menuSelection = 0;
         changeStateTitleScreen(self);
     }
 
