@@ -447,3 +447,14 @@ uint32_t continuous_adc_read(uint16_t *outSamples)
 	pthread_mutex_unlock(&micMutex);
 	return samplesRead;
 }
+
+void oneshot_adc_init(adc_unit_t adcUnit, adc1_channel_t adcChan)
+{
+	WARN_UNIMPLEMENTED();
+}
+
+uint32_t oneshot_adc_read(void)
+{
+	WARN_UNIMPLEMENTED();
+	return 0;
+}
