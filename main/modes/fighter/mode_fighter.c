@@ -67,6 +67,7 @@ typedef struct
     int32_t gameTimerUs;
     int32_t printGoTimerUs;
     fighterGamePhase_t gamePhase;
+    wsg_t fd_bg;
 } fightingGame_t;
 
 //==============================================================================
@@ -242,6 +243,9 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
     // Keep track of the stage
     f->stageIdx = stage;
 
+    // Load a background to SPI RAM
+    loadWsgSpiRam("fdbg.wsg", &f->fd_bg, true);
+
     // Keep track of player order
     f->playerIdx = isPlayerOne ? 0 : 1;
 
@@ -339,6 +343,9 @@ void fighterExitGame(void)
 {
     if(NULL != f)
     {
+        // Free the background
+        freeWsg(&f->fd_bg);
+
         // Free any stray projectiles
         projectile_t* toFree;
         while (NULL != (toFree = pop(&f->projectiles)))
@@ -2173,6 +2180,24 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
 }
 
 /**
+ * @brief Draw a portion of the background when requested
+ * 
+ * @param disp The display to draw to
+ * @param x The X offset to draw
+ * @param y The Y offset to draw
+ * @param w The width to draw
+ * @param h The height to draw
+ */
+void fighterDrawBg(display_t * disp, int16_t x, int16_t y, int16_t w, int16_t h)
+{
+    // Figure out source and destination pointers
+    paletteColor_t * dst = &disp->pxFb[(y * disp->w) + x];
+    paletteColor_t * src = &f->fd_bg.px[(y * disp->w) + x];
+    // Copy the image to the framebuffer
+    memcpy(dst, src, w * h);
+}
+
+/**
  * Render the current frame to the display, including fighters, platforms, and
  * projectiles, and HUD
  *
@@ -2181,9 +2206,6 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
  */
 void drawFighterScene(display_t* d, fighterScene_t* scene)
 {
-    // First clear everything
-    d->clearPx();
-
     // Read from scene
     uint8_t stageIdx = scene->stageIdx;
 

@@ -6,11 +6,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#ifdef _TEST_USE_SPIRAM_
-    #include <esp_heap_caps.h>
-    #include "freertos/FreeRTOS.h"
-    #include "freertos/task.h"
-#endif
+#include <esp_heap_caps.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include "esp_log.h"
 #include "jsmn.h"
@@ -861,18 +859,10 @@ uint8_t loadFighterSprite(char* name, list_t* loadedSprites)
         if(loadWsg(name, &(newSprite->sprite)))
         {
             // Copy the name
-#ifdef _TEST_USE_SPIRAM_
-            newSprite->name = heap_caps_calloc(1, strlen(name) + 1, MALLOC_CAP_SPIRAM);
-#ifdef _MAX_LOAD_SPRITE_TEST_
-            ESP_LOGE("SPR", "loaded %d sprites (%d free, %d largest block)", spriteIdx, heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
-                     heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
-#endif
-#else
             newSprite->name = calloc(1, strlen(name) + 1);
 #ifdef _MAX_LOAD_SPRITE_TEST_
             ESP_LOGE("SPR", "loaded %d sprites (%d free, %d largest block)", spriteIdx, heap_caps_get_free_size(MALLOC_CAP_8BIT),
                      heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
-#endif
 #endif
             memcpy(newSprite->name, name, strlen(name) + 1);
             // Set the IDX

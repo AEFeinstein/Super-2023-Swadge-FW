@@ -57,6 +57,8 @@ void fighterEnterMode(display_t* disp);
 void fighterExitMode(void);
 void fighterMainLoop(int64_t elapsedUs);
 void fighterButtonCb(buttonEvt_t* evt);
+void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
+    int16_t w, int16_t h, int16_t up, int16_t upNum );
 
 void setFighterMainMenu(void);
 void fighterMainMenuCb(const char* opt);
@@ -108,6 +110,7 @@ swadgeMode modeFighter =
     .fnAccelerometerCallback = NULL, // fighterAccelerometerCb,
     .fnAudioCallback = NULL, // fighterAudioCb,
     .fnTemperatureCallback = NULL, // fighterTemperatureCb
+    .fnBackgroundDrawCallback = fighterBackgroundDrawCb,
 };
 
 fighterMenu_t* fm;
@@ -260,6 +263,26 @@ void fighterButtonCb(buttonEvt_t* evt)
             // TODO handle button transition to FIGHTER_MENU
             break;
         }
+    }
+}
+
+/**
+ * @brief Draw a portion of the background when requested
+ * 
+ * @param disp The display to draw to
+ * @param x The X offset to draw
+ * @param y The Y offset to draw
+ * @param w The width to draw
+ * @param h The height to draw
+ * @param up The current number of the update call
+ * @param upNum The total number of update calls for this frame
+ */
+void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
+    int16_t w, int16_t h, int16_t up, int16_t upNum )
+{
+    if(FIGHTER_GAME == fm->screen)
+    {
+        fighterDrawBg(disp, x, y, w, h);
     }
 }
 
