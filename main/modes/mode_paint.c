@@ -139,6 +139,18 @@ typedef struct
 
 typedef struct
 {
+    // Pointer to the first of pixel coordinates/values, heap-allocated
+    pxVal_t* data;
+
+    // The number of pxVal_t entries currently allocated for the stack
+    size_t size;
+
+    // The index of the value on the top of the stack
+    int32_t index;
+} pxStack_t;
+
+typedef struct
+{
     font_t menuFont;
     font_t toolbarFont;
     meleeMenu_t* menu;
@@ -163,10 +175,7 @@ typedef struct
     // The number of points already selected
     size_t pickCount;
 
-    pxVal_t* pxStack;
-    size_t pxStackSize;
-    int32_t pxStackIndex;
-
+    pxStack_t pxStack;
 
     bool aHeld;
     bool selectHeld;
@@ -262,11 +271,16 @@ void paintPrevTool();
 void paintNextTool();
 void paintSave(uint8_t slot);
 void paintLoad(uint8_t slot);
-void pushPx(uint16_t x, uint16_t y);
-bool popPx();
 void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col);
 void _floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
 void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
+
+void initPxStack(pxStack_t* pxStack);
+void freePxStack(pxStack_t* pxStack);
+void maybeGrowPxStack(pxStack_t* pxStack);
+void maybeShrinkPxStack(pxStack_t* pxStack);
+void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y);
+bool popPx(pxStack_t* pxStack, display_t* disp);
 
 
 // Mode struct function implemetations
@@ -300,10 +314,7 @@ void paintExitMode()
     deinitMeleeMenu(paintState->menu);
     freeFont(&(paintState->menuFont));
 
-    if (paintState->pxStack != NULL)
-    {
-        free(paintState->pxStack);
-    }
+    freePxStack(&paintState->pxStack);
     free(paintState);
 }
 
@@ -578,10 +589,10 @@ void paintInitialize()
     paintState->canvasW = PAINT_CANVAS_WIDTH;
     paintState->canvasH = PAINT_CANVAS_HEIGHT;
 
-    paintState->pxStackIndex = -1;
-
     paintState->brush = &(brushes[0]);
     paintState->brushWidth = 1;
+
+    initPxStack(&paintState->pxStack);
 
     paintState->disp->clearPx();
 
@@ -1012,13 +1023,13 @@ void paintDrawEllipse(display_t* disp, point_t* points, uint8_t numPoints, uint1
 {
     // for some reason, plotting an ellipse also plots 2 extra points outside of the ellipse
     // let's just work around that
-    pushPx((points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[0].y - 2 : points[1].y - 2);
-    pushPx((points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[1].y + 2 : points[0].y + 2);
+    pushPx(&paintState->pxStack, disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[0].y - 2 : points[1].y - 2);
+    pushPx(&paintState->pxStack, disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[1].y + 2 : points[0].y + 2);
 
     plotEllipseRectTranslate(disp, points[0].x, points[0].y, points[1].x, points[1].y, col, xTranslate, yTranslate);
 
-    popPx();
-    popPx();
+    popPx(&paintState->pxStack, disp);
+    popPx(&paintState->pxStack, disp);
 }
 
 void paintDrawPolygon(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
@@ -1067,7 +1078,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         ESP_LOGD("Paint", "pick[%02ld] = (%03d, %03d)", paintState->pickCount, x, y);
 
         // Save the pixel underneath the selection, then draw a temporary pixel to mark it
-        pushPx(x, y);
+        pushPx(&paintState->pxStack, paintState->disp, x, y);
         paintState->disp->setPx(x, y, paintState->fgColor);
 
         if (paintState->brush->mode == PICK_POINT_LOOP)
@@ -1084,7 +1095,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
                 paintState->pickPoints[paintState->pickCount].x = paintState->pickPoints[0].x;
                 paintState->pickPoints[paintState->pickCount].y = paintState->pickPoints[0].y;
 
-                pushPx(paintState->pickPoints[0].x, paintState->pickPoints[0].y);
+                pushPx(&paintState->pxStack, paintState->disp, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
 
                 ESP_LOGD("Paint", "pick[%02ld] = (%03d, %03d) (last!)", paintState->pickCount, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
 
@@ -1111,7 +1122,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         {
             for (size_t i = 0; i < paintState->pickCount; i++)
             {
-                popPx();
+                popPx(&paintState->pxStack, paintState->disp);
             }
         }
 
@@ -1136,6 +1147,48 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
     paintRenderToolbar();
 }
 
+void initPxStack(pxStack_t* pxStack)
+{
+    pxStack->size = PIXEL_STACK_MIN_SIZE;
+    ESP_LOGD("Paint", "Allocating pixel stack with size %ld", pxStack->size);
+    pxStack->data = malloc(sizeof(pxVal_t) * pxStack->size);
+    pxStack->index = -1;
+}
+
+void freePxStack(pxStack_t* pxStack)
+{
+    if (pxStack->data != NULL)
+    {
+        free(pxStack->data);
+        ESP_LOGD("Paint", "Freed pixel stack");
+        pxStack->size = 0;
+        pxStack->index = -1;
+    }
+}
+
+void maybeGrowPxStack(pxStack_t* pxStack)
+{
+    if (pxStack->index >= pxStack->size)
+    {
+        pxStack->size *= 2;
+        ESP_LOGD("Paint", "Expanding pixel stack to size %ld", pxStack->size);
+        pxStack->data = realloc(pxStack->data, sizeof(pxVal_t) * pxStack->size);
+    }
+}
+
+void maybeShrinkPxStack(pxStack_t* pxStack)
+{
+    // If the stack is at least 4 times bigger than it needs to be, shrink it by half
+    // (but only if the stack is bigger than the minimum)
+    if (pxStack->index >= 0 && pxStack->index * 4 <= pxStack->size && pxStack->size > PIXEL_STACK_MIN_SIZE)
+    {
+        pxStack->size /= 2;
+        ESP_LOGD("Paint", "Shrinking pixel stack to %ld", pxStack->size);
+        pxStack->data = realloc(pxStack->data, sizeof(pxVal_t) * pxStack->size);
+        ESP_LOGD("Paint", "Done shrinking pixel stack");
+    }
+}
+
 /**
  * The color at the given pixel coordinates is pushed onto the pixel stack,
  * along with its coordinates. If the pixel stack is uninitialized, it will
@@ -1146,28 +1199,17 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
  * @param y The screen Y coordinate of the pixel to save
  *
  */
-void pushPx(uint16_t x, uint16_t y)
+void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y)
 {
-    if (paintState->pxStack == NULL)
-    {
-        paintState->pxStackSize = PIXEL_STACK_MIN_SIZE;
-        ESP_LOGD("Paint", "Allocating pixel stack with size %ld", paintState->pxStackSize);
-        paintState->pxStack = malloc(sizeof(pxVal_t) * paintState->pxStackSize);
-        paintState->pxStackIndex = -1;
-    }
+    pxStack->index++;
 
-    if (++paintState->pxStackIndex >= paintState->pxStackSize)
-    {
-        paintState->pxStackSize *= 2;
-        ESP_LOGD("Paint", "Expanding pixel stack to size %ld", paintState->pxStackSize);
-        paintState->pxStack = realloc(paintState->pxStack, sizeof(pxVal_t) * paintState->pxStackSize);
-    }
+    maybeGrowPxStack(pxStack);
 
-    paintState->pxStack[paintState->pxStackIndex].x = x;
-    paintState->pxStack[paintState->pxStackIndex].y = y;
-    paintState->pxStack[paintState->pxStackIndex].col = paintState->disp->getPx(x, y);
+    pxStack->data[pxStack->index].x = x;
+    pxStack->data[pxStack->index].y = y;
+    pxStack->data[pxStack->index].col = disp->getPx(x, y);
 
-    ESP_LOGD("Paint", "Saved pixel %d at (%d, %d)", paintState->pxStackIndex, x, y);
+    ESP_LOGD("Paint", "Saved pixel %d at (%d, %d)", pxStack->index, x, y);
 }
 
 /**
@@ -1179,26 +1221,18 @@ void pushPx(uint16_t x, uint16_t y)
  * @brief Pops a pixel from the stack and restores it to the screen
  * @return `true` if a pixel was popped, and `false` if the stack was empty.
  */
-bool popPx()
+bool popPx(pxStack_t* pxStack, display_t* disp)
 {
     // Make sure the stack isn't empty
-    if (paintState->pxStackIndex >= 0)
+    if (pxStack->index >= 0)
     {
-        ESP_LOGD("Paint", "Popping pixel %d...", paintState->pxStackIndex);
+        ESP_LOGD("Paint", "Popping pixel %d...", pxStack->index);
 
         // Draw the pixel from the top of the stack
-        paintState->disp->setPx(paintState->pxStack[paintState->pxStackIndex].x, paintState->pxStack[paintState->pxStackIndex].y, paintState->pxStack[paintState->pxStackIndex].col);
-        paintState->pxStackIndex--;
+        disp->setPx(pxStack->data[pxStack->index].x, pxStack->data[pxStack->index].y, pxStack->data[pxStack->index].col);
+        pxStack->index--;
 
-        // If the stack is at least 4 times bigger than it needs to be, shrink it by half
-        // (but only if the stack is bigger than the minimum)
-        if (paintState->pxStackIndex >= 0 && paintState->pxStackIndex * 4 <= paintState->pxStackSize && paintState->pxStackSize > PIXEL_STACK_MIN_SIZE)
-        {
-            paintState->pxStackSize /= 2;
-            ESP_LOGD("Paint", "Shrinking pixel stack to %ld", paintState->pxStackSize);
-            paintState->pxStack = realloc(paintState->pxStack, sizeof(pxVal_t) * paintState->pxStackSize);
-            ESP_LOGD("Paint", "Done shrinking pixel stack");
-        }
+        maybeShrinkPxStack(pxStack);
 
         return true;
     }
@@ -1222,7 +1256,7 @@ void paintPrevTool()
     paintState->pickCount = 0;
 
     // Remove any stored temporary pixels
-    while (popPx());
+    while (popPx(&paintState->pxStack, paintState->disp));
 }
 
 void paintNextTool()
@@ -1241,7 +1275,7 @@ void paintNextTool()
     paintState->pickCount = 0;
 
     // Remove any stored temporary pixels
-    while (popPx());
+    while (popPx(&paintState->pxStack, paintState->disp));
 }
 
 void paintUpdateRecents(uint8_t selectedIndex)
