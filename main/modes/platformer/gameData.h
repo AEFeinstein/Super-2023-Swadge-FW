@@ -43,6 +43,9 @@ typedef struct
     led_t leds[NUM_LEDS];
 
     paletteColor_t bgColor;
+
+    char initials[3];
+    uint8_t rank;
 } gameData_t;
 
 //==============================================================================

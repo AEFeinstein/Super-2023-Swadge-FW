@@ -22,6 +22,9 @@
     gameData->combo = 0;
     gameData->comboTimer = 0;
     gameData->bgColor = c000;
+    gameData->initials[0] = 'A';
+    gameData->initials[1] = 'A';
+    gameData->initials[2] = 'A';
 }
 
  void initializeGameDataFromTitleScreen(gameData_t * gameData){

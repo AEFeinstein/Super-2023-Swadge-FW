@@ -143,10 +143,16 @@ void changeStateGameClear(platformer_t *self);
 void updateGameClear(platformer_t *self);
 void drawGameClear(display_t *d, font_t *font, gameData_t *gameData);
 void loadPlatformerHighScores(platformer_t* self);
+void savePlatformerHighScores(platformer_t* self);
 void drawPlatformerHighScores(display_t *d, font_t *font, platformerHighScores_t *highScores);
 uint8_t getHighScoreRank(platformerHighScores_t *highScores, uint32_t newScore);
 void insertScoreIntoHighScores(platformerHighScores_t *highScores, uint32_t newScore, char newInitials[], uint8_t rank);
-
+void changeStateNameEntry(platformer_t *self);
+void updateNameEntry(platformer_t *self);
+void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData);
+void changeStateShowHighScores(platformer_t *self);
+void updateShowHighScores(platformer_t *self);
+void drawShowHighScores(display_t *d, font_t *font, uint8_t menuState);
 
 //==============================================================================
 // Variables
@@ -161,7 +167,6 @@ swadgeMode modePlatformer =
         .fnExitMode = platformerExitMode,
         .fnMainLoop = platformerMainLoop,
         .fnButtonCallback = platformerButtonCb,
-        //.fnBackgroundDrawCallback = platformerBackground,
         .fnTouchCallback = NULL,
         .wifiMode = NO_WIFI,
         .fnEspNowRecvCb = NULL,
@@ -211,7 +216,7 @@ void platformerEnterMode(display_t *disp)
     platformer->prevBtnState = 0;
 
     loadPlatformerHighScores(platformer);
-    insertScoreIntoHighScores(&(platformer->highScores), 1000000, "EFV", getHighScoreRank(&(platformer->highScores), 1000000));
+    //insertScoreIntoHighScores(&(platformer->highScores), 1000000, "EFV", getHighScoreRank(&(platformer->highScores), 1000000));
 
     loadFont("radiostars.font", &platformer->radiostars);
 
@@ -234,6 +239,7 @@ void platformerEnterMode(display_t *disp)
  */
 void platformerExitMode(void)
 {
+    savePlatformerHighScores(platformer);
     freeFont(&platformer->radiostars);
 
     // TODO
@@ -345,14 +351,15 @@ void updateTitleScreen(platformer_t *self)
     self->disp->clearPx();
 
     self->gameData.frameCount++;
-    if(self->gameData.frameCount > 20){
-        self->gameData.frameCount = 0;
-    }
+   
 
     // Handle inputs
     switch(platformer->menuState){
-        case 0:{
-            if (
+        case 0:{ 
+            if(self->gameData.frameCount > 200){
+                changeStateShowHighScores(self);
+            }
+            else if (
                 (self->gameData.btnState & START)
                 &&
                 !(self->gameData.prevBtnState & START)
@@ -465,7 +472,6 @@ void updateTitleScreen(platformer_t *self)
     
 
     drawPlatformerTitleScreen(self->disp, &(self->radiostars), &(self->gameData));
-    drawPlatformerHighScores(self->disp, &(self->radiostars), &(self->highScores));
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
 }
@@ -478,7 +484,7 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
 
     switch(platformer->menuState){
         case 0: {
-            if (gameData->frameCount < 10)
+            if ((gameData->frameCount % 20 ) < 10)
             {
                 drawText(d, font, c555, "- Press START button -", 20, 128);
             }
@@ -608,7 +614,7 @@ void updateGameOver(platformer_t *self){
     
     self->gameData.frameCount++;
     if(self->gameData.frameCount > 60){
-        changeStateTitleScreen(self);
+        changeStateNameEntry(self);
     }
 
     drawGameOver(self->disp, &(self->radiostars), &(self->gameData));
@@ -711,8 +717,9 @@ void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
 
 void loadPlatformerHighScores(platformer_t* self)
 {
+    size_t size = sizeof(platformerHighScores_t);
     // Try reading the value
-    if(false == readNvsBlob("pf_scores", &(self->highScores), (size_t)sizeof(platformerHighScores_t)))
+    if(false == readNvsBlob("pf_scores", &(self->highScores), &(size)))
     {
         // Value didn't exist, so write the default
         self->highScores.scores[0] = 100000;
@@ -722,18 +729,24 @@ void loadPlatformerHighScores(platformer_t* self)
         self->highScores.scores[4] = 10000;
 
         for(uint8_t i=0; i<NUM_PLATFORMER_HIGH_SCORES; i++){
-            self->highScores.initials[i][0] = 'J';
-            self->highScores.initials[i][1] = 'P';
-            self->highScores.initials[i][2] = 'V';
+            self->highScores.initials[i][0] = 'J' + i;
+            self->highScores.initials[i][1] = 'P' - i;
+            self->highScores.initials[i][2] = 'V' + i;
         }
     }
 }
 
+void savePlatformerHighScores(platformer_t* self){
+    size_t size = sizeof(platformerHighScores_t);
+    writeNvsBlob( "pf_scores", &(self->highScores), size);
+}
+
 void drawPlatformerHighScores(display_t *d, font_t *font, platformerHighScores_t *highScores){
+    drawText(d, font, c555, "RANK  SCORE  NAME", 48, 96);
     for(uint8_t i=0; i<NUM_PLATFORMER_HIGH_SCORES; i++){
         char rowStr[32];
         snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06d   %c%c%c", i+1, highScores->scores[i], highScores->initials[i][0], highScores->initials[i][1], highScores->initials[i][2]);
-        drawText(d, font, c555, rowStr, 64, 128 + i*16);
+        drawText(d, font, c555, rowStr, 60, 128 + i*16);
     }
 }
 
@@ -765,5 +778,112 @@ void insertScoreIntoHighScores(platformerHighScores_t *highScores, uint32_t newS
     highScores->initials[rank][0] = newInitials[0];
     highScores->initials[rank][1] = newInitials[1];
     highScores->initials[rank][2] = newInitials[2];
+
+}
+
+void changeStateNameEntry(platformer_t *self){
+    self->gameData.frameCount = 0;
+    uint8_t rank = getHighScoreRank(&(self->highScores),self->gameData.score);
+    self->gameData.rank = rank;
+    self->menuState = 0;
+
+    if(rank >= NUM_PLATFORMER_HIGH_SCORES){
+        self->menuSelection = 0;
+        changeStateShowHighScores(self);
+        return;
+    }
+
     
+    self->menuSelection = self->gameData.initials[0];
+    self->update=&updateNameEntry;
+}
+
+void updateNameEntry(platformer_t *self){
+    self->disp->clearPx();
+
+    if(
+        self->gameData.btnState & LEFT
+        &&
+        !(self->gameData.prevBtnState & LEFT)
+    ) {
+        self->menuSelection--;
+
+        if(self->menuSelection < 30){
+            self->menuSelection = 90;
+        }
+
+         self->gameData.initials[self->menuState]=self->menuSelection;
+    } else if(
+        self->gameData.btnState & RIGHT
+        &&
+        !(self->gameData.prevBtnState & RIGHT)
+    ) {
+        self->menuSelection++;
+
+        if(self->menuSelection > 90){
+            self->menuSelection = 30;
+        }
+
+         self->gameData.initials[self->menuState]=self->menuSelection;
+    } else if(
+        self->gameData.btnState & BTN_B
+        &&
+        !(self->gameData.prevBtnState & BTN_B)
+    ) {
+        if(self->menuState > 0){
+            self->menuState--;
+        }
+    } else if(
+        self->gameData.btnState & BTN_A
+        &&
+        !(self->gameData.prevBtnState & BTN_A)
+    ) {
+        self->menuState++;
+        
+        if(self->menuState >2){
+            insertScoreIntoHighScores(&(self->highScores), self->gameData.score, self->gameData.initials, self->gameData.rank);
+            savePlatformerHighScores(self);
+            changeStateShowHighScores(self);
+        } else {
+            self->menuSelection = self->gameData.initials[self->menuState];
+        }
+    }
+    
+    drawNameEntry(self->disp, &(self->radiostars), &(self->gameData));
+
+    self->prevBtnState = self->btnState;
+    self->gameData.prevBtnState = self->prevBtnState;
+}
+
+void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData){
+    drawText(d, font, c555, "Enter your initials!", 48, 64);
+
+    char rowStr[32];
+    snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06d   %c%c%c", gameData->rank+1, gameData->score, gameData->initials[0], gameData->initials[1], gameData->initials[2]);
+    drawText(d, font, c555, rowStr, 64, 128);
+}
+
+void changeStateShowHighScores(platformer_t *self){
+    self->gameData.frameCount = 0;
+    self->update=&updateShowHighScores;
+}
+
+void updateShowHighScores(platformer_t *self){
+    self->disp->clearPx();
+    self->gameData.frameCount++;
+
+    if(self->gameData.frameCount > 100){
+        changeStateTitleScreen(self);
+    }
+
+    drawShowHighScores(self->disp, &(self->radiostars), self->menuState);
+    drawPlatformerHighScores(self->disp, &(self->radiostars), &(self->highScores));
+}
+
+void drawShowHighScores(display_t *d, font_t *font, uint8_t menuState){
+    if(menuState == 3){
+        drawText(d, font, c555, "Your name registrated.", 24, 64);
+    } else {
+        drawText(d, font, c555, "Do your best!", 72, 64);
+    }
 }
