@@ -259,6 +259,9 @@ const uint16_t paletteColors[] =
 // Defines
 //==============================================================================
 
+// The channel for LED PWM
+#define TFT_LEDC_CHANNEL LEDC_CHANNEL_1
+
 #define SWAP(x) ((x>>8)|(x<<8))
 
 /* To speed up transfers, every SPI transfer sends a bunch of lines. This define
@@ -345,6 +348,7 @@ esp_lcd_panel_handle_t panel_handle = NULL;
 static paletteColor_t * pixels = NULL;
 static uint16_t *s_lines[2] = {0};
 static gpio_num_t tftBacklightPin;
+static bool tftBacklightIsPwm;
 
 // static uint64_t tFpsStart = 0;
 // static int framesDrawn = 0;
@@ -367,12 +371,12 @@ int setTFTBacklight(uint8_t intensity)
     {
         return ESP_ERR_INVALID_ARG;
     }
-    e = ledc_set_duty(LEDC_LOW_SPEED_MODE, 1, 255 - intensity);
+    e = ledc_set_duty(LEDC_LOW_SPEED_MODE, TFT_LEDC_CHANNEL, 255 - intensity);
     if(e)
     {
         return e;
     }
-    return ledc_update_duty(LEDC_LOW_SPEED_MODE, 1);
+    return ledc_update_duty(LEDC_LOW_SPEED_MODE, TFT_LEDC_CHANNEL);
 }
 
 
@@ -394,31 +398,7 @@ void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
              gpio_num_t backlight, bool isPwmBacklight)
 {
     tftBacklightPin = backlight;
-
-    if(false == isPwmBacklight)
-    {
-        // Binary backlight
-        gpio_config_t bk_gpio_config =
-        {
-            .mode = GPIO_MODE_OUTPUT,
-            .pin_bit_mask = 1ULL << backlight
-        };
-        // Initialize the GPIO of backlight
-        ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
-    }
-    else
-    {
-        // PWM Backlight
-        ledc_timer_config_t ledc_config_timer =
-        {
-            .speed_mode = LEDC_LOW_SPEED_MODE,
-            .duty_resolution = LEDC_TIMER_8_BIT,
-            .freq_hz = 50000,
-            .timer_num = 0,
-            .clk_cfg = LEDC_AUTO_CLK,
-        };
-        ESP_ERROR_CHECK(ledc_timer_config(&ledc_config_timer));
-    }
+    tftBacklightIsPwm = isPwmBacklight;
 
     spi_bus_config_t buscfg =
     {
@@ -469,25 +449,6 @@ void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
 
     // Initialize LCD panel
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
-
-    // Turn on backlight (Different LCD screens may need different levels)
-    if(false == isPwmBacklight)
-    {
-        ESP_ERROR_CHECK(gpio_set_level(backlight, LCD_BK_LIGHT_ON_LEVEL));
-    }
-    else
-    {
-        ledc_channel_config_t ledc_config_backlight =
-        {
-            .gpio_num = backlight,
-            .speed_mode = LEDC_LOW_SPEED_MODE,
-            .channel = 1,  //Not sure if 0 is used.
-            .timer_sel = 0,
-            .duty = 255, //Disable to start.
-        };
-        ESP_ERROR_CHECK(ledc_channel_config(&ledc_config_backlight));
-        setTFTBacklight(CONFIG_TFT_DEFAULT_BRIGHTNESS);
-    }
 
     // Allocate memory for the pixel buffers
     for (int i = 0; i < 2; i++)
@@ -567,6 +528,9 @@ void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
     esp_lcd_panel_invert_color(panel_handle, true);
 #endif
 
+    // Enable the backlight
+    enableTFTBacklight();
+
     // FIll the handle for the initialized display
     disp->h = TFT_HEIGHT;
     disp->w = TFT_WIDTH;
@@ -588,8 +552,52 @@ void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
  */
 void disableTFTBacklight(void)
 {
+    ledc_stop(LEDC_LOW_SPEED_MODE, TFT_LEDC_CHANNEL, 0);
     gpio_reset_pin( tftBacklightPin );
     gpio_set_level( tftBacklightPin, 0 );
+}
+
+/**
+ * @brief Enable the backlight
+ * 
+ */
+void enableTFTBacklight(void)
+{
+    if(false == tftBacklightIsPwm)
+    {
+        // Binary backlight
+        gpio_config_t bk_gpio_config =
+        {
+            .mode = GPIO_MODE_OUTPUT,
+            .pin_bit_mask = 1ULL << tftBacklightPin
+        };
+        // Initialize the GPIO of backlight
+        ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
+        ESP_ERROR_CHECK(gpio_set_level(tftBacklightPin, LCD_BK_LIGHT_ON_LEVEL));
+    }
+    else
+    {
+        // PWM Backlight
+        ledc_timer_config_t ledc_config_timer =
+        {
+            .speed_mode = LEDC_LOW_SPEED_MODE,
+            .duty_resolution = LEDC_TIMER_8_BIT,
+            .freq_hz = 50000,
+            .timer_num = 0,
+            .clk_cfg = LEDC_AUTO_CLK,
+        };
+        ESP_ERROR_CHECK(ledc_timer_config(&ledc_config_timer));
+        ledc_channel_config_t ledc_config_backlight =
+        {
+            .gpio_num = tftBacklightPin,
+            .speed_mode = LEDC_LOW_SPEED_MODE,
+            .channel = TFT_LEDC_CHANNEL,  //Not sure if 0 is used.
+            .timer_sel = 0,
+            .duty = 255, //Disable to start.
+        };
+        ESP_ERROR_CHECK(ledc_channel_config(&ledc_config_backlight));
+        setTFTBacklight(CONFIG_TFT_DEFAULT_BRIGHTNESS);
+	}
 }
 
 /**
