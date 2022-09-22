@@ -6,6 +6,16 @@
 #include "esp_timer.h"
 #include "musical_buzzer.h"
 
+#include "driver/timer.h"
+
+//==============================================================================
+// Defines
+//==============================================================================
+
+#define TIMER_DIVIDER 16 // Hardware timer clock divider
+#define TIMER_SCALE   (TIMER_BASE_CLK / TIMER_DIVIDER) // convert counter value to seconds
+#define NOTE_ISR_MS   5
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -34,6 +44,7 @@ typedef struct
 
 static void play_note(const musicalNote_t* notation);
 static bool buzzer_track_check_next_note(buzzerTrack_t* track, bool isActive);
+static bool buzzer_check_next_note_isr(void * ptr);
 
 //==============================================================================
 // Variables
@@ -50,9 +61,12 @@ rmt_buzzer_t rmt_buzzer;
  *
  * @param gpio The GPIO the buzzer is connected to
  * @param rmt  The RMT channel to control the buzzer with
+ * @param group_num The timer group number to check for note transitions with
+ * @param timer_num The timer number to check for note transitions with
  * @param isMuted true to mute the buzzer, false to make it buzz
  */
-void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, bool isMuted)
+void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, timer_group_t group_num,
+    timer_idx_t timer_num, bool isMuted)
 {
     // Don't do much if muted
     rmt_buzzer.isMuted = isMuted;
@@ -92,6 +106,31 @@ void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, bool isMuted)
     // Save the channel and clock frequency
     rmt_buzzer.channel = rmt;
     ESP_ERROR_CHECK(rmt_get_counter_clock(rmt, &rmt_buzzer.counter_clk_hz));
+
+    // Initialize the timer to check when the note should change
+    timer_config_t config =
+    {
+        .divider = TIMER_DIVIDER,
+        .counter_dir = TIMER_COUNT_UP,
+        .counter_en = TIMER_PAUSE,
+        .alarm_en = TIMER_ALARM_EN,
+        .auto_reload = TIMER_AUTORELOAD_EN,
+    }; // default clock source is APB
+
+    timer_init(group_num, timer_num, &config);
+
+    // Set initial timer count value
+    timer_set_counter_value(group_num, timer_num, 0);
+
+    // Configure the alarm value and the interrupt on alarm.
+    timer_set_alarm_value(group_num, timer_num, (TIMER_SCALE * NOTE_ISR_MS) / 1000); // 5ms timer
+    timer_enable_intr(group_num, timer_num);
+
+    // Configure the ISR
+    timer_isr_callback_add(group_num, timer_num, buzzer_check_next_note_isr, NULL, 0);
+
+    // Start the timer
+    timer_start(group_num, timer_num);
 }
 
 /**
@@ -213,10 +252,10 @@ static bool buzzer_track_check_next_note(buzzerTrack_t* track, bool isActive)
 }
 
 /**
- * @brief Check if there is a new note to play on the buzzer. This must be
- * called periodically
+ * @brief Check if there is a new note to play on the buzzer. 
+ * This is called periodically in a timer interrupt
  */
-void buzzer_check_next_note(void)
+static bool buzzer_check_next_note_isr(void * ptr)
 {
     // Don't do much if muted
     if(rmt_buzzer.isMuted)

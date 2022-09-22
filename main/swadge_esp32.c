@@ -372,6 +372,10 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                 GPIO_NUM_5);
 #endif
 
+    // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
+    // Make sure to use a different timer than initButtons()
+    buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, TIMER_GROUP_0, TIMER_1, getIsMuted());
+
 #if defined(CONFIG_SWADGE_DEVKIT)
     initTouchSensor(0.2f, true, 6,
                     TOUCH_PAD_NUM9,   // GPIO_NUM_9
@@ -391,9 +395,6 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 
     // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
     initLeds(GPIO_NUM_39, GPIO_NUM_18, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
-
-    // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
-    buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, getIsMuted());
 
     bool adcIsContinuous;
     if(NULL != cSwadgeMode->fnAudioCallback
@@ -662,7 +663,10 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 #endif
         }
 
+#if defined(EMU)
+        // EMU needs to check this, actual hardware has an ISR
         buzzer_check_next_note();
+#endif
 
         /* If the mode should be switched, do it now */
         if(NULL != pendingSwadgeMode)
