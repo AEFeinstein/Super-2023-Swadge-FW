@@ -659,7 +659,7 @@ void danceSharpRainbow(uint32_t tElapsedUs, uint32_t arg __attribute__((unused))
     }
 }
 
-/** Counts up to 64 in binary. At 64, the color is held for ~3s
+/** Counts up to 256 in binary. At 256, the color is held for ~3s
  * The 'on' color is smoothly iterated over the color wheel. The 'off'
  * color is also iterated over the color wheel, 180 degrees offset from 'on'
  * @param tElapsedUs The time elapsed since last call, in microseconds
@@ -710,7 +710,7 @@ void danceBinaryCounter(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)
         uint8_t j;
         for(i = 0; i < NUM_LEDS; i++)
         {
-            if(ledCount2 >= 64)
+            if(ledCount2 >= (1 << NUM_LEDS))
             {
                 leds[i].r = (colorOn >>  0) & 0xFF;
                 leds[i].g = (colorOn >>  8) & 0xFF;
@@ -720,7 +720,7 @@ void danceBinaryCounter(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)
             {
                 if(led_bool)
                 {
-                    j = 6 - i;
+                    j = NUM_LEDS - 1 - i;
                 }
                 else
                 {
