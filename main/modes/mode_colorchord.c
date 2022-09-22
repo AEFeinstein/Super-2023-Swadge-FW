@@ -61,6 +61,9 @@ typedef struct
     uint8_t samplesProcessed;
     uint16_t maxValue;
     ccOpt_t optSel;
+    uint16_t * sampleHist;
+    uint16_t sampleHistHead;
+    uint16_t sampleHistCount;
 } colorchord_t;
 
 colorchord_t* colorchord;
@@ -96,6 +99,10 @@ void colorchordEnterMode(display_t* disp)
     // Save a pointer to the display
     colorchord->disp = disp;
 
+    colorchord->sampleHistCount = 512;
+    colorchord->sampleHist = (uint16_t*)calloc( colorchord->sampleHistCount, sizeof( uint16_t) );
+    colorchord->sampleHistHead = 0;
+
     // Load a font
     loadFont("ibm_vga8.font", &colorchord->ibm_vga8);
 
@@ -109,6 +116,8 @@ void colorchordEnterMode(display_t* disp)
  */
 void colorchordExitMode(void)
 {
+    if(colorchord->sampleHist)
+        free(colorchord->sampleHist);
     freeFont(&colorchord->ibm_vga8);
     free(colorchord);
 }
@@ -145,7 +154,8 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
     {
         uint8_t height = ((colorchord->disp->h - colorchord->ibm_vga8.h - 2) * colorchord->end.fuzzed_bins[i]) /
                          colorchord->maxValue;
-        paletteColor_t color = paletteHsvToHex((i * 256) / FIXBINS, 255, 255);
+
+        paletteColor_t color = RGBtoPalette( ECCtoHEX( ( (i<<SEMIBITSPERBIN)  + colorchord->eod.RootNoteOffset ) % NOTERANGE, 255, 255 ) );
         int16_t x0 = binMargin + (i * binWidth);
         int16_t x1 = binMargin + ((i + 1) * binWidth);
         if(height < 2)
@@ -161,6 +171,27 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
             fillDisplayArea(colorchord->disp,
                             x0, centerLine - (height / 2),
                             x1, centerLine + (height / 2), color);
+        }
+    }
+
+    // Draw sinewave
+    {
+        SETUP_FOR_TURBO( colorchord->disp );
+        int x;
+        uint16_t * sampleHist = colorchord->sampleHist;
+        uint16_t sampleHistCount = colorchord->sampleHistCount;
+        int16_t sampleHistMark = colorchord->sampleHistHead - 1;
+        for( x = 0; x < dispWidth; x++ )
+        {
+            int16_t sample = sampleHist[sampleHistMark];
+            sampleHistMark--;
+            if(sampleHistMark < 0)
+            {
+                sampleHistMark = sampleHistCount;
+            }
+            uint16_t y = ((sample * dispHeight)>>16) + (dispHeight/2);
+            if( y >= dispHeight ) continue;
+            TURBO_SET_PIXEL( colorcord->disp, x, y, 215 );
         }
     }
 
@@ -344,11 +375,21 @@ void colorchordButtonCb(buttonEvt_t* evt)
  */
 void colorchordAudioCb(uint16_t* samples, uint32_t sampleCnt)
 {
+    uint16_t * sampleHist = colorchord->sampleHist;
+    uint16_t sampleHistHead = colorchord->sampleHistHead;
+    uint16_t sampleHistCount = colorchord->sampleHistCount;
+
     // For each sample
     for(uint32_t idx = 0; idx < sampleCnt; idx++)
     {
+        uint16_t sample = samples[idx];
+
         // Push to colorchord
-        PushSample32(&colorchord->dd, samples[idx]);
+        PushSample32(&colorchord->dd, sample);
+
+        sampleHist[sampleHistHead] = sample;
+        sampleHistHead++;
+        if( sampleHistHead == sampleHistCount ) sampleHistHead = 0;
 
         // If 128 samples have been pushed
         colorchord->samplesProcessed++;
@@ -375,4 +416,6 @@ void colorchordAudioCb(uint16_t* samples, uint32_t sampleCnt)
             setLeds((led_t*)colorchord->eod.ledOut, NUM_LEDS);
         }
     }
+
+    colorchord->sampleHistHead = sampleHistHead;
 }
