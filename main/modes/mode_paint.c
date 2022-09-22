@@ -269,6 +269,7 @@ void paintClearCanvas();
 void paintUpdateRecents(uint8_t selectedIndex);
 void paintDrawPickPoints();
 void paintHidePickPoints();
+void paintSetupTool();
 void paintPrevTool();
 void paintNextTool();
 void paintSave(uint8_t slot);
@@ -1353,6 +1354,26 @@ bool popPx(pxStack_t* pxStack, display_t* disp)
     return false;
 }
 
+void paintSetupTool()
+{
+    paintState->brush = &(brushes[paintState->brushIndex]);
+
+    // Reset the pick state
+    paintState->pickCount = 0;
+
+    if (paintState->brushWidth < paintState->brush->minSize)
+    {
+        paintState->brushWidth = paintState->brush->minSize;
+    }
+    else if (paintState->brushWidth > paintState->brush->maxSize)
+    {
+        paintState->brushWidth = paintState->brush->maxSize;
+    }
+
+    // Remove any stored temporary pixels
+    while (popPx(&paintState->pxStack, paintState->disp));
+}
+
 void paintPrevTool()
 {
     if (paintState->brushIndex > 0)
@@ -1363,13 +1384,8 @@ void paintPrevTool()
     {
         paintState->brushIndex = sizeof(brushes) / sizeof(brush_t) - 1;
     }
-    paintState->brush = &(brushes[paintState->brushIndex]);
 
-    // Reset the pick state
-    paintState->pickCount = 0;
-
-    // Remove any stored temporary pixels
-    while (popPx(&paintState->pxStack, paintState->disp));
+    paintSetupTool();
 }
 
 void paintNextTool()
@@ -1382,13 +1398,8 @@ void paintNextTool()
     {
         paintState->brushIndex = 0;
     }
-    paintState->brush = &(brushes[paintState->brushIndex]);
 
-    // Reset the pick state
-    paintState->pickCount = 0;
-
-    // Remove any stored temporary pixels
-    while (popPx(&paintState->pxStack, paintState->disp));
+    paintSetupTool();
 }
 
 void paintUpdateRecents(uint8_t selectedIndex)
