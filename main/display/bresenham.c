@@ -628,6 +628,71 @@ void plotQuadBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2,
     plotLine(disp, x0, y0, x2, y2, col, 0); /* plot remaining part to end */
 }
 
+void plotQuadBezierSegTranslate(display_t* disp, int x0, int y0, int x1, int y1, int x2,
+                       int y2, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)   /* plot a limited quadratic Bezier segment */
+{
+    SETUP_FOR_TURBO( disp );
+
+    int sx = x2 - x1, sy = y2 - y1;
+    long xx = x0 - x1, yy = y0 - y1, xy; /* relative values for checks */
+    double dx, dy, err, cur = xx * sy - yy * sx; /* curvature */
+
+    assert(xx * sx <= 0 && yy * sy <= 0); /* sign of gradient must not change */
+
+    if (sx * (long) sx + sy * (long) sy > xx * xx + yy * yy)   /* begin with longer part */
+    {
+        x2 = x0;
+        x0 = sx + x1;
+        y2 = y0;
+        y0 = sy + y1;
+        cur = -cur; /* swap P0 P2 */
+    }
+    if (cur != 0)   /* no straight line */
+    {
+        xx += sx;
+        xx *= sx = x0 < x2 ? 1 : -1; /* x step direction */
+        yy += sy;
+        yy *= sy = y0 < y2 ? 1 : -1; /* y step direction */
+        xy = 2 * xx * yy;
+        xx *= xx;
+        yy *= yy; /* differences 2nd degree */
+        if (cur * sx * sy < 0)   /* negated curvature? */
+        {
+            xx = -xx;
+            yy = -yy;
+            xy = -xy;
+            cur = -cur;
+        }
+        dx = 4.0 * sy * cur * (x1 - x0) + xx - xy; /* differences 1st degree */
+        dy = 4.0 * sx * cur * (y0 - y1) + yy - xy;
+        xx += xx;
+        yy += yy;
+        err = dx + dy + xy; /* error 1st step */
+        do
+        {
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y0), col); /* plot curve */
+            if (x0 == x2 && y0 == y2)
+            {
+                return;    /* last pixel -> curve finished */
+            }
+            y1 = 2 * err < dx; /* save value for test of y step */
+            if (2 * err > dy)
+            {
+                x0 += sx;
+                dx -= xy;
+                err += dy += yy;
+            } /* x step */
+            if (y1)
+            {
+                y0 += sy;
+                dy -= xy;
+                err += dx += xx;
+            } /* y step */
+        } while (dy < 0 && dx > 0); /* gradient negates -> algorithm fails */
+    }
+    plotLineTranslate(disp, x0, y0, x2, y2, col, 0, xTr, yTr); /* plot remaining part to end */
+}
+
 void plotQuadBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2,
                     int y2, paletteColor_t col)   /* plot any quadratic Bezier curve */
 {
@@ -1014,8 +1079,145 @@ exit:
     plotLine(disp, x0, y0, x3, y3, col, 0); /* remaining part in case of cusp or crunode */
 }
 
-void plotCubicBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
-                     int y3, paletteColor_t col)   /* plot any cubic Bezier curve */
+void plotCubicBezierSegTranslate(display_t* disp, int x0, int y0, float x1, float y1, float x2, float y2,
+                        int x3, int y3, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)   /* plot limited cubic Bezier segment */
+{
+    SETUP_FOR_TURBO( disp );
+
+    int f, fx, fy, leg = 1;
+    int sx = x0 < x3 ? 1 : -1, sy = y0 < y3 ? 1 : -1; /* step direction */
+    float xc = -fabs(x0 + x1 - x2 - x3), xa = xc - 4 * sx * (x1 - x2), xb = sx
+               * (x0 - x1 - x2 + x3);
+    float yc = -fabs(y0 + y1 - y2 - y3), ya = yc - 4 * sy * (y1 - y2), yb = sy
+               * (y0 - y1 - y2 + y3);
+    double ab, ac, bc, cb, xx, xy, yy, dx, dy, ex, *pxy, EP = 0.01;
+    /* check for curve restrains */
+    /* slope P0-P1 == P2-P3    and  (P0-P3 == P1-P2      or   no slope change) */
+    assert(
+        (x1 - x0) * (x2 - x3) < EP
+        && ((x3 - x0) * (x1 - x2) < EP || xb * xb < xa * xc + EP));
+    assert(
+        (y1 - y0) * (y2 - y3) < EP
+        && ((y3 - y0) * (y1 - y2) < EP || yb * yb < ya * yc + EP));
+
+    if (xa == 0 && ya == 0)   /* quadratic Bezier */
+    {
+        sx = floor((3 * x1 - x0 + 1) / 2);
+        sy = floor((3 * y1 - y0 + 1) / 2); /* new midpoint */
+        return plotQuadBezierSeg(disp, x0, y0, sx, sy, x3, y3, col);
+    }
+    x1 = (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + 1; /* line lengths */
+    x2 = (x2 - x3) * (x2 - x3) + (y2 - y3) * (y2 - y3) + 1;
+    do   /* loop over both ends */
+    {
+        ab = xa * yb - xb * ya;
+        ac = xa * yc - xc * ya;
+        bc = xb * yc - xc * yb;
+        ex = ab * (ab + ac - 3 * bc) + ac * ac; /* P0 part of self-intersection loop? */
+        f = ex > 0 ? 1 : sqrt(1 + 1024 / x1); /* calculate resolution */
+        ab *= f;
+        ac *= f;
+        bc *= f;
+        ex *= f * f; /* increase resolution */
+        xy = 9 * (ab + ac + bc) / 8;
+        cb = 8 * (xa - ya); /* init differences of 1st degree */
+        dx = 27 * (8 * ab * (yb * yb - ya * yc) + ex * (ya + 2 * yb + yc)) / 64
+             - ya * ya * (xy - ya);
+        dy = 27 * (8 * ab * (xb * xb - xa * xc) - ex * (xa + 2 * xb + xc)) / 64
+             - xa * xa * (xy + xa);
+        /* init differences of 2nd degree */
+        xx = 3
+             * (3 * ab * (3 * yb * yb - ya * ya - 2 * ya * yc)
+                - ya * (3 * ac * (ya + yb) + ya * cb)) / 4;
+        yy = 3
+             * (3 * ab * (3 * xb * xb - xa * xa - 2 * xa * xc)
+                - xa * (3 * ac * (xa + xb) + xa * cb)) / 4;
+        xy = xa * ya * (6 * ab + 6 * ac - 3 * bc + cb);
+        ac = ya * ya;
+        cb = xa * xa;
+        xy = 3
+             * (xy + 9 * f * (cb * yb * yc - xb * xc * ac)
+                - 18 * xb * yb * ab) / 8;
+
+        if (ex < 0)   /* negate values if inside self-intersection loop */
+        {
+            dx = -dx;
+            dy = -dy;
+            xx = -xx;
+            yy = -yy;
+            xy = -xy;
+            ac = -ac;
+            cb = -cb;
+        } /* init differences of 3rd degree */
+        ab = 6 * ya * ac;
+        ac = -6 * xa * ac;
+        bc = 6 * ya * cb;
+        cb = -6 * xa * cb;
+        dx += xy;
+        ex = dx + dy;
+        dy += xy; /* error of 1st step */
+
+        for (pxy = &xy, fx = fy = f; x0 != x3 && y0 != y3;)
+        {
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y0), col); /* plot curve */
+            do   /* move sub-steps of one pixel */
+            {
+                if (dx > *pxy || dy < *pxy)
+                {
+                    goto exit;
+                }
+                /* confusing values */
+                y1 = 2 * ex - dy; /* save value for test of y step */
+                if (2 * ex >= dx)   /* x sub-step */
+                {
+                    fx--;
+                    ex += dx += xx;
+                    dy += xy += ac;
+                    yy += bc;
+                    xx += ab;
+                }
+                if (y1 <= 0)   /* y sub-step */
+                {
+                    fy--;
+                    ex += dy += yy;
+                    dx += xy += bc;
+                    xx += ac;
+                    yy += cb;
+                }
+            } while (fx > 0 && fy > 0); /* pixel complete? */
+            if (2 * fx <= f)
+            {
+                x0 += sx;
+                fx += f;
+            } /* x step */
+            if (2 * fy <= f)
+            {
+                y0 += sy;
+                fy += f;
+            } /* y step */
+            if (pxy == &xy && dx < 0 && dy > 0)
+            {
+                pxy = &EP;    /* pixel ahead valid */
+            }
+        }
+exit:
+        xx = x0;
+        x0 = x3;
+        x3 = xx;
+        sx = -sx;
+        xb = -xb; /* swap legs */
+        yy = y0;
+        y0 = y3;
+        y3 = yy;
+        sy = -sy;
+        yb = -yb;
+        x1 = x2;
+    } while (leg--); /* try other end */
+    plotLineTranslate(disp, x0, y0, x3, y3, col, 0, xTr, yTr); /* remaining part in case of cusp or crunode */
+}
+
+void plotCubicBezierTranslate(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
+                     int y3, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)   /* plot any cubic Bezier curve */
 {
     int n = 0, i = 0;
     long xc = x0 + x1 - x2 - x3, xa = xc - 4 * (x1 - x2);
@@ -1104,14 +1306,30 @@ void plotCubicBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2, in
             fy2 *= fy0;
         }
         if (x0 != x3 || y0 != y3) /* segment t1 - t2 */
-            plotCubicBezierSeg(disp, x0, y0, x0 + fx1, y0 + fy1, x0 + fx2, y0 + fy2,
-                               x3, y3, col);
+        {
+            if (xTr && yTr)
+            {
+                plotCubicBezierSegTranslate(disp, x0, y0, x0 + fx1, y0 + fy1, x0 + fx2, y0 + fy2,
+                               x3, y3, col, xTr, yTr);
+            }
+            else
+            {
+                plotCubicBezierSeg(disp, x0, y0, x0 + fx1, y0 + fy1, x0 + fx2, y0 + fy2,
+                                x3, y3, col);
+            }
+        }
         x0 = x3;
         y0 = y3;
         fx0 = fx3;
         fy0 = fy3;
         t1 = t2;
     }
+}
+
+void plotCubicBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
+                     int y3, paletteColor_t col)
+{
+    plotCubicBezierTranslate(disp, x0, y0, x1, y1, x2, y2, x3, y3, col, NULL, NULL);
 }
 
 void plotQuadSpline(display_t* disp, int n, int x[], int y[],

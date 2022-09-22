@@ -992,7 +992,7 @@ void paintDrawLine(display_t* disp, point_t* points, uint8_t numPoints, uint16_t
 
 void paintDrawCurve(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    plotCubicBezier(disp, points[0].x, points[0].y, points[1].x, points[1].y, points[2].x, points[2].y, points[3].x, points[3].y, col);
+    plotCubicBezierTranslate(disp, points[0].x, points[0].y, points[1].x, points[1].y, points[2].x, points[2].y, points[3].x, points[3].y, col, xTranslate, yTranslate);
 }
 
 void paintDrawRectangle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)

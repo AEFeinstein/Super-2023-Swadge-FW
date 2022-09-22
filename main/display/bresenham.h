@@ -31,6 +31,7 @@ void plotCircleFilledTranslate(display_t* disp, int xm, int ym, int r, paletteCo
 void plotEllipseRect(display_t*, int x0, int y0, int x1, int y1, paletteColor_t col);
 void plotEllipseRectTranslate(display_t*, int x0, int y0, int x1, int y1, paletteColor_t col, translateFn_t xTr, translateFn_t yTr);
 void plotQuadBezierSeg(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, paletteColor_t col);
+void plotQuadBezierSegTranslate(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, paletteColor_t col, translateFn_t xTr, translateFn_t yTr);
 void plotQuadBezier(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, paletteColor_t col);
 void plotQuadRationalBezierSeg(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, float w, paletteColor_t col);
 void plotQuadRationalBezier(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, float w, paletteColor_t col);
@@ -38,7 +39,10 @@ void plotRotatedEllipse(display_t*, int x, int y, int a, int b, float angle, pal
 void plotRotatedEllipseRect(display_t*, int x0, int y0, int x1, int y1, long zd, paletteColor_t col);
 void plotCubicBezierSeg(display_t*, int x0, int y0, float x1, float y1, float x2, float y2, int x3, int y3,
                         paletteColor_t col);
+void plotCubicBezierSegTranslate(display_t*, int x0, int y0, float x1, float y1, float x2, float y2, int x3, int y3,
+                        paletteColor_t col, translateFn_t xTr, translateFn_t yTr);
 void plotCubicBezier(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, int x3, int y3, paletteColor_t col);
+void plotCubicBezierTranslate(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, int x3, int y3, paletteColor_t col, translateFn_t xTr, translateFn_t yTr);
 void plotQuadSpline(display_t*, int n, int x[], int y[], paletteColor_t col);
 void plotCubicSpline(display_t*, int n, int x[], int y[], paletteColor_t col);
 
