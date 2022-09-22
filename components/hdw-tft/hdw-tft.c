@@ -586,7 +586,7 @@ void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
  * @brief Disable the backlight (for powerdown)
  *
  */
-void disableTFTBacklight()
+void disableTFTBacklight(void)
 {
     gpio_reset_pin( tftBacklightPin );
     gpio_set_level( tftBacklightPin, 0 );
