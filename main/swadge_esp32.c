@@ -323,8 +323,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         {
 #if !defined(CONFIG_SWADGE_DEVKIT)
             // If test mode was passed
-//            if(getTestModePassed())
-            if( true )
+            if(getTestModePassed())
 #else
             // Ignore test mode for devkit
             if(true)
