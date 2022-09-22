@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <esp_log.h>
+#include <esp_timer.h>
 
 #include "hdw-tft.h"
 #include "mode_dance.h"

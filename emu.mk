@@ -18,7 +18,7 @@ endif
 
 FIND:=find
 ifeq ($(HOST_OS),Windows)
-	FIND:=$(shell cygpath `where find | grep bin`)
+	FIND:=$(shell cygpath -u \"`where find | grep bin`\")
 endif
 
 ################################################################################

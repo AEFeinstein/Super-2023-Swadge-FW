@@ -432,6 +432,15 @@ int setTFTBacklight(uint8_t intensity UNUSED)
 }
 
 /**
+ * @brief TODO
+ * 
+ */
+void enableTFTBacklight(void)
+{
+	WARN_UNIMPLEMENTED();
+}
+
+/**
  * @brief Disable backlight (For switching modes)
  */
 void disableTFTBacklight(void)
