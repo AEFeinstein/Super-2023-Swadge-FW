@@ -2095,7 +2095,14 @@ void getSpritePos(fighter_t* ftr, vector_t* spritePos)
         // Get a reference to the attack frame
         attackFrame_t* atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
         // Shift the sprite
-        spritePos->x += atk->sprite_offset.x;
+        if(FACING_RIGHT == ftr->dir)
+        {
+            spritePos->x += atk->sprite_offset.x;
+        }
+        else
+        {
+            spritePos->x -= atk->sprite_offset.x;
+        }
         spritePos->y += atk->sprite_offset.y;
     }
 }
@@ -2238,8 +2245,8 @@ void drawFighterScene(display_t* d, fighterScene_t* scene)
     int16_t f2_stock = scene->f2.stocks;
 
     // Actually draw fighters
-    drawWsg(d, getFighterSprite(f1_sprite, &(f->loadedSprites)), f1_posX, f1_posY, f1_dir, false, 0);
     drawWsg(d, getFighterSprite(f2_sprite, &(f->loadedSprites)), f2_posX, f2_posY, f2_dir, false, 0);
+    drawWsg(d, getFighterSprite(f1_sprite, &(f->loadedSprites)), f1_posX, f1_posY, f1_dir, false, 0);
 
     // Iterate through projectiles
     int16_t numProj = scene->numProjectiles;
