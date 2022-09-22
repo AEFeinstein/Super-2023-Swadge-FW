@@ -396,7 +396,6 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
     initLeds(GPIO_NUM_39, GPIO_NUM_18, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
 
-    bool adcIsContinuous;
     if(NULL != cSwadgeMode->fnAudioCallback
 #if defined(EMU)
             || true // Always init audio for the emulator
@@ -419,14 +418,12 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 #endif
         continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
         continuous_adc_start();
-        adcIsContinuous = true;
     }
-    else
+    else if (NULL != cSwadgeMode->fnBatteryCallback)
     {
 #if defined(CONFIG_SWADGE_PROTOTYPE)
         // If the continuous ADC isn't set up, set up the one-shot one
         oneshot_adc_init(ADC_UNIT_1, ADC1_CHANNEL_5); /*!< ADC1 channel 5 is GPIO6  */
-        adcIsContinuous = false;
 #endif
     }
 
@@ -601,15 +598,16 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             tLastLoopUs = tNowUs;
 
             // Track time between battery reads
-            if(false == adcIsContinuous)
+            if((NULL == cSwadgeMode->fnAudioCallback) &&
+               (NULL != cSwadgeMode->fnBatteryCallback))
             {
-                static uint64_t tAccumBatt = 0;
+                static uint64_t tAccumBatt = 10000000;
                 tAccumBatt += tElapsedUs;
                 // Read every 10s
-                if(tAccumBatt >= 10000000)
+                while(tAccumBatt >= 10000000)
                 {
                     tAccumBatt -= 10000000;
-                    ESP_LOGE("ADC", "%lld - %d", tNowUs, oneshot_adc_read());
+                    cSwadgeMode->fnBatteryCallback(oneshot_adc_read());
                 }
             }
 

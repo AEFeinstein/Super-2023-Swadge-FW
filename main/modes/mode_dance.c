@@ -14,6 +14,7 @@
 #include <string.h>
 #include <esp_log.h>
 
+#include "hdw-tft.h"
 #include "mode_dance.h"
 #include "embeddedout.h"
 #include "bresenham.h"
@@ -46,6 +47,7 @@ uint32_t danceRand(uint32_t upperBound);
 void danceRedrawScreen();
 void selectNextDance();
 void selectPrevDance();
+void danceBatteryCb(uint32_t vBatt);
 
 void danceComet(uint32_t tElapsedUs, uint32_t arg, bool reset);
 void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset);
@@ -122,6 +124,7 @@ swadgeMode modeDance =
     .fnAccelerometerCallback = NULL,
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL,
+    .fnBatteryCallback = danceBatteryCb
 };
 
 danceMode_t* danceState;
@@ -163,6 +166,16 @@ void danceMainLoop(int64_t elapsedUs)
     danceState->resetDance = false;
 }
 
+/**
+ * @brief TODO
+ * 
+ * @param vBatt 
+ */
+void danceBatteryCb(uint32_t vBatt)
+{
+    ESP_LOGI("BAT", "%lld %d", esp_timer_get_time(), vBatt);
+}
+
 void danceButtonCb(buttonEvt_t* evt)
 {
     if (evt->down)
@@ -196,6 +209,16 @@ void danceButtonCb(buttonEvt_t* evt)
             case BTN_A:
             {
                 danceState->blankScreen = !danceState->blankScreen;
+
+                if(danceState->blankScreen)
+                {
+                    disableTFTBacklight();
+                }
+                else
+                {
+                    enableTFTBacklight();
+                    setTFTBacklight(getTftIntensity());
+                }
                 break;
             }
 
