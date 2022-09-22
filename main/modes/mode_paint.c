@@ -684,7 +684,7 @@ void saveCursorPixels(bool useLast)
 {
     for (uint8_t i = 0; i < CURSOR_POINTS; i++)
     {
-        paintState->underCursor[i] = paintState->disp->getPx(CNV2SCR_X((useLast ? paintState->lastCursorX : paintState->cursorX) + cursorShapeX[i]), CNV2SCR_Y((useLast ? paintState->lastCursorY : paintState->cursorY) + cursorShapeY[i]));
+        paintState->underCursor[i] = paintState->disp->getPx(CNV2SCR_X((useLast ? paintState->lastCursorX : paintState->cursorX) + cursorShapeX[i]) + PAINT_CANVAS_SCALE / 2, CNV2SCR_Y((useLast ? paintState->lastCursorY : paintState->cursorY) + cursorShapeY[i]) + PAINT_CANVAS_SCALE / 2);
     }
 }
 
@@ -692,7 +692,7 @@ void restoreCursorPixels(bool useLast)
 {
     for (uint8_t i = 0; i < CURSOR_POINTS; i++)
     {
-        paintState->disp->setPx(CNV2SCR_X((useLast ? paintState->lastCursorX : paintState->cursorX) + cursorShapeX[i]), CNV2SCR_Y((useLast ? paintState->lastCursorY : paintState->cursorY) + cursorShapeY[i]), paintState->underCursor[i]);
+        paintState->disp->setPx(CNV2SCR_X((useLast ? paintState->lastCursorX : paintState->cursorX) + cursorShapeX[i]) + PAINT_CANVAS_SCALE / 2, CNV2SCR_Y((useLast ? paintState->lastCursorY : paintState->cursorY) + cursorShapeY[i]) + PAINT_CANVAS_SCALE / 2, paintState->underCursor[i]);
     }
 }
 
@@ -700,7 +700,7 @@ void plotCursor()
 {
     for (int i = 0; i < CURSOR_POINTS; i++)
     {
-        paintState->disp->setPx(CNV2SCR_X(paintState->cursorX + cursorShapeX[i]), CNV2SCR_Y(paintState->cursorY + cursorShapeY[i]), c300);
+        paintState->disp->setPx(CNV2SCR_X(paintState->cursorX + cursorShapeX[i]) + PAINT_CANVAS_SCALE / 2, CNV2SCR_Y(paintState->cursorY + cursorShapeY[i]) + PAINT_CANVAS_SCALE / 2, c300);
     }
 }
 
