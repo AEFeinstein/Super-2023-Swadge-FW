@@ -1615,6 +1615,8 @@ void paintLoad(uint8_t slot)
     ESP_LOGD("Paint", "Reading palette from %s...", key);
     if (readNvsBlob(key, paintState->recentColors, &paletteSize))
     {
+        paintState->fgColor = paintState->recentColors[0];
+        paintState->bgColor = paintState->recentColors[1];
         ESP_LOGD("Paint", "Read %ld bytes of palette from slot %s", paletteSize, key);
     }
     else
