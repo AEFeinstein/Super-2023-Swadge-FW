@@ -19,13 +19,11 @@
  * REMAINING BIG THINGS TO DO:
  *
  * - Draw icons for the tools?
- * - Move basically everything to work in the canvas coordinate space. translateX()/translateY() will take care of the rest!
- * - Probably related, figure out why only square pen is double-translating???
- * - Fix the pick markers being placed in unscaled position
  * - Explicitly mark everything that doesn't work in the canvas coordinate space for whatever reason
  * - Make the pixel push/pop work for Big PixelsTM
  * - Sharing! How will that work...
  * - Airbrush tool
+ * - Squarewave tool, obviously
  * - Stamp tool?
  * - Copy/paste???
  * - Easter egg?
@@ -1390,17 +1388,22 @@ void paintSave(uint8_t slot)
     // Build the reverse-palette map
     for (uint16_t i = 0; i < PAINT_MAX_COLORS; i++)
     {
-        ESP_LOGD("Paint", "paletteIndex[%02d] = %02x", (uint8_t)paintState->recentColors[i], i);
         paletteIndex[((uint8_t)paintState->recentColors[i])] = i;
     }
 
     // Allocate space for the chunk
     uint32_t totalPx = paintState->canvasH * paintState->canvasW;
-    uint32_t lastChunkSize = totalPx % PAINT_SAVE_CHUNK_SIZE;
-    ESP_LOGD("Paint", "lastChunkSize: %d", lastChunkSize);
+    uint32_t finalChunkSize = totalPx % PAINT_SAVE_CHUNK_SIZE / 2;
 
-    // TODO: Figure out why we need twice as many chunks as expected
-    uint8_t chunkCount = ((totalPx) + PAINT_SAVE_CHUNK_SIZE - 1) / PAINT_SAVE_CHUNK_SIZE;
+    // don't skip the entire last chunk if it falls on a boundary
+    if (finalChunkSize == 0)
+    {
+        finalChunkSize = PAINT_SAVE_CHUNK_SIZE;
+    }
+
+    // Add double the chunk size (pixels per chunk, really), minus one, so that if there are e.g. 2049 pixels,
+    // it would become 4096 and round up to 2 chunks instead of 1
+    uint8_t chunkCount = (totalPx + (PAINT_SAVE_CHUNK_SIZE * 2) - 1) / (PAINT_SAVE_CHUNK_SIZE * 2);
     if ((imgChunk = malloc(sizeof(uint8_t) * PAINT_SAVE_CHUNK_SIZE)) != NULL)
     {
         ESP_LOGD("Paint", "Allocated %d bytes for image chunk", PAINT_SAVE_CHUNK_SIZE);
@@ -1411,6 +1414,9 @@ void paintSave(uint8_t slot)
         return;
     }
 
+    ESP_LOGD("Paint", "We will use %d chunks of size %dB (%d), plus one of %dB == %dB to save the image", chunkCount - 1, PAINT_SAVE_CHUNK_SIZE, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE, finalChunkSize, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE + finalChunkSize);
+    ESP_LOGD("Paint", "The image is %d x %d px == %dpx, at 2px/B that's %dB", paintState->canvasW, paintState->canvasH, totalPx, totalPx / 2);
+
     disableCursor();
 
     uint16_t x0, y0, x1, y1;
@@ -1420,28 +1426,27 @@ void paintSave(uint8_t slot)
         // build the chunk
         for (uint16_t n = 0; n < PAINT_SAVE_CHUNK_SIZE; n++)
         {
-            // calculate the real coordinates given the pixel indices
-            // (we store 2 pixels in each byte)
-            // that's 100% more pixel, per pixel!
-            x0 = PAINT_CANVAS_X_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE) + (n * 2)) % paintState->canvasW;
-            y0 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE) + (n * 2)) / paintState->canvasW;
-            x1 = PAINT_CANVAS_X_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE) + (n * 2 + 1)) % paintState->canvasW;
-            y1 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE) + (n * 2 + 1)) / paintState->canvasW;
-
-            if (y0 >= PAINT_CANVAS_Y_OFFSET + paintState->canvasH)
+            // exit the last chunk early if needed
+            if (i + 1 == chunkCount && n == finalChunkSize)
             {
-                ESP_LOGD("Paint", "Skipping chunk %d at pixel %d", i, n);
                 break;
             }
 
-            // this is all probably horribly inefficient
-            // TODO: Handle if the image does not end on a chunk boundary
+            // calculate the real coordinates given the pixel indices
+            // (we store 2 pixels in each byte)
+            // that's 100% more pixel, per pixel!
+            x0 = PAINT_CANVAS_X_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) % paintState->canvasW * PAINT_CANVAS_SCALE;
+            y0 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) / paintState->canvasW * PAINT_CANVAS_SCALE;
+            x1 = PAINT_CANVAS_X_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) % paintState->canvasW * PAINT_CANVAS_SCALE;
+            y1 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) / paintState->canvasW * PAINT_CANVAS_SCALE;
+
+            // we only need to save the top-left pixel of each scaled pixel, since they're the same unless something is very broken
             imgChunk[n] = paletteIndex[(uint8_t)paintState->disp->getPx(x0, y0)] << 4 | paletteIndex[(uint8_t)paintState->disp->getPx(x1, y1)];
         }
 
         // save the chunk
         snprintf(key, 16, "paint_%02dc%05d", slot, i);
-        if (writeNvsBlob(key, imgChunk, PAINT_SAVE_CHUNK_SIZE))
+        if (writeNvsBlob(key, imgChunk, (i + 1 < chunkCount) ? PAINT_SAVE_CHUNK_SIZE : finalChunkSize))
         {
             ESP_LOGD("Paint", "Saved blob %d of %d", i+1, chunkCount);
         }
@@ -1508,7 +1513,7 @@ void paintLoad(uint8_t slot)
 
     // Allocate space for the chunk
     uint32_t totalPx = paintState->canvasH * paintState->canvasW;
-    uint8_t chunkCount = ((totalPx) + PAINT_SAVE_CHUNK_SIZE - 1) / PAINT_SAVE_CHUNK_SIZE;
+    uint8_t chunkCount = (totalPx + (PAINT_SAVE_CHUNK_SIZE * 2) - 1) / (PAINT_SAVE_CHUNK_SIZE * 2);
     if ((imgChunk = malloc(PAINT_SAVE_CHUNK_SIZE)) != NULL)
     {
         ESP_LOGD("Paint", "Allocated %d bytes for image chunk", PAINT_SAVE_CHUNK_SIZE);
@@ -1542,32 +1547,29 @@ void paintLoad(uint8_t slot)
 
 
         // build the chunk
-        for (uint16_t n = 0; n < PAINT_SAVE_CHUNK_SIZE; n++)
+        for (uint16_t n = 0; n < lastChunkSize; n++)
         {
+            // no need for logic to exit the final chunk early, since each chunk's size is given to us
+
             // calculate the real coordinates given the pixel indices
-            // (we store 2 pixels in each byte)
-            // that's 100% more pixel, per pixel!
-            x0 = PAINT_CANVAS_X_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE) + (n * 2)) % paintState->canvasW;
-            y0 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE) + (n * 2)) / paintState->canvasW;
-            x1 = PAINT_CANVAS_X_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE) + (n * 2 + 1)) % paintState->canvasW;
-            y1 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE) + (n * 2 + 1)) / paintState->canvasW;
+            x0 = PAINT_CANVAS_X_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) % paintState->canvasW * PAINT_CANVAS_SCALE;
+            y0 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) / paintState->canvasW * PAINT_CANVAS_SCALE;
+            x1 = PAINT_CANVAS_X_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) % paintState->canvasW * PAINT_CANVAS_SCALE;
+            y1 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) / paintState->canvasW * PAINT_CANVAS_SCALE;
 
-            // prevent out-of-bounds drawing
-            if (y0 >= PAINT_CANVAS_Y_OFFSET + paintState->canvasH)
+            // Draw the pixel SCALE**2 times
+            for (int xo = 0; xo < PAINT_CANVAS_SCALE; xo++)
             {
-                break;
+                for (int yo = 0; yo < PAINT_CANVAS_SCALE; yo++)
+                {
+                    paintState->disp->setPx(x0 + xo, y0 + yo, paintState->recentColors[imgChunk[n] >> 4]);
+                    paintState->disp->setPx(x1 + xo, y1 + yo, paintState->recentColors[imgChunk[n] & 0xF]);
+                }
             }
-            paintState->disp->setPx(x0, y0, paintState->recentColors[imgChunk[n] >> 4]);
-
-            if (y1 >= PAINT_CANVAS_Y_OFFSET + paintState->canvasH)
-            {
-                break;
-            }
-            paintState->disp->setPx(x1, y1, paintState->recentColors[imgChunk[n] & 0xF]);
         }
     }
 
-    // This should't be necessary but whenever I change the canvas dimensions it breaks stuff
+    // This should't be necessary in the final version but whenever I change the canvas dimensions it breaks stuff
     if (paintState->canvasH > PAINT_CANVAS_HEIGHT || paintState->canvasW > PAINT_CANVAS_WIDTH)
     {
         paintState->canvasH = PAINT_CANVAS_HEIGHT;
