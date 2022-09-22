@@ -181,6 +181,7 @@ typedef struct
     bool showCursor;
     bool doSave, saveInProgress;
     bool wasSaved;
+    bool recolorPickPoints;
 
     bool firstMove;
     int64_t btnHoldTime;
@@ -264,6 +265,8 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
 void paintMoveCursorRel(int8_t xDiff, int8_t yDiff);
 void paintClearCanvas();
 void paintUpdateRecents(uint8_t selectedIndex);
+void paintDrawPickPoints();
+void paintHidePickPoints();
 void paintPrevTool();
 void paintNextTool();
 void paintSave(uint8_t slot);
@@ -348,6 +351,12 @@ void paintMainLoop(int64_t elapsedUs)
                 paintSave(0);
             }
             paintState->saveInProgress = false;
+        }
+
+        if (paintState->recolorPickPoints)
+        {
+            paintDrawPickPoints();
+            paintState->recolorPickPoints = false;
         }
 
 
@@ -521,6 +530,7 @@ void paintButtonCb(buttonEvt_t* evt)
                     paintState->recentColors[1] ^= paintState->recentColors[0];
                     paintState->recentColors[0] ^= paintState->recentColors[1];
                     paintState->redrawToolbar = true;
+                    paintState->recolorPickPoints = true;
                 }
 
                 if (evt->button & (UP | DOWN))
@@ -1320,6 +1330,37 @@ void paintUpdateRecents(uint8_t selectedIndex)
         paintState->recentColors[i] = paintState->recentColors[i-1];
     }
     paintState->recentColors[0] = paintState->fgColor;
+
+    // If there are any pick points, update their color to reduce confusion
+    paintDrawPickPoints();
+}
+
+void paintDrawPickPoints()
+{
+    for (uint8_t i = 0; i < paintState->pickCount; i++)
+    {
+        for (uint16_t xo = 0; xo < PAINT_CANVAS_SCALE; xo++)
+        {
+            for (uint16_t yo = 0; yo < PAINT_CANVAS_SCALE; yo++)
+            {
+                paintState->disp->setPx((paintState->pickPoints[i].x - PAINT_CANVAS_X_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_X_OFFSET + xo, (paintState->pickPoints[i].y - PAINT_CANVAS_Y_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_Y_OFFSET + yo, paintState->fgColor);
+            }
+        }
+    }
+}
+
+void paintHidePickPoints()
+{
+    for (uint8_t i = 0; i < (paintState->pxStack.index < paintState->pickCount) ? paintState->pxStack.index : paintState->pickCount; i++)
+    {
+        for (uint16_t xo = 0; xo < PAINT_CANVAS_SCALE; xo++)
+        {
+            for (uint16_t yo = 0; yo < PAINT_CANVAS_SCALE; yo++)
+            {
+                paintState->disp->setPx((paintState->pickPoints[i].x - PAINT_CANVAS_X_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_X_OFFSET + xo, (paintState->pickPoints[i].y - PAINT_CANVAS_Y_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_Y_OFFSET + yo, paintState->pxStack.data[i].col);
+            }
+        }
+    }
 }
 
 void paintMoveCursorRel(int8_t xDiff, int8_t yDiff)
