@@ -23,7 +23,6 @@
  * - Make the pixel push/pop work for Big PixelsTM
  * - Sharing! How will that work...
  * - Airbrush tool
- * - Squarewave tool, obviously
  * - Stamp tool?
  * - Copy/paste???
  * - Easter egg?
@@ -45,6 +44,7 @@ static const char menuOptExit[] = "Exit";
 
 #define PIXEL_STACK_MIN_SIZE 2
 #define MAX_PICK_POINTS 16
+
 // hold button for .3s to repeat
 #define BUTTON_REPEAT_TIME 300000
 
@@ -232,6 +232,7 @@ void paintDrawCircle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawFilledCircle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawEllipse(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawPolygon(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawSquareWave(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawPaintBucket(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawClear(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 
@@ -247,6 +248,7 @@ static const brush_t brushes[] =
     { .name = "Filled Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledCircle },
     { .name = "Ellipse",    .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawEllipse },
     { .name = "Polygon",    .mode = PICK_POINT_LOOP, .maxPoints = MAX_PICK_POINTS, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawPolygon },
+    { .name = "Squarewave", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawSquareWave },
     { .name = "Paint Bucket", .mode = PICK_POINT, .maxPoints = 1, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawPaintBucket },
     { .name = "Clear",      .mode = INSTANT, .maxPoints = 0, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawClear },
 };
@@ -982,7 +984,8 @@ void paintDrawSquarePen(display_t* disp, point_t* points, uint8_t numPoints, uin
 
 void paintDrawCirclePen(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    plotCircleFilledTranslate(disp, points[0].x, points[0].y, size, col, xTranslate, yTranslate);
+    // Add one to the size because it isn't really a circle at r=1
+    plotCircleFilledTranslate(disp, points[0].x, points[0].y, size + 1, col, xTranslate, yTranslate);
 }
 
 void paintDrawLine(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
@@ -1034,15 +1037,15 @@ void paintDrawFilledCircle(display_t* disp, point_t* points, uint8_t numPoints, 
     uint16_t dY = abs(points[0].y - points[1].y);
     uint16_t r = (uint16_t)(sqrt(dX*dX+dY*dY) + 0.5);
 
-    plotCircleFilledTranslate(disp, points[0].x, points[1].x, r, col, xTranslate, yTranslate);
+    plotCircleFilledTranslate(disp, points[0].x, points[0].y, r, col, xTranslate, yTranslate);
 }
 
 void paintDrawEllipse(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
     // for some reason, plotting an ellipse also plots 2 extra points outside of the ellipse
     // let's just work around that
-    pushPx(&paintState->pxStack, disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[0].y - 2 : points[1].y - 2);
-    pushPx(&paintState->pxStack, disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[1].y + 2 : points[0].y + 2);
+    pushPx(&paintState->pxStack, disp, xTranslate((points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2), yTranslate(points[0].y < points[1].y ? points[0].y - 2 : points[1].y - 2));
+    pushPx(&paintState->pxStack, disp, xTranslate((points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2), yTranslate(points[0].y < points[1].y ? points[1].y + 2 : points[0].y + 2));
 
     plotEllipseRectTranslate(disp, points[0].x, points[0].y, points[1].x, points[1].y, col, xTranslate, yTranslate);
 
@@ -1058,8 +1061,75 @@ void paintDrawPolygon(display_t* disp, point_t* points, uint8_t numPoints, uint1
     }
 }
 
+void paintDrawSquareWave(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+{
+    uint16_t x0 = (points[0].x > points[1].x) ? points[1].x : points[0].x;
+    uint16_t y0 = (points[0].y > points[1].y) ? points[1].y : points[0].y;
+    uint16_t x1 = (points[0].x > points[1].x) ? points[0].x : points[1].x;
+    uint16_t y1 = (points[0].y > points[1].y) ? points[0].y : points[1].y;
+
+    // use the shortest axis as the wave size
+    uint16_t waveSize = (x1 - x0 < y1 - y0) ? x1 - x0 : y1 - y0;
+
+    uint16_t x = points[0].x;
+    uint16_t y = points[0].y;
+    uint16_t stop, extra;
+
+    int16_t xDir = (points[0].x < points[1].x) ? 1 : -1;
+    int16_t yDir = (points[0].y < points[1].y) ? 1 : -1;
+
+    if (x0 == x1 && y0 == y1)
+    {
+        return;
+    }
+
+    if (x1 - x0 > y1 - y0)
+    {
+        // Horizontal
+        extra = (x1 - x0 + 1) % (waveSize * 2);
+        stop = x + waveSize * xDir - extra / 2;
+
+        while (x != points[1].x)
+        {
+            disp->setPx(xTranslate(x), yTranslate(y), col);
+
+            if (x == stop)
+            {
+                plotLineTranslate(disp, x, y, x, y + yDir * waveSize, col, 0, xTranslate, yTranslate);
+                y += yDir * waveSize;
+                yDir = -yDir;
+                stop = x + waveSize * xDir;
+            }
+
+            x+= xDir;
+        }
+    }
+    else
+    {
+        // Vertical
+        extra = (x1 - x0 + 1) % (waveSize * 2);
+        stop = y + waveSize * yDir - extra / 2;
+
+        while (y != points[1].y)
+        {
+            disp->setPx(xTranslate(x), yTranslate(y), col);
+
+            if (y == stop)
+            {
+                plotLineTranslate(disp, x, y, x + xDir * waveSize, y, col, 0, xTranslate, yTranslate);
+                x += xDir * waveSize;
+                xDir = -xDir;
+                stop = y + waveSize * yDir;
+            }
+
+            y += yDir;
+        }
+    }
+}
+
 void paintDrawPaintBucket(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
+    // No need to translate here, so only fill once
     if (paintState->subPixelOffsetX == 0 && paintState->subPixelOffsetY == 0)
     {
         floodFill(disp, xTranslate(points[0].x), yTranslate(points[0].y), col);
