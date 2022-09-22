@@ -742,6 +742,45 @@ void plotRectFilledTranslate(display_t* disp, int x0, int y0, int x1, int y1, pa
     fillDisplayArea(disp, xTr(x0), yTr(y0), xTr(x1 - 1), yTr(y1 - 1), col);
 }
 
+void drawColorBox(uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, paletteColor_t col, bool selected, paletteColor_t topBorder, paletteColor_t bottomBorder)
+{
+    int dashLen = selected ? 1 : 0;
+    if (selected)
+    {
+        topBorder = c000;
+        bottomBorder = c000;
+    }
+
+    if (col == cTransparent)
+    {
+        // Draw a lil checkerboard
+        fillDisplayArea(paintState->disp, xOffset, yOffset, xOffset + w / 2, yOffset + h / 2, c111);
+        fillDisplayArea(paintState->disp, xOffset + w / 2, yOffset, xOffset + w, yOffset + h / 2, c555);
+        fillDisplayArea(paintState->disp, xOffset, yOffset + h / 2, xOffset + w / 2, yOffset + h, c555);
+        fillDisplayArea(paintState->disp, xOffset + w / 2, yOffset + h / 2, xOffset + w, yOffset + h, c111);
+    }
+    else
+    {
+        fillDisplayArea(paintState->disp, xOffset, yOffset, xOffset + w, yOffset + h, col);
+    }
+
+    if (topBorder != cTransparent)
+    {
+        // Top border
+        plotLine(paintState->disp, xOffset - 1,  yOffset, xOffset + w - 1, yOffset, topBorder, dashLen);
+        // Left border
+        plotLine(paintState->disp, xOffset - 1, yOffset, xOffset - 1, yOffset + h - 1, topBorder, dashLen);
+    }
+
+    if (bottomBorder != cTransparent)
+    {
+        // Bottom border
+        plotLine(paintState->disp, xOffset, yOffset + h, xOffset + w - 1, yOffset + h, bottomBorder, dashLen);
+        // Right border
+        plotLine(paintState->disp, xOffset + w, yOffset + 1, xOffset + w, yOffset + h - 1, bottomBorder, dashLen);
+    }
+}
+
 void paintRenderToolbar()
 {
     //////// Background
@@ -771,57 +810,24 @@ void paintRenderToolbar()
     plotRect(paintState->disp, PAINT_CANVAS_X_OFFSET - 1, PAINT_CANVAS_Y_OFFSET - 1, PAINT_CANVAS_X_OFFSET + paintState->canvasW * PAINT_CANVAS_SCALE + 1, PAINT_CANVAS_Y_OFFSET + paintState->canvasH * PAINT_CANVAS_SCALE + 1, c000);
 
 
-
-    int16_t activeColorOffsetX = 4;
-    int16_t activeColorOffsetY = 4;
-
-    // The number of vertical pixels between each color box (not including borders)
-    int16_t spaceBetween = 2;
-    // The width and height of the color box, not including borders
-    int16_t colorBoxSize = 8;
+    //////// Draw the active FG/BG colors and the color palette
 
     //////// Active Colors
-    fillDisplayArea(paintState->disp, activeColorOffsetX, PAINT_CANVAS_Y_OFFSET + activeColorOffsetY, activeColorOffsetX + colorBoxSize, PAINT_CANVAS_Y_OFFSET + activeColorOffsetY + colorBoxSize, paintState->bgColor);
-    fillDisplayArea(paintState->disp, activeColorOffsetX + colorBoxSize / 2, PAINT_CANVAS_Y_OFFSET + activeColorOffsetY + colorBoxSize / 2, activeColorOffsetX + colorBoxSize / 2 + colorBoxSize, PAINT_CANVAS_Y_OFFSET + activeColorOffsetY + colorBoxSize / 2 + colorBoxSize, paintState->fgColor);
-
-    // The starting X and Y of the first color box, not including borders
-    int16_t colorBoxStartY = PAINT_CANVAS_Y_OFFSET + 16 + spaceBetween * 2;
-    int16_t colorBoxStartX = PAINT_CANVAS_X_OFFSET / 2 - colorBoxSize / 2;
-
-    // The color to use for the top and bottom shadow / border
-    paletteColor_t topBorder, bottomBorder;
-    int dashLen;
+    // Draw the background color, then draw the foreground color overlapping it and offset by half in both directions
+    drawColorBox(PAINT_ACTIVE_COLOR_X, PAINT_ACTIVE_COLOR_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, paintState->bgColor, false, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
+    drawColorBox(PAINT_ACTIVE_COLOR_X + PAINT_COLORBOX_W / 2, PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_H / 2, PAINT_COLORBOX_W, PAINT_COLORBOX_H, paintState->fgColor, false, cTransparent, PAINT_COLORBOX_SHADOW_BOTTOM);
 
     //////// Recent Colors (palette)
     for (int i = 0; i < PAINT_MAX_COLORS; i++)
     {
-        // When SELECT is held and this is the selected color box, draw the border dashed and black
-        dashLen = (paintState->selectHeld && paintState->paletteSelect == i) ? 1 : 0;
-        topBorder = (paintState->selectHeld && paintState->paletteSelect == i) ? c000 : PAINT_COLORBOX_SHADOW_TOP;
-        bottomBorder = (paintState->selectHeld && paintState->paletteSelect == i) ? c000 : PAINT_COLORBOX_SHADOW_BOTTOM;
-
-        if (paintState->recentColors[i] == cTransparent)
+        if (PAINT_COLORBOX_HORIZONTAL)
         {
-            fillDisplayArea(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize / 2, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize / 2, c111);
-            fillDisplayArea(paintState->disp, colorBoxStartX + (colorBoxSize / 2), colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize / 2, c555);
-            fillDisplayArea(paintState->disp, colorBoxStartX, (colorBoxSize / 2) + colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize / 2, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, c555);
-            fillDisplayArea(paintState->disp, colorBoxStartX + (colorBoxSize / 2), (colorBoxSize / 2) + colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, c111);
+            drawColorBox(PAINT_COLORBOX_X + i * (PAINT_COLORBOX_MARGIN_LEFT + PAINT_COLORBOX_W), PAINT_COLORBOX_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, paintState->recentColors[i], paintState->selectHeld && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
         }
         else
         {
-            fillDisplayArea(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, paintState->recentColors[i]);
+            drawColorBox(PAINT_COLORBOX_X, PAINT_COLORBOX_Y + i * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H), PAINT_COLORBOX_W, PAINT_COLORBOX_H, paintState->recentColors[i], paintState->selectHeld && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
         }
-
-
-        // Top border
-        plotLine(paintState->disp, colorBoxStartX - 1,  colorBoxStartY + i * (spaceBetween + colorBoxSize) - spaceBetween + 1, colorBoxStartX + colorBoxSize - 1, colorBoxStartY + i * (spaceBetween + colorBoxSize) - spaceBetween + 1, topBorder, dashLen);
-        // Left border
-        plotLine(paintState->disp, colorBoxStartX - 1, colorBoxStartY + i * (spaceBetween + colorBoxSize) - 1, colorBoxStartX - 1, colorBoxStartY + i * (spaceBetween + colorBoxSize) + colorBoxSize - 1, topBorder, dashLen);
-
-        // Bottom border
-        plotLine(paintState->disp, colorBoxStartX, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, colorBoxStartX + colorBoxSize - 1, colorBoxStartY + (spaceBetween + colorBoxSize) * i + colorBoxSize, bottomBorder, dashLen);
-        // Right border
-        plotLine(paintState->disp, colorBoxStartX + colorBoxSize, colorBoxStartY + (spaceBetween + colorBoxSize) * i, colorBoxStartX + colorBoxSize, colorBoxStartY + (colorBoxSize + spaceBetween) * i - spaceBetween + colorBoxSize + 1, bottomBorder, dashLen);
     }
 
     // Draw the brush name
