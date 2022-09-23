@@ -430,6 +430,7 @@ void picrossCheckLevel()
 {
     bool allFilledIn = false;
     bool f = false;
+
     //Update if the puzzle is filled in, which we use to grey-out hints when drawing them.
     //if performance is bad, lets just cut this feature.
     for(int i = 0;i<p->puzzle->height;i++)
@@ -518,11 +519,13 @@ bool hintIsFilledIn(picrossHint_t* hint)
     uint8_t row = (hint->isRow) ? hint->index : 0;
     uint8_t col = (hint->isRow) ? 0 : hint->index;
 
+    bool isFilledIn = true;
     for (; row < p->puzzle->height && col < p->puzzle->width; row += rowInc, col += colInc)
     {
         switch (p->puzzle->level[col][row])
         {
             case SPACE_EMPTY:
+                isFilledIn = false;//set false, but still fall through (dont break)
             case SPACE_MARKEMPTY:
             case OUTOFBOUNDS:
             if (lastSpace == SPACE_FILLED)
@@ -538,6 +541,7 @@ bool hintIsFilledIn(picrossHint_t* hint)
             break;
         }
     }
+    hint->filledIn = isFilledIn;
 
     uint8_t skippedHints = 0;
     for (uint8_t hintIndex = 0; hintIndex < PICROSS_MAX_HINTCOUNT; hintIndex++)
@@ -553,11 +557,11 @@ bool hintIsFilledIn(picrossHint_t* hint)
 
         if (segmentLengths[hintIndex-skippedHints] != hint->hints[hintIndex])
         {
-            hint->filledIn = false;
+            hint->correct = false;
             return false;
         }
     }
-    hint->filledIn = true;
+    hint->correct = true;
     return true;
 }
 
@@ -1186,7 +1190,15 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
     uint8_t h;
     box_t hintbox = boxFromCoord(-1,hint.index);
     paletteColor_t hintShadeColor = c001;//todo: move to struct if we decide to keep this.
-    paletteColor_t hintColor = hint.filledIn ? c333 : c555;
+    paletteColor_t hintColor = c555;//white/
+    if(hint.correct)
+    {
+        //fade, or fade more.
+        hintColor = hint.filledIn ? c111 : c333;
+    }else{
+        //incorrect, or we are still working on it
+         hintColor = hint.filledIn ? c533 : c555;
+    }
 
     if(hint.isRow){
         uint8_t j = 0;
