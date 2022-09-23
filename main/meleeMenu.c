@@ -166,6 +166,9 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
             menu->cbFunc(menu->rows[menu->selectedRow]);
             break;
         }
+        case LEFT:
+        case RIGHT:
+        case BTN_B:
         default:
         {
             // do nothing
