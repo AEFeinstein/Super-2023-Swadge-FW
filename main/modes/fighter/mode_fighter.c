@@ -53,7 +53,7 @@ typedef struct
     int64_t frameElapsed;
     fighter_t fighters[NUM_FIGHTERS];
     list_t projectiles;
-    list_t loadedSprites;
+    namedSprite_t* loadedSprites;
     display_t* d;
     font_t* mm_font;
     fightingStage_t stageIdx;
@@ -250,6 +250,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
     f->playerIdx = isPlayerOne ? 0 : 1;
 
     // Load fighter data
+    f->loadedSprites = calloc(MAX_LOADED_SPRITES, sizeof(namedSprite_t));
     for(int i = 0; i < NUM_FIGHTERS; i++)
     {
         f->fighters[i].character = fightingCharacter[i];
@@ -257,23 +258,23 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
         {
             case KING_DONUT:
             {
-                loadJsonFighterData(&f->fighters[i], "kd.json", &(f->loadedSprites));
+                loadJsonFighterData(&f->fighters[i], "kd.json", f->loadedSprites);
                 break;
             }
             case SUNNY:
             {
-                loadJsonFighterData(&f->fighters[i], "sn.json", &(f->loadedSprites));
+                loadJsonFighterData(&f->fighters[i], "sn.json", f->loadedSprites);
                 break;
             }
             case BIG_FUNKUS:
             {
-                loadJsonFighterData(&f->fighters[i], "bf.json", &(f->loadedSprites));
+                loadJsonFighterData(&f->fighters[i], "bf.json", f->loadedSprites);
                 break;
             }
             case SANDBAG:
             case NO_CHARACTER:
             {
-                loadJsonFighterData(&f->fighters[i], "sb.json", &(f->loadedSprites));
+                loadJsonFighterData(&f->fighters[i], "sb.json", f->loadedSprites);
                 break;
             }
         }
@@ -357,7 +358,8 @@ void fighterExitGame(void)
         freeFighterData(f->fighters, NUM_FIGHTERS);
 
         // Free sprites
-        freeFighterSprites(&(f->loadedSprites));
+        freeFighterSprites(f->loadedSprites);
+        free(f->loadedSprites);
 
         // Free the composed scene if it exists
         if(NULL != f->composedScene)
@@ -666,7 +668,7 @@ void fighterGameLoop(int64_t elapsedUs)
         }
 
         // Render the scene
-        drawFighterScene(f->d, f->composedScene);
+        drawFighterScene(f->d, (const fighterScene_t*)f->composedScene);
 
         // char dbgStr[256];
         // box_t hb;
@@ -2077,7 +2079,7 @@ void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
  */
 void getSpritePos(fighter_t* ftr, vector_t* spritePos)
 {
-    wsg_t* currentSprite = getFighterSprite(ftr->currentSprite, &(f->loadedSprites));
+    wsg_t* currentSprite = getFighterSprite(ftr->currentSprite, f->loadedSprites);
     if(FACING_RIGHT == ftr->dir)
     {
         spritePos->x = ftr->pos.x >> SF;
@@ -2188,18 +2190,18 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
 
 /**
  * @brief Draw a portion of the background when requested
- * 
+ *
  * @param disp The display to draw to
  * @param x The X offset to draw
  * @param y The Y offset to draw
  * @param w The width to draw
  * @param h The height to draw
  */
-void fighterDrawBg(display_t * disp, int16_t x, int16_t y, int16_t w, int16_t h)
+void fighterDrawBg(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h)
 {
     // Figure out source and destination pointers
-    paletteColor_t * dst = &disp->pxFb[(y * disp->w) + x];
-    paletteColor_t * src = &f->fd_bg.px[(y * disp->w) + x];
+    paletteColor_t* dst = &disp->pxFb[(y * disp->w) + x];
+    paletteColor_t* src = &f->fd_bg.px[(y * disp->w) + x];
     // Copy the image to the framebuffer
     memcpy(dst, src, w * h);
 }
@@ -2211,7 +2213,7 @@ void fighterDrawBg(display_t * disp, int16_t x, int16_t y, int16_t w, int16_t h)
  * @param d The display to draw to
  * @param scene The scene to draw
  */
-void drawFighterScene(display_t* d, fighterScene_t* scene)
+void drawFighterScene(display_t* d, const fighterScene_t* scene)
 {
     // Read from scene
     uint8_t stageIdx = scene->stageIdx;
@@ -2245,8 +2247,8 @@ void drawFighterScene(display_t* d, fighterScene_t* scene)
     int16_t f2_stock = scene->f2.stocks;
 
     // Actually draw fighters
-    drawWsg(d, getFighterSprite(f2_sprite, &(f->loadedSprites)), f2_posX, f2_posY, f2_dir, false, 0);
-    drawWsg(d, getFighterSprite(f1_sprite, &(f->loadedSprites)), f1_posX, f1_posY, f1_dir, false, 0);
+    drawWsg(d, getFighterSprite(f2_sprite, f->loadedSprites), f2_posX, f2_posY, f2_dir, false, 0);
+    drawWsg(d, getFighterSprite(f1_sprite, f->loadedSprites), f1_posX, f1_posY, f1_dir, false, 0);
 
     // Iterate through projectiles
     int16_t numProj = scene->numProjectiles;
@@ -2259,7 +2261,7 @@ void drawFighterScene(display_t* d, fighterScene_t* scene)
         int16_t proj_sprite         = scene->projs[pIdx].spriteIdx;
 
         // Actually draw projectile
-        drawWsg(d, getFighterSprite(proj_sprite, &(f->loadedSprites)), proj_posX, proj_posY, proj_dir, false, 0);
+        drawWsg(d, getFighterSprite(proj_sprite, f->loadedSprites), proj_posX, proj_posY, proj_dir, false, 0);
     }
 
     // If this is the home run contest
@@ -2514,7 +2516,7 @@ void fighterRxButtonInput(int32_t btnState)
  *
  * @param scene The scene to render
  */
-void fighterRxScene(fighterScene_t* scene)
+void fighterRxScene(const fighterScene_t* scene)
 {
     f->shouldSendButtonInput = false;
     drawFighterScene(f->d, scene);

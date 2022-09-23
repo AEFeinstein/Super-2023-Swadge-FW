@@ -58,7 +58,7 @@ void fighterExitMode(void);
 void fighterMainLoop(int64_t elapsedUs);
 void fighterButtonCb(buttonEvt_t* evt);
 void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
-    int16_t w, int16_t h, int16_t up, int16_t upNum );
+                             int16_t w, int16_t h, int16_t up, int16_t upNum );
 
 void setFighterMainMenu(void);
 void fighterMainMenuCb(const char* opt);
@@ -268,7 +268,7 @@ void fighterButtonCb(buttonEvt_t* evt)
 
 /**
  * @brief Draw a portion of the background when requested
- * 
+ *
  * @param disp The display to draw to
  * @param x The X offset to draw
  * @param y The Y offset to draw
@@ -278,7 +278,7 @@ void fighterButtonCb(buttonEvt_t* evt)
  * @param upNum The total number of update calls for this frame
  */
 void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
-    int16_t w, int16_t h, int16_t up, int16_t upNum )
+                             int16_t w, int16_t h, int16_t up, int16_t upNum )
 {
     if(FIGHTER_GAME == fm->screen)
     {
@@ -605,7 +605,7 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
     else if(payload[0] == SCENE_COMPOSED_MSG)
     {
         // Receive a scene, so draw it
-        fighterRxScene((fighterScene_t*) payload);
+        fighterRxScene((const fighterScene_t*) payload);
     }
 }
 

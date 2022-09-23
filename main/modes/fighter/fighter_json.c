@@ -17,27 +17,16 @@
 #include "fighter_json.h"
 
 //==============================================================================
-// Structs
-//==============================================================================
-
-typedef struct
-{
-    char* name;
-    wsg_t sprite;
-    uint8_t idx;
-} namedSprite_t;
-
-//==============================================================================
 // Prototypes
 //==============================================================================
 
-int32_t parseJsonFighter(          char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites,
+int32_t parseJsonFighter(          char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSprite_t* loadedSprites,
                                    fighter_t* ftr);
-int32_t parseJsonAttack(           char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites,
+int32_t parseJsonAttack(           char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSprite_t* loadedSprites,
                                    attack_t* atk);
-int32_t parseJsonAttackFrame(      char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites,
+int32_t parseJsonAttackFrame(      char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSprite_t* loadedSprites,
                                    attackFrame_t* frm);
-int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites,
+int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSprite_t* loadedSprites,
                                    attackHitbox_t* hbx);
 
 //==============================================================================
@@ -122,7 +111,7 @@ static bool jsonBoolean(const char* jsonStr, jsmntok_t tok)
  * @param jsonFile The JSON file to load data from
  * @param loadedSprites A list of loaded sprites. Will be filled with sprites
  */
-void loadJsonFighterData(fighter_t* fighter, const char* jsonFile, list_t* loadedSprites)
+void loadJsonFighterData(fighter_t* fighter, const char* jsonFile, namedSprite_t* loadedSprites)
 {
     // Load the json string
     char* jsonStr = loadJson(jsonFile);
@@ -162,7 +151,7 @@ void loadJsonFighterData(fighter_t* fighter, const char* jsonFile, list_t* loade
  * @param ftr The fighter to parse data into
  * @return int32_t The index of the JSON token after parsing
  */
-int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites, fighter_t* ftr)
+int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSprite_t* loadedSprites, fighter_t* ftr)
 {
     // Each fighter is an object
     if(JSMN_OBJECT != toks[tokIdx].type)
@@ -380,7 +369,7 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t*
  * @param atk The attack to parse data into
  * @return int32_t The index of the JSON token after parsing
  */
-int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites, attack_t* atk)
+int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSprite_t* loadedSprites, attack_t* atk)
 {
     // Each attack is an object
     if(JSMN_OBJECT != toks[tokIdx].type)
@@ -506,7 +495,8 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* 
  * @param ftr The attack frame to parse data into
  * @return int32_t The index of the JSON token after parsing
  */
-int32_t parseJsonAttackFrame(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites, attackFrame_t* frm)
+int32_t parseJsonAttackFrame(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSprite_t* loadedSprites,
+                             attackFrame_t* frm)
 {
     // Each attack is an object
     if(JSMN_OBJECT != toks[tokIdx].type)
@@ -649,7 +639,7 @@ int32_t parseJsonAttackFrame(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, lis
  * @param ftr The attack hitbox to parse data into
  * @return int32_t The index of the JSON token after parsing
  */
-int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, list_t* loadedSprites,
+int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSprite_t* loadedSprites,
                                    attackHitbox_t* hbx)
 {
     // Each attack is an object
@@ -822,91 +812,49 @@ void freeFighterData(fighter_t* fighters, uint8_t numFighters)
  * Load a sprite, or return a pointer to that sprite if it's already loaded.
  * When loading a sprite, add it to loadedSprites.
  *
- * TODO optimize sprite IDX
- *
  * @param name The name of the sprite to load
  * @param loadedSprites A linked list of loaded sprites
  * @return A sprite index
  */
-uint8_t loadFighterSprite(char* name, list_t* loadedSprites)
+uint8_t loadFighterSprite(char* name, namedSprite_t* loadedSprites)
 {
-    uint32_t spriteIdx = 255;
-    // Iterate through the list of loaded sprites and look to see if this
-    // has been loaded already. If so, return it
-    node_t* currentNode = loadedSprites->first;
-    while (currentNode != NULL)
+    // Iterate over the loaded sprites
+    for(int16_t idx = 0; idx < MAX_LOADED_SPRITES; idx++)
     {
-        spriteIdx = ((namedSprite_t*)currentNode->val)->idx;
-        if(0 == strcmp(((namedSprite_t*)currentNode->val)->name, name))
+        // Check if the name is NULL
+        if(NULL == loadedSprites[idx].name)
+        {
+            // If so, we've reached the end and should load this sprite
+            if(loadWsg(name, &loadedSprites[idx].sprite))
+            {
+                // If the sprite loads, save the name
+                loadedSprites[idx].name = calloc(1, strlen(name) + 1);
+                memcpy(loadedSprites[idx].name, name, strlen(name + 1));
+            }
+            // Return the index
+            return idx;
+        }
+        else if(0 == strcmp(loadedSprites[idx].name, name))
         {
             // Name matches, so return this loaded sprite
-            // return &((namedSprite_t*)currentNode->val)->sprite;
-            return spriteIdx;
-        }
-        // Name didn't match, so iterate
-        currentNode = currentNode->next;
-    }
-
-    // Made it this far, which means it isn't loaded yet.
-    // Allocate a new sprite
-    namedSprite_t* newSprite = calloc(1, sizeof(namedSprite_t));
-
-#ifdef _MAX_LOAD_SPRITE_TEST_
-    while(1)
-#endif
-    {
-        // Load the sprite
-        if(loadWsg(name, &(newSprite->sprite)))
-        {
-            // Copy the name
-            newSprite->name = calloc(1, strlen(name) + 1);
-#ifdef _MAX_LOAD_SPRITE_TEST_
-            ESP_LOGE("SPR", "loaded %d sprites (%d free, %d largest block)", spriteIdx, heap_caps_get_free_size(MALLOC_CAP_8BIT),
-                     heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
-#endif
-            memcpy(newSprite->name, name, strlen(name) + 1);
-            // Set the IDX
-            newSprite->idx = (++spriteIdx);
-
-            // Add the loaded sprite to the list
-            push(loadedSprites, newSprite);
-
-#ifdef _MAX_LOAD_SPRITE_TEST_
-            // When looping infinitely, yield sometimes
-            taskYIELD();
-#endif
+            return idx;
         }
     }
-
-    // Return the loaded sprite
-    // return &(newSprite->sprite);
-    return newSprite->idx;
+    // Should be impossible to get here
+    ESP_LOGE("JSON", "Couldn't load sprite");
+    return 0;
 }
 
 /**
  * Get a sprite given the sprite's index
  *
- * TODO optimize sprite IDX
- *
  * @param spriteIdx The index to get a sprite for
  * @param loadedSprites A list of loaded sprites
  * @return wsg_t* The sprite that corresponds to this index
  */
-wsg_t* getFighterSprite(uint8_t spriteIdx, list_t* loadedSprites)
+wsg_t* getFighterSprite(uint8_t spriteIdx, namedSprite_t* loadedSprites)
 {
-    // Iterate through the list of loaded sprites and look to see if this
-    // has been loaded already. If so, return it
-    node_t* currentNode = loadedSprites->first;
-    while (currentNode != NULL)
-    {
-        if (spriteIdx == ((namedSprite_t*)currentNode->val)->idx)
-        {
-            return &(((namedSprite_t*)currentNode->val)->sprite);
-        }
-        // Index didn't match, so iterate
-        currentNode = currentNode->next;
-    }
-    return NULL;
+    return &(loadedSprites[spriteIdx].sprite);
 }
 
 /**
@@ -914,16 +862,16 @@ wsg_t* getFighterSprite(uint8_t spriteIdx, list_t* loadedSprites)
  *
  * @param loadedSprites a list of sprites to free
  */
-void freeFighterSprites(list_t* loadedSprites)
+void freeFighterSprites(namedSprite_t* loadedSprites)
 {
-    // Pop and free all sprites
-    namedSprite_t* toFree;
-    while (NULL != (toFree = pop(loadedSprites)))
+    // Free all sprites and names
+    for(int16_t idx = 0; idx < MAX_LOADED_SPRITES; idx++)
     {
-        // Free the fields
-        freeWsg(&(toFree->sprite));
-        free(toFree->name);
-        // Free the named sprite
-        free(toFree);
+        if(NULL != loadedSprites[idx].name)
+        {
+            free(loadedSprites[idx].name);
+            loadedSprites[idx].name = NULL;
+            freeWsg(&loadedSprites[idx].sprite);
+        }
     }
 }
