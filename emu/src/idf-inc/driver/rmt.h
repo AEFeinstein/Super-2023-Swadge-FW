@@ -15,4 +15,6 @@ typedef enum {
     RMT_CHANNEL_MAX /*!< Number of RMT channels */
 } rmt_channel_t;
 
+void buzzer_check_next_note(void);
+
 #endif

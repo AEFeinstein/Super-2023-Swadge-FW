@@ -26,7 +26,7 @@
 // Function Prototypes
 //==============================================================================
 
-char* blobToStr(void * value, size_t length);
+char* blobToStr(const void * value, size_t length);
 int hexCharToInt(char c);
 void strToBlob(char * str, void * outBlob, size_t blobLen);
 
@@ -367,9 +367,9 @@ bool writeNvsBlob(const char* key, const void* value, size_t length)
  * @param length The length of the blob
  * @return char* An allocated hex string, must be free()'d when done
  */
-char* blobToStr(void * value, size_t length)
+char* blobToStr(const void * value, size_t length)
 {
-    uint8_t * value8 = (uint8_t *)value;
+    const uint8_t * value8 = (const uint8_t *)value;
     char * blobStr = malloc((length * 2) + 1);
     for(size_t i = 0; i < length; i++)
     {
