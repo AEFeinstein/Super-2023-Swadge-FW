@@ -272,7 +272,7 @@ void emuDrawDisplayTft(display_t *,bool,fnBackgroundDrawCallback_t);
 void emuSetPxOled(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxOled(int16_t x, int16_t y);
 void emuClearPxOled(void);
-void emuDrawDisplayOled(bool drawDiff);
+void emuDrawDisplayOled(struct display* disp, bool drawDiff, fnBackgroundDrawCallback_t cb);
 
 //==============================================================================
 // Functions
@@ -435,9 +435,18 @@ int setTFTBacklight(uint8_t intensity UNUSED)
 }
 
 /**
+ * @brief TODO
+ * 
+ */
+void enableTFTBacklight(void)
+{
+	WARN_UNIMPLEMENTED();
+}
+
+/**
  * @brief Disable backlight (For switching modes)
  */
-void disableTFTBacklight()
+void disableTFTBacklight(void)
 {
 	WARN_UNIMPLEMENTED();
 }
@@ -598,7 +607,7 @@ void emuClearPxOled(void)
  *
  * @param drawDiff unused, the whole display is always drawn
  */
-void emuDrawDisplayOled(bool drawDiff UNUSED)
+void emuDrawDisplayOled(struct display* disp, bool drawDiff, fnBackgroundDrawCallback_t cb)
 {
 	WARN_UNIMPLEMENTED();
 }

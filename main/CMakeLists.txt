@@ -8,6 +8,7 @@ idf_component_register(
         "display/display.c"
         "display/palette.c"
         "meleeMenu.c"
+        "modes/mode_dance.c"
         "modes/fighter/aabb_utils.c"
         "modes/fighter/mode_fighter.c"
         "modes/fighter/fighter_json.c"
