@@ -232,9 +232,14 @@ void loadLevels()
     loadWsg("Plug_PZL.wsg", &pm->levels[18].levelWSG);//15x15 - This one is on the harder side of things.
     loadWsg("Plug_SLV.wsg", &pm->levels[18].completedWSG);
 
-    pm->levels[19].title = "Never Gonna";//give you up, but title too long for single line.
-    loadWsg("RR_PZL.wsg", &pm->levels[19].levelWSG);//10x10
-    loadWsg("RR_SLV.wsg", &pm->levels[19].completedWSG);
+    pm->levels[19].title = "Rocket League";
+    loadWsg("RocketLeague_PZL.wsg", &pm->levels[19].levelWSG);//15x15 - This one is on the harder side of things.
+    loadWsg("RocketLeague_SLV.wsg", &pm->levels[19].completedWSG);
+
+    //this has to be the last puzzle.
+    pm->levels[20].title = "Never Gonna";//give you up, but title too long for single line.
+    loadWsg("RR_PZL.wsg", &pm->levels[20].levelWSG);//10x10
+    loadWsg("RR_SLV.wsg", &pm->levels[20].completedWSG);
 
     //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_consts.h) when adding levels.
 
