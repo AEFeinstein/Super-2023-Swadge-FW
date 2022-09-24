@@ -1,25 +1,46 @@
+//==============================================================================
+// Includes
+//==============================================================================
+
+#include <stdlib.h>
 #include <stdio.h>
 
 #include "display.h"
 #include "fighter_hr_result.h"
 #include "nvs_manager.h"
 
-// TODO struct and alloc these
-fightingCharacter_t _character;
-vector_t _sbVel;
-vector_t _sbPos;
-int32_t _grav;
-display_t* _disp;
-font_t* _font;
-int64_t _tAccumUs;
-wsg_t _sbi;
-int32_t rotDeg = 0;
-int32_t _finalXpos = 0;
-bool _isNewRecord;
+//==============================================================================
+// Structs
+//==============================================================================
+
+typedef struct
+{
+    fightingCharacter_t character;
+    vector_t sbVel;
+    vector_t sbPos;
+    int32_t grav;
+    display_t* disp;
+    font_t* font;
+    int64_t tAccumUs;
+    wsg_t sbi;
+    int32_t rotDeg;
+    int32_t finalXpos;
+    bool isNewRecord;
+} hrRes_t;
+
+//==============================================================================
+// Variables
+//==============================================================================
+
+hrRes_t* hrr;
 
 const char hr_kd_key[] = "hr_kd";
 const char hr_bf_key[] = "hr_bf";
 const char hr_sn_key[] = "hr_sn";
+
+//==============================================================================
+// Functions
+//==============================================================================
 
 /**
  * @brief Initialize the result display after a home run contest
@@ -35,20 +56,22 @@ void initFighterHrResult(display_t* disp, font_t* font,
                          fightingCharacter_t character, vector_t pos, vector_t vel, int32_t gravity,
                          int32_t platformEndX)
 {
+    hrr = calloc(1, sizeof(hrRes_t));
+
     printf("[%d, %d], [%d, %d]\n", pos.x, pos.y, vel.x, vel.y);
     // Save the display and foint pointers
-    _disp = disp;
-    _font = font;
+    hrr->disp = disp;
+    hrr->font = font;
 
     // Save the character
-    _character = character;
+    hrr->character = character;
 
     // Load the sandbag sprite
-    loadWsg("sbi.wsg", &_sbi);
+    loadWsg("sbi.wsg", &hrr->sbi);
 
     // Calculate final distance iteratively, based on inputs
     // While the sandbag hasn't landed yet
-    int32_t lBound = (_disp->h - _sbi.h) << SF;
+    int32_t lBound = (hrr->disp->h - hrr->sbi.h) << SF;
     while(pos.y < lBound || vel.y < 0)
     {
         vector_t v0 = vel;
@@ -69,11 +92,11 @@ void initFighterHrResult(display_t* disp, font_t* font,
         pos.y += deltaY;
     }
     // Save the final distance
-    _finalXpos = (pos.x - platformEndX) >> (SF - 1);
+    hrr->finalXpos = (pos.x - platformEndX) >> (SF - 1);
 
     // Check NVM if this is a high score. Get the key first
     const char* key;
-    switch(_character)
+    switch(hrr->character)
     {
         case KING_DONUT:
         {
@@ -102,39 +125,39 @@ void initFighterHrResult(display_t* disp, font_t* font,
     // Read the prior score from NVM and check if it's beaten
     int32_t hr_dist;
     if( (false == readNvs32(key, &hr_dist)) ||
-            (_finalXpos > hr_dist))
+            (hrr->finalXpos > hr_dist))
     {
         // Write the new record
-        writeNvs32(key, _finalXpos);
-        _isNewRecord = true;
+        writeNvs32(key, hrr->finalXpos);
+        hrr->isNewRecord = true;
     }
     else
     {
-        _isNewRecord = false;
+        hrr->isNewRecord = false;
     }
 
     // X velocity is variable, 8000 is the max
-    _sbVel.x = 8000;
+    hrr->sbVel.x = 8000;
 
     // If the X velocity is negative
     if(vel.x < 0)
     {
         // Start in the bottom right
-        _sbPos.x = (disp->w - _sbi.w) << SF;
+        hrr->sbPos.x = (disp->w - hrr->sbi.w) << SF;
         // Negate X velocity
-        _sbVel.x = -_sbVel.x;
+        hrr->sbVel.x = -hrr->sbVel.x;
     }
     else
     {
         // Start in the bottom left
-        _sbPos.x = 0;
+        hrr->sbPos.x = 0;
     }
     // Start at the bottom
-    _sbPos.y = (disp->h - _sbi.h) << SF;
+    hrr->sbPos.y = (disp->h - hrr->sbi.h) << SF;
 
     // This velocity & gravity combo go from the bottom of the screen to the top
-    _sbVel.y = -30000;
-    _grav = 8192;
+    hrr->sbVel.y = -30000;
+    hrr->grav = 8192;
 }
 
 /**
@@ -142,7 +165,8 @@ void initFighterHrResult(display_t* disp, font_t* font,
  */
 void deinitFighterHrResult(void)
 {
-    freeWsg(&_sbi);
+    freeWsg(&hrr->sbi);
+    free(hrr);
 }
 
 /**
@@ -153,59 +177,59 @@ void deinitFighterHrResult(void)
 void fighterHrResultLoop(int64_t elapsedUs)
 {
     // Keep track of time and only calculate frames every FRAME_TIME_MS
-    _tAccumUs += elapsedUs;
-    if (_tAccumUs > (FRAME_TIME_MS * 1000))
+    hrr->tAccumUs += elapsedUs;
+    if (hrr->tAccumUs > (FRAME_TIME_MS * 1000))
     {
-        _tAccumUs -= (FRAME_TIME_MS * 1000);
+        hrr->tAccumUs -= (FRAME_TIME_MS * 1000);
 
         // If the sandbag hasn't landed yet
-        int32_t lBound = (_disp->h - _sbi.h) << SF;
-        if(_sbPos.y < lBound || _sbVel.y < 0)
+        int32_t lBound = (hrr->disp->h - hrr->sbi.h) << SF;
+        if(hrr->sbPos.y < lBound || hrr->sbVel.y < 0)
         {
-            vector_t v0 = _sbVel;
+            vector_t v0 = hrr->sbVel;
 
             // Now that we have X velocity, find the new X position
-            int32_t deltaX = (((_sbVel.x + v0.x) * FRAME_TIME_MS) >> (SF + 1));
-            _sbPos.x += deltaX;
+            int32_t deltaX = (((hrr->sbVel.x + v0.x) * FRAME_TIME_MS) >> (SF + 1));
+            hrr->sbPos.x += deltaX;
 
             // Fighter is in the air, so there will be a new Y
-            _sbVel.y = v0.y + ((_grav * FRAME_TIME_MS) >> SF);
+            hrr->sbVel.y = v0.y + ((hrr->grav * FRAME_TIME_MS) >> SF);
             // Terminal velocity, arbitrarily chosen. Maybe make this a character attribute?
-            if(_sbVel.y > 60 << SF)
+            if(hrr->sbVel.y > 60 << SF)
             {
-                _sbVel.y = 60 << SF;
+                hrr->sbVel.y = 60 << SF;
             }
             // Now that we have Y velocity, find the new Y position
-            int32_t deltaY = (((_sbVel.y + v0.y) * FRAME_TIME_MS) >> (SF + 1));
-            _sbPos.y += deltaY;
+            int32_t deltaY = (((hrr->sbVel.y + v0.y) * FRAME_TIME_MS) >> (SF + 1));
+            hrr->sbPos.y += deltaY;
 
             // Update rotation animation
-            rotDeg = (rotDeg + 18) % 360;
+            hrr->rotDeg = (hrr->rotDeg + 18) % 360;
         }
         else
         {
             // Can't go lower than here
-            _sbPos.y = lBound;
-            _sbVel.y = 0;
+            hrr->sbPos.y = lBound;
+            hrr->sbVel.y = 0;
         }
 
         // Draw sandbag
-        drawWsg(_disp, &_sbi, _sbPos.x >> SF, _sbPos.y >> SF, false, false, rotDeg);
+        drawWsg(hrr->disp, &hrr->sbi, hrr->sbPos.x >> SF, hrr->sbPos.y >> SF, false, false, hrr->rotDeg);
 
         // Draw centered text
         char str[32];
-        sprintf(str, "%dm", _finalXpos);
-        drawText(_disp, _font, c555, str,
-                 (_disp->w - textWidth(_font, str)) / 2,
-                 (_disp->h - _font->h) / 2);
+        sprintf(str, "%dm", hrr->finalXpos);
+        drawText(hrr->disp, hrr->font, c555, str,
+                 (hrr->disp->w - textWidth(hrr->font, str)) / 2,
+                 (hrr->disp->h - hrr->font->h) / 2);
 
         // Draw "New Record!", maybe
-        if(_isNewRecord)
+        if(hrr->isNewRecord)
         {
             const char newRecordStr[] = "New Record!";
-            drawText(_disp, _font, c555, newRecordStr,
-                     (_disp->w - textWidth(_font, newRecordStr)) / 2,
-                     ((_disp->h - _font->h) / 2) + 4 + _font->h);
+            drawText(hrr->disp, hrr->font, c555, newRecordStr,
+                     (hrr->disp->w - textWidth(hrr->font, newRecordStr)) / 2,
+                     ((hrr->disp->h - hrr->font->h) / 2) + 4 + hrr->font->h);
         }
     }
 }
