@@ -379,7 +379,8 @@ void paintHidePickPoints();
 void paintSetupTool();
 void paintPrevTool();
 void paintNextTool();
-void paintInitStorage();
+void paintLoadIndex();
+void paintSaveIndex();
 void paintSave(uint8_t slot);
 void paintLoad(uint8_t slot);
 void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col);
@@ -458,7 +459,19 @@ void paintMainLoop(int64_t elapsedUs)
             }
             else
             {
-                paintLoad(paintState->selectedSlot);
+                if (paintState->inUseSlots[paintState->selectedSlot])
+                {
+                    // Load from the selected slot if it's been used
+                    paintLoad(paintState->selectedSlot);
+                }
+                else
+                {
+                    // If the slot hasn't been used yet, just clear the screen
+                    paintState->clearScreen = true;
+                    paintState->recentSaveSlot = paintState->selectedSlot;
+                    paintState->isSaveSelected = false;
+                    paintSaveIndex();
+                }
             }
 
             paintState->doSave = false;
@@ -914,9 +927,17 @@ void paintInitialize()
 
     paintState->clearScreen = true;
 
-    paintInitStorage();
-    paintState->isSaveSelected = false;
-    paintState->doSave = true;
+    paintLoadIndex();
+
+    for (uint8_t i = 0; i < PAINT_SAVE_SLOTS; i++)
+    {
+        if (paintState->inUseSlots[i])
+        {
+            paintState->isSaveSelected = false;
+            paintState->doSave = true;
+            break;
+        }
+    }
 
     paintState->canvasW = PAINT_CANVAS_WIDTH;
     paintState->canvasH = PAINT_CANVAS_HEIGHT;
@@ -1824,7 +1845,7 @@ void paintMoveCursorRel(int8_t xDiff, int8_t yDiff)
     }
 }
 
-void paintInitStorage()
+void paintLoadIndex()
 {
     // space needed for all metadata stuff
     // One bit for each slot, and one bit each to store the most-recently-used one
