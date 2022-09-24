@@ -42,13 +42,14 @@ static const char menuOptGallery[] = "Gallery";
 static const char menuOptReceive[] = "Receive";
 static const char menuOptExit[] = "Exit";
 
-#define PIXEL_STACK_MIN_SIZE 2
-#define MAX_PICK_POINTS 16
+static const char startMenuSave[] = "Save";
+static const char startMenuLoad[] = "Load";
+static const char startMenuSlot[] = "Slot %d";
+static const char startMenuSlotUsed[] = "Slot %d (!)";
+static const char startMenuOverwrite[] = "Overwrite?";
+static const char startMenuYes[] = "Yes";
+static const char startMenuNo[] = "No";
 
-// hold button for .3s to repeat
-#define BUTTON_REPEAT_TIME 300000
-
-#define CURSOR_POINTS 8
 static const int8_t cursorShapeX[CURSOR_POINTS] = {-2, -1,  0,  0,  1, 2, 0, 0};
 static const int8_t cursorShapeY[CURSOR_POINTS] = { 0,  0, -2, -1,  0, 0, 1, 2};
 
@@ -69,6 +70,20 @@ typedef enum
     // Receive a shared drawing over ESPNOW
     PAINT_RECEIVE,
 } paintScreen_t;
+
+typedef enum
+{
+    BTN_MODE_DRAW,
+    BTN_MODE_SELECT,
+    BTN_MODE_SAVE,
+} paintButtonMode_t;
+
+typedef enum
+{
+    HIDDEN,
+    PICK_SLOT_SAVE_LOAD,
+    CONFIRM_OVERWRITE,
+} paintSaveMenu_t;
 
 /**
  * Defines different brush behaviors for when A is pressed
@@ -147,53 +162,145 @@ typedef struct
 
 typedef struct
 {
+    //////// General app data
+
+    // Main Menu Font
     font_t menuFont;
-    font_t toolbarFont;
+    // Main Menu
     meleeMenu_t* menu;
+
+    // Font for drawing tool info
+    // TODO: Use images instead!
+    font_t toolbarFont;
+
     display_t* disp;
+
+    // The screen within paint that the user is in
     paintScreen_t screen;
 
-    paletteColor_t fgColor, bgColor;
-    paletteColor_t recentColors[PAINT_MAX_COLORS];
-    paletteColor_t underCursor[CURSOR_POINTS]; // top left right bottom
+    paintButtonMode_t buttonMode;
 
-    // Index of the currently selected brush
+    // Whether or not A is currently pressed
+    bool aHeld;
+
+    // Used in `xTranslate()` and `yTranslate()` as the screen-pixel offset for the current draw operation
+    // Each is iterated over [0, CANVAS_SCALE) with repeated draw operations to render a scaled-up shape with no gaps
+    int subPixelOffsetX, subPixelOffsetY;
+
+    // The width of the current canvas
+    // TODO: Remove and replace with constant? Or, remove constant and use this?
+    int16_t canvasW, canvasH;
+
+
+    //////// Settings
+    bool enableLeds;
+    bool enableSfx;
+    bool enableMusic;
+
+
+    // Color data
+
+    // The foreground color and the background color, which can be swapped with B
+    paletteColor_t fgColor, bgColor;
+
+    // This image's palette, including foreground and background colors.
+    // It is always ordered with the most-recently-used colors at the beginning
+    paletteColor_t recentColors[PAINT_MAX_COLORS];
+
+    // The index of the currently selected color, while SELECT is held
+    uint8_t paletteSelect;
+
+
+    //////// Brush / Tool data
+
+    // Index of the currently selected brush / tool
     uint8_t brushIndex;
-    // A pointer to the currently selected brush's definition
+
+    // A pointer to the currently selected brush's definition for convenience
     brush_t *brush;
 
-    // The current brush width
+    // The current brush width or variant, depending on the brush
     uint8_t brushWidth;
 
+
+    //////// Pick Points
+
     // An array of points that have been selected for the current brush
+    // TODO: Replace with a pxStack_t and get rid of the other `pxStack` maybe?
     point_t pickPoints[MAX_PICK_POINTS];
 
     // The number of points already selected
     size_t pickCount;
 
+    // The saved pixels that are covered up by the pick points
     pxStack_t pxStack;
-    pxStack_t cursorPxs;
 
-    bool aHeld;
-    bool selectHeld;
-    bool clearScreen;
-    bool redrawToolbar;
-    bool showCursor;
-    bool doSave, saveInProgress;
-    bool wasSaved;
+    // Whether all pick points should be redrawn with the current fgColor, for when the color changes while we're picking
     bool recolorPickPoints;
 
+
+    //////// Cursor
+
+    // The color of the pixels underneath the cursor
+    // TODO: Use `cursorPxs`, which isn't a hack, instead
+    paletteColor_t underCursor[CURSOR_POINTS]; // top left right bottom
+
+    // The saved pixels thate rae covered up by the cursor
+    pxStack_t cursorPxs;
+
+    bool showCursor;
+
+    // The number of canvas pixels to move the cursor this frame
+    int8_t moveX, moveY;
+
+    // The current position of the cursor in canvas pixels
+    int16_t cursorX, cursorY;
+
+    // The previous position of the cursor in canvas pixels
+    // TODO: Remove this and just use `cursorPxs` instead
+    int16_t lastCursorX, lastCursorY;
+
+    // When true, this is the initial D-pad button down.
+    // If set, the cursor will move by one pixel and then it will be cleared.
     bool firstMove;
+
+    // The time a D-pad button has been held down for, in microseconds
     int64_t btnHoldTime;
 
-    int subPixelOffsetX, subPixelOffsetY;
 
-    uint8_t paletteSelect;
+    //////// Rendering flags
 
-    int16_t cursorX, cursorY;
-    int16_t lastCursorX, lastCursorY;
-    int16_t canvasW, canvasH;
-    int8_t moveX, moveY;
+    // If set, the canvas will be cleared and the screen will be redrawn. Set on startup.
+    bool clearScreen;
+
+    // Set to redraw the toolbar on the next loop, when a brush or color is being selected
+    bool redrawToolbar;
+
+
+    //////// Save data flags
+
+    // Whether to perform a save on the next loop
+    bool doSave;
+
+    // True when a save has been started but not yet completed. Prevents input while saving.
+    bool saveInProgress;
+
+    // The save slot selected when in BTN_MODE_SAVE
+    uint8_t selectedSlot;
+
+    paintSaveMenu_t saveMenu;
+
+    // True if "Save" is selected, false if "Load" is selected
+    bool isSaveSelected;
+
+    // State for Yes/No in overwrite save menu.
+    bool overwriteYesSelected;
+
+    // The save slot number that was most recently loaded or saved
+    uint8_t recentSaveSlot;
+
+    // Map of whether each save slot is already occupied
+    bool inUseSlots[PAINT_SAVE_SLOTS];
 } paintMenu_t;
 
 
@@ -272,6 +379,7 @@ void paintHidePickPoints();
 void paintSetupTool();
 void paintPrevTool();
 void paintNextTool();
+void paintInitStorage();
 void paintSave(uint8_t slot);
 void paintLoad(uint8_t slot);
 void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col);
@@ -333,27 +441,33 @@ void paintMainLoop(int64_t elapsedUs)
 
     case PAINT_DRAW:
     {
-        if (paintState->clearScreen) {
+        if (paintState->clearScreen)
+        {
             paintClearCanvas();
             paintRenderAll();
             paintState->clearScreen = false;
             paintState->showCursor = true;
         }
 
-        if (paintState->doSave && !paintState->saveInProgress)
+        if (paintState->doSave)
         {
             paintState->saveInProgress = true;
-            paintState->doSave = false;
-            if (paintState->wasSaved)
+            if (paintState->isSaveSelected)
             {
-                paintLoad(0);
-                paintState->redrawToolbar = true;
+                paintSave(paintState->selectedSlot);
             }
             else
             {
-                paintSave(0);
+                paintLoad(paintState->selectedSlot);
             }
+
+            paintState->doSave = false;
             paintState->saveInProgress = false;
+
+            paintState->buttonMode = BTN_MODE_DRAW;
+            paintState->saveMenu = HIDDEN;
+
+            paintState->redrawToolbar = true;
         }
 
         if (paintState->recolorPickPoints)
@@ -370,6 +484,8 @@ void paintMainLoop(int64_t elapsedUs)
         }
         else
         {
+            // Don't remember why we only do this when redrawToolbar is true
+            // Oh, it's because `paintState->redrawToolbar` is mostly only set in select mode unless you press B?
             if (paintState->aHeld)
             {
                 paintDoTool(PAINT_CANVAS_X_OFFSET + paintState->cursorX, PAINT_CANVAS_Y_OFFSET + paintState->cursorY, paintState->fgColor);
@@ -392,9 +508,10 @@ void paintMainLoop(int64_t elapsedUs)
                     paintState->firstMove = false;
                 }
             }
-            break;
         }
+        break;
     }
+
     default:
         break;
     }
@@ -417,145 +534,349 @@ void paintButtonCb(buttonEvt_t* evt)
     {
         if (evt->down)
         {
-            if (evt->button & SELECT)
+            //////// Button Press
+            if (paintState->buttonMode == BTN_MODE_DRAW)
             {
-                paintState->selectHeld = true;
-                paintState->redrawToolbar = true;
-                paintState->aHeld = false;
-                paintState->moveX = 0;
-                paintState->moveY = 0;
+                // Draw mode buttons
+                switch (evt->button)
+                {
+                    case SELECT:
+                    {
+                        // Enter select mode (change color / brush)
+                        paintState->buttonMode = BTN_MODE_SELECT;
+                        paintState->redrawToolbar = true;
+                        paintState->aHeld = false;
+                        paintState->moveX = 0;
+                        paintState->moveY = 0;
+                        break;
+                    }
+
+                    case BTN_A:
+                    {
+                        // Draw
+                        paintState->aHeld = true;
+                        break;
+                    }
+
+                    case BTN_B:
+                    {
+                        // Swap the foreground and background colors
+                        // no temporary variables for me thanks
+                        paintState->fgColor ^= paintState->bgColor;
+                        paintState->bgColor ^= paintState->fgColor;
+                        paintState->fgColor ^= paintState->bgColor;
+
+                        paintState->recentColors[0] ^= paintState->recentColors[1];
+                        paintState->recentColors[1] ^= paintState->recentColors[0];
+                        paintState->recentColors[0] ^= paintState->recentColors[1];
+
+                        paintState->redrawToolbar = true;
+                        paintState->recolorPickPoints = true;
+                        break;
+                    }
+
+                    case UP:
+                    {
+                        paintState->firstMove = true;
+                        paintState->moveY = -1;
+                        break;
+                    }
+
+                    case DOWN:
+                    {
+                        paintState->firstMove = true;
+                        paintState->moveY = 1;
+                        break;
+                    }
+
+                    case LEFT:
+                    {
+                        paintState->firstMove = true;
+                        paintState->moveX = -1;
+                        break;
+                    }
+
+                    case RIGHT:
+                    {
+                        paintState->firstMove = true;
+                        paintState->moveX = 1;
+                        break;
+                    }
+
+                    case START:
+                    // Don't do anything until start is released to avoid conflicting with EXIT
+                    break;
+                }
             }
-
-            if (!paintState->selectHeld)
+            else if (paintState->buttonMode == BTN_MODE_SAVE)
             {
-                if (evt->button & BTN_A)
-                {
-                    paintState->aHeld = true;
-                }
+                //////// Save-mode button down
 
-                if (evt->button & UP)
+                paintState->redrawToolbar = true;
+                switch (evt->button)
                 {
-                    paintState->firstMove = true;
-                    paintState->moveY = -1;
-                }
-                else if (evt->button & DOWN)
-                {
-                    paintState->firstMove = true;
-                    paintState->moveY = 1;
-                }
+                    case BTN_A:
+                    {
+                        if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
+                        {
+                            if (paintState->isSaveSelected)
+                            {
+                                // The screen says "Save" and "Slot X"
+                                if (paintState->inUseSlots[paintState->selectedSlot])
+                                {
+                                    // This slot is in use! Move on to the overwrite menu
+                                    paintState->overwriteYesSelected = false;
+                                    paintState->saveMenu = CONFIRM_OVERWRITE;
+                                }
+                                else
+                                {
+                                    // The slot isn't in use, go for it!
+                                    paintState->doSave = true;
+                                }
+                            }
+                            else
+                            {
+                                // The screen says "Load" and "Slot X"
+                                // TODO: Track if image has been modified since saved and add a prompt for that
+                                paintState->doSave = true;
+                            }
+                        }
+                        else if (paintState->saveMenu == CONFIRM_OVERWRITE)
+                        {
+                            if (paintState->overwriteYesSelected)
+                            {
+                                paintState->doSave = true;
+                            }
+                            else
+                            {
+                                paintState->saveMenu = PICK_SLOT_SAVE_LOAD;
+                            }
+                        }
+                        else if (paintState->saveMenu == HIDDEN)
+                        {
+                            // We shouldn't be here!!!
+                            paintState->buttonMode = BTN_MODE_DRAW;
+                        }
 
-                if (evt->button & LEFT)
-                {
-                    paintState->firstMove = true;
-                    paintState->moveX = -1;
-                }
-                else if (evt->button & RIGHT)
-                {
-                    paintState->firstMove = true;
-                    paintState->moveX = 1;
+                        break;
+                    }
+
+                    case UP:
+                    case DOWN:
+                    case SELECT:
+                    {
+                        if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
+                        {
+                            // Toggle between Save / Load
+                            paintState->isSaveSelected = !paintState->isSaveSelected;
+                        }
+                        break;
+                    }
+
+                    case LEFT:
+                    {
+                        if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
+                        {
+                            // Previous save slot
+                            paintState->selectedSlot = (paintState->selectedSlot == 0) ? PAINT_SAVE_SLOTS - 1 : paintState->selectedSlot - 1;
+                        }
+                        else if (paintState->saveMenu == CONFIRM_OVERWRITE)
+                        {
+                            // Toggle Yes / No
+                            paintState->overwriteYesSelected = !paintState->overwriteYesSelected;
+                        }
+                        break;
+                    }
+
+                    case RIGHT:
+                    {
+                        if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
+                        {
+                            // Next save slot
+                            // TODO: Skip empty slots
+                            paintState->selectedSlot = (paintState->selectedSlot + 1) % PAINT_SAVE_SLOTS;
+                        }
+                        else if (paintState->saveMenu == CONFIRM_OVERWRITE)
+                        {
+                            // Toggle Yes / No
+                            paintState->overwriteYesSelected = !paintState->overwriteYesSelected;
+                        }
+                        break;
+                    }
+
+                    case BTN_B:
+                    {
+                        // Exit save menu
+                        paintState->saveMenu = HIDDEN;
+                        paintState->buttonMode = BTN_MODE_DRAW;
+                        break;
+                    }
+
+                    case START:
+                    // Handle this in button up
+                    break;
                 }
             }
         }
         else
         {
-            if (evt->button & SELECT)
+            if (paintState->buttonMode == BTN_MODE_SELECT)
             {
-                paintUpdateRecents(paintState->paletteSelect);
-                paintState->paletteSelect = 0;
-                paintState->selectHeld = false;
-                paintState->redrawToolbar = true;
-            }
-
-            if (paintState->screen == PAINT_DRAW && evt->button & START && !paintState->saveInProgress && !paintState->selectHeld)
-            {
-                paintState->doSave = true;
-            }
-
-
-            if (paintState->selectHeld)
-            {
-                if (evt->button & UP)
+                //////// Select-mode button release
+                switch (evt->button)
                 {
-                    paintState->redrawToolbar = true;
-                    if (paintState->paletteSelect == 0)
+                    case SELECT:
                     {
-                        paintState->paletteSelect = PAINT_MAX_COLORS - 1;
-                    } else {
-                        paintState->paletteSelect -= 1;
+                        // Exit select mode
+                        paintState->buttonMode = BTN_MODE_DRAW;
+
+                        // Set the current selection as the FG color and rearrange the rest
+                        paintUpdateRecents(paintState->paletteSelect);
+                        paintState->paletteSelect = 0;
+
+                        paintState->redrawToolbar = true;
+                        break;
                     }
-                }
-                else if (evt->button & DOWN)
-                {
-                    paintState->redrawToolbar = true;
-                    paintState->paletteSelect = (paintState->paletteSelect + 1) % PAINT_MAX_COLORS;
-                }
-                else if (evt->button & LEFT)
-                {
-                    // previous tool
-                    paintPrevTool();
-                    paintState->redrawToolbar = true;
-                }
-                else if (evt->button & RIGHT)
-                {
-                    // next tool
-                    paintNextTool();
-                    paintState->redrawToolbar = true;
-                }
-                else if (evt->button & BTN_A)
-                {
-                    paintState->brushWidth++;
-                    paintState->redrawToolbar = true;
-                }
-                else if (evt->button & BTN_B)
-                {
-                    if (paintState->brushWidth > 1)
+
+                    case UP:
                     {
-                        paintState->brushWidth--;
+                        // Select previous color
+                        paintState->redrawToolbar = true;
+                        if (paintState->paletteSelect == 0)
+                        {
+                            paintState->paletteSelect = PAINT_MAX_COLORS - 1;
+                        } else {
+                            paintState->paletteSelect -= 1;
+                        }
+                        break;
+                    }
+
+                    case DOWN:
+                    {
+                        // Select next color
+                        paintState->redrawToolbar = true;
+                        paintState->paletteSelect = (paintState->paletteSelect + 1) % PAINT_MAX_COLORS;
+                        break;
+                    }
+
+                    case LEFT:
+                    {
+                        // Select previous brush
+                        paintPrevTool();
+                        paintState->redrawToolbar = true;
+                        break;
+                    }
+
+                    case RIGHT:
+                    {
+                        // Select next brush
+                        paintNextTool();
+                        paintState->redrawToolbar = true;
+                        break;
+                    }
+
+
+                    case BTN_A:
+                    {
+                        // Increase brush size / next variant
+                        paintState->brushWidth++;
+                        paintState->redrawToolbar = true;
+                        break;
+                    }
+
+                    case BTN_B:
+                    {
+                        // Decrease brush size / prev variant
+                        if (paintState->brushWidth > 1)
+                        {
+                            paintState->brushWidth--;
+                            paintState->redrawToolbar = true;
+                        }
+                        break;
+                    }
+
+                    case START:
+                    // Start does nothing in select-mode, plus it's used for exit
+                    break;
+                }
+            }
+            else if (paintState->buttonMode == BTN_MODE_DRAW)
+            {
+                //////// Draw mode button release
+                switch (evt->button)
+                {
+                    case START:
+                    {
+                        if (!paintState->saveInProgress)
+                        {
+                            // Enter the save menu
+                            paintState->buttonMode = BTN_MODE_SAVE;
+                            paintState->saveMenu = PICK_SLOT_SAVE_LOAD;
+                            paintState->redrawToolbar = true;
+                            paintState->isSaveSelected = true;
+                        }
+                        break;
+                    }
+
+                    case BTN_A:
+                    {
+                        // Stop drawing
+                        paintState->aHeld = false;
+                        break;
+                    }
+
+                    case BTN_B:
+                    // Do nothing; color swap is handled on button down
+                    break;
+
+                    case UP:
+                    case DOWN:
+                    {
+                        // Stop moving vertically
+                        paintState->moveY = 0;
+
+                        // Reset the button hold time, but only if we're not holding another direction
+                        // This lets you make turns quickly instead of waiting for the repeat timeout in the middle
+                        if (!paintState->moveX)
+                        {
+                            paintState->btnHoldTime = 0;
+                        }
+                        break;
+                    }
+
+                    case LEFT:
+                    case RIGHT:
+                    {
+                        // Stop moving horizontally
+                        paintState->moveX = 0;
+
+                        if (!paintState->moveY)
+                        {
+                            paintState->btnHoldTime = 0;
+                        }
+                        break;
+                    }
+
+                    case SELECT:
+                    {
+                        paintState->isSaveSelected = true;
+                        paintState->overwriteYesSelected = false;
+                        paintState->buttonMode = BTN_MODE_SAVE;
                         paintState->redrawToolbar = true;
                     }
+                    break;
                 }
             }
-            else
+            else if (paintState->buttonMode == BTN_MODE_SAVE)
             {
-                if (evt->button & BTN_A)
+                //////// Save mode button release
+                if (evt->button == START)
                 {
-                    paintState->aHeld = false;
-                }
-
-                if (evt->button & BTN_B)
-                {
-                    // no temporary variables for me thanks
-                    paintState->fgColor ^= paintState->bgColor;
-                    paintState->bgColor ^= paintState->fgColor;
-                    paintState->fgColor ^= paintState->bgColor;
-
-                    paintState->recentColors[0] ^= paintState->recentColors[1];
-                    paintState->recentColors[1] ^= paintState->recentColors[0];
-                    paintState->recentColors[0] ^= paintState->recentColors[1];
+                    // Exit save menu
+                    paintState->saveMenu = HIDDEN;
+                    paintState->buttonMode = BTN_MODE_DRAW;
                     paintState->redrawToolbar = true;
-                    paintState->recolorPickPoints = true;
-                }
-
-                if (evt->button & (UP | DOWN))
-                {
-                    paintState->moveY = 0;
-
-                    // Reset the button hold time, but only if we're not holding another direction
-                    // This lets you make turns quickly instead of waiting for the repeat timeout in the middle
-                    if (!paintState->moveX)
-                    {
-                        paintState->btnHoldTime = 0;
-                    }
-                }
-
-                if (evt->button & (LEFT | RIGHT))
-                {
-                    paintState->moveX = 0;
-
-                    if (!paintState->moveY)
-                    {
-                        paintState->btnHoldTime = 0;
-                    }
+                    break;
                 }
             }
         }
@@ -593,7 +914,8 @@ void paintInitialize()
 
     paintState->clearScreen = true;
 
-    paintState->wasSaved = true;
+    paintInitStorage();
+    paintState->isSaveSelected = false;
     paintState->doSave = true;
 
     paintState->canvasW = PAINT_CANVAS_WIDTH;
@@ -835,47 +1157,73 @@ void paintRenderToolbar()
     {
         if (PAINT_COLORBOX_HORIZONTAL)
         {
-            drawColorBox(PAINT_COLORBOX_X + i * (PAINT_COLORBOX_MARGIN_LEFT + PAINT_COLORBOX_W), PAINT_COLORBOX_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, paintState->recentColors[i], paintState->selectHeld && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
+            drawColorBox(PAINT_COLORBOX_X + i * (PAINT_COLORBOX_MARGIN_LEFT + PAINT_COLORBOX_W), PAINT_COLORBOX_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, paintState->recentColors[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
         }
         else
         {
-            drawColorBox(PAINT_COLORBOX_X, PAINT_COLORBOX_Y + i * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H), PAINT_COLORBOX_W, PAINT_COLORBOX_H, paintState->recentColors[i], paintState->selectHeld && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
+            drawColorBox(PAINT_COLORBOX_X, PAINT_COLORBOX_Y + i * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H), PAINT_COLORBOX_W, PAINT_COLORBOX_H, paintState->recentColors[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
         }
     }
 
-    // Draw the brush name
-    uint16_t textX = 30, textY = 4;
-    drawText(paintState->disp, &paintState->toolbarFont, c000, paintState->brush->name, textX, textY);
 
-    // Draw the brush size, if applicable and not constant
-    char text[16];
-    if (paintState->brush->minSize > 0 && paintState->brush->maxSize > 0 && paintState->brush->minSize != paintState->brush->maxSize)
+    if (paintState->saveMenu == HIDDEN)
     {
-        snprintf(text, sizeof(text), "%d", paintState->brushWidth);
-        drawText(paintState->disp, &paintState->toolbarFont, c000, text, 200, 4);
-    }
+        //////// Tools
 
-    if (paintState->brush->mode == PICK_POINT && paintState->brush->maxPoints > 1)
-    {
-        // Draw the number of picks made / total
-        snprintf(text, sizeof(text), "%ld/%d", paintState->pickCount, paintState->brush->maxPoints);
-        drawText(paintState->disp, &paintState->toolbarFont, c000, text, 220, 4);
-    }
-    else if (paintState->brush->mode == PICK_POINT_LOOP && paintState->brush->maxPoints > 1)
-    {
-        // Draw the number of remaining picks
-        uint8_t maxPicks = paintState->brush->maxPoints < MAX_PICK_POINTS ? paintState->brush->maxPoints : MAX_PICK_POINTS;
+        // Draw the brush name
+        uint16_t textX = 30, textY = 4;
+        drawText(paintState->disp, &paintState->toolbarFont, c000, paintState->brush->name, textX, textY);
 
-        if (paintState->pickCount + 1 == maxPicks - 1)
+        // Draw the brush size, if applicable and not constant
+        char text[16];
+        if (paintState->brush->minSize > 0 && paintState->brush->maxSize > 0 && paintState->brush->minSize != paintState->brush->maxSize)
         {
-            snprintf(text, sizeof(text), "Last");
-        }
-        else
-        {
-            snprintf(text, sizeof(text), "%ld", maxPicks - paintState->pickCount - 1);
+            snprintf(text, sizeof(text), "%d", paintState->brushWidth);
+            drawText(paintState->disp, &paintState->toolbarFont, c000, text, 200, 4);
         }
 
-        drawText(paintState->disp, &paintState->toolbarFont, c000, text, 220, 4);
+        if (paintState->brush->mode == PICK_POINT && paintState->brush->maxPoints > 1)
+        {
+            // Draw the number of picks made / total
+            snprintf(text, sizeof(text), "%zu/%d", paintState->pickCount, paintState->brush->maxPoints);
+            drawText(paintState->disp, &paintState->toolbarFont, c000, text, 220, 4);
+        }
+        else if (paintState->brush->mode == PICK_POINT_LOOP && paintState->brush->maxPoints > 1)
+        {
+            // Draw the number of remaining picks
+            uint8_t maxPicks = paintState->brush->maxPoints < MAX_PICK_POINTS ? paintState->brush->maxPoints : MAX_PICK_POINTS;
+
+            if (paintState->pickCount + 1 == maxPicks - 1)
+            {
+                snprintf(text, sizeof(text), "Last");
+            }
+            else
+            {
+                snprintf(text, sizeof(text), "%zu", maxPicks - paintState->pickCount - 1);
+            }
+
+            drawText(paintState->disp, &paintState->toolbarFont, c000, text, 220, 4);
+        }
+    }
+    else if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
+    {
+        uint16_t textX = 30, textY = 4;
+
+        // Draw "Save" / "Load"
+        drawText(paintState->disp, &paintState->toolbarFont, c000, paintState->isSaveSelected ? startMenuSave : startMenuLoad, textX, textY);
+
+        // Draw the slot number
+        char text[16];
+        snprintf(text, sizeof(text), (paintState->isSaveSelected && paintState->inUseSlots[paintState->selectedSlot]) ? startMenuSlotUsed : startMenuSlot, paintState->selectedSlot + 1);
+        drawText(paintState->disp, &paintState->toolbarFont, c000, text, 160, textY);
+    }
+    else if (paintState->saveMenu == CONFIRM_OVERWRITE)
+    {
+        // Draw "Overwrite?"
+        drawText(paintState->disp, &paintState->toolbarFont, c000, startMenuOverwrite, 30, 4);
+
+        // Draw "Yes" / "No"
+        drawText(paintState->disp, &paintState->toolbarFont, c000, paintState->overwriteYesSelected ? startMenuYes : startMenuNo, 160, 4);
     }
 }
 
@@ -1181,7 +1529,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         paintState->pickPoints[paintState->pickCount].x = x;
         paintState->pickPoints[paintState->pickCount].y = y;
 
-        ESP_LOGD("Paint", "pick[%02ld] = SCR(%03d, %03d) / CNV(%d, %d)", paintState->pickCount, x, y, (x - PAINT_CANVAS_X_OFFSET), (y - PAINT_CANVAS_Y_OFFSET));
+        ESP_LOGD("Paint", "pick[%02zu] = SCR(%03d, %03d) / CNV(%d, %d)", paintState->pickCount, x, y, (x - PAINT_CANVAS_X_OFFSET), (y - PAINT_CANVAS_Y_OFFSET));
 
         // Save the pixel underneath the selection, then draw a temporary pixel to mark it
         // But don't bother if this is the last pick point, since it will never actually be seen
@@ -1216,7 +1564,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
                 // This is going to get cleared immediately, don't do that
                 //pushPx(&paintState->pxStack, paintState->disp, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
 
-                ESP_LOGD("Paint", "pick[%02ld] = (%03d, %03d) (last!)", paintState->pickCount, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
+                ESP_LOGD("Paint", "pick[%02zu] = (%03d, %03d) (last!)", paintState->pickCount, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
 
                 drawNow = true;
             }
@@ -1263,7 +1611,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 void initPxStack(pxStack_t* pxStack)
 {
     pxStack->size = PIXEL_STACK_MIN_SIZE;
-    ESP_LOGD("Paint", "Allocating pixel stack with size %ld", pxStack->size);
+    ESP_LOGD("Paint", "Allocating pixel stack with size %zu", pxStack->size);
     pxStack->data = malloc(sizeof(pxVal_t) * pxStack->size);
     pxStack->index = -1;
 }
@@ -1284,7 +1632,7 @@ void maybeGrowPxStack(pxStack_t* pxStack)
     if (pxStack->index >= pxStack->size)
     {
         pxStack->size *= 2;
-        ESP_LOGD("Paint", "Expanding pixel stack to size %ld", pxStack->size);
+        ESP_LOGD("Paint", "Expanding pixel stack to size %zu", pxStack->size);
         pxStack->data = realloc(pxStack->data, sizeof(pxVal_t) * pxStack->size);
     }
 }
@@ -1296,7 +1644,7 @@ void maybeShrinkPxStack(pxStack_t* pxStack)
     if (pxStack->index >= 0 && pxStack->index * 4 <= pxStack->size && pxStack->size > PIXEL_STACK_MIN_SIZE)
     {
         pxStack->size /= 2;
-        ESP_LOGD("Paint", "Shrinking pixel stack to %ld", pxStack->size);
+        ESP_LOGD("Paint", "Shrinking pixel stack to %zu", pxStack->size);
         pxStack->data = realloc(pxStack->data, sizeof(pxVal_t) * pxStack->size);
         ESP_LOGD("Paint", "Done shrinking pixel stack");
     }
@@ -1476,6 +1824,90 @@ void paintMoveCursorRel(int8_t xDiff, int8_t yDiff)
     }
 }
 
+void paintInitStorage()
+{
+    // space needed for all metadata stuff
+    // One bit for each slot, and one bit each to store the most-recently-used one
+    size_t indexMetadataSize = PAINT_SAVE_SLOTS * 2 / 8;
+
+
+    //       SFX?
+    //     BGM | Lights?
+    //        \|/
+    // |xxxxxvvv  |Recent?|  |Inuse? |
+    // 0000 0000  0000 0000  0000 0000
+
+    int32_t paintMetadata;
+    if (!readNvs32("pnt_idx", &paintMetadata))
+    {
+        ESP_LOGW("Paint", "No metadata! Setting defaults");
+        paintMetadata = PAINT_DEFAULTS;
+    }
+
+    paintState->enableLeds = paintMetadata & PAINT_ENABLE_LEDS;
+    paintState->enableSfx = paintMetadata & PAINT_ENABLE_SFX;
+    paintState->enableMusic = paintMetadata & PAINT_ENABLE_BGM;
+
+    for (uint8_t i = 0; i < PAINT_SAVE_SLOTS; i++)
+    {
+        if (paintMetadata & (1 << (i + PAINT_SAVE_SLOTS)))
+        {
+            paintState->recentSaveSlot = i;
+        }
+
+        if (paintMetadata & (1 << i))
+        {
+            paintState->inUseSlots[i] = true;
+        }
+        else
+        {
+            paintState->inUseSlots[i] = false;
+        }
+    }
+}
+
+void paintSaveIndex()
+{
+    int32_t paintMetadata = 0;
+
+    if (paintState->enableLeds)
+    {
+        paintMetadata |= PAINT_ENABLE_LEDS;
+    }
+
+    if (paintState->enableSfx)
+    {
+        paintMetadata |= PAINT_ENABLE_SFX;
+    }
+
+    if (paintState->enableMusic)
+    {
+        paintMetadata |= PAINT_ENABLE_BGM;
+    }
+
+    for (uint8_t i = 0; i < PAINT_SAVE_SLOTS; i++)
+    {
+        if (paintState->recentSaveSlot == i)
+        {
+            paintMetadata |= (1 << (i + PAINT_SAVE_SLOTS));
+        }
+
+        if (paintState->inUseSlots[i])
+        {
+            paintMetadata |= (1 << i);
+        }
+    }
+
+    if (writeNvs32("pnt_idx", paintMetadata))
+    {
+        ESP_LOGD("Paint", "Saved index: %016b", paintMetadata);
+    }
+    else
+    {
+        ESP_LOGE("Paint", "Failed to save index :(");
+    }
+}
+
 void paintSave(uint8_t slot)
 {
     // palette in reverse for quick transformation
@@ -1489,7 +1921,7 @@ void paintSave(uint8_t slot)
 
     // Save the palette map, this lets us compact the image by 50%
     snprintf(key, 16, "paint_%02d_pal", slot);
-    ESP_LOGD("Paint", "Palette will take up %ld bytes", sizeof(paletteColor_t) * PAINT_MAX_COLORS);
+    ESP_LOGD("Paint", "Palette will take up %zu bytes", sizeof(paletteColor_t) * PAINT_MAX_COLORS);
     if (writeNvsBlob(key, paintState->recentColors, sizeof(paletteColor_t) * PAINT_MAX_COLORS))
     {
         ESP_LOGD("Paint", "Saved palette to slot %s", key);
@@ -1588,12 +2020,15 @@ void paintSave(uint8_t slot)
         }
     }
 
+    paintState->recentSaveSlot = slot;
+    paintState->inUseSlots[slot] = true;
+
+    paintSaveIndex();
+
     free(imgChunk);
     imgChunk = NULL;
 
     enableCursor();
-
-    paintState->wasSaved = true;
 }
 
 void paintLoad(uint8_t slot)
@@ -1617,7 +2052,7 @@ void paintLoad(uint8_t slot)
     {
         paintState->fgColor = paintState->recentColors[0];
         paintState->bgColor = paintState->recentColors[1];
-        ESP_LOGD("Paint", "Read %ld bytes of palette from slot %s", paletteSize, key);
+        ESP_LOGD("Paint", "Read %zu bytes of palette from slot %s", paletteSize, key);
     }
     else
     {
@@ -1666,7 +2101,7 @@ void paintLoad(uint8_t slot)
         snprintf(key, 16, "paint_%02dc%05d", slot, i);
         if (readNvsBlob(key, imgChunk, &lastChunkSize))
         {
-            ESP_LOGD("Paint", "Read blob %d of %d (%ld bytes)", i+1, chunkCount, lastChunkSize);
+            ESP_LOGD("Paint", "Read blob %d of %d (%zu bytes)", i+1, chunkCount, lastChunkSize);
         }
         else
         {
@@ -1708,10 +2143,11 @@ void paintLoad(uint8_t slot)
         ESP_LOGW("Paint", "Loaded image had invalid bounds. Resetting to %d x %d", paintState->canvasW, paintState->canvasH);
     }
 
+    paintState->recentSaveSlot = slot;
+    paintSaveIndex();
+
     free(imgChunk);
     imgChunk = NULL;
 
     enableCursor();
-
-    paintState->wasSaved = false;
 }

@@ -6,6 +6,22 @@
 // The number of colors in the palette and the max number of colors an image can be saved with
 #define PAINT_MAX_COLORS 16
 
+
+// The total number of save slots available
+#define PAINT_SAVE_SLOTS 8
+
+// Whether to have the LEDs show the current colors
+#define PAINT_ENABLE_LEDS (0x0001 << (PAINT_SAVE_SLOTS * 2))
+
+// Whether to play SFX on drawing, etc.
+#define PAINT_ENABLE_SFX  (0x0002 << (PAINT_SAVE_SLOTS * 2))
+
+// Whether to play background music
+#define PAINT_ENABLE_BGM  (0x0004 << (PAINT_SAVE_SLOTS * 2))
+
+// Default to LEDs, SFX, and music on, with the first save slot marked as the most recent
+#define PAINT_DEFAULTS (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM | (1 << PAINT_SAVE_SLOTS))
+
 // The size of the buffer for loading/saving the image. Each chunk is saved as a separate blob in NVS
 #define PAINT_SAVE_CHUNK_SIZE 1024
 
@@ -52,6 +68,15 @@
 // Convert from world coordinates to canvas coordinates
 #define SCR2CNV_X(x) ((x - PAINT_CANVAS_X_OFFSET) / PAINT_CANVAS_SCALE)
 #define SCR2CNV_Y(y) ((y - PAINT_CANVAS_Y_OFFSET) / PAINT_CANVAS_SCALE)
+
+
+#define PIXEL_STACK_MIN_SIZE 2
+#define MAX_PICK_POINTS 16
+
+// hold button for .3s to begin repeating
+#define BUTTON_REPEAT_TIME 300000
+
+#define CURSOR_POINTS 8
 
 extern swadgeMode modePaint;
 
