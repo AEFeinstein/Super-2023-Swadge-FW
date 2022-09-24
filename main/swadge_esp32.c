@@ -565,7 +565,6 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         if(NULL != cSwadgeMode->fnAudioCallback)
         {
             uint16_t micAmp = getMicAmplitude();
-
             uint16_t adcSamps[BYTES_PER_READ / sizeof(adc_digi_output_data_t)];
             uint32_t sampleCnt = 0;
             while(0 < (sampleCnt = continuous_adc_read(adcSamps)))
@@ -574,12 +573,16 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                 for(uint32_t i = 0; i < sampleCnt; i++)
                 {
                     static uint32_t samp_iir = 0;
-                    samp_iir = samp_iir - (samp_iir >> 10) + adcSamps[i];
-                    adcSamps[i] = (adcSamps[i] - (samp_iir >> 10)) * 16;
-                    // Amplify the sample
-                    adcSamps[i] = (adcSamps[i] * micAmp) >> 4;
-                }
+                    int32_t sample = adcSamps[i];
+                    samp_iir = samp_iir - (samp_iir >> 9) + sample;
+                    int32_t newsamp = (sample - (samp_iir >> 9));
+                    newsamp = (newsamp * micAmp);
 
+                    if( newsamp <-32768 ) newsamp = -32768;
+                    else if( newsamp > 32767) newsamp = 32767;
+
+                    adcSamps[i] = newsamp;
+                }
                 cSwadgeMode->fnAudioCallback(adcSamps, sampleCnt);
             }
         }
