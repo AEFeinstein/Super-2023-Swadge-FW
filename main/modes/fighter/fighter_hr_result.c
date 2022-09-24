@@ -142,7 +142,6 @@ void fighterHrResultLoop(int64_t elapsedUs)
         }
 
         // Draw stuff
-        _disp->clearPx();
         drawWsg(_disp, &_sbi, _sbPos.x >> SF, _sbPos.y >> SF, false, false, rotDeg);
         char str[64];
         sprintf(str, "%dm", _finalXpos);

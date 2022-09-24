@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include <stdlib.h>
+#include <string.h>
 #include <esp_log.h>
 
 #include "swadge_esp32.h"
@@ -47,6 +48,7 @@ typedef struct
     fightingCharacter_t characters[2];
     fightingStage_t stage;
     fighterMessageType_t lastSentMsg;
+    wsg_t fd_bg;
 } fighterMenu_t;
 
 //==============================================================================
@@ -139,6 +141,9 @@ void fighterEnterMode(display_t* disp)
     // Create the menu
     fm->menu = initMeleeMenu(str_swadgeBros, &(fm->mmFont), fighterMainMenuCb);
 
+    // Load a background image to SPI RAM
+    loadWsgSpiRam("fdbg.wsg", &fm->fd_bg, true);
+
     // Set the main menu
     setFighterMainMenu();
 
@@ -163,6 +168,7 @@ void fighterExitMode(void)
     deinitMeleeMenu(fm->menu);
     p2pDeinit(&fm->p2p);
     freeFont(&(fm->mmFont));
+    freeWsg(&fm->fd_bg);
     free(fm);
 }
 
@@ -280,9 +286,25 @@ void fighterButtonCb(buttonEvt_t* evt)
 void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
                              int16_t w, int16_t h, int16_t up, int16_t upNum )
 {
-    if(FIGHTER_GAME == fm->screen)
+    switch (fm->screen)
     {
-        fighterDrawBg(disp, x, y, w, h);
+        case FIGHTER_MENU:
+        case FIGHTER_CONNECTING:
+        case FIGHTER_WAITING:
+        {
+            break;
+        }
+        case FIGHTER_GAME:
+        case FIGHTER_HR_RESULT:
+        case FIGHTER_MP_RESULT:
+        {
+            // Figure out source and destination pointers
+            paletteColor_t* dst = &disp->pxFb[(y * disp->w) + x];
+            paletteColor_t* src = &fm->fd_bg.px[(y * disp->w) + x];
+            // Copy the image to the framebuffer
+            memcpy(dst, src, w * h);
+            break;
+        }
     }
 }
 
