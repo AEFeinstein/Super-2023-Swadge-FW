@@ -261,16 +261,17 @@ bool decMicGain(void)
  */
 uint16_t getMicAmplitude(void)
 {
+    // Using a logarithmic volume control. 
     const uint16_t micVols[] =
     {
         32,
+        45,
         64,
-        96,
+        90,
         128,
-        160,
-        192,
-        224,
+        181,
         256,
+        362,
     };
     return micVols[getMicGain()];
 }
