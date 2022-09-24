@@ -2,6 +2,7 @@
 
 #include "display.h"
 #include "fighter_hr_result.h"
+#include "nvs_manager.h"
 
 // TODO struct and alloc these
 fightingCharacter_t _character;
@@ -14,6 +15,11 @@ int64_t _tAccumUs;
 wsg_t _sbi;
 int32_t rotDeg = 0;
 int32_t _finalXpos = 0;
+bool _isNewRecord;
+
+const char hr_kd_key[] = "hr_kd";
+const char hr_bf_key[] = "hr_bf";
+const char hr_sn_key[] = "hr_sn";
 
 /**
  * @brief Initialize the result display after a home run contest
@@ -64,6 +70,48 @@ void initFighterHrResult(display_t* disp, font_t* font,
     }
     // Save the final distance
     _finalXpos = (pos.x - platformEndX) >> (SF - 1);
+
+    // Check NVM if this is a high score. Get the key first
+    const char* key;
+    switch(_character)
+    {
+        case KING_DONUT:
+        {
+            key = hr_kd_key;
+            break;
+        }
+        case BIG_FUNKUS:
+        {
+            key = hr_bf_key;
+            break;
+        }
+        case SUNNY:
+        {
+            key = hr_sn_key;
+            break;
+        }
+        case SANDBAG:
+        case NO_CHARACTER:
+        default:
+        {
+            // Uhhh...
+            break;
+        }
+    }
+
+    // Read the prior score from NVM and check if it's beaten
+    int32_t hr_dist;
+    if( (false == readNvs32(key, &hr_dist)) ||
+            (_finalXpos > hr_dist))
+    {
+        // Write the new record
+        writeNvs32(key, _finalXpos);
+        _isNewRecord = true;
+    }
+    else
+    {
+        _isNewRecord = false;
+    }
 
     // X velocity is variable, 8000 is the max
     _sbVel.x = 8000;
@@ -141,10 +189,23 @@ void fighterHrResultLoop(int64_t elapsedUs)
             _sbVel.y = 0;
         }
 
-        // Draw stuff
+        // Draw sandbag
         drawWsg(_disp, &_sbi, _sbPos.x >> SF, _sbPos.y >> SF, false, false, rotDeg);
-        char str[64];
+
+        // Draw centered text
+        char str[32];
         sprintf(str, "%dm", _finalXpos);
-        drawText(_disp, _font, c555, str, 0, 64);
+        drawText(_disp, _font, c555, str,
+                 (_disp->w - textWidth(_font, str)) / 2,
+                 (_disp->h - _font->h) / 2);
+
+        // Draw "New Record!", maybe
+        if(_isNewRecord)
+        {
+            const char newRecordStr[] = "New Record!";
+            drawText(_disp, _font, c555, newRecordStr,
+                     (_disp->w - textWidth(_font, newRecordStr)) / 2,
+                     ((_disp->h - _font->h) / 2) + 4 + _font->h);
+        }
     }
 }
