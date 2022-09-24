@@ -695,10 +695,12 @@ void fighterSendSceneToOther(fighterScene_t* scene, uint8_t len)
  * @param position
  * @param velocity
  * @param gravity
+ * @param platformEndX
  */
-void fighterShowHrResult(fightingCharacter_t character, vector_t position, vector_t velocity, int32_t gravity)
+void fighterShowHrResult(fightingCharacter_t character, vector_t position,
+                         vector_t velocity, int32_t gravity, int32_t platformEndX)
 {
-    initFighterHrResult(fm->disp, &fm->mmFont, character, position, velocity, gravity);
+    initFighterHrResult(fm->disp, &fm->mmFont, character, position, velocity, gravity, platformEndX);
     fm->screen = FIGHTER_HR_RESULT;
 }
 
