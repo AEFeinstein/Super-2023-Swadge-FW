@@ -191,7 +191,7 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
             }
             uint16_t y = ((sample * dispHeight)>>16) + (dispHeight/2);
             if( y >= dispHeight ) continue;
-            TURBO_SET_PIXEL( colorcord->disp, x, y, 215 );
+            TURBO_SET_PIXEL( colorchord->disp, x, y, 215 );
         }
     }
 
