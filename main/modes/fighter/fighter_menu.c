@@ -15,6 +15,7 @@
 #include "fighter_menu.h"
 #include "mode_fighter.h"
 #include "fighter_hr_result.h"
+#include "fighter_records.h"
 
 //==============================================================================
 // Enums & Structs
@@ -28,6 +29,7 @@ typedef enum
     FIGHTER_GAME,
     FIGHTER_HR_RESULT,
     FIGHTER_MP_RESULT,
+    FIGHTER_RECORDS,
 } fighterScreen_t;
 
 typedef enum
@@ -86,13 +88,14 @@ void fighterCheckGameBegin(void);
 //==============================================================================
 
 static const char str_swadgeBros[]  = "Swadge Bros";
-static const char str_multiplayer[] = "Multiplayer";
-static const char str_hrContest[]   = "HR Contest";
+const char str_multiplayer[] = "Multiplayer";
+const char str_hrContest[]   = "HR Contest";
+static const char str_records[]     = "Records";
 static const char str_exit[]        = "Exit";
 
-static const char str_charKD[]      = "King Donut";
-static const char str_charSN[]      = "Sunny";
-static const char str_charBF[]      = "Big Funkus";
+const char str_charKD[]      = "King Donut";
+const char str_charSN[]      = "Sunny";
+const char str_charBF[]      = "Big Funkus";
 static const char str_back[]        = "Back";
 
 static const char str_stgBF[]       = "Battlefield";
@@ -217,6 +220,11 @@ void fighterMainLoop(int64_t elapsedUs)
             // TODO draw results, stocks, damage, etc.
             break;
         }
+        case FIGHTER_RECORDS:
+        {
+            fighterRecordsLoop(elapsedUs);
+            break;
+        }
     }
 }
 
@@ -269,6 +277,34 @@ void fighterButtonCb(buttonEvt_t* evt)
             // TODO handle button transition to FIGHTER_MENU
             break;
         }
+        case FIGHTER_RECORDS:
+        {
+            // Some buttons return to main menu
+            if(evt->down)
+            {
+                switch(evt->button)
+                {
+                    case BTN_A:
+                    case BTN_B:
+                    case START:
+                    case SELECT:
+                    {
+                        deinitFighterRecords();
+                        fm->screen = FIGHTER_MENU;
+                        break;
+                    }
+                    case UP:
+                    case DOWN:
+                    case LEFT:
+                    case RIGHT:
+                    default:
+                    {
+                        break;
+                    }
+                }
+            }
+            break;
+        }
     }
 }
 
@@ -291,6 +327,7 @@ void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
         case FIGHTER_MENU:
         case FIGHTER_CONNECTING:
         case FIGHTER_WAITING:
+        case FIGHTER_RECORDS:
         {
             break;
         }
@@ -318,6 +355,7 @@ void setFighterMainMenu(void)
     resetMeleeMenu(fm->menu, str_swadgeBros, fighterMainMenuCb);
     addRowToMeleeMenu(fm->menu, str_multiplayer);
     addRowToMeleeMenu(fm->menu, str_hrContest);
+    addRowToMeleeMenu(fm->menu, str_records);
     addRowToMeleeMenu(fm->menu, str_exit);
     fm->screen = FIGHTER_MENU;
 }
@@ -340,6 +378,11 @@ void fighterMainMenuCb(const char* opt)
     {
         // Home Run contest selected, display character select menu
         setFighterHrMenu();
+    }
+    else if (opt == str_records)
+    {
+        initFighterRecords(fm->disp, &fm->mmFont);
+        fm->screen = FIGHTER_RECORDS;
     }
     else if (opt == str_exit)
     {

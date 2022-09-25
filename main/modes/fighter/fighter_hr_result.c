@@ -6,8 +6,10 @@
 #include <stdio.h>
 
 #include "display.h"
-#include "fighter_hr_result.h"
 #include "nvs_manager.h"
+
+#include "fighter_hr_result.h"
+#include "fighter_records.h"
 
 //==============================================================================
 // Structs
@@ -15,14 +17,14 @@
 
 typedef struct
 {
-    fightingCharacter_t character;
-    vector_t sbVel;
-    vector_t sbPos;
-    int32_t grav;
     display_t* disp;
     font_t* font;
-    int64_t tAccumUs;
     wsg_t sbi;
+    vector_t sbVel;
+    vector_t sbPos;
+    fightingCharacter_t character;
+    int64_t tAccumUs;
+    int32_t grav;
     int32_t rotDeg;
     int32_t finalXpos;
     bool isNewRecord;
@@ -33,10 +35,6 @@ typedef struct
 //==============================================================================
 
 hrRes_t* hrr;
-
-const char hr_kd_key[] = "hr_kd";
-const char hr_bf_key[] = "hr_bf";
-const char hr_sn_key[] = "hr_sn";
 
 //==============================================================================
 // Functions
@@ -95,46 +93,7 @@ void initFighterHrResult(display_t* disp, font_t* font,
     hrr->finalXpos = (pos.x - platformEndX) >> (SF - 1);
 
     // Check NVM if this is a high score. Get the key first
-    const char* key;
-    switch(hrr->character)
-    {
-        case KING_DONUT:
-        {
-            key = hr_kd_key;
-            break;
-        }
-        case BIG_FUNKUS:
-        {
-            key = hr_bf_key;
-            break;
-        }
-        case SUNNY:
-        {
-            key = hr_sn_key;
-            break;
-        }
-        case SANDBAG:
-        case NO_CHARACTER:
-        default:
-        {
-            // Uhhh...
-            break;
-        }
-    }
-
-    // Read the prior score from NVM and check if it's beaten
-    int32_t hr_dist;
-    if( (false == readNvs32(key, &hr_dist)) ||
-            (hrr->finalXpos > hr_dist))
-    {
-        // Write the new record
-        writeNvs32(key, hrr->finalXpos);
-        hrr->isNewRecord = true;
-    }
-    else
-    {
-        hrr->isNewRecord = false;
-    }
+    hrr->isNewRecord = checkHomerunRecord(hrr->character, hrr->finalXpos);
 
     // X velocity is variable, 8000 is the max
     hrr->sbVel.x = 8000;
