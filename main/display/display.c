@@ -184,7 +184,7 @@ bool loadWsgSpiRam(char* name, wsg_t* wsg, bool spiRam)
     // Read WSG from file
     uint8_t* buf = NULL;
     size_t sz;
-    if(!spiffsReadFile(name, &buf, &sz))
+    if(!spiffsReadFile(name, &buf, &sz, true))
     {
         ESP_LOGE("WSG", "Failed to read %s", name);
         return false;
@@ -642,7 +642,7 @@ bool loadFont(const char* name, font_t* font)
     uint8_t* buf = NULL;
     size_t bufIdx = 0;
     size_t sz;
-    if(!spiffsReadFile(name, &buf, &sz))
+    if(!spiffsReadFile(name, &buf, &sz, true))
     {
         ESP_LOGE("FONT", "Failed to read %s", name);
         return false;

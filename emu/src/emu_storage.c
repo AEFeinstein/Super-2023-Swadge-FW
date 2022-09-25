@@ -452,10 +452,12 @@ bool deinitSpiffs(void)
  * @param output  A pointer to a pointer to return the read data in. This memory
  *                will be allocated with calloc(). Must be NULL to start
  * @param outsize A pointer to a size_t to return how much data was read
+ * @param readToSpiRam unused
  * @return true if the file was read successfully, false otherwise
  */
-bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
+bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize, bool readToSpiRam)
 {
+    printf("Read from %s\n", fname);
     // Make sure the output pointer is NULL to begin with
     if(NULL != *output)
     {

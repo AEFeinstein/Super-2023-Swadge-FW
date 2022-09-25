@@ -8,6 +8,7 @@
 #include "esp_err.h"
 #include "esp_spiffs.h"
 #include "esp_log.h"
+#include "esp_heap_caps.h"
 
 #include "spiffs_manager.h"
 #include "spiffs_config.h"
@@ -70,9 +71,10 @@ bool deinitSpiffs(void)
  * @param output  A pointer to a pointer to return the read data in. This memory
  *                will be allocated with calloc(). Must be NULL to start
  * @param outsize A pointer to a size_t to return how much data was read
+ * @param readToSpiRam true to use SPI RAM, false to use normal RAM
  * @return true if the file was read successfully, false otherwise
  */
-bool spiffsReadFile(const char* fname, uint8_t** output, size_t* outsize)
+bool spiffsReadFile(const char* fname, uint8_t** output, size_t* outsize, bool readToSpiRam)
 {
     // Make sure the output pointer is NULL to begin with
     if(NULL != *output)
@@ -100,7 +102,14 @@ bool spiffsReadFile(const char* fname, uint8_t** output, size_t* outsize)
     fseek(f, 0L, SEEK_SET);
 
     // Read the file into an array
-    *output = (uint8_t*)calloc((*outsize + 1), sizeof(uint8_t));
+    if(readToSpiRam)
+    {
+        *output = (uint8_t*)heap_caps_calloc((*outsize + 1), sizeof(uint8_t), MALLOC_CAP_SPIRAM);
+    }
+    else
+    {
+        *output = (uint8_t*)calloc((*outsize + 1), sizeof(uint8_t));
+    }
     fread(*output, *outsize, 1, f);
     // Add null terminator
     (*output)[*outsize] = 0;
