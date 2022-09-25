@@ -829,7 +829,7 @@ uint8_t loadFighterSprite(char* name, namedSprite_t* loadedSprites)
             {
                 // If the sprite loads, save the name
                 loadedSprites[idx].name = calloc(1, strlen(name) + 1);
-                memcpy(loadedSprites[idx].name, name, strlen(name + 1));
+                memcpy(loadedSprites[idx].name, name, strlen(name) + 1);
             }
             // Return the index
             return idx;

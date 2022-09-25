@@ -56,7 +56,6 @@ void initFighterHrResult(display_t* disp, font_t* font,
 {
     hrr = calloc(1, sizeof(hrRes_t));
 
-    printf("[%d, %d], [%d, %d]\n", pos.x, pos.y, vel.x, vel.y);
     // Save the display and foint pointers
     hrr->disp = disp;
     hrr->font = font;

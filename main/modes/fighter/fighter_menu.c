@@ -546,12 +546,10 @@ void fighterMultiplayerStageMenuCb(const char* opt)
     if(str_stgBF == opt)
     {
         fm->stage = BATTLEFIELD;
-        printf("Picked battlefield %d", fm->stage);
     }
     else if(str_stgFD == opt)
     {
         fm->stage = FINAL_DESTINATION;
-        printf("Final Destination %d", fm->stage);
     }
     else if(str_back == opt)
     {

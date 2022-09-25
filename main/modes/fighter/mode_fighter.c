@@ -487,9 +487,6 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, uint8_t newSprite
             break;
         }
     }
-
-    // debug
-    // printf("%d: %d, %p\n", line, newState, newSprite);
 }
 
 /**
