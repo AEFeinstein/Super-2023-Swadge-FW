@@ -50,8 +50,37 @@ static const char startMenuOverwrite[] = "Overwrite?";
 static const char startMenuYes[] = "Yes";
 static const char startMenuNo[] = "No";
 
-static const int8_t cursorShapeX[CURSOR_POINTS] = {-2, -1,  0,  0,  1, 2, 0, 0};
-static const int8_t cursorShapeY[CURSOR_POINTS] = { 0,  0, -2, -1,  0, 0, 1, 2};
+typedef paletteColor_t (*colorMapFn_t)(paletteColor_t col);
+
+static const paletteColor_t cursorPxsBox[] =
+{
+    c000, c000, c000, c000, c000,
+    c000, cTransparent, cTransparent, cTransparent, c000,
+    c000, cTransparent, cTransparent, cTransparent, c000,
+    c000, cTransparent, cTransparent, cTransparent, c000,
+    c000, c000, c000, c000, c000,
+};
+
+static const paletteColor_t cursorPxsCrosshair[] =
+{
+    cTransparent, cTransparent, c000, cTransparent, cTransparent,
+    cTransparent, cTransparent, c000, cTransparent, cTransparent,
+    c000, c000, cTransparent, c000, c000,
+    cTransparent, cTransparent, c000, cTransparent, cTransparent,
+    cTransparent, cTransparent, c000, cTransparent, cTransparent,
+};
+
+wsg_t cursorCrosshairWsg = {
+    .px = &cursorPxsCrosshair,
+    .w = 5,
+    .h = 5,
+};
+
+wsg_t cursorBoxWsg = {
+    .px = &cursorPxsBox,
+    .w = 5,
+    .h = 5,
+};
 
 typedef enum
 {
@@ -241,9 +270,8 @@ typedef struct
 
     //////// Cursor
 
-    // The color of the pixels underneath the cursor
-    // TODO: Use `cursorPxs`, which isn't a hack, instead
-    paletteColor_t underCursor[CURSOR_POINTS]; // top left right bottom
+    // The sprite for the currently selected cursor
+    wsg_t* cursorWsg;
 
     // The saved pixels thate rae covered up by the cursor
     pxStack_t cursorPxs;
@@ -366,8 +394,10 @@ paintMenu_t* paintState;
 
 int xTranslate(int x);
 int yTranslate(int y);
+paletteColor_t getContrastingColor(paletteColor_t col);
 void paintInitialize();
 void paintRenderAll();
+void restoreCursorPixels();
 void paintRenderCursor();
 void paintRenderToolbar();
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
@@ -376,6 +406,7 @@ void paintClearCanvas();
 void paintUpdateRecents(uint8_t selectedIndex);
 void paintDrawPickPoints();
 void paintHidePickPoints();
+void paintDrawWsgTemp(display_t* display, wsg_t* wsg, pxStack_t* saveTo, uint16_t x, uint16_t y, colorMapFn_t colorSwap);
 void paintSetupTool();
 void paintPrevTool();
 void paintNextTool();
@@ -395,16 +426,52 @@ void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y);
 bool popPx(pxStack_t* pxStack, display_t* disp);
 
 
-// Mode struct function implemetations
+// Generic util functions
 
 int xTranslate(int x)
 {
     return (x - PAINT_CANVAS_X_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_X_OFFSET + paintState->subPixelOffsetX;
 }
+
 int yTranslate(int y)
 {
     return (y - PAINT_CANVAS_Y_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_Y_OFFSET + paintState->subPixelOffsetY;
 }
+
+void paletteColorToLed(paletteColor_t pal, led_t* led)
+{
+    if (pal == cTransparent)
+    {
+        led->b = 0xFF;
+        led->g = 0xFF;
+        led->r = 0xFF;
+    }
+    else
+    {
+        led->b = pal % 6 * 51;
+        led->g = pal / 6 % 6 * 51;
+        led->r = pal / 36 * 51;
+    }
+}
+
+paletteColor_t ledColorToPalette(const led_t* led)
+{
+    return (paletteColor_t)(led->b / 51 + led->g / 51 * 6 + led->r / 51 * 36);
+}
+
+paletteColor_t getContrastingColor(paletteColor_t col)
+{
+    led_t ledCol;
+    paletteColorToLed(col, &ledCol);
+    ledCol.r = 255 - ledCol.r;
+    ledCol.g = 255 - ledCol.g;
+    ledCol.b = 255 - ledCol.b;
+
+    ESP_LOGD("Paint", "Converted color to RGB c%d%d%d", ledCol.r, ledCol.g, ledCol.b);
+    return ledColorToPalette(&ledCol);
+}
+
+// Mode struct function implemetations
 
 void paintEnterMode(display_t* disp)
 {
@@ -427,6 +494,7 @@ void paintExitMode()
     freeFont(&(paintState->menuFont));
 
     freePxStack(&paintState->pxStack);
+    freePxStack(&paintState->cursorPxs);
     free(paintState);
 }
 
@@ -945,25 +1013,15 @@ void paintInitialize()
     paintState->brush = &(brushes[0]);
     paintState->brushWidth = 1;
 
+    paintState->cursorWsg = &cursorBoxWsg;
+
     initPxStack(&paintState->pxStack);
+    initPxStack(&paintState->cursorPxs);
 
     paintState->disp->clearPx();
 
     paintState->fgColor = c000; // black
     paintState->bgColor = c555; // white
-
-    // this is kind of a hack but oh well
-    for (uint8_t i = 0; i < CURSOR_POINTS; i++)
-    {
-        if (cursorShapeX[i] < 0 || cursorShapeY[i] < 0)
-        {
-            paintState->underCursor[i] = PAINT_TOOLBAR_BG;
-        }
-        else
-        {
-            paintState->underCursor[i] = paintState->bgColor;
-        }
-    }
 
     // pick some colors to start with
     paintState->recentColors[0] = c000; // black
@@ -984,7 +1042,7 @@ void paintInitialize()
     paintState->recentColors[14] = c522;
     paintState->recentColors[15] = c103;
 
-    ESP_LOGD("Paint", "It's paintin' time! Canvas is %d x %d pixels!", paintState->disp->w, paintState->disp->h);
+    ESP_LOGD("Paint", "It's paintin' time! Canvas is %d x %d pixels!", paintState->canvasW, paintState->canvasH);
 
 }
 
@@ -1023,28 +1081,23 @@ void paintRenderAll()
     paintRenderCursor();
 }
 
-void saveCursorPixels(bool useLast)
+void setCursor(wsg_t* cursorWsg)
 {
-    for (uint8_t i = 0; i < CURSOR_POINTS; i++)
-    {
-        paintState->underCursor[i] = paintState->disp->getPx(CNV2SCR_X((useLast ? paintState->lastCursorX : paintState->cursorX) + cursorShapeX[i]) + PAINT_CANVAS_SCALE / 2, CNV2SCR_Y((useLast ? paintState->lastCursorY : paintState->cursorY) + cursorShapeY[i]) + PAINT_CANVAS_SCALE / 2);
-    }
+    restoreCursorPixels();
+    paintState->cursorWsg = cursorWsg;
+    paintRenderCursor();
 }
 
-void restoreCursorPixels(bool useLast)
+void restoreCursorPixels()
 {
-    for (uint8_t i = 0; i < CURSOR_POINTS; i++)
-    {
-        paintState->disp->setPx(CNV2SCR_X((useLast ? paintState->lastCursorX : paintState->cursorX) + cursorShapeX[i]) + PAINT_CANVAS_SCALE / 2, CNV2SCR_Y((useLast ? paintState->lastCursorY : paintState->cursorY) + cursorShapeY[i]) + PAINT_CANVAS_SCALE / 2, paintState->underCursor[i]);
-    }
+    ESP_LOGD("Paint", "Restoring pixels underneath cursor...");
+    while (popPx(&paintState->cursorPxs, paintState->disp));
 }
 
 void plotCursor()
 {
-    for (int i = 0; i < CURSOR_POINTS; i++)
-    {
-        paintState->disp->setPx(CNV2SCR_X(paintState->cursorX + cursorShapeX[i]) + PAINT_CANVAS_SCALE / 2, CNV2SCR_Y(paintState->cursorY + cursorShapeY[i]) + PAINT_CANVAS_SCALE / 2, c300);
-    }
+    restoreCursorPixels();
+    paintDrawWsgTemp(paintState->disp, paintState->cursorWsg, &paintState->cursorPxs, CNV2SCR_X(paintState->cursorX) + PAINT_CANVAS_SCALE / 2 - paintState->cursorWsg->w / 2, CNV2SCR_Y(paintState->cursorY) + PAINT_CANVAS_SCALE / 2 - paintState->cursorWsg->h / 2, getContrastingColor);
 }
 
 void paintRenderCursor()
@@ -1053,12 +1106,6 @@ void paintRenderCursor()
     {
         if (paintState->lastCursorX != paintState->cursorX || paintState->lastCursorY != paintState->cursorY)
         {
-            // Restore the pixels under the last cursor position
-            restoreCursorPixels(true);
-
-            // Save the pixels that will be under the cursor
-            saveCursorPixels(false);
-
             // Draw the cursor
             plotCursor();
         }
@@ -1069,9 +1116,6 @@ void enableCursor()
 {
     if (!paintState->showCursor)
     {
-        // Save the pixels under the cursor we're about to draw over
-        saveCursorPixels(false);
-
         paintState->showCursor = true;
 
         plotCursor();
@@ -1082,7 +1126,7 @@ void disableCursor()
 {
     if (paintState->showCursor)
     {
-        restoreCursorPixels(false);
+        restoreCursorPixels();
 
         paintState->showCursor = false;
     }
@@ -1343,7 +1387,6 @@ void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t sea
     } while(lastRowLength != 0 && ++y < PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT * PAINT_CANVAS_SCALE); // if we get to a full row or to the bottom, we're done
 }
 
-// void (*fnDraw)(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col);
 void paintDrawSquarePen(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
     if (paintState->subPixelOffsetX == 0 && paintState->subPixelOffsetY == 0)
@@ -1578,12 +1621,9 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
                 // Special case: If we're on the next-to-last possible point, we have to add the start again as the last point
                 ++paintState->pickCount;
 
-                //instead maybe memcpy(&(paintState->pickPoints[0]), &(paintState->pickPoints[paintState->pickCount]), sizeof(point_t));
                 paintState->pickPoints[paintState->pickCount].x = paintState->pickPoints[0].x;
                 paintState->pickPoints[paintState->pickCount].y = paintState->pickPoints[0].y;
 
-                // This is going to get cleared immediately, don't do that
-                //pushPx(&paintState->pxStack, paintState->disp, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
 
                 ESP_LOGD("Paint", "pick[%02zu] = (%03d, %03d) (last!)", paintState->pickCount, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
 
@@ -1808,6 +1848,28 @@ void paintHidePickPoints()
             for (uint16_t yo = 0; yo < PAINT_CANVAS_SCALE; yo++)
             {
                 paintState->disp->setPx((paintState->pickPoints[i].x - PAINT_CANVAS_X_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_X_OFFSET + xo, (paintState->pickPoints[i].y - PAINT_CANVAS_Y_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_Y_OFFSET + yo, paintState->pxStack.data[i].col);
+            }
+        }
+    }
+}
+
+void paintDrawWsgTemp(display_t* disp, wsg_t* wsg, pxStack_t* saveTo, uint16_t xOffset, uint16_t yOffset, colorMapFn_t colorSwap)
+{
+    size_t i = 0;
+    for (uint16_t x = 0; x < wsg->w; x++)
+    {
+        for (uint16_t y = 0; y < wsg->h; y++, i++)
+        {
+            if (wsg->px[i] != cTransparent)
+            {
+                pushPx(saveTo, disp, xOffset + x, yOffset + y);
+
+                ESP_LOGD("Paint", "Draw cursor[%1$d][%2$d] = %5$d @ (%3$03d, %4$03d)", x, y, xOffset + x, yOffset + y, colorSwap ? colorSwap(disp->getPx(xOffset + x, yOffset + y)) : wsg->px[i]);
+                disp->setPx(xOffset + x, yOffset + y, colorSwap ? colorSwap(disp->getPx(xOffset + x, yOffset + y)) : wsg->px[i]);
+            }
+            else
+            {
+                ESP_LOGD("Paint", "Skipping cursor[%d][%d] == cTransparent", x, y);
             }
         }
     }
