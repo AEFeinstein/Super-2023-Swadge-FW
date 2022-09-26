@@ -16,6 +16,7 @@
 #include <esp_err.h>
 #include <freertos/queue.h>
 #include <esp_log.h>
+#include <esp_private/wifi.h>
 
 #include "espNowUtils.h"
 #include "../../main/p2pConnection.h"
@@ -25,6 +26,7 @@
 //==============================================================================
 
 #define ESPNOW_CHANNEL 11
+#define WIFI_RATE WIFI_PHY_RATE_MCS7_SGI
 
 //==============================================================================
 // Variables
@@ -78,6 +80,8 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
     // }
 
     wifi_init_config_t conf = WIFI_INIT_CONFIG_DEFAULT();
+    conf.ampdu_rx_enable = 0;
+    conf.ampdu_tx_enable = 0;
     if (ESP_OK != (err = esp_wifi_init(&conf)))
     {
         ESP_LOGD("ESPNOW", "Couldn't init wifi %s", esp_err_to_name(err));
@@ -145,7 +149,7 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
         return;
     }
 
-    if(ESP_OK != (err = esp_wifi_config_espnow_rate(ESP_IF_WIFI_STA, WIFI_PHY_RATE_54M)))
+    if(ESP_OK != (err = esp_wifi_config_80211_tx_rate(ESP_IF_WIFI_STA, WIFI_RATE)))
     {
         ESP_LOGD("ESPNOW", "Couldn't set PHY rate %s", esp_err_to_name(err));
         return;
@@ -157,10 +161,23 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
         return;
     }
 
+    if(ESP_OK != (err = esp_wifi_config_espnow_rate(ESP_IF_WIFI_STA, WIFI_RATE)))
+    {
+        ESP_LOGD("ESPNOW", "Couldn't set PHY rate %s", esp_err_to_name(err));
+        return;
+    }
+
     // Set the channel
-    if(ESP_OK != (err = esp_wifi_set_channel( ESPNOW_CHANNEL, WIFI_SECOND_CHAN_BELOW )))
+    if(ESP_OK != (err = esp_wifi_set_channel( ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE )))
     {
         ESP_LOGD("ESPNOW", "Couldn't set channel");
+        return;
+    }
+
+    // Set data rate
+    if(ESP_OK != (err = esp_wifi_internal_set_fix_rate(ESP_IF_WIFI_STA, true, WIFI_RATE)))
+    {
+        ESP_LOGD("ESPNOW", "Couldn't set data rate");
         return;
     }
 
