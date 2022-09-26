@@ -286,5 +286,6 @@ void fighterRxButtonInput(int32_t btnState);
 void fighterRxScene(const fighterScene_t* scene);
 
 void drawFighterScene(display_t* d, const fighterScene_t* sceneData);
+void setFighterRetryTimeUs(int32_t retryTime);
 
 #endif

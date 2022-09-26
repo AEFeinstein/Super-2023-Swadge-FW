@@ -67,6 +67,7 @@ typedef struct
     int32_t gameTimerUs;
     int32_t printGoTimerUs;
     fighterGamePhase_t gamePhase;
+    int32_t packetRetryUs;
 } fightingGame_t;
 
 //==============================================================================
@@ -591,6 +592,7 @@ void fighterGameLoop(int64_t elapsedUs)
                 {
                     // Raise flag to send button input to player 0
                     f->shouldSendButtonInput = true;
+                    f->packetRetryUs = 1;
                 }
                 break;
             }
@@ -656,6 +658,7 @@ void fighterGameLoop(int64_t elapsedUs)
         if(MULTIPLAYER == f->type)
         {
             f->shouldSendScene = true;
+            f->packetRetryUs = 1;
         }
 
         // Render the scene
@@ -683,17 +686,40 @@ void fighterGameLoop(int64_t elapsedUs)
     // If this is multiplayer, manage transmissions
     if(MULTIPLAYER == f->type)
     {
-        // Blast the buttons until the scene is received
-        if(f->shouldSendButtonInput)
+        // If the retry timer is active
+        if(f->packetRetryUs > 0)
         {
-            fighterSendButtonsToOther(f->fighters[f->playerIdx].btnState);
-        }
+            // Decrement it
+            f->packetRetryUs -= elapsedUs;
+            // If it expired
+            if(f->packetRetryUs <= 0)
+            {
+                // Blast the buttons until the scene is received
+                if(f->shouldSendButtonInput)
+                {
+                    fighterSendButtonsToOther(f->fighters[f->playerIdx].btnState);
+                }
 
-        // Blast the scene until the bottons are received
-        if(f->shouldSendScene)
-        {
-            fighterSendSceneToOther(f->composedScene, f->composedSceneLen);
+                // Blast the scene until the bottons are received
+                if(f->shouldSendScene)
+                {
+                    fighterSendSceneToOther(f->composedScene, f->composedSceneLen);
+                }
+            }
         }
+    }
+}
+
+/**
+ * @brief Set the time to retry sending a packet
+ * 
+ * @param retryTime The time in microseconds to wait before retrying a packet
+ */
+void setFighterRetryTimeUs(int32_t retryTime)
+{
+    if(NULL != f)
+    {
+        f->packetRetryUs = retryTime;
     }
 }
 

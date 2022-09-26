@@ -51,6 +51,7 @@ typedef struct
     fightingStage_t stage;
     fighterMessageType_t lastSentMsg;
     wsg_t fd_bg;
+    int64_t txTimeStart;
 } fighterMenu_t;
 
 //==============================================================================
@@ -508,6 +509,7 @@ void fighterMultiplayerCharMenuCb(const char* opt)
         fm->characters[charIdx]
     };
     p2pSendMsg(&fm->p2p, payload, sizeof(payload), true, fighterP2pMsgTxCbFn);
+    fm->txTimeStart = esp_timer_get_time();
     fm->lastSentMsg = CHAR_SEL_MSG;
 
     if(GOING_FIRST == fm->p2p.cnc.playOrder)
@@ -571,6 +573,7 @@ void fighterMultiplayerStageMenuCb(const char* opt)
         fm->stage
     };
     p2pSendMsg(&fm->p2p, payload, sizeof(payload), true, fighterP2pMsgTxCbFn);
+    fm->txTimeStart = esp_timer_get_time();
     fm->lastSentMsg = STAGE_SEL_MSG;
 }
 
@@ -602,6 +605,11 @@ void fighterEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
     // Forward to p2p
     p2pSendCb(&fm->p2p, mac_addr, status);
+    if(ESP_NOW_SEND_SUCCESS == status)
+    {
+        // Let the game know how long to wait before retrying a packet
+        setFighterRetryTimeUs(esp_timer_get_time() - fm->txTimeStart);
+    }
 }
 
 /**
@@ -733,6 +741,7 @@ void fighterSendButtonsToOther(int32_t btnState)
     };
     // Don't ack, retry until the scene is received
     p2pSendMsg(&fm->p2p, payload, sizeof(payload), false, fighterP2pMsgTxCbFn);
+    fm->txTimeStart = esp_timer_get_time();
     fm->lastSentMsg = BUTTON_INPUT_MSG;
 }
 
@@ -748,6 +757,7 @@ void fighterSendSceneToOther(fighterScene_t* scene, uint8_t len)
     ((uint8_t*)scene)[0] = SCENE_COMPOSED_MSG;
     // Don't ack, retry until buttons are received
     p2pSendMsg(&fm->p2p, (const uint8_t*)scene, len, false, fighterP2pMsgTxCbFn);
+    fm->txTimeStart = esp_timer_get_time();
     fm->lastSentMsg = SCENE_COMPOSED_MSG;
 }
 
