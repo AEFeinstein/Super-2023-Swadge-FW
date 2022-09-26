@@ -28,6 +28,7 @@ typedef struct
     meleeMenuCb cbFunc;
     uint8_t numRows;
     uint8_t selectedRow;
+    uint8_t allowLEDControl;
 } meleeMenu_t;
 
 //==============================================================================
@@ -36,7 +37,7 @@ typedef struct
 
 meleeMenu_t* initMeleeMenu(const char* title, font_t* font, meleeMenuCb cbFunc);
 void resetMeleeMenu(meleeMenu_t* menu, const char* title, meleeMenuCb cbFunc);
-void addRowToMeleeMenu(meleeMenu_t* menu, const char* label);
+int addRowToMeleeMenu(meleeMenu_t* menu, const char* label);
 void deinitMeleeMenu(meleeMenu_t* menu);
 void drawMeleeMenu(display_t* d, meleeMenu_t* menu);
 void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn);

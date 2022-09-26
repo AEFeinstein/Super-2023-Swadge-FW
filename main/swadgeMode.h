@@ -84,6 +84,7 @@ typedef struct _swadgeMode
     /**
      * This function is called whenever audio samples are read from the
      * microphone (ADC) and are ready for processing. Samples are read at 8KHz
+     * This cannot be used at the same time as fnBatteryCallback
      *
      * @param samples A pointer to 12 bit audio samples
      * @param sampleCnt The number of samples read
@@ -96,6 +97,29 @@ typedef struct _swadgeMode
      * @param temperature A floating point temperature in celcius
      */
     void (*fnTemperatureCallback)(float temperature);
+
+    /**
+     * This function is called periodically with the current battery level
+     * This cannot be used at the same time as fnAudioCallback
+     *
+     * @param vBatt the battery voltage
+     */
+    void (*fnBatteryCallback)(uint32_t vBatt);
+
+    /**
+     * This function is called when the display driver wishes to update a
+     * section of the display.
+     *
+     * @param disp The display to draw to
+     * @param x the x coordiante that should be updated
+     * @param y the x coordiante that should be updated
+     * @param w the width of the rectangle to be updated
+     * @param h the height of the rectangle to be updated
+     * @param up update number
+     * @param numUp update number denominator
+     */
+    void (*fnBackgroundDrawCallback)(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up,
+                                     int16_t upNum );
 
     /**
      * This is a setting, not a function pointer. Set it to one of these

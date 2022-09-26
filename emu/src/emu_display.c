@@ -10,6 +10,7 @@
 #include "gpio_types.h"
 #include "hal/spi_types.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 
 #include "emu_esp.h"
 #include "display.h"
@@ -247,8 +248,8 @@ uint32_t paletteColorsEmu[216] =
 //==============================================================================
 
 // Display memory
-uint32_t * bitmapDisplay = NULL; //0xRRGGBBAA
-uint32_t * constBitmapDisplay = NULL; //0xRRGGBBAA
+paletteColor_t * frameBuffer = NULL;
+uint32_t * scaledBitmapDisplay = NULL; //0xRRGGBBAA
 int bitmapWidth = 0;
 int bitmapHeight = 0;
 int displayMult = 1;
@@ -266,12 +267,12 @@ uint8_t ledBrightness = 0;
 void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxTft(int16_t x, int16_t y);
 void emuClearPxTft(void);
-void emuDrawDisplayTft(bool drawDiff);
+void emuDrawDisplayTft(display_t *,bool,fnBackgroundDrawCallback_t);
 
 void emuSetPxOled(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxOled(int16_t x, int16_t y);
 void emuClearPxOled(void);
-void emuDrawDisplayOled(bool drawDiff);
+void emuDrawDisplayOled(struct display* disp, bool drawDiff, fnBackgroundDrawCallback_t cb);
 
 //==============================================================================
 // Functions
@@ -306,14 +307,9 @@ void setDisplayBitmapMultiplier(uint8_t multiplier)
 
     displayMult = multiplier;
 
-    // Reallocate bitmapDisplay
-    free(bitmapDisplay);
-    bitmapDisplay = calloc((multiplier * TFT_WIDTH) * (multiplier * TFT_HEIGHT),
-        sizeof(uint32_t));
-
-    // Reallocate constBitmapDisplay
-    free(constBitmapDisplay);
-    constBitmapDisplay = calloc((multiplier * TFT_WIDTH) * (multiplier * TFT_HEIGHT),
+    // Reallocate scaledBitmapDisplay
+    free(scaledBitmapDisplay);
+    scaledBitmapDisplay = calloc((multiplier * TFT_WIDTH) * (multiplier * TFT_HEIGHT),
         sizeof(uint32_t));
 
     unlockDisplayMemoryMutex();
@@ -331,7 +327,7 @@ uint32_t * getDisplayBitmap(uint16_t * width, uint16_t * height)
 {
     *width = (bitmapWidth * displayMult);
     *height = (bitmapHeight * displayMult);
-    return constBitmapDisplay;
+    return scaledBitmapDisplay;
 }
 
 /**
@@ -353,13 +349,13 @@ led_t * getLedMemory(uint8_t * numLeds)
 void deinitDisplayMemory(void)
 {
 	pthread_mutex_lock(&displayMutex);
-	if(NULL != bitmapDisplay)
+	if(NULL != frameBuffer)
 	{
-		free(bitmapDisplay);
+		free(frameBuffer);
 	}
-    if(NULL != constBitmapDisplay)
+    if(NULL != scaledBitmapDisplay)
     {
-        free(constBitmapDisplay);
+        free(scaledBitmapDisplay);
     }
     if(NULL != rdLeds)
     {
@@ -391,7 +387,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
     bool isPwmBacklight UNUSED)
 {
     WARN_UNIMPLEMENTED();
-
+	
 	// ARGB pixels
 	pthread_mutex_lock(&displayMutex);
 
@@ -399,15 +395,15 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
     bitmapHeight = TFT_HEIGHT;
 
     // Set up underlying bitmap
-    if(NULL == bitmapDisplay)
+    if(NULL == frameBuffer)
     {
-        bitmapDisplay = calloc(TFT_WIDTH * TFT_HEIGHT, sizeof(uint32_t));
+        frameBuffer = calloc(TFT_WIDTH * TFT_HEIGHT, sizeof(paletteColor_t));
     }
 
     // This may be setup by the emulator already
-    if(NULL == constBitmapDisplay)
+    if(NULL == scaledBitmapDisplay)
     {
-        constBitmapDisplay = calloc(TFT_WIDTH * TFT_HEIGHT, sizeof(uint32_t));
+        scaledBitmapDisplay = calloc(TFT_WIDTH * TFT_HEIGHT, sizeof(uint32_t));
         displayMult = 1;        
     }
 	pthread_mutex_unlock(&displayMutex);
@@ -420,6 +416,7 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
     disp->setPx = emuSetPxTft;
     disp->clearPx = emuClearPxTft;
     disp->drawDisplay = emuDrawDisplayTft;
+    disp->pxFb = frameBuffer;
 }
 
 /**
@@ -435,6 +432,23 @@ int setTFTBacklight(uint8_t intensity UNUSED)
 }
 
 /**
+ * @brief TODO
+ * 
+ */
+void enableTFTBacklight(void)
+{
+	WARN_UNIMPLEMENTED();
+}
+
+/**
+ * @brief Disable backlight (For switching modes)
+ */
+void disableTFTBacklight(void)
+{
+	WARN_UNIMPLEMENTED();
+}
+
+/**
  * @brief Set a single pixel on the emulated TFT. This converts from 5 bit color
  * to 8 bit color
  *
@@ -446,21 +460,9 @@ void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px)
 {
     if(0 <= x && x < TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
-        // Convert from 8 bit to 24 bit color
-        if(cTransparent != px)
-        {
-            pthread_mutex_lock(&displayMutex);
-            for(uint16_t mY = 0; mY < displayMult; mY++)
-            {
-                for(uint16_t mX = 0; mX < displayMult; mX++)
-                {
-                    int dstX = ((x * displayMult) + mX);
-                    int dstY = ((y * displayMult) + mY);
-                    bitmapDisplay[(dstY * (TFT_WIDTH * displayMult)) + dstX] = paletteColorsEmu[px];
-                }
-            }
-            pthread_mutex_unlock(&displayMutex);
-        }
+        pthread_mutex_lock(&displayMutex);
+        frameBuffer[(y * TFT_WIDTH) + x] = px;
+        pthread_mutex_unlock(&displayMutex);
     }
 }
 
@@ -477,18 +479,9 @@ paletteColor_t emuGetPxTft(int16_t x, int16_t y)
     if(0 <= x && x < TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
         pthread_mutex_lock(&displayMutex);
-        int srcX = (x * displayMult);
-        int srcY = (y * displayMult);
-        uint32_t argb = bitmapDisplay[(srcY * (TFT_WIDTH * displayMult)) + srcX];
+        paletteColor_t px = frameBuffer[(y * TFT_WIDTH) + x];
         pthread_mutex_unlock(&displayMutex);
-
-        for(uint8_t i = 0; i < (sizeof(paletteColorsEmu) / sizeof(paletteColorsEmu[0])); i++)
-        {
-            if (argb == paletteColorsEmu[i])
-            {
-                return i;
-            }
-        }
+        return px;
     }
     return c000;
 }
@@ -499,10 +492,7 @@ paletteColor_t emuGetPxTft(int16_t x, int16_t y)
 void emuClearPxTft(void)
 {
 	pthread_mutex_lock(&displayMutex);
-    for(uint32_t idx = 0; idx < TFT_HEIGHT * displayMult * TFT_WIDTH * displayMult; idx++)
-    {
-        bitmapDisplay[idx] = 0x000000FF;
-    }
+    memset(frameBuffer, c000, sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
 	pthread_mutex_unlock(&displayMutex);
 }
 
@@ -512,14 +502,40 @@ void emuClearPxTft(void)
  *
  * @param drawDiff unused, the whole display is always drawn
  */
-void emuDrawDisplayTft(bool drawDiff UNUSED)
+void emuDrawDisplayTft(display_t * disp, bool drawDiff UNUSED, fnBackgroundDrawCallback_t fnBackgroundDrawCallback )
 {
-	/* Copy the current framebuffer to memory that won't be modified by the
-     * Swadge mode. rawdraw will use this non-changing bitmap to draw
-     */
-	pthread_mutex_lock(&displayMutex);
-    memcpy(constBitmapDisplay, bitmapDisplay, sizeof(uint32_t) * TFT_HEIGHT * displayMult * TFT_WIDTH * displayMult);
-	pthread_mutex_unlock(&displayMutex);
+    /* Copy the current framebuffer to memory that won't be modified by the
+    * Swadge mode. rawdraw will use this non-changing bitmap to draw
+    */
+    pthread_mutex_lock(&displayMutex);
+	int16_t y;
+    for(y = 0; y < TFT_HEIGHT; y++)
+    {
+        for(int16_t x = 0; x < TFT_WIDTH; x++)
+        {
+            for(uint16_t mY = 0; mY < displayMult; mY++)
+            {
+                for(uint16_t mX = 0; mX < displayMult; mX++)
+                {
+                    int dstX = ((x * displayMult) + mX);
+                    int dstY = ((y * displayMult) + mY);
+                    scaledBitmapDisplay[(dstY * (TFT_WIDTH * displayMult)) + dstX] = paletteColorsEmu[frameBuffer[(y * TFT_WIDTH) + x]];
+                }
+            }
+        }        
+
+		if( ( y & 0xf ) == 0 && fnBackgroundDrawCallback && y > 0 )
+		{
+			fnBackgroundDrawCallback( disp, 0, y-16, TFT_WIDTH, 16, y/16, TFT_HEIGHT/16 );
+		}
+    }
+
+	if( fnBackgroundDrawCallback )
+	{
+		fnBackgroundDrawCallback( disp, 0, y-16, TFT_WIDTH, 16, y/16, TFT_HEIGHT/16 );
+	}
+
+    pthread_mutex_unlock(&displayMutex);
 }
 
 //==============================================================================
@@ -542,6 +558,7 @@ bool initOLED(display_t * disp, bool reset UNUSED, gpio_num_t rst UNUSED)
     disp->setPx = emuSetPxOled;
     disp->clearPx = emuClearPxOled;
     disp->drawDisplay = emuDrawDisplayOled;
+    disp->pxFb = NULL;
 
     return true;
 }
@@ -587,7 +604,7 @@ void emuClearPxOled(void)
  *
  * @param drawDiff unused, the whole display is always drawn
  */
-void emuDrawDisplayOled(bool drawDiff UNUSED)
+void emuDrawDisplayOled(struct display* disp, bool drawDiff, fnBackgroundDrawCallback_t cb)
 {
 	WARN_UNIMPLEMENTED();
 }
@@ -604,7 +621,7 @@ void emuDrawDisplayOled(bool drawDiff UNUSED)
  * @param numLeds The number of LEDs to display
  * @param brightness The initial LED brightness, 0 (off) to 8 (max bright)
  */
-void initLeds(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, uint16_t numLeds, uint8_t brightness)
+void initLeds(gpio_num_t gpio, gpio_num_t gpioAlt, rmt_channel_t rmt, uint16_t numLeds, uint8_t brightness)
 {
     // If the LEDs haven't been initialized yet
     if(NULL == rdLeds)
@@ -653,64 +670,4 @@ void setLeds(led_t* leds, uint8_t numLeds)
         rdLeds[i].b = leds[i].b >> ledBrightness;
     }
 	pthread_mutex_unlock(&displayMutex);
-}
-
-/**
- * @brief Simple helper function, converting HSV color space to RGB color space
- *
- * Wiki: https://en.wikipedia.org/wiki/HSL_and_HSV
- *
- * @param h The input hue
- * @param s The input saturation
- * @param v The input value
- * @param r The output red
- * @param g The output green
- * @param b The output blue
- */
-void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r,
-    uint8_t* g, uint8_t* b)
-{
-    h %= 360; // h -> [0,360]
-    uint32_t rgb_max = v * 2.55f;
-    uint32_t rgb_min = rgb_max * (100 - s) / 100.0f;
-
-    uint32_t i = h / 60;
-    uint32_t diff = h % 60;
-
-    // RGB adjustment amount by hue
-    uint32_t rgb_adj = (rgb_max - rgb_min) * diff / 60;
-
-    switch (i)
-    {
-        case 0:
-            *r = rgb_max;
-            *g = rgb_min + rgb_adj;
-            *b = rgb_min;
-            break;
-        case 1:
-            *r = rgb_max - rgb_adj;
-            *g = rgb_max;
-            *b = rgb_min;
-            break;
-        case 2:
-            *r = rgb_min;
-            *g = rgb_max;
-            *b = rgb_min + rgb_adj;
-            break;
-        case 3:
-            *r = rgb_min;
-            *g = rgb_max - rgb_adj;
-            *b = rgb_max;
-            break;
-        case 4:
-            *r = rgb_min + rgb_adj;
-            *g = rgb_min;
-            *b = rgb_max;
-            break;
-        default:
-            *r = rgb_max;
-            *g = rgb_min;
-            *b = rgb_max - rgb_adj;
-            break;
-    }
 }

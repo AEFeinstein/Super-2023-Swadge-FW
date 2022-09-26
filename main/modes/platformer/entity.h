@@ -26,7 +26,9 @@ typedef enum {
     ENTITY_HIT_BLOCK,
     ENTITY_DEAD,
     ENTITY_POWERUP,
-    ENTITY_WARP
+    ENTITY_WARP,
+    ENTITY_DUST_BUNNY,
+    ENTITY_WASP
 } entityIndex_t;
 
 //==============================================================================
@@ -73,6 +75,10 @@ struct entity_t
     uint8_t homeTileY;
 
     int16_t jumpPower;
+
+    bool visible;
+    uint8_t hp;
+    int8_t invincibilityFrames;
     
     //entity_t *entities;
     entityManager_t *entityManager;
@@ -126,5 +132,13 @@ void updateEntityDead(entity_t* self);
 
 void updatePowerUp(entity_t* self);
 void updateWarp(entity_t* self);
+
+void updateDustBunny(entity_t* self);
+bool dustBunnyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
+
+void updateWasp(entity_t* self);
+bool waspTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
+
+void killEnemy(entity_t* target);
 
 #endif

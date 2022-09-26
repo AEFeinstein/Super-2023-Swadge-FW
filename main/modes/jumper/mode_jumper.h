@@ -11,7 +11,17 @@ typedef enum
     BLOCK_PLAYERLANDED = 2,
     BLOCK_COMPLETE = 3,
     BLOCK_WIN = 4,
+    BLOCK_EVILSTANDARD = 5,
+    BLOCK_EVILLANDED = 6,
+    BLOCK_WARBLESTANDARD = 7,
+    BLOCK_WARBLELANDEDA = 8,
+    BLOCK_WARBLELANDEDB = 9,
 } jumperBlockType_t;
+
+typedef enum
+{
+    POWERUP_JOYSTICK,
+} jumperPowerType_t;
 
 typedef enum
 {
@@ -55,7 +65,6 @@ typedef struct
     uint8_t column;
     uint8_t block;
     uint8_t dBlock;
-
     bool flipped;
 
     uint32_t btnState;
@@ -70,29 +79,59 @@ typedef struct
 
 typedef struct
 {
+    
+    uint32_t powerupTime;
+    bool powerupSpawned;
+
+    uint16_t x;
+    uint16_t y;
+    bool collected;
+} jumperPowerup_t;
+
+typedef struct
+{
     uint8_t numTiles;
     uint8_t lives;
     int32_t level;
     int32_t time;
+    int32_t previousSecond;
     int32_t seconds;
     int8_t blockOffset_x;
     int8_t blockOffset_y;
     uint32_t score;
     uint8_t combo;
-    wsg_t livesIcon;
+    uint8_t perfect;
+
+    jumperPowerup_t* currentPowerup;
+
+
     jumperBlockType_t blocks[30];
 } jumperStage_t;
 
 typedef struct
 {
-    wsg_t block[9];
+    uint32_t x;
+    uint32_t y;
+    uint8_t digits[3];
+    uint32_t time;
+} jumperMultiplier_t;
+
+typedef struct
+{
+    wsg_t block[10];
+    wsg_t digit[12];
+    wsg_t livesIcon;
+    wsg_t powerup;
     jumperGamePhase_t currentPhase;
     int64_t frameElapsed;
     display_t* d;
     font_t game_font;
-    font_t* promptFont;
+    font_t outline_font;
+    font_t fill_font;
+    font_t* prompt_font;
     jumperStage_t* scene;
     bool controlsEnabled;
+    uint8_t respawnBlock;
 
     uint64_t jumperJumpTime;
     uint32_t highScore;
@@ -101,8 +140,9 @@ typedef struct
     jumperCharacter_t* evilDonut;
     jumperCharacter_t* blump;
 
-} jumperGame_t;
+    jumperMultiplier_t* multiplier;
 
+} jumperGame_t;
 
 
 void jumperStartGame(display_t* disp, font_t* mmFont);

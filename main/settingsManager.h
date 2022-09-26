@@ -14,6 +14,7 @@ bool setIsMuted(bool);
 int32_t getTftBrightness(void);
 bool incTftBrightness(void);
 bool decTftBrightness(void);
+uint8_t getTftIntensity(void);
 
 int32_t getLedBrightness(void);
 bool incLedBrightness(void);
@@ -21,6 +22,7 @@ bool decLedBrightness(void);
 
 int32_t getMicGain(void);
 uint16_t getMicAmplitude(void);
+bool setMicGain(uint8_t newGain);
 bool decMicGain(void);
 bool incMicGain(void);
 

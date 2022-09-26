@@ -215,6 +215,12 @@ esp_err_t esp_timer_start_once(esp_timer_handle_t timer, uint64_t timeout_us)
  */
 void check_esp_timer(uint64_t elapsed_us)
 {
+    if(0 == timerList->len)
+    {
+        // Nothing linked, so return
+        return;
+    }
+
     list_iterator_t * iter = list_iterator_new(timerList, LIST_HEAD);
 
     list_node_t *node;

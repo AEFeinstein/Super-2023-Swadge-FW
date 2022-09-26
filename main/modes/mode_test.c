@@ -5,14 +5,17 @@
 #include <stdlib.h>
 
 #include <esp_log.h>
+#include <esp_timer.h>
 
 #include "settingsManager.h"
 #include "embeddedout.h"
 #include "bresenham.h"
 #include "musical_buzzer.h"
 #include "led_util.h"
+#include "swadge_util.h"
 
 #include "mode_test.h"
+#include "mode_main_menu.h"
 
 //==============================================================================
 // Defines
@@ -26,6 +29,14 @@
 #define ACCEL_BAR_H      8
 #define ACCEL_BAR_SEP    1
 #define MAX_ACCEL_BAR_W 60
+
+#define TOUCHBAR_WIDTH  100
+#define TOUCHBAR_HEIGHT  20
+#define TOUCHBAR_Y_OFF   32
+
+#define MIC_IDX_RANGE 4
+#define NOTE_TIME_MS 1000
+#define NUM_DETECTED_NOTES 4
 
 //==============================================================================
 // Enums
@@ -57,6 +68,7 @@ void testExitMode(void);
 void testMainLoop(int64_t elapsedUs);
 void testAudioCb(uint16_t* samples, uint32_t sampleCnt);
 void testButtonCb(buttonEvt_t* evt);
+void testTouchCb(touch_event_t* evt);
 void testAccelerometerCallback(accel_t* accel);
 
 void plotButtonState(int16_t x, int16_t y, testButtonState_t state);
@@ -69,14 +81,24 @@ typedef struct
 {
     font_t ibm_vga8;
     display_t* disp;
+    wsg_t kd_idle0;
+    wsg_t kd_idle1;
+    uint64_t tSpriteElapsedUs;
+    uint8_t spriteFrame;
     // Microphone test
     dft32_data dd;
     embeddednf_data end;
     embeddedout_data eod;
     uint8_t samplesProcessed;
     uint16_t maxValue;
+    int16_t cMicFreqIdxMin;
+    int16_t cMicFreqIdxMax;
+    uint64_t cMicFreqStart;
+    int16_t detectedNoteIdxs[NUM_DETECTED_NOTES];
     // Button
     testButtonState_t buttonStates[8];
+    // Touch
+    testButtonState_t touchStates[5];
     // Accelerometer
     accel_t accel;
     // LED
@@ -99,7 +121,7 @@ swadgeMode modeTest =
     .fnExitMode = testExitMode,
     .fnMainLoop = testMainLoop,
     .fnButtonCallback = testButtonCb,
-    .fnTouchCallback = NULL,
+    .fnTouchCallback = testTouchCb,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
@@ -108,19 +130,23 @@ swadgeMode modeTest =
     .fnTemperatureCallback = NULL
 };
 
-const song_t cMajorScale  =
+const song_t notesToDetect =
 {
-    .notes = {
-        {.note = C_5, .timeMs = 300},
-        {.note = D_5, .timeMs = 300},
-        {.note = E_5, .timeMs = 300},
-        {.note = F_5, .timeMs = 300},
-        {.note = G_5, .timeMs = 300},
-        {.note = A_5, .timeMs = 300},
-        {.note = B_5, .timeMs = 300},
-        {.note = C_6, .timeMs = 300},
+    .notes =
+    {
+        {.note = D_8, .timeMs = NOTE_TIME_MS},
+        {.note = D_SHARP_8, .timeMs = NOTE_TIME_MS},
+        {.note = E_8, .timeMs = NOTE_TIME_MS},
+        {.note = F_8, .timeMs = NOTE_TIME_MS},
+        {.note = F_SHARP_8, .timeMs = NOTE_TIME_MS},
+        {.note = G_8, .timeMs = NOTE_TIME_MS},
+        {.note = G_SHARP_8, .timeMs = NOTE_TIME_MS},
+        {.note = A_8, .timeMs = NOTE_TIME_MS},
+        {.note = A_SHARP_8, .timeMs = NOTE_TIME_MS},
+        {.note = B_8, .timeMs = NOTE_TIME_MS},
+        {.note = C_9, .timeMs = NOTE_TIME_MS},
     },
-    .numNotes = 8,
+    .numNotes = 11,
     .shouldLoop = true
 };
 
@@ -142,13 +168,28 @@ void testEnterMode(display_t* disp)
     // Load a font
     loadFont("ibm_vga8.font", &test->ibm_vga8);
 
+    // Load a sprite
+    loadWsg("kid0.wsg", &test->kd_idle0);
+    loadWsg("kid1.wsg", &test->kd_idle1);
+
     // Init CC
     InitColorChord(&test->end, &test->dd);
     test->maxValue = 1;
 
-    // Play a song
+    // Init buzzer listening variables
+    test->cMicFreqIdxMin = -1;
+    test->cMicFreqIdxMax = -1;
+    for(uint8_t i = 0; i < NUM_DETECTED_NOTES; i++)
+    {
+        test->detectedNoteIdxs[i] = -1;
+    }
+
+    // Set the mic to listen
     setIsMuted(false);
-    buzzer_play_bgm(&cMajorScale);
+    setMicGain(7);
+
+    // Play a song
+    buzzer_play_bgm(&notesToDetect);
 }
 
 /**
@@ -157,6 +198,8 @@ void testEnterMode(display_t* disp)
 void testExitMode(void)
 {
     freeFont(&test->ibm_vga8);
+    freeWsg(&test->kd_idle0);
+    freeWsg(&test->kd_idle1);
     free(test);
 }
 
@@ -169,12 +212,17 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
     // Check for a test pass
     if(test->buttonsPassed &&
-            test->touchPassed && // TODO
+            test->touchPassed &&
             test->accelPassed &&
-            test->bzrMicPassed) // TODO)
+            test->bzrMicPassed)
     {
         // Set NVM to indicate the test passed
         setTestModePassed(true);
+
+        if(getTestModePassed())
+        {
+            switchToSwadgeMode(&modeMainMenu);
+        }
     }
 
     // Clear everything
@@ -198,7 +246,7 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     {
         uint8_t height = ((test->disp->h / 2) * test->end.fuzzed_bins[i]) /
                          test->maxValue;
-        paletteColor_t color = hsv2rgb((i * 256) / FIXBINS, 255, 255);
+        paletteColor_t color = test->bzrMicPassed ? c050 : c500; //paletteHsvToHex((i * 256) / FIXBINS, 255, 255);
         int16_t x0 = binMargin + (i * binWidth);
         int16_t x1 = binMargin + ((i + 1) * binWidth);
         // Big enough, fill an area
@@ -236,8 +284,43 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     // BTN_A
     plotButtonState(btnX, centerLine - AB_SEP, test->buttonStates[4]);
 
+    // Draw touch strip
+    int16_t tBarX = test->disp->w - TOUCHBAR_WIDTH;
+    uint8_t numTouchElem = (sizeof(test->touchStates) / sizeof(test->touchStates[0]));
+    for(uint8_t touchIdx = 0; touchIdx < numTouchElem; touchIdx++)
+    {
+        switch(test->touchStates[touchIdx])
+        {
+            case BTN_NOT_PRESSED:
+            {
+                plotRect(test->disp,
+                         tBarX - 1, TOUCHBAR_Y_OFF,
+                         tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                         c500);
+                break;
+            }
+            case BTN_PRESSED:
+            {
+                fillDisplayArea(test->disp,
+                                tBarX - 1, TOUCHBAR_Y_OFF,
+                                tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                                c005);
+                break;
+            }
+            case BTN_RELEASED:
+            {
+                fillDisplayArea(test->disp,
+                                tBarX - 1, TOUCHBAR_Y_OFF,
+                                tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                                c050);
+                break;
+            }
+        }
+        tBarX += (TOUCHBAR_WIDTH / numTouchElem);
+    }
+
     // Set up drawing accel bars
-    int16_t barY = centerLine - ACCEL_BAR_H - ACCEL_BAR_SEP;
+    int16_t barY = TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT + 4;
 
     paletteColor_t accelColor = c500;
     if(test->accelPassed)
@@ -260,13 +343,15 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
     barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
 
-    // TODO sprite plot?
-
     // Plot some text depending on test status
     char dbgStr[32] = {0};
     if(false == test->buttonsPassed)
     {
         sprintf(dbgStr, "Test Buttons");
+    }
+    else if(false == test->touchPassed)
+    {
+        sprintf(dbgStr, "Test Touch Strip");
     }
     else if(false == test->accelPassed)
     {
@@ -276,20 +361,35 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     {
         sprintf(dbgStr, "Test Buzzer & Mic");
     }
-    else if(false == test->touchPassed)
-    {
-        sprintf(dbgStr, "Test Touch Strip");
-    }
     else if (getTestModePassed())
     {
         sprintf(dbgStr, "All Tests Passed");
     }
+
     int16_t tWidth = textWidth(&test->ibm_vga8, dbgStr);
     drawText(test->disp, &test->ibm_vga8, c555, dbgStr, (test->disp->w - tWidth) / 2, 0);
 
     sprintf(dbgStr, "Verify RGB LEDs");
     tWidth = textWidth(&test->ibm_vga8, dbgStr);
     drawText(test->disp, &test->ibm_vga8, c555, dbgStr, (test->disp->w - tWidth) / 2, test->ibm_vga8.h + 8);
+
+    // Animate a sprite
+    test->tSpriteElapsedUs += elapsedUs;
+    while(test->tSpriteElapsedUs >= 500000)
+    {
+        test->tSpriteElapsedUs -= 500000;
+        test->spriteFrame = (test->spriteFrame + 1) % 2;
+    }
+
+    // Draw the sprite
+    if(0 == test->spriteFrame)
+    {
+        drawWsg(test->disp, &test->kd_idle0, 32, 4, false, false, 0);
+    }
+    else
+    {
+        drawWsg(test->disp, &test->kd_idle1, 32, 4, false, false, 0);
+    }
 
     // Pulse LEDs, each color for 1s
     test->tLedElapsedUs += elapsedUs;
@@ -480,6 +580,40 @@ void testButtonCb(buttonEvt_t* evt)
 }
 
 /**
+ * @brief Touch callback
+ *
+ * @param evt the touch event
+ */
+void testTouchCb(touch_event_t* evt)
+{
+    // Transition states
+    if(evt->down)
+    {
+        if(BTN_NOT_PRESSED == test->touchStates[evt->pad])
+        {
+            test->touchStates[evt->pad] = BTN_PRESSED;
+        }
+    }
+    else
+    {
+        if(BTN_PRESSED == test->touchStates[evt->pad])
+        {
+            test->touchStates[evt->pad] = BTN_RELEASED;
+        }
+    }
+
+    // Check if all buttons have passed
+    test->touchPassed = true;
+    for(uint8_t i = 0; i < 5; i++)
+    {
+        if(BTN_RELEASED != test->touchStates[i])
+        {
+            test->touchPassed = false;
+        }
+    }
+}
+
+/**
  * @brief Audio callback. Take the samples and pass them to test
  *
  * @param samples The samples to process
@@ -501,19 +635,106 @@ void testAudioCb(uint16_t* samples, uint32_t sampleCnt)
             test->samplesProcessed = 0;
             HandleFrameInfo(&test->end, &test->dd);
 
-            // Check for pass
-            // int16_t maxVal = 0;
-            // int16_t maxIdx = 0;
-            // for(uint16_t i = 0; i < FIXBINS; i++)
-            // {
-            //     if(test->end.fuzzed_bins[i] > maxVal)
-            //     {
-            //         maxVal = test->end.fuzzed_bins[i];
-            //         maxIdx = i;
-            //     }
-            // }
-            // TODO validate maxIdx
-            // ESP_LOGE("MIC", "%d", maxIdx);
+            // Keep track of max value for the spectrogram
+            int16_t maxVal = 0;
+            int16_t maxIdx = 0;
+            for(uint16_t i = 0; i < FIXBINS; i++)
+            {
+                if(test->end.fuzzed_bins[i] > maxVal)
+                {
+                    maxVal = test->end.fuzzed_bins[i];
+                    maxIdx = i;
+                }
+            }
+
+            // If already passed, just return
+            if(true == test->bzrMicPassed)
+            {
+                return;
+            }
+
+            // Listen for NUM_DETECTED_NOTES stable notes
+            if(-1 == test->cMicFreqIdxMin)
+            {
+                test->cMicFreqIdxMin = maxIdx;
+                test->cMicFreqIdxMax = maxIdx;
+                test->cMicFreqStart = esp_timer_get_time();
+            }
+            else
+            {
+                // Check if the index is in the current range
+                if((test->cMicFreqIdxMin <= maxIdx) &&
+                        (maxIdx <= test->cMicFreqIdxMax))
+                {
+                    // Frequency is still in range, carry on
+                }
+                else if ((test->cMicFreqIdxMax - MIC_IDX_RANGE <= maxIdx) &&
+                         (maxIdx <= test->cMicFreqIdxMin + MIC_IDX_RANGE))
+                {
+                    // Frequency within acceptable range, adjust bounds
+                    if(maxIdx < test->cMicFreqIdxMin)
+                    {
+                        test->cMicFreqIdxMin = maxIdx;
+                    }
+                    else if (maxIdx > test->cMicFreqIdxMax)
+                    {
+                        test->cMicFreqIdxMax = maxIdx;
+                    }
+                }
+                else
+                {
+                    // Frequency is out of range, so check how long the note lasted
+                    uint64_t tNote = esp_timer_get_time() - test->cMicFreqStart;
+                    if(tNote >= ((NOTE_TIME_MS * 1000 * 3) / 4))
+                    {
+                        // Lasted long enough to be considered a detection 3/4th of the note time
+                        // ESP_LOGE("TST","[%d -> %d] for %llu\n", test->cMicFreqIdxMin, test->cMicFreqIdxMax, tNote);
+                        int32_t noteIdxDetected = (test->cMicFreqIdxMax + test->cMicFreqIdxMin) / 2;
+
+                        // Look through the array of detected notes
+                        for(uint8_t i = 0; i < NUM_DETECTED_NOTES; i++)
+                        {
+                            // Check if the note was already detected
+                            if((test->detectedNoteIdxs[i] - (MIC_IDX_RANGE / 2) <= noteIdxDetected) &&
+                                    (noteIdxDetected <= test->detectedNoteIdxs[i] + (MIC_IDX_RANGE / 2)))
+                            {
+                                // Note already detected
+                                break;
+                            }
+                            // Found an empty slot
+                            else if( test->detectedNoteIdxs[i] == -1)
+                            {
+                                // Save the detected note
+                                test->detectedNoteIdxs[i] = noteIdxDetected;
+                                break;
+                            }
+                        }
+
+                        // Look through the array of detected notes, check for a pass
+                        test->bzrMicPassed = true;
+                        for(uint8_t i = 0; i < NUM_DETECTED_NOTES; i++)
+                        {
+                            // Found an empty slot
+                            if( test->detectedNoteIdxs[i] == -1)
+                            {
+                                // No pass yet!
+                                test->bzrMicPassed = false;
+                            }
+                        }
+
+                        // Test passed, stop the mic!
+                        if(test->bzrMicPassed)
+                        {
+                            buzzer_stop();
+                        }
+                    }
+
+                    // New frequency detected, start over
+                    test->cMicFreqIdxMin = maxIdx;
+                    test->cMicFreqIdxMax = maxIdx;
+                    test->cMicFreqStart = esp_timer_get_time();
+                }
+            }
         }
     }
 }

@@ -26,6 +26,10 @@
 #include "ssd1306.h"
 #include "hdw-tft.h"
 
+#ifndef EMU
+    #include "soc/rtc_cntl_reg.h"
+#endif
+
 #define QMA7981
 
 #if defined(QMA6981)
@@ -80,6 +84,8 @@
 #error "Please define CONFIG_SWADGE_DEVKIT or CONFIG_SWADGE_PROTOTYPE"
 #endif
 
+#define EXIT_TIME_US 1000000
+
 //==============================================================================
 // Function Prototypes
 //==============================================================================
@@ -96,6 +102,7 @@ void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
 static RTC_DATA_ATTR swadgeMode* pendingSwadgeMode = NULL;
 static swadgeMode* cSwadgeMode = &modeMainMenu;
 static bool isSandboxMode = false;
+static uint32_t frameRateUs = 33333;
 
 //==============================================================================
 // Functions
@@ -270,6 +277,10 @@ void app_main(void)
     // esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_OFF);
     esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_ON);
 
+    /* Initialize USB peripheral */
+    tinyusb_config_t tusb_cfg = {};
+    tinyusb_driver_install(&tusb_cfg);
+
     // Set up timers
     esp_timer_init();
 
@@ -287,6 +298,9 @@ void app_main(void)
  */
 void mainSwadgeTask(void* arg __attribute((unused)))
 {
+    /* Initialize internal NVS. Do this first to get test mode status */
+    initNvs(true);
+
 #if !defined(EMU)
     /* Check why this ESP woke up */
     switch (esp_sleep_get_wakeup_cause())
@@ -307,11 +321,11 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         }
         default:
         {
-#if !defined(CONFIG_SWADGE_PROTOTYPE) && !defined(CONFIG_SWADGE_DEVKIT)
+#if !defined(CONFIG_SWADGE_DEVKIT)
             // If test mode was passed
             if(getTestModePassed())
 #else
-            // Ignore test mode for proto and devkit
+            // Ignore test mode for devkit
             if(true)
 #endif
             {
@@ -327,9 +341,6 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         }
     }
 #endif
-
-    /* Initialize internal NVS */
-    initNvs(true);
 
     /* Initialize SPIFFS */
     initSpiffs();
@@ -361,6 +372,10 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                 GPIO_NUM_5);
 #endif
 
+    // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
+    // Make sure to use a different timer than initButtons()
+    buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, TIMER_GROUP_0, TIMER_1, getIsMuted());
+
 #if defined(CONFIG_SWADGE_DEVKIT)
     initTouchSensor(0.2f, true, 6,
                     TOUCH_PAD_NUM9,   // GPIO_NUM_9
@@ -379,14 +394,13 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 #endif
 
     // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
-    initLeds(GPIO_NUM_39, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
+    initLeds(GPIO_NUM_39, GPIO_NUM_18, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
 
-    // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
-    buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, getIsMuted());
-
-#if !defined(EMU)
-    if(NULL != cSwadgeMode->fnAudioCallback)
+    if(NULL != cSwadgeMode->fnAudioCallback
+#if defined(EMU)
+            || true // Always init audio for the emulator
 #endif
+      )
     {
         /* Since the ADC2 is shared with the WIFI module, which has higher
          * priority, reading operation of adc2_get_raw() will fail between
@@ -404,6 +418,13 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 #endif
         continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
         continuous_adc_start();
+    }
+    else if (NULL != cSwadgeMode->fnBatteryCallback)
+    {
+#if defined(CONFIG_SWADGE_PROTOTYPE)
+        // If the continuous ADC isn't set up, set up the one-shot one
+        oneshot_adc_init(ADC_UNIT_1, ADC1_CHANNEL_5); /*!< ADC1 channel 5 is GPIO6  */
+#endif
     }
 
     bool accelInitialized = false;
@@ -460,6 +481,9 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             true);       // PWM backlight
 #endif
 
+    // Set the brightness from settings on boot
+    setTFTBacklight(getTftIntensity());
+
     /* Initialize Wifi peripheral */
 #if !defined(EMU)
     if(ESP_NOW == cSwadgeMode->wifiMode)
@@ -473,6 +497,8 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     {
         cSwadgeMode->fnEnterMode(&tftDisp);
     }
+
+    int64_t time_exit_pressed = 0;
 
     /* Loop forever! */
 #if defined(EMU)
@@ -509,6 +535,16 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         buttonEvt_t bEvt = {0};
         if(checkButtonQueue(&bEvt))
         {
+            // Monitor start + select
+            if((&modeMainMenu != cSwadgeMode) && (bEvt.state & START) && (bEvt.state & SELECT))
+            {
+                time_exit_pressed = esp_timer_get_time();
+            }
+            else
+            {
+                time_exit_pressed = 0;
+            }
+
             if(NULL != cSwadgeMode->fnButtonCallback)
             {
                 cSwadgeMode->fnButtonCallback(&bEvt);
@@ -529,7 +565,6 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         if(NULL != cSwadgeMode->fnAudioCallback)
         {
             uint16_t micAmp = getMicAmplitude();
-
             uint16_t adcSamps[BYTES_PER_READ / sizeof(adc_digi_output_data_t)];
             uint32_t sampleCnt = 0;
             while(0 < (sampleCnt = continuous_adc_read(adcSamps)))
@@ -538,44 +573,101 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                 for(uint32_t i = 0; i < sampleCnt; i++)
                 {
                     static uint32_t samp_iir = 0;
-                    samp_iir = samp_iir - (samp_iir >> 10) + adcSamps[i];
-                    adcSamps[i] = (adcSamps[i] - (samp_iir >> 10)) * 16;
-                    // Amplify the sample
-                    adcSamps[i] = (adcSamps[i] * micAmp) >> 4;
-                }
+                    int32_t sample = adcSamps[i];
+                    samp_iir = samp_iir - (samp_iir >> 9) + sample;
+                    int32_t newsamp = (sample - (samp_iir >> 9));
+                    newsamp = (newsamp * micAmp);
 
+                    if( newsamp <-32768 ) newsamp = -32768;
+                    else if( newsamp > 32767) newsamp = 32767;
+
+                    adcSamps[i] = newsamp;
+                }
                 cSwadgeMode->fnAudioCallback(adcSamps, sampleCnt);
             }
         }
 
         // Run the mode's event loop
-        static int64_t tLastCallUs = 0;
-        if(0 == tLastCallUs)
+        static int64_t tLastLoopUs = 0;
+        if(0 == tLastLoopUs)
         {
-            tLastCallUs = esp_timer_get_time();
+            tLastLoopUs = esp_timer_get_time();
         }
         else
         {
+            // Track the elapsed time between loop calls
             int64_t tNowUs = esp_timer_get_time();
-            int64_t tElapsedUs = tNowUs - tLastCallUs;
-            tLastCallUs = tNowUs;
+            int64_t tElapsedUs = tNowUs - tLastLoopUs;
+            tLastLoopUs = tNowUs;
 
-            if(NULL != cSwadgeMode->fnMainLoop)
+            // Track time between battery reads
+            if((NULL == cSwadgeMode->fnAudioCallback) &&
+               (NULL != cSwadgeMode->fnBatteryCallback))
             {
-                cSwadgeMode->fnMainLoop(tElapsedUs);
+                static uint64_t tAccumBatt = 10000000;
+                tAccumBatt += tElapsedUs;
+                // Read every 10s
+                while(tAccumBatt >= 10000000)
+                {
+                    tAccumBatt -= 10000000;
+                    cSwadgeMode->fnBatteryCallback(oneshot_adc_read());
+                }
             }
 
+            // Track the elapsed time between draw + fnMainLoop() calls
+            static uint64_t tAccumDraw = 0;
+            tAccumDraw += tElapsedUs;
+            if(tAccumDraw >= frameRateUs)
+            {
+                // Decrement the accumulation
+                tAccumDraw -= frameRateUs;
+
+                // Call the mode's main loop
+                if(NULL != cSwadgeMode->fnMainLoop)
+                {
+                    // Keep track of the time between main loop calls
+                    static uint64_t tLastMainLoopCall = 0;
+                    if(0 != tLastMainLoopCall)
+                    {
+                        cSwadgeMode->fnMainLoop(tNowUs - tLastMainLoopCall);
+                    }
+                    tLastMainLoopCall = tNowUs;
+                }
+
+                // If start & select  being held
+                if(0 != time_exit_pressed)
+                {
+                    // Figure out for how long
+                    int64_t tHeldUs = tNowUs - time_exit_pressed;
+                    // If it has been held for more than the exit time
+                    if(tHeldUs > EXIT_TIME_US)
+                    {
+                        // exit
+                        switchToSwadgeMode(&modeMainMenu);
+                    }
+                    else
+                    {
+                        // Draw 'progress' bar for exiting
+                        int16_t numPx = (tHeldUs * tftDisp.w) / EXIT_TIME_US;
+                        fillDisplayArea(&tftDisp, 0, tftDisp.h - 10, numPx, tftDisp.h, c333);
+                    }
+                }
+
+                // Draw the display at the given frame rate
+#ifdef OLED_ENABLED
+                oledDisp.drawDisplay(&oledDisp, true, cSwadgeMode->fnBackgroundDrawCallback);
+#endif
+                tftDisp.drawDisplay(&tftDisp, true, cSwadgeMode->fnBackgroundDrawCallback);
+            }
 #if defined(EMU)
             check_esp_timer(tElapsedUs);
 #endif
         }
 
-        // Update outputs
-#ifdef OLED_ENABLED
-        oledDisp.drawDisplay(true);
-#endif
-        tftDisp.drawDisplay(true);
+#if defined(EMU)
+        // EMU needs to check this, actual hardware has an ISR
         buzzer_check_next_note();
+#endif
 
         /* If the mode should be switched, do it now */
         if(NULL != pendingSwadgeMode)
@@ -593,6 +685,8 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     cSwadgeMode->fnExitMode();
                 }
 
+                buzzer_stop();
+
                 // Switch the mode IDX
                 cSwadgeMode = pendingSwadgeMode;
                 pendingSwadgeMode = NULL;
@@ -606,6 +700,20 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             else
             {
                 // Deep sleep, wake up, and switch to pendingSwadgeMode
+
+                // We have to do this otherwise the backlight can glitch
+                disableTFTBacklight();
+
+#ifndef EMU
+                // Prevent bootloader on reboot if rebooting from originally bootloaded instance
+                REG_WRITE(RTC_CNTL_OPTION1_REG, 0);
+
+                // Only an issue if originally coming from bootloader.  This is actually a ROM function.
+                // It prevents the USB from glitching out on the reboot after the reboot after coming
+                // out of bootloader
+                void chip_usb_set_persist_flags(uint32_t flags);
+                chip_usb_set_persist_flags(1 << 31); // USBDC_PERSIST_ENA
+#endif
                 esp_sleep_enable_timer_wakeup(1);
                 esp_deep_sleep_start();
             }
@@ -655,3 +763,12 @@ void overrideToSwadgeMode( swadgeMode* mode )
     isSandboxMode = true;
 }
 
+/**
+ * Set the frame rate for all displays
+ *
+ * @param frameRate The time to wait between drawing frames, in microseconds
+ */
+void setFrameRateUs(uint32_t frameRate)
+{
+    frameRateUs = frameRate;
+}

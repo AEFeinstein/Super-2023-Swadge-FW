@@ -20,6 +20,7 @@
 #include "gameData.h"
 #include "entityManager.h"
 #include "leveldef.h"
+#include "led_util.h"
 
 //==============================================================================
 // Constants
@@ -131,13 +132,18 @@ swadgeMode modePlatformer =
         .fnAudioCallback = NULL,
         .fnTemperatureCallback = NULL};
 
-static leveldef_t leveldef[2] = {
+static leveldef_t leveldef[3] = {
     {.filename = "level1-1.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
     {.filename = "level1-2.bin",
      .timeLimit = 120,
+     .checkpointTimeLimit = 90},
+    {.filename = "level1-3.bin",
+     .timeLimit = 180,
      .checkpointTimeLimit = 90}};
+
+led_t platLeds[NUM_LEDS];
 
 //==============================================================================
 // Functions
@@ -249,6 +255,8 @@ void updateGame(platformer_t *self)
         self->gameData.countdown--;
     }
 
+    updateComboTimer(&(self->gameData));
+
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
 }
@@ -258,7 +266,7 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
     char coinStr[8];
     snprintf(coinStr, sizeof(coinStr) - 1, "C:%02d", gameData->coins);
 
-    char scoreStr[8];
+    char scoreStr[32];
     snprintf(scoreStr, sizeof(scoreStr) - 1, "%06d", gameData->score);
 
     char levelStr[15];
@@ -271,14 +279,21 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
     snprintf(timeStr, sizeof(timeStr) - 1, "T:%03d", gameData->countdown);
 
     if(gameData->frameCount > 10) {
-        drawText(d, font, c500, "1UP", 16, 2);
+        drawText(d, font, c500, "1UP", 24, 2);
     }
     
-    drawText(d, font, c555, livesStr, 48, 2);
+    drawText(d, font, c555, livesStr, 56, 2);
     drawText(d, font, c555, coinStr, 160, 16);
     drawText(d, font, c555, scoreStr, 8, 16);
-    drawText(d, font, c555, levelStr, 160, 2);
-    drawText(d, font, c555, timeStr, 224, 16);
+    drawText(d, font, c555, levelStr, 152, 2);
+    drawText(d, font, c555, timeStr, 220, 16);
+
+    if(gameData->comboTimer == 0){
+        return;
+    }
+
+    snprintf(scoreStr, sizeof(scoreStr) - 1, "+%d (x%d)", gameData->comboScore, gameData->combo);
+    drawText(d, font, c050, scoreStr, 8, 30);
 }
 
 void updateTitleScreen(platformer_t *self)
@@ -293,12 +308,19 @@ void updateTitleScreen(platformer_t *self)
 
     // Handle inputs
     if (
-        ((self->gameData.btnState & BTN_B) && !(self->gameData.prevBtnState & BTN_B)) ||
-        ((self->gameData.btnState & BTN_A) && !(self->gameData.prevBtnState & BTN_B)))
+        self->gameData.btnState & START
+    )
     {
         initializeGameData(&(self->gameData));
         changeStateReadyScreen(self);
     }
+
+
+    scrollTileMap(&(platformer->tilemap), 2, 0);
+    if(self->tilemap.mapOffsetX >= self->tilemap.maxMapOffsetX && self->frameTimer > 19){
+        self->tilemap.mapOffsetX = 0;
+    }
+    
 
     drawPlatformerTitleScreen(self->disp, &(self->radiostars), &(self->gameData));
 
@@ -308,11 +330,13 @@ void updateTitleScreen(platformer_t *self)
 
 void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
 {
+    drawTileMap(d,&(platformer->tilemap));
+
     drawText(d, font, c555, "Super Swadge Land", 40, 32);
 
     if (gameData->frameCount < 10)
     {
-        drawText(d, font, c555, "Press A or B to start", 20, 128);
+        drawText(d, font, c555, "- Press START button -", 20, 128);
     }
 }
 
@@ -342,7 +366,7 @@ void drawReadyScreen(display_t *d, font_t *font, gameData_t *gameData){
 void changeStateGame(platformer_t *self){
     self->gameData.frameCount = 0;
 
-    deactivateAllEntities(&(self->entityManager));
+    deactivateAllEntities(&(self->entityManager), false);
 
     uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
     loadMapFromFile(&(platformer->tilemap), leveldef[levelIndex].filename);
@@ -350,7 +374,12 @@ void changeStateGame(platformer_t *self){
 
     entityManager_t * entityManager = &(self->entityManager);
     entityManager->viewEntity = createPlayer(entityManager, entityManager->tilemap->warps[0].x * 16, entityManager->tilemap->warps[0].y * 16);
+    
     entityManager->playerEntity = entityManager->viewEntity;
+    viewFollowEntity(&(self->tilemap),entityManager->playerEntity);
+    updateLedsHpMeter(&(self->entityManager),&(self->gameData));
+
+    self->tilemap.executeTileSpawnAll = true;
 
     self->update = &updateGame;
 }
@@ -384,6 +413,9 @@ void detectGameStateChange(platformer_t *self){
 void changeStateDead(platformer_t *self){
     self->gameData.frameCount = 0;
     self->gameData.lives--;
+    self->gameData.combo = 0;
+    self->gameData.comboTimer = 0;
+
     buzzer_play_bgm(&sndDie);
 
     self->update=&updateDead;
@@ -461,7 +493,7 @@ void updateLevelClear(platformer_t *self){
             }
 
             uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
-            if(levelIndex >= 2){
+            if(levelIndex >= 3){
                 changeStateGameClear(self);
             } else {
                 changeStateReadyScreen(self);
@@ -509,8 +541,8 @@ void updateGameClear(platformer_t *self){
 
 void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     drawPlatformerHud(d, font, gameData);
-    drawText(d, font, c555, "Thanks for playing.", 24, 32);
-    drawText(d, font, c555, "Many more battle scenes", 8, 80);
-    drawText(d, font, c555, "will soon be available!", 8, 96);
-    drawText(d, font, c555, "Bonus 100000pts per life!", 8, 144);
+    drawText(d, font, c555, "Thanks for playing.", 24, 48);
+    drawText(d, font, c555, "Many more battle scenes", 8, 96);
+    drawText(d, font, c555, "will soon be available!", 8, 112);
+    drawText(d, font, c555, "Bonus 100000pts per life!", 8, 160);
 }

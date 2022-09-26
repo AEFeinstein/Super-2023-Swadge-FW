@@ -12,6 +12,7 @@
 #include "mode_main_menu.h"
 #include "settingsManager.h"
 #include "bresenham.h"
+#include "swadge_util.h"
 
 // For colorchord
 #include "embeddedout.h"
@@ -22,6 +23,7 @@
 
 #define EXIT_TIME_US 1000000
 #define TEXT_Y 10
+#define TEXT_MARGIN 20
 
 //==============================================================================
 // Enums
@@ -59,7 +61,9 @@ typedef struct
     uint8_t samplesProcessed;
     uint16_t maxValue;
     ccOpt_t optSel;
-    int64_t time_b_pressed;
+    uint16_t * sampleHist;
+    uint16_t sampleHistHead;
+    uint16_t sampleHistCount;
 } colorchord_t;
 
 colorchord_t* colorchord;
@@ -95,6 +99,10 @@ void colorchordEnterMode(display_t* disp)
     // Save a pointer to the display
     colorchord->disp = disp;
 
+    colorchord->sampleHistCount = 512;
+    colorchord->sampleHist = (uint16_t*)calloc( colorchord->sampleHistCount, sizeof( uint16_t) );
+    colorchord->sampleHistHead = 0;
+
     // Load a font
     loadFont("ibm_vga8.font", &colorchord->ibm_vga8);
 
@@ -108,6 +116,8 @@ void colorchordEnterMode(display_t* disp)
  */
 void colorchordExitMode(void)
 {
+    if(colorchord->sampleHist)
+        free(colorchord->sampleHist);
     freeFont(&colorchord->ibm_vga8);
     free(colorchord);
 }
@@ -144,7 +154,8 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
     {
         uint8_t height = ((colorchord->disp->h - colorchord->ibm_vga8.h - 2) * colorchord->end.fuzzed_bins[i]) /
                          colorchord->maxValue;
-        paletteColor_t color = hsv2rgb((i * 256) / FIXBINS, 255, 255);
+
+        paletteColor_t color = RGBtoPalette( ECCtoHEX( ( (i<<SEMIBITSPERBIN)  + colorchord->eod.RootNoteOffset ) % NOTERANGE, 255, 255 ) );
         int16_t x0 = binMargin + (i * binWidth);
         int16_t x1 = binMargin + ((i + 1) * binWidth);
         if(height < 2)
@@ -163,20 +174,41 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
         }
     }
 
+    // Draw sinewave
+    {
+        SETUP_FOR_TURBO( colorchord->disp );
+        int x;
+        uint16_t * sampleHist = colorchord->sampleHist;
+        uint16_t sampleHistCount = colorchord->sampleHistCount;
+        int16_t sampleHistMark = colorchord->sampleHistHead - 1;
+        for( x = 0; x < dispWidth; x++ )
+        {
+            int16_t sample = sampleHist[sampleHistMark];
+            sampleHistMark--;
+            if(sampleHistMark < 0)
+            {
+                sampleHistMark = sampleHistCount;
+            }
+            uint16_t y = ((sample * dispHeight)>>16) + (dispHeight/2);
+            if( y >= dispHeight ) continue;
+            TURBO_SET_PIXEL( colorchord->disp, x, y, 215 );
+        }
+    }
+
     // Draw the HUD text
     char text[16] = {0};
 
     // Draw gain indicator
     snprintf(text, sizeof(text), "Gain: %d", getMicGain());
-    drawText(colorchord->disp, &colorchord->ibm_vga8, c555, text, 10, TEXT_Y);
+    drawText(colorchord->disp, &colorchord->ibm_vga8, c555, text, TEXT_MARGIN, TEXT_Y);
 
     // Underline it if selected
     if(CC_OPT_GAIN == colorchord->optSel)
     {
         int16_t lineY = 10 + colorchord->ibm_vga8.h + 2;
         plotLine(colorchord->disp,
-                 10, lineY,
-                 10 + textWidth(&colorchord->ibm_vga8, text) - 1, lineY, c555, 0);
+                 TEXT_MARGIN, lineY,
+                 TEXT_MARGIN + textWidth(&colorchord->ibm_vga8, text) - 1, lineY, c555, 0);
     }
 
     // Draw LED brightness indicator
@@ -187,7 +219,7 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
     // Underline it if selected
     if(CC_OPT_LED_BRIGHT == colorchord->optSel)
     {
-        int16_t lineY = 10 + colorchord->ibm_vga8.h + 2;
+        int16_t lineY = TEXT_Y + colorchord->ibm_vga8.h + 2;
         plotLine(colorchord->disp,
                  (colorchord->disp->w - tWidth) / 2, lineY,
                  (colorchord->disp->w - tWidth) / 2 + tWidth - 1, lineY, c555, 0);
@@ -209,43 +241,24 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
             break;
         }
     }
-    int16_t textX = colorchord->disp->w - 10 - textWidth(&colorchord->ibm_vga8, text);
+    int16_t textX = colorchord->disp->w - TEXT_MARGIN - textWidth(&colorchord->ibm_vga8, text);
     drawText(colorchord->disp, &colorchord->ibm_vga8, c555, text,
              textX, TEXT_Y);
 
     // Underline it if selected
     if(CC_OPT_LED_MODE == colorchord->optSel)
     {
-        int16_t lineY = 10 + colorchord->ibm_vga8.h + 2;
+        int16_t lineY = TEXT_Y + colorchord->ibm_vga8.h + 2;
         plotLine(colorchord->disp,
                  textX, lineY,
                  textX + textWidth(&colorchord->ibm_vga8, text) - 1, lineY, c555, 0);
     }
 
     // Draw reminder text
-    const char exitText[] = "B to Exit";
+    const char exitText[] = "Start + Select to Exit";
     int16_t exitWidth = textWidth(&colorchord->ibm_vga8, exitText);
     drawText(colorchord->disp, &colorchord->ibm_vga8, c555, exitText,
              (colorchord->disp->w - exitWidth) / 2, colorchord->disp->h - colorchord->ibm_vga8.h);
-
-    // If b is being held
-    if(0 != colorchord->time_b_pressed)
-    {
-        // Figure out for how long
-        int64_t tHeldUs = esp_timer_get_time() - colorchord->time_b_pressed;
-        // If it has been held for more than the exit time
-        if(tHeldUs > EXIT_TIME_US)
-        {
-            // exit
-            switchToSwadgeMode(&modeMainMenu);
-        }
-        else
-        {
-            // Draw 'progress' bar for exiting
-            int16_t numPx = (tHeldUs * colorchord->disp->w) / EXIT_TIME_US;
-            fillDisplayArea(colorchord->disp, 0, colorchord->disp->h - 10, numPx, colorchord->disp->h, c333);
-        }
-    }
 }
 
 /**
@@ -290,6 +303,7 @@ void colorchordButtonCb(buttonEvt_t* evt)
                 break;
             }
             case DOWN:
+            case BTN_B:
             {
                 switch(colorchord->optSel)
                 {
@@ -349,17 +363,7 @@ void colorchordButtonCb(buttonEvt_t* evt)
                 }
                 break;
             }
-            case BTN_B:
-            {
-                colorchord->time_b_pressed = esp_timer_get_time();
-                break;
-            }
         }
-    }
-    else if(BTN_B == evt->button)
-    {
-        // B released
-        colorchord->time_b_pressed = 0;
     }
 }
 
@@ -371,11 +375,21 @@ void colorchordButtonCb(buttonEvt_t* evt)
  */
 void colorchordAudioCb(uint16_t* samples, uint32_t sampleCnt)
 {
+    uint16_t * sampleHist = colorchord->sampleHist;
+    uint16_t sampleHistHead = colorchord->sampleHistHead;
+    uint16_t sampleHistCount = colorchord->sampleHistCount;
+
     // For each sample
     for(uint32_t idx = 0; idx < sampleCnt; idx++)
     {
+        uint16_t sample = samples[idx];
+
         // Push to colorchord
-        PushSample32(&colorchord->dd, samples[idx]);
+        PushSample32(&colorchord->dd, sample);
+
+        sampleHist[sampleHistHead] = sample;
+        sampleHistHead++;
+        if( sampleHistHead == sampleHistCount ) sampleHistHead = 0;
 
         // If 128 samples have been pushed
         colorchord->samplesProcessed++;
@@ -402,4 +416,6 @@ void colorchordAudioCb(uint16_t* samples, uint32_t sampleCnt)
             setLeds((led_t*)colorchord->eod.ledOut, NUM_LEDS);
         }
     }
+
+    colorchord->sampleHistHead = sampleHistHead;
 }

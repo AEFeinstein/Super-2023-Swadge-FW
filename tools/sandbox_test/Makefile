@@ -5,8 +5,10 @@ UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
 CFLAGS:=-g -O0
 LDFLAGS:=-ludev
+CC:=gcc
 else
-CFLAGS:=-g -O0
+CFLAGS:=-Os -s
+CC:=gcc
 LDFLAGS:=C:/windows/system32/setupapi.dll
 endif
 
@@ -25,17 +27,20 @@ run : sandbox_upload sandbox.o
 	./sandbox_upload
 
 buildhelp : buildhelp.c
-	gcc $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 sandbox_upload : sandbox_upload.c
-	gcc $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 sandbox_interactive : sandbox_interactive.c
-	gcc $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+monitor : sandbox_interactive
+	./sandbox_interactive
 
 interactive : sandbox_interactive build
 	./sandbox_interactive sandbox.c sandbox.S $(SYSELF)
 
 clean :
-	rm -rf *.o *~ build/sandbox_inst.bin build/sandbox_data.bin build/buildhelp build/sandbox.o sandbox_upload build/sandbox.lds build/provided.lds build/sandbox_symbols.txt build/system_symbols.txt sandbox_interactive
+	rm -rf *.o *~ build/sandbox_inst.bin build/sandbox_data.bin build/buildhelp build/sandbox.o sandbox_upload build/sandbox.lds build/provided.lds build/sandbox_symbols.txt build/system_symbols.txt sandbox_interactive buildhelp.exe sandbox_upload.exe
 

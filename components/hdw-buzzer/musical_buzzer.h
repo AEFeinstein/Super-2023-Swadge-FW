@@ -6,6 +6,7 @@
 #include "hal/gpio_types.h"
 #include "driver/rmt.h"
 #include "soc/rmt_reg.h"
+#include "hal/timer_types.h"
 
 // Frequencies of notes
 typedef enum
@@ -118,7 +119,31 @@ typedef enum
     G_SHARP_8 = 6645,
     A_8 = 7040,
     A_SHARP_8 = 7459,
-    B_8 = 7902
+    B_8 = 7902,
+    C_9 = 8372,
+    C_SHARP_9 = 8870,
+    D_9 = 9397,
+    D_SHARP_9 = 9956,
+    E_9 = 10548,
+    F_9 = 11175,
+    F_SHARP_9 = 11840,
+    G_9 = 12544,
+    G_SHARP_9 = 13290,
+    A_9 = 14080,
+    A_SHARP_9 = 14917,
+    B_9 = 15804,
+    C_10 = 16744,
+    C_SHARP_10 = 17740,
+    D_10 = 18795,
+    D_SHARP_10 = 19912,
+    E_10 = 21096,
+    F_10 = 22351,
+    F_SHARP_10 = 23680,
+    G_10 = 25088,
+    G_SHARP_10 = 26580,
+    A_10 = 28160,
+    A_SHARP_10 = 29834,
+    B_10 = 31609
 } noteFrequency_t;
 
 /**
@@ -138,10 +163,10 @@ typedef struct
     musicalNote_t notes[];
 } song_t;
 
-void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, bool isMuted);
+void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, timer_group_t group_num,
+    timer_idx_t timer_num, bool isMuted);
 void buzzer_play_bgm(const song_t* song);
 void buzzer_play_sfx(const song_t* song);
-void buzzer_check_next_note(void);
 void buzzer_stop(void);
 
 #endif

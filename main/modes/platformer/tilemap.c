@@ -61,6 +61,10 @@ void drawTileMap(display_t *disp, tilemap_t *tilemap)
             }
 
             uint8_t tile = tilemap->map[(y * tilemap->mapWidth) + x];
+            
+            if(tile < TILE_GRASS){
+                continue;
+            }
 
             // Test animated tiles
             if (tile == 64 || tile == 67)
@@ -71,14 +75,16 @@ void drawTileMap(display_t *disp, tilemap_t *tilemap)
             // Draw only non-garbage tiles
             if (tile > 31 && tile < 90)
             {
-                drawWsg(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY, false, false, 0);
+                drawWsgTile(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
             }
-            else if (tile > 127 && tilemap->tileSpawnEnabled && (tilemap->executeTileSpawnColumn == x || tilemap->executeTileSpawnRow == y))
+            else if (tile > 127 && tilemap->tileSpawnEnabled && (tilemap->executeTileSpawnColumn == x || tilemap->executeTileSpawnRow == y || tilemap->executeTileSpawnAll))
             {
                 tileSpawnEntity(tilemap, tile - 128, x, y);
             }
         }
     }
+
+    tilemap->executeTileSpawnAll = 0;
 }
 
 void scrollTileMap(tilemap_t *tilemap, int16_t x, int16_t y)
@@ -143,7 +149,7 @@ bool loadMapFromFile(tilemap_t *tilemap, char *name)
     uint8_t height = buf[1];
 
     tilemap->map = (uint8_t *)malloc(sizeof(uint8_t) * width * height);
-    memcpy(tilemap->map, &buf[2], width * height - 2);
+    memcpy(tilemap->map, &buf[2], width * height);
 
     tilemap->mapWidth = width;
     tilemap->mapHeight = height;
@@ -294,4 +300,12 @@ bool isSolid(uint8_t tileId)
 bool isInteractive(uint8_t tileId)
 {
     return tileId > TILE_INVISIBLE_BLOCK && tileId < TILE_BG_GOAL_ZONE;
+}
+
+void unlockScrolling(tilemap_t *tilemap){
+    tilemap->minMapOffsetX = 0;
+    tilemap->maxMapOffsetX = tilemap->mapWidth * TILE_SIZE - TILEMAP_DISPLAY_WIDTH_PIXELS;
+
+    tilemap->minMapOffsetY = 0;
+    tilemap->maxMapOffsetY = tilemap->mapHeight * TILE_SIZE - TILEMAP_DISPLAY_HEIGHT_PIXELS;
 }

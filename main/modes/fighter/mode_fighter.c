@@ -31,8 +31,6 @@
 // Constants
 //==============================================================================
 
-#define FRAME_TIME_MS 25 // 40fps
-
 #define IFRAMES_AFTER_SPAWN ((3 * 1000) / FRAME_TIME_MS) // 3 seconds
 #define DRAW_DEBUG_BOXES
 

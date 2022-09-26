@@ -8,6 +8,7 @@
 #include "nvs_manager.h"
 #include "settingsManager.h"
 #include "led_util.h"
+#include "hdw-tft.h"
 
 //==============================================================================
 // Defines
@@ -86,8 +87,14 @@ bool incTftBrightness(void)
 {
     // Increment the value
     uint8_t brightness = (getTftBrightness() + 1) % (MAX_TFT_BRIGHTNESS + 1);
+
     // Write the value
-    return writeNvs32(KEY_TFT_BRIGHT, brightness);
+    bool retVal = writeNvs32(KEY_TFT_BRIGHT, brightness);
+
+    // Set the brightness
+    setTFTBacklight(getTftIntensity());
+
+    return retVal;
 }
 
 /**
@@ -107,8 +114,25 @@ bool decTftBrightness(void)
     {
         brightness--;
     }
+
     // Write the value
-    return writeNvs32(KEY_TFT_BRIGHT, brightness);
+    bool retVal = writeNvs32(KEY_TFT_BRIGHT, brightness);
+
+    // Set the brightness
+    setTFTBacklight(getTftIntensity());
+
+    return retVal;
+}
+
+/**
+ * @brief Get the Tft Intensity, passed into setTFTBacklight()
+ *
+ * @return The TFT intensity
+ */
+uint8_t getTftIntensity(void)
+{
+    return (CONFIG_TFT_MIN_BRIGHTNESS + (((CONFIG_TFT_MAX_BRIGHTNESS - CONFIG_TFT_MIN_BRIGHTNESS) * getTftBrightness()) /
+                                         MAX_TFT_BRIGHTNESS));
 }
 
 /**
@@ -184,6 +208,23 @@ int32_t getMicGain(void)
 /**
  * Increment the microphone gain setting
  *
+ * @param newGain The new gain to set, 0-7
+ * @return true if the setting was written, false if it was not
+ */
+bool setMicGain(uint8_t newGain)
+{
+    // Increment the value
+    if (newGain > MAX_MIC_GAIN)
+    {
+        newGain = MAX_MIC_GAIN;
+    }
+    // Write the value
+    return writeNvs32(KEY_MIC, newGain);
+}
+
+/**
+ * Increment the microphone gain setting
+ *
  * @return true if the setting was written, false if it was not
  */
 bool incMicGain(void)
@@ -220,16 +261,17 @@ bool decMicGain(void)
  */
 uint16_t getMicAmplitude(void)
 {
+    // Using a logarithmic volume control. 
     const uint16_t micVols[] =
     {
         32,
+        45,
         64,
-        96,
+        90,
         128,
-        160,
-        192,
-        224,
+        181,
         256,
+        362,
     };
     return micVols[getMicGain()];
 }

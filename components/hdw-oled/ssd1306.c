@@ -368,7 +368,7 @@ void updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t
 void setPxOled(int16_t x, int16_t y, paletteColor_t c);
 paletteColor_t getPxOled(int16_t x, int16_t y);
 void clearPxOled(void);
-void drawDisplayOled(bool drawDifference);
+void drawDisplayOled(display_t *, bool, fnBackgroundDrawCallback_t);
 
 //==============================================================================
 // Variables
@@ -459,7 +459,7 @@ void clearPxOled(void)
  * @param rst_gpio The GPIO for the reset pin
  * @return true if it initialized, false if it failed
  */
-bool initOLED(display_t * disp, bool reset, gpio_num_t rst_gpio)
+bool initOLED(display_t* disp, bool reset, gpio_num_t rst_gpio)
 {
     disp->h = OLED_HEIGHT;
     disp->w = OLED_WIDTH;
@@ -467,6 +467,7 @@ bool initOLED(display_t * disp, bool reset, gpio_num_t rst_gpio)
     disp->getPx = getPxOled;
     disp->clearPx = clearPxOled;
     disp->drawDisplay = drawDisplayOled;
+    disp->pxFb = NULL;
 
     // Clear the RAM
     clearPxOled();
@@ -496,7 +497,7 @@ bool initOLED(display_t * disp, bool reset, gpio_num_t rst_gpio)
     }
 
     // Also clear the display's RAM on boot
-    drawDisplayOled(false);
+    drawDisplayOled(false, 0);
 
     return true;
 }
@@ -560,7 +561,7 @@ void updateOLEDScreenRange( uint8_t minX, uint8_t maxX, uint8_t minPage, uint8_t
  * @param drawDifference true to only draw differences from the prior frame
  *                       false to draw the entire frame
  */
-void drawDisplayOled(bool drawDifference)
+void drawDisplayOled( display_t * disp, bool drawDifference, fnBackgroundDrawCallback_t fnBackgroundDrawCallback )
 {
     //Before sending the actual data, we do housekeeping. This can take between 57 and 200 uS
     //But ensures the visual data stays consistent.
@@ -658,6 +659,11 @@ void drawDisplayOled(bool drawDifference)
     {
         updateOLEDScreenRange( 0, OLED_WIDTH - 1, 0, SSD1306_NUM_PAGES - 1 );
     }
+    
+    if( fnBackgroundDrawCallback )
+    {
+        fnBackgroundDrawCallback( disp, 0, 0, OLED_WIDTH, OLED_HEIGHT, 0, 1 );
+    }
 }
 
 //==============================================================================
@@ -730,14 +736,14 @@ int processDisplayCommands( const uint8_t* buffer, uint8_t flags )
 
 /**
  * @brief Empty Initializer when the OLED is disabled
- * 
- * @param disp 
- * @param reset 
- * @param rst_gpio 
- * @return true 
- * @return false 
+ *
+ * @param disp
+ * @param reset
+ * @param rst_gpio
+ * @return true
+ * @return false
  */
-bool initOLED(display_t * disp, bool reset, gpio_num_t rst_gpio)
+bool initOLED(display_t* disp, bool reset, gpio_num_t rst_gpio)
 {
     return false;
 }

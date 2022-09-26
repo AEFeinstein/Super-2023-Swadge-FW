@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "esp_partition.h"
 #include "esp_attr.h"
-
+#include "mode_main_menu.h"
 #include "esp_system.h"
 #include "esp_spi_flash.h"
 #include "esp_log.h"
@@ -34,6 +34,24 @@ int      advanced_usb_printf_head, advanced_usb_printf_tail;
 uint32_t * advanced_usb_read_offset;
 static uint8_t terminal_redirected;
 static uint8_t did_init_flash_function;
+
+void dummy_fn( void ) { }
+
+swadgeMode dummy_swadge_mode =
+{
+    .modeName = "dummy",
+    .fnEnterMode = NULL,
+    .fnExitMode = dummy_fn,
+    .fnMainLoop = NULL,
+    .fnButtonCallback = NULL,
+    .fnTouchCallback = NULL,
+    .wifiMode = NO_WIFI,
+    .fnEspNowRecvCb = NULL,
+    .fnEspNowSendCb = NULL,
+    .fnAccelerometerCallback = NULL,
+    .fnAudioCallback = NULL,
+    .fnTemperatureCallback = NULL
+};
 
 /**
  * @brief Accept a "get" feature report command from a USB host and write
@@ -176,10 +194,7 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
         // Switch Swadge Mode
         {
             ULOG( "SwadgeMode Value: 0x%08x", value );
-            if( value == 0 )
-                switchToSwadgeMode( 0 );
-            else
-                overrideToSwadgeMode( (swadgeMode*)value );
+			overrideToSwadgeMode( (swadgeMode*)(value?value:&dummy_swadge_mode) );
         }
         break;
     case AUSB_CMD_ALLOC_SCRATCH:
@@ -194,7 +209,7 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
                 if( value > advanced_usb_scratch_buffer_data_size  )
                 {
                     advanced_usb_scratch_buffer_data = realloc( advanced_usb_scratch_buffer_data, value );
-					memset( advanced_usb_scratch_buffer_data, 0, value );
+                    memset( advanced_usb_scratch_buffer_data, 0, value );
                     advanced_usb_scratch_buffer_data_size = value;
                 }
                 if( value == 0 )
@@ -209,25 +224,25 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
             ULOG( "New: %p / %d", advanced_usb_scratch_buffer_data, advanced_usb_scratch_buffer_data_size );
         }
         break;
-	case ACMD_CMD_MEMSET:
-	{
+    case ACMD_CMD_MEMSET:
+    {
         if( datalen < 11 ) return;
         intptr_t length = data[6] | ( data[7] << 8 ) | ( data[8] << 16 ) | ( data[9] << 24 );
         ULOG( "Memset %d into %p", length, (void*)value );
         memset( (void*)value, data[10], length );
         break;
-	}
-	case ACMD_CMD_GETVER:
-	{
-		// TODO: This is terrible.  It should be improved.
-		void app_main(void);
-		advanced_usb_scratch_immediate[0] = (uint32_t)&app_main;
-		advanced_usb_scratch_immediate[1] = (uint32_t)&advanced_usb_scratch_buffer_data;
-		advanced_usb_scratch_immediate[2] = (uint32_t)&handle_advanced_usb_control_set;
-		advanced_usb_scratch_immediate[3] = (uint32_t)&handle_advanced_usb_terminal_get;
+    }
+    case ACMD_CMD_GETVER:
+    {
+        // TODO: This is terrible.  It should be improved.
+        void app_main(void);
+        advanced_usb_scratch_immediate[0] = (uint32_t)&app_main;
+        advanced_usb_scratch_immediate[1] = (uint32_t)&advanced_usb_scratch_buffer_data;
+        advanced_usb_scratch_immediate[2] = (uint32_t)&handle_advanced_usb_control_set;
+        advanced_usb_scratch_immediate[3] = (uint32_t)&handle_advanced_usb_terminal_get;
         advanced_usb_read_offset = advanced_usb_scratch_immediate;
-		break;
-	}
+        break;
+    }
     case AUSB_CMD_FLASH_ERASE: // Flash erase region
     {
         if( datalen < 10 ) return ;
