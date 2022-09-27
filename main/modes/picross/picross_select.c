@@ -21,15 +21,14 @@
 //====
 picrossLevelSelect_t* ls;
 
+
 //===
 //Function Prototypes
 //
 void levelSelectInput(void);
 void drawLevelSelectScreen(display_t* d,font_t* font);
-void drawWsgScaled(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff);
-void drawPicrossSinglePixelAsBox(display_t* d,int x, int y, wsg_t* image);
+void drawPicrossLevelWSG(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff);
 void drawPicrossPreviewWindow(display_t* d, wsg_t* wsg);
-
 //====
 // Functions
 //====
@@ -40,41 +39,22 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     ls = calloc(1, sizeof(picrossLevelSelect_t));
     ls->disp = disp;
     ls->game_font = font;
-    //8 is numLevels
-    ls->levelCount = 8;
-    loadWsg("unknownPuzzle.wsg",&ls->unknownPuzzle);
-    //Load in which levels have been completed.
-    int32_t victories0 = 0;
-    int32_t victories1 = 0;
-    int32_t victories2 = 0;
-    //picross_Solves1 would be for levels 33->64
-    readNvs32("picross_Solves0", &victories0);
-    readNvs32("picross_Solves1", &victories1);
-    readNvs32("picross_Solves2", &victories2);
 
-    int32_t v;
-    int j;//bit position of i in appropriate register
-    for(int i = 0;i<ls->levelCount;i++)
+    loadWsg("unknownPuzzle.wsg",&ls->unknownPuzzle);
+
+    size_t size = sizeof(picrossVictoryData_t);
+    picrossVictoryData_t* victData = calloc(1,size);//zero out. if data doesnt exist, then its been correctly initialized to all 0s. 
+    readNvsBlob(picrossCompletedLevelData,victData,&size);
+
+    ls->allLevelsComplete = true;
+    for(int i = 0;i<PICROSS_LEVEL_COUNT;i++)
     {
-        //todo: I bet there is a smarter way to do this.
-        if(i<32){
-            v = victories0;
-            j = i;
-        }else if(i<64)
-        {
-            v = victories1;
-            j = i - 32;
-        }else if(i<96)
-        {
-            v = victories2;
-            j = i - 64;
-        }
-        
         //set completed data from save data.
-        if(1 == (v & ( 1 << j )) >> j){
+        if(victData->victories[i] == true){
             levels[i].completed = true;
         }else{
             levels[i].completed = false;
+            ls->allLevelsComplete = false;
         }
 
         ls->levels[i] = levels[i];
@@ -89,10 +69,15 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
 
     //visual settings
     ls->cols = 5;
-    ls->paddingLeft = 40;
-    ls->paddingTop = 50;
+    //rows*cols should = picrossLevelCount. If it doesn't, the UI will break lol. I can add a check for it, but i dont want to unless we need it.
+    //The goal is just to make the correct amount of puzzles, and replace this line with a concretely set rows. Or replace rows/cols with a #DEFINE.
+    ls->rows = (PICROSS_LEVEL_COUNT+(ls->cols-1)) / ls->cols;
+    ls->paddingLeft = 10;
+    ls->paddingTop = 20;
     ls->gap = 5;
-    ls->gridScale = 40;
+    ls->gridScale = 30;//PICROSS_MAX_SIZE * 2
+
+    free(victData);
 }
 
 void picrossLevelSelectLoop(int64_t elapsedUs)
@@ -108,6 +93,8 @@ void picrossLevelSelectLoop(int64_t elapsedUs)
 
 void levelSelectInput()
 {
+    //todo: quit with both start+select
+
     if (ls->btnState & SELECT && !(ls->prevBtnState & SELECT) && !(ls->btnState & BTN_A))
     {
         //exit to main menu
@@ -118,7 +105,12 @@ void levelSelectInput()
     if (ls->btnState & BTN_A && !(ls->prevBtnState & BTN_A) && !(ls->btnState & SELECT))
     {
         ls->chosenLevel = &ls->levels[ls->hoverLevelIndex];
-        writeNvs32("pic_cur_ind", ls->hoverLevelIndex);//save the selected level before we lose context of the index.
+        writeNvs32(picrossCurrentPuzzleIndexKey, ls->hoverLevelIndex);//save the selected level before we lose context of the index.
+
+        size_t size = sizeof(picrossProgressData_t);
+        picrossProgressData_t* progress = calloc(1,size);//zero out. if data doesnt exist, then its been correctly initialized to all 0s. 
+        readNvsBlob(picrossCompletedLevelData,progress,&size);
+
         selectPicrossLevel(ls->chosenLevel);
         return;
     }
@@ -140,7 +132,7 @@ void levelSelectInput()
     }else if (ls->btnState & DOWN && !(ls->prevBtnState & DOWN))
     {
         ls->hoverY++;
-        if(ls->hoverY >= ls->cols)//todo: rows?
+        if(ls->hoverY >= ls->rows)//todo: rows?
         {
             ls->hoverY = 0;
         }
@@ -150,7 +142,7 @@ void levelSelectInput()
         ls->hoverY--;
         if(ls->hoverY < 0)
         {
-            ls->hoverY = ls->cols-1;
+            ls->hoverY = ls->rows-1;
         }
     }
 
@@ -166,11 +158,10 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
     uint8_t y;
 
     //todo: Draw Choose Level Text.
-    drawText(d, font, c555, "Puzzle", 158, 30); 
-    drawText(d, font, c555, "Select", 158, 60);   
-  
-    //dont have the number of levels stored anywhere... 16 is goal, not 8.
-    for(int i=0;i<ls->levelCount;i++)
+    drawText(d, font, c555, "Puzzle", 190, 30); 
+    drawText(d, font, c555, "Select", 190, 60);   
+    
+    for(int i=0;i<PICROSS_LEVEL_COUNT;i++)
     {
         y = i / ls->cols;
         x = 0;
@@ -181,11 +172,11 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
         y = y * s + ls->paddingTop + ls->gap*y;
         if(ls->levels[i].completed)
         {
-            drawWsgScaled(d,&ls->levels[i].completedWSG,x >> 1,y >> 1);
+            drawPicrossLevelWSG(d,&ls->levels[i].completedWSG,x,y);
         }else
         {
             //Draw ? sprite
-            drawWsgScaled(d,&ls->unknownPuzzle,x >> 1,y >> 1);
+            drawPicrossLevelWSG(d,&ls->unknownPuzzle,x,y);
         }
     }
     // //Draw "name" of current level
@@ -194,7 +185,7 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
     // //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
     // drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], 158, 120);
 
-    if(ls->hoverLevelIndex < ls->levelCount){//jic
+    if(ls->hoverLevelIndex < PICROSS_LEVEL_COUNT){//jic
         //draw level choose input
         x = ls->hoverX;
         y = ls->hoverY;
@@ -206,20 +197,22 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
             .x1 = (x * s) + s + ls->paddingLeft+ ls->gap*x,
             .y1 = (y * s) + s + ls->paddingTop+ ls->gap*y,
         }; 
-        
-    
-        
-
         //draw preview window
         if(ls->levels[ls->hoverLevelIndex].completed){
             //if completed, show victory image and green hover
             drawPicrossPreviewWindow(d,&ls->levels[ls->hoverLevelIndex].completedWSG);
-            drawBox(d,inputBox,c151,false,1);
+            drawBox(d,inputBox,c151,false,0);
         }else{
             //if incomplete, show ? image and red hvoer
             drawPicrossPreviewWindow(d,&ls->unknownPuzzle);
-            drawBox(d,inputBox,c511,false,1);
+            drawBox(d,inputBox,c511,false,0);
         }
+    }
+
+    if(ls->allLevelsComplete)
+    {
+        drawText(d,ls->game_font,c000,"You Are Win!",53,103);
+        drawText(d,ls->game_font,c555,"You Are Win!",50,100);
     }
 }
 
@@ -243,11 +236,35 @@ void picrossExitLevelSelect()
 
 //Little replacement of drawWsg to draw the 2px for each px. Sprite scaling doesnt appear to be a thing yet, so this is my hack.
 //we could do 4x and have plenty of room?
-void drawWsgScaled(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
+void drawPicrossLevelWSG(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
 {
     if(NULL == wsg->px)
     {
         return;
+    }
+
+    //Draw the WSG into a 30 pixel square area. thats PICROSSMAXLEVELSIZE*2. This is also gridScale.
+    //gridScale works because 5,10, and 15 will divide into 30 evenly. Those are the only levels we plan on really supporting.
+    //if we just pick whatever gridscale, then this function isn't would be ... wonky
+    //BUT if we do something else, uh... it'll maybe not be the right size but... should look close to centered.
+    uint16_t pixelPerPixel = ls->gridScale/((wsg->w > wsg->h) ? wsg->w : wsg->h);
+    
+    //level draw size is 2 pixels for each square when drawing 15x15 squares.
+    //3 pixels for 10x10
+    //5 pixels for 5x5
+    
+    if(wsg->w != wsg->h)
+    {
+        if(wsg->h < wsg->w)
+        {
+            //we need to calculate new y offset to center the image.
+            yOff = yOff + (((PICROSS_MAX_LEVELSIZE*2)-wsg->h)/2);
+        }
+        else
+        {
+            //calculate new x offset to center
+            xOff = xOff + (((PICROSS_MAX_LEVELSIZE*2)-wsg->w)/2);
+        }
     }
 
     // Draw the image's pixels
@@ -259,35 +276,29 @@ void drawWsgScaled(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
             if (cTransparent != wsg->px[(srcY * wsg->w) + srcX])
             {
                 // Transform this pixel's draw location as necessary
-                int16_t dstX = srcX*2+xOff;
-                int16_t dstY = srcY*2+yOff;
+                int16_t dstX = srcX*pixelPerPixel+xOff;
+                int16_t dstY = srcY*pixelPerPixel+yOff;
                 
                 // Check bounds
                 if(0 <= dstX && dstX < disp->w && 0 <= dstY && dstY <= disp->h)
                 {
-                    // Draw the pixel
-                    disp->setPx(dstX, dstY, wsg->px[(srcY * wsg->w) + srcX]);
-                    disp->setPx(dstX+1, dstY, wsg->px[(srcY * wsg->w) + srcX]);
-                    disp->setPx(dstX, dstY+1, wsg->px[(srcY * wsg->w) + srcX]);
-                    disp->setPx(dstX+1, dstY+1, wsg->px[(srcY * wsg->w) + srcX]);
+                    // //root pixel
+                    // disp->setPx(dstX, dstY, wsg->px[(srcY * wsg->w) + srcX]);
+                    // // Draw the pixel
+                    for(int i = 0;i<pixelPerPixel;i++)
+                    {
+                        for(int j = 0;j<pixelPerPixel;j++)
+                        {
+                            disp->setPx(dstX+i, dstY+j, wsg->px[(srcY * wsg->w) + srcX]);
+                        }
+                        // disp->setPx(dstX+1, dstY, wsg->px[(srcY * wsg->w) + srcX]);
+                        
+                        // disp->setPx(dstX+1, dstY+1, wsg->px[(srcY * wsg->w) + srcX]);
+                    }
                 }
             }
         }
     }
-}
-
-//todo: remove this function and fold it into drawpicrossPreviewWindow
-void drawPicrossSinglePixelAsBox(display_t* d,int x, int y, wsg_t* image)
-{   
-    uint8_t s = 7;
-    box_t box =
-        {
-            .x0 = (x * s) + s + ls->paddingLeft+110,//110=left offet for image
-            .y0 = (y * s) + s + ls->paddingTop+60,//60=topoffset for image below text
-            .x1 = (x * s) + s + s + ls->paddingLeft+110,
-            .y1 = (y * s) + s + s + ls->paddingTop+60,
-        };  
-    drawBox(d, box, image->px[(y * image->w) + x], true, 0);
 }
 
 /// @brief Draws the picross preview of the level. Really, it just draws a wsg at a very specific location using drawBox calls.It can likely be optimized (by pulling the actual drawing code from drawBox into here?)
@@ -295,11 +306,21 @@ void drawPicrossSinglePixelAsBox(display_t* d,int x, int y, wsg_t* image)
 /// @param wsg image to draw. on hover, it will be told to draw the image of the level we are hoving over - a '?' image or the completed one, as appopriate. 
 void drawPicrossPreviewWindow(display_t* d, wsg_t* wsg)
 {
+    uint8_t s = 3* ls->gridScale/((wsg->w > wsg->h) ? wsg->w : wsg->h);
+
     for(int i = 0;i<wsg->w;i++)
     {
         for(int j = 0;j<wsg->h;j++)
         {
-            drawPicrossSinglePixelAsBox(d,i,j,wsg);
+            
+            box_t box =
+                {
+                    .x0 = (i * s) + ls->paddingLeft+172,//110=left offet for image
+                    .y0 = (j * s) + ls->paddingTop+90,//60=topoffset for image below text
+                    .x1 = (i * s) + s + ls->paddingLeft+172,
+                    .y1 = (j * s) + s + ls->paddingTop+90,
+                };  
+            drawBox(d, box, wsg->px[(j * wsg->w) + i], true, 0);
         }
     }
 }

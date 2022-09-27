@@ -29,18 +29,26 @@ typedef enum
     PICROSSDIR_UP =4,
 } picrossDir_t;//this could be made generic and used for counter or 
 
-//todo: remove this
 typedef struct
 {
-    /* data */
-    int32_t banks[8];
-} picrossSaveData_t;
+    bool victories[PICROSS_LEVEL_COUNT];
+}picrossVictoryData_t;
+
+typedef struct
+{
+    //input x position
+    //input y position
+    picrossSpaceType_t level[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE]; 
+}picrossProgressData_t;
+
 
 typedef struct
 {
     picrossSpaceType_t startHeldType;
     uint8_t x;
     uint8_t y;
+    uint8_t hoverBlockSizeX;
+    uint8_t hoverBlockSizeY;
     uint16_t prevBtnState;
     uint16_t btnState;
     bool movedThisFrame;
@@ -58,25 +66,27 @@ typedef struct
     uint64_t blinkTime;//half a blink cycle (on)(off) or full (on/off)(on/off)?
     uint8_t blinkCount;
     bool showHints;
+    bool showGuides;
     bool DASActive;//true after the first DAS input has happened.
 } picrossInput_t;
 
 typedef struct
 {
+    bool filledIn;
     bool complete;
     bool isRow;
     uint8_t index;
-    uint8_t hints[5];//have to deal with 'flexible array member'
+    uint8_t hints[PICROSS_MAX_HINTCOUNT];//have to deal with 'flexible array member'
 } picrossHint_t;
 
 typedef struct
 {
     uint8_t width;
     uint8_t height;
-    picrossHint_t rowHints[10];
-    picrossHint_t colHints[10];
-    picrossSpaceType_t completeLevel[10][10]; 
-    picrossSpaceType_t level[10][10]; 
+    picrossHint_t rowHints[PICROSS_MAX_LEVELSIZE];
+    picrossHint_t colHints[PICROSS_MAX_LEVELSIZE];
+    picrossSpaceType_t completeLevel[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE]; 
+    picrossSpaceType_t level[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE]; 
 } picrossPuzzle_t;
 
 typedef struct
@@ -84,19 +94,27 @@ typedef struct
     picrossGamePhase_t previousPhase;
     picrossGamePhase_t currentPhase;
     display_t* d;
-    font_t hint_font;
+    font_t hintFont;
+    font_t UIFont;
+    uint16_t vFontPad;
     picrossPuzzle_t* puzzle;
     bool controlsEnabled;
     picrossInput_t* input;
-    uint8_t drawScale;
-    uint8_t leftPad;
-    uint8_t topPad;
+    uint16_t drawScale;
+    uint16_t leftPad;
+    uint16_t topPad;
+    uint8_t maxHintsX;
+    uint8_t maxHintsY;
     uint8_t clueGap;
+    uint64_t bgScrollTimer;
+    uint64_t bgScrollSpeed;
+    uint8_t bgScrollXFrame;
+    uint8_t bgScrollYFrame;
+    bool animateBG;
     picrossLevelDef_t* selectedLevel;
     bool exitThisFrame;
     int8_t count;
     picrossDir_t countState;
-    picrossSaveData_t* save;
     led_t errorALEDBlinkLEDS[NUM_LEDS];
     led_t errorBLEDBlinkLEDS[NUM_LEDS];
     led_t offLEDS[NUM_LEDS];
@@ -109,7 +127,5 @@ void picrossGameButtonCb(buttonEvt_t* evt);
 void picrossExitGame(void);
 void loadPicrossProgress(void);
 void savePicrossProgress(void);
-
-char * getBankName(int i);
 
 #endif

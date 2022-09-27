@@ -19,6 +19,4 @@ void initLeds(gpio_num_t gpio, gpio_num_t gpioAlt, rmt_channel_t rmt, uint16_t n
 void setLedBrightness(uint8_t brightness);
 void setLeds(led_t* leds, uint8_t numLeds);
 
-void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r, uint8_t* g, uint8_t* b);
-
 #endif

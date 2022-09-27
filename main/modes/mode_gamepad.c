@@ -12,6 +12,7 @@
 #include "bresenham.h"
 #include "swadge_esp32.h"
 #include "swadgeMode.h"
+#include "swadge_util.h"
 
 #include "mode_gamepad.h"
 #include "mode_main_menu.h"
@@ -172,7 +173,7 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
 
             // Draw either a filled or outline circle, if this is the direction pressed
             drawFunc = (gamepad->gpState.hat == hatDirs[i]) ? &plotCircleFilled : &plotCircle;
-            drawFunc(gamepad->disp, xc, yc, DPAD_BTN_RADIUS, c551 /*hsv2rgb(i * 32, 0xFF, 0xFF)*/);
+            drawFunc(gamepad->disp, xc, yc, DPAD_BTN_RADIUS, c551 /*paletteHsvToHex(i * 32, 0xFF, 0xFF)*/);
         }
 
         // Select button

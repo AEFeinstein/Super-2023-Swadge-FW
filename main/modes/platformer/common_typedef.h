@@ -44,7 +44,10 @@ typedef enum {
     SP_MUSIC_3,
     SP_WARP_1,
     SP_WARP_2,
-    SP_WARP_3
+    SP_WARP_3,
+    SP_WASP_1,
+    SP_WASP_2,
+    SP_WASP_DIVE
 } spriteDef_t;
 
 #endif

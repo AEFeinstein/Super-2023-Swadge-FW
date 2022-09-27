@@ -183,8 +183,12 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
  *
  * @param gpio unused
  * @param rmt unused
+ * @param group_num unused
+ * @param timer_num unused
+ * @param isMuted true if sound is muted, false if it is not
  */
-void buzzer_init(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED, bool isMuted)
+void buzzer_init(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED,
+	timer_group_t group_num UNUSED, timer_idx_t timer_num UNUSED, bool isMuted)
 {
 	emuMuted = isMuted;
 
@@ -446,4 +450,15 @@ uint32_t continuous_adc_read(uint16_t *outSamples)
 	}
 	pthread_mutex_unlock(&micMutex);
 	return samplesRead;
+}
+
+void oneshot_adc_init(adc_unit_t adcUnit, adc1_channel_t adcChan)
+{
+	WARN_UNIMPLEMENTED();
+}
+
+uint32_t oneshot_adc_read(void)
+{
+	WARN_UNIMPLEMENTED();
+	return 0;
 }

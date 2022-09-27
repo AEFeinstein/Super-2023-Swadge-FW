@@ -64,4 +64,12 @@ typedef enum {
 } adc2_channel_t;
 #endif
 
+typedef enum {
+    ADC_UNIT_1 = 1,          /*!< SAR ADC 1. */
+    ADC_UNIT_2 = 2,          /*!< SAR ADC 2. */
+    ADC_UNIT_BOTH = 3,       /*!< SAR ADC 1 and 2. */
+    ADC_UNIT_ALTER = 7,      /*!< SAR ADC 1 and 2 alternative mode. */
+    ADC_UNIT_MAX,
+} adc_unit_t;
+
 #endif

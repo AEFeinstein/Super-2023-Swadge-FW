@@ -25,7 +25,7 @@
 // Constant data
 //==============================================================================
 
-const int16_t sin1024[] =
+const int16_t sin1024[360] =
 {
     0, 18, 36, 54, 71, 89, 107, 125, 143, 160, 178, 195, 213, 230, 248, 265,
     282, 299, 316, 333, 350, 367, 384, 400, 416, 433, 449, 465, 481, 496, 512,
@@ -815,86 +815,4 @@ uint16_t textWidth(font_t* font, const char* text)
         width--;
     }
     return width;
-}
-
-/**
- * @brief Convert hue, saturation, and value to a palette color
- *
- * @param h The input hue, 0->255
- * @param s The input saturation, 0->255
- * @param v The input value, 0->255
- * @return paletteColor_t The output RGB
- */
-paletteColor_t hsv2rgb( uint8_t hue, uint8_t sat, uint8_t val)
-{
-#define SIXTH1 43
-#define SIXTH2 85
-#define SIXTH3 128
-#define SIXTH4 171
-#define SIXTH5 213
-    uint16_t or = 0, og = 0, ob = 0;
-
-    // move in rainbow order RYGCBM as hue from 0 to 255
-
-    if( hue < SIXTH1 ) //Ok: Red->Yellow
-    {
-        or = 255;
-        og = (hue * 255) / (SIXTH1);
-    }
-    else if( hue < SIXTH2 ) //Ok: Yellow->Green
-    {
-        og = 255;
-        or = 255 - (hue - SIXTH1) * 255 / SIXTH1;
-    }
-    else if( hue < SIXTH3 )  //Ok: Green->Cyan
-    {
-        og = 255;
-        ob = (hue - SIXTH2) * 255 / (SIXTH1);
-    }
-    else if( hue < SIXTH4 ) //Ok: Cyan->Blue
-    {
-        ob = 255;
-        og = 255 - (hue - SIXTH3) * 255 / SIXTH1;
-    }
-    else if( hue < SIXTH5 ) //Ok: Blue->Magenta
-    {
-        ob = 255;
-        or = (hue - SIXTH4) * 255 / SIXTH1;
-    }
-    else //Magenta->Red
-    {
-        or = 255;
-        ob = 255 - (hue - SIXTH5) * 255 / SIXTH1;
-    }
-
-    uint16_t rv = val;
-    if( rv > 128 )
-    {
-        rv++;
-    }
-    uint16_t rs = sat;
-    if( rs > 128 )
-    {
-        rs++;
-    }
-
-    //or, og, ob range from 0...255 now.
-    //Apply saturation giving OR..OB == 0..65025
-    or = or * rs + 255 * (256 - rs);
-    og = og * rs + 255 * (256 - rs);
-    ob = ob * rs + 255 * (256 - rs);
-    or >>= 8;
-    og >>= 8;
-    ob >>= 8;
-    //back to or, og, ob range 0...255 now.
-    //Need to apply saturation and value.
-    or = ( or * val) >> 8;
-    og = (og * val) >> 8;
-    ob = (ob * val) >> 8;
-
-    // Convert to palette color and return
-    or = ( or * 6) / 256;
-    og = (og * 6) / 256;
-    ob = (ob * 6) / 256;
-    return (paletteColor_t) ( or * 36) + (og * 6) + ob;
 }

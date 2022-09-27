@@ -223,5 +223,4 @@ In Aseprite, hover your mouse over a tile in the tileset to see its Id in the lo
 139. ENTITY_DUST_BUNNY
     - A stompable bunny enemy that moves only by jumping at random intervals and random angles. Turns around at walls.
 140. ENTITY_WASP
-    - (Unimplemented)
     - A stompable wasp enemy that flies through the air, unaffected by gravity until the player passes underneath it, at which point it will drop straight down. After dropping down, it will stop for a short time when it meets a block, then fly back up. Turns around at walls.

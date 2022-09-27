@@ -208,6 +208,23 @@ int32_t getMicGain(void)
 /**
  * Increment the microphone gain setting
  *
+ * @param newGain The new gain to set, 0-7
+ * @return true if the setting was written, false if it was not
+ */
+bool setMicGain(uint8_t newGain)
+{
+    // Increment the value
+    if (newGain > MAX_MIC_GAIN)
+    {
+        newGain = MAX_MIC_GAIN;
+    }
+    // Write the value
+    return writeNvs32(KEY_MIC, newGain);
+}
+
+/**
+ * Increment the microphone gain setting
+ *
  * @return true if the setting was written, false if it was not
  */
 bool incMicGain(void)
@@ -244,16 +261,17 @@ bool decMicGain(void)
  */
 uint16_t getMicAmplitude(void)
 {
+    // Using a logarithmic volume control. 
     const uint16_t micVols[] =
     {
         32,
+        45,
         64,
-        96,
+        90,
         128,
-        160,
-        192,
-        224,
+        181,
         256,
+        362,
     };
     return micVols[getMicGain()];
 }

@@ -272,7 +272,7 @@ void emuDrawDisplayTft(display_t *,bool,fnBackgroundDrawCallback_t);
 void emuSetPxOled(int16_t x, int16_t y, paletteColor_t px);
 paletteColor_t emuGetPxOled(int16_t x, int16_t y);
 void emuClearPxOled(void);
-void emuDrawDisplayOled(bool drawDiff);
+void emuDrawDisplayOled(struct display* disp, bool drawDiff, fnBackgroundDrawCallback_t cb);
 
 //==============================================================================
 // Functions
@@ -432,6 +432,23 @@ int setTFTBacklight(uint8_t intensity UNUSED)
 }
 
 /**
+ * @brief TODO
+ * 
+ */
+void enableTFTBacklight(void)
+{
+	WARN_UNIMPLEMENTED();
+}
+
+/**
+ * @brief Disable backlight (For switching modes)
+ */
+void disableTFTBacklight(void)
+{
+	WARN_UNIMPLEMENTED();
+}
+
+/**
  * @brief Set a single pixel on the emulated TFT. This converts from 5 bit color
  * to 8 bit color
  *
@@ -491,7 +508,8 @@ void emuDrawDisplayTft(display_t * disp, bool drawDiff UNUSED, fnBackgroundDrawC
     * Swadge mode. rawdraw will use this non-changing bitmap to draw
     */
     pthread_mutex_lock(&displayMutex);
-    for(int16_t y = 0; y < TFT_HEIGHT; y++)
+	int16_t y;
+    for(y = 0; y < TFT_HEIGHT; y++)
     {
         for(int16_t x = 0; x < TFT_WIDTH; x++)
         {
@@ -506,12 +524,17 @@ void emuDrawDisplayTft(display_t * disp, bool drawDiff UNUSED, fnBackgroundDrawC
             }
         }        
 
-		if( ( y & 0xf ) == 0 && fnBackgroundDrawCallback)
+		if( ( y & 0xf ) == 0 && fnBackgroundDrawCallback && y > 0 )
 		{
-			fnBackgroundDrawCallback( disp, 0, y, TFT_WIDTH, 16, y/16, TFT_HEIGHT/16 );
+			fnBackgroundDrawCallback( disp, 0, y-16, TFT_WIDTH, 16, y/16, TFT_HEIGHT/16 );
 		}
-
     }
+
+	if( fnBackgroundDrawCallback )
+	{
+		fnBackgroundDrawCallback( disp, 0, y-16, TFT_WIDTH, 16, y/16, TFT_HEIGHT/16 );
+	}
+
     pthread_mutex_unlock(&displayMutex);
 }
 
@@ -581,7 +604,7 @@ void emuClearPxOled(void)
  *
  * @param drawDiff unused, the whole display is always drawn
  */
-void emuDrawDisplayOled(bool drawDiff UNUSED)
+void emuDrawDisplayOled(struct display* disp, bool drawDiff, fnBackgroundDrawCallback_t cb)
 {
 	WARN_UNIMPLEMENTED();
 }
@@ -647,64 +670,4 @@ void setLeds(led_t* leds, uint8_t numLeds)
         rdLeds[i].b = leds[i].b >> ledBrightness;
     }
 	pthread_mutex_unlock(&displayMutex);
-}
-
-/**
- * @brief Simple helper function, converting HSV color space to RGB color space
- *
- * Wiki: https://en.wikipedia.org/wiki/HSL_and_HSV
- *
- * @param h The input hue
- * @param s The input saturation
- * @param v The input value
- * @param r The output red
- * @param g The output green
- * @param b The output blue
- */
-void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t* r,
-    uint8_t* g, uint8_t* b)
-{
-    h %= 360; // h -> [0,360]
-    uint32_t rgb_max = v * 2.55f;
-    uint32_t rgb_min = rgb_max * (100 - s) / 100.0f;
-
-    uint32_t i = h / 60;
-    uint32_t diff = h % 60;
-
-    // RGB adjustment amount by hue
-    uint32_t rgb_adj = (rgb_max - rgb_min) * diff / 60;
-
-    switch (i)
-    {
-        case 0:
-            *r = rgb_max;
-            *g = rgb_min + rgb_adj;
-            *b = rgb_min;
-            break;
-        case 1:
-            *r = rgb_max - rgb_adj;
-            *g = rgb_max;
-            *b = rgb_min;
-            break;
-        case 2:
-            *r = rgb_min;
-            *g = rgb_max;
-            *b = rgb_min + rgb_adj;
-            break;
-        case 3:
-            *r = rgb_min;
-            *g = rgb_max - rgb_adj;
-            *b = rgb_max;
-            break;
-        case 4:
-            *r = rgb_min + rgb_adj;
-            *g = rgb_min;
-            *b = rgb_max;
-            break;
-        default:
-            *r = rgb_max;
-            *g = rgb_min;
-            *b = rgb_max - rgb_adj;
-            break;
-    }
 }
