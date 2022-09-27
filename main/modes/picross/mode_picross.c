@@ -92,7 +92,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->blinkError = false;
     p->input->blinkAnimTimer =0;
     p->input->startHeldType = OUTOFBOUNDS;
-    p->input->inputBoxColor = c043;//now greenish for more pop against marked. old burnt orange: c430
+    p->input->inputBoxColor = c005;//now greenish for more pop against marked. old burnt orange: c430. old green: c043
         //lets test this game against various forms of colorblindness. I'm concerned about deuteranopia. Input square is my largest concern. 
     p->input->inputBoxDefaultColor = c043;
     p->input->inputBoxErrorColor = c500;
@@ -277,6 +277,7 @@ picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t so
     picrossHint_t t;
     t.complete = false;
     t.filledIn = false;
+    t.correct = false;
     t.isRow = isRow;
     t.index = index;
     

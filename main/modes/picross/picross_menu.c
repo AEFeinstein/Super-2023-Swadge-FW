@@ -126,7 +126,7 @@ void picrossEnterMode(display_t* disp)
     //set default options
     if(false == readNvs32(picrossSavedOptionsKey, &pm->options))
     {
-        writeNvs32(picrossSavedOptionsKey, 4);//100 = bg on, guide off, options off. On the fence on guides on or off.
+        writeNvs32(picrossSavedOptionsKey, 6);//100 = bg on, guide on, hintwarning off. On the fence on guides on or off.
     }
 }
 
