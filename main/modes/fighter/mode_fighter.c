@@ -1011,8 +1011,6 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
 /**
  * Check button inputs asynchronously for the given fighter
  *
- * TODO Don't allow transitions from all states
- *
  * @param ftr The fighter to check buttons for
  */
 void checkFighterButtonInput(fighter_t* ftr)

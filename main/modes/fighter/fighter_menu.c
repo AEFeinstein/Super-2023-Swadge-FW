@@ -281,12 +281,18 @@ void fighterButtonCb(buttonEvt_t* evt)
         }
         case FIGHTER_CONNECTING:
         {
-            // TODO cancel button?
+            // START or SELECT exits the HR Result
+            if(evt->down && ((START == evt->button) || (SELECT == evt->button)))
+            {
+                p2pDeinit(&(fm->p2p));
+                setFighterMainMenu();
+                fm->screen = FIGHTER_MENU;
+            }
             break;
         }
         case FIGHTER_WAITING:
         {
-            // TODO cancel button?
+            // No cancel when waiting
             break;
         }
         case FIGHTER_HR_RESULT:
@@ -662,7 +668,6 @@ void fighterP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt)
         case RX_GAME_START_ACK:
         case RX_GAME_START_MSG:
         {
-            // TODO display status message?
             break;
         }
         case CON_ESTABLISHED:
@@ -832,11 +837,11 @@ void fighterSendSceneToOther(fighterScene_t* scene, uint8_t len)
 /**
  * @brief Initialize and start showing the result after a Home Run contest
  *
- * @param character
- * @param position
- * @param velocity
- * @param gravity
- * @param platformEndX
+ * @param character The character who played the game
+ * @param position The final position of the sandbag
+ * @param velocity The final velocity of the sandbag
+ * @param gravity The gravity affecting the sandbag
+ * @param platformEndX The end of the platform
  */
 void fighterShowHrResult(fightingCharacter_t character, vector_t position,
                          vector_t velocity, int32_t gravity, int32_t platformEndX)
@@ -846,15 +851,15 @@ void fighterShowHrResult(fightingCharacter_t character, vector_t position,
 }
 
 /**
- * @brief TODO
+ * @brief Initialize and start showing the result after a multiplayer match contest
  *
- * @param roundTime
- * @param self
- * @param selfKOs
- * @param selfDmg
- * @param other
- * @param otherKOs
- * @param otherDmg
+ * @param roundTime The time the round took, in seconds
+ * @param self This swadge's character
+ * @param selfKOs This swadge's number of KOs
+ * @param selfDmg The amount of damage this swadge did
+ * @param other The other swadge's character
+ * @param otherKOs The other swadge's number of KOs
+ * @param otherDmg The amount of damage the other swadge did
  */
 void fighterShowMpResult(uint32_t roundTime,
                          fightingCharacter_t self,  int8_t selfKOs, int16_t selfDmg,

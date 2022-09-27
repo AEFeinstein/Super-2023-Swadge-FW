@@ -40,10 +40,17 @@ hrRes_t* mpr;
 //==============================================================================
 
 /**
- * @brief TODO
+ * Initialize the result display after a multiplayer match contest
  *
- * @param disp
- * @param font
+ * @param disp The display to draw to
+ * @param font The font to draw with
+ * @param roundTime The time the round took, in seconds
+ * @param self This swadge's character
+ * @param selfKOs This swadge's number of KOs
+ * @param selfDmg The amount of damage this swadge did
+ * @param other The other swadge's character
+ * @param otherKOs The other swadge's number of KOs
+ * @param otherDmg The amount of damage the other swadge did
  */
 void initFighterMpResult(display_t* disp, font_t* font, uint32_t roundTime,
                          fightingCharacter_t self,  int8_t selfKOs, int16_t selfDmg,
@@ -91,6 +98,8 @@ void fighterMpResultLoop(int64_t elapsedUs)
 {
     drawBackgroundGrid(mpr->disp);
 
+    // TODO draw results better
+
     int16_t yOff = 40;
     char text[32];
 
@@ -121,6 +130,4 @@ void fighterMpResultLoop(int64_t elapsedUs)
     sprintf(text, "other KOs: %d", mpr->otherKOs);
     drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
     yOff += mpr->font->h + 4;
-
-    // TODO draw results
 }
