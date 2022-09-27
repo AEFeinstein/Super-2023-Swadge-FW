@@ -97,7 +97,7 @@ When placed directly above a Container Block or Brick Block, that block will rel
 The basic building blocks of any level. Objects cannot pass or fall through them.
 
 | Tile Id | Tile Name | Appearance |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | 32 | TILE_GRASS | ![TILE_GRASS](../../../assets/platformer/tiles/tile032.png) |
 | 33 | TILE_GROUND | ![TILE_GROUND](../../../assets/platformer/tiles/tile033.png) |
 | 34 | TILE_BRICK_BLOCK | ![TILE_BRICK_BLOCK](../../../assets/platformer/tiles/tile034.png) |
@@ -114,7 +114,7 @@ TBD
 When the player lands on these the level is complete and the appropriate bonus is given.
 
 | Tile Id | Tile Name | Appearance |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | 59 | TILE_GOAL_100PTS | ![TILE_GRASS](../../../assets/platformer/tiles/tile059.png) |
 | 60 | TILE_GOAL_500PTS | ![TILE_GROUND](../../../assets/platformer/tiles/tile060.png) |
 | 61 | TILE_GOAL_1000PTS | ![TILE_BRICK_BLOCK](../../../assets/platformer/tiles/tile061.png) |
@@ -125,26 +125,26 @@ When the player lands on these the level is complete and the appropriate bonus i
 The standard Container Block. Can be activated from any direction. If a Container Block Content Tile is placed above, the block will yield that item when hit.
 
 | Tile Id | Tile Name | Appearance |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | 64 | TILE_CONTAINER_1 | ![TILE_CONTAINER_1](../../../assets/platformer/tiles/tile064.png) |
 #### Container Block Animation Tiles
 Animation frames for the Container Block. Don't use these.
 
 | Tile Id | Tile Name | Appearance |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | 65 | TILE_CONTAINER_2 | ![TILE_CONTAINER_2](../../../assets/platformer/tiles/tile065.png) |
 | 66 | TILE_CONTAINER_3 | ![TILE_CONTAINER_2](../../../assets/platformer/tiles/tile066.png) |
 ### Coin
 A coin. If the player touches it, it will be collected.
 
 | Tile Id | Tile Name | Appearance |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | 67 | TILE_COIN_1 | ![TILE_COIN_1](../../../assets/platformer/tiles/tile067.png) |
 #### Coin Animation Tiles
 Animation frames for the Coin. Don't use these.
 
 | Tile Id | Tile Name | Appearance |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | 68 | TILE_COIN_2 | ![TILE_COIN_2](../../../assets/platformer/tiles/tile068.png) |
 | 69 | TILE_COIN_3 | ![TILE_COIN_3](../../../assets/platformer/tiles/tile069.png) |
 
