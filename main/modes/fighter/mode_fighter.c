@@ -64,6 +64,7 @@ typedef struct
     bool shouldSendScene;
     fighterScene_t* composedScene;
     uint8_t composedSceneLen;
+    bool shouldDrawScene;
     int32_t gameTimerUs;
     int32_t printGoTimerUs;
     fighterGamePhase_t gamePhase;
@@ -648,7 +649,6 @@ void fighterGameLoop(int64_t elapsedUs)
         if(NULL != f->composedScene)
         {
             free(f->composedScene);
-            f->composedScene = NULL;
         }
         f->composedSceneLen = 0;
         f->composedScene = composeFighterScene(f->stageIdx, &f->fighters[0], &f->fighters[1],
@@ -661,8 +661,6 @@ void fighterGameLoop(int64_t elapsedUs)
             f->packetRetryUs = 1;
         }
 
-        // Render the scene
-        drawFighterScene(f->d, (const fighterScene_t*)f->composedScene);
 
         // char dbgStr[256];
         // box_t hb;
@@ -681,6 +679,15 @@ void fighterGameLoop(int64_t elapsedUs)
         //     f->fighters[0].velocity.x,
         //     f->fighters[0].velocity.y,
         //     f->fighters[0].relativePos);
+    }
+
+    // If we should draw a scene after the background was drawn
+    if(f->shouldDrawScene && NULL != f->composedScene)
+    {
+        // Lower the flag
+        f->shouldDrawScene = false;
+        // Draw the scene
+        drawFighterScene(f->d, (const fighterScene_t*)f->composedScene);
     }
 
     // If this is multiplayer, manage transmissions
@@ -712,7 +719,7 @@ void fighterGameLoop(int64_t elapsedUs)
 
 /**
  * @brief Set the time to retry sending a packet
- * 
+ *
  * @param retryTime The time in microseconds to wait before retrying a packet
  */
 void setFighterRetryTimeUs(int32_t retryTime)
@@ -2516,8 +2523,25 @@ void fighterRxButtonInput(int32_t btnState)
  *
  * @param scene The scene to render
  */
-void fighterRxScene(const fighterScene_t* scene)
+void fighterRxScene(const fighterScene_t* scene, uint8_t len)
 {
     f->shouldSendButtonInput = false;
-    drawFighterScene(f->d, scene);
+
+    // Save scene to be drawn in fighterGameLoop()
+    if(NULL != f->composedScene)
+    {
+        free(f->composedScene);
+    }
+    f->composedScene = malloc(len);
+    f->composedSceneLen = len;
+    memcpy(f->composedScene, scene, len);
+}
+
+/**
+ * This function notifies the game that the backround was drawn
+ * and the scene should be drawn over it
+ */
+void fighterSetDrawScene(void)
+{
+    f->shouldDrawScene = true;
 }

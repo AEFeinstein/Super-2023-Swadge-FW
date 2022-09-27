@@ -333,6 +333,11 @@ void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
             break;
         }
         case FIGHTER_GAME:
+        {
+            // Notify the game that it should draw after the background is drawn
+            fighterSetDrawScene();
+        }
+        /* FALLTHRU */
         case FIGHTER_HR_RESULT:
         case FIGHTER_MP_RESULT:
         {
@@ -676,7 +681,7 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
     else if(payload[0] == SCENE_COMPOSED_MSG)
     {
         // Receive a scene, so draw it
-        fighterRxScene((const fighterScene_t*) payload);
+        fighterRxScene((const fighterScene_t*) payload, len);
     }
 }
 
