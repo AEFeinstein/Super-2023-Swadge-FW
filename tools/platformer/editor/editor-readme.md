@@ -18,12 +18,14 @@ editor-readme
 
 ## Usage:
 1. Open the template file in Aesprite
-2. On the top left of the window, underneath the lock icon, make sure the brick icon button is pressed. (You should see the tileset instead of the color palette)
-3. Click on a tile to select it, then draw in the canvas as you would in any pixel art editor!
-4. You can place objects just like any other tile. See the tiles with ID of 128 and greater.
-5. When you're done, use File -> Scripts -> export-tilemap-binary to export your level. Using the dialog box, select the filename/location to which it will be saved. Filenames must be limited to 12 characters including .bin extension!!
-6. Place the exported file in assets/platformer/levels.
-7. If you're overwriting an existing level file, delete the old version from the spiffs_image directory before building!
+2. If you don't see the Layers pane, add a new layer and then delete it to make it appear.
+3. Select the Tilemap layer (may be named "Tilemap 1")
+4. On the top left of the window, underneath the lock icon, make sure the brick icon button is pressed. (You should see the tileset instead of the color palette)
+5. Click on a tile to select it, then draw in the canvas as you would in any pixel art editor!
+6. You can place objects just like any other tile. See the tiles with ID of 128 and greater.
+7. When you're done, use File -> Scripts -> export-tilemap-binary to export your level. Using the dialog box, select the filename/location to which it will be saved. Filenames must be limited to 12 characters including .bin extension!!
+8. Place the exported file in assets/platformer/levels.
+9. If you're overwriting an existing level file, delete the old version from the spiffs_image directory before building!
 
 # General rules for level creation:
 - Levels must be between 19x14 and 255x255 tiles in size. (Use Sprite -> Canvas Size to select a size)
@@ -61,7 +63,7 @@ In Aseprite, hover your mouse over a tile in the tileset to see its Id in the lo
 
 0. TILE_EMPTY
     - An empty space of course!
-1. TILE_WARP_0,
+1. TILE_WARP_0 (a.k.a. the START tile),
 2. TILE_WARP_1,
 3. TILE_WARP_2,
 4. TILE_WARP_3,
@@ -82,6 +84,7 @@ In Aseprite, hover your mouse over a tile in the tileset to see its Id in the lo
         send the player to the warp destination when touched.
     - Otherwise:
         - Defines the corresponding warp destination. If a warp destination is not defined, it will be set to 0,0.
+    - Warp 0 defines the player's starting position.
 17. TILE_CTNR_COIN
     - When placed directly above a Container Block or Brick Block, the block will give the player a coin when hit.
 18. TILE_CTNR_10COIN
@@ -121,15 +124,25 @@ In Aseprite, hover your mouse over a tile in the tileset to see its Id in the lo
 ### solid static interactive visible  
 
 32. TILE_GRASS,
+    ![TILE_GRASS](../../../assets/platformer/tiles/tile032.png)
 33. TILE_GROUND,
+    ![TILE_GROUND](../../../assets/platformer/tiles/tile033.png)
 34. TILE_BRICK_BLOCK,
+     ![TILE_BRICK_BLOCK](../../../assets/platformer/tiles/tile034.png)
 35. TILE_BLOCK,
+     ![TILE_BLOCK](../../../assets/platformer/tiles/tile035.png)
 36. TILE_METAL_BLOCK,
+     ![TILE_METAL_BLOCK](../../../assets/platformer/tiles/tile036.png)
 37. TILE_METAL_PIPE_H,
+     ![TILE_METAL_PIPE_H](../../../assets/platformer/tiles/tile037.png)
 38. TILE_METAL_PIPE_V,
+     ![TILE_METAL_PIPE_V](../../../assets/platformer/tiles/tile038.png)
 39. TILE_METAL_PIPE_HEND,
+     (unimplemented)
 40. TILE_METAL_PIPE_VEND,
+     (unimplemented)
 41. TILE_GIRDER,
+     ![TILE_GIRDER](../../../assets/platformer/tiles/tile032.png)
 42. TILE_SOLID_UNUSED_42,
 43. TILE_SOLID_UNUSED_43,
 44. TILE_SOLID_UNUSED_44,
