@@ -98,7 +98,7 @@ void levelSelectInput()
     if (ls->btnState & SELECT && !(ls->prevBtnState & SELECT) && !(ls->btnState & BTN_A))
     {
         //exit to main menu
-        returnToPicrossMenu();
+        returnToPicrossMenu();//from level select.
         return;
     }
     //Choosing a Level
@@ -112,6 +112,8 @@ void levelSelectInput()
         readNvsBlob(picrossCompletedLevelData,progress,&size);
 
         selectPicrossLevel(ls->chosenLevel);
+        picrossExitLevelSelect();
+        free(progress);
         return;
     }
     //Input Movement checks
@@ -225,10 +227,9 @@ void picrossExitLevelSelect()
 {
     if (NULL != ls)
     {
-        // freeFont((ls->game_font));
-        // free(&ls->chosenLevel);
-        // free(&ls->levels);
-        // free(ls->unknownPuzzle);
+        freeWsg(&ls->unknownPuzzle);
+        freeFont((ls->game_font));
+        free(&ls->disp);
         free(ls);
         ls = NULL;
     }

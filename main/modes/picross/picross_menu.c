@@ -132,6 +132,13 @@ void picrossEnterMode(display_t* disp)
 
 void picrossExitMode(void)
 {
+    //Free WSG's
+    for(int i = 0;i<PICROSS_LEVEL_COUNT;i++)
+    {
+        freeWsg(&pm->levels[i].levelWSG);
+        freeWsg(&pm->levels[i].completedWSG);
+
+    }
     picrossExitLevelSelect();//this doesnt actually get called as we go in and out of levelselect (because it breaks everything), so lets call it now
     // picrossExitGame();//this is already getting called! hooray.
     deinitMeleeMenu(pm->menu);
@@ -402,6 +409,14 @@ void setPicrossMainMenu(bool resetPos)
 void returnToPicrossMenu(void)
 {
     picrossExitLevelSelect();//free data
+    setPicrossMainMenu(true);
+}
+/**
+ * @brief Frees level select menu and returns to the picross menu, except skipping past the level select menu.
+ * 
+ */
+void returnToPicrossMenuFromGame(void)
+{
     setPicrossMainMenu(true);
 }
 

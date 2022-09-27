@@ -386,7 +386,7 @@ void picrossGameLoop(int64_t elapsedUs)
     if(p->exitThisFrame)
     {
         picrossExitGame();//free variables
-        returnToPicrossMenu();//change to menu
+        returnToPicrossMenuFromGame();//change to menu
         //dont do more processing, we have switched back to level select screen.
         return;
     }
