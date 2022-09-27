@@ -335,7 +335,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             else
             {
                 // Otherwise enter test mode
-                cSwadgeMode = &modeMainMenu;
+                cSwadgeMode = &modeTest;
             }
             break;
         }
