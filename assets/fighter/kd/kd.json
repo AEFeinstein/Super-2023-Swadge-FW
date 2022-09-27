@@ -5,7 +5,7 @@
    "run_accel":13000,
    "run_decel":13000,
    "run_max_velo":15360,
-   "size_x":24,
+   "size_x":33,
    "size_y":24,
    "nJumps":2,
    "landing_lag":1,
@@ -16,6 +16,7 @@
    "jump_spr":"kjm0.wsg",
    "duck_spr":"kdu0.wsg",
    "land_lag_spr":"kll0.wsg",
+   "sprite_offset_y":-7,
    "hitstun_ground_sprite":"ksg0.wsg",
    "hitstun_air_sprite":"ksa0.wsg",
    "attacks":[

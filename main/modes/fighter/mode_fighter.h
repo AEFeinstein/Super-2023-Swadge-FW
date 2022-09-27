@@ -198,6 +198,7 @@ typedef struct
     uint8_t landingLagSprite;
     uint8_t hitstunGroundSprite;
     uint8_t hitstunAirSprite;
+    vector_t sprite_offset;
     /* Input Tracking */
     int32_t prevBtnState;
     int32_t btnState;

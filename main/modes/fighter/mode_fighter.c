@@ -1807,6 +1807,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         else
         {
             // End game and show result
+            // TODO actual KOs and dmg
             fighterShowMpResult(0,
                                 f->fighters[0].character, 0, 0,
                                 f->fighters[1].character, 0, 0);
@@ -2138,6 +2139,19 @@ void getSpritePos(fighter_t* ftr, vector_t* spritePos)
             spritePos->x -= atk->sprite_offset.x;
         }
         spritePos->y += atk->sprite_offset.y;
+    }
+    else
+    {
+        // Shift the sprite
+        if(FACING_RIGHT == ftr->dir)
+        {
+            spritePos->x += ftr->sprite_offset.x;
+        }
+        else
+        {
+            spritePos->x -= ftr->sprite_offset.x;
+        }
+        spritePos->y += ftr->sprite_offset.y;
     }
 }
 
