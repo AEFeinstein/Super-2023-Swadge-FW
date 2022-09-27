@@ -10,6 +10,7 @@
 #include "fighter_records.h"
 #include "nvs_manager.h"
 #include "bresenham.h"
+#include "meleeMenu.h"
 
 //==============================================================================
 // Defines
@@ -85,21 +86,7 @@ void deinitFighterRecords(void)
  */
 void fighterRecordsLoop(int64_t elapsedUs __attribute__((unused)))
 {
-    // Draw a dim blue background with a grey grid, same as melee menu
-    for(int16_t y = 0; y < fr->disp->h; y++)
-    {
-        for(int16_t x = 0; x < fr->disp->w; x++)
-        {
-            if(((x % 12) == 0) || ((y % 12) == 0))
-            {
-                SET_PIXEL(fr->disp, x, y, c111); // Grid
-            }
-            else
-            {
-                SET_PIXEL(fr->disp, x, y, c001); // Background
-            }
-        }
-    }
+    drawBackgroundGrid(fr->disp);
 
     // To lay out text
     int16_t yOff = 6;
