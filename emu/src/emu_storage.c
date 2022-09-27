@@ -216,10 +216,10 @@ bool readNvs32(const char* key, int32_t* outVal)
 
 /**
  * @brief Read a blob from NVS with a given string key
- * 
+ *
  * @param key The key for the value to read
  * @param out_value The value will be written to this memory. It must be allocated before calling readNvsBlob()
- * @param length The length of the value that was read
+ * @param length If out_value is `NULL`, this will be set to the length of the given key. Otherwise, it is the length of the blob to read.
  * @return true if the value was read, false if it was not
  */
 bool readNvsBlob(const char* key, void* out_value, size_t* length)
@@ -257,8 +257,17 @@ bool readNvsBlob(const char* key, void* out_value, size_t* length)
                     {
                         // Return the value
                         char* strBlob = cJSON_GetStringValue(jsonIter);
-                        *length = strlen(strBlob) / 2;
-                        strToBlob(strBlob, out_value, *length);
+
+                        if (out_value != NULL)
+                        {
+                            // The call to read, using returned length
+                            strToBlob(strBlob, out_value, *length);
+                        }
+                        else
+                        {
+                            // The call to get length of blob
+                            *length = strlen(strBlob) / 2;
+                        }
                         cJSON_Delete(json);
                         return true;
                     }
