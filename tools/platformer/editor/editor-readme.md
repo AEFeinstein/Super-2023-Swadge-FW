@@ -35,68 +35,58 @@ editor-readme
 - The player spawn tile (ID=128) actually will spawn another player object, and weird stuff will happen. Don't use it! If you are trying to set a start location for the player, use the START tile (ID=1).
 
 # Tileset Reference
+## Control tiles
+### Empty
+All empty spaces are represented with tile 0.
 
-## High level overview:
+| Tile Id | Tile Name | Appearance in editor |
+| --- | --- | --- |
+| 0 | TILE_EMPTY | (no image) |
 
-Tiles are arranged within the tileset according to their attributes.
-See the chart below.
+### Warp tiles
+These tiles represent specific locations within the level to which the player can be teleported, usually by touching a Warp object.
 
-```
-ATTRIBUTES                           |  RANGE       |  TOTAL
-------------------------------------------------------------------------
-nonsolid static background invisible | 0-29         | 30
-solid static background invisible    | 30           | 1
-solid static interactive invisible   | 31           | 1
-solid static interactive visible     | 32-63        | 32
-solid animated interactive visible   | 64-66        | 3
-nonsolid animated interactive visible| 67-69        | 3
-nonsolid static interactive visible  | 70-79        | 10
-nonsolid static background visible   | 80-127       | 48
-object spawn locations               | 128-255      | 127
-```
+In the editor they can either represent a warp entrance or warp destination, depending on what kind of tile it is placed above:
+- When placed directly above a Container Block or Brick Block:
+    - The Container Block or Brick Block will release a Warp Vortex that will
+    send the player to the warp destination when touched.
+- Otherwise:
+    - Defines the corresponding warp destination. All level files will include 16 warp locations. If a warp destination is not defined, it will be set to 0,0.
 
-## Detailed overview:
-Tile types are listed below according to their Id.
-In Aseprite, hover your mouse over a tile in the tileset to see its Id in the lower left corner of the window.
+Warp 0, a.k.a. the "START" tile, represents the starting location for the player in the level.
 
-### nonsolid static background invisible
+| Tile Id | Tile Name | Appearance in editor |
+| --- | --- | --- |
+| 1 | TILE_WARP_0 | (no image) |
+| 2 | TILE_WARP_1 | (no image) |
+| 3 | TILE_WARP_2 | (no image) |
+| 4 | TILE_WARP_3 | (no image) |
+| 5 | TILE_WARP_4 | (no image) |
+| 6 | TILE_WARP_5 | (no image) |
+| 7 | TILE_WARP_6 | (no image) |
+| 8 | TILE_WARP_7 | (no image) |
+| 9 | TILE_WARP_8 | (no image) |
+| 10 | TILE_WARP_9 | (no image) |
+| 11 | TILE_WARP_A | (no image) |
+| 12 | TILE_WARP_B | (no image) |
+| 13 | TILE_WARP_C | (no image) |
+| 14 | TILE_WARP_D | (no image) |
+| 15 | TILE_WARP_E | (no image) |
+| 16 | TILE_WARP_F | (no image) |
 
-0. TILE_EMPTY
-    - An empty space of course!
-1. TILE_WARP_0 (a.k.a. the START tile),
-2. TILE_WARP_1,
-3. TILE_WARP_2,
-4. TILE_WARP_3,
-5. TILE_WARP_4,
-6. TILE_WARP_5,
-7. TILE_WARP_6,
-8. TILE_WARP_7,
-9. TILE_WARP_8,
-10. TILE_WARP_9,
-11. TILE_WARP_A,
-12. TILE_WARP_B,
-13. TILE_WARP_C,
-14. TILE_WARP_D,
-15. TILE_WARP_E,
-16. TILE_WARP_F
-    - When placed directly above a Container Block or Brick Block:
-        - The Container Block or Brick Block will release a Warp Vortex that will
-        send the player to the warp destination when touched.
-    - Otherwise:
-        - Defines the corresponding warp destination. If a warp destination is not defined, it will be set to 0,0.
-    - Warp 0 defines the player's starting position.
-17. TILE_CTNR_COIN
-    - When placed directly above a Container Block or Brick Block, the block will give the player a coin when hit.
-18. TILE_CTNR_10COIN
-    - (Unimplemented)
-19. TILE_CTNR_POW1
-    - When placed directly above a Container Block or Brick Block, the block will release the a powerup when hit. If the player has not collected a powerup yet, it will release the Joystick powerup, otherwise it will release the Speaker powerup.
-20. TILE_CTNR_POW2,
-21. TILE_CTNR_POW3,
-    - (Unimplemented)
-22. TILE_CTNR_1UP
-    - (Unimplemented)
-      - When placed directly above a Container Block or Brick Block, the block will release a 1UP icon when hit.
+### Container Block Content Tiles
+When placed directly above a Container Block or Brick Block, that block will release the item denoted by the tile.
+
+| Tile Id | Tile Name | Appearance in editor | Notes |
+| --- | --- | --- | --- |
+| 17 | TILE_CTNR_COIN | (no image) | The coin is added directly to the current total. |
+| 18 | TILE_CTNR_10COIN | (no image) | (Unimplemented) |
+| 19 | TILE_CTNR_POW1 | (no image) | The main powerup, "Gaming" or "Music" (depending on the player's current powerup state) |
+| 20 | TILE_CTNR_POW2 | (no image) | (Unimplemented) |
+| 21 | TILE_CTNR_POW3 | (no image) | (Unimplemented) |
+| 22 | TILE_CTNR_1UP | (no image) | The 1UP heart. |
+
+
 23. TILE_CTRL_LEFT,
 24. TILE_CTRL_RIGHT,
 25. TILE_CTRL_UP,
