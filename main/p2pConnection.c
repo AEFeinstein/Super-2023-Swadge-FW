@@ -213,10 +213,13 @@ void p2pDeinit(p2pInfo* p2p)
 {
     //ESP_LOGD("P2P", "%s", __func__);
 
-    esp_timer_stop(p2p->tmr.Connection);
-    esp_timer_stop(p2p->tmr.TxRetry);
-    esp_timer_stop(p2p->tmr.Reinit);
-    esp_timer_stop(p2p->tmr.TxAllRetries);
+    if(NULL != p2p->tmr.Connection)
+    {
+        esp_timer_stop(p2p->tmr.Connection);
+        esp_timer_stop(p2p->tmr.TxRetry);
+        esp_timer_stop(p2p->tmr.Reinit);
+        esp_timer_stop(p2p->tmr.TxAllRetries);
+    }
 }
 
 /**
