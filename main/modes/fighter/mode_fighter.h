@@ -215,6 +215,7 @@ typedef struct
     int32_t damage;
     uint8_t stocks;
     bounceDir_t bounceNextCollision;
+    uint32_t damageGiven;
     /* Animation timer */
     int32_t animTimer;
     uint8_t currentSprite;

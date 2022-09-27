@@ -76,7 +76,11 @@ void initFighterRecords(display_t* disp, font_t* font)
  */
 void deinitFighterRecords(void)
 {
-    free(fr);
+    if(NULL != fr)
+    {
+        free(fr);
+        fr = NULL;
+    }
 }
 
 /**

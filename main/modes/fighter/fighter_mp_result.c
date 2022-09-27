@@ -26,6 +26,7 @@ typedef struct
     fightingCharacter_t other;
     int8_t otherKOs;
     int16_t otherDmg;
+    uint32_t roundTime;
 } hrRes_t;
 
 //==============================================================================
@@ -50,11 +51,13 @@ void initFighterMpResult(display_t* disp, font_t* font, uint32_t roundTime,
 {
     mpr = calloc(1, sizeof(hrRes_t));
 
-    // Save the display and foint pointers
+    // Save the display and font pointers
     mpr->disp = disp;
     mpr->font = font;
 
     // Save the results
+    mpr->roundTime = roundTime;
+
     mpr->self = self;
     mpr->selfDmg = selfDmg;
     mpr->selfKOs = selfKOs;
@@ -72,7 +75,11 @@ void initFighterMpResult(display_t* disp, font_t* font, uint32_t roundTime,
  */
 void deinitFighterMpResult(void)
 {
-    free(mpr);
+    if(NULL != mpr)
+    {
+        free(mpr);
+        mpr = NULL;
+    }
 }
 
 /**
@@ -83,7 +90,37 @@ void deinitFighterMpResult(void)
 void fighterMpResultLoop(int64_t elapsedUs)
 {
     drawBackgroundGrid(mpr->disp);
-    printf("mpres\n");
+
+    int16_t yOff = 40;
+    char text[32];
+
+    sprintf(text, "roundTime: %d", mpr->roundTime);
+    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
+    yOff += mpr->font->h + 4;
+
+    sprintf(text, "Self: %d", mpr->self);
+    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
+    yOff += mpr->font->h + 4;
+
+    sprintf(text, "Self Dmg: %d", mpr->selfDmg);
+    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
+    yOff += mpr->font->h + 4;
+
+    sprintf(text, "Self KOs: %d", mpr->selfKOs);
+    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
+    yOff += mpr->font->h + 4;
+
+    sprintf(text, "other: %d", mpr->other);
+    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
+    yOff += mpr->font->h + 4;
+
+    sprintf(text, "other Dmg: %d", mpr->otherDmg);
+    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
+    yOff += mpr->font->h + 4;
+
+    sprintf(text, "other KOs: %d", mpr->otherKOs);
+    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
+    yOff += mpr->font->h + 4;
 
     // TODO draw results
 }

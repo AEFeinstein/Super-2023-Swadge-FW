@@ -123,8 +123,12 @@ void initFighterHrResult(display_t* disp, font_t* font,
  */
 void deinitFighterHrResult(void)
 {
-    freeWsg(&hrr->sbi);
-    free(hrr);
+    if(NULL != hrr)
+    {
+        freeWsg(&hrr->sbi);
+        free(hrr);
+        hrr = NULL;
+    }
 }
 
 /**

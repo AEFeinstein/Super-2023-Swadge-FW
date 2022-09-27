@@ -38,7 +38,8 @@ typedef enum
     CHAR_SEL_MSG,
     STAGE_SEL_MSG,
     BUTTON_INPUT_MSG,
-    SCENE_COMPOSED_MSG
+    SCENE_COMPOSED_MSG,
+    MP_GAME_OVER_MSG
 } fighterMessageType_t;
 
 typedef struct
@@ -54,6 +55,18 @@ typedef struct
     wsg_t fd_bg;
     int64_t txTimeStart;
 } fighterMenu_t;
+
+typedef struct
+{
+    uint8_t msgType;
+    uint32_t roundTime;
+    fightingCharacter_t self;
+    fightingCharacter_t other;
+    int16_t selfDmg;
+    int16_t otherDmg;
+    int8_t selfKOs;
+    int8_t otherKOs;
+} fighterMpGameResult_t;
 
 //==============================================================================
 // Function Prototypes
@@ -159,9 +172,6 @@ void fighterEnterMode(display_t* disp)
     fm->characters[0] = NO_CHARACTER;
     fm->characters[1] = NO_CHARACTER;
     fm->stage = NO_STAGE;
-
-    // Initialize p2p
-    p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
 }
 
 /**
@@ -170,6 +180,9 @@ void fighterEnterMode(display_t* disp)
 void fighterExitMode(void)
 {
     fighterExitGame();
+    deinitFighterHrResult();
+    deinitFighterMpResult();
+    deinitFighterRecords();
     deinitMeleeMenu(fm->menu);
     p2pDeinit(&fm->p2p);
     freeFont(&(fm->mmFont));
@@ -397,8 +410,16 @@ void fighterMainMenuCb(const char* opt)
     // When a row is clicked, print the label for debugging
     if(opt == str_multiplayer)
     {
+        // Clear state
+        fm->characters[0] = NO_CHARACTER;
+        fm->characters[1] = NO_CHARACTER;
+        fm->stage = NO_STAGE;
         // Show the screen for connecting
         fm->screen = FIGHTER_CONNECTING;
+        // Initialize p2p
+        p2pDeinit(&(fm->p2p));
+        p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
+        // Start the connection
         p2pStartConnection(&fm->p2p);
     }
     else if (opt == str_hrContest)
@@ -693,15 +714,27 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
         }
         case FIGHTER_GAME:
         {
-            if(payload[0] == BUTTON_INPUT_MSG)
+            if(BUTTON_INPUT_MSG == payload[0])
             {
                 // Receive button inputs, so save them
                 fighterRxButtonInput(payload[1]);
             }
-            else if(payload[0] == SCENE_COMPOSED_MSG)
+            else if(SCENE_COMPOSED_MSG == payload[0])
             {
                 // Receive a scene, so draw it
                 fighterRxScene((const fighterScene_t*) payload, len);
+            }
+            else if (MP_GAME_OVER_MSG == payload[0])
+            {
+                // Show the result
+                const fighterMpGameResult_t* res = (const fighterMpGameResult_t*)payload;
+                initFighterMpResult(fm->disp, &fm->mmFont, res->roundTime,
+                                    res->other, res->otherKOs, res->otherDmg,
+                                    res->self, res->selfKOs, res->selfDmg);
+                fm->screen = FIGHTER_MP_RESULT;
+
+                // Deinit the game
+                fighterExitGame();
             }
             break;
         }
@@ -827,7 +860,20 @@ void fighterShowMpResult(uint32_t roundTime,
                          fightingCharacter_t self,  int8_t selfKOs, int16_t selfDmg,
                          fightingCharacter_t other, int8_t otherKOs, int16_t otherDmg)
 {
-    // TODO send result to other swadge, acknowledged packet
+    // Send result to other swadge with an acknowledged packet
+    const fighterMpGameResult_t res =
+    {
+        .msgType = MP_GAME_OVER_MSG,
+        .roundTime = roundTime,
+        .self = self,
+        .selfKOs = selfKOs,
+        .selfDmg = selfDmg,
+        .other = other,
+        .otherKOs = otherKOs,
+        .otherDmg = otherDmg,
+    };
+    p2pSendMsg(&fm->p2p, (const uint8_t*)&res, sizeof(fighterMpGameResult_t), true, fighterP2pMsgTxCbFn);
+
     initFighterMpResult(fm->disp, &fm->mmFont, roundTime,
                         self, selfKOs, selfDmg,
                         other, otherKOs, otherDmg);

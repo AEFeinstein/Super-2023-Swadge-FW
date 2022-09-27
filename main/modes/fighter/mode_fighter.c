@@ -35,6 +35,7 @@
 #define DRAW_DEBUG_BOXES
 
 #define NUM_FIGHTERS 2
+#define NUM_STOCKS 3
 
 typedef enum
 {
@@ -82,7 +83,7 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, uint8_t newSprite
 void setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* touchingPlatform,
                       const platform_t* passingThroughPlatform, bool isInAir);
 void checkFighterButtonInput(fighter_t* ftr);
-void updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
+bool updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
 void checkFighterTimer(fighter_t* ftr, bool hitstopActive);
 void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr);
 void checkFighterProjectileCollisions(list_t* projectiles);
@@ -291,7 +292,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
             case MULTIPLAYER:
             {
                 // Start with three stocks
-                f->fighters[i].stocks = 3;
+                f->fighters[i].stocks = NUM_STOCKS;
                 // Invincible after spawning
                 f->fighters[i].iFrameTimer = IFRAMES_AFTER_SPAWN;
                 f->fighters[i].isInvincible = true;
@@ -528,6 +529,7 @@ void fighterGameLoop(int64_t elapsedUs)
                 // After count-in, transition to the appropriate state
                 if(MULTIPLAYER == f->type)
                 {
+                    f->gameTimerUs = 0; // Count up after this
                     f->gamePhase = MP_GAME;
                 }
                 else if (HR_CONTEST == f->type)
@@ -567,7 +569,8 @@ void fighterGameLoop(int64_t elapsedUs)
         }
         case MP_GAME:
         {
-            // No timer in this state
+            // Timer counts up in this state
+            f->gameTimerUs += elapsedUs;
             break;
         }
     }
@@ -618,9 +621,15 @@ void fighterGameLoop(int64_t elapsedUs)
             checkFighterButtonInput(&f->fighters[0]);
             checkFighterButtonInput(&f->fighters[1]);
 
-            // Move fighters
-            updateFighterPosition(&f->fighters[0], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
-            updateFighterPosition(&f->fighters[1], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms);
+            // Move fighters, and if one KO'd and the round ended, return
+            if(updateFighterPosition(&f->fighters[0], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms))
+            {
+                return;
+            }
+            if(updateFighterPosition(&f->fighters[1], stages[f->stageIdx]->platforms, stages[f->stageIdx]->numPlatforms))
+            {
+                return;
+            }
         }
 
         // If the home run contest ended early, this will be NULL
@@ -1243,8 +1252,9 @@ void checkFighterButtonInput(fighter_t* ftr)
  * @param f            The fighter to move
  * @param platforms    A pointer to platforms to check for collisions
  * @param numPlatforms The number of platforms
+ * @return true if the round is over, false if it is not
  */
-void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
+bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                            uint8_t numPlatforms)
 {
     // Initial velocity before this frame's calculations
@@ -1793,7 +1803,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             // Deinit the game
             fighterExitGame();
             // Return after deinit
-            return;
+            return true;
         }
     }
     // Check kill zone for all other characters
@@ -1806,15 +1816,15 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         }
         else
         {
+            ftr->stocks = 0;
             // End game and show result
-            // TODO actual KOs and dmg
-            fighterShowMpResult(0,
-                                f->fighters[0].character, 0, 0,
-                                f->fighters[1].character, 0, 0);
+            fighterShowMpResult(f->gameTimerUs / 1000000,
+                                f->fighters[0].character, NUM_STOCKS - f->fighters[1].stocks, f->fighters[0].damageGiven,
+                                f->fighters[1].character, NUM_STOCKS - f->fighters[0].stocks, f->fighters[1].damageGiven);
             // Deinit the game
             fighterExitGame();
             // Return after deinit
-            return;
+            return true;
         }
 
         // Respawn by resetting state
@@ -1830,6 +1840,7 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         ftr->iFrameTimer = IFRAMES_AFTER_SPAWN;
         ftr->isInvincible = true;
     }
+    return false;
 }
 
 /**
@@ -1909,6 +1920,7 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
 
                         // Tally the damage
                         otherFtr->damage += hbx->damage;
+                        ftr->damageGiven += hbx->damage;
 
                         // Set the hitstop timer
                         otherFtr->hitstopTimer = getHitstop(hbx->damage);
@@ -1995,6 +2007,7 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                     {
                         // Tally the damage
                         ftr->damage += proj->damage;
+                        proj->owner->damageGiven += proj->damage;
 
                         // Apply the knockback, scaled by damage
                         // roughly (1 + (0.02 * dmg))
