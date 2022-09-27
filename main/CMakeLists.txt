@@ -14,6 +14,7 @@ idf_component_register(
         "modes/fighter/fighter_json.c"
         "modes/fighter/fighter_menu.c"
         "modes/fighter/fighter_hr_result.c"
+        "modes/fighter/fighter_mp_result.c"
         "modes/fighter/fighter_records.c"
         "modes/mode_flight.c"
         "modes/mode_credits.c"

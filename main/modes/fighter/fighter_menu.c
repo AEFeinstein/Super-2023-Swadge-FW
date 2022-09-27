@@ -15,6 +15,7 @@
 #include "fighter_menu.h"
 #include "mode_fighter.h"
 #include "fighter_hr_result.h"
+#include "fighter_mp_result.h"
 #include "fighter_records.h"
 
 //==============================================================================
@@ -228,11 +229,13 @@ void fighterMainLoop(int64_t elapsedUs)
         }
         case FIGHTER_MP_RESULT:
         {
-            // TODO draw results, stocks, damage, etc.
+            // Draw results after a multiplayer match
+            fighterMpResultLoop(elapsedUs);
             break;
         }
         case FIGHTER_RECORDS:
         {
+            // Draw fighter records
             fighterRecordsLoop(elapsedUs);
             break;
         }
@@ -279,13 +282,20 @@ void fighterButtonCb(buttonEvt_t* evt)
             if(evt->down && ((START == evt->button) || (SELECT == evt->button)))
             {
                 deinitFighterHrResult();
+                setFighterMainMenu();
                 fm->screen = FIGHTER_MENU;
             }
             break;
         }
         case FIGHTER_MP_RESULT:
         {
-            // TODO handle button transition to FIGHTER_MENU
+            // START or SELECT exits the MP Result
+            if(evt->down && ((START == evt->button) || (SELECT == evt->button)))
+            {
+                deinitFighterMpResult();
+                setFighterMainMenu();
+                fm->screen = FIGHTER_MENU;
+            }
             break;
         }
         case FIGHTER_RECORDS:
@@ -339,7 +349,9 @@ void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
         case FIGHTER_CONNECTING:
         case FIGHTER_WAITING:
         case FIGHTER_RECORDS:
+        case FIGHTER_MP_RESULT:
         {
+            // These draw menu background
             break;
         }
         case FIGHTER_GAME:
@@ -349,7 +361,6 @@ void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
         }
         /* FALLTHRU */
         case FIGHTER_HR_RESULT:
-        case FIGHTER_MP_RESULT:
         {
             // Figure out source and destination pointers
             paletteColor_t* dst = &disp->pxFb[(y * disp->w) + x];
@@ -477,7 +488,6 @@ void setFighterMultiplayerCharSelMenu(void)
     addRowToMeleeMenu(fm->menu, str_charKD);
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
-    addRowToMeleeMenu(fm->menu, str_back);
     fm->screen = FIGHTER_MENU;
 }
 
@@ -503,12 +513,6 @@ void fighterMultiplayerCharMenuCb(const char* opt)
     {
         // Big Funkus Selected
         fm->characters[charIdx] = BIG_FUNKUS;
-    }
-    else if (opt == str_back)
-    {
-        // Reset to top level melee menu
-        setFighterMainMenu();
-        return;
     }
     else
     {
@@ -549,7 +553,6 @@ void setFighterMultiplayerStageSelMenu(void)
     resetMeleeMenu(fm->menu, str_multiplayer, fighterMultiplayerStageMenuCb);
     addRowToMeleeMenu(fm->menu, str_stgBF);
     addRowToMeleeMenu(fm->menu, str_stgFD);
-    addRowToMeleeMenu(fm->menu, str_back);
     fm->screen = FIGHTER_MENU;
 }
 
@@ -567,12 +570,6 @@ void fighterMultiplayerStageMenuCb(const char* opt)
     else if(str_stgFD == opt)
     {
         fm->stage = FINAL_DESTINATION;
-    }
-    else if(str_back == opt)
-    {
-        // Reset to character select menu
-        setFighterMultiplayerCharSelMenu();
-        return;
     }
     else
     {
@@ -672,29 +669,49 @@ void fighterP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt)
  */
 void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
 {
-    // Check what was received
-    if(payload[0] == CHAR_SEL_MSG)
+    switch(fm->screen)
     {
-        // Receive a character selection, so save it
-        uint8_t charIdx = (GOING_FIRST == fm->p2p.cnc.playOrder) ? 1 : 0;
-        fm->characters[charIdx] = payload[1];
-        fighterCheckGameBegin();
-    }
-    else if(payload[0] == STAGE_SEL_MSG)
-    {
-        // Receive a stage selection, so save it
-        fm->stage = payload[1];
-        fighterCheckGameBegin();
-    }
-    else if(payload[0] == BUTTON_INPUT_MSG)
-    {
-        // Receive button inputs, so save them
-        fighterRxButtonInput(payload[1]);
-    }
-    else if(payload[0] == SCENE_COMPOSED_MSG)
-    {
-        // Receive a scene, so draw it
-        fighterRxScene((const fighterScene_t*) payload, len);
+        case FIGHTER_MENU:
+        case FIGHTER_CONNECTING:
+        case FIGHTER_WAITING:
+        {
+            // Check what was received
+            if(payload[0] == CHAR_SEL_MSG)
+            {
+                // Receive a character selection, so save it
+                uint8_t charIdx = (GOING_FIRST == fm->p2p.cnc.playOrder) ? 1 : 0;
+                fm->characters[charIdx] = payload[1];
+                fighterCheckGameBegin();
+            }
+            else if(payload[0] == STAGE_SEL_MSG)
+            {
+                // Receive a stage selection, so save it
+                fm->stage = payload[1];
+                fighterCheckGameBegin();
+            }
+            break;
+        }
+        case FIGHTER_GAME:
+        {
+            if(payload[0] == BUTTON_INPUT_MSG)
+            {
+                // Receive button inputs, so save them
+                fighterRxButtonInput(payload[1]);
+            }
+            else if(payload[0] == SCENE_COMPOSED_MSG)
+            {
+                // Receive a scene, so draw it
+                fighterRxScene((const fighterScene_t*) payload, len);
+            }
+            break;
+        }
+        case FIGHTER_HR_RESULT:
+        case FIGHTER_MP_RESULT:
+        case FIGHTER_RECORDS:
+        {
+            // These screens don't receive packets
+            break;
+        }
     }
 }
 
@@ -798,8 +815,21 @@ void fighterShowHrResult(fightingCharacter_t character, vector_t position,
 /**
  * @brief TODO
  *
+ * @param roundTime
+ * @param self
+ * @param selfKOs
+ * @param selfDmg
+ * @param other
+ * @param otherKOs
+ * @param otherDmg
  */
-void fighterShowMpResult(void)
+void fighterShowMpResult(uint32_t roundTime,
+                         fightingCharacter_t self,  int8_t selfKOs, int16_t selfDmg,
+                         fightingCharacter_t other, int8_t otherKOs, int16_t otherDmg)
 {
+    // TODO send result to other swadge, acknowledged packet
+    initFighterMpResult(fm->disp, &fm->mmFont, roundTime,
+                        self, selfKOs, selfDmg,
+                        other, otherKOs, otherDmg);
     fm->screen = FIGHTER_MP_RESULT;
 }

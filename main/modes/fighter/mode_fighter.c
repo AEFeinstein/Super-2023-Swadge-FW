@@ -1800,13 +1800,20 @@ void updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     else if(hbox.y0 > (600 << SF))
     {
         // Decrement stocks
-        if(ftr->stocks > 0)
+        if(ftr->stocks > 1)
         {
             ftr->stocks--;
         }
         else
         {
-            // TODO end game
+            // End game and show result
+            fighterShowMpResult(0,
+                                f->fighters[0].character, 0, 0,
+                                f->fighters[1].character, 0, 0);
+            // Deinit the game
+            fighterExitGame();
+            // Return after deinit
+            return;
         }
 
         // Respawn by resetting state
