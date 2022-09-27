@@ -199,15 +199,25 @@ void fighterMainLoop(int64_t elapsedUs)
         case FIGHTER_CONNECTING:
         {
             // TODO spin a wheel or something
-            fm->disp->clearPx();
-            drawText(fm->disp, &fm->mmFont, c543, "Connecting", 0, 0);
+            drawBackgroundGrid(fm->disp);
+            const char searching_for[] = "Searching For";
+            const char another_swadge[] = "Another Swadge";
+            int16_t tWidth = textWidth(&fm->mmFont, searching_for);
+            drawText(fm->disp, &fm->mmFont, c540, searching_for, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) - fm->mmFont.h - 4);
+            tWidth = textWidth(&fm->mmFont, another_swadge);
+            drawText(fm->disp, &fm->mmFont, c540, another_swadge, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
             break;
         }
         case FIGHTER_WAITING:
         {
             // TODO spin a wheel or something
-            fm->disp->clearPx();
-            drawText(fm->disp, &fm->mmFont, c543, "Waiting", 0, 0);
+            drawBackgroundGrid(fm->disp);
+            const char searching_for[] = "Waiting for";
+            const char another_swadge[] = "Other Swadge";
+            int16_t tWidth = textWidth(&fm->mmFont, searching_for);
+            drawText(fm->disp, &fm->mmFont, c540, searching_for, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) - fm->mmFont.h - 4);
+            tWidth = textWidth(&fm->mmFont, another_swadge);
+            drawText(fm->disp, &fm->mmFont, c540, another_swadge, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
             break;
         }
         case FIGHTER_HR_RESULT:
@@ -580,6 +590,9 @@ void fighterMultiplayerStageMenuCb(const char* opt)
     p2pSendMsg(&fm->p2p, payload, sizeof(payload), true, fighterP2pMsgTxCbFn);
     fm->txTimeStart = esp_timer_get_time();
     fm->lastSentMsg = STAGE_SEL_MSG;
+
+    // Wait for the other swadge to pick a character
+    fm->screen = FIGHTER_WAITING;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
