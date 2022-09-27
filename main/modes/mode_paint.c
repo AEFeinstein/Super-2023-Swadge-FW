@@ -36,6 +36,12 @@
  * - Use different pick markers / cursors for each brush (e.g. crosshair for circle pen, two L-shaped crosshairs for box pen...)
  */
 
+#define PAINT_LOGV(...) ESP_LOGV("Paint", __VA_ARGS__)
+#define PAINT_LOGD(...) ESP_LOGD("Paint", __VA_ARGS__)
+#define PAINT_LOGI(...) ESP_LOGI("Paint", __VA_ARGS__)
+#define PAINT_LOGW(...) ESP_LOGW("Paint", __VA_ARGS__)
+#define PAINT_LOGE(...) ESP_LOGE("Paint", __VA_ARGS__)
+
 static const char paintTitle[] = "MFPaint";
 static const char menuOptDraw[] = "Draw";
 static const char menuOptGallery[] = "Gallery";
@@ -324,11 +330,8 @@ typedef struct
     // State for Yes/No in overwrite save menu.
     bool overwriteYesSelected;
 
-    // The save slot number that was most recently loaded or saved
-    uint8_t recentSaveSlot;
-
-    // Map of whether each save slot is already occupied
-    bool inUseSlots[PAINT_SAVE_SLOTS];
+    // Index keeping track of which slots are in use and the most recent slot
+    int32_t index;
 } paintMenu_t;
 
 
@@ -412,6 +415,11 @@ void paintPrevTool();
 void paintNextTool();
 void paintLoadIndex();
 void paintSaveIndex();
+void paintResetStorage();
+bool paintGetSlotInUse(uint8_t slot);
+void paintSetSlotInUse(uint8_t slot);
+uint8_t paintGetRecentSlot();
+void paintSetRecentSlot(uint8_t slot);
 void paintSave(uint8_t slot);
 void paintLoad(uint8_t slot);
 void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col);
@@ -467,7 +475,7 @@ paletteColor_t getContrastingColor(paletteColor_t col)
     ledCol.g = 255 - ledCol.g;
     ledCol.b = 255 - ledCol.b;
 
-    ESP_LOGD("Paint", "Converted color to RGB c%d%d%d", ledCol.r, ledCol.g, ledCol.b);
+    PAINT_LOGV("Converted color to RGB c%d%d%d", ledCol.r, ledCol.g, ledCol.b);
     return ledColorToPalette(&ledCol);
 }
 
@@ -475,6 +483,7 @@ paletteColor_t getContrastingColor(paletteColor_t col)
 
 void paintEnterMode(display_t* disp)
 {
+    PAINT_LOGI("Allocatind %zu bytes for paintState...", sizeof(paintMenu_t));
     paintState = calloc(1, sizeof(paintMenu_t));
 
     paintState->disp = disp;
@@ -488,8 +497,7 @@ void paintEnterMode(display_t* disp)
 
 void paintExitMode()
 {
-    ESP_LOGD("Paint", "Exiting");
-    paintSave(0);
+    PAINT_LOGD("Exiting");
     deinitMeleeMenu(paintState->menu);
     freeFont(&(paintState->menuFont));
 
@@ -527,7 +535,7 @@ void paintMainLoop(int64_t elapsedUs)
             }
             else
             {
-                if (paintState->inUseSlots[paintState->selectedSlot])
+                if (paintGetSlotInUse(paintGetRecentSlot()))
                 {
                     // Load from the selected slot if it's been used
                     paintLoad(paintState->selectedSlot);
@@ -536,9 +544,7 @@ void paintMainLoop(int64_t elapsedUs)
                 {
                     // If the slot hasn't been used yet, just clear the screen
                     paintState->clearScreen = true;
-                    paintState->recentSaveSlot = paintState->selectedSlot;
                     paintState->isSaveSelected = false;
-                    paintSaveIndex();
                 }
             }
 
@@ -703,7 +709,7 @@ void paintButtonCb(buttonEvt_t* evt)
                             if (paintState->isSaveSelected)
                             {
                                 // The screen says "Save" and "Slot X"
-                                if (paintState->inUseSlots[paintState->selectedSlot])
+                                if (paintGetSlotInUse(paintState->selectedSlot))
                                 {
                                     // This slot is in use! Move on to the overwrite menu
                                     paintState->overwriteYesSelected = false;
@@ -999,7 +1005,7 @@ void paintInitialize()
 
     for (uint8_t i = 0; i < PAINT_SAVE_SLOTS; i++)
     {
-        if (paintState->inUseSlots[i])
+        if (paintGetSlotInUse(i))
         {
             paintState->isSaveSelected = false;
             paintState->doSave = true;
@@ -1042,7 +1048,7 @@ void paintInitialize()
     paintState->recentColors[14] = c522;
     paintState->recentColors[15] = c103;
 
-    ESP_LOGD("Paint", "It's paintin' time! Canvas is %d x %d pixels!", paintState->canvasW, paintState->canvasH);
+    PAINT_LOGI("It's paintin' time! Canvas is %d x %d pixels!", paintState->canvasW, paintState->canvasH);
 
 }
 
@@ -1050,22 +1056,22 @@ void paintMainMenuCb(const char* opt)
 {
     if (opt == menuOptDraw)
     {
-        ESP_LOGD("Paint", "Selected Draw");
+        PAINT_LOGI("Selected Draw");
         paintState->screen = PAINT_DRAW;
     }
     else if (opt == menuOptGallery)
     {
-        ESP_LOGD("Paint", "Selected Gallery");
+        PAINT_LOGI("Selected Gallery");
         paintState->screen = PAINT_GALLERY;
     }
     else if (opt == menuOptReceive)
     {
-        ESP_LOGD("Paint", "Selected Receive");
+        PAINT_LOGI("Selected Receive");
         paintState->screen = PAINT_RECEIVE;
     }
     else if (opt == menuOptExit)
     {
-        ESP_LOGD("Paint", "Selected Exit");
+        PAINT_LOGI("Selected Exit");
         switchToSwadgeMode(&modeMainMenu);
     }
 }
@@ -1090,7 +1096,7 @@ void setCursor(wsg_t* cursorWsg)
 
 void restoreCursorPixels()
 {
-    ESP_LOGD("Paint", "Restoring pixels underneath cursor...");
+    PAINT_LOGV("Restoring pixels underneath cursor...");
     while (popPx(&paintState->cursorPxs, paintState->disp));
 }
 
@@ -1279,7 +1285,7 @@ void paintRenderToolbar()
 
         // Draw the slot number
         char text[16];
-        snprintf(text, sizeof(text), (paintState->isSaveSelected && paintState->inUseSlots[paintState->selectedSlot]) ? startMenuSlotUsed : startMenuSlot, paintState->selectedSlot + 1);
+        snprintf(text, sizeof(text), (paintState->isSaveSelected && paintGetSlotInUse(paintState->selectedSlot)) ? startMenuSlotUsed : startMenuSlot, paintState->selectedSlot + 1);
         drawText(paintState->disp, &paintState->toolbarFont, c000, text, 160, textY);
     }
     else if (paintState->saveMenu == CONFIRM_OVERWRITE)
@@ -1593,7 +1599,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         paintState->pickPoints[paintState->pickCount].x = x;
         paintState->pickPoints[paintState->pickCount].y = y;
 
-        ESP_LOGD("Paint", "pick[%02zu] = SCR(%03d, %03d) / CNV(%d, %d)", paintState->pickCount, x, y, (x - PAINT_CANVAS_X_OFFSET), (y - PAINT_CANVAS_Y_OFFSET));
+        PAINT_LOGD("pick[%02zu] = SCR(%03d, %03d) / CNV(%d, %d)", paintState->pickCount, x, y, (x - PAINT_CANVAS_X_OFFSET), (y - PAINT_CANVAS_Y_OFFSET));
 
         // Save the pixel underneath the selection, then draw a temporary pixel to mark it
         // But don't bother if this is the last pick point, since it will never actually be seen
@@ -1625,7 +1631,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
                 paintState->pickPoints[paintState->pickCount].y = paintState->pickPoints[0].y;
 
 
-                ESP_LOGD("Paint", "pick[%02zu] = (%03d, %03d) (last!)", paintState->pickCount, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
+                PAINT_LOGD("pick[%02zu] = (%03d, %03d) (last!)", paintState->pickCount, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
 
                 drawNow = true;
             }
@@ -1672,7 +1678,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 void initPxStack(pxStack_t* pxStack)
 {
     pxStack->size = PIXEL_STACK_MIN_SIZE;
-    ESP_LOGD("Paint", "Allocating pixel stack with size %zu", pxStack->size);
+    PAINT_LOGD("Allocating pixel stack with size %zu", pxStack->size);
     pxStack->data = malloc(sizeof(pxVal_t) * pxStack->size);
     pxStack->index = -1;
 }
@@ -1682,7 +1688,7 @@ void freePxStack(pxStack_t* pxStack)
     if (pxStack->data != NULL)
     {
         free(pxStack->data);
-        ESP_LOGD("Paint", "Freed pixel stack");
+        PAINT_LOGD("Freed pixel stack");
         pxStack->size = 0;
         pxStack->index = -1;
     }
@@ -1693,7 +1699,7 @@ void maybeGrowPxStack(pxStack_t* pxStack)
     if (pxStack->index >= pxStack->size)
     {
         pxStack->size *= 2;
-        ESP_LOGD("Paint", "Expanding pixel stack to size %zu", pxStack->size);
+        PAINT_LOGD("Expanding pixel stack to size %zu", pxStack->size);
         pxStack->data = realloc(pxStack->data, sizeof(pxVal_t) * pxStack->size);
     }
 }
@@ -1705,9 +1711,9 @@ void maybeShrinkPxStack(pxStack_t* pxStack)
     if (pxStack->index >= 0 && pxStack->index * 4 <= pxStack->size && pxStack->size > PIXEL_STACK_MIN_SIZE)
     {
         pxStack->size /= 2;
-        ESP_LOGD("Paint", "Shrinking pixel stack to %zu", pxStack->size);
+        PAINT_LOGD("Shrinking pixel stack to %zu", pxStack->size);
         pxStack->data = realloc(pxStack->data, sizeof(pxVal_t) * pxStack->size);
-        ESP_LOGD("Paint", "Done shrinking pixel stack");
+        PAINT_LOGD("Done shrinking pixel stack");
     }
 }
 
@@ -1731,7 +1737,7 @@ void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y)
     pxStack->data[pxStack->index].y = y;
     pxStack->data[pxStack->index].col = disp->getPx(x, y);
 
-    ESP_LOGD("Paint", "Saved pixel %d at (%d, %d)", pxStack->index, x, y);
+    PAINT_LOGV("Saved pixel %d at (%d, %d)", pxStack->index, x, y);
 }
 
 /**
@@ -1748,7 +1754,7 @@ bool popPx(pxStack_t* pxStack, display_t* disp)
     // Make sure the stack isn't empty
     if (pxStack->index >= 0)
     {
-        ESP_LOGD("Paint", "Popping pixel %d...", pxStack->index);
+        PAINT_LOGV("Popping pixel %d...", pxStack->index);
 
         // Draw the pixel from the top of the stack
         disp->setPx(pxStack->data[pxStack->index].x, pxStack->data[pxStack->index].y, pxStack->data[pxStack->index].col);
@@ -1864,12 +1870,11 @@ void paintDrawWsgTemp(display_t* disp, wsg_t* wsg, pxStack_t* saveTo, uint16_t x
             {
                 pushPx(saveTo, disp, xOffset + x, yOffset + y);
 
-                ESP_LOGD("Paint", "Draw cursor[%1$d][%2$d] = %5$d @ (%3$03d, %4$03d)", x, y, xOffset + x, yOffset + y, colorSwap ? colorSwap(disp->getPx(xOffset + x, yOffset + y)) : wsg->px[i]);
                 disp->setPx(xOffset + x, yOffset + y, colorSwap ? colorSwap(disp->getPx(xOffset + x, yOffset + y)) : wsg->px[i]);
             }
             else
             {
-                ESP_LOGD("Paint", "Skipping cursor[%d][%d] == cTransparent", x, y);
+                PAINT_LOGV("Skipping cursor[%d][%d] == cTransparent", x, y);
             }
         }
     }
@@ -1920,20 +1925,19 @@ void paintLoadIndex()
     // |xxxxxvvv  |Recent?|  |Inuse? |
     // 0000 0000  0000 0000  0000 0000
 
-    int32_t paintMetadata;
-    if (!readNvs32("pnt_idx", &paintMetadata))
+    if (!readNvs32("pnt_idx", &paintState->index))
     {
-        ESP_LOGW("Paint", "No metadata! Setting defaults");
-        paintMetadata = PAINT_DEFAULTS;
+        PAINT_LOGW("No metadata! Setting defaults");
+        paintState->index = PAINT_DEFAULTS;
     }
 
-    paintState->enableLeds = paintMetadata & PAINT_ENABLE_LEDS;
-    paintState->enableSfx = paintMetadata & PAINT_ENABLE_SFX;
-    paintState->enableMusic = paintMetadata & PAINT_ENABLE_BGM;
+    /*paintState->enableLeds = paintState->index & PAINT_ENABLE_LEDS;
+    paintState->enableSfx = paintState->index & PAINT_ENABLE_SFX;
+    paintState->enableMusic = paintState->index & PAINT_ENABLE_BGM;
 
     for (uint8_t i = 0; i < PAINT_SAVE_SLOTS; i++)
     {
-        if (paintMetadata & (1 << (i + PAINT_SAVE_SLOTS)))
+        if (paintState->index & (1 << (i + PAINT_SAVE_SLOTS)))
         {
             paintState->recentSaveSlot = i;
         }
@@ -1946,49 +1950,51 @@ void paintLoadIndex()
         {
             paintState->inUseSlots[i] = false;
         }
-    }
+    }*/
 }
 
 void paintSaveIndex()
 {
-    int32_t paintMetadata = 0;
-
-    if (paintState->enableLeds)
+    if (writeNvs32("pnt_idx", paintState->index))
     {
-        paintMetadata |= PAINT_ENABLE_LEDS;
-    }
-
-    if (paintState->enableSfx)
-    {
-        paintMetadata |= PAINT_ENABLE_SFX;
-    }
-
-    if (paintState->enableMusic)
-    {
-        paintMetadata |= PAINT_ENABLE_BGM;
-    }
-
-    for (uint8_t i = 0; i < PAINT_SAVE_SLOTS; i++)
-    {
-        if (paintState->recentSaveSlot == i)
-        {
-            paintMetadata |= (1 << (i + PAINT_SAVE_SLOTS));
-        }
-
-        if (paintState->inUseSlots[i])
-        {
-            paintMetadata |= (1 << i);
-        }
-    }
-
-    if (writeNvs32("pnt_idx", paintMetadata))
-    {
-        ESP_LOGD("Paint", "Saved index: %016b", paintMetadata);
+        PAINT_LOGD("Saved index: %04x", paintState->index);
     }
     else
     {
-        ESP_LOGE("Paint", "Failed to save index :(");
+        PAINT_LOGE("Failed to save index :(");
     }
+}
+
+void paintResetStorage()
+{
+    paintState->index = PAINT_DEFAULTS;
+    paintSaveIndex();
+}
+
+bool paintGetSlotInUse(uint8_t slot)
+{
+    paintLoadIndex();
+    return (paintState->index & (1 << slot)) != 0;
+}
+
+void paintSetSlotInUse(uint8_t slot)
+{
+    paintState->index |= (1 << slot);
+    paintSaveIndex();
+}
+
+uint8_t paintGetRecentSlot()
+{
+    paintLoadIndex();
+    return (paintState->index >> PAINT_SAVE_SLOTS) & 0b111;
+}
+
+void paintSetRecentSlot(uint8_t slot)
+{
+    // TODO if we change the number of slots this will totally not work anymore
+    // I mean, we could just do & 0xFF and waste 5 bits
+    paintState->index = (paintState->index & PAINT_MASK_NOT_RECENT) | ((slot & 0b111) << PAINT_SAVE_SLOTS);
+    paintSaveIndex();
 }
 
 void paintSave(uint8_t slot)
@@ -2004,14 +2010,15 @@ void paintSave(uint8_t slot)
 
     // Save the palette map, this lets us compact the image by 50%
     snprintf(key, 16, "paint_%02d_pal", slot);
-    ESP_LOGD("Paint", "Palette will take up %zu bytes", sizeof(paletteColor_t) * PAINT_MAX_COLORS);
-    if (writeNvsBlob(key, paintState->recentColors, sizeof(paletteColor_t) * PAINT_MAX_COLORS))
+    PAINT_LOGD("paletteColor_t size: %zu, max colors: %d", sizeof(paletteColor_t), PAINT_MAX_COLORS);
+    PAINT_LOGD("Palette will take up %zu bytes", sizeof(paintState->recentColors));
+    if (writeNvsBlob(key, paintState->recentColors, sizeof(paintState->recentColors)))
     {
-        ESP_LOGD("Paint", "Saved palette to slot %s", key);
+        PAINT_LOGD("Saved palette to slot %s", key);
     }
     else
     {
-        ESP_LOGE("Paint", "Could't save palette to slot %s", key);
+        PAINT_LOGE("Could't save palette to slot %s", key);
         return;
     }
 
@@ -2020,11 +2027,11 @@ void paintSave(uint8_t slot)
     snprintf(key, 16, "paint_%02d_dim", slot);
     if (writeNvs32(key, packedSize))
     {
-        ESP_LOGD("Paint", "Saved dimensions to slot %s", key);
+        PAINT_LOGD("Saved dimensions to slot %s", key);
     }
     else
     {
-        ESP_LOGE("Paint", "Couldn't save dimensions to slot %s",key);
+        PAINT_LOGE("Couldn't save dimensions to slot %s",key);
         return;
     }
 
@@ -2049,16 +2056,16 @@ void paintSave(uint8_t slot)
     uint8_t chunkCount = (totalPx + (PAINT_SAVE_CHUNK_SIZE * 2) - 1) / (PAINT_SAVE_CHUNK_SIZE * 2);
     if ((imgChunk = malloc(sizeof(uint8_t) * PAINT_SAVE_CHUNK_SIZE)) != NULL)
     {
-        ESP_LOGD("Paint", "Allocated %d bytes for image chunk", PAINT_SAVE_CHUNK_SIZE);
+        PAINT_LOGD("Allocated %d bytes for image chunk", PAINT_SAVE_CHUNK_SIZE);
     }
     else
     {
-        ESP_LOGE("Paint", "malloc failed for %d bytes", PAINT_SAVE_CHUNK_SIZE);
+        PAINT_LOGE("malloc failed for %d bytes", PAINT_SAVE_CHUNK_SIZE);
         return;
     }
 
-    ESP_LOGD("Paint", "We will use %d chunks of size %dB (%d), plus one of %dB == %dB to save the image", chunkCount - 1, PAINT_SAVE_CHUNK_SIZE, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE, finalChunkSize, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE + finalChunkSize);
-    ESP_LOGD("Paint", "The image is %d x %d px == %dpx, at 2px/B that's %dB", paintState->canvasW, paintState->canvasH, totalPx, totalPx / 2);
+    PAINT_LOGD("We will use %d chunks of size %dB (%d), plus one of %dB == %dB to save the image", chunkCount - 1, PAINT_SAVE_CHUNK_SIZE, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE, finalChunkSize, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE + finalChunkSize);
+    PAINT_LOGD("The image is %d x %d px == %dpx, at 2px/B that's %dB", paintState->canvasW, paintState->canvasH, totalPx, totalPx / 2);
 
     disableCursor();
 
@@ -2091,11 +2098,11 @@ void paintSave(uint8_t slot)
         snprintf(key, 16, "paint_%02dc%05d", slot, i);
         if (writeNvsBlob(key, imgChunk, (i + 1 < chunkCount) ? PAINT_SAVE_CHUNK_SIZE : finalChunkSize))
         {
-            ESP_LOGD("Paint", "Saved blob %d of %d", i+1, chunkCount);
+            PAINT_LOGD("Saved blob %d of %d", i+1, chunkCount);
         }
         else
         {
-            ESP_LOGE("Paint", "Unable to save blob %d of %d", i+1, chunkCount);
+            PAINT_LOGE("Unable to save blob %d of %d", i+1, chunkCount);
             free(imgChunk);
 
             enableCursor();
@@ -2103,9 +2110,8 @@ void paintSave(uint8_t slot)
         }
     }
 
-    paintState->recentSaveSlot = slot;
-    paintState->inUseSlots[slot] = true;
-
+    paintSetSlotInUse(slot);
+    paintSetRecentSlot(slot);
     paintSaveIndex();
 
     free(imgChunk);
@@ -2128,34 +2134,46 @@ void paintLoad(uint8_t slot)
 
     size_t paletteSize;
 
-    // Save the palette map, this lets us compact the image by 50%
+    if (!paintGetSlotInUse(slot))
+    {
+        PAINT_LOGW("Attempted to load from uninitialized slot %d", slot);
+        return;
+    }
+
+    // Load the palette map
     snprintf(key, 16, "paint_%02d_pal", slot);
-    ESP_LOGD("Paint", "Reading palette from %s...", key);
+
+    if (!readNvsBlob(key, NULL, &paletteSize))
+    {
+        PAINT_LOGE("Couldn't read size of palette in slot %s", key);
+        return;
+    }
+
     if (readNvsBlob(key, paintState->recentColors, &paletteSize))
     {
         paintState->fgColor = paintState->recentColors[0];
         paintState->bgColor = paintState->recentColors[1];
-        ESP_LOGD("Paint", "Read %zu bytes of palette from slot %s", paletteSize, key);
+        PAINT_LOGD("Read %zu bytes of palette from slot %s", paletteSize, key);
     }
     else
     {
-        ESP_LOGE("Paint", "Could't read palette from slot %s", key);
+        PAINT_LOGE("Could't read palette from slot %s", key);
         return;
     }
 
     // Read the canvas dimensions
-    ESP_LOGD("Paint", "Reading dimensions");
+    PAINT_LOGD("Reading dimensions");
     int32_t packedSize;
     snprintf(key, 16, "paint_%02d_dim", slot);
     if (readNvs32(key, &packedSize))
     {
         paintState->canvasH = (uint32_t)packedSize & 0xFFFF;
         paintState->canvasW = (((uint32_t)packedSize) >> 16) & 0xFFFF;
-        ESP_LOGD("Paint", "Read dimensions from slot %s: %d x %d", key, paintState->canvasW, paintState->canvasH);
+        PAINT_LOGD("Read dimensions from slot %s: %d x %d", key, paintState->canvasW, paintState->canvasH);
     }
     else
     {
-        ESP_LOGE("Paint", "Couldn't read dimensions from slot %s",key);
+        PAINT_LOGE("Couldn't read dimensions from slot %s",key);
         return;
     }
 
@@ -2164,11 +2182,11 @@ void paintLoad(uint8_t slot)
     uint8_t chunkCount = (totalPx + (PAINT_SAVE_CHUNK_SIZE * 2) - 1) / (PAINT_SAVE_CHUNK_SIZE * 2);
     if ((imgChunk = malloc(PAINT_SAVE_CHUNK_SIZE)) != NULL)
     {
-        ESP_LOGD("Paint", "Allocated %d bytes for image chunk", PAINT_SAVE_CHUNK_SIZE);
+        PAINT_LOGD("Allocated %d bytes for image chunk", PAINT_SAVE_CHUNK_SIZE);
     }
     else
     {
-        ESP_LOGE("Paint", "malloc failed for %d bytes", PAINT_SAVE_CHUNK_SIZE);
+        PAINT_LOGE("malloc failed for %d bytes", PAINT_SAVE_CHUNK_SIZE);
         return;
     }
 
@@ -2180,15 +2198,23 @@ void paintLoad(uint8_t slot)
     // Read all the chunks
     for (uint32_t i = 0; i < chunkCount; i++)
     {
-        // read the chunk
         snprintf(key, 16, "paint_%02dc%05d", slot, i);
+
+        // get the chunk size
+        if (!readNvsBlob(key, NULL, &lastChunkSize))
+        {
+            PAINT_LOGE("Unable to read size of blob %d in slot %s", i, key);
+            continue;
+        }
+
+        // read the chunk
         if (readNvsBlob(key, imgChunk, &lastChunkSize))
         {
-            ESP_LOGD("Paint", "Read blob %d of %d (%zu bytes)", i+1, chunkCount, lastChunkSize);
+            PAINT_LOGD("Read blob %d of %d (%zu bytes)", i+1, chunkCount, lastChunkSize);
         }
         else
         {
-            ESP_LOGE("Paint", "Unable to read blob %d of %d", i+1, chunkCount);
+            PAINT_LOGE("Unable to read blob %d of %d", i+1, chunkCount);
             // don't panic if we miss one chunk, maybe it's ok...
             continue;
         }
@@ -2206,14 +2232,8 @@ void paintLoad(uint8_t slot)
             y1 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) / paintState->canvasW * PAINT_CANVAS_SCALE;
 
             // Draw the pixel SCALE**2 times
-            for (int xo = 0; xo < PAINT_CANVAS_SCALE; xo++)
-            {
-                for (int yo = 0; yo < PAINT_CANVAS_SCALE; yo++)
-                {
-                    paintState->disp->setPx(x0 + xo, y0 + yo, paintState->recentColors[imgChunk[n] >> 4]);
-                    paintState->disp->setPx(x1 + xo, y1 + yo, paintState->recentColors[imgChunk[n] & 0xF]);
-                }
-            }
+            plotRectFilled(paintState->disp, x0, y0, x0 + PAINT_CANVAS_SCALE + 1, y0 + PAINT_CANVAS_SCALE + 1, paintState->recentColors[imgChunk[n] >> 4]);
+            plotRectFilled(paintState->disp, x1, y1, x1 + PAINT_CANVAS_SCALE + 1, y1 + PAINT_CANVAS_SCALE + 1, paintState->recentColors[imgChunk[n] & 0xF]);
         }
     }
 
@@ -2223,11 +2243,10 @@ void paintLoad(uint8_t slot)
         paintState->canvasH = PAINT_CANVAS_HEIGHT;
         paintState->canvasW = PAINT_CANVAS_WIDTH;
 
-        ESP_LOGW("Paint", "Loaded image had invalid bounds. Resetting to %d x %d", paintState->canvasW, paintState->canvasH);
+        PAINT_LOGW("Loaded image had invalid bounds. Resetting to %d x %d", paintState->canvasW, paintState->canvasH);
     }
 
-    paintState->recentSaveSlot = slot;
-    paintSaveIndex();
+    paintSetRecentSlot(slot);
 
     free(imgChunk);
     imgChunk = NULL;

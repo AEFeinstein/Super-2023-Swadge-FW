@@ -19,8 +19,11 @@
 // Whether to play background music
 #define PAINT_ENABLE_BGM  (0x0004 << (PAINT_SAVE_SLOTS * 2))
 
-// Default to LEDs, SFX, and music on, with the first save slot marked as the most recent
-#define PAINT_DEFAULTS (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM | (1 << PAINT_SAVE_SLOTS))
+// Default to LEDs, SFX, and music on, with slot 0 marked as most recent
+#define PAINT_DEFAULTS (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM)
+
+// Mask for the index that includes everything except the most-recent index
+#define PAINT_MASK_NOT_RECENT (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM | ((1 << PAINT_SAVE_SLOTS) - 1))
 
 // The size of the buffer for loading/saving the image. Each chunk is saved as a separate blob in NVS
 #define PAINT_SAVE_CHUNK_SIZE 1024
