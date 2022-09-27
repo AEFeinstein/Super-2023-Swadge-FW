@@ -104,7 +104,6 @@ void jumperExitMode(void)
 {
     jumperExitGame();
     deinitMeleeMenu(jm->menu);
-    //p2pDeinit(&jm->p2p);
     freeFont(&(jm->mmFont));
     free(jm);
 }
@@ -171,7 +170,7 @@ void setJumperMainMenu(void)
 {
     resetMeleeMenu(jm->menu, str_jumpTitle, jumperMainMenuCb); //ledEnabled
     addRowToMeleeMenu(jm->menu, str_jump);
-    jm->menuEntryForLEDs = addRowToMeleeMenu(jm->menu, (jm->ledEnabled ? str_LEDOn : str_LEDOff));
+    //jm->menuEntryForLEDs = addRowToMeleeMenu(jm->menu, (jm->ledEnabled ? str_LEDOn : str_LEDOff));
     addRowToMeleeMenu(jm->menu, str_exit);
 
     /*

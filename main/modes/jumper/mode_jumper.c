@@ -1429,6 +1429,7 @@ void jumperPlayerInput(void)
 
 void drawJumperScene(display_t* d)
 {
+    bool drawEnemy = true;
     jumperCharacter_t* player = j->player;
     jumperCharacter_t* evilDonut = j->evilDonut;
     jumperCharacter_t* blump = j->blump;
@@ -1448,24 +1449,32 @@ void drawJumperScene(display_t* d)
         drawWsg(d, &j->powerup, j->scene->currentPowerup->x, j->scene->currentPowerup->y, false, false, 0);        
     }
 
-    if (evilDonut->state == CHARACTER_DYING)
+
+    if (j->scene->freezeTimer > 0 && j->scene->freezeTimer < 2000000 && (j->scene->freezeTimer / 100000) % 2 == 0) 
     {
-        drawWsg(d, &player->frames[7], evilDonut->x, evilDonut->y, false, false, 0);
-    }
-    else if (evilDonut->state != CHARACTER_DEAD && evilDonut->state != CHARACTER_NONEXISTING)
-    {
-        drawWsg(d, &evilDonut->frames[evilDonut->frameIndex], evilDonut->x, evilDonut->y, evilDonut->flipped, false, 0);
+        drawEnemy = false;
     }
 
-    if (blump->state == CHARACTER_DYING)
+    if (drawEnemy)
     {
-        drawWsg(d, &player->frames[7], blump->x, blump->y, false, false, 0);
-    }
-    else if (blump->state != CHARACTER_DEAD && blump->state != CHARACTER_NONEXISTING)
-    {
-        drawWsg(d, &blump->frames[blump->frameIndex], blump->x, blump->y, blump->flipped, false, 0);
-    }
+        if (evilDonut->state == CHARACTER_DYING)
+        {
+            drawWsg(d, &player->frames[7], evilDonut->x, evilDonut->y, false, false, 0);
+        }
+        else if (evilDonut->state != CHARACTER_DEAD && evilDonut->state != CHARACTER_NONEXISTING)
+        {
+            drawWsg(d, &evilDonut->frames[evilDonut->frameIndex], evilDonut->x, evilDonut->y, evilDonut->flipped, false, 0);
+        }
 
+        if (blump->state == CHARACTER_DYING)
+        {
+            drawWsg(d, &player->frames[7], blump->x, blump->y, false, false, 0);
+        }
+        else if (blump->state != CHARACTER_DEAD && blump->state != CHARACTER_NONEXISTING)
+        {
+            drawWsg(d, &blump->frames[blump->frameIndex], blump->x, blump->y, blump->flipped, false, 0);
+        }
+    }
 
     if (player->state != CHARACTER_DEAD)
     {
