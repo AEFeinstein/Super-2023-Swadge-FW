@@ -1816,7 +1816,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         {
             ftr->stocks = 0;
             // End game and show result
-            fighterShowMpResult(f->gameTimerUs / 1000000,
+            fighterShowMpResult(f->gameTimerUs / 1000,
                                 f->fighters[0].character, NUM_STOCKS - f->fighters[1].stocks, f->fighters[0].damageGiven,
                                 f->fighters[1].character, NUM_STOCKS - f->fighters[0].stocks, f->fighters[1].damageGiven);
             // Deinit the game

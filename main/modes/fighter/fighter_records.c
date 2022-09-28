@@ -103,14 +103,6 @@ void fighterRecordsLoop(int64_t elapsedUs __attribute__((unused)))
     // Temporary string to print records to
     char recordStr[16];
 
-    // Must match order of fightingCharacter_t
-    const char* charNames[] =
-    {
-        str_charKD,
-        str_charSN,
-        str_charBF
-    };
-
     // Multiplayer Header
     tWidth = textWidth(fr->font, str_multiplayer);
     drawText(fr->disp, fr->font, headerColor, str_multiplayer, (fr->disp->w - tWidth) / 2, yOff);
@@ -182,4 +174,33 @@ bool checkHomerunRecord(fightingCharacter_t character, int32_t distance)
         return true;
     }
     return false;
+}
+
+/**
+ * @brief Save the per-character match result
+ *
+ * @param self The character for this record
+ * @param isVictory true if the character won, false if it lost
+ */
+void saveMpResult(fightingCharacter_t self, bool isVictory)
+{
+    // Read records from NVS
+    fighterNvs_t fnvs;
+    size_t len = sizeof(fighterNvs_t);
+    if(false == readNvsBlob(fighterRecKey, &fnvs, &len))
+    {
+        // If it couldn't be read, assume all zeros
+        memset(&fnvs, 0, sizeof(fighterNvs_t));
+    }
+
+    if(isVictory)
+    {
+        fnvs.multiplayerRecords[self][0]++;
+    }
+    else
+    {
+        fnvs.multiplayerRecords[self][1]++;
+    }
+
+    writeNvsBlob(fighterRecKey, &fnvs, sizeof(fighterNvs_t));
 }

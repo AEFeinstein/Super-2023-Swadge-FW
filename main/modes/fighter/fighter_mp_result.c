@@ -10,7 +10,15 @@
 
 #include "fighter_mp_result.h"
 #include "fighter_records.h"
+#include "fighter_menu.h"
 #include "meleeMenu.h"
+
+//==============================================================================
+// Defines
+//==============================================================================
+
+#define X_MARGIN 20
+#define Y_MARGIN 8
 
 //==============================================================================
 // Structs
@@ -26,7 +34,7 @@ typedef struct
     fightingCharacter_t other;
     int8_t otherKOs;
     int16_t otherDmg;
-    uint32_t roundTime;
+    uint32_t roundTimeMs;
 } hrRes_t;
 
 //==============================================================================
@@ -44,7 +52,7 @@ hrRes_t* mpr;
  *
  * @param disp The display to draw to
  * @param font The font to draw with
- * @param roundTime The time the round took, in seconds
+ * @param roundTimeMs The time the round took, in milliseconds
  * @param self This swadge's character
  * @param selfKOs This swadge's number of KOs
  * @param selfDmg The amount of damage this swadge did
@@ -52,7 +60,7 @@ hrRes_t* mpr;
  * @param otherKOs The other swadge's number of KOs
  * @param otherDmg The amount of damage the other swadge did
  */
-void initFighterMpResult(display_t* disp, font_t* font, uint32_t roundTime,
+void initFighterMpResult(display_t* disp, font_t* font, uint32_t roundTimeMs,
                          fightingCharacter_t self,  int8_t selfKOs, int16_t selfDmg,
                          fightingCharacter_t other, int8_t otherKOs, int16_t otherDmg)
 {
@@ -63,7 +71,7 @@ void initFighterMpResult(display_t* disp, font_t* font, uint32_t roundTime,
     mpr->font = font;
 
     // Save the results
-    mpr->roundTime = roundTime;
+    mpr->roundTimeMs = roundTimeMs;
 
     mpr->self = self;
     mpr->selfDmg = selfDmg;
@@ -73,8 +81,8 @@ void initFighterMpResult(display_t* disp, font_t* font, uint32_t roundTime,
     mpr->otherDmg = otherDmg;
     mpr->otherKOs = otherKOs;
 
-    // TODO tally match result
-    // mpr->isNewRecord = checkHomerunRecord(mpr->character, mpr->finalXpos);
+    // Save the result
+    saveMpResult(self, selfKOs > otherKOs);
 }
 
 /**
@@ -98,36 +106,79 @@ void fighterMpResultLoop(int64_t elapsedUs)
 {
     drawBackgroundGrid(mpr->disp);
 
-    // TODO draw results better
+    // Text colors
+    paletteColor_t headerColor = c540;
+    paletteColor_t entryColor = c431;
+    paletteColor_t statColor = c321;
 
-    int16_t yOff = 40;
+    int16_t yOff = 8;
+    int16_t tWidth = 0;
     char text[32];
+    const char dmgStr[] = "Dmg Dealt";
+    const char koStr[] = "KOs";
 
-    sprintf(text, "roundTime: %d", mpr->roundTime);
-    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
-    yOff += mpr->font->h + 4;
+    // Title
+    if(mpr->selfKOs > mpr->otherKOs)
+    {
+        sprintf(text, "You Win!");
+    }
+    else
+    {
+        sprintf(text, "Sorry Bud");
+    }
+    tWidth = textWidth(mpr->font, text);
+    drawText(mpr->disp, mpr->font, headerColor, text, (mpr->disp->w - tWidth) / 2, yOff);
+    yOff += mpr->font->h + Y_MARGIN;
 
-    sprintf(text, "Self: %d", mpr->self);
-    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
-    yOff += mpr->font->h + 4;
+    // Round time
+    sprintf(text, "%d:%02d.%03d", (mpr->roundTimeMs / 60000), (mpr->roundTimeMs / 1000) % 60, mpr->roundTimeMs % 1000);
+    tWidth = textWidth(mpr->font, text);
+    drawText(mpr->disp, mpr->font, statColor, text, (mpr->disp->w - tWidth) / 2, yOff);
+    yOff += mpr->font->h + Y_MARGIN;
 
-    sprintf(text, "Self Dmg: %d", mpr->selfDmg);
-    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
-    yOff += mpr->font->h + 4;
+    // This swadge
+    sprintf(text, "%s", charNames[mpr->self]);
+    drawText(mpr->disp, mpr->font, entryColor, text, X_MARGIN, yOff);
 
-    sprintf(text, "Self KOs: %d", mpr->selfKOs);
-    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
-    yOff += mpr->font->h + 4;
+    yOff += mpr->font->h + Y_MARGIN;
 
-    sprintf(text, "other: %d", mpr->other);
-    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
-    yOff += mpr->font->h + 4;
+    sprintf(text, "%s", koStr);
+    drawText(mpr->disp, mpr->font, statColor, text, X_MARGIN, yOff);
 
-    sprintf(text, "other Dmg: %d", mpr->otherDmg);
-    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
-    yOff += mpr->font->h + 4;
+    sprintf(text, "%d", mpr->selfKOs);
+    tWidth = textWidth(mpr->font, text);
+    drawText(mpr->disp, mpr->font, statColor, text, mpr->disp->w - X_MARGIN - tWidth, yOff);
 
-    sprintf(text, "other KOs: %d", mpr->otherKOs);
-    drawText(mpr->disp, mpr->font, c555, text, 0, yOff);
-    yOff += mpr->font->h + 4;
+    yOff += mpr->font->h + Y_MARGIN;
+
+    sprintf(text, "%s", dmgStr);
+    drawText(mpr->disp, mpr->font, statColor, text, X_MARGIN, yOff);
+
+    sprintf(text, "%d%%", mpr->selfDmg);
+    tWidth = textWidth(mpr->font, text);
+    drawText(mpr->disp, mpr->font, statColor, text, mpr->disp->w - X_MARGIN - tWidth, yOff);
+
+    yOff += mpr->font->h + Y_MARGIN;
+
+    // The other swadge
+    sprintf(text, "%s", charNames[mpr->other]);
+    drawText(mpr->disp, mpr->font, entryColor, text, X_MARGIN, yOff);
+
+    yOff += mpr->font->h + Y_MARGIN;
+
+    sprintf(text, "%s", koStr);
+    drawText(mpr->disp, mpr->font, statColor, text, X_MARGIN, yOff);
+
+    sprintf(text, "%d", mpr->otherKOs);
+    tWidth = textWidth(mpr->font, text);
+    drawText(mpr->disp, mpr->font, statColor, text, mpr->disp->w - X_MARGIN - tWidth, yOff);
+
+    yOff += mpr->font->h + Y_MARGIN;
+
+    sprintf(text, "%s", dmgStr);
+    drawText(mpr->disp, mpr->font, statColor, text, X_MARGIN, yOff);
+
+    sprintf(text, "%d%%", mpr->otherDmg);
+    tWidth = textWidth(mpr->font, text);
+    drawText(mpr->disp, mpr->font, statColor, text, mpr->disp->w - X_MARGIN - tWidth, yOff);
 }

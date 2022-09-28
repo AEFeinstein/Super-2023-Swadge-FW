@@ -59,7 +59,7 @@ typedef struct
 typedef struct
 {
     uint8_t msgType;
-    uint32_t roundTime;
+    uint32_t roundTimeMs;
     fightingCharacter_t self;
     fightingCharacter_t other;
     int16_t selfDmg;
@@ -108,9 +108,18 @@ const char str_hrContest[]   = "HR Contest";
 static const char str_records[]     = "Records";
 static const char str_exit[]        = "Exit";
 
-const char str_charKD[]      = "King Donut";
-const char str_charSN[]      = "Sunny";
-const char str_charBF[]      = "Big Funkus";
+static const char str_charKD[]      = "King Donut";
+static const char str_charSN[]      = "Sunny";
+static const char str_charBF[]      = "Big Funkus";
+
+// Must match order of fightingCharacter_t
+const char* charNames[3] =
+{
+    str_charKD,
+    str_charSN,
+    str_charBF
+};
+
 static const char str_back[]        = "Back";
 
 static const char str_stgBF[]       = "Battlefield";
@@ -733,7 +742,7 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
             {
                 // Show the result
                 const fighterMpGameResult_t* res = (const fighterMpGameResult_t*)payload;
-                initFighterMpResult(fm->disp, &fm->mmFont, res->roundTime,
+                initFighterMpResult(fm->disp, &fm->mmFont, res->roundTimeMs,
                                     res->other, res->otherKOs, res->otherDmg,
                                     res->self, res->selfKOs, res->selfDmg);
                 fm->screen = FIGHTER_MP_RESULT;
@@ -853,7 +862,7 @@ void fighterShowHrResult(fightingCharacter_t character, vector_t position,
 /**
  * @brief Initialize and start showing the result after a multiplayer match contest
  *
- * @param roundTime The time the round took, in seconds
+ * @param roundTimeMs The time the round took, in milliseconds
  * @param self This swadge's character
  * @param selfKOs This swadge's number of KOs
  * @param selfDmg The amount of damage this swadge did
@@ -861,7 +870,7 @@ void fighterShowHrResult(fightingCharacter_t character, vector_t position,
  * @param otherKOs The other swadge's number of KOs
  * @param otherDmg The amount of damage the other swadge did
  */
-void fighterShowMpResult(uint32_t roundTime,
+void fighterShowMpResult(uint32_t roundTimeMs,
                          fightingCharacter_t self,  int8_t selfKOs, int16_t selfDmg,
                          fightingCharacter_t other, int8_t otherKOs, int16_t otherDmg)
 {
@@ -869,7 +878,7 @@ void fighterShowMpResult(uint32_t roundTime,
     const fighterMpGameResult_t res =
     {
         .msgType = MP_GAME_OVER_MSG,
-        .roundTime = roundTime,
+        .roundTimeMs = roundTimeMs,
         .self = self,
         .selfKOs = selfKOs,
         .selfDmg = selfDmg,
@@ -879,7 +888,7 @@ void fighterShowMpResult(uint32_t roundTime,
     };
     p2pSendMsg(&fm->p2p, (const uint8_t*)&res, sizeof(fighterMpGameResult_t), true, fighterP2pMsgTxCbFn);
 
-    initFighterMpResult(fm->disp, &fm->mmFont, roundTime,
+    initFighterMpResult(fm->disp, &fm->mmFont, roundTimeMs,
                         self, selfKOs, selfDmg,
                         other, otherKOs, otherDmg);
     fm->screen = FIGHTER_MP_RESULT;
