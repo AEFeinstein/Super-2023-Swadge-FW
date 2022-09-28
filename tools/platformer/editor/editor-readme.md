@@ -3,7 +3,7 @@ editor-readme
 # How to make levels for Platformer (tentatively titled Super Swadge Land):
 
 ## Introduction
-Super Swadge Land is a conventional 2D platformer action game. The base game mechanics are inspired by a certain funny mustachioed plumber wahoo game. However, while overcoming obstacle course-like levels is the primary goal, high score chasing is a highly encouraged (but not required) side goal. The combo multiplier advances with most actions: defeating enemies, collection coins, beaking brick blocks, collecting powerups, etc; thus adding hidden depth to each level!
+Super Swadge Land is a conventional 2D platformer action game. The base game mechanics are inspired by a certain funny mustachioed plumber wahoo game. However, while overcoming obstacle course-like levels is the primary goal, high score chasing is a highly encouraged (but not required) side goal. The combo multiplier advances with most actions: defeating enemies, collecting coins, beaking brick blocks, collecting powerups, etc; thus adding hidden depth to each level!
 
 ## Prerequisites
 - Aseprite v1.3 beta https://www.aseprite.org
@@ -37,6 +37,11 @@ Super Swadge Land is a conventional 2D platformer action game. The base game mec
 - Tiles that look like boxes or circles with hex numbers are unimplemented. Don't use them.
 - The player spawn tile (ID=128) actually will spawn another player object, and weird stuff will happen. Don't use it! If you are trying to set a start location for the player, use the START tile (ID=1).
 
+# Level design hints:
+- This game implements conventional platformer mechanics: Holding the B button to run, momentum, jump heights that depend on the player's horizontal velocity at the time of jump and can be cancelled by releasnig the A button, time limits, etc. If you design your levels similar to a certain funny mustachioed plumber wahoo game, you will be on the right track.
+- Try to include opportunities for the player to maintain a combo multiplier from the beginning of the level all the way to the end. Coins, enemies, brick blocks, and powerups will all count towards keeping combos alive.
+- Make the end of the level fun. Challenge the player to jump as far as possible across a field of goal tiles of increasing point value. Or mix things up by putting the star-rank goal tile in the middle! Or put enemies in the goal zone to make things really interesting! The possibilities are endless...
+
 # Tileset Reference
 ## Control tiles
 ### Empty
@@ -60,41 +65,41 @@ Warp 0, a.k.a. the "START" tile, represents the starting location for the player
 
 | Tile Id | Tile Name | Appearance in editor |
 | --- | --- | --- |
-| 1 | TILE_WARP_0 | (no image) |
-| 2 | TILE_WARP_1 | (no image) |
-| 3 | TILE_WARP_2 | (no image) |
-| 4 | TILE_WARP_3 | (no image) |
-| 5 | TILE_WARP_4 | (no image) |
-| 6 | TILE_WARP_5 | (no image) |
-| 7 | TILE_WARP_6 | (no image) |
-| 8 | TILE_WARP_7 | (no image) |
-| 9 | TILE_WARP_8 | (no image) |
-| 10 | TILE_WARP_9 | (no image) |
-| 11 | TILE_WARP_A | (no image) |
-| 12 | TILE_WARP_B | (no image) |
-| 13 | TILE_WARP_C | (no image) |
-| 14 | TILE_WARP_D | (no image) |
-| 15 | TILE_WARP_E | (no image) |
-| 16 | TILE_WARP_F | (no image) |
+| 1 | TILE_WARP_0 | ![TILE_WARP_0](./editor-readme-assets/tile001.png) |
+| 2 | TILE_WARP_1 | ![TILE_WARP_1](./editor-readme-assets/tile002.png) |
+| 3 | TILE_WARP_2 | ![TILE_WARP_2](./editor-readme-assets/tile003.png) |
+| 4 | TILE_WARP_3 | ![TILE_WARP_3](./editor-readme-assets/tile004.png) |
+| 5 | TILE_WARP_4 | ![TILE_WARP_4](./editor-readme-assets/tile005.png) |
+| 6 | TILE_WARP_5 | ![TILE_WARP_5](./editor-readme-assets/tile006.png) |
+| 7 | TILE_WARP_6 | ![TILE_WARP_6](./editor-readme-assets/tile007.png) |
+| 8 | TILE_WARP_7 | ![TILE_WARP_7](./editor-readme-assets/tile008.png) |
+| 9 | TILE_WARP_8 | ![TILE_WARP_8](./editor-readme-assets/tile009.png) |
+| 10 | TILE_WARP_9 | ![TILE_WARP_9](./editor-readme-assets/tile010.png) |
+| 11 | TILE_WARP_A | ![TILE_WARP_A](./editor-readme-assets/tile011.png) |
+| 12 | TILE_WARP_B | ![TILE_WARP_B](./editor-readme-assets/tile012.png) |
+| 13 | TILE_WARP_C | ![TILE_WARP_C](./editor-readme-assets/tile013.png) |
+| 14 | TILE_WARP_D | ![TILE_WARP_D](./editor-readme-assets/tile014.png) |
+| 15 | TILE_WARP_E | ![TILE_WARP_E](./editor-readme-assets/tile015.png) |
+| 16 | TILE_WARP_F | ![TILE_WARP_F](./editor-readme-assets/tile016.png) |
 
 ### Container Block Content Tiles
 When placed directly above a Container Block or Brick Block, that block will release the item denoted by the tile.
 
 | Tile Id | Tile Name | Appearance in editor | Notes |
 | --- | --- | --- | --- |
-| 17 | TILE_CTNR_COIN | (no image) | The coin is added directly to the current total, rather than emerging from the block. |
-| 18 | TILE_CTNR_10COIN | (no image) | (Unimplemented) |
-| 19 | TILE_CTNR_POW1 | (no image) | The main powerup, "Gaming" or "Music" (depending on the player's current powerup state) |
-| 20 | TILE_CTNR_POW2 | (no image) | (Unimplemented) |
-| 21 | TILE_CTNR_POW3 | (no image) | (Unimplemented) |
-| 22 | TILE_CTNR_1UP | (no image) | The 1UP heart. |
+| 17 | TILE_CTNR_COIN | ![TILE_CTNR_COIN](./editor-readme-assets/tile017.png) | The coin is added directly to the current total, rather than emerging from the block. |
+| 18 | TILE_CTNR_10COIN | ![TILE_CTNR_10COIN](./editor-readme-assets/tile018.png) | (Unimplemented) |
+| 19 | TILE_CTNR_POW1 | ![TILE_CTNR_POW1](./editor-readme-assets/tile019.png) | The main powerup, "Gaming" or "Music" (depending on the player's current powerup state) |
+| 20 | TILE_CTNR_POW2 | ![TILE_CTNR_POW2](./editor-readme-assets/tile020.png) | (Unimplemented) |
+| 21 | TILE_CTNR_POW3 | ![TILE_CTNR_POW3](./editor-readme-assets/tile021.png) | (Unimplemented) |
+| 22 | TILE_CTNR_1UP | ![TILE_CTNR_1UP](./editor-readme-assets/tile022.png) | The 1UP heart. |
 
 ## Invisible Blocks
 
 | Tile Id | Tile Name | Appearance in editor | Notes |
 | --- | --- | --- | --- |
-| 30 | TILE_INVISIBLE_BLOCK | (no image) | A solid invisible block. Use these to prevent the player from leaving the left or right side of the level. |
-| 31 | TILE_INVISIBLE_CONTAINER_BLOCK | (no image) | An invisible version of Container Block. Can be activated from any direction. |
+| 30 | TILE_INVISIBLE_BLOCK | ![TILE_INVISIBLE_BLOCK](./editor-readme-assets/tile030.png) | A solid invisible block. Use these to prevent the player from leaving the left or right side of the level. |
+| 31 | TILE_INVISIBLE_CONTAINER_BLOCK | ![TILE_INVISIBLE_CONTAINER_BLOCK](./editor-readme-assets/tile031.png) | An invisible version of Container Block. Can be activated from any direction. |
 
 ## Solid Tiles
 The basic building blocks of any level. Objects cannot pass or fall through them.
@@ -108,14 +113,14 @@ The basic building blocks of any level. Objects cannot pass or fall through them
 | 36 | TILE_METAL_BLOCK | ![TILE_METAL_BLOCK](../../../assets/platformer/tiles/tile036.png) |
 | 37 | TILE_METAL_PIPE_H | ![TILE_METAL_PIPE_H](../../../assets/platformer/tiles/tile037.png) |
 | 38 | TILE_METAL_PIPE_V | ![TILE_METAL_PIPE_V](../../../assets/platformer/tiles/tile038.png) |
-| 41 | TILE_GIRDER | ![TILE_GIRDER](../../../assets/platformer/tiles/tile032.png) |
+| 41 | TILE_GIRDER | ![TILE_GIRDER](../../../assets/platformer/tiles/tile041.png) |
 
 ## Bounce Block
-TBD
+Unimplemented. 
 
 | Tile Id | Tile Name | Appearance | Notes |
 | --- | --- | --- | --- |
-| 39 | TILE_METAL_PIPE_HEND | | The name is wrong.|
+| 39 | TILE_METAL_PIPE_HEND | ![TILE_METAL_PIPE_HEND](../../../assets/platformer/tiles/tile039.png) | The name is wrong.|
 
 ## Goal Tiles
 When the player lands on these the level is complete and the appropriate bonus is given.
@@ -179,8 +184,12 @@ Use these to direct the player when a level layout is potentially confusing.
 | 87 | TILE_BG_ARROW_LD | ![TILE_BG_ARROW_LD](../../../assets/platformer/tiles/tile087.png) | 
 | 88 | TILE_BG_ARROW_RD | ![TILE_BG_ARROW_RD](../../../assets/platformer/tiles/tile088.png) |
 
-70. TILE_LADDER,
-    - (Unimplemented, may not be included in this version of the game)
+## Ladder
+Unimplemented.
+
+| Tile Id | Tile Name | Appearance |
+| --- | --- | --- |
+| 70 | TILE_LADDER | ![TILE_LADDER](../../../assets/platformer/tiles/tile070.png) |
 
 ## Entity Spawn Location Tiles
 When these tiles scroll into view, the corresponding entity will spawn at that location.
@@ -208,24 +217,24 @@ This entity unlocks scrolling in all directions after at least 1 scroll lock ent
 | 134 | ENTITY_SCROLL_UNLOCK | ![ENTITY_SCROLL_UNLOCK](../../../assets/platformer/tiles/tile087.png) | 
 
 ### Enemies
-
+The player can defeat any enemy by jumping on top of it ("stomping").
 #### Bush-like enemy (no name yet)
 A basic enemy that walks forward, falls off ledges, and turns around at walls.
 
 | Tile Id | Entity Name | Appearance | Notes |
 | --- | ---| --- | --- |
-| 129 | ENTITY_TEST | ![ENTITY_TEST](../../../assets/platformer/tiles/tile087.png) | |
-| 141 | ENTITY_BUSH_2 | ![ENTITY_BUSH_2](../../../assets/platformer/tiles/tile087.png) | Moves a little faster and turns around at platform edges. When it changes direction, it does a small hop. |
-| 142 | ENTITY_BUSH_3 | ![ENTITY_BUSH_3](../../../assets/platformer/tiles/tile087.png) | Moves fast and randomly changes direction to avoid being stomped. When it changes direction, it does a small hop. |
+| 129 | ENTITY_TEST | ![ENTITY_TEST](../../../assets/platformer/sprites/sprite009.png) | |
+| 141 | ENTITY_BUSH_2 | ![ENTITY_BUSH_2](../../../assets/platformer/sprites/sprite033.png) | Moves a little faster and turns around at platform edges. When it changes direction, it does a small hop. |
+| 142 | ENTITY_BUSH_3 | ![ENTITY_BUSH_3](../../../assets/platformer/sprites/sprite034.png) | Moves fast and randomly changes direction to avoid being stomped. When it changes direction, it does a small hop. |
 
 #### Dust Bunny
 A rabbit enemy that is a bit more difficult to stomp as it constantly jumps.
 
 | Tile Id | Entity Name | Appearance | Notes |
 | --- | ---| --- | --- |
-| 139 | ENTITY_DUST_BUNNY | ![ENTITY_DUST_BUNNY](../../../assets/platformer/tiles/tile087.png) | Jumps in place at random heights at random intervals. |
-| 143 | ENTITY_DUST_BUNNY_2 | ![ENTITY_DUST_BUNNY_2](../../../assets/platformer/tiles/tile087.png) | Jumps forward at random heights at more frequent intervals, turning around at walls. |
-| 144 | ENTITY_DUST_BUNNY_3 | ![ENTITY_DUST_BUNNY_3](../../../assets/platformer/tiles/tile087.png) | Jumps at random heights at random intervals, always moving towards the player. |
+| 139 | ENTITY_DUST_BUNNY | ![ENTITY_DUST_BUNNY](./editor-readme-assets/tile139.png) | Jumps in place at random heights at random intervals. |
+| 143 | ENTITY_DUST_BUNNY_2 | ![ENTITY_DUST_BUNNY_2](./editor-readme-assets/tile143.png) | Jumps forward at random heights at more frequent intervals, turning around at walls. |
+| 144 | ENTITY_DUST_BUNNY_3 | ![ENTITY_DUST_BUNNY_3](./editor-readme-assets/tile144.png) | Jumps at random heights at random intervals, always moving towards the player. |
 
 #### Wasp
 An aggressive enemy that flies through the air, dropping rapidly to the ground in attempt to attack an approaching player below.
@@ -233,9 +242,9 @@ Note: If the player is above the wasp, it will not attack.
 
 | Tile Id | Entity Name | Appearance | Notes |
 | --- | ---| --- | --- |
-| 140 | ENTITY_WASP | ![ENTITY_WASP](../../../assets/platformer/tiles/tile087.png) | Flies slowly and attacks when the player is within a few blocks horizontally from itself. Always returns to its original flying height before resuming horizontal flight. |
-| 145 | ENTITY_WASP_2 | ![ENTITY_WASP_2](../../../assets/platformer/tiles/tile087.png) | Flies a little bit more quickly and ttacks when the player is within a random number of blocks horizontally from itself. Always returns to its original flying height before resuming horizontal flight. |
-| 146 | ENTITY_WASP_3 | ![ENTITY_WASP_3](../../../assets/platformer/tiles/tile087.png) | Flies a quickly towards the player and ttacks when the player is within a close of blocks horizontally from itself. Rises to a random flying height before resuming horizontal flight. |
+| 140 | ENTITY_WASP | ![ENTITY_WASP](./editor-readme-assets/tile140.png) | Flies slowly and attacks when the player is within a few blocks horizontally from itself. Always returns to its original flying height before resuming horizontal flight. |
+| 145 | ENTITY_WASP_2 | ![ENTITY_WASP_2](./editor-readme-assets/tile145.png) | Flies a little bit more quickly and ttacks when the player is within a random number of blocks horizontally from itself. Always returns to its original flying height before resuming horizontal flight. |
+| 146 | ENTITY_WASP_3 | ![ENTITY_WASP_3](./editor-readme-assets/tile146.png) | Flies a quickly towards the player and ttacks when the player is within a close of blocks horizontally from itself. Rises to a random flying height before resuming horizontal flight. |
 
 ### Background Color Control Entities
 Changes the background color to its specified color when its spawn tile is scrolled onto the screen.
@@ -243,32 +252,33 @@ Use it to apply a sky color background and to change it to a color that gives th
 
 Note: the color shown in the editor does not match the exact color shown in-game. See the hex values below.
 
-| Tile Id | Entity Name | Appearance in editor | Actual color hex value | Notes |
+| Tile Id | Entity Name | Appearance in editor | RGB hex color | Notes |
 | --- | ---| --- | --- | --- |
-| 147 | ENTITY_BGCOL_BLUE | ![ENTITY_BGCOL_BLUE](../../../assets/platformer/tiles/tile087.png) | | |
-| 148 | ENTITY_BGCOL_YELLOW | ![ENTITY_BGCOL_YELLOW](../../../assets/platformer/tiles/tile087.png) | | |
-| 149 | ENTITY_BGCOL_ORANGE | ![ENTITY_BGCOL_ORANGE](../../../assets/platformer/tiles/tile087.png) | | |
-| 150 | ENTITY_BGCOL_PURPLE | ![ENTITY_BGCOL_PURPLE](../../../assets/platformer/tiles/tile087.png) | | |
-| 151 | ENTITY_BGCOL_DARK_PURPLE | ![ENTITY_BGCOL_DARK_PURPLE](../../../assets/platformer/tiles/tile087.png) | | |
-| 152 | ENTITY_BGCOL_BLACK | ![ENTITY_BGCOL_BLACK](../../../assets/platformer/tiles/tile087.png) | | |
-| 153 | ENTITY_BGCOL_NEUTRAL_GREEN | ![ENTITY_BGCOL_NEUTRAL_GREEN](../../../assets/platformer/tiles/tile087.png) | | Color is likely to be changed to a completely different color. |
-| 154 | ENTITY_BGCOL_DARK_GREEN | ![ENTITY_BGCOL_DARK_GREEN](../../../assets/platformer/tiles/tile087.png) | | Color is likely to be changed to a completely different color. |
+| 147 | ENTITY_BGCOL_BLUE | ![ENTITY_BGCOL_BLUE](./editor-readme-assets/tile147.png) | 0x99999ff | |
+| 148 | ENTITY_BGCOL_YELLOW | ![ENTITY_BGCOL_YELLOW](./editor-readme-assets/tile148.png) | 0xffcc66 | |
+| 149 | ENTITY_BGCOL_ORANGE | ![ENTITY_BGCOL_ORANGE](./editor-readme-assets/tile149.png) | 0xff9966 | |
+| 150 | ENTITY_BGCOL_PURPLE | ![ENTITY_BGCOL_PURPLE](./editor-readme-assets/tile150.png) | 0x6633cc | |
+| 151 | ENTITY_BGCOL_DARK_PURPLE | ![ENTITY_BGCOL_DARK_PURPLE](./editor-readme-assets/tile151.png) | 0x330099 | |
+| 152 | ENTITY_BGCOL_BLACK | ![ENTITY_BGCOL_BLACK](./editor-readme-assets/tile152.png) | 0x000000 | |
+| 153 | ENTITY_BGCOL_NEUTRAL_GREEN | ![ENTITY_BGCOL_NEUTRAL_GREEN](./editor-readme-assets/tile153.png) | 0x336666 | Color is likely to be changed to a completely different color. |
+| 154 | ENTITY_BGCOL_DARK_RED | ![ENTITY_BGCOL_DARK_RED](./editor-readme-assets/tile154.png) | 0x660000 | |
+| 155 | ENTITY_BGCOL_DARK_GREEN | ![ENTITY_BGCOL_DARK_GREEN](./editor-readme-assets/tile155.png) | 0x003300 | Color is likely to be changed to a completely different color. |
 
 ### Checkpoint Entity
 Places a checkpoint flag into the level. Must be placed directly underneath TILE_WARPx tile to function! The player will respawn at that warp if the flag is activated.
 
 | Tile Id | Entity Name | Appearance in editor |
 | --- | ---| --- |
-| 158 | ENTITY_CHECKPOINT | |
+| 158 | ENTITY_CHECKPOINT | ![ENTITY_CHECKPOINT](../../../assets/platformer/sprites/sprite148.png) |
 
 ## Don't Place the Following Entities using the Editor.
 
 | Tile Id | Entity Name | Appearance in editor | Notes |
 | --- | ---| --- | --- | 
-| 128 | ENTITY_PLAYER | ![ENTITY_PLAYER](../../../assets/platformer/tiles/tile081.png) | Use TILE_WARP_0 (The START tile) instead. Otherwise weird stuff will happen. |
-| 135 | ENTITY_HIT_BLOCK | ![ENTITY_HIT_BLOCK](../../../assets/platformer/tiles/tile081.png) | The object that makes a Container Block or Brick Block look like it's bouncing. Useless if placed from the editor. |
-| 136 | ENTITY_DEAD | ![ENTITY_DEAD](../../../assets/platformer/tiles/tile081.png) | Represents a defeated player or enemy. Useless if placed from the editor. |
-| 137 | ENTITY_POWERUP | ![ENTITY_POWERUP](../../../assets/platformer/tiles/tile081.png) | The "Gaming" or "Music" powerup dropped by TILE_CTNR_POW1. |
-| 138 | ENTITY_WARP | ![ENTITY_WARP](../../../assets/platformer/tiles/tile081.png) | Warp vortex dropped using the TILE_WARPx control tiles. Won't work properly if placed directly using the editor. |
-| 156 | ENTITY_1UP | ![ENTITY_1UP](../../../assets/platformer/tiles/tile081.png) | The 1UP Heart dropped by TILE_CTNR_1UP. Just use that instead, please. |
-| 157 | ENTITY_WAVE_BALL | ![ENTITY_WAVE_BALL](../../../assets/platformer/tiles/tile081.png) | The Square-wave Ball thrown by the player by pressing the B button at 3 HP. Why would you place this directly into a level? |
+| 128 | ENTITY_PLAYER | ![ENTITY_PLAYER](../../../assets/platformer/sprites/sprite000.png) | Use TILE_WARP_0 (The START tile) instead. Otherwise weird stuff will happen. |
+| 135 | ENTITY_HIT_BLOCK | ![ENTITY_HIT_BLOCK](./editor-readme-assets/tile135.png) | The object that makes a Container Block or Brick Block look like it's bouncing. Useless if placed from the editor. |
+| 136 | ENTITY_DEAD | ![ENTITY_DEAD](./editor-readme-assets/tile136.png) | Represents a defeated player or enemy. Useless if placed from the editor. |
+| 137 | ENTITY_POWERUP | ![ENTITY_POWERUP](../../../assets/platformer/sprites/sprite016.png) ![ENTITY_POWERUP](../../../assets/platformer/sprites/sprite019.png)  | The "Gaming" or "Music" powerup dropped by TILE_CTNR_POW1. |
+| 138 | ENTITY_WARP | ![ENTITY_WARP](../../../assets/platformer/sprites/sprite019.png) | Warp vortex dropped using the TILE_WARPx control tiles. Won't work properly if placed directly using the editor. |
+| 156 | ENTITY_1UP | ![ENTITY_1UP](../../../assets/platformer/sprites/sprite027.png) | The 1UP Heart dropped by TILE_CTNR_1UP. Just use that instead, please. |
+| 157 | ENTITY_WAVE_BALL | ![ENTITY_WAVE_BALL](../../../assets/platformer/sprites/sprite030.png) | The Square-wave Ball thrown by the player by pressing the B button at 3 HP. Why would you place this directly into a level? |
