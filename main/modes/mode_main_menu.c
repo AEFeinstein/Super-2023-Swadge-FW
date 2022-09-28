@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "esp_log.h"
+#include "esp_timer.h"
 
 #include "swadgeMode.h"
 #include "swadge_esp32.h"
@@ -38,6 +39,7 @@ void mainMenuExitMode(void);
 void mainMenuMainLoop(int64_t elapsedUs);
 void mainMenuButtonCb(buttonEvt_t* evt);
 void mainMenuCb(const char* opt);
+void mainMenuBatteryCb(uint32_t vBatt);
 
 void mainMenuSetUpTopMenu(bool);
 void mainMenuTopLevelCb(const char* opt);
@@ -56,11 +58,13 @@ typedef struct
 {
     display_t* disp;
     font_t meleeMenuFont;
+    font_t ibmFont;
     meleeMenu_t* menu;
     uint8_t topLevelPos;
     uint8_t gamesPos;
     uint8_t toolsPos;
     uint8_t settingsPos;
+    uint32_t batt;
 } mainMenu_t;
 
 //==============================================================================
@@ -82,7 +86,8 @@ swadgeMode modeMainMenu =
     .fnEspNowSendCb = NULL,
     .fnAccelerometerCallback = NULL,
     .fnAudioCallback = NULL,
-    .fnTemperatureCallback = NULL
+    .fnTemperatureCallback = NULL,
+    .fnBatteryCallback = mainMenuBatteryCb,
 };
 
 const char mainMenuTitle[] = "Swadge!";
@@ -114,6 +119,7 @@ void mainMenuEnterMode(display_t* disp)
 
     // Load the font
     loadFont("mm.font", &mainMenu->meleeMenuFont);
+    loadFont("ibm_vga8.font", &mainMenu->ibmFont);
 
     // Initialize the menu
     mainMenu->menu = initMeleeMenu(mainMenuTitle, &mainMenu->meleeMenuFont, mainMenuTopLevelCb);
@@ -127,6 +133,7 @@ void mainMenuExitMode(void)
 {
     deinitMeleeMenu(mainMenu->menu);
     freeFont(&mainMenu->meleeMenuFont);
+    freeFont(&mainMenu->ibmFont);
     free(mainMenu);
 }
 
@@ -138,6 +145,22 @@ void mainMenuExitMode(void)
 void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
     drawMeleeMenu(mainMenu->disp, mainMenu->menu);
+
+    char battStr[8];
+    sprintf(battStr, "%d", mainMenu->batt);
+    int16_t tWidth = textWidth(&mainMenu->ibmFont, battStr);
+    drawText(mainMenu->disp, &mainMenu->ibmFont, c555, battStr, mainMenu->disp->w - tWidth - 40, 1);
+}
+
+/**
+ * @brief Save the battery voltage
+ * 
+ * @param vBatt The battery voltage
+ */
+void mainMenuBatteryCb(uint32_t vBatt)
+{
+    mainMenu->batt = vBatt;
+    ESP_LOGI("BAT", "%lld %d", esp_timer_get_time(), vBatt);
 }
 
 /**

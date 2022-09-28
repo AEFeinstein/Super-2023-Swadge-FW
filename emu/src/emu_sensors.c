@@ -15,6 +15,7 @@
 #include "emu_esp.h"
 
 #include "QMA6981.h"
+#include "qma7981.h"
 #include "esp_temperature_sensor.h"
 #include "touch_sensor.h"
 #include "btn.h"

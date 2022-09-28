@@ -165,14 +165,17 @@ paletteColor_t paletteHsvToHex( int16_t hue, int16_t sat, int16_t val)
         val = 0;
     }
 
-    uint32_t rgb = EHSVtoHEXhelper( (uint8_t)hue, sat, val, false );
+    return RGBtoPalette( EHSVtoHEXhelper( (uint8_t)hue, sat, val, false ) );
+}
+
+paletteColor_t RGBtoPalette( uint32_t rgb )
+{
     uint8_t r = (rgb >>  0) & 0xFF;
     uint8_t g = (rgb >>  8) & 0xFF;
     uint8_t b = (rgb >> 16) & 0xFF;
-
-    // Convert to palette color and return
     r = (r * 6) / 256;
     g = (g * 6) / 256;
     b = (b * 6) / 256;
     return (paletteColor_t) ( r * 36) + (g * 6) + b;
 }
+

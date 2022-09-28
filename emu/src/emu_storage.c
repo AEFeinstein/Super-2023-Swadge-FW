@@ -26,7 +26,7 @@
 // Function Prototypes
 //==============================================================================
 
-char* blobToStr(void * value, size_t length);
+char* blobToStr(const void * value, size_t length);
 int hexCharToInt(char c);
 void strToBlob(char * str, void * outBlob, size_t blobLen);
 
@@ -376,9 +376,9 @@ bool writeNvsBlob(const char* key, const void* value, size_t length)
  * @param length The length of the blob
  * @return char* An allocated hex string, must be free()'d when done
  */
-char* blobToStr(void * value, size_t length)
+char* blobToStr(const void * value, size_t length)
 {
-    uint8_t * value8 = (uint8_t *)value;
+    const uint8_t * value8 = (const uint8_t *)value;
     char * blobStr = malloc((length * 2) + 1);
     for(size_t i = 0; i < length; i++)
     {
@@ -461,10 +461,12 @@ bool deinitSpiffs(void)
  * @param output  A pointer to a pointer to return the read data in. This memory
  *                will be allocated with calloc(). Must be NULL to start
  * @param outsize A pointer to a size_t to return how much data was read
+ * @param readToSpiRam unused
  * @return true if the file was read successfully, false otherwise
  */
-bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
+bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize, bool readToSpiRam)
 {
+    printf("Read from %s\n", fname);
     // Make sure the output pointer is NULL to begin with
     if(NULL != *output)
     {

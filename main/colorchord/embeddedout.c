@@ -216,8 +216,10 @@ void UpdateLinearLEDs(embeddedout_data* eod, embeddednf_data* end)
             amp = 255;
         }
         uint32_t color = ECCtoHEX( (eod->ledFreqOut[j] + eod->RootNoteOffset) % NOTERANGE, 255, amp );
-        eod->ledOut[l * 3 + 0] = ( color >> 0 ) & 0xff;
-        eod->ledOut[l * 3 + 1] = ( color >> 8 ) & 0xff;
+
+        // Flipping red and green here.
+        eod->ledOut[l * 3 + 1] = ( color >> 0 ) & 0xff;
+        eod->ledOut[l * 3 + 0] = ( color >> 8 ) & 0xff;
         eod->ledOut[l * 3 + 2] = ( color >> 16 ) & 0xff;
     }
     /*    j = eod->ledSpin;
@@ -290,8 +292,9 @@ void UpdateAllSameLEDs(embeddedout_data* eod, embeddednf_data* end)
 
     for( i = 0; i < NUM_LEDS; i++ )
     {
-        eod->ledOut[i * 3 + 0] = ( color >> 0 ) & 0xff;
-        eod->ledOut[i * 3 + 1] = ( color >> 8 ) & 0xff;
+        // Flipping red and green, here.
+        eod->ledOut[i * 3 + 1] = ( color >> 0 ) & 0xff;
+        eod->ledOut[i * 3 + 0] = ( color >> 8 ) & 0xff;
         eod->ledOut[i * 3 + 2] = ( color >> 16 ) & 0xff;
     }
 }

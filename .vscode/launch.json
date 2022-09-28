@@ -28,6 +28,60 @@
                 }
             ],
             "preLaunchTask": "make emu"
+        },
+        {
+            "name": "Swadge Emu no-build 1",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/swadge_emulator",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Swadge Emu no-build 2",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/swadge_emulator",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Two Emulators",
+            "configurations": ["Swadge Emu no-build 1", "Swadge Emu no-build 2"]
         }
     ]
 }

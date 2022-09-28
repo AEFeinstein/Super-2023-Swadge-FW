@@ -27,7 +27,7 @@
 #include "hdw-tft.h"
 
 #ifndef EMU
-#include "soc/rtc_cntl_reg.h"
+    #include "soc/rtc_cntl_reg.h"
 #endif
 
 #define QMA7981
@@ -372,6 +372,10 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                 GPIO_NUM_5);
 #endif
 
+    // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
+    // Make sure to use a different timer than initButtons()
+    buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, TIMER_GROUP_0, TIMER_1, getIsMuted());
+
 #if defined(CONFIG_SWADGE_DEVKIT)
     initTouchSensor(0.2f, true, 6,
                     TOUCH_PAD_NUM9,   // GPIO_NUM_9
@@ -392,12 +396,11 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
     initLeds(GPIO_NUM_39, GPIO_NUM_18, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
 
-    // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
-    buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, getIsMuted());
-
-#if !defined(EMU)
-    if(NULL != cSwadgeMode->fnAudioCallback)
+    if(NULL != cSwadgeMode->fnAudioCallback
+#if defined(EMU)
+            || true // Always init audio for the emulator
 #endif
+      )
     {
         /* Since the ADC2 is shared with the WIFI module, which has higher
          * priority, reading operation of adc2_get_raw() will fail between
@@ -415,6 +418,13 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 #endif
         continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
         continuous_adc_start();
+    }
+    else if (NULL != cSwadgeMode->fnBatteryCallback)
+    {
+#if defined(CONFIG_SWADGE_PROTOTYPE)
+        // If the continuous ADC isn't set up, set up the one-shot one
+        oneshot_adc_init(ADC_UNIT_1, ADC1_CHANNEL_5); /*!< ADC1 channel 5 is GPIO6  */
+#endif
     }
 
     bool accelInitialized = false;
@@ -555,7 +565,6 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         if(NULL != cSwadgeMode->fnAudioCallback)
         {
             uint16_t micAmp = getMicAmplitude();
-
             uint16_t adcSamps[BYTES_PER_READ / sizeof(adc_digi_output_data_t)];
             uint32_t sampleCnt = 0;
             while(0 < (sampleCnt = continuous_adc_read(adcSamps)))
@@ -564,12 +573,16 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                 for(uint32_t i = 0; i < sampleCnt; i++)
                 {
                     static uint32_t samp_iir = 0;
-                    samp_iir = samp_iir - (samp_iir >> 10) + adcSamps[i];
-                    adcSamps[i] = (adcSamps[i] - (samp_iir >> 10)) * 16;
-                    // Amplify the sample
-                    adcSamps[i] = (adcSamps[i] * micAmp) >> 4;
-                }
+                    int32_t sample = adcSamps[i];
+                    samp_iir = samp_iir - (samp_iir >> 9) + sample;
+                    int32_t newsamp = (sample - (samp_iir >> 9));
+                    newsamp = (newsamp * micAmp);
 
+                    if( newsamp <-32768 ) newsamp = -32768;
+                    else if( newsamp > 32767) newsamp = 32767;
+
+                    adcSamps[i] = newsamp;
+                }
                 cSwadgeMode->fnAudioCallback(adcSamps, sampleCnt);
             }
         }
@@ -586,6 +599,20 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             int64_t tNowUs = esp_timer_get_time();
             int64_t tElapsedUs = tNowUs - tLastLoopUs;
             tLastLoopUs = tNowUs;
+
+            // Track time between battery reads
+            if((NULL == cSwadgeMode->fnAudioCallback) &&
+               (NULL != cSwadgeMode->fnBatteryCallback))
+            {
+                static uint64_t tAccumBatt = 10000000;
+                tAccumBatt += tElapsedUs;
+                // Read every 10s
+                while(tAccumBatt >= 10000000)
+                {
+                    tAccumBatt -= 10000000;
+                    cSwadgeMode->fnBatteryCallback(oneshot_adc_read());
+                }
+            }
 
             // Track the elapsed time between draw + fnMainLoop() calls
             static uint64_t tAccumDraw = 0;
@@ -637,7 +664,10 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 #endif
         }
 
+#if defined(EMU)
+        // EMU needs to check this, actual hardware has an ISR
         buzzer_check_next_note();
+#endif
 
         /* If the mode should be switched, do it now */
         if(NULL != pendingSwadgeMode)
@@ -671,18 +701,18 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             {
                 // Deep sleep, wake up, and switch to pendingSwadgeMode
 
-                // We have to do this otherwise the backlight can glitch 
+                // We have to do this otherwise the backlight can glitch
                 disableTFTBacklight();
 
-#ifndef EMU                
+#ifndef EMU
                 // Prevent bootloader on reboot if rebooting from originally bootloaded instance
                 REG_WRITE(RTC_CNTL_OPTION1_REG, 0);
-                
+
                 // Only an issue if originally coming from bootloader.  This is actually a ROM function.
                 // It prevents the USB from glitching out on the reboot after the reboot after coming
                 // out of bootloader
                 void chip_usb_set_persist_flags(uint32_t flags);
-                chip_usb_set_persist_flags(1<<31); // USBDC_PERSIST_ENA
+                chip_usb_set_persist_flags(1 << 31); // USBDC_PERSIST_ENA
 #endif
                 esp_sleep_enable_timer_wakeup(1);
                 esp_deep_sleep_start();

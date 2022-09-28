@@ -139,7 +139,7 @@ bool loadMapFromFile(tilemap_t *tilemap, char *name)
 
     uint8_t *buf = NULL;
     size_t sz;
-    if (!spiffsReadFile(name, &buf, &sz))
+    if (!spiffsReadFile(name, &buf, &sz, false))
     {
         ESP_LOGE("MAP", "Failed to read %s", name);
         return false;

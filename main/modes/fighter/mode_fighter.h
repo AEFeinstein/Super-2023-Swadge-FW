@@ -157,6 +157,7 @@ typedef struct
 
 typedef struct
 {
+    fightingCharacter_t character;
     vector_t pos;
     vector_t hurtbox_offset;
     vector_t size;
@@ -197,6 +198,7 @@ typedef struct
     uint8_t landingLagSprite;
     uint8_t hitstunGroundSprite;
     uint8_t hitstunAirSprite;
+    vector_t sprite_offset;
     /* Input Tracking */
     int32_t prevBtnState;
     int32_t btnState;
@@ -213,9 +215,12 @@ typedef struct
     int32_t damage;
     uint8_t stocks;
     bounceDir_t bounceNextCollision;
+    uint32_t damageGiven;
     /* Animation timer */
     int32_t animTimer;
     uint8_t currentSprite;
+    uint32_t hitstopTimer;
+    uint8_t hitstopShake;
 } fighter_t;
 
 typedef struct
@@ -280,8 +285,10 @@ void fighterGameLoop(int64_t elapsedUs);
 void fighterGameButtonCb(buttonEvt_t* evt);
 
 void fighterRxButtonInput(int32_t btnState);
+void fighterRxScene(const fighterScene_t* scene, uint8_t len);
 
-void drawFighterScene(display_t* d, fighterScene_t* sceneData);
-void fighterDrawSceneAfterAck(void);
+void drawFighterScene(display_t* d, const fighterScene_t* sceneData);
+void setFighterRetryTimeUs(int32_t retryTime);
+void fighterSetDrawScene(void);
 
 #endif
