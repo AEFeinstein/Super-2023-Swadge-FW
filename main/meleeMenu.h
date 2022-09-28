@@ -41,5 +41,6 @@ int addRowToMeleeMenu(meleeMenu_t* menu, const char* label);
 void deinitMeleeMenu(meleeMenu_t* menu);
 void drawMeleeMenu(display_t* d, meleeMenu_t* menu);
 void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn);
+void drawBackgroundGrid(display_t * d);
 
 #endif

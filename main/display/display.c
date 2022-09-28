@@ -6,9 +6,7 @@
 
 #include <string.h>
 #include <esp_log.h>
-#ifdef _TEST_USE_SPIRAM_
-    #include <esp_heap_caps.h>
-#endif
+#include <esp_heap_caps.h>
 
 #include "display.h"
 #include "heatshrink_decoder.h"
@@ -168,18 +166,33 @@ void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
  */
 bool loadWsg(char* name, wsg_t* wsg)
 {
+    return loadWsgSpiRam(name, wsg, false);
+}
+
+/**
+ * @brief Load a WSG from ROM to RAM. WSGs placed in the spiffs_image folder
+ * before compilation will be automatically flashed to ROM
+ *
+ * @param name The filename of the WSG to load
+ * @param wsg  A handle to load the WSG to
+ * @param spiRam true to load to SPI RAM, false to load to normal RAM
+ * @return true if the WSG was loaded successfully,
+ *         false if the WSG load failed and should not be used
+ */
+bool loadWsgSpiRam(char* name, wsg_t* wsg, bool spiRam)
+{
     // Read WSG from file
     uint8_t* buf = NULL;
     size_t sz;
-    if(!spiffsReadFile(name, &buf, &sz))
+    if(!spiffsReadFile(name, &buf, &sz, true))
     {
         ESP_LOGE("WSG", "Failed to read %s", name);
         return false;
     }
 
     // Pick out the decompresed size and create a space for it
-    uint16_t decompressedSize = (buf[0] << 8) | buf[1];
-    uint8_t decompressedBuf[decompressedSize];
+    uint32_t decompressedSize = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | (buf[3]);
+    uint8_t * decompressedBuf = (uint8_t *)heap_caps_malloc(decompressedSize, MALLOC_CAP_SPIRAM);
 
     // Create the decoder
     size_t copied = 0;
@@ -189,16 +202,16 @@ bool loadWsg(char* name, wsg_t* wsg)
     // Decode the file in chunks
     uint32_t inputIdx = 0;
     uint32_t outputIdx = 0;
-    while(inputIdx < (sz - 2))
+    while(inputIdx < (sz - 4))
     {
         // Decode some data
         copied = 0;
-        heatshrink_decoder_sink(hsd, &buf[2 + inputIdx], sz - 2 - inputIdx, &copied);
+        heatshrink_decoder_sink(hsd, &buf[4 + inputIdx], sz - 2 - inputIdx, &copied);
         inputIdx += copied;
 
         // Save it to the output array
         copied = 0;
-        heatshrink_decoder_poll(hsd, &decompressedBuf[outputIdx], sizeof(decompressedBuf) - outputIdx, &copied);
+        heatshrink_decoder_poll(hsd, &decompressedBuf[outputIdx], decompressedSize - outputIdx, &copied);
         outputIdx += copied;
     }
 
@@ -207,7 +220,7 @@ bool loadWsg(char* name, wsg_t* wsg)
 
     // Flush any final output
     copied = 0;
-    heatshrink_decoder_poll(hsd, &decompressedBuf[outputIdx], sizeof(decompressedBuf) - outputIdx, &copied);
+    heatshrink_decoder_poll(hsd, &decompressedBuf[outputIdx], decompressedSize - outputIdx, &copied);
     outputIdx += copied;
 
     // All done decoding
@@ -220,18 +233,24 @@ bool loadWsg(char* name, wsg_t* wsg)
     wsg->w = (decompressedBuf[0] << 8) | decompressedBuf[1];
     wsg->h = (decompressedBuf[2] << 8) | decompressedBuf[3];
     // The rest of the bytes are pixels
-#if defined( _TEST_USE_SPIRAM_ ) && !defined( EMU )
-    wsg->px = (paletteColor_t*)heap_caps_malloc(sizeof(paletteColor_t) * wsg->w * wsg->h, MALLOC_CAP_SPIRAM);
-#else
-    wsg->px = (paletteColor_t*)malloc(sizeof(paletteColor_t) * wsg->w * wsg->h);
-#endif
+    if(spiRam)
+    {
+        wsg->px = (paletteColor_t*)heap_caps_malloc(sizeof(paletteColor_t) * wsg->w * wsg->h, MALLOC_CAP_SPIRAM);
+    }
+    else
+    {
+        wsg->px = (paletteColor_t*)malloc(sizeof(paletteColor_t) * wsg->w * wsg->h);
+    }
+
     if(NULL != wsg->px)
     {
         memcpy(wsg->px, &decompressedBuf[4], outputIdx - 4);
+        free(decompressedBuf);
         return true;
     }
 
     // all done
+    free(decompressedBuf);
     return false;
 }
 
@@ -623,7 +642,7 @@ bool loadFont(const char* name, font_t* font)
     uint8_t* buf = NULL;
     size_t bufIdx = 0;
     size_t sz;
-    if(!spiffsReadFile(name, &buf, &sz))
+    if(!spiffsReadFile(name, &buf, &sz, true))
     {
         ESP_LOGE("FONT", "Failed to read %s", name);
         return false;

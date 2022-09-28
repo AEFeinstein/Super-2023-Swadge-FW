@@ -260,7 +260,7 @@ static bool buzzer_check_next_note_isr(void * ptr)
     // Don't do much if muted
     if(rmt_buzzer.isMuted)
     {
-        return;
+        return false;
     }
 
     // Try playing SFX first
@@ -289,6 +289,7 @@ static bool buzzer_check_next_note_isr(void * ptr)
             }
         }
     }
+    return false;
 }
 
 /**
