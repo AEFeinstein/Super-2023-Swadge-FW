@@ -280,6 +280,6 @@ Places a checkpoint flag into the level. Must be placed directly underneath TILE
 | 135 | ENTITY_HIT_BLOCK | ![ENTITY_HIT_BLOCK](./editor-readme-assets/tile135.png) | The object that makes a Container Block or Brick Block look like it's bouncing. Useless if placed from the editor. |
 | 136 | ENTITY_DEAD | ![ENTITY_DEAD](./editor-readme-assets/tile136.png) | Represents a defeated player or enemy. Useless if placed from the editor. |
 | 137 | ENTITY_POWERUP | ![ENTITY_POWERUP](../../../assets/platformer/sprites/sprite016.png) ![ENTITY_POWERUP](../../../assets/platformer/sprites/sprite019.png)  | The "Gaming" or "Music" powerup dropped by TILE_CTNR_POW1. |
-| 138 | ENTITY_WARP | ![ENTITY_WARP](../../../assets/platformer/sprites/sprite019.png) | Warp vortex dropped using the TILE_WARPx control tiles. Won't work properly if placed directly using the editor. |
+| 138 | ENTITY_WARP | ![ENTITY_WARP](../../../assets/platformer/sprites/sprite021.png) | Warp vortex dropped using the TILE_WARPx control tiles. Won't work properly if placed directly using the editor. |
 | 156 | ENTITY_1UP | ![ENTITY_1UP](../../../assets/platformer/sprites/sprite027.png) | The 1UP Heart dropped by TILE_CTNR_1UP. Just use that instead, please. |
 | 157 | ENTITY_WAVE_BALL | ![ENTITY_WAVE_BALL](../../../assets/platformer/sprites/sprite030.png) | The Square-wave Ball thrown by the player by pressing the B button at 3 HP. Why would you place this directly into a level? |
