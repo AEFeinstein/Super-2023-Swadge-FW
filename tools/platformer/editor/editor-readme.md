@@ -29,6 +29,7 @@ Super Swadge Land is a conventional 2D platformer action game. The base game mec
 7. When you're done, use File -> Scripts -> export-tilemap-binary to export your level. Using the dialog box, select the filename/location to which it will be saved. Filenames must be limited to 12 characters including .bin extension!!
 8. Place the exported file in assets/platformer/levels.
 9. If you're overwriting an existing level file, delete the old version from the spiffs_image directory before building!
+10. Update the leveldef_t struct in mode_platformer.c to add your level to the game!
 
 # General rules for level creation:
 - Levels must be between 19x14 and 255x255 tiles in size. (Use Sprite -> Canvas Size to select a size)
@@ -204,17 +205,17 @@ In the editor, the arrow will point to the line past which the screen will not b
 
 | Tile Id | Entity Name | Appearance in editor |
 | --- | ---| --- |
-| 130 | ENTITY_SCROLL_LOCK_LEFT | ![ENTITY_SCROLL_LOCK_LEFT](../../../assets/platformer/tiles/tile083.png) | 
-| 131 | ENTITY_SCROLL_LOCK_RIGHT | ![ENTITY_SCROLL_LOCK_RIGHTLE_BG_ARROW_D](../../../assets/platformer/tiles/tile084.png) | 
-| 132 | ENTITY_SCROLL_LOCK_UP | ![ENTITY_SCROLL_LOCK_UP](../../../assets/platformer/tiles/tile085.png) |
-| 133 | ENTITY_SCROLL_LOCK_DOWN | ![ENTITY_SCROLL_LOCK_DOWN](../../../assets/platformer/tiles/tile086.png) |
+| 130 | ENTITY_SCROLL_LOCK_LEFT | ![ENTITY_SCROLL_LOCK_LEFT](./editor-readme-assets/tile130.png) | 
+| 131 | ENTITY_SCROLL_LOCK_RIGHT | ![ENTITY_SCROLL_LOCK_RIGHT](./editor-readme-assets/tile131.png) | 
+| 132 | ENTITY_SCROLL_LOCK_UP | ![ENTITY_SCROLL_LOCK_UP](./editor-readme-assets/tile132.png) |
+| 133 | ENTITY_SCROLL_LOCK_DOWN | ![ENTITY_SCROLL_LOCK_DOWN](./editor-readme-assets/tile133.png) |
 
 ### Scroll Unlock Entity
 This entity unlocks scrolling in all directions after at least 1 scroll lock entity has set scrolling limits.
 
 | Tile Id | Entity Name | Appearance in editor |
 | --- | ---| --- |
-| 134 | ENTITY_SCROLL_UNLOCK | ![ENTITY_SCROLL_UNLOCK](../../../assets/platformer/tiles/tile087.png) | 
+| 134 | ENTITY_SCROLL_UNLOCK | ![ENTITY_SCROLL_UNLOCK](./editor-readme-assets/tile134.png) | 
 
 ### Enemies
 The player can defeat any enemy by jumping on top of it ("stomping").
@@ -269,7 +270,7 @@ Places a checkpoint flag into the level. Must be placed directly underneath TILE
 
 | Tile Id | Entity Name | Appearance in editor |
 | --- | ---| --- |
-| 158 | ENTITY_CHECKPOINT | ![ENTITY_CHECKPOINT](../../../assets/platformer/sprites/sprite148.png) |
+| 158 | ENTITY_CHECKPOINT | ![ENTITY_CHECKPOINT](../../../assets/platformer/sprites/sprite048.png) |
 
 ## Don't Place the Following Entities using the Editor.
 
