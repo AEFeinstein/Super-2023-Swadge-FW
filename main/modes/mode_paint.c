@@ -245,6 +245,8 @@ typedef struct
     // The index of the currently selected color, while SELECT is held
     uint8_t paletteSelect;
 
+    led_t leds[NUM_LEDS];
+
 
     //////// Brush / Tool data
 
@@ -491,6 +493,15 @@ void paintEnterMode(display_t* disp)
     loadFont("radiostars.font", &(paintState->toolbarFont));
 
     paintState->menu = initMeleeMenu(paintTitle, &(paintState->menuFont), paintMainMenuCb);
+
+    // Clear the LEDs
+    for (uint8_t i = 0; i < NUM_LEDS; i++)
+    {
+        paintState->leds[i].r = 0;
+        paintState->leds[i].g = 0;
+        paintState->leds[i].b = 0;
+    }
+    setLeds(paintState->leds, NUM_LEDS);
 
     paintInitialize();
 }
