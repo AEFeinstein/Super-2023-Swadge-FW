@@ -28,15 +28,11 @@
 // The size of the buffer for loading/saving the image. Each chunk is saved as a separate blob in NVS
 #define PAINT_SAVE_CHUNK_SIZE 1024
 
-
-#define TFT_WIDTH 280
-#define TFT_HEIGHT 240
-
 #define PAINT_CANVAS_SCALE 3
 #define PAINT_CANVAS_WIDTH 70
 #define PAINT_CANVAS_HEIGHT 60
 
-#define PAINT_CANVAS_X_OFFSET ((TFT_WIDTH - PAINT_CANVAS_WIDTH * PAINT_CANVAS_SCALE) / 2)
+#define PAINT_CANVAS_X_OFFSET ((paintState->disp->w - PAINT_CANVAS_WIDTH * PAINT_CANVAS_SCALE) / 2)
 #define PAINT_CANVAS_Y_OFFSET 26
 
 
