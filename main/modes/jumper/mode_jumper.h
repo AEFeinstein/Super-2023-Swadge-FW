@@ -90,6 +90,8 @@ typedef struct
 
 typedef struct
 {
+    float ledSpeed;
+    float ledTimer;
     uint8_t numTiles;
     uint8_t lives;
     int32_t level;

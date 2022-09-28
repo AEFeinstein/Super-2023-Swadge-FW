@@ -15,6 +15,7 @@
 #include "led_util.h"
 #include "aabb_utils.h"
 #include "settingsManager.h"
+#include "swadge_util.h"
 
 #include "mode_jumper.h"
 #include "jumper_menu.h"
@@ -40,15 +41,15 @@ void jumperRemoveEnemies(void);
 void jumperResetPlayer(void);
 void jumperCheckLevel(void);
 void jumperKillPlayer(void);
+void jumperDoLEDs(int64_t elapsedUs);
 void jumperDoEvilDonut(int64_t elapsedUs);
 void jumperDoBlump(int64_t elapsedUs);
 void jumperSetupState(uint8_t stageIndex);
 bool jumperDoEnemyLand(uint8_t blockIndex);
 void jumperClearBlock(uint8_t blockIndex);
-
-void drawJumperScene(display_t* d);
-void drawJumperEffects(display_t* d);
-void drawJumperHud(display_t* d, font_t* prompt, font_t* font, font_t* outline);
+void jumperDrawScene(display_t* d);
+void jumperDrawEffects(display_t* d);
+void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline);
 
 //==============================================================================
 // Variables
@@ -214,6 +215,7 @@ void jumperStartGame(display_t* disp, font_t* mmFont, bool ledEnabled)
     j = calloc(1, sizeof(jumperGame_t));
     j->d = disp;
     j->prompt_font = mmFont;
+    j->ledEnabled = ledEnabled;
     
     loadFont("early_gameboy_fill.font", &(j->fill_font));
     loadFont("early_gameboy_outline.font", &(j->outline_font));
@@ -305,6 +307,8 @@ void jumperSetupState(uint8_t stageIndex)
     j->currentPhase = JUMPER_COUNTDOWN;
     j->scene->time = 5000000;
     j->scene->seconds = 5000;
+    j->scene->ledTimer = 0;
+    j->scene->ledSpeed = 1000000;
     j->scene->level = stageIndex + 1;
     j->scene->blockOffset_x = 20;
     j->scene->blockOffset_y = 54;
@@ -693,6 +697,11 @@ void jumperGameLoop(int64_t elapsedUs)
                             }
                         }
                     }
+
+                    if (j->scene->combo > 3)
+                    {
+                        j->scene->ledTimer = j->scene->ledSpeed;
+                    }
                     
                     j->scene->combo++;
                     break;
@@ -858,8 +867,8 @@ void jumperGameLoop(int64_t elapsedUs)
 
     }
 
-    drawJumperScene(j->d);
-
+    jumperDrawScene(j->d);
+    if (j->ledEnabled) jumperDoLEDs(elapsedUs);
 }
 
 //When level reset, set all blocks to appear to be unoccupied
@@ -1427,7 +1436,7 @@ void jumperPlayerInput(void)
     }
 }
 
-void drawJumperScene(display_t* d)
+void jumperDrawScene(display_t* d)
 {
     bool drawEnemy = true;
     jumperCharacter_t* player = j->player;
@@ -1481,12 +1490,12 @@ void drawJumperScene(display_t* d)
         drawWsg(d, &player->frames[player->frameIndex], player->x, player->y, player->flipped, false, 0);
     }
 
-    drawJumperEffects(d);
-    drawJumperHud(d, &j->game_font, &j->fill_font, &j->outline_font);
+    jumperDrawEffects(d);
+    jumperDrawHud(d, &j->game_font, &j->fill_font, &j->outline_font);
 
 }
 
-void drawJumperEffects(display_t* d)
+void jumperDrawEffects(display_t* d)
 {
     for (int i = 0; i < 3; i++)
     {
@@ -1512,7 +1521,7 @@ void drawJumperEffects(display_t* d)
     }
 }
 
-void drawJumperHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
+void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
 {
     char textBuffer[12];
     snprintf(textBuffer, sizeof(textBuffer) - 1, "LVL %d", j->scene->level);
@@ -1590,6 +1599,30 @@ void drawJumperHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
     }
     
         
+}
+
+void jumperDoLEDs(int64_t elapsedUs)
+{
+    led_t leds[NUM_LEDS] = {{0}};
+    double per =  (j->scene->ledTimer/j->scene->ledSpeed); 
+    j->scene->ledTimer -= elapsedUs;
+
+    if (j->scene->ledTimer <= 0)
+    {
+        j->scene->ledTimer = 0;
+    }
+   
+    for (int i = 0; i < NUM_LEDS; i++)
+    {
+        if (i > j->scene->combo - 5) continue;
+
+        leds[i].r = 255 * (j->scene->ledTimer/j->scene->ledSpeed);
+        leds[i].g = 204 * (j->scene->ledTimer/j->scene->ledSpeed);
+        leds[i].b = 0;
+    }
+    
+    //ledTimer
+    setLeds(leds, sizeof(leds));
 }
 
 void jumperGameButtonCb(buttonEvt_t* evt)

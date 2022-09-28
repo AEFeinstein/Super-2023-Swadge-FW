@@ -89,6 +89,7 @@ void jumperEnterMode(display_t* disp)
 
     jm->disp = disp;
     jm->ledEnabled = true;
+    jm->menuEntryForLEDs = 1;
 
     loadFont("mm.font", &(jm->mmFont));
 
@@ -170,32 +171,13 @@ void setJumperMainMenu(void)
 {
     resetMeleeMenu(jm->menu, str_jumpTitle, jumperMainMenuCb); //ledEnabled
     addRowToMeleeMenu(jm->menu, str_jump);
-    //jm->menuEntryForLEDs = addRowToMeleeMenu(jm->menu, (jm->ledEnabled ? str_LEDOn : str_LEDOff));
+    jm->menu->allowLEDControl = 1;
+    addRowToMeleeMenu(jm->menu, (jm->ledEnabled ? str_LEDOn : str_LEDOff));
     addRowToMeleeMenu(jm->menu, str_exit);
 
-    /*
-
-    addRowToMeleeMenu(flight->menu, fl_flight_perf);
-    flight->menuEntryForInvertY = addRowToMeleeMenu( flight->menu, flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env );
-    */
     jm->screen = JUMPER_MENU;
 }
 
-/*
-jumperSaveData_t * getFlightSaveData()
-{
-    if( !didFlightsimDataLoad )
-    {
-        size_t size = sizeof(savedata);
-        bool r = readNvsBlob( "flightsim", &savedata, &size );
-        if( !r || size != sizeof( savedata ) )
-        {
-            memset( &savedata, 0, sizeof( savedata ) );
-        }
-        didFlightsimDataLoad = 1;
-    }
-    return &savedata;
-}*/
 
 void jumperMainMenuCb(const char* opt)
 {
