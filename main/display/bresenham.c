@@ -20,6 +20,23 @@
 
 #include "bresenham.h"
 
+
+// Internal functions
+void plotLineInner(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth,int xTr, int yTr, int xScale, int yScale);
+void plotRectInner(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotEllipseInner(display_t*, int xm, int ym, int a, int b, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotCircleInner(display_t*, int xm, int ym, int r, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotCircleFilledInner(display_t* disp, int xm, int ym, int r, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotEllipseRectInner(display_t*, int x0, int y0, int x1, int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotQuadBezierSegInner(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotQuadBezierInner(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotQuadRationalBezierSegInner(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, float w, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotQuadRationalBezierInner(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, float w, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotCubicBezierSegInner(display_t*, int x0, int y0, float x1, float y1, float x2, float y2, int x3, int y3,
+                        paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotCubicBezierInner(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, int x3, int y3, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+
+
 // #define assert(x) if(false == (x)) {  return;  }
 
 /**
@@ -92,7 +109,7 @@ void oddEvenFill(display_t* disp, int x0, int y0, int x1, int y1,
     }
 }
 
-void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth)
+void plotLineInner(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth, int xTr, int yTr, int xScale, int yScale)
 {
     SETUP_FOR_TURBO( disp );
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
@@ -107,7 +124,7 @@ void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
         {
             if(dashDraw)
             {
-                TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col);
+                TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y0 * yScale, col);
             }
             dashCnt++;
             if(dashWidth == dashCnt)
@@ -118,7 +135,7 @@ void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
         }
         else
         {
-            TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col);
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y0 * yScale, col);
         }
         e2 = 2 * err;
         if (e2 >= dy)   /* e_xy+e_x > 0 */
@@ -142,152 +159,93 @@ void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
     }
 }
 
-void plotLineTranslate(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth, translateFn_t xTr, translateFn_t yTr)
+
+void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth)
+{
+    plotLineInner(disp, x0, y0, x1, y1, col, dashWidth, 0, 0, 1, 1);
+}
+
+void plotLineScaled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale*yScale; i++)
+    {
+        plotLineInner(disp, x0, y0, x1, y1, col, dashWidth, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
+    }
+}
+
+void plotRectInner(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
 {
     SETUP_FOR_TURBO( disp );
-    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-    int err = dx + dy, e2; /* error value e_xy */
-    int dashCnt = 0;
-    bool dashDraw = true;
 
-    for (;;)   /* loop */
+    // Vertical lines
+    for(int y = y0; y < y1; y++)
     {
-        if(dashWidth)
-        {
-            if(dashDraw)
-            {
-                TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y0), col);
-            }
-            dashCnt++;
-            if(dashWidth == dashCnt)
-            {
-                dashCnt = 0;
-                dashDraw = !dashDraw;
-            }
-        }
-        else
-        {
-            TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y0), col);
-        }
-        e2 = 2 * err;
-        if (e2 >= dy)   /* e_xy+e_x > 0 */
-        {
-            if (x0 == x1)
-            {
-                break;
-            }
-            err += dy;
-            x0 += sx;
-        }
-        if (e2 <= dx)   /* e_xy+e_y < 0 */
-        {
-            if (y0 == y1)
-            {
-                break;
-            }
-            err += dx;
-            y0 += sy;
-        }
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y * yScale, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (x1 - 1) * xScale, yTr + y * yScale, col);
+    }
+
+    // Horizontal lines
+    for(int x = x0; x < x1; x++)
+    {
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x * xScale, yTr + y0 * yScale, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x * xScale, yTr + (y1 - 1) * yScale, col);
     }
 }
 
 void plotRect(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col)
 {
-    SETUP_FOR_TURBO( disp );
-    // Vertical lines
-    for(int y = y0; y < y1; y++)
-    {
-        TURBO_SET_PIXEL_BOUNDS(disp, x0, y, col);
-        TURBO_SET_PIXEL_BOUNDS(disp, x1 - 1, y, col);
-    }
+    plotRectInner(disp, x0, y0, x1, y1, col, 0, 0, 1, 1);
+}
 
-    // Horizontal lines
-    for(int x = x0; x < x1; x++)
+void plotRectScaled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
     {
-        TURBO_SET_PIXEL_BOUNDS(disp, x, y0, col);
-        TURBO_SET_PIXEL_BOUNDS(disp, x, y1 - 1, col);
+        plotRectInner(disp, x0, y0, x1, y1, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
     }
 }
 
-void plotRectTranslate(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)
+void plotEllipseInner(display_t* disp, int xm, int ym, int a, int b, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
 {
     SETUP_FOR_TURBO( disp );
 
-    // Vertical lines
-    for(int y = y0; y < y1; y++)
-    {
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y), col);
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x1 - 1), yTr(y), col);
-    }
+    int x = -a, y = 0; /* II. quadrant from bottom left to top right */
+    long e2 = (long) b * b, err = (long) x * (2 * e2 + x) + e2; /* error of 1.step */
 
-    // Horizontal lines
-    for(int x = x0; x < x1; x++)
+    do
     {
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x), yTr(y0), col);
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x), yTr(y1 - 1), col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm - x) * xScale, yTr + (ym + y) * yScale, col); /*   I. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm + x) * xScale, yTr + (ym + y) * yScale, col); /*  II. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm + x) * xScale, yTr + (ym - y) * yScale, col); /* III. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm - x) * xScale, yTr + (ym - y) * yScale, col); /*  IV. Quadrant */
+        e2 = 2 * err;
+        if (e2 >= (x * 2 + 1) * (long) b * b) /* e_xy+e_x > 0 */
+        {
+            err += (++x * 2 + 1) * (long) b * b;
+        }
+        if (e2 <= (y * 2 + 1) * (long) a * a) /* e_xy+e_y < 0 */
+        {
+            err += (++y * 2 + 1) * (long) a * a;
+        }
+    } while (x <= 0);
+
+    while (y++ < b)   /* too early stop of flat ellipses a=1, */
+    {
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + xm * xScale, yTr + (ym + y) * yScale, col); /* -> finish tip of ellipse */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + xm * xScale, yTr + (ym - y) * yScale, col);
     }
 }
 
 void plotEllipse(display_t* disp, int xm, int ym, int a, int b, paletteColor_t col)
 {
-    SETUP_FOR_TURBO( disp );
-
-    int x = -a, y = 0; /* II. quadrant from bottom left to top right */
-    long e2 = (long) b * b, err = (long) x * (2 * e2 + x) + e2; /* error of 1.step */
-
-    do
-    {
-        TURBO_SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, xm + x, ym + y, col); /*  II. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, xm - x, ym - y, col); /*  IV. Quadrant */
-        e2 = 2 * err;
-        if (e2 >= (x * 2 + 1) * (long) b * b) /* e_xy+e_x > 0 */
-        {
-            err += (++x * 2 + 1) * (long) b * b;
-        }
-        if (e2 <= (y * 2 + 1) * (long) a * a) /* e_xy+e_y < 0 */
-        {
-            err += (++y * 2 + 1) * (long) a * a;
-        }
-    } while (x <= 0);
-
-    while (y++ < b)   /* too early stop of flat ellipses a=1, */
-    {
-        TURBO_SET_PIXEL_BOUNDS(disp, xm, ym + y, col); /* -> finish tip of ellipse */
-        TURBO_SET_PIXEL_BOUNDS(disp, xm, ym - y, col);
-    }
+    plotEllipseInner(disp, xm, ym, a, b, col, 0, 0, 1, 1);
 }
 
-void plotEllipseTranslate(display_t* disp, int xm, int ym, int a, int b, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)
+void plotEllipseScaled(display_t* disp, int xm, int ym, int a, int b, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
 {
-    SETUP_FOR_TURBO( disp );
-
-    int x = -a, y = 0; /* II. quadrant from bottom left to top right */
-    long e2 = (long) b * b, err = (long) x * (2 * e2 + x) + e2; /* error of 1.step */
-
-    do
+    for (uint8_t i = 0; i < xScale * yScale; i++)
     {
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm - x), yTr(ym + y), col); /*   I. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm + x), yTr(ym + y), col); /*  II. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm + x), yTr(ym - y), col); /* III. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm - x), yTr(ym - y), col); /*  IV. Quadrant */
-        e2 = 2 * err;
-        if (e2 >= (x * 2 + 1) * (long) b * b) /* e_xy+e_x > 0 */
-        {
-            err += (++x * 2 + 1) * (long) b * b;
-        }
-        if (e2 <= (y * 2 + 1) * (long) a * a) /* e_xy+e_y < 0 */
-        {
-            err += (++y * 2 + 1) * (long) a * a;
-        }
-    } while (x <= 0);
-
-    while (y++ < b)   /* too early stop of flat ellipses a=1, */
-    {
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm), yTr(ym + y), col); /* -> finish tip of ellipse */
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm), yTr(ym - y), col);
+        plotEllipseInner(disp, xm, ym, a, b, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
     }
 }
 
@@ -325,17 +283,17 @@ void plotOptimizedEllipse(display_t* disp, int xm, int ym, int a, int b, palette
     }
 }
 
-void plotCircle(display_t* disp, int xm, int ym, int r, paletteColor_t col)
+void plotCircleInner(display_t* disp, int xm, int ym, int r, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
 {
     SETUP_FOR_TURBO( disp );
 
     int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
     do
     {
-		TURBO_SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant +x +y */
-		TURBO_SET_PIXEL_BOUNDS(disp, xm - y, ym - x, col); /*  II. Quadrant -x +y */
-		TURBO_SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant -x -y */
-		TURBO_SET_PIXEL_BOUNDS(disp, xm + y, ym + x, col); /*  IV. Quadrant +x -y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm - x) * xScale, yTr + (ym + y) * yScale, col); /*   I. Quadrant +x +y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm - y) * xScale, yTr + (ym - x) * yScale, col); /*  II. Quadrant -x +y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm + x) * xScale, yTr + (ym - y) * yScale, col); /* III. Quadrant -x -y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm + y) * xScale, yTr + (ym + x) * yScale, col); /*  IV. Quadrant +x -y */
         r = err;
         if (r <= y)
         {
@@ -348,27 +306,17 @@ void plotCircle(display_t* disp, int xm, int ym, int r, paletteColor_t col)
     } while (x < 0);
 }
 
-void plotCircleTranslate(display_t* disp, int xm, int ym, int r, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)
+void plotCircle(display_t* disp, int xm, int ym, int r, paletteColor_t col)
 {
-    SETUP_FOR_TURBO( disp );
+    plotCircleInner(disp, xm, ym, r, col, 0, 0, 1, 1);
+}
 
-    int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
-    do
+void plotCircleScaled(display_t* disp, int xm, int ym, int r, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
     {
-		TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm - x), yTr(ym + y), col); /*   I. Quadrant +x +y */
-		TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm - y), yTr(ym - x), col); /*  II. Quadrant -x +y */
-		TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm + x), yTr(ym - y), col); /* III. Quadrant -x -y */
-		TURBO_SET_PIXEL_BOUNDS(disp, xTr(xm + y), yTr(ym + x), col); /*  IV. Quadrant +x -y */
-        r = err;
-        if (r <= y)
-        {
-            err += ++y * 2 + 1;    /* e_xy+e_y < 0 */
-        }
-        if (r > x || err > y) /* e_xy+e_x > 0 or no 2nd y-step */
-        {
-            err += ++x * 2 + 1;    /* -> x-step now */
-        }
-    } while (x < 0);
+        plotCircleInner(disp, xm, ym, r, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
+    }
 }
 
 void plotCircleQuadrants(display_t* disp, int xm, int ym, int r, bool q1,
@@ -407,7 +355,7 @@ void plotCircleQuadrants(display_t* disp, int xm, int ym, int r, bool q1,
     } while (x < 0);
 }
 
-void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col)
+void plotCircleFilledInner(display_t* disp, int xm, int ym, int r, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
 {
     SETUP_FOR_TURBO( disp );
 
@@ -416,8 +364,8 @@ void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col
     {
         for (int lineX = xm + x; lineX <= xm - x; lineX++)
         {
-            TURBO_SET_PIXEL_BOUNDS(disp, lineX, ym - y, col);
-            TURBO_SET_PIXEL_BOUNDS(disp, lineX, ym + y, col);
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr + lineX * xScale, yTr + (ym - y) * yScale, col);
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr + lineX * xScale, yTr + (ym + y) * yScale, col);
         }
 
         r = err;
@@ -432,269 +380,169 @@ void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col
     } while (x < 0);
 }
 
-void plotCircleFilledTranslate(display_t* disp, int xm, int ym, int r, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)
+void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col)
+{
+    plotCircleFilledInner(disp, xm, ym, r, col, 0, 0, 1, 1);
+}
+
+void plotCircleFilledScaled(display_t* disp, int xm, int ym, int r, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
+    {
+        plotCircleFilledInner(disp, xm, ym, r, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
+    }
+}
+
+void plotEllipseRectInner(display_t* disp, int x0, int y0, int x1,
+                     int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)   /* rectangular parameter enclosing the ellipse */
 {
     SETUP_FOR_TURBO( disp );
 
-    int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
+    long a = abs(x1 - x0), b = abs(y1 - y0), b1 = b & 1; /* diameter */
+    double dx = 4 * (1.0 - a) * b * b, dy = 4 * (b1 + 1) * a * a; /* error increment */
+    double err = dx + dy + b1 * a * a, e2; /* error of 1.step */
+
+    if (x0 > x1)
+    {
+        x0 = x1;
+        x1 += a;
+    } /* if called with swapped points */
+    if (y0 > y1)
+    {
+        y0 = y1;    /* .. exchange them */
+    }
+    y0 += (b + 1) / 2;
+    y1 = y0 - b1; /* starting pixel */
+    a = 8 * a * a;
+    b1 = 8 * b * b;
+
     do
     {
-        for (int lineX = xm + x; lineX <= xm - x; lineX++)
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x1 * xScale, yTr + y0 * yScale, col); /*   I. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y0 * yScale, col); /*  II. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y1 * yScale, col); /* III. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x1 * xScale, yTr + y1 * yScale, col); /*  IV. Quadrant */
+        e2 = 2 * err;
+        if (e2 <= dy)
         {
-            TURBO_SET_PIXEL_BOUNDS(disp, xTr(lineX), yTr(ym - y), col);
-            TURBO_SET_PIXEL_BOUNDS(disp, xTr(lineX), yTr(ym + y), col);
-        }
+            y0++;
+            y1--;
+            err += dy += a;
+        } /* y step */
+        if (e2 >= dx || 2 * err > dy)
+        {
+            x0++;
+            x1--;
+            err += dx += b1;
+        } /* x step */
+    } while (x0 <= x1);
 
-        r = err;
-        if (r <= y)
-        {
-            err += ++y * 2 + 1;    /* e_xy+e_y < 0 */
-        }
-        if (r > x || err > y) /* e_xy+e_x > 0 or no 2nd y-step */
-        {
-            err += ++x * 2 + 1;    /* -> x-step now */
-        }
-    } while (x < 0);
+    while (y0 - y1 <= b)   /* too early stop of flat ellipses a=1 */
+    {
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (x0 - 1) * xScale, yTr + y0 * yScale, col); /* -> finish tip of ellipse */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (x1 + 1) * xScale, yTr + y0++ * yScale, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (x0 - 1) * xScale, yTr + y1 * yScale, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (x1 + 1) * xScale, yTr + y1-- * yScale, col);
+    }
 }
 
 void plotEllipseRect(display_t* disp, int x0, int y0, int x1,
                      int y1, paletteColor_t col)   /* rectangular parameter enclosing the ellipse */
 {
-    SETUP_FOR_TURBO( disp );
+    plotEllipseRectInner(disp, x0, y0, x1, y1, col, 0, 0, 1, 1);
+}
 
-    long a = abs(x1 - x0), b = abs(y1 - y0), b1 = b & 1; /* diameter */
-    double dx = 4 * (1.0 - a) * b * b, dy = 4 * (b1 + 1) * a * a; /* error increment */
-    double err = dx + dy + b1 * a * a, e2; /* error of 1.step */
-
-    if (x0 > x1)
+void plotEllipseRectScaled(display_t* disp, int x0, int y0, int x1,
+                     int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
     {
-        x0 = x1;
-        x1 += a;
-    } /* if called with swapped points */
-    if (y0 > y1)
-    {
-        y0 = y1;    /* .. exchange them */
-    }
-    y0 += (b + 1) / 2;
-    y1 = y0 - b1; /* starting pixel */
-    a = 8 * a * a;
-    b1 = 8 * b * b;
-
-    do
-    {
-        TURBO_SET_PIXEL_BOUNDS(disp, x1, y0, col); /*   I. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col); /*  II. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, x0, y1, col); /* III. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, x1, y1, col); /*  IV. Quadrant */
-        e2 = 2 * err;
-        if (e2 <= dy)
-        {
-            y0++;
-            y1--;
-            err += dy += a;
-        } /* y step */
-        if (e2 >= dx || 2 * err > dy)
-        {
-            x0++;
-            x1--;
-            err += dx += b1;
-        } /* x step */
-    } while (x0 <= x1);
-
-    while (y0 - y1 <= b)   /* too early stop of flat ellipses a=1 */
-    {
-        TURBO_SET_PIXEL_BOUNDS(disp, x0 - 1, y0, col); /* -> finish tip of ellipse */
-        TURBO_SET_PIXEL_BOUNDS(disp, x1 + 1, y0++, col);
-        TURBO_SET_PIXEL_BOUNDS(disp, x0 - 1, y1, col);
-        TURBO_SET_PIXEL_BOUNDS(disp, x1 + 1, y1--, col);
+        plotEllipseRectInner(disp, x0, y0, x1, y1, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
     }
 }
 
-void plotEllipseRectTranslate(display_t* disp, int x0, int y0, int x1,
-                     int y1, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)   /* rectangular parameter enclosing the ellipse */
+void plotQuadBezierSegInner(display_t* disp, int x0, int y0, int x1, int y1, int x2,
+                       int y2, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)   /* plot a limited quadratic Bezier segment */
 {
     SETUP_FOR_TURBO( disp );
 
-    long a = abs(x1 - x0), b = abs(y1 - y0), b1 = b & 1; /* diameter */
-    double dx = 4 * (1.0 - a) * b * b, dy = 4 * (b1 + 1) * a * a; /* error increment */
-    double err = dx + dy + b1 * a * a, e2; /* error of 1.step */
+    int sx = x2 - x1, sy = y2 - y1;
+    long xx = x0 - x1, yy = y0 - y1, xy; /* relative values for checks */
+    double dx, dy, err, cur = xx * sy - yy * sx; /* curvature */
 
-    if (x0 > x1)
+    assert(xx * sx <= 0 && yy * sy <= 0); /* sign of gradient must not change */
+
+    if (sx * (long) sx + sy * (long) sy > xx * xx + yy * yy)   /* begin with longer part */
     {
-        x0 = x1;
-        x1 += a;
-    } /* if called with swapped points */
-    if (y0 > y1)
-    {
-        y0 = y1;    /* .. exchange them */
+        x2 = x0;
+        x0 = sx + x1;
+        y2 = y0;
+        y0 = sy + y1;
+        cur = -cur; /* swap P0 P2 */
     }
-    y0 += (b + 1) / 2;
-    y1 = y0 - b1; /* starting pixel */
-    a = 8 * a * a;
-    b1 = 8 * b * b;
-
-    do
+    if (cur != 0)   /* no straight line */
     {
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x1), yTr(y0), col); /*   I. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y0), col); /*  II. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y1), col); /* III. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x1), yTr(y1), col); /*  IV. Quadrant */
-        e2 = 2 * err;
-        if (e2 <= dy)
+        xx += sx;
+        xx *= sx = x0 < x2 ? 1 : -1; /* x step direction */
+        yy += sy;
+        yy *= sy = y0 < y2 ? 1 : -1; /* y step direction */
+        xy = 2 * xx * yy;
+        xx *= xx;
+        yy *= yy; /* differences 2nd degree */
+        if (cur * sx * sy < 0)   /* negated curvature? */
         {
-            y0++;
-            y1--;
-            err += dy += a;
-        } /* y step */
-        if (e2 >= dx || 2 * err > dy)
+            xx = -xx;
+            yy = -yy;
+            xy = -xy;
+            cur = -cur;
+        }
+        dx = 4.0 * sy * cur * (x1 - x0) + xx - xy; /* differences 1st degree */
+        dy = 4.0 * sx * cur * (y0 - y1) + yy - xy;
+        xx += xx;
+        yy += yy;
+        err = dx + dy + xy; /* error 1st step */
+        do
         {
-            x0++;
-            x1--;
-            err += dx += b1;
-        } /* x step */
-    } while (x0 <= x1);
-
-    while (y0 - y1 <= b)   /* too early stop of flat ellipses a=1 */
-    {
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0 - 1), yTr(y0), col); /* -> finish tip of ellipse */
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x1 + 1), yTr(y0++), col);
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0 - 1), yTr(y1), col);
-        TURBO_SET_PIXEL_BOUNDS(disp, xTr(x1 + 1), yTr(y1--), col);
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y0 * yScale, col); /* plot curve */
+            if (x0 == x2 && y0 == y2)
+            {
+                return;    /* last pixel -> curve finished */
+            }
+            y1 = 2 * err < dx; /* save value for test of y step */
+            if (2 * err > dy)
+            {
+                x0 += sx;
+                dx -= xy;
+                err += dy += yy;
+            } /* x step */
+            if (y1)
+            {
+                y0 += sy;
+                dy -= xy;
+                err += dx += xx;
+            } /* y step */
+        } while (dy < 0 && dx > 0); /* gradient negates -> algorithm fails */
     }
+    plotLineScaled(disp, x0, y0, x2, y2, col, 0, xTr, yTr, xScale, yScale); /* plot remaining part to end */
 }
 
 void plotQuadBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2,
                        int y2, paletteColor_t col)   /* plot a limited quadratic Bezier segment */
 {
-    SETUP_FOR_TURBO( disp );
-
-    int sx = x2 - x1, sy = y2 - y1;
-    long xx = x0 - x1, yy = y0 - y1, xy; /* relative values for checks */
-    double dx, dy, err, cur = xx * sy - yy * sx; /* curvature */
-
-    assert(xx * sx <= 0 && yy * sy <= 0); /* sign of gradient must not change */
-
-    if (sx * (long) sx + sy * (long) sy > xx * xx + yy * yy)   /* begin with longer part */
-    {
-        x2 = x0;
-        x0 = sx + x1;
-        y2 = y0;
-        y0 = sy + y1;
-        cur = -cur; /* swap P0 P2 */
-    }
-    if (cur != 0)   /* no straight line */
-    {
-        xx += sx;
-        xx *= sx = x0 < x2 ? 1 : -1; /* x step direction */
-        yy += sy;
-        yy *= sy = y0 < y2 ? 1 : -1; /* y step direction */
-        xy = 2 * xx * yy;
-        xx *= xx;
-        yy *= yy; /* differences 2nd degree */
-        if (cur * sx * sy < 0)   /* negated curvature? */
-        {
-            xx = -xx;
-            yy = -yy;
-            xy = -xy;
-            cur = -cur;
-        }
-        dx = 4.0 * sy * cur * (x1 - x0) + xx - xy; /* differences 1st degree */
-        dy = 4.0 * sx * cur * (y0 - y1) + yy - xy;
-        xx += xx;
-        yy += yy;
-        err = dx + dy + xy; /* error 1st step */
-        do
-        {
-            TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col); /* plot curve */
-            if (x0 == x2 && y0 == y2)
-            {
-                return;    /* last pixel -> curve finished */
-            }
-            y1 = 2 * err < dx; /* save value for test of y step */
-            if (2 * err > dy)
-            {
-                x0 += sx;
-                dx -= xy;
-                err += dy += yy;
-            } /* x step */
-            if (y1)
-            {
-                y0 += sy;
-                dy -= xy;
-                err += dx += xx;
-            } /* y step */
-        } while (dy < 0 && dx > 0); /* gradient negates -> algorithm fails */
-    }
-    plotLine(disp, x0, y0, x2, y2, col, 0); /* plot remaining part to end */
+    plotQuadBezierSegInner(disp, x0, y0, x1, y1, x2, y2, col, 0, 0, 1, 1);
 }
 
-void plotQuadBezierSegTranslate(display_t* disp, int x0, int y0, int x1, int y1, int x2,
-                       int y2, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)   /* plot a limited quadratic Bezier segment */
+void plotQuadBezierSegScaled(display_t* disp, int x0, int y0, int x1, int y1, int x2,
+                       int y2, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
 {
-    SETUP_FOR_TURBO( disp );
-
-    int sx = x2 - x1, sy = y2 - y1;
-    long xx = x0 - x1, yy = y0 - y1, xy; /* relative values for checks */
-    double dx, dy, err, cur = xx * sy - yy * sx; /* curvature */
-
-    assert(xx * sx <= 0 && yy * sy <= 0); /* sign of gradient must not change */
-
-    if (sx * (long) sx + sy * (long) sy > xx * xx + yy * yy)   /* begin with longer part */
+    for (uint8_t i = 0; i < xScale * yScale; i++)
     {
-        x2 = x0;
-        x0 = sx + x1;
-        y2 = y0;
-        y0 = sy + y1;
-        cur = -cur; /* swap P0 P2 */
+        plotQuadBezierSegInner(disp, x0, y0, x1, y1, x2, y2, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
     }
-    if (cur != 0)   /* no straight line */
-    {
-        xx += sx;
-        xx *= sx = x0 < x2 ? 1 : -1; /* x step direction */
-        yy += sy;
-        yy *= sy = y0 < y2 ? 1 : -1; /* y step direction */
-        xy = 2 * xx * yy;
-        xx *= xx;
-        yy *= yy; /* differences 2nd degree */
-        if (cur * sx * sy < 0)   /* negated curvature? */
-        {
-            xx = -xx;
-            yy = -yy;
-            xy = -xy;
-            cur = -cur;
-        }
-        dx = 4.0 * sy * cur * (x1 - x0) + xx - xy; /* differences 1st degree */
-        dy = 4.0 * sx * cur * (y0 - y1) + yy - xy;
-        xx += xx;
-        yy += yy;
-        err = dx + dy + xy; /* error 1st step */
-        do
-        {
-            TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y0), col); /* plot curve */
-            if (x0 == x2 && y0 == y2)
-            {
-                return;    /* last pixel -> curve finished */
-            }
-            y1 = 2 * err < dx; /* save value for test of y step */
-            if (2 * err > dy)
-            {
-                x0 += sx;
-                dx -= xy;
-                err += dy += yy;
-            } /* x step */
-            if (y1)
-            {
-                y0 += sy;
-                dy -= xy;
-                err += dx += xx;
-            } /* y step */
-        } while (dy < 0 && dx > 0); /* gradient negates -> algorithm fails */
-    }
-    plotLineTranslate(disp, x0, y0, x2, y2, col, 0, xTr, yTr); /* plot remaining part to end */
 }
 
-void plotQuadBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2,
-                    int y2, paletteColor_t col)   /* plot any quadratic Bezier curve */
+void plotQuadBezierInner(display_t* disp, int x0, int y0, int x1, int y1, int x2,
+                    int y2, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)   /* plot any quadratic Bezier curve */
 {
     int x = x0 - x1, y = y0 - y1;
     double t = x0 - 2 * x1 + x2, r;
@@ -715,7 +563,7 @@ void plotQuadBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2,
         x = floor(t + 0.5);
         y = floor(r + 0.5);
         r = (y1 - y0) * (t - x0) / (x1 - x0) + y0; /* intersect P3 | P0 P1 */
-        plotQuadBezierSeg(disp, x0, y0, x, floor(r + 0.5), x, y, col);
+        plotQuadBezierSegInner(disp, x0, y0, x, floor(r + 0.5), x, y, col, xTr, yTr, xScale, yScale);
         r = (y1 - y2) * (t - x2) / (x1 - x2) + y2; /* intersect P4 | P1 P2 */
         x0 = x1 = x;
         y0 = y;
@@ -730,13 +578,28 @@ void plotQuadBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2,
         x = floor(r + 0.5);
         y = floor(t + 0.5);
         r = (x1 - x0) * (t - y0) / (y1 - y0) + x0; /* intersect P6 | P0 P1 */
-        plotQuadBezierSeg(disp, x0, y0, floor(r + 0.5), y, x, y, col);
+        plotQuadBezierSegInner(disp, x0, y0, floor(r + 0.5), y, x, y, col, xTr, yTr, xScale, yScale);
         r = (x1 - x2) * (t - y2) / (y1 - y2) + x2; /* intersect P7 | P1 P2 */
         x0 = x;
         x1 = floor(r + 0.5);
         y0 = y1 = y; /* P0 = P6, P1 = P7 */
     }
-    plotQuadBezierSeg(disp, x0, y0, x1, y1, x2, y2, col); /* remaining part */
+    plotQuadBezierSegInner(disp, x0, y0, x1, y1, x2, y2, col, xTr, yTr, xScale, yScale); /* remaining part */
+}
+
+void plotQuadBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2,
+                    int y2, paletteColor_t col)   /* plot any quadratic Bezier curve */
+{
+    plotQuadBezierInner(disp, x0, y0, x1, y1, x2, y2, col, 0, 0, 1, 1);
+}
+
+void plotQuadBezierScaled(display_t* disp, int x0, int y0, int x1, int y1, int x2,
+                    int y2, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)   /* plot any quadratic Bezier curve */
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
+    {
+        plotQuadBezierInner(disp, x0, y0, x1, y1, x2, y2, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
+    }
 }
 
 void plotQuadRationalBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2,
@@ -942,282 +805,151 @@ void plotRotatedEllipseRect(display_t* disp, int x0, int y0, int x1, int y1,
     plotQuadRationalBezierSeg(disp, x1, y1 - yd, x1, y0, x0 + xd, y0, w, col);
 }
 
+void plotCubicBezierSegInner(display_t* disp, int x0, int y0, float x1, float y1, float x2, float y2,
+                        int x3, int y3, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)   /* plot limited cubic Bezier segment */
+{
+    SETUP_FOR_TURBO( disp );
+
+    int f, fx, fy, leg = 1;
+    int sx = x0 < x3 ? 1 : -1, sy = y0 < y3 ? 1 : -1; /* step direction */
+    float xc = -fabs(x0 + x1 - x2 - x3), xa = xc - 4 * sx * (x1 - x2), xb = sx
+               * (x0 - x1 - x2 + x3);
+    float yc = -fabs(y0 + y1 - y2 - y3), ya = yc - 4 * sy * (y1 - y2), yb = sy
+               * (y0 - y1 - y2 + y3);
+    double ab, ac, bc, cb, xx, xy, yy, dx, dy, ex, *pxy, EP = 0.01;
+    /* check for curve restrains */
+    /* slope P0-P1 == P2-P3    and  (P0-P3 == P1-P2      or   no slope change) */
+    assert(
+        (x1 - x0) * (x2 - x3) < EP
+        && ((x3 - x0) * (x1 - x2) < EP || xb * xb < xa * xc + EP));
+    assert(
+        (y1 - y0) * (y2 - y3) < EP
+        && ((y3 - y0) * (y1 - y2) < EP || yb * yb < ya * yc + EP));
+
+    if (xa == 0 && ya == 0)   /* quadratic Bezier */
+    {
+        sx = floor((3 * x1 - x0 + 1) / 2);
+        sy = floor((3 * y1 - y0 + 1) / 2); /* new midpoint */
+        return plotQuadBezierSegInner(disp, x0, y0, sx, sy, x3, y3, col, xTr, yTr, xScale, yScale);
+    }
+    x1 = (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + 1; /* line lengths */
+    x2 = (x2 - x3) * (x2 - x3) + (y2 - y3) * (y2 - y3) + 1;
+    do   /* loop over both ends */
+    {
+        ab = xa * yb - xb * ya;
+        ac = xa * yc - xc * ya;
+        bc = xb * yc - xc * yb;
+        ex = ab * (ab + ac - 3 * bc) + ac * ac; /* P0 part of self-intersection loop? */
+        f = ex > 0 ? 1 : sqrt(1 + 1024 / x1); /* calculate resolution */
+        ab *= f;
+        ac *= f;
+        bc *= f;
+        ex *= f * f; /* increase resolution */
+        xy = 9 * (ab + ac + bc) / 8;
+        cb = 8 * (xa - ya); /* init differences of 1st degree */
+        dx = 27 * (8 * ab * (yb * yb - ya * yc) + ex * (ya + 2 * yb + yc)) / 64
+             - ya * ya * (xy - ya);
+        dy = 27 * (8 * ab * (xb * xb - xa * xc) - ex * (xa + 2 * xb + xc)) / 64
+             - xa * xa * (xy + xa);
+        /* init differences of 2nd degree */
+        xx = 3
+             * (3 * ab * (3 * yb * yb - ya * ya - 2 * ya * yc)
+                - ya * (3 * ac * (ya + yb) + ya * cb)) / 4;
+        yy = 3
+             * (3 * ab * (3 * xb * xb - xa * xa - 2 * xa * xc)
+                - xa * (3 * ac * (xa + xb) + xa * cb)) / 4;
+        xy = xa * ya * (6 * ab + 6 * ac - 3 * bc + cb);
+        ac = ya * ya;
+        cb = xa * xa;
+        xy = 3
+             * (xy + 9 * f * (cb * yb * yc - xb * xc * ac)
+                - 18 * xb * yb * ab) / 8;
+
+        if (ex < 0)   /* negate values if inside self-intersection loop */
+        {
+            dx = -dx;
+            dy = -dy;
+            xx = -xx;
+            yy = -yy;
+            xy = -xy;
+            ac = -ac;
+            cb = -cb;
+        } /* init differences of 3rd degree */
+        ab = 6 * ya * ac;
+        ac = -6 * xa * ac;
+        bc = 6 * ya * cb;
+        cb = -6 * xa * cb;
+        dx += xy;
+        ex = dx + dy;
+        dy += xy; /* error of 1st step */
+
+        for (pxy = &xy, fx = fy = f; x0 != x3 && y0 != y3;)
+        {
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y0 * yScale, col); /* plot curve */
+            do   /* move sub-steps of one pixel */
+            {
+                if (dx > *pxy || dy < *pxy)
+                {
+                    goto exit;
+                }
+                /* confusing values */
+                y1 = 2 * ex - dy; /* save value for test of y step */
+                if (2 * ex >= dx)   /* x sub-step */
+                {
+                    fx--;
+                    ex += dx += xx;
+                    dy += xy += ac;
+                    yy += bc;
+                    xx += ab;
+                }
+                if (y1 <= 0)   /* y sub-step */
+                {
+                    fy--;
+                    ex += dy += yy;
+                    dx += xy += bc;
+                    xx += ac;
+                    yy += cb;
+                }
+            } while (fx > 0 && fy > 0); /* pixel complete? */
+            if (2 * fx <= f)
+            {
+                x0 += sx;
+                fx += f;
+            } /* x step */
+            if (2 * fy <= f)
+            {
+                y0 += sy;
+                fy += f;
+            } /* y step */
+            if (pxy == &xy && dx < 0 && dy > 0)
+            {
+                pxy = &EP;    /* pixel ahead valid */
+            }
+        }
+exit:
+        xx = x0;
+        x0 = x3;
+        x3 = xx;
+        sx = -sx;
+        xb = -xb; /* swap legs */
+        yy = y0;
+        y0 = y3;
+        y3 = yy;
+        sy = -sy;
+        yb = -yb;
+        x1 = x2;
+    } while (leg--); /* try other end */
+    plotLineInner(disp, x0, y0, x3, y3, col, 0, xTr, yTr, xScale, yScale); /* remaining part in case of cusp or crunode */
+}
+
 void plotCubicBezierSeg(display_t* disp, int x0, int y0, float x1, float y1, float x2, float y2,
                         int x3, int y3, paletteColor_t col)   /* plot limited cubic Bezier segment */
 {
-    SETUP_FOR_TURBO( disp );
-
-    int f, fx, fy, leg = 1;
-    int sx = x0 < x3 ? 1 : -1, sy = y0 < y3 ? 1 : -1; /* step direction */
-    float xc = -fabs(x0 + x1 - x2 - x3), xa = xc - 4 * sx * (x1 - x2), xb = sx
-               * (x0 - x1 - x2 + x3);
-    float yc = -fabs(y0 + y1 - y2 - y3), ya = yc - 4 * sy * (y1 - y2), yb = sy
-               * (y0 - y1 - y2 + y3);
-    double ab, ac, bc, cb, xx, xy, yy, dx, dy, ex, *pxy, EP = 0.01;
-    /* check for curve restrains */
-    /* slope P0-P1 == P2-P3    and  (P0-P3 == P1-P2      or   no slope change) */
-    assert(
-        (x1 - x0) * (x2 - x3) < EP
-        && ((x3 - x0) * (x1 - x2) < EP || xb * xb < xa * xc + EP));
-    assert(
-        (y1 - y0) * (y2 - y3) < EP
-        && ((y3 - y0) * (y1 - y2) < EP || yb * yb < ya * yc + EP));
-
-    if (xa == 0 && ya == 0)   /* quadratic Bezier */
-    {
-        sx = floor((3 * x1 - x0 + 1) / 2);
-        sy = floor((3 * y1 - y0 + 1) / 2); /* new midpoint */
-        return plotQuadBezierSeg(disp, x0, y0, sx, sy, x3, y3, col);
-    }
-    x1 = (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + 1; /* line lengths */
-    x2 = (x2 - x3) * (x2 - x3) + (y2 - y3) * (y2 - y3) + 1;
-    do   /* loop over both ends */
-    {
-        ab = xa * yb - xb * ya;
-        ac = xa * yc - xc * ya;
-        bc = xb * yc - xc * yb;
-        ex = ab * (ab + ac - 3 * bc) + ac * ac; /* P0 part of self-intersection loop? */
-        f = ex > 0 ? 1 : sqrt(1 + 1024 / x1); /* calculate resolution */
-        ab *= f;
-        ac *= f;
-        bc *= f;
-        ex *= f * f; /* increase resolution */
-        xy = 9 * (ab + ac + bc) / 8;
-        cb = 8 * (xa - ya); /* init differences of 1st degree */
-        dx = 27 * (8 * ab * (yb * yb - ya * yc) + ex * (ya + 2 * yb + yc)) / 64
-             - ya * ya * (xy - ya);
-        dy = 27 * (8 * ab * (xb * xb - xa * xc) - ex * (xa + 2 * xb + xc)) / 64
-             - xa * xa * (xy + xa);
-        /* init differences of 2nd degree */
-        xx = 3
-             * (3 * ab * (3 * yb * yb - ya * ya - 2 * ya * yc)
-                - ya * (3 * ac * (ya + yb) + ya * cb)) / 4;
-        yy = 3
-             * (3 * ab * (3 * xb * xb - xa * xa - 2 * xa * xc)
-                - xa * (3 * ac * (xa + xb) + xa * cb)) / 4;
-        xy = xa * ya * (6 * ab + 6 * ac - 3 * bc + cb);
-        ac = ya * ya;
-        cb = xa * xa;
-        xy = 3
-             * (xy + 9 * f * (cb * yb * yc - xb * xc * ac)
-                - 18 * xb * yb * ab) / 8;
-
-        if (ex < 0)   /* negate values if inside self-intersection loop */
-        {
-            dx = -dx;
-            dy = -dy;
-            xx = -xx;
-            yy = -yy;
-            xy = -xy;
-            ac = -ac;
-            cb = -cb;
-        } /* init differences of 3rd degree */
-        ab = 6 * ya * ac;
-        ac = -6 * xa * ac;
-        bc = 6 * ya * cb;
-        cb = -6 * xa * cb;
-        dx += xy;
-        ex = dx + dy;
-        dy += xy; /* error of 1st step */
-
-        for (pxy = &xy, fx = fy = f; x0 != x3 && y0 != y3;)
-        {
-            TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col); /* plot curve */
-            do   /* move sub-steps of one pixel */
-            {
-                if (dx > *pxy || dy < *pxy)
-                {
-                    goto exit;
-                }
-                /* confusing values */
-                y1 = 2 * ex - dy; /* save value for test of y step */
-                if (2 * ex >= dx)   /* x sub-step */
-                {
-                    fx--;
-                    ex += dx += xx;
-                    dy += xy += ac;
-                    yy += bc;
-                    xx += ab;
-                }
-                if (y1 <= 0)   /* y sub-step */
-                {
-                    fy--;
-                    ex += dy += yy;
-                    dx += xy += bc;
-                    xx += ac;
-                    yy += cb;
-                }
-            } while (fx > 0 && fy > 0); /* pixel complete? */
-            if (2 * fx <= f)
-            {
-                x0 += sx;
-                fx += f;
-            } /* x step */
-            if (2 * fy <= f)
-            {
-                y0 += sy;
-                fy += f;
-            } /* y step */
-            if (pxy == &xy && dx < 0 && dy > 0)
-            {
-                pxy = &EP;    /* pixel ahead valid */
-            }
-        }
-exit:
-        xx = x0;
-        x0 = x3;
-        x3 = xx;
-        sx = -sx;
-        xb = -xb; /* swap legs */
-        yy = y0;
-        y0 = y3;
-        y3 = yy;
-        sy = -sy;
-        yb = -yb;
-        x1 = x2;
-    } while (leg--); /* try other end */
-    plotLine(disp, x0, y0, x3, y3, col, 0); /* remaining part in case of cusp or crunode */
+    plotCubicBezierSegInner(disp, x0, y0, x1, y1, x2, y2, x3, y3, col, 0, 0, 1, 1);
 }
 
-void plotCubicBezierSegTranslate(display_t* disp, int x0, int y0, float x1, float y1, float x2, float y2,
-                        int x3, int y3, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)   /* plot limited cubic Bezier segment */
-{
-    SETUP_FOR_TURBO( disp );
-
-    int f, fx, fy, leg = 1;
-    int sx = x0 < x3 ? 1 : -1, sy = y0 < y3 ? 1 : -1; /* step direction */
-    float xc = -fabs(x0 + x1 - x2 - x3), xa = xc - 4 * sx * (x1 - x2), xb = sx
-               * (x0 - x1 - x2 + x3);
-    float yc = -fabs(y0 + y1 - y2 - y3), ya = yc - 4 * sy * (y1 - y2), yb = sy
-               * (y0 - y1 - y2 + y3);
-    double ab, ac, bc, cb, xx, xy, yy, dx, dy, ex, *pxy, EP = 0.01;
-    /* check for curve restrains */
-    /* slope P0-P1 == P2-P3    and  (P0-P3 == P1-P2      or   no slope change) */
-    assert(
-        (x1 - x0) * (x2 - x3) < EP
-        && ((x3 - x0) * (x1 - x2) < EP || xb * xb < xa * xc + EP));
-    assert(
-        (y1 - y0) * (y2 - y3) < EP
-        && ((y3 - y0) * (y1 - y2) < EP || yb * yb < ya * yc + EP));
-
-    if (xa == 0 && ya == 0)   /* quadratic Bezier */
-    {
-        sx = floor((3 * x1 - x0 + 1) / 2);
-        sy = floor((3 * y1 - y0 + 1) / 2); /* new midpoint */
-        return plotQuadBezierSeg(disp, x0, y0, sx, sy, x3, y3, col);
-    }
-    x1 = (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + 1; /* line lengths */
-    x2 = (x2 - x3) * (x2 - x3) + (y2 - y3) * (y2 - y3) + 1;
-    do   /* loop over both ends */
-    {
-        ab = xa * yb - xb * ya;
-        ac = xa * yc - xc * ya;
-        bc = xb * yc - xc * yb;
-        ex = ab * (ab + ac - 3 * bc) + ac * ac; /* P0 part of self-intersection loop? */
-        f = ex > 0 ? 1 : sqrt(1 + 1024 / x1); /* calculate resolution */
-        ab *= f;
-        ac *= f;
-        bc *= f;
-        ex *= f * f; /* increase resolution */
-        xy = 9 * (ab + ac + bc) / 8;
-        cb = 8 * (xa - ya); /* init differences of 1st degree */
-        dx = 27 * (8 * ab * (yb * yb - ya * yc) + ex * (ya + 2 * yb + yc)) / 64
-             - ya * ya * (xy - ya);
-        dy = 27 * (8 * ab * (xb * xb - xa * xc) - ex * (xa + 2 * xb + xc)) / 64
-             - xa * xa * (xy + xa);
-        /* init differences of 2nd degree */
-        xx = 3
-             * (3 * ab * (3 * yb * yb - ya * ya - 2 * ya * yc)
-                - ya * (3 * ac * (ya + yb) + ya * cb)) / 4;
-        yy = 3
-             * (3 * ab * (3 * xb * xb - xa * xa - 2 * xa * xc)
-                - xa * (3 * ac * (xa + xb) + xa * cb)) / 4;
-        xy = xa * ya * (6 * ab + 6 * ac - 3 * bc + cb);
-        ac = ya * ya;
-        cb = xa * xa;
-        xy = 3
-             * (xy + 9 * f * (cb * yb * yc - xb * xc * ac)
-                - 18 * xb * yb * ab) / 8;
-
-        if (ex < 0)   /* negate values if inside self-intersection loop */
-        {
-            dx = -dx;
-            dy = -dy;
-            xx = -xx;
-            yy = -yy;
-            xy = -xy;
-            ac = -ac;
-            cb = -cb;
-        } /* init differences of 3rd degree */
-        ab = 6 * ya * ac;
-        ac = -6 * xa * ac;
-        bc = 6 * ya * cb;
-        cb = -6 * xa * cb;
-        dx += xy;
-        ex = dx + dy;
-        dy += xy; /* error of 1st step */
-
-        for (pxy = &xy, fx = fy = f; x0 != x3 && y0 != y3;)
-        {
-            TURBO_SET_PIXEL_BOUNDS(disp, xTr(x0), yTr(y0), col); /* plot curve */
-            do   /* move sub-steps of one pixel */
-            {
-                if (dx > *pxy || dy < *pxy)
-                {
-                    goto exit;
-                }
-                /* confusing values */
-                y1 = 2 * ex - dy; /* save value for test of y step */
-                if (2 * ex >= dx)   /* x sub-step */
-                {
-                    fx--;
-                    ex += dx += xx;
-                    dy += xy += ac;
-                    yy += bc;
-                    xx += ab;
-                }
-                if (y1 <= 0)   /* y sub-step */
-                {
-                    fy--;
-                    ex += dy += yy;
-                    dx += xy += bc;
-                    xx += ac;
-                    yy += cb;
-                }
-            } while (fx > 0 && fy > 0); /* pixel complete? */
-            if (2 * fx <= f)
-            {
-                x0 += sx;
-                fx += f;
-            } /* x step */
-            if (2 * fy <= f)
-            {
-                y0 += sy;
-                fy += f;
-            } /* y step */
-            if (pxy == &xy && dx < 0 && dy > 0)
-            {
-                pxy = &EP;    /* pixel ahead valid */
-            }
-        }
-exit:
-        xx = x0;
-        x0 = x3;
-        x3 = xx;
-        sx = -sx;
-        xb = -xb; /* swap legs */
-        yy = y0;
-        y0 = y3;
-        y3 = yy;
-        sy = -sy;
-        yb = -yb;
-        x1 = x2;
-    } while (leg--); /* try other end */
-    plotLineTranslate(disp, x0, y0, x3, y3, col, 0, xTr, yTr); /* remaining part in case of cusp or crunode */
-}
-
-void plotCubicBezierTranslate(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
-                     int y3, paletteColor_t col, translateFn_t xTr, translateFn_t yTr)   /* plot any cubic Bezier curve */
+void plotCubicBezierInner(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
+                     int y3, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)   /* plot any cubic Bezier curve */
 {
     int n = 0, i = 0;
     long xc = x0 + x1 - x2 - x3, xa = xc - 4 * (x1 - x2);
@@ -1307,16 +1039,8 @@ void plotCubicBezierTranslate(display_t* disp, int x0, int y0, int x1, int y1, i
         }
         if (x0 != x3 || y0 != y3) /* segment t1 - t2 */
         {
-            if (xTr && yTr)
-            {
-                plotCubicBezierSegTranslate(disp, x0, y0, x0 + fx1, y0 + fy1, x0 + fx2, y0 + fy2,
-                               x3, y3, col, xTr, yTr);
-            }
-            else
-            {
-                plotCubicBezierSeg(disp, x0, y0, x0 + fx1, y0 + fy1, x0 + fx2, y0 + fy2,
-                                x3, y3, col);
-            }
+            plotCubicBezierSegInner(disp, x0, y0, x0 + fx1, y0 + fy1, x0 + fx2, y0 + fy2,
+                            x3, y3, col, xTr, yTr, xScale, yScale);
         }
         x0 = x3;
         y0 = y3;
@@ -1329,7 +1053,16 @@ void plotCubicBezierTranslate(display_t* disp, int x0, int y0, int x1, int y1, i
 void plotCubicBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
                      int y3, paletteColor_t col)
 {
-    plotCubicBezierTranslate(disp, x0, y0, x1, y1, x2, y2, x3, y3, col, NULL, NULL);
+    plotCubicBezierInner(disp, x0, y0, x1, y1, x2, y2, x3, y3, col, 0, 0, 1, 1);
+}
+
+void plotCubicBezierScaled(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
+                     int y3, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
+    {
+        plotCubicBezierInner(disp, x0, y0, x1, y1, x2, y2, x3, y3, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
+    }
 }
 
 void plotQuadSpline(display_t* disp, int n, int x[], int y[],
