@@ -422,6 +422,7 @@ void paintSaveIndex(void);
 void paintResetStorage(void);
 bool paintGetSlotInUse(uint8_t slot);
 void paintSetSlotInUse(uint8_t slot);
+bool paintGetAnySlotInUse(void);
 uint8_t paintGetRecentSlot(void);
 void paintSetRecentSlot(uint8_t slot);
 void paintSave(uint8_t slot);
@@ -750,7 +751,14 @@ void paintButtonCb(buttonEvt_t* evt)
                         if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
                         {
                             // Toggle between Save / Load
-                            paintState->isSaveSelected = !paintState->isSaveSelected;
+                            // But if no slots are in use, don't switch to "load"
+                            paintState->isSaveSelected = !paintState->isSaveSelected || !paintGetAnySlotInUse();
+
+                            // TODO move this and friends into a function
+                            while (!paintState->isSaveSelected && paintGetAnySlotInUse() && !paintGetSlotInUse(paintState->selectedSlot))
+                            {
+                                paintState->selectedSlot = (paintState->selectedSlot + 1) % PAINT_SAVE_SLOTS;
+                            }
                         }
                         break;
                     }
@@ -760,7 +768,13 @@ void paintButtonCb(buttonEvt_t* evt)
                         if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
                         {
                             // Previous save slot
-                            paintState->selectedSlot = (paintState->selectedSlot == 0) ? PAINT_SAVE_SLOTS - 1 : paintState->selectedSlot - 1;
+                            do
+                            {
+                                // Switch to the previous slot, wrapping back to the end
+                                paintState->selectedSlot = (paintState->selectedSlot == 0) ? PAINT_SAVE_SLOTS - 1 : paintState->selectedSlot - 1;
+                            }
+                            // If we're loading, and there's actually a slot we can load from, skip empty slots until we find one that is in use
+                            while (!paintState->isSaveSelected && paintGetAnySlotInUse() && !paintGetSlotInUse(paintState->selectedSlot));
                         }
                         else if (paintState->saveMenu == CONFIRM_OVERWRITE)
                         {
@@ -775,8 +789,12 @@ void paintButtonCb(buttonEvt_t* evt)
                         if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
                         {
                             // Next save slot
-                            // TODO: Skip empty slots
-                            paintState->selectedSlot = (paintState->selectedSlot + 1) % PAINT_SAVE_SLOTS;
+                            do
+                            {
+                                paintState->selectedSlot = (paintState->selectedSlot + 1) % PAINT_SAVE_SLOTS;
+                            }
+                            // If we're loading, and there's actually a slot we can load from, skip empty slots until we find one that is in use
+                            while (!paintState->isSaveSelected && paintGetAnySlotInUse() && !paintGetSlotInUse(paintState->selectedSlot));
                         }
                         else if (paintState->saveMenu == CONFIRM_OVERWRITE)
                         {
@@ -1982,6 +2000,11 @@ void paintSetSlotInUse(uint8_t slot)
 {
     paintState->index |= (1 << slot);
     paintSaveIndex();
+}
+
+bool paintGetAnySlotInUse(void)
+{
+    return (paintState->index & ((1 << PAINT_SAVE_SLOTS) - 1)) != 0;
 }
 
 uint8_t paintGetRecentSlot(void)
