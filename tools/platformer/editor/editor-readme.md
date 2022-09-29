@@ -109,7 +109,6 @@ The basic building blocks of any level. Objects cannot pass or fall through them
 | --- | --- | --- |
 | 32 | TILE_GRASS | ![TILE_GRASS](../../../assets/platformer/tiles/tile032.png) |
 | 33 | TILE_GROUND | ![TILE_GROUND](../../../assets/platformer/tiles/tile033.png) |
-| 34 | TILE_BRICK_BLOCK | ![TILE_BRICK_BLOCK](../../../assets/platformer/tiles/tile034.png) |
 | 35 | TILE_BLOCK | ![TILE_BLOCK](../../../assets/platformer/tiles/tile035.png) |
 | 36 | TILE_METAL_BLOCK | ![TILE_METAL_BLOCK](../../../assets/platformer/tiles/tile036.png) |
 | 37 | TILE_METAL_PIPE_H | ![TILE_METAL_PIPE_H](../../../assets/platformer/tiles/tile037.png) |
@@ -137,6 +136,8 @@ When the player lands on these the level is complete and the appropriate bonus i
 ## Container Block
 The standard Container Block. Can be activated from any direction. If a Container Block Content Tile is placed above, the block will yield that item when hit.
 
+When a player hits the Container Block, it will bounce in the direction it was hit. Any enemies touching the bouncing block will be defeated!
+
 | Tile Id | Tile Name | Appearance |
 | --- | --- | --- |
 | 64 | TILE_CONTAINER_1 | ![TILE_CONTAINER_1](../../../assets/platformer/tiles/tile064.png) |
@@ -147,6 +148,18 @@ Animation frames for the Container Block. Don't use these.
 | --- | --- | --- |
 | 65 | TILE_CONTAINER_2 | ![TILE_CONTAINER_2](../../../assets/platformer/tiles/tile065.png) |
 | 66 | TILE_CONTAINER_3 | ![TILE_CONTAINER_2](../../../assets/platformer/tiles/tile066.png) |
+
+## Brick Block
+Has all the same functionality as the Container Block, but can break depending on how the player collides with it:
+- Jumping into the Brick Block from below
+- Running into the Brick Block from the side at full speed
+
+However, if the player lands on top of the Brick Block, it will not break and thus is still safe to use as a platform.
+
+| Tile Id | Tile Name | Appearance |
+| --- | --- | --- |
+| 34 | TILE_BRICK_BLOCK | ![TILE_BRICK_BLOCK](../../../assets/platformer/tiles/tile034.png) |
+
 ## Coin
 A coin. If the player touches it, it will be collected.
 
@@ -245,7 +258,7 @@ Note: If the player is above the wasp, it will not attack.
 | --- | ---| --- | --- |
 | 140 | ENTITY_WASP | ![ENTITY_WASP](./editor-readme-assets/tile140.png) | Flies slowly and attacks when the player is within a few blocks horizontally from itself. Always returns to its original flying height before resuming horizontal flight. |
 | 145 | ENTITY_WASP_2 | ![ENTITY_WASP_2](./editor-readme-assets/tile145.png) | Flies a little bit more quickly and ttacks when the player is within a random number of blocks horizontally from itself. Always returns to its original flying height before resuming horizontal flight. |
-| 146 | ENTITY_WASP_3 | ![ENTITY_WASP_3](./editor-readme-assets/tile146.png) | Flies a quickly towards the player and ttacks when the player is within a close of blocks horizontally from itself. Rises to a random flying height before resuming horizontal flight. |
+| 146 | ENTITY_WASP_3 | ![ENTITY_WASP_3](./editor-readme-assets/tile146.png) | Flies a quickly towards the player and attacks when the player is within a close range of blocks horizontally from itself. Rises to a random flying height before resuming horizontal flight. |
 
 ### Background Color Control Entities
 Changes the background color to its specified color when its spawn tile is scrolled onto the screen.
