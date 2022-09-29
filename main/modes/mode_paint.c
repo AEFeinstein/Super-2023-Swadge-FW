@@ -1969,6 +1969,7 @@ void paintLoadIndex(void)
     {
         PAINT_LOGW("No metadata! Setting defaults");
         paintState->index = PAINT_DEFAULTS;
+        paintSaveIndex();
     }
 }
 
