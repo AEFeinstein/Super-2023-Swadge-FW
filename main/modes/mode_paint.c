@@ -13,7 +13,7 @@
 #include "mode_paint.h"
 
 #include "mode_main_menu.h"
-
+#include "swadge_util.h"
 
 /*
  * REMAINING BIG THINGS TO DO:
@@ -58,7 +58,7 @@ static const char startMenuNo[] = "No";
 
 typedef paletteColor_t (*colorMapFn_t)(paletteColor_t col);
 
-static const paletteColor_t cursorPxsBox[] =
+static paletteColor_t cursorPxsBox[] =
 {
     c000, c000, c000, c000, c000,
     c000, cTransparent, cTransparent, cTransparent, c000,
@@ -67,7 +67,7 @@ static const paletteColor_t cursorPxsBox[] =
     c000, c000, c000, c000, c000,
 };
 
-static const paletteColor_t cursorPxsCrosshair[] =
+static paletteColor_t cursorPxsCrosshair[] =
 {
     cTransparent, cTransparent, c000, cTransparent, cTransparent,
     cTransparent, cTransparent, c000, cTransparent, cTransparent,
@@ -77,13 +77,13 @@ static const paletteColor_t cursorPxsCrosshair[] =
 };
 
 wsg_t cursorCrosshairWsg = {
-    .px = &cursorPxsCrosshair,
+    .px = cursorPxsCrosshair,
     .w = 5,
     .h = 5,
 };
 
 wsg_t cursorBoxWsg = {
-    .px = &cursorPxsBox,
+    .px = cursorPxsBox,
     .w = 5,
     .h = 5,
 };
@@ -254,7 +254,7 @@ typedef struct
     uint8_t brushIndex;
 
     // A pointer to the currently selected brush's definition for convenience
-    brush_t *brush;
+    const brush_t *brush;
 
     // The current brush width or variant, depending on the brush
     uint8_t brushWidth;
@@ -339,7 +339,7 @@ typedef struct
 
 // Mode struct function declarations
 void paintEnterMode(display_t* disp);
-void paintExitMode();
+void paintExitMode(void);
 void paintMainLoop(int64_t elapsedUs);
 void paintButtonCb(buttonEvt_t* evt);
 void paintMainMenuCb(const char* opt);
@@ -400,27 +400,27 @@ paintMenu_t* paintState;
 int xTranslate(int x);
 int yTranslate(int y);
 paletteColor_t getContrastingColor(paletteColor_t col);
-void paintInitialize();
-void paintRenderAll();
-void restoreCursorPixels();
-void paintRenderCursor();
-void paintRenderToolbar();
+void paintInitialize(void);
+void paintRenderAll(void);
+void restoreCursorPixels(void);
+void paintRenderCursor(void);
+void paintRenderToolbar(void);
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
 void paintMoveCursorRel(int8_t xDiff, int8_t yDiff);
-void paintClearCanvas();
+void paintClearCanvas(void);
 void paintUpdateRecents(uint8_t selectedIndex);
-void paintDrawPickPoints();
-void paintHidePickPoints();
+void paintDrawPickPoints(void);
+void paintHidePickPoints(void);
 void paintDrawWsgTemp(display_t* display, wsg_t* wsg, pxStack_t* saveTo, uint16_t x, uint16_t y, colorMapFn_t colorSwap);
-void paintSetupTool();
-void paintPrevTool();
-void paintNextTool();
-void paintLoadIndex();
-void paintSaveIndex();
-void paintResetStorage();
+void paintSetupTool(void);
+void paintPrevTool(void);
+void paintNextTool(void);
+void paintLoadIndex(void);
+void paintSaveIndex(void);
+void paintResetStorage(void);
 bool paintGetSlotInUse(uint8_t slot);
 void paintSetSlotInUse(uint8_t slot);
-uint8_t paintGetRecentSlot();
+uint8_t paintGetRecentSlot(void);
 void paintSetRecentSlot(uint8_t slot);
 void paintSave(uint8_t slot);
 void paintLoad(uint8_t slot);
@@ -435,6 +435,14 @@ void maybeShrinkPxStack(pxStack_t* pxStack);
 void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y);
 bool popPx(pxStack_t* pxStack, display_t* disp);
 
+void setCursor(wsg_t* cursorWsg);
+void plotCursor(void);
+void enableCursor(void);
+void disableCursor(void);
+
+void plotRectFilled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col);
+void plotRectFilledTranslate(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, translateFn_t xTr, translateFn_t yTr);
+void drawColorBox(uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, paletteColor_t col, bool selected, paletteColor_t topBorder, paletteColor_t bottomBorder);
 
 // Generic util functions
 
@@ -448,37 +456,16 @@ int yTranslate(int y)
     return (y - PAINT_CANVAS_Y_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_Y_OFFSET + paintState->subPixelOffsetY;
 }
 
-void paletteColorToLed(paletteColor_t pal, led_t* led)
-{
-    if (pal == cTransparent)
-    {
-        led->b = 0xFF;
-        led->g = 0xFF;
-        led->r = 0xFF;
-    }
-    else
-    {
-        led->b = pal % 6 * 51;
-        led->g = pal / 6 % 6 * 51;
-        led->r = pal / 36 * 51;
-    }
-}
-
-paletteColor_t ledColorToPalette(const led_t* led)
-{
-    return (paletteColor_t)(led->b / 51 + led->g / 51 * 6 + led->r / 51 * 36);
-}
-
 paletteColor_t getContrastingColor(paletteColor_t col)
 {
-    led_t ledCol;
-    paletteColorToLed(col, &ledCol);
-    ledCol.r = 255 - ledCol.r;
-    ledCol.g = 255 - ledCol.g;
-    ledCol.b = 255 - ledCol.b;
+    uint32_t rgb = paletteToRGB(col);
+    uint8_t r = 255 - (rgb & 0xFF);
+    uint8_t g = 255 - ((rgb >> 8) & 0xFF);
+    uint8_t b = 255 - ((rgb >> 16) & 0xFF);
+    uint32_t contrastCol = (r << 16) | (g << 8) | (b);
 
-    PAINT_LOGV("Converted color to RGB c%d%d%d", ledCol.r, ledCol.g, ledCol.b);
-    return ledColorToPalette(&ledCol);
+    PAINT_LOGV("Converted color to RGB c%d%d%d", r, g, b);
+    return RGBtoPalette(contrastCol);
 }
 
 // Mode struct function implemetations
@@ -506,7 +493,7 @@ void paintEnterMode(display_t* disp)
     paintInitialize();
 }
 
-void paintExitMode()
+void paintExitMode(void)
 {
     PAINT_LOGD("Exiting");
     deinitMeleeMenu(paintState->menu);
@@ -609,7 +596,15 @@ void paintMainLoop(int64_t elapsedUs)
         }
         break;
     }
-
+    case PAINT_GALLERY:
+    case PAINT_RECEIVE:
+    case PAINT_HELP:
+    case PAINT_VIEW:
+    case PAINT_SHARE:
+    {
+        // TODO
+        break;
+    }
     default:
         break;
     }
@@ -1000,7 +995,7 @@ void paintButtonCb(buttonEvt_t* evt)
 
 // Util function implementations
 
-void paintInitialize()
+void paintInitialize(void)
 {
     resetMeleeMenu(paintState->menu, paintTitle, paintMainMenuCb);
     addRowToMeleeMenu(paintState->menu, menuOptDraw);
@@ -1087,12 +1082,12 @@ void paintMainMenuCb(const char* opt)
     }
 }
 
-void paintClearCanvas()
+void paintClearCanvas(void)
 {
     fillDisplayArea(paintState->disp, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_X_OFFSET + paintState->canvasW * PAINT_CANVAS_SCALE, PAINT_CANVAS_Y_OFFSET + paintState->canvasH * PAINT_CANVAS_SCALE, paintState->bgColor);
 }
 
-void paintRenderAll()
+void paintRenderAll(void)
 {
     paintRenderToolbar();
     paintRenderCursor();
@@ -1105,19 +1100,19 @@ void setCursor(wsg_t* cursorWsg)
     paintRenderCursor();
 }
 
-void restoreCursorPixels()
+void restoreCursorPixels(void)
 {
     PAINT_LOGV("Restoring pixels underneath cursor...");
     while (popPx(&paintState->cursorPxs, paintState->disp));
 }
 
-void plotCursor()
+void plotCursor(void)
 {
     restoreCursorPixels();
     paintDrawWsgTemp(paintState->disp, paintState->cursorWsg, &paintState->cursorPxs, CNV2SCR_X(paintState->cursorX) + PAINT_CANVAS_SCALE / 2 - paintState->cursorWsg->w / 2, CNV2SCR_Y(paintState->cursorY) + PAINT_CANVAS_SCALE / 2 - paintState->cursorWsg->h / 2, getContrastingColor);
 }
 
-void paintRenderCursor()
+void paintRenderCursor(void)
 {
     if (paintState->showCursor)
     {
@@ -1129,7 +1124,7 @@ void paintRenderCursor()
     }
 }
 
-void enableCursor()
+void enableCursor(void)
 {
     if (!paintState->showCursor)
     {
@@ -1139,7 +1134,7 @@ void enableCursor()
     }
 }
 
-void disableCursor()
+void disableCursor(void)
 {
     if (paintState->showCursor)
     {
@@ -1198,7 +1193,7 @@ void drawColorBox(uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, pa
     }
 }
 
-void paintRenderToolbar()
+void paintRenderToolbar(void)
 {
     //////// Background
 
@@ -1593,6 +1588,14 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         lastPick = paintState->pickCount + 1 == MAX_PICK_POINTS - 1 || paintState->pickCount + 1 == paintState->brush->maxPoints - 1;
         break;
 
+        case HOLD_DRAW:
+        // TODO
+        break;
+
+        case INSTANT:
+        // TODO
+        break;
+
         default:
         break;
     }
@@ -1780,7 +1783,7 @@ bool popPx(pxStack_t* pxStack, display_t* disp)
     return false;
 }
 
-void paintSetupTool()
+void paintSetupTool(void)
 {
     paintState->brush = &(brushes[paintState->brushIndex]);
 
@@ -1800,7 +1803,7 @@ void paintSetupTool()
     while (popPx(&paintState->pxStack, paintState->disp));
 }
 
-void paintPrevTool()
+void paintPrevTool(void)
 {
     if (paintState->brushIndex > 0)
     {
@@ -1814,7 +1817,7 @@ void paintPrevTool()
     paintSetupTool();
 }
 
-void paintNextTool()
+void paintNextTool(void)
 {
     if (paintState->brushIndex < sizeof(brushes) / sizeof(brush_t) - 1)
     {
@@ -1842,7 +1845,7 @@ void paintUpdateRecents(uint8_t selectedIndex)
     paintDrawPickPoints();
 }
 
-void paintDrawPickPoints()
+void paintDrawPickPoints(void)
 {
     for (uint8_t i = 0; i < paintState->pickCount; i++)
     {
@@ -1856,7 +1859,7 @@ void paintDrawPickPoints()
     }
 }
 
-void paintHidePickPoints()
+void paintHidePickPoints(void)
 {
     for (uint8_t i = 0; i < (paintState->pxStack.index < paintState->pickCount) ? paintState->pxStack.index : paintState->pickCount; i++)
     {
@@ -1923,11 +1926,11 @@ void paintMoveCursorRel(int8_t xDiff, int8_t yDiff)
     }
 }
 
-void paintLoadIndex()
+void paintLoadIndex(void)
 {
     // space needed for all metadata stuff
     // One bit for each slot, and one bit each to store the most-recently-used one
-    size_t indexMetadataSize = PAINT_SAVE_SLOTS * 2 / 8;
+    // size_t indexMetadataSize = PAINT_SAVE_SLOTS * 2 / 8;
 
 
     //       SFX?
@@ -1964,7 +1967,7 @@ void paintLoadIndex()
     }*/
 }
 
-void paintSaveIndex()
+void paintSaveIndex(void)
 {
     if (writeNvs32("pnt_idx", paintState->index))
     {
@@ -1976,7 +1979,7 @@ void paintSaveIndex()
     }
 }
 
-void paintResetStorage()
+void paintResetStorage(void)
 {
     paintState->index = PAINT_DEFAULTS;
     paintSaveIndex();
@@ -1994,7 +1997,7 @@ void paintSetSlotInUse(uint8_t slot)
     paintSaveIndex();
 }
 
-uint8_t paintGetRecentSlot()
+uint8_t paintGetRecentSlot(void)
 {
     paintLoadIndex();
     return (paintState->index >> PAINT_SAVE_SLOTS) & 0b111;
