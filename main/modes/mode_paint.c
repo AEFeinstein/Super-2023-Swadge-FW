@@ -221,12 +221,6 @@ typedef struct
     int16_t canvasW, canvasH;
 
 
-    //////// Settings
-    bool enableLeds;
-    bool enableSfx;
-    bool enableMusic;
-
-
     // Color data
 
     // The foreground color and the background color, which can be swapped with B
