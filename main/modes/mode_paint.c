@@ -426,7 +426,7 @@ bool paintGetAnySlotInUse(void);
 uint8_t paintGetRecentSlot(void);
 void paintSetRecentSlot(uint8_t slot);
 void paintSave(uint8_t slot);
-void paintLoad(uint8_t slot);
+void paintLoad(uint8_t slot, uint16_t xTr, uint16_t yTr, uint16_t xScale, uint16_t yScale);
 void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col);
 void _floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
 void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
@@ -522,7 +522,7 @@ void paintMainLoop(int64_t elapsedUs)
                 if (paintGetSlotInUse(paintGetRecentSlot()))
                 {
                     // Load from the selected slot if it's been used
-                    paintLoad(paintState->selectedSlot);
+                    paintLoad(paintState->selectedSlot, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
                 }
                 else
                 {
@@ -2144,7 +2144,7 @@ void paintSave(uint8_t slot)
     enableCursor();
 }
 
-void paintLoad(uint8_t slot)
+void paintLoad(uint8_t slot, uint16_t xTr, uint16_t yTr, uint16_t xScale, uint16_t yScale)
 {
     // NVS blob key name
     char key[16];
@@ -2248,17 +2248,14 @@ void paintLoad(uint8_t slot)
         for (uint16_t n = 0; n < lastChunkSize; n++)
         {
             // no need for logic to exit the final chunk early, since each chunk's size is given to us
+            // calculate the canvas coordinates given the pixel indices
+            x0 = ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) % paintState->canvasW;
+            y0 = ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) / paintState->canvasW;
+            x1 = ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) % paintState->canvasW;
+            y1 = ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) / paintState->canvasW;
 
-            // calculate the real coordinates given the pixel indices
-            x0 = PAINT_CANVAS_X_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) % paintState->canvasW * PAINT_CANVAS_SCALE;
-            y0 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) / paintState->canvasW * PAINT_CANVAS_SCALE;
-            x1 = PAINT_CANVAS_X_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) % paintState->canvasW * PAINT_CANVAS_SCALE;
-            y1 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) / paintState->canvasW * PAINT_CANVAS_SCALE;
-
-            // Draw the pixel SCALE**2 times
-            // TODO get rid of all the math and use the scaled functions
-            plotRectFilled(paintState->disp, x0, y0, x0 + PAINT_CANVAS_SCALE + 1, y0 + PAINT_CANVAS_SCALE + 1, paintState->recentColors[imgChunk[n] >> 4]);
-            plotRectFilled(paintState->disp, x1, y1, x1 + PAINT_CANVAS_SCALE + 1, y1 + PAINT_CANVAS_SCALE + 1, paintState->recentColors[imgChunk[n] & 0xF]);
+            setPxScaled(paintState->disp, x0, y0, paintState->recentColors[imgChunk[n] >> 4], xTr, yTr, xScale, yScale);
+            setPxScaled(paintState->disp, x1, y1, paintState->recentColors[imgChunk[n] & 0xF], xTr, yTr, xScale, yScale);
         }
     }
 
