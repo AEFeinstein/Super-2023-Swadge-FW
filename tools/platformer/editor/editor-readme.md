@@ -41,6 +41,7 @@ Super Swadge Land is a conventional 2D platformer action game. The base game mec
 # Level design hints:
 - This game implements conventional platformer mechanics: Holding the B button to run, momentum, jump heights that depend on the player's horizontal velocity at the time of jump and can be cancelled by releasnig the A button, time limits, etc. If you design your levels similar to a certain funny mustachioed plumber wahoo game, you will be on the right track.
 - Try to include opportunities for the player to maintain a combo multiplier from the beginning of the level all the way to the end. Coins, enemies, brick blocks, and powerups will all count towards keeping combos alive.
+- Use invisible blocks to prevent the player from leaving the left or right side of a level.
 - Make the end of the level fun. Challenge the player to jump as far as possible across a field of goal tiles of increasing point value. Or mix things up by putting the star-rank goal tile in the middle! Or put enemies in the goal zone to make things really interesting! The possibilities are endless...
 
 # Tileset Reference
