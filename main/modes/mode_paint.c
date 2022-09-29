@@ -449,10 +449,6 @@ void maybeShrinkPxStack(pxStack_t* pxStack);
 void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y);
 bool popPx(pxStack_t* pxStack, display_t* disp);
 
-void plotRectFilled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col);
-void plotRectFilledTranslate(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, translateFn_t xTr, translateFn_t yTr);
-void drawColorBox(uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, paletteColor_t col, bool selected, paletteColor_t topBorder, paletteColor_t bottomBorder);
-
 // Generic util functions
 
 int xTranslate(int x)
