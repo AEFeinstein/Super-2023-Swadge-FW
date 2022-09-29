@@ -74,14 +74,14 @@ static paletteColor_t cursorPxsCrosshair[] =
     cTransparent, cTransparent, c000, cTransparent, cTransparent,
 };
 
-wsg_t cursorCrosshairWsg = {
-    .px = &cursorPxsCrosshair,
+static wsg_t cursorCrosshairWsg = {
+    .px = cursorPxsCrosshair,
     .w = 5,
     .h = 5,
 };
 
-wsg_t cursorBoxWsg = {
-    .px = &cursorPxsBox,
+static const wsg_t cursorBoxWsg = {
+    .px = cursorPxsBox,
     .w = 5,
     .h = 5,
 };
@@ -252,7 +252,7 @@ typedef struct
     uint8_t brushIndex;
 
     // A pointer to the currently selected brush's definition for convenience
-    brush_t *brush;
+    const brush_t* brush;
 
     // The current brush width or variant, depending on the brush
     uint8_t brushWidth;
@@ -277,7 +277,7 @@ typedef struct
     //////// Cursor
 
     // The sprite for the currently selected cursor
-    wsg_t* cursorWsg;
+    const wsg_t* cursorWsg;
 
     // The saved pixels thate rae covered up by the cursor
     pxStack_t cursorPxs;
@@ -337,7 +337,7 @@ typedef struct
 
 // Mode struct function declarations
 void paintEnterMode(display_t* disp);
-void paintExitMode();
+void paintExitMode(void);
 void paintMainLoop(int64_t elapsedUs);
 void paintButtonCb(buttonEvt_t* evt);
 void paintMainMenuCb(const char* opt);
@@ -378,9 +378,9 @@ static const brush_t brushes[] =
 {
     { .name = "Square Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawSquarePen },
     { .name = "Circle Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawCirclePen },
-    { .name = "Line",       .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawLine },
+    { .name = "Line",       .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawLine },
     { .name = "Bezier Curve",      .mode = PICK_POINT, .maxPoints = 4, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCurve },
-    { .name = "Rectangle",  .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawRectangle },
+    { .name = "Rectangle",  .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawRectangle },
     { .name = "Filled Rectangle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledRectangle },
     { .name = "Circle",     .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCircle },
     { .name = "Filled Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledCircle },
@@ -599,8 +599,20 @@ void paintMainLoop(int64_t elapsedUs)
         break;
     }
 
-    default:
-        break;
+    case PAINT_SHARE:
+    break;
+
+    case PAINT_RECEIVE:
+    break;
+
+    case PAINT_VIEW:
+    break;
+
+    case PAINT_GALLERY:
+    break;
+
+    case PAINT_HELP:
+    break;
     }
 }
 
@@ -866,7 +878,7 @@ void paintButtonCb(buttonEvt_t* evt)
                     case BTN_A:
                     {
                         // Increase brush size / next variant
-                        paintState->brushWidth++;
+                        paintIncBrushWidth();
                         paintState->redrawToolbar = true;
                         break;
                     }
@@ -874,11 +886,8 @@ void paintButtonCb(buttonEvt_t* evt)
                     case BTN_B:
                     {
                         // Decrease brush size / prev variant
-                        if (paintState->brushWidth > 1)
-                        {
-                            paintState->brushWidth--;
-                            paintState->redrawToolbar = true;
-                        }
+                        paintDecBrushWidth();
+                        paintState->redrawToolbar = true;
                         break;
                     }
 
@@ -1087,7 +1096,7 @@ void paintRenderAll()
     paintRenderCursor();
 }
 
-void setCursor(wsg_t* cursorWsg)
+void setCursor(const wsg_t* cursorWsg)
 {
     restoreCursorPixels();
     paintState->cursorWsg = cursorWsg;
@@ -1612,6 +1621,12 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         lastPick = paintState->pickCount + 1 == MAX_PICK_POINTS - 1 || paintState->pickCount + 1 == paintState->brush->maxPoints - 1;
         break;
 
+        case HOLD_DRAW:
+        break;
+
+        case INSTANT:
+        break;
+
         default:
         break;
     }
@@ -1836,6 +1851,28 @@ void paintNextTool()
     paintSetupTool();
 }
 
+void paintDecBrushWidth()
+{
+    if (paintState->brushWidth == 0 || paintState->brushWidth <= paintState->brush->minSize)
+    {
+        paintState->brushWidth = paintState->brush->minSize;
+    }
+    else
+    {
+        paintState->brushWidth--;
+    }
+}
+
+void paintIncBrushWidth()
+{
+    paintState->brushWidth++;
+
+    if (paintState->brushWidth > paintState->brush->maxSize)
+    {
+        paintState->brushWidth = paintState->brush->maxSize;
+    }
+}
+
 void paintUpdateRecents(uint8_t selectedIndex)
 {
     paintState->fgColor = paintState->recentColors[selectedIndex];
@@ -1862,17 +1899,11 @@ void paintHidePickPoints()
 {
     for (uint8_t i = 0; i < (paintState->pxStack.index < paintState->pickCount) ? paintState->pxStack.index : paintState->pickCount; i++)
     {
-        for (uint16_t xo = 0; xo < PAINT_CANVAS_SCALE; xo++)
-        {
-            for (uint16_t yo = 0; yo < PAINT_CANVAS_SCALE; yo++)
-            {
-                paintState->disp->setPx((paintState->pickPoints[i].x - PAINT_CANVAS_X_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_X_OFFSET + xo, (paintState->pickPoints[i].y - PAINT_CANVAS_Y_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_Y_OFFSET + yo, paintState->pxStack.data[i].col);
-            }
-        }
+        setPxScaled(paintState->disp, paintState->pickPoints[i].x, paintState->pickPoints[i].y, paintState->pxStack.data[i].col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
     }
 }
 
-void paintDrawWsgTemp(display_t* disp, wsg_t* wsg, pxStack_t* saveTo, uint16_t xOffset, uint16_t yOffset, colorMapFn_t colorSwap)
+void paintDrawWsgTemp(display_t* disp, const wsg_t* wsg, pxStack_t* saveTo, uint16_t xOffset, uint16_t yOffset, colorMapFn_t colorSwap)
 {
     size_t i = 0;
     for (uint16_t x = 0; x < wsg->w; x++)
