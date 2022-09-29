@@ -216,10 +216,6 @@ typedef struct
     // Whether or not A is currently pressed
     bool aHeld;
 
-    // Used in `xTranslate()` and `yTranslate()` as the screen-pixel offset for the current draw operation
-    // Each is iterated over [0, CANVAS_SCALE) with repeated draw operations to render a scaled-up shape with no gaps
-    int subPixelOffsetX, subPixelOffsetY;
-
     // The width of the current canvas
     // TODO: Remove and replace with constant? Or, remove constant and use this?
     int16_t canvasW, canvasH;
@@ -395,8 +391,6 @@ paintMenu_t* paintState;
 
 // Util function declarations
 
-int xTranslate(int x);
-int yTranslate(int y);
 paletteColor_t getContrastingColor(paletteColor_t col);
 void paintInitialize(void);
 void paintRenderAll(void);
@@ -450,16 +444,6 @@ void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y);
 bool popPx(pxStack_t* pxStack, display_t* disp);
 
 // Generic util functions
-
-int xTranslate(int x)
-{
-    return (x - PAINT_CANVAS_X_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_X_OFFSET + paintState->subPixelOffsetX;
-}
-
-int yTranslate(int y)
-{
-    return (y - PAINT_CANVAS_Y_OFFSET) * PAINT_CANVAS_SCALE + PAINT_CANVAS_Y_OFFSET + paintState->subPixelOffsetY;
-}
 
 paletteColor_t getContrastingColor(paletteColor_t col)
 {
