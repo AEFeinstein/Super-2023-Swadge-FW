@@ -179,3 +179,12 @@ paletteColor_t RGBtoPalette( uint32_t rgb )
     return (paletteColor_t) ( r * 36) + (g * 6) + b;
 }
 
+uint32_t paletteToRGB(paletteColor_t col)
+{
+    uint8_t b = ((col % 6) * 256) / 6;
+    uint8_t g = (((col / 6) % 6) * 256) / 6;
+    uint8_t r = ((col / 36) * 256) / 6;
+
+    return (b << 16) | (g << 8) | r;
+}
+

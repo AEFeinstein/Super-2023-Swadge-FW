@@ -37,5 +37,6 @@ uint32_t EHSVtoHEXhelper( uint8_t hue, uint8_t sat, uint8_t val, bool applyGamma
 led_t SafeEHSVtoHEXhelper( int16_t hue, int16_t sat, int16_t val, bool applyGamma );
 paletteColor_t paletteHsvToHex( int16_t hue, int16_t sat, int16_t val);
 paletteColor_t RGBtoPalette( uint32_t rgb ); // takes RGB where R is rgb&0xff G, 0xff00, and B, 0xff0000
+uint32_t paletteToRGB(paletteColor_t col);
 
 #endif

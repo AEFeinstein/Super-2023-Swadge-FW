@@ -75,8 +75,6 @@
 // hold button for .3s to begin repeating
 #define BUTTON_REPEAT_TIME 300000
 
-#define CURSOR_POINTS 8
-
 extern swadgeMode modePaint;
 
 #endif
