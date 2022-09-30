@@ -671,6 +671,20 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
             destroyEntity(other, false);
             break;
         }
+        case ENTITY_CHECKPOINT: {
+            if(!other->xDamping){
+                //Get tile above checkpoint
+                uint8_t aboveTile = self->tilemap->map[(other->homeTileY - 1) * self->tilemap->mapWidth + other->homeTileX];
+                
+                if(aboveTile >= TILE_WARP_0 && aboveTile <= TILE_WARP_F) {
+                    self->gameData->checkpoint = aboveTile - TILE_WARP_0;
+                    other->xDamping = 1;
+                    buzzer_play_sfx(&sndSquish);
+                    //play checkpoint sound
+                }
+            }
+            break;
+        }
         default:
         {
             break;
@@ -1406,4 +1420,10 @@ void updateEnemyBushL3(entity_t* self){
     moveEntityWithTileCollisions(self);
     applyGravity(self);
     detectEntityCollisions(self);
+}
+
+void updateCheckpoint(entity_t* self){
+    if(self->xDamping){
+        self->spriteIndex = SP_CHECKPOINT_ACTIVE_1 + ((self->spriteIndex + 1) % 2);
+    }
 }

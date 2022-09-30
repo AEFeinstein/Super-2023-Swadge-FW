@@ -542,7 +542,7 @@ void changeStateGame(platformer_t *self){
     self->gameData.countdown = leveldef[levelIndex].timeLimit;
 
     entityManager_t * entityManager = &(self->entityManager);
-    entityManager->viewEntity = createPlayer(entityManager, entityManager->tilemap->warps[0].x * 16, entityManager->tilemap->warps[0].y * 16);
+    entityManager->viewEntity = createPlayer(entityManager, entityManager->tilemap->warps[self->gameData.checkpoint].x * 16, entityManager->tilemap->warps[self->gameData.checkpoint].y * 16);
     
     entityManager->playerEntity = entityManager->viewEntity;
     viewFollowEntity(&(self->tilemap),entityManager->playerEntity);
@@ -638,6 +638,7 @@ void changeStateTitleScreen(platformer_t *self){
 
 void changeStateLevelClear(platformer_t *self){
     self->gameData.frameCount = 0;
+    self->gameData.checkpoint = 0;
     self->gameData.extraLifeCollected = false;
     self->update=&updateLevelClear;
 }

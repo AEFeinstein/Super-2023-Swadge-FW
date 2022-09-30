@@ -177,4 +177,6 @@ void turnAroundAtEdgeOfTileHandler(entity_t *self);
 
 void updateEnemyBushL3(entity_t* self);
 
+void updateCheckpoint(entity_t* self);
+
 #endif

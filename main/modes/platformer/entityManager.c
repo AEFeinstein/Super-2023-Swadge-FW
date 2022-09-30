@@ -1128,10 +1128,12 @@ entity_t* createCheckpoint(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->spriteFlipHorizontal = false;
     entity->spriteFlipVertical = false;
 
+    entity->xDamping = 0; //State of the checkpoint. 0 = inactive, 1 = active
+
     entity->type = ENTITY_CHECKPOINT;
     entity->spriteIndex = SP_CHECKPOINT_INACTIVE;
     entity->animationTimer = 0;
-    entity->updateFunction = &updateDummy;
+    entity->updateFunction = &updateCheckpoint;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
 

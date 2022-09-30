@@ -27,6 +27,7 @@
     gameData->initials[2] = 'A';
     gameData->rank = 5;
     gameData->extraLifeCollected = false;
+    gameData->checkpoint = 0;
 }
 
  void initializeGameDataFromTitleScreen(gameData_t * gameData){
@@ -41,6 +42,7 @@
     gameData->comboTimer = 0;
     gameData->bgColor = c000;
     gameData->extraLifeCollected = false;
+    gameData->checkpoint = 0;
 }
 
 void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData){

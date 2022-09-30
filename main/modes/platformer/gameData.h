@@ -41,6 +41,7 @@ typedef struct
     uint16_t comboScore;
 
     bool extraLifeCollected;
+    uint8_t checkpoint;
     
     led_t leds[NUM_LEDS];
 
