@@ -12,6 +12,7 @@ extern const char picrossProgressData[];
 
 void setPicrossMainMenu(bool resetPos);
 void returnToPicrossMenu(void);
+void returnToPicrossMenuFromGame(void);
 void returnToLevelSelect(void);
 void selectPicrossLevel(picrossLevelDef_t* selectedLevel);
 void exitTutorial(void);
