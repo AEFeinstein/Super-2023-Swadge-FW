@@ -20,6 +20,23 @@
 
 #include "bresenham.h"
 
+
+// Internal functions
+void plotLineInner(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth,int xTr, int yTr, int xScale, int yScale);
+void plotRectInner(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotEllipseInner(display_t*, int xm, int ym, int a, int b, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotCircleInner(display_t*, int xm, int ym, int r, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotCircleFilledInner(display_t* disp, int xm, int ym, int r, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotEllipseRectInner(display_t*, int x0, int y0, int x1, int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotQuadBezierSegInner(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotQuadBezierInner(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotQuadRationalBezierSegInner(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, float w, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotQuadRationalBezierInner(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, float w, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotCubicBezierSegInner(display_t*, int x0, int y0, float x1, float y1, float x2, float y2, int x3, int y3,
+                        paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void plotCubicBezierInner(display_t*, int x0, int y0, int x1, int y1, int x2, int y2, int x3, int y3, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+
+
 // #define assert(x) if(false == (x)) {  return;  }
 
 /**
@@ -92,7 +109,7 @@ void oddEvenFill(display_t* disp, int x0, int y0, int x1, int y1,
     }
 }
 
-void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth)
+void plotLineInner(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth, int xTr, int yTr, int xScale, int yScale)
 {
     SETUP_FOR_TURBO( disp );
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
@@ -107,7 +124,7 @@ void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
         {
             if(dashDraw)
             {
-                TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col);
+                TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y0 * yScale, col);
             }
             dashCnt++;
             if(dashWidth == dashCnt)
@@ -118,7 +135,7 @@ void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
         }
         else
         {
-            TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col);
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y0 * yScale, col);
         }
         e2 = 2 * err;
         if (e2 >= dy)   /* e_xy+e_x > 0 */
@@ -142,25 +159,53 @@ void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t co
     }
 }
 
-void plotRect(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col)
+
+void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth)
+{
+    plotLineInner(disp, x0, y0, x1, y1, col, dashWidth, 0, 0, 1, 1);
+}
+
+void plotLineScaled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale*yScale; i++)
+    {
+        plotLineInner(disp, x0, y0, x1, y1, col, dashWidth, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
+    }
+}
+
+void plotRectInner(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
 {
     SETUP_FOR_TURBO( disp );
+
     // Vertical lines
     for(int y = y0; y < y1; y++)
     {
-        TURBO_SET_PIXEL_BOUNDS(disp, x0, y, col);
-        TURBO_SET_PIXEL_BOUNDS(disp, x1 - 1, y, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y * yScale, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (x1 - 1) * xScale, yTr + y * yScale, col);
     }
 
     // Horizontal lines
     for(int x = x0; x < x1; x++)
     {
-        TURBO_SET_PIXEL_BOUNDS(disp, x, y0, col);
-        TURBO_SET_PIXEL_BOUNDS(disp, x, y1 - 1, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x * xScale, yTr + y0 * yScale, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x * xScale, yTr + (y1 - 1) * yScale, col);
     }
 }
 
-void plotEllipse(display_t* disp, int xm, int ym, int a, int b, paletteColor_t col)
+void plotRect(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col)
+{
+    plotRectInner(disp, x0, y0, x1, y1, col, 0, 0, 1, 1);
+}
+
+void plotRectScaled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
+    {
+        plotRectInner(disp, x0, y0, x1, y1, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
+    }
+}
+
+void plotEllipseInner(display_t* disp, int xm, int ym, int a, int b, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
 {
     SETUP_FOR_TURBO( disp );
 
@@ -169,10 +214,10 @@ void plotEllipse(display_t* disp, int xm, int ym, int a, int b, paletteColor_t c
 
     do
     {
-        TURBO_SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, xm + x, ym + y, col); /*  II. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, xm - x, ym - y, col); /*  IV. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm - x) * xScale, yTr + (ym + y) * yScale, col); /*   I. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm + x) * xScale, yTr + (ym + y) * yScale, col); /*  II. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm + x) * xScale, yTr + (ym - y) * yScale, col); /* III. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm - x) * xScale, yTr + (ym - y) * yScale, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 >= (x * 2 + 1) * (long) b * b) /* e_xy+e_x > 0 */
         {
@@ -186,8 +231,21 @@ void plotEllipse(display_t* disp, int xm, int ym, int a, int b, paletteColor_t c
 
     while (y++ < b)   /* too early stop of flat ellipses a=1, */
     {
-        TURBO_SET_PIXEL_BOUNDS(disp, xm, ym + y, col); /* -> finish tip of ellipse */
-        TURBO_SET_PIXEL_BOUNDS(disp, xm, ym - y, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + xm * xScale, yTr + (ym + y) * yScale, col); /* -> finish tip of ellipse */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + xm * xScale, yTr + (ym - y) * yScale, col);
+    }
+}
+
+void plotEllipse(display_t* disp, int xm, int ym, int a, int b, paletteColor_t col)
+{
+    plotEllipseInner(disp, xm, ym, a, b, col, 0, 0, 1, 1);
+}
+
+void plotEllipseScaled(display_t* disp, int xm, int ym, int a, int b, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
+    {
+        plotEllipseInner(disp, xm, ym, a, b, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
     }
 }
 
@@ -225,17 +283,17 @@ void plotOptimizedEllipse(display_t* disp, int xm, int ym, int a, int b, palette
     }
 }
 
-void plotCircle(display_t* disp, int xm, int ym, int r, paletteColor_t col)
+void plotCircleInner(display_t* disp, int xm, int ym, int r, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
 {
     SETUP_FOR_TURBO( disp );
 
     int x = -r, y = 0, err = 2 - 2 * r; /* bottom left to top right */
     do
     {
-		TURBO_SET_PIXEL_BOUNDS(disp, xm - x, ym + y, col); /*   I. Quadrant +x +y */
-		TURBO_SET_PIXEL_BOUNDS(disp, xm - y, ym - x, col); /*  II. Quadrant -x +y */
-		TURBO_SET_PIXEL_BOUNDS(disp, xm + x, ym - y, col); /* III. Quadrant -x -y */
-		TURBO_SET_PIXEL_BOUNDS(disp, xm + y, ym + x, col); /*  IV. Quadrant +x -y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm - x) * xScale, yTr + (ym + y) * yScale, col); /*   I. Quadrant +x +y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm - y) * xScale, yTr + (ym - x) * yScale, col); /*  II. Quadrant -x +y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm + x) * xScale, yTr + (ym - y) * yScale, col); /* III. Quadrant -x -y */
+		TURBO_SET_PIXEL_BOUNDS(disp, xTr + (xm + y) * xScale, yTr + (ym + x) * yScale, col); /*  IV. Quadrant +x -y */
         r = err;
         if (r <= y)
         {
@@ -246,6 +304,19 @@ void plotCircle(display_t* disp, int xm, int ym, int r, paletteColor_t col)
             err += ++x * 2 + 1;    /* -> x-step now */
         }
     } while (x < 0);
+}
+
+void plotCircle(display_t* disp, int xm, int ym, int r, paletteColor_t col)
+{
+    plotCircleInner(disp, xm, ym, r, col, 0, 0, 1, 1);
+}
+
+void plotCircleScaled(display_t* disp, int xm, int ym, int r, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
+    {
+        plotCircleInner(disp, xm, ym, r, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
+    }
 }
 
 void plotCircleQuadrants(display_t* disp, int xm, int ym, int r, bool q1,
@@ -284,7 +355,7 @@ void plotCircleQuadrants(display_t* disp, int xm, int ym, int r, bool q1,
     } while (x < 0);
 }
 
-void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col)
+void plotCircleFilledInner(display_t* disp, int xm, int ym, int r, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
 {
     SETUP_FOR_TURBO( disp );
 
@@ -293,8 +364,8 @@ void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col
     {
         for (int lineX = xm + x; lineX <= xm - x; lineX++)
         {
-            TURBO_SET_PIXEL_BOUNDS(disp, lineX, ym - y, col);
-            TURBO_SET_PIXEL_BOUNDS(disp, lineX, ym + y, col);
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr + lineX * xScale, yTr + (ym - y) * yScale, col);
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr + lineX * xScale, yTr + (ym + y) * yScale, col);
         }
 
         r = err;
@@ -309,8 +380,21 @@ void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col
     } while (x < 0);
 }
 
-void plotEllipseRect(display_t* disp, int x0, int y0, int x1,
-                     int y1, paletteColor_t col)   /* rectangular parameter enclosing the ellipse */
+void plotCircleFilled(display_t* disp, int xm, int ym, int r, paletteColor_t col)
+{
+    plotCircleFilledInner(disp, xm, ym, r, col, 0, 0, 1, 1);
+}
+
+void plotCircleFilledScaled(display_t* disp, int xm, int ym, int r, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
+    {
+        plotCircleFilledInner(disp, xm, ym, r, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
+    }
+}
+
+void plotEllipseRectInner(display_t* disp, int x0, int y0, int x1,
+                     int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)   /* rectangular parameter enclosing the ellipse */
 {
     SETUP_FOR_TURBO( disp );
 
@@ -334,10 +418,10 @@ void plotEllipseRect(display_t* disp, int x0, int y0, int x1,
 
     do
     {
-        TURBO_SET_PIXEL_BOUNDS(disp, x1, y0, col); /*   I. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col); /*  II. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, x0, y1, col); /* III. Quadrant */
-        TURBO_SET_PIXEL_BOUNDS(disp, x1, y1, col); /*  IV. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x1 * xScale, yTr + y0 * yScale, col); /*   I. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y0 * yScale, col); /*  II. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y1 * yScale, col); /* III. Quadrant */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + x1 * xScale, yTr + y1 * yScale, col); /*  IV. Quadrant */
         e2 = 2 * err;
         if (e2 <= dy)
         {
@@ -355,15 +439,30 @@ void plotEllipseRect(display_t* disp, int x0, int y0, int x1,
 
     while (y0 - y1 <= b)   /* too early stop of flat ellipses a=1 */
     {
-        TURBO_SET_PIXEL_BOUNDS(disp, x0 - 1, y0, col); /* -> finish tip of ellipse */
-        TURBO_SET_PIXEL_BOUNDS(disp, x1 + 1, y0++, col);
-        TURBO_SET_PIXEL_BOUNDS(disp, x0 - 1, y1, col);
-        TURBO_SET_PIXEL_BOUNDS(disp, x1 + 1, y1--, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (x0 - 1) * xScale, yTr + y0 * yScale, col); /* -> finish tip of ellipse */
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (x1 + 1) * xScale, yTr + y0++ * yScale, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (x0 - 1) * xScale, yTr + y1 * yScale, col);
+        TURBO_SET_PIXEL_BOUNDS(disp, xTr + (x1 + 1) * xScale, yTr + y1-- * yScale, col);
     }
 }
 
-void plotQuadBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2,
-                       int y2, paletteColor_t col)   /* plot a limited quadratic Bezier segment */
+void plotEllipseRect(display_t* disp, int x0, int y0, int x1,
+                     int y1, paletteColor_t col)   /* rectangular parameter enclosing the ellipse */
+{
+    plotEllipseRectInner(disp, x0, y0, x1, y1, col, 0, 0, 1, 1);
+}
+
+void plotEllipseRectScaled(display_t* disp, int x0, int y0, int x1,
+                     int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
+    {
+        plotEllipseRectInner(disp, x0, y0, x1, y1, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
+    }
+}
+
+void plotQuadBezierSegInner(display_t* disp, int x0, int y0, int x1, int y1, int x2,
+                       int y2, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)   /* plot a limited quadratic Bezier segment */
 {
     SETUP_FOR_TURBO( disp );
 
@@ -404,7 +503,7 @@ void plotQuadBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2,
         err = dx + dy + xy; /* error 1st step */
         do
         {
-            TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col); /* plot curve */
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y0 * yScale, col); /* plot curve */
             if (x0 == x2 && y0 == y2)
             {
                 return;    /* last pixel -> curve finished */
@@ -424,11 +523,26 @@ void plotQuadBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2,
             } /* y step */
         } while (dy < 0 && dx > 0); /* gradient negates -> algorithm fails */
     }
-    plotLine(disp, x0, y0, x2, y2, col, 0); /* plot remaining part to end */
+    plotLineScaled(disp, x0, y0, x2, y2, col, 0, xTr, yTr, xScale, yScale); /* plot remaining part to end */
 }
 
-void plotQuadBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2,
-                    int y2, paletteColor_t col)   /* plot any quadratic Bezier curve */
+void plotQuadBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2,
+                       int y2, paletteColor_t col)   /* plot a limited quadratic Bezier segment */
+{
+    plotQuadBezierSegInner(disp, x0, y0, x1, y1, x2, y2, col, 0, 0, 1, 1);
+}
+
+void plotQuadBezierSegScaled(display_t* disp, int x0, int y0, int x1, int y1, int x2,
+                       int y2, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
+    {
+        plotQuadBezierSegInner(disp, x0, y0, x1, y1, x2, y2, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
+    }
+}
+
+void plotQuadBezierInner(display_t* disp, int x0, int y0, int x1, int y1, int x2,
+                    int y2, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)   /* plot any quadratic Bezier curve */
 {
     int x = x0 - x1, y = y0 - y1;
     double t = x0 - 2 * x1 + x2, r;
@@ -449,7 +563,7 @@ void plotQuadBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2,
         x = floor(t + 0.5);
         y = floor(r + 0.5);
         r = (y1 - y0) * (t - x0) / (x1 - x0) + y0; /* intersect P3 | P0 P1 */
-        plotQuadBezierSeg(disp, x0, y0, x, floor(r + 0.5), x, y, col);
+        plotQuadBezierSegInner(disp, x0, y0, x, floor(r + 0.5), x, y, col, xTr, yTr, xScale, yScale);
         r = (y1 - y2) * (t - x2) / (x1 - x2) + y2; /* intersect P4 | P1 P2 */
         x0 = x1 = x;
         y0 = y;
@@ -464,13 +578,28 @@ void plotQuadBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2,
         x = floor(r + 0.5);
         y = floor(t + 0.5);
         r = (x1 - x0) * (t - y0) / (y1 - y0) + x0; /* intersect P6 | P0 P1 */
-        plotQuadBezierSeg(disp, x0, y0, floor(r + 0.5), y, x, y, col);
+        plotQuadBezierSegInner(disp, x0, y0, floor(r + 0.5), y, x, y, col, xTr, yTr, xScale, yScale);
         r = (x1 - x2) * (t - y2) / (y1 - y2) + x2; /* intersect P7 | P1 P2 */
         x0 = x;
         x1 = floor(r + 0.5);
         y0 = y1 = y; /* P0 = P6, P1 = P7 */
     }
-    plotQuadBezierSeg(disp, x0, y0, x1, y1, x2, y2, col); /* remaining part */
+    plotQuadBezierSegInner(disp, x0, y0, x1, y1, x2, y2, col, xTr, yTr, xScale, yScale); /* remaining part */
+}
+
+void plotQuadBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2,
+                    int y2, paletteColor_t col)   /* plot any quadratic Bezier curve */
+{
+    plotQuadBezierInner(disp, x0, y0, x1, y1, x2, y2, col, 0, 0, 1, 1);
+}
+
+void plotQuadBezierScaled(display_t* disp, int x0, int y0, int x1, int y1, int x2,
+                    int y2, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)   /* plot any quadratic Bezier curve */
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
+    {
+        plotQuadBezierInner(disp, x0, y0, x1, y1, x2, y2, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
+    }
 }
 
 void plotQuadRationalBezierSeg(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2,
@@ -676,8 +805,8 @@ void plotRotatedEllipseRect(display_t* disp, int x0, int y0, int x1, int y1,
     plotQuadRationalBezierSeg(disp, x1, y1 - yd, x1, y0, x0 + xd, y0, w, col);
 }
 
-void plotCubicBezierSeg(display_t* disp, int x0, int y0, float x1, float y1, float x2, float y2,
-                        int x3, int y3, paletteColor_t col)   /* plot limited cubic Bezier segment */
+void plotCubicBezierSegInner(display_t* disp, int x0, int y0, float x1, float y1, float x2, float y2,
+                        int x3, int y3, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)   /* plot limited cubic Bezier segment */
 {
     SETUP_FOR_TURBO( disp );
 
@@ -701,7 +830,7 @@ void plotCubicBezierSeg(display_t* disp, int x0, int y0, float x1, float y1, flo
     {
         sx = floor((3 * x1 - x0 + 1) / 2);
         sy = floor((3 * y1 - y0 + 1) / 2); /* new midpoint */
-        return plotQuadBezierSeg(disp, x0, y0, sx, sy, x3, y3, col);
+        return plotQuadBezierSegInner(disp, x0, y0, sx, sy, x3, y3, col, xTr, yTr, xScale, yScale);
     }
     x1 = (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + 1; /* line lengths */
     x2 = (x2 - x3) * (x2 - x3) + (y2 - y3) * (y2 - y3) + 1;
@@ -756,7 +885,7 @@ void plotCubicBezierSeg(display_t* disp, int x0, int y0, float x1, float y1, flo
 
         for (pxy = &xy, fx = fy = f; x0 != x3 && y0 != y3;)
         {
-            TURBO_SET_PIXEL_BOUNDS(disp, x0, y0, col); /* plot curve */
+            TURBO_SET_PIXEL_BOUNDS(disp, xTr + x0 * xScale, yTr + y0 * yScale, col); /* plot curve */
             do   /* move sub-steps of one pixel */
             {
                 if (dx > *pxy || dy < *pxy)
@@ -810,11 +939,17 @@ exit:
         yb = -yb;
         x1 = x2;
     } while (leg--); /* try other end */
-    plotLine(disp, x0, y0, x3, y3, col, 0); /* remaining part in case of cusp or crunode */
+    plotLineInner(disp, x0, y0, x3, y3, col, 0, xTr, yTr, xScale, yScale); /* remaining part in case of cusp or crunode */
 }
 
-void plotCubicBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
-                     int y3, paletteColor_t col)   /* plot any cubic Bezier curve */
+void plotCubicBezierSeg(display_t* disp, int x0, int y0, float x1, float y1, float x2, float y2,
+                        int x3, int y3, paletteColor_t col)   /* plot limited cubic Bezier segment */
+{
+    plotCubicBezierSegInner(disp, x0, y0, x1, y1, x2, y2, x3, y3, col, 0, 0, 1, 1);
+}
+
+void plotCubicBezierInner(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
+                     int y3, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)   /* plot any cubic Bezier curve */
 {
     int n = 0, i = 0;
     long xc = x0 + x1 - x2 - x3, xa = xc - 4 * (x1 - x2);
@@ -903,13 +1038,30 @@ void plotCubicBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2, in
             fy2 *= fy0;
         }
         if (x0 != x3 || y0 != y3) /* segment t1 - t2 */
-            plotCubicBezierSeg(disp, x0, y0, x0 + fx1, y0 + fy1, x0 + fx2, y0 + fy2,
-                               x3, y3, col);
+        {
+            plotCubicBezierSegInner(disp, x0, y0, x0 + fx1, y0 + fy1, x0 + fx2, y0 + fy2,
+                            x3, y3, col, xTr, yTr, xScale, yScale);
+        }
         x0 = x3;
         y0 = y3;
         fx0 = fx3;
         fy0 = fy3;
         t1 = t2;
+    }
+}
+
+void plotCubicBezier(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
+                     int y3, paletteColor_t col)
+{
+    plotCubicBezierInner(disp, x0, y0, x1, y1, x2, y2, x3, y3, col, 0, 0, 1, 1);
+}
+
+void plotCubicBezierScaled(display_t* disp, int x0, int y0, int x1, int y1, int x2, int y2, int x3,
+                     int y3, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
+{
+    for (uint8_t i = 0; i < xScale * yScale; i++)
+    {
+        plotCubicBezierInner(disp, x0, y0, x1, y1, x2, y2, x3, y3, col, xTr + i % yScale, yTr + i / xScale, xScale, yScale);
     }
 }
 
