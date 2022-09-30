@@ -10,10 +10,13 @@
 #include "nvs_manager.h"
 #include "bresenham.h"
 #include "math.h"
-#include "mode_paint.h"
 
 #include "mode_main_menu.h"
 #include "swadge_util.h"
+
+#include "mode_paint.h"
+#include "paint_common.h"
+#include "paint_util.h"
 
 /*
  * REMAINING BIG THINGS TO DO:
@@ -34,296 +37,11 @@
  * - Use different pick markers / cursors for each brush (e.g. crosshair for circle pen, two L-shaped crosshairs for box pen...)
  */
 
-#define PAINT_LOGV(...) ESP_LOGV("Paint", __VA_ARGS__)
-#define PAINT_LOGD(...) ESP_LOGD("Paint", __VA_ARGS__)
-#define PAINT_LOGI(...) ESP_LOGI("Paint", __VA_ARGS__)
-#define PAINT_LOGW(...) ESP_LOGW("Paint", __VA_ARGS__)
-#define PAINT_LOGE(...) ESP_LOGE("Paint", __VA_ARGS__)
-
 static const char paintTitle[] = "MFPaint";
 static const char menuOptDraw[] = "Draw";
 static const char menuOptGallery[] = "Gallery";
 static const char menuOptReceive[] = "Receive";
 static const char menuOptExit[] = "Exit";
-
-static const char startMenuSave[] = "Save";
-static const char startMenuLoad[] = "Load";
-static const char startMenuSlot[] = "Slot %d";
-static const char startMenuSlotUsed[] = "Slot %d (!)";
-static const char startMenuOverwrite[] = "Overwrite?";
-static const char startMenuYes[] = "Yes";
-static const char startMenuNo[] = "No";
-
-typedef paletteColor_t (*colorMapFn_t)(paletteColor_t col);
-
-static paletteColor_t cursorPxsBox[] =
-{
-    c000, c000, c000, c000, c000,
-    c000, cTransparent, cTransparent, cTransparent, c000,
-    c000, cTransparent, cTransparent, cTransparent, c000,
-    c000, cTransparent, cTransparent, cTransparent, c000,
-    c000, c000, c000, c000, c000,
-};
-
-static paletteColor_t cursorPxsCrosshair[] =
-{
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-    c000, c000, cTransparent, c000, c000,
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-};
-
-wsg_t cursorCrosshairWsg = {
-    .px = cursorPxsCrosshair,
-    .w = 5,
-    .h = 5,
-};
-
-wsg_t cursorBoxWsg = {
-    .px = cursorPxsBox,
-    .w = 5,
-    .h = 5,
-};
-
-typedef enum
-{
-    // Top menu
-    PAINT_MENU,
-    // Control instructions
-    PAINT_HELP,
-    // Drawing mode
-    PAINT_DRAW,
-    // Select and view/edit saved drawings
-    PAINT_GALLERY,
-    // View a drawing, no editing
-    PAINT_VIEW,
-    // Share a drawing via ESPNOW
-    PAINT_SHARE,
-    // Receive a shared drawing over ESPNOW
-    PAINT_RECEIVE,
-} paintScreen_t;
-
-typedef enum
-{
-    BTN_MODE_DRAW,
-    BTN_MODE_SELECT,
-    BTN_MODE_SAVE,
-} paintButtonMode_t;
-
-typedef enum
-{
-    HIDDEN,
-    PICK_SLOT_SAVE_LOAD,
-    CONFIRM_OVERWRITE,
-} paintSaveMenu_t;
-
-/**
- * Defines different brush behaviors for when A is pressed
- */
-typedef enum
-{
-    // The brush is drawn immediately upon selection without picking or drawing any points
-    INSTANT,
-
-    // The brush is drawn whenever A is pressed or held and dragged
-    HOLD_DRAW,
-
-    // The brush requires a number of points to be picked first, and then it is drawn
-    PICK_POINT,
-
-    // The brush requires a number of points that always connect back to the first point
-    PICK_POINT_LOOP,
-} brushMode_t;
-
-typedef struct
-{
-    uint16_t x, y;
-} point_t;
-
-typedef struct
-{
-    /**
-     * @brief The behavior mode of this brush
-     */
-    brushMode_t mode;
-
-    /**
-     * @brief The number of points this brush can use
-     */
-    uint8_t maxPoints;
-
-
-    /**
-     * @brief The minimum size (e.g. stroke width) of the brush
-     */
-    uint16_t minSize;
-
-    /**
-     * @brief The maximum size of the brush
-     */
-    uint16_t maxSize;
-
-    /**
-     * @brief The display name of this brush
-     */
-    char* name;
-
-    /**
-     * @brief Called when all necessary points have been selected and the final shape should be drawn
-     */
-    void (*fnDraw)(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col);
-} brush_t;
-
-typedef struct
-{
-    uint16_t x, y;
-    paletteColor_t col;
-} pxVal_t;
-
-typedef struct
-{
-    // Pointer to the first of pixel coordinates/values, heap-allocated
-    pxVal_t* data;
-
-    // The number of pxVal_t entries currently allocated for the stack
-    size_t size;
-
-    // The index of the value on the top of the stack
-    int32_t index;
-} pxStack_t;
-
-typedef struct
-{
-    //////// General app data
-
-    // Main Menu Font
-    font_t menuFont;
-    // Main Menu
-    meleeMenu_t* menu;
-
-    // Font for drawing tool info
-    // TODO: Use images instead!
-    font_t toolbarFont;
-
-    display_t* disp;
-
-    // The screen within paint that the user is in
-    paintScreen_t screen;
-
-    paintButtonMode_t buttonMode;
-
-    // Whether or not A is currently pressed
-    bool aHeld;
-
-    // The width of the current canvas
-    // TODO: Remove and replace with constant? Or, remove constant and use this?
-    int16_t canvasW, canvasH;
-
-
-    // Color data
-
-    // The foreground color and the background color, which can be swapped with B
-    paletteColor_t fgColor, bgColor;
-
-    // This image's palette, including foreground and background colors.
-    // It is always ordered with the most-recently-used colors at the beginning
-    paletteColor_t recentColors[PAINT_MAX_COLORS];
-
-    // The index of the currently selected color, while SELECT is held
-    uint8_t paletteSelect;
-
-    led_t leds[NUM_LEDS];
-
-
-    //////// Brush / Tool data
-
-    // Index of the currently selected brush / tool
-    uint8_t brushIndex;
-
-    // A pointer to the currently selected brush's definition for convenience
-    const brush_t* brush;
-
-    // The current brush width or variant, depending on the brush
-    uint8_t brushWidth;
-
-
-    //////// Pick Points
-
-    // An array of points that have been selected for the current brush
-    // TODO: Replace with a pxStack_t and get rid of the other `pxStack` maybe?
-    point_t pickPoints[MAX_PICK_POINTS];
-
-    // The number of points already selected
-    size_t pickCount;
-
-    // The saved pixels that are covered up by the pick points
-    pxStack_t pxStack;
-
-    // Whether all pick points should be redrawn with the current fgColor, for when the color changes while we're picking
-    bool recolorPickPoints;
-
-
-    //////// Cursor
-
-    // The sprite for the currently selected cursor
-    const wsg_t* cursorWsg;
-
-    // The saved pixels thate rae covered up by the cursor
-    pxStack_t cursorPxs;
-
-    bool showCursor;
-
-    // The number of canvas pixels to move the cursor this frame
-    int8_t moveX, moveY;
-
-    // The current position of the cursor in canvas pixels
-    int16_t cursorX, cursorY;
-
-    // The previous position of the cursor in canvas pixels
-    // TODO: Remove this and just use `cursorPxs` instead
-    int16_t lastCursorX, lastCursorY;
-
-    // When true, this is the initial D-pad button down.
-    // If set, the cursor will move by one pixel and then it will be cleared.
-    bool firstMove;
-
-    // The time a D-pad button has been held down for, in microseconds
-    int64_t btnHoldTime;
-
-
-    //////// Rendering flags
-
-    // If set, the canvas will be cleared and the screen will be redrawn. Set on startup.
-    bool clearScreen;
-
-    // Set to redraw the toolbar on the next loop, when a brush or color is being selected
-    bool redrawToolbar;
-
-
-    //////// Save data flags
-
-    // Whether to perform a save on the next loop
-    bool doSave;
-
-    // True when a save has been started but not yet completed. Prevents input while saving.
-    bool saveInProgress;
-
-    // The save slot selected when in BTN_MODE_SAVE
-    uint8_t selectedSlot;
-
-    paintSaveMenu_t saveMenu;
-
-    // True if "Save" is selected, false if "Load" is selected
-    bool isSaveSelected;
-
-    // State for Yes/No in overwrite save menu.
-    bool overwriteYesSelected;
-
-    // Index keeping track of which slots are in use and the most recent slot
-    int32_t index;
-} paintMenu_t;
-
 
 // Mode struct function declarations
 void paintEnterMode(display_t* disp);
@@ -349,74 +67,20 @@ swadgeMode modePaint =
     .fnTemperatureCallback = NULL,
 };
 
-// Brush function declarations
-void paintDrawSquarePen(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawCirclePen(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawLine(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawCurve(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawRectangle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawFilledRectangle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawCircle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawFilledCircle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawEllipse(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawPolygon(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawSquareWave(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawPaintBucket(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawClear(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-
-static const brush_t brushes[] =
-{
-    { .name = "Square Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawSquarePen },
-    { .name = "Circle Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawCirclePen },
-    { .name = "Line",       .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawLine },
-    { .name = "Bezier Curve",      .mode = PICK_POINT, .maxPoints = 4, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCurve },
-    { .name = "Rectangle",  .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawRectangle },
-    { .name = "Filled Rectangle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledRectangle },
-    { .name = "Circle",     .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCircle },
-    { .name = "Filled Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledCircle },
-    { .name = "Ellipse",    .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawEllipse },
-    { .name = "Polygon",    .mode = PICK_POINT_LOOP, .maxPoints = MAX_PICK_POINTS, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawPolygon },
-    { .name = "Squarewave", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawSquareWave },
-    { .name = "Paint Bucket", .mode = PICK_POINT, .maxPoints = 1, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawPaintBucket },
-    { .name = "Clear",      .mode = INSTANT, .maxPoints = 0, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawClear },
-};
-
-paintMenu_t* paintState;
-
 // Util function declarations
 
-paletteColor_t getContrastingColor(paletteColor_t col);
 void paintInitialize(void);
-void paintRenderAll(void);
-void restoreCursorPixels(void);
-void plotCursor(void);
-void enableCursor(void);
-void disableCursor(void);
-void paintRenderCursor(void);
-void paintRenderToolbar(void);
-void setCursor(const wsg_t* cursor);
 
-void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
-void paintMoveCursorRel(int8_t xDiff, int8_t yDiff);
-void paintClearCanvas(void);
-void paintUpdateRecents(uint8_t selectedIndex);
-void paintDrawPickPoints(void);
-void paintHidePickPoints(void);
-
-void paintDrawWsgTemp(display_t* display, const wsg_t* wsg, pxStack_t* saveTo, uint16_t x, uint16_t y, colorMapFn_t colorSwap);
-void paintPlotSquareWave(display_t* disp, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
-void plotRectFilled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col);
-void plotRectFilledScaled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
-void setPxScaled(display_t* disp, int x, int y, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
-void pushPxScaled(pxStack_t* pxStack, display_t* disp, int x, int y, int xTr, int yTr, int xScale, int yScale);
-void popPxScaled(pxStack_t* pxStack, display_t* disp, int xScale, int yScale);
 void drawColorBox(uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, paletteColor_t col, bool selected, paletteColor_t topBorder, paletteColor_t bottomBorder);
 
+// Tool util functions
 void paintSetupTool(void);
 void paintPrevTool(void);
 void paintNextTool(void);
 void paintDecBrushWidth(void);
 void paintIncBrushWidth(void);
+
+// Loading / Saving Functions
 void paintLoadIndex(void);
 void paintSaveIndex(void);
 void paintResetStorage(void);
@@ -427,32 +91,14 @@ uint8_t paintGetRecentSlot(void);
 void paintSetRecentSlot(uint8_t slot);
 void paintSave(uint8_t slot);
 void paintLoad(uint8_t slot, uint16_t xTr, uint16_t yTr, uint16_t xScale, uint16_t yScale);
+
 void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col);
 void _floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
 void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
 
-void initPxStack(pxStack_t* pxStack);
-void freePxStack(pxStack_t* pxStack);
-void maybeGrowPxStack(pxStack_t* pxStack);
-void maybeShrinkPxStack(pxStack_t* pxStack);
-void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y);
-bool popPx(pxStack_t* pxStack, display_t* disp);
+// PixelStack functions
 
 // Generic util functions
-
-paletteColor_t getContrastingColor(paletteColor_t col)
-{
-    uint32_t rgb = paletteToRGB(col);
-
-    // TODO I guess this actually won't work at all on 50% gray, or that well on other grays
-    uint8_t r = 255 - (rgb & 0xFF);
-    uint8_t g = 255 - ((rgb >> 8) & 0xFF);
-    uint8_t b = 255 - ((rgb >> 16) & 0xFF);
-    uint32_t contrastCol = (r << 16) | (g << 8) | (b);
-
-    PAINT_LOGV("Converted color to RGB c%d%d%d", r, g, b);
-    return RGBtoPalette(contrastCol);
-}
 
 // Mode struct function implemetations
 
@@ -502,84 +148,7 @@ void paintMainLoop(int64_t elapsedUs)
 
     case PAINT_DRAW:
     {
-        if (paintState->clearScreen)
-        {
-            paintClearCanvas();
-            paintRenderAll();
-            paintState->clearScreen = false;
-            paintState->showCursor = true;
-        }
-
-        if (paintState->doSave)
-        {
-            paintState->saveInProgress = true;
-            if (paintState->isSaveSelected)
-            {
-                paintSave(paintState->selectedSlot);
-            }
-            else
-            {
-                if (paintGetSlotInUse(paintGetRecentSlot()))
-                {
-                    // Load from the selected slot if it's been used
-                    paintLoad(paintState->selectedSlot, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-                }
-                else
-                {
-                    // If the slot hasn't been used yet, just clear the screen
-                    paintState->clearScreen = true;
-                    paintState->isSaveSelected = false;
-                }
-            }
-
-            paintState->doSave = false;
-            paintState->saveInProgress = false;
-
-            paintState->buttonMode = BTN_MODE_DRAW;
-            paintState->saveMenu = HIDDEN;
-
-            paintState->redrawToolbar = true;
-        }
-
-        if (paintState->recolorPickPoints)
-        {
-            paintDrawPickPoints();
-            paintState->recolorPickPoints = false;
-        }
-
-
-        if (paintState->redrawToolbar)
-        {
-            paintRenderToolbar();
-            paintState->redrawToolbar = false;
-        }
-        else
-        {
-            // Don't remember why we only do this when redrawToolbar is true
-            // Oh, it's because `paintState->redrawToolbar` is mostly only set in select mode unless you press B?
-            if (paintState->aHeld)
-            {
-                paintDoTool(paintState->cursorX, paintState->cursorY, paintState->fgColor);
-
-                if (paintState->brush->mode != HOLD_DRAW)
-                {
-                    paintState->aHeld = false;
-                }
-            }
-
-            if (paintState->moveX || paintState->moveY)
-            {
-                paintState->btnHoldTime += elapsedUs;
-                if (paintState->firstMove || paintState->btnHoldTime >= BUTTON_REPEAT_TIME)
-                {
-
-                    paintMoveCursorRel(paintState->moveX, paintState->moveY);
-                    paintRenderAll();
-
-                    paintState->firstMove = false;
-                }
-            }
-        }
+        paintDrawScreenMainLoop(elapsedUs);
         break;
     }
 
@@ -600,400 +169,424 @@ void paintMainLoop(int64_t elapsedUs)
     }
 }
 
+void paintSaveModeButtonCb(const buttonEvt_t* evt)
+{
+    if (evt->down)
+    {
+        //////// Save menu button down
+        paintState->redrawToolbar = true;
+        switch (evt->button)
+        {
+            case BTN_A:
+            {
+                if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
+                {
+                    if (paintState->isSaveSelected)
+                    {
+                        // The screen says "Save" and "Slot X"
+                        if (paintGetSlotInUse(paintState->selectedSlot))
+                        {
+                            // This slot is in use! Move on to the overwrite menu
+                            paintState->overwriteYesSelected = false;
+                            paintState->saveMenu = CONFIRM_OVERWRITE;
+                        }
+                        else
+                        {
+                            // The slot isn't in use, go for it!
+                            paintState->doSave = true;
+                        }
+                    }
+                    else
+                    {
+                        // The screen says "Load" and "Slot X"
+                        // TODO: Track if image has been modified since saved and add a prompt for that
+                        paintState->doSave = true;
+                    }
+                }
+                else if (paintState->saveMenu == CONFIRM_OVERWRITE)
+                {
+                    if (paintState->overwriteYesSelected)
+                    {
+                        paintState->doSave = true;
+                    }
+                    else
+                    {
+                        paintState->saveMenu = PICK_SLOT_SAVE_LOAD;
+                    }
+                }
+                else if (paintState->saveMenu == HIDDEN)
+                {
+                    // We shouldn't be here!!!
+                    paintState->buttonMode = BTN_MODE_DRAW;
+                }
+
+                break;
+            }
+
+            case UP:
+            case DOWN:
+            case SELECT:
+            {
+                if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
+                {
+                    // Toggle between Save / Load
+                    // But if no slots are in use, don't switch to "load"
+                    paintState->isSaveSelected = !paintState->isSaveSelected || !paintGetAnySlotInUse();
+
+                    // TODO move this and friends into a function
+                    while (!paintState->isSaveSelected && paintGetAnySlotInUse() && !paintGetSlotInUse(paintState->selectedSlot))
+                    {
+                        paintState->selectedSlot = (paintState->selectedSlot + 1) % PAINT_SAVE_SLOTS;
+                    }
+                }
+                break;
+            }
+
+            case LEFT:
+            {
+                if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
+                {
+                    // Previous save slot
+                    do
+                    {
+                        // Switch to the previous slot, wrapping back to the end
+                        paintState->selectedSlot = (paintState->selectedSlot == 0) ? PAINT_SAVE_SLOTS - 1 : paintState->selectedSlot - 1;
+                    }
+                    // If we're loading, and there's actually a slot we can load from, skip empty slots until we find one that is in use
+                    while (!paintState->isSaveSelected && paintGetAnySlotInUse() && !paintGetSlotInUse(paintState->selectedSlot));
+                }
+                else if (paintState->saveMenu == CONFIRM_OVERWRITE)
+                {
+                    // Toggle Yes / No
+                    paintState->overwriteYesSelected = !paintState->overwriteYesSelected;
+                }
+                break;
+            }
+
+            case RIGHT:
+            {
+                if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
+                {
+                    // Next save slot
+                    do
+                    {
+                        paintState->selectedSlot = (paintState->selectedSlot + 1) % PAINT_SAVE_SLOTS;
+                    }
+                    // If we're loading, and there's actually a slot we can load from, skip empty slots until we find one that is in use
+                    while (!paintState->isSaveSelected && paintGetAnySlotInUse() && !paintGetSlotInUse(paintState->selectedSlot));
+                }
+                else if (paintState->saveMenu == CONFIRM_OVERWRITE)
+                {
+                    // Toggle Yes / No
+                    paintState->overwriteYesSelected = !paintState->overwriteYesSelected;
+                }
+                break;
+            }
+
+            case BTN_B:
+            {
+                // Exit save menu
+                paintState->saveMenu = HIDDEN;
+                paintState->buttonMode = BTN_MODE_DRAW;
+                break;
+            }
+
+            case START:
+            // Handle this in button up
+            break;
+        }
+    }
+    else
+    {
+        //////// Save mode button release
+        if (evt->button == START)
+        {
+            // Exit save menu
+            paintState->saveMenu = HIDDEN;
+            paintState->buttonMode = BTN_MODE_DRAW;
+            paintState->redrawToolbar = true;
+        }
+    }
+}
+
+void paintSelectModeButtonCb(const buttonEvt_t* evt)
+{
+    if (!evt->down)
+    {
+        //////// Select-mode button release
+        switch (evt->button)
+        {
+            case SELECT:
+            {
+                // Exit select mode
+                paintState->buttonMode = BTN_MODE_DRAW;
+
+                // Set the current selection as the FG color and rearrange the rest
+                paintUpdateRecents(paintState->paletteSelect);
+                paintState->paletteSelect = 0;
+
+                paintState->redrawToolbar = true;
+                break;
+            }
+
+            case UP:
+            {
+                // Select previous color
+                paintState->redrawToolbar = true;
+                if (paintState->paletteSelect == 0)
+                {
+                    paintState->paletteSelect = PAINT_MAX_COLORS - 1;
+                } else {
+                    paintState->paletteSelect -= 1;
+                }
+                break;
+            }
+
+            case DOWN:
+            {
+                // Select next color
+                paintState->redrawToolbar = true;
+                paintState->paletteSelect = (paintState->paletteSelect + 1) % PAINT_MAX_COLORS;
+                break;
+            }
+
+            case LEFT:
+            {
+                // Select previous brush
+                paintPrevTool();
+                paintState->redrawToolbar = true;
+                break;
+            }
+
+            case RIGHT:
+            {
+                // Select next brush
+                paintNextTool();
+                paintState->redrawToolbar = true;
+                break;
+            }
+
+
+            case BTN_A:
+            {
+                // Increase brush size / next variant
+                paintIncBrushWidth();
+                paintState->redrawToolbar = true;
+                break;
+            }
+
+            case BTN_B:
+            {
+                // Decrease brush size / prev variant
+                paintDecBrushWidth();
+                paintState->redrawToolbar = true;
+                break;
+            }
+
+            case START:
+            // Start does nothing in select-mode, plus it's used for exit
+            break;
+        }
+    }
+}
+
+void paintDrawModeButtonCb(const buttonEvt_t* evt)
+{
+    if (evt->down)
+    {
+        // Draw mode buttons
+        switch (evt->button)
+        {
+            case SELECT:
+            {
+                // Enter select mode (change color / brush)
+                paintState->buttonMode = BTN_MODE_SELECT;
+                paintState->redrawToolbar = true;
+                paintState->aHeld = false;
+                paintState->moveX = 0;
+                paintState->moveY = 0;
+                break;
+            }
+
+            case BTN_A:
+            {
+                // Draw
+                paintState->aHeld = true;
+                break;
+            }
+
+            case BTN_B:
+            {
+                // Swap the foreground and background colors
+                // no temporary variables for me thanks
+                paintState->fgColor ^= paintState->bgColor;
+                paintState->bgColor ^= paintState->fgColor;
+                paintState->fgColor ^= paintState->bgColor;
+
+                paintState->recentColors[0] ^= paintState->recentColors[1];
+                paintState->recentColors[1] ^= paintState->recentColors[0];
+                paintState->recentColors[0] ^= paintState->recentColors[1];
+
+                paintState->redrawToolbar = true;
+                paintState->recolorPickPoints = true;
+                break;
+            }
+
+            case UP:
+            {
+                paintState->firstMove = true;
+                paintState->moveY = -1;
+                break;
+            }
+
+            case DOWN:
+            {
+                paintState->firstMove = true;
+                paintState->moveY = 1;
+                break;
+            }
+
+            case LEFT:
+            {
+                paintState->firstMove = true;
+                paintState->moveX = -1;
+                break;
+            }
+
+            case RIGHT:
+            {
+                paintState->firstMove = true;
+                paintState->moveX = 1;
+                break;
+            }
+
+            case START:
+            // Don't do anything until start is released to avoid conflicting with EXIT
+            break;
+        }
+    }
+    else
+    {
+        //////// Draw mode button release
+        switch (evt->button)
+        {
+            case START:
+            {
+                if (!paintState->saveInProgress)
+                {
+                    // Enter the save menu
+                    paintState->buttonMode = BTN_MODE_SAVE;
+                    paintState->saveMenu = PICK_SLOT_SAVE_LOAD;
+                    paintState->redrawToolbar = true;
+                    paintState->isSaveSelected = true;
+                }
+                break;
+            }
+
+            case BTN_A:
+            {
+                // Stop drawing
+                paintState->aHeld = false;
+                break;
+            }
+
+            case BTN_B:
+            // Do nothing; color swap is handled on button down
+            break;
+
+            case UP:
+            case DOWN:
+            {
+                // Stop moving vertically
+                paintState->moveY = 0;
+
+                // Reset the button hold time, but only if we're not holding another direction
+                // This lets you make turns quickly instead of waiting for the repeat timeout in the middle
+                if (!paintState->moveX)
+                {
+                    paintState->btnHoldTime = 0;
+                }
+                break;
+            }
+
+            case LEFT:
+            case RIGHT:
+            {
+                // Stop moving horizontally
+                paintState->moveX = 0;
+
+                if (!paintState->moveY)
+                {
+                    paintState->btnHoldTime = 0;
+                }
+                break;
+            }
+
+            case SELECT:
+            {
+                paintState->isSaveSelected = true;
+                paintState->overwriteYesSelected = false;
+                paintState->buttonMode = BTN_MODE_SAVE;
+                paintState->redrawToolbar = true;
+            }
+            break;
+        }
+    }
+}
+
 void paintButtonCb(buttonEvt_t* evt)
 {
     switch (paintState->screen)
     {
-    case PAINT_MENU:
-    {
-        if (evt->down)
+        case PAINT_MENU:
         {
-            meleeMenuButton(paintState->menu, evt->button);
+            if (evt->down)
+            {
+                meleeMenuButton(paintState->menu, evt->button);
+            }
+            break;
         }
+
+        case PAINT_DRAW:
+        {
+            switch (paintState->buttonMode)
+            {
+                case BTN_MODE_DRAW:
+                {
+                    paintDrawModeButtonCb(evt);
+                    break;
+                }
+
+                case BTN_MODE_SELECT:
+                {
+                    paintSelectModeButtonCb(evt);
+                    break;
+                }
+
+                case BTN_MODE_SAVE:
+                {
+                    paintSaveModeButtonCb(evt);
+                    break;
+                }
+            }
+
+            break;
+        }
+
+        case PAINT_VIEW:
         break;
-    }
 
-    case PAINT_DRAW:
-    {
-        if (evt->down)
-        {
-            //////// Button Press
-            if (paintState->buttonMode == BTN_MODE_DRAW)
-            {
-                // Draw mode buttons
-                switch (evt->button)
-                {
-                    case SELECT:
-                    {
-                        // Enter select mode (change color / brush)
-                        paintState->buttonMode = BTN_MODE_SELECT;
-                        paintState->redrawToolbar = true;
-                        paintState->aHeld = false;
-                        paintState->moveX = 0;
-                        paintState->moveY = 0;
-                        break;
-                    }
-
-                    case BTN_A:
-                    {
-                        // Draw
-                        paintState->aHeld = true;
-                        break;
-                    }
-
-                    case BTN_B:
-                    {
-                        // Swap the foreground and background colors
-                        // no temporary variables for me thanks
-                        paintState->fgColor ^= paintState->bgColor;
-                        paintState->bgColor ^= paintState->fgColor;
-                        paintState->fgColor ^= paintState->bgColor;
-
-                        paintState->recentColors[0] ^= paintState->recentColors[1];
-                        paintState->recentColors[1] ^= paintState->recentColors[0];
-                        paintState->recentColors[0] ^= paintState->recentColors[1];
-
-                        paintState->redrawToolbar = true;
-                        paintState->recolorPickPoints = true;
-                        break;
-                    }
-
-                    case UP:
-                    {
-                        paintState->firstMove = true;
-                        paintState->moveY = -1;
-                        break;
-                    }
-
-                    case DOWN:
-                    {
-                        paintState->firstMove = true;
-                        paintState->moveY = 1;
-                        break;
-                    }
-
-                    case LEFT:
-                    {
-                        paintState->firstMove = true;
-                        paintState->moveX = -1;
-                        break;
-                    }
-
-                    case RIGHT:
-                    {
-                        paintState->firstMove = true;
-                        paintState->moveX = 1;
-                        break;
-                    }
-
-                    case START:
-                    // Don't do anything until start is released to avoid conflicting with EXIT
-                    break;
-                }
-            }
-            else if (paintState->buttonMode == BTN_MODE_SAVE)
-            {
-                //////// Save-mode button down
-
-                paintState->redrawToolbar = true;
-                switch (evt->button)
-                {
-                    case BTN_A:
-                    {
-                        if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
-                        {
-                            if (paintState->isSaveSelected)
-                            {
-                                // The screen says "Save" and "Slot X"
-                                if (paintGetSlotInUse(paintState->selectedSlot))
-                                {
-                                    // This slot is in use! Move on to the overwrite menu
-                                    paintState->overwriteYesSelected = false;
-                                    paintState->saveMenu = CONFIRM_OVERWRITE;
-                                }
-                                else
-                                {
-                                    // The slot isn't in use, go for it!
-                                    paintState->doSave = true;
-                                }
-                            }
-                            else
-                            {
-                                // The screen says "Load" and "Slot X"
-                                // TODO: Track if image has been modified since saved and add a prompt for that
-                                paintState->doSave = true;
-                            }
-                        }
-                        else if (paintState->saveMenu == CONFIRM_OVERWRITE)
-                        {
-                            if (paintState->overwriteYesSelected)
-                            {
-                                paintState->doSave = true;
-                            }
-                            else
-                            {
-                                paintState->saveMenu = PICK_SLOT_SAVE_LOAD;
-                            }
-                        }
-                        else if (paintState->saveMenu == HIDDEN)
-                        {
-                            // We shouldn't be here!!!
-                            paintState->buttonMode = BTN_MODE_DRAW;
-                        }
-
-                        break;
-                    }
-
-                    case UP:
-                    case DOWN:
-                    case SELECT:
-                    {
-                        if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
-                        {
-                            // Toggle between Save / Load
-                            // But if no slots are in use, don't switch to "load"
-                            paintState->isSaveSelected = !paintState->isSaveSelected || !paintGetAnySlotInUse();
-
-                            // TODO move this and friends into a function
-                            while (!paintState->isSaveSelected && paintGetAnySlotInUse() && !paintGetSlotInUse(paintState->selectedSlot))
-                            {
-                                paintState->selectedSlot = (paintState->selectedSlot + 1) % PAINT_SAVE_SLOTS;
-                            }
-                        }
-                        break;
-                    }
-
-                    case LEFT:
-                    {
-                        if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
-                        {
-                            // Previous save slot
-                            do
-                            {
-                                // Switch to the previous slot, wrapping back to the end
-                                paintState->selectedSlot = (paintState->selectedSlot == 0) ? PAINT_SAVE_SLOTS - 1 : paintState->selectedSlot - 1;
-                            }
-                            // If we're loading, and there's actually a slot we can load from, skip empty slots until we find one that is in use
-                            while (!paintState->isSaveSelected && paintGetAnySlotInUse() && !paintGetSlotInUse(paintState->selectedSlot));
-                        }
-                        else if (paintState->saveMenu == CONFIRM_OVERWRITE)
-                        {
-                            // Toggle Yes / No
-                            paintState->overwriteYesSelected = !paintState->overwriteYesSelected;
-                        }
-                        break;
-                    }
-
-                    case RIGHT:
-                    {
-                        if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
-                        {
-                            // Next save slot
-                            do
-                            {
-                                paintState->selectedSlot = (paintState->selectedSlot + 1) % PAINT_SAVE_SLOTS;
-                            }
-                            // If we're loading, and there's actually a slot we can load from, skip empty slots until we find one that is in use
-                            while (!paintState->isSaveSelected && paintGetAnySlotInUse() && !paintGetSlotInUse(paintState->selectedSlot));
-                        }
-                        else if (paintState->saveMenu == CONFIRM_OVERWRITE)
-                        {
-                            // Toggle Yes / No
-                            paintState->overwriteYesSelected = !paintState->overwriteYesSelected;
-                        }
-                        break;
-                    }
-
-                    case BTN_B:
-                    {
-                        // Exit save menu
-                        paintState->saveMenu = HIDDEN;
-                        paintState->buttonMode = BTN_MODE_DRAW;
-                        break;
-                    }
-
-                    case START:
-                    // Handle this in button up
-                    break;
-                }
-            }
-        }
-        else
-        {
-            if (paintState->buttonMode == BTN_MODE_SELECT)
-            {
-                //////// Select-mode button release
-                switch (evt->button)
-                {
-                    case SELECT:
-                    {
-                        // Exit select mode
-                        paintState->buttonMode = BTN_MODE_DRAW;
-
-                        // Set the current selection as the FG color and rearrange the rest
-                        paintUpdateRecents(paintState->paletteSelect);
-                        paintState->paletteSelect = 0;
-
-                        paintState->redrawToolbar = true;
-                        break;
-                    }
-
-                    case UP:
-                    {
-                        // Select previous color
-                        paintState->redrawToolbar = true;
-                        if (paintState->paletteSelect == 0)
-                        {
-                            paintState->paletteSelect = PAINT_MAX_COLORS - 1;
-                        } else {
-                            paintState->paletteSelect -= 1;
-                        }
-                        break;
-                    }
-
-                    case DOWN:
-                    {
-                        // Select next color
-                        paintState->redrawToolbar = true;
-                        paintState->paletteSelect = (paintState->paletteSelect + 1) % PAINT_MAX_COLORS;
-                        break;
-                    }
-
-                    case LEFT:
-                    {
-                        // Select previous brush
-                        paintPrevTool();
-                        paintState->redrawToolbar = true;
-                        break;
-                    }
-
-                    case RIGHT:
-                    {
-                        // Select next brush
-                        paintNextTool();
-                        paintState->redrawToolbar = true;
-                        break;
-                    }
-
-
-                    case BTN_A:
-                    {
-                        // Increase brush size / next variant
-                        paintIncBrushWidth();
-                        paintState->redrawToolbar = true;
-                        break;
-                    }
-
-                    case BTN_B:
-                    {
-                        // Decrease brush size / prev variant
-                        paintDecBrushWidth();
-                        paintState->redrawToolbar = true;
-                        break;
-                    }
-
-                    case START:
-                    // Start does nothing in select-mode, plus it's used for exit
-                    break;
-                }
-            }
-            else if (paintState->buttonMode == BTN_MODE_DRAW)
-            {
-                //////// Draw mode button release
-                switch (evt->button)
-                {
-                    case START:
-                    {
-                        if (!paintState->saveInProgress)
-                        {
-                            // Enter the save menu
-                            paintState->buttonMode = BTN_MODE_SAVE;
-                            paintState->saveMenu = PICK_SLOT_SAVE_LOAD;
-                            paintState->redrawToolbar = true;
-                            paintState->isSaveSelected = true;
-                        }
-                        break;
-                    }
-
-                    case BTN_A:
-                    {
-                        // Stop drawing
-                        paintState->aHeld = false;
-                        break;
-                    }
-
-                    case BTN_B:
-                    // Do nothing; color swap is handled on button down
-                    break;
-
-                    case UP:
-                    case DOWN:
-                    {
-                        // Stop moving vertically
-                        paintState->moveY = 0;
-
-                        // Reset the button hold time, but only if we're not holding another direction
-                        // This lets you make turns quickly instead of waiting for the repeat timeout in the middle
-                        if (!paintState->moveX)
-                        {
-                            paintState->btnHoldTime = 0;
-                        }
-                        break;
-                    }
-
-                    case LEFT:
-                    case RIGHT:
-                    {
-                        // Stop moving horizontally
-                        paintState->moveX = 0;
-
-                        if (!paintState->moveY)
-                        {
-                            paintState->btnHoldTime = 0;
-                        }
-                        break;
-                    }
-
-                    case SELECT:
-                    {
-                        paintState->isSaveSelected = true;
-                        paintState->overwriteYesSelected = false;
-                        paintState->buttonMode = BTN_MODE_SAVE;
-                        paintState->redrawToolbar = true;
-                    }
-                    break;
-                }
-            }
-            else if (paintState->buttonMode == BTN_MODE_SAVE)
-            {
-                //////// Save mode button release
-                if (evt->button == START)
-                {
-                    // Exit save menu
-                    paintState->saveMenu = HIDDEN;
-                    paintState->buttonMode = BTN_MODE_DRAW;
-                    paintState->redrawToolbar = true;
-                    break;
-                }
-            }
-        }
+        case PAINT_HELP:
         break;
-    }
 
-    case PAINT_VIEW:
-    break;
+        case PAINT_GALLERY:
+        break;
 
-    case PAINT_HELP:
-    break;
+        case PAINT_SHARE:
+        break;
 
-    case PAINT_GALLERY:
-    break;
-
-    case PAINT_SHARE:
-    break;
-
-    case PAINT_RECEIVE:
-    break;
+        case PAINT_RECEIVE:
+        break;
     }
 }
 
@@ -1148,37 +741,6 @@ void disableCursor(void)
     }
 }
 
-void plotRectFilled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col)
-{
-    fillDisplayArea(disp, x0, y0, x1 - 1, y1 - 1, col);
-}
-
-void plotRectFilledScaled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
-{
-    fillDisplayArea(disp, xTr + x0 * xScale, yTr + y0 * yScale, xTr + (x1) * xScale, yTr + (y1) * yScale, col);
-}
-
-void setPxScaled(display_t* disp, int x, int y, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
-{
-    plotRectFilledScaled(disp, x, y, x + 1, y + 1, col, xTr, yTr, xScale, yScale);
-}
-
-void pushPxScaled(pxStack_t* pxStack, display_t* disp, int x, int y, int xTr, int yTr, int xScale, int yScale)
-{
-    for (int i = 0; i < xScale * yScale; i++)
-    {
-        pushPx(pxStack, disp, xTr + x * xScale + i % yScale, yTr + y * yScale + i / xScale);
-    }
-}
-
-void popPxScaled(pxStack_t* pxStack, display_t* disp, int xScale, int yScale)
-{
-    for (int i = 0; i < xScale * yScale; i++)
-    {
-        popPx(pxStack, disp);
-    }
-}
-
 void drawColorBox(uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, paletteColor_t col, bool selected, paletteColor_t topBorder, paletteColor_t bottomBorder)
 {
     int dashLen = selected ? 1 : 0;
@@ -1329,281 +891,6 @@ void paintRenderToolbar(void)
     }
 }
 
-
-// adapted from http://www.adammil.net/blog/v126_A_More_Efficient_Flood_Fill.html
-void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col)
-{
-    if (disp->getPx(x, y) == col)
-    {
-        // makes no sense to fill with the same color, so just don't
-        return;
-    }
-
-    _floodFill(disp, x, y, disp->getPx(x, y), col);
-}
-
-void _floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill)
-{
-    // at this point, we know array[y,x] is clear, and we want to move as far as possible to the upper-left. moving
-    // up is much more important than moving left, so we could try to make this smarter by sometimes moving to
-    // the right if doing so would allow us to move further up, but it doesn't seem worth the complexity
-    while(true)
-    {
-        uint16_t ox = x, oy = y;
-        while(y != PAINT_CANVAS_Y_OFFSET && disp->getPx(x, y-1) == search) y--;
-        while(x != PAINT_CANVAS_X_OFFSET && disp->getPx(x-1, y) == search) x--;
-        if(x == ox && y == oy) break;
-    }
-    _floodFillInner(disp, x, y, search, fill);
-}
-
-
-void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill)
-{
-    // at this point, we know that array[y,x] is clear, and array[y-1,x] and array[y,x-1] are set.
-    // we'll begin scanning down and to the right, attempting to fill an entire rectangular block
-    uint16_t lastRowLength = 0; // the number of cells that were clear in the last row we scanned
-    do
-    {
-        uint16_t rowLength = 0, sx = x; // keep track of how long this row is. sx is the starting x for the main scan below
-        // now we want to handle a case like |***|, where we fill 3 cells in the first row and then after we move to
-        // the second row we find the first  | **| cell is filled, ending our rectangular scan. rather than handling
-        // this via the recursion below, we'll increase the starting value of 'x' and reduce the last row length to
-        // match. then we'll continue trying to set the narrower rectangular block
-        if(lastRowLength != 0 && disp->getPx(x, y) != search) // if this is not the first row and the leftmost cell is filled...
-        {
-            do
-            {
-                if(--lastRowLength == 0) return; // shorten the row. if it's full, we're done
-            } while(disp->getPx(++x, y) != search); // otherwise, update the starting point of the main scan to match
-            sx = x;
-        }
-        // we also want to handle the opposite case, | **|, where we begin scanning a 2-wide rectangular block and
-        // then find on the next row that it has     |***| gotten wider on the left. again, we could handle this
-        // with recursion but we'd prefer to adjust x and lastRowLength instead
-        else
-        {
-            for(; x != PAINT_CANVAS_X_OFFSET && disp->getPx(x-1, y) == search; rowLength++, lastRowLength++)
-            {
-                disp->setPx(--x, y, fill); // to avoid scanning the cells twice, we'll fill them and update rowLength here
-                // if there's something above the new starting point, handle that recursively. this deals with cases
-                // like |* **| when we begin filling from (2,0), move down to (2,1), and then move left to (0,1).
-                // the  |****| main scan assumes the portion of the previous row from x to x+lastRowLength has already
-                // been filled. adjusting x and lastRowLength breaks that assumption in this case, so we must fix it
-                if(y != PAINT_CANVAS_Y_OFFSET && disp->getPx(x, y-1) == search) _floodFill(disp, x, y-1, search, fill); // use _Fill since there may be more up and left
-            }
-        }
-
-        // now at this point we can begin to scan the current row in the rectangular block. the span of the previous
-        // row from x (inclusive) to x+lastRowLength (exclusive) has already been filled, so we don't need to
-        // check it. so scan across to the right in the current row
-        for(; sx < PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_WIDTH * PAINT_CANVAS_SCALE && disp->getPx(sx, y) == search; rowLength++, sx++) disp->setPx(sx, y, fill);
-        // now we've scanned this row. if the block is rectangular, then the previous row has already been scanned,
-        // so we don't need to look upwards and we're going to scan the next row in the next iteration so we don't
-        // need to look downwards. however, if the block is not rectangular, we may need to look upwards or rightwards
-        // for some portion of the row. if this row was shorter than the last row, we may need to look rightwards near
-        // the end, as in the case of |*****|, where the first row is 5 cells long and the second row is 3 cells long.
-        // we must look to the right  |*** *| of the single cell at the end of the second row, i.e. at (4,1)
-        if(rowLength < lastRowLength)
-        {
-            for(int end=x+lastRowLength; ++sx < end; ) // 'end' is the end of the previous row, so scan the current row to
-            {   // there. any clear cells would have been connected to the previous
-                if(disp->getPx(sx, y) == search) _floodFillInner(disp, sx, y, search, fill); // row. the cells up and left must be set so use FillCore
-            }
-        }
-        // alternately, if this row is longer than the previous row, as in the case |*** *| then we must look above
-        // the end of the row, i.e at (4,0)                                         |*****|
-        else if(rowLength > lastRowLength && y != PAINT_CANVAS_Y_OFFSET) // if this row is longer and we're not already at the top...
-        {
-            for(int ux=x+lastRowLength; ++ux<sx; ) // sx is the end of the current row
-            {
-                if(disp->getPx(ux, y-1) == search) _floodFill(disp, ux, y-1, search, fill); // since there may be clear cells up and left, use _Fill
-            }
-        }
-        lastRowLength = rowLength; // record the new row length
-    } while(lastRowLength != 0 && ++y < PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT * PAINT_CANVAS_SCALE); // if we get to a full row or to the bottom, we're done
-}
-
-void paintDrawSquarePen(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    plotRectFilledScaled(disp, points[0].x, points[0].y, points[0].x + (size), points[0].y + (size), col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-}
-
-void paintDrawCirclePen(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    // Add one to the size because it isn't really a circle at r=1
-    plotCircleFilledScaled(disp, points[0].x, points[0].y, size + 1, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-}
-
-void paintDrawLine(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    PAINT_LOGD("Drawing line from (%d, %d) to (%d, %d)", points[0].x, points[0].y, points[1].x, points[1].y);
-    plotLineScaled(paintState->disp, points[0].x, points[0].y, points[1].x, points[1].y, col, 0, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-}
-
-void paintDrawCurve(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    plotCubicBezierScaled(disp, points[0].x, points[0].y, points[1].x, points[1].y, points[2].x, points[2].y, points[3].x, points[3].y, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-}
-
-void paintDrawRectangle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    uint16_t x0 = (points[0].x > points[1].x) ? points[1].x : points[0].x;
-    uint16_t y0 = (points[0].y > points[1].y) ? points[1].y : points[0].y;
-    uint16_t x1 = (points[0].x > points[1].x) ? points[0].x : points[1].x;
-    uint16_t y1 = (points[0].y > points[1].y) ? points[0].y : points[1].y;
-
-    plotRectScaled(disp, x0, y0, x1 + 1, y1 + 1, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-}
-
-void paintDrawFilledRectangle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    uint16_t x0 = (points[0].x > points[1].x) ? points[1].x : points[0].x;
-    uint16_t y0 = (points[0].y > points[1].y) ? points[1].y : points[0].y;
-    uint16_t x1 = (points[0].x > points[1].x) ? points[0].x : points[1].x;
-    uint16_t y1 = (points[0].y > points[1].y) ? points[0].y : points[1].y;
-
-    // This function takes care of its own scaling because it's very easy and will save a lot of unnecessary draws
-    plotRectFilledScaled(disp, x0, y0, x1 + 1, y1 + 1, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-}
-
-void paintDrawCircle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    uint16_t dX = abs(points[0].x - points[1].x);
-    uint16_t dY = abs(points[0].y - points[1].y);
-    uint16_t r = (uint16_t)(sqrt(dX*dX+dY*dY) + 0.5);
-
-    plotCircleScaled(disp, points[0].x, points[0].y, r, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-}
-
-void paintDrawFilledCircle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    uint16_t dX = abs(points[0].x - points[1].x);
-    uint16_t dY = abs(points[0].y - points[1].y);
-    uint16_t r = (uint16_t)(sqrt(dX*dX+dY*dY) + 0.5);
-
-    plotCircleFilledScaled(disp, points[0].x, points[0].y, r, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-}
-
-void paintDrawEllipse(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    // for some reason, plotting an ellipse also plots 2 extra points outside of the ellipse
-    // let's just work around that
-    pushPxScaled(&paintState->pxStack, disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[0].y - 2 : points[1].y - 2, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-    pushPxScaled(&paintState->pxStack, disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[1].y + 2 : points[0].y + 2, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-
-    plotEllipseRectScaled(disp, points[0].x, points[0].y, points[1].x, points[1].y, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-
-    for (uint8_t i = 0; i < PAINT_CANVAS_SCALE * PAINT_CANVAS_SCALE * 2; i++)
-    {
-        popPx(&paintState->pxStack, disp);
-    }
-}
-
-void paintDrawPolygon(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    for (uint8_t i = 0; i < numPoints - 1; i++)
-    {
-        plotLineScaled(disp, points[i].x, points[i].y, points[i+1].x, points[i+1].y, col, 0, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-    }
-}
-
-void paintPlotSquareWave(display_t* disp, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
-{
-    // swap so x0 < x1 && y0 < y1
-    if (x0 > x1)
-    {
-        x0 ^= x1;
-        x1 ^= x0;
-        x0 ^= x1;
-    }
-
-    if (y0 > y1)
-    {
-        y0 ^= y1;
-        y1 ^= y0;
-        y0 ^= y1;
-    }
-
-    // use the shortest axis as the wave size
-    uint16_t waveSize = (x1 - x0 < y1 - y0) ? x1 - x0 : y1 - y0;
-
-    uint16_t x = x0;
-    uint16_t y = y0;
-    uint16_t stop, extra;
-
-    int16_t xDir = (x0 < x1) ? 1 : -1;
-    int16_t yDir = (y0 < y1) ? 1 : -1;
-
-    if (waveSize < 2)
-    {
-        // TODO: Draw a rectangular wave if a real square wave would be too small?
-        // (a 2xN square wave is just a 2-thick line)
-        return;
-    }
-
-    if (x1 - x0 > y1 - y0)
-    {
-        // Horizontal
-        extra = (x1 - x0 + 1) % (waveSize * 2);
-        stop = x + waveSize * xDir - extra / 2;
-
-        while (x != x1)
-        {
-            PAINT_LOGV("Squarewave H -- (%d, %d)", x, y);
-            setPxScaled(disp, x, y, col, xTr, yTr, xScale, yScale);
-
-            if (x == stop)
-            {
-                plotLineScaled(disp, x, y, x, y + yDir * waveSize, col, 0, xTr, yTr, xScale, yScale);
-                y += yDir * waveSize;
-                yDir = -yDir;
-                stop = x + waveSize * xDir;
-            }
-
-            x+= xDir;
-        }
-    }
-    else
-    {
-        // Vertical
-        extra = (x1 - x0 + 1) % (waveSize * 2);
-        stop = y + waveSize * yDir - extra / 2;
-
-        while (y != y1)
-        {
-            PAINT_LOGV("Squarewave V -- (%d, %d)", x, y);
-            setPxScaled(disp, x, y, col, xTr, yTr, xScale, yScale);
-
-            if (y == stop)
-            {
-                plotLineScaled(disp, x, y, x + xDir * waveSize, y, col, 0, xTr, yTr, xScale, yScale);
-                x += xDir * waveSize;
-                xDir = -xDir;
-                stop = y + waveSize * yDir;
-            }
-
-            y += yDir;
-        }
-    }
-}
-
-void paintDrawSquareWave(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    paintPlotSquareWave(disp, points[0].x, points[0].y, points[1].x, points[1].y, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-}
-
-void paintDrawPaintBucket(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    floodFill(disp, CNV2SCR_X(points[0].x), CNV2SCR_Y(points[0].y), col);
-}
-
-void paintDrawClear(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    // No need to translate here, so only draw once
-    fillDisplayArea(disp, CNV2SCR_X(0), CNV2SCR_Y(0), CNV2SCR_X(PAINT_CANVAS_WIDTH), CNV2SCR_Y(PAINT_CANVAS_HEIGHT), col);
-}
-
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 {
     disableCursor();
@@ -1708,100 +995,6 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 
     enableCursor();
     paintRenderToolbar();
-}
-
-void initPxStack(pxStack_t* pxStack)
-{
-    pxStack->size = PIXEL_STACK_MIN_SIZE;
-    PAINT_LOGD("Allocating pixel stack with size %zu", pxStack->size);
-    pxStack->data = malloc(sizeof(pxVal_t) * pxStack->size);
-    pxStack->index = -1;
-}
-
-void freePxStack(pxStack_t* pxStack)
-{
-    if (pxStack->data != NULL)
-    {
-        free(pxStack->data);
-        PAINT_LOGD("Freed pixel stack");
-        pxStack->size = 0;
-        pxStack->index = -1;
-    }
-}
-
-void maybeGrowPxStack(pxStack_t* pxStack)
-{
-    if (pxStack->index >= pxStack->size)
-    {
-        pxStack->size *= 2;
-        PAINT_LOGD("Expanding pixel stack to size %zu", pxStack->size);
-        pxStack->data = realloc(pxStack->data, sizeof(pxVal_t) * pxStack->size);
-    }
-}
-
-void maybeShrinkPxStack(pxStack_t* pxStack)
-{
-    // If the stack is at least 4 times bigger than it needs to be, shrink it by half
-    // (but only if the stack is bigger than the minimum)
-    if (pxStack->index >= 0 && pxStack->index * 4 <= pxStack->size && pxStack->size > PIXEL_STACK_MIN_SIZE)
-    {
-        pxStack->size /= 2;
-        PAINT_LOGD("Shrinking pixel stack to %zu", pxStack->size);
-        pxStack->data = realloc(pxStack->data, sizeof(pxVal_t) * pxStack->size);
-        PAINT_LOGD("Done shrinking pixel stack");
-    }
-}
-
-/**
- * The color at the given pixel coordinates is pushed onto the pixel stack,
- * along with its coordinates. If the pixel stack is uninitialized, it will
- * be allocated. If the pixel stack is full, its size will be doubled.
- *
- * @brief Pushes a pixel onto the pixel stack so that it can be restored later
- * @param x The screen X coordinate of the pixel to save
- * @param y The screen Y coordinate of the pixel to save
- *
- */
-void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y)
-{
-    pxStack->index++;
-
-    maybeGrowPxStack(pxStack);
-
-    pxStack->data[pxStack->index].x = x;
-    pxStack->data[pxStack->index].y = y;
-    pxStack->data[pxStack->index].col = disp->getPx(x, y);
-
-    PAINT_LOGV("Saved pixel %d at (%d, %d)", pxStack->index, x, y);
-}
-
-/**
- * Removes the pixel from the top of the stack and draws its color at its coordinates.
- * If the stack is already empty, no pixels will be drawn. If the pixel stack's size is
- * at least 4 times its number of entries, its size will be halved, at most to the minimum size.
- * Returns `true` if a value was popped, and `false` if the stack was empty and no value was popped.
- *
- * @brief Pops a pixel from the stack and restores it to the screen
- * @return `true` if a pixel was popped, and `false` if the stack was empty.
- */
-bool popPx(pxStack_t* pxStack, display_t* disp)
-{
-    // Make sure the stack isn't empty
-    if (pxStack->index >= 0)
-    {
-        PAINT_LOGV("Popping pixel %d...", pxStack->index);
-
-        // Draw the pixel from the top of the stack
-        disp->setPx(pxStack->data[pxStack->index].x, pxStack->data[pxStack->index].y, pxStack->data[pxStack->index].col);
-        pxStack->index--;
-
-        // Is this really necessary? The stack empties often so maybe it's better not to reallocate constantly
-        //maybeShrinkPxStack(pxStack);
-
-        return true;
-    }
-
-    return false;
 }
 
 void paintSetupTool(void)
