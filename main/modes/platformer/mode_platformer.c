@@ -130,7 +130,9 @@ swadgeMode modePlatformer =
         .fnEspNowSendCb = NULL,
         .fnAccelerometerCallback = NULL,
         .fnAudioCallback = NULL,
-        .fnTemperatureCallback = NULL};
+        .fnTemperatureCallback = NULL,
+        .overrideUsb = false
+};
 
 static leveldef_t leveldef[3] = {
     {.filename = "level1-1.bin",

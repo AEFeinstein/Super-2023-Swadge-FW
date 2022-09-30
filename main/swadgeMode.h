@@ -149,6 +149,12 @@ typedef struct _swadgeMode
      * @param status   The status of the transmission
      */
     void (*fnEspNowSendCb)(const uint8_t* mac_addr, esp_now_send_status_t status);
+
+    /**
+     * If this is false, then the tiny USB driver will be installed
+     * If this is true, then the swadge mode can do whatever it wants with USB
+     */
+    bool overrideUsb;
 } swadgeMode;
 
 void overrideToSwadgeMode(swadgeMode* mode);

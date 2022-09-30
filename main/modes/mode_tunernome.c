@@ -189,7 +189,8 @@ swadgeMode modeTunernome =
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
     .fnAccelerometerCallback = NULL,
-    .fnAudioCallback = tunernomeSampleHandler
+    .fnAudioCallback = tunernomeSampleHandler,
+    .overrideUsb = false
 };
 
 tunernome_t* tunernome;

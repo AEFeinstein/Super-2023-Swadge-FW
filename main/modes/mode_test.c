@@ -127,7 +127,8 @@ swadgeMode modeTest =
     .fnEspNowSendCb = NULL,
     .fnAccelerometerCallback = testAccelerometerCallback,
     .fnAudioCallback = testAudioCb,
-    .fnTemperatureCallback = NULL
+    .fnTemperatureCallback = NULL,
+    .overrideUsb = false
 };
 
 const song_t notesToDetect =

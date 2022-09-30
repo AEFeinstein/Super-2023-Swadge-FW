@@ -81,7 +81,8 @@ swadgeMode modeColorchord =
     .fnEspNowSendCb = NULL,
     .fnAccelerometerCallback = NULL,
     .fnAudioCallback = colorchordAudioCb,
-    .fnTemperatureCallback = NULL
+    .fnTemperatureCallback = NULL,
+    .overrideUsb = false
 };
 
 //==============================================================================
