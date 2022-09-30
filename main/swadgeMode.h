@@ -30,7 +30,7 @@ typedef struct _swadgeMode
      * This swadge mode's name, mostly for debugging.
      * This is not a function pointer.
      */
-    char* modeName;
+    const char* modeName;
 
     /**
      * This function is called when this mode is started. It should initialize
@@ -84,6 +84,7 @@ typedef struct _swadgeMode
     /**
      * This function is called whenever audio samples are read from the
      * microphone (ADC) and are ready for processing. Samples are read at 8KHz
+     * This cannot be used at the same time as fnBatteryCallback
      *
      * @param samples A pointer to 12 bit audio samples
      * @param sampleCnt The number of samples read
@@ -96,6 +97,14 @@ typedef struct _swadgeMode
      * @param temperature A floating point temperature in celcius
      */
     void (*fnTemperatureCallback)(float temperature);
+
+    /**
+     * This function is called periodically with the current battery level
+     * This cannot be used at the same time as fnAudioCallback
+     *
+     * @param vBatt the battery voltage
+     */
+    void (*fnBatteryCallback)(uint32_t vBatt);
 
     /**
      * This function is called when the display driver wishes to update a
@@ -140,6 +149,12 @@ typedef struct _swadgeMode
      * @param status   The status of the transmission
      */
     void (*fnEspNowSendCb)(const uint8_t* mac_addr, esp_now_send_status_t status);
+
+    /**
+     * If this is false, then the tiny USB driver will be installed
+     * If this is true, then the swadge mode can do whatever it wants with USB
+     */
+    bool overrideUsb;
 } swadgeMode;
 
 void overrideToSwadgeMode(swadgeMode* mode);

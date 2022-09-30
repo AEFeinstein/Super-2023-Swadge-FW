@@ -92,8 +92,9 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->blinkError = false;
     p->input->blinkAnimTimer =0;
     p->input->startHeldType = OUTOFBOUNDS;
-    p->input->inputBoxColor = c430;
-    p->input->inputBoxDefaultColor = c430;
+    p->input->inputBoxColor = c005;//now greenish for more pop against marked. old burnt orange: c430. old green: c043
+        //lets test this game against various forms of colorblindness. I'm concerned about deuteranopia. Input square is my largest concern. 
+    p->input->inputBoxDefaultColor = c043;
     p->input->inputBoxErrorColor = c500;
     p->input->movedThisFrame = false;
     p->input->changedLevelThisFrame = false;
@@ -276,6 +277,7 @@ picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t so
     picrossHint_t t;
     t.complete = false;
     t.filledIn = false;
+    t.correct = false;
     t.isRow = isRow;
     t.index = index;
     
@@ -384,7 +386,7 @@ void picrossGameLoop(int64_t elapsedUs)
     if(p->exitThisFrame)
     {
         picrossExitGame();//free variables
-        returnToPicrossMenu();//change to menu
+        returnToPicrossMenuFromGame();//change to menu
         //dont do more processing, we have switched back to level select screen.
         return;
     }
@@ -429,6 +431,7 @@ void picrossCheckLevel()
 {
     bool allFilledIn = false;
     bool f = false;
+
     //Update if the puzzle is filled in, which we use to grey-out hints when drawing them.
     //if performance is bad, lets just cut this feature.
     for(int i = 0;i<p->puzzle->height;i++)
@@ -508,27 +511,58 @@ bool hintsMatch(picrossHint_t a, picrossHint_t b)
 }
 bool hintIsFilledIn(picrossHint_t* hint)
 {
-    if(hint->isRow)
+    uint8_t segmentIndex = 0;
+    uint8_t segmentLengths[PICROSS_MAX_HINTCOUNT] = {0};
+    picrossSpaceType_t lastSpace = OUTOFBOUNDS;
+
+    uint8_t colInc = hint->isRow ? 1 : 0;
+    uint8_t rowInc = hint->isRow ? 0 : 1;
+    uint8_t row = (hint->isRow) ? hint->index : 0;
+    uint8_t col = (hint->isRow) ? 0 : hint->index;
+
+    bool isFilledIn = true;
+    for (; row < p->puzzle->height && col < p->puzzle->width; row += rowInc, col += colInc)
     {
-        for(uint8_t i = 0;i<p->puzzle->width;i++)
+        switch (p->puzzle->level[col][row])
         {
-            if(p->puzzle->level[i][hint->index] == SPACE_EMPTY)
+            case SPACE_EMPTY:
+                isFilledIn = false;//set false, but still fall through (dont break)
+            case SPACE_MARKEMPTY:
+            case OUTOFBOUNDS:
+            if (lastSpace == SPACE_FILLED)
             {
-                hint->filledIn = false;
-                return false;
+                segmentIndex++;
             }
-        }
-    }else{
-        for(uint8_t i = 0;i<p->puzzle->height;i++)
-        {
-            if(p->puzzle->level[hint->index][i] == SPACE_EMPTY)
-            {
-                hint->filledIn = false;
-                return false;
-            }
+            lastSpace = SPACE_EMPTY;
+            break;
+
+            case SPACE_FILLED:
+            segmentLengths[segmentIndex]++;
+            lastSpace = SPACE_FILLED;
+            break;
         }
     }
-    hint->filledIn = true;
+    hint->filledIn = isFilledIn;
+
+    uint8_t skippedHints = 0;
+    for (uint8_t hintIndex = 0; hintIndex < PICROSS_MAX_HINTCOUNT; hintIndex++)
+    {
+        // if the first hint is 0, we need to skip it so the segments match up
+        // but only skip the first one, otherwise we would mark it as filled
+        // even if there are extra segments after the ones that match the hints
+        if (hint->hints[hintIndex] == 0 && skippedHints == 0)
+        {
+            skippedHints++;
+            continue;
+        }
+
+        if (segmentLengths[hintIndex-skippedHints] != hint->hints[hintIndex])
+        {
+            hint->correct = false;
+            return false;
+        }
+    }
+    hint->correct = true;
     return true;
 }
 
@@ -1157,7 +1191,15 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
     uint8_t h;
     box_t hintbox = boxFromCoord(-1,hint.index);
     paletteColor_t hintShadeColor = c001;//todo: move to struct if we decide to keep this.
-    paletteColor_t hintColor = hint.filledIn ? c333 : c555;
+    paletteColor_t hintColor = c555;//white/
+    if(hint.correct)
+    {
+        //fade, or fade more.
+        hintColor = hint.filledIn ? c111 : c333;
+    }else{
+        //incorrect, or we are still working on it
+         hintColor = hint.filledIn ? c533 : c555;
+    }
 
     if(hint.isRow){
         uint8_t j = 0;

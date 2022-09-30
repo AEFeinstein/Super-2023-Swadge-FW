@@ -26,7 +26,7 @@
 // Function Prototypes
 //==============================================================================
 
-char* blobToStr(void * value, size_t length);
+char* blobToStr(const void * value, size_t length);
 int hexCharToInt(char c);
 void strToBlob(char * str, void * outBlob, size_t blobLen);
 
@@ -216,10 +216,10 @@ bool readNvs32(const char* key, int32_t* outVal)
 
 /**
  * @brief Read a blob from NVS with a given string key
- * 
+ *
  * @param key The key for the value to read
  * @param out_value The value will be written to this memory. It must be allocated before calling readNvsBlob()
- * @param length The length of the value that was read
+ * @param length If out_value is `NULL`, this will be set to the length of the given key. Otherwise, it is the length of the blob to read.
  * @return true if the value was read, false if it was not
  */
 bool readNvsBlob(const char* key, void* out_value, size_t* length)
@@ -257,8 +257,17 @@ bool readNvsBlob(const char* key, void* out_value, size_t* length)
                     {
                         // Return the value
                         char* strBlob = cJSON_GetStringValue(jsonIter);
-                        *length = strlen(strBlob) / 2;
-                        strToBlob(strBlob, out_value, *length);
+
+                        if (out_value != NULL)
+                        {
+                            // The call to read, using returned length
+                            strToBlob(strBlob, out_value, *length);
+                        }
+                        else
+                        {
+                            // The call to get length of blob
+                            *length = strlen(strBlob) / 2;
+                        }
                         cJSON_Delete(json);
                         return true;
                     }
@@ -367,9 +376,9 @@ bool writeNvsBlob(const char* key, const void* value, size_t length)
  * @param length The length of the blob
  * @return char* An allocated hex string, must be free()'d when done
  */
-char* blobToStr(void * value, size_t length)
+char* blobToStr(const void * value, size_t length)
 {
-    uint8_t * value8 = (uint8_t *)value;
+    const uint8_t * value8 = (const uint8_t *)value;
     char * blobStr = malloc((length * 2) + 1);
     for(size_t i = 0; i < length; i++)
     {
@@ -452,10 +461,12 @@ bool deinitSpiffs(void)
  * @param output  A pointer to a pointer to return the read data in. This memory
  *                will be allocated with calloc(). Must be NULL to start
  * @param outsize A pointer to a size_t to return how much data was read
+ * @param readToSpiRam unused
  * @return true if the file was read successfully, false otherwise
  */
-bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
+bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize, bool readToSpiRam)
 {
+    printf("Read from %s\n", fname);
     // Make sure the output pointer is NULL to begin with
     if(NULL != *output)
     {

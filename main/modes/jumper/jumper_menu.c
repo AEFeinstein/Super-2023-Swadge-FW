@@ -60,6 +60,7 @@ swadgeMode modeJumper =
     .fnAccelerometerCallback = NULL,
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL,
+    .overrideUsb = false,
 };
 
 static const char str_jumpTitle[] = "Donut Jump!";

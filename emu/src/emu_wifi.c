@@ -55,7 +55,8 @@ int socketFd;
  * @param recvCb A callback to call when data is sent
  * @param sendCb A callback to call when data is received
  */
-void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
+void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
+    gpio_num_t rx, gpio_num_t tx, uart_port_t uart)
 {
     // Save callbacks
     hostEspNowRecvCb = recvCb;
@@ -132,6 +133,16 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
         ESP_LOGE("WIFI", "bind() failed");
         return;
     }
+}
+
+void espNowUseWireless(void)
+{
+    // Don't do anything
+}
+
+void espNowUseSerial(bool crossoverPins)
+{
+    // Don't do anything
 }
 
 /**

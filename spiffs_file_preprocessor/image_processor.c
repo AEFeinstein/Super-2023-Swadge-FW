@@ -415,9 +415,11 @@ void process_image(const char *infile, const char *outdir)
 		/* Write a WSG image */
 		FILE * wsgFile = fopen(outFilePath, "wb");
 		/* First two bytes are decompresed size */
-		uint16_t decompressedSize = sizeof(imgDimHdr) + paletteBufSize;
-		putc(HI_BYTE(decompressedSize), wsgFile);
-		putc(LO_BYTE(decompressedSize), wsgFile);
+		uint32_t decompressedSize = sizeof(imgDimHdr) + paletteBufSize;
+		putc(HI_BYTE(HI_WORD(decompressedSize)), wsgFile);
+		putc(LO_BYTE(HI_WORD(decompressedSize)), wsgFile);
+		putc(HI_BYTE(LO_WORD(decompressedSize)), wsgFile);
+		putc(LO_BYTE(LO_WORD(decompressedSize)), wsgFile);
 		/* Then dump the compressed bytes */
 		fwrite(output, outputIdx, 1, wsgFile);
 		/* Done writing to the file */

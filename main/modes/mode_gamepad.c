@@ -79,7 +79,8 @@ swadgeMode modeGamepad =
     .fnEspNowSendCb = NULL,
     .fnAccelerometerCallback = gamepadAccelCb,
     .fnAudioCallback = NULL,
-    .fnTemperatureCallback = NULL
+    .fnTemperatureCallback = NULL,
+    .overrideUsb = false
 };
 
 const hid_gamepad_button_bm_t touchMap[] =

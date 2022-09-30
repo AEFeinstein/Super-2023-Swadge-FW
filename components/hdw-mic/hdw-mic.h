@@ -14,4 +14,7 @@ uint32_t continuous_adc_read(uint16_t* outSamples);
 void continuous_adc_deinit(void);
 void continuous_adc_stop(void);
 
+void oneshot_adc_init(adc_unit_t adcUnit, adc1_channel_t adcChan);
+uint32_t oneshot_adc_read(void);
+
 #endif

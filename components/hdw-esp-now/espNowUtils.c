@@ -16,6 +16,7 @@
 #include <esp_err.h>
 #include <freertos/queue.h>
 #include <esp_log.h>
+#include <esp_private/wifi.h>
 
 #include "espNowUtils.h"
 #include "../../main/p2pConnection.h"
@@ -25,6 +26,28 @@
 //==============================================================================
 
 #define ESPNOW_CHANNEL 11
+#define WIFI_RATE WIFI_PHY_RATE_MCS7_SGI
+
+// Three random bytes used as 'start' bytes for packets over serial
+#define FRAMING_START_1 251
+#define FRAMING_START_2  63
+#define FRAMING_START_3 114
+
+#define ESP_NOW_SERIAL_RX_BUF_SIZE  256
+#define ESP_NOW_SERIAL_RINGBUF_SIZE 256
+
+//==============================================================================
+// Enums
+//==============================================================================
+
+typedef enum {
+    EU_PARSING_FR_START_1,
+    EU_PARSING_FR_START_2,
+    EU_PARSING_FR_START_3,
+    EU_PARSING_MAC,
+    EU_PARSING_LEN,
+    EU_PARSING_PAYLOAD,
+} decodeState_t;
 
 //==============================================================================
 // Variables
@@ -33,10 +56,24 @@
 /// This is the MAC address to transmit to for broadcasting
 const uint8_t espNowBroadcastMac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-hostEspNowRecvCb_t hostEspNowRecvCb = NULL;
-hostEspNowSendCb_t hostEspNowSendCb = NULL;
+struct {
+    uint8_t myMac[6];
 
-static xQueueHandle esp_now_queue = NULL;
+    hostEspNowRecvCb_t hostEspNowRecvCb;
+    hostEspNowSendCb_t hostEspNowSendCb;
+
+    xQueueHandle esp_now_queue;
+
+    bool isSerial;
+    gpio_num_t rxGpio;
+    gpio_num_t txGpio;
+    uint32_t uartNum;
+
+    // A ringbuffer for esp-now serial communication
+    char ringBuf[ESP_NOW_SERIAL_RINGBUF_SIZE];
+    int16_t rBufHead;
+    int16_t rBufTail;
+} en = {0};
 
 //==============================================================================
 // Prototypes
@@ -50,39 +87,45 @@ void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 //==============================================================================
 
 /**
- * Initialize ESP-NOW and attach callback functions
- *
+ * Initialize ESP-NOW and attach callback functions.
+ * This uses wifi by default, but espNowUseSerial() may be called later to 
+ * communicate over the given UART instead
+ * 
  * @param recvCb A callback to call when data is sent
  * @param sendCb A callback to call when data is received
+ * @param rx The receive pin when using serial communication instead of wifi
+ * @param tx The transmit pin when using serial communication instead of wifi
+ * @param uart The UART to use for serial communication
  */
-void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
+void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
+    gpio_num_t rx, gpio_num_t tx, uart_port_t uart)
 {
-    hostEspNowRecvCb = recvCb;
-    hostEspNowSendCb = sendCb;
+    // Save callback functions
+    en.hostEspNowRecvCb = recvCb;
+    en.hostEspNowSendCb = sendCb;
+
+    // Save serial config
+    en.rxGpio = rx;
+    en.txGpio = tx;
+    en.uartNum = uart;
 
     // Create a queue to move packets from the receive callback to the main task
-    esp_now_queue = xQueueCreate(10, sizeof(p2pPacket_t));
+    en.esp_now_queue = xQueueCreate(10, sizeof(p2pPacket_t));
 
     esp_err_t err;
 
-    // if (ESP_OK != (err = esp_netif_init()))
-    // {
-    //     ESP_LOGD("ESPNOW", "Couldn't init netif %s", esp_err_to_name(err));
-    //     return;
-    // }
-
-    // if (ESP_OK != (err = esp_event_loop_create_default()))
-    // {
-    //     ESP_LOGD("ESPNOW", "Couldn't create event loop %s", esp_err_to_name(err));
-    //     return;
-    // }
-
+    // Initialize wifi
     wifi_init_config_t conf = WIFI_INIT_CONFIG_DEFAULT();
+    conf.ampdu_rx_enable = 0;
+    conf.ampdu_tx_enable = 0;
     if (ESP_OK != (err = esp_wifi_init(&conf)))
     {
         ESP_LOGD("ESPNOW", "Couldn't init wifi %s", esp_err_to_name(err));
         return;
     }
+
+    // Save our MAC address for serial mode
+    esp_wifi_get_mac(WIFI_IF_STA, en.myMac);
 
     if (ESP_OK != (err = esp_wifi_set_storage(WIFI_STORAGE_RAM)))
     {
@@ -145,7 +188,7 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
         return;
     }
 
-    if(ESP_OK != (err = esp_wifi_config_espnow_rate(ESP_IF_WIFI_STA, WIFI_PHY_RATE_54M)))
+    if(ESP_OK != (err = esp_wifi_config_80211_tx_rate(ESP_IF_WIFI_STA, WIFI_RATE)))
     {
         ESP_LOGD("ESPNOW", "Couldn't set PHY rate %s", esp_err_to_name(err));
         return;
@@ -157,10 +200,23 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
         return;
     }
 
+    if(ESP_OK != (err = esp_wifi_config_espnow_rate(ESP_IF_WIFI_STA, WIFI_RATE)))
+    {
+        ESP_LOGD("ESPNOW", "Couldn't set PHY rate %s", esp_err_to_name(err));
+        return;
+    }
+
     // Set the channel
-    if(ESP_OK != (err = esp_wifi_set_channel( ESPNOW_CHANNEL, WIFI_SECOND_CHAN_BELOW )))
+    if(ESP_OK != (err = esp_wifi_set_channel( ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE )))
     {
         ESP_LOGD("ESPNOW", "Couldn't set channel");
+        return;
+    }
+
+    // Set data rate
+    if(ESP_OK != (err = esp_wifi_internal_set_fix_rate(ESP_IF_WIFI_STA, true, WIFI_RATE)))
+    {
+        ESP_LOGD("ESPNOW", "Couldn't set data rate");
         return;
     }
 
@@ -171,37 +227,96 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb)
         return;
     }
 
-    if(ESP_OK == (err = esp_now_init()))
+    // This starts ESP-NOW
+    en.isSerial = true;
+    espNowUseWireless();
+}
+
+/**
+ * Start wifi and use it for communication
+ */
+void espNowUseWireless(void)
+{
+    if(true == en.isSerial)
     {
-        ESP_LOGD("ESPNOW", "ESP NOW init!");
+        // First make sure the UART isn't being used
+        uart_driver_delete(en.uartNum);
+        en.isSerial = false;
 
-        if(ESP_OK != (err = esp_now_register_recv_cb(espNowRecvCb)))
+        // Then start ESP NOW
+        esp_err_t err;
+        if(ESP_OK == (err = esp_now_init()))
         {
-            ESP_LOGD("ESPNOW", "recvCb NOT registered");
+            ESP_LOGD("ESPNOW", "ESP NOW init!");
+
+            if(ESP_OK != (err = esp_now_register_recv_cb(espNowRecvCb)))
+            {
+                ESP_LOGD("ESPNOW", "recvCb NOT registered");
+            }
+
+            if(ESP_OK != (err = esp_now_register_send_cb(espNowSendCb)))
+            {
+                ESP_LOGD("ESPNOW", "sendCb NOT registered");
+            }
+
+            esp_now_peer_info_t broadcastPeer =
+            {
+                .peer_addr = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+                .lmk = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+                .channel = ESPNOW_CHANNEL,
+                .ifidx = ESP_IF_WIFI_STA,
+                .encrypt = 0,
+                .priv = NULL
+            };
+            if(ESP_OK != (err = esp_now_add_peer(&broadcastPeer)))
+            {
+                ESP_LOGD("ESPNOW", "peer NOT added");
+            }
         }
-
-        if(ESP_OK != (err = esp_now_register_send_cb(espNowSendCb)))
+        else
         {
-            ESP_LOGD("ESPNOW", "sendCb NOT registered");
+            ESP_LOGD("ESPNOW", "esp now fail (%s)", esp_err_to_name(err));
         }
+    }
+}
 
-        esp_now_peer_info_t broadcastPeer =
-        {
-            .peer_addr = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-            .lmk = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-            .channel = ESPNOW_CHANNEL,
-            .ifidx = ESP_IF_WIFI_STA,
-            .encrypt = 0,
-            .priv = NULL
+/**
+ * Start the UART and use it for communication
+ * 
+ * @param crossoverPins true to crossover the rx and tx pins, false to use them
+ *                      as normal.
+ */
+void espNowUseSerial(bool crossoverPins)
+{
+    if(false == en.isSerial)
+    {
+        // First make sure wireless isn't being used
+        esp_now_unregister_recv_cb();
+        esp_now_unregister_send_cb();
+        esp_now_deinit();
+
+        en.isSerial = true;
+
+        // Initialize UART
+        uart_config_t uart_config = {
+            .baud_rate = 8 * 115200,
+            .data_bits = UART_DATA_8_BITS,
+            .parity    = UART_PARITY_DISABLE,
+            .stop_bits = UART_STOP_BITS_1,
+            .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+            .source_clk = UART_SCLK_APB,
         };
-        if(ESP_OK != (err = esp_now_add_peer(&broadcastPeer)))
-        {
-            ESP_LOGD("ESPNOW", "peer NOT added");
-        }
+        ESP_ERROR_CHECK(uart_driver_install(en.uartNum, ESP_NOW_SERIAL_RX_BUF_SIZE, 0, 0, NULL, 0));
+        ESP_ERROR_CHECK(uart_param_config(en.uartNum, &uart_config));
+    }
+
+    if(crossoverPins)
+    {
+        ESP_ERROR_CHECK(uart_set_pin(en.uartNum, en.txGpio, en.rxGpio, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
     }
     else
     {
-        ESP_LOGD("ESPNOW", "esp now fail (%s)", esp_err_to_name(err));
+        ESP_ERROR_CHECK(uart_set_pin(en.uartNum, en.rxGpio, en.txGpio, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
     }
 }
 
@@ -241,7 +356,7 @@ void espNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, int data_len)
     packet.rssi = pkt->rssi;
 
     // Queue this packet
-    xQueueSendFromISR(esp_now_queue, &packet, NULL);
+    xQueueSendFromISR(en.esp_now_queue, &packet, NULL);
 }
 
 /**
@@ -250,29 +365,126 @@ void espNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, int data_len)
  */
 void checkEspNowRxQueue(void)
 {
-    p2pPacket_t packet;
-    if (xQueueReceive(esp_now_queue, &packet, 0))
+    if(en.isSerial)
     {
-        // Debug print the received payload
-        // char dbg[256] = {0};
-        // char tmp[8] = {0};
-        // int i;
-        // for (i = 0; i < packet.len; i++)
-        // {
-        //     sprintf(tmp, "%02X ", packet.data[i]);
-        //     strcat(dbg, tmp);
-        // }
-        // ESP_LOGD("ESPNOW", "%s, MAC [%02X:%02X:%02X:%02X:%02X:%02X], Bytes [%s]",
-        //        __func__,
-        //        packet.mac[0],
-        //        packet.mac[1],
-        //        packet.mac[2],
-        //        packet.mac[3],
-        //        packet.mac[4],
-        //        packet.mac[5],
-        //        dbg);
+        // Read bytes from the UART
+        char bytesRead[256];
+        int numBytesRead = uart_read_bytes(en.uartNum, &bytesRead, sizeof(bytesRead), 0);
+        
+        // Insert them into the en.ringBuffer
+        for(uint16_t i = 0; i < numBytesRead; i++)
+        {
+            en.ringBuf[en.rBufTail] = bytesRead[i];
+            en.rBufTail = (en.rBufTail + 1) % sizeof(en.ringBuf);
+        }
 
-        hostEspNowRecvCb(packet.mac, (const char*)(&packet.data), packet.len, packet.rssi);
+        decodeState_t decodeState = EU_PARSING_FR_START_1;
+        uint8_t rxMac[6];
+        uint8_t rxMacIdx = 0;
+        uint8_t payloadLen = 0;
+        char payload[256];
+        uint8_t payloadIdx = 0;
+
+        // Check the en.ringBuffer for framed packets
+        int16_t rBufTmpHead = en.rBufHead;
+        while(rBufTmpHead != en.rBufTail)
+        {
+            switch(decodeState)
+            {
+                case EU_PARSING_FR_START_1:
+                {
+                    // Check for first framing byte
+                    if(FRAMING_START_1 == en.ringBuf[rBufTmpHead])
+                    {
+                        decodeState = EU_PARSING_FR_START_2;
+                    }
+                    break;
+                }
+                case EU_PARSING_FR_START_2:
+                {
+                    // Check for second framing byte
+                    if(FRAMING_START_2 == en.ringBuf[rBufTmpHead])
+                    {
+                        decodeState = EU_PARSING_FR_START_3;
+                    }
+                    break;
+                }
+                case EU_PARSING_FR_START_3:
+                {
+                    // Check for third framing byte
+                    if(FRAMING_START_3 == en.ringBuf[rBufTmpHead])
+                    {
+                        decodeState = EU_PARSING_MAC;
+                    }
+                    break;
+                }
+                case EU_PARSING_MAC:
+                {
+                    // Save the MAC byte
+                    rxMac[rxMacIdx++] = en.ringBuf[rBufTmpHead];
+                    // If all MAC bytes have been read
+                    if(6 == rxMacIdx)
+                    {
+                        decodeState = EU_PARSING_LEN;
+                    }
+                    break;
+                }
+                case EU_PARSING_LEN:
+                {
+                    // Save the length byte
+                    payloadLen = en.ringBuf[rBufTmpHead];
+                    // Immediately move to EU_PARSING_PAYLOAD
+                    decodeState = EU_PARSING_PAYLOAD;
+                    break;
+                }
+                case EU_PARSING_PAYLOAD:
+                {
+                    // Save the payload byte
+                    payload[payloadIdx++] = en.ringBuf[rBufTmpHead];
+                    // If all payload bytes have been read
+                    if(payloadIdx == payloadLen)
+                    {
+                        en.hostEspNowRecvCb(rxMac, payload, payloadLen, 0);
+
+                        // Move the en.ringBuf head, reset variables
+                        en.rBufHead = rBufTmpHead;
+                        rxMacIdx = 0;
+                        payloadLen = 0;
+                        payloadIdx = 0;
+                        decodeState = EU_PARSING_FR_START_1;
+                    }
+                    break;
+                }
+            }
+            rBufTmpHead = (rBufTmpHead + 1) % sizeof(en.ringBuf);
+        }
+    }
+    else
+    {
+        p2pPacket_t packet;
+        if (xQueueReceive(en.esp_now_queue, &packet, 0))
+        {
+            // Debug print the received payload
+            // char dbg[256] = {0};
+            // char tmp[8] = {0};
+            // int i;
+            // for (i = 0; i < packet.len; i++)
+            // {
+            //     sprintf(tmp, "%02X ", packet.data[i]);
+            //     strcat(dbg, tmp);
+            // }
+            // ESP_LOGD("ESPNOW", "%s, MAC [%02X:%02X:%02X:%02X:%02X:%02X], Bytes [%s]",
+            //        __func__,
+            //        packet.mac[0],
+            //        packet.mac[1],
+            //        packet.mac[2],
+            //        packet.mac[3],
+            //        packet.mac[4],
+            //        packet.mac[5],
+            //        dbg);
+
+            en.hostEspNowRecvCb(packet.mac, (const char*)(&packet.data), packet.len, packet.rssi);
+        }
     }
 }
 
@@ -285,8 +497,40 @@ void checkEspNowRxQueue(void)
  */
 void espNowSend(const char* data, uint8_t len)
 {
-    // Send a packet
-    esp_now_send((uint8_t*)espNowBroadcastMac, (uint8_t*)data, len);
+    if(en.isSerial)
+    {
+        // Frame the packet and add our MAC address
+        uint16_t framedPacketLen = len + 4 + sizeof(en.myMac);
+        char framedPacket[framedPacketLen];
+        uint16_t framedPacketIdx = 0;
+        framedPacket[framedPacketIdx++] = FRAMING_START_1;
+        framedPacket[framedPacketIdx++] = FRAMING_START_2;
+        framedPacket[framedPacketIdx++] = FRAMING_START_3;
+
+        memcpy(&framedPacket[framedPacketIdx], en.myMac, sizeof(en.myMac));
+        framedPacketIdx += sizeof(en.myMac);
+
+        framedPacket[framedPacketIdx++] = len;
+
+        memcpy(&framedPacket[framedPacketIdx], data, len);
+        framedPacketIdx += len;
+
+        // Send the bytes over serial
+        if(framedPacketLen == uart_write_bytes(en.uartNum, framedPacket, framedPacketLen))
+        {
+            // Manually call the callback
+            espNowSendCb(espNowBroadcastMac, ESP_NOW_SEND_SUCCESS);
+        }
+        else
+        {
+            espNowSendCb(espNowBroadcastMac, ESP_NOW_SEND_FAIL);
+        }
+    }
+    else
+    {
+        // Send a packet
+        esp_now_send((uint8_t*)espNowBroadcastMac, (uint8_t*)data, len);
+    }
 }
 
 /**
@@ -324,7 +568,7 @@ void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
         }
     }
 
-    hostEspNowSendCb(mac_addr, status);
+    en.hostEspNowSendCb(mac_addr, status);
 }
 
 /**
@@ -332,7 +576,14 @@ void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
  */
 void espNowDeinit(void)
 {
-    esp_now_unregister_recv_cb();
-    esp_now_unregister_send_cb();
-    esp_now_deinit();
+    if(en.isSerial)
+    {
+        uart_driver_delete(en.uartNum);
+    }
+    else
+    {
+        esp_now_unregister_recv_cb();
+        esp_now_unregister_send_cb();
+        esp_now_deinit();
+    }
 }

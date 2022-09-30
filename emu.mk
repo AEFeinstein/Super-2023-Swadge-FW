@@ -18,7 +18,7 @@ endif
 
 FIND:=find
 ifeq ($(HOST_OS),Windows)
-	FIND:=$(shell cygpath `where find | grep bin`)
+	FIND:=$(shell cygpath `where find | grep bin | grep -v " "`)
 endif
 
 ################################################################################
@@ -124,7 +124,9 @@ DEFINES_LIST = \
 	CONFIG_MAC_BB_PD=0 \
 	CONFIG_SWADGE_PROTOTYPE=1 \
 	CONFIG_TFT_MAX_BRIGHTNESS=200 \
-	CONFIG_TFT_MIN_BRIGHTNESS=10
+	CONFIG_TFT_MIN_BRIGHTNESS=10 \
+	SOC_TIMER_GROUP_TIMERS_PER_GROUP=2 \
+	SOC_TIMER_GROUPS=2 \
 
 DEFINES = $(patsubst %, -D%, $(DEFINES_LIST))
 
