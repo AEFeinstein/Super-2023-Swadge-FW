@@ -10,6 +10,7 @@
 #include "swadgeMode.h"
 #include "meleeMenu.h"
 #include "p2pConnection.h"
+#include "espNowUtils.h"
 
 #include "mode_main_menu.h"
 #include "fighter_menu.h"
@@ -105,12 +106,24 @@ void fighterCheckGameBegin(void);
 static const char str_swadgeBros[]  = "Swadge Bros";
 const char str_multiplayer[] = "Multiplayer";
 const char str_hrContest[]   = "HR Contest";
+
+static const char str_wirelessMulti[] = "Wireless Multi";
+static const char str_wireMultiA[]    = "Wire Multi A";
+static const char str_wireMultiB[]    = "Wire Multi B";
 static const char str_records[]     = "Records";
 static const char str_exit[]        = "Exit";
 
 static const char str_charKD[]      = "King Donut";
 static const char str_charSN[]      = "Sunny";
 static const char str_charBF[]      = "Big Funkus";
+
+const char str_searching_for[] = "Searching For";
+const char str_another_swadge[] = "Another Swadge";
+
+const char str_please_connect[] = "Please Connect";
+
+const char* ftrConnectingStringTop;
+const char* ftrConnectingStringBottom;
 
 // Must match order of fightingCharacter_t
 const char* charNames[3] =
@@ -140,6 +153,7 @@ swadgeMode modeFighter =
     .fnAudioCallback = NULL, // fighterAudioCb,
     .fnTemperatureCallback = NULL, // fighterTemperatureCb
     .fnBackgroundDrawCallback = fighterBackgroundDrawCb,
+    .overrideUsb = true,
 };
 
 fighterMenu_t* fm;
@@ -223,12 +237,11 @@ void fighterMainLoop(int64_t elapsedUs)
         {
             // TODO spin a wheel or something
             drawBackgroundGrid(fm->disp);
-            const char searching_for[] = "Searching For";
-            const char another_swadge[] = "Another Swadge";
-            int16_t tWidth = textWidth(&fm->mmFont, searching_for);
-            drawText(fm->disp, &fm->mmFont, c540, searching_for, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) - fm->mmFont.h - 4);
-            tWidth = textWidth(&fm->mmFont, another_swadge);
-            drawText(fm->disp, &fm->mmFont, c540, another_swadge, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
+            int16_t tWidth = textWidth(&fm->mmFont, ftrConnectingStringTop);
+            drawText(fm->disp, &fm->mmFont, c540, ftrConnectingStringTop, (fm->disp->w - tWidth) / 2,
+                     (fm->disp->h / 2) - fm->mmFont.h - 4);
+            tWidth = textWidth(&fm->mmFont, ftrConnectingStringBottom);
+            drawText(fm->disp, &fm->mmFont, c540, ftrConnectingStringBottom, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
             break;
         }
         case FIGHTER_WAITING:
@@ -408,7 +421,9 @@ void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
 void setFighterMainMenu(void)
 {
     resetMeleeMenu(fm->menu, str_swadgeBros, fighterMainMenuCb);
-    addRowToMeleeMenu(fm->menu, str_multiplayer);
+    addRowToMeleeMenu(fm->menu, str_wirelessMulti);
+    addRowToMeleeMenu(fm->menu, str_wireMultiA);
+    addRowToMeleeMenu(fm->menu, str_wireMultiB);
     addRowToMeleeMenu(fm->menu, str_hrContest);
     addRowToMeleeMenu(fm->menu, str_records);
     addRowToMeleeMenu(fm->menu, str_exit);
@@ -423,8 +438,28 @@ void setFighterMainMenu(void)
 void fighterMainMenuCb(const char* opt)
 {
     // When a row is clicked, print the label for debugging
-    if(opt == str_multiplayer)
+    if((opt == str_wirelessMulti) || (opt == str_wireMultiA) || (opt == str_wireMultiB))
     {
+        // Set espnow to wireless or serial
+        if(opt == str_wireMultiB)
+        {
+            espNowUseSerial(true);
+            ftrConnectingStringTop = str_please_connect;
+            ftrConnectingStringBottom = str_wireMultiA;
+        }
+        else if(opt == str_wireMultiA)
+        {
+            espNowUseSerial(false);
+            ftrConnectingStringTop = str_please_connect;
+            ftrConnectingStringBottom = str_wireMultiB;
+        }
+        else if(opt == str_wirelessMulti)
+        {
+            espNowUseWireless();
+            ftrConnectingStringTop = str_searching_for;
+            ftrConnectingStringBottom = str_another_swadge;
+        }
+
         // Clear state
         fm->characters[0] = NO_CHARACTER;
         fm->characters[1] = NO_CHARACTER;
