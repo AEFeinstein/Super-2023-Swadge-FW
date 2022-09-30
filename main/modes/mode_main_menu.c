@@ -88,6 +88,7 @@ swadgeMode modeMainMenu =
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL,
     .fnBatteryCallback = mainMenuBatteryCb,
+    .overrideUsb = false,
 };
 
 const char mainMenuTitle[] = "Swadge!";

@@ -93,6 +93,7 @@ swadgeMode modePicross =
     .fnAccelerometerCallback = NULL,
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL,
+    .overrideUsb = false,
 };
 
 picrossMenu_t* pm;

@@ -125,7 +125,8 @@ swadgeMode modeDance =
     .fnAccelerometerCallback = NULL,
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL,
-    .fnBatteryCallback = danceBatteryCb
+    .fnBatteryCallback = danceBatteryCb,
+    .overrideUsb = false
 };
 
 danceMode_t* danceState;

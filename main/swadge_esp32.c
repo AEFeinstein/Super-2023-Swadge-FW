@@ -277,10 +277,6 @@ void app_main(void)
     // esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_OFF);
     esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_ON);
 
-    /* Initialize USB peripheral */
-    tinyusb_config_t tusb_cfg = {};
-    tinyusb_driver_install(&tusb_cfg);
-
     // Set up timers
     esp_timer_init();
 
@@ -341,6 +337,14 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         }
     }
 #endif
+
+    /* If the mode isn't overriding USB */
+    if(!cSwadgeMode->overrideUsb)
+    {
+        /* Initialize USB peripheral */
+        tinyusb_config_t tusb_cfg = {};
+        tinyusb_driver_install(&tusb_cfg);
+    }
 
     /* Initialize SPIFFS */
     initSpiffs();
@@ -489,7 +493,18 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     if(ESP_NOW == cSwadgeMode->wifiMode)
 #endif
     {
-        espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb);
+        if(cSwadgeMode->overrideUsb)
+        {
+            // This can communicate over wifi or UART
+            espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb,
+                GPIO_NUM_19, GPIO_NUM_20, UART_NUM_1);
+        }
+        else
+        {
+            // This can communicate over wifi or UART
+            espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb,
+                GPIO_NUM_NC, GPIO_NUM_NC, UART_NUM_MAX);
+        }
     }
 
     /* Enter the swadge mode */

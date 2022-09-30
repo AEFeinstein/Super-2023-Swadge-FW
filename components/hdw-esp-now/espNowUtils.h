@@ -13,7 +13,10 @@
 //==============================================================================
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <esp_now.h>
+#include <hal/gpio_types.h>
+#include <driver/uart.h>
 
 //==============================================================================
 // Structs
@@ -40,8 +43,12 @@ espNowHeader_t;
 typedef void (*hostEspNowRecvCb_t)(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 typedef void (*hostEspNowSendCb_t)(const uint8_t* mac_addr, esp_now_send_status_t status);
 
-void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb);
+void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
+    gpio_num_t rx, gpio_num_t tx, uart_port_t uart);
 void espNowDeinit(void);
+
+void espNowUseWireless(void);
+void espNowUseSerial(bool crossoverPins);
 
 void espNowSend(const char* data, uint8_t len);
 void checkEspNowRxQueue(void);
