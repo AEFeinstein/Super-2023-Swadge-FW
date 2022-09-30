@@ -299,7 +299,7 @@ void updateHitBlock(entity_t *self)
             case TILE_CTNR_1UP:
             {
                 if(self->gameData->extraLifeCollected){
-                    self->gameData->coins++;
+                    addCoins(self->gameData, 1);
                     scorePoints(self->gameData, 10);
                     buzzer_play_sfx(&sndCoin);
                 } else {
@@ -805,7 +805,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     case TILE_COIN_1 ... TILE_COIN_3:
     {
         setTile(self->tilemap, tx, ty, TILE_EMPTY);
-        self->gameData->coins++;
+        addCoins(self->gameData, 1);
         scorePoints(self->gameData, 50);
         buzzer_play_sfx(&sndCoin);
         break;

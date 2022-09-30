@@ -86,6 +86,15 @@ void scorePoints(gameData_t * gameData, uint16_t points){
     gameData->comboTimer = 80;
 }
 
+void addCoins(gameData_t * gameData, uint8_t coins){
+    gameData->coins+=coins;
+    if(gameData->coins > 100){
+        gameData->lives++;
+        //play sound here
+        gameData->coins = 0;
+    }
+}
+
 void updateComboTimer(gameData_t * gameData){
     gameData->comboTimer--;
 
