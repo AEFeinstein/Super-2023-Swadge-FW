@@ -39,6 +39,8 @@ typedef struct
     uint16_t combo;
     int16_t comboTimer;
     uint16_t comboScore;
+
+    bool extraLifeCollected;
     
     led_t leds[NUM_LEDS];
 

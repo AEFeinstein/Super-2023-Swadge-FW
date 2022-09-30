@@ -298,9 +298,16 @@ void updateHitBlock(entity_t *self)
             }
             case TILE_CTNR_1UP:
             {
-                createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
-                createdEntity->homeTileX = 0;
-                createdEntity->homeTileY = 0;
+                if(self->gameData->extraLifeCollected){
+                    self->gameData->coins++;
+                    scorePoints(self->gameData, 10);
+                    buzzer_play_sfx(&sndCoin);
+                } else {
+                    createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                    createdEntity->homeTileX = 0;
+                    createdEntity->homeTileY = 0;
+                    self->gameData->extraLifeCollected = true;
+                }
 
                 self->jumpPower = TILE_CONTAINER_2;
                 break;
@@ -654,6 +661,13 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
             scorePoints(self->gameData, 1000);
             buzzer_play_sfx(&sndPowerUp);
             updateLedsHpMeter(self->entityManager, self->gameData);
+            destroyEntity(other, false);
+            break;
+        }
+        case ENTITY_1UP:{
+            self->gameData->lives++;
+            scorePoints(self->gameData, 0);
+            buzzer_play_sfx(&sndPowerUp);
             destroyEntity(other, false);
             break;
         }

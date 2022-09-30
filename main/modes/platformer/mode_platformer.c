@@ -638,6 +638,7 @@ void changeStateTitleScreen(platformer_t *self){
 
 void changeStateLevelClear(platformer_t *self){
     self->gameData.frameCount = 0;
+    self->gameData.extraLifeCollected = false;
     self->update=&updateLevelClear;
 }
 
