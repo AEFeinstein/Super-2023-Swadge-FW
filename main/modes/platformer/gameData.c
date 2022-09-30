@@ -28,6 +28,7 @@
     gameData->rank = 5;
     gameData->extraLifeCollected = false;
     gameData->checkpoint = 0;
+    gameData->levelDeaths = 0;
 }
 
  void initializeGameDataFromTitleScreen(gameData_t * gameData){
@@ -43,6 +44,7 @@
     gameData->bgColor = c000;
     gameData->extraLifeCollected = false;
     gameData->checkpoint = 0;
+    gameData->levelDeaths = 0;
 }
 
 void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData){
@@ -80,12 +82,13 @@ void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData){
 
 void scorePoints(gameData_t * gameData, uint16_t points){
     gameData->combo++;
+    
     uint16_t comboPoints = points * gameData->combo;
 
     gameData->score += comboPoints;
     gameData->comboScore = comboPoints;
     
-    gameData->comboTimer = 80;
+    gameData->comboTimer = (gameData->levelDeaths < 3) ? 80: 1;
 }
 
 void addCoins(gameData_t * gameData, uint8_t coins){

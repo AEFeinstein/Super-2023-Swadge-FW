@@ -582,6 +582,7 @@ void detectGameStateChange(platformer_t *self){
 void changeStateDead(platformer_t *self){
     self->gameData.frameCount = 0;
     self->gameData.lives--;
+    self->gameData.levelDeaths++;
     self->gameData.combo = 0;
     self->gameData.comboTimer = 0;
 
@@ -639,6 +640,7 @@ void changeStateTitleScreen(platformer_t *self){
 void changeStateLevelClear(platformer_t *self){
     self->gameData.frameCount = 0;
     self->gameData.checkpoint = 0;
+    self->gameData.levelDeaths = 0;
     self->gameData.extraLifeCollected = false;
     self->update=&updateLevelClear;
 }
