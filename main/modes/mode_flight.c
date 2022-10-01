@@ -40,11 +40,12 @@ static flightSimSaveData_t savedata;
 static int didFlightsimDataLoad;
 
 // Thruster speed, etc.
-const int thruster_accel = 4;
-const int thruster_max = 40; //NOTE: thruster_max must be divisble by thruster_accel
-const int thruster_decay = 4;
-const int FLIGHT_SPEED_DEC = 11;
-const int flight_max_speed = 75;
+#define THRUSTER_ACCEL   4
+#define THRUSTER_MAX     40 //NOTE: THRUSTER_MAX must be divisble by THRUSTER_ACCEL
+#define THRUSTER_DECAY   4
+#define FLIGHT_SPEED_DEC 11
+#define FLIGHT_MAX_SPEED 50
+#define FLIGHT_MIN_SPEED 8
 
 flightSimSaveData_t * getFlightSaveData();
 void setFlightSaveData( flightSimSaveData_t * sd );
@@ -1169,7 +1170,7 @@ static void flightGameUpdate( flight_t * tflight )
     int dpitch = 0;
     int dyaw = 0;
 
-    const int flight_min_speed = (flight->mode==FLIGHT_PERFTEST)?0:10;
+    const int flight_min_speed = (flight->mode==FLIGHT_PERFTEST)?0:FLIGHT_MIN_SPEED;
 
     //If we're at the ending screen and the user presses a button end game.
     if( tflight->mode == FLIGHT_GAME_OVER && ( bs & 16 ) && flight->frames > 199 )
@@ -1179,35 +1180,35 @@ static void flightGameUpdate( flight_t * tflight )
 
     if( tflight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_PERFTEST )
     {
-        if( bs & 4 ) dpitch += thruster_accel;
-        if( bs & 8 ) dpitch -= thruster_accel;
-        if( bs & 1 ) dyaw += thruster_accel;
-        if( bs & 2 ) dyaw -= thruster_accel;
+        if( bs & 4 ) dpitch += THRUSTER_ACCEL;
+        if( bs & 8 ) dpitch -= THRUSTER_ACCEL;
+        if( bs & 1 ) dyaw += THRUSTER_ACCEL;
+        if( bs & 2 ) dyaw -= THRUSTER_ACCEL;
 
         if( tflight->inverty ) dyaw *= -1;
 
         if( dpitch )
         {
             tflight->pitchmoment += dpitch;
-            if( tflight->pitchmoment > thruster_max ) tflight->pitchmoment = thruster_max;
-            if( tflight->pitchmoment < -thruster_max ) tflight->pitchmoment = -thruster_max;
+            if( tflight->pitchmoment > THRUSTER_MAX ) tflight->pitchmoment = THRUSTER_MAX;
+            if( tflight->pitchmoment < -THRUSTER_MAX ) tflight->pitchmoment = -THRUSTER_MAX;
         }
         else
         {
-            if( tflight->pitchmoment > 0 ) tflight->pitchmoment-=thruster_decay;
-            if( tflight->pitchmoment < 0 ) tflight->pitchmoment+=thruster_decay;
+            if( tflight->pitchmoment > 0 ) tflight->pitchmoment-=THRUSTER_DECAY;
+            if( tflight->pitchmoment < 0 ) tflight->pitchmoment+=THRUSTER_DECAY;
         }
 
         if( dyaw )
         {
             tflight->yawmoment += dyaw;
-            if( tflight->yawmoment > thruster_max ) tflight->yawmoment = thruster_max;
-            if( tflight->yawmoment < -thruster_max ) tflight->yawmoment = -thruster_max;
+            if( tflight->yawmoment > THRUSTER_MAX ) tflight->yawmoment = THRUSTER_MAX;
+            if( tflight->yawmoment < -THRUSTER_MAX ) tflight->yawmoment = -THRUSTER_MAX;
         }
         else
         {
-            if( tflight->yawmoment > 0 ) tflight->yawmoment-=thruster_decay;
-            if( tflight->yawmoment < 0 ) tflight->yawmoment+=thruster_decay;
+            if( tflight->yawmoment > 0 ) tflight->yawmoment-=THRUSTER_DECAY;
+            if( tflight->yawmoment < 0 ) tflight->yawmoment+=THRUSTER_DECAY;
         }
 
         tflight->hpr[0] += tflight->pitchmoment;
@@ -1221,7 +1222,7 @@ static void flightGameUpdate( flight_t * tflight )
         if( bs & 16 ) tflight->speed++;
         else tflight->speed--;
         if( tflight->speed < flight_min_speed ) tflight->speed = flight_min_speed;
-        if( tflight->speed > flight_max_speed ) tflight->speed = flight_max_speed;
+        if( tflight->speed > FLIGHT_MAX_SPEED ) tflight->speed = FLIGHT_MAX_SPEED;
     }
 
     //If game over, just keep status quo.
