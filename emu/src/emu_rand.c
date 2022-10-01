@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "esp_random.h"
 #include "esp_log.h"
@@ -17,8 +18,9 @@ uint32_t esp_random(void)
     static bool seeded = false;
     if (!seeded)
     {
+        pid_t pid = getpid();
         seeded = true;
-        srand(time(NULL));
+        srand(time(NULL) ^ pid);
     }
     return rand();
 }

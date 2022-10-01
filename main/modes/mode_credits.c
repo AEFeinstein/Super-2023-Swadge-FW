@@ -53,7 +53,8 @@ swadgeMode modeCredits =
     .fnEspNowSendCb = NULL,
     .fnAccelerometerCallback = NULL,
     .fnAudioCallback = NULL,
-    .fnTemperatureCallback = NULL
+    .fnTemperatureCallback = NULL,
+    .overrideUsb = false
 };
 
 // Everyone's here

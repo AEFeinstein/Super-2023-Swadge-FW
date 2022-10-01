@@ -93,6 +93,7 @@ swadgeMode modePicross =
     .fnAccelerometerCallback = NULL,
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL,
+    .overrideUsb = false,
 };
 
 picrossMenu_t* pm;
@@ -126,12 +127,19 @@ void picrossEnterMode(display_t* disp)
     //set default options
     if(false == readNvs32(picrossSavedOptionsKey, &pm->options))
     {
-        writeNvs32(picrossSavedOptionsKey, 4);//100 = bg on, guide off, options off. On the fence on guides on or off.
+        writeNvs32(picrossSavedOptionsKey, 6);//100 = bg on, guide on, hintwarning off. On the fence on guides on or off.
     }
 }
 
 void picrossExitMode(void)
 {
+    //Free WSG's
+    for(int i = 0;i<PICROSS_LEVEL_COUNT;i++)
+    {
+        freeWsg(&pm->levels[i].levelWSG);
+        freeWsg(&pm->levels[i].completedWSG);
+
+    }
     picrossExitLevelSelect();//this doesnt actually get called as we go in and out of levelselect (because it breaks everything), so lets call it now
     // picrossExitGame();//this is already getting called! hooray.
     deinitMeleeMenu(pm->menu);
@@ -232,9 +240,14 @@ void loadLevels()
     loadWsg("Plug_PZL.wsg", &pm->levels[18].levelWSG);//15x15 - This one is on the harder side of things.
     loadWsg("Plug_SLV.wsg", &pm->levels[18].completedWSG);
 
-    pm->levels[19].title = "Never Gonna";//give you up, but title too long for single line.
-    loadWsg("RR_PZL.wsg", &pm->levels[19].levelWSG);//10x10
-    loadWsg("RR_SLV.wsg", &pm->levels[19].completedWSG);
+    pm->levels[19].title = "Rocket League";
+    loadWsg("RocketLeague_PZL.wsg", &pm->levels[19].levelWSG);//15x15 - This one is on the harder side of things.
+    loadWsg("RocketLeague_SLV.wsg", &pm->levels[19].completedWSG);
+
+    //this has to be the last puzzle.
+    pm->levels[20].title = "Never Gonna";//give you up, but title too long for single line.
+    loadWsg("RR_PZL.wsg", &pm->levels[20].levelWSG);//10x10
+    loadWsg("RR_SLV.wsg", &pm->levels[20].completedWSG);
 
     //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_consts.h) when adding levels.
 
@@ -397,6 +410,14 @@ void setPicrossMainMenu(bool resetPos)
 void returnToPicrossMenu(void)
 {
     picrossExitLevelSelect();//free data
+    setPicrossMainMenu(true);
+}
+/**
+ * @brief Frees level select menu and returns to the picross menu, except skipping past the level select menu.
+ * 
+ */
+void returnToPicrossMenuFromGame(void)
+{
     setPicrossMainMenu(true);
 }
 

@@ -189,7 +189,8 @@ swadgeMode modeTunernome =
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
     .fnAccelerometerCallback = NULL,
-    .fnAudioCallback = tunernomeSampleHandler
+    .fnAudioCallback = tunernomeSampleHandler,
+    .overrideUsb = false
 };
 
 tunernome_t* tunernome;
@@ -903,7 +904,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
             {
                 tunernome->beatCtr = (tunernome->beatCtr + 1) % tSigs[tunernome->tSigIdx].top;
 
-                song_t* song;
+                const song_t* song;
                 led_t leds[NUM_LEDS] = {{0}};
 
                 if(0 == tunernome->beatCtr)

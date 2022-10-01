@@ -8,15 +8,10 @@
 
 #if HEATSHRINK_DYNAMIC_ALLOC
     /* Optional replacement of malloc/free */
-#define _TEST_USE_SPIRAM_
-#if defined( _TEST_USE_SPIRAM_ ) && !defined( EMU )
     #include <esp_heap_caps.h>
     #define HEATSHRINK_MALLOC(SZ) heap_caps_malloc(SZ, MALLOC_CAP_SPIRAM)
-#else
-    #define HEATSHRINK_MALLOC(SZ) malloc(SZ)
-#endif
     #define HEATSHRINK_FREE(P, SZ) free(P)
-#else
+
     /* Required parameters for static configuration */
     #define HEATSHRINK_STATIC_INPUT_BUFFER_SIZE 32
     #define HEATSHRINK_STATIC_WINDOW_BITS 8

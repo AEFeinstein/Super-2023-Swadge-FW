@@ -27,6 +27,7 @@
 #include "mode_platformer.h"
 #include "mode_picross.h"
 #include "mode_flight.h"
+#include "mode_paint.h"
 // #include "picross_select.h"
 
 //==============================================================================
@@ -87,6 +88,7 @@ swadgeMode modeMainMenu =
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL,
     .fnBatteryCallback = mainMenuBatteryCb,
+    .overrideUsb = false,
 };
 
 const char mainMenuTitle[] = "Swadge!";
@@ -382,6 +384,7 @@ void mainMenuSetUpToolsMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, modeTunernome.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeColorchord.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeDance.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modePaint.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -421,6 +424,11 @@ void mainMenuToolsCb(const char* opt)
     {
         // Start Light Dances
         switchToSwadgeMode(&modeDance);
+    }
+    else if (modePaint.modeName == opt)
+    {
+        // Start Paint
+        switchToSwadgeMode(&modePaint);
     }
     else if(mainMenuBack == opt)
     {

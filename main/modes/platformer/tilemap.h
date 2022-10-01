@@ -24,6 +24,8 @@
 #define TILE_SIZE 16
 #define TILE_SIZE_IN_POWERS_OF_2 4
 
+#define TILESET_SIZE 64
+
 //==============================================================================
 // Enums
 //==============================================================================
@@ -67,7 +69,7 @@ typedef enum {
     TILE_METAL_BLOCK,
     TILE_METAL_PIPE_H,
     TILE_METAL_PIPE_V,
-    TILE_METAL_PIPE_HEND,
+    TILE_BOUNCE_BLOCK,
     TILE_METAL_PIPE_VEND,
     TILE_GIRDER,
     TILE_SOLID_UNUSED_42,
@@ -128,7 +130,7 @@ typedef struct {
 } warp_t;
  struct tilemap_t
 {
-    wsg_t tiles[64];
+    wsg_t tiles[TILESET_SIZE];
 
     uint8_t * map;
     uint8_t mapWidth;
@@ -169,5 +171,7 @@ uint8_t getTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty);
 void setTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty, uint8_t newTileId);
 bool isSolid(uint8_t tileId);
 void unlockScrolling(tilemap_t *tilemap);
+bool needsTransparency(uint8_t tileId);
+void freeTilemap(tilemap_t *tilemap);
 
 #endif

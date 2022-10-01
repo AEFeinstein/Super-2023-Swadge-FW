@@ -105,6 +105,7 @@ void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
                      int16_t y2, paletteColor_t c);
 
 bool loadWsg(char* name, wsg_t* wsg);
+bool loadWsgSpiRam(char* name, wsg_t* wsg, bool spiRam);
 void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
              bool flipLR, bool flipUD, int16_t rotateDeg);
 void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff);

@@ -98,7 +98,7 @@ void levelSelectInput()
     if (ls->btnState & SELECT && !(ls->prevBtnState & SELECT) && !(ls->btnState & BTN_A))
     {
         //exit to main menu
-        returnToPicrossMenu();
+        returnToPicrossMenu();//from level select.
         return;
     }
     //Choosing a Level
@@ -112,6 +112,8 @@ void levelSelectInput()
         readNvsBlob(picrossCompletedLevelData,progress,&size);
 
         selectPicrossLevel(ls->chosenLevel);
+        picrossExitLevelSelect();
+        free(progress);
         return;
     }
     //Input Movement checks
@@ -225,10 +227,9 @@ void picrossExitLevelSelect()
 {
     if (NULL != ls)
     {
-        // freeFont((ls->game_font));
-        // free(&ls->chosenLevel);
-        // free(&ls->levels);
-        // free(ls->unknownPuzzle);
+        freeWsg(&ls->unknownPuzzle);
+        freeFont((ls->game_font));
+        free(&ls->disp);
         free(ls);
         ls = NULL;
     }
@@ -257,13 +258,12 @@ void drawPicrossLevelWSG(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff
     {
         if(wsg->h < wsg->w)
         {
-            //we need to calculate new y offset to center the image.
-            yOff = yOff + (((PICROSS_MAX_LEVELSIZE*2)-wsg->h)/2);
+            yOff = yOff + (((PICROSS_MAX_LEVELSIZE*2)-wsg->h*pixelPerPixel))/2;
         }
         else
         {
             //calculate new x offset to center
-            xOff = xOff + (((PICROSS_MAX_LEVELSIZE*2)-wsg->w)/2);
+            xOff = xOff + (((PICROSS_MAX_LEVELSIZE*2)-wsg->w*pixelPerPixel)/2);
         }
     }
 
@@ -283,7 +283,7 @@ void drawPicrossLevelWSG(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff
                 if(0 <= dstX && dstX < disp->w && 0 <= dstY && dstY <= disp->h)
                 {
                     // //root pixel
-                    // disp->setPx(dstX, dstY, wsg->px[(srcY * wsg->w) + srcX]);
+
                     // // Draw the pixel
                     for(int i = 0;i<pixelPerPixel;i++)
                     {
@@ -291,9 +291,6 @@ void drawPicrossLevelWSG(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff
                         {
                             disp->setPx(dstX+i, dstY+j, wsg->px[(srcY * wsg->w) + srcX]);
                         }
-                        // disp->setPx(dstX+1, dstY, wsg->px[(srcY * wsg->w) + srcX]);
-                        
-                        // disp->setPx(dstX+1, dstY+1, wsg->px[(srcY * wsg->w) + srcX]);
                     }
                 }
             }

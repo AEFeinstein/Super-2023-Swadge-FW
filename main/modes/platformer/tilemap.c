@@ -75,7 +75,12 @@ void drawTileMap(display_t *disp, tilemap_t *tilemap)
             // Draw only non-garbage tiles
             if (tile > 31 && tile < 90)
             {
-                drawWsgTile(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
+                if(needsTransparency(tile)){
+                    drawWsgSimpleFast(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
+                }
+                else {
+                    drawWsgTile(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
+                }
             }
             else if (tile > 127 && tilemap->tileSpawnEnabled && (tilemap->executeTileSpawnColumn == x || tilemap->executeTileSpawnRow == y || tilemap->executeTileSpawnAll))
             {
@@ -139,7 +144,7 @@ bool loadMapFromFile(tilemap_t *tilemap, char *name)
 
     uint8_t *buf = NULL;
     size_t sz;
-    if (!spiffsReadFile(name, &buf, &sz))
+    if (!spiffsReadFile(name, &buf, &sz, false))
     {
         ESP_LOGE("MAP", "Failed to read %s", name);
         return false;
@@ -181,8 +186,8 @@ bool loadTiles(tilemap_t *tilemap)
     loadWsg("tile036.wsg", &tilemap->tiles[4]);
     loadWsg("tile037.wsg", &tilemap->tiles[5]);
     loadWsg("tile038.wsg", &tilemap->tiles[6]);
+    loadWsg("tile039.wsg", &tilemap->tiles[7]);
 
-    tilemap->tiles[7] = tilemap->tiles[0];
     tilemap->tiles[8] = tilemap->tiles[0];
 
     loadWsg("tile041.wsg", &tilemap->tiles[9]);
@@ -216,8 +221,8 @@ bool loadTiles(tilemap_t *tilemap)
     loadWsg("tile067.wsg", &tilemap->tiles[35]);
     loadWsg("tile068.wsg", &tilemap->tiles[36]);
     loadWsg("tile069.wsg", &tilemap->tiles[37]);
+    loadWsg("tile070.wsg", &tilemap->tiles[38]);
 
-    tilemap->tiles[38] = tilemap->tiles[0];
     tilemap->tiles[39] = tilemap->tiles[0];
     tilemap->tiles[40] = tilemap->tiles[0];
     tilemap->tiles[41] = tilemap->tiles[0];
@@ -289,7 +294,13 @@ bool isSolid(uint8_t tileId)
     case TILE_EMPTY ... TILE_UNUSED_29:
         return false;
         break;
-    case TILE_INVISIBLE_BLOCK ... TILE_CONTAINER_3:
+    case TILE_INVISIBLE_BLOCK ... TILE_METAL_PIPE_V:
+        return true;
+        break;
+    case TILE_BOUNCE_BLOCK:
+        return false;
+        break;
+    case TILE_METAL_PIPE_VEND ... TILE_CONTAINER_3:
         return true;
         break;
     default:
@@ -308,4 +319,39 @@ void unlockScrolling(tilemap_t *tilemap){
 
     tilemap->minMapOffsetY = 0;
     tilemap->maxMapOffsetY = tilemap->mapHeight * TILE_SIZE - TILEMAP_DISPLAY_HEIGHT_PIXELS;
+}
+
+bool needsTransparency(uint8_t tileId){
+    switch(tileId) {
+        case TILE_GIRDER:
+        case TILE_CONTAINER_1 ... TILE_CONTAINER_3:
+        case TILE_COIN_1 ... TILE_COIN_3:
+        case TILE_LADDER:
+        case TILE_BG_GOAL_ZONE ... TILE_BG_ARROW_RD:
+            return true;
+        default:
+            return false;
+    }
+}
+
+void freeTilemap(tilemap_t *tilemap){
+    free(tilemap->map);
+    for(u_int8_t i=0; i<TILESET_SIZE; i++){
+        switch(i){
+            //Skip all placeholder tiles, since they reuse other tiles
+            //(see loadTiles)
+            case 8:
+            case 10 ... 26:
+            case 39 ... 47:
+            {
+                break;
+            }
+            default: {
+                freeWsg(&tilemap->tiles[i]);
+                break;
+            }
+        }
+    }
+
+
 }

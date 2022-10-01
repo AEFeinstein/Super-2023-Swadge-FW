@@ -21,7 +21,7 @@ char* loadJson(const char* name)
     // Read JSON from file
     uint8_t* buf = NULL;
     size_t sz;
-    if(!spiffsReadFile(name, &buf, &sz))
+    if(!spiffsReadFile(name, &buf, &sz, true))
     {
         ESP_LOGE("JSON", "Failed to read %s", name);
 		return NULL;

@@ -1,6 +1,14 @@
 #ifndef _TIMER_TYPES_H_
 #define _TIMER_TYPES_H_
 
+#ifndef SOC_TIMER_GROUPS
+#define SOC_TIMER_GROUPS 0
+#endif
+
+#ifndef SOC_TIMER_GROUP_TIMERS_PER_GROUP
+#define SOC_TIMER_GROUP_TIMERS_PER_GROUP 0
+#endif
+
 /**
  * @brief Selects a Timer-Group out of 2 available groups
  */

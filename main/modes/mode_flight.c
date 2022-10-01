@@ -207,6 +207,7 @@ swadgeMode modeFlight =
     .fnMainLoop = flightRender,
     .fnAccelerometerCallback = NULL,
     .fnAudioCallback = NULL,
+    .overrideUsb = false
 };
 flight_t* flight;
 

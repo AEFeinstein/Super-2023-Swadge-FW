@@ -1,14 +1,38 @@
 #ifndef _FIGHTER_JSON_H_
 #define _FIGHTER_JSON_H_
 
-#include "mode_fighter.h"
-#include "linked_list.h"
+//==============================================================================
+// Includes
+//==============================================================================
 
-void loadJsonFighterData(fighter_t* fighter, const char* jsonFile, list_t* loadedSprites);
+#include "mode_fighter.h"
+
+//==============================================================================
+// Defines
+//==============================================================================
+
+// TODO this should be 2x sprites for a char
+#define MAX_LOADED_SPRITES 100
+
+//==============================================================================
+// Structs
+//==============================================================================
+
+typedef struct
+{
+    char* name;
+    wsg_t sprite;
+} namedSprite_t;
+
+//==============================================================================
+// Function declarations
+//==============================================================================
+
+void loadJsonFighterData(fighter_t* fighter, const char* jsonFile, namedSprite_t* loadedSprites);
 void freeFighterData(fighter_t* fighter, uint8_t numFighters);
 
-void freeFighterSprites(list_t* loadedSprites);
-uint8_t loadFighterSprite(char* name, list_t* loadedSprites);
-wsg_t* getFighterSprite(uint8_t spriteIdx, list_t* loadedSprites);
+void freeFighterSprites(namedSprite_t* loadedSprites);
+uint8_t loadFighterSprite(char* name, namedSprite_t* loadedSprites);
+wsg_t* getFighterSprite(uint8_t spriteIdx, namedSprite_t* loadedSprites);
 
 #endif
