@@ -9,6 +9,7 @@
 #include "led_util.h"
 #include "common_typedef.h"
 #include "swadgeMode.h"
+#include "palette.h"
 
 //==============================================================================
 // Constants
@@ -38,16 +39,27 @@ typedef struct
     uint16_t combo;
     int16_t comboTimer;
     uint16_t comboScore;
+
+    bool extraLifeCollected;
+    uint8_t checkpoint;
+    uint8_t levelDeaths;
     
     led_t leds[NUM_LEDS];
+
+    paletteColor_t bgColor;
+
+    char initials[3];
+    uint8_t rank;
 } gameData_t;
 
 //==============================================================================
 // Functions
 //==============================================================================
 void initializeGameData(gameData_t * gameData);
+void initializeGameDataFromTitleScreen(gameData_t * gameData);
 void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData);
 void scorePoints(gameData_t * gameData, uint16_t points);
+void addCoins(gameData_t * gameData, uint8_t coins);
 void updateComboTimer(gameData_t * gameData);
 
 #endif
