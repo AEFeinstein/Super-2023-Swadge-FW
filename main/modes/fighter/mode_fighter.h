@@ -291,6 +291,5 @@ void fighterRxButtonInput(int32_t btnState);
 void fighterRxScene(const fighterScene_t* scene, uint8_t len);
 
 void drawFighterScene(display_t* d, const fighterScene_t* sceneData);
-void fighterSetDrawScene(void);
 
 #endif

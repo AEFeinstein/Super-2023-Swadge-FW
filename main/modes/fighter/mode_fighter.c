@@ -63,7 +63,6 @@ typedef struct
     bool buttonInputReceived;
     fighterScene_t* composedScene;
     uint8_t composedSceneLen;
-    bool shouldDrawScene;
     int32_t gameTimerUs;
     int32_t printGoTimerUs;
     fighterGamePhase_t gamePhase;
@@ -612,7 +611,7 @@ void fighterGameLoop(int64_t elapsedUs)
         }
 
         // Don't print GO!!! forever
-        if(f->printGoTimerUs > 0)
+        if(f->printGoTimerUs >= 0)
         {
             f->printGoTimerUs -= elapsedUs;
         }
@@ -632,6 +631,11 @@ void fighterGameLoop(int64_t elapsedUs)
                     {
                         // Reset the frameElapsed timer for next loop
                         f->frameElapsed += (FRAME_TIME_MS * 1000);
+
+                        // Draw the scene as-is to avoid flicker
+                        drawFighterScene(f->d, (const fighterScene_t*)f->composedScene);
+
+                        // Don't run game logic
                         return;
                     }
                     break;
@@ -731,14 +735,8 @@ void fighterGameLoop(int64_t elapsedUs)
         }
     }
 
-    // If we should draw a scene after the background was drawn
-    if(f->shouldDrawScene && NULL != f->composedScene)
-    {
-        // Lower the flag
-        f->shouldDrawScene = false;
-        // Draw the scene
-        drawFighterScene(f->d, (const fighterScene_t*)f->composedScene);
-    }
+    // Draw the scene
+    drawFighterScene(f->d, (const fighterScene_t*)f->composedScene);
 }
 
 /**
@@ -2277,6 +2275,12 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
  */
 void drawFighterScene(display_t* d, const fighterScene_t* scene)
 {
+    // Don't draw null scenes
+    if(NULL == scene)
+    {
+        return;
+    }
+
     // Read from scene
     uint8_t stageIdx = scene->stageIdx;
 
@@ -2590,13 +2594,4 @@ void fighterRxScene(const fighterScene_t* scene, uint8_t len)
         // Save the new length
         f->composedSceneLen = len;
     }
-}
-
-/**
- * This function notifies the game that the backround was drawn
- * and the scene should be drawn over it
- */
-void fighterSetDrawScene(void)
-{
-    f->shouldDrawScene = true;
 }

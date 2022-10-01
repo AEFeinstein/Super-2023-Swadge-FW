@@ -395,11 +395,6 @@ void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
             break;
         }
         case FIGHTER_GAME:
-        {
-            // Notify the game that it should draw after the background is drawn
-            fighterSetDrawScene();
-        }
-        /* FALLTHRU */
         case FIGHTER_HR_RESULT:
         {
             // Figure out source and destination pointers
