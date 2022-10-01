@@ -68,15 +68,16 @@ end
 void p2pConnectionTimeout(void* arg);
 void p2pTxAllRetriesTimeout(void* arg);
 void p2pTxRetryTimeout(void* arg);
-void p2pRestart(void* arg);
+void p2pRestart(p2pInfo* arg);
+void p2pRestartTmrCb(void* arg);
 void p2pStartRestartTimer(void* arg);
 void p2pProcConnectionEvt(p2pInfo* p2p, connectionEvt_t event);
-void p2pGameStartAckRecv(void* arg);
+void p2pGameStartAckRecv(p2pInfo* arg, const uint8_t* data, uint8_t dataLen);
 void p2pSendAckToMac(p2pInfo* p2p, const uint8_t* mac_addr);
 void p2pSendMsgEx(p2pInfo* p2p, uint8_t* msg, uint16_t len,
-                  bool shouldAck, void (*success)(void*), void (*failure)(void*));
-void p2pModeMsgSuccess(void* arg);
-void p2pModeMsgFailure(void* arg);
+                  bool shouldAck, p2pAckSuccessFn success, p2pAckFailureFn failure);
+void p2pModeMsgSuccess(p2pInfo* p2p, const uint8_t* data, uint8_t dataLen);
+void p2pModeMsgFailure(p2pInfo* p2p);
 
 //==============================================================================
 // Functions
@@ -128,11 +129,11 @@ void p2pInitialize(p2pInfo* p2p, uint8_t modeId, p2pConCbFn conCbFn,
     p2p->conMsg.messageType = P2P_MSG_CONNECT;
 
     // Set up dummy ACK message
-    p2p->ackMsg.startByte = P2P_START_BYTE;
-    p2p->ackMsg.modeId = modeId;
-    p2p->ackMsg.messageType = P2P_MSG_ACK;
-    p2p->ackMsg.seqNum = 0;
-    memset(p2p->ackMsg.macAddr, 0xFF, sizeof(p2p->ackMsg.macAddr));
+    p2p->ackMsg.hdr.startByte = P2P_START_BYTE;
+    p2p->ackMsg.hdr.modeId = modeId;
+    p2p->ackMsg.hdr.messageType = P2P_MSG_ACK;
+    p2p->ackMsg.hdr.seqNum = 0;
+    memset(p2p->ackMsg.hdr.macAddr, 0xFF, sizeof(p2p->ackMsg.hdr.macAddr));
 
     // Set up dummy start message
     p2p->startMsg.startByte = P2P_START_BYTE;
@@ -166,7 +167,7 @@ void p2pInitialize(p2pInfo* p2p, uint8_t modeId, p2pConCbFn conCbFn,
     // Set up a timer to restart after abject failure
     esp_timer_create_args_t p2pRestartArgs =
     {
-        .callback = p2pRestart,
+        .callback = p2pRestartTmrCb,
         .arg = p2p,
         .dispatch_method = ESP_TIMER_TASK,
         .name = "p2pr",
@@ -306,11 +307,10 @@ void p2pTxAllRetriesTimeout(void* arg)
  * @param p2p       The p2pInfo struct with all the state information
  * @param payload   A byte array to be copied to the payload for this message
  * @param len       The length of the byte array
- * @param shouldAck true to have this message ACKed and retried. false to send it once
  * @param msgTxCbFn A callback function when this message is ACKed or dropped
  */
 void p2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len,
-                bool shouldAck, p2pMsgTxCbFn msgTxCbFn)
+                p2pMsgTxCbFn msgTxCbFn)
 {
     //ESP_LOGD("P2P", "%s", __func__);
 
@@ -320,7 +320,7 @@ void p2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len,
     // Build the header
     builtMsg.hdr.startByte = P2P_START_BYTE;
     builtMsg.hdr.modeId = p2p->modeId;
-    builtMsg.hdr.messageType = shouldAck ? P2P_MSG_DATA : P2P_MSG_DATA_NO_ACK;
+    builtMsg.hdr.messageType = P2P_MSG_DATA;
     builtMsg.hdr.seqNum = 0;
     memcpy(builtMsg.hdr.macAddr, p2p->cnc.otherMac, sizeof(builtMsg.hdr.macAddr));
 
@@ -333,23 +333,22 @@ void p2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len,
 
     // Send it
     p2p->msgTxCbFn = msgTxCbFn;
-    p2pSendMsgEx(p2p, (uint8_t*)&builtMsg, builtMsgLen, shouldAck, p2pModeMsgSuccess, p2pModeMsgFailure);
+    p2pSendMsgEx(p2p, (uint8_t*)&builtMsg, builtMsgLen, true, p2pModeMsgSuccess, p2pModeMsgFailure);
 }
 
 /**
  * Callback function for when a message sent by the Swadge mode, not during
  * the connection process, is ACKed
  *
- * @param arg The p2pInfo struct with all the state information
+ * @param p2p The p2pInfo struct with all the state information
  */
-void p2pModeMsgSuccess(void* arg)
+void p2pModeMsgSuccess(p2pInfo* p2p, const uint8_t* data, uint8_t dataLen)
 {
     //ESP_LOGD("P2P", "%s", __func__);
 
-    p2pInfo* p2p = (p2pInfo*)arg;
     if(NULL != p2p->msgTxCbFn)
     {
-        p2p->msgTxCbFn(p2p, MSG_ACKED);
+        p2p->msgTxCbFn(p2p, MSG_ACKED, data, dataLen);
     }
 }
 
@@ -357,16 +356,15 @@ void p2pModeMsgSuccess(void* arg)
  * Callback function for when a message sent by the Swadge mode, not during
  * the connection process, is dropped
  *
- * @param arg The p2pInfo struct with all the state information
+ * @param p2p The p2pInfo struct with all the state information
  */
-void p2pModeMsgFailure(void* arg)
+void p2pModeMsgFailure(p2pInfo* p2p)
 {
     //ESP_LOGD("P2P", "%s", __func__);
 
-    p2pInfo* p2p = (p2pInfo*)arg;
     if(NULL != p2p->msgTxCbFn)
     {
-        p2p->msgTxCbFn(p2p, MSG_FAILED);
+        p2p->msgTxCbFn(p2p, MSG_FAILED, NULL, 0);
     }
 }
 
@@ -382,7 +380,7 @@ void p2pModeMsgFailure(void* arg)
  * @param failure   A callback function if the message isn't acked. May be NULL
  */
 void p2pSendMsgEx(p2pInfo* p2p, uint8_t* msg, uint16_t len,
-                  bool shouldAck, void (*success)(void*), void (*failure)(void*))
+                  bool shouldAck, p2pAckSuccessFn success, p2pAckFailureFn failure)
 {
     // char dbgStr[12 + 2 + 2 + (len*3)];
     // sprintf(dbgStr, "%12s: ", __func__);
@@ -473,8 +471,8 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
 
     // Check if this message matches our message ID
     if(len < sizeof(p2pConMsg_t) ||
-            ((p2pConMsg_t*)data)->startByte != P2P_START_BYTE ||
-            ((p2pConMsg_t*)data)->modeId != p2p->modeId)
+            ((const p2pConMsg_t*)data)->startByte != P2P_START_BYTE ||
+            ((const p2pConMsg_t*)data)->modeId != p2p->modeId)
     {
         // This message is too short, or does not match our message ID
         //ESP_LOGD("P2P", "DISCARD: Not a message for '%c'", p2p->modeId);
@@ -482,7 +480,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
     }
 
     // Make a pointer for convenience
-    p2pCommonHeader_t* p2pHdr = (p2pCommonHeader_t*)data;
+    const p2pCommonHeader_t* p2pHdr = (const p2pCommonHeader_t*)data;
 
     // If this message has a MAC, check it
     if(len >= sizeof(p2pCommonHeader_t) &&
@@ -516,7 +514,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
     // broadcast or for us. If this isn't an ack message, ack it
     if(len >= sizeof(p2pCommonHeader_t) &&
             p2pHdr->messageType != P2P_MSG_ACK &&
-            p2pHdr->messageType != P2P_MSG_DATA_NO_ACK)
+            p2pHdr->messageType != P2P_MSG_DATA_ACK)
     {
         p2pSendAckToMac(p2p, mac_addr);
     }
@@ -539,7 +537,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
     }
 
     // Check if this is an ACK
-    bool isAck = P2P_MSG_ACK == p2pHdr->messageType;
+    bool isAck = (P2P_MSG_ACK == p2pHdr->messageType) || (P2P_MSG_DATA_ACK == p2pHdr->messageType);
 
     // ACKs can be received in any state
     if(p2p->ack.isWaitingForAck && isAck)
@@ -547,7 +545,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
         //ESP_LOGD("P2P", "ACK Received when waiting for one");
 
         // Save the function pointer to call it after clearing ACK vars
-        void (*tmpSuccessFn)(void*) = p2p->ack.SuccessFn;
+        p2pAckSuccessFn tmpSuccessFn = p2p->ack.SuccessFn;
 
         // Clear ack timeout variables
         esp_timer_stop(p2p->tmr.TxRetry);
@@ -561,7 +559,14 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
         // Call the callback after clearing out variables
         if(NULL != tmpSuccessFn)
         {
-            tmpSuccessFn(p2p);
+            if(P2P_MSG_DATA_ACK == p2pHdr->messageType)
+            {
+                tmpSuccessFn(p2p, ((const p2pDataMsg_t*)data)->data, len - sizeof(p2pCommonHeader_t));
+            }
+            else
+            {
+                tmpSuccessFn(p2p, NULL, 0);
+            }
         }
 
         // Ack handled
@@ -624,9 +629,47 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
             //ESP_LOGD("P2P", "letting mode handle message");
 
             // Call the callback
-            p2p->msgRxCbFn(p2p, ((p2pDataMsg_t*)data)->data, len - sizeof(p2pCommonHeader_t));
+            p2p->msgRxCbFn(p2p, ((const p2pDataMsg_t*)data)->data, len - sizeof(p2pCommonHeader_t));
         }
     }
+}
+
+/**
+ * Set data to be automatically used as the payload all future ACKs, until the
+ * data is cleared. This data will not be transmitted until the next ACK is
+ * sent, whenever that is. Normally an ACK does not contain any payload data,
+ * but an application can have a more efficient continuous request and response
+ * flow by embedding the response in the ACK.
+ *
+ * @param p2p The p2pInfo struct with all the state information
+ * @param ackData The data to be included in the next ACK, will be copied here
+ * @param ackDataLen The length of the data to be included in the next ACK
+ */
+void p2pSetDataInAck(p2pInfo* p2p, const uint8_t* ackData, uint8_t ackDataLen)
+{
+    // Make sure there aren't overflows
+    if(ackDataLen > P2P_MAX_DATA_LEN)
+    {
+        ackDataLen = P2P_MAX_DATA_LEN;
+    }
+
+    // Set the message type to indicate data
+    p2p->ackMsg.hdr.messageType = P2P_MSG_DATA_ACK;
+    // Copy the data to the ackMsg, save the length
+    memcpy(p2p->ackMsg.data, ackData, ackDataLen);
+    p2p->ack.dataInAckLen = ackDataLen;
+}
+
+/**
+ * Clear any data which was set to be used as the payload in the next ACK
+ *
+ * @param p2p The p2pInfo struct with all the state information
+ */
+void p2pClearDataInAck(p2pInfo* p2p)
+{
+    // Set the message type to indicate no data and clear the length
+    p2p->ackMsg.hdr.messageType = P2P_MSG_ACK;
+    p2p->ack.dataInAckLen = 0;
 }
 
 /**
@@ -638,25 +681,23 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
 void p2pSendAckToMac(p2pInfo* p2p, const uint8_t* mac_addr)
 {
     //ESP_LOGD("P2P", "%s", __func__);
-    p2p->ackMsg.startByte = P2P_START_BYTE;
-    p2p->ackMsg.modeId = p2p->modeId;
-    p2p->ackMsg.messageType = P2P_MSG_ACK;
-    p2p->ackMsg.seqNum = 0;
-    memcpy(p2p->ackMsg.macAddr, mac_addr, sizeof(p2p->ackMsg.macAddr));
 
-    p2pSendMsgEx(p2p, (uint8_t*)&p2p->ackMsg, sizeof(p2p->ackMsg), false, NULL, NULL);
+    // Write the destination MAC address
+    // Everything else should already be written
+    memcpy(p2p->ackMsg.hdr.macAddr, mac_addr, sizeof(p2p->ackMsg.hdr.macAddr));
+    // Send the ACK
+    p2pSendMsgEx(p2p, (uint8_t*)&p2p->ackMsg, sizeof(p2pCommonHeader_t) + p2p->ack.dataInAckLen, false, NULL, NULL);
 }
 
 /**
  * This is called when p2p->startMsg is acked and processes the connection event
  *
- * @param arg The p2pInfo struct with all the state information
+ * @param p2p The p2pInfo struct with all the state information
  */
-void p2pGameStartAckRecv(void* arg)
+void p2pGameStartAckRecv(p2pInfo* p2p, const uint8_t* data, uint8_t dataLen)
 {
     //ESP_LOGD("P2P", "%s", __func__);
 
-    p2pInfo* p2p = (p2pInfo*)arg;
     p2pProcConnectionEvt(p2p, RX_GAME_START_ACK);
 }
 
@@ -750,16 +791,26 @@ void p2pStartRestartTimer(void* arg)
 }
 
 /**
+ * Wrapper for p2pRestart() for a timer callback
  * Restart by deiniting then initing. Persist the msgId and p2p->conCbFn
  * fields
  *
  * @param arg The p2pInfo struct with all the state information
  */
-void p2pRestart(void* arg)
+void p2pRestartTmrCb(void* arg)
+{
+    p2pRestart(arg);
+}
+
+/**
+ * Restart by deiniting then initing. Persist the msgId and p2p->conCbFn
+ * fields
+ *
+ * @param p2p The p2pInfo struct with all the state information
+ */
+void p2pRestart(p2pInfo* p2p)
 {
     //ESP_LOGD("P2P", "%s", __func__);
-
-    p2pInfo* p2p = (p2pInfo*)arg;
 
     if(NULL != p2p->conCbFn)
     {
