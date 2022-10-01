@@ -117,54 +117,74 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
 
 static fightingGame_t* f = NULL;
 
+// I don't like redefining this, but const data...
+#define SCREEN_W    280
+
+// For all stages & platforms
+#define STAGE_Y 190
+#define PLATFORM_HEIGHT  4
+
+// For both battlefield & final destination
+#define STAGE_MARGIN 20
+// For HR Contest
+#define HR_STAGE_MARGIN 50
+
+// For battlefield platforms
+#define PLATFORM_MARGIN 40
+#define PLATFORM_WIDTH  54
+#define PLATFORM_Y_SPACING 48
+
 static const stage_t battlefield =
 {
     .numPlatforms = 4,
     .platforms =
     {
+        // Bottom platform
         {
             .area =
             {
-                .x0 = (14) << SF,
-                           .y0 = (170) << SF,
-                           .x1 = (14 + 212 - 1) << SF,
-                           .y1 = (170 + 4) << SF,
+                .x0 = ((STAGE_MARGIN) << SF),
+                .y0 = ((STAGE_Y) << SF),
+                .x1 = ((SCREEN_W - STAGE_MARGIN) << SF),
+                .y1 = ((STAGE_Y + PLATFORM_HEIGHT) << SF),
             },
             .canFallThrough = false
         },
+        // Left platform
         {
             .area =
             {
-                .x0 = (30) << SF,
-                           .y0 = (130) << SF,
-                           .x1 = (30 + 54 - 1) << SF,
-                           .y1 = (130 + 4) << SF,
+                .x0 = ((PLATFORM_MARGIN) << SF),
+                .y0 = ((STAGE_Y - PLATFORM_Y_SPACING) << SF),
+                .x1 = ((PLATFORM_MARGIN + PLATFORM_WIDTH) << SF),
+                .y1 = ((STAGE_Y - PLATFORM_Y_SPACING + PLATFORM_HEIGHT) << SF),
             },
             .canFallThrough = true
         },
+        // Right Platform
         {
             .area =
             {
-                .x0 = (156) << SF,
-                            .y0 = (130) << SF,
-                            .x1 = (156 + 54 - 1) << SF,
-                            .y1 = (130 + 4) << SF,
+                .x0 = ((SCREEN_W - PLATFORM_MARGIN - PLATFORM_WIDTH) << SF),
+                .y0 = ((STAGE_Y - PLATFORM_Y_SPACING) << SF),
+                .x1 = ((SCREEN_W - PLATFORM_MARGIN) << SF),
+                .y1 = ((STAGE_Y - PLATFORM_Y_SPACING + PLATFORM_HEIGHT) << SF),
             },
             .canFallThrough = true
         },
+        // Top Platform
         {
             .area =
             {
-                .x0 = (93) << SF,
-                           .y0 = (90) << SF,
-                           .x1 = (93 + 54 - 1) << SF,
-                           .y1 = (90 + 4) << SF,
+                .x0 = ((SCREEN_W - PLATFORM_WIDTH) / 2 << SF),
+                .y0 = ((STAGE_Y - (2 * PLATFORM_Y_SPACING)) << SF),
+                .x1 = ((((SCREEN_W - PLATFORM_WIDTH) / 2) + PLATFORM_WIDTH) << SF),
+                .y1 = ((STAGE_Y - (2 * PLATFORM_Y_SPACING) + PLATFORM_HEIGHT) << SF),
             },
             .canFallThrough = true
         }
     }
 };
-
 
 static const stage_t finalDest =
 {
@@ -174,10 +194,10 @@ static const stage_t finalDest =
         {
             .area =
             {
-                .x0 = (14) << SF,
-                           .y0 = (170) << SF,
-                           .x1 = (14 + 212 - 1) << SF,
-                           .y1 = (170 + 4) << SF,
+                .x0 = ((STAGE_MARGIN) << SF),
+                .y0 = ((STAGE_Y) << SF),
+                .x1 = ((SCREEN_W - STAGE_MARGIN) << SF),
+                .y1 = ((STAGE_Y + PLATFORM_HEIGHT) << SF),
             },
             .canFallThrough = false
         }
@@ -192,10 +212,10 @@ static const stage_t hrStadium =
         {
             .area =
             {
-                .x0 = (50) << SF,
-                           .y0 = (200) << SF,
-                           .x1 = (280 - 50) << SF,
-                           .y1 = (200 + 4) << SF,
+                .x0 = ((HR_STAGE_MARGIN) << SF),
+                .y0 = ((STAGE_Y) << SF),
+                .x1 = ((SCREEN_W - HR_STAGE_MARGIN) << SF),
+                .y1 = ((STAGE_Y + PLATFORM_HEIGHT) << SF),
             },
             .canFallThrough = false
         }
@@ -314,6 +334,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
         // Start counting in the match
         f->gamePhase = COUNTING_IN;
         f->gameTimerUs = 3000000;
+        f->printGoTimerUs = -1;
     }
 
     // Player 1 starts by sending buttons to player 0
@@ -552,8 +573,8 @@ void fighterGameLoop(int64_t elapsedUs)
                         f->gameTimerUs = 15000000; // 15s total
                         f->gamePhase = HR_BARRIER_UP;
                     }
-                    // Print GO!!! for 1s after COUNTING_IN elapses
-                    f->printGoTimerUs = 1000000;
+                    // Print GO!!! for 1.5s after COUNTING_IN elapses
+                    f->printGoTimerUs = 1500000;
                 }
                 break;
             }
@@ -2392,7 +2413,7 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
     {
         char goStr[] = "GO!!!";
         tWidth = textWidth(font, goStr);
-        drawText(d, font, c555, goStr, (d->w - tWidth) / 2, d->h / 3);
+        drawText(d, font, c555, goStr, (d->w - tWidth) / 2, d->h / 4);
     }
 }
 
