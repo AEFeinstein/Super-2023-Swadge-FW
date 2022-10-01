@@ -82,7 +82,7 @@ static const song_t sndMenuDeny =
     .shouldLoop = false
 };
 
-static const paletteColor_t highScoreNewEntryColors[3] = {c050, c055, c005};
+static const paletteColor_t highScoreNewEntryColors[4] = {c050, c055, c005, c055};
 
 //==============================================================================
 // Functions Prototypes
@@ -751,7 +751,7 @@ void drawPlatformerHighScores(display_t *d, font_t *font, platformerHighScores_t
     for(uint8_t i=0; i<NUM_PLATFORMER_HIGH_SCORES; i++){
         char rowStr[32];
         snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06d   %c%c%c", i+1, highScores->scores[i], highScores->initials[i][0], highScores->initials[i][1], highScores->initials[i][2]);
-        drawText(d, font, (gameData->rank == i) ? highScoreNewEntryColors[gameData->frameCount % 3] : c555, rowStr, 60, 128 + i*16);
+        drawText(d, font, (gameData->rank == i) ? highScoreNewEntryColors[(gameData->frameCount >> 1) % 4] : c555, rowStr, 60, 128 + i*16);
     }
 }
 
@@ -878,7 +878,7 @@ void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData, uint8_t cur
 
     for(uint8_t i=0; i<3; i++){
         snprintf(rowStr, sizeof(rowStr) - 1, "%c", gameData->initials[i]);
-        drawText(d, font, (currentInitial == i) ? highScoreNewEntryColors[gameData->frameCount % 3] : c555, rowStr, 192+16*i, 128);
+        drawText(d, font, (currentInitial == i) ? highScoreNewEntryColors[(gameData->frameCount >> 1) % 4] : c555, rowStr, 192+16*i, 128);
     }
 }
 
