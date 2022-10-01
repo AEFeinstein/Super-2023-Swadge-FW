@@ -529,13 +529,13 @@ void emuDrawDisplayTft(display_t * disp, bool drawDiff UNUSED, fnBackgroundDrawC
 
 		if( ( y & 0xf ) == 0 && fnBackgroundDrawCallback && y > 0 )
 		{
-			fnBackgroundDrawCallback( disp, 0, y-16, TFT_WIDTH, 16, y/16, TFT_HEIGHT/16 );
+			fnBackgroundDrawCallback( disp, 0, y-16, TFT_WIDTH, 16, (y-16)/16, TFT_HEIGHT/16 );
 		}
     }
 
 	if( fnBackgroundDrawCallback )
 	{
-		fnBackgroundDrawCallback( disp, 0, y-16, TFT_WIDTH, 16, y/16, TFT_HEIGHT/16 );
+		fnBackgroundDrawCallback( disp, 0, y-16, TFT_WIDTH, 16, (y-16)/16, TFT_HEIGHT/16 );
 	}
 
     pthread_mutex_unlock(&displayMutex);
