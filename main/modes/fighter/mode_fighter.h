@@ -265,7 +265,9 @@ typedef struct
 
 typedef struct
 {
-    uint16_t p2pMsgType;
+    uint8_t msgType;
+    uint32_t gameTimerUs;
+    bool drawGo;
     uint16_t stageIdx;
     fighterSceneFighter_t f1;
     fighterSceneFighter_t f2;
@@ -283,12 +285,12 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
 void fighterExitGame(void);
 void fighterGameLoop(int64_t elapsedUs);
 void fighterGameButtonCb(buttonEvt_t* evt);
+int32_t fighterGetButtonState(void);
 
 void fighterRxButtonInput(int32_t btnState);
 void fighterRxScene(const fighterScene_t* scene, uint8_t len);
 
 void drawFighterScene(display_t* d, const fighterScene_t* sceneData);
-void setFighterRetryTimeUs(int32_t retryTime);
 void fighterSetDrawScene(void);
 
 #endif
