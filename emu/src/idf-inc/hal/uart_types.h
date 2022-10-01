@@ -95,6 +95,12 @@ typedef enum {
     UART_SIGNAL_DTR_INV      = (0x1 << 7),    /*!< inverse the UART dtr signal*/
 } uart_signal_inv_t;
 
+#ifndef SOC_UART_SUPPORT_RTC_CLK
+    #define SOC_UART_SUPPORT_RTC_CLK  0
+    #define SOC_UART_SUPPORT_XTAL_CLK 0
+    #define SOC_UART_SUPPORT_REF_TICK 0
+#endif
+
 /**
  * @brief UART source clock
  */
