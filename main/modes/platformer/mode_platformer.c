@@ -189,11 +189,14 @@ static leveldef_t leveldef[4] = {
     {.filename = "level1-3.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
+    {.filename = "level1-4.bin",
+     .timeLimit = 180,
+     .checkpointTimeLimit = 90},
     {.filename = "debug.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90}};
 
-#define NUM_LEVELS 4
+#define NUM_LEVELS 5
 
 led_t platLeds[NUM_LEDS];
 
@@ -654,7 +657,15 @@ void updateLevelClear(platformer_t *self){
     if(self->gameData.frameCount > 20){
         if(self->gameData.countdown > 0){
             self->gameData.countdown--;
-            self->gameData.score += 50;
+            
+            uint16_t comboPoints = 50 * self->gameData.combo;
+
+            self->gameData.score += comboPoints;
+            self->gameData.comboScore = comboPoints;
+
+            if(self->gameData.combo > 1){
+                self->gameData.combo--;
+            }
         } else if(self->gameData.frameCount % 20 == 0) {
             //Hey look, it's a frame rule!
             

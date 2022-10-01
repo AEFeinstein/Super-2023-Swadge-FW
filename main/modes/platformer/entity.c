@@ -778,7 +778,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     }
     case TILE_GOAL_100PTS:
     {
-        self->gameData->score += 100;
+        scorePoints(self->gameData, 100);
         self->spriteIndex = SP_PLAYER_WIN;
         self->updateFunction = &updateDummy;
         self->gameData->changeState = ST_LEVEL_CLEAR;
@@ -786,7 +786,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     }
     case TILE_GOAL_500PTS:
     {
-        self->gameData->score += 200;
+        scorePoints(self->gameData, 500);
         self->spriteIndex = SP_PLAYER_WIN;
         self->updateFunction = &updateDummy;
         self->gameData->changeState = ST_LEVEL_CLEAR;
@@ -794,7 +794,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     }
     case TILE_GOAL_1000PTS:
     {
-        self->gameData->score += 1000;
+        scorePoints(self->gameData, 1000);
         self->spriteIndex = SP_PLAYER_WIN;
         self->updateFunction = &updateDummy;
         self->gameData->changeState = ST_LEVEL_CLEAR;
@@ -802,7 +802,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     }
     case TILE_GOAL_2000PTS:
     {
-        self->gameData->score += 2000;
+        scorePoints(self->gameData, 2000);
         self->spriteIndex = SP_PLAYER_WIN;
         self->updateFunction = &updateDummy;
         self->gameData->changeState = ST_LEVEL_CLEAR;
@@ -810,7 +810,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     }
     case TILE_GOAL_5000PTS:
     {
-        self->gameData->score += 5000;
+        scorePoints(self->gameData, 5000);
         self->spriteIndex = SP_PLAYER_WIN;
         self->updateFunction = &updateDummy;
         self->gameData->changeState = ST_LEVEL_CLEAR;
