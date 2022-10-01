@@ -179,7 +179,7 @@ swadgeMode modePlatformer =
         .overrideUsb = false
 };
 
-static leveldef_t leveldef[4] = {
+static leveldef_t leveldef[5] = {
     {.filename = "level1-1.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
