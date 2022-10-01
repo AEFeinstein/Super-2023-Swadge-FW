@@ -90,6 +90,7 @@ void loadSprites(entityManager_t * entityManager)
     loadWsg("sprite047.wsg", &entityManager->sprites[SP_CHECKPOINT_INACTIVE]);
     loadWsg("sprite048.wsg", &entityManager->sprites[SP_CHECKPOINT_ACTIVE_1]);
     loadWsg("sprite049.wsg", &entityManager->sprites[SP_CHECKPOINT_ACTIVE_2]);
+    loadWsg("tile039.wsg", &entityManager->sprites[SP_BOUNCE_BLOCK]);
 };
 
 void updateEntities(entityManager_t * entityManager)

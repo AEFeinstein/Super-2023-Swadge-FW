@@ -736,6 +736,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     case TILE_CONTAINER_1:
     case TILE_BRICK_BLOCK:
     case TILE_INVISIBLE_CONTAINER:
+    case TILE_BOUNCE_BLOCK:
     {
         entity_t *hitBlock = createEntity(self->entityManager, ENTITY_HIT_BLOCK, (tx * TILE_SIZE) + HALF_TILE_SIZE, (ty * TILE_SIZE) + HALF_TILE_SIZE);
 
@@ -754,19 +755,38 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
                 }
             }
 
+            if (tileId == TILE_BOUNCE_BLOCK){
+                hitBlock->spriteIndex = SP_BOUNCE_BLOCK;
+            }
+
             switch (direction)
             {
             case 0:
                 hitBlock->xspeed = -64;
+                if(tileId == TILE_BOUNCE_BLOCK){
+                    self->xspeed = 64;
+                }
                 break;
             case 1:
                 hitBlock->xspeed = 64;
+                if(tileId == TILE_BOUNCE_BLOCK){
+                    self->xspeed = -64;
+                }
                 break;
             case 2:
                 hitBlock->yspeed = -128;
+                if(tileId == TILE_BOUNCE_BLOCK){
+                    self->yspeed = 64;
+                }
                 break;
             case 4:
                 hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
+                if(tileId == TILE_BOUNCE_BLOCK){
+                    self->yspeed = -128;
+                    if(self->gameData->btnState & BTN_A){
+                        self->jumpPower = 180 + (abs(self->xspeed) >> 2);
+                    }
+                }
                 break;
             default:
                 break;
@@ -860,6 +880,44 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
 
 bool enemyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction)
 {
+    switch(tileId){
+        case TILE_BOUNCE_BLOCK: {
+            switch (direction)
+            {
+                case 0:
+                    //hitBlock->xspeed = -64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = 64;
+                    }
+                    break;
+                case 1:
+                    //hitBlock->xspeed = 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = -64;
+                    }
+                    break;
+                case 2:
+                    //hitBlock->yspeed = -128;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->yspeed = 64;
+                    }
+                    break;
+                case 4:
+                    //hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->yspeed = -64;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
     if (isSolid(tileId))
     {
         switch (direction)

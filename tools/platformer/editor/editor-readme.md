@@ -117,11 +117,13 @@ The basic building blocks of any level. Objects cannot pass or fall through them
 | 41 | TILE_GIRDER | ![TILE_GIRDER](../../../assets/platformer/tiles/tile041.png) |
 
 ## Bounce Block
-Unimplemented. 
+Has all the functionality of the Container Block, but any entity (player AND enemies) will bounce off of it! 
+
+Holding the jump button while bouncing from the top side will cause the player to jump higher.
 
 | Tile Id | Tile Name | Appearance | Notes |
 | --- | --- | --- | --- |
-| 39 | TILE_METAL_PIPE_HEND | ![TILE_METAL_PIPE_HEND](../../../assets/platformer/tiles/tile039.png) | The name is wrong.|
+| 39 | TILE_BOUNCE_BLOCK | ![TILE_BOUNCE_BLOCK](../../../assets/platformer/tiles/tile039.png) | |
 
 ## Goal Tiles
 When the player lands on these the level is complete and the appropriate bonus is given.

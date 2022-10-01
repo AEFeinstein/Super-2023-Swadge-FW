@@ -294,7 +294,13 @@ bool isSolid(uint8_t tileId)
     case TILE_EMPTY ... TILE_UNUSED_29:
         return false;
         break;
-    case TILE_INVISIBLE_BLOCK ... TILE_CONTAINER_3:
+    case TILE_INVISIBLE_BLOCK ... TILE_METAL_PIPE_V:
+        return true;
+        break;
+    case TILE_BOUNCE_BLOCK:
+        return false;
+        break;
+    case TILE_METAL_PIPE_VEND ... TILE_CONTAINER_3:
         return true;
         break;
     default:
