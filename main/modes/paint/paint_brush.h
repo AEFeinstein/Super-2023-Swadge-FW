@@ -5,7 +5,7 @@
 
 #include "display.h"
 
-#include "paint_common.h"
+#include "paint_type.h"
 
 /**
  * Defines different brush behaviors for when A is pressed
@@ -59,6 +59,11 @@ typedef struct
     void (*fnDraw)(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col);
 } brush_t;
 
+
+void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col);
+void _floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
+void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
+
 void paintDrawSquarePen(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawCirclePen(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawLine(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
@@ -72,24 +77,5 @@ void paintDrawPolygon(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawSquareWave(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawPaintBucket(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawClear(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-
-const brush_t brushes[] =
-{
-    { .name = "Square Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawSquarePen },
-    { .name = "Circle Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawCirclePen },
-    { .name = "Line",       .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawLine },
-    { .name = "Bezier Curve", .mode = PICK_POINT, .maxPoints = 4, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCurve },
-    { .name = "Rectangle",  .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawRectangle },
-    { .name = "Filled Rectangle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledRectangle },
-    { .name = "Circle",     .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCircle },
-    { .name = "Filled Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledCircle },
-    { .name = "Ellipse",    .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawEllipse },
-    { .name = "Polygon",    .mode = PICK_POINT_LOOP, .maxPoints = MAX_PICK_POINTS, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawPolygon },
-    { .name = "Squarewave", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawSquareWave },
-    { .name = "Paint Bucket", .mode = PICK_POINT, .maxPoints = 1, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawPaintBucket },
-    { .name = "Clear",      .mode = INSTANT, .maxPoints = 0, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawClear },
-};
-
-
 
 #endif

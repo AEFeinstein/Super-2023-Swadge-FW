@@ -1,5 +1,9 @@
 #include "px_stack.h"
 
+#include <malloc.h>
+
+#include "paint_common.h"
+
 void initPxStack(pxStack_t* pxStack)
 {
     pxStack->size = PIXEL_STACK_MIN_SIZE;

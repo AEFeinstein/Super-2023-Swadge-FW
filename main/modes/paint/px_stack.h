@@ -5,6 +5,8 @@
 
 #include "display.h"
 
+#define PIXEL_STACK_MIN_SIZE 2
+
 
 /// @brief Represents the value of a pixel and its screen coordinates
 typedef struct

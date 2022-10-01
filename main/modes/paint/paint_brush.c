@@ -1,6 +1,12 @@
 #include "paint_brush.h"
 
+#include <stdlib.h>
+#include <math.h>
+
 #include "paint_common.h"
+#include "paint_util.h"
+#include "bresenham.h"
+
 
 // adapted from http://www.adammil.net/blog/v126_A_More_Efficient_Flood_Fill.html
 void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col)

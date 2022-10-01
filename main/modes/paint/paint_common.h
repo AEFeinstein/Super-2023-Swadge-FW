@@ -3,6 +3,15 @@
 
 #include <stddef.h>
 
+#include "esp_log.h"
+#include "swadgeMode.h"
+#include "meleeMenu.h"
+#include "led_util.h"
+
+#include "px_stack.h"
+#include "paint_type.h"
+#include "paint_brush.h"
+
 #define PAINT_LOGV(...) ESP_LOGV("Paint", __VA_ARGS__)
 #define PAINT_LOGD(...) ESP_LOGD("Paint", __VA_ARGS__)
 #define PAINT_LOGI(...) ESP_LOGI("Paint", __VA_ARGS__)
@@ -76,52 +85,146 @@
 #define SCR2CNV_Y(y) ((y - PAINT_CANVAS_Y_OFFSET) / PAINT_CANVAS_SCALE)
 
 
-#define PIXEL_STACK_MIN_SIZE 2
 #define MAX_PICK_POINTS 16
 
 // hold button for .3s to begin repeating
 #define BUTTON_REPEAT_TIME 300000
 
 
-/// @brief Defines each separate screen in the paint mode.
-typedef enum
-{
-    // Top menu
-    PAINT_MENU,
-    // Control instructions
-    PAINT_HELP,
-    // Drawing mode
-    PAINT_DRAW,
-    // Select and view/edit saved drawings
-    PAINT_GALLERY,
-    // View a drawing, no editing
-    PAINT_VIEW,
-    // Share a drawing via ESPNOW
-    PAINT_SHARE,
-    // Receive a shared drawing over ESPNOW
-    PAINT_RECEIVE,
-} paintScreen_t;
-
-
-/// @brief Represents the coordinates of a single pixel or point
 typedef struct
 {
-    uint16_t x, y;
-} point_t;
+    //////// General app data
 
-typedef paletteColor_t (*colorMapFn_t)(paletteColor_t col);
+    // Main Menu Font
+    font_t menuFont;
+    // Main Menu
+    meleeMenu_t* menu;
 
-// Extra drawing functions
-void paintDrawWsgTemp(display_t* display, const wsg_t* wsg, pxStack_t* saveTo, uint16_t x, uint16_t y, colorMapFn_t colorSwap);
+    // Font for drawing tool info
+    // TODO: Use images instead!
+    font_t toolbarFont;
 
-void paintPlotSquareWave(display_t* disp, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
-void plotRectFilled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col);
-void plotRectFilledScaled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+    display_t* disp;
 
-void setPxScaled(display_t* disp, int x, int y, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+    // The screen within paint that the user is in
+    paintScreen_t screen;
+
+    paintButtonMode_t buttonMode;
+
+    // Whether or not A is currently pressed
+    bool aHeld;
+
+    // The width of the current canvas
+    // TODO: Remove and replace with constant? Or, remove constant and use this?
+    int16_t canvasW, canvasH;
+
+
+    // Color data
+
+    // The foreground color and the background color, which can be swapped with B
+    paletteColor_t fgColor, bgColor;
+
+    // This image's palette, including foreground and background colors.
+    // It is always ordered with the most-recently-used colors at the beginning
+    paletteColor_t recentColors[PAINT_MAX_COLORS];
+
+    // The index of the currently selected color, while SELECT is held
+    uint8_t paletteSelect;
+
+    led_t leds[NUM_LEDS];
+
+
+    //////// Brush / Tool data
+
+    // Index of the currently selected brush / tool
+    uint8_t brushIndex;
+
+    // A pointer to the currently selected brush's definition for convenience
+    const brush_t* brush;
+
+    // The current brush width or variant, depending on the brush
+    uint8_t brushWidth;
+
+
+    //////// Pick Points
+
+    // An array of points that have been selected for the current brush
+    // TODO: Replace with a pxStack_t and get rid of the other `pxStack` maybe?
+    point_t pickPoints[MAX_PICK_POINTS];
+
+    // The number of points already selected
+    size_t pickCount;
+
+    // The saved pixels that are covered up by the pick points
+    pxStack_t pxStack;
+
+    // Whether all pick points should be redrawn with the current fgColor, for when the color changes while we're picking
+    bool recolorPickPoints;
+
+
+    //////// Cursor
+
+    // The sprite for the currently selected cursor
+    const wsg_t* cursorWsg;
+
+    // The saved pixels thate rae covered up by the cursor
+    pxStack_t cursorPxs;
+
+    bool showCursor;
+
+    // The number of canvas pixels to move the cursor this frame
+    int8_t moveX, moveY;
+
+    // The current position of the cursor in canvas pixels
+    int16_t cursorX, cursorY;
+
+    // The previous position of the cursor in canvas pixels
+    // TODO: Remove this and just use `cursorPxs` instead
+    int16_t lastCursorX, lastCursorY;
+
+    // When true, this is the initial D-pad button down.
+    // If set, the cursor will move by one pixel and then it will be cleared.
+    bool firstMove;
+
+    // The time a D-pad button has been held down for, in microseconds
+    int64_t btnHoldTime;
+
+
+    //////// Rendering flags
+
+    // If set, the canvas will be cleared and the screen will be redrawn. Set on startup.
+    bool clearScreen;
+
+    // Set to redraw the toolbar on the next loop, when a brush or color is being selected
+    bool redrawToolbar;
+
+
+    //////// Save data flags
+
+    // Whether to perform a save on the next loop
+    bool doSave;
+
+    // True when a save has been started but not yet completed. Prevents input while saving.
+    bool saveInProgress;
+
+    // The save slot selected when in BTN_MODE_SAVE
+    uint8_t selectedSlot;
+
+    paintSaveMenu_t saveMenu;
+
+    // True if "Save" is selected, false if "Load" is selected
+    bool isSaveSelected;
+
+    // State for Yes/No in overwrite save menu.
+    bool overwriteYesSelected;
+
+    // Index keeping track of which slots are in use and the most recent slot
+    int32_t index;
+} paintMenu_t;
 
 
 extern paintMenu_t* paintState;
 
 
-#endif _PAINT_COMMON_H_
+#endif
+
