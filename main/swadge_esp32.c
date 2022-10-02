@@ -546,9 +546,9 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             cSwadgeMode->fnTemperatureCallback(readTemperatureSensor());
         }
 
-        // Process button presses
+        // Process all queued button presses
         buttonEvt_t bEvt = {0};
-        if(checkButtonQueue(&bEvt))
+        while(checkButtonQueue(&bEvt))
         {
             // Monitor start + select
             if((&modeMainMenu != cSwadgeMode) && (bEvt.state & START) && (bEvt.state & SELECT))
