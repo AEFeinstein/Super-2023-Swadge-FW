@@ -9,6 +9,9 @@ except ImportError:
     # for Python3
     import tkinter as tk
 
+global updateUI
+updateUI: bool = True
+
 class LabelThread(threading.Thread):
 
     def __init__(self, _serialPort: serial.tools.list_ports_common.ListPortInfo):
@@ -24,6 +27,8 @@ class LabelThread(threading.Thread):
         return self.labelColor
 
     def run(self):
+        global updateUI
+
         # Draw the label
         self.labelText = "Attempting flash on " + str(self.serialPort.device)
         self.labelColor = "gray"
@@ -48,15 +53,19 @@ class LabelThread(threading.Thread):
             # It worked! Display a nice green message
             self.labelText = "Flash succeeded on " + str(self.serialPort.device)
             self.labelColor = "green"
+            updateUI = True
         except Exception as e:
             # It failed. Display a bad red message
             self.labelText = "Flash failed on " + str(self.serialPort.device) + " because: " + str(e)
             self.labelColor = "red"
+            updateUI = True
 
 
 class ProgrammerApplication:
 
     def init(self):
+        global updateUI
+
         # Keep track of all the threads
         self.threads: list[LabelThread] = []
 
@@ -64,7 +73,7 @@ class ProgrammerApplication:
         self.swadgeSerialPorts: list[serial.tools.list_ports_common.ListPortInfo] = []
 
         # Grid parameters
-        self.numRows: int = 0
+        self.numRows: int = 1
         self.numCols: int = 1
 
         # Create the UI root
@@ -77,8 +86,14 @@ class ProgrammerApplication:
         menubar.add_cascade(label="File", menu=filemenu)
         self.root.config(menu=menubar)
 
+        # Override the close button
+        self.root.protocol("WM_DELETE_WINDOW", exit_function)
+
         # Start the main UI loop
         self.root.winfo_toplevel().title("ESP32-S2 Swadge Programmer")
+
+        # Set the initial window size
+        self.root.geometry("500x200")
 
         # Run this loop until it should quit
         self.shouldQuit: bool = False
@@ -98,6 +113,7 @@ class ProgrammerApplication:
                         # Then create a thread for esptool associated with this serial port and label and run it
                         programmerThread = LabelThread(_serialPort=serialPort)
                         self.threads.append(programmerThread)
+                        updateUI = True
                         programmerThread.start()
 
             # Check for removed serial ports
@@ -111,6 +127,7 @@ class ProgrammerApplication:
                         if thread.serialPort == serialPort:
                             thread.join()
                             self.threads.remove(thread)
+                            updateUI = True
 
             # Update UI
             self.adjustRows()
@@ -118,48 +135,58 @@ class ProgrammerApplication:
             self.root.update()
 
     def exit(self):
+        global updateUI
+        self.shouldQuit = True
         if len(self.threads) > 0:
             self.root.update()
             # Wait for all threads to actually stop
             for thread in self.threads:
                 thread.join()
+                self.threads.remove(thread)
+                updateUI = True
         # Destroy the UI
         self.root.destroy()
-        self.shouldQuit = True
 
     def adjustRows(self):
-        # Figure out how many rows and columns there are
-        self.numRows = len(self.threads)
-        self.numCols = 1
+        global updateUI
 
-        # Remove all entries from the grid
-        tk.Grid.grid_remove(self.root)
-        for widget in self.root.grid_slaves():
-            tk.Grid.grid_remove(widget)
+        if updateUI:
+            updateUI = False
 
-        # Set up rows and columns
-        for col in range(self.numCols):
-            tk.Grid.columnconfigure(self.root, col, weight=1)
-        for row in range(self.numRows):
-            tk.Grid.rowconfigure(self.root, row, weight=1)
+            # Figure out how many rows and columns there are
+            self.numRows = len(self.threads)
+            if 0 == self.numRows:
+                self.numRows = 1
+            self.numCols = 1
 
-        # Add each label from the thread to the grid
-        rowIdx: int = 0
-        colIdx: int = 0
-        if len(self.threads) > 0:
-            # For each serial port
-            for thread in self.threads:
-                # Add label from the thread to the grid
-                serialPortLabel = tk.Label(self.root, text=thread.getLabelText(), bg=thread.getLabelColor())
+            # Remove all entries from the grid
+            tk.Grid.grid_remove(self.root)
+            for widget in self.root.grid_slaves():
+                tk.Grid.grid_remove(widget)
+
+            # Set up rows and columns
+            for col in range(self.numCols):
+                tk.Grid.columnconfigure(self.root, col, weight=1)
+            for row in range(self.numRows):
+                tk.Grid.rowconfigure(self.root, row, weight=1)
+
+            # Add each label from the thread to the grid
+            rowIdx: int = 0
+            colIdx: int = 0
+            if len(self.threads) > 0:
+                # For each serial port
+                for thread in self.threads:
+                    # Add label from the thread to the grid
+                    serialPortLabel = tk.Label(self.root, text=thread.getLabelText(), bg=thread.getLabelColor())
+                    serialPortLabel.grid(row=rowIdx, column=colIdx, sticky=[tk.W, tk.E, tk.N, tk.S])
+                    colIdx = colIdx + 1
+                    if(colIdx == self.numCols):
+                        colIdx = 0
+                        rowIdx = rowIdx + 1
+            else:
+                # No serial ports, print a reminder
+                serialPortLabel = tk.Label(self.root, text="Connect a Swadge")
                 serialPortLabel.grid(row=rowIdx, column=colIdx, sticky=[tk.W, tk.E, tk.N, tk.S])
-                colIdx = colIdx + 1
-                if(colIdx == self.numCols):
-                    colIdx = 0
-                    rowIdx = rowIdx + 1
-        else:
-            # No serial ports, print a reminder
-            serialPortLabel = tk.Label(self.root, text="Connect a Swadge")
-            serialPortLabel.grid(row=rowIdx, column=colIdx, sticky=[tk.W, tk.E, tk.N, tk.S])
 
 
 def exit_function():

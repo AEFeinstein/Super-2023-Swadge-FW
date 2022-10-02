@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include "swadge_util.h"
+#include "text_entry.h"
 #include "mode_flight.h"
 #include "flight/3denv.h"
 
@@ -38,11 +39,16 @@
 static flightSimSaveData_t savedata;
 static int didFlightsimDataLoad;
 
+// Thruster speed, etc.
+#define THRUSTER_ACCEL   2
+#define THRUSTER_MAX     32 //NOTE: THRUSTER_MAX must be divisble by THRUSTER_ACCEL
+#define THRUSTER_DECAY   2
+#define FLIGHT_SPEED_DEC 12
+#define FLIGHT_MAX_SPEED 50
+#define FLIGHT_MIN_SPEED 8
+
 flightSimSaveData_t * getFlightSaveData();
 void setFlightSaveData( flightSimSaveData_t * sd );
-void textEntryDraw();
-void textEntryEnd();
-int textEntryInput( uint8_t down, uint8_t button );
 
 flightSimSaveData_t * getFlightSaveData()
 {
@@ -66,10 +72,6 @@ void setFlightSaveData( flightSimSaveData_t * sd )
     writeNvsBlob( "flightsim", &savedata, sizeof( savedata ) );
 }
 
-void textEntryDraw() { }
-void textEntryEnd() { }
-int textEntryInput( uint8_t down, uint8_t button ){ return false;} 
-
 /*============================================================================
  * Defines, Structs, Enums
  *==========================================================================*/
@@ -79,7 +81,8 @@ int textEntryInput( uint8_t down, uint8_t button ){ return false;}
 #define MAX_DONUTS 14
 #define MAX_BEANS 69
 
-
+// Target 40 FPS.
+#define DEFAULT_FRAMETIME 25000
 #define CROSSHAIR_COLOR 200
 #define CNDRAW_BLACK 0
 #define CNDRAW_WHITE 18 // actually greenish
@@ -129,6 +132,7 @@ typedef struct
     uint8_t buttonState;
 
     int16_t planeloc[3];
+    int32_t planeloc_fine[3];
     int16_t hpr[3];
     int16_t speed;
     int16_t pitchmoment;
@@ -154,7 +158,6 @@ typedef struct
 
     flLEDAnimation ledAnimation;
     uint8_t        ledAnimationTime;
-
 
     char highScoreNameBuffer[FLIGHT_HIGH_SCORE_NAME_LEN];
     uint8_t beangotmask[MAXRINGS];
@@ -219,8 +222,6 @@ static const char fl_flight_perf[] = "Perf Test";
 static const char str_quit[] = "Quit";
 static const char str_high_scores[] = "High Scores";
 
-
-
 /*============================================================================
  * Functions
  *==========================================================================*/
@@ -240,7 +241,7 @@ static void flightEnterMode(display_t * disp)
     memset(flight, 0, sizeof(flight_t));
 
     // Hmm this seems not to be obeyed, at least not well?
-    setFrameRateUs( 33333 );
+    setFrameRateUs( DEFAULT_FRAMETIME );
 
     flight->mode = FLIGHT_MENU;
     flight->disp = disp;
@@ -322,7 +323,7 @@ static void flightMenuCb(const char* menuItem)
     }
     else if (str_quit == menuItem)
     {
-        switchToSwadgeMode(0);
+        switchToSwadgeMode(&modeMainMenu);
     }
 }
 
@@ -331,9 +332,7 @@ static void flightEndGame()
     if( flightTimeHighScorePlace( flight->wintime, flight->beans == MAX_BEANS ) < NUM_FLIGHTSIM_TOP_SCORES )
     {
         flight->mode = FLIGHT_HIGH_SCORE_ENTRY;
-       // textEntryStart( FLIGHT_HIGH_SCORE_NAME_LEN+1, flight->highScoreNameBuffer );
-        /* XXX TODO XXX TODO */
-
+        textEntryStart( flight->disp, FLIGHT_HIGH_SCORE_NAME_LEN+1, flight->highScoreNameBuffer );
     }
     else
     {
@@ -410,6 +409,14 @@ static void flightStartGame( flightModeScreen mode )
     flight->mode = mode;
     flight->frames = 0;
 
+	if( mode == FLIGHT_PERFTEST )
+	{
+		setFrameRateUs( 0 );
+	}
+	else
+	{
+		setFrameRateUs( DEFAULT_FRAMETIME );
+	}
 
     flight->ondonut = 0; //Set to 14 to b-line it to the end for testing.
     flight->beans = 0; //Set to MAX_BEANS for 100% instant.
@@ -422,6 +429,11 @@ static void flightStartGame( flightModeScreen mode )
     flight->planeloc[0] = 24*48;
     flight->planeloc[1] = 18*48; //Start pos * 48 since 48 is the fixed scale.
     flight->planeloc[2] = 60*48;
+    
+    flight->planeloc_fine[0] = flight->planeloc[0] << FLIGHT_SPEED_DEC;
+    flight->planeloc_fine[1] = flight->planeloc[1] << FLIGHT_SPEED_DEC;
+    flight->planeloc_fine[2] = flight->planeloc[2] << FLIGHT_SPEED_DEC;
+    
     flight->hpr[0] = 2061;
     flight->hpr[1] = 190;
     flight->hpr[2] = 0;
@@ -473,14 +485,14 @@ static void flightUpdate(void* arg __attribute__((unused)))
             flightSimSaveData_t * sd = getFlightSaveData();
             int line;
 
-            drawText( flight->disp, &flight->ibm, CNDRAW_WHITE, "ANY %", 20, 1 );
-            drawText( flight->disp, &flight->ibm, CNDRAW_WHITE, "100 %", 84, 1 );
+            drawText( flight->disp, &flight->ibm, CNDRAW_WHITE, "ANY %", 47+20, 30 );
+            drawText( flight->disp, &flight->ibm, CNDRAW_WHITE, "100 %", 166+20, 30 );
 
             for( line = 0; line < NUM_FLIGHTSIM_TOP_SCORES; line++ )
             {
                 int anyp = 0;
                 snprintf( buffer, sizeof(buffer), "%d%s", line+1, EnglishNumberSuffix[line] );
-                drawText( flight->disp, &flight->radiostars, CNDRAW_WHITE, buffer, 3, (line+1)*10+10 );
+                drawText( flight->disp, &flight->radiostars, CNDRAW_WHITE, buffer, 4, (line+1)*20+30 );
 
                 for( anyp = 0; anyp < 2; anyp++ )
                 {
@@ -490,7 +502,7 @@ static void flightUpdate(void* arg __attribute__((unused)))
                     memcpy( namebuff, name, FLIGHT_HIGH_SCORE_NAME_LEN );
                     namebuff[FLIGHT_HIGH_SCORE_NAME_LEN] = 0;
                     snprintf( buffer, sizeof(buffer), "%4s %3d.%02d", namebuff, cs/100,cs%100 );
-                    drawText( flight->disp, &flight->radiostars, CNDRAW_WHITE, buffer, anyp?81:17, (line+1)*10+10 );
+                    drawText( flight->disp, &flight->radiostars, CNDRAW_WHITE, buffer, -3 + (anyp?166:47), (line+1)*20+30 );
                 }
             }
             break;
@@ -503,7 +515,8 @@ static void flightUpdate(void* arg __attribute__((unused)))
             char placeStr[32] = {0};
             snprintf(placeStr, sizeof(placeStr), "%d%s %s", place + 1, EnglishNumberSuffix[place],
                 (flight->beans == MAX_BEANS)?"100%":"ANY%" );
-            drawText( flight->disp, &flight->ibm, CNDRAW_WHITE, placeStr, 65,2);
+            int16_t width = textWidth(&flight->ibm, placeStr);
+            drawText( flight->disp, &flight->ibm, CNDRAW_WHITE, placeStr, (flight->disp->w - width) / 2, 2);
             break;
         }
     }
@@ -1108,7 +1121,7 @@ static void flightRender()
             drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*2+2 );
             snprintf(framesStr, sizeof(framesStr), "%d", stop - mid2 );
             drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*3+3 );
-            snprintf(framesStr, sizeof(framesStr), "%d", fps );
+            snprintf(framesStr, sizeof(framesStr), "%d FPS", fps );
             drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*4+4 );
         }
 
@@ -1166,12 +1179,7 @@ static void flightGameUpdate( flight_t * tflight )
     int dpitch = 0;
     int dyaw = 0;
 
-    const int thruster_accel = 4;
-    const int thruster_max = 40; //NOTE: thruster_max must be divisble by thruster_accel
-    const int thruster_decay = 4;
-    const int FLIGHT_SPEED_DEC = 10;
-    const int flight_max_speed = 150;
-    const int flight_min_speed = (flight->mode==FLIGHT_PERFTEST)?0:5;
+    const int flight_min_speed = (flight->mode==FLIGHT_PERFTEST)?0:FLIGHT_MIN_SPEED;
 
     //If we're at the ending screen and the user presses a button end game.
     if( tflight->mode == FLIGHT_GAME_OVER && ( bs & 16 ) && flight->frames > 199 )
@@ -1181,35 +1189,35 @@ static void flightGameUpdate( flight_t * tflight )
 
     if( tflight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_PERFTEST )
     {
-        if( bs & 4 ) dpitch += thruster_accel;
-        if( bs & 8 ) dpitch -= thruster_accel;
-        if( bs & 1 ) dyaw += thruster_accel;
-        if( bs & 2 ) dyaw -= thruster_accel;
+        if( bs & 4 ) dpitch += THRUSTER_ACCEL;
+        if( bs & 8 ) dpitch -= THRUSTER_ACCEL;
+        if( bs & 1 ) dyaw += THRUSTER_ACCEL;
+        if( bs & 2 ) dyaw -= THRUSTER_ACCEL;
 
         if( tflight->inverty ) dyaw *= -1;
 
         if( dpitch )
         {
             tflight->pitchmoment += dpitch;
-            if( tflight->pitchmoment > thruster_max ) tflight->pitchmoment = thruster_max;
-            if( tflight->pitchmoment < -thruster_max ) tflight->pitchmoment = -thruster_max;
+            if( tflight->pitchmoment > THRUSTER_MAX ) tflight->pitchmoment = THRUSTER_MAX;
+            if( tflight->pitchmoment < -THRUSTER_MAX ) tflight->pitchmoment = -THRUSTER_MAX;
         }
         else
         {
-            if( tflight->pitchmoment > 0 ) tflight->pitchmoment-=thruster_decay;
-            if( tflight->pitchmoment < 0 ) tflight->pitchmoment+=thruster_decay;
+            if( tflight->pitchmoment > 0 ) tflight->pitchmoment-=THRUSTER_DECAY;
+            if( tflight->pitchmoment < 0 ) tflight->pitchmoment+=THRUSTER_DECAY;
         }
 
         if( dyaw )
         {
             tflight->yawmoment += dyaw;
-            if( tflight->yawmoment > thruster_max ) tflight->yawmoment = thruster_max;
-            if( tflight->yawmoment < -thruster_max ) tflight->yawmoment = -thruster_max;
+            if( tflight->yawmoment > THRUSTER_MAX ) tflight->yawmoment = THRUSTER_MAX;
+            if( tflight->yawmoment < -THRUSTER_MAX ) tflight->yawmoment = -THRUSTER_MAX;
         }
         else
         {
-            if( tflight->yawmoment > 0 ) tflight->yawmoment-=thruster_decay;
-            if( tflight->yawmoment < 0 ) tflight->yawmoment+=thruster_decay;
+            if( tflight->yawmoment > 0 ) tflight->yawmoment-=THRUSTER_DECAY;
+            if( tflight->yawmoment < 0 ) tflight->yawmoment+=THRUSTER_DECAY;
         }
 
         tflight->hpr[0] += tflight->pitchmoment;
@@ -1220,18 +1228,21 @@ static void flightGameUpdate( flight_t * tflight )
         if( tflight->hpr[1] > 3960 ) tflight->hpr[1] -= 3960;
         if( tflight->hpr[1] < 0 ) tflight->hpr[1] += 3960;
 
-
         if( bs & 16 ) tflight->speed++;
         else tflight->speed--;
         if( tflight->speed < flight_min_speed ) tflight->speed = flight_min_speed;
-        if( tflight->speed > flight_max_speed ) tflight->speed = flight_max_speed;
+        if( tflight->speed > FLIGHT_MAX_SPEED ) tflight->speed = FLIGHT_MAX_SPEED;
     }
 
     //If game over, just keep status quo.
 
-    tflight->planeloc[0] += (tflight->speed * getSin1024( tflight->hpr[0]/11 ) )>>FLIGHT_SPEED_DEC;
-    tflight->planeloc[2] += (tflight->speed * getCos1024( tflight->hpr[0]/11 ) )>>FLIGHT_SPEED_DEC;
-    tflight->planeloc[1] -= (tflight->speed * getSin1024( tflight->hpr[1]/11 ) )>>FLIGHT_SPEED_DEC;
+    flight->planeloc_fine[0] += (tflight->speed * getSin1024( tflight->hpr[0]/11 ) );
+    flight->planeloc_fine[2] += (tflight->speed * getCos1024( tflight->hpr[0]/11 ) );
+    flight->planeloc_fine[1] -= (tflight->speed * getSin1024( tflight->hpr[1]/11 ) );
+
+    tflight->planeloc[0] = flight->planeloc_fine[0]>>FLIGHT_SPEED_DEC;
+    tflight->planeloc[1] = flight->planeloc_fine[1]>>FLIGHT_SPEED_DEC;
+    tflight->planeloc[2] = flight->planeloc_fine[2]>>FLIGHT_SPEED_DEC;
 
     // Bound the area
     tflight->oob = false;

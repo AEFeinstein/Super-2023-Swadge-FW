@@ -168,6 +168,8 @@ static bool IRAM_ATTR btn_timer_isr_cb(void* args __attribute__((unused)))
 
 /**
  * @brief Service the queue of button events that caused interrupts
+ * This only reutrns a single event, even if there are multiple in the queue
+ * This function may be called multiple times in a row to completely empty the queue
  *
  * @param evt If an event occurred, return it through this argument
  * @return true if an event occurred, false if nothing happened
