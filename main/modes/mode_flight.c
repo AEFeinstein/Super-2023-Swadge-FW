@@ -40,10 +40,10 @@ static flightSimSaveData_t savedata;
 static int didFlightsimDataLoad;
 
 // Thruster speed, etc.
-#define THRUSTER_ACCEL   4
-#define THRUSTER_MAX     40 //NOTE: THRUSTER_MAX must be divisble by THRUSTER_ACCEL
-#define THRUSTER_DECAY   4
-#define FLIGHT_SPEED_DEC 11
+#define THRUSTER_ACCEL   2
+#define THRUSTER_MAX     32 //NOTE: THRUSTER_MAX must be divisble by THRUSTER_ACCEL
+#define THRUSTER_DECAY   2
+#define FLIGHT_SPEED_DEC 12
 #define FLIGHT_MAX_SPEED 50
 #define FLIGHT_MIN_SPEED 8
 
@@ -81,7 +81,8 @@ void setFlightSaveData( flightSimSaveData_t * sd )
 #define MAX_DONUTS 14
 #define MAX_BEANS 69
 
-
+// Target 40 FPS.
+#define DEFAULT_FRAMETIME 25000
 #define CROSSHAIR_COLOR 200
 #define CNDRAW_BLACK 0
 #define CNDRAW_WHITE 18 // actually greenish
@@ -240,7 +241,7 @@ static void flightEnterMode(display_t * disp)
     memset(flight, 0, sizeof(flight_t));
 
     // Hmm this seems not to be obeyed, at least not well?
-    setFrameRateUs( 33333 );
+    setFrameRateUs( DEFAULT_FRAMETIME );
 
     flight->mode = FLIGHT_MENU;
     flight->disp = disp;
@@ -408,6 +409,14 @@ static void flightStartGame( flightModeScreen mode )
     flight->mode = mode;
     flight->frames = 0;
 
+	if( mode == FLIGHT_PERFTEST )
+	{
+		setFrameRateUs( 0 );
+	}
+	else
+	{
+		setFrameRateUs( DEFAULT_FRAMETIME );
+	}
 
     flight->ondonut = 0; //Set to 14 to b-line it to the end for testing.
     flight->beans = 0; //Set to MAX_BEANS for 100% instant.
@@ -1112,7 +1121,7 @@ static void flightRender()
             drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*2+2 );
             snprintf(framesStr, sizeof(framesStr), "%d", stop - mid2 );
             drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*3+3 );
-            snprintf(framesStr, sizeof(framesStr), "%d", fps );
+            snprintf(framesStr, sizeof(framesStr), "%d FPS", fps );
             drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*4+4 );
         }
 
