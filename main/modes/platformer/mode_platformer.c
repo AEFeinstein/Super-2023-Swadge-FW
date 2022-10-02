@@ -7,6 +7,7 @@
 
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "swadge_esp32.h"
 
 #include "swadgeMode.h"
 #include "musical_buzzer.h"
@@ -252,6 +253,8 @@ void platformerEnterMode(display_t *disp)
     platformer->tilemap.entityManager = &(platformer->entityManager);
     platformer->tilemap.tileSpawnEnabled = true;
 
+    setFrameRateUs(16666);
+
     platformer->update = &updateTitleScreen;
 }
 
@@ -275,13 +278,7 @@ void platformerExitMode(void)
  */
 void platformerMainLoop(int64_t elapsedUs)
 {
-    // Execute logic at 20fps
-    platformer->frameTimer += elapsedUs;
-    if (platformer->frameTimer >= 16666)
-    {
-        platformer->frameTimer -= 16666;
-        platformer->update(platformer);
-    }
+    platformer->update(platformer);
 }
 
 /**
@@ -318,7 +315,7 @@ void updateGame(platformer_t *self)
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
 
     self->gameData.frameCount++;
-    if(self->gameData.frameCount > 20){
+    if(self->gameData.frameCount > 59){
         self->gameData.frameCount = 0;
         self->gameData.countdown--;
     }
