@@ -135,14 +135,17 @@ class ProgrammerApplication:
             self.root.update()
 
     def exit(self):
+        global updateUI
+        self.shouldQuit = True
         if len(self.threads) > 0:
             self.root.update()
             # Wait for all threads to actually stop
             for thread in self.threads:
                 thread.join()
+                self.threads.remove(thread)
+                updateUI = True
         # Destroy the UI
         self.root.destroy()
-        self.shouldQuit = True
 
     def adjustRows(self):
         global updateUI
@@ -185,16 +188,8 @@ class ProgrammerApplication:
                 serialPortLabel = tk.Label(self.root, text="Connect a Swadge")
                 serialPortLabel.grid(row=rowIdx, column=colIdx, sticky=[tk.W, tk.E, tk.N, tk.S])
 
-    def joinThreads(self):
-        global updateUI
-        for thread in self.threads:
-            thread.join()
-            self.threads.remove(thread)
-            updateUI = True
-
 
 def exit_function():
-    app.joinThreads()
     app.exit()
 
 
