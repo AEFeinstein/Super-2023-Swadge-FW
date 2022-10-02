@@ -180,6 +180,7 @@ typedef struct
     int16_t pitch;
 
     // Track rhythm
+    esp_timer_create_args_t beatTimerArgs;
     esp_timer_handle_t beatTimer;
     uint32_t timeUs;
     uint32_t lastCallTimeUs;
@@ -191,6 +192,7 @@ typedef struct
     uint8_t rhythmIdx;
     uint8_t scaleIdx;
     bool modifyBpm;
+    esp_timer_create_args_t paramSwitchTimerArgs;
     esp_timer_handle_t paramSwitchTimer;
 } slideWhistle_t;
 
@@ -984,12 +986,10 @@ void  slideWhistleEnterMode(display_t * disp)
     loadFont("ibm_vga8.font", &slideWhistle->ibm_vga8);
     loadFont("radiostars.font", &slideWhistle->radiostars);
 
-    slideWhistle->song = calloc(1, sizeof(song_t));
     // TODO: FIX THIS
-    // TODO: free this if we even use this??????
-    // slideWhistle->song.notes = calloc(1, sizeof(musicalNote_t));
-    // slideWhistle->song.notes[0] =
-    //                 {note, 1000};
+    //slideWhistle->song.notes = calloc(1, sizeof(musicalNote_t));
+    slideWhistle->song.notes[0].note = C_0;
+    slideWhistle->song.notes[0].timeMs = 1000;
     slideWhistle->song.numNotes = 1;
     slideWhistle->song.shouldLoop = true;
 
@@ -999,19 +999,27 @@ void  slideWhistleEnterMode(display_t * disp)
     slideWhistle->bpmIdx = rhythms[slideWhistle->rhythmIdx].defaultBpm;
 
     // Set a timer to tick every 1ms, forever
-    os_timer_disarm(&slideWhistle->beatTimer);
-    os_timer_setfn(&slideWhistle->beatTimer, slideWhistleBeatTimerFunc, NULL);
-    os_timer_arm(&slideWhistle->beatTimer, 1, true);
+    slideWhistle->beatTimerArgs.arg = NULL;
+    slideWhistle->beatTimerArgs.callback = slideWhistleBeatTimerFunc;
+    slideWhistle->beatTimerArgs.dispatch_method = ESP_TIMER_TASK;
+    slideWhistle->beatTimerArgs.name = "slideWhistleBeatTimer";
+    slideWhistle->beatTimerArgs.skip_unhandled_events = true;
+    esp_timer_create(&slideWhistle->beatTimerArgs, &slideWhistle->beatTimer);
+    esp_timer_start_periodic(slideWhistle->beatTimer, 1000);
 
     // Draw an initial display
     //slideWhistleMainLoop();
 
     // Request to do everything faster
-    setAccelPollTime(50);
+    //setAccelPollTime(50);
 
     // Set up a timer to handle the parameter button
-    os_timer_disarm(&slideWhistle->paramSwitchTimer);
-    os_timer_setfn(&slideWhistle->paramSwitchTimer, paramSwitchTimerFunc, NULL);
+    slideWhistle->paramSwitchTimerArgs.arg = NULL;
+    slideWhistle->paramSwitchTimerArgs.callback = paramSwitchTimerFunc;
+    slideWhistle->paramSwitchTimerArgs.dispatch_method = ESP_TIMER_TASK;
+    slideWhistle->paramSwitchTimerArgs.name = "slideWhistleparamSwitchTimer";
+    slideWhistle->paramSwitchTimerArgs.skip_unhandled_events = true;
+    esp_timer_create(&slideWhistle->paramSwitchTimerArgs, &slideWhistle->paramSwitchTimer);
 }
 
 /**
@@ -1025,7 +1033,11 @@ void  slideWhistleExitMode(void)
     freeFont(&slideWhistle->ibm_vga8);
     freeFont(&slideWhistle->radiostars);
 
-    os_timer_disarm(&slideWhistle->beatTimer);
+    esp_timer_stop(slideWhistle->beatTimer);
+    esp_timer_stop(slideWhistle->paramSwitchTimer);
+
+    esp_timer_delete(slideWhistle->beatTimer);
+    esp_timer_delete(slideWhistle->paramSwitchTimer);
 }
 
 /**
@@ -1054,13 +1066,13 @@ void  slideWhistleButtonCallback(buttonEvt_t* evt)
             if(evt->down)
             {
                 // Start a timer to either switch the mode or change the BPM
-                os_timer_arm(&slideWhistle->paramSwitchTimer, 1000, false);
+                esp_timer_start_once(slideWhistle->paramSwitchTimer, 1000 * 1000);
                 slideWhistle->modifyBpm = false;
             }
             else // Released
             {
                 // Stop the timer no matter what
-                os_timer_disarm(&slideWhistle->paramSwitchTimer);
+                esp_timer_stop(slideWhistle->paramSwitchTimer);
 
                 // Button released while timer is still active, switch the mode
                 if(false == slideWhistle->modifyBpm)
@@ -1223,7 +1235,7 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
     // Plot the BPM
     char bpmStr[8] = {0};
     snprintf(bpmStr, sizeof(bpmStr), "%d", bpms[slideWhistle->bpmIdx].bpm);
-    drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, bpmStr, c555, 0, slideWhistle->ibm_vga8.h + 4);
+    drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c555, bpmStr, 0, slideWhistle->ibm_vga8.h + 4);
 
     // Underline it if it's being modified
     if(true == slideWhistle->modifyBpm)
@@ -1251,7 +1263,7 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
     } // Plot the note if BPM isn't being modified
     else if(false == slideWhistle->modifyBpm)
     {
-        drawText(slideWhistle->disp, noteToStr(getCurrentNote()), &slideWhistle->radiostars, c555, slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, noteToStr(getCurrentNote())) - 1, 20);
+        drawText(slideWhistle->disp, &slideWhistle->radiostars, c555, noteToStr(getCurrentNote()), slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, noteToStr(getCurrentNote())) - 1, 20);
     }
 
     // Plot the button funcs
@@ -1367,10 +1379,10 @@ void  slideWhistleBeatTimerFunc(void* arg __attribute__((unused)))
         else
         {
             // Arpeggiate as necessary
-            noteFrequency_t note = arpModify(getCurrentNote(), rhythms[slideWhistle->rhythmIdx].rhythm[slideWhistle->rhythmNoteIdx].arp);
+            slideWhistle->song.notes[0].note = arpModify(getCurrentNote(), rhythms[slideWhistle->rhythmIdx].rhythm[slideWhistle->rhythmNoteIdx].arp);
 
-            // TODO: set the note in the song
-            buzzer_play_sfx(&song);
+            buzzer_play_sfx(&slideWhistle->song);
+
             // Set LEDs to bright
             noteToColor(&leds[0], getCurrentNote(), 0x40);
         }
