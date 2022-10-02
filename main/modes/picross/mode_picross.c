@@ -1396,8 +1396,8 @@ void picrossExitGame(void)
     {
         freeFont(&(p->hintFont));
         freeFont(&(p->UIFont));
-        free(p->puzzle);
         free(p->input);
+        free(p->puzzle);
         free(p);
         p = NULL;
     }    

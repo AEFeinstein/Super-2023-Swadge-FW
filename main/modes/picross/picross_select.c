@@ -50,7 +50,8 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     for(int i = 0;i<PICROSS_LEVEL_COUNT;i++)
     {
         //set completed data from save data.
-        if(victData->victories[i] == true){
+        if(victData->victories[i] == true)
+        {
             levels[i].completed = true;
         }else{
             levels[i].completed = false;
@@ -227,9 +228,8 @@ void picrossExitLevelSelect()
 {
     if (NULL != ls)
     {
-        // freeWsg(&ls->unknownPuzzle);
+        freeWsg(&ls->unknownPuzzle);
         // freeFont((ls->game_font));
-        // free(&ls->disp);
         // free(&ls->chosenLevel->title);
         // free(&ls->chosenLevel);
         free(ls);
