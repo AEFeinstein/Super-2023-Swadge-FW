@@ -155,14 +155,17 @@ typedef struct
 // The swadge mode
 swadgeMode modeSlideWhistle =
 {
-    .modeName = "slideWhistle",
+    .modeName = "Slide Whistle",
     .fnEnterMode = slideWhistleEnterMode,
     .fnExitMode = slideWhistleExitMode,
     .fnButtonCallback = slideWhistleButtonCallback,
+    .fnMainLoop = slideWhistleMainLoop,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
-    .fnAccelerometerCallback = slideWhistleAccelerometerHandler
+    .fnAccelerometerCallback = slideWhistleAccelerometerHandler,
+    .fnAudioCallback = NULL,
+    .overrideUsb = false
 };
 
 // The state data
