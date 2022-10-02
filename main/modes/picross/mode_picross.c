@@ -97,6 +97,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
         //lets test this game against various forms of colorblindness. I'm concerned about deuteranopia. Input square is my largest concern. 
     p->input->inputBoxDefaultColor = c043;
     p->input->inputBoxErrorColor = c500;
+    p->input->markXColor = c511;
     p->input->movedThisFrame = false;
     p->input->changedLevelThisFrame = false;
     p->count = 1;
@@ -112,6 +113,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->showHints = picrossGetSaveFlag(0);
     p->input->showGuides = picrossGetLoadedSaveFlag(1);
     p->animateBG = picrossGetLoadedSaveFlag(2);
+    p->markX = picrossGetLoadedSaveFlag(3);
 
     //cant tell if this is doing things the lazy way or not.
     for(int i = 0;i<NUM_LEDS;i++)
@@ -975,6 +977,9 @@ void drawPicrossScene(display_t* d)
     drawBackground(d);
 
     box_t box;
+    box_t xBox;
+    uint16_t xThick = 0;
+    
     //todo: move color selection to constants somewhere
     paletteColor_t emptySpaceCol = c555;
     paletteColor_t hoverSpaceCol = emptySpaceCol;//this value is only different if guides are turned on.
@@ -991,7 +996,8 @@ void drawPicrossScene(display_t* d)
             for(int j = 0;j<h;j++)
             {
                 //shape of boxDraw
-                box = boxFromCoord(i,j);          
+                box = boxFromCoord(i,j);
+
                 switch(p->puzzle->level[i][j])
                 {
                     case SPACE_EMPTY:
@@ -1014,7 +1020,41 @@ void drawPicrossScene(display_t* d)
                     }
                     case SPACE_MARKEMPTY:
                     {
-                        drawBox(d, box, c531, true, 0);
+                        //draw x again
+                        // plotCircle(d,)
+                        if(!p->markX)
+                        {
+                            drawBox(d, box, c531, true, 0);
+                        }else
+                        {
+                            if(p->markX)
+                            {
+                                xThick = p->drawScale/6;
+                                xBox = box;
+                                xBox.x0 = xBox.x0 + xThick;
+                                xBox.x1 = xBox.x1 - xThick;
+                                xBox.y0 = xBox.y0 + xThick;
+                                xBox.y1 = xBox.y1 - xThick;
+                            }
+                            //c531
+                            drawBox(d, box, c555, true, 0);
+
+                            //corner to corner X
+                            plotLine(d,xBox.x0,xBox.y1,xBox.x1,xBox.y0,p->input->markXColor,0);
+                            plotLine(d,xBox.x0,xBox.y0,xBox.x1,xBox.y1,p->input->markXColor,0);
+
+                            for(int t = 1;t<xThick+1/2;t++)
+                            {
+                                // bottom left to top right
+                                plotLine(d,xBox.x0,xBox.y1-t,xBox.x1-t,xBox.y0,p->input->markXColor,0);
+                                plotLine(d,xBox.x0+t,xBox.y1,xBox.x1,xBox.y0+t,p->input->markXColor,0);
+
+                                //top left to bottom right
+                                plotLine(d,xBox.x0+t,xBox.y0,xBox.x1,xBox.y1-t,p->input->markXColor,0);
+                                plotLine(d,xBox.x0,xBox.y0+t,xBox.x1-t,xBox.y1,p->input->markXColor,0);
+                            }
+                    
+                        }
                         break;
                     }
                     case OUTOFBOUNDS:

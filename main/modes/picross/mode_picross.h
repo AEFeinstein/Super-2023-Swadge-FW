@@ -60,6 +60,7 @@ typedef struct
     paletteColor_t inputBoxColor;
     paletteColor_t inputBoxDefaultColor;
     paletteColor_t inputBoxErrorColor;
+    paletteColor_t markXColor;
     //blinking
     bool blinkError;
     uint64_t blinkAnimTimer;
@@ -113,6 +114,7 @@ typedef struct
     uint8_t bgScrollYFrame;
     bool animateBG;
     bool fadeHints;
+    bool markX;//as x or as solid
     picrossLevelDef_t* selectedLevel;
     bool exitThisFrame;
     int8_t count;

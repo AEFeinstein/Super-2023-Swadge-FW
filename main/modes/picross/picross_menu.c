@@ -76,6 +76,8 @@ static const char str_HintsOn[] = "Mistake Alert: On";
 static const char str_HintsOff[] = "Mistake Alert: Off";
 static const char str_GuidesOn[] = "Guides: On";
 static const char str_GuidesOff[] = "Guides: Off";
+static const char str_MarkX[] = "Empty Marks: X";
+static const char str_MarkSolid[] = "Empty Marks: Solid";
 static const char str_AnimateBGOn[] = "BG Animate: On";
 static const char str_AnimateBGOff[] = "BG Animate: Off";
 static const char str_eraseProgress[] = "Erase Progress";
@@ -127,7 +129,7 @@ void picrossEnterMode(display_t* disp)
     //set default options
     if(false == readNvs32(picrossSavedOptionsKey, &pm->options))
     {
-        writeNvs32(picrossSavedOptionsKey, 6);//100 = bg on, guide on, hintwarning off. On the fence on guides on or off.
+        writeNvs32(picrossSavedOptionsKey, 12);//1100 = x's on, bg on, guide on, hintwarning off. On the fence on guides on or off.
     }
 }
 
@@ -369,6 +371,13 @@ void setPicrossMainMenu(bool resetPos)
             addRowToMeleeMenu(pm->menu, str_AnimateBGOff);
         }
 
+        if(picrossGetLoadedSaveFlag(3))//Choose X
+        {
+            addRowToMeleeMenu(pm->menu, str_MarkX);
+        }else{
+            addRowToMeleeMenu(pm->menu, str_MarkSolid);
+        }
+
         if(picrossGetLoadedSaveFlag(0))//are hints on?
         {
             addRowToMeleeMenu(pm->menu, str_HintsOn);
@@ -508,7 +517,19 @@ void picrossMainMenuCb(const char* opt)
         //turn bgAnimate off
         picrossSetSaveFlag(2,false);
         setPicrossMainMenu(false);
-    }else if(opt == str_eraseProgress)
+    }else if(opt == str_MarkX)
+    {
+        //turn choose X back off
+        picrossSetSaveFlag(3,false);
+        setPicrossMainMenu(false);//re-setup menu with new text, but dont change cursor position
+    }
+    else if(opt == str_MarkSolid)
+    {
+        //turn chooseX on
+        picrossSetSaveFlag(3,true);
+        setPicrossMainMenu(false);
+    }
+    else if(opt == str_eraseProgress)
     {
         //Next time we load a puzzle it will re-save and zero-out the data, we just have to tell the mennu not to show the 'continue' option.
         writeNvs32(picrossCurrentPuzzleIndexKey,-1);
