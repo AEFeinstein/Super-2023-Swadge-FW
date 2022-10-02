@@ -166,9 +166,9 @@ swadgeMode modeSlideWhistle =
 };
 
 // The state data
-struct
+typedef struct
 {
-    display_t disp;
+    display_t* disp;
     font_t tom_thumb;
     font_t ibm_vga8;
     font_t radiostars;
@@ -822,6 +822,32 @@ const rhythm_t rhythms[] =
 
 const noteFrequency_t allNotes[] =
 {
+    C_0,
+    C_SHARP_0,
+    D_0,
+    D_SHARP_0,
+    E_0,
+    F_0,
+    F_SHARP_0,
+    G_0,
+    G_SHARP_0,
+    A_0,
+    A_SHARP_0,
+    B_0,
+
+    C_1,
+    C_SHARP_1,
+    D_1,
+    D_SHARP_1,
+    E_1,
+    F_1,
+    F_SHARP_1,
+    G_1,
+    G_SHARP_1,
+    A_1,
+    A_SHARP_1,
+    B_1,
+
     C_2,
     C_SHARP_2,
     D_2,
@@ -912,6 +938,32 @@ const noteFrequency_t allNotes[] =
     A_8,
     A_SHARP_8,
     B_8,
+
+    C_9,
+    C_SHARP_9,
+    D_9,
+    D_SHARP_9,
+    E_9,
+    F_9,
+    F_SHARP_9,
+    G_9,
+    G_SHARP_9,
+    A_9,
+    A_SHARP_9,
+    B_9,
+
+    C_10,
+    C_SHARP_10,
+    D_10,
+    D_SHARP_10,
+    E_10,
+    F_10,
+    F_SHARP_10,
+    G_10,
+    G_SHARP_10,
+    A_10,
+    A_SHARP_10,
+    B_10,
 };
 
 /*============================================================================
@@ -926,7 +978,7 @@ void  slideWhistleEnterMode(display_t * disp)
     // Allocate zero'd memory for the mode
     slideWhistle = calloc(1, sizeof(slideWhistle_t));
 
-    slideWhistle-> disp = disp;
+    slideWhistle->disp = disp;
 
     loadFont("tom_thumb.font", &slideWhistle->tom_thumb);
     loadFont("ibm_vga8.font", &slideWhistle->ibm_vga8);
@@ -952,7 +1004,7 @@ void  slideWhistleEnterMode(display_t * disp)
     os_timer_arm(&slideWhistle->beatTimer, 1, true);
 
     // Draw an initial display
-    slideWhistleMainLoop();
+    //slideWhistleMainLoop();
 
     // Request to do everything faster
     setAccelPollTime(50);
