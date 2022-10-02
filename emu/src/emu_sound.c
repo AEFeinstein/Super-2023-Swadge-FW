@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <math.h>
 #include <string.h>
-#include <pthread.h>
 
 #include "gpio_types.h"
 #include "driver/rmt.h"
@@ -48,11 +47,9 @@ uint16_t ssamples[SSBUF]  = {0};
 int sshead = 0;
 int sstail = 0;
 bool adcSampling = false;
-pthread_mutex_t micMutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Output buzzer
 uint16_t buzzernote = SILENCE;
-pthread_mutex_t buzzerMutex = PTHREAD_MUTEX_INITIALIZER;
 emu_buzzer_t emuBzrBgm = {0};
 emu_buzzer_t emuBzrSfx = {0};
 
@@ -96,7 +93,6 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
 	// If there are samples to read
 	if (adcSampling && samplesr)
 	{
-		pthread_mutex_lock(&micMutex);
 		// For each sample
 		for (int i = 0; i < samplesr; i++)
 		{
@@ -137,8 +133,7 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
 				sshead = (sshead + 1) % SSBUF;
 			}
 		}
-		pthread_mutex_unlock(&micMutex);
-	}
+		}
 
 	// If this is an output callback, and there are samples to write
 	if (samplesp && out)
@@ -147,7 +142,6 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
 		static float placeInWave = 0;
 
 		// If there is a note to play
-		pthread_mutex_lock(&buzzerMutex);
 		if (buzzernote)
 		{
 			// For each sample
@@ -170,8 +164,7 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
 			memset(out, 0, samplesp * 2);
 			placeInWave = 0;
 		}
-		pthread_mutex_unlock(&buzzerMutex);
-	}
+		}
 }
 
 //==============================================================================
@@ -327,10 +320,7 @@ void buzzer_check_next_note(void)
  */
 void buzzer_stop_dont_clear(void)
 {
-	pthread_mutex_lock(&buzzerMutex);
 	buzzernote = SILENCE;
-	pthread_mutex_unlock(&buzzerMutex);
-
 	play_note(NULL);	
 }
 
@@ -352,10 +342,7 @@ void buzzer_stop(void)
 	emuBzrSfx.note_index = 0;
 	emuBzrSfx.start_time = 0;
 
-	pthread_mutex_lock(&buzzerMutex);
 	buzzernote = SILENCE;
-	pthread_mutex_unlock(&buzzerMutex);
-
 	play_note(NULL);
 }
 
@@ -372,17 +359,13 @@ void play_note(const musicalNote_t * notation)
 		}
 		else
 		{
-			pthread_mutex_lock(&buzzerMutex);
 			buzzernote = notation->note;
-			pthread_mutex_unlock(&buzzerMutex);
-		}
+			}
 	}
 	else
 	{
-		pthread_mutex_lock(&buzzerMutex);
 		buzzernote = SILENCE;
-		pthread_mutex_unlock(&buzzerMutex);
-	}
+		}
 }
 
 //==============================================================================
@@ -438,7 +421,6 @@ void continuous_adc_stop(void)
  */
 uint32_t continuous_adc_read(uint16_t *outSamples)
 {
-	pthread_mutex_lock(&micMutex);
 	uint32_t samplesRead = 0;
 	while (adcSampling &&
 		   (sshead != sstail) &&
@@ -448,7 +430,6 @@ uint32_t continuous_adc_read(uint16_t *outSamples)
 		sstail = (sstail + 1) % SSBUF;
 		samplesRead++;
 	}
-	pthread_mutex_unlock(&micMutex);
 	return samplesRead;
 }
 

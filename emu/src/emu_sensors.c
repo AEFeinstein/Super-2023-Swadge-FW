@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 #include <string.h>
-#include <pthread.h>
 
 #include "list.h"
 
@@ -30,7 +29,6 @@
 char inputKeys[32];
 uint32_t buttonState = 0;
 list_t * buttonQueue;
-pthread_mutex_t buttonQueueMutex = PTHREAD_MUTEX_INITIALIZER;
 
 //==============================================================================
 // Buttons
@@ -51,9 +49,7 @@ void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButt
     char keyOrder[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i'};
     memcpy(inputKeys, keyOrder, numButtons);
 	buttonState = 0;
-	pthread_mutex_lock(&buttonQueueMutex);
 	buttonQueue = list_new();
-	pthread_mutex_unlock(&buttonQueueMutex);
 }
 
 /**
@@ -61,9 +57,7 @@ void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButt
  */
 void deinitButtons(void)
 {
-	pthread_mutex_lock(&buttonQueueMutex);
 	free(buttonQueue);
-	pthread_mutex_unlock(&buttonQueueMutex);
 }
 
 /**
@@ -73,10 +67,8 @@ void deinitButtons(void)
  */
 bool checkButtonQueue(buttonEvt_t* evt)
 {
-	// Check the queue, guarded by a mutex
-	pthread_mutex_lock(&buttonQueueMutex);
+	// Check the queue
 	list_node_t * node = list_lpop(buttonQueue);
-	pthread_mutex_unlock(&buttonQueueMutex);
 
 	// No events
 	if(NULL == node)
@@ -146,12 +138,9 @@ void emuSensorHandleKey( int keycode, int bDown )
 			evt->down = bDown;
 			evt->state = buttonState;
 
-			// Add the event to the list, guarded by a mutex
-			pthread_mutex_lock(&buttonQueueMutex);
+			// Add the event to the list
 			list_node_t * buttonNode = list_node_new(evt);
 			list_rpush(buttonQueue, buttonNode);
-			pthread_mutex_unlock(&buttonQueueMutex);
-
 			break;
 		}
 	}
