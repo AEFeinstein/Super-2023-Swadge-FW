@@ -179,7 +179,9 @@ swadgeMode modePlatformer =
         .overrideUsb = false
 };
 
-static leveldef_t leveldef[5] = {
+#define NUM_LEVELS 8
+
+static leveldef_t leveldef[NUM_LEVELS] = {
     {.filename = "level1-1.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
@@ -192,11 +194,18 @@ static leveldef_t leveldef[5] = {
     {.filename = "level1-4.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
+    {.filename = "level2-1.bin",
+     .timeLimit = 180,
+     .checkpointTimeLimit = 90},
+    {.filename = "level2-3.bin",
+     .timeLimit = 180,
+     .checkpointTimeLimit = 90},
+    {.filename = "level2-4.bin",
+     .timeLimit = 180,
+     .checkpointTimeLimit = 90},
     {.filename = "debug.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90}};
-
-#define NUM_LEVELS 5
 
 led_t platLeds[NUM_LEDS];
 
