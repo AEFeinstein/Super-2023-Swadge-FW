@@ -20,14 +20,15 @@
 #include "jumper_menu.h"
 #include "mode_tiltrads.h"
 #include "mode_gamepad.h"
-#include "mode_tunernome.h"
-#include "mode_colorchord.h"
 #include "mode_dance.h"
 #include "mode_credits.h"
 #include "mode_platformer.h"
 #include "mode_picross.h"
 #include "mode_flight.h"
 #include "mode_paint.h"
+#include "mode_colorchord.h"
+#include "mode_tunernome.h"
+#include "mode_slide_whistle.h"
 // #include "picross_select.h"
 
 //==============================================================================
@@ -47,6 +48,8 @@ void mainMenuSetUpGamesMenu(bool);
 void mainMenuGamesCb(const char* opt);
 void mainMenuSetUpToolsMenu(bool);
 void mainMenuToolsCb(const char* opt);
+void mainMenuSetUpMusicMenu(bool);
+void mainMenuMusicCb(const char* opt);
 void mainMenuSetUpSettingsMenu(bool);
 void mainMenuSettingsCb(const char* opt);
 
@@ -63,6 +66,7 @@ typedef struct
     uint8_t topLevelPos;
     uint8_t gamesPos;
     uint8_t toolsPos;
+    uint8_t musicPos;
     uint8_t settingsPos;
     uint32_t batt;
 } mainMenu_t;
@@ -94,6 +98,7 @@ swadgeMode modeMainMenu =
 const char mainMenuTitle[] = "Swadge!";
 const char mainMenuGames[] = "Games";
 const char mainMenuTools[] = "Tools";
+const char mainMenuMusic[] = "Music";
 const char mainMenuSettings[] = "Settings";
 const char mainMenuBack[] = "Back";
 const char mainMenuSoundOn[] = "Sound: On";
@@ -268,6 +273,7 @@ void mainMenuSetUpTopMenu(bool resetPos)
     resetMeleeMenu(mainMenu->menu, mainMenuTitle, mainMenuTopLevelCb);
     addRowToMeleeMenu(mainMenu->menu, mainMenuGames);
     addRowToMeleeMenu(mainMenu->menu, mainMenuTools);
+    addRowToMeleeMenu(mainMenu->menu, mainMenuMusic);
     addRowToMeleeMenu(mainMenu->menu, mainMenuSettings);
     // Set the position
     if(resetPos)
@@ -295,6 +301,10 @@ void mainMenuTopLevelCb(const char* opt)
     else if(mainMenuTools == opt)
     {
         mainMenuSetUpToolsMenu(true);
+    }
+    else if(mainMenuMusic == opt)
+    {
+        mainMenuSetUpMusicMenu(true);
     }
     else if(mainMenuSettings == opt)
     {
@@ -381,8 +391,6 @@ void mainMenuSetUpToolsMenu(bool resetPos)
     // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuTools, mainMenuToolsCb);
     addRowToMeleeMenu(mainMenu->menu, modeGamepad.modeName);
-    addRowToMeleeMenu(mainMenu->menu, modeTunernome.modeName);
-    addRowToMeleeMenu(mainMenu->menu, modeColorchord.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeDance.modeName);
     addRowToMeleeMenu(mainMenu->menu, modePaint.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
@@ -429,6 +437,59 @@ void mainMenuToolsCb(const char* opt)
     {
         // Start Paint
         switchToSwadgeMode(&modePaint);
+    }
+    else if(mainMenuBack == opt)
+    {
+        mainMenuSetUpTopMenu(false);
+    }
+}
+
+/**
+ * Set up the music menu
+ *
+ * @param resetPos true to reset the position to 0, false to leave it where it is
+ */
+void mainMenuSetUpMusicMenu(bool resetPos)
+{
+    // Set up the menu
+    resetMeleeMenu(mainMenu->menu, mainMenuMusic, mainMenuMusicCb);
+    addRowToMeleeMenu(mainMenu->menu, modeColorchord.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeTunernome.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeSlideWhistle.modeName);
+    addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
+    // Set the position
+    if(resetPos)
+    {
+        mainMenu->musicPos = 0;
+    }
+    mainMenu->menu->selectedRow = mainMenu->musicPos;
+}
+
+/**
+ * Callback for the music menu
+ *
+ * @param opt The menu option which was selected
+ */
+void mainMenuMusicCb(const char* opt)
+{
+    // Save the position
+    mainMenu->musicPos = mainMenu->menu->selectedRow;
+
+    // Handle the option
+    if(modeColorchord.modeName == opt)
+    {
+        // Start colorchord
+        switchToSwadgeMode(&modeColorchord);
+    }
+    else if(modeTunernome.modeName == opt)
+    {
+        // Start tunernome
+        switchToSwadgeMode(&modeTunernome);
+    }
+    else if(modeSlideWhistle.modeName == opt)
+    {
+        // Start slide whistle
+        switchToSwadgeMode(&modeSlideWhistle);
     }
     else if(mainMenuBack == opt)
     {
