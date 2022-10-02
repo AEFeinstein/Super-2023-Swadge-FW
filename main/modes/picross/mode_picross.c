@@ -63,7 +63,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
 {
     //calloc is 0'd and malloc leaves memory uninitialized. I dont know which to use so im not gonna touch it, and doing things once on load can be slower.
     p = calloc(1, sizeof(picrossGame_t));
-    p->selectedLevel = selectedLevel;
+    p->selectedLevel =*selectedLevel;
     p->currentPhase = PICROSS_SOLVING;
     p->d = disp;
     p->exitThisFrame = false;
@@ -97,7 +97,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
         //lets test this game against various forms of colorblindness. I'm concerned about deuteranopia. Input square is my largest concern. 
     p->input->inputBoxDefaultColor = c043;
     p->input->inputBoxErrorColor = c500;
-    p->input->markXColor = c511;
+    p->input->markXColor = c533;
     p->input->movedThisFrame = false;
     p->input->changedLevelThisFrame = false;
     p->count = 1;
@@ -149,7 +149,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
 
 void picrossSetupPuzzle(bool cont)
 {   
-    wsg_t *levelwsg = &p->selectedLevel->levelWSG;
+    wsg_t *levelwsg = &p->selectedLevel.levelWSG;
 
     setCompleteLevelFromWSG(levelwsg);
 
@@ -1074,14 +1074,14 @@ void drawPicrossScene(display_t* d)
         {
             for(int j = 0;j<h;j++)
             {
-                drawSinglePixelFromWSG(d,i,j,&p->selectedLevel->completedWSG);
+                drawSinglePixelFromWSG(d,i,j,&p->selectedLevel.completedWSG);
             }
         }
 
         //Draw the title of the puzzle, centered.       
-        int16_t t = textWidth(&p->UIFont,p->selectedLevel->title);
+        int16_t t = textWidth(&p->UIFont,*&p->selectedLevel.title);
         t = ((d->w) - t)/2;//from text width into padding.
-        drawText(d,&p->UIFont,c555,p->selectedLevel->title,t,14);
+        drawText(d,&p->UIFont,c555,*&p->selectedLevel.title,t,14);
     }
 }
 
@@ -1507,7 +1507,7 @@ void saveCompletedOnSelectedLevel(bool completed)
     size_t size = sizeof(picrossVictoryData_t);
     picrossVictoryData_t* victData = calloc(1,size);//zero out. if data doesnt exist, then its been correctly initialized to all 0s. 
     readNvsBlob(picrossCompletedLevelData,victData,&size);
-    victData->victories[(int)p->selectedLevel->index] = completed;
+    victData->victories[(int)*&p->selectedLevel.index] = completed;
     writeNvsBlob(picrossCompletedLevelData,victData,size);
     free(victData);
 }

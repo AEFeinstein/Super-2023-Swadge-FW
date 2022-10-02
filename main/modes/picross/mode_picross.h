@@ -115,7 +115,7 @@ typedef struct
     bool animateBG;
     bool fadeHints;
     bool markX;//as x or as solid
-    picrossLevelDef_t* selectedLevel;
+    picrossLevelDef_t selectedLevel;
     bool exitThisFrame;
     int8_t count;
     picrossDir_t countState;
