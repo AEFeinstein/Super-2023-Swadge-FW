@@ -38,7 +38,7 @@
     #define M_PI 3.14159265358979323846
 #endif
 
-#define CORNER_OFFSET 9
+#define CORNER_OFFSET 12
 #define US_TO_QUIT 1048576 // 2^20, makes division easy
 
 #define NUM_GUITAR_STRINGS    6
