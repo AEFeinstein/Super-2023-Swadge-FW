@@ -280,10 +280,8 @@ void app_main(void)
     // Set up timers
     esp_timer_init();
 
-    // Create a task for the swadge, then return
-    TaskHandle_t xHandle = NULL;
-    xTaskCreate(mainSwadgeTask, "SWADGE", 8192, NULL,
-                tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, &xHandle);
+    // Tricky: We never return, we just _become_ the main task.
+    mainSwadgeTask( 0 );
 }
 
 /**

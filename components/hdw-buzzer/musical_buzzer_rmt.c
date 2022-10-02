@@ -136,6 +136,9 @@ void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, timer_group_t group_num,
 /**
  * @brief Start playing a sound effect on the buzzer. This has higher priority
  * than background music
+ * 
+ * Note: sound should NOT be played while doing SPIFFS operations, like loading
+ * WSGs or other data. Doing so may cause a crash.
  *
  * @param song The song to play as a sequence of notes
  */
@@ -160,6 +163,9 @@ void buzzer_play_sfx(const song_t* song)
 /**
  * @brief Start playing a background music on the buzzer. This has lower priority
  * than sound effects
+ * 
+ * Note: sound should NOT be played while doing SPIFFS operations, like loading
+ * WSGs or other data. Doing so may cause a crash.
  *
  * @param song The song to play as a sequence of notes
  */
