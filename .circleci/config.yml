@@ -87,7 +87,6 @@ jobs:
             if (!($CheckFile))  {exit 1 } 
             # zip everything up and move it to where circleci expects
             zip << pipeline.parameters.windows-emu-artifact >> -r swadge_emulator.exe spiffs_image version.txt
-            zip << pipeline.parameters.windows-emu-artifact >> -j "C:\msys64\mingw64\bin\libwinpthread-1.dll"
             cp << pipeline.parameters.windows-emu-artifact >> C:\Users\circleci\project\
       - run:
           name: Build Swadge Firmware

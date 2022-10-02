@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 
 #include "gpio_types.h"
 #include "hal/spi_types.h"
@@ -253,7 +252,6 @@ uint32_t * scaledBitmapDisplay = NULL; //0xRRGGBBAA
 int bitmapWidth = 0;
 int bitmapHeight = 0;
 int displayMult = 1;
-pthread_mutex_t displayMutex = PTHREAD_MUTEX_INITIALIZER;
 
 // LED state
 uint8_t rdNumLeds = 0;
@@ -279,45 +277,22 @@ void emuDrawDisplayOled(struct display* disp, bool drawDiff, fnBackgroundDrawCal
 //==============================================================================
 
 /**
- * @brief Lock the mutex that guards memory used by rawdraw on the main thread
- * and the swadge on a different thread
- */
-void lockDisplayMemoryMutex(void)
-{
-    pthread_mutex_lock(&displayMutex);
-}
-
-/**
- * @brief Unlock the mutex that guards memory used by rawdraw on the main thread
- * and the swadge on a different thread
- */
-void unlockDisplayMemoryMutex(void)
-{
-    pthread_mutex_unlock(&displayMutex);
-}
-
-/**
  * Set a multiplier to draw the TFT to the window at
  *
  * @param multiplier The multipler for the display, no less than 1
  */
 void setDisplayBitmapMultiplier(uint8_t multiplier)
 {
-    lockDisplayMemoryMutex();
-
     displayMult = multiplier;
 
     // Reallocate scaledBitmapDisplay
     free(scaledBitmapDisplay);
     scaledBitmapDisplay = calloc((multiplier * TFT_WIDTH) * (multiplier * TFT_HEIGHT),
         sizeof(uint32_t));
-
-    unlockDisplayMemoryMutex();
 }
 
 /**
- * @brief Get a pointer to the display memory. This access must be guarded by
- * lockDisplayMemoryMutex() and unlockDisplayMemoryMutex()
+ * @brief Get a pointer to the display memory.
  *
  * @param width A pointer to return the width of the display through
  * @param height A pointer to return the height of the display through
@@ -331,8 +306,7 @@ uint32_t * getDisplayBitmap(uint16_t * width, uint16_t * height)
 }
 
 /**
- * @brief Get a pointer to the LED memory. This access must be guarded by
- * lockDisplayMemoryMutex() and unlockDisplayMemoryMutex()
+ * @brief Get a pointer to the LED memory.
  *
  * @param numLeds A pointer to return the number of led_t through
  * @return A pointer to the current LED state
@@ -348,7 +322,6 @@ led_t * getLedMemory(uint8_t * numLeds)
  */
 void deinitDisplayMemory(void)
 {
-	pthread_mutex_lock(&displayMutex);
 	if(NULL != frameBuffer)
 	{
 		free(frameBuffer);
@@ -364,7 +337,6 @@ void deinitDisplayMemory(void)
         free(rdLeds);
         rdLeds = NULL;
     }
-	pthread_mutex_unlock(&displayMutex);
 }
 
 //==============================================================================
@@ -392,8 +364,6 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
     WARN_UNIMPLEMENTED();
 	
 	// ARGB pixels
-	pthread_mutex_lock(&displayMutex);
-
     bitmapWidth = TFT_WIDTH;
     bitmapHeight = TFT_HEIGHT;
 
@@ -409,7 +379,6 @@ void initTFT(display_t * disp, spi_host_device_t spiHost UNUSED,
         scaledBitmapDisplay = calloc(TFT_WIDTH * TFT_HEIGHT, sizeof(uint32_t));
         displayMult = 1;        
     }
-	pthread_mutex_unlock(&displayMutex);
 
     // Rawdraw initialized in main
 
@@ -463,10 +432,8 @@ void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px)
 {
     if(0 <= x && x < TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
-        pthread_mutex_lock(&displayMutex);
         frameBuffer[(y * TFT_WIDTH) + x] = px;
-        pthread_mutex_unlock(&displayMutex);
-    }
+        }
 }
 
 /**
@@ -481,9 +448,7 @@ paletteColor_t emuGetPxTft(int16_t x, int16_t y)
 {
     if(0 <= x && x < TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
-        pthread_mutex_lock(&displayMutex);
         paletteColor_t px = frameBuffer[(y * TFT_WIDTH) + x];
-        pthread_mutex_unlock(&displayMutex);
         return px;
     }
     return c000;
@@ -494,14 +459,11 @@ paletteColor_t emuGetPxTft(int16_t x, int16_t y)
  */
 void emuClearPxTft(void)
 {
-	pthread_mutex_lock(&displayMutex);
-    memset(frameBuffer, c000, sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
-	pthread_mutex_unlock(&displayMutex);
+	memset(frameBuffer, c000, sizeof(paletteColor_t) * TFT_HEIGHT * TFT_WIDTH);
 }
 
 /**
- * @brief Called when the Swadge wants to draw a new display. Note, this is
- * called from a pthread, so it raises a flag to draw on the main thread
+ * @brief Called when the Swadge wants to draw a new display.
  *
  * @param drawDiff unused, the whole display is always drawn
  */
@@ -510,8 +472,7 @@ void emuDrawDisplayTft(display_t * disp, bool drawDiff UNUSED, fnBackgroundDrawC
     /* Copy the current framebuffer to memory that won't be modified by the
     * Swadge mode. rawdraw will use this non-changing bitmap to draw
     */
-    pthread_mutex_lock(&displayMutex);
-	int16_t y;
+    int16_t y;
     for(y = 0; y < TFT_HEIGHT; y++)
     {
         for(int16_t x = 0; x < TFT_WIDTH; x++)
@@ -537,8 +498,6 @@ void emuDrawDisplayTft(display_t * disp, bool drawDiff UNUSED, fnBackgroundDrawC
 	{
 		fnBackgroundDrawCallback( disp, 0, y-16, TFT_WIDTH, 16, (y-16)/16, TFT_HEIGHT/16 );
 	}
-
-    pthread_mutex_unlock(&displayMutex);
 }
 
 //==============================================================================
@@ -602,8 +561,7 @@ void emuClearPxOled(void)
 }
 
 /**
- * @brief Called when the Swadge wants to draw a new display. Note, this is
- * called from a pthread, so it raises a flag to draw on the main thread
+ * @brief Called when the Swadge wants to draw a new display.
  *
  * @param drawDiff unused, the whole display is always drawn
  */
@@ -630,9 +588,7 @@ void initLeds(gpio_num_t gpio, gpio_num_t gpioAlt, rmt_channel_t rmt, uint16_t n
     if(NULL == rdLeds)
     {
         // Allocate some LED memory
-        pthread_mutex_lock(&displayMutex);
         rdLeds = malloc(sizeof(led_t) * numLeds);
-        pthread_mutex_unlock(&displayMutex);
         // Save the number of LEDs
         rdNumLeds = numLeds;
         // Save the brightness
@@ -665,12 +621,10 @@ void setLedBrightness(uint8_t brightness)
  */
 void setLeds(led_t* leds, uint8_t numLeds)
 {
-	pthread_mutex_lock(&displayMutex);
-    for(int i = 0; i < numLeds; i++)
+	for(int i = 0; i < numLeds; i++)
     {
         rdLeds[i].r = leds[i].r >> ledBrightness;
         rdLeds[i].g = leds[i].g >> ledBrightness;
         rdLeds[i].b = leds[i].b >> ledBrightness;
     }
-	pthread_mutex_unlock(&displayMutex);
 }
