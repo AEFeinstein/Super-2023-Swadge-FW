@@ -112,6 +112,7 @@ typedef struct
     uint8_t bgScrollXFrame;
     uint8_t bgScrollYFrame;
     bool animateBG;
+    bool fadeHints;
     picrossLevelDef_t* selectedLevel;
     bool exitThisFrame;
     int8_t count;

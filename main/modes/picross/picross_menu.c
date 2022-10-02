@@ -60,6 +60,7 @@ const char picrossCurrentPuzzleIndexKey[] = "pic_cur_ind";
 const char picrossSavedOptionsKey[]       = "pic_opts"; 
 const char picrossCompletedLevelData[]    = "pic_victs";
 const char picrossProgressData[]          = "pic_prog";
+
 //Main menu strings
 static char str_picrossTitle[] = "pi-cross";
 static const char str_continue[] = "Continue";
@@ -162,7 +163,11 @@ void loadLevels()
     //Todo: we can cut our memory use down by about 2/3 if we use a naming convention and the titles to pull the wsg names.
     //snprint into loadWsg, i think. Make sure it all works with, say, apostophes and spaces.
 
-    //any entry with lowercase names is testing data. CamelCase names are good to go. This is not convention, just nature of dac sending me files vs. my testing ones.
+    // pm->levels[0].title = "Test";
+    // loadWsg("TEMP.wsg", &pm->levels[0].levelWSG);
+    // loadWsg("TEMP.wsg", &pm->levels[0].completedWSG);
+
+    // any entry with lowercase names is testing data. CamelCase names are good to go. This is not convention, just nature of dac sending me files vs. my testing ones.
     pm->levels[0].title = "Pi";
     loadWsg("Pi_PZL.wsg", &pm->levels[0].levelWSG);//5x5
     loadWsg("Pi_SLV.wsg", &pm->levels[0].completedWSG);
@@ -245,7 +250,7 @@ void loadLevels()
 
     //this has to be the last puzzle.
     pm->levels[20].title = "Never Gonna";//give you up, but title too long for single line.
-    loadWsg("RR_PZL.wsg", &pm->levels[20].levelWSG);//10x10
+    loadWsg("RR_PZL.wsg", &pm->levels[20].levelWSG);
     loadWsg("RR_SLV.wsg", &pm->levels[20].completedWSG);
 
     //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_consts.h) when adding levels.

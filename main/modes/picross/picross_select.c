@@ -227,9 +227,11 @@ void picrossExitLevelSelect()
 {
     if (NULL != ls)
     {
-        freeWsg(&ls->unknownPuzzle);
-        freeFont((ls->game_font));
-        free(&ls->disp);
+        // freeWsg(&ls->unknownPuzzle);
+        // freeFont((ls->game_font));
+        // free(&ls->disp);
+        // free(&ls->chosenLevel->title);
+        // free(&ls->chosenLevel);
         free(ls);
         ls = NULL;
     }

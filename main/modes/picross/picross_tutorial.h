@@ -7,7 +7,9 @@
 typedef struct
 {
     display_t* d;
-    font_t* font;
+    font_t titleFont;
+    font_t smallFont;
+    wsg_t qrlink;
     uint8_t totalPages;
     uint8_t pageIndex;
     uint16_t btn;
@@ -19,6 +21,5 @@ typedef struct
 void picrossStartTutorial(display_t* disp, font_t* font);
 void picrossTutorialLoop(int64_t elapsedUs);
 void picrossTutorialButtonCb(buttonEvt_t* evt);
-void picrossExitTutorial(void);
 
 #endif

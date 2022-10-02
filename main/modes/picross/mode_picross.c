@@ -78,6 +78,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->puzzle = calloc(1, sizeof(picrossPuzzle_t));    
     //puzzle gets set in picrossSetupPuzzle.
     
+    p->fadeHints = false;
     //Input Setup
     p->input = calloc(1, sizeof(picrossInput_t));
     p->input->x=0;
@@ -1192,13 +1193,16 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
     box_t hintbox = boxFromCoord(-1,hint.index);
     paletteColor_t hintShadeColor = c001;//todo: move to struct if we decide to keep this.
     paletteColor_t hintColor = c555;//white/
-    if(hint.correct)
+    if(p->fadeHints)
     {
-        //fade, or fade more.
-        hintColor = hint.filledIn ? c111 : c333;
-    }else{
-        //incorrect, or we are still working on it
-         hintColor = hint.filledIn ? c533 : c555;
+        if(hint.correct)
+        {
+            //fade, or fade more.
+            hintColor = hint.filledIn ? c111 : c333;
+        }else{
+            //incorrect, or we are still working on it
+            hintColor = hint.filledIn ? c533 : c555;
+        }
     }
 
     if(hint.isRow){
