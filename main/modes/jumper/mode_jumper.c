@@ -267,12 +267,12 @@ void jumperStartGame(display_t* disp, font_t* mmFont, bool ledEnabled)
 
     j->player = calloc(1, sizeof(jumperCharacter_t));
 
-    loadWsg("kid0.wsg", &j->player->frames[0]);
-    loadWsg("kid1.wsg", &j->player->frames[1]);
-    loadWsg("kdu0.wsg", &j->player->frames[2]);
-    loadWsg("kjm0.wsg", &j->player->frames[3]);
-    loadWsg("kk0.wsg", &j->player->frames[4]);
-    loadWsg("kk1.wsg", &j->player->frames[5]);
+    loadWsg("pdi0.wsg", &j->player->frames[0]);
+    loadWsg("pdi1.wsg", &j->player->frames[1]);
+    loadWsg("pdd0.wsg", &j->player->frames[2]);
+    loadWsg("pdj0.wsg", &j->player->frames[3]);
+    loadWsg("pdk0.wsg", &j->player->frames[4]);
+    loadWsg("pdk1.wsg", &j->player->frames[5]);
     loadWsg("kk2.wsg", &j->player->frames[6]);
     loadWsg("kk3.wsg", &j->player->frames[7]);
 
