@@ -37,6 +37,7 @@ idf_component_register(
         "modes/platformer/gameData.c"
         "modes/mode_paint.c"
         "utils/linked_list.c"
+        "utils/text_entry.c"
         "p2pConnection.c"
         "swadge_esp32.c"
         "settingsManager.c"
