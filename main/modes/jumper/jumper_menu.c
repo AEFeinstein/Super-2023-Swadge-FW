@@ -28,6 +28,8 @@ typedef struct
     meleeMenu_t* menu;
     display_t* disp;
     jumperScreen_t screen;
+    bool ledEnabled;
+    uint8_t menuEntryForLEDs;
 } jumperMenu_t;
 
 //==============================================================================
@@ -67,6 +69,9 @@ static const char str_jumpTitle[] = "Donut Jump!";
 static const char str_jump[] = "Jump";
 static const char str_exit[] = "Exit";
 
+static const char str_LEDOn[] = "LED [X]";
+static const char str_LEDOff[] = "LED [ ]";
+
 jumperMenu_t* jm;
 
 //==============================================================================
@@ -84,6 +89,8 @@ void jumperEnterMode(display_t* disp)
     jm = calloc(1, sizeof(jumperMenu_t));
 
     jm->disp = disp;
+    jm->ledEnabled = true;
+    jm->menuEntryForLEDs = 1;
 
     loadFont("mm.font", &(jm->mmFont));
 
@@ -99,7 +106,6 @@ void jumperExitMode(void)
 {
     jumperExitGame();
     deinitMeleeMenu(jm->menu);
-    //p2pDeinit(&jm->p2p);
     freeFont(&(jm->mmFont));
     free(jm);
 }
@@ -116,6 +122,7 @@ void jumperMainLoop(int64_t elapsedUs)
     {
         case JUMPER_MENU:
         {
+            
             drawMeleeMenu(jm->disp, jm->menu);
             break;
         }
@@ -163,19 +170,37 @@ void jumperButtonCb(buttonEvt_t* evt)
  */
 void setJumperMainMenu(void)
 {
-    resetMeleeMenu(jm->menu, str_jumpTitle, jumperMainMenuCb);
+    resetMeleeMenu(jm->menu, str_jumpTitle, jumperMainMenuCb); //ledEnabled
     addRowToMeleeMenu(jm->menu, str_jump);
+    jm->menu->allowLEDControl = 1;
+    addRowToMeleeMenu(jm->menu, (jm->ledEnabled ? str_LEDOn : str_LEDOff));
     addRowToMeleeMenu(jm->menu, str_exit);
+
     jm->screen = JUMPER_MENU;
 }
+
 
 void jumperMainMenuCb(const char* opt)
 {
     if (opt == str_jump)
     {
-        ESP_LOGI("FTR", "Let's go!");
-        jumperStartGame(jm->disp, &jm->mmFont);
+        ESP_LOGI("JUM", "Let's go!");
+        jumperStartGame(jm->disp, &jm->mmFont, jm->ledEnabled);
         jm->screen = JUMPER_GAME;
+        return;
+    }
+
+    if (opt == str_LEDOn)
+    {
+        jm->menu->rows[jm->menuEntryForLEDs] = str_LEDOff;
+        jm->ledEnabled = false;
+        return;
+    }
+
+    if (opt == str_LEDOff)
+    {
+        jm->menu->rows[jm->menuEntryForLEDs] = str_LEDOn;
+        jm->ledEnabled = true;
         return;
     }
 
@@ -183,5 +208,6 @@ void jumperMainMenuCb(const char* opt)
     {
         // Exit to main menu
         switchToSwadgeMode(&modeMainMenu);
+        return;
     }
 }

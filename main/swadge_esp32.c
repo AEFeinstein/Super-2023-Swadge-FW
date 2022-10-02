@@ -280,10 +280,8 @@ void app_main(void)
     // Set up timers
     esp_timer_init();
 
-    // Create a task for the swadge, then return
-    TaskHandle_t xHandle = NULL;
-    xTaskCreate(mainSwadgeTask, "SWADGE", 8192, NULL,
-                tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, &xHandle);
+    // Tricky: We never return, we just _become_ the main task.
+    mainSwadgeTask( 0 );
 }
 
 /**
@@ -516,11 +514,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     int64_t time_exit_pressed = 0;
 
     /* Loop forever! */
-#if defined(EMU)
-    while(threadsShouldRun)
-#else
     while(true)
-#endif
     {
         // Process ESP NOW
         if(ESP_NOW == cSwadgeMode->wifiMode)
@@ -546,9 +540,9 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             cSwadgeMode->fnTemperatureCallback(readTemperatureSensor());
         }
 
-        // Process button presses
+        // Process all queued button presses
         buttonEvt_t bEvt = {0};
-        if(checkButtonQueue(&bEvt))
+        while(checkButtonQueue(&bEvt))
         {
             // Monitor start + select
             if((&modeMainMenu != cSwadgeMode) && (bEvt.state & START) && (bEvt.state & SELECT))

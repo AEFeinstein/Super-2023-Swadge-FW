@@ -36,7 +36,10 @@ typedef struct _p2pInfo p2pInfo;
 
 typedef void (*p2pConCbFn)(p2pInfo* p2p, connectionEvt_t);
 typedef void (*p2pMsgRxCbFn)(p2pInfo* p2p, const uint8_t* payload, uint8_t len);
-typedef void (*p2pMsgTxCbFn)(p2pInfo* p2p, messageStatus_t status);
+typedef void (*p2pMsgTxCbFn)(p2pInfo* p2p, messageStatus_t status, const uint8_t*, uint8_t);
+
+typedef void (*p2pAckSuccessFn)(p2pInfo*, const uint8_t*, uint8_t);
+typedef void (*p2pAckFailureFn)(p2pInfo*);
 
 #define P2P_START_BYTE 'p'
 
@@ -45,8 +48,8 @@ typedef enum __attribute__((packed))
     P2P_MSG_CONNECT,
     P2P_MSG_START,
     P2P_MSG_ACK,
-    P2P_MSG_DATA,
-    P2P_MSG_DATA_NO_ACK
+    P2P_MSG_DATA_ACK,
+    P2P_MSG_DATA
 }
 p2pMsgType_t;
 
@@ -78,7 +81,7 @@ typedef struct _p2pInfo
     // Messages that every mode uses
     uint8_t modeId;
     p2pConMsg_t conMsg;
-    p2pCommonHeader_t ackMsg;
+    p2pDataMsg_t ackMsg;
     p2pCommonHeader_t startMsg;
 
     // Callback function pointers
@@ -95,8 +98,9 @@ typedef struct _p2pInfo
         p2pDataMsg_t msgToAck;
         uint16_t msgToAckLen;
         uint32_t timeSentUs;
-        void (*SuccessFn)(void*);
-        void (*FailureFn)(void*);
+        p2pAckSuccessFn SuccessFn;
+        p2pAckFailureFn FailureFn;
+        uint8_t dataInAckLen;
     } ack;
 
     // Connection state variables
@@ -141,9 +145,11 @@ void p2pDeinit(p2pInfo* p2p);
 
 void p2pStartConnection(p2pInfo* p2p);
 
-void p2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len, bool shouldAck, p2pMsgTxCbFn msgTxCbFn);
+void p2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len, p2pMsgTxCbFn msgTxCbFn);
 void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr, esp_now_send_status_t status);
 void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8_t len, int8_t rssi);
+void p2pSetDataInAck(p2pInfo* p2p, const uint8_t* ackData, uint8_t ackDataLen);
+void p2pClearDataInAck(p2pInfo* p2p);
 
 playOrder_t p2pGetPlayOrder(p2pInfo* p2p);
 void p2pSetPlayOrder(p2pInfo* p2p, playOrder_t order);

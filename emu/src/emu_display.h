@@ -25,9 +25,6 @@
     #error "Please pick a screen size"
 #endif
 
-void lockDisplayMemoryMutex(void);
-void unlockDisplayMemoryMutex(void);
-
 uint32_t * getDisplayBitmap(uint16_t * width, uint16_t * height);
 led_t * getLedMemory(uint8_t * numLeds);
 
