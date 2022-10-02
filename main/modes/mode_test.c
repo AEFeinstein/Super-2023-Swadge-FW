@@ -186,7 +186,8 @@ void testEnterMode(display_t* disp)
     test->maxValue = 1;
 
     // Set the mic to listen
-    setIsMuted(false);
+    setBgmIsMuted(false);
+    setSfxIsMuted(false);
     setMicGain(7);
 
     // Play a song

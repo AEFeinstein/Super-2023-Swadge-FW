@@ -376,7 +376,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 
     // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
     // Make sure to use a different timer than initButtons()
-    buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, TIMER_GROUP_0, TIMER_1, getIsMuted());
+    buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, TIMER_GROUP_0, TIMER_1, getBgmIsMuted(), getSfxIsMuted());
 
 #if defined(CONFIG_SWADGE_DEVKIT)
     initTouchSensor(0.2f, true, 6,
