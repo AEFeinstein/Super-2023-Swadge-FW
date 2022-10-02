@@ -1278,7 +1278,7 @@ void updateWasp(entity_t *self)
         case 2:
             self->spriteIndex = SP_WASP_1 + ((self->spriteIndex + 1) % 2);
             self->yDamping--;
-            if(self->yDamping <0 || self->y <= ((self->homeTileY * TILE_SIZE) << SUBPIXEL_RESOLUTION )) {
+            if(self->yDamping <0 || self->y <= ((self->homeTileY * TILE_SIZE + 8) << SUBPIXEL_RESOLUTION )) {
                 self->xDamping = 0;
                 self->xspeed = (self->spriteFlipHorizontal)? -32 : 32;
                 self->yspeed = 0;
@@ -1331,7 +1331,7 @@ void updateWaspL2(entity_t *self)
         case 2:
             self->spriteIndex = SP_WASP_L2_1 + ((self->spriteIndex) % 2);
             self->yDamping--;
-            if(self->yDamping < 0 || self->y <= ((self->homeTileY * TILE_SIZE) << SUBPIXEL_RESOLUTION )) {
+            if(self->yDamping < 0 || self->y <= ((self->homeTileY * TILE_SIZE + 8) << SUBPIXEL_RESOLUTION )) {
                 self->xDamping = 0;
                 self->xspeed = (self->spriteFlipHorizontal)? -48 : 48;
                 self->yspeed = 0;
@@ -1385,7 +1385,7 @@ void updateWaspL3(entity_t *self)
         case 2:
             self->spriteIndex = SP_WASP_L3_1 + ((self->spriteIndex + 1) % 2);
             self->yDamping--;
-            if(self->yDamping < 0 || self->y <= ((self->homeTileY * TILE_SIZE) << SUBPIXEL_RESOLUTION )) {
+            if(self->yDamping < 0 || self->y <= ((self->homeTileY * TILE_SIZE + 8) << SUBPIXEL_RESOLUTION )) {
                 self->xDamping = 0;
                 self->xspeed = (self->spriteFlipHorizontal)? -64 : 64;
                 self->yspeed = 0;
