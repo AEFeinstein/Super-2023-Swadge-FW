@@ -277,9 +277,9 @@ void platformerMainLoop(int64_t elapsedUs)
 {
     // Execute logic at 20fps
     platformer->frameTimer += elapsedUs;
-    if (platformer->frameTimer >= 50000)
+    if (platformer->frameTimer >= 16666)
     {
-        platformer->frameTimer -= 50000;
+        platformer->frameTimer -= 16666;
         platformer->update(platformer);
     }
 }

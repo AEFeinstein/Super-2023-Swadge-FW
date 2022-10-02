@@ -138,16 +138,16 @@ void updatePlayer(entity_t *self)
 {
     if (self->gameData->btnState & BTN_B)
     {
-        self->xMaxSpeed = 132;
+        self->xMaxSpeed = 88;
     }
     else
     {
-        self->xMaxSpeed = 72;
+        self->xMaxSpeed = 66;
     }
 
     if (self->gameData->btnState & LEFT)
     {
-        self->xspeed -= (self->falling) ? 12 : 16;
+        self->xspeed -= (self->falling) ? 9 : 16;
 
         if (self->xspeed < -self->xMaxSpeed)
         {
@@ -156,7 +156,7 @@ void updatePlayer(entity_t *self)
     }
     else if (self->gameData->btnState & RIGHT)
     {
-        self->xspeed += (self->falling) ? 12 : 16;
+        self->xspeed += (self->falling) ? 9 : 16;
 
         if (self->xspeed > self->xMaxSpeed)
         {
@@ -784,7 +784,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
                 if(tileId == TILE_BOUNCE_BLOCK){
                     self->yspeed = -128;
                     if(self->gameData->btnState & BTN_A){
-                        self->jumpPower = 180 + (abs(self->xspeed) >> 2);
+                        self->jumpPower = 210l + (abs(self->xspeed) >> 2);
                     }
                 }
                 break;

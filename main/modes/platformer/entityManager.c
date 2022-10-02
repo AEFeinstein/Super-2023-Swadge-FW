@@ -309,12 +309,12 @@ entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
 
     entity->xspeed = 0;
     entity->yspeed = 0;
-    entity->xMaxSpeed = 120; //72; Walking
-    entity->yMaxSpeed = 132; //72;
-    entity->xDamping = 8;
-    entity->yDamping = 8;
+    entity->xMaxSpeed = 66; //72; Walking
+    entity->yMaxSpeed = 120; //72;
+    entity->xDamping = 4;
+    entity->yDamping = 4;
     entity->gravityEnabled = true;
-    entity->gravity = 32;
+    entity->gravity = 16;
     entity->falling = true;
     entity->jumpPower = 0;
     entity->spriteFlipVertical = false;
