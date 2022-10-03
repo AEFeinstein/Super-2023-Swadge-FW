@@ -514,11 +514,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     int64_t time_exit_pressed = 0;
 
     /* Loop forever! */
-#if defined(EMU)
-    while(threadsShouldRun)
-#else
     while(true)
-#endif
     {
         // Process ESP NOW
         if(ESP_NOW == cSwadgeMode->wifiMode)
