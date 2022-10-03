@@ -28,7 +28,7 @@
 //==============================================================================
 // Constants
 //==============================================================================
-/*
+
 static const song_t bgmDemagio =
 {
     .notes =
@@ -327,7 +327,7 @@ static const song_t bgmDemagio =
     .numNotes = 289,
     .shouldLoop = true
 };
-*/
+
 static const song_t sndGameStart =
 {
     .notes =
@@ -863,7 +863,7 @@ void changeStateGame(platformer_t *self){
 
     self->tilemap.executeTileSpawnAll = true;
 
-    //buzzer_play_bgm(&bgmDemagio);
+    buzzer_play_bgm(&bgmDemagio);
 
     self->update = &updateGame;
 }
