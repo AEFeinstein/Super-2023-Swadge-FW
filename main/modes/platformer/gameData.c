@@ -88,7 +88,7 @@ void scorePoints(gameData_t * gameData, uint16_t points){
     gameData->score += comboPoints;
     gameData->comboScore = comboPoints;
     
-    gameData->comboTimer = (gameData->levelDeaths < 3) ? 80: 1;
+    gameData->comboTimer = (gameData->levelDeaths < 3) ? 240: 1;
 }
 
 void addCoins(gameData_t * gameData, uint8_t coins){
