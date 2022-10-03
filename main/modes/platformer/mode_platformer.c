@@ -28,7 +28,306 @@
 //==============================================================================
 // Constants
 //==============================================================================
+/*
+static const song_t bgmDemagio =
+{
+    .notes =
+    {
+        {.note = A_2, .timeMs = 187},
+        {.note = C_SHARP_5, .timeMs = 187},
+        {.note = E_5, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = D_3, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = C_3, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = E_5, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = C_SHARP_5, .timeMs = 187},
+        {.note = E_3, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = B_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = G_4, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = A_2, .timeMs = 187},
+        {.note = C_SHARP_5, .timeMs = 187},
+        {.note = E_5, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = D_3, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = D_SHARP_3, .timeMs = 187},
+        {.note = B_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = E_3, .timeMs = 187},
+        {.note = C_SHARP_5, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = E_5, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = A_2, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = A_2, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_2, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = C_3, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = D_3, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = D_3, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = D_3, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = D_3, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = C_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = F_SHARP_3, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = E_3, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = C_SHARP_4, .timeMs = 187},
+        {.note = A_2, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = E_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = D_3, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = D_3, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = D_3, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = D_3, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = C_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = C_SHARP_5, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = B_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = E_3, .timeMs = 187},
+        {.note = F_SHARP_3, .timeMs = 187},
+        {.note = G_3, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = C_SHARP_5, .timeMs = 187},
+        {.note = E_5, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = D_3, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = D_SHARP_3, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = D_SHARP_3, .timeMs = 187},
+        {.note = E_3, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = E_5, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = C_SHARP_5, .timeMs = 187},
+        {.note = B_4, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = E_3, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = E_3, .timeMs = 187},
+        {.note = A_2, .timeMs = 187},
+        {.note = D_2, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = F_2, .timeMs = 187},
+        {.note = F_SHARP_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_SHARP_2, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = F_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = F_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_SHARP_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_SHARP_2, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = F_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = B_3, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = A_2, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = C_SHARP_4, .timeMs = 187},
+        {.note = A_2, .timeMs = 187},
+        {.note = G_3, .timeMs = 187},
+        {.note = C_SHARP_4, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = A_2, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = C_SHARP_4, .timeMs = 187},
+        {.note = G_SHARP_2, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = C_4, .timeMs = 187},
+        {.note = G_2, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = F_SHARP_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_SHARP_2, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = F_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = F_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_SHARP_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_SHARP_2, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = B_4, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = B_4, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = B_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = B_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = A_2, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = C_SHARP_4, .timeMs = 187},
+        {.note = A_2, .timeMs = 187},
+        {.note = G_3, .timeMs = 187},
+        {.note = C_SHARP_4, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = B_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = B_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = A_2, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = C_SHARP_4, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = A_4, .timeMs = 187},
+        {.note = A_SHARP_4, .timeMs = 187},
+        {.note = B_4, .timeMs = 187},
+        {.note = C_5, .timeMs = 179},
 
+    },
+    .numNotes = 289,
+    .shouldLoop = true
+};
+*/
 static const song_t sndGameStart =
 {
     .notes =
@@ -343,7 +642,7 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
     char timeStr[10];
     snprintf(timeStr, sizeof(timeStr) - 1, "T:%03d", gameData->countdown);
 
-    if(gameData->frameCount > 10) {
+    if(gameData->frameCount > 29) {
         drawText(d, font, c500, "1UP", 24, 2);
     }
     
@@ -372,7 +671,7 @@ void updateTitleScreen(platformer_t *self)
     // Handle inputs
     switch(platformer->menuState){
         case 0:{ 
-            if(self->gameData.frameCount > 200){
+            if(self->gameData.frameCount > 600){
                 changeStateShowHighScores(self);
             }
             else if (
@@ -481,12 +780,11 @@ void updateTitleScreen(platformer_t *self)
     }
 
 
-    scrollTileMap(&(platformer->tilemap), 2, 0);
-    if(self->tilemap.mapOffsetX >= self->tilemap.maxMapOffsetX && self->frameTimer > 19){
+    scrollTileMap(&(platformer->tilemap), 1, 0);
+    if(self->tilemap.mapOffsetX >= self->tilemap.maxMapOffsetX && self->gameData.frameCount > 58){
         self->tilemap.mapOffsetX = 0;
     }
     
-
     drawPlatformerTitleScreen(self->disp, &(self->radiostars), &(self->gameData));
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
@@ -500,7 +798,7 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
 
     switch(platformer->menuState){
         case 0: {
-            if ((gameData->frameCount % 20 ) < 10)
+            if ((gameData->frameCount % 60 ) < 30)
             {
                 drawText(d, font, c555, "- Press START button -", 20, 128);
             }
@@ -535,7 +833,7 @@ void updateReadyScreen(platformer_t *self){
     self->disp->clearPx();
     
     self->gameData.frameCount++;
-    if(self->gameData.frameCount > 60){
+    if(self->gameData.frameCount > 179){
         changeStateGame(self);
     }
 
@@ -564,6 +862,8 @@ void changeStateGame(platformer_t *self){
     updateLedsHpMeter(&(self->entityManager),&(self->gameData));
 
     self->tilemap.executeTileSpawnAll = true;
+
+    //buzzer_play_bgm(&bgmDemagio);
 
     self->update = &updateGame;
 }
@@ -611,7 +911,7 @@ void updateDead(platformer_t *self){
     fillDisplayArea( self->disp, 0, 0, 280, 240, self->gameData.bgColor);
     
     self->gameData.frameCount++;
-    if(self->gameData.frameCount > 60){
+    if(self->gameData.frameCount > 179){
         if(self->gameData.lives > 0){
             changeStateReadyScreen(self);
         } else {
@@ -630,7 +930,7 @@ void updateGameOver(platformer_t *self){
     self->disp->clearPx();
     
     self->gameData.frameCount++;
-    if(self->gameData.frameCount > 60){
+    if(self->gameData.frameCount > 179){
         changeStateNameEntry(self);
     }
 
@@ -666,7 +966,7 @@ void updateLevelClear(platformer_t *self){
     
     self->gameData.frameCount++;
 
-    if(self->gameData.frameCount > 20){
+    if(self->gameData.frameCount > 60){
         if(self->gameData.countdown > 0){
             self->gameData.countdown--;
             
@@ -678,7 +978,7 @@ void updateLevelClear(platformer_t *self){
             if(self->gameData.combo > 1){
                 self->gameData.combo--;
             }
-        } else if(self->gameData.frameCount % 20 == 0) {
+        } else if(self->gameData.frameCount % 60 == 0) {
             //Hey look, it's a frame rule!
             
             //Advance to the next level
@@ -720,13 +1020,13 @@ void updateGameClear(platformer_t *self){
     
     self->gameData.frameCount++;
 
-    if(self->gameData.frameCount > 40){
+    if(self->gameData.frameCount > 120){
         if(self->gameData.lives > 0){
-            if(self->gameData.frameCount % 20 == 0){
+            if(self->gameData.frameCount % 60 == 0){
                 self->gameData.lives--;
                 self->gameData.score += 100000;
             }
-        } else if(self->gameData.frameCount % 80 == 0) {
+        } else if(self->gameData.frameCount % 240 == 0) {
             changeStateGameOver(self);
         }
     }
@@ -774,7 +1074,7 @@ void drawPlatformerHighScores(display_t *d, font_t *font, platformerHighScores_t
     for(uint8_t i=0; i<NUM_PLATFORMER_HIGH_SCORES; i++){
         char rowStr[32];
         snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06d   %c%c%c", i+1, highScores->scores[i], highScores->initials[i][0], highScores->initials[i][1], highScores->initials[i][2]);
-        drawText(d, font, (gameData->rank == i) ? highScoreNewEntryColors[(gameData->frameCount >> 1) % 4] : c555, rowStr, 60, 128 + i*16);
+        drawText(d, font, (gameData->rank == i) ? highScoreNewEntryColors[(gameData->frameCount >> 3) % 4] : c555, rowStr, 60, 128 + i*16);
     }
 }
 
@@ -901,7 +1201,7 @@ void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData, uint8_t cur
 
     for(uint8_t i=0; i<3; i++){
         snprintf(rowStr, sizeof(rowStr) - 1, "%c", gameData->initials[i]);
-        drawText(d, font, (currentInitial == i) ? highScoreNewEntryColors[(gameData->frameCount >> 1) % 4] : c555, rowStr, 192+16*i, 128);
+        drawText(d, font, (currentInitial == i) ? highScoreNewEntryColors[(gameData->frameCount >> 3) % 4] : c555, rowStr, 192+16*i, 128);
     }
 }
 
@@ -914,7 +1214,11 @@ void updateShowHighScores(platformer_t *self){
     self->disp->clearPx();
     self->gameData.frameCount++;
 
-    if(self->gameData.frameCount > 100){
+    if((self->gameData.frameCount > 300) || (
+        (self->gameData.btnState & START)
+        &&
+        !(self->gameData.prevBtnState & START)
+    )){
         self->menuState = 0;
         self->menuSelection = 0;
         changeStateTitleScreen(self);
@@ -922,6 +1226,9 @@ void updateShowHighScores(platformer_t *self){
 
     drawShowHighScores(self->disp, &(self->radiostars), self->menuState);
     drawPlatformerHighScores(self->disp, &(self->radiostars), &(self->highScores), &(self->gameData));
+
+    self->prevBtnState = self->btnState;
+    self->gameData.prevBtnState = self->prevBtnState;
 }
 
 void drawShowHighScores(display_t *d, font_t *font, uint8_t menuState){
