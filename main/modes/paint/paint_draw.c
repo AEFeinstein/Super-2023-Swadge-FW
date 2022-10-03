@@ -68,8 +68,16 @@ void paintDrawScreenSetup(void)
         }
     }
 
-    paintState->canvasW = PAINT_CANVAS_WIDTH;
-    paintState->canvasH = PAINT_CANVAS_HEIGHT;
+    paintState->canvas.disp = paintState->disp;
+
+    paintState->canvas.xScale = PAINT_CANVAS_SCALE;
+    paintState->canvas.yScale = PAINT_CANVAS_SCALE;
+
+    paintState->canvas.w = PAINT_CANVAS_WIDTH;
+    paintState->canvas.h = PAINT_CANVAS_HEIGHT;
+
+    paintState->canvas.x = PAINT_CANVAS_X_OFFSET;
+    paintState->canvas.y = PAINT_CANVAS_Y_OFFSET;
 
     paintState->brush = &(brushes[0]);
     paintState->brushWidth = 1;
@@ -85,25 +93,25 @@ void paintDrawScreenSetup(void)
     paintState->bgColor = c555; // white
 
     // pick some colors to start with
-    paintState->recentColors[0] = c000; // black
-    paintState->recentColors[1] = c555; // white
-    paintState->recentColors[2] = c222; // light gray
-    paintState->recentColors[3] = c444; // dark gray
-    paintState->recentColors[4] = c500; // red
-    paintState->recentColors[5] = c550; // yellow
-    paintState->recentColors[6] = c050; // green
-    paintState->recentColors[7] = c055; // cyan
+    paintState->canvas.palette[0] = c000; // black
+    paintState->canvas.palette[1] = c555; // white
+    paintState->canvas.palette[2] = c222; // light gray
+    paintState->canvas.palette[3] = c444; // dark gray
+    paintState->canvas.palette[4] = c500; // red
+    paintState->canvas.palette[5] = c550; // yellow
+    paintState->canvas.palette[6] = c050; // green
+    paintState->canvas.palette[7] = c055; // cyan
 
-    paintState->recentColors[8] = c005; // blue
-    paintState->recentColors[9] = c530; // orange?
-    paintState->recentColors[10] = c505; // fuchsia
-    paintState->recentColors[11] = c503; // idk
-    paintState->recentColors[12] = c350;
-    paintState->recentColors[13] = c035;
-    paintState->recentColors[14] = c522;
-    paintState->recentColors[15] = c103;
+    paintState->canvas.palette[8] = c005; // blue
+    paintState->canvas.palette[9] = c530; // orange?
+    paintState->canvas.palette[10] = c505; // fuchsia
+    paintState->canvas.palette[11] = c503; // idk
+    paintState->canvas.palette[12] = c350;
+    paintState->canvas.palette[13] = c035;
+    paintState->canvas.palette[14] = c522;
+    paintState->canvas.palette[15] = c103;
 
-    PAINT_LOGI("It's paintin' time! Canvas is %d x %d pixels!", paintState->canvasW, paintState->canvasH);
+    PAINT_LOGI("It's paintin' time! Canvas is %d x %d pixels!", paintState->canvas.w, paintState->canvas.h);
 }
 
 
@@ -111,7 +119,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
 {
     if (paintState->clearScreen)
     {
-        paintClearCanvas();
+        paintClearCanvas(&paintState->canvas);
         paintRenderAll();
         paintState->clearScreen = false;
         paintState->showCursor = true;
@@ -122,14 +130,14 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         paintState->saveInProgress = true;
         if (paintState->isSaveSelected)
         {
-            paintSave(paintState->selectedSlot);
+            paintSave(&paintState->canvas, paintState->selectedSlot);
         }
         else
         {
             if (paintGetSlotInUse(paintGetRecentSlot()))
             {
                 // Load from the selected slot if it's been used
-                paintLoad(paintState->selectedSlot, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+                paintLoad(&paintState->canvas, paintState->selectedSlot);
             }
             else
             {
@@ -443,9 +451,9 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
                 paintState->bgColor ^= paintState->fgColor;
                 paintState->fgColor ^= paintState->bgColor;
 
-                paintState->recentColors[0] ^= paintState->recentColors[1];
-                paintState->recentColors[1] ^= paintState->recentColors[0];
-                paintState->recentColors[0] ^= paintState->recentColors[1];
+                paintState->canvas.palette[0] ^= paintState->canvas.palette[1];
+                paintState->canvas.palette[1] ^= paintState->canvas.palette[0];
+                paintState->canvas.palette[0] ^= paintState->canvas.palette[1];
 
                 paintState->redrawToolbar = true;
                 paintState->recolorPickPoints = true;
@@ -761,13 +769,13 @@ void disableCursor(void)
 
 void paintUpdateRecents(uint8_t selectedIndex)
 {
-    paintState->fgColor = paintState->recentColors[selectedIndex];
+    paintState->fgColor = paintState->canvas.palette[selectedIndex];
 
     for (uint8_t i = selectedIndex; i > 0; i--)
     {
-        paintState->recentColors[i] = paintState->recentColors[i-1];
+        paintState->canvas.palette[i] = paintState->canvas.palette[i-1];
     }
-    paintState->recentColors[0] = paintState->fgColor;
+    paintState->canvas.palette[0] = paintState->fgColor;
 
     // If there are any pick points, update their color to reduce confusion
     paintDrawPickPoints();
@@ -799,9 +807,9 @@ void paintMoveCursorRel(int8_t xDiff, int8_t yDiff)
     {
         paintState->cursorX = 0;
     }
-    else if (paintState->cursorX + xDiff >= paintState->canvasW)
+    else if (paintState->cursorX + xDiff >= paintState->canvas.w)
     {
-        paintState->cursorX = paintState->canvasW - 1;
+        paintState->cursorX = paintState->canvas.w - 1;
     }
     else {
         paintState->cursorX += xDiff;
@@ -811,9 +819,9 @@ void paintMoveCursorRel(int8_t xDiff, int8_t yDiff)
     {
         paintState->cursorY = 0;
     }
-    else if (paintState->cursorY + yDiff >= paintState->canvasH)
+    else if (paintState->cursorY + yDiff >= paintState->canvas.h)
     {
-        paintState->cursorY = paintState->canvasH - 1;
+        paintState->cursorY = paintState->canvas.h - 1;
     }
     else
     {

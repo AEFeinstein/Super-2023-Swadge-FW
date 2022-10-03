@@ -6,6 +6,7 @@
 #include <malloc.h>
 
 #include "nvs_manager.h"
+#include "paint_common.h"
 
 void paintLoadIndex(void);
 void paintSaveIndex(void);
@@ -15,8 +16,8 @@ void paintSetSlotInUse(uint8_t slot);
 bool paintGetAnySlotInUse(void);
 uint8_t paintGetRecentSlot(void);
 void paintSetRecentSlot(uint8_t slot);
-void paintSave(uint8_t slot);
-void paintLoad(uint8_t slot, uint16_t xTr, uint16_t yTr, uint16_t xScale, uint16_t yScale);
+void paintSave(const paintCanvas_t* canvas, uint8_t slot);
+void paintLoad(paintCanvas_t* canvas, uint8_t slot);
 
 
 #endif

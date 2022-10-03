@@ -6,6 +6,8 @@
 
 #include "palette.h"
 
+#include "paint_common.h"
+
 void restoreCursorPixels(void);
 
 void plotCursor(void);
@@ -15,7 +17,7 @@ void drawColorBox(uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, pa
 void paintRenderToolbar(void);
 void paintRenderAll(void);
 
-void paintClearCanvas(void);
+void paintClearCanvas(const paintCanvas_t* canvas);
 
 
 #endif

@@ -90,6 +90,24 @@
 // hold button for .3s to begin repeating
 #define BUTTON_REPEAT_TIME 300000
 
+/// @brief Definition for a paintable screen region
+typedef struct
+{
+    // This screen's display
+    display_t* disp;
+
+    // The X and Y offset of the canvas's top-left pixel
+    uint16_t x, y;
+
+    // The canvas's width and height, in "canvas pixels"
+    uint16_t w, h;
+
+    // The X and Y scale of the canvas. Each "canvas pixel" will be drawn as [xScale x yScale]
+    uint8_t xScale, yScale;
+
+    paletteColor_t palette[PAINT_MAX_COLORS];
+} paintCanvas_t;
+
 
 typedef struct
 {
@@ -114,19 +132,16 @@ typedef struct
     // Whether or not A is currently pressed
     bool aHeld;
 
-    // The width of the current canvas
-    // TODO: Remove and replace with constant? Or, remove constant and use this?
-    int16_t canvasW, canvasH;
+    // The representation of the drawing canvas
+    // TODO: Replace canvasW and canvasH with this
+    // TODO: Pass this instead of using PAINT_CANVAS_{X,Y}_OFFSET and global paintState->canvas{W,H}
+    paintCanvas_t canvas;
 
 
     // Color data
 
     // The foreground color and the background color, which can be swapped with B
     paletteColor_t fgColor, bgColor;
-
-    // This image's palette, including foreground and background colors.
-    // It is always ordered with the most-recently-used colors at the beginning
-    paletteColor_t recentColors[PAINT_MAX_COLORS];
 
     // The index of the currently selected color, while SELECT is held
     uint8_t paletteSelect;
