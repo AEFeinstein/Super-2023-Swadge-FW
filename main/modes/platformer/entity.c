@@ -224,7 +224,10 @@ void updatePlayer(entity_t *self)
 
     if(self->invincibilityFrames > 0){
         self->invincibilityFrames--;
-        self->visible = (self->invincibilityFrames % 2);
+        if(self->invincibilityFrames % 2){
+            self->visible = !self->visible;
+        }
+        
         if(self->invincibilityFrames <= 0){
             self->visible = true;
         }
@@ -242,7 +245,9 @@ void updatePlayer(entity_t *self)
 
 void updateTestObject(entity_t *self)
 {
-    self->spriteFlipHorizontal = !self->spriteFlipHorizontal;
+    if(self->gameData->frameCount % 10 == 0) {
+        self->spriteFlipHorizontal = !self->spriteFlipHorizontal;
+    }
 
     despawnWhenOffscreen(self);
     moveEntityWithTileCollisions(self);
@@ -553,11 +558,14 @@ void animatePlayer(entity_t *self)
     }
     else if (self->xspeed != 0)
     {
-        if (self->gameData->btnState & LEFT || self->gameData->btnState & RIGHT)
+        if ( ((self->gameData->btnState & LEFT) && self->xspeed < 0) || ((self->gameData->btnState & RIGHT) && self->xspeed > 0))
         {
             // Running
             self->spriteFlipHorizontal = (self->xspeed > 0) ? 0 : 1;
-            self->spriteIndex = 1 + ((self->spriteIndex + 1) % 3);
+
+            if(self->gameData->frameCount % (10 - (abs(self->xspeed) >> 3) ) == 0) {
+                self->spriteIndex = 1 + ((self->spriteIndex + 1) % 3);
+            }
         }
         else
         {
@@ -1016,20 +1024,27 @@ void updateEntityDead(entity_t *self)
 
 void updatePowerUp(entity_t *self)
 {
-    
-    self->spriteIndex = ((self->entityManager->playerEntity->hp < 2) ? SP_GAMING_1 : SP_MUSIC_1) + ((self->spriteIndex + 1) % 3);
+    if(self->gameData->frameCount % 10 == 0) {
+        self->spriteIndex = ((self->entityManager->playerEntity->hp < 2) ? SP_GAMING_1 : SP_MUSIC_1) + ((self->spriteIndex + 1) % 3);
+    }
+
     despawnWhenOffscreen(self);
 }
 
 void update1up(entity_t *self)
 {
-    self->spriteIndex = SP_1UP_1 + ((self->spriteIndex + 1) % 3);
+    if(self->gameData->frameCount % 10 == 0) {
+        self->spriteIndex = SP_1UP_1 + ((self->spriteIndex + 1) % 3);
+    }
+
     despawnWhenOffscreen(self);
 }
 
 void updateWarp(entity_t *self)
 {
-    self->spriteIndex = SP_WARP_1 + ((self->spriteIndex + 1) % 3);
+    if(self->gameData->frameCount % 10 == 0) {
+        self->spriteIndex = SP_WARP_1 + ((self->spriteIndex + 1) % 3);
+    }
 
     //Destroy self and respawn warp container block when offscreen
     if (
@@ -1251,7 +1266,9 @@ void updateWasp(entity_t *self)
 {
     switch(self->xDamping){
         case 0:
-            self->spriteIndex = SP_WASP_1 + ((self->spriteIndex + 1) % 2);
+            if(self->gameData->frameCount % 5 == 0) {
+                self->spriteIndex = SP_WASP_1 + ((self->spriteIndex + 1) % 2);
+            }
             self->yDamping--;
 
             if(self->entityManager->playerEntity->y > self->y && self->yDamping < 0 && abs(self->x - self->entityManager->playerEntity->x) < 512) {
@@ -1276,7 +1293,10 @@ void updateWasp(entity_t *self)
             }
             break;
         case 2:
-            self->spriteIndex = SP_WASP_1 + ((self->spriteIndex + 1) % 2);
+            if(self->gameData->frameCount % 2 == 0) {
+                self->spriteIndex = SP_WASP_1 + ((self->spriteIndex + 1) % 2);
+            }
+
             self->yDamping--;
             if(self->yDamping <0 || self->y <= ((self->homeTileY * TILE_SIZE + 8) << SUBPIXEL_RESOLUTION )) {
                 self->xDamping = 0;
@@ -1298,7 +1318,10 @@ void updateWaspL2(entity_t *self)
 {
     switch(self->xDamping){
         case 0:
-            self->spriteIndex = SP_WASP_L2_1 + ((self->spriteIndex) % 2);
+            if(self->gameData->frameCount % 5 == 0) {
+                self->spriteIndex = SP_WASP_L2_1 + ((self->spriteIndex) % 2);
+            }
+
             self->yDamping--;
             if(esp_random() % 256 > 240){
                 bool directionToPlayer = self->entityManager->playerEntity->x < self->x;
@@ -1329,7 +1352,10 @@ void updateWaspL2(entity_t *self)
             }
             break;
         case 2:
-            self->spriteIndex = SP_WASP_L2_1 + ((self->spriteIndex) % 2);
+            if(self->gameData->frameCount % 2 == 0) {
+                self->spriteIndex = SP_WASP_L2_1 + ((self->spriteIndex) % 2);
+            }
+
             self->yDamping--;
             if(self->yDamping < 0 || self->y <= ((self->homeTileY * TILE_SIZE + 8) << SUBPIXEL_RESOLUTION )) {
                 self->xDamping = 0;
@@ -1352,7 +1378,10 @@ void updateWaspL3(entity_t *self)
 {
     switch(self->xDamping){
         case 0:
-            self->spriteIndex = SP_WASP_L3_1 + ((self->spriteIndex + 1) % 2);
+            if(self->gameData->frameCount % 5 == 0) {
+                self->spriteIndex = SP_WASP_L3_1 + ((self->spriteIndex + 1) % 2);
+            }
+
             self->yDamping--;
             if(esp_random() % 256 > 192){
                 bool directionToPlayer = self->entityManager->playerEntity->x < self->x;
@@ -1383,7 +1412,10 @@ void updateWaspL3(entity_t *self)
             }
             break;
         case 2:
-            self->spriteIndex = SP_WASP_L3_1 + ((self->spriteIndex + 1) % 2);
+            if(self->gameData->frameCount % 2 == 0) {
+                self->spriteIndex = SP_WASP_L3_1 + ((self->spriteIndex + 1) % 2);
+            }
+
             self->yDamping--;
             if(self->yDamping < 0 || self->y <= ((self->homeTileY * TILE_SIZE + 8) << SUBPIXEL_RESOLUTION )) {
                 self->xDamping = 0;
@@ -1487,7 +1519,9 @@ void turnAroundAtEdgeOfTileHandler(entity_t *self){
 }
 
 void updateEnemyBushL3(entity_t* self){
-    self->spriteFlipHorizontal = !self->spriteFlipHorizontal;
+    if(self->gameData->frameCount % 10 == 0) {
+        self->spriteFlipHorizontal = !self->spriteFlipHorizontal;
+    }
 
     self->yDamping--;
     if(self->yDamping < 0){
@@ -1513,6 +1547,8 @@ void updateEnemyBushL3(entity_t* self){
 
 void updateCheckpoint(entity_t* self){
     if(self->xDamping){
-        self->spriteIndex = SP_CHECKPOINT_ACTIVE_1 + ((self->spriteIndex + 1) % 2);
+        if(self->gameData->frameCount % 15 == 0) {
+            self->spriteIndex = SP_CHECKPOINT_ACTIVE_1 + ((self->spriteIndex + 1) % 2);
+        }
     }
 }
