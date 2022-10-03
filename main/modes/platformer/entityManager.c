@@ -342,7 +342,7 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
     
-    entity->xspeed = (x < (entityManager->tilemap->mapOffsetX + 120)) ? 5 : -5;
+    entity->xspeed = (x < (entityManager->tilemap->mapOffsetX + 120)) ? 8 : -8;
     entity->yspeed = 0;
     entity->xMaxSpeed = 132;
     entity->yMaxSpeed = 132;

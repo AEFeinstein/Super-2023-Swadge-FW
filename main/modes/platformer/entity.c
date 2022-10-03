@@ -201,11 +201,11 @@ void updatePlayer(entity_t *self)
             self->jumpPower -= 2; // 32
             self->yspeed = -self->jumpPower;
             
-            if(self->jumpPower > 35 && self->jumpPower < 42){
+            if(self->jumpPower > 35 && self->jumpPower < 37){
                 buzzer_play_sfx(&sndJump2);
             }
 
-            if(self->yspeed > -8 && self->yspeed < -5){
+            if(self->yspeed > -6 && self->yspeed < -2){
                 buzzer_play_sfx(&sndJump3);
             }
 
@@ -1271,7 +1271,7 @@ void updateWasp(entity_t *self)
                     self->gravityEnabled = false;
                     self->falling = false;
                     self->yspeed = -24;
-                    self->yDamping = 60;
+                    self->yDamping = 120;
                 }
             }
             break;
@@ -1467,6 +1467,7 @@ bool waspTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_
 void killEnemy(entity_t* target){
     target->homeTileX = 0;
     target->homeTileY = 0;
+    target->gravityEnabled = true;
     target->falling = true;
     target->type = ENTITY_DEAD;
     target->spriteFlipVertical = true;
