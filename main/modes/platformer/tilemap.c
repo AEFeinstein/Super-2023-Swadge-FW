@@ -323,6 +323,7 @@ void unlockScrolling(tilemap_t *tilemap){
 
 bool needsTransparency(uint8_t tileId){
     switch(tileId) {
+        case TILE_BOUNCE_BLOCK:
         case TILE_GIRDER:
         case TILE_CONTAINER_1 ... TILE_CONTAINER_3:
         case TILE_COIN_1 ... TILE_COIN_3:
