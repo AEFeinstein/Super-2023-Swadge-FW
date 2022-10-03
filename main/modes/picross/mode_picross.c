@@ -1027,15 +1027,17 @@ void drawPicrossScene(display_t* d)
                             drawBox(d, box, c531, true, 0);
                         }else
                         {
-                            if(p->markX)
-                            {
-                                xThick = p->drawScale/6;
-                                xBox = box;
-                                xBox.x0 = xBox.x0 + xThick;
-                                xBox.x1 = xBox.x1 - xThick;
-                                xBox.y0 = xBox.y0 + xThick;
-                                xBox.y1 = xBox.y1 - xThick;
-                            }
+                            
+                            xThick = p->drawScale/5;
+                            uint16_t shrink = p->drawScale/6;
+                            xThick = xThick < 3 ? 3 : xThick;//min 2
+                             shrink = xThick < 3 ? 3 : xThick;//min 3
+                            xBox = box;
+                            xBox.x0 = xBox.x0 + shrink;
+                            xBox.x1 = xBox.x1 - shrink;
+                            xBox.y0 = xBox.y0 + shrink;
+                            xBox.y1 = xBox.y1 - shrink;
+                            
                             //c531
                             drawBox(d, box, c555, true, 0);
 
@@ -1043,7 +1045,7 @@ void drawPicrossScene(display_t* d)
                             plotLine(d,xBox.x0,xBox.y1,xBox.x1,xBox.y0,p->input->markXColor,0);
                             plotLine(d,xBox.x0,xBox.y0,xBox.x1,xBox.y1,p->input->markXColor,0);
 
-                            for(int t = 1;t<xThick+1/2;t++)
+                            for(int t = 1;t<(xThick+1)/2;t++)
                             {
                                 // bottom left to top right
                                 plotLine(d,xBox.x0,xBox.y1-t,xBox.x1-t,xBox.y0,p->input->markXColor,0);
@@ -1402,14 +1404,14 @@ void drawPicrossInput(display_t* d)
     plotLine(d, x0,y0,x0,y1,p->input->inputBoxColor,0);
 
     uint16_t thickness = p->drawScale/5 - 1;//trial and error to find this 20% of square (ish). -1, we draw the above line "centered"
-
+    thickness = thickness < 2 ? 2 : thickness;//min 2
     for(uint8_t j = 1;j<thickness;j++)
     {
         //Thickness is the number of pixels we want (+1, 0 is a single pixels square).
         //So as j increases, we add a line to the outside, then inside, then outside, then inside of the square, the %2 alternates (basically an even/odd check)
         //the i increments half as quickly as j, so the lines aren't added twice as far as they should be.
         uint8_t i = (j+1)/2;
-        if(j%2 == 0)//because i starts at 1, j starts odd, so this "prefers" growing, if theres an odd number for thicknes
+        if(j%2 != 0)//because i starts at 1, j starts odd, so this "prefers" shrinking, if theres an odd number for thicknes
         {
             //Shrink a
             plotLine(d, x0,y0+i,x1,y0+i,p->input->inputBoxColor,0);
@@ -1444,6 +1446,7 @@ void drawBackground(display_t* d)
         if(p->bgScrollTimer >= p->bgScrollSpeed)
         {
             p->bgScrollTimer = 0;
+            
             p->bgScrollXFrame++;
             p->bgScrollYFrame += p->bgScrollXFrame%2;//scroll y twice as slowly as x
             //loop frames
