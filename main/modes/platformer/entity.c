@@ -138,7 +138,7 @@ void updatePlayer(entity_t *self)
 {
     if (self->gameData->btnState & BTN_B)
     {
-        self->xMaxSpeed = 48;
+        self->xMaxSpeed = 52;
     }
     else
     {
@@ -147,7 +147,7 @@ void updatePlayer(entity_t *self)
 
     if (self->gameData->btnState & LEFT)
     {
-        self->xspeed -= (self->falling && self->xspeed < 0) ? 1 : 2;
+        self->xspeed -= (self->falling && self->xspeed < 0) ? (self->xspeed < -24) ? 0 : 2 : 3;
 
         if (self->xspeed < -self->xMaxSpeed)
         {
@@ -156,7 +156,7 @@ void updatePlayer(entity_t *self)
     }
     else if (self->gameData->btnState & RIGHT)
     {
-        self->xspeed += (self->falling && self->xspeed > 0) ? 1 : 2;
+        self->xspeed += (self->falling && self->xspeed > 0) ? (self->xspeed > 24) ? 0 : 2 : 3;
 
         if (self->xspeed > self->xMaxSpeed)
         {
@@ -190,7 +190,7 @@ void updatePlayer(entity_t *self)
         if (!self->falling && !(self->gameData->prevBtnState & BTN_A))
         {
             // initiate jump
-            self->jumpPower = 64 + (abs(self->xspeed) >> 2);
+            self->jumpPower = 64 + ((abs(self->xspeed) + 16) >> 3);
             self->yspeed = -self->jumpPower;
             self->falling = true;
             buzzer_play_sfx(&sndJump1);
