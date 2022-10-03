@@ -328,7 +328,43 @@ static const song_t bgmDemagio =
     .shouldLoop = true
 };
 
-static const song_t sndGameStart =
+static const song_t bgmIntro =
+{
+    .notes =
+    {
+        {C_SHARP_5, 130},
+        {C_SHARP_3, 62},
+        {SILENCE, 67},
+        {A_3, 62},
+        {SILENCE, 67},
+        {E_4, 62},
+        {SILENCE, 67},
+        {A_4, 130},
+        {C_SHARP_5, 130},
+        {D_5, 130},
+        {C_3, 62},
+        {SILENCE, 67},
+        {A_3, 62},
+        {SILENCE, 67},
+        {E_4, 67},
+        {SILENCE, 62},
+        {A_4, 130},
+        {D_5, 130},
+        {E_5, 130},
+        {B_4, 130},
+        {A_4, 130},
+        {E_4, 130},
+        {B_3, 83},
+        {A_3, 78},
+        {E_3, 78},
+        {B_2, 83},
+        {E_2, 317}
+    },
+    .numNotes = 27,
+    .shouldLoop = false
+};
+
+/*static const song_t sndGameStart =
 {
     .notes =
     {
@@ -338,7 +374,7 @@ static const song_t sndGameStart =
     },
     .numNotes = 14,
     .shouldLoop = false
-};
+};*/
 
 static const song_t sndDie =
 {
@@ -824,7 +860,7 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
 
 void changeStateReadyScreen(platformer_t *self){
     self->gameData.frameCount = 0;
-    buzzer_play_bgm(&sndGameStart);
+    buzzer_play_bgm(&bgmIntro);
     self->update=&updateReadyScreen;
 }
 
