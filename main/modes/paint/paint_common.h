@@ -19,10 +19,6 @@
 #define PAINT_LOGE(...) ESP_LOGE("Paint", __VA_ARGS__)
 
 
-// The number of colors in the palette and the max number of colors an image can be saved with
-#define PAINT_MAX_COLORS 16
-
-
 // The total number of save slots available
 #define PAINT_SAVE_SLOTS 8
 
@@ -89,24 +85,6 @@
 
 // hold button for .3s to begin repeating
 #define BUTTON_REPEAT_TIME 300000
-
-/// @brief Definition for a paintable screen region
-typedef struct
-{
-    // This screen's display
-    display_t* disp;
-
-    // The X and Y offset of the canvas's top-left pixel
-    uint16_t x, y;
-
-    // The canvas's width and height, in "canvas pixels"
-    uint16_t w, h;
-
-    // The X and Y scale of the canvas. Each "canvas pixel" will be drawn as [xScale x yScale]
-    uint8_t xScale, yScale;
-
-    paletteColor_t palette[PAINT_MAX_COLORS];
-} paintCanvas_t;
 
 
 typedef struct

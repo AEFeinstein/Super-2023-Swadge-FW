@@ -266,7 +266,7 @@ void paintLoad(paintCanvas_t* canvas, uint8_t slot)
     }
 
     disableCursor();
-    paintClearCanvas();
+    paintClearCanvas(canvas);
 
     size_t lastChunkSize;
     uint16_t x0, y0, x1, y1;

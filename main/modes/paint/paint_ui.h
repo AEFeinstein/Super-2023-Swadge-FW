@@ -6,7 +6,7 @@
 
 #include "palette.h"
 
-#include "paint_common.h"
+#include "paint_type.h"
 
 void restoreCursorPixels(void);
 
