@@ -159,10 +159,10 @@ void paintSave(const paintCanvas_t* canvas, uint8_t slot)
             // calculate the real coordinates given the pixel indices
             // (we store 2 pixels in each byte)
             // that's 100% more pixel, per pixel!
-            x0 = PAINT_CANVAS_X_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) % canvas->w * PAINT_CANVAS_SCALE;
-            y0 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) / canvas->w * PAINT_CANVAS_SCALE;
-            x1 = PAINT_CANVAS_X_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) % canvas->w * PAINT_CANVAS_SCALE;
-            y1 = PAINT_CANVAS_Y_OFFSET + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) / canvas->w * PAINT_CANVAS_SCALE;
+            x0 = canvas->x + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) % canvas->w * canvas->xScale;
+            y0 = canvas->y + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) / canvas->w * canvas->yScale;
+            x1 = canvas->x + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) % canvas->w * canvas->xScale;
+            y1 = canvas->y + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) / canvas->w * canvas->yScale;
 
             // we only need to save the top-left pixel of each scaled pixel, since they're the same unless something is very broken
             imgChunk[n] = paletteIndex[(uint8_t)canvas->disp->getPx(x0, y0)] << 4 | paletteIndex[(uint8_t)canvas->disp->getPx(x1, y1)];
