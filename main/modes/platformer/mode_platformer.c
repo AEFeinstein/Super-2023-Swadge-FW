@@ -1200,6 +1200,7 @@ void updateNameEntry(platformer_t *self){
     ) {
         if(self->menuState > 0){
             self->menuState--;
+            self->menuSelection = self->gameData.initials[self->menuState];
             buzzer_play_sfx(&sndMenuSelect);
         } else {
             buzzer_play_sfx(&sndMenuDeny);
