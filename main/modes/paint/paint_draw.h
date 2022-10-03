@@ -8,24 +8,6 @@
 #include "paint_common.h"
 #include "paint_brush.h"
 
-static paletteColor_t cursorPxsBox[] =
-{
-    c000, c000, c000, c000, c000,
-    c000, cTransparent, cTransparent, cTransparent, c000,
-    c000, cTransparent, cTransparent, cTransparent, c000,
-    c000, cTransparent, cTransparent, cTransparent, c000,
-    c000, c000, c000, c000, c000,
-};
-
-static paletteColor_t cursorPxsCrosshair[] =
-{
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-    c000, c000, cTransparent, c000, c000,
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-};
-
 extern wsg_t cursorCrosshairWsg;;
 
 extern wsg_t cursorBoxWsg;

@@ -5,6 +5,24 @@
 #include "paint_nvs.h"
 #include "paint_util.h"
 
+static paletteColor_t cursorPxsBox[] =
+{
+    c000, c000, c000, c000, c000,
+    c000, cTransparent, cTransparent, cTransparent, c000,
+    c000, cTransparent, cTransparent, cTransparent, c000,
+    c000, cTransparent, cTransparent, cTransparent, c000,
+    c000, c000, c000, c000, c000,
+};
+
+static paletteColor_t cursorPxsCrosshair[] =
+{
+    cTransparent, cTransparent, c000, cTransparent, cTransparent,
+    cTransparent, cTransparent, c000, cTransparent, cTransparent,
+    c000, c000, cTransparent, c000, c000,
+    cTransparent, cTransparent, c000, cTransparent, cTransparent,
+    cTransparent, cTransparent, c000, cTransparent, cTransparent,
+};
+
 wsg_t cursorCrosshairWsg = {
     .px = cursorPxsCrosshair,
     .w = 5,
