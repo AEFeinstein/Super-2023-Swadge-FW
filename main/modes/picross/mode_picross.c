@@ -199,8 +199,9 @@ void picrossSetupPuzzle(bool cont)
     
     uint16_t totalXCount = p->puzzle->width+p->maxHintsX+1;
     uint16_t totalYCount = p->puzzle->height+p->maxHintsY+1;
-    uint16_t size = (((totalXCount) > (totalYCount)) ? (totalXCount) : (totalYCount)) ;
-    size = size + (p->input->showGuides ? 1 : 0);//add an extra space for the right-bottom side hover hints.
+    uint16_t extraSizeForGuides = p->puzzle->height > 13 ? 3 : 2;//Makes enough room for the hints.
+    uint16_t size = (((totalXCount) > (totalYCount)) ? (totalXCount) : (totalYCount));//math.max 
+    size = size + (p->input->showGuides ? extraSizeForGuides : 0);//add an extra space for the right-bottom side hover hints.
     uint16_t screenWidth = (p->d->w);
     uint16_t screenHeight = (p->d->h);
 
@@ -214,7 +215,6 @@ void picrossSetupPuzzle(bool cont)
     p->drawScale = (((vdrawScale) < (p->drawScale)) ? (vdrawScale) : (p->drawScale));
     //paddingL = (TFTWidth - (totalCount*scale))/2;
 
-    //My bug right now is the /2. I need to make it ceil not floor
     p->leftPad = (screenWidth - ((totalXCount*p->drawScale)))/2 + p->maxHintsX*p->drawScale;
     p->topPad = (screenHeight - ((totalYCount*p->drawScale)))/2 + p->maxHintsY*p->drawScale;
 
@@ -1114,12 +1114,12 @@ box_t boxFromCoord(int8_t x,int8_t y)
 
 void drawPicrossHud(display_t* d,font_t* font)
 {
+    uint8_t s = p->drawScale;
     //width of thicker center lines
     uint16_t w = 2;//p->drawScale/4;
     //draw a vertical line every grid
     for(int i=0;i<=p->puzzle->width;i++)//skip 0 and skip last. literally the fence post problem.
     {
-        uint16_t s = p->drawScale;
         if(i == 0 || i == p->puzzle->width)
         {
             //draw border
@@ -1128,21 +1128,10 @@ void drawPicrossHud(display_t* d,font_t* font)
             (s + p->topPad),
             ((i * s) + s + p->leftPad),
             ((p->puzzle->height * s) + s + p->topPad),
-            c115,0);
+            PICROSS_BORDER_COLOR,0);//BORDER COLOR
             continue;
         }
-        if(i%5 == 0)//draw thicker line every 5.
-        {
-            box_t box =
-            {
-                .x0 = (i * s) + s + p->leftPad - w/2,
-                .y0 = s + p->topPad,
-                .x1 = (i * s) + s + w/2 + p->leftPad,//3 is width
-                .y1 = (p->puzzle->height * s) + s + p->topPad,
-            };  
-            drawBox(d,box,c441,true,0);
-            continue;
-        }
+        
         //this could be less confusing.
         plotLine(d,
             ((i * s) + s + p->leftPad),
@@ -1157,37 +1146,77 @@ void drawPicrossHud(display_t* d,font_t* font)
      //todo: also do the full grid.
     for(uint8_t i=0;i<=p->puzzle->height;i++)
     {
-        uint8_t s = p->drawScale;
         if(i == 0 || i == p->puzzle->height)
         {
             //draw border
             plotLine(d,
-            (s + p->leftPad),
+            (s + p->leftPad)+1,
             ((i * s) + s + p->topPad),
-            ((p->puzzle->width * s) + s + p->leftPad),
+            ((p->puzzle->width * s) + s + p->leftPad)-1,
             ((i * s) + s + p->topPad),
-            c115,0);
+            PICROSS_BORDER_COLOR,0);
             continue;
         }
-        if(i%5 == 0)
-        {
-            box_t box =
-            {
-                .x0 = s + p->leftPad,
-                .y0 = (i * s) + s + p->topPad - w/2,
-                .x1 = (p->puzzle->width * s) + s + p->leftPad,
-                .y1 = (i * s) + s + p->topPad + w/2,
-            };  
-            drawBox(d,box,c441,true,0);
-            continue;
-        }
+        
         //this should be less confusing.
         plotLine(d,
-            (s + p->leftPad),
+            (s + p->leftPad)+1,
             ((i * s) + s + p->topPad),
-            ((p->puzzle->width * s) + s + p->leftPad),
+            ((p->puzzle->width * s) + s + p->leftPad)-1,
             ((i * s) + s + p->topPad),
             c111,0);
+    }
+
+    //After drawing the other grid, draw the thicker yellow lines, so they overlap the others.
+    for(int i=5;i<=p->puzzle->height-1;i+=5)
+    {
+        //Horizontal
+        plotLine(d,
+            s + p->leftPad+1,
+            (i * s) + s + p->topPad,
+            (p->puzzle->width * s) + s + p->leftPad-1,
+            (i * s) + s + p->topPad,
+            PICROSS_MOD5_COLOR,0
+        );
+        // plotLine(d,
+        //     s + p->leftPad+1,
+        //     (i * s) + s + p->topPad+1,
+        //     (p->puzzle->width * s) + s + p->leftPad-1,
+        //     (i * s) + s + p->topPad+1,
+        //     PICROSS_MOD5_COLOR,0
+        // );
+        // plotLine(d,
+        //     s + p->leftPad+1,
+        //     (i * s) + s + p->topPad-1,
+        //     (p->puzzle->width * s) + s + p->leftPad-1,
+        //     (i * s) + s + p->topPad-1,
+        //     PICROSS_MOD5_COLOR,0
+        // );
+    }
+    for(int i=5;i<=p->puzzle->width-1;i+=5)
+    {
+        //Vertical
+        plotLine(d,
+            (i * s) + s + p->leftPad,
+            s + p->topPad+1,
+            (i * s) + s + p->leftPad,
+            (p->puzzle->height * s) + s + p->topPad-1,
+            PICROSS_MOD5_COLOR,0
+        );
+        // plotLine(d,
+        //     (i * s) + s + p->leftPad+1,
+        //     s + p->topPad+1,
+        //     (i * s) + s + p->leftPad+1,
+        //     (p->puzzle->height * s) + s + p->topPad-1,
+        //     PICROSS_MOD5_COLOR,0
+        // );
+        // plotLine(d,
+        //     (i * s) + s + p->leftPad-1,
+        //     s + p->topPad+1,
+        //     (i * s) + s + p->leftPad-1,
+        //     (p->puzzle->height * s) + s + p->topPad-1,
+        //     PICROSS_MOD5_COLOR,0
+        // );        
     }
 
     //Draw the hints.
