@@ -138,16 +138,16 @@ void updatePlayer(entity_t *self)
 {
     if (self->gameData->btnState & BTN_B)
     {
-        self->xMaxSpeed = 88;
+        self->xMaxSpeed = 48;
     }
     else
     {
-        self->xMaxSpeed = 66;
+        self->xMaxSpeed = 30;
     }
 
     if (self->gameData->btnState & LEFT)
     {
-        self->xspeed -= (self->falling) ? 9 : 16;
+        self->xspeed -= (self->falling && self->xspeed < 0) ? 1 : 2;
 
         if (self->xspeed < -self->xMaxSpeed)
         {
@@ -156,7 +156,7 @@ void updatePlayer(entity_t *self)
     }
     else if (self->gameData->btnState & RIGHT)
     {
-        self->xspeed += (self->falling) ? 9 : 16;
+        self->xspeed += (self->falling && self->xspeed > 0) ? 1 : 2;
 
         if (self->xspeed > self->xMaxSpeed)
         {
@@ -190,7 +190,7 @@ void updatePlayer(entity_t *self)
         if (!self->falling && !(self->gameData->prevBtnState & BTN_A))
         {
             // initiate jump
-            self->jumpPower = 180 + (abs(self->xspeed) >> 2);
+            self->jumpPower = 64 + (abs(self->xspeed) >> 2);
             self->yspeed = -self->jumpPower;
             self->falling = true;
             buzzer_play_sfx(&sndJump1);
@@ -198,14 +198,14 @@ void updatePlayer(entity_t *self)
         else if (self->jumpPower > 0 && self->yspeed < 0)
         {
             // jump dampening
-            self->jumpPower -= 16; // 32
+            self->jumpPower -= 2; // 32
             self->yspeed = -self->jumpPower;
             
-            if(self->jumpPower > 112 && self->jumpPower < 128){
+            if(self->jumpPower > 35 && self->jumpPower < 42){
                 buzzer_play_sfx(&sndJump2);
             }
 
-            if(self->yspeed > -24 && self->yspeed < -16){
+            if(self->yspeed > -8 && self->yspeed < -5){
                 buzzer_play_sfx(&sndJump3);
             }
 
@@ -784,7 +784,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
                 if(tileId == TILE_BOUNCE_BLOCK){
                     self->yspeed = -128;
                     if(self->gameData->btnState & BTN_A){
-                        self->jumpPower = 210l + (abs(self->xspeed) >> 2);
+                        self->jumpPower = 210 + (abs(self->xspeed) >> 2);
                     }
                 }
                 break;
