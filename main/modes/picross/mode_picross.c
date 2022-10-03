@@ -95,9 +95,9 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->startHeldType = OUTOFBOUNDS;
     p->input->inputBoxColor = c005;//now greenish for more pop against marked. old burnt orange: c430. old green: c043
         //lets test this game against various forms of colorblindness. I'm concerned about deuteranopia. Input square is my largest concern. 
-    p->input->inputBoxDefaultColor = c043;
+    p->input->inputBoxDefaultColor = p->input->inputBoxColor;//inputBoxColor gets changed during runtime, so we cache the desired.
     p->input->inputBoxErrorColor = c500;
-    p->input->markXColor = c533;
+    p->input->markXColor = c522;
     p->input->movedThisFrame = false;
     p->input->changedLevelThisFrame = false;
     p->count = 1;
@@ -1351,19 +1351,56 @@ int8_t getHintShift(uint8_t hint)
 
 void drawPicrossInput(display_t* d)
 {
-    //todo: rewrite this. Use faster Bresenham functions and dont use drawBox.
+    //First, get the square that is the player input box
+    box_t iBox = boxFromCoord(p->input->x,p->input->y);
+    //pulled out of the box so it would be easier to type everything.
+    uint32_t x0 = iBox.x0;
+    uint32_t x1 = iBox.x1;
+    uint32_t y0 = iBox.y0;
+    uint32_t y1 = iBox.y1;
 
-    //Draw player input box
-    box_t inputBox = boxFromCoord(p->input->x,p->input->y);
-    inputBox.x1 = inputBox.x1+1;
-    inputBox.y1 = inputBox.y1+1;//cover up both marking lines
-    drawBox(d, inputBox, p->input->inputBoxColor, false, 0);
-    //draw it twice as thicc 
-    inputBox.x0 = inputBox.x0-1; 
-    inputBox.y0 = inputBox.y0-1; 
-    inputBox.x1 = inputBox.x1+1; 
-    inputBox.y1 = inputBox.y1+1;
-    drawBox(d, inputBox, p->input->inputBoxColor, false, 0);
+    //x0,y0 -a-- x1,y0
+    //  |d         |b
+    //x0,y1 -c-- x1,y1
+
+    //line a
+    plotLine(d, x0,y0,x1,y0,p->input->inputBoxColor,0);
+    //line b
+    plotLine(d, x1,y0,x1,y1,p->input->inputBoxColor,0);
+    //line c
+    plotLine(d, x0,y1,x1,y1,p->input->inputBoxColor,0);
+    //line d
+    plotLine(d, x0,y0,x0,y1,p->input->inputBoxColor,0);
+
+    uint16_t thickness = p->drawScale/5 - 1;//trial and error to find this 20% of square (ish). -1, we draw the above line "centered"
+
+    for(uint8_t j = 1;j<thickness;j++)
+    {
+        //Thickness is the number of pixels we want (+1, 0 is a single pixels square).
+        //So as j increases, we add a line to the outside, then inside, then outside, then inside of the square, the %2 alternates (basically an even/odd check)
+        //the i increments half as quickly as j, so the lines aren't added twice as far as they should be.
+        uint8_t i = (j+1)/2;
+        if(j%2 == 0)//because i starts at 1, j starts odd, so this "prefers" growing, if theres an odd number for thicknes
+        {
+            //Shrink a
+            plotLine(d, x0,y0+i,x1,y0+i,p->input->inputBoxColor,0);
+            //shrink b
+            plotLine(d, x1-i,y0,x1-i,y1,p->input->inputBoxColor,0);
+            //shrink c
+            plotLine(d, x0,y1-i,x1,y1-i,p->input->inputBoxColor,0);
+            //shrink d
+            plotLine(d, x0+i,y0,x0+i,y1,p->input->inputBoxColor,0); 
+        }else{
+            //Grow a
+            plotLine(d, x0-i,y0-i,x1+i,y0-i,p->input->inputBoxColor,0);
+            //Grow b
+            plotLine(d, x1+i,y0-i,x1+i,y1+i,p->input->inputBoxColor,0);
+            //Grow c
+            plotLine(d, x0-i,y1+i,x1+i,y1+i,p->input->inputBoxColor,0);
+            //Grow d
+            plotLine(d, x0-i,y0-i,x0-i,y1+i,p->input->inputBoxColor,0); 
+        }
+    }
 }
 
 /**
