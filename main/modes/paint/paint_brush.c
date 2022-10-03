@@ -9,7 +9,7 @@
 
 
 // adapted from http://www.adammil.net/blog/v126_A_More_Efficient_Flood_Fill.html
-void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col)
+void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col, uint16_t xMin, uint16_t yMin, uint16_t xMax, uint16_t yMax)
 {
     if (disp->getPx(x, y) == col)
     {
@@ -17,10 +17,10 @@ void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col)
         return;
     }
 
-    _floodFill(disp, x, y, disp->getPx(x, y), col);
+    _floodFill(disp, x, y, disp->getPx(x, y), col, xMin, yMin, xMax, yMax);
 }
 
-void _floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill)
+void _floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill, uint16_t xMin, uint16_t yMin, uint16_t xMax, uint16_t yMax)
 {
     // at this point, we know array[y,x] is clear, and we want to move as far as possible to the upper-left. moving
     // up is much more important than moving left, so we could try to make this smarter by sometimes moving to
@@ -28,15 +28,15 @@ void _floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, 
     while(true)
     {
         uint16_t ox = x, oy = y;
-        while(y != PAINT_CANVAS_Y_OFFSET && disp->getPx(x, y-1) == search) y--;
-        while(x != PAINT_CANVAS_X_OFFSET && disp->getPx(x-1, y) == search) x--;
+        while(y != yMin && disp->getPx(x, y-1) == search) y--;
+        while(x != xMin && disp->getPx(x-1, y) == search) x--;
         if(x == ox && y == oy) break;
     }
-    _floodFillInner(disp, x, y, search, fill);
+    _floodFillInner(disp, x, y, search, fill, xMin, yMin, xMax, yMax);
 }
 
 
-void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill)
+void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill, uint16_t xMin, uint16_t yMin, uint16_t xMax, uint16_t yMax)
 {
     // at this point, we know that array[y,x] is clear, and array[y-1,x] and array[y,x-1] are set.
     // we'll begin scanning down and to the right, attempting to fill an entire rectangular block
@@ -61,21 +61,21 @@ void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t sea
         // with recursion but we'd prefer to adjust x and lastRowLength instead
         else
         {
-            for(; x != PAINT_CANVAS_X_OFFSET && disp->getPx(x-1, y) == search; rowLength++, lastRowLength++)
+            for(; x != xMin && disp->getPx(x-1, y) == search; rowLength++, lastRowLength++)
             {
                 disp->setPx(--x, y, fill); // to avoid scanning the cells twice, we'll fill them and update rowLength here
                 // if there's something above the new starting point, handle that recursively. this deals with cases
                 // like |* **| when we begin filling from (2,0), move down to (2,1), and then move left to (0,1).
                 // the  |****| main scan assumes the portion of the previous row from x to x+lastRowLength has already
                 // been filled. adjusting x and lastRowLength breaks that assumption in this case, so we must fix it
-                if(y != PAINT_CANVAS_Y_OFFSET && disp->getPx(x, y-1) == search) _floodFill(disp, x, y-1, search, fill); // use _Fill since there may be more up and left
+                if(y != yMin && disp->getPx(x, y-1) == search) _floodFill(disp, x, y-1, search, fill, xMin, yMin, xMax, yMax); // use _Fill since there may be more up and left
             }
         }
 
         // now at this point we can begin to scan the current row in the rectangular block. the span of the previous
         // row from x (inclusive) to x+lastRowLength (exclusive) has already been filled, so we don't need to
         // check it. so scan across to the right in the current row
-        for(; sx < PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_WIDTH * PAINT_CANVAS_SCALE && disp->getPx(sx, y) == search; rowLength++, sx++) disp->setPx(sx, y, fill);
+        for(; sx < xMax && disp->getPx(sx, y) == search; rowLength++, sx++) disp->setPx(sx, y, fill);
         // now we've scanned this row. if the block is rectangular, then the previous row has already been scanned,
         // so we don't need to look upwards and we're going to scan the next row in the next iteration so we don't
         // need to look downwards. however, if the block is not rectangular, we may need to look upwards or rightwards
@@ -86,20 +86,20 @@ void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t sea
         {
             for(int end=x+lastRowLength; ++sx < end; ) // 'end' is the end of the previous row, so scan the current row to
             {   // there. any clear cells would have been connected to the previous
-                if(disp->getPx(sx, y) == search) _floodFillInner(disp, sx, y, search, fill); // row. the cells up and left must be set so use FillCore
+                if(disp->getPx(sx, y) == search) _floodFillInner(disp, sx, y, search, fill, xMin, yMin, xMax, yMax); // row. the cells up and left must be set so use FillCore
             }
         }
         // alternately, if this row is longer than the previous row, as in the case |*** *| then we must look above
         // the end of the row, i.e at (4,0)                                         |*****|
-        else if(rowLength > lastRowLength && y != PAINT_CANVAS_Y_OFFSET) // if this row is longer and we're not already at the top...
+        else if(rowLength > lastRowLength && y != yMin) // if this row is longer and we're not already at the top...
         {
             for(int ux=x+lastRowLength; ++ux<sx; ) // sx is the end of the current row
             {
-                if(disp->getPx(ux, y-1) == search) _floodFill(disp, ux, y-1, search, fill); // since there may be clear cells up and left, use _Fill
+                if(disp->getPx(ux, y-1) == search) _floodFill(disp, ux, y-1, search, fill, xMin, yMin, xMax, yMax); // since there may be clear cells up and left, use _Fill
             }
         }
         lastRowLength = rowLength; // record the new row length
-    } while(lastRowLength != 0 && ++y < PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT * PAINT_CANVAS_SCALE); // if we get to a full row or to the bottom, we're done
+    } while(lastRowLength != 0 && ++y < yMax); // if we get to a full row or to the bottom, we're done
 }
 
 void paintDrawSquarePen(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
@@ -193,8 +193,7 @@ void paintDrawSquareWave(paintCanvas_t* canvas, point_t* points, uint8_t numPoin
 
 void paintDrawPaintBucket(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    PAINT_LOGD("Paint bucketing CNV(%d, %d) == SCR(%d, %d)", points[0].x, points[0].y, canvas->x + points[0].x * canvas->xScale, canvas->y + points[0].y * canvas->yScale);
-    floodFill(canvas->disp, canvas->x + canvas->xScale * points[0].x, canvas->y + canvas->yScale * points[0].y, col);
+    floodFill(canvas->disp, canvas->x + canvas->xScale * points[0].x, canvas->y + canvas->yScale * points[0].y, col, canvas->x, canvas->y, canvas->x + canvas->xScale * canvas->w, canvas->y + canvas->yScale * canvas->h);
 }
 
 void paintDrawClear(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
