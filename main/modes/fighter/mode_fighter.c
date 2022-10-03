@@ -45,6 +45,8 @@ typedef enum
     MP_GAME
 } fighterGamePhase_t;
 
+#define FPS_MEASUREMENT_SEC 3
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -66,6 +68,9 @@ typedef struct
     int32_t gameTimerUs;
     int32_t printGoTimerUs;
     fighterGamePhase_t gamePhase;
+    int32_t fpsTimeCount;
+    int32_t fpsFrameCount;
+    int32_t fps;
 } fightingGame_t;
 
 //==============================================================================
@@ -549,6 +554,15 @@ void setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* to
  */
 void fighterGameLoop(int64_t elapsedUs)
 {
+    // Track frames per second
+    f->fpsTimeCount += elapsedUs;
+    if(f->fpsTimeCount >= (1000000 * FPS_MEASUREMENT_SEC))
+    {
+        f->fpsTimeCount -= (1000000 * FPS_MEASUREMENT_SEC);
+        f->fps = (f->fpsFrameCount / FPS_MEASUREMENT_SEC);
+        f->fpsFrameCount = 0;
+    }
+
     // Only process the loop as single player, or as the server in multi
     bool runProcLoop = ((f->type == HR_CONTEST) || ((f->type == MULTIPLAYER) && (0 == f->playerIdx)));
 
@@ -733,6 +747,9 @@ void fighterGameLoop(int64_t elapsedUs)
             //     f->fighters[0].velocity.y,
             //     f->fighters[0].relativePos);
         }
+
+        // Frame drawn!
+        f->fpsFrameCount++;
     }
 
     // Draw the scene
@@ -2419,6 +2436,10 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
         tWidth = textWidth(font, goStr);
         drawText(d, font, c555, goStr, (d->w - tWidth) / 2, d->h / 4);
     }
+
+    // Draw FPS
+    // sprintf(dmgStr, "%d", f->fps);
+    // drawText(d, font, c555, dmgStr, 0, 40);
 }
 
 #ifdef DRAW_DEBUG_BOXES
