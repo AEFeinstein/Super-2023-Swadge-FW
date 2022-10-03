@@ -56,7 +56,7 @@ typedef struct
     /**
      * @brief Called when all necessary points have been selected and the final shape should be drawn
      */
-    void (*fnDraw)(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col);
+    void (*fnDraw)(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col);
 } brush_t;
 
 
@@ -64,18 +64,18 @@ void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col);
 void _floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
 void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill);
 
-void paintDrawSquarePen(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawCirclePen(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawLine(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawCurve(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawRectangle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawFilledRectangle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawCircle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawFilledCircle(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawEllipse(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawPolygon(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawSquareWave(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawPaintBucket(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawClear(display_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawSquarePen(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawCirclePen(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawLine(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawCurve(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawRectangle(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawFilledRectangle(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawCircle(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawFilledCircle(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawEllipse(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawPolygon(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawSquareWave(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawPaintBucket(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
+void paintDrawClear(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 
 #endif

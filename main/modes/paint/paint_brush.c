@@ -102,39 +102,39 @@ void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t sea
     } while(lastRowLength != 0 && ++y < PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT * PAINT_CANVAS_SCALE); // if we get to a full row or to the bottom, we're done
 }
 
-void paintDrawSquarePen(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+void paintDrawSquarePen(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    plotRectFilledScaled(disp, points[0].x, points[0].y, points[0].x + (size), points[0].y + (size), col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+    plotRectFilledScaled(canvas->disp, points[0].x, points[0].y, points[0].x + (size), points[0].y + (size), col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 }
 
-void paintDrawCirclePen(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+void paintDrawCirclePen(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
     // Add one to the size because it isn't really a circle at r=1
-    plotCircleFilledScaled(disp, points[0].x, points[0].y, size + 1, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+    plotCircleFilledScaled(canvas->disp, points[0].x, points[0].y, size + 1, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 }
 
-void paintDrawLine(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+void paintDrawLine(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
     PAINT_LOGD("Drawing line from (%d, %d) to (%d, %d)", points[0].x, points[0].y, points[1].x, points[1].y);
-    plotLineScaled(paintState->disp, points[0].x, points[0].y, points[1].x, points[1].y, col, 0, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+    plotLineScaled(canvas->disp, points[0].x, points[0].y, points[1].x, points[1].y, col, 0, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 }
 
-void paintDrawCurve(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+void paintDrawCurve(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    plotCubicBezierScaled(disp, points[0].x, points[0].y, points[1].x, points[1].y, points[2].x, points[2].y, points[3].x, points[3].y, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+    plotCubicBezierScaled(canvas->disp, points[0].x, points[0].y, points[1].x, points[1].y, points[2].x, points[2].y, points[3].x, points[3].y, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 }
 
-void paintDrawRectangle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+void paintDrawRectangle(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
     uint16_t x0 = (points[0].x > points[1].x) ? points[1].x : points[0].x;
     uint16_t y0 = (points[0].y > points[1].y) ? points[1].y : points[0].y;
     uint16_t x1 = (points[0].x > points[1].x) ? points[0].x : points[1].x;
     uint16_t y1 = (points[0].y > points[1].y) ? points[0].y : points[1].y;
 
-    plotRectScaled(disp, x0, y0, x1 + 1, y1 + 1, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+    plotRectScaled(canvas->disp, x0, y0, x1 + 1, y1 + 1, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 }
 
-void paintDrawFilledRectangle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+void paintDrawFilledRectangle(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
     uint16_t x0 = (points[0].x > points[1].x) ? points[1].x : points[0].x;
     uint16_t y0 = (points[0].y > points[1].y) ? points[1].y : points[0].y;
@@ -142,62 +142,62 @@ void paintDrawFilledRectangle(display_t* disp, point_t* points, uint8_t numPoint
     uint16_t y1 = (points[0].y > points[1].y) ? points[0].y : points[1].y;
 
     // This function takes care of its own scaling because it's very easy and will save a lot of unnecessary draws
-    plotRectFilledScaled(disp, x0, y0, x1 + 1, y1 + 1, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+    plotRectFilledScaled(canvas->disp, x0, y0, x1 + 1, y1 + 1, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 }
 
-void paintDrawCircle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+void paintDrawCircle(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
     uint16_t dX = abs(points[0].x - points[1].x);
     uint16_t dY = abs(points[0].y - points[1].y);
     uint16_t r = (uint16_t)(sqrt(dX*dX+dY*dY) + 0.5);
 
-    plotCircleScaled(disp, points[0].x, points[0].y, r, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+    plotCircleScaled(canvas->disp, points[0].x, points[0].y, r, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 }
 
-void paintDrawFilledCircle(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+void paintDrawFilledCircle(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
     uint16_t dX = abs(points[0].x - points[1].x);
     uint16_t dY = abs(points[0].y - points[1].y);
     uint16_t r = (uint16_t)(sqrt(dX*dX+dY*dY) + 0.5);
 
-    plotCircleFilledScaled(disp, points[0].x, points[0].y, r, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+    plotCircleFilledScaled(canvas->disp, points[0].x, points[0].y, r, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 }
 
-void paintDrawEllipse(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+void paintDrawEllipse(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
     // for some reason, plotting an ellipse also plots 2 extra points outside of the ellipse
     // let's just work around that
-    pushPxScaled(&paintState->pxStack, disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[0].y - 2 : points[1].y - 2, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-    pushPxScaled(&paintState->pxStack, disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[1].y + 2 : points[0].y + 2, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+    pushPxScaled(&paintState->pxStack, canvas->disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[0].y - 2 : points[1].y - 2, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+    pushPxScaled(&paintState->pxStack, canvas->disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[1].y + 2 : points[0].y + 2, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 
-    plotEllipseRectScaled(disp, points[0].x, points[0].y, points[1].x, points[1].y, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+    plotEllipseRectScaled(canvas->disp, points[0].x, points[0].y, points[1].x, points[1].y, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 
-    for (uint8_t i = 0; i < PAINT_CANVAS_SCALE * PAINT_CANVAS_SCALE * 2; i++)
+    for (uint8_t i = 0; i < canvas->xScale * canvas->yScale * 2; i++)
     {
-        popPx(&paintState->pxStack, disp);
+        popPx(&paintState->pxStack, canvas->disp);
     }
 }
 
-void paintDrawPolygon(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+void paintDrawPolygon(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
     for (uint8_t i = 0; i < numPoints - 1; i++)
     {
-        plotLineScaled(disp, points[i].x, points[i].y, points[i+1].x, points[i+1].y, col, 0, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+        plotLineScaled(canvas->disp, points[i].x, points[i].y, points[i+1].x, points[i+1].y, col, 0, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
     }
 }
 
-void paintDrawSquareWave(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+void paintDrawSquareWave(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    paintPlotSquareWave(disp, points[0].x, points[0].y, points[1].x, points[1].y, col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+    paintPlotSquareWave(canvas->disp, points[0].x, points[0].y, points[1].x, points[1].y, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 }
 
-void paintDrawPaintBucket(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+void paintDrawPaintBucket(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    floodFill(disp, CNV2SCR_X(points[0].x), CNV2SCR_Y(points[0].y), col);
+    PAINT_LOGD("Paint bucketing CNV(%d, %d) == SCR(%d, %d)", points[0].x, points[0].y, canvas->x + points[0].x * canvas->xScale, canvas->y + points[0].y * canvas->yScale);
+    floodFill(canvas->disp, canvas->x + canvas->xScale * points[0].x, canvas->y + canvas->yScale * points[0].y, col);
 }
 
-void paintDrawClear(display_t* disp, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
+void paintDrawClear(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    // No need to translate here, so only draw once
-    fillDisplayArea(disp, CNV2SCR_X(0), CNV2SCR_Y(0), CNV2SCR_X(PAINT_CANVAS_WIDTH), CNV2SCR_Y(PAINT_CANVAS_HEIGHT), col);
+    fillDisplayArea(canvas->disp, canvas->x, canvas->y, canvas->x + canvas->xScale * canvas->w, canvas->y + canvas->yScale * canvas->h, col);
 }

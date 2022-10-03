@@ -609,8 +609,8 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         // But don't bother if this is the last pick point, since it will never actually be seen
         if (!lastPick)
         {
-            pushPxScaled(&paintState->pxStack, paintState->disp, x, y, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
-            setPxScaled(paintState->disp, x, y, paintState->fgColor, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+            pushPxScaled(&paintState->pxStack, paintState->disp, x, y, paintState->canvas.x, paintState->canvas.y, paintState->canvas.xScale, paintState->canvas.yScale);
+            setPxScaled(paintState->disp, x, y, paintState->fgColor, paintState->canvas.x, paintState->canvas.y, paintState->canvas.xScale, paintState->canvas.yScale);
         }
 
         if (paintState->brush->mode == PICK_POINT_LOOP)
@@ -659,7 +659,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         }
 
 
-        paintState->brush->fnDraw(paintState->disp, paintState->pickPoints, paintState->pickCount, paintState->brushWidth, col);
+        paintState->brush->fnDraw(&paintState->canvas, paintState->pickPoints, paintState->pickCount, paintState->brushWidth, col);
 
         paintState->pickCount = 0;
     }
@@ -785,7 +785,7 @@ void paintDrawPickPoints(void)
 {
     for (uint8_t i = 0; i < paintState->pickCount; i++)
     {
-        setPxScaled(paintState->disp, paintState->pickPoints[i].x, paintState->pickPoints[i].y, paintState->fgColor, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+        setPxScaled(paintState->disp, paintState->pickPoints[i].x, paintState->pickPoints[i].y, paintState->fgColor, paintState->canvas.x, paintState->canvas.y, paintState->canvas.xScale, paintState->canvas.yScale);
     }
 }
 
@@ -793,7 +793,7 @@ void paintHidePickPoints(void)
 {
     for (uint8_t i = 0; i < (paintState->pxStack.index < paintState->pickCount) ? paintState->pxStack.index : paintState->pickCount; i++)
     {
-        setPxScaled(paintState->disp, paintState->pickPoints[i].x, paintState->pickPoints[i].y, paintState->pxStack.data[i].col, PAINT_CANVAS_X_OFFSET, PAINT_CANVAS_Y_OFFSET, PAINT_CANVAS_SCALE, PAINT_CANVAS_SCALE);
+        setPxScaled(paintState->disp, paintState->pickPoints[i].x, paintState->pickPoints[i].y, paintState->pxStack.data[i].col, paintState->canvas.x, paintState->canvas.y, paintState->canvas.xScale, paintState->canvas.yScale);
     }
 }
 
