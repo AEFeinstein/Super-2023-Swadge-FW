@@ -100,6 +100,12 @@ void paintPlotSquareWave(display_t* disp, uint16_t x0, uint16_t y0, uint16_t x1,
 
 void plotRectFilled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col)
 {
+    if (x0 >= x1 || y0 >= y1)
+    {
+        PAINT_LOGE("Attempted to plot invalid rect plotRectFilled(%d, %d, %d, %d). Returning to avoid segfault", x0, y0, x1, y1);
+        return;
+    }
+
     fillDisplayArea(disp, x0, y0, x1 - 1, y1 - 1, col);
 }
 

@@ -232,6 +232,7 @@ typedef struct
     paintShareState_t shareState;
 
     bool shareAcked;
+    bool connectionStarted;
 
     // For the sender, the sequence number of the current packet being sent / waiting for ack
     uint16_t shareSeqNum;
@@ -248,6 +249,8 @@ typedef struct
     bool shareUpdateScreen;
 
     p2pInfo p2pInfo;
+
+    int64_t shareTime;
 
 } paintMenu_t;
 
