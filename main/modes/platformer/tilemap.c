@@ -32,7 +32,7 @@ void initializeTileMap(tilemap_t *tilemap)
     tilemap->executeTileSpawnRow = -1;
 
     tilemap->animationFrame = 0;
-    tilemap->animationTimer = 7;
+    tilemap->animationTimer = 23;
 
     loadTiles(tilemap);
 }
@@ -43,7 +43,7 @@ void drawTileMap(display_t *disp, tilemap_t *tilemap)
     if (tilemap->animationTimer < 0)
     {
         tilemap->animationFrame = ((tilemap->animationFrame + 1) % 3);
-        tilemap->animationTimer = 7;
+        tilemap->animationTimer = 23;
     }
 
     for (uint16_t y = (tilemap->mapOffsetY >> TILE_SIZE_IN_POWERS_OF_2); y < (tilemap->mapOffsetY >> TILE_SIZE_IN_POWERS_OF_2) + TILEMAP_DISPLAY_HEIGHT_TILES; y++)
@@ -323,6 +323,7 @@ void unlockScrolling(tilemap_t *tilemap){
 
 bool needsTransparency(uint8_t tileId){
     switch(tileId) {
+        case TILE_BOUNCE_BLOCK:
         case TILE_GIRDER:
         case TILE_CONTAINER_1 ... TILE_CONTAINER_3:
         case TILE_COIN_1 ... TILE_COIN_3:
