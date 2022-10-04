@@ -18,6 +18,7 @@
 #include "paint_common.h"
 #include "paint_util.h"
 #include "paint_draw.h"
+#include "paint_gallery.h"
 #include "paint_share.h"
 #include "paint_nvs.h"
 
@@ -137,8 +138,10 @@ void paintMainLoop(int64_t elapsedUs)
     break;
 
     case PAINT_GALLERY:
-
-    break;
+    {
+        paintGalleryMainLoop(elapsedUs);
+        break;
+    }
 
     case PAINT_HELP:
     break;
@@ -191,7 +194,10 @@ void paintButtonCb(buttonEvt_t* evt)
         break;
 
         case PAINT_GALLERY:
-        break;
+        {
+            paintGalleryModeButtonCb(evt);
+            break;
+        }
 
         case PAINT_SHARE:
         break;
@@ -208,11 +214,11 @@ void paintInitialize(void)
     paintLoadIndex();
     resetMeleeMenu(paintState->menu, paintTitle, paintMainMenuCb);
     addRowToMeleeMenu(paintState->menu, menuOptDraw);
-    addRowToMeleeMenu(paintState->menu, menuOptGallery);
 
     if (paintGetAnySlotInUse())
     {
-        // Only add "share" if there's something to share
+        // Only add "gallery" and "share" if there's something to share
+        addRowToMeleeMenu(paintState->menu, menuOptGallery);
         addRowToMeleeMenu(paintState->menu, menuOptShare);
     }
 
@@ -234,7 +240,7 @@ void paintMainMenuCb(const char* opt)
     else if (opt == menuOptGallery)
     {
         PAINT_LOGI("Selected Gallery");
-        paintState->screen = PAINT_GALLERY;
+        paintGallerySetup();
     }
     else if (opt == menuOptShare)
     {

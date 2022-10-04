@@ -252,6 +252,22 @@ typedef struct
 
     int64_t shareTime;
 
+
+    //////// Gallery flags
+
+    // Last timestamp of gallery transition
+    int64_t galleryTime;
+
+    // Amount of time between each transition, or 0 for disabled
+    int64_t gallerySpeed;
+
+    // Current image used in gallery
+    uint8_t gallerySlot;
+
+    bool galleryLoadNew;
+
+    uint8_t galleryScale;
+
 } paintMenu_t;
 
 
