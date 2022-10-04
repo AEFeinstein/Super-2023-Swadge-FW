@@ -384,7 +384,7 @@ void paintShareSendCanvas(void)
     paintState->shareState = SHARE_SEND_WAIT_CANVAS_DATA_ACK;
     paintState->shareNewPacket = false;
 
-    p2pSendMsg(&paintState->p2pInfo, paintState->sharePacket, paintState->sharePacketLen, true, paintShareP2pSendCb);
+    p2pSendMsg(&paintState->p2pInfo, paintState->sharePacket, paintState->sharePacketLen, paintShareP2pSendCb);
 }
 
 void paintShareHandleCanvas(void)
@@ -460,7 +460,7 @@ void paintShareSendPixels(void)
         PAINT_LOGD("%04d %02x %02x %02x %02x", i, paintState->sharePacket[i], paintState->sharePacket[i+1], paintState->sharePacket[i+2], paintState->sharePacket[i+3]);
     }
 
-    p2pSendMsg(&paintState->p2pInfo, paintState->sharePacket, paintState->sharePacketLen, true, paintShareP2pSendCb);
+    p2pSendMsg(&paintState->p2pInfo, paintState->sharePacket, paintState->sharePacketLen, paintShareP2pSendCb);
 }
 
 void paintShareHandlePixels(void)
@@ -512,7 +512,7 @@ void paintShareSendPixelRequest(void)
 {
     paintState->sharePacket[0] = SHARE_PACKET_PIXEL_REQUEST;
     paintState->sharePacketLen = 1;
-    p2pSendMsg(&paintState->p2pInfo, paintState->sharePacket, paintState->sharePacketLen, true, paintShareP2pSendCb);
+    p2pSendMsg(&paintState->p2pInfo, paintState->sharePacket, paintState->sharePacketLen, paintShareP2pSendCb);
     paintState->shareUpdateScreen = true;
 }
 
@@ -520,7 +520,7 @@ void paintShareSendReceiveComplete(void)
 {
     paintState->sharePacket[0] = SHARE_PACKET_RECEIVE_COMPLETE;
     paintState->sharePacketLen = 1;
-    p2pSendMsg(&paintState->p2pInfo, paintState->sharePacket, paintState->sharePacketLen, true, paintShareP2pSendCb);
+    p2pSendMsg(&paintState->p2pInfo, paintState->sharePacket, paintState->sharePacketLen, paintShareP2pSendCb);
     paintState->shareUpdateScreen = true;
 }
 
@@ -528,7 +528,7 @@ void paintShareSendAbort(void)
 {
     paintState->sharePacket[0] = SHARE_PACKET_ABORT;
     paintState->sharePacketLen = 1;
-    p2pSendMsg(&paintState->p2pInfo, paintState->sharePacket, paintState->sharePacketLen, true, paintShareP2pSendCb);
+    p2pSendMsg(&paintState->p2pInfo, paintState->sharePacket, paintState->sharePacketLen, paintShareP2pSendCb);
     paintState->shareUpdateScreen = true;
 }
 
@@ -537,7 +537,7 @@ void paintShareSendHello(void)
     paintState->sharePacket[0] = SHARE_PACKET_HELLO;
     paintState->sharePacket[1] = isSender() ? 1 : 0;
     paintState->sharePacketLen = 2;
-    p2pSendMsg(&paintState->p2pInfo, paintState->sharePacket, paintState->sharePacketLen, true, paintShareP2pSendCb);
+    p2pSendMsg(&paintState->p2pInfo, paintState->sharePacket, paintState->sharePacketLen, paintShareP2pSendCb);
     paintState->shareUpdateScreen = true;
 }
 
