@@ -14,13 +14,37 @@
     gameData->btnState = 0;
     gameData->score = 0;
     gameData->lives = 3;
-    gameData->countdown = 300;
+    gameData->countdown = 000;
     gameData->world = 1;
     gameData->level = 1;
     gameData->frameCount = 0;
     gameData->coins = 0;
     gameData->combo = 0;
     gameData->comboTimer = 0;
+    gameData->bgColor = c000;
+    gameData->initials[0] = 'A';
+    gameData->initials[1] = 'A';
+    gameData->initials[2] = 'A';
+    gameData->rank = 5;
+    gameData->extraLifeCollected = false;
+    gameData->checkpoint = 0;
+    gameData->levelDeaths = 0;
+}
+
+ void initializeGameDataFromTitleScreen(gameData_t * gameData){
+    gameData->gameState = 0;
+    gameData->btnState = 0;
+    gameData->score = 0;
+    gameData->lives = 3;
+    gameData->countdown = 000;
+    gameData->frameCount = 0;
+    gameData->coins = 0;
+    gameData->combo = 0;
+    gameData->comboTimer = 0;
+    gameData->bgColor = c000;
+    gameData->extraLifeCollected = false;
+    gameData->checkpoint = 0;
+    gameData->levelDeaths = 0;
 }
 
 void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData){
@@ -58,12 +82,22 @@ void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData){
 
 void scorePoints(gameData_t * gameData, uint16_t points){
     gameData->combo++;
+    
     uint16_t comboPoints = points * gameData->combo;
 
     gameData->score += comboPoints;
     gameData->comboScore = comboPoints;
     
-    gameData->comboTimer = 80;
+    gameData->comboTimer = (gameData->levelDeaths < 3) ? 240: 1;
+}
+
+void addCoins(gameData_t * gameData, uint8_t coins){
+    gameData->coins+=coins;
+    if(gameData->coins > 100){
+        gameData->lives++;
+        //play sound here
+        gameData->coins = 0;
+    }
 }
 
 void updateComboTimer(gameData_t * gameData){

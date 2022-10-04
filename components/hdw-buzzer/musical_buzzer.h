@@ -164,7 +164,7 @@ typedef struct
 } song_t;
 
 void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, timer_group_t group_num,
-    timer_idx_t timer_num, bool isMuted);
+    timer_idx_t timer_num, bool isBgmMuted, bool isSfxMuted);
 void buzzer_play_bgm(const song_t* song);
 void buzzer_play_sfx(const song_t* song);
 void buzzer_stop(void);

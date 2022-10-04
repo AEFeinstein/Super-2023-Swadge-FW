@@ -10,6 +10,7 @@
 #include "swadgeMode.h"
 #include "meleeMenu.h"
 #include "p2pConnection.h"
+#include "espNowUtils.h"
 
 #include "mode_main_menu.h"
 #include "fighter_menu.h"
@@ -38,7 +39,7 @@ typedef enum
     CHAR_SEL_MSG,
     STAGE_SEL_MSG,
     BUTTON_INPUT_MSG,
-    SCENE_COMPOSED_MSG,
+    MP_COMPOSED_SCENE_MSG,
     MP_GAME_OVER_MSG
 } fighterMessageType_t;
 
@@ -53,7 +54,6 @@ typedef struct
     fightingStage_t stage;
     fighterMessageType_t lastSentMsg;
     wsg_t fd_bg;
-    int64_t txTimeStart;
 } fighterMenu_t;
 
 typedef struct
@@ -95,7 +95,7 @@ void fighterEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len,
 void fighterEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 void fighterP2pConCbFn(p2pInfo* p2p, connectionEvt_t);
 void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len);
-void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status);
+void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t* data, uint8_t dataLen);
 void fighterCheckGameBegin(void);
 
 //==============================================================================
@@ -105,12 +105,24 @@ void fighterCheckGameBegin(void);
 static const char str_swadgeBros[]  = "Swadge Bros";
 const char str_multiplayer[] = "Multiplayer";
 const char str_hrContest[]   = "HR Contest";
+
+static const char str_wirelessMulti[] = "Wireless Multi";
+static const char str_wireMultiA[]    = "Wire Multi A";
+static const char str_wireMultiB[]    = "Wire Multi B";
 static const char str_records[]     = "Records";
 static const char str_exit[]        = "Exit";
 
 static const char str_charKD[]      = "King Donut";
 static const char str_charSN[]      = "Sunny";
 static const char str_charBF[]      = "Big Funkus";
+
+const char str_searching_for[] = "Searching For";
+const char str_another_swadge[] = "Another Swadge";
+
+const char str_please_connect[] = "Please Connect";
+
+const char* ftrConnectingStringTop;
+const char* ftrConnectingStringBottom;
 
 // Must match order of fightingCharacter_t
 const char* charNames[3] =
@@ -140,6 +152,7 @@ swadgeMode modeFighter =
     .fnAudioCallback = NULL, // fighterAudioCb,
     .fnTemperatureCallback = NULL, // fighterTemperatureCb
     .fnBackgroundDrawCallback = fighterBackgroundDrawCb,
+    .overrideUsb = true,
 };
 
 fighterMenu_t* fm;
@@ -223,12 +236,11 @@ void fighterMainLoop(int64_t elapsedUs)
         {
             // TODO spin a wheel or something
             drawBackgroundGrid(fm->disp);
-            const char searching_for[] = "Searching For";
-            const char another_swadge[] = "Another Swadge";
-            int16_t tWidth = textWidth(&fm->mmFont, searching_for);
-            drawText(fm->disp, &fm->mmFont, c540, searching_for, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) - fm->mmFont.h - 4);
-            tWidth = textWidth(&fm->mmFont, another_swadge);
-            drawText(fm->disp, &fm->mmFont, c540, another_swadge, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
+            int16_t tWidth = textWidth(&fm->mmFont, ftrConnectingStringTop);
+            drawText(fm->disp, &fm->mmFont, c540, ftrConnectingStringTop, (fm->disp->w - tWidth) / 2,
+                     (fm->disp->h / 2) - fm->mmFont.h - 4);
+            tWidth = textWidth(&fm->mmFont, ftrConnectingStringBottom);
+            drawText(fm->disp, &fm->mmFont, c540, ftrConnectingStringBottom, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
             break;
         }
         case FIGHTER_WAITING:
@@ -383,11 +395,6 @@ void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
             break;
         }
         case FIGHTER_GAME:
-        {
-            // Notify the game that it should draw after the background is drawn
-            fighterSetDrawScene();
-        }
-        /* FALLTHRU */
         case FIGHTER_HR_RESULT:
         {
             // Figure out source and destination pointers
@@ -408,7 +415,9 @@ void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
 void setFighterMainMenu(void)
 {
     resetMeleeMenu(fm->menu, str_swadgeBros, fighterMainMenuCb);
-    addRowToMeleeMenu(fm->menu, str_multiplayer);
+    addRowToMeleeMenu(fm->menu, str_wirelessMulti);
+    addRowToMeleeMenu(fm->menu, str_wireMultiA);
+    addRowToMeleeMenu(fm->menu, str_wireMultiB);
     addRowToMeleeMenu(fm->menu, str_hrContest);
     addRowToMeleeMenu(fm->menu, str_records);
     addRowToMeleeMenu(fm->menu, str_exit);
@@ -423,8 +432,28 @@ void setFighterMainMenu(void)
 void fighterMainMenuCb(const char* opt)
 {
     // When a row is clicked, print the label for debugging
-    if(opt == str_multiplayer)
+    if((opt == str_wirelessMulti) || (opt == str_wireMultiA) || (opt == str_wireMultiB))
     {
+        // Set espnow to wireless or serial
+        if(opt == str_wireMultiB)
+        {
+            espNowUseSerial(true);
+            ftrConnectingStringTop = str_please_connect;
+            ftrConnectingStringBottom = str_wireMultiA;
+        }
+        else if(opt == str_wireMultiA)
+        {
+            espNowUseSerial(false);
+            ftrConnectingStringTop = str_please_connect;
+            ftrConnectingStringBottom = str_wireMultiB;
+        }
+        else if(opt == str_wirelessMulti)
+        {
+            espNowUseWireless();
+            ftrConnectingStringTop = str_searching_for;
+            ftrConnectingStringBottom = str_another_swadge;
+        }
+
         // Clear state
         fm->characters[0] = NO_CHARACTER;
         fm->characters[1] = NO_CHARACTER;
@@ -563,8 +592,7 @@ void fighterMultiplayerCharMenuCb(const char* opt)
         CHAR_SEL_MSG,
         fm->characters[charIdx]
     };
-    p2pSendMsg(&fm->p2p, payload, sizeof(payload), true, fighterP2pMsgTxCbFn);
-    fm->txTimeStart = esp_timer_get_time();
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
     fm->lastSentMsg = CHAR_SEL_MSG;
 
     if(GOING_FIRST == fm->p2p.cnc.playOrder)
@@ -620,8 +648,7 @@ void fighterMultiplayerStageMenuCb(const char* opt)
         STAGE_SEL_MSG,
         fm->stage
     };
-    p2pSendMsg(&fm->p2p, payload, sizeof(payload), true, fighterP2pMsgTxCbFn);
-    fm->txTimeStart = esp_timer_get_time();
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
     fm->lastSentMsg = STAGE_SEL_MSG;
 
     // Wait for the other swadge to pick a character
@@ -656,11 +683,6 @@ void fighterEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
     // Forward to p2p
     p2pSendCb(&fm->p2p, mac_addr, status);
-    if(ESP_NOW_SEND_SUCCESS == status)
-    {
-        // Let the game know how long to wait before retrying a packet
-        setFighterRetryTimeUs(esp_timer_get_time() - fm->txTimeStart);
-    }
 }
 
 /**
@@ -733,23 +755,6 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                 // Receive button inputs, so save them
                 fighterRxButtonInput(payload[1]);
             }
-            else if(SCENE_COMPOSED_MSG == payload[0])
-            {
-                // Receive a scene, so draw it
-                fighterRxScene((const fighterScene_t*) payload, len);
-            }
-            else if (MP_GAME_OVER_MSG == payload[0])
-            {
-                // Show the result
-                const fighterMpGameResult_t* res = (const fighterMpGameResult_t*)payload;
-                initFighterMpResult(fm->disp, &fm->mmFont, res->roundTimeMs,
-                                    res->other, res->otherKOs, res->otherDmg,
-                                    res->self, res->selfKOs, res->selfDmg);
-                fm->screen = FIGHTER_MP_RESULT;
-
-                // Deinit the game
-                fighterExitGame();
-            }
             break;
         }
         case FIGHTER_HR_RESULT:
@@ -767,8 +772,10 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
  *
  * @param p2p The p2p struct for this connection
  * @param status The status of the transmission
+ * @param data Data received in the ACK, may be NULL
+ * @param dataLen Length of the data received in the ACK, may be 0
  */
-void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
+void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t* data, uint8_t dataLen)
 {
     // Check what was ACKed or failed
     switch(status)
@@ -779,6 +786,41 @@ void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status)
             if (fm->lastSentMsg == CHAR_SEL_MSG || fm->lastSentMsg == STAGE_SEL_MSG)
             {
                 fighterCheckGameBegin();
+            }
+            // If a button input message was acked while playing the game
+            else if((fm->lastSentMsg == BUTTON_INPUT_MSG) && (FIGHTER_GAME == fm->screen))
+            {
+                // If there is any data
+                if(dataLen > 0)
+                {
+                    // If this is a scene
+                    if(MP_COMPOSED_SCENE_MSG == data[0])
+                    {
+                        // Pull composed scene out of the ack, setup for render
+                        fighterRxScene((const fighterScene_t*) data, dataLen);
+                        // Then send buttons again
+                        fighterSendButtonsToOther(fighterGetButtonState());
+                    }
+                    // Or if this is a game over
+                    else if(MP_GAME_OVER_MSG == data[0])
+                    {
+                        // Show the result
+                        const fighterMpGameResult_t* res = (const fighterMpGameResult_t*)data;
+                        initFighterMpResult(fm->disp, &fm->mmFont, res->roundTimeMs,
+                                            res->other, res->otherKOs, res->otherDmg,
+                                            res->self, res->selfKOs, res->selfDmg);
+                        fm->screen = FIGHTER_MP_RESULT;
+
+                        // Deinit the game
+                        fighterExitGame();
+                    }
+                }
+                else
+                {
+                    // There was no data in the ACK, but keep the loop
+                    // alive by sending button state again
+                    fighterSendButtonsToOther(fighterGetButtonState());
+                }
             }
             break;
         }
@@ -812,7 +854,7 @@ void fighterCheckGameBegin(void)
 /**
  * @brief Send a packet to the other swadge with this's player's button input
  *
- * @param btnState
+ * @param btnState This swadge's current button state
  */
 void fighterSendButtonsToOther(int32_t btnState)
 {
@@ -821,26 +863,24 @@ void fighterSendButtonsToOther(int32_t btnState)
         BUTTON_INPUT_MSG,
         btnState // This clips 32 bits to 8 bits, but there are 8 buttons anyway
     };
-    // Don't ack, retry until the scene is received
-    p2pSendMsg(&fm->p2p, payload, sizeof(payload), false, fighterP2pMsgTxCbFn);
-    fm->txTimeStart = esp_timer_get_time();
+    // Send button state to the other swawdge
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
     fm->lastSentMsg = BUTTON_INPUT_MSG;
 }
 
 /**
- * @brief Send a packet to the other swadge with the scene to draw
+ * Set up a scene to be sent to the other Swadge in an ACK for a button input
+ * message
  *
- * @param scene
- * @param len
+ * @param scene The scene to be sent in the ACK
+ * @param len The length of the scene to be sent
  */
 void fighterSendSceneToOther(fighterScene_t* scene, uint8_t len)
 {
-    // Insert the message type (this byte should be empty)
-    ((uint8_t*)scene)[0] = SCENE_COMPOSED_MSG;
-    // Don't ack, retry until buttons are received
-    p2pSendMsg(&fm->p2p, (const uint8_t*)scene, len, false, fighterP2pMsgTxCbFn);
-    fm->txTimeStart = esp_timer_get_time();
-    fm->lastSentMsg = SCENE_COMPOSED_MSG;
+    // Fill in the type byte
+    scene->msgType = MP_COMPOSED_SCENE_MSG;
+    // Embed the composed scene in the p2p ack
+    p2pSetDataInAck(&(fm->p2p), (const uint8_t*)scene, len);
 }
 
 /**
@@ -874,7 +914,13 @@ void fighterShowMpResult(uint32_t roundTimeMs,
                          fightingCharacter_t self,  int8_t selfKOs, int16_t selfDmg,
                          fightingCharacter_t other, int8_t otherKOs, int16_t otherDmg)
 {
-    // Send result to other swadge with an acknowledged packet
+    // Show the result on this swadge
+    initFighterMpResult(fm->disp, &fm->mmFont, roundTimeMs,
+                        self, selfKOs, selfDmg,
+                        other, otherKOs, otherDmg);
+    fm->screen = FIGHTER_MP_RESULT;
+
+    // Queue up this data to be sent in an ACK to the other swadge
     const fighterMpGameResult_t res =
     {
         .msgType = MP_GAME_OVER_MSG,
@@ -886,10 +932,5 @@ void fighterShowMpResult(uint32_t roundTimeMs,
         .otherKOs = otherKOs,
         .otherDmg = otherDmg,
     };
-    p2pSendMsg(&fm->p2p, (const uint8_t*)&res, sizeof(fighterMpGameResult_t), true, fighterP2pMsgTxCbFn);
-
-    initFighterMpResult(fm->disp, &fm->mmFont, roundTimeMs,
-                        self, selfKOs, selfDmg,
-                        other, otherKOs, otherDmg);
-    fm->screen = FIGHTER_MP_RESULT;
+    p2pSetDataInAck(&fm->p2p, (const uint8_t*)&res, sizeof(fighterMpGameResult_t));
 }

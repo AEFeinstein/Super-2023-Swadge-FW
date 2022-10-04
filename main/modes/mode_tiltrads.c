@@ -1269,7 +1269,8 @@ swadgeMode modeTiltrads =
     .fnEspNowSendCb = NULL,
     .fnAccelerometerCallback = ttAccelerometerCallback,
     .fnAudioCallback = NULL,
-    .fnTemperatureCallback = NULL
+    .fnTemperatureCallback = NULL,
+    .overrideUsb = false
 };
 
 void ttInit(display_t* disp)

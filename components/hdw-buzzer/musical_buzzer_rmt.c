@@ -35,7 +35,8 @@ typedef struct
     buzzerTrack_t sfx;
     const musicalNote_t* playNote;
     bool stopSong;
-    bool isMuted;
+    bool isBgmMuted;
+    bool isSfxMuted;
 } rmt_buzzer_t;
 
 //==============================================================================
@@ -63,14 +64,16 @@ rmt_buzzer_t rmt_buzzer;
  * @param rmt  The RMT channel to control the buzzer with
  * @param group_num The timer group number to check for note transitions with
  * @param timer_num The timer number to check for note transitions with
- * @param isMuted true to mute the buzzer, false to make it buzz
+ * @param isBgmMuted true to mute music on the buzzer, false to make it play music
+ * @param isSfxMuted true to mute sfx on the buzzer, false to make it play sfx
  */
 void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, timer_group_t group_num,
-    timer_idx_t timer_num, bool isMuted)
+    timer_idx_t timer_num, bool isBgmMuted, bool isSfxMuted)
 {
     // Don't do much if muted
-    rmt_buzzer.isMuted = isMuted;
-    if(rmt_buzzer.isMuted)
+    rmt_buzzer.isBgmMuted = isBgmMuted;
+    rmt_buzzer.isSfxMuted = isSfxMuted;
+    if(rmt_buzzer.isBgmMuted && rmt_buzzer.isSfxMuted)
     {
         return;
     }
@@ -136,13 +139,16 @@ void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, timer_group_t group_num,
 /**
  * @brief Start playing a sound effect on the buzzer. This has higher priority
  * than background music
+ * 
+ * Note: sound should NOT be played while doing SPIFFS operations, like loading
+ * WSGs or other data. Doing so may cause a crash.
  *
  * @param song The song to play as a sequence of notes
  */
 void buzzer_play_sfx(const song_t* song)
 {
     // Don't do much if muted
-    if(rmt_buzzer.isMuted)
+    if(rmt_buzzer.isSfxMuted)
     {
         return;
     }
@@ -160,13 +166,16 @@ void buzzer_play_sfx(const song_t* song)
 /**
  * @brief Start playing a background music on the buzzer. This has lower priority
  * than sound effects
+ * 
+ * Note: sound should NOT be played while doing SPIFFS operations, like loading
+ * WSGs or other data. Doing so may cause a crash.
  *
  * @param song The song to play as a sequence of notes
  */
 void buzzer_play_bgm(const song_t* song)
 {
     // Don't do much if muted
-    if(rmt_buzzer.isMuted)
+    if(rmt_buzzer.isBgmMuted)
     {
         return;
     }
@@ -258,7 +267,7 @@ static bool buzzer_track_check_next_note(buzzerTrack_t* track, bool isActive)
 static bool buzzer_check_next_note_isr(void * ptr)
 {
     // Don't do much if muted
-    if(rmt_buzzer.isMuted)
+    if(rmt_buzzer.isBgmMuted && rmt_buzzer.isSfxMuted)
     {
         return false;
     }
@@ -327,7 +336,7 @@ static void play_note(const musicalNote_t* notation)
 void buzzer_stop(void)
 {
     // Don't do much if muted
-    if(rmt_buzzer.isMuted)
+    if(rmt_buzzer.isBgmMuted && rmt_buzzer.isSfxMuted)
     {
         return;
     }

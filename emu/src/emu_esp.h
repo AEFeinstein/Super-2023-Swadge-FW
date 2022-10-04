@@ -15,7 +15,4 @@
     }                              \
 } while(0)
 
-extern volatile bool threadsShouldRun;
-void joinThreads(void);
-
 #endif

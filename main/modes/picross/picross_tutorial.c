@@ -27,7 +27,6 @@ void picrossStartTutorial(display_t* disp, font_t* font)
 void picrossTutorialLoop(int64_t elapsedUs)
 {
     //user input
-
     //exit on hitting select
     if((tut->btn & SELECT) && !(tut->prevBtn & SELECT))
     {
@@ -69,8 +68,6 @@ void drawTutorial(display_t* d)
     d->clearPx();
     //draw page tut->pageIndex of tutorial
 }
-
-
 
 void picrossTutorialButtonCb(buttonEvt_t* evt)
 {

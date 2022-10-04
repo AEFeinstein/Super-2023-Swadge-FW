@@ -277,17 +277,11 @@ void app_main(void)
     // esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_OFF);
     esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_ON);
 
-    /* Initialize USB peripheral */
-    tinyusb_config_t tusb_cfg = {};
-    tinyusb_driver_install(&tusb_cfg);
-
     // Set up timers
     esp_timer_init();
 
-    // Create a task for the swadge, then return
-    TaskHandle_t xHandle = NULL;
-    xTaskCreate(mainSwadgeTask, "SWADGE", 8192, NULL,
-                tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, &xHandle);
+    // Tricky: We never return, we just _become_ the main task.
+    mainSwadgeTask( 0 );
 }
 
 /**
@@ -342,6 +336,14 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     }
 #endif
 
+    /* If the mode isn't overriding USB */
+    if(!cSwadgeMode->overrideUsb)
+    {
+        /* Initialize USB peripheral */
+        tinyusb_config_t tusb_cfg = {};
+        tinyusb_driver_install(&tusb_cfg);
+    }
+
     /* Initialize SPIFFS */
     initSpiffs();
 
@@ -374,7 +376,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 
     // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
     // Make sure to use a different timer than initButtons()
-    buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, TIMER_GROUP_0, TIMER_1, getIsMuted());
+    buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, TIMER_GROUP_0, TIMER_1, getBgmIsMuted(), getSfxIsMuted());
 
 #if defined(CONFIG_SWADGE_DEVKIT)
     initTouchSensor(0.2f, true, 6,
@@ -489,7 +491,18 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     if(ESP_NOW == cSwadgeMode->wifiMode)
 #endif
     {
-        espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb);
+        if(cSwadgeMode->overrideUsb)
+        {
+            // This can communicate over wifi or UART
+            espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb,
+                GPIO_NUM_19, GPIO_NUM_20, UART_NUM_1);
+        }
+        else
+        {
+            // This can communicate over wifi or UART
+            espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb,
+                GPIO_NUM_NC, GPIO_NUM_NC, UART_NUM_MAX);
+        }
     }
 
     /* Enter the swadge mode */
@@ -501,11 +514,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     int64_t time_exit_pressed = 0;
 
     /* Loop forever! */
-#if defined(EMU)
-    while(threadsShouldRun)
-#else
     while(true)
-#endif
     {
         // Process ESP NOW
         if(ESP_NOW == cSwadgeMode->wifiMode)
@@ -531,9 +540,9 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             cSwadgeMode->fnTemperatureCallback(readTemperatureSensor());
         }
 
-        // Process button presses
+        // Process all queued button presses
         buttonEvt_t bEvt = {0};
-        if(checkButtonQueue(&bEvt))
+        while(checkButtonQueue(&bEvt))
         {
             // Monitor start + select
             if((&modeMainMenu != cSwadgeMode) && (bEvt.state & START) && (bEvt.state & SELECT))
