@@ -22,7 +22,8 @@
 // Variables
 //==============================================================================
 
-const char KEY_MUTE[]       = "mute";
+const char KEY_MUTE_BGM[]       = "mutebgm";
+const char KEY_MUTE_SFX[]       = "mutesfx";
 const char KEY_TFT_BRIGHT[] = "bright";
 const char KEY_MIC[]        = "mic";
 const char KEY_LED_BRIGHT[] = "led";
@@ -37,14 +38,14 @@ const char KEY_TEST[]       = "test";
 /**
  * @return true if the buzzer is muted, false if it is not
  */
-bool getIsMuted(void)
+bool getBgmIsMuted(void)
 {
     int32_t muted = false;
     // Try reading the value
-    if(false == readNvs32(KEY_MUTE, &muted))
+    if(false == readNvs32(KEY_MUTE_BGM, &muted))
     {
         // Value didn't exist, so write the default
-        setIsMuted(muted);
+        setBgmIsMuted(muted);
     }
     // Return the read value
     return (bool)muted;
@@ -56,10 +57,38 @@ bool getIsMuted(void)
  * @param isMuted true to mute the buzzer, false to turn it on
  * @return true if the setting was saved, false if it was not
  */
-bool setIsMuted(bool isMuted)
+bool setBgmIsMuted(bool isMuted)
 {
     // Write the value
-    return writeNvs32(KEY_MUTE, isMuted);
+    return writeNvs32(KEY_MUTE_BGM, isMuted);
+}
+
+/**
+ * @return true if the buzzer is muted, false if it is not
+ */
+bool getSfxIsMuted(void)
+{
+    int32_t muted = false;
+    // Try reading the value
+    if(false == readNvs32(KEY_MUTE_SFX, &muted))
+    {
+        // Value didn't exist, so write the default
+        setSfxIsMuted(muted);
+    }
+    // Return the read value
+    return (bool)muted;
+}
+
+/**
+ * Set if the buzzer is muted or not
+ *
+ * @param isMuted true to mute the buzzer, false to turn it on
+ * @return true if the setting was saved, false if it was not
+ */
+bool setSfxIsMuted(bool isMuted)
+{
+    // Write the value
+    return writeNvs32(KEY_MUTE_SFX, isMuted);
 }
 
 /**

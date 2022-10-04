@@ -18,6 +18,8 @@ d:label{id="lab1",label="",text="Export Tilemap as .bin File for your own GameEn
  :button{text="&Cancel" }
  :show()
 
+
+
 --Initialize warp data array
 local warps = {}
 for i=0, 15 do
@@ -46,12 +48,17 @@ if not data.ok then return end
       if(p ~= nil) then
         local tileId = p()
 
+        --if(tileId == 130) then
+        --  local d2 = Dialog(tileId)
+        --  d2:show()
+        --end
+
         if(tileId > 0 and tileId < 17) then
           --warp tiles
 
           tileBelowCurrentTile = img:getPixel(p.x, p.y+1)
-          if(tileBelowCurrentTile == 34 or tileBelowCurrentTile == 64) then
-            --if tile below warp tile is brick block or container, write it like normal
+          if(tileBelowCurrentTile == 34 or tileBelowCurrentTile == 64 or tileBelowCurrentTile == 158) then
+            --if tile below warp tile is brick block or container or checkpoint, write it like normal
             mapFile:write(string.char(tileId))
           else
             --otherwise store it in warps array and don't write it into the file just yet
