@@ -824,7 +824,6 @@ void paintShareButtonCb(buttonEvt_t* evt)
                     break;
                 }
                 case RIGHT:
-                case SELECT:
                 {
                     // Load next image
                     paintState->shareSaveSlot = paintGetNextSlotInUse(paintState->shareSaveSlot);
@@ -834,7 +833,6 @@ void paintShareButtonCb(buttonEvt_t* evt)
                 }
 
                 case BTN_A:
-                case START:
                 {
                     // Begin sharing!
                     paintBeginShare();
@@ -846,7 +844,24 @@ void paintShareButtonCb(buttonEvt_t* evt)
                 case DOWN:
                 case BTN_B:
                 // Do Nothing!
+                case SELECT:
+                case START:
+                // Or do something on button up to avoid conflict with exit mode
                 break;
+            }
+        }
+        else
+        {
+            if (evt->button == SELECT)
+            {
+                paintState->shareSaveSlot = paintGetNextSlotInUse(paintState->shareSaveSlot);
+                paintState->clearScreen = true;
+                paintState->shareUpdateScreen = true;
+            }
+            else if (evt->button == START)
+            {
+                paintBeginShare();
+                paintState->shareUpdateScreen = true;
             }
         }
     }
@@ -864,7 +879,6 @@ void paintShareButtonCb(buttonEvt_t* evt)
                 }
 
                 case RIGHT:
-                case SELECT:
                 {
                     paintState->shareSaveSlot = NEXT_WRAP(paintState->shareSaveSlot, PAINT_SAVE_SLOTS);
                     paintState->shareUpdateScreen = true;
@@ -872,7 +886,6 @@ void paintShareButtonCb(buttonEvt_t* evt)
                 }
 
                 case BTN_A:
-                case START:
                 {
                     paintShareDoSave();
                     switchToSwadgeMode(&modePaint);
@@ -883,7 +896,23 @@ void paintShareButtonCb(buttonEvt_t* evt)
                 case DOWN:
                 case BTN_B:
                 // Do Nothing!
+                case SELECT:
+                case START:
+                // Or do something on button-up instead, to avoid overlap with SELECT+START
                 break;
+            }
+        }
+        else
+        {
+            if (evt->button == START)
+            {
+                paintShareDoSave();
+                switchToSwadgeMode(&modePaint);
+            }
+            else if (evt->button == SELECT)
+            {
+                paintState->shareSaveSlot = NEXT_WRAP(paintState->shareSaveSlot, PAINT_SAVE_SLOTS);
+                paintState->shareUpdateScreen = true;
             }
         }
         // Does the receiver get any buttons?
