@@ -163,10 +163,14 @@ typedef struct
     musicalNote_t notes[];
 } song_t;
 
-void buzzer_init(gpio_num_t gpio, rmt_channel_t rmt, timer_group_t group_num,
-    timer_idx_t timer_num, bool isBgmMuted, bool isSfxMuted);
+void buzzer_init(gpio_num_t bzrGpio,
+    timer_group_t noteCheckGrpNum, timer_idx_t noteChkTmrNum,
+    timer_group_t bzrDriveGrpNum, timer_idx_t bzrDriveTmrNum,
+    bool isBgmMuted, bool isSfxMuted);
 void buzzer_play_bgm(const song_t* song);
 void buzzer_play_sfx(const song_t* song);
 void buzzer_stop(void);
+void playNote(noteFrequency_t freq);
+void stopNote(void);
 
 #endif

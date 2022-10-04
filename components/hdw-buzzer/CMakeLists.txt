@@ -1,2 +1,2 @@
-idf_component_register(SRCS "musical_buzzer_rmt.c"
+idf_component_register(SRCS "musical_buzzer_tmr.c"
                        INCLUDE_DIRS ".")
