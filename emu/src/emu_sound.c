@@ -179,13 +179,15 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
  * @param rmt unused
  * @param group_num unused
  * @param timer_num unused
- * @param isBmgMuted true if music is muted, false if it is not
+ * @param isBgmMuted true if music is muted, false if it is not
  * @param isSfxMuted true if sfx is muted, false if it is not
  */
-void buzzer_init(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED,
-	timer_group_t group_num UNUSED, timer_idx_t timer_num UNUSED, bool isBmgMuted, bool isSfxMuted)
+void buzzer_init(gpio_num_t bzrGpio,
+    ledc_timer_t ledcTimer, ledc_channel_t ledcChannel,
+    timer_group_t noteCheckGrpNum, timer_idx_t noteChkTmrNum,
+    bool isBgmMuted, bool isSfxMuted)
 {
-	emuBgmMuted = isBmgMuted;
+	emuBgmMuted = isBgmMuted;
 	emuSfxMuted = isSfxMuted;
 
 	buzzer_stop();
