@@ -70,6 +70,9 @@ typedef enum
     // Sender sent canvas data and is waiting for ack from receiver
     SHARE_SEND_WAIT_CANVAS_DATA_ACK,
 
+    // Wait for the receiver to finish processing pixel data and request some more
+    SHARE_SEND_WAIT_FOR_PIXEL_REQUEST,
+
     // Sender got canvas data ack, is now sending pixel data packets
     SHARE_SEND_PIXEL_DATA,
 

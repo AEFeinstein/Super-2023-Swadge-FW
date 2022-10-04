@@ -244,6 +244,9 @@ typedef struct
     // Set to true when a new packet has been written to sharePacket, either to be sent or to be handled
     bool shareNewPacket;
 
+    // Flag for updating the screen
+    bool shareUpdateScreen;
+
     p2pInfo p2pInfo;
 
 } paintMenu_t;
