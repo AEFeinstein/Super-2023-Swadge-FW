@@ -2,23 +2,27 @@
 // Includes
 //==============================================================================
 
-// #include "esp_timer.h"
-#include "driver/timer.h"
 #include "esp_log.h"
-
+#include "esp_timer.h"
 #include "musical_buzzer.h"
 
 //==============================================================================
 // Defines
 //==============================================================================
 
+// For LEDC
+#define LEDC_MODE               LEDC_LOW_SPEED_MODE
+#define LEDC_DUTY_RES           LEDC_TIMER_13_BIT // Set duty resolution to 13 bits
+#define LEDC_DUTY               (4095) // Set duty to 50%. ((2 ** 13) - 1) * 50% = 4095
+
+// For Timer
 #define TIMER_DIVIDER (16)  //  Hardware timer clock divider
 #define TIMER_TICKS_PER_SECOND   (TIMER_BASE_CLK / TIMER_DIVIDER)  // cycles per second
-
-#define TIMER_DIVIDER_DRIVE (2)  //  Hardware timer clock divider
-#define TIMER_DRIVE_TICKS_PER_SECOND   (TIMER_BASE_CLK / TIMER_DIVIDER_DRIVE)  // cycles per second
-
 #define NOTE_ISR_MS   5
+
+//==============================================================================
+// Enums
+//==============================================================================
 
 typedef struct
 {
@@ -26,8 +30,6 @@ typedef struct
     uint32_t note_index;
     int64_t start_time;
 } buzzerTrack_t;
-
-#define DBG_GPIO
 
 //==============================================================================
 // Variables
@@ -44,8 +46,8 @@ struct
     uint32_t gpioLevel;
     timer_group_t noteCheckGroupNum;
     timer_idx_t noteCheckTimerNum;
-    timer_group_t bzrGroupNum;
-    timer_idx_t bzrTimerNum;
+    ledc_timer_t ledcTimer;
+    ledc_channel_t ledcChannel;
 } bzr;
 
 //==============================================================================
@@ -54,55 +56,57 @@ struct
 
 static bool buzzer_check_next_note_isr(void * ptr);
 static bool buzzer_track_check_next_note(buzzerTrack_t* track, bool isActive, int64_t cTime);
-static bool toggle_buzzer_isr(void * arg);
 
 //==============================================================================
 // Functions
 //==============================================================================
 
 /**
- * @brief TODO
+ * @brief Initialize the buzzer
  * 
- * @param bzrGpio 
- * @param noteCheckGrpNum 
- * @param noteChkTmrNum 
- * @param bzrDriveGrpNum 
- * @param bzrDriveTmrNum 
- * @param isBgmMuted 
- * @param isSfxMuted 
+ * @param bzrGpio The GPIO the buzzer is attached to
+ * @param ledcTimer The LEDC timer used to drive the buzzer
+ * @param ledcChannel THe LED channel used to drive the buzzer
+ * @param noteCheckGrpNum The HW timer group used to check for new notes
+ * @param noteChkTmrNum The HW timer number used to check for new notes
+ * @param isBgmMuted True if background music is muted, false otherwise
+ * @param isSfxMuted True if sound effects are muted, false otherwise
  */
 void buzzer_init(gpio_num_t bzrGpio,
+    ledc_timer_t ledcTimer, ledc_channel_t ledcChannel,
     timer_group_t noteCheckGrpNum, timer_idx_t noteChkTmrNum,
-    timer_group_t bzrDriveGrpNum, timer_idx_t bzrDriveTmrNum,
     bool isBgmMuted, bool isSfxMuted)
 {
-    // Configure the GPIO
-    gpio_config_t bzrConf =
-    {
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = false,
-        .pull_down_en = false,
-        .pin_bit_mask = 1ULL << bzrGpio,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-    gpio_config(&bzrConf);
-    bzr.gpio = bzrGpio;
-    bzr.gpioLevel = 0;
-    gpio_set_level(bzr.gpio, bzr.gpioLevel);
+    // Save the LEDC timer and channel
+    bzr.ledcTimer = ledcTimer;
+    bzr.ledcChannel = ledcChannel;
 
-#ifdef DBG_GPIO
-    // Configure the GPIO
-    gpio_config_t dbgConf =
-    {
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = false,
-        .pull_down_en = false,
-        .pin_bit_mask = 1ULL << GPIO_NUM_17,
-        .intr_type = GPIO_INTR_DISABLE
+    // Prepare and then apply the LEDC PWM timer configuration
+    ledc_timer_config_t ledc_timer = {
+        .speed_mode       = LEDC_MODE,
+        .timer_num        = bzr.ledcTimer,
+        .duty_resolution  = LEDC_DUTY_RES,
+        .freq_hz          = C_4, // Gotta start somewhere, might as well be middle C
+        .clk_cfg          = LEDC_USE_APB_CLK
     };
-    gpio_config(&dbgConf);
-    gpio_set_level(GPIO_NUM_17, 0);
-#endif
+    ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
+
+    // Prepare and then apply the LEDC PWM channel configuration
+    ledc_channel_config_t ledc_channel = {
+        .speed_mode     = LEDC_MODE,
+        .channel        = bzr.ledcChannel,
+        .timer_sel      = bzr.ledcTimer,
+        .intr_type      = LEDC_INTR_DISABLE,
+        .gpio_num       = bzrGpio,
+        .duty           = LEDC_DUTY, // Set duty to 50%
+        .hpoint         = 0
+    };
+    ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+
+    // Stop all buzzer output
+    ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, bzr.ledcChannel, 0));
+    
+    ////////////////////////////////////////////////////////////////////////////
 
     // Configure the hardware timer to check for note transitions
     bzr.noteCheckGroupNum = noteCheckGrpNum;
@@ -131,41 +135,18 @@ void buzzer_init(gpio_num_t bzrGpio,
     timer_enable_intr(bzr.noteCheckGroupNum, bzr.noteCheckTimerNum);
 
     // Configure the ISR
-    timer_isr_callback_add(bzr.noteCheckGroupNum, bzr.noteCheckTimerNum, buzzer_check_next_note_isr, NULL, 0);
+    timer_isr_callback_add(bzr.noteCheckGroupNum, bzr.noteCheckTimerNum, 
+        buzzer_check_next_note_isr, NULL, 0);
 
-    // Start the timer
-    timer_start(bzr.noteCheckGroupNum, bzr.noteCheckTimerNum);
-
-    // Configure the hardware timer to drive the buzzer
-    bzr.bzrGroupNum = bzrDriveGrpNum;
-    bzr.bzrTimerNum = bzrDriveTmrNum;
-
-    // Initialize the timer to drive the buzzer
-    timer_config_t bzrDriveConfig =
-    {
-        .divider = TIMER_DIVIDER_DRIVE,
-        .counter_dir = TIMER_COUNT_UP,
-        .counter_en = TIMER_PAUSE,
-        .alarm_en = TIMER_ALARM_EN,
-        .auto_reload = TIMER_AUTORELOAD_EN,
-    }; // default clock source is APB
-
-    timer_init(bzr.bzrGroupNum, bzr.bzrTimerNum, &bzrDriveConfig);
-
-    // Configure the ISR
-    timer_isr_callback_add(bzr.bzrGroupNum, bzr.bzrTimerNum, toggle_buzzer_isr, NULL, 0);
-
-    // Enable the interrupt
-    timer_enable_intr(bzr.bzrGroupNum, bzr.bzrTimerNum);
-
-    // Do not start the timer
-    timer_pause(bzr.bzrGroupNum, bzr.bzrTimerNum);
+    // Don't start the timer until a song is played
+    timer_pause(bzr.noteCheckGroupNum, bzr.noteCheckTimerNum);
 }
 
 /**
- * @brief TODO
+ * @brief Start playing a background music on the buzzer. This has lower priority
+ * than sound effects
  * 
- * @param song 
+ * @param song The song to play as a sequence of notes
  */
 void buzzer_play_bgm(const song_t* song)
 {
@@ -183,9 +164,10 @@ void buzzer_play_bgm(const song_t* song)
 }
 
 /**
- * @brief TODO
+ * @brief Start playing a sound effect on the buzzer. This has higher priority
+ * than background music
  * 
- * @param song 
+ * @param song The song to play as a sequence of notes
  */
 void buzzer_play_sfx(const song_t* song)
 {
@@ -199,8 +181,7 @@ void buzzer_play_sfx(const song_t* song)
 }
 
 /**
- * @brief TODO
- * 
+ * @brief Stop the buzzer from playing anything
  */
 void buzzer_stop(void)
 {
@@ -223,9 +204,11 @@ void buzzer_stop(void)
 /////////////////////////////
 
 /**
- * @brief TODO
+ * @brief Start playing a single note on the buzzer.
+ * This note will play until stopped.
+ * This has IRAM_ATTR because it may be called from an interrupt
  * 
- * @param freq cycles per second
+ * @param freq The frequency of the note
  */
 void IRAM_ATTR playNote(noteFrequency_t freq)
 {
@@ -236,50 +219,31 @@ void IRAM_ATTR playNote(noteFrequency_t freq)
     }
     else
     {
-        // Configure the alarm value and the interrupt on alarm.
-        timer_set_alarm_value(bzr.bzrGroupNum, bzr.bzrTimerNum, TIMER_DRIVE_TICKS_PER_SECOND / (2 * freq));
-
-        // Set initial timer count value
-        // timer_set_counter_value(bzr.bzrGroupNum, bzr.bzrTimerNum, 0);
-
-        // Start the timer
-        timer_start(bzr.bzrGroupNum, bzr.bzrTimerNum);
+        // Set the frequency
+        ledc_set_freq(LEDC_MODE, bzr.ledcTimer, freq);
+        // Set duty to 50%
+        ledc_set_duty(LEDC_MODE, bzr.ledcChannel, LEDC_DUTY);
+        // Update duty to start the buzzer
+        ledc_update_duty(LEDC_MODE, bzr.ledcChannel);
     }
 }
 
 /**
- * @brief TODO
- * 
+ * @brief Stop playing a single note on the buzzer
+ * This has IRAM_ATTR because it may be called from an interrupt
  */
 void IRAM_ATTR stopNote(void)
 {
-    timer_pause(bzr.bzrGroupNum, bzr.bzrTimerNum);
-    // bzr.gpioLevel = 0;
-    // gpio_set_level(bzr.gpio, bzr.gpioLevel);
+    ledc_stop(LEDC_MODE, bzr.ledcChannel, 0);
 }
 
 /////////////////////////////
 
 /**
- * @brief TODO
- * 
- * @param arg 
- * @return true 
- * @return false 
- */
-static bool IRAM_ATTR toggle_buzzer_isr(void * arg)
-{
-    bzr.gpioLevel = bzr.gpioLevel ? 0 : 1;
-    gpio_set_level(bzr.gpio, bzr.gpioLevel);
-#ifdef DBG_GPIO
-    gpio_set_level(GPIO_NUM_17, bzr.gpioLevel);
-#endif
-    return false;
-}
-
-/**
  * @brief Check if there is a new note to play on the buzzer. 
  * This is called periodically in a timer interrupt
+ * 
+ * This has IRAM_ATTR because it is an interrupt
  */
 static bool IRAM_ATTR buzzer_check_next_note_isr(void * ptr)
 {
@@ -303,7 +267,8 @@ static bool IRAM_ATTR buzzer_check_next_note_isr(void * ptr)
  * Check a specific track for notes to be played and queue them for playing.
  * This will always advance through notes in a song, even if it's not the active
  * track
- *
+ * This has IRAM_ATTR because it is called from buzzer_check_next_note_isr()
+ * 
  * @param track The track to advance notes in
  * @param isActive true if this is active and should set a note to be played
  *                 false to just advance notes without playing

@@ -4,9 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "hal/gpio_types.h"
-#include "driver/rmt.h"
-#include "soc/rmt_reg.h"
-#include "hal/timer_types.h"
+#include "driver/timer.h"
+#include "driver/ledc.h"
 
 // Frequencies of notes
 typedef enum
@@ -164,8 +163,8 @@ typedef struct
 } song_t;
 
 void buzzer_init(gpio_num_t bzrGpio,
+    ledc_timer_t ledcTimer, ledc_channel_t ledcChannel,
     timer_group_t noteCheckGrpNum, timer_idx_t noteChkTmrNum,
-    timer_group_t bzrDriveGrpNum, timer_idx_t bzrDriveTmrNum,
     bool isBgmMuted, bool isSfxMuted);
 void buzzer_play_bgm(const song_t* song);
 void buzzer_play_sfx(const song_t* song);
