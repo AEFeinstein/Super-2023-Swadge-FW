@@ -130,14 +130,19 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         paintState->saveInProgress = true;
         if (paintState->isSaveSelected)
         {
+            disableCursor();
             paintSave(&paintState->canvas, paintState->selectedSlot);
+            enableCursor();
         }
         else
         {
             if (paintGetSlotInUse(paintGetRecentSlot()))
             {
                 // Load from the selected slot if it's been used
+                disableCursor();
+                paintClearCanvas(&paintState->canvas);
                 paintLoad(&paintState->canvas, paintState->selectedSlot);
+                enableCursor();
             }
             else
             {
@@ -275,13 +280,15 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                 if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
                 {
                     // Previous save slot
-                    do
+                    if (paintState->isSaveSelected)
                     {
-                        // Switch to the previous slot, wrapping back to the end
-                        paintState->selectedSlot = (paintState->selectedSlot == 0) ? PAINT_SAVE_SLOTS - 1 : paintState->selectedSlot - 1;
+                        // Just get the previous slot
+                        paintState->selectedSlot = PREV_WRAP(paintState->selectedSlot, PAINT_SAVE_SLOTS);
                     }
-                    // If we're loading, and there's actually a slot we can load from, skip empty slots until we find one that is in use
-                    while (!paintState->isSaveSelected && paintGetAnySlotInUse() && !paintGetSlotInUse(paintState->selectedSlot));
+                    else
+                    {
+                        paintState->selectedSlot = paintGetPrevSlotInUse(paintState->selectedSlot);
+                    }
                 }
                 else if (paintState->saveMenu == CONFIRM_OVERWRITE)
                 {
@@ -295,13 +302,14 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
             {
                 if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
                 {
-                    // Next save slot
-                    do
+                    if (paintState->isSaveSelected)
                     {
-                        paintState->selectedSlot = (paintState->selectedSlot + 1) % PAINT_SAVE_SLOTS;
+                        paintState->selectedSlot = NEXT_WRAP(paintState->selectedSlot, PAINT_SAVE_SLOTS);
                     }
-                    // If we're loading, and there's actually a slot we can load from, skip empty slots until we find one that is in use
-                    while (!paintState->isSaveSelected && paintGetAnySlotInUse() && !paintGetSlotInUse(paintState->selectedSlot));
+                    else
+                    {
+                        paintState->selectedSlot = paintGetNextSlotInUse(paintState->selectedSlot);
+                    }
                 }
                 else if (paintState->saveMenu == CONFIRM_OVERWRITE)
                 {

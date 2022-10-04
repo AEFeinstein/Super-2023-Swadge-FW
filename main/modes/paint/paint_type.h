@@ -11,6 +11,7 @@
 
 typedef paletteColor_t (*colorMapFn_t)(paletteColor_t col);
 
+
 /// @brief Defines each separate screen in the paint mode.
 typedef enum
 {
@@ -51,6 +52,48 @@ typedef enum
     PICK_SLOT_SAVE_LOAD,
     CONFIRM_OVERWRITE,
 } paintSaveMenu_t;
+
+// For tracking the state of the sharing / receiving process
+typedef enum
+{
+    /////// Sender States
+
+    // Sender is selecting slot to be shared (initial sender state)
+    SHARE_SEND_SELECT_SLOT,
+
+    // Sender is waiting for connection
+    SHARE_SEND_WAIT_FOR_CONN,
+
+    // Sender is sending canvas metadata
+    SHARE_SEND_CANVAS_DATA,
+
+    // Sender sent canvas data and is waiting for ack from receiver
+    SHARE_SEND_WAIT_CANVAS_DATA_ACK,
+
+    // Sender got canvas data ack, is now sending pixel data packets
+    SHARE_SEND_PIXEL_DATA,
+
+    // Sender sent pixel data, is waiting for ack
+    SHARE_SEND_WAIT_PIXEL_DATA_ACK,
+
+    // All done!
+    SHARE_SEND_COMPLETE,
+
+
+    //////// Receiver States
+
+    // Receiver is waiting for connection (initial receiver state)
+    SHARE_RECV_WAIT_FOR_CONN,
+
+    // Receiver is waiting for canvas metadata
+    SHARE_RECV_WAIT_CANVAS_DATA,
+
+    // Receiver is receiving pixel data
+    SHARE_RECV_PIXEL_DATA,
+
+    // Receiver has all pixel data and must pick save slot
+    SHARE_RECV_SELECT_SLOT,
+} paintShareState_t;
 
 /// @brief Definition for a paintable screen region
 typedef struct

@@ -133,3 +133,19 @@ void paintDrawWsgTemp(display_t* disp, const wsg_t* wsg, pxStack_t* saveTo, uint
         }
     }
 }
+
+// Calculate the maximum possible [square] scale, given the display's dimensions and the image dimensions, plus any margins required
+uint8_t paintGetMaxScale(display_t* disp, uint16_t imgW, uint16_t imgH, uint16_t xMargin, uint16_t yMargin)
+{
+    uint16_t maxW = disp->w - xMargin;
+    uint16_t maxH = disp->h - yMargin;
+
+    uint8_t scale = 1;
+
+    while (imgW * (scale + 1) <= maxW && imgH * (scale + 1) <= maxH)
+    {
+        scale++;
+    }
+
+    return scale;
+}

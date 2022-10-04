@@ -7,6 +7,7 @@
 #include "swadgeMode.h"
 #include "meleeMenu.h"
 #include "led_util.h"
+#include "p2pConnection.h"
 
 #include "px_stack.h"
 #include "paint_type.h"
@@ -39,6 +40,9 @@
 
 // The size of the buffer for loading/saving the image. Each chunk is saved as a separate blob in NVS
 #define PAINT_SAVE_CHUNK_SIZE 1024
+
+#define PAINT_SHARE_PX_PACKET_LEN (P2P_MAX_DATA_LEN - 3 - 11)
+#define PAINT_SHARE_PX_PER_PACKET PAINT_SHARE_PX_PACKET_LEN * 2
 
 #define PAINT_CANVAS_SCALE 3
 #define PAINT_CANVAS_WIDTH 70
@@ -79,6 +83,11 @@
 // Convert from world coordinates to canvas coordinates
 #define SCR2CNV_X(x) ((x - PAINT_CANVAS_X_OFFSET) / PAINT_CANVAS_SCALE)
 #define SCR2CNV_Y(y) ((y - PAINT_CANVAS_Y_OFFSET) / PAINT_CANVAS_SCALE)
+
+
+// Calculates previous and next items with wraparound
+#define PREV_WRAP(i, count) ((i) == 0 ? (count) - 1 : (i - 1))
+#define NEXT_WRAP(i, count) ((i + 1) % count)
 
 
 #define MAX_PICK_POINTS 16
@@ -213,6 +222,30 @@ typedef struct
 
     // Index keeping track of which slots are in use and the most recent slot
     int32_t index;
+
+
+    //////// Share / Receive flags
+
+    // The save slot being displayed / shared
+    uint8_t shareSaveSlot;
+
+    paintShareState_t shareState;
+
+    bool shareAcked;
+
+    // For the sender, the sequence number of the current packet being sent / waiting for ack
+    uint16_t shareSeqNum;
+
+    uint8_t sharePacket[P2P_MAX_DATA_LEN];
+    uint8_t sharePacketLen;
+
+    uint8_t sharePaletteMap[256];
+
+    // Set to true when a new packet has been written to sharePacket, either to be sent or to be handled
+    bool shareNewPacket;
+
+    p2pInfo p2pInfo;
+
 } paintMenu_t;
 
 

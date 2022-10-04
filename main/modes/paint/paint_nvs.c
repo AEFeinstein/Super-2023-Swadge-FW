@@ -141,8 +141,6 @@ void paintSave(const paintCanvas_t* canvas, uint8_t slot)
     PAINT_LOGD("We will use %d chunks of size %dB (%d), plus one of %dB == %dB to save the image", chunkCount - 1, PAINT_SAVE_CHUNK_SIZE, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE, finalChunkSize, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE + finalChunkSize);
     PAINT_LOGD("The image is %d x %d px == %dpx, at 2px/B that's %dB", canvas->w, canvas->h, totalPx, totalPx / 2);
 
-    disableCursor();
-
     uint16_t x0, y0, x1, y1;
     // Write all the chunks
     for (uint32_t i = 0; i < chunkCount; i++)
@@ -178,8 +176,6 @@ void paintSave(const paintCanvas_t* canvas, uint8_t slot)
         {
             PAINT_LOGE("Unable to save blob %d of %d", i+1, chunkCount);
             free(imgChunk);
-
-            enableCursor();
             return;
         }
     }
@@ -190,8 +186,6 @@ void paintSave(const paintCanvas_t* canvas, uint8_t slot)
 
     free(imgChunk);
     imgChunk = NULL;
-
-    enableCursor();
 }
 
 void paintLoad(paintCanvas_t* canvas, uint8_t slot)
@@ -236,21 +230,7 @@ void paintLoad(paintCanvas_t* canvas, uint8_t slot)
         return;
     }
 
-    // Read the canvas dimensions
-    PAINT_LOGD("Reading dimensions");
-    int32_t packedSize;
-    snprintf(key, 16, "paint_%02d_dim", slot);
-    if (readNvs32(key, &packedSize))
-    {
-        canvas->h = (uint32_t)packedSize & 0xFFFF;
-        canvas->w = (((uint32_t)packedSize) >> 16) & 0xFFFF;
-        PAINT_LOGD("Read dimensions from slot %s: %d x %d", key, canvas->w, canvas->h);
-    }
-    else
-    {
-        PAINT_LOGE("Couldn't read dimensions from slot %s",key);
-        return;
-    }
+    paintLoadDimensions(canvas, slot);
 
     // Allocate space for the chunk
     uint32_t totalPx = canvas->h * canvas->w;
@@ -264,9 +244,6 @@ void paintLoad(paintCanvas_t* canvas, uint8_t slot)
         PAINT_LOGE("malloc failed for %d bytes", PAINT_SAVE_CHUNK_SIZE);
         return;
     }
-
-    disableCursor();
-    paintClearCanvas(canvas);
 
     size_t lastChunkSize;
     uint16_t x0, y0, x1, y1;
@@ -324,6 +301,47 @@ void paintLoad(paintCanvas_t* canvas, uint8_t slot)
 
     free(imgChunk);
     imgChunk = NULL;
+}
 
-    enableCursor();
+void paintLoadDimensions(paintCanvas_t* canvas, uint8_t slot)
+{
+    char key[16];
+    // Read the canvas dimensions
+    PAINT_LOGD("Reading dimensions");
+    int32_t packedSize;
+    snprintf(key, 16, "paint_%02d_dim", slot);
+    if (readNvs32(key, &packedSize))
+    {
+        canvas->h = (uint32_t)packedSize & 0xFFFF;
+        canvas->w = (((uint32_t)packedSize) >> 16) & 0xFFFF;
+        PAINT_LOGD("Read dimensions from slot %s: %d x %d", key, canvas->w, canvas->h);
+    }
+    else
+    {
+        PAINT_LOGE("Couldn't read dimensions from slot %s",key);
+        return;
+    }
+}
+
+uint8_t paintGetPrevSlotInUse(uint8_t slot)
+{
+    do
+    {
+        // Switch to the previous slot, wrapping back to the end
+        slot = PREV_WRAP(slot, PAINT_SAVE_SLOTS);
+    }
+    // If we're loading, and there's actually a slot we can load from, skip empty slots until we find one that is in use
+    while (paintGetAnySlotInUse() && !paintGetSlotInUse(slot));
+
+    return slot;
+}
+
+uint8_t paintGetNextSlotInUse(uint8_t slot)
+{
+    do
+    {
+        slot = NEXT_WRAP(slot, PAINT_SAVE_SLOTS);
+    } while (paintGetAnySlotInUse() && !paintGetSlotInUse(slot));
+
+    return slot;
 }

@@ -18,6 +18,8 @@
 #include "paint_common.h"
 #include "paint_util.h"
 #include "paint_draw.h"
+#include "paint_share.h"
+#include "paint_nvs.h"
 
 /*
  * REMAINING BIG THINGS TO DO:
@@ -41,6 +43,7 @@
 static const char paintTitle[] = "MFPaint";
 static const char menuOptDraw[] = "Draw";
 static const char menuOptGallery[] = "Gallery";
+static const char menuOptShare[] = "Share";
 static const char menuOptReceive[] = "Receive";
 static const char menuOptExit[] = "Exit";
 
@@ -134,6 +137,7 @@ void paintMainLoop(int64_t elapsedUs)
     break;
 
     case PAINT_GALLERY:
+
     break;
 
     case PAINT_HELP:
@@ -201,9 +205,17 @@ void paintButtonCb(buttonEvt_t* evt)
 
 void paintInitialize(void)
 {
+    paintLoadIndex();
     resetMeleeMenu(paintState->menu, paintTitle, paintMainMenuCb);
     addRowToMeleeMenu(paintState->menu, menuOptDraw);
     addRowToMeleeMenu(paintState->menu, menuOptGallery);
+
+    if (paintGetAnySlotInUse())
+    {
+        // Only add "share" if there's something to share
+        addRowToMeleeMenu(paintState->menu, menuOptShare);
+    }
+
     addRowToMeleeMenu(paintState->menu, menuOptReceive);
     addRowToMeleeMenu(paintState->menu, menuOptExit);
 
@@ -224,10 +236,17 @@ void paintMainMenuCb(const char* opt)
         PAINT_LOGI("Selected Gallery");
         paintState->screen = PAINT_GALLERY;
     }
+    else if (opt == menuOptShare)
+    {
+        PAINT_LOGI("Selected Share");
+        paintShareIsSender = true;
+        switchToSwadgeMode(&modePaintShare);
+    }
     else if (opt == menuOptReceive)
     {
         PAINT_LOGI("Selected Receive");
-        paintState->screen = PAINT_RECEIVE;
+        paintShareIsSender = false;
+        switchToSwadgeMode(&modePaintShare);
     }
     else if (opt == menuOptExit)
     {
