@@ -920,6 +920,7 @@ void paintShareButtonCb(buttonEvt_t* evt)
     } else if (paintState->shareState == SHARE_SEND_COMPLETE)
     {
         paintState->shareState = SHARE_SEND_SELECT_SLOT;
+        paintState->shareUpdateScreen = true;
     }
 }
 
