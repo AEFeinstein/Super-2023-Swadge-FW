@@ -21,7 +21,7 @@
 
 
 // The total number of save slots available
-#define PAINT_SAVE_SLOTS 8
+#define PAINT_SAVE_SLOTS 4
 
 // Whether to have the LEDs show the current colors
 #define PAINT_ENABLE_LEDS (0x0001 << (PAINT_SAVE_SLOTS * 2))
