@@ -46,6 +46,12 @@ bool paintGetSlotInUse(uint8_t slot)
     return (paintState->index & (1 << slot)) != 0;
 }
 
+void paintClearSlot(uint8_t slot)
+{
+    paintState->index &= ~(1 << slot);
+    paintSaveIndex();
+}
+
 void paintSetSlotInUse(uint8_t slot)
 {
     paintState->index |= (1 << slot);
@@ -71,7 +77,7 @@ void paintSetRecentSlot(uint8_t slot)
     paintSaveIndex();
 }
 
-void paintSave(const paintCanvas_t* canvas, uint8_t slot)
+bool paintSave(const paintCanvas_t* canvas, uint8_t slot)
 {
     // palette in reverse for quick transformation
     uint8_t paletteIndex[256];
@@ -93,7 +99,7 @@ void paintSave(const paintCanvas_t* canvas, uint8_t slot)
     else
     {
         PAINT_LOGE("Could't save palette to slot %s", key);
-        return;
+        return false;
     }
 
     // Save the canvas dimensions
@@ -106,7 +112,7 @@ void paintSave(const paintCanvas_t* canvas, uint8_t slot)
     else
     {
         PAINT_LOGE("Couldn't save dimensions to slot %s",key);
-        return;
+        return false;
     }
 
     // Build the reverse-palette map
@@ -135,7 +141,7 @@ void paintSave(const paintCanvas_t* canvas, uint8_t slot)
     else
     {
         PAINT_LOGE("malloc failed for %d bytes", PAINT_SAVE_CHUNK_SIZE);
-        return;
+        return false;
     }
 
     PAINT_LOGD("We will use %d chunks of size %dB (%d), plus one of %dB == %dB to save the image", chunkCount - 1, PAINT_SAVE_CHUNK_SIZE, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE, finalChunkSize, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE + finalChunkSize);
@@ -176,7 +182,7 @@ void paintSave(const paintCanvas_t* canvas, uint8_t slot)
         {
             PAINT_LOGE("Unable to save blob %d of %d", i+1, chunkCount);
             free(imgChunk);
-            return;
+            return false;
         }
     }
 
@@ -186,9 +192,11 @@ void paintSave(const paintCanvas_t* canvas, uint8_t slot)
 
     free(imgChunk);
     imgChunk = NULL;
+
+    return true;
 }
 
-void paintLoad(paintCanvas_t* canvas, uint8_t slot)
+bool paintLoad(paintCanvas_t* canvas, uint8_t slot)
 {
     // NVS blob key name
     char key[16];
@@ -205,7 +213,7 @@ void paintLoad(paintCanvas_t* canvas, uint8_t slot)
     if (!paintGetSlotInUse(slot))
     {
         PAINT_LOGW("Attempted to load from uninitialized slot %d", slot);
-        return;
+        return false;
     }
 
     // Load the palette map
@@ -214,7 +222,7 @@ void paintLoad(paintCanvas_t* canvas, uint8_t slot)
     if (!readNvsBlob(key, NULL, &paletteSize))
     {
         PAINT_LOGE("Couldn't read size of palette in slot %s", key);
-        return;
+        return false;
     }
 
     // TODO Move this outside of this function
@@ -227,10 +235,15 @@ void paintLoad(paintCanvas_t* canvas, uint8_t slot)
     else
     {
         PAINT_LOGE("Could't read palette from slot %s", key);
-        return;
+        return false;
     }
 
-    paintLoadDimensions(canvas, slot);
+    if (!paintLoadDimensions(canvas, slot))
+    {
+        PAINT_LOGE("Slot %d has 0 dimension! Stopping load and clearing slot", slot);
+        paintClearSlot(slot);
+        return false;
+    }
 
     // Allocate space for the chunk
     uint32_t totalPx = canvas->h * canvas->w;
@@ -242,7 +255,7 @@ void paintLoad(paintCanvas_t* canvas, uint8_t slot)
     else
     {
         PAINT_LOGE("malloc failed for %d bytes", PAINT_SAVE_CHUNK_SIZE);
-        return;
+        return false;
     }
 
     size_t lastChunkSize;
@@ -301,9 +314,11 @@ void paintLoad(paintCanvas_t* canvas, uint8_t slot)
 
     free(imgChunk);
     imgChunk = NULL;
+
+    return true;
 }
 
-void paintLoadDimensions(paintCanvas_t* canvas, uint8_t slot)
+bool paintLoadDimensions(paintCanvas_t* canvas, uint8_t slot)
 {
     char key[16];
     // Read the canvas dimensions
@@ -315,12 +330,19 @@ void paintLoadDimensions(paintCanvas_t* canvas, uint8_t slot)
         canvas->h = (uint32_t)packedSize & 0xFFFF;
         canvas->w = (((uint32_t)packedSize) >> 16) & 0xFFFF;
         PAINT_LOGD("Read dimensions from slot %s: %d x %d", key, canvas->w, canvas->h);
+
+        if (canvas->h == 0 || canvas->w == 0)
+        {
+            return false;
+        }
     }
     else
     {
         PAINT_LOGE("Couldn't read dimensions from slot %s",key);
-        return;
+        return false;
     }
+
+    return true;
 }
 
 uint8_t paintGetPrevSlotInUse(uint8_t slot)
