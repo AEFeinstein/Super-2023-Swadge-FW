@@ -32,6 +32,7 @@ void paintDecBrushWidth(void);
 void paintIncBrushWidth(void);
 
 // Cursor helper functions
+void setCursor(const wsg_t* cursorWsg);
 void paintMoveCursorRel(int8_t xDiff, int8_t yDiff);
 void enableCursor(void);
 void disableCursor(void);

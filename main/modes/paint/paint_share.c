@@ -70,11 +70,30 @@ void paintShareRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, in
 void paintShareSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 
 void paintShareP2pConnCb(p2pInfo* p2p, connectionEvt_t evt);
-void paintShareP2pSendCb(p2pInfo* p2pInfo, messageStatus_t status);
-void paintShareP2pMsgRecvCb(p2pInfo* p2pInfo, const uint8_t* payload, uint8_t len);
+void paintShareP2pSendCb(p2pInfo* p2p, messageStatus_t status, const uint8_t* data, uint8_t len);
+void paintShareP2pMsgRecvCb(p2pInfo* p2p, const uint8_t* payload, uint8_t len);
 
+void paintShareRenderProgressBar(int64_t elapsedUs, uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+void paintRenderShareMode(int64_t elapsedUs);
+
+void paintBeginShare(void);
+
+void paintShareInitP2p(void);
+void paintShareDeinitP2p(void);
+
+void paintShareMsgSendOk(void);
+void paintShareMsgSendFail(void);
+
+void paintShareSendHello(void);
 void paintShareSendPixelRequest(void);
 void paintShareSendReceiveComplete(void);
+void paintShareSendAbort(void);
+
+void paintShareSendCanvas(void);
+void paintShareHandleCanvas(void);
+
+void paintShareSendPixels(void);
+void paintShareHandlePixels(void);
 
 void paintShareRetry(void);
 
@@ -303,7 +322,7 @@ void paintRenderShareMode(int64_t elapsedUs)
         fillDisplayArea(paintState->disp, 0, 0, paintState->disp->w, paintState->disp->h, SHARE_BG_COLOR);
     }
 
-    const char text[32];
+    char text[32];
 
     switch (paintState->shareState)
     {
@@ -929,7 +948,7 @@ void paintShareRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, in
     p2pRecvCb(&paintState->p2pInfo, mac_addr, (const uint8_t*)data, len, rssi);
 }
 
-void paintShareP2pSendCb(p2pInfo* p2pInfo, messageStatus_t status)
+void paintShareP2pSendCb(p2pInfo* p2p, messageStatus_t status, const uint8_t* data, uint8_t len)
 {
     switch (status)
     {
