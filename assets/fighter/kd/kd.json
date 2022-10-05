@@ -138,13 +138,13 @@
          "type":"dash",
          "startupLag":50,
          "startupLagSpr":{
-            "sprite":"kid0.wsg"
+            "sprite":"kfgw.wsg"
          },
          "attack_frames":[
             {
                "duration":375,
                "atkSpr":{
-                  "sprite":"kid0.wsg"
+                  "sprite":"kfga.wsg"
                },
                "velo_x":30000,
                "hitboxes":[
@@ -163,7 +163,7 @@
          ],
          "endLag":300,
          "endLagSpr":{
-            "sprite":"kid0.wsg"
+            "sprite":"kfgc.wsg"
          }
       },
       {
