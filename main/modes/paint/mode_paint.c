@@ -245,14 +245,12 @@ void paintMainMenuCb(const char* opt)
     else if (opt == menuOptShare)
     {
         PAINT_LOGI("Selected Share");
-        paintShareIsSender = true;
         switchToSwadgeMode(&modePaintShare);
     }
     else if (opt == menuOptReceive)
     {
         PAINT_LOGI("Selected Receive");
-        paintShareIsSender = false;
-        switchToSwadgeMode(&modePaintShare);
+        switchToSwadgeMode(&modePaintReceive);
     }
     else if (opt == menuOptExit)
     {

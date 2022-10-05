@@ -57,7 +57,6 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
                         paintState->gallerySpeed = GALLERY_MIN_TIME;
                     }
                 }
-                PAINT_LOGD("speed: %ldms", paintState->gallerySpeed / 1000);
                 paintState->galleryTime = 0;
                 break;
             }
@@ -72,7 +71,6 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
                         paintState->gallerySpeed = GALLERY_MAX_TIME;
                     }
                 }
-                PAINT_LOGD("speed: %ldms", paintState->gallerySpeed / 1000);
                 paintState->galleryTime = 0;
                 break;
             }

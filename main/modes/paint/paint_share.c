@@ -60,9 +60,9 @@ static const char strOverwriteSlot[] = "Overwrite Slot %d";
 static const char strEmptySlot[] = "Save in Slot %d";
 static const char strShareSlot[] = "Share Slot %d";
 
-bool paintShareIsSender;
-
+void paintShareCommonSetup(display_t* disp);
 void paintShareEnterMode(display_t* disp);
+void paintReceiveEnterMode(display_t* disp);
 void paintShareExitMode(void);
 void paintShareMainLoop(int64_t elapsedUs);
 void paintShareButtonCb(buttonEvt_t* evt);
@@ -119,9 +119,25 @@ swadgeMode modePaintShare =
     .fnTemperatureCallback = NULL,
 };
 
+swadgeMode modePaintReceive =
+{
+    .modeName = "MFPaint.net",
+    .fnEnterMode = paintReceiveEnterMode,
+    .fnExitMode = paintShareExitMode,
+    .fnMainLoop = paintShareMainLoop,
+    .fnButtonCallback = paintShareButtonCb,
+    .fnTouchCallback = NULL,
+    .wifiMode = ESP_NOW,
+    .fnEspNowRecvCb = paintShareRecvCb,
+    .fnEspNowSendCb = paintShareSendCb,
+    .fnAccelerometerCallback = NULL,
+    .fnAudioCallback = NULL,
+    .fnTemperatureCallback = NULL,
+};
+
 static bool isSender(void)
 {
-    return paintShareIsSender;
+    return paintState->isSender;;
 }
 
 void paintShareInitP2p(void)
@@ -144,7 +160,7 @@ void paintShareDeinitP2p(void)
     paintState->shareNewPacket = false;
 }
 
-void paintShareEnterMode(display_t* disp)
+void paintShareCommonSetup(display_t* disp)
 {
     paintState = calloc(1, sizeof(paintMenu_t));
 
@@ -164,26 +180,32 @@ void paintShareEnterMode(display_t* disp)
     paintState->shareNewPacket = false;
     paintState->shareUpdateScreen = true;
     paintState->shareTime = 0;
+}
 
+void paintReceiveEnterMode(display_t* disp)
+{
+    paintShareCommonSetup(disp);
+    paintState->isSender = false;
 
-    if (isSender())
-    {
-        //////// Load an image...
+    PAINT_LOGD("Receiver: Waiting for connection");
+    paintState->shareState = SHARE_RECV_WAIT_FOR_CONN;
+}
 
-        PAINT_LOGD("Sender: Selecting slot");
-        paintState->shareState = SHARE_SEND_SELECT_SLOT;
+void paintShareEnterMode(display_t* disp)
+{
+    paintShareCommonSetup(disp);
+    paintState->isSender = true;
 
-        // Start on the most recently saved slot
-        paintState->shareSaveSlot = paintGetRecentSlot();
-        PAINT_LOGD("paintState->shareSaveSlot = %d", paintState->shareSaveSlot);
+    //////// Load an image...
 
-        paintState->clearScreen = true;
-    }
-    else
-    {
-        PAINT_LOGD("Receiver: Waiting for connection");
-        paintState->shareState = SHARE_RECV_WAIT_FOR_CONN;
-    }
+    PAINT_LOGD("Sender: Selecting slot");
+    paintState->shareState = SHARE_SEND_SELECT_SLOT;
+
+    // Start on the most recently saved slot
+    paintState->shareSaveSlot = paintGetRecentSlot();
+    PAINT_LOGD("paintState->shareSaveSlot = %d", paintState->shareSaveSlot);
+
+    paintState->clearScreen = true;
 }
 
 void paintShareSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)

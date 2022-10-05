@@ -6,8 +6,6 @@
 #include "paint_common.h"
 
 extern swadgeMode modePaintShare;
-
-// Because I'm stupid and tried to pass state in a struct that gets freed between modes
-extern bool paintShareIsSender;
+extern swadgeMode modePaintReceive;
 
 #endif

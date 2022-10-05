@@ -268,6 +268,8 @@ typedef struct
 
     uint8_t galleryScale;
 
+    bool isSender;
+
 } paintMenu_t;
 
 
