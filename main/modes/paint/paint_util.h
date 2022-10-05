@@ -20,4 +20,6 @@ void setPxScaled(display_t* disp, int x, int y, paletteColor_t col, int xTr, int
 
 uint8_t paintGetMaxScale(display_t* disp, uint16_t imgW, uint16_t imgH, uint16_t xMargin, uint16_t yMargin);
 
+void paintConvertPickPoints(const pxStack_t* pxStack, point_t* points);
+
 #endif

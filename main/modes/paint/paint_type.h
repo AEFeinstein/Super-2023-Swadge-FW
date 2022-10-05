@@ -1,7 +1,7 @@
 #ifndef _PAINT_TYPE_H_
 #define _PAINT_TYPE_H_
 
-#include "stdint.h"
+#include <stdint.h>
 
 #include "display.h"
 
