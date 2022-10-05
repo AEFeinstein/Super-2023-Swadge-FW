@@ -13,6 +13,7 @@
 
 void paintGallerySetup(void)
 {
+    paintState->canvas.disp = paintState->disp;
     paintState->gallerySpeed = GALLERY_MIN_TIME;
     paintState->galleryTime = 0;
     paintState->galleryLoadNew = true;
