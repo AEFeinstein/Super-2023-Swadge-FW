@@ -227,7 +227,7 @@ void updatePlayer(entity_t *self)
         if(self->invincibilityFrames % 2){
             self->visible = !self->visible;
         }
-        
+
         if(self->invincibilityFrames <= 0){
             self->visible = true;
         }
@@ -1551,4 +1551,6 @@ void updateCheckpoint(entity_t* self){
             self->spriteIndex = SP_CHECKPOINT_ACTIVE_1 + ((self->spriteIndex + 1) % 2);
         }
     }
+
+    despawnWhenOffscreen(self);
 }
