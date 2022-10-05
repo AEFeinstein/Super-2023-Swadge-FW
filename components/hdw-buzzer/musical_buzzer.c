@@ -48,6 +48,7 @@ struct
     timer_idx_t noteCheckTimerNum;
     ledc_timer_t ledcTimer;
     ledc_channel_t ledcChannel;
+    uint32_t freq;
 } bzr;
 
 //==============================================================================
@@ -219,12 +220,16 @@ void IRAM_ATTR playNote(noteFrequency_t freq)
     }
     else
     {
-        // Set the frequency
-        ledc_set_freq(LEDC_MODE, bzr.ledcTimer, freq);
-        // Set duty to 50%
-        ledc_set_duty(LEDC_MODE, bzr.ledcChannel, LEDC_DUTY);
-        // Update duty to start the buzzer
-        ledc_update_duty(LEDC_MODE, bzr.ledcChannel);
+        if(bzr.freq != freq)
+        {
+            bzr.freq = freq;
+            // Set the frequency
+            ledc_set_freq(LEDC_MODE, bzr.ledcTimer, freq);
+            // Set duty to 50%
+            ledc_set_duty(LEDC_MODE, bzr.ledcChannel, LEDC_DUTY);
+            // Update duty to start the buzzer
+            ledc_update_duty(LEDC_MODE, bzr.ledcChannel);
+        }
     }
 }
 
@@ -234,6 +239,7 @@ void IRAM_ATTR playNote(noteFrequency_t freq)
  */
 void IRAM_ATTR stopNote(void)
 {
+    bzr.freq = 0;
     ledc_stop(LEDC_MODE, bzr.ledcChannel, 0);
 }
 

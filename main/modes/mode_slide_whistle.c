@@ -176,8 +176,6 @@ typedef struct
     font_t ibm_vga8;
     font_t radiostars;
 
-    song_t song;
-
     // Track motion
     int16_t roll;
     int16_t pitch;
@@ -989,14 +987,7 @@ void  slideWhistleEnterMode(display_t * disp)
     loadFont("ibm_vga8.font", &slideWhistle->ibm_vga8);
     loadFont("radiostars.font", &slideWhistle->radiostars);
 
-    // TODO: FIX THIS
-    //slideWhistle->song.notes = calloc(1, sizeof(musicalNote_t));
-    slideWhistle->song.notes[0].note = C_0;
-    slideWhistle->song.notes[0].timeMs = 1000;
-    slideWhistle->song.numNotes = 1;
-    slideWhistle->song.shouldLoop = true;
-
-    buzzer_stop();
+    stopNote();
 
     // Set default BPM to default
     slideWhistle->bpmIdx = rhythms[slideWhistle->rhythmIdx].defaultBpm;
@@ -1008,7 +999,10 @@ void  slideWhistleEnterMode(display_t * disp)
     slideWhistle->beatTimerArgs.name = "slideWhistleBeatTimer";
     slideWhistle->beatTimerArgs.skip_unhandled_events = true;
     esp_timer_create(&slideWhistle->beatTimerArgs, &slideWhistle->beatTimer);
-    esp_timer_start_periodic(slideWhistle->beatTimer, 1000);
+    if(!getSfxIsMuted())
+    {
+        esp_timer_start_periodic(slideWhistle->beatTimer, 1000);
+    }
 
     // Draw an initial display
     //slideWhistleMainLoop();
@@ -1255,7 +1249,7 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
     }
 
     // Warn the user that the swadge is muted, if that's the case
-    if(getIsMuted())
+    if(getSfxIsMuted())
     {
         drawText(
         slideWhistle->disp,
@@ -1359,7 +1353,7 @@ void  slideWhistleBeatTimerFunc(void* arg __attribute__((unused)))
     if(isInterNotePause)
     {
         // Turn off the buzzer and set the LEDs to dim
-        buzzer_stop();
+        stopNote();
         noteToColor(&leds[0], getCurrentNote(), 0x20);
     }
     else if(true == shouldPlayNote)
@@ -1376,15 +1370,13 @@ void  slideWhistleBeatTimerFunc(void* arg __attribute__((unused)))
                 (rhythms[slideWhistle->rhythmIdx].rhythm[slideWhistle->rhythmNoteIdx].note & REST_BIT))
         {
             // Turn off the buzzer and set the LEDs to dim
-            buzzer_stop();
+            stopNote();
             noteToColor(&leds[0], getCurrentNote(), 0x20);
         }
         else
         {
             // Arpeggiate as necessary
-            slideWhistle->song.notes[0].note = arpModify(getCurrentNote(), rhythms[slideWhistle->rhythmIdx].rhythm[slideWhistle->rhythmNoteIdx].arp);
-
-            buzzer_play_sfx(&slideWhistle->song);
+            playNote(arpModify(getCurrentNote(), rhythms[slideWhistle->rhythmIdx].rhythm[slideWhistle->rhythmNoteIdx].arp));
 
             // Set LEDs to bright
             noteToColor(&leds[0], getCurrentNote(), 0x40);
