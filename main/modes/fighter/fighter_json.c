@@ -28,6 +28,8 @@ int32_t parseJsonAttackFrame(      char* jsonStr, jsmntok_t* toks, int32_t tokId
                                    attackFrame_t* frm);
 int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSprite_t* loadedSprites,
                                    attackHitbox_t* hbx);
+int32_t parseJsonOffsetSprite(     char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSprite_t* loadedSprites,
+                                   offsetSprite_t* os);
 
 //==============================================================================
 // JSON Utility Functions
@@ -183,95 +185,72 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSp
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                ftr->idleSprite0 = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &ftr->idleSprite0);
                 free(name);
-                tokIdx++;
                 numFieldsParsed++;
             }
             else if (0 == jsoneq(jsonStr, &toks[tokIdx], "idle_spr_1"))
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                ftr->idleSprite1 = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &ftr->idleSprite1);
                 free(name);
-                tokIdx++;
                 numFieldsParsed++;
             }
             else if (0 == jsoneq(jsonStr, &toks[tokIdx], "run_spr_0"))
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                ftr->runSprite0 = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &ftr->runSprite0);
                 free(name);
-                tokIdx++;
                 numFieldsParsed++;
             }
             else if (0 == jsoneq(jsonStr, &toks[tokIdx], "run_spr_1"))
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                ftr->runSprite1 = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &ftr->runSprite1);
                 free(name);
-                tokIdx++;
                 numFieldsParsed++;
             }
             else if (0 == jsoneq(jsonStr, &toks[tokIdx], "jump_spr"))
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                ftr->jumpSprite = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &ftr->jumpSprite);
                 free(name);
-                tokIdx++;
                 numFieldsParsed++;
             }
             else if (0 == jsoneq(jsonStr, &toks[tokIdx], "duck_spr"))
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                ftr->duckSprite = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &ftr->duckSprite);
                 free(name);
-                tokIdx++;
                 numFieldsParsed++;
             }
             else if (0 == jsoneq(jsonStr, &toks[tokIdx], "land_lag_spr"))
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                ftr->landingLagSprite = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &ftr->landingLagSprite);
                 free(name);
-                tokIdx++;
                 numFieldsParsed++;
             }
             else if (0 == jsoneq(jsonStr, &toks[tokIdx], "hitstun_ground_sprite"))
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                ftr->hitstunGroundSprite = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &ftr->hitstunGroundSprite);
                 free(name);
-                tokIdx++;
                 numFieldsParsed++;
             }
             else if (0 == jsoneq(jsonStr, &toks[tokIdx], "hitstun_air_sprite"))
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                ftr->hitstunAirSprite = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &ftr->hitstunAirSprite);
                 free(name);
-                tokIdx++;
-                numFieldsParsed++;
-            }
-            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "sprite_offset_x"))
-            {
-                tokIdx++;
-                ftr->sprite_offset.x = jsonInteger(jsonStr, toks[tokIdx]);
-                tokIdx++;
-                numFieldsParsed++;
-            }
-            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "sprite_offset_y"))
-            {
-                tokIdx++;
-                ftr->sprite_offset.y = jsonInteger(jsonStr, toks[tokIdx]);
-                tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "gravity"))
@@ -447,18 +426,16 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSpr
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                atk->startupLagSprite = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &atk->startupLagSprite);
                 free(name);
-                tokIdx++;
                 numFieldsParsed++;
             }
             else if (0 == jsoneq(jsonStr, &toks[tokIdx], "endLagSpr"))
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                atk->endLagSprite = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &atk->endLagSprite);
                 free(name);
-                tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "onlyFirstHit"))
@@ -554,27 +531,12 @@ int32_t parseJsonAttackFrame(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, nam
                 tokIdx++;
                 numFieldsParsed++;
             }
-            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "sprite"))
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "atkSpr"))
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                frm->sprite = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &frm->sprite);
                 free(name);
-                tokIdx++;
-                numFieldsParsed++;
-            }
-            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "sprite_offset_x"))
-            {
-                tokIdx++;
-                frm->sprite_offset.x = jsonInteger(jsonStr, toks[tokIdx]);
-                tokIdx++;
-                numFieldsParsed++;
-            }
-            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "sprite_offset_y"))
-            {
-                tokIdx++;
-                frm->sprite_offset.y = jsonInteger(jsonStr, toks[tokIdx]);
-                tokIdx++;
                 numFieldsParsed++;
             }
             else if (0 == jsoneq(jsonStr, &toks[tokIdx], "hurtbox_offset_x"))
@@ -761,9 +723,8 @@ int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokId
             {
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
-                hbx->projSprite = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &hbx->projSprite);
                 free(name);
-                tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "projectileDuration"))
@@ -798,6 +759,75 @@ int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokId
             {
                 tokIdx++;
                 hbx->projAccel.y = jsonInteger(jsonStr, toks[tokIdx]);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+        }
+        else
+        {
+            ESP_LOGE("JSON", "Non-string key!!");
+        }
+
+        // Check to return
+        if(numFieldsParsed == numFieldsToParse)
+        {
+            return tokIdx;
+        }
+    }
+    return tokIdx;
+}
+
+/**
+ * @brief Parse an offset sprite JSON object
+ * 
+ * @param jsonStr The whole JSON string
+ * @param toks An array of JSON tokens
+ * @param tokIdx The index of the current JSON token
+ * @param loadedSprites A list of sprites, used for loading
+ * @param os The offset sprite to load data into
+ * @return The index of the JSON token after parsing
+ */
+int32_t parseJsonOffsetSprite(char* jsonStr, jsmntok_t* toks, int32_t tokIdx,
+    namedSprite_t* loadedSprites, offsetSprite_t* os)
+{
+    // Each attack is an object
+    if(JSMN_OBJECT != toks[tokIdx].type)
+    {
+        ESP_LOGE("JSON", "Non-object!!");
+    }
+
+    // Keep track of fields so we know when we're done
+    uint8_t numFieldsParsed = 0;
+    uint8_t numFieldsToParse = toks[tokIdx].size;
+
+    // Move to the first field
+    tokIdx++;
+
+    // Parse the tokens
+    while(true)
+    {
+        if(JSMN_STRING == toks[tokIdx].type)
+        {
+            if (0 == jsoneq(jsonStr, &toks[tokIdx], "sprite"))
+            {
+                tokIdx++;
+                char* name = jsonString(jsonStr, toks[tokIdx]);
+                os->spriteIdx = loadFighterSprite(name, loadedSprites);
+                free(name);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "off_x"))
+            {
+                tokIdx++;
+                os->offset.x = jsonInteger(jsonStr, toks[tokIdx]);
+                tokIdx++;
+                numFieldsParsed++;
+            }
+            else if (0 == jsoneq(jsonStr, &toks[tokIdx], "off_y"))
+            {
+                tokIdx++;
+                os->offset.y = jsonInteger(jsonStr, toks[tokIdx]);
                 tokIdx++;
                 numFieldsParsed++;
             }
