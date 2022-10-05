@@ -54,6 +54,7 @@ const brush_t brushes[] =
 
 void paintDrawScreenSetup(void)
 {
+    paintState->screen = PAINT_DRAW;
     paintState->clearScreen = true;
 
     paintLoadIndex();
@@ -111,6 +112,10 @@ void paintDrawScreenSetup(void)
     paintState->canvas.palette[14] = c522;
     paintState->canvas.palette[15] = c103;
 
+
+    // Clear the LEDs
+    paintUpdateLeds();
+
     PAINT_LOGI("It's paintin' time! Canvas is %d x %d pixels!", paintState->canvas.w, paintState->canvas.h);
 }
 
@@ -121,6 +126,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
     {
         paintClearCanvas(&paintState->canvas);
         paintRenderAll();
+        paintUpdateLeds();
         paintState->clearScreen = false;
         paintState->showCursor = true;
     }
@@ -143,6 +149,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                 paintClearCanvas(&paintState->canvas);
                 paintLoad(&paintState->canvas, paintState->selectedSlot);
                 enableCursor();
+                paintUpdateLeds();
             }
             else
             {
@@ -164,6 +171,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
     if (paintState->recolorPickPoints)
     {
         paintDrawPickPoints();
+        paintUpdateLeds();
         paintState->recolorPickPoints = false;
     }
 
@@ -785,8 +793,23 @@ void paintUpdateRecents(uint8_t selectedIndex)
     }
     paintState->canvas.palette[0] = paintState->fgColor;
 
+    paintUpdateLeds();
+
     // If there are any pick points, update their color to reduce confusion
     paintDrawPickPoints();
+}
+
+void paintUpdateLeds(void)
+{
+    uint32_t rgb = paletteToRGB(paintState->fgColor);
+    for (uint8_t i = 0; i < NUM_LEDS; i++)
+    {
+        paintState->leds[i].b = (rgb >>  0) & 0xFF;
+        paintState->leds[i].g = (rgb >>  8) & 0xFF;
+        paintState->leds[i].r = (rgb >> 16) & 0xFF;
+    }
+
+    setLeds(paintState->leds, NUM_LEDS);
 }
 
 void paintDrawPickPoints(void)

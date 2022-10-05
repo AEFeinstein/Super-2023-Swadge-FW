@@ -88,16 +88,6 @@ void paintEnterMode(display_t* disp)
     loadFont("radiostars.font", &(paintState->toolbarFont));
 
     paintState->menu = initMeleeMenu(paintTitle, &(paintState->menuFont), paintMainMenuCb);
-
-    // Clear the LEDs
-    for (uint8_t i = 0; i < NUM_LEDS; i++)
-    {
-        paintState->leds[i].r = 0;
-        paintState->leds[i].g = 0;
-        paintState->leds[i].b = 0;
-    }
-    setLeds(paintState->leds, NUM_LEDS);
-
     paintInitialize();
 }
 
@@ -226,8 +216,6 @@ void paintInitialize(void)
     addRowToMeleeMenu(paintState->menu, menuOptExit);
 
     paintState->screen = PAINT_MENU;
-
-    paintDrawScreenSetup();
 }
 
 void paintMainMenuCb(const char* opt)
@@ -235,7 +223,7 @@ void paintMainMenuCb(const char* opt)
     if (opt == menuOptDraw)
     {
         PAINT_LOGI("Selected Draw");
-        paintState->screen = PAINT_DRAW;
+        paintDrawScreenSetup();
     }
     else if (opt == menuOptGallery)
     {

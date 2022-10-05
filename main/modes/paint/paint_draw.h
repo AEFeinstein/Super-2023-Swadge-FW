@@ -21,6 +21,7 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt);
 void paintDrawScreenSetup(void);
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
 void paintUpdateRecents(uint8_t selectedIndex);
+void paintUpdateLeds(void);
 void paintDrawPickPoints(void);
 void paintHidePickPoints(void);
 
