@@ -306,8 +306,6 @@ bool paintLoad(int32_t* index, paintCanvas_t* canvas, uint8_t slot)
         PAINT_LOGW("Loaded image had invalid bounds. Resetting to %d x %d", canvas->w, canvas->h);
     }
 
-    paintSetRecentSlot(index, slot);
-
     free(imgChunk);
     imgChunk = NULL;
 

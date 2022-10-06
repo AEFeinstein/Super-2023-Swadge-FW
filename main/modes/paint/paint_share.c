@@ -747,6 +747,7 @@ void paintShareMainLoop(int64_t elapsedUs)
         paintShare->shareUpdateScreen = true;
         if (!paintShare->connectionStarted)
         {
+            paintSetRecentSlot(&paintShare->index, paintShare->shareSaveSlot);
             paintShareInitP2p();
         }
         break;

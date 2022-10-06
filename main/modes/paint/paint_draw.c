@@ -90,14 +90,11 @@ void paintDrawScreenSetup(display_t* disp)
 
     paintLoadIndex(&paintState->index);
 
-    for (uint8_t i = 0; i < PAINT_SAVE_SLOTS; i++)
+    if (paintGetAnySlotInUse(paintState->index))
     {
-        if (paintGetSlotInUse(paintState->index, i))
-        {
-            paintState->isSaveSelected = false;
-            paintState->doSave = true;
-            break;
-        }
+        paintState->selectedSlot = paintGetRecentSlot(paintState->index);
+        paintState->isSaveSelected = false;
+        paintState->doSave = true;
     }
 
     // Set up the canvas with defaults
@@ -175,12 +172,13 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         }
         else
         {
-            if (paintGetSlotInUse(paintState->index, paintGetRecentSlot(paintState->index)))
+            if (paintGetSlotInUse(paintState->index, paintState->selectedSlot))
             {
                 // Load from the selected slot if it's been used
                 hideCursor(getCursor(), &paintState->canvas);
                 paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
                 paintLoad(&paintState->index, &paintState->canvas, paintState->selectedSlot);
+                paintSetRecentSlot(&paintState->index, paintState->selectedSlot);
 
                 getArtist()->fgColor = paintState->canvas.palette[0];
                 getArtist()->bgColor = paintState->canvas.palette[1];
