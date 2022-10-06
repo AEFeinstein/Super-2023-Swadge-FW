@@ -38,7 +38,7 @@
     #define M_PI 3.14159265358979323846
 #endif
 
-#define CORNER_OFFSET 9
+#define CORNER_OFFSET 12
 #define US_TO_QUIT 1048576 // 2^20, makes division easy
 
 #define NUM_GUITAR_STRINGS    6
@@ -356,8 +356,8 @@ void tunernomeEnterMode(display_t* disp)
     TUNER_FLAT_THRES_X = round(METRONOME_CENTER_X + (intermedX * METRONOME_RADIUS));
     TUNER_THRES_Y = round(METRONOME_CENTER_Y - (ABS(intermedY) * METRONOME_RADIUS));
 
-    loadWsg("uparrow.png", &(tunernome->upArrowWsg));
-    loadWsg("flat.png", &(tunernome->flatWsg));
+    loadWsg("uparrow.wsg", &(tunernome->upArrowWsg));
+    loadWsg("flat.wsg", &(tunernome->flatWsg));
 
     tunernome->tSigIdx = 0;
     tunernome->beatCtr = 0;
@@ -742,7 +742,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                                                    (tunernome->disp->w - tWidth) / 2 + 1,
                                                    (tunernome->disp->h - tunernome->ibm_vga8.h) / 2);
 
-                        // Append the png for a flat
+                        // Append the wsg for a flat
                         if(shouldDrawFlat)
                         {
                             drawWsg(tunernome->disp, &tunernome->flatWsg, textEnd, (tunernome->disp->h - tunernome->ibm_vga8.h) / 2, false, false,
@@ -824,7 +824,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                                                (tunernome->disp->w - tWidth) / 2 + 1,
                                                (tunernome->disp->h - tunernome->ibm_vga8.h) / 2);
 
-                    // Append the png for a flat
+                    // Append the wsg for a flat
                     if(shouldDrawFlat)
                     {
                         drawWsg(tunernome->disp, &tunernome->flatWsg, textEnd, (tunernome->disp->h - tunernome->ibm_vga8.h) / 2, false, false,
