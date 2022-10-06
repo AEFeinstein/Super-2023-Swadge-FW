@@ -1024,7 +1024,7 @@ void  slideWhistleEnterMode(display_t * disp)
  */
 void  slideWhistleExitMode(void)
 {
-    free(slideWhistle);
+    stopNote();
 
     freeFont(&slideWhistle->ibm_vga8);
     freeFont(&slideWhistle->radiostars);
@@ -1035,6 +1035,8 @@ void  slideWhistleExitMode(void)
 
     esp_timer_delete(slideWhistle->beatTimer);
     esp_timer_delete(slideWhistle->paramSwitchTimer);
+
+    free(slideWhistle);
 }
 
 /**
