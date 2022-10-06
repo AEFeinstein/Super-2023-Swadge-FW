@@ -102,9 +102,9 @@ typedef struct
     tuner_mode_t curTunerMode;
 
     display_t* disp;
-    font_t tom_thumb;
     font_t ibm_vga8;
     font_t radiostars;
+    font_t mm;
 
     buttonBit_t lastBpmButton;
     uint32_t bpmButtonCurChangeUs;
@@ -346,9 +346,9 @@ void tunernomeEnterMode(display_t* disp)
 
     tunernome->disp = disp;
 
-    loadFont("tom_thumb.font", &tunernome->tom_thumb);
     loadFont("ibm_vga8.font", &tunernome->ibm_vga8);
     loadFont("radiostars.font", &tunernome->radiostars);
+    loadFont("mm.font", &tunernome->mm);
 
     float intermedX = cosf(TONAL_DIFF_IN_TUNE_DEVIATION * M_PI / 17 );
     float intermedY = sinf(TONAL_DIFF_IN_TUNE_DEVIATION * M_PI / 17 );
@@ -437,9 +437,9 @@ void tunernomeExitMode(void)
 {
     buzzer_stop();
 
-    freeFont(&tunernome->tom_thumb);
     freeFont(&tunernome->ibm_vga8);
     freeFont(&tunernome->radiostars);
+    freeFont(&tunernome->mm);
 
     freeWsg(&(tunernome->upArrowWsg));
     freeWsg(&(tunernome->flatWsg));
@@ -522,9 +522,9 @@ void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrum
                                 uint16_t numNotes)
 {
     // Mode name
-    drawText(tunernome->disp, &tunernome->ibm_vga8, c555, instrumentName,
-             (tunernome->disp->w - textWidth(&tunernome->ibm_vga8, instrumentName)) / 2,
-             (tunernome->disp->h - tunernome->ibm_vga8.h) / 2);
+    drawText(tunernome->disp, &tunernome->mm, c555, instrumentName,
+             (tunernome->disp->w - textWidth(&tunernome->mm, instrumentName)) / 2,
+             (tunernome->disp->h - tunernome->mm.h) / 2);
 
     // Note names of strings, arranged to match LED positions
     bool oddNumLedRows = (numNotes / 2) % 2;
@@ -533,31 +533,44 @@ void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrum
         int y;
         if(oddNumLedRows)
         {
-            y = (tunernome->disp->h - tunernome->ibm_vga8.h) / 2 + (tunernome->ibm_vga8.h + 5) * (1 - i);
+            y = (tunernome->disp->h - tunernome->mm.h) / 2 + (tunernome->mm.h + 5) * (1 - i);
         }
         else
         {
-            y = tunernome->disp->h / 2 + (tunernome->ibm_vga8.h + 5) * (- i) + 2;
+            y = tunernome->disp->h / 2 + (tunernome->mm.h + 5) * (- i) + 2;
         }
 
-        drawText(tunernome->disp, &tunernome->ibm_vga8, c555, instrumentNotes[i],
-                 (tunernome->disp->w - textWidth(&tunernome->ibm_vga8, instrumentName)) / 2 -
-                 textWidth(&tunernome->ibm_vga8, /*placeholder for widest note name + ' '*/ "G4 "), y);
+        char buf[2] = {0};
+        strncpy(buf, instrumentNotes[i], 1);
+        drawText(tunernome->disp, &tunernome->mm, c555, buf,
+                 (tunernome->disp->w - textWidth(&tunernome->mm, instrumentName)) / 2 -
+                 textWidth(&tunernome->mm, /*placeholder for widest note name + ' '*/ "A4 "), y);
+
+        strncpy(buf, instrumentNotes[i] + 1, 1);
+        drawText(tunernome->disp, &tunernome->mm, c555, buf,
+                 (tunernome->disp->w - textWidth(&tunernome->mm, instrumentName)) / 2 -
+                 textWidth(&tunernome->mm, /*placeholder for widest octave number + ' '*/ "4 "), y);
     }
     for(int i = numNotes / 2; i < numNotes; i++)
     {
         int y;
         if(oddNumLedRows)
         {
-            y = (tunernome->disp->h - tunernome->ibm_vga8.h) / 2 + (tunernome->ibm_vga8.h + 5) * (i - (numNotes / 2) - 1);
+            y = (tunernome->disp->h - tunernome->mm.h) / 2 + (tunernome->mm.h + 5) * (i - (numNotes / 2) - 1);
         }
         else
         {
-            y = tunernome->disp->h / 2 + (tunernome->ibm_vga8.h + 5) * (i - (numNotes / 2) - 1) + 2;
+            y = tunernome->disp->h / 2 + (tunernome->mm.h + 5) * (i - (numNotes / 2) - 1) + 2;
         }
 
-        drawText(tunernome->disp, &tunernome->ibm_vga8, c555, instrumentNotes[i],
-                 (tunernome->disp->w + textWidth(&tunernome->ibm_vga8, instrumentName)) / 2 + textWidth(&tunernome->ibm_vga8, " "), y);
+        char buf[2] = {0};
+        strncpy(buf, instrumentNotes[i], 1);
+        drawText(tunernome->disp, &tunernome->mm, c555, buf,
+                 (tunernome->disp->w + textWidth(&tunernome->mm, instrumentName)) / 2 + textWidth(&tunernome->mm, " "), y);
+        
+        strncpy(buf, instrumentNotes[i] + 1, 1);
+        drawText(tunernome->disp, &tunernome->mm, c555, buf,
+                 (tunernome->disp->w + textWidth(&tunernome->mm, instrumentName)) / 2 + textWidth(&tunernome->mm, /*' ' + placeholder for widest note name without octave number*/ " A"), y);
     }
 }
 
@@ -733,19 +746,19 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     {
                         // Plot text on top of everything else
                         bool shouldDrawFlat = (semitoneNoteNames[semitoneNum][strlen(semitoneNoteNames[semitoneNum]) - 1] == 1);
-                        int16_t tWidth = textWidth(&tunernome->ibm_vga8, semitoneNoteNames[semitoneNum]);
+                        int16_t tWidth = textWidth(&tunernome->mm, semitoneNoteNames[semitoneNum]);
                         if(shouldDrawFlat)
                         {
                             tWidth += tunernome->flatWsg.w + 1;
                         }
-                        int16_t textEnd = drawText(tunernome->disp, &tunernome->ibm_vga8, c555, semitoneNoteNames[semitoneNum],
+                        int16_t textEnd = drawText(tunernome->disp, &tunernome->mm, c555, semitoneNoteNames[semitoneNum],
                                                    (tunernome->disp->w - tWidth) / 2 + 1,
-                                                   (tunernome->disp->h - tunernome->ibm_vga8.h) / 2);
+                                                   (tunernome->disp->h - tunernome->mm.h) / 2);
 
                         // Append the wsg for a flat
                         if(shouldDrawFlat)
                         {
-                            drawWsg(tunernome->disp, &tunernome->flatWsg, textEnd, (tunernome->disp->h - tunernome->ibm_vga8.h) / 2, false, false,
+                            drawWsg(tunernome->disp, &tunernome->flatWsg, textEnd, (tunernome->disp->h - tunernome->mm.h) / 2, false, false,
                                     0);
                         }
 
@@ -809,25 +822,25 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     // Plot text on top of everything else
                     uint8_t semitoneNum = (tunernome->curTunerMode - SEMITONE_0);
                     bool shouldDrawFlat = (semitoneNoteNames[semitoneNum][strlen(semitoneNoteNames[semitoneNum]) - 1] == 1);
-                    int16_t tWidth = textWidth(&tunernome->ibm_vga8, semitoneNoteNames[semitoneNum]);
+                    int16_t tWidth = textWidth(&tunernome->mm, semitoneNoteNames[semitoneNum]);
                     if(shouldDrawFlat)
                     {
                         tWidth += tunernome->flatWsg.w + 1;
                     }
                     fillDisplayArea(tunernome->disp,
                                     (tunernome->disp->w - tWidth) / 2,
-                                    (tunernome->disp->h - tunernome->ibm_vga8.h) / 2 - 1,
+                                    (tunernome->disp->h - tunernome->mm.h) / 2 - 1,
                                     (tunernome->disp->w - tWidth) / 2 + tWidth,
-                                    ((tunernome->disp->h - tunernome->ibm_vga8.h) / 2) + tunernome->ibm_vga8.h,
+                                    ((tunernome->disp->h - tunernome->mm.h) / 2) + tunernome->mm.h,
                                     c000);
-                    int16_t textEnd = drawText(tunernome->disp, &tunernome->ibm_vga8, c555, semitoneNoteNames[semitoneNum],
+                    int16_t textEnd = drawText(tunernome->disp, &tunernome->mm, c555, semitoneNoteNames[semitoneNum],
                                                (tunernome->disp->w - tWidth) / 2 + 1,
-                                               (tunernome->disp->h - tunernome->ibm_vga8.h) / 2);
+                                               (tunernome->disp->h - tunernome->mm.h) / 2);
 
                     // Append the wsg for a flat
                     if(shouldDrawFlat)
                     {
-                        drawWsg(tunernome->disp, &tunernome->flatWsg, textEnd, (tunernome->disp->h - tunernome->ibm_vga8.h) / 2, false, false,
+                        drawWsg(tunernome->disp, &tunernome->flatWsg, textEnd, (tunernome->disp->h - tunernome->mm.h) / 2, false, false,
                                 0);
                     }
                     break;
