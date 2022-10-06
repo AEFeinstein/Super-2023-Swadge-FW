@@ -14,7 +14,7 @@ static const char startMenuOverwrite[] = "Overwrite?";
 static const char startMenuYes[] = "Yes";
 static const char startMenuNo[] = "No";
 
-void drawColorBox(uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, paletteColor_t col, bool selected, paletteColor_t topBorder, paletteColor_t bottomBorder)
+void drawColorBox(display_t* disp, uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, paletteColor_t col, bool selected, paletteColor_t topBorder, paletteColor_t bottomBorder)
 {
     int dashLen = selected ? 1 : 0;
     if (selected)
@@ -26,34 +26,34 @@ void drawColorBox(uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, pa
     if (col == cTransparent)
     {
         // Draw a lil checkerboard
-        fillDisplayArea(paintState->disp, xOffset, yOffset, xOffset + w / 2, yOffset + h / 2, c111);
-        fillDisplayArea(paintState->disp, xOffset + w / 2, yOffset, xOffset + w, yOffset + h / 2, c555);
-        fillDisplayArea(paintState->disp, xOffset, yOffset + h / 2, xOffset + w / 2, yOffset + h, c555);
-        fillDisplayArea(paintState->disp, xOffset + w / 2, yOffset + h / 2, xOffset + w, yOffset + h, c111);
+        fillDisplayArea(disp, xOffset, yOffset, xOffset + w / 2, yOffset + h / 2, c111);
+        fillDisplayArea(disp, xOffset + w / 2, yOffset, xOffset + w, yOffset + h / 2, c555);
+        fillDisplayArea(disp, xOffset, yOffset + h / 2, xOffset + w / 2, yOffset + h, c555);
+        fillDisplayArea(disp, xOffset + w / 2, yOffset + h / 2, xOffset + w, yOffset + h, c111);
     }
     else
     {
-        fillDisplayArea(paintState->disp, xOffset, yOffset, xOffset + w, yOffset + h, col);
+        fillDisplayArea(disp, xOffset, yOffset, xOffset + w, yOffset + h, col);
     }
 
     if (topBorder != cTransparent)
     {
         // Top border
-        plotLine(paintState->disp, xOffset - 1,  yOffset, xOffset + w - 1, yOffset, topBorder, dashLen);
+        plotLine(disp, xOffset - 1,  yOffset, xOffset + w - 1, yOffset, topBorder, dashLen);
         // Left border
-        plotLine(paintState->disp, xOffset - 1, yOffset, xOffset - 1, yOffset + h - 1, topBorder, dashLen);
+        plotLine(disp, xOffset - 1, yOffset, xOffset - 1, yOffset + h - 1, topBorder, dashLen);
     }
 
     if (bottomBorder != cTransparent)
     {
         // Bottom border
-        plotLine(paintState->disp, xOffset, yOffset + h, xOffset + w - 1, yOffset + h, bottomBorder, dashLen);
+        plotLine(disp, xOffset, yOffset + h, xOffset + w - 1, yOffset + h, bottomBorder, dashLen);
         // Right border
-        plotLine(paintState->disp, xOffset + w, yOffset + 1, xOffset + w, yOffset + h - 1, bottomBorder, dashLen);
+        plotLine(disp, xOffset + w, yOffset + 1, xOffset + w, yOffset + h - 1, bottomBorder, dashLen);
     }
 }
 
-void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas)
+void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_t* paintState)
 {
     //////// Background
 
@@ -70,7 +70,7 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas)
     }
 
     // Fill bottom bar, if there's room
-    if (canvas->y + canvas->h * canvas->yScale < paintState->disp->h)
+    if (canvas->y + canvas->h * canvas->yScale < canvas->disp->h)
     {
         fillDisplayArea(canvas->disp, 0, canvas->y + canvas->h * canvas->yScale, canvas->disp->w, canvas->disp->h, PAINT_TOOLBAR_BG);
 
@@ -81,7 +81,7 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas)
 
 
     // Draw border around canvas
-    plotRect(paintState->disp, canvas->x - 1, canvas->y - 1, canvas->x + canvas->w * canvas->xScale + 1, canvas->y + canvas->h * canvas->yScale + 1, c000);
+    plotRect(canvas->disp, canvas->x - 1, canvas->y - 1, canvas->x + canvas->w * canvas->xScale + 1, canvas->y + canvas->h * canvas->yScale + 1, c000);
 
 
     //////// Draw the active FG/BG colors and the color palette
@@ -89,8 +89,8 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas)
 
     //////// Active Colors
     // Draw the background color, then draw the foreground color overlapping it and offset by half in both directions
-    drawColorBox(PAINT_ACTIVE_COLOR_X, PAINT_ACTIVE_COLOR_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, artist->bgColor, false, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
-    drawColorBox(PAINT_ACTIVE_COLOR_X + PAINT_COLORBOX_W / 2, PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_H / 2, PAINT_COLORBOX_W, PAINT_COLORBOX_H, artist->fgColor, false, cTransparent, PAINT_COLORBOX_SHADOW_BOTTOM);
+    drawColorBox(canvas->disp, PAINT_ACTIVE_COLOR_X, PAINT_ACTIVE_COLOR_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, artist->bgColor, false, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
+    drawColorBox(canvas->disp, PAINT_ACTIVE_COLOR_X + PAINT_COLORBOX_W / 2, PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_H / 2, PAINT_COLORBOX_W, PAINT_COLORBOX_H, artist->fgColor, false, cTransparent, PAINT_COLORBOX_SHADOW_BOTTOM);
 
 
     //////// Recent Colors (palette)
@@ -98,11 +98,11 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas)
     {
         if (PAINT_COLORBOX_HORIZONTAL)
         {
-            drawColorBox(PAINT_COLORBOX_X + i * (PAINT_COLORBOX_MARGIN_LEFT + PAINT_COLORBOX_W), PAINT_COLORBOX_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, canvas->palette[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
+            drawColorBox(canvas->disp, PAINT_COLORBOX_X + i * (PAINT_COLORBOX_MARGIN_LEFT + PAINT_COLORBOX_W), PAINT_COLORBOX_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, canvas->palette[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
         }
         else
         {
-            drawColorBox(PAINT_COLORBOX_X, PAINT_COLORBOX_Y + i * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H), PAINT_COLORBOX_W, PAINT_COLORBOX_H, canvas->palette[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
+            drawColorBox(canvas->disp, PAINT_COLORBOX_X, PAINT_COLORBOX_Y + i * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H), PAINT_COLORBOX_W, PAINT_COLORBOX_H, canvas->palette[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
         }
     }
 
@@ -155,7 +155,7 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas)
 
         // Draw the slot number
         char text[16];
-        snprintf(text, sizeof(text), (paintState->isSaveSelected && paintGetSlotInUse(paintState->selectedSlot)) ? startMenuSlotUsed : startMenuSlot, paintState->selectedSlot + 1);
+        snprintf(text, sizeof(text), (paintState->isSaveSelected && paintGetSlotInUse(paintState->index, paintState->selectedSlot)) ? startMenuSlotUsed : startMenuSlot, paintState->selectedSlot + 1);
         drawText(canvas->disp, &paintState->toolbarFont, c000, text, 160, textY);
     }
     else if (paintState->saveMenu == CONFIRM_OVERWRITE)

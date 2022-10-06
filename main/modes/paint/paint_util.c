@@ -14,7 +14,6 @@ paletteColor_t getContrastingColor(paletteColor_t col)
     uint8_t b = 255 - ((rgb >> 16) & 0xFF);
     uint32_t contrastCol = (r << 16) | (g << 8) | (b);
 
-    PAINT_LOGV("Converted color to RGB c%d%d%d", r, g, b);
     return RGBtoPalette(contrastCol);
 }
 
@@ -134,7 +133,7 @@ void paintDrawWsgTemp(display_t* disp, const wsg_t* wsg, pxStack_t* saveTo, uint
             }
             else
             {
-                PAINT_LOGV("Skipping cursor[%d][%d] == cTransparent", x, y);
+                //PAINT_LOGV("Skipping cursor[%d][%d] == cTransparent", x, y);
             }
         }
     }

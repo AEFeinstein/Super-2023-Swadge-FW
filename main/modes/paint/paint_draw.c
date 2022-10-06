@@ -7,6 +7,8 @@
 #include "paint_nvs.h"
 #include "paint_util.h"
 
+paintDraw_t* paintState;
+
 static paletteColor_t cursorPxsBox[] =
 {
     c000, c000, c000, c000, c000,
@@ -78,16 +80,19 @@ const brush_t brushes[] =
 const brush_t* firstBrush = brushes;
 const brush_t* lastBrush = brushes + sizeof(brushes) / sizeof(brushes[0]) - 1;
 
-void paintDrawScreenSetup(void)
+void paintDrawScreenSetup(display_t* disp)
 {
-    paintState->screen = PAINT_DRAW;
+    paintState = calloc(sizeof(paintDraw_t), 1);
+    paintState->disp = disp;
+
+    loadFont("radiostars.font", &(paintState->toolbarFont));
     paintState->clearScreen = true;
 
-    paintLoadIndex();
+    paintLoadIndex(&paintState->index);
 
     for (uint8_t i = 0; i < PAINT_SAVE_SLOTS; i++)
     {
-        if (paintGetSlotInUse(i))
+        if (paintGetSlotInUse(paintState->index, i))
         {
             paintState->isSaveSelected = false;
             paintState->doSave = true;
@@ -98,7 +103,7 @@ void paintDrawScreenSetup(void)
     // Set up the canvas with defaults
     // TODO move this into a function for getting a clean canvas
     // TODO also get rid of hardcoded offsets and dynamically position the canvas out of the way of the UI
-    paintState->canvas.disp = paintState->disp;
+    paintState->canvas.disp = disp;
 
     paintState->canvas.xScale = PAINT_CANVAS_SCALE;
     paintState->canvas.yScale = PAINT_CANVAS_SCALE;
@@ -106,7 +111,7 @@ void paintDrawScreenSetup(void)
     paintState->canvas.w = PAINT_CANVAS_WIDTH;
     paintState->canvas.h = PAINT_CANVAS_HEIGHT;
 
-    paintState->canvas.x = PAINT_CANVAS_X_OFFSET;
+    paintState->canvas.x = ((disp->w - paintState->canvas.w * paintState->canvas.xScale) / 2);
     paintState->canvas.y = PAINT_CANVAS_Y_OFFSET;
 
     // load the default palette
@@ -142,6 +147,9 @@ void paintDrawScreenCleanup(void)
         deinitCursor(&paintState->artist[i].cursor);
         freePxStack(&paintState->artist[i].pickPoints);
     }
+
+    freeFont(&paintState->toolbarFont);
+    free(paintState);
 }
 
 
@@ -150,7 +158,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
     if (paintState->clearScreen)
     {
         paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
-        paintRenderToolbar(getArtist(), &paintState->canvas);
+        paintRenderToolbar(getArtist(), &paintState->canvas, paintState);
         paintUpdateLeds();
         showCursor(getCursor(), &paintState->canvas);
         paintState->clearScreen = false;
@@ -162,17 +170,21 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         if (paintState->isSaveSelected)
         {
             hideCursor(getCursor(), &paintState->canvas);
-            paintSave(&paintState->canvas, paintState->selectedSlot);
+            paintSave(&paintState->index, &paintState->canvas, paintState->selectedSlot);
             showCursor(getCursor(), &paintState->canvas);
         }
         else
         {
-            if (paintGetSlotInUse(paintGetRecentSlot()))
+            if (paintGetSlotInUse(paintState->index, paintGetRecentSlot(paintState->index)))
             {
                 // Load from the selected slot if it's been used
                 hideCursor(getCursor(), &paintState->canvas);
                 paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
-                paintLoad(&paintState->canvas, paintState->selectedSlot);
+                paintLoad(&paintState->index, &paintState->canvas, paintState->selectedSlot);
+
+                getArtist()->fgColor = paintState->canvas.palette[0];
+                getArtist()->bgColor = paintState->canvas.palette[1];
+
                 showCursor(getCursor(), &paintState->canvas);
                 paintUpdateLeds();
             }
@@ -203,7 +215,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
 
     if (paintState->redrawToolbar)
     {
-        paintRenderToolbar(getArtist(), &paintState->canvas);
+        paintRenderToolbar(getArtist(), &paintState->canvas, paintState);
         paintState->redrawToolbar = false;
     }
     else
@@ -227,7 +239,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
             {
 
                 moveCursorRelative(getCursor(), &paintState->canvas, paintState->moveX, paintState->moveY);
-                paintRenderToolbar(getArtist(), &paintState->canvas);
+                paintRenderToolbar(getArtist(), &paintState->canvas, paintState);
 
                 paintState->firstMove = false;
             }
@@ -254,7 +266,7 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                     if (paintState->isSaveSelected)
                     {
                         // The screen says "Save" and "Slot X"
-                        if (paintGetSlotInUse(paintState->selectedSlot))
+                        if (paintGetSlotInUse(paintState->index, paintState->selectedSlot))
                         {
                             // This slot is in use! Move on to the overwrite menu
                             paintState->overwriteYesSelected = false;
@@ -301,10 +313,10 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                 {
                     // Toggle between Save / Load
                     // But if no slots are in use, don't switch to "load"
-                    paintState->isSaveSelected = !paintState->isSaveSelected || !paintGetAnySlotInUse();
+                    paintState->isSaveSelected = !paintState->isSaveSelected || !paintGetAnySlotInUse(paintState->index);
 
                     // TODO move this and friends into a function
-                    while (!paintState->isSaveSelected && paintGetAnySlotInUse() && !paintGetSlotInUse(paintState->selectedSlot))
+                    while (!paintState->isSaveSelected && paintGetAnySlotInUse(paintState->index) && !paintGetSlotInUse(paintState->index, paintState->selectedSlot))
                     {
                         paintState->selectedSlot = (paintState->selectedSlot + 1) % PAINT_SAVE_SLOTS;
                     }
@@ -324,7 +336,7 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                     }
                     else
                     {
-                        paintState->selectedSlot = paintGetPrevSlotInUse(paintState->selectedSlot);
+                        paintState->selectedSlot = paintGetPrevSlotInUse(paintState->index, paintState->selectedSlot);
                     }
                 }
                 else if (paintState->saveMenu == CONFIRM_OVERWRITE)
@@ -345,7 +357,7 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                     }
                     else
                     {
-                        paintState->selectedSlot = paintGetNextSlotInUse(paintState->selectedSlot);
+                        paintState->selectedSlot = paintGetNextSlotInUse(paintState->index, paintState->selectedSlot);
                     }
                 }
                 else if (paintState->saveMenu == CONFIRM_OVERWRITE)
@@ -458,6 +470,30 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
 
             case START:
             // Start does nothing in select-mode, plus it's used for exit
+            break;
+        }
+    }
+}
+
+void paintDrawScreenButtonCb(const buttonEvt_t* evt)
+{
+    switch (paintState->buttonMode)
+    {
+        case BTN_MODE_DRAW:
+        {
+            paintDrawModeButtonCb(evt);
+            break;
+        }
+
+        case BTN_MODE_SELECT:
+        {
+            paintSelectModeButtonCb(evt);
+            break;
+        }
+
+        case BTN_MODE_SAVE:
+        {
+            paintSaveModeButtonCb(evt);
             break;
         }
     }
@@ -637,8 +673,6 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
     }
     else if (getArtist()->brushDef->mode == PICK_POINT || getArtist()->brushDef->mode == PICK_POINT_LOOP)
     {
-        PAINT_LOGD("pick[%02zu] = SCR(%03d, %03d) / CNV(%d, %d)", pxStackSize(&getArtist()->pickPoints), CNV2SCR_X(x), CNV2SCR_Y(y), x, y);
-
         // Save the pixel underneath the selection, then draw a temporary pixel to mark it
         // But don't bother if this is the last pick point, since it will never actually be seen
 
@@ -686,7 +720,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
     }
 
     showCursor(getCursor(), &paintState->canvas);
-    paintRenderToolbar(getArtist(), &paintState->canvas);
+    paintRenderToolbar(getArtist(), &paintState->canvas, paintState);
 }
 
 

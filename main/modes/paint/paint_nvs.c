@@ -6,7 +6,7 @@
 #include "paint_util.h"
 
 
-void paintLoadIndex(void)
+void paintLoadIndex(int32_t* index)
 {
     //       SFX?
     //     BGM | Lights?
@@ -14,19 +14,19 @@ void paintLoadIndex(void)
     // |xxxxxvvv  |Recent?|  |Inuse? |
     // 0000 0000  0000 0000  0000 0000
 
-    if (!readNvs32("pnt_idx", &paintState->index))
+    if (!readNvs32("pnt_idx", index))
     {
         PAINT_LOGW("No metadata! Setting defaults");
-        paintState->index = PAINT_DEFAULTS;
-        paintSaveIndex();
+        *index = PAINT_DEFAULTS;
+        paintSaveIndex(*index);
     }
 }
 
-void paintSaveIndex(void)
+void paintSaveIndex(int32_t index)
 {
-    if (writeNvs32("pnt_idx", paintState->index))
+    if (writeNvs32("pnt_idx", index))
     {
-        PAINT_LOGD("Saved index: %04x", paintState->index);
+        PAINT_LOGD("Saved index: %04x", index);
     }
     else
     {
@@ -34,50 +34,48 @@ void paintSaveIndex(void)
     }
 }
 
-void paintResetStorage(void)
+void paintResetStorage(int32_t* index)
 {
-    paintState->index = PAINT_DEFAULTS;
-    paintSaveIndex();
+    *index = PAINT_DEFAULTS;
+    paintSaveIndex(*index);
 }
 
-bool paintGetSlotInUse(uint8_t slot)
+bool paintGetSlotInUse(int32_t index, uint8_t slot)
 {
-    paintLoadIndex();
-    return (paintState->index & (1 << slot)) != 0;
+    return (index & (1 << slot)) != 0;
 }
 
-void paintClearSlot(uint8_t slot)
+void paintClearSlot(int32_t* index, uint8_t slot)
 {
-    paintState->index &= ~(1 << slot);
-    paintSaveIndex();
+    *index &= ~(1 << slot);
+    paintSaveIndex(*index);
 }
 
-void paintSetSlotInUse(uint8_t slot)
+void paintSetSlotInUse(int32_t* index, uint8_t slot)
 {
-    paintState->index |= (1 << slot);
-    paintSaveIndex();
+    *index |= (1 << slot);
+    paintSaveIndex(*index);
 }
 
-bool paintGetAnySlotInUse(void)
+bool paintGetAnySlotInUse(int32_t index)
 {
-    return (paintState->index & ((1 << PAINT_SAVE_SLOTS) - 1)) != 0;
+    return (index & ((1 << PAINT_SAVE_SLOTS) - 1)) != 0;
 }
 
-uint8_t paintGetRecentSlot(void)
+uint8_t paintGetRecentSlot(int32_t index)
 {
-    paintLoadIndex();
-    return (paintState->index >> PAINT_SAVE_SLOTS) & 0b111;
+    return (index >> PAINT_SAVE_SLOTS) & 0b111;
 }
 
-void paintSetRecentSlot(uint8_t slot)
+void paintSetRecentSlot(int32_t* index, uint8_t slot)
 {
     // TODO if we change the number of slots this will totally not work anymore
-    // I mean, we could just do & 0xFF and waste 5 bits
-    paintState->index = (paintState->index & PAINT_MASK_NOT_RECENT) | ((slot & 0b111) << PAINT_SAVE_SLOTS);
-    paintSaveIndex();
+    // I mean, we could just do & 0xFF and waste 5 whole bits
+    *index = (paintState->index & PAINT_MASK_NOT_RECENT) | ((slot & 0b111) << PAINT_SAVE_SLOTS);
+    paintSaveIndex(*index);
 }
 
-bool paintSave(const paintCanvas_t* canvas, uint8_t slot)
+bool paintSave(int32_t* index, const paintCanvas_t* canvas, uint8_t slot)
 {
     // palette in reverse for quick transformation
     uint8_t paletteIndex[256];
@@ -186,9 +184,9 @@ bool paintSave(const paintCanvas_t* canvas, uint8_t slot)
         }
     }
 
-    paintSetSlotInUse(slot);
-    paintSetRecentSlot(slot);
-    paintSaveIndex();
+    paintSetSlotInUse(index, slot);
+    paintSetRecentSlot(index, slot);
+    paintSaveIndex(*index);
 
     free(imgChunk);
     imgChunk = NULL;
@@ -196,7 +194,7 @@ bool paintSave(const paintCanvas_t* canvas, uint8_t slot)
     return true;
 }
 
-bool paintLoad(paintCanvas_t* canvas, uint8_t slot)
+bool paintLoad(int32_t* index, paintCanvas_t* canvas, uint8_t slot)
 {
     // NVS blob key name
     char key[16];
@@ -210,7 +208,7 @@ bool paintLoad(paintCanvas_t* canvas, uint8_t slot)
 
     size_t paletteSize;
 
-    if (!paintGetSlotInUse(slot))
+    if (!paintGetSlotInUse(*index, slot))
     {
         PAINT_LOGW("Attempted to load from uninitialized slot %d", slot);
         return false;
@@ -228,8 +226,6 @@ bool paintLoad(paintCanvas_t* canvas, uint8_t slot)
     // TODO Move this outside of this function
     if (readNvsBlob(key, canvas->palette, &paletteSize))
     {
-        paintState->fgColor = canvas->palette[0];
-        paintState->bgColor = canvas->palette[1];
         PAINT_LOGD("Read %zu bytes of palette from slot %s", paletteSize, key);
     }
     else
@@ -241,7 +237,7 @@ bool paintLoad(paintCanvas_t* canvas, uint8_t slot)
     if (!paintLoadDimensions(canvas, slot))
     {
         PAINT_LOGE("Slot %d has 0 dimension! Stopping load and clearing slot", slot);
-        paintClearSlot(slot);
+        paintClearSlot(index, slot);
         return false;
     }
 
@@ -310,7 +306,7 @@ bool paintLoad(paintCanvas_t* canvas, uint8_t slot)
         PAINT_LOGW("Loaded image had invalid bounds. Resetting to %d x %d", canvas->w, canvas->h);
     }
 
-    paintSetRecentSlot(slot);
+    paintSetRecentSlot(index, slot);
 
     free(imgChunk);
     imgChunk = NULL;
@@ -345,7 +341,7 @@ bool paintLoadDimensions(paintCanvas_t* canvas, uint8_t slot)
     return true;
 }
 
-uint8_t paintGetPrevSlotInUse(uint8_t slot)
+uint8_t paintGetPrevSlotInUse(int32_t index, uint8_t slot)
 {
     do
     {
@@ -353,17 +349,17 @@ uint8_t paintGetPrevSlotInUse(uint8_t slot)
         slot = PREV_WRAP(slot, PAINT_SAVE_SLOTS);
     }
     // If we're loading, and there's actually a slot we can load from, skip empty slots until we find one that is in use
-    while (paintGetAnySlotInUse() && !paintGetSlotInUse(slot));
+    while (paintGetAnySlotInUse(index) && !paintGetSlotInUse(index, slot));
 
     return slot;
 }
 
-uint8_t paintGetNextSlotInUse(uint8_t slot)
+uint8_t paintGetNextSlotInUse(int32_t index, uint8_t slot)
 {
     do
     {
         slot = NEXT_WRAP(slot, PAINT_SAVE_SLOTS);
-    } while (paintGetAnySlotInUse() && !paintGetSlotInUse(slot));
+    } while (paintGetAnySlotInUse(index) && !paintGetSlotInUse(index, slot));
 
     return slot;
 }

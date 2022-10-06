@@ -48,7 +48,7 @@
 #define PAINT_CANVAS_WIDTH 70
 #define PAINT_CANVAS_HEIGHT 60
 
-#define PAINT_CANVAS_X_OFFSET ((paintState->disp->w - PAINT_CANVAS_WIDTH * PAINT_CANVAS_SCALE) / 2)
+#define PAINT_CANVAS_X_OFFSET (canvas->x)
 #define PAINT_CANVAS_Y_OFFSET 26
 
 
@@ -138,70 +138,47 @@ typedef struct
     paletteColor_t fgColor, bgColor;
 } paintArtist_t;
 
-
 typedef struct
 {
-    //////// General app data
+    // Basic data
+    display_t* disp;
+    led_t leds[NUM_LEDS];
 
-    // Main Menu Font
-    font_t menuFont;
-    // Main Menu
-    meleeMenu_t* menu;
+    paintCanvas_t canvas;
 
     // Font for drawing tool info
     // TODO: Use images instead!
     font_t toolbarFont;
 
-    display_t* disp;
+    // Index keeping track of which slots are in use and the most recent slot
+    int32_t index;
 
-    // The screen within paint that the user is in
-    paintScreen_t screen;
+    // All shared state for 1 or 2 players
+    paintArtist_t artist[2];
 
+
+    //////// Local-only UI state
+
+    // Which mode will be used to interpret button presses
     paintButtonMode_t buttonMode;
 
     // Whether or not A is currently pressed
     bool aHeld;
 
-    // The representation of the drawing canvas
-    // TODO: Replace canvasW and canvasH with this
-    // TODO: Pass this instead of using PAINT_CANVAS_{X,Y}_OFFSET and global paintState->canvas{W,H}
-    paintCanvas_t canvas;
-
-    paintArtist_t artist[2];
-
-    // Color data
-
-    // The index of the currently selected color, while SELECT is held
-    uint8_t paletteSelect;
-
-    led_t leds[NUM_LEDS];
-
-
-    //////// Pick Points
-    // Whether all pick points should be redrawn with the current fgColor, for when the color changes while we're picking
-    bool recolorPickPoints;
-
-
-    //////// Cursor
-
-    // The number of canvas pixels to move the cursor this frame
-    int8_t moveX, moveY;
-
     // When true, this is the initial D-pad button down.
     // If set, the cursor will move by one pixel and then it will be cleared.
+    // The cursor will not move again until a D-pad button has been held for BUTTON_REPEAT_TIME microseconds
     bool firstMove;
 
     // The time a D-pad button has been held down for, in microseconds
     int64_t btnHoldTime;
 
+    // The number of canvas pixels to move the cursor this frame
+    int8_t moveX, moveY;
 
-    //////// Rendering flags
+    // The index of the currently selected color, while SELECT is held
+    uint8_t paletteSelect;
 
-    // If set, the canvas will be cleared and the screen will be redrawn. Set on startup.
-    bool clearScreen;
-
-    // Set to redraw the toolbar on the next loop, when a brush or color is being selected
-    bool redrawToolbar;
 
 
     //////// Save data flags
@@ -212,10 +189,13 @@ typedef struct
     // True when a save has been started but not yet completed. Prevents input while saving.
     bool saveInProgress;
 
+    //// Save Menu Flags
+    // TODO: Move as much as possible into paintSaveMenu_t
+
     // The save slot selected when in BTN_MODE_SAVE
     uint8_t selectedSlot;
 
-    /// @brief The current state of the save / load menu
+    // The current state of the save / load menu
     paintSaveMenu_t saveMenu;
 
     // True if "Save" is selected, false if "Load" is selected
@@ -224,12 +204,27 @@ typedef struct
     // State for Yes/No in overwrite save menu.
     bool overwriteYesSelected;
 
-    // Index keeping track of which slots are in use and the most recent slot
+
+    //////// Rendering flags
+
+    // If set, the canvas will be cleared and the screen will be redrawn. Set on startup.
+    bool clearScreen;
+
+    // Set to redraw the toolbar on the next loop, when a brush or color is being selected
+    bool redrawToolbar;
+
+    // Whether all pick points should be redrawn with the current fgColor, for when the color changes while we're picking
+    // TODO: This might not be necessary any more since we redraw those constantly.
+    bool recolorPickPoints;
+} paintDraw_t;
+
+typedef struct
+{
+    display_t* disp;
+    paintCanvas_t canvas;
     int32_t index;
 
-
-    //////// Share / Receive flags
-    // TODO: Move into its own struct
+    font_t toolbarFont;
 
     // The save slot being displayed / shared
     uint8_t shareSaveSlot;
@@ -259,9 +254,20 @@ typedef struct
     // Time for the progress bar timer
     int64_t shareTime;
 
+    // True if we are the sender, false if not
+    bool isSender;
 
-    //////// Gallery flags
-    // TODO: Move into its own struct
+    // True if the screen should be cleared on the next loop
+    bool clearScreen;
+} paintShare_t;
+
+typedef struct
+{
+    display_t* disp;
+    paintCanvas_t canvas;
+    int32_t index;
+
+    // TODO rename these to better things now that they're in their own struct
 
     // Last timestamp of gallery transition
     int64_t galleryTime;
@@ -275,13 +281,29 @@ typedef struct
     bool galleryLoadNew;
 
     uint8_t galleryScale;
+} paintGallery_t;
 
-    bool isSender;
+typedef struct
+{
+    //////// General app data
 
+    // Main Menu Font
+    font_t menuFont;
+    // Main Menu
+    meleeMenu_t* menu;
+
+    // Font for drawing tool info
+    // TODO: Use images instead!
+    font_t toolbarFont;
+
+    display_t* disp;
+
+    // The screen within paint that the user is in
+    paintScreen_t screen;
 } paintMenu_t;
 
 
-extern paintMenu_t* paintState;
+extern paintMenu_t* paintMenu;
 
 
 #endif
