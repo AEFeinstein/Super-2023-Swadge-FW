@@ -64,7 +64,9 @@ typedef struct
     uint8_t gamesPos;
     uint8_t toolsPos;
     uint8_t settingsPos;
-    uint32_t batt;
+    uint32_t battVal;
+    wsg_t batt[4];
+    wsg_t usb;
 } mainMenu_t;
 
 //==============================================================================
@@ -96,8 +98,10 @@ const char mainMenuGames[] = "Games";
 const char mainMenuTools[] = "Tools";
 const char mainMenuSettings[] = "Settings";
 const char mainMenuBack[] = "Back";
-const char mainMenuSoundOn[] = "Sound: On";
-const char mainMenuSoundOff[] = "Sound: Off";
+const char mainMenuSoundBgmOn[] = "Music: On";
+const char mainMenuSoundBgmOff[] = "Music: Off";
+const char mainMenuSoundSfxOn[] = "SFX: On";
+const char mainMenuSoundSfxOff[] = "SFX: Off";
 char mainMenuTftBrightness[] = "TFT Brightness: 1";
 char mainMenuLedBrightness[] = "LED Brightness: 1";
 char mainMenuMicGain[] = "Mic Gain: 1";
@@ -122,6 +126,13 @@ void mainMenuEnterMode(display_t* disp)
     loadFont("mm.font", &mainMenu->meleeMenuFont);
     loadFont("ibm_vga8.font", &mainMenu->ibmFont);
 
+    // Load images
+    loadWsg("batt1.wsg", &mainMenu->batt[0]);
+    loadWsg("batt2.wsg", &mainMenu->batt[1]);
+    loadWsg("batt3.wsg", &mainMenu->batt[2]);
+    loadWsg("batt4.wsg", &mainMenu->batt[3]);
+    loadWsg("usb.wsg", &mainMenu->usb);
+
     // Initialize the menu
     mainMenu->menu = initMeleeMenu(mainMenuTitle, &mainMenu->meleeMenuFont, mainMenuTopLevelCb);
     mainMenuSetUpTopMenu(true);
@@ -132,6 +143,11 @@ void mainMenuEnterMode(display_t* disp)
  */
 void mainMenuExitMode(void)
 {
+    freeWsg(&mainMenu->batt[0]);
+    freeWsg(&mainMenu->batt[1]);
+    freeWsg(&mainMenu->batt[2]);
+    freeWsg(&mainMenu->batt[3]);
+    freeWsg(&mainMenu->usb);
     deinitMeleeMenu(mainMenu->menu);
     freeFont(&mainMenu->meleeMenuFont);
     freeFont(&mainMenu->ibmFont);
@@ -145,12 +161,33 @@ void mainMenuExitMode(void)
  */
 void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
+    // Draw the menu
     drawMeleeMenu(mainMenu->disp, mainMenu->menu);
 
-    char battStr[8];
-    sprintf(battStr, "%d", mainMenu->batt);
-    int16_t tWidth = textWidth(&mainMenu->ibmFont, battStr);
-    drawText(mainMenu->disp, &mainMenu->ibmFont, c555, battStr, mainMenu->disp->w - tWidth - 40, 1);
+    // Draw the battery indicator depending on the last read value
+    wsg_t * toDraw = NULL;
+    if(mainMenu->battVal > 900)
+    {
+        toDraw = &mainMenu->usb;
+    }
+    else if (mainMenu->battVal > 721)
+    {
+        toDraw = &mainMenu->batt[3];        
+    }
+    else if (mainMenu->battVal > 671)
+    {
+        toDraw = &mainMenu->batt[2];        
+    }
+    else if (mainMenu->battVal > 625)
+    {
+        toDraw = &mainMenu->batt[1];        
+    }
+    else
+    {
+        toDraw = &mainMenu->batt[0];        
+    }
+
+    drawWsg(mainMenu->disp, toDraw, 212, 3, false, false, 0);
 }
 
 /**
@@ -160,8 +197,7 @@ void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
  */
 void mainMenuBatteryCb(uint32_t vBatt)
 {
-    mainMenu->batt = vBatt;
-    ESP_LOGI("BAT", "%lld %d", esp_timer_get_time(), vBatt);
+    mainMenu->battVal = vBatt;
 }
 
 /**
@@ -205,15 +241,25 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                             incMicGain();
                         }
                     }
-                    else if(mainMenuSoundOn == mainMenu->menu->rows[mainMenu->menu->selectedRow])
+                    else if(mainMenuSoundBgmOn == mainMenu->menu->rows[mainMenu->menu->selectedRow])
                     {
-                        // Sound is on, turn it off
-                        setIsMuted(true);
+                        // Music is on, turn it off
+                        setBgmIsMuted(true);
                     }
-                    else if(mainMenuSoundOff == mainMenu->menu->rows[mainMenu->menu->selectedRow])
+                    else if(mainMenuSoundBgmOff == mainMenu->menu->rows[mainMenu->menu->selectedRow])
                     {
-                        // Sound is off, turn it on
-                        setIsMuted(false);
+                        // Music is off, turn it on
+                        setBgmIsMuted(false);
+                    }
+                    else if(mainMenuSoundSfxOn == mainMenu->menu->rows[mainMenu->menu->selectedRow])
+                    {
+                        // SFX is on, turn it off
+                        setSfxIsMuted(true);
+                    }
+                    else if(mainMenuSoundSfxOff == mainMenu->menu->rows[mainMenu->menu->selectedRow])
+                    {
+                        // SFX is off, turn it on
+                        setSfxIsMuted(false);
                     }
                     else if(mainMenuTftBrightness == mainMenu->menu->rows[mainMenu->menu->selectedRow])
                     {
@@ -269,6 +315,8 @@ void mainMenuSetUpTopMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, mainMenuGames);
     addRowToMeleeMenu(mainMenu->menu, mainMenuTools);
     addRowToMeleeMenu(mainMenu->menu, mainMenuSettings);
+    addRowToMeleeMenu(mainMenu->menu, mainMenuCredits);
+
     // Set the position
     if(resetPos)
     {
@@ -299,6 +347,10 @@ void mainMenuTopLevelCb(const char* opt)
     else if(mainMenuSettings == opt)
     {
         mainMenuSetUpSettingsMenu(true);
+    }
+    else if (mainMenuCredits == opt)
+    {
+        switchToSwadgeMode(&modeCredits);
     }
 }
 
@@ -444,14 +496,23 @@ void mainMenuToolsCb(const char* opt)
 void mainMenuSetUpSettingsMenu(bool resetPos)
 {
     // Pick the menu string based on the sound option
-    const char* soundOpt;
-    if(getIsMuted())
+    const char* soundBgmOpt;
+    if(getBgmIsMuted())
     {
-        soundOpt = mainMenuSoundOff;
+        soundBgmOpt = mainMenuSoundBgmOff;
     }
     else
     {
-        soundOpt = mainMenuSoundOn;
+        soundBgmOpt = mainMenuSoundBgmOn;
+    }
+    const char* soundSfxOpt;
+    if(getSfxIsMuted())
+    {
+        soundSfxOpt = mainMenuSoundSfxOff;
+    }
+    else
+    {
+        soundSfxOpt = mainMenuSoundSfxOn;
     }
 
     // Print the tftBrightness option
@@ -465,11 +526,11 @@ void mainMenuSetUpSettingsMenu(bool resetPos)
 
     // Reset the menu
     resetMeleeMenu(mainMenu->menu, mainMenuSettings, mainMenuSettingsCb);
-    addRowToMeleeMenu(mainMenu->menu, soundOpt);
+    addRowToMeleeMenu(mainMenu->menu, soundBgmOpt);
+    addRowToMeleeMenu(mainMenu->menu, soundSfxOpt);
     addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuMicGain);
     addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuTftBrightness);
     addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuLedBrightness);
-    addRowToMeleeMenu(mainMenu->menu, mainMenuCredits);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -490,15 +551,25 @@ void mainMenuSettingsCb(const char* opt)
     mainMenu->settingsPos = mainMenu->menu->selectedRow;
 
     // Handle the option
-    if(mainMenuSoundOff == opt)
+    if(mainMenuSoundBgmOff == opt)
     {
         // Sound is off, turn it on
-        setIsMuted(false);
+        setBgmIsMuted(false);
     }
-    else if (mainMenuSoundOn == opt)
+    else if (mainMenuSoundBgmOn == opt)
     {
         // Sound is on, turn it off
-        setIsMuted(true);
+        setBgmIsMuted(true);
+    }
+    else if(mainMenuSoundSfxOff == opt)
+    {
+        // Sound is off, turn it on
+        setSfxIsMuted(false);
+    }
+    else if (mainMenuSoundSfxOn == opt)
+    {
+        // Sound is on, turn it off
+        setSfxIsMuted(true);
     }
     else if (mainMenuTftBrightness == opt)
     {
@@ -511,10 +582,6 @@ void mainMenuSettingsCb(const char* opt)
     else if (mainMenuMicGain == opt)
     {
         incMicGain();
-    }
-    else if (mainMenuCredits == opt)
-    {
-        switchToSwadgeMode(&modeCredits);
     }
     else if (mainMenuBack == opt)
     {
