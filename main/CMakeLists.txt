@@ -35,8 +35,17 @@ idf_component_register(
         "modes/mode_tiltrads.c"
         "modes/mode_tunernome.c"
         "modes/mode_test.c"
+        "modes/paint/paint_nvs.c"
+        "modes/paint/paint_ui.c"
+        "modes/paint/paint_share.c"
+        "modes/paint/px_stack.c"
+        "modes/paint/paint_gallery.c"
+        "modes/paint/paint_util.c"
+        "modes/paint/mode_paint.c"
+        "modes/paint/paint_common.c"
+        "modes/paint/paint_brush.c"
+        "modes/paint/paint_draw.c"
         "modes/platformer/gameData.c"
-        "modes/mode_paint.c"
         "utils/linked_list.c"
         "utils/text_entry.c"
         "p2pConnection.c"
@@ -57,6 +66,7 @@ idf_component_register(
         "modes/platformer"
         "modes/jumper"
         "modes/picross"
+	"modes/paint"
         "utils")
 
 function(spiffs_file_preprocessor)
