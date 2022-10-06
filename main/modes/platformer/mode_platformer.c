@@ -515,7 +515,7 @@ swadgeMode modePlatformer =
         .overrideUsb = false
 };
 
-#define NUM_LEVELS 10
+#define NUM_LEVELS 11
 
 static leveldef_t leveldef[NUM_LEVELS] = {
     {.filename = "level1-1.bin",

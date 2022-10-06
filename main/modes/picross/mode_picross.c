@@ -529,19 +529,26 @@ bool hintIsFilledIn(picrossHint_t* hint)
         switch (p->puzzle->level[col][row])
         {
             case SPACE_EMPTY:
+            {
                 isFilledIn = false;//set false, but still fall through (dont break)
+            }
+            /* FALLTHRU */
             case SPACE_MARKEMPTY:
             case OUTOFBOUNDS:
-            if (lastSpace == SPACE_FILLED)
             {
-                segmentIndex++;
+                if (lastSpace == SPACE_FILLED)
+                {
+                    segmentIndex++;
+                }
+                lastSpace = SPACE_EMPTY;
             }
-            lastSpace = SPACE_EMPTY;
             break;
 
             case SPACE_FILLED:
-            segmentLengths[segmentIndex]++;
-            lastSpace = SPACE_FILLED;
+            {
+                segmentLengths[segmentIndex]++;
+                lastSpace = SPACE_FILLED;
+            }
             break;
         }
     }
@@ -1118,7 +1125,7 @@ void drawPicrossHud(display_t* d,font_t* font)
 {
     uint8_t s = p->drawScale;
     //width of thicker center lines
-    uint16_t w = 2;//p->drawScale/4;
+    // uint16_t w = 2;//p->drawScale/4;
     //draw a vertical line every grid
     for(int i=0;i<=p->puzzle->width;i++)//skip 0 and skip last. literally the fence post problem.
     {
