@@ -1382,8 +1382,6 @@ void  slideWhistleBeatTimerFunc(void* arg __attribute__((unused)))
         }
         else
         {
-            buzzer_stop();
-
             // Arpeggiate as necessary
             playNote(arpModify(getCurrentNote(), rhythms[slideWhistle->rhythmIdx].rhythm[slideWhistle->rhythmNoteIdx].arp));
 
