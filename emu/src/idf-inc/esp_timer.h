@@ -63,6 +63,7 @@ esp_err_t esp_timer_delete(esp_timer_handle_t timer);
 
 esp_err_t esp_timer_stop(esp_timer_handle_t timer);
 esp_err_t esp_timer_start_once(esp_timer_handle_t timer, uint64_t timeout_us);
+esp_err_t esp_timer_start_periodic(esp_timer_handle_t timer, uint64_t period);
 
 void check_esp_timer(uint64_t elapsed_us);
 
