@@ -97,8 +97,31 @@ void paintExitMode(void)
     deinitMeleeMenu(paintState->menu);
     freeFont(&(paintState->menuFont));
 
-    freePxStack(&paintState->pxStack);
-    freePxStack(&paintState->cursorPxs);
+    switch (paintState->screen)
+    {
+        case PAINT_MENU:
+        break;
+
+        case PAINT_DRAW:
+            paintDrawScreenCleanup();
+        break;
+
+        case PAINT_SHARE:
+        break;
+
+        case PAINT_RECEIVE:
+        break;
+
+        case PAINT_VIEW:
+        break;
+
+        case PAINT_GALLERY:
+        break;
+
+        case PAINT_HELP:
+        break;
+    }
+
     free(paintState);
 }
 

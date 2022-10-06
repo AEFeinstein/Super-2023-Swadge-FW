@@ -14,30 +14,6 @@ static const char startMenuOverwrite[] = "Overwrite?";
 static const char startMenuYes[] = "Yes";
 static const char startMenuNo[] = "No";
 
-void restoreCursorPixels(void)
-{
-    PAINT_LOGV("Restoring pixels underneath cursor...");
-    while (popPx(&paintState->cursorPxs, paintState->disp));
-}
-
-void plotCursor(void)
-{
-    restoreCursorPixels();
-    paintDrawWsgTemp(paintState->disp, paintState->cursorWsg, &paintState->cursorPxs, CNV2SCR_X(paintState->cursorX) + PAINT_CANVAS_SCALE / 2 - paintState->cursorWsg->w / 2, CNV2SCR_Y(paintState->cursorY) + PAINT_CANVAS_SCALE / 2 - paintState->cursorWsg->h / 2, getContrastingColor);
-}
-
-void paintRenderCursor(void)
-{
-    if (paintState->showCursor)
-    {
-        if (paintState->lastCursorX != paintState->cursorX || paintState->lastCursorY != paintState->cursorY)
-        {
-            // Draw the cursor
-            plotCursor();
-        }
-    }
-}
-
 void drawColorBox(uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, paletteColor_t col, bool selected, paletteColor_t topBorder, paletteColor_t bottomBorder)
 {
     int dashLen = selected ? 1 : 0;
@@ -77,52 +53,56 @@ void drawColorBox(uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, pa
     }
 }
 
-void paintRenderToolbar(void)
+void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas)
 {
     //////// Background
 
     // Fill top bar
-    fillDisplayArea(paintState->disp, 0, 0, paintState->disp->w, PAINT_CANVAS_Y_OFFSET, PAINT_TOOLBAR_BG);
+    fillDisplayArea(canvas->disp, 0, 0, canvas->disp->w, canvas->y, PAINT_TOOLBAR_BG);
 
     // Fill left side bar
-    fillDisplayArea(paintState->disp, 0, 0, PAINT_CANVAS_X_OFFSET, paintState->disp->h, PAINT_TOOLBAR_BG);
+    fillDisplayArea(canvas->disp, 0, 0, canvas->x, canvas->disp->h, PAINT_TOOLBAR_BG);
 
     // Fill right bar, if there's room
-    if (PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_HEIGHT * PAINT_CANVAS_SCALE < paintState->disp->w)
+    if (canvas->x + canvas->w * canvas->xScale < canvas->disp->w)
     {
-        fillDisplayArea(paintState->disp, PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_WIDTH * PAINT_CANVAS_SCALE, 0, paintState->disp->w, paintState->disp->h, PAINT_TOOLBAR_BG);
+        fillDisplayArea(canvas->disp, canvas->x + canvas->w * canvas->xScale, 0, canvas->disp->w, canvas->disp->h, PAINT_TOOLBAR_BG);
     }
 
     // Fill bottom bar, if there's room
-    if (PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT * PAINT_CANVAS_SCALE < paintState->disp->h)
+    if (canvas->y + canvas->h * canvas->yScale < paintState->disp->h)
     {
-        fillDisplayArea(paintState->disp, 0, PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_HEIGHT * PAINT_CANVAS_SCALE, paintState->disp->w, paintState->disp->h, PAINT_TOOLBAR_BG);
+        fillDisplayArea(canvas->disp, 0, canvas->y + canvas->h * canvas->yScale, canvas->disp->w, canvas->disp->h, PAINT_TOOLBAR_BG);
+
 
         // Draw a black rectangle under where the exit progress bar will be so it can be seen
-        fillDisplayArea(paintState->disp, 0, paintState->disp->h - 11, paintState->disp->w, paintState->disp->h, c000);
+        fillDisplayArea(canvas->disp, 0, canvas->disp->h - 11, canvas->disp->w, canvas->disp->h, c000);
     }
 
+
     // Draw border around canvas
-    plotRect(paintState->disp, PAINT_CANVAS_X_OFFSET - 1, PAINT_CANVAS_Y_OFFSET - 1, PAINT_CANVAS_X_OFFSET + paintState->canvas.w * PAINT_CANVAS_SCALE + 1, PAINT_CANVAS_Y_OFFSET + paintState->canvas.h * PAINT_CANVAS_SCALE + 1, c000);
+    plotRect(paintState->disp, canvas->x - 1, canvas->y - 1, canvas->x + canvas->w * canvas->xScale + 1, canvas->y + canvas->h * canvas->yScale + 1, c000);
 
 
     //////// Draw the active FG/BG colors and the color palette
 
+
     //////// Active Colors
     // Draw the background color, then draw the foreground color overlapping it and offset by half in both directions
-    drawColorBox(PAINT_ACTIVE_COLOR_X, PAINT_ACTIVE_COLOR_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, paintState->bgColor, false, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
-    drawColorBox(PAINT_ACTIVE_COLOR_X + PAINT_COLORBOX_W / 2, PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_H / 2, PAINT_COLORBOX_W, PAINT_COLORBOX_H, paintState->fgColor, false, cTransparent, PAINT_COLORBOX_SHADOW_BOTTOM);
+    drawColorBox(PAINT_ACTIVE_COLOR_X, PAINT_ACTIVE_COLOR_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, artist->bgColor, false, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
+    drawColorBox(PAINT_ACTIVE_COLOR_X + PAINT_COLORBOX_W / 2, PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_H / 2, PAINT_COLORBOX_W, PAINT_COLORBOX_H, artist->fgColor, false, cTransparent, PAINT_COLORBOX_SHADOW_BOTTOM);
+
 
     //////// Recent Colors (palette)
     for (int i = 0; i < PAINT_MAX_COLORS; i++)
     {
         if (PAINT_COLORBOX_HORIZONTAL)
         {
-            drawColorBox(PAINT_COLORBOX_X + i * (PAINT_COLORBOX_MARGIN_LEFT + PAINT_COLORBOX_W), PAINT_COLORBOX_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, paintState->canvas.palette[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
+            drawColorBox(PAINT_COLORBOX_X + i * (PAINT_COLORBOX_MARGIN_LEFT + PAINT_COLORBOX_W), PAINT_COLORBOX_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, canvas->palette[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
         }
         else
         {
-            drawColorBox(PAINT_COLORBOX_X, PAINT_COLORBOX_Y + i * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H), PAINT_COLORBOX_W, PAINT_COLORBOX_H, paintState->canvas.palette[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
+            drawColorBox(PAINT_COLORBOX_X, PAINT_COLORBOX_Y + i * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H), PAINT_COLORBOX_W, PAINT_COLORBOX_H, canvas->palette[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
         }
     }
 
@@ -133,37 +113,37 @@ void paintRenderToolbar(void)
 
         // Draw the brush name
         uint16_t textX = 30, textY = 4;
-        drawText(paintState->disp, &paintState->toolbarFont, c000, paintState->brush->name, textX, textY);
+        drawText(canvas->disp, &paintState->toolbarFont, c000, artist->brushDef->name, textX, textY);
 
         // Draw the brush size, if applicable and not constant
         char text[16];
-        if (paintState->brush->minSize > 0 && paintState->brush->maxSize > 0 && paintState->brush->minSize != paintState->brush->maxSize)
+        if (artist->brushDef->minSize > 0 && artist->brushDef->maxSize > 0 && artist->brushDef->minSize != artist->brushDef->maxSize)
         {
-            snprintf(text, sizeof(text), "%d", paintState->brushWidth);
-            drawText(paintState->disp, &paintState->toolbarFont, c000, text, 200, 4);
+            snprintf(text, sizeof(text), "%d", artist->brushWidth);
+            drawText(canvas->disp, &paintState->toolbarFont, c000, text, 200, 4);
         }
 
-        if (paintState->brush->mode == PICK_POINT && paintState->brush->maxPoints > 1)
+        if (artist->brushDef->mode == PICK_POINT && artist->brushDef->maxPoints > 1)
         {
             // Draw the number of picks made / total
-            snprintf(text, sizeof(text), "%zu/%d", paintState->pickCount, paintState->brush->maxPoints);
+            snprintf(text, sizeof(text), "%zu/%d", pxStackSize(&artist->pickPoints), artist->brushDef->maxPoints);
             drawText(paintState->disp, &paintState->toolbarFont, c000, text, 220, 4);
         }
-        else if (paintState->brush->mode == PICK_POINT_LOOP && paintState->brush->maxPoints > 1)
+        else if (artist->brushDef->mode == PICK_POINT_LOOP && artist->brushDef->maxPoints > 1)
         {
             // Draw the number of remaining picks
-            uint8_t maxPicks = paintState->brush->maxPoints < MAX_PICK_POINTS ? paintState->brush->maxPoints : MAX_PICK_POINTS;
+            uint8_t maxPicks = artist->brushDef->maxPoints < MAX_PICK_POINTS ? artist->brushDef->maxPoints : MAX_PICK_POINTS;
 
-            if (paintState->pickCount + 1 == maxPicks - 1)
+            if (pxStackSize(&artist->pickPoints) + 1 == maxPicks - 1)
             {
                 snprintf(text, sizeof(text), "Last");
             }
             else
             {
-                snprintf(text, sizeof(text), "%zu", maxPicks - paintState->pickCount - 1);
+                snprintf(text, sizeof(text), "%zu", maxPicks - pxStackSize(&artist->pickPoints) - 1);
             }
 
-            drawText(paintState->disp, &paintState->toolbarFont, c000, text, 220, 4);
+            drawText(canvas->disp, &paintState->toolbarFont, c000, text, 220, 4);
         }
     }
     else if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
@@ -171,30 +151,147 @@ void paintRenderToolbar(void)
         uint16_t textX = 30, textY = 4;
 
         // Draw "Save" / "Load"
-        drawText(paintState->disp, &paintState->toolbarFont, c000, paintState->isSaveSelected ? startMenuSave : startMenuLoad, textX, textY);
+        drawText(canvas->disp, &paintState->toolbarFont, c000, paintState->isSaveSelected ? startMenuSave : startMenuLoad, textX, textY);
 
         // Draw the slot number
         char text[16];
         snprintf(text, sizeof(text), (paintState->isSaveSelected && paintGetSlotInUse(paintState->selectedSlot)) ? startMenuSlotUsed : startMenuSlot, paintState->selectedSlot + 1);
-        drawText(paintState->disp, &paintState->toolbarFont, c000, text, 160, textY);
+        drawText(canvas->disp, &paintState->toolbarFont, c000, text, 160, textY);
     }
     else if (paintState->saveMenu == CONFIRM_OVERWRITE)
     {
         // Draw "Overwrite?"
-        drawText(paintState->disp, &paintState->toolbarFont, c000, startMenuOverwrite, 30, 4);
+        drawText(canvas->disp, &paintState->toolbarFont, c000, startMenuOverwrite, 30, 4);
 
         // Draw "Yes" / "No"
-        drawText(paintState->disp, &paintState->toolbarFont, c000, paintState->overwriteYesSelected ? startMenuYes : startMenuNo, 160, 4);
+        drawText(canvas->disp, &paintState->toolbarFont, c000, paintState->overwriteYesSelected ? startMenuYes : startMenuNo, 160, 4);
     }
 }
 
-void paintRenderAll(void)
+void paintClearCanvas(const paintCanvas_t* canvas, paletteColor_t bgColor)
 {
-    paintRenderToolbar();
-    paintRenderCursor();
+    fillDisplayArea(canvas->disp, canvas->x, canvas->y, canvas->x + canvas->w * canvas->xScale, canvas->y + canvas->h * canvas->yScale, bgColor);
 }
 
-void paintClearCanvas(const paintCanvas_t* canvas)
+void initCursor(paintCursor_t* cursor, paintCanvas_t* canvas, const wsg_t* sprite)
 {
-    fillDisplayArea(canvas->disp, canvas->x, canvas->y, canvas->x + canvas->w * canvas->xScale, canvas->y + canvas->h * canvas->yScale, paintState->bgColor);
+    cursor->sprite = sprite;
+    cursor->spriteOffsetX = canvas->xScale / 2 - sprite->w / 2;
+    cursor->spriteOffsetY = canvas->yScale / 2 - sprite->h / 2;
+
+    cursor->show = false;
+    cursor->x = 0;
+    cursor->y = 0;
+
+    cursor->redraw = true;
+
+    initPxStack(&cursor->underPxs);
+}
+
+void deinitCursor(paintCursor_t* cursor)
+{
+    freePxStack(&cursor->underPxs);
+}
+
+void setCursorSprite(paintCursor_t* cursor, paintCanvas_t* canvas, const wsg_t* sprite)
+{
+    undrawCursor(cursor, canvas);
+
+    cursor->sprite = sprite;
+    cursor->spriteOffsetX = canvas->xScale / 2 - sprite->w / 2;
+    cursor->spriteOffsetY = canvas->yScale / 2 - sprite->h / 2;
+
+    cursor->redraw = true;
+
+    drawCursor(cursor, canvas);
+}
+
+/// @brief Undraws the cursor and removes its pixels from the stack
+/// @param cursor The cursor to hide
+/// @param canvas The canvas to hide the cursor pixels from
+void undrawCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
+{
+    while (popPx(&cursor->underPxs, canvas->disp));
+
+    cursor->redraw = true;
+}
+
+/// @brief Hides the cursor without removing its stored pixels from the stack
+/// @param cursor The cursor to hide
+/// @param canvas The canvas to hide the cursor pixels from
+void hideCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
+{
+    if (cursor->show)
+    {
+        undrawCursor(cursor, canvas);
+
+        cursor->show = false;
+        cursor->redraw = true;
+    }
+}
+
+/// @brief Shows the cursor without saving the pixels under it
+/// @param cursor The cursor to show
+/// @param canvas The canvas to draw the cursor on
+void showCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
+{
+    if (!cursor->show)
+    {
+        cursor->show = true;
+        cursor->redraw = true;
+        drawCursor(cursor, canvas);
+    }
+}
+
+/// @brief If not hidden, draws the cursor on the canvas and saves the pixels for later. If hidden, does nothing.
+/// @param cursor The cursor to draw
+/// @param canvas The canvas to draw it on and save the pixels from
+void drawCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
+{
+    if (cursor->show && cursor->redraw)
+    {
+        // Undraw the previous cursor pixels, if there are any
+        undrawCursor(cursor, canvas);
+        paintDrawWsgTemp(canvas->disp, cursor->sprite, &cursor->underPxs, canvasToDispX(canvas, cursor->x) + cursor->spriteOffsetX, canvasToDispY(canvas, cursor->y) + cursor->spriteOffsetY, getContrastingColor);
+        cursor->redraw = false;
+    }
+}
+
+/// @brief Moves the cursor by the given relative x and y offsets, staying within the canvas bounds. Does not draw.
+/// @param cursor The cursor to be moved
+/// @param canvas The canvas for the cursor bounds
+/// @param xDiff The relative X offset to move the cursor
+/// @param yDiff The relative Y offset to move the cursor
+void moveCursorRelative(paintCursor_t* cursor, paintCanvas_t* canvas, int16_t xDiff, int16_t yDiff)
+{
+    int16_t newX, newY;
+
+    newX = cursor->x + xDiff;
+    newY = cursor->y + yDiff;
+
+    if (newX >= canvas->w)
+    {
+        newX = canvas->w - 1;
+    }
+    else if (newX < 0)
+    {
+        newX = 0;
+    }
+
+    if (newY >= canvas->h)
+    {
+        newY = canvas->h - 1;
+    } else if (newY < 0)
+    {
+        newY = 0;
+    }
+
+    // Only update the position if it would be different from the current position.
+    // TODO: Does this actually matter?
+    if (newX != cursor->x || newY != cursor->y)
+    {
+        cursor->redraw = true;
+        cursor->x = newX;
+        cursor->y = newY;
+    }
 }

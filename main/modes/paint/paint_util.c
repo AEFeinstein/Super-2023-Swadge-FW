@@ -167,3 +167,33 @@ void paintConvertPickPoints(const pxStack_t* pxStack, point_t* dest)
         dest[i].y = pxStack->data[i].y;
     }
 }
+
+/// @brief Writes the points of a pxStack_t into the given point_t array, converting them to canvas coordinates
+/// @param pxStack The pxStack_t to be converted
+/// @param canvas The canvas whose coordinates they should be changed back to
+/// @param dest A pointer to an array of point_t. Must have room for at least pxStackSize(pxStack)
+void paintConvertPickPointsScaled(const pxStack_t* pxStack, paintCanvas_t* canvas, point_t* dest)
+{
+    for (size_t i = 0; i < pxStackSize(pxStack); i++)
+    {
+        dest[i].x = (pxStack->data[i].x - canvas->x) / canvas->xScale;
+        dest[i].y = (pxStack->data[i].y - canvas->y) / canvas->yScale;
+    }
+}
+
+uint16_t canvasToDispX(const paintCanvas_t* canvas, uint16_t x)
+{
+    return canvas->x + x * canvas->xScale;
+}
+
+uint16_t canvasToDispY(const paintCanvas_t* canvas, uint16_t y)
+{
+    return canvas->y + y * canvas->yScale;
+}
+
+void swap(uint8_t* a, uint8_t* b)
+{
+    *a ^= *b;
+    *b ^= *a;
+    *a ^= *b;
+}

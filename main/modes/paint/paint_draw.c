@@ -1,5 +1,7 @@
 #include "paint_draw.h"
 
+#include <string.h>
+
 #include "paint_ui.h"
 #include "paint_brush.h"
 #include "paint_nvs.h"
@@ -35,6 +37,27 @@ wsg_t cursorBoxWsg = {
     .h = 5,
 };
 
+static paletteColor_t defaultPalette[] =
+{
+    c000, // black
+    c555, // white
+    c222, // light gray
+    c444, // dark gray
+    c500, // red
+    c550, // yellow
+    c050, // green
+    c055, // cyan
+
+    c005, // blue
+    c530, // orange?
+    c505, // fuchsia
+    c503, // pink
+    c350, // lime green
+    c035, // sky blue
+    c522, // salmon
+    c103, // dark blue
+};
+
 const brush_t brushes[] =
 {
     { .name = "Square Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawSquarePen },
@@ -51,6 +74,9 @@ const brush_t brushes[] =
     { .name = "Paint Bucket", .mode = PICK_POINT, .maxPoints = 1, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawPaintBucket },
     { .name = "Clear",      .mode = INSTANT, .maxPoints = 0, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawClear },
 };
+
+const brush_t* firstBrush = brushes;
+const brush_t* lastBrush = brushes + sizeof(brushes) / sizeof(brushes[0]) - 1;
 
 void paintDrawScreenSetup(void)
 {
@@ -69,6 +95,9 @@ void paintDrawScreenSetup(void)
         }
     }
 
+    // Set up the canvas with defaults
+    // TODO move this into a function for getting a clean canvas
+    // TODO also get rid of hardcoded offsets and dynamically position the canvas out of the way of the UI
     paintState->canvas.disp = paintState->disp;
 
     paintState->canvas.xScale = PAINT_CANVAS_SCALE;
@@ -80,43 +109,39 @@ void paintDrawScreenSetup(void)
     paintState->canvas.x = PAINT_CANVAS_X_OFFSET;
     paintState->canvas.y = PAINT_CANVAS_Y_OFFSET;
 
-    paintState->brush = &(brushes[0]);
-    paintState->brushWidth = 1;
+    // load the default palette
+    memcpy(paintState->canvas.palette, defaultPalette, sizeof(defaultPalette) / sizeof(paletteColor_t));
 
-    paintState->cursorWsg = &cursorBoxWsg;
+    // Init the cursors for each artist
+    // TODO only do one for singleplayer?
+    for (uint8_t i = 0; i < sizeof(paintState->artist) / sizeof(paintState->artist[0]); i++)
+    {
+        initCursor(&paintState->artist[i].cursor, &paintState->canvas, &cursorBoxWsg);
+        initPxStack(&paintState->artist[i].pickPoints);
+        paintState->artist[i].brushDef = firstBrush;
+        paintState->artist[i].brushWidth = firstBrush->minSize;
 
-    initPxStack(&paintState->pxStack);
-    initPxStack(&paintState->cursorPxs);
+        // set the fg/bg colors to the first 2 palette colors
+        paintState->artist[i].fgColor = paintState->canvas.palette[0];
+        paintState->artist[i].bgColor = paintState->canvas.palette[1];
+    }
 
     paintState->disp->clearPx();
 
-    paintState->fgColor = c000; // black
-    paintState->bgColor = c555; // white
-
-    // pick some colors to start with
-    paintState->canvas.palette[0] = c000; // black
-    paintState->canvas.palette[1] = c555; // white
-    paintState->canvas.palette[2] = c222; // light gray
-    paintState->canvas.palette[3] = c444; // dark gray
-    paintState->canvas.palette[4] = c500; // red
-    paintState->canvas.palette[5] = c550; // yellow
-    paintState->canvas.palette[6] = c050; // green
-    paintState->canvas.palette[7] = c055; // cyan
-
-    paintState->canvas.palette[8] = c005; // blue
-    paintState->canvas.palette[9] = c530; // orange?
-    paintState->canvas.palette[10] = c505; // fuchsia
-    paintState->canvas.palette[11] = c503; // idk
-    paintState->canvas.palette[12] = c350;
-    paintState->canvas.palette[13] = c035;
-    paintState->canvas.palette[14] = c522;
-    paintState->canvas.palette[15] = c103;
-
-
     // Clear the LEDs
+    // Might not be necessary here
     paintUpdateLeds();
 
     PAINT_LOGI("It's paintin' time! Canvas is %d x %d pixels!", paintState->canvas.w, paintState->canvas.h);
+}
+
+void paintDrawScreenCleanup(void)
+{
+    for (uint8_t i = 0; i < sizeof(paintState->artist) / sizeof(paintState->artist[0]) ;i++)
+    {
+        deinitCursor(&paintState->artist[i].cursor);
+        freePxStack(&paintState->artist[i].pickPoints);
+    }
 }
 
 
@@ -124,11 +149,11 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
 {
     if (paintState->clearScreen)
     {
-        paintClearCanvas(&paintState->canvas);
-        paintRenderAll();
+        paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
+        paintRenderToolbar(getArtist(), &paintState->canvas);
         paintUpdateLeds();
+        showCursor(getCursor(), &paintState->canvas);
         paintState->clearScreen = false;
-        paintState->showCursor = true;
     }
 
     if (paintState->doSave)
@@ -136,19 +161,19 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         paintState->saveInProgress = true;
         if (paintState->isSaveSelected)
         {
-            disableCursor();
+            hideCursor(getCursor(), &paintState->canvas);
             paintSave(&paintState->canvas, paintState->selectedSlot);
-            enableCursor();
+            showCursor(getCursor(), &paintState->canvas);
         }
         else
         {
             if (paintGetSlotInUse(paintGetRecentSlot()))
             {
                 // Load from the selected slot if it's been used
-                disableCursor();
-                paintClearCanvas(&paintState->canvas);
+                hideCursor(getCursor(), &paintState->canvas);
+                paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
                 paintLoad(&paintState->canvas, paintState->selectedSlot);
-                enableCursor();
+                showCursor(getCursor(), &paintState->canvas);
                 paintUpdateLeds();
             }
             else
@@ -178,7 +203,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
 
     if (paintState->redrawToolbar)
     {
-        paintRenderToolbar();
+        paintRenderToolbar(getArtist(), &paintState->canvas);
         paintState->redrawToolbar = false;
     }
     else
@@ -187,9 +212,9 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         // Oh, it's because `paintState->redrawToolbar` is mostly only set in select mode unless you press B?
         if (paintState->aHeld)
         {
-            paintDoTool(paintState->cursorX, paintState->cursorY, paintState->fgColor);
+            paintDoTool(getCursor()->x, getCursor()->y, getArtist()->fgColor);
 
-            if (paintState->brush->mode != HOLD_DRAW)
+            if (getArtist()->brushDef->mode != HOLD_DRAW)
             {
                 paintState->aHeld = false;
             }
@@ -201,13 +226,17 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
             if (paintState->firstMove || paintState->btnHoldTime >= BUTTON_REPEAT_TIME)
             {
 
-                paintMoveCursorRel(paintState->moveX, paintState->moveY);
-                paintRenderAll();
+                moveCursorRelative(getCursor(), &paintState->canvas, paintState->moveX, paintState->moveY);
+                paintRenderToolbar(getArtist(), &paintState->canvas);
 
                 paintState->firstMove = false;
             }
         }
     }
+
+    paintDrawPickPoints();
+
+    drawCursor(getCursor(), &paintState->canvas);
 }
 
 void paintSaveModeButtonCb(const buttonEvt_t* evt)
@@ -462,14 +491,8 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
             case BTN_B:
             {
                 // Swap the foreground and background colors
-                // no temporary variables for me thanks
-                paintState->fgColor ^= paintState->bgColor;
-                paintState->bgColor ^= paintState->fgColor;
-                paintState->fgColor ^= paintState->bgColor;
-
-                paintState->canvas.palette[0] ^= paintState->canvas.palette[1];
-                paintState->canvas.palette[1] ^= paintState->canvas.palette[0];
-                paintState->canvas.palette[0] ^= paintState->canvas.palette[1];
+                swap(&getArtist()->fgColor, &getArtist()->bgColor);
+                swap(&paintState->canvas.palette[0], &paintState->canvas.palette[1]);
 
                 paintState->redrawToolbar = true;
                 paintState->recolorPickPoints = true;
@@ -580,20 +603,20 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
 
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 {
-    disableCursor();
+    hideCursor(getCursor(), &paintState->canvas);
     bool drawNow = false;
-    bool lastPick = false;
+    bool isLastPick = false;
 
     // Determine if this is the last pick for the tool
     // This is so we don't draw a pick-marker that will be immediately removed
-    switch (paintState->brush->mode)
+    switch (getArtist()->brushDef->mode)
     {
         case PICK_POINT:
-        lastPick = (paintState->pickCount + 1 == paintState->brush->maxPoints);
+        isLastPick = (pxStackSize(&getArtist()->pickPoints) + 1 == getArtist()->brushDef->maxPoints);
         break;
 
         case PICK_POINT_LOOP:
-        lastPick = paintState->pickCount + 1 == MAX_PICK_POINTS - 1 || paintState->pickCount + 1 == paintState->brush->maxPoints - 1;
+        isLastPick = pxStackSize(&getArtist()->pickPoints) + 1 == MAX_PICK_POINTS - 1 || pxStackSize(&getArtist()->pickPoints) + 1 == getArtist()->brushDef->maxPoints - 1;
         break;
 
         case HOLD_DRAW:
@@ -606,115 +629,92 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         break;
     }
 
-    if (paintState->brush->mode == HOLD_DRAW)
-    {
-        paintState->pickPoints[0].x = x;
-        paintState->pickPoints[0].y = y;
-        paintState->pickCount = 1;
+    pushPxScaled(&getArtist()->pickPoints, paintState->disp, getCursor()->x, getCursor()->y, paintState->canvas.x, paintState->canvas.y, paintState->canvas.xScale, paintState->canvas.yScale);
 
+    if (getArtist()->brushDef->mode == HOLD_DRAW)
+    {
         drawNow = true;
     }
-    else if (paintState->brush->mode == PICK_POINT || paintState->brush->mode == PICK_POINT_LOOP)
+    else if (getArtist()->brushDef->mode == PICK_POINT || getArtist()->brushDef->mode == PICK_POINT_LOOP)
     {
-        paintState->pickPoints[paintState->pickCount].x = x;
-        paintState->pickPoints[paintState->pickCount].y = y;
-
-        PAINT_LOGD("pick[%02zu] = SCR(%03d, %03d) / CNV(%d, %d)", paintState->pickCount, CNV2SCR_X(x), CNV2SCR_Y(y), x, y);
+        PAINT_LOGD("pick[%02zu] = SCR(%03d, %03d) / CNV(%d, %d)", pxStackSize(&getArtist()->pickPoints), CNV2SCR_X(x), CNV2SCR_Y(y), x, y);
 
         // Save the pixel underneath the selection, then draw a temporary pixel to mark it
         // But don't bother if this is the last pick point, since it will never actually be seen
-        if (!lastPick)
-        {
-            pushPxScaled(&paintState->pxStack, paintState->disp, x, y, paintState->canvas.x, paintState->canvas.y, paintState->canvas.xScale, paintState->canvas.yScale);
-            setPxScaled(paintState->disp, x, y, paintState->fgColor, paintState->canvas.x, paintState->canvas.y, paintState->canvas.xScale, paintState->canvas.yScale);
-        }
 
-        if (paintState->brush->mode == PICK_POINT_LOOP)
+        if (getArtist()->brushDef->mode == PICK_POINT_LOOP)
         {
-            if (paintState->pickCount > 0 && paintState->pickPoints[0].x == x && paintState->pickPoints[0].y == y)
+            pxVal_t firstPick, lastPick;
+            if (pxStackSize(&getArtist()->pickPoints) > 1 && getPx(&getArtist()->pickPoints, 0, &firstPick) && peekPx(&getArtist()->pickPoints, &lastPick) && firstPick.x == lastPick.x && firstPick.y == lastPick.y)
             {
                 // If this isn't the first pick, and it's in the same position as the first pick, we're done!
                 drawNow = true;
             }
-            else if (lastPick)
+            else if (isLastPick)
             {
                 // Special case: If we're on the next-to-last possible point, we have to add the start again as the last point
-                ++paintState->pickCount;
-
-                paintState->pickPoints[paintState->pickCount].x = paintState->pickPoints[0].x;
-                paintState->pickPoints[paintState->pickCount].y = paintState->pickPoints[0].y;
-
-
-                PAINT_LOGD("pick[%02zu] = (%03d, %03d) (last!)", paintState->pickCount, paintState->pickPoints[0].x, paintState->pickPoints[0].y);
+                pushPx(&getArtist()->pickPoints, paintState->disp, firstPick.x, firstPick.y);
 
                 drawNow = true;
             }
-
-            ++paintState->pickCount;
         }
         // only for non-loop brushes
-        else if (++paintState->pickCount == paintState->brush->maxPoints)
+        else if (pxStackSize(&getArtist()->pickPoints) == getArtist()->brushDef->maxPoints)
         {
             drawNow = true;
         }
     }
-    else if (paintState->brush->mode == INSTANT)
+    else if (getArtist()->brushDef->mode == INSTANT)
     {
         drawNow = true;
     }
 
     if (drawNow)
     {
-        // Restore the pixels under the pick markers BEFORE the tool draws
-        if (paintState->brush->mode == PICK_POINT || paintState->brush->mode == PICK_POINT_LOOP)
-        {
-            for (size_t i = 0; i < (paintState->pickCount - 1) * PAINT_CANVAS_SCALE * PAINT_CANVAS_SCALE; i++)
-            {
-                popPx(&paintState->pxStack, paintState->disp);
-            }
-        }
+        // Allocate an array of point_t for the canvas pick points
+        size_t pickCount = pxStackSize(&getArtist()->pickPoints);
+        point_t* canvasPickPoints = malloc(sizeof(point_t) * pickCount);
 
+        // Convert the pick points into an array of canvas-coordinates
+        paintConvertPickPointsScaled(&getArtist()->pickPoints, &paintState->canvas, canvasPickPoints);
 
-        paintState->brush->fnDraw(&paintState->canvas, paintState->pickPoints, paintState->pickCount, paintState->brushWidth, col);
+        while (popPxScaled(&getArtist()->pickPoints, paintState->disp, paintState->canvas.xScale, paintState->canvas.yScale));
 
-        paintState->pickCount = 0;
+        getArtist()->brushDef->fnDraw(&paintState->canvas, canvasPickPoints, pickCount, getArtist()->brushWidth, col);
+
+        free(canvasPickPoints);
     }
 
-    enableCursor();
-    paintRenderToolbar();
+    showCursor(getCursor(), &paintState->canvas);
+    paintRenderToolbar(getArtist(), &paintState->canvas);
 }
-
 
 
 void paintSetupTool(void)
 {
-    paintState->brush = &(brushes[paintState->brushIndex]);
-
-    // Reset the pick state
-    paintState->pickCount = 0;
-
-    if (paintState->brushWidth < paintState->brush->minSize)
+    // Reset the brush params
+    if (getArtist()->brushWidth < getArtist()->brushDef->minSize)
     {
-        paintState->brushWidth = paintState->brush->minSize;
+        getArtist()->brushWidth = getArtist()->brushDef->minSize;
     }
-    else if (paintState->brushWidth > paintState->brush->maxSize)
+    else if (getArtist()->brushWidth > getArtist()->brushDef->maxSize)
     {
-        paintState->brushWidth = paintState->brush->maxSize;
+        getArtist()->brushWidth = getArtist()->brushDef->maxSize;
     }
 
     // Remove any stored temporary pixels
-    while (popPx(&paintState->pxStack, paintState->disp));
+    while (popPxScaled(&getArtist()->pickPoints, paintState->disp, paintState->canvas.xScale, paintState->canvas.yScale));
 }
 
 void paintPrevTool(void)
 {
-    if (paintState->brushIndex > 0)
+    if (getArtist()->brushDef == firstBrush)
     {
-        paintState->brushIndex--;
+        getArtist()->brushDef = lastBrush;
     }
     else
     {
-        paintState->brushIndex = sizeof(brushes) / sizeof(brush_t) - 1;
+        getArtist()->brushDef--;
     }
 
     paintSetupTool();
@@ -722,13 +722,13 @@ void paintPrevTool(void)
 
 void paintNextTool(void)
 {
-    if (paintState->brushIndex < sizeof(brushes) / sizeof(brush_t) - 1)
+    if (getArtist()->brushDef == lastBrush)
     {
-        paintState->brushIndex++;
+        getArtist()->brushDef = firstBrush;
     }
     else
     {
-        paintState->brushIndex = 0;
+        getArtist()->brushDef++;
     }
 
     paintSetupTool();
@@ -736,62 +736,35 @@ void paintNextTool(void)
 
 void paintDecBrushWidth()
 {
-    if (paintState->brushWidth == 0 || paintState->brushWidth <= paintState->brush->minSize)
+    if (getArtist()->brushWidth == 0 || getArtist()->brushWidth <= getArtist()->brushDef->minSize)
     {
-        paintState->brushWidth = paintState->brush->minSize;
+        getArtist()->brushWidth = getArtist()->brushDef->minSize;
     }
     else
     {
-        paintState->brushWidth--;
+        getArtist()->brushWidth--;
     }
 }
 
 void paintIncBrushWidth()
 {
-    paintState->brushWidth++;
+    getArtist()->brushWidth++;
 
-    if (paintState->brushWidth > paintState->brush->maxSize)
+    if (getArtist()->brushWidth > getArtist()->brushDef->maxSize)
     {
-        paintState->brushWidth = paintState->brush->maxSize;
-    }
-}
-
-void setCursor(const wsg_t* cursorWsg)
-{
-    restoreCursorPixels();
-    paintState->cursorWsg = cursorWsg;
-    paintRenderCursor();
-}
-
-void enableCursor(void)
-{
-    if (!paintState->showCursor)
-    {
-        paintState->showCursor = true;
-
-        plotCursor();
-    }
-}
-
-void disableCursor(void)
-{
-    if (paintState->showCursor)
-    {
-        restoreCursorPixels();
-
-        paintState->showCursor = false;
+        getArtist()->brushWidth = getArtist()->brushDef->maxSize;
     }
 }
 
 void paintUpdateRecents(uint8_t selectedIndex)
 {
-    paintState->fgColor = paintState->canvas.palette[selectedIndex];
+    getArtist()->fgColor = paintState->canvas.palette[selectedIndex];
 
     for (uint8_t i = selectedIndex; i > 0; i--)
     {
         paintState->canvas.palette[i] = paintState->canvas.palette[i-1];
     }
-    paintState->canvas.palette[0] = paintState->fgColor;
+    paintState->canvas.palette[0] = getArtist()->fgColor;
 
     paintUpdateLeds();
 
@@ -801,7 +774,7 @@ void paintUpdateRecents(uint8_t selectedIndex)
 
 void paintUpdateLeds(void)
 {
-    uint32_t rgb = paletteToRGB(paintState->fgColor);
+    uint32_t rgb = paletteToRGB(getArtist()->fgColor);
     for (uint8_t i = 0; i < NUM_LEDS; i++)
     {
         paintState->leds[i].b = (rgb >>  0) & 0xFF;
@@ -814,48 +787,37 @@ void paintUpdateLeds(void)
 
 void paintDrawPickPoints(void)
 {
-    for (uint8_t i = 0; i < paintState->pickCount; i++)
+    pxVal_t point;
+    for (size_t i = 0; i < pxStackSize(&getArtist()->pickPoints); i++)
     {
-        setPxScaled(paintState->disp, paintState->pickPoints[i].x, paintState->pickPoints[i].y, paintState->fgColor, paintState->canvas.x, paintState->canvas.y, paintState->canvas.xScale, paintState->canvas.yScale);
+        if (getPx(&getArtist()->pickPoints, i, &point))
+        {
+            PAINT_LOGD("Drawing pick point[%zu] @ (%d, %d) == %d", i, point.x, point.y, getArtist()->fgColor);
+            plotRectFilled(paintState->disp, point.x, point.y, point.x + paintState->canvas.xScale + 1, point.y + paintState->canvas.yScale + 1, getArtist()->fgColor);
+        }
     }
 }
 
 void paintHidePickPoints(void)
 {
-    for (uint8_t i = 0; i < (paintState->pxStack.index < paintState->pickCount) ? paintState->pxStack.index : paintState->pickCount; i++)
+    pxVal_t point;
+    for (size_t i = 0; i < pxStackSize(&getArtist()->pickPoints); i++)
     {
-        setPxScaled(paintState->disp, paintState->pickPoints[i].x, paintState->pickPoints[i].y, paintState->pxStack.data[i].col, paintState->canvas.x, paintState->canvas.y, paintState->canvas.xScale, paintState->canvas.yScale);
+        if (getPx(&getArtist()->pickPoints, i, &point))
+        {
+            plotRectFilled(paintState->disp, point.x, point.y, point.x + paintState->canvas.xScale + 1, point.y + paintState->canvas.yScale + 1, point.col);
+        }
     }
 }
 
-void paintMoveCursorRel(int8_t xDiff, int8_t yDiff)
+paintArtist_t* getArtist(void)
 {
-    paintState->lastCursorX = paintState->cursorX;
-    paintState->lastCursorY = paintState->cursorY;
+    // TODO: Take player order into account
+    return paintState->artist;
+}
 
-    // TODO: prevent overflow when bounds checking
-    if (paintState->cursorX + xDiff < 0)
-    {
-        paintState->cursorX = 0;
-    }
-    else if (paintState->cursorX + xDiff >= paintState->canvas.w)
-    {
-        paintState->cursorX = paintState->canvas.w - 1;
-    }
-    else {
-        paintState->cursorX += xDiff;
-    }
-
-    if (paintState->cursorY + yDiff < 0)
-    {
-        paintState->cursorY = 0;
-    }
-    else if (paintState->cursorY + yDiff >= paintState->canvas.h)
-    {
-        paintState->cursorY = paintState->canvas.h - 1;
-    }
-    else
-    {
-        paintState->cursorY += yDiff;
-    }
+paintCursor_t* getCursor(void)
+{
+    // TODO Take player order into account
+    return &paintState->artist->cursor;
 }

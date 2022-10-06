@@ -113,6 +113,9 @@ typedef struct
 
     /// @brief True if the cursor should be drawn, false if not
     bool show;
+
+    /// @brief True when the cursor state has changed and it needs to be redrawn
+    bool redraw;
 } paintCursor_t;
 
 
@@ -168,71 +171,21 @@ typedef struct
 
     // Color data
 
-    // The foreground color and the background color, which can be swapped with B
-    // TODO moved to artist
-    paletteColor_t fgColor, bgColor;
-
     // The index of the currently selected color, while SELECT is held
     uint8_t paletteSelect;
 
     led_t leds[NUM_LEDS];
 
 
-    //////// Brush / Tool data
-
-    // Index of the currently selected brush / tool
-    // TODO replaced with artist.brushdef
-    uint8_t brushIndex;
-
-    // A pointer to the currently selected brush's definition for convenience
-    // TODO moved to artist.brushDef
-    const brush_t* brush;
-
-    // The current brush width or variant, depending on the brush
-    // TODO moved to artist.brushWidth
-    uint8_t brushWidth;
-
-
     //////// Pick Points
-
-    // An array of points that have been selected for the current brush
-    // TODO replaced with pxStack_t artist.pickPoints
-    point_t pickPoints[MAX_PICK_POINTS];
-
-    // The number of points already selected
-    // TODO replaced with artist.pickPoints.index
-    size_t pickCount;
-
-    // The saved pixels that are covered up by the pick points
-    // TODO moved to artist.pickPoints
-    pxStack_t pxStack;
-
     // Whether all pick points should be redrawn with the current fgColor, for when the color changes while we're picking
     bool recolorPickPoints;
 
 
     //////// Cursor
 
-    // The sprite for the currently selected cursor
-    // TODO moved to artist.cursor.sprite
-    const wsg_t* cursorWsg;
-
-    // The saved pixels thate rae covered up by the cursor
-    // TODO moved to artist.cursor.underPxs
-    pxStack_t cursorPxs;
-
-    bool showCursor;
-
     // The number of canvas pixels to move the cursor this frame
     int8_t moveX, moveY;
-
-    // The current position of the cursor in canvas pixels
-    int16_t cursorX, cursorY;
-
-    // The previous position of the cursor in canvas pixels
-    // TODO: Remove this and just use `cursorPxs` instead
-    // TODO maybe actually don't do that? or do we need it?
-    int16_t lastCursorX, lastCursorY;
 
     // When true, this is the initial D-pad button down.
     // If set, the cursor will move by one pixel and then it will be cleared.
@@ -300,8 +253,10 @@ typedef struct
     // Flag for updating the screen
     bool shareUpdateScreen;
 
+    // TODO rename this so it's not the same as the global one
     p2pInfo p2pInfo;
 
+    // Time for the progress bar timer
     int64_t shareTime;
 
 

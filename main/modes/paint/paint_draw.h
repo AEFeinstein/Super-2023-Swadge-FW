@@ -19,6 +19,7 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt);
 void paintDrawModeButtonCb(const buttonEvt_t* evt);
 
 void paintDrawScreenSetup(void);
+void paintDrawScreenCleanup(void);
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
 void paintUpdateRecents(uint8_t selectedIndex);
 void paintUpdateLeds(void);
@@ -37,5 +38,9 @@ void setCursor(const wsg_t* cursorWsg);
 void paintMoveCursorRel(int8_t xDiff, int8_t yDiff);
 void enableCursor(void);
 void disableCursor(void);
+
+// Artist helpers
+paintArtist_t* getArtist(void);
+paintCursor_t* getCursor(void);
 
 #endif
