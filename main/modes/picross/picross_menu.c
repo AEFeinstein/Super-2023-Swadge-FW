@@ -60,6 +60,7 @@ const char picrossCurrentPuzzleIndexKey[] = "pic_cur_ind";
 const char picrossSavedOptionsKey[]       = "pic_opts"; 
 const char picrossCompletedLevelData[]    = "pic_victs";
 const char picrossProgressData[]          = "pic_prog";
+
 //Main menu strings
 static char str_picrossTitle[] = "pi-cross";
 static const char str_continue[] = "Continue";
@@ -75,6 +76,8 @@ static const char str_HintsOn[] = "Mistake Alert: On";
 static const char str_HintsOff[] = "Mistake Alert: Off";
 static const char str_GuidesOn[] = "Guides: On";
 static const char str_GuidesOff[] = "Guides: Off";
+static const char str_MarkX[] = "Empty Marks: X";
+static const char str_MarkSolid[] = "Empty Marks: Solid";
 static const char str_AnimateBGOn[] = "BG Animate: On";
 static const char str_AnimateBGOff[] = "BG Animate: Off";
 static const char str_eraseProgress[] = "Erase Progress";
@@ -127,7 +130,7 @@ void picrossEnterMode(display_t* disp)
     //set default options
     if(false == readNvs32(picrossSavedOptionsKey, &pm->options))
     {
-        writeNvs32(picrossSavedOptionsKey, 6);//100 = bg on, guide on, hintwarning off. On the fence on guides on or off.
+        writeNvs32(picrossSavedOptionsKey, 12);//1100 = x's on, bg on, guide on, hintwarning off. On the fence on guides on or off.
     }
 }
 
@@ -163,7 +166,11 @@ void loadLevels()
     //Todo: we can cut our memory use down by about 2/3 if we use a naming convention and the titles to pull the wsg names.
     //snprint into loadWsg, i think. Make sure it all works with, say, apostophes and spaces.
 
-    //any entry with lowercase names is testing data. CamelCase names are good to go. This is not convention, just nature of dac sending me files vs. my testing ones.
+    // pm->levels[0].title = "Test";
+    // loadWsg("TEMP.wsg", &pm->levels[0].levelWSG);
+    // loadWsg("TEMP.wsg", &pm->levels[0].completedWSG);
+
+    // any entry with lowercase names is testing data. CamelCase names are good to go. This is not convention, just nature of dac sending me files vs. my testing ones.
     pm->levels[0].title = "Pi";
     loadWsg("Pi_PZL.wsg", &pm->levels[0].levelWSG);//5x5
     loadWsg("Pi_SLV.wsg", &pm->levels[0].completedWSG);
@@ -246,7 +253,7 @@ void loadLevels()
 
     //this has to be the last puzzle.
     pm->levels[20].title = "Never Gonna";//give you up, but title too long for single line.
-    loadWsg("RR_PZL.wsg", &pm->levels[20].levelWSG);//10x10
+    loadWsg("RR_PZL.wsg", &pm->levels[20].levelWSG);
     loadWsg("RR_SLV.wsg", &pm->levels[20].completedWSG);
 
     //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_consts.h) when adding levels.
@@ -363,6 +370,13 @@ void setPicrossMainMenu(bool resetPos)
             addRowToMeleeMenu(pm->menu, str_AnimateBGOn);
         }else{
             addRowToMeleeMenu(pm->menu, str_AnimateBGOff);
+        }
+
+        if(picrossGetLoadedSaveFlag(3))//Choose X
+        {
+            addRowToMeleeMenu(pm->menu, str_MarkX);
+        }else{
+            addRowToMeleeMenu(pm->menu, str_MarkSolid);
         }
 
         if(picrossGetLoadedSaveFlag(0))//are hints on?
@@ -504,7 +518,19 @@ void picrossMainMenuCb(const char* opt)
         //turn bgAnimate off
         picrossSetSaveFlag(2,false);
         setPicrossMainMenu(false);
-    }else if(opt == str_eraseProgress)
+    }else if(opt == str_MarkX)
+    {
+        //turn choose X back off
+        picrossSetSaveFlag(3,false);
+        setPicrossMainMenu(false);//re-setup menu with new text, but dont change cursor position
+    }
+    else if(opt == str_MarkSolid)
+    {
+        //turn chooseX on
+        picrossSetSaveFlag(3,true);
+        setPicrossMainMenu(false);
+    }
+    else if(opt == str_eraseProgress)
     {
         //Next time we load a puzzle it will re-save and zero-out the data, we just have to tell the mennu not to show the 'continue' option.
         writeNvs32(picrossCurrentPuzzleIndexKey,-1);

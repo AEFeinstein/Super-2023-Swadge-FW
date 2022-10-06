@@ -34,12 +34,13 @@ void drawPicrossPreviewWindow(display_t* d, wsg_t* wsg);
 //====
 
 //Initiation
-void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t levels[])
+void picrossStartLevelSelect(display_t* disp, font_t* bigFont, picrossLevelDef_t levels[])
 {
     ls = calloc(1, sizeof(picrossLevelSelect_t));
     ls->disp = disp;
-    ls->game_font = font;
-
+    ls->game_font = bigFont;
+    // ls->smallFont = smallFont;
+    loadFont("early_gameboy.font",&(ls->smallFont));
     loadWsg("unknownPuzzle.wsg",&ls->unknownPuzzle);
 
     size_t size = sizeof(picrossVictoryData_t);
@@ -50,7 +51,8 @@ void picrossStartLevelSelect(display_t* disp, font_t* font, picrossLevelDef_t le
     for(int i = 0;i<PICROSS_LEVEL_COUNT;i++)
     {
         //set completed data from save data.
-        if(victData->victories[i] == true){
+        if(victData->victories[i] == true)
+        {
             levels[i].completed = true;
         }else{
             levels[i].completed = false;
@@ -181,12 +183,14 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
             drawPicrossLevelWSG(d,&ls->unknownPuzzle,x,y);
         }
     }
-    // //Draw "name" of current level
-    // char letter[1];
-    // sprintf(letter, "%d", ls->hoverLevelIndex+1);//this function appears to modify hintbox.x0
-    // //as a temporary workaround, we will use x1 and y1 and subtract the drawscale.
-    // drawChar(d,c555, font->h, &font->chars[(*letter) - ' '], 158, 120);
 
+    //Draw the current level difficulty at the bottom left.
+    char textBuffer[9];
+    snprintf(textBuffer, sizeof(textBuffer) - 1, "%dx%d", (int)ls->levels[ls->hoverLevelIndex].levelWSG.w,(int)ls->levels[ls->hoverLevelIndex].levelWSG.h);
+    int16_t t = textWidth(&ls->smallFont,textBuffer)/2;
+    drawText(d, &ls->smallFont, c555, textBuffer, (d->w)-54-t,(d->h)-28);
+
+    //
     if(ls->hoverLevelIndex < PICROSS_LEVEL_COUNT){//jic
         //draw level choose input
         x = ls->hoverX;
@@ -228,8 +232,11 @@ void picrossExitLevelSelect()
     if (NULL != ls)
     {
         freeWsg(&ls->unknownPuzzle);
-        freeFont((ls->game_font));
-        free(&ls->disp);
+        freeFont(&(ls->smallFont));
+
+        // freeFont((ls->game_font));
+        // free(&ls->chosenLevel->title);
+        // free(&ls->chosenLevel);
         free(ls);
         ls = NULL;
     }

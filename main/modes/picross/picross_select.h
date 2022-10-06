@@ -17,6 +17,7 @@ typedef struct
 {
     display_t* disp;
     font_t* game_font;
+    font_t smallFont;
     picrossLevelDef_t* chosenLevel;
     uint8_t gridScale;
     int8_t hoverLevelIndex;
