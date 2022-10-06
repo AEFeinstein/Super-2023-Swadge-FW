@@ -39,7 +39,7 @@ bool popPx(pxStack_t* pxStack, display_t* disp);
 bool peekPx(const pxStack_t* pxStack, pxVal_t* dest);
 bool getPx(const pxStack_t* pxStack, size_t pos, pxVal_t* dest);
 bool dropPx(pxStack_t* pxStack);
-size_t pxStackSize(pxStack_t* pxStack);
+size_t pxStackSize(const pxStack_t* pxStack);
 void pushPxScaled(pxStack_t* pxStack, display_t* disp, int x, int y, int xTr, int yTr, int xScale, int yScale);
 bool popPxScaled(pxStack_t* pxStack, display_t* disp, int xScale, int yScale);
 

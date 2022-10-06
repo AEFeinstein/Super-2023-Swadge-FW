@@ -128,7 +128,7 @@ bool dropPx(pxStack_t* pxStack)
     return false;
 }
 
-size_t pxStackSize(pxStack_t* pxStack)
+size_t pxStackSize(const pxStack_t* pxStack)
 {
     return pxStack->index + 1;
 }
