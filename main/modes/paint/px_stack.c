@@ -66,8 +66,6 @@ void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y)
     pxStack->data[pxStack->index].x = x;
     pxStack->data[pxStack->index].y = y;
     pxStack->data[pxStack->index].col = disp->getPx(x, y);
-
-    PAINT_LOGV("Saved pixel %d at (%d, %d)", pxStack->index, x, y);
 }
 
 /**
@@ -84,8 +82,6 @@ bool popPx(pxStack_t* pxStack, display_t* disp)
     // Make sure the stack isn't empty
     if (pxStack->index >= 0)
     {
-        PAINT_LOGV("Popping pixel %d...", pxStack->index);
-
         // Draw the pixel from the top of the stack
         disp->setPx(pxStack->data[pxStack->index].x, pxStack->data[pxStack->index].y, pxStack->data[pxStack->index].col);
         pxStack->index--;

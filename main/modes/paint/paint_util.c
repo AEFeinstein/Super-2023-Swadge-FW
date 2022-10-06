@@ -131,10 +131,6 @@ void paintDrawWsgTemp(display_t* disp, const wsg_t* wsg, pxStack_t* saveTo, uint
 
                 disp->setPx(xOffset + x, yOffset + y, colorSwap ? colorSwap(disp->getPx(xOffset + x, yOffset + y)) : wsg->px[i]);
             }
-            else
-            {
-                //PAINT_LOGV("Skipping cursor[%d][%d] == cTransparent", x, y);
-            }
         }
     }
 }
