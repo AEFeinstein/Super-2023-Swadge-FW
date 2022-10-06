@@ -174,24 +174,24 @@ void fighterHrResultLoop(int64_t elapsedUs)
             hrr->sbPos.y = lBound;
             hrr->sbVel.y = 0;
         }
+    }
 
-        // Draw sandbag
-        drawWsg(hrr->disp, &hrr->sbi, hrr->sbPos.x >> SF, hrr->sbPos.y >> SF, false, false, hrr->rotDeg);
+    // Draw sandbag
+    drawWsg(hrr->disp, &hrr->sbi, hrr->sbPos.x >> SF, hrr->sbPos.y >> SF, false, false, hrr->rotDeg);
 
-        // Draw centered text
-        char str[32];
-        sprintf(str, "%dm", hrr->finalXpos);
-        drawText(hrr->disp, hrr->font, c555, str,
-                 (hrr->disp->w - textWidth(hrr->font, str)) / 2,
-                 (hrr->disp->h - hrr->font->h) / 2);
+    // Draw centered text
+    char str[32];
+    sprintf(str, "%dm", hrr->finalXpos);
+    drawText(hrr->disp, hrr->font, c555, str,
+                (hrr->disp->w - textWidth(hrr->font, str)) / 2,
+                (hrr->disp->h - hrr->font->h) / 2);
 
-        // Draw "New Record!", maybe
-        if(hrr->isNewRecord)
-        {
-            const char newRecordStr[] = "New Record!";
-            drawText(hrr->disp, hrr->font, c555, newRecordStr,
-                     (hrr->disp->w - textWidth(hrr->font, newRecordStr)) / 2,
-                     ((hrr->disp->h - hrr->font->h) / 2) + 4 + hrr->font->h);
-        }
+    // Draw "New Record!", maybe
+    if(hrr->isNewRecord)
+    {
+        const char newRecordStr[] = "New Record!";
+        drawText(hrr->disp, hrr->font, c555, newRecordStr,
+                    (hrr->disp->w - textWidth(hrr->font, newRecordStr)) / 2,
+                    ((hrr->disp->h - hrr->font->h) / 2) + 4 + hrr->font->h);
     }
 }

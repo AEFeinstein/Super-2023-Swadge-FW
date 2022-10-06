@@ -854,10 +854,13 @@ void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr __attribute__((unused)),
                     transmissionTimeUs = 1000;
                 }
 
+                // Use a fixed retry of 5ms
+                uint32_t waitTimeUs = 5000;
+
                 // Round it to the nearest Ms, add 69ms (the measured worst case)
                 // then add some randomness [0ms to 15ms random]
-                uint32_t waitTimeUs = 1000 * (((transmissionTimeUs + 500) / 1000) + 69 + (esp_random() & 0b1111));
-
+                // uint32_t waitTimeUs = 1000 * (((transmissionTimeUs + 500) / 1000) + 69 + (esp_random() & 0b1111));
+                
                 // Start the timer
                 //ESP_LOGD("P2P", "ack timer set for %dus", waitTimeUs);
                 esp_timer_start_once(p2p->tmr.TxRetry, waitTimeUs);
