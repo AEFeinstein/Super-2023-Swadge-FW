@@ -60,13 +60,41 @@ swadgeMode modeCredits =
 // Everyone's here
 static const char* creditNames[] =
 {
-    "Adam Feinstein"
+    "Adam Feinstein",
+    "Bedrock",
+    "Bryce Browner",
+    "Dac",
+    "Decnav",
+    "FuryfulFawful",
+    "Grocery Man",
+    "Hunter Dyar",
+    "J.Vega (@JVeg199X)",
+    "Jonathan Moriarty",
+    "Kevin \"PF3k\" Lin",
+    "MrTroy",
+    "Private Island",
+    "",
+    "",
 };
 
 // Must be same length as creditNames
 static const paletteColor_t creditColors[] =
 {
-    c555
+    c031,
+    c520,
+    c115,
+    c545,
+    c325,
+    c452,
+    c505,
+    c445,
+    c250,
+    c315,
+    c205,
+    c235,
+    c114,
+    c000,
+    c000,
 };
 
 static const song_t creditsSong =

@@ -63,7 +63,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
 {
     //calloc is 0'd and malloc leaves memory uninitialized. I dont know which to use so im not gonna touch it, and doing things once on load can be slower.
     p = calloc(1, sizeof(picrossGame_t));
-    p->selectedLevel = selectedLevel;
+    p->selectedLevel =*selectedLevel;
     p->currentPhase = PICROSS_SOLVING;
     p->d = disp;
     p->exitThisFrame = false;
@@ -78,6 +78,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->puzzle = calloc(1, sizeof(picrossPuzzle_t));    
     //puzzle gets set in picrossSetupPuzzle.
     
+    p->fadeHints = false;
     //Input Setup
     p->input = calloc(1, sizeof(picrossInput_t));
     p->input->x=0;
@@ -94,8 +95,9 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->startHeldType = OUTOFBOUNDS;
     p->input->inputBoxColor = c005;//now greenish for more pop against marked. old burnt orange: c430. old green: c043
         //lets test this game against various forms of colorblindness. I'm concerned about deuteranopia. Input square is my largest concern. 
-    p->input->inputBoxDefaultColor = c043;
+    p->input->inputBoxDefaultColor = p->input->inputBoxColor;//inputBoxColor gets changed during runtime, so we cache the desired.
     p->input->inputBoxErrorColor = c500;
+    p->input->markXColor = c522;
     p->input->movedThisFrame = false;
     p->input->changedLevelThisFrame = false;
     p->count = 1;
@@ -111,6 +113,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->showHints = picrossGetSaveFlag(0);
     p->input->showGuides = picrossGetLoadedSaveFlag(1);
     p->animateBG = picrossGetLoadedSaveFlag(2);
+    p->markX = picrossGetLoadedSaveFlag(3);
 
     //cant tell if this is doing things the lazy way or not.
     for(int i = 0;i<NUM_LEDS;i++)
@@ -146,7 +149,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
 
 void picrossSetupPuzzle(bool cont)
 {   
-    wsg_t *levelwsg = &p->selectedLevel->levelWSG;
+    wsg_t *levelwsg = &p->selectedLevel.levelWSG;
 
     setCompleteLevelFromWSG(levelwsg);
 
@@ -196,8 +199,9 @@ void picrossSetupPuzzle(bool cont)
     
     uint16_t totalXCount = p->puzzle->width+p->maxHintsX+1;
     uint16_t totalYCount = p->puzzle->height+p->maxHintsY+1;
-    uint16_t size = (((totalXCount) > (totalYCount)) ? (totalXCount) : (totalYCount)) ;
-    size = size + (p->input->showGuides ? 1 : 0);//add an extra space for the right-bottom side hover hints.
+    uint16_t extraSizeForGuides = p->puzzle->height > 13 ? 3 : 2;//Makes enough room for the hints.
+    uint16_t size = (((totalXCount) > (totalYCount)) ? (totalXCount) : (totalYCount));//math.max 
+    size = size + (p->input->showGuides ? extraSizeForGuides : 0);//add an extra space for the right-bottom side hover hints.
     uint16_t screenWidth = (p->d->w);
     uint16_t screenHeight = (p->d->h);
 
@@ -211,7 +215,6 @@ void picrossSetupPuzzle(bool cont)
     p->drawScale = (((vdrawScale) < (p->drawScale)) ? (vdrawScale) : (p->drawScale));
     //paddingL = (TFTWidth - (totalCount*scale))/2;
 
-    //My bug right now is the /2. I need to make it ceil not floor
     p->leftPad = (screenWidth - ((totalXCount*p->drawScale)))/2 + p->maxHintsX*p->drawScale;
     p->topPad = (screenHeight - ((totalYCount*p->drawScale)))/2 + p->maxHintsY*p->drawScale;
 
@@ -526,19 +529,26 @@ bool hintIsFilledIn(picrossHint_t* hint)
         switch (p->puzzle->level[col][row])
         {
             case SPACE_EMPTY:
+            {
                 isFilledIn = false;//set false, but still fall through (dont break)
+            }
+            /* FALLTHRU */
             case SPACE_MARKEMPTY:
             case OUTOFBOUNDS:
-            if (lastSpace == SPACE_FILLED)
             {
-                segmentIndex++;
+                if (lastSpace == SPACE_FILLED)
+                {
+                    segmentIndex++;
+                }
+                lastSpace = SPACE_EMPTY;
             }
-            lastSpace = SPACE_EMPTY;
             break;
 
             case SPACE_FILLED:
-            segmentLengths[segmentIndex]++;
-            lastSpace = SPACE_FILLED;
+            {
+                segmentLengths[segmentIndex]++;
+                lastSpace = SPACE_FILLED;
+            }
             break;
         }
     }
@@ -974,6 +984,9 @@ void drawPicrossScene(display_t* d)
     drawBackground(d);
 
     box_t box;
+    box_t xBox;
+    uint16_t xThick = 0;
+    
     //todo: move color selection to constants somewhere
     paletteColor_t emptySpaceCol = c555;
     paletteColor_t hoverSpaceCol = emptySpaceCol;//this value is only different if guides are turned on.
@@ -990,7 +1003,8 @@ void drawPicrossScene(display_t* d)
             for(int j = 0;j<h;j++)
             {
                 //shape of boxDraw
-                box = boxFromCoord(i,j);          
+                box = boxFromCoord(i,j);
+
                 switch(p->puzzle->level[i][j])
                 {
                     case SPACE_EMPTY:
@@ -1013,7 +1027,43 @@ void drawPicrossScene(display_t* d)
                     }
                     case SPACE_MARKEMPTY:
                     {
-                        drawBox(d, box, c531, true, 0);
+                        //draw x again
+                        // plotCircle(d,)
+                        if(!p->markX)
+                        {
+                            drawBox(d, box, c531, true, 0);
+                        }else
+                        {
+                            
+                            xThick = p->drawScale/5;
+                            uint16_t shrink = p->drawScale/6;
+                            xThick = xThick < 3 ? 3 : xThick;//min 2
+                             shrink = xThick < 3 ? 3 : xThick;//min 3
+                            xBox = box;
+                            xBox.x0 = xBox.x0 + shrink;
+                            xBox.x1 = xBox.x1 - shrink;
+                            xBox.y0 = xBox.y0 + shrink;
+                            xBox.y1 = xBox.y1 - shrink;
+                            
+                            //c531
+                            drawBox(d, box, c555, true, 0);
+
+                            //corner to corner X
+                            plotLine(d,xBox.x0,xBox.y1,xBox.x1,xBox.y0,p->input->markXColor,0);
+                            plotLine(d,xBox.x0,xBox.y0,xBox.x1,xBox.y1,p->input->markXColor,0);
+
+                            for(int t = 1;t<(xThick+1)/2;t++)
+                            {
+                                // bottom left to top right
+                                plotLine(d,xBox.x0,xBox.y1-t,xBox.x1-t,xBox.y0,p->input->markXColor,0);
+                                plotLine(d,xBox.x0+t,xBox.y1,xBox.x1,xBox.y0+t,p->input->markXColor,0);
+
+                                //top left to bottom right
+                                plotLine(d,xBox.x0+t,xBox.y0,xBox.x1,xBox.y1-t,p->input->markXColor,0);
+                                plotLine(d,xBox.x0,xBox.y0+t,xBox.x1-t,xBox.y1,p->input->markXColor,0);
+                            }
+                    
+                        }
                         break;
                     }
                     case OUTOFBOUNDS:
@@ -1033,14 +1083,14 @@ void drawPicrossScene(display_t* d)
         {
             for(int j = 0;j<h;j++)
             {
-                drawSinglePixelFromWSG(d,i,j,&p->selectedLevel->completedWSG);
+                drawSinglePixelFromWSG(d,i,j,&p->selectedLevel.completedWSG);
             }
         }
 
         //Draw the title of the puzzle, centered.       
-        int16_t t = textWidth(&p->UIFont,p->selectedLevel->title);
+        int16_t t = textWidth(&p->UIFont,*&p->selectedLevel.title);
         t = ((d->w) - t)/2;//from text width into padding.
-        drawText(d,&p->UIFont,c555,p->selectedLevel->title,t,14);
+        drawText(d,&p->UIFont,c555,*&p->selectedLevel.title,t,14);
     }
 }
 
@@ -1073,12 +1123,12 @@ box_t boxFromCoord(int8_t x,int8_t y)
 
 void drawPicrossHud(display_t* d,font_t* font)
 {
+    uint8_t s = p->drawScale;
     //width of thicker center lines
-    uint16_t w = 2;//p->drawScale/4;
+    // uint16_t w = 2;//p->drawScale/4;
     //draw a vertical line every grid
     for(int i=0;i<=p->puzzle->width;i++)//skip 0 and skip last. literally the fence post problem.
     {
-        uint16_t s = p->drawScale;
         if(i == 0 || i == p->puzzle->width)
         {
             //draw border
@@ -1087,21 +1137,10 @@ void drawPicrossHud(display_t* d,font_t* font)
             (s + p->topPad),
             ((i * s) + s + p->leftPad),
             ((p->puzzle->height * s) + s + p->topPad),
-            c115,0);
+            PICROSS_BORDER_COLOR,0);//BORDER COLOR
             continue;
         }
-        if(i%5 == 0)//draw thicker line every 5.
-        {
-            box_t box =
-            {
-                .x0 = (i * s) + s + p->leftPad - w/2,
-                .y0 = s + p->topPad,
-                .x1 = (i * s) + s + w/2 + p->leftPad,//3 is width
-                .y1 = (p->puzzle->height * s) + s + p->topPad,
-            };  
-            drawBox(d,box,c441,true,0);
-            continue;
-        }
+        
         //this could be less confusing.
         plotLine(d,
             ((i * s) + s + p->leftPad),
@@ -1116,37 +1155,77 @@ void drawPicrossHud(display_t* d,font_t* font)
      //todo: also do the full grid.
     for(uint8_t i=0;i<=p->puzzle->height;i++)
     {
-        uint8_t s = p->drawScale;
         if(i == 0 || i == p->puzzle->height)
         {
             //draw border
             plotLine(d,
-            (s + p->leftPad),
+            (s + p->leftPad)+1,
             ((i * s) + s + p->topPad),
-            ((p->puzzle->width * s) + s + p->leftPad),
+            ((p->puzzle->width * s) + s + p->leftPad)-1,
             ((i * s) + s + p->topPad),
-            c115,0);
+            PICROSS_BORDER_COLOR,0);
             continue;
         }
-        if(i%5 == 0)
-        {
-            box_t box =
-            {
-                .x0 = s + p->leftPad,
-                .y0 = (i * s) + s + p->topPad - w/2,
-                .x1 = (p->puzzle->width * s) + s + p->leftPad,
-                .y1 = (i * s) + s + p->topPad + w/2,
-            };  
-            drawBox(d,box,c441,true,0);
-            continue;
-        }
+        
         //this should be less confusing.
         plotLine(d,
-            (s + p->leftPad),
+            (s + p->leftPad)+1,
             ((i * s) + s + p->topPad),
-            ((p->puzzle->width * s) + s + p->leftPad),
+            ((p->puzzle->width * s) + s + p->leftPad)-1,
             ((i * s) + s + p->topPad),
             c111,0);
+    }
+
+    //After drawing the other grid, draw the thicker yellow lines, so they overlap the others.
+    for(int i=5;i<=p->puzzle->height-1;i+=5)
+    {
+        //Horizontal
+        plotLine(d,
+            s + p->leftPad+1,
+            (i * s) + s + p->topPad,
+            (p->puzzle->width * s) + s + p->leftPad-1,
+            (i * s) + s + p->topPad,
+            PICROSS_MOD5_COLOR,0
+        );
+        // plotLine(d,
+        //     s + p->leftPad+1,
+        //     (i * s) + s + p->topPad+1,
+        //     (p->puzzle->width * s) + s + p->leftPad-1,
+        //     (i * s) + s + p->topPad+1,
+        //     PICROSS_MOD5_COLOR,0
+        // );
+        // plotLine(d,
+        //     s + p->leftPad+1,
+        //     (i * s) + s + p->topPad-1,
+        //     (p->puzzle->width * s) + s + p->leftPad-1,
+        //     (i * s) + s + p->topPad-1,
+        //     PICROSS_MOD5_COLOR,0
+        // );
+    }
+    for(int i=5;i<=p->puzzle->width-1;i+=5)
+    {
+        //Vertical
+        plotLine(d,
+            (i * s) + s + p->leftPad,
+            s + p->topPad+1,
+            (i * s) + s + p->leftPad,
+            (p->puzzle->height * s) + s + p->topPad-1,
+            PICROSS_MOD5_COLOR,0
+        );
+        // plotLine(d,
+        //     (i * s) + s + p->leftPad+1,
+        //     s + p->topPad+1,
+        //     (i * s) + s + p->leftPad+1,
+        //     (p->puzzle->height * s) + s + p->topPad-1,
+        //     PICROSS_MOD5_COLOR,0
+        // );
+        // plotLine(d,
+        //     (i * s) + s + p->leftPad-1,
+        //     s + p->topPad+1,
+        //     (i * s) + s + p->leftPad-1,
+        //     (p->puzzle->height * s) + s + p->topPad-1,
+        //     PICROSS_MOD5_COLOR,0
+        // );        
     }
 
     //Draw the hints.
@@ -1192,13 +1271,16 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
     box_t hintbox = boxFromCoord(-1,hint.index);
     paletteColor_t hintShadeColor = c001;//todo: move to struct if we decide to keep this.
     paletteColor_t hintColor = c555;//white/
-    if(hint.correct)
+    if(p->fadeHints)
     {
-        //fade, or fade more.
-        hintColor = hint.filledIn ? c111 : c333;
-    }else{
-        //incorrect, or we are still working on it
-         hintColor = hint.filledIn ? c533 : c555;
+        if(hint.correct)
+        {
+            //fade, or fade more.
+            hintColor = hint.filledIn ? c111 : c333;
+        }else{
+            //incorrect, or we are still working on it
+            hintColor = hint.filledIn ? c533 : c555;
+        }
     }
 
     if(hint.isRow){
@@ -1307,19 +1389,56 @@ int8_t getHintShift(uint8_t hint)
 
 void drawPicrossInput(display_t* d)
 {
-    //todo: rewrite this. Use faster Bresenham functions and dont use drawBox.
+    //First, get the square that is the player input box
+    box_t iBox = boxFromCoord(p->input->x,p->input->y);
+    //pulled out of the box so it would be easier to type everything.
+    uint32_t x0 = iBox.x0;
+    uint32_t x1 = iBox.x1;
+    uint32_t y0 = iBox.y0;
+    uint32_t y1 = iBox.y1;
 
-    //Draw player input box
-    box_t inputBox = boxFromCoord(p->input->x,p->input->y);
-    inputBox.x1 = inputBox.x1+1;
-    inputBox.y1 = inputBox.y1+1;//cover up both marking lines
-    drawBox(d, inputBox, p->input->inputBoxColor, false, 0);
-    //draw it twice as thicc 
-    inputBox.x0 = inputBox.x0-1; 
-    inputBox.y0 = inputBox.y0-1; 
-    inputBox.x1 = inputBox.x1+1; 
-    inputBox.y1 = inputBox.y1+1;
-    drawBox(d, inputBox, p->input->inputBoxColor, false, 0);
+    //x0,y0 -a-- x1,y0
+    //  |d         |b
+    //x0,y1 -c-- x1,y1
+
+    //line a
+    plotLine(d, x0,y0,x1,y0,p->input->inputBoxColor,0);
+    //line b
+    plotLine(d, x1,y0,x1,y1,p->input->inputBoxColor,0);
+    //line c
+    plotLine(d, x0,y1,x1,y1,p->input->inputBoxColor,0);
+    //line d
+    plotLine(d, x0,y0,x0,y1,p->input->inputBoxColor,0);
+
+    uint16_t thickness = p->drawScale/5 - 1;//trial and error to find this 20% of square (ish). -1, we draw the above line "centered"
+    thickness = thickness < 2 ? 2 : thickness;//min 2
+    for(uint8_t j = 1;j<thickness;j++)
+    {
+        //Thickness is the number of pixels we want (+1, 0 is a single pixels square).
+        //So as j increases, we add a line to the outside, then inside, then outside, then inside of the square, the %2 alternates (basically an even/odd check)
+        //the i increments half as quickly as j, so the lines aren't added twice as far as they should be.
+        uint8_t i = (j+1)/2;
+        if(j%2 != 0)//because i starts at 1, j starts odd, so this "prefers" shrinking, if theres an odd number for thicknes
+        {
+            //Shrink a
+            plotLine(d, x0,y0+i,x1,y0+i,p->input->inputBoxColor,0);
+            //shrink b
+            plotLine(d, x1-i,y0,x1-i,y1,p->input->inputBoxColor,0);
+            //shrink c
+            plotLine(d, x0,y1-i,x1,y1-i,p->input->inputBoxColor,0);
+            //shrink d
+            plotLine(d, x0+i,y0,x0+i,y1,p->input->inputBoxColor,0); 
+        }else{
+            //Grow a
+            plotLine(d, x0-i,y0-i,x1+i,y0-i,p->input->inputBoxColor,0);
+            //Grow b
+            plotLine(d, x1+i,y0-i,x1+i,y1+i,p->input->inputBoxColor,0);
+            //Grow c
+            plotLine(d, x0-i,y1+i,x1+i,y1+i,p->input->inputBoxColor,0);
+            //Grow d
+            plotLine(d, x0-i,y0-i,x0-i,y1+i,p->input->inputBoxColor,0); 
+        }
+    }
 }
 
 /**
@@ -1334,6 +1453,7 @@ void drawBackground(display_t* d)
         if(p->bgScrollTimer >= p->bgScrollSpeed)
         {
             p->bgScrollTimer = 0;
+            
             p->bgScrollXFrame++;
             p->bgScrollYFrame += p->bgScrollXFrame%2;//scroll y twice as slowly as x
             //loop frames
@@ -1392,8 +1512,8 @@ void picrossExitGame(void)
     {
         freeFont(&(p->hintFont));
         freeFont(&(p->UIFont));
-        free(p->puzzle);
         free(p->input);
+        free(p->puzzle);
         free(p);
         p = NULL;
     }    
@@ -1463,7 +1583,7 @@ void saveCompletedOnSelectedLevel(bool completed)
     size_t size = sizeof(picrossVictoryData_t);
     picrossVictoryData_t* victData = calloc(1,size);//zero out. if data doesnt exist, then its been correctly initialized to all 0s. 
     readNvsBlob(picrossCompletedLevelData,victData,&size);
-    victData->victories[(int)p->selectedLevel->index] = completed;
+    victData->victories[(int)*&p->selectedLevel.index] = completed;
     writeNvsBlob(picrossCompletedLevelData,victData,size);
     free(victData);
 }

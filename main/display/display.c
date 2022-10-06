@@ -703,8 +703,6 @@ void freeFont(font_t* font)
 void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16_t xOff, int16_t yOff)
 {
     //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
-    paletteColor_t* pxOutput = disp->pxFb + yOff * disp->w;
-
     int bitIdx = 0;
     uint8_t* bitmap = ch->bitmap;
     int wch = ch->w;
@@ -725,6 +723,8 @@ void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16
         h += yOff;
         yOff = 0;
     }
+
+    paletteColor_t* pxOutput = disp->pxFb + yOff * disp->w;
 
     for (int y = 0; y < h; y++)
     {

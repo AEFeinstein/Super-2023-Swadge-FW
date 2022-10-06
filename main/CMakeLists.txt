@@ -31,6 +31,7 @@ idf_component_register(
         "modes/platformer/entity.c"
         "modes/platformer/entityManager.c"
         "modes/platformer/tilemap.c"
+        "modes/mode_slide_whistle.c"
         "modes/mode_tiltrads.c"
         "modes/mode_tunernome.c"
         "modes/mode_test.c"

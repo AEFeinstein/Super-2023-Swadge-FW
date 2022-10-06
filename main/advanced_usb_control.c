@@ -194,7 +194,7 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
         // Switch Swadge Mode
         {
             ULOG( "SwadgeMode Value: 0x%08x", value );
-			overrideToSwadgeMode( (swadgeMode*)(value?value:&dummy_swadge_mode) );
+			overrideToSwadgeMode( (swadgeMode*)(value?(swadgeMode*)value:&dummy_swadge_mode) );
         }
         break;
     case AUSB_CMD_ALLOC_SCRATCH:

@@ -20,14 +20,15 @@
 #include "jumper_menu.h"
 #include "mode_tiltrads.h"
 #include "mode_gamepad.h"
-#include "mode_tunernome.h"
-#include "mode_colorchord.h"
 #include "mode_dance.h"
 #include "mode_credits.h"
 #include "mode_platformer.h"
 #include "mode_picross.h"
 #include "mode_flight.h"
 #include "mode_paint.h"
+#include "mode_colorchord.h"
+#include "mode_tunernome.h"
+#include "mode_slide_whistle.h"
 // #include "picross_select.h"
 
 //==============================================================================
@@ -47,6 +48,8 @@ void mainMenuSetUpGamesMenu(bool);
 void mainMenuGamesCb(const char* opt);
 void mainMenuSetUpToolsMenu(bool);
 void mainMenuToolsCb(const char* opt);
+void mainMenuSetUpMusicMenu(bool);
+void mainMenuMusicCb(const char* opt);
 void mainMenuSetUpSettingsMenu(bool);
 void mainMenuSettingsCb(const char* opt);
 
@@ -63,8 +66,11 @@ typedef struct
     uint8_t topLevelPos;
     uint8_t gamesPos;
     uint8_t toolsPos;
+    uint8_t musicPos;
     uint8_t settingsPos;
-    uint32_t batt;
+    uint32_t battVal;
+    wsg_t batt[4];
+    wsg_t usb;
 } mainMenu_t;
 
 //==============================================================================
@@ -94,6 +100,7 @@ swadgeMode modeMainMenu =
 const char mainMenuTitle[] = "Swadge!";
 const char mainMenuGames[] = "Games";
 const char mainMenuTools[] = "Tools";
+const char mainMenuMusic[] = "Music";
 const char mainMenuSettings[] = "Settings";
 const char mainMenuBack[] = "Back";
 const char mainMenuSoundBgmOn[] = "Music: On";
@@ -124,6 +131,13 @@ void mainMenuEnterMode(display_t* disp)
     loadFont("mm.font", &mainMenu->meleeMenuFont);
     loadFont("ibm_vga8.font", &mainMenu->ibmFont);
 
+    // Load images
+    loadWsg("batt1.wsg", &mainMenu->batt[0]);
+    loadWsg("batt2.wsg", &mainMenu->batt[1]);
+    loadWsg("batt3.wsg", &mainMenu->batt[2]);
+    loadWsg("batt4.wsg", &mainMenu->batt[3]);
+    loadWsg("usb.wsg", &mainMenu->usb);
+
     // Initialize the menu
     mainMenu->menu = initMeleeMenu(mainMenuTitle, &mainMenu->meleeMenuFont, mainMenuTopLevelCb);
     mainMenuSetUpTopMenu(true);
@@ -134,6 +148,11 @@ void mainMenuEnterMode(display_t* disp)
  */
 void mainMenuExitMode(void)
 {
+    freeWsg(&mainMenu->batt[0]);
+    freeWsg(&mainMenu->batt[1]);
+    freeWsg(&mainMenu->batt[2]);
+    freeWsg(&mainMenu->batt[3]);
+    freeWsg(&mainMenu->usb);
     deinitMeleeMenu(mainMenu->menu);
     freeFont(&mainMenu->meleeMenuFont);
     freeFont(&mainMenu->ibmFont);
@@ -147,12 +166,33 @@ void mainMenuExitMode(void)
  */
 void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
+    // Draw the menu
     drawMeleeMenu(mainMenu->disp, mainMenu->menu);
 
-    char battStr[8];
-    sprintf(battStr, "%d", mainMenu->batt);
-    int16_t tWidth = textWidth(&mainMenu->ibmFont, battStr);
-    drawText(mainMenu->disp, &mainMenu->ibmFont, c555, battStr, mainMenu->disp->w - tWidth - 40, 1);
+    // Draw the battery indicator depending on the last read value
+    wsg_t * toDraw = NULL;
+    if(mainMenu->battVal > 900)
+    {
+        toDraw = &mainMenu->usb;
+    }
+    else if (mainMenu->battVal > 721)
+    {
+        toDraw = &mainMenu->batt[3];        
+    }
+    else if (mainMenu->battVal > 671)
+    {
+        toDraw = &mainMenu->batt[2];        
+    }
+    else if (mainMenu->battVal > 625)
+    {
+        toDraw = &mainMenu->batt[1];        
+    }
+    else
+    {
+        toDraw = &mainMenu->batt[0];        
+    }
+
+    drawWsg(mainMenu->disp, toDraw, 212, 3, false, false, 0);
 }
 
 /**
@@ -162,8 +202,7 @@ void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
  */
 void mainMenuBatteryCb(uint32_t vBatt)
 {
-    mainMenu->batt = vBatt;
-    ESP_LOGI("BAT", "%lld %d", esp_timer_get_time(), vBatt);
+    mainMenu->battVal = vBatt;
 }
 
 /**
@@ -280,6 +319,7 @@ void mainMenuSetUpTopMenu(bool resetPos)
     resetMeleeMenu(mainMenu->menu, mainMenuTitle, mainMenuTopLevelCb);
     addRowToMeleeMenu(mainMenu->menu, mainMenuGames);
     addRowToMeleeMenu(mainMenu->menu, mainMenuTools);
+    addRowToMeleeMenu(mainMenu->menu, mainMenuMusic);
     addRowToMeleeMenu(mainMenu->menu, mainMenuSettings);
     addRowToMeleeMenu(mainMenu->menu, mainMenuCredits);
 
@@ -309,6 +349,10 @@ void mainMenuTopLevelCb(const char* opt)
     else if(mainMenuTools == opt)
     {
         mainMenuSetUpToolsMenu(true);
+    }
+    else if(mainMenuMusic == opt)
+    {
+        mainMenuSetUpMusicMenu(true);
     }
     else if(mainMenuSettings == opt)
     {
@@ -399,8 +443,6 @@ void mainMenuSetUpToolsMenu(bool resetPos)
     // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuTools, mainMenuToolsCb);
     addRowToMeleeMenu(mainMenu->menu, modeGamepad.modeName);
-    addRowToMeleeMenu(mainMenu->menu, modeTunernome.modeName);
-    addRowToMeleeMenu(mainMenu->menu, modeColorchord.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeDance.modeName);
     addRowToMeleeMenu(mainMenu->menu, modePaint.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
@@ -447,6 +489,59 @@ void mainMenuToolsCb(const char* opt)
     {
         // Start Paint
         switchToSwadgeMode(&modePaint);
+    }
+    else if(mainMenuBack == opt)
+    {
+        mainMenuSetUpTopMenu(false);
+    }
+}
+
+/**
+ * Set up the music menu
+ *
+ * @param resetPos true to reset the position to 0, false to leave it where it is
+ */
+void mainMenuSetUpMusicMenu(bool resetPos)
+{
+    // Set up the menu
+    resetMeleeMenu(mainMenu->menu, mainMenuMusic, mainMenuMusicCb);
+    addRowToMeleeMenu(mainMenu->menu, modeColorchord.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeTunernome.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeSlideWhistle.modeName);
+    addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
+    // Set the position
+    if(resetPos)
+    {
+        mainMenu->musicPos = 0;
+    }
+    mainMenu->menu->selectedRow = mainMenu->musicPos;
+}
+
+/**
+ * Callback for the music menu
+ *
+ * @param opt The menu option which was selected
+ */
+void mainMenuMusicCb(const char* opt)
+{
+    // Save the position
+    mainMenu->musicPos = mainMenu->menu->selectedRow;
+
+    // Handle the option
+    if(modeColorchord.modeName == opt)
+    {
+        // Start colorchord
+        switchToSwadgeMode(&modeColorchord);
+    }
+    else if(modeTunernome.modeName == opt)
+    {
+        // Start tunernome
+        switchToSwadgeMode(&modeTunernome);
+    }
+    else if(modeSlideWhistle.modeName == opt)
+    {
+        // Start slide whistle
+        switchToSwadgeMode(&modeSlideWhistle);
     }
     else if(mainMenuBack == opt)
     {
