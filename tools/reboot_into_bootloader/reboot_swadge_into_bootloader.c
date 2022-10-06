@@ -46,7 +46,7 @@ int main()
 
 	hid_close( hd );
 #ifdef WIN32
-	Sleep( 200 );
+	Sleep( 2000 );
 #else
 	usleep(200000);
 #endif
