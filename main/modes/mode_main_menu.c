@@ -64,7 +64,9 @@ typedef struct
     uint8_t gamesPos;
     uint8_t toolsPos;
     uint8_t settingsPos;
-    uint32_t batt;
+    uint32_t battVal;
+    wsg_t batt[4];
+    wsg_t usb;
 } mainMenu_t;
 
 //==============================================================================
@@ -124,6 +126,13 @@ void mainMenuEnterMode(display_t* disp)
     loadFont("mm.font", &mainMenu->meleeMenuFont);
     loadFont("ibm_vga8.font", &mainMenu->ibmFont);
 
+    // Load images
+    loadWsg("batt1.wsg", &mainMenu->batt[0]);
+    loadWsg("batt2.wsg", &mainMenu->batt[1]);
+    loadWsg("batt3.wsg", &mainMenu->batt[2]);
+    loadWsg("batt4.wsg", &mainMenu->batt[3]);
+    loadWsg("usb.wsg", &mainMenu->usb);
+
     // Initialize the menu
     mainMenu->menu = initMeleeMenu(mainMenuTitle, &mainMenu->meleeMenuFont, mainMenuTopLevelCb);
     mainMenuSetUpTopMenu(true);
@@ -134,6 +143,11 @@ void mainMenuEnterMode(display_t* disp)
  */
 void mainMenuExitMode(void)
 {
+    freeWsg(&mainMenu->batt[0]);
+    freeWsg(&mainMenu->batt[1]);
+    freeWsg(&mainMenu->batt[2]);
+    freeWsg(&mainMenu->batt[3]);
+    freeWsg(&mainMenu->usb);
     deinitMeleeMenu(mainMenu->menu);
     freeFont(&mainMenu->meleeMenuFont);
     freeFont(&mainMenu->ibmFont);
@@ -147,12 +161,33 @@ void mainMenuExitMode(void)
  */
 void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
+    // Draw the menu
     drawMeleeMenu(mainMenu->disp, mainMenu->menu);
 
-    char battStr[8];
-    sprintf(battStr, "%d", mainMenu->batt);
-    int16_t tWidth = textWidth(&mainMenu->ibmFont, battStr);
-    drawText(mainMenu->disp, &mainMenu->ibmFont, c555, battStr, mainMenu->disp->w - tWidth - 40, 1);
+    // Draw the battery indicator depending on the last read value
+    wsg_t * toDraw = NULL;
+    if(mainMenu->battVal > 900)
+    {
+        toDraw = &mainMenu->usb;
+    }
+    else if (mainMenu->battVal > 721)
+    {
+        toDraw = &mainMenu->batt[3];        
+    }
+    else if (mainMenu->battVal > 671)
+    {
+        toDraw = &mainMenu->batt[2];        
+    }
+    else if (mainMenu->battVal > 625)
+    {
+        toDraw = &mainMenu->batt[1];        
+    }
+    else
+    {
+        toDraw = &mainMenu->batt[0];        
+    }
+
+    drawWsg(mainMenu->disp, toDraw, 212, 3, false, false, 0);
 }
 
 /**
@@ -162,8 +197,7 @@ void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
  */
 void mainMenuBatteryCb(uint32_t vBatt)
 {
-    mainMenu->batt = vBatt;
-    ESP_LOGI("BAT", "%lld %d", esp_timer_get_time(), vBatt);
+    mainMenu->battVal = vBatt;
 }
 
 /**
