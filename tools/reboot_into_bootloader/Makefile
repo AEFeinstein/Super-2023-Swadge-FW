@@ -8,7 +8,7 @@ CC:=gcc
 RCMD:=./reboot_swadge_into_bootloader
 else
 CFLAGS:=-Os -s
-CC:=tcc
+CC:=gcc
 LDFLAGS:=C:/windows/system32/setupapi.dll
 RCMD:=./reboot_swadge_into_bootloader.exe
 endif
