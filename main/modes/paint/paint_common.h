@@ -54,13 +54,17 @@
 // Keep at least 3px free above and below the toolbar text
 #define PAINT_TOOLBAR_TEXT_PADDING_Y 3
 
-#define PAINT_TOOLBAR_FONT "radiostars.font"
+#define PAINT_TOOLBAR_FONT "ibm_vga8.font"
+#define PAINT_SAVE_MENU_FONT "radiostars.font"
 
 #define PAINT_TOOLBAR_BG c333
 
 // Dimensions of the color boxes in the palette
 #define PAINT_COLORBOX_W 9
 #define PAINT_COLORBOX_H 9
+
+// Spacing between the tool icons and the size, and the size and pick point counts
+#define TOOL_INFO_TEXT_MARGIN_Y 6
 
 #define PAINT_COLORBOX_SHADOW_TOP c444
 #define PAINT_COLORBOX_SHADOW_BOTTOM c222
@@ -144,9 +148,10 @@ typedef struct
     // Margins that define the space the canvas may be placed within.
     uint16_t marginTop, marginLeft, marginBottom, marginRight;
 
-    // Font for drawing tool info
-    // TODO: Use images instead!
+    // Font for drawing tool info (width, pick points)
     font_t toolbarFont;
+    // Font for drawing save / load / clear / exit menu
+    font_t saveMenuFont;
 
     // Index keeping track of which slots are in use and the most recent slot
     int32_t index;

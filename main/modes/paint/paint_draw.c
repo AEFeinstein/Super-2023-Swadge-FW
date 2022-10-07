@@ -60,25 +60,28 @@ static paletteColor_t defaultPalette[] =
     c103, // dark blue
 };
 
-const brush_t brushes[] =
+brush_t brushes[] =
 {
-    { .name = "Square Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawSquarePen },
-    { .name = "Circle Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawCirclePen },
-    { .name = "Line",       .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawLine },
-    { .name = "Bezier Curve", .mode = PICK_POINT, .maxPoints = 4, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCurve },
-    { .name = "Rectangle",  .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawRectangle },
-    { .name = "Filled Rectangle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledRectangle },
-    { .name = "Circle",     .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCircle },
-    { .name = "Filled Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledCircle },
-    { .name = "Ellipse",    .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawEllipse },
-    { .name = "Polygon",    .mode = PICK_POINT_LOOP, .maxPoints = 16, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawPolygon },
-    { .name = "Squarewave", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawSquareWave },
-    { .name = "Paint Bucket", .mode = PICK_POINT, .maxPoints = 1, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawPaintBucket },
-    { .name = "Clear",      .mode = INSTANT, .maxPoints = 0, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawClear },
+    { .name = "Square Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawSquarePen, .iconName = "square_pen" },
+    { .name = "Circle Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawCirclePen, .iconName = "circle_pen" },
+    { .name = "Line",       .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawLine, .iconName = "line" },
+    { .name = "Bezier Curve", .mode = PICK_POINT, .maxPoints = 4, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCurve, .iconName = "curve" },
+    { .name = "Rectangle",  .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawRectangle, .iconName = "rect" },
+    { .name = "Filled Rectangle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledRectangle, .iconName = "rect_filled" },
+    { .name = "Circle",     .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCircle, .iconName = "circle" },
+    { .name = "Filled Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledCircle, .iconName = "circle_filled" },
+    { .name = "Ellipse",    .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawEllipse, .iconName = "ellipse" },
+    { .name = "Polygon",    .mode = PICK_POINT_LOOP, .maxPoints = 16, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawPolygon, .iconName = "polygon" },
+    { .name = "Squarewave", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawSquareWave, .iconName = "squarewave" },
+    { .name = "Paint Bucket", .mode = PICK_POINT, .maxPoints = 1, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawPaintBucket, .iconName = "paint_bucket" },
+    { .name = "Clear",      .mode = INSTANT, .maxPoints = 0, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawClear, .iconName = "clear" },
 };
 
-const brush_t* firstBrush = brushes;
-const brush_t* lastBrush = brushes + sizeof(brushes) / sizeof(brushes[0]) - 1;
+const char activeIconStr[] = "%s_active.wsg";
+const char inactiveIconStr[] = "%s_inactive.wsg";
+
+brush_t* firstBrush = brushes;
+brush_t* lastBrush = brushes + sizeof(brushes) / sizeof(brushes[0]) - 1;
 
 void paintDrawScreenSetup(display_t* disp)
 {
@@ -87,7 +90,26 @@ void paintDrawScreenSetup(display_t* disp)
     paintState->canvas.disp = disp;
 
     loadFont(PAINT_TOOLBAR_FONT, &(paintState->toolbarFont));
+    loadFont(PAINT_SAVE_MENU_FONT, &(paintState->saveMenuFont));
     paintState->clearScreen = true;
+
+
+    // Set up the brush icons
+    char iconName[32];
+    for (brush_t* brush = firstBrush; brush <= lastBrush; brush++)
+    {
+        snprintf(iconName, sizeof(iconName), activeIconStr, brush->iconName);
+        if (!loadWsg(iconName, &brush->iconActive))
+        {
+            PAINT_LOGE("Loading icon %s failed!!!", iconName);
+        }
+
+        snprintf(iconName, sizeof(iconName), inactiveIconStr, brush->iconName);
+        if (!loadWsg(iconName, &brush->iconInactive))
+        {
+            PAINT_LOGE("Loading icon %s failed!!!", iconName);
+        }
+    }
 
     // Setup the margins
     // Top: Leave room for the toolbar text plus padding above and below it, plus 1px for canvas border
@@ -144,12 +166,19 @@ void paintDrawScreenSetup(display_t* disp)
 
 void paintDrawScreenCleanup(void)
 {
+    for (brush_t* brush = firstBrush; brush <= lastBrush; brush++)
+    {
+        freeWsg(&brush->iconActive);
+        freeWsg(&brush->iconInactive);
+    }
+
     for (uint8_t i = 0; i < sizeof(paintState->artist) / sizeof(paintState->artist[0]) ;i++)
     {
         deinitCursor(&paintState->artist[i].cursor);
         freePxStack(&paintState->artist[i].pickPoints);
     }
 
+    freeFont(&paintState->saveMenuFont);
     freeFont(&paintState->toolbarFont);
     free(paintState);
 }
@@ -171,7 +200,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
     if (paintState->clearScreen)
     {
         paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
-        paintRenderToolbar(getArtist(), &paintState->canvas, paintState);
+        paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
         paintUpdateLeds();
         showCursor(getCursor(), &paintState->canvas);
         paintState->clearScreen = false;
@@ -231,7 +260,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
 
     if (paintState->redrawToolbar)
     {
-        paintRenderToolbar(getArtist(), &paintState->canvas, paintState);
+        paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
         paintState->redrawToolbar = false;
     }
     else
@@ -255,7 +284,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
             {
 
                 moveCursorRelative(getCursor(), &paintState->canvas, paintState->moveX, paintState->moveY);
-                paintRenderToolbar(getArtist(), &paintState->canvas, paintState);
+                paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
 
                 paintState->firstMove = false;
             }
@@ -736,7 +765,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
     }
 
     showCursor(getCursor(), &paintState->canvas);
-    paintRenderToolbar(getArtist(), &paintState->canvas, paintState);
+    paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
 }
 
 
