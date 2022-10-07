@@ -47,6 +47,11 @@ typedef enum
 
 #define FPS_MEASUREMENT_SEC 3
 
+#define BARRIER_COLOR  c435
+#define PLATFORM_COLOR c111
+#define HUD_COLOR      c444
+#define STOCK_COLOR    c550
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -128,6 +133,7 @@ static fightingGame_t* f = NULL;
 // For all stages & platforms
 #define STAGE_Y 190
 #define PLATFORM_HEIGHT  4
+#define ABS_BOTTOM (0x7FFF << SF)
 
 // For both battlefield & final destination
 #define STAGE_MARGIN 20
@@ -151,7 +157,7 @@ static const stage_t battlefield =
                 .x0 = ((STAGE_MARGIN) << SF),
                 .y0 = ((STAGE_Y) << SF),
                 .x1 = ((SCREEN_W - STAGE_MARGIN) << SF),
-                .y1 = ((STAGE_Y + PLATFORM_HEIGHT) << SF),
+                .y1 = ABS_BOTTOM,
             },
             .canFallThrough = false
         },
@@ -202,7 +208,7 @@ static const stage_t finalDest =
                 .x0 = ((STAGE_MARGIN) << SF),
                 .y0 = ((STAGE_Y) << SF),
                 .x1 = ((SCREEN_W - STAGE_MARGIN) << SF),
-                .y1 = ((STAGE_Y + PLATFORM_HEIGHT) << SF),
+                .y1 = ABS_BOTTOM,
             },
             .canFallThrough = false
         }
@@ -220,7 +226,7 @@ static const stage_t hrStadium =
                 .x0 = ((HR_STAGE_MARGIN) << SF),
                 .y0 = ((STAGE_Y) << SF),
                 .x1 = ((SCREEN_W - HR_STAGE_MARGIN) << SF),
-                .y1 = ((STAGE_Y + PLATFORM_HEIGHT) << SF),
+                .y1 = ABS_BOTTOM,
             },
             .canFallThrough = false
         }
@@ -735,24 +741,6 @@ void fighterGameLoop(int64_t elapsedUs)
                 // Set the scene in the ack
                 fighterSendSceneToOther(f->composedScene, f->composedSceneLen);
             }
-
-            // char dbgStr[256];
-            // box_t hb;
-            // getHurtbox(&f->fighters[0], &hb);
-            // sprintf(dbgStr, "{[%d,%d],[%d,%d]},%d",
-            //     f->fighters[0].pos.x >> SF,
-            //     f->fighters[0].pos.y >> SF,
-            //     f->fighters[0].velocity.x,
-            //     f->fighters[0].velocity.y,
-            //     boxesCollide(battlefield[2].area, hb, SF));
-            // drawText(f->d, &(f->mm_font), c444, dbgStr, 0, 0);
-
-            // ESP_LOGI("FTR", "{[%d, %d], [%d, %d], %d}",
-            //     f->fighters[0].hurtbox.x0 >> SF,
-            //     f->fighters[0].hurtbox.y0 >> SF,
-            //     f->fighters[0].velocity.x,
-            //     f->fighters[0].velocity.y,
-            //     f->fighters[0].relativePos);
         }
 
         // Frame drawn!
@@ -2295,7 +2283,7 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
     for (uint8_t idx = 0; idx < stage->numPlatforms; idx++)
     {
         platform_t platform = stage->platforms[idx];
-        drawBox(d, platform.area, c555, !platform.canFallThrough, SF);
+        drawBox(d, platform.area, PLATFORM_COLOR, !platform.canFallThrough, SF);
     }
 
     // f1 position
@@ -2343,12 +2331,12 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
         plotLine(d,
                  hrStadium.platforms[0].area.x0 >> SF, 0,
                  hrStadium.platforms[0].area.x0 >> SF, (hrStadium.platforms[0].area.y0 >> SF) - 1,
-                 c435, 2);
+                 BARRIER_COLOR, 2);
 
         plotLine(d,
                  (hrStadium.platforms[0].area.x1 >> SF) - 1, 0,
                  (hrStadium.platforms[0].area.x1 >> SF) - 1, (hrStadium.platforms[0].area.y0 >> SF) - 1,
-                 c435, 2);
+                 BARRIER_COLOR, 2);
     }
 
     // Draw the HUD
@@ -2470,26 +2458,26 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
     int16_t stockX = (d->w / 3) - (2 * SR) - 3;
     for(uint8_t stockToDraw = 0; stockToDraw < f1_stock; stockToDraw++)
     {
-        plotCircleFilled(d, stockX, d->h - font->h - 4 - (SR * 2), SR, c550);
+        plotCircleFilled(d, stockX, d->h - font->h - 4 - (SR * 2), SR, STOCK_COLOR);
         stockX += ((2 * SR) + 3);
     }
 
     snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", f1_dmg);
     tWidth = textWidth(font, dmgStr);
     xPos = (d->w / 3) - (tWidth / 2);
-    drawText(d, font, c555, dmgStr, xPos, d->h - font->h - 2);
+    drawText(d, font, HUD_COLOR, dmgStr, xPos, d->h - font->h - 2);
 
     stockX = (2 * (d->w / 3)) - (2 * SR) - 3;
     for(uint8_t stockToDraw = 0; stockToDraw < f2_stock; stockToDraw++)
     {
-        plotCircleFilled(d, stockX, d->h - font->h - 4 - (SR * 2), SR, c550);
+        plotCircleFilled(d, stockX, d->h - font->h - 4 - (SR * 2), SR, STOCK_COLOR);
         stockX += ((2 * SR) + 3);
     }
 
     snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", f2_dmg);
     tWidth = textWidth(font, dmgStr);
     xPos = (2 * (d->w / 3)) - (tWidth / 2);
-    drawText(d, font, c555, dmgStr, xPos, d->h - font->h - 2);
+    drawText(d, font, HUD_COLOR, dmgStr, xPos, d->h - font->h - 2);
 
     if(gameTimerUs >= 0)
     {
@@ -2497,7 +2485,7 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
         char timeStr[32];
         snprintf(timeStr, sizeof(timeStr) - 1, "%d.%03d", gameTimerUs / 1000000, (gameTimerUs / 1000) % 1000);
         tWidth = textWidth(font, "9.999"); // If this isn't constant, the time jiggles a lot
-        drawText(d, font, c555, timeStr, (d->w - tWidth) / 2, 0);
+        drawText(d, font, HUD_COLOR, timeStr, (d->w - tWidth) / 2, 0);
     }
 
     // Print GO!!! after the COUNTING_IN phase finishes
@@ -2505,12 +2493,12 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
     {
         char goStr[] = "GO!!!";
         tWidth = textWidth(font, goStr);
-        drawText(d, font, c555, goStr, (d->w - tWidth) / 2, d->h / 4);
+        drawText(d, font, HUD_COLOR, goStr, (d->w - tWidth) / 2, d->h / 4);
     }
 
     // Draw FPS
     // sprintf(dmgStr, "%d", f->fps);
-    // drawText(d, font, c555, dmgStr, 0, 40);
+    // drawText(d, font, HUD_COLOR, dmgStr, 0, 40);
 }
 
 #ifdef DRAW_DEBUG_BOXES
