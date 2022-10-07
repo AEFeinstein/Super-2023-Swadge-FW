@@ -71,7 +71,7 @@ void paintSetRecentSlot(int32_t* index, uint8_t slot)
 {
     // TODO if we change the number of slots this will totally not work anymore
     // I mean, we could just do & 0xFF and waste 5 whole bits
-    *index = (paintState->index & PAINT_MASK_NOT_RECENT) | ((slot & 0b111) << PAINT_SAVE_SLOTS);
+    *index = (*index & PAINT_MASK_NOT_RECENT) | ((slot & 0b111) << PAINT_SAVE_SLOTS);
     paintSaveIndex(*index);
 }
 
