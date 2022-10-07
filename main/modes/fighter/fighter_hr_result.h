@@ -7,7 +7,7 @@
 
 void initFighterHrResult(display_t* disp, font_t* font,
                          fightingCharacter_t character, vector_t pos, vector_t vel, int32_t gravity,
-                         int32_t platformEndX);
+                         int32_t platformStartX, int32_t platformEndX);
 void deinitFighterHrResult(void);
 void fighterHrResultLoop(int64_t elapsedUs);
 

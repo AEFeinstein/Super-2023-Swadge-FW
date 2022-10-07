@@ -624,7 +624,7 @@ void fighterGameLoop(int64_t elapsedUs)
                     f->gameTimerUs = 0;
                     // Initialize the result
                     fighterShowHrResult(f->fighters[0].character, f->fighters[1].pos, f->fighters[1].velocity, f->fighters[1].gravity,
-                                        hrStadium.platforms[0].area.x1);
+                                        hrStadium.platforms[0].area.x0, hrStadium.platforms[0].area.x1);
                     // Deinit the game
                     fighterExitGame();
                     // Return after deinit
@@ -1815,7 +1815,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         {
             // Initialize the result
             fighterShowHrResult(f->fighters[0].character, f->fighters[1].pos, f->fighters[1].velocity,
-                                f->fighters[1].gravity, hrStadium.platforms[0].area.x1);
+                                f->fighters[1].gravity, hrStadium.platforms[0].area.x0, hrStadium.platforms[0].area.x1);
             // Deinit the game
             fighterExitGame();
             // Return after deinit
