@@ -32,6 +32,8 @@
 //==============================================================================
 
 #define IFRAMES_AFTER_SPAWN ((3 * 1000) / FRAME_TIME_MS) // 3 seconds
+#define IFRAMES_AFTER_LEDGE_JUMP ((2 * 1000) / FRAME_TIME_MS) // 2 seconds
+
 #define DRAW_DEBUG_BOXES
 
 #define NUM_FIGHTERS 2
@@ -47,10 +49,11 @@ typedef enum
 
 #define FPS_MEASUREMENT_SEC 3
 
-#define BARRIER_COLOR  c435
-#define PLATFORM_COLOR c111
-#define HUD_COLOR      c444
-#define STOCK_COLOR    c550
+#define BARRIER_COLOR    c435
+#define PLATFORM_COLOR   c111
+#define HUD_COLOR        c444
+#define STOCK_COLOR      c114
+#define INVINCIBLE_COLOR c550
 
 //==============================================================================
 // Structs
@@ -102,7 +105,7 @@ uint32_t getHitstop(uint16_t damage);
 void getSpritePos(fighter_t* ftr, vector_t* spritePos);
 fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, list_t* projectiles,
                                     uint8_t* outLen);
-void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir);
+void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir, bool isInvincible);
 void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock,
                     int16_t f2_dmg, int16_t f2_stock, int32_t gameTimerUs, bool drawGo);
 #ifdef DRAW_DEBUG_BOXES
@@ -339,7 +342,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
                 // No stocks for HR Contest
                 f->fighters[i].stocks = 0;
                 // No iframes
-                f->fighters[i].iFrameTimer = 0;
+                f->fighters[i].iFrameTimer = IFRAMES_AFTER_SPAWN;
                 f->fighters[i].isInvincible = false;
                 break;
             }
@@ -1749,9 +1752,10 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     // Moving downward
                     if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
                     {
-                        // Give a bonus 2/3 'jump' to get back on the platform
+                        // Give a bonus 'jump' to get back on the platform
                         ftr->ledgeJumped = true;
-                        ftr->velocity.y = 2 * (ftr->jump_velo / 3);
+                        ftr->velocity.y = ftr->jump_velo;
+                        ftr->iFrameTimer = IFRAMES_AFTER_LEDGE_JUMP;
                     }
                 }
                 break;
@@ -1783,9 +1787,10 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     // Moving downward
                     if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
                     {
-                        // Give a bonus 2/3 'jump' to get back on the platform
+                        // Give a bonus 'jump' to get back on the platform
                         ftr->ledgeJumped = true;
-                        ftr->velocity.y = 2 * (ftr->jump_velo / 3);
+                        ftr->velocity.y = ftr->jump_velo;
+                        ftr->iFrameTimer = IFRAMES_AFTER_LEDGE_JUMP;
                     }
                 }
                 break;
@@ -2227,6 +2232,7 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     // f1 damage and stock
     scene->f1.damage = f1->damage;
     scene->f1.stocks = f1->stocks;
+    scene->f1.isInvincible = (f1->iFrameTimer > 0);
 
     // f2 position
     getSpritePos(f2, &spritePos);
@@ -2238,6 +2244,7 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     // f2 damage and stock
     scene->f2.damage = f2->damage;
     scene->f2.stocks = f2->stocks;
+    scene->f2.isInvincible = (f2->iFrameTimer > 0);
 
     scene->numProjectiles = numProj;
     // Iterate through all the projectiles
@@ -2291,6 +2298,7 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
     int16_t f1_posY           = scene->f1.spritePosY;
     fighterDirection_t f1_dir = scene->f1.spriteDir;
     int16_t f1_sprite         = scene->f1.spriteIdx;
+    int16_t f1_invincible     = scene->f1.isInvincible;
 
     // f1 damage and stock
     int16_t f1_dmg   = scene->f1.damage;
@@ -2301,14 +2309,15 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
     int16_t f2_posY           = scene->f2.spritePosY;
     fighterDirection_t f2_dir = scene->f2.spriteDir;
     int16_t f2_sprite         = scene->f2.spriteIdx;
+    int16_t f2_invincible     = scene->f2.isInvincible;
 
     // f2 damage and stock
     int16_t f2_dmg   = scene->f2.damage;
     int16_t f2_stock = scene->f2.stocks;
 
     // Actually draw fighters
-    drawFighter(d, getFighterSprite(f2_sprite, f->loadedSprites), f2_posX, f2_posY, f2_dir);
-    drawFighter(d, getFighterSprite(f1_sprite, f->loadedSprites), f1_posX, f1_posY, f1_dir);
+    drawFighter(d, getFighterSprite(f2_sprite, f->loadedSprites), f2_posX, f2_posY, f2_dir, f2_invincible);
+    drawFighter(d, getFighterSprite(f1_sprite, f->loadedSprites), f1_posX, f1_posY, f1_dir, f1_invincible);
 
     // Iterate through projectiles
     int16_t numProj = scene->numProjectiles;
@@ -2361,8 +2370,9 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
  * @param x The x coordinate of the sprite
  * @param y The y coordinate of the sprite
  * @param dir The direction the sprite is facing
+ * @param isInvincible true if the fighter is invincible
  */
-void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir)
+void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir, bool isInvincible)
 {
     // Check if sprite is completely offscreen
     if ((x + sprite->w <= 0) || (x >= d->w) ||
@@ -2432,6 +2442,11 @@ void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirec
     {
         // Sprite is at least partially on screen, draw it
         drawWsg(d, sprite, x, y, dir, false, 0);
+        if(isInvincible)
+        {
+            int16_t r = ((sprite->w > sprite->h) ? (sprite->w) : (sprite->h)) / 2;
+            plotCircle(d, x + (sprite->w / 2), y + (sprite->h / 2), r, INVINCIBLE_COLOR);
+        }
     }
 }
 

@@ -257,6 +257,7 @@ typedef struct
     int16_t spriteIdx;
     int16_t damage;
     int16_t stocks;
+    int16_t isInvincible;
 } fighterSceneFighter_t;
 
 typedef struct

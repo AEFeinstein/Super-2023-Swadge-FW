@@ -450,10 +450,6 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSpr
                 tokIdx++;
                 // Convert ms to frames
                 atk->iFrames = jsonInteger(jsonStr, toks[tokIdx]) / FRAME_TIME_MS;
-                if(0 == atk->iFrames)
-                {
-                    atk->iFrames = 1;
-                }
                 tokIdx++;
                 numFieldsParsed++;
             }
@@ -572,10 +568,6 @@ int32_t parseJsonAttackFrame(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, nam
                 tokIdx++;
                 // Convert ms to frames
                 frm->iFrames = jsonInteger(jsonStr, toks[tokIdx]) / FRAME_TIME_MS;
-                if(0 == frm->iFrames)
-                {
-                    frm->iFrames = 1;
-                }
                 tokIdx++;
                 numFieldsParsed++;
             }
