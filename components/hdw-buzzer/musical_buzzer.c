@@ -78,6 +78,9 @@ void buzzer_init(gpio_num_t bzrGpio,
     timer_group_t noteCheckGrpNum, timer_idx_t noteChkTmrNum,
     bool isBgmMuted, bool isSfxMuted)
 {
+    bzr.isBgmMuted = isBgmMuted;
+    bzr.isSfxMuted = isSfxMuted;
+
     // Save the LEDC timer and channel
     bzr.ledcTimer = ledcTimer;
     bzr.ledcChannel = ledcChannel;
@@ -151,6 +154,12 @@ void buzzer_init(gpio_num_t bzrGpio,
  */
 void buzzer_play_bgm(const song_t* song)
 {
+    // Don't play if muted
+    if(bzr.isBgmMuted)
+    {
+        return;
+    }
+
     bzr.bgm.song = song;
     bzr.bgm.note_index = 0;
     bzr.bgm.start_time = esp_timer_get_time();
@@ -172,6 +181,12 @@ void buzzer_play_bgm(const song_t* song)
  */
 void buzzer_play_sfx(const song_t* song)
 {
+    // Don't play if muted
+    if(bzr.isSfxMuted)
+    {
+        return;
+    }
+
     bzr.sfx.song = song;
     bzr.sfx.note_index = 0;
     bzr.sfx.start_time = esp_timer_get_time();

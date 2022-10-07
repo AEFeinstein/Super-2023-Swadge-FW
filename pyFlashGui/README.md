@@ -16,7 +16,7 @@ Flashing an ESP32-S2 over USB on Windows requires a specific driver to be instal
 >
 > The drivers can be installed by the [Zadig tool](https://zadig.akeo.ie/). Please make sure that the device is in download mode before running the tool and that it detects the ESP32-S2 device before installing the drivers. The Zadig tool might detect several USB interfaces of ESP32-S2. Please install the WinUSB driver for only that interface for which there is no driver installed (probably it is Interface 2) and don’t re-install the driver for the other interface.
 >
-> ⚠ **Warning**
+> **Warning**
 > The manual installation of the driver in Device Manager of Windows is not recommended because the flashing might not work properly.
 
 The ESP-IDF Programming Guide also [specifies a udev rule for Linux](https://docs.espressif.com/projects/esp-idf/en/v4.4.2/esp32s2/api-guides/dfu.html#udev-rule-linux-only):
@@ -29,9 +29,7 @@ The ESP-IDF Programming Guide also [specifies a udev rule for Linux](https://doc
 > ```
 > SUBSYSTEMS=="usb", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="00??", GROUP="plugdev", MODE="0666"
 > ```
-> ⚠ **Note**
-> 
-> Please check the output of command `groups`. The user has to be a member of the _GROUP_ specified above. You may use some other existing group for this purpose (e.g. _uucp_ on some systems instead of _plugdev_) or create a new group for this purpose.
+> **Note** Please check the output of command `groups`. The user has to be a member of the _GROUP_ specified above. You may use some other existing group for this purpose (e.g. _uucp_ on some systems instead of _plugdev_) or create a new group for this purpose.
 > 
 > Restart your computer so the previous setting could take into affect or run `sudo udevadm trigger` to force manually udev to trigger your new rule.
 
