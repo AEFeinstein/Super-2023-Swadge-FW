@@ -19,6 +19,7 @@
 #define PAINT_LOGW(...) ESP_LOGW("Paint", __VA_ARGS__)
 #define PAINT_LOGE(...) ESP_LOGE("Paint", __VA_ARGS__)
 
+//////// Data Constants
 
 // The total number of save slots available
 #define PAINT_SAVE_SLOTS 4
@@ -44,18 +45,18 @@
 #define PAINT_SHARE_PX_PACKET_LEN (P2P_MAX_DATA_LEN - 3 - 11)
 #define PAINT_SHARE_PX_PER_PACKET PAINT_SHARE_PX_PACKET_LEN * 2
 
-#define PAINT_CANVAS_SCALE 3
-#define PAINT_CANVAS_WIDTH 70
-#define PAINT_CANVAS_HEIGHT 60
 
-#define PAINT_CANVAS_X_OFFSET (canvas->x)
-#define PAINT_CANVAS_Y_OFFSET 26
+//////// Draw Screen Layout Constants and Colors
 
+#define PAINT_DEFAULT_CANVAS_WIDTH 70
+#define PAINT_DEFAULT_CANVAS_HEIGHT 60
+
+// Keep at least 3px free above and below the toolbar text
+#define PAINT_TOOLBAR_TEXT_PADDING_Y 3
+
+#define PAINT_TOOLBAR_FONT "radiostars.font"
 
 #define PAINT_TOOLBAR_BG c333
-
-// Set to 1 for horizontal colorboxes
-#define PAINT_COLORBOX_HORIZONTAL 0
 
 // Dimensions of the color boxes in the palette
 #define PAINT_COLORBOX_W 9
@@ -64,33 +65,27 @@
 #define PAINT_COLORBOX_SHADOW_TOP c444
 #define PAINT_COLORBOX_SHADOW_BOTTOM c222
 
+// Vertical margin between each color box
 #define PAINT_COLORBOX_MARGIN_TOP 2
-#define PAINT_COLORBOX_MARGIN_LEFT 2
+// Minimum margin to the left and right of each color box
+#define PAINT_COLORBOX_MARGIN_X 2
 
 // X and Y position of the active color boxes (foreground/background color)
-#define PAINT_ACTIVE_COLOR_X ((PAINT_CANVAS_X_OFFSET - PAINT_COLORBOX_W - PAINT_COLORBOX_W / 2) / 2)
-#define PAINT_ACTIVE_COLOR_Y (PAINT_CANVAS_Y_OFFSET - PAINT_COLORBOX_H / 2)
+#define PAINT_ACTIVE_COLOR_X ((canvas->x - PAINT_COLORBOX_W - PAINT_COLORBOX_W / 2) / 2)
+#define PAINT_ACTIVE_COLOR_Y (canvas->y - PAINT_COLORBOX_H / 2)
 
-// X and Y position of the first palette color box
-#define PAINT_COLORBOX_X ((PAINT_CANVAS_X_OFFSET - PAINT_COLORBOX_W) / 2)
+// Y position of the first palette color box (X is automatic)
 #define PAINT_COLORBOX_Y (PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_H * 2)
 
 
-// Convert from canvas coordinates to screen coordinates
-#define CNV2SCR_X(x) (PAINT_CANVAS_X_OFFSET + PAINT_CANVAS_SCALE * x)
-#define CNV2SCR_Y(y) (PAINT_CANVAS_Y_OFFSET + PAINT_CANVAS_SCALE * y)
-
-// Convert from world coordinates to canvas coordinates
-#define SCR2CNV_X(x) ((x - PAINT_CANVAS_X_OFFSET) / PAINT_CANVAS_SCALE)
-#define SCR2CNV_Y(y) ((y - PAINT_CANVAS_Y_OFFSET) / PAINT_CANVAS_SCALE)
-
+//////// Macros
 
 // Calculates previous and next items with wraparound
 #define PREV_WRAP(i, count) ((i) == 0 ? (count) - 1 : (i - 1))
 #define NEXT_WRAP(i, count) ((i + 1) % count)
 
 
-#define MAX_PICK_POINTS 16
+//////// Various Constants
 
 // hold button for .3s to begin repeating
 #define BUTTON_REPEAT_TIME 300000
@@ -145,6 +140,9 @@ typedef struct
     led_t leds[NUM_LEDS];
 
     paintCanvas_t canvas;
+
+    // Margins that define the space the canvas may be placed within.
+    uint16_t marginTop, marginLeft, marginBottom, marginRight;
 
     // Font for drawing tool info
     // TODO: Use images instead!

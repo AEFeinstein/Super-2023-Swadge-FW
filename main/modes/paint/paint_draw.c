@@ -71,7 +71,7 @@ const brush_t brushes[] =
     { .name = "Circle",     .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawCircle },
     { .name = "Filled Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledCircle },
     { .name = "Ellipse",    .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawEllipse },
-    { .name = "Polygon",    .mode = PICK_POINT_LOOP, .maxPoints = MAX_PICK_POINTS, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawPolygon },
+    { .name = "Polygon",    .mode = PICK_POINT_LOOP, .maxPoints = 16, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawPolygon },
     { .name = "Squarewave", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawSquareWave },
     { .name = "Paint Bucket", .mode = PICK_POINT, .maxPoints = 1, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawPaintBucket },
     { .name = "Clear",      .mode = INSTANT, .maxPoints = 0, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawClear },
@@ -84,35 +84,44 @@ void paintDrawScreenSetup(display_t* disp)
 {
     paintState = calloc(sizeof(paintDraw_t), 1);
     paintState->disp = disp;
+    paintState->canvas.disp = disp;
 
-    loadFont("radiostars.font", &(paintState->toolbarFont));
+    loadFont(PAINT_TOOLBAR_FONT, &(paintState->toolbarFont));
     paintState->clearScreen = true;
+
+    // Setup the margins
+    // Top: Leave room for the toolbar text plus padding above and below it, plus 1px for canvas border
+    paintState->marginTop = paintState->toolbarFont.h + 2 * PAINT_TOOLBAR_TEXT_PADDING_Y + 1;
+    // Left: Leave room for the color boxes, their margins, their borders, and the canvas border
+    paintState->marginLeft = PAINT_COLORBOX_W + PAINT_COLORBOX_MARGIN_X * 2 + 2 + 1;
+    // Bottom: Leave room for the progress bar, plus 1px of separation, and canvas border
+    paintState->marginBottom = 10 + 1 + 1;
+    // Right: We just need to stay away from the rounded corner, so like, 12px?
+    paintState->marginRight = 12;
 
     paintLoadIndex(&paintState->index);
 
     if (paintGetAnySlotInUse(paintState->index))
     {
+        // If there's a saved image, load that
         paintState->selectedSlot = paintGetRecentSlot(paintState->index);
         paintState->isSaveSelected = false;
         paintState->doSave = true;
     }
+    else
+    {
+        // Set up a blank canvas with the default size
+        paintState->canvas.w = PAINT_DEFAULT_CANVAS_WIDTH;
+        paintState->canvas.h = PAINT_DEFAULT_CANVAS_HEIGHT;
 
-    // Set up the canvas with defaults
-    // TODO move this into a function for getting a clean canvas
-    // TODO also get rid of hardcoded offsets and dynamically position the canvas out of the way of the UI
-    paintState->canvas.disp = disp;
+        // Automatically position the canvas in the center of the drawable area at the max scale that will fit
+        paintPositionDrawCanvas();
 
-    paintState->canvas.xScale = PAINT_CANVAS_SCALE;
-    paintState->canvas.yScale = PAINT_CANVAS_SCALE;
-
-    paintState->canvas.w = PAINT_CANVAS_WIDTH;
-    paintState->canvas.h = PAINT_CANVAS_HEIGHT;
-
-    paintState->canvas.x = ((disp->w - paintState->canvas.w * paintState->canvas.xScale) / 2);
-    paintState->canvas.y = PAINT_CANVAS_Y_OFFSET;
-
-    // load the default palette
-    memcpy(paintState->canvas.palette, defaultPalette, sizeof(defaultPalette) / sizeof(paletteColor_t));
+        // load the default palette
+        memcpy(paintState->canvas.palette, defaultPalette, sizeof(defaultPalette) / sizeof(paletteColor_t));
+        getArtist()->fgColor = paintState->canvas.palette[0];
+        getArtist()->bgColor = paintState->canvas.palette[1];
+    }
 
     // Init the cursors for each artist
     // TODO only do one for singleplayer?
@@ -122,10 +131,6 @@ void paintDrawScreenSetup(display_t* disp)
         initPxStack(&paintState->artist[i].pickPoints);
         paintState->artist[i].brushDef = firstBrush;
         paintState->artist[i].brushWidth = firstBrush->minSize;
-
-        // set the fg/bg colors to the first 2 palette colors
-        paintState->artist[i].fgColor = paintState->canvas.palette[0];
-        paintState->artist[i].bgColor = paintState->canvas.palette[1];
     }
 
     paintState->disp->clearPx();
@@ -149,6 +154,17 @@ void paintDrawScreenCleanup(void)
     free(paintState);
 }
 
+void paintPositionDrawCanvas(void)
+{
+    // Calculate the highest scale that will fit on the screen
+    uint8_t scale = paintGetMaxScale(paintState->disp, paintState->canvas.w, paintState->canvas.h, paintState->marginLeft + paintState->marginRight, paintState->marginTop + paintState->marginBottom);
+
+    paintState->canvas.xScale = scale;
+    paintState->canvas.yScale = scale;
+
+    paintState->canvas.x = paintState->marginLeft + (paintState->canvas.disp->w - paintState->marginLeft - paintState->marginRight - paintState->canvas.w * paintState->canvas.xScale) / 2;
+    paintState->canvas.y = paintState->marginTop + (paintState->canvas.disp->h - paintState->marginTop - paintState->marginBottom - paintState->canvas.h * paintState->canvas.yScale) / 2;
+}
 
 void paintDrawScreenMainLoop(int64_t elapsedUs)
 {
@@ -177,6 +193,8 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                 // Load from the selected slot if it's been used
                 hideCursor(getCursor(), &paintState->canvas);
                 paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
+                paintLoadDimensions(&paintState->canvas, paintState->selectedSlot);
+                paintPositionDrawCanvas();
                 paintLoad(&paintState->index, &paintState->canvas, paintState->selectedSlot);
                 paintSetRecentSlot(&paintState->index, paintState->selectedSlot);
 
@@ -650,7 +668,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         break;
 
         case PICK_POINT_LOOP:
-        isLastPick = pxStackSize(&getArtist()->pickPoints) + 1 == MAX_PICK_POINTS - 1 || pxStackSize(&getArtist()->pickPoints) + 1 == getArtist()->brushDef->maxPoints - 1;
+        isLastPick = pxStackSize(&getArtist()->pickPoints) + 1 == getArtist()->brushDef->maxPoints - 1;
         break;
 
         case HOLD_DRAW:

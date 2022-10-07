@@ -92,27 +92,23 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
     drawColorBox(canvas->disp, PAINT_ACTIVE_COLOR_X, PAINT_ACTIVE_COLOR_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, artist->bgColor, false, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
     drawColorBox(canvas->disp, PAINT_ACTIVE_COLOR_X + PAINT_COLORBOX_W / 2, PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_H / 2, PAINT_COLORBOX_W, PAINT_COLORBOX_H, artist->fgColor, false, cTransparent, PAINT_COLORBOX_SHADOW_BOTTOM);
 
+    uint16_t colorBoxX = PAINT_COLORBOX_MARGIN_X + (paintState->canvas.x - 1 - PAINT_COLORBOX_W - PAINT_COLORBOX_MARGIN_X * 2 - 2) / 2;
+
 
     //////// Recent Colors (palette)
     for (int i = 0; i < PAINT_MAX_COLORS; i++)
     {
-        if (PAINT_COLORBOX_HORIZONTAL)
-        {
-            drawColorBox(canvas->disp, PAINT_COLORBOX_X + i * (PAINT_COLORBOX_MARGIN_LEFT + PAINT_COLORBOX_W), PAINT_COLORBOX_Y, PAINT_COLORBOX_W, PAINT_COLORBOX_H, canvas->palette[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
-        }
-        else
-        {
-            drawColorBox(canvas->disp, PAINT_COLORBOX_X, PAINT_COLORBOX_Y + i * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H), PAINT_COLORBOX_W, PAINT_COLORBOX_H, canvas->palette[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
-        }
+        drawColorBox(canvas->disp, colorBoxX, PAINT_COLORBOX_Y + i * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H), PAINT_COLORBOX_W, PAINT_COLORBOX_H, canvas->palette[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
     }
 
+
+    uint16_t textX = 30, textY = (paintState->canvas.y - 1 - 2 * PAINT_TOOLBAR_TEXT_PADDING_Y) / 2;
 
     if (paintState->saveMenu == HIDDEN)
     {
         //////// Tools
 
         // Draw the brush name
-        uint16_t textX = 30, textY = 4;
         drawText(canvas->disp, &paintState->toolbarFont, c000, artist->brushDef->name, textX, textY);
 
         // Draw the brush size, if applicable and not constant
@@ -120,19 +116,19 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
         if (artist->brushDef->minSize > 0 && artist->brushDef->maxSize > 0 && artist->brushDef->minSize != artist->brushDef->maxSize)
         {
             snprintf(text, sizeof(text), "%d", artist->brushWidth);
-            drawText(canvas->disp, &paintState->toolbarFont, c000, text, 200, 4);
+            drawText(canvas->disp, &paintState->toolbarFont, c000, text, 200, textY);
         }
 
         if (artist->brushDef->mode == PICK_POINT && artist->brushDef->maxPoints > 1)
         {
             // Draw the number of picks made / total
             snprintf(text, sizeof(text), "%zu/%d", pxStackSize(&artist->pickPoints), artist->brushDef->maxPoints);
-            drawText(paintState->disp, &paintState->toolbarFont, c000, text, 220, 4);
+            drawText(paintState->disp, &paintState->toolbarFont, c000, text, 220, textY);
         }
         else if (artist->brushDef->mode == PICK_POINT_LOOP && artist->brushDef->maxPoints > 1)
         {
             // Draw the number of remaining picks
-            uint8_t maxPicks = artist->brushDef->maxPoints < MAX_PICK_POINTS ? artist->brushDef->maxPoints : MAX_PICK_POINTS;
+            uint8_t maxPicks = artist->brushDef->maxPoints;
 
             if (pxStackSize(&artist->pickPoints) + 1 == maxPicks - 1)
             {
@@ -143,13 +139,11 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
                 snprintf(text, sizeof(text), "%zu", maxPicks - pxStackSize(&artist->pickPoints) - 1);
             }
 
-            drawText(canvas->disp, &paintState->toolbarFont, c000, text, 220, 4);
+            drawText(canvas->disp, &paintState->toolbarFont, c000, text, 220, textY);
         }
     }
     else if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
     {
-        uint16_t textX = 30, textY = 4;
-
         // Draw "Save" / "Load"
         drawText(canvas->disp, &paintState->toolbarFont, c000, paintState->isSaveSelected ? startMenuSave : startMenuLoad, textX, textY);
 
@@ -161,10 +155,10 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
     else if (paintState->saveMenu == CONFIRM_OVERWRITE)
     {
         // Draw "Overwrite?"
-        drawText(canvas->disp, &paintState->toolbarFont, c000, startMenuOverwrite, 30, 4);
+        drawText(canvas->disp, &paintState->toolbarFont, c000, startMenuOverwrite, 30, textY);
 
         // Draw "Yes" / "No"
-        drawText(canvas->disp, &paintState->toolbarFont, c000, paintState->overwriteYesSelected ? startMenuYes : startMenuNo, 160, 4);
+        drawText(canvas->disp, &paintState->toolbarFont, c000, paintState->overwriteYesSelected ? startMenuYes : startMenuNo, 160, textY);
     }
 }
 

@@ -296,16 +296,6 @@ bool paintLoad(int32_t* index, paintCanvas_t* canvas, uint8_t slot)
         }
     }
 
-    // This should't be necessary in the final version but whenever I change the canvas dimensions it breaks stuff
-    // TODO: Actually remove this?
-    if (canvas->h > PAINT_CANVAS_HEIGHT || canvas->w > PAINT_CANVAS_WIDTH)
-    {
-        canvas->h = PAINT_CANVAS_HEIGHT;
-        canvas->w = PAINT_CANVAS_WIDTH;
-
-        PAINT_LOGW("Loaded image had invalid bounds. Resetting to %d x %d", canvas->w, canvas->h);
-    }
-
     free(imgChunk);
     imgChunk = NULL;
 
