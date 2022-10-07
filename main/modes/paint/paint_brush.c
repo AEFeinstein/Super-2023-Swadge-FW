@@ -197,8 +197,3 @@ void paintDrawPaintBucket(paintCanvas_t* canvas, point_t* points, uint8_t numPoi
 {
     floodFill(canvas->disp, canvas->x + canvas->xScale * points[0].x, canvas->y + canvas->yScale * points[0].y, col, canvas->x, canvas->y, canvas->x + canvas->xScale * canvas->w, canvas->y + canvas->yScale * canvas->h);
 }
-
-void paintDrawClear(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    fillDisplayArea(canvas->disp, canvas->x, canvas->y, canvas->x + canvas->xScale * canvas->w, canvas->y + canvas->yScale * canvas->h, col);
-}

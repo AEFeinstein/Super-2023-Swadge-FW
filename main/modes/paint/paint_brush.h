@@ -88,6 +88,5 @@ void paintDrawEllipse(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_
 void paintDrawPolygon(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawSquareWave(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawPaintBucket(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawClear(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 
 #endif

@@ -21,6 +21,12 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt);
 void paintSelectModeButtonCb(const buttonEvt_t* evt);
 void paintDrawModeButtonCb(const buttonEvt_t* evt);
 
+// Save menu helpers
+void paintSaveModePrevItem(void);
+void paintSaveModeNextItem(void);
+void paintSaveModePrevOption(void);
+void paintSaveModeNextOption(void);
+
 void paintDrawScreenSetup(display_t* disp);
 void paintDrawScreenCleanup(void);
 

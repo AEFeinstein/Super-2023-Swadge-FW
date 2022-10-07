@@ -49,8 +49,14 @@ typedef enum
 typedef enum
 {
     HIDDEN,
-    PICK_SLOT_SAVE_LOAD,
+    PICK_SLOT_SAVE,
+    PICK_SLOT_LOAD,
     CONFIRM_OVERWRITE,
+    CONFIRM_UNSAVED,
+    CLEAR,
+    CONFIRM_CLEAR,
+    EXIT,
+    CONFIRM_EXIT,
 } paintSaveMenu_t;
 
 // For tracking the state of the sharing / receiving process

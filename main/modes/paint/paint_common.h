@@ -186,8 +186,11 @@ typedef struct
 
     //////// Save data flags
 
-    // Whether to perform a save on the next loop
-    bool doSave;
+    // True if the canvas has been modified since last save
+    bool unsaved;
+
+    // Whether to perform a save or load on the next loop
+    bool doSave, doLoad;
 
     // True when a save has been started but not yet completed. Prevents input while saving.
     bool saveInProgress;
@@ -201,11 +204,9 @@ typedef struct
     // The current state of the save / load menu
     paintSaveMenu_t saveMenu;
 
-    // True if "Save" is selected, false if "Load" is selected
-    bool isSaveSelected;
-
     // State for Yes/No in overwrite save menu.
-    bool overwriteYesSelected;
+    // TODO: Rename this to something more general
+    bool saveMenuBoolOption;
 
 
     //////// Rendering flags

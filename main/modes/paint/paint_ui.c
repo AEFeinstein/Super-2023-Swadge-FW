@@ -13,6 +13,9 @@ static const char startMenuSlotUsed[] = "Slot %d (!)";
 static const char startMenuOverwrite[] = "Overwrite?";
 static const char startMenuYes[] = "Yes";
 static const char startMenuNo[] = "No";
+static const char startMenuClearCanvas[] = "Clear Canvas";
+static const char startMenuConfirmUnsaved[] = "Unsaved! OK?";
+static const char startMenuExit[] = "Exit";
 
 void drawColorBox(display_t* disp, uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, paletteColor_t col, bool selected, paletteColor_t topBorder, paletteColor_t bottomBorder)
 {
@@ -170,23 +173,40 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
             drawText(canvas->disp, &paintState->toolbarFont, c000, text, canvas->x + canvas->w * canvas->xScale + 2 + (canvas->disp->w - canvas->x - canvas->w * canvas->xScale - 2 - textW) / 2, textY);
         }
     }
-    else if (paintState->saveMenu == PICK_SLOT_SAVE_LOAD)
+    else if (paintState->saveMenu == PICK_SLOT_SAVE || paintState->saveMenu == PICK_SLOT_LOAD)
     {
+        bool saving = paintState->saveMenu == PICK_SLOT_SAVE;
         // Draw "Save" / "Load"
-        drawText(canvas->disp, &paintState->saveMenuFont, c000, paintState->isSaveSelected ? startMenuSave : startMenuLoad, textX, textY);
+        drawText(canvas->disp, &paintState->saveMenuFont, c000, saving ? startMenuSave : startMenuLoad, textX, textY);
 
         // Draw the slot number
         char text[16];
-        snprintf(text, sizeof(text), (paintState->isSaveSelected && paintGetSlotInUse(paintState->index, paintState->selectedSlot)) ? startMenuSlotUsed : startMenuSlot, paintState->selectedSlot + 1);
+        snprintf(text, sizeof(text), (saving && paintGetSlotInUse(paintState->index, paintState->selectedSlot)) ? startMenuSlotUsed : startMenuSlot, paintState->selectedSlot + 1);
         drawText(canvas->disp, &paintState->saveMenuFont, c000, text, 160, textY);
     }
     else if (paintState->saveMenu == CONFIRM_OVERWRITE)
     {
         // Draw "Overwrite?"
-        drawText(canvas->disp, &paintState->saveMenuFont, c000, startMenuOverwrite, 30, textY);
+        drawText(canvas->disp, &paintState->saveMenuFont, c000, startMenuOverwrite, textX, textY);
 
         // Draw "Yes" / "No"
-        drawText(canvas->disp, &paintState->saveMenuFont, c000, paintState->overwriteYesSelected ? startMenuYes : startMenuNo, 160, textY);
+        drawText(canvas->disp, &paintState->saveMenuFont, c000, paintState->saveMenuBoolOption ? startMenuYes : startMenuNo, 160, textY);
+    }
+    else if (paintState->saveMenu == CLEAR)
+    {
+        drawText(canvas->disp, &paintState->saveMenuFont, c000, startMenuClearCanvas, textX, textY);
+    }
+    else if (paintState->saveMenu == CONFIRM_CLEAR || paintState->saveMenu == CONFIRM_EXIT || paintState->saveMenu == CONFIRM_UNSAVED)
+    {
+        // Draw "Unsaved! OK?"
+        drawText(canvas->disp, &paintState->saveMenuFont, c000, startMenuConfirmUnsaved, textX, textY);
+
+        // Draw "Yes" / "No"
+        drawText(canvas->disp, &paintState->saveMenuFont, c000, paintState->saveMenuBoolOption ? startMenuYes : startMenuNo, 180, textY);
+    }
+    else if (paintState->saveMenu == EXIT)
+    {
+        drawText(canvas->disp, &paintState->saveMenuFont, c000, startMenuExit, textX, textY);
     }
 }
 
