@@ -875,7 +875,14 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         // Note, the RTOS tick rate can be changed in idf.py menuconfig
         // (100hz by default)
     }
+}
 
+/**
+ * @brief Deinitialize when exiting (mostly for emu)
+ * 
+ */
+void cleanupOnExit(void)
+{
     if(NULL != cSwadgeMode->fnAudioCallback)
     {
         continuous_adc_stop();
@@ -886,6 +893,14 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     {
         cSwadgeMode->fnExitMode();
     }
+
+    deinitButtons();
+
+    espNowDeinit();
+
+    deinitSpiffs();
+
+    buzzer_stop();
 
 #if defined(EMU)
     esp_timer_deinit();

@@ -95,14 +95,14 @@ void HandleDestroy()
     // Stop the main loop
     isRunning = false;
 
+    // Cleanup swadge stuff
+    cleanupOnExit();
+
     // Then free display memory
     deinitDisplayMemory();
 
     // Close sound
     deinitSound();
-
-    // Free button queue
-    deinitButtons();
 }
 
 /**
@@ -194,6 +194,7 @@ void emu_loop(void)
     // Must be checked after handling input, before graphics
     if(!isRunning)
     {
+        exit(0);
         return;
     }
 
