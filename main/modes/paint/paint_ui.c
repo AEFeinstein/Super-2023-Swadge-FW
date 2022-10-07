@@ -218,8 +218,8 @@ void paintClearCanvas(const paintCanvas_t* canvas, paletteColor_t bgColor)
 void initCursor(paintCursor_t* cursor, paintCanvas_t* canvas, const wsg_t* sprite)
 {
     cursor->sprite = sprite;
-    cursor->spriteOffsetX = canvas->xScale / 2 - sprite->w / 2;
-    cursor->spriteOffsetY = canvas->yScale / 2 - sprite->h / 2;
+    cursor->spriteOffsetX = canvas->xScale / 2 - sprite->w / 2 + 1;
+    cursor->spriteOffsetY = canvas->yScale / 2 - sprite->h / 2 + 1;
 
     cursor->show = false;
     cursor->x = 0;
