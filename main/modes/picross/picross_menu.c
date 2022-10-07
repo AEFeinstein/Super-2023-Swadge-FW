@@ -252,7 +252,7 @@ void loadLevels()
 
     //this has to be the last puzzle.
     pm->levels[20].title = "Never Gonna";//give you up, but title too long for single line.
-    loadWsg("RR_PZL.wsg", &pm->levels[20].levelWSG);
+    loadWsg("RR_PZL.wsg", &pm->levels[20].levelWSG);//15/15
     loadWsg("RR_SLV.wsg", &pm->levels[20].completedWSG);
 
     //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_consts.h) when adding levels.

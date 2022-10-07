@@ -185,7 +185,7 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
     }
 
     //Draw the current level difficulty at the bottom left.
-    char textBuffer[9];
+    char textBuffer[13];
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%dx%d", (int)ls->levels[ls->hoverLevelIndex].levelWSG.w,(int)ls->levels[ls->hoverLevelIndex].levelWSG.h);
     int16_t t = textWidth(&ls->smallFont,textBuffer)/2;
     drawText(d, &ls->smallFont, c555, textBuffer, (d->w)-54-t,(d->h)-28);
