@@ -33,11 +33,14 @@
 // Whether to play background music
 #define PAINT_ENABLE_BGM  (0x0004 << (PAINT_SAVE_SLOTS * 2))
 
+// Whether to enable blinking pick points, and any other potentilaly annoying things
+#define PAINT_ENABLE_BLINK (0x0008 << (PAINT_SAVE_SLOTS * 2))
+
 // Default to LEDs, SFX, and music on, with slot 0 marked as most recent
-#define PAINT_DEFAULTS (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM)
+#define PAINT_DEFAULTS (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM | PAINT_ENABLE_BLINK)
 
 // Mask for the index that includes everything except the most-recent index
-#define PAINT_MASK_NOT_RECENT (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM | ((1 << PAINT_SAVE_SLOTS) - 1))
+#define PAINT_MASK_NOT_RECENT (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM | PAINT_ENABLE_BLINK | ((1 << PAINT_SAVE_SLOTS) - 1))
 
 // The size of the buffer for loading/saving the image. Each chunk is saved as a separate blob in NVS
 #define PAINT_SAVE_CHUNK_SIZE 1024
@@ -93,6 +96,9 @@
 
 // hold button for .3s to begin repeating
 #define BUTTON_REPEAT_TIME 300000
+
+#define BLINK_TIME_ON 500000
+#define BLINK_TIME_OFF 200000
 
 
 /// @brief Struct encapsulating a cursor on the screen
@@ -181,6 +187,10 @@ typedef struct
 
     // The index of the currently selected color, while SELECT is held
     uint8_t paletteSelect;
+
+    // Used for timing blinks
+    int64_t blinkTimer;
+    bool blinkOn;
 
 
 

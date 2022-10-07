@@ -92,6 +92,8 @@ void paintDrawScreenSetup(display_t* disp)
     loadFont(PAINT_TOOLBAR_FONT, &(paintState->toolbarFont));
     loadFont(PAINT_SAVE_MENU_FONT, &(paintState->saveMenuFont));
     paintState->clearScreen = true;
+    paintState->blinkOn = true;
+    paintState->blinkTimer = 0;
 
 
     // Set up the brush icons
@@ -196,6 +198,7 @@ void paintPositionDrawCanvas(void)
 
 void paintDrawScreenMainLoop(int64_t elapsedUs)
 {
+    // Screen Reset
     if (paintState->clearScreen)
     {
         paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
@@ -206,6 +209,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         paintState->clearScreen = false;
     }
 
+    // Save and Load
     if (paintState->doSave || paintState->doLoad)
     {
         paintState->saveInProgress = true;
@@ -295,7 +299,30 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         }
     }
 
-    paintDrawPickPoints();
+    if (paintState->index & PAINT_ENABLE_BLINK)
+    {
+        if (paintState->blinkOn && paintState->blinkTimer >= BLINK_TIME_ON)
+        {
+            paintState->blinkTimer %= BLINK_TIME_ON;
+            paintState->blinkOn = false;
+            paintHidePickPoints();
+        }
+        else if (!paintState->blinkOn && paintState->blinkTimer >= BLINK_TIME_OFF)
+        {
+            paintState->blinkTimer %= BLINK_TIME_OFF;
+            paintState->blinkOn = true;
+            paintDrawPickPoints();
+        } else if (paintState->blinkOn)
+        {
+            paintDrawPickPoints();
+        }
+
+        paintState->blinkTimer += elapsedUs;
+    }
+    else
+    {
+        paintDrawPickPoints();
+    }
 
     drawCursor(getCursor(), &paintState->canvas);
 }
@@ -955,6 +982,12 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 
         free(canvasPickPoints);
     }
+    else
+    {
+        // A bit counterintuitively, this will restart the blink timer on the next frame
+        paintState->blinkTimer = BLINK_TIME_OFF;
+        paintState->blinkOn = false;
+    }
 
     showCursor(getCursor(), &paintState->canvas);
     paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
@@ -1063,7 +1096,6 @@ void paintDrawPickPoints(void)
     {
         if (getPx(&getArtist()->pickPoints, i, &point))
         {
-            PAINT_LOGD("Drawing pick point[%zu] @ (%d, %d) == %d", i, point.x, point.y, getArtist()->fgColor);
             plotRectFilled(paintState->disp, point.x, point.y, point.x + paintState->canvas.xScale + 1, point.y + paintState->canvas.yScale + 1, getArtist()->fgColor);
         }
     }
