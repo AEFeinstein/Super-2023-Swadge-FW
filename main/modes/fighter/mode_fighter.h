@@ -54,6 +54,7 @@ typedef enum
     UP_GROUND,
     DOWN_GROUND,
     DASH_GROUND,
+    FRONT_GROUND,
     NEUTRAL_GROUND,
     NEUTRAL_AIR,
     FRONT_AIR,

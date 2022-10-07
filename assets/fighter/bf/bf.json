@@ -38,7 +38,7 @@
    },
    "attacks":[
       {
-         "type":"utilt",
+         "type":"up_gnd",
          "startupLag":100,
          "startupLagSpr":{
             "sprite":"bid0.wsg"
@@ -94,7 +94,7 @@
          }
       },
       {
-         "type":"dtilt",
+         "type":"down_gnd",
          "startupLag":150,
          "startupLagSpr":{
             "sprite":"kdgw.wsg"
@@ -135,16 +135,16 @@
          }
       },
       {
-         "type":"dash",
+         "type":"dash_gnd",
          "startupLag":50,
          "startupLagSpr":{
-            "sprite":"bid0.wsg"
+            "sprite":"kfgw.wsg"
          },
          "attack_frames":[
             {
                "duration":375,
                "atkSpr":{
-                  "sprite":"bid0.wsg"
+                  "sprite":"kfga.wsg"
                },
                "velo_x":30000,
                "hitboxes":[
@@ -163,11 +163,42 @@
          ],
          "endLag":300,
          "endLagSpr":{
+            "sprite":"kfgc.wsg"
+         }
+      },
+      {
+         "type":"front_gnd",
+         "startupLag":50,
+         "startupLagSpr":{
+            "sprite":"bid0.wsg"
+         },
+         "attack_frames":[
+            {
+               "duration":375,
+               "atkSpr":{
+                  "sprite":"bid0.wsg"
+               },
+               "hitboxes":[
+                  {
+                     "relativePos_x":33,
+                     "relativePos_y":4,
+                     "size_x":8,
+                     "size_y":16,
+                     "damage":18,
+                     "knockback_x":9000,
+                     "knockback_y":-3000,
+                     "hitstun":10
+                  }
+               ]
+            }
+         ],
+         "endLag":300,
+         "endLagSpr":{
             "sprite":"bid0.wsg"
          }
       },
       {
-         "type":"neutral",
+         "type":"neutral_gnd",
          "startupLag":225,
          "startupLagSpr":{
             "sprite":"kngw.wsg"
@@ -208,7 +239,7 @@
          "landing_lag":14
       },
       {
-         "type":"nair",
+         "type":"neutral_air",
          "startupLag":225,
          "startupLagSpr":{
             "sprite":"kngw.wsg"
@@ -249,7 +280,7 @@
          "landing_lag":14
       },
       {
-         "type":"fair",
+         "type":"front_air",
          "startupLag":175,
          "startupLagSpr":{
             "sprite":"bid0.wsg"
@@ -281,7 +312,7 @@
          "landing_lag":12
       },
       {
-         "type":"bair",
+         "type":"back_air",
          "startupLag":300,
          "startupLagSpr":{
             "sprite":"bid0.wsg"
@@ -313,7 +344,7 @@
          "landing_lag":11
       },
       {
-         "type":"uair",
+         "type":"up_air",
          "startupLag":50,
          "startupLagSpr":{
             "sprite":"bid0.wsg"
@@ -407,7 +438,7 @@
          "landing_lag":11
       },
       {
-         "type":"dair",
+         "type":"down_air",
          "startupLag":225,
          "startupLagSpr":{
             "sprite":"bid0.wsg"

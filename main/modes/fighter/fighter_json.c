@@ -333,7 +333,7 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSp
                 tokIdx++;
                 for(uint8_t atkIdx = 0; atkIdx < numAttacks; atkIdx++)
                 {
-                    tokIdx = parseJsonAttack(jsonStr, toks, tokIdx, loadedSprites, &ftr->attacks[atkIdx]);
+                    tokIdx = parseJsonAttack(jsonStr, toks, tokIdx, loadedSprites, ftr->attacks);
                 }
                 numFieldsParsed++;
             }
@@ -359,10 +359,10 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSp
  * @param toks An array of JSON tokens
  * @param tokIdx The index of the current JSON token
  * @param loadedSprites A list of sprites, used for loading
- * @param atk The attack to parse data into
+ * @param atks A pointer to all the attacks
  * @return int32_t The index of the JSON token after parsing
  */
-int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSprite_t* loadedSprites, attack_t* atk)
+int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSprite_t* loadedSprites, attack_t* atks)
 {
     // Each attack is an object
     if(JSMN_OBJECT != toks[tokIdx].type)
@@ -377,6 +377,9 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSpr
     // Move to the first field
     tokIdx++;
 
+    // The attack to parse into
+    attack_t* atk = NULL;
+
     // Parse the tokens
     while(true)
     {
@@ -386,7 +389,49 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSpr
             {
                 tokIdx++;
                 char* type = jsonString(jsonStr, toks[tokIdx]);
-                // ESP_LOGD("FTR", "Parsing %s", type);
+
+                // Pick the attack slot based on type
+                if(0 == strcmp(type, "up_gnd"))
+                {
+                    atk = &atks[UP_GROUND];
+                }
+                else if(0 == strcmp(type, "down_gnd"))
+                {
+                    atk = &atks[DOWN_GROUND];
+                }
+                else if(0 == strcmp(type, "dash_gnd"))
+                {
+                    atk = &atks[DASH_GROUND];
+                }
+                else if(0 == strcmp(type, "front_gnd"))
+                {
+                    atk = &atks[FRONT_GROUND];
+                }
+                else if(0 == strcmp(type, "neutral_gnd"))
+                {
+                    atk = &atks[NEUTRAL_GROUND];
+                }
+                else if(0 == strcmp(type, "neutral_air"))
+                {
+                    atk = &atks[NEUTRAL_AIR];
+                }
+                else if(0 == strcmp(type, "front_air"))
+                {
+                    atk = &atks[FRONT_AIR];
+                }
+                else if(0 == strcmp(type, "back_air"))
+                {
+                    atk = &atks[BACK_AIR];
+                }
+                else if(0 == strcmp(type, "up_air"))
+                {
+                    atk = &atks[UP_AIR];
+                }
+                else if(0 == strcmp(type, "down_air"))
+                {
+                    atk = &atks[DOWN_AIR];
+                }
+
                 free(type);
                 tokIdx++;
                 numFieldsParsed++;

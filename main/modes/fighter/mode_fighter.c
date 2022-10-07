@@ -1134,10 +1134,20 @@ void checkFighterButtonInput(fighter_t* ftr)
                         // Down tilt attack
                         ftr->cAttack = DOWN_GROUND;
                     }
+                    else if (ftr->velocity.x > ((3 * ftr->run_max_velo) / 4))
+                    {
+                        // Running to the right
+                        ftr->cAttack = DASH_GROUND;
+                    }
+                    else if (ftr->velocity.x < -((3 * ftr->run_max_velo) / 4))
+                    {
+                        // Running to the left
+                        ftr->cAttack = DASH_GROUND;
+                    }
                     else if((ftr->btnState & LEFT) || (ftr->btnState & RIGHT))
                     {
-                        // Side attack
-                        ftr->cAttack = DASH_GROUND;
+                        // Side button pressed, but not running
+                        ftr->cAttack = FRONT_GROUND;
                     }
                     else
                     {
