@@ -779,7 +779,7 @@ int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokId
 
 /**
  * @brief Parse an offset sprite JSON object
- * 
+ *
  * @param jsonStr The whole JSON string
  * @param toks An array of JSON tokens
  * @param tokIdx The index of the current JSON token
@@ -788,7 +788,7 @@ int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokId
  * @return The index of the JSON token after parsing
  */
 int32_t parseJsonOffsetSprite(char* jsonStr, jsmntok_t* toks, int32_t tokIdx,
-    namedSprite_t* loadedSprites, offsetSprite_t* os)
+                              namedSprite_t* loadedSprites, offsetSprite_t* os)
 {
     // Each attack is an object
     if(JSMN_OBJECT != toks[tokIdx].type)

@@ -71,6 +71,7 @@ typedef struct
     int32_t fpsTimeCount;
     int32_t fpsFrameCount;
     int32_t fps;
+    wsg_t indicator;
 } fightingGame_t;
 
 //==============================================================================
@@ -80,7 +81,7 @@ typedef struct
 void getHurtbox(fighter_t* ftr, box_t* hurtbox);
 #define setFighterState(f, st, sp, tm, kb) _setFighterState(f, st, sp, tm, kb, __LINE__);
 void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* newSprite,
-    int32_t timer, vector_t* knockback, uint32_t line);
+                      int32_t timer, vector_t* knockback, uint32_t line);
 void setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* touchingPlatform,
                       const platform_t* passingThroughPlatform, bool isInAir);
 void checkFighterButtonInput(fighter_t* ftr);
@@ -96,7 +97,7 @@ uint32_t getHitstop(uint16_t damage);
 void getSpritePos(fighter_t* ftr, vector_t* spritePos);
 fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, list_t* projectiles,
                                     uint8_t* outLen);
-void drawFighter(display_t* d, fighter_t* ftr);
+void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir);
 void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock,
                     int16_t f2_dmg, int16_t f2_stock, int32_t gameTimerUs, bool drawGo);
 #ifdef DRAW_DEBUG_BOXES
@@ -261,6 +262,9 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
     // Load a font
     f->mm_font = mmFont;
 
+    // Load an indicator image
+    loadWsg("indic.wsg", &f->indicator);
+
     // Start the scene as NULL
     f->composedScene = NULL;
     f->composedSceneLen = 0;
@@ -377,6 +381,9 @@ void fighterExitGame(void)
 {
     if(NULL != f)
     {
+        // Free the indicator
+        freeWsg(&f->indicator);
+
         // Free any stray projectiles
         projectile_t* toFree;
         while (NULL != (toFree = pop(&f->projectiles)))
@@ -438,7 +445,7 @@ void getHurtbox(fighter_t* ftr, box_t* hurtbox)
  * @param line      The line number this was called from, for debugging
  */
 void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* newSprite,
-    int32_t timer, vector_t* knockback, uint32_t line)
+                      int32_t timer, vector_t* knockback, uint32_t line)
 {
     // Clean up variables when leaving a state
     if((FS_ATTACK == ftr->state) && (FS_ATTACK != newState) && (ftr->cAttack < NUM_ATTACKS))
@@ -898,7 +905,8 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
                     // Transition from one attack frame to the next attack frame
                     atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
                     // Set the sprite
-                    setFighterState(ftr, FS_ATTACK, &(ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite), atk->duration, NULL);
+                    setFighterState(ftr, FS_ATTACK, &(ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite), atk->duration,
+                                    NULL);
 
                     // Always copy the iframe value, may be 0
                     ftr->iFrameTimer = atk->iFrames;
@@ -1964,7 +1972,7 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
 
                         // Apply hitstun, scaled by defendant's percentage
                         setFighterState(otherFtr, FS_HITSTUN,
-                                        otherFtr->isInAir ? &(otherFtr->hitstunAirSprite) : &(otherFtr->hitstunGroundSprite),
+                                        otherFtr->isInAir ? (&otherFtr->hitstunAirSprite) : (&otherFtr->hitstunGroundSprite),
                                         hbx->hitstun * (1 + (otherFtr->damage / 32)),
                                         &knockback);
 
@@ -2048,7 +2056,7 @@ void checkFighterProjectileCollisions(list_t* projectiles)
 
                         // Apply hitstun, scaled by defendant's percentage
                         setFighterState(ftr, FS_HITSTUN,
-                                        ftr->isInAir ? &(ftr->hitstunAirSprite) : &(ftr->hitstunGroundSprite),
+                                        ftr->isInAir ? (&ftr->hitstunAirSprite) : (&ftr->hitstunGroundSprite),
                                         proj->hitstun * (1 + (ftr->damage / 32)),
                                         &knockback);
 
@@ -2311,8 +2319,8 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
     int16_t f2_stock = scene->f2.stocks;
 
     // Actually draw fighters
-    drawWsg(d, getFighterSprite(f2_sprite, f->loadedSprites), f2_posX, f2_posY, f2_dir, false, 0);
-    drawWsg(d, getFighterSprite(f1_sprite, f->loadedSprites), f1_posX, f1_posY, f1_dir, false, 0);
+    drawFighter(d, getFighterSprite(f2_sprite, f->loadedSprites), f2_posX, f2_posY, f2_dir);
+    drawFighter(d, getFighterSprite(f1_sprite, f->loadedSprites), f1_posX, f1_posY, f1_dir);
 
     // Iterate through projectiles
     int16_t numProj = scene->numProjectiles;
@@ -2355,6 +2363,88 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
         drawProjectileDebugBox(d, &(f->projectiles));
     }
 #endif
+}
+
+/**
+ * @brief Draw a fighter sprite, or an position indicator if the sprite is offscreen
+ *
+ * @param d The display to draw to
+ * @param sprite The sprite to draw
+ * @param x The x coordinate of the sprite
+ * @param y The y coordinate of the sprite
+ * @param dir The direction the sprite is facing
+ */
+void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir)
+{
+    // Check if sprite is completely offscreen
+    if ((x + sprite->w <= 0) || (x >= d->w) ||
+            (y + sprite->h <= 0) || (y >= d->h))
+    {
+        // Use bresenham to draw a line from the center of the screen to the
+        // sprite. Where the line intersects the screen boundary, draw an indicator
+        int x0 = d->w / 2;
+        int y0 = d->h / 2;
+        int x1 = x + sprite->w / 2;
+        int y1 = y + sprite->h / 2;
+        // Calculate and draw indicator
+        int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+        int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+        int err = dx + dy, e2; /* error value e_xy */
+
+        for (;;)   /* loop */
+        {
+            e2 = 2 * err;
+            if (e2 >= dy)   /* e_xy+e_x > 0 */
+            {
+                if (x0 == x1)
+                {
+                    break;
+                }
+                err += dy;
+                x0 += sx;
+            }
+            if (e2 <= dx)   /* e_xy+e_y < 0 */
+            {
+                if (y0 == y1)
+                {
+                    break;
+                }
+                err += dx;
+                y0 += sy;
+            }
+
+            // Check if we're at the display boundary
+            if(x0 == 0)
+            {
+                // Left boundary
+                drawWsg(d, &f->indicator, x0, y0 - (f->indicator.h / 2), false, false, 0);
+                break;
+            }
+            else if (x0 == (d->w - 1))
+            {
+                // Right boundary
+                drawWsg(d, &f->indicator, x0 - f->indicator.w, y0 - (f->indicator.h / 2), false, false, 180);
+                break;
+            }
+            else if (y0 == 0)
+            {
+                // Top boundary
+                drawWsg(d, &f->indicator, x0 - (f->indicator.w / 2), y0 - 2, false, false, 90);
+                break;
+            }
+            else if(y0 == (d->h - 1))
+            {
+                // Bottom boundary
+                drawWsg(d, &f->indicator, x0 - (f->indicator.w / 2), y0 - f->indicator.h + 3, false, false, 270);
+                break;
+            }
+        }
+    }
+    else
+    {
+        // Sprite is at least partially on screen, draw it
+        drawWsg(d, sprite, x, y, dir, false, 0);
+    }
 }
 
 /**

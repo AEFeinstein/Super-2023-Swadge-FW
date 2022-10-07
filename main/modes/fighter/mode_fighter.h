@@ -100,7 +100,7 @@ typedef enum
 // Structs
 //==============================================================================
 
-typedef struct 
+typedef struct
 {
     uint8_t spriteIdx;
     vector_t offset;

@@ -183,15 +183,15 @@ void fighterHrResultLoop(int64_t elapsedUs)
     char str[32];
     sprintf(str, "%dm", hrr->finalXpos);
     drawText(hrr->disp, hrr->font, c555, str,
-                (hrr->disp->w - textWidth(hrr->font, str)) / 2,
-                (hrr->disp->h - hrr->font->h) / 2);
+             (hrr->disp->w - textWidth(hrr->font, str)) / 2,
+             (hrr->disp->h - hrr->font->h) / 2);
 
     // Draw "New Record!", maybe
     if(hrr->isNewRecord)
     {
         const char newRecordStr[] = "New Record!";
         drawText(hrr->disp, hrr->font, c555, newRecordStr,
-                    (hrr->disp->w - textWidth(hrr->font, newRecordStr)) / 2,
-                    ((hrr->disp->h - hrr->font->h) / 2) + 4 + hrr->font->h);
+                 (hrr->disp->w - textWidth(hrr->font, newRecordStr)) / 2,
+                 ((hrr->disp->h - hrr->font->h) / 2) + 4 + hrr->font->h);
     }
 }
