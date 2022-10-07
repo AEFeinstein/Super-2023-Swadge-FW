@@ -213,7 +213,9 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         if (paintState->doSave)
         {
             hideCursor(getCursor(), &paintState->canvas);
+            paintHidePickPoints();
             paintSave(&paintState->index, &paintState->canvas, paintState->selectedSlot);
+            paintDrawPickPoints();
             showCursor(getCursor(), &paintState->canvas);
         }
         else
@@ -971,7 +973,7 @@ void paintSetupTool(void)
         getArtist()->brushWidth = getArtist()->brushDef->maxSize;
     }
 
-    // Remove any stored temporary pixels
+    // Undraw and hide any stored temporary pixels
     while (popPxScaled(&getArtist()->pickPoints, paintState->disp, paintState->canvas.xScale, paintState->canvas.yScale));
 }
 
