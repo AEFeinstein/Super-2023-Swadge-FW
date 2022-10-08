@@ -765,7 +765,7 @@ void updateTitleScreen(platformer_t *self)
                     buzzer_play_sfx(&sndMenuSelect);
                 }
             } else if (
-                    (
+                (
                     self->gameData.btnState & LEFT
                     &&
                     !(self->gameData.prevBtnState & LEFT)
@@ -773,14 +773,18 @@ void updateTitleScreen(platformer_t *self)
             )
             {
                 if(platformer->menuSelection == 1){
-                    platformer->gameData.level--;
-                    if(platformer->gameData.level < 1){
-                        platformer->gameData.level = 4;
-                        if(platformer->gameData.world > 1){
-                            platformer->gameData.world--;
+                    if(platformer->gameData.level == 1 && platformer->gameData.world == 1){
+                        buzzer_play_sfx(&sndMenuDeny);
+                    } else {
+                        platformer->gameData.level--;
+                        if(platformer->gameData.level < 1){
+                            platformer->gameData.level = 4;
+                            if(platformer->gameData.world > 1){
+                                platformer->gameData.world--;
+                            }
                         }
+                        buzzer_play_sfx(&sndMenuSelect);
                     }
-                    buzzer_play_sfx(&sndMenuSelect);
                 }
             } else if (
                     (
@@ -791,14 +795,19 @@ void updateTitleScreen(platformer_t *self)
             )
             {
                 if(platformer->menuSelection == 1){
-                    platformer->gameData.level++;
-                    if(platformer->gameData.level > 4){
-                        platformer->gameData.level = 1;
-                        if(platformer->gameData.world < 8){
-                            platformer->gameData.world++;
+                    if(platformer->gameData.level == 4 && platformer->gameData.world == 8){
+                        buzzer_play_sfx(&sndMenuDeny);
+                    } else {
+                        platformer->gameData.level++;
+                        if(platformer->gameData.level > 4){
+                            platformer->gameData.level = 1;
+                            if(platformer->gameData.world < 8){
+                                platformer->gameData.world++;
+                            }
                         }
+                        buzzer_play_sfx(&sndMenuSelect);
                     }
-                    buzzer_play_sfx(&sndMenuSelect);
+                    
                 }
             } else if (
                     (
