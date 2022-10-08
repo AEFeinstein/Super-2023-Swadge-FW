@@ -1168,6 +1168,17 @@ void checkFighterButtonInput(fighter_t* ftr)
                         // No more jumps after up air!
                         ftr->numJumpsLeft = 0;
                         ftr->isInFreefall = true;
+
+                        // Change direction mid-air when performing an up air attack
+                        // Otherwise direction is not changed while mid-air
+                        if(ftr->btnState & LEFT)
+                        {
+                            ftr->dir = FACING_LEFT;
+                        }
+                        else if (ftr->btnState & RIGHT)
+                        {
+                            ftr->dir = FACING_RIGHT;
+                        }
                     }
                     else if(ftr->btnState & DOWN)
                     {
