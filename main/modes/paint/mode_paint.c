@@ -25,7 +25,6 @@
 /*
  * REMAINING BIG THINGS TO DO:
  *
- * - Draw icons for the tools?
  * - Airbrush tool
  * - Stamp tool?
  * - Copy/paste???
@@ -39,12 +38,22 @@
  * - Use different pick markers / cursors for each brush (e.g. crosshair for circle pen, two L-shaped crosshairs for box pen...)
  */
 
-static const char paintTitle[] = "MFPaint";
-static const char menuOptDraw[] = "Draw";
-static const char menuOptGallery[] = "Gallery";
-static const char menuOptShare[] = "Share";
-static const char menuOptReceive[] = "Receive";
-static const char menuOptExit[] = "Exit";
+const char paintTitle[] = "MFPaint";
+const char menuOptDraw[] = "Draw";
+const char menuOptGallery[] = "Gallery";
+const char menuOptShare[] = "Share";
+const char menuOptReceive[] = "Receive";
+const char menuOptSettings[] = "Settings";
+
+const char menuOptLedsOn[] = "LEDs: On";
+const char menuOptLedsOff[] = "LEDs: Off";
+const char menuOptBlinkOn[] = "BlinkPx: On";
+const char menuOptBlinkOff[] = "BlinkPx: Off";
+const char menuOptEraseData[] = "Erase Data";
+const char menuOptCancelErase[] = "Confirm? No!";
+const char menuOptConfirmErase[] = "Confirm? Yes";
+
+const char menuOptExit[] = "Back";
 
 // Mode struct function declarations
 void paintEnterMode(display_t* disp);
@@ -52,6 +61,7 @@ void paintExitMode(void);
 void paintMainLoop(int64_t elapsedUs);
 void paintButtonCb(buttonEvt_t* evt);
 void paintMainMenuCb(const char* opt);
+void paintSettingsMenuCb(const char* opt);
 
 
 swadgeMode modePaint =
@@ -72,7 +82,9 @@ swadgeMode modePaint =
 
 // Util function declarations
 
-void paintInitialize(void);
+void paintMenuInitialize(void);
+void paintSetupMainMenu(bool reset);
+void paintSetupSettingsMenu(bool reset);
 
 // Mode struct function implemetations
 
@@ -85,18 +97,22 @@ void paintEnterMode(display_t* disp)
     loadFont("mm.font", &(paintMenu->menuFont));
 
     paintMenu->menu = initMeleeMenu(paintTitle, &(paintMenu->menuFont), paintMainMenuCb);
-    paintInitialize();
+    paintMenu->settingsMenu = initMeleeMenu(menuOptSettings, &(paintMenu->menuFont), paintSettingsMenuCb);
+
+    paintMenuInitialize();
 }
 
 void paintExitMode(void)
 {
     PAINT_LOGD("Exiting");
     deinitMeleeMenu(paintMenu->menu);
+    deinitMeleeMenu(paintMenu->settingsMenu);
     freeFont(&(paintMenu->menuFont));
 
     switch (paintMenu->screen)
     {
         case PAINT_MENU:
+        case PAINT_SETTINGS_MENU:
         break;
 
         case PAINT_DRAW:
@@ -133,6 +149,12 @@ void paintMainLoop(int64_t elapsedUs)
         break;
     }
 
+    case PAINT_SETTINGS_MENU:
+    {
+        drawMeleeMenu(paintMenu->disp, paintMenu->settingsMenu);
+        break;
+    }
+
     case PAINT_DRAW:
     {
         paintDrawScreenMainLoop(elapsedUs);
@@ -140,12 +162,15 @@ void paintMainLoop(int64_t elapsedUs)
     }
 
     case PAINT_SHARE:
+    // Implemented in a different mode
     break;
 
     case PAINT_RECEIVE:
+    // Implemented in a different mode
     break;
 
     case PAINT_VIEW:
+    // TODO get rid of PAINT_VIEW
     break;
 
     case PAINT_GALLERY:
@@ -167,7 +192,44 @@ void paintButtonCb(buttonEvt_t* evt)
         {
             if (evt->down)
             {
-                meleeMenuButton(paintMenu->menu, evt->button);
+                if (evt->button == BTN_B)
+                {
+                    switchToSwadgeMode(&modeMainMenu);
+                }
+                else
+                {
+                    meleeMenuButton(paintMenu->menu, evt->button);
+                }
+            }
+            break;
+        }
+
+        case PAINT_SETTINGS_MENU:
+        {
+            if (evt->down)
+            {
+                if (evt->button == LEFT || evt->button == RIGHT)
+                {
+                    if (menuOptCancelErase == paintMenu->settingsMenu->rows[paintMenu->settingsMenuSelection])
+                    {
+                        paintMenu->eraseDataConfirm = true;
+                        paintSetupSettingsMenu(false);
+                    }
+                    else if (menuOptConfirmErase == paintMenu->settingsMenu->rows[paintMenu->settingsMenuSelection])
+                    {
+                        paintMenu->eraseDataConfirm = false;
+                        paintSetupSettingsMenu(false);
+                    }
+                }
+                else if (evt->button == BTN_B)
+                {
+                    paintMenu->screen = PAINT_MENU;
+                    paintSetupMainMenu(false);
+                }
+                else
+                {
+                    meleeMenuButton(paintMenu->settingsMenu, evt->button);
+                }
             }
             break;
         }
@@ -200,11 +262,23 @@ void paintButtonCb(buttonEvt_t* evt)
 
 // Util function implementations
 
-void paintInitialize(void)
+void paintMenuInitialize(void)
 {
     int32_t index;
     paintLoadIndex(&index);
 
+    paintSetupMainMenu(true);
+
+    paintMenu->menuSelection = 0;
+    paintMenu->settingsMenuSelection = 0;
+    paintMenu->eraseDataSelected = false;
+    paintMenu->eraseDataConfirm = false;
+
+    paintMenu->screen = PAINT_MENU;
+}
+
+void paintSetupMainMenu(bool reset)
+{
     resetMeleeMenu(paintMenu->menu, paintTitle, paintMainMenuCb);
     addRowToMeleeMenu(paintMenu->menu, menuOptDraw);
 
@@ -216,13 +290,65 @@ void paintInitialize(void)
     }
 
     addRowToMeleeMenu(paintMenu->menu, menuOptReceive);
+    addRowToMeleeMenu(paintMenu->menu, menuOptSettings);
     addRowToMeleeMenu(paintMenu->menu, menuOptExit);
+}
 
-    paintMenu->screen = PAINT_MENU;
+void paintSetupSettingsMenu(bool reset)
+{
+    int32_t index;
+
+    resetMeleeMenu(paintMenu->settingsMenu, menuOptSettings, paintSettingsMenuCb);
+
+    paintLoadIndex(&index);
+    if (index & PAINT_ENABLE_LEDS)
+    {
+        addRowToMeleeMenu(paintMenu->settingsMenu, menuOptLedsOn);
+    }
+    else
+    {
+        addRowToMeleeMenu(paintMenu->settingsMenu, menuOptLedsOff);
+    }
+
+    if (index & PAINT_ENABLE_BLINK)
+    {
+        addRowToMeleeMenu(paintMenu->settingsMenu, menuOptBlinkOn);
+    }
+    else
+    {
+        addRowToMeleeMenu(paintMenu->settingsMenu, menuOptBlinkOff);
+    }
+
+    if (paintMenu->eraseDataSelected)
+    {
+        if (paintMenu->eraseDataConfirm)
+        {
+            addRowToMeleeMenu(paintMenu->settingsMenu, menuOptConfirmErase);
+        }
+        else
+        {
+            addRowToMeleeMenu(paintMenu->settingsMenu, menuOptCancelErase);
+        }
+    }
+    else
+    {
+        addRowToMeleeMenu(paintMenu->settingsMenu, menuOptEraseData);
+    }
+    addRowToMeleeMenu(paintMenu->settingsMenu, menuOptExit);
+
+    if (reset)
+    {
+        paintMenu->settingsMenuSelection = 0;
+        paintMenu->eraseDataSelected = false;
+        paintMenu->eraseDataConfirm = false;
+    }
+
+    paintMenu->settingsMenu->selectedRow = paintMenu->settingsMenuSelection;
 }
 
 void paintMainMenuCb(const char* opt)
 {
+    paintMenu->menuSelection = paintMenu->menu->selectedRow;
     if (opt == menuOptDraw)
     {
         PAINT_LOGI("Selected Draw");
@@ -247,6 +373,11 @@ void paintMainMenuCb(const char* opt)
         paintMenu->screen = PAINT_RECEIVE;
         switchToSwadgeMode(&modePaintReceive);
     }
+    else if (opt == menuOptSettings)
+    {
+        paintSetupSettingsMenu(true);
+        paintMenu->screen = PAINT_SETTINGS_MENU;
+    }
     else if (opt == menuOptExit)
     {
         PAINT_LOGI("Selected Exit");
@@ -254,11 +385,71 @@ void paintMainMenuCb(const char* opt)
     }
 }
 
+void paintSettingsMenuCb(const char* opt)
+{
+    paintMenu->settingsMenuSelection = paintMenu->settingsMenu->selectedRow;
+
+    int32_t index;
+    if (opt == menuOptLedsOff)
+    {
+        // Enable the LEDsConfirm? NoConfirm? NoConfirm? No
+        paintLoadIndex(&index);
+        index |= PAINT_ENABLE_LEDS;
+        paintSaveIndex(index);
+    }
+    else if (opt == menuOptLedsOn)
+    {
+        paintLoadIndex(&index);
+        index &= ~PAINT_ENABLE_LEDS;
+        paintSaveIndex(index);
+    }
+    else if (opt == menuOptBlinkOff)
+    {
+        paintLoadIndex(&index);
+        index |= PAINT_ENABLE_BLINK;
+        paintSaveIndex(index);
+    }
+    else if (opt == menuOptBlinkOn)
+    {
+        paintLoadIndex(&index);
+        index &= ~PAINT_ENABLE_BLINK;
+        paintSaveIndex(index);
+    }
+    else if (opt == menuOptEraseData)
+    {
+        paintMenu->eraseDataSelected = true;
+    }
+    else if (opt == menuOptConfirmErase)
+    {
+        // paintEraseData();
+        paintMenu->eraseDataConfirm = false;
+        paintMenu->eraseDataSelected = false;
+    }
+    else if (opt == menuOptCancelErase)
+    {
+        paintMenu->eraseDataSelected = false;
+        paintMenu->eraseDataConfirm = false;
+    }
+    else if (opt == menuOptExit)
+    {
+        PAINT_LOGI("Selected Exit");
+        paintSetupMainMenu(true);
+        paintMenu->screen = PAINT_MENU;
+        return;
+    }
+
+    paintSetupSettingsMenu(false);
+}
+
 void paintReturnToMainMenu(void)
 {
     switch(paintMenu->screen)
     {
         case PAINT_MENU:
+        break;
+
+        case PAINT_SETTINGS_MENU:
+            paintMenu->screen = PAINT_MENU;
         break;
 
         case PAINT_DRAW:

@@ -1078,7 +1078,7 @@ void paintUpdateRecents(uint8_t selectedIndex)
 
 void paintUpdateLeds(void)
 {
-    uint32_t rgb = paletteToRGB(getArtist()->fgColor);
+    uint32_t rgb = (paintState->index & PAINT_ENABLE_LEDS) ? paletteToRGB(getArtist()->fgColor) : 0;
     for (uint8_t i = 0; i < NUM_LEDS; i++)
     {
         paintState->leds[i].b = (rgb >>  0) & 0xFF;

@@ -305,6 +305,11 @@ typedef struct
     font_t menuFont;
     // Main Menu
     meleeMenu_t* menu;
+    meleeMenu_t* settingsMenu;
+
+    uint8_t menuSelection, settingsMenuSelection;
+
+    bool eraseDataSelected, eraseDataConfirm;
 
     // Font for drawing tool info
     // TODO: Use images instead!
