@@ -2266,6 +2266,8 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     bool f2offscreen = (f2spritePos.x < 0) || (f2spritePos.x + f2sprite->w >= f->d->w) ||
                        (f2spritePos.y < 0) || (f2spritePos.y + f2sprite->h >= f->d->h);
 
+    // Assume no camera offset
+    vector_t centeredOffset = {.x = 0, .y = 0};
     // If a fighter is offscreen
     if(f1offscreen || f2offscreen)
     {
@@ -2282,52 +2284,20 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
         };
 
         // Find the offset between the midpoint between the fighters and the center of the screen
-        vector_t centeredOffset =
-        {
-            .x = (f->d->w - f1mid.x + f2mid.x) / 2,
-            .y = (f->d->h - f1mid.y + f2mid.y) / 2
-        };
-
-        // Pan the camera in that direction
-        // TODO improve this
-        if(centeredOffset.x < f->cameraOffset.x)
-        {
-            f->cameraOffset.x--;
-        }
-        else
-        {
-            f->cameraOffset.x++;
-        }
-
-        if(centeredOffset.y < f->cameraOffset.y)
-        {
-            f->cameraOffset.y--;
-        }
-        else
-        {
-            f->cameraOffset.y++;
-        }
+        centeredOffset.x = (f->d->w - (f1mid.x + f2mid.x)) / 2;
+        centeredOffset.y = (f->d->h - (f1mid.y + f2mid.y)) / 2;
     }
-    else
-    {
-        // If no fighters are offscreen, pan the camera back to center
-        if(f->cameraOffset.x > 0)
-        {
-            f->cameraOffset.x--;
-        }
-        else if(f->cameraOffset.x < 0)
-        {
-            f->cameraOffset.x++;
-        }
 
-        if(f->cameraOffset.y > 0)
-        {
-            f->cameraOffset.y--;
-        }
-        else if(f->cameraOffset.y < 0)
-        {
-            f->cameraOffset.y++;
-        }
+    // Pan the camera a quarter of the way to the midpoint
+    if(centeredOffset.x != f->cameraOffset.x)
+    {
+        int16_t diff = centeredOffset.x - f->cameraOffset.x;
+        f->cameraOffset.x += (diff / 4);
+    }
+    if(centeredOffset.y != f->cameraOffset.y)
+    {
+        int16_t diff = centeredOffset.y - f->cameraOffset.y;
+        f->cameraOffset.y += (diff / 4);
     }
 
     // Put the camera offset in the packet
