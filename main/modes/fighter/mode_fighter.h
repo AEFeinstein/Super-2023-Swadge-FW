@@ -272,11 +272,13 @@ typedef struct
 typedef struct
 {
     uint8_t msgType;
-    uint32_t gameTimerUs;
     bool drawGo;
+    uint32_t gameTimerUs;
     uint16_t stageIdx;
     fighterSceneFighter_t f1;
     fighterSceneFighter_t f2;
+    int16_t cameraOffsetX;
+    int16_t cameraOffsetY;
     int16_t numProjectiles;
     fighterSceneProjectile_t projs[];
 } fighterScene_t;
