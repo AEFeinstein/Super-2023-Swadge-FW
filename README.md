@@ -184,8 +184,8 @@ I also recommend installing the [Doxygen Documentation Generator
 
     ```powershell
     cd ~/esp/
-    git clone https://github.com/AEFeinstein/esp32-c3-playground.git
-    cd esp32-c3-playground
+    git clone https://github.com/AEFeinstein/Super-2023-Swadge-FW.git
+    cd Super-2023-Swadge-FW
     git submodule update --init --recursive
     ```
 
@@ -209,8 +209,8 @@ I also recommend installing the [Doxygen Documentation Generator
 
     ```powershell
     cd ~/esp/
-    git clone https://github.com/AEFeinstein/esp32-c3-playground.git
-    cd esp32-c3-playground
+    git clone https://github.com/AEFeinstein/Super-2023-Swadge-FW.git
+    cd Super-2023-Swadge-FW
     git submodule update --init --recursive
     ```
 
