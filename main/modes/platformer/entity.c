@@ -75,7 +75,7 @@ static const song_t sndJump1 =
         .notes =
             { 
                 {C_5, 50}, {E_5, 50}, {C_5, 50}},
-        .numNotes = 3,
+        .numNotes = 2,
         .shouldLoop = false
     };         
 
@@ -84,7 +84,7 @@ static const song_t sndJump2 =
         .notes =
             { 
                 {E_5, 50}, {G_5, 50}, {E_5, 50}},
-        .numNotes = 3,
+        .numNotes = 2,
         .shouldLoop = false
     };         
 
@@ -93,7 +93,7 @@ static const song_t sndJump3 =
         .notes =
             { 
                 {G_5, 50}, {C_6, 50}, {G_5, 50}},
-        .numNotes = 3,
+        .numNotes = 2,
         .shouldLoop = false
     };
 
