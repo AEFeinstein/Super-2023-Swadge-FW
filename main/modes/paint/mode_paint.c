@@ -82,6 +82,7 @@ swadgeMode modePaint =
 
 // Util function declarations
 
+void paintDeleteAllData(void);
 void paintMenuInitialize(void);
 void paintSetupMainMenu(bool reset);
 void paintSetupSettingsMenu(bool reset);
@@ -421,7 +422,7 @@ void paintSettingsMenuCb(const char* opt)
     }
     else if (opt == menuOptConfirmErase)
     {
-        // paintEraseData();
+        paintEraseAllData();
         paintMenu->eraseDataConfirm = false;
         paintMenu->eraseDataSelected = false;
     }
@@ -473,4 +474,17 @@ void paintReturnToMainMenu(void)
     }
 
     paintMenu->screen = PAINT_MENU;
+}
+
+void paintDeleteAllData(void)
+{
+    int32_t index;
+    paintLoadIndex(&index);
+
+    for (uint8_t i = 0; i < PAINT_SAVE_SLOTS; i++)
+    {
+        paintDeleteSlot(&index, i);
+    }
+
+    paintDeleteIndex();
 }

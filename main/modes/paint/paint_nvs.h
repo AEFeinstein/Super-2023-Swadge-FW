@@ -24,6 +24,8 @@ bool paintLoad(int32_t* index, paintCanvas_t* canvas, uint8_t slot);
 bool paintLoadDimensions(paintCanvas_t* canvas, uint8_t slot);
 uint8_t paintGetPrevSlotInUse(int32_t index, uint8_t slot);
 uint8_t paintGetNextSlotInUse(int32_t index, uint8_t slot);
+void paintDeleteSlot(int32_t* index, uint8_t slot);
+bool paintDeleteIndex(void);
 
 
 #endif

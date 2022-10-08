@@ -351,3 +351,51 @@ uint8_t paintGetNextSlotInUse(int32_t index, uint8_t slot)
 
     return slot;
 }
+
+void paintDeleteSlot(int32_t* index, uint8_t slot)
+{
+    // NVS blob key name
+    char key[16];
+
+    if (!paintGetSlotInUse(*index, slot))
+    {
+        PAINT_LOGW("Attempting to delete allegedly unused slot %d", slot);
+    }
+
+    // Delete the palette
+    snprintf(key, 16, "paint_%02d_pal", slot);
+    if (!eraseNvsKey(key))
+    {
+        PAINT_LOGE("Couldn't delete palette of slot %d", slot);
+    }
+
+    snprintf(key, 16, "paint_%02d_dim", slot);
+    if (!eraseNvsKey(key))
+    {
+        PAINT_LOGE("Couldn't delete dimensions of slot %d", slot);
+    }
+
+    // Erase chunks until we fail to find one
+    uint8_t i = 0;
+    do
+    {
+        snprintf(key, 16, "paint_%02dc%05d", slot, i++);
+    } while (eraseNvsKey(key));
+
+    PAINT_LOGI("Erased %d chunks of slot %d", i - 1, slot);
+    paintClearSlot(index, slot);
+}
+
+bool paintDeleteIndex(void)
+{
+    if (eraseNvsKey("pnt_idx"))
+    {
+        PAINT_LOGI("Erased index!");
+        return true;
+    }
+    else
+    {
+        PAINT_LOGE("Failed to erase index!");
+        return false;
+    }
+}
