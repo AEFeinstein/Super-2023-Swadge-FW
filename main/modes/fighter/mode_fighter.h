@@ -54,6 +54,7 @@ typedef enum
     UP_GROUND,
     DOWN_GROUND,
     DASH_GROUND,
+    FRONT_GROUND,
     NEUTRAL_GROUND,
     NEUTRAL_AIR,
     FRONT_AIR,
@@ -100,7 +101,7 @@ typedef enum
 // Structs
 //==============================================================================
 
-typedef struct 
+typedef struct
 {
     uint8_t spriteIdx;
     vector_t offset;
@@ -257,6 +258,7 @@ typedef struct
     int16_t spriteIdx;
     int16_t damage;
     int16_t stocks;
+    int16_t isInvincible;
 } fighterSceneFighter_t;
 
 typedef struct
@@ -270,11 +272,13 @@ typedef struct
 typedef struct
 {
     uint8_t msgType;
-    uint32_t gameTimerUs;
     bool drawGo;
+    uint32_t gameTimerUs;
     uint16_t stageIdx;
     fighterSceneFighter_t f1;
     fighterSceneFighter_t f2;
+    int16_t cameraOffsetX;
+    int16_t cameraOffsetY;
     int16_t numProjectiles;
     fighterSceneProjectile_t projs[];
 } fighterScene_t;

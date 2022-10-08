@@ -32,6 +32,8 @@
 //==============================================================================
 
 #define IFRAMES_AFTER_SPAWN ((3 * 1000) / FRAME_TIME_MS) // 3 seconds
+#define IFRAMES_AFTER_LEDGE_JUMP ((2 * 1000) / FRAME_TIME_MS) // 2 seconds
+
 #define DRAW_DEBUG_BOXES
 
 #define NUM_FIGHTERS 2
@@ -46,6 +48,12 @@ typedef enum
 } fighterGamePhase_t;
 
 #define FPS_MEASUREMENT_SEC 3
+
+#define BARRIER_COLOR    c435
+#define PLATFORM_COLOR   c111
+#define HUD_COLOR        c444
+#define STOCK_COLOR      c114
+#define INVINCIBLE_COLOR c550
 
 //==============================================================================
 // Structs
@@ -71,6 +79,8 @@ typedef struct
     int32_t fpsTimeCount;
     int32_t fpsFrameCount;
     int32_t fps;
+    wsg_t indicator;
+    vector_t cameraOffset;
 } fightingGame_t;
 
 //==============================================================================
@@ -80,7 +90,7 @@ typedef struct
 void getHurtbox(fighter_t* ftr, box_t* hurtbox);
 #define setFighterState(f, st, sp, tm, kb) _setFighterState(f, st, sp, tm, kb, __LINE__);
 void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* newSprite,
-    int32_t timer, vector_t* knockback, uint32_t line);
+                      int32_t timer, vector_t* knockback, uint32_t line);
 void setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* touchingPlatform,
                       const platform_t* passingThroughPlatform, bool isInAir);
 void checkFighterButtonInput(fighter_t* ftr);
@@ -96,12 +106,12 @@ uint32_t getHitstop(uint16_t damage);
 void getSpritePos(fighter_t* ftr, vector_t* spritePos);
 fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, list_t* projectiles,
                                     uint8_t* outLen);
-void drawFighter(display_t* d, fighter_t* ftr);
+void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir, bool isInvincible);
 void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock,
                     int16_t f2_dmg, int16_t f2_stock, int32_t gameTimerUs, bool drawGo);
 #ifdef DRAW_DEBUG_BOXES
-    void drawFighterDebugBox(display_t* d, fighter_t* ftr);
-    void drawProjectileDebugBox(display_t* d, list_t* projectiles);
+    void drawFighterDebugBox(display_t* d, fighter_t* ftr, int16_t camOffX, int16_t camOffY);
+    void drawProjectileDebugBox(display_t* d, list_t* projectiles, int16_t camOffX, int16_t camOffY);
 #endif
 
 // void fighterAccelerometerCb(accel_t* accel);
@@ -127,6 +137,7 @@ static fightingGame_t* f = NULL;
 // For all stages & platforms
 #define STAGE_Y 190
 #define PLATFORM_HEIGHT  4
+#define ABS_BOTTOM (0x3FFF << SF)
 
 // For both battlefield & final destination
 #define STAGE_MARGIN 20
@@ -150,7 +161,7 @@ static const stage_t battlefield =
                 .x0 = ((STAGE_MARGIN) << SF),
                 .y0 = ((STAGE_Y) << SF),
                 .x1 = ((SCREEN_W - STAGE_MARGIN) << SF),
-                .y1 = ((STAGE_Y + PLATFORM_HEIGHT) << SF),
+                .y1 = ABS_BOTTOM,
             },
             .canFallThrough = false
         },
@@ -201,7 +212,7 @@ static const stage_t finalDest =
                 .x0 = ((STAGE_MARGIN) << SF),
                 .y0 = ((STAGE_Y) << SF),
                 .x1 = ((SCREEN_W - STAGE_MARGIN) << SF),
-                .y1 = ((STAGE_Y + PLATFORM_HEIGHT) << SF),
+                .y1 = ABS_BOTTOM,
             },
             .canFallThrough = false
         }
@@ -219,7 +230,7 @@ static const stage_t hrStadium =
                 .x0 = ((HR_STAGE_MARGIN) << SF),
                 .y0 = ((STAGE_Y) << SF),
                 .x1 = ((SCREEN_W - HR_STAGE_MARGIN) << SF),
-                .y1 = ((STAGE_Y + PLATFORM_HEIGHT) << SF),
+                .y1 = ABS_BOTTOM,
             },
             .canFallThrough = false
         }
@@ -260,6 +271,9 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
 
     // Load a font
     f->mm_font = mmFont;
+
+    // Load an indicator image
+    loadWsg("indic.wsg", &f->indicator);
 
     // Start the scene as NULL
     f->composedScene = NULL;
@@ -329,7 +343,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
                 // No stocks for HR Contest
                 f->fighters[i].stocks = 0;
                 // No iframes
-                f->fighters[i].iFrameTimer = 0;
+                f->fighters[i].iFrameTimer = IFRAMES_AFTER_SPAWN;
                 f->fighters[i].isInvincible = false;
                 break;
             }
@@ -377,6 +391,9 @@ void fighterExitGame(void)
 {
     if(NULL != f)
     {
+        // Free the indicator
+        freeWsg(&f->indicator);
+
         // Free any stray projectiles
         projectile_t* toFree;
         while (NULL != (toFree = pop(&f->projectiles)))
@@ -438,7 +455,7 @@ void getHurtbox(fighter_t* ftr, box_t* hurtbox)
  * @param line      The line number this was called from, for debugging
  */
 void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* newSprite,
-    int32_t timer, vector_t* knockback, uint32_t line)
+                      int32_t timer, vector_t* knockback, uint32_t line)
 {
     // Clean up variables when leaving a state
     if((FS_ATTACK == ftr->state) && (FS_ATTACK != newState) && (ftr->cAttack < NUM_ATTACKS))
@@ -608,7 +625,7 @@ void fighterGameLoop(int64_t elapsedUs)
                     f->gameTimerUs = 0;
                     // Initialize the result
                     fighterShowHrResult(f->fighters[0].character, f->fighters[1].pos, f->fighters[1].velocity, f->fighters[1].gravity,
-                                        hrStadium.platforms[0].area.x1);
+                                        hrStadium.platforms[0].area.x0, hrStadium.platforms[0].area.x1);
                     // Deinit the game
                     fighterExitGame();
                     // Return after deinit
@@ -728,24 +745,6 @@ void fighterGameLoop(int64_t elapsedUs)
                 // Set the scene in the ack
                 fighterSendSceneToOther(f->composedScene, f->composedSceneLen);
             }
-
-            // char dbgStr[256];
-            // box_t hb;
-            // getHurtbox(&f->fighters[0], &hb);
-            // sprintf(dbgStr, "{[%d,%d],[%d,%d]},%d",
-            //     f->fighters[0].pos.x >> SF,
-            //     f->fighters[0].pos.y >> SF,
-            //     f->fighters[0].velocity.x,
-            //     f->fighters[0].velocity.y,
-            //     boxesCollide(battlefield[2].area, hb, SF));
-            // drawText(f->d, &(f->mm_font), c444, dbgStr, 0, 0);
-
-            // ESP_LOGI("FTR", "{[%d, %d], [%d, %d], %d}",
-            //     f->fighters[0].hurtbox.x0 >> SF,
-            //     f->fighters[0].hurtbox.y0 >> SF,
-            //     f->fighters[0].velocity.x,
-            //     f->fighters[0].velocity.y,
-            //     f->fighters[0].relativePos);
         }
 
         // Frame drawn!
@@ -898,7 +897,8 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
                     // Transition from one attack frame to the next attack frame
                     atk = &ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame];
                     // Set the sprite
-                    setFighterState(ftr, FS_ATTACK, &(ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite), atk->duration, NULL);
+                    setFighterState(ftr, FS_ATTACK, &(ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite), atk->duration,
+                                    NULL);
 
                     // Always copy the iframe value, may be 0
                     ftr->iFrameTimer = atk->iFrames;
@@ -1135,10 +1135,20 @@ void checkFighterButtonInput(fighter_t* ftr)
                         // Down tilt attack
                         ftr->cAttack = DOWN_GROUND;
                     }
+                    else if (ftr->velocity.x > ((3 * ftr->run_max_velo) / 4))
+                    {
+                        // Running to the right
+                        ftr->cAttack = DASH_GROUND;
+                    }
+                    else if (ftr->velocity.x < -((3 * ftr->run_max_velo) / 4))
+                    {
+                        // Running to the left
+                        ftr->cAttack = DASH_GROUND;
+                    }
                     else if((ftr->btnState & LEFT) || (ftr->btnState & RIGHT))
                     {
-                        // Side attack
-                        ftr->cAttack = DASH_GROUND;
+                        // Side button pressed, but not running
+                        ftr->cAttack = FRONT_GROUND;
                     }
                     else
                     {
@@ -1158,6 +1168,17 @@ void checkFighterButtonInput(fighter_t* ftr)
                         // No more jumps after up air!
                         ftr->numJumpsLeft = 0;
                         ftr->isInFreefall = true;
+
+                        // Change direction mid-air when performing an up air attack
+                        // Otherwise direction is not changed while mid-air
+                        if(ftr->btnState & LEFT)
+                        {
+                            ftr->dir = FACING_LEFT;
+                        }
+                        else if (ftr->btnState & RIGHT)
+                        {
+                            ftr->dir = FACING_RIGHT;
+                        }
                     }
                     else if(ftr->btnState & DOWN)
                     {
@@ -1753,9 +1774,10 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     // Moving downward
                     if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
                     {
-                        // Give a bonus 2/3 'jump' to get back on the platform
+                        // Give a bonus 'jump' to get back on the platform
                         ftr->ledgeJumped = true;
-                        ftr->velocity.y = 2 * (ftr->jump_velo / 3);
+                        ftr->velocity.y = ftr->jump_velo;
+                        ftr->iFrameTimer = IFRAMES_AFTER_LEDGE_JUMP;
                     }
                 }
                 break;
@@ -1787,9 +1809,10 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     // Moving downward
                     if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
                     {
-                        // Give a bonus 2/3 'jump' to get back on the platform
+                        // Give a bonus 'jump' to get back on the platform
                         ftr->ledgeJumped = true;
-                        ftr->velocity.y = 2 * (ftr->jump_velo / 3);
+                        ftr->velocity.y = ftr->jump_velo;
+                        ftr->iFrameTimer = IFRAMES_AFTER_LEDGE_JUMP;
                     }
                 }
                 break;
@@ -1814,7 +1837,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         {
             // Initialize the result
             fighterShowHrResult(f->fighters[0].character, f->fighters[1].pos, f->fighters[1].velocity,
-                                f->fighters[1].gravity, hrStadium.platforms[0].area.x1);
+                                f->fighters[1].gravity, hrStadium.platforms[0].area.x0, hrStadium.platforms[0].area.x1);
             // Deinit the game
             fighterExitGame();
             // Return after deinit
@@ -1964,7 +1987,7 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
 
                         // Apply hitstun, scaled by defendant's percentage
                         setFighterState(otherFtr, FS_HITSTUN,
-                                        otherFtr->isInAir ? &(otherFtr->hitstunAirSprite) : &(otherFtr->hitstunGroundSprite),
+                                        otherFtr->isInAir ? (&otherFtr->hitstunAirSprite) : (&otherFtr->hitstunGroundSprite),
                                         hbx->hitstun * (1 + (otherFtr->damage / 32)),
                                         &knockback);
 
@@ -2048,7 +2071,7 @@ void checkFighterProjectileCollisions(list_t* projectiles)
 
                         // Apply hitstun, scaled by defendant's percentage
                         setFighterState(ftr, FS_HITSTUN,
-                                        ftr->isInAir ? &(ftr->hitstunAirSprite) : &(ftr->hitstunGroundSprite),
+                                        ftr->isInAir ? (&ftr->hitstunAirSprite) : (&ftr->hitstunGroundSprite),
                                         proj->hitstun * (1 + (ftr->damage / 32)),
                                         &knockback);
 
@@ -2219,32 +2242,81 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     // Save Stage IDX
     scene->stageIdx = stageIdx;
 
-    vector_t spritePos;
-
     // f1 position
-    getSpritePos(f1, &spritePos);
-    scene->f1.spritePosX = spritePos.x; // Save the final location for the sprite
-    scene->f1.spritePosY = spritePos.y;
+    vector_t f1spritePos;
+    getSpritePos(f1, &f1spritePos);
+    scene->f1.spritePosX = f1spritePos.x; // Save the final location for the sprite
+    scene->f1.spritePosY = f1spritePos.y;
     scene->f1.spriteDir = f1->dir;
     // f1 sprite
     scene->f1.spriteIdx = f1->currentSprite->spriteIdx;
     // f1 damage and stock
     scene->f1.damage = f1->damage;
     scene->f1.stocks = f1->stocks;
+    scene->f1.isInvincible = (f1->iFrameTimer > 0);
 
     // f2 position
-    getSpritePos(f2, &spritePos);
-    scene->f2.spritePosX = spritePos.x; // Save the final location for the sprite
-    scene->f2.spritePosY = spritePos.y;
+    vector_t f2spritePos;
+    getSpritePos(f2, &f2spritePos);
+    scene->f2.spritePosX = f2spritePos.x; // Save the final location for the sprite
+    scene->f2.spritePosY = f2spritePos.y;
     scene->f2.spriteDir = f2->dir;
     // f2 sprite
     scene->f2.spriteIdx = f2->currentSprite->spriteIdx;
     // f2 damage and stock
     scene->f2.damage = f2->damage;
     scene->f2.stocks = f2->stocks;
+    scene->f2.isInvincible = (f2->iFrameTimer > 0);
 
-    scene->numProjectiles = numProj;
+    // Adjust camera
+    // Check if either fighter is offscreen at all
+    wsg_t* f1sprite = getFighterSprite(f1->currentSprite->spriteIdx, f->loadedSprites);
+    bool f1offscreen = (f1spritePos.x < 0) || (f1spritePos.x + f1sprite->w >= f->d->w) ||
+                       (f1spritePos.y < 0) || (f1spritePos.y + f1sprite->h >= f->d->h);
+    wsg_t* f2sprite = getFighterSprite(f2->currentSprite->spriteIdx, f->loadedSprites);
+    bool f2offscreen = (f2spritePos.x < 0) || (f2spritePos.x + f2sprite->w >= f->d->w) ||
+                       (f2spritePos.y < 0) || (f2spritePos.y + f2sprite->h >= f->d->h);
+
+    // Assume no camera offset
+    vector_t centeredOffset = {.x = 0, .y = 0};
+    // If a fighter is offscreen
+    if(f1offscreen || f2offscreen)
+    {
+        // Find the midpoint of the fighter sprites
+        vector_t f1mid =
+        {
+            .x = f1spritePos.x + (f1sprite->w / 2),
+            .y = f1spritePos.y + (f1sprite->h / 2),
+        };
+        vector_t f2mid =
+        {
+            .x = f2spritePos.x + (f2sprite->w / 2),
+            .y = f2spritePos.y + (f2sprite->h / 2),
+        };
+
+        // Find the offset between the midpoint between the fighters and the center of the screen
+        centeredOffset.x = (f->d->w - (f1mid.x + f2mid.x)) / 2;
+        centeredOffset.y = (f->d->h - (f1mid.y + f2mid.y)) / 2;
+    }
+
+    // Pan the camera a quarter of the way to the midpoint
+    if(centeredOffset.x != f->cameraOffset.x)
+    {
+        int16_t diff = centeredOffset.x - f->cameraOffset.x;
+        f->cameraOffset.x += (diff / 4);
+    }
+    if(centeredOffset.y != f->cameraOffset.y)
+    {
+        int16_t diff = centeredOffset.y - f->cameraOffset.y;
+        f->cameraOffset.y += (diff / 4);
+    }
+
+    // Put the camera offset in the packet
+    scene->cameraOffsetX = f->cameraOffset.x;
+    scene->cameraOffsetY = f->cameraOffset.y;
+
     // Iterate through all the projectiles
+    scene->numProjectiles = numProj;
     int16_t cProj = 0;
     currentNode = projectiles->first;
     while (currentNode != NULL)
@@ -2287,40 +2359,49 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
     for (uint8_t idx = 0; idx < stage->numPlatforms; idx++)
     {
         platform_t platform = stage->platforms[idx];
-        drawBox(d, platform.area, c555, !platform.canFallThrough, SF);
+        box_t offsetArea =
+        {
+            .x0 = (platform.area.x0 >> SF) + scene->cameraOffsetX,
+            .x1 = (platform.area.x1 >> SF) + scene->cameraOffsetX,
+            .y0 = (platform.area.y0 >> SF) + scene->cameraOffsetY,
+            .y1 = (platform.area.y1 >> SF) + scene->cameraOffsetY,
+        };
+        drawBox(d, offsetArea, PLATFORM_COLOR, !platform.canFallThrough, 0);
     }
 
     // f1 position
-    int16_t f1_posX           = scene->f1.spritePosX;
-    int16_t f1_posY           = scene->f1.spritePosY;
+    int16_t f1_posX           = scene->f1.spritePosX + scene->cameraOffsetX;
+    int16_t f1_posY           = scene->f1.spritePosY + scene->cameraOffsetY;
     fighterDirection_t f1_dir = scene->f1.spriteDir;
     int16_t f1_sprite         = scene->f1.spriteIdx;
+    int16_t f1_invincible     = scene->f1.isInvincible;
 
     // f1 damage and stock
     int16_t f1_dmg   = scene->f1.damage;
     int16_t f1_stock = scene->f1.stocks;
 
     // f2 position
-    int16_t f2_posX           = scene->f2.spritePosX;
-    int16_t f2_posY           = scene->f2.spritePosY;
+    int16_t f2_posX           = scene->f2.spritePosX + scene->cameraOffsetX;
+    int16_t f2_posY           = scene->f2.spritePosY + scene->cameraOffsetY;
     fighterDirection_t f2_dir = scene->f2.spriteDir;
     int16_t f2_sprite         = scene->f2.spriteIdx;
+    int16_t f2_invincible     = scene->f2.isInvincible;
 
     // f2 damage and stock
     int16_t f2_dmg   = scene->f2.damage;
     int16_t f2_stock = scene->f2.stocks;
 
     // Actually draw fighters
-    drawWsg(d, getFighterSprite(f2_sprite, f->loadedSprites), f2_posX, f2_posY, f2_dir, false, 0);
-    drawWsg(d, getFighterSprite(f1_sprite, f->loadedSprites), f1_posX, f1_posY, f1_dir, false, 0);
+    drawFighter(d, getFighterSprite(f2_sprite, f->loadedSprites), f2_posX, f2_posY, f2_dir, f2_invincible);
+    drawFighter(d, getFighterSprite(f1_sprite, f->loadedSprites), f1_posX, f1_posY, f1_dir, f1_invincible);
 
     // Iterate through projectiles
     int16_t numProj = scene->numProjectiles;
     for (int16_t pIdx = 0; pIdx < numProj; pIdx++)
     {
         // Projectile position
-        int16_t proj_posX           = scene->projs[pIdx].spritePosX;
-        int16_t proj_posY           = scene->projs[pIdx].spritePosY;
+        int16_t proj_posX           = scene->projs[pIdx].spritePosX + scene->cameraOffsetX;
+        int16_t proj_posY           = scene->projs[pIdx].spritePosY + scene->cameraOffsetY;
         fighterDirection_t proj_dir = scene->projs[pIdx].spriteDir;
         int16_t proj_sprite         = scene->projs[pIdx].spriteIdx;
 
@@ -2333,14 +2414,18 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
     {
         // Draw some barriers
         plotLine(d,
-                 hrStadium.platforms[0].area.x0 >> SF, 0,
-                 hrStadium.platforms[0].area.x0 >> SF, (hrStadium.platforms[0].area.y0 >> SF) - 1,
-                 c435, 2);
+                 (hrStadium.platforms[0].area.x0 >> SF) + f->cameraOffset.x,
+                 0,
+                 (hrStadium.platforms[0].area.x0 >> SF) + f->cameraOffset.x,
+                 (hrStadium.platforms[0].area.y0 >> SF) - 1 + f->cameraOffset.y,
+                 BARRIER_COLOR, 2);
 
         plotLine(d,
-                 (hrStadium.platforms[0].area.x1 >> SF) - 1, 0,
-                 (hrStadium.platforms[0].area.x1 >> SF) - 1, (hrStadium.platforms[0].area.y0 >> SF) - 1,
-                 c435, 2);
+                 (hrStadium.platforms[0].area.x1 >> SF) - 1 + f->cameraOffset.x,
+                 0,
+                 (hrStadium.platforms[0].area.x1 >> SF) - 1 + f->cameraOffset.x,
+                 (hrStadium.platforms[0].area.y0 >> SF) - 1 + f->cameraOffset.y,
+                 BARRIER_COLOR, 2);
     }
 
     // Draw the HUD
@@ -2350,11 +2435,99 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
 #ifdef DRAW_DEBUG_BOXES
     if(f->type != MULTIPLAYER)
     {
-        drawFighterDebugBox(d, &(f->fighters[0]));
-        drawFighterDebugBox(d, &(f->fighters[1]));
-        drawProjectileDebugBox(d, &(f->projectiles));
+        drawFighterDebugBox(d, &(f->fighters[0]), scene->cameraOffsetX, scene->cameraOffsetY);
+        drawFighterDebugBox(d, &(f->fighters[1]), scene->cameraOffsetX, scene->cameraOffsetY);
+        drawProjectileDebugBox(d, &(f->projectiles), scene->cameraOffsetX, scene->cameraOffsetY);
     }
 #endif
+}
+
+/**
+ * @brief Draw a fighter sprite, or an position indicator if the sprite is offscreen
+ *
+ * @param d The display to draw to
+ * @param sprite The sprite to draw
+ * @param x The x coordinate of the sprite
+ * @param y The y coordinate of the sprite
+ * @param dir The direction the sprite is facing
+ * @param isInvincible true if the fighter is invincible
+ */
+void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir, bool isInvincible)
+{
+    // Check if sprite is completely offscreen
+    if ((x + sprite->w <= 0) || (x >= d->w) ||
+            (y + sprite->h <= 0) || (y >= d->h))
+    {
+        // Use bresenham to draw a line from the center of the screen to the
+        // sprite. Where the line intersects the screen boundary, draw an indicator
+        int x0 = d->w / 2;
+        int y0 = d->h / 2;
+        int x1 = x + sprite->w / 2;
+        int y1 = y + sprite->h / 2;
+        // Calculate and draw indicator
+        int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+        int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+        int err = dx + dy, e2; /* error value e_xy */
+
+        for (;;)   /* loop */
+        {
+            e2 = 2 * err;
+            if (e2 >= dy)   /* e_xy+e_x > 0 */
+            {
+                if (x0 == x1)
+                {
+                    break;
+                }
+                err += dy;
+                x0 += sx;
+            }
+            if (e2 <= dx)   /* e_xy+e_y < 0 */
+            {
+                if (y0 == y1)
+                {
+                    break;
+                }
+                err += dx;
+                y0 += sy;
+            }
+
+            // Check if we're at the display boundary
+            if(x0 == 0)
+            {
+                // Left boundary
+                drawWsg(d, &f->indicator, x0, y0 - (f->indicator.h / 2), false, false, 0);
+                break;
+            }
+            else if (x0 == (d->w - 1))
+            {
+                // Right boundary
+                drawWsg(d, &f->indicator, x0 - f->indicator.w, y0 - (f->indicator.h / 2), false, false, 180);
+                break;
+            }
+            else if (y0 == 0)
+            {
+                // Top boundary
+                drawWsg(d, &f->indicator, x0 - (f->indicator.w / 2), y0 - 2, false, false, 90);
+                break;
+            }
+            else if(y0 == (d->h - 1))
+            {
+                // Bottom boundary
+                drawWsg(d, &f->indicator, x0 - (f->indicator.w / 2), y0 - f->indicator.h + 3, false, false, 270);
+                break;
+            }
+        }
+    }
+    else
+    {
+        // Sprite is at least partially on screen, draw it
+        drawWsg(d, sprite, x, y, dir, false, 0);
+        if(isInvincible)
+        {
+            int16_t r = ((sprite->w > sprite->h) ? (sprite->w) : (sprite->h)) / 2;
+            plotCircle(d, x + (sprite->w / 2), y + (sprite->h / 2), r, INVINCIBLE_COLOR);
+        }
+    }
 }
 
 /**
@@ -2380,26 +2553,26 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
     int16_t stockX = (d->w / 3) - (2 * SR) - 3;
     for(uint8_t stockToDraw = 0; stockToDraw < f1_stock; stockToDraw++)
     {
-        plotCircleFilled(d, stockX, d->h - font->h - 4 - (SR * 2), SR, c550);
+        plotCircleFilled(d, stockX, d->h - font->h - 4 - (SR * 2), SR, STOCK_COLOR);
         stockX += ((2 * SR) + 3);
     }
 
     snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", f1_dmg);
     tWidth = textWidth(font, dmgStr);
     xPos = (d->w / 3) - (tWidth / 2);
-    drawText(d, font, c555, dmgStr, xPos, d->h - font->h - 2);
+    drawText(d, font, HUD_COLOR, dmgStr, xPos, d->h - font->h - 2);
 
     stockX = (2 * (d->w / 3)) - (2 * SR) - 3;
     for(uint8_t stockToDraw = 0; stockToDraw < f2_stock; stockToDraw++)
     {
-        plotCircleFilled(d, stockX, d->h - font->h - 4 - (SR * 2), SR, c550);
+        plotCircleFilled(d, stockX, d->h - font->h - 4 - (SR * 2), SR, STOCK_COLOR);
         stockX += ((2 * SR) + 3);
     }
 
     snprintf(dmgStr, sizeof(dmgStr) - 1, "%d%%", f2_dmg);
     tWidth = textWidth(font, dmgStr);
     xPos = (2 * (d->w / 3)) - (tWidth / 2);
-    drawText(d, font, c555, dmgStr, xPos, d->h - font->h - 2);
+    drawText(d, font, HUD_COLOR, dmgStr, xPos, d->h - font->h - 2);
 
     if(gameTimerUs >= 0)
     {
@@ -2407,7 +2580,7 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
         char timeStr[32];
         snprintf(timeStr, sizeof(timeStr) - 1, "%d.%03d", gameTimerUs / 1000000, (gameTimerUs / 1000) % 1000);
         tWidth = textWidth(font, "9.999"); // If this isn't constant, the time jiggles a lot
-        drawText(d, font, c555, timeStr, (d->w - tWidth) / 2, 0);
+        drawText(d, font, HUD_COLOR, timeStr, (d->w - tWidth) / 2, 0);
     }
 
     // Print GO!!! after the COUNTING_IN phase finishes
@@ -2415,12 +2588,12 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
     {
         char goStr[] = "GO!!!";
         tWidth = textWidth(font, goStr);
-        drawText(d, font, c555, goStr, (d->w - tWidth) / 2, d->h / 4);
+        drawText(d, font, HUD_COLOR, goStr, (d->w - tWidth) / 2, d->h / 4);
     }
 
     // Draw FPS
     // sprintf(dmgStr, "%d", f->fps);
-    // drawText(d, font, c555, dmgStr, 0, 40);
+    // drawText(d, font, HUD_COLOR, dmgStr, 0, 40);
 }
 
 #ifdef DRAW_DEBUG_BOXES
@@ -2429,8 +2602,10 @@ void drawFighterHud(display_t* d, font_t* font, int16_t f1_dmg, int16_t f1_stock
  *
  * @param d The display to draw to
  * @param fighter The fighter to draw debug boxes for
+ * @param camOffX The X camera offset
+ * @param camOffY The Y camera offset
  */
-void drawFighterDebugBox(display_t* d, fighter_t* ftr)
+void drawFighterDebugBox(display_t* d, fighter_t* ftr, int16_t camOffX, int16_t camOffY)
 {
     // Pick the color based on state
     paletteColor_t hitboxColor = c500;
@@ -2466,15 +2641,13 @@ void drawFighterDebugBox(display_t* d, fighter_t* ftr)
         }
     }
 
-    // Override color if invincible
-    if(ftr->isInvincible)
-    {
-        hitboxColor = c333;
-    }
-
     // Draw an outline
     box_t hurtbox;
     getHurtbox(ftr, &hurtbox);
+    hurtbox.x0 += (camOffX << SF);
+    hurtbox.x1 += (camOffX << SF);
+    hurtbox.y0 += (camOffY << SF);
+    hurtbox.y1 += (camOffY << SF);
     drawBox(d, hurtbox, hitboxColor, false, SF);
 
     // Draw the hitbox if attacking
@@ -2507,7 +2680,12 @@ void drawFighterDebugBox(display_t* d, fighter_t* ftr)
                 }
                 relativeHitbox.y0 += hbx->hitboxPos.y;
                 relativeHitbox.y1 = relativeHitbox.y0 + hbx->hitboxSize.y;
+
                 // Draw the hitbox
+                relativeHitbox.x0 += (camOffX << SF);
+                relativeHitbox.x1 += (camOffX << SF);
+                relativeHitbox.y0 += (camOffY << SF);
+                relativeHitbox.y1 += (camOffY << SF);
                 drawBox(d, relativeHitbox, c440, false, SF);
             }
         }
@@ -2519,8 +2697,10 @@ void drawFighterDebugBox(display_t* d, fighter_t* ftr)
  *
  * @param d The display to draw to
  * @param projectiles a list of projectiles to draw debug boxes around
+ * @param camOffX The X camera offset
+ * @param camOffY The Y camera offset
  */
-void drawProjectileDebugBox(display_t* d, list_t* projectiles)
+void drawProjectileDebugBox(display_t* d, list_t* projectiles, int16_t camOffX, int16_t camOffY)
 {
     // Iterate through all the projectiles
     node_t* currentNode = projectiles->first;
@@ -2531,10 +2711,10 @@ void drawProjectileDebugBox(display_t* d, list_t* projectiles)
         // Draw the projectile box
         box_t projBox =
         {
-            .x0 = proj->pos.x,
-            .y0 = proj->pos.y,
-            .x1 = proj->pos.x + proj->size.x,
-            .y1 = proj->pos.y + proj->size.y,
+            .x0 = proj->pos.x + (camOffX << SF),
+            .y0 = proj->pos.y + (camOffY << SF),
+            .x1 = proj->pos.x + proj->size.x + (camOffX << SF),
+            .y1 = proj->pos.y + proj->size.y + (camOffY << SF),
         };
         drawBox(d, projBox, c050, false, SF);
 
