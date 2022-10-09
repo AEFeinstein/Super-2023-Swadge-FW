@@ -397,6 +397,7 @@ void picrossGameLoop(int64_t elapsedUs)
     if(p->input->showGuides){
         picrossCalculateHoverHint();
     }
+
     drawPicrossScene(p->d);
 
     
@@ -669,11 +670,19 @@ void picrossUserInput(int64_t elapsedUs)
         return;
     }
 
-    if (p->controlsEnabled == false || p->currentPhase != PICROSS_SOLVING)
+    //victory screen input
+    if(p->controlsEnabled == false || p->currentPhase == PICROSS_YOUAREWIN)
     {
+        //&& !(p->input->prevBtnState & BTN_B)
+        if (p->input->btnState & BTN_B )
+        {
+            //return to level select instead of main menu?
+            p->exitThisFrame = true;
+        }
+        
+        p->input->prevBtnState = p->input->btnState;
         return;
     }
-
     //Input checks
     
     //Reset the counter by pressing start. It should auto-reset, but it can be wonky.
