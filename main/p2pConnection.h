@@ -139,7 +139,7 @@ typedef struct
     p2pDataMsg_t data;
 } p2pPacket_t;
 
-void p2pInitialize(p2pInfo* p2p, uint8_t msgId, p2pConCbFn conCbFn,
+void p2pInitialize(p2pInfo* p2p, uint8_t modeId, p2pConCbFn conCbFn,
                    p2pMsgRxCbFn msgRxCbFn, int8_t connectionRssi);
 void p2pDeinit(p2pInfo* p2p);
 

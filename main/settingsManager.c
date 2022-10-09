@@ -22,13 +22,31 @@
 // Variables
 //==============================================================================
 
-const char KEY_MUTE[]       = "mute";
+const char KEY_MUTE_BGM[]   = "mutebgm";
+const char KEY_MUTE_SFX[]   = "mutesfx";
 const char KEY_TFT_BRIGHT[] = "bright";
 const char KEY_MIC[]        = "mic";
 const char KEY_LED_BRIGHT[] = "led";
 const char KEY_CC_MODE[]    = "ccm";
 const char KEY_QJ_HS[]      = "qj";
 const char KEY_TEST[]       = "test";
+
+static struct 
+{
+    bool bgmIsMuted;
+    bool sfxIsMuted;
+    int32_t tftBrightness;
+    int32_t ledBrightness;
+    int32_t micGain;
+    colorchordMode_t colorchordMode;
+
+    bool bgmIsMutedRead;
+    bool sfxIsMutedRead;
+    bool tftBrightnessRead;
+    bool ledBrightnessRead;
+    bool micGainRead;
+    bool colorchordModeRead;
+} settingsRam;
 
 //==============================================================================
 // Functions
@@ -37,17 +55,28 @@ const char KEY_TEST[]       = "test";
 /**
  * @return true if the buzzer is muted, false if it is not
  */
-bool getIsMuted(void)
+bool getBgmIsMuted(void)
 {
-    int32_t muted = false;
-    // Try reading the value
-    if(false == readNvs32(KEY_MUTE, &muted))
+    // If it's already in RAM, return that
+    if(settingsRam.bgmIsMutedRead)
     {
-        // Value didn't exist, so write the default
-        setIsMuted(muted);
+        return settingsRam.bgmIsMuted;
     }
-    // Return the read value
-    return (bool)muted;
+    else
+    {
+        int32_t muted = false;
+        // Try reading the value
+        if(false == readNvs32(KEY_MUTE_BGM, &muted))
+        {
+            // Value didn't exist, so write the default
+            setBgmIsMuted(muted);
+        }
+        // Save to RAM as well
+        settingsRam.bgmIsMuted = muted;
+        settingsRam.bgmIsMutedRead = true;
+        // Return the read value
+        return (bool)muted;
+    }
 }
 
 /**
@@ -56,10 +85,53 @@ bool getIsMuted(void)
  * @param isMuted true to mute the buzzer, false to turn it on
  * @return true if the setting was saved, false if it was not
  */
-bool setIsMuted(bool isMuted)
+bool setBgmIsMuted(bool isMuted)
 {
     // Write the value
-    return writeNvs32(KEY_MUTE, isMuted);
+    settingsRam.bgmIsMuted = isMuted;
+    settingsRam.bgmIsMutedRead = true;
+    return writeNvs32(KEY_MUTE_BGM, isMuted);
+}
+
+/**
+ * @return true if the buzzer is muted, false if it is not
+ */
+bool getSfxIsMuted(void)
+{
+    // If it's already in RAM, return that
+    if(settingsRam.sfxIsMutedRead)
+    {
+        return settingsRam.sfxIsMuted;
+    }
+    else
+    {
+        int32_t muted = false;
+        // Try reading the value
+        if(false == readNvs32(KEY_MUTE_SFX, &muted))
+        {
+            // Value didn't exist, so write the default
+            setSfxIsMuted(muted);
+        }
+        // Save to RAM as well
+        settingsRam.sfxIsMuted = muted;
+        settingsRam.sfxIsMutedRead = true;
+        // Return the read value
+        return (bool)muted;
+    }
+}
+
+/**
+ * Set if the buzzer is muted or not
+ *
+ * @param isMuted true to mute the buzzer, false to turn it on
+ * @return true if the setting was saved, false if it was not
+ */
+bool setSfxIsMuted(bool isMuted)
+{
+    // Write the value
+    settingsRam.sfxIsMuted = isMuted;
+    settingsRam.sfxIsMutedRead = true;
+    return writeNvs32(KEY_MUTE_SFX, isMuted);
 }
 
 /**
@@ -67,15 +139,26 @@ bool setIsMuted(bool isMuted)
  */
 int32_t getTftBrightness(void)
 {
-    int32_t tftBrightness = 5;
-    // Try reading the value
-    if(false == readNvs32(KEY_TFT_BRIGHT, &tftBrightness))
+    // If it's already in RAM, return that
+    if(settingsRam.tftBrightnessRead)
     {
-        // Value didn't exist, so write the default
-        writeNvs32(KEY_TFT_BRIGHT, tftBrightness);
+        return settingsRam.tftBrightness;
     }
-    // Return the read value
-    return tftBrightness;
+    else
+    {
+        int32_t tftBrightness = 5;
+        // Try reading the value
+        if(false == readNvs32(KEY_TFT_BRIGHT, &tftBrightness))
+        {
+            // Value didn't exist, so write the default
+            writeNvs32(KEY_TFT_BRIGHT, tftBrightness);
+        }
+        // Save to RAM as well
+        settingsRam.tftBrightness = tftBrightness;
+        settingsRam.tftBrightnessRead = true;
+        // Return the read value
+        return tftBrightness;
+    }
 }
 
 /**
@@ -91,6 +174,9 @@ bool incTftBrightness(void)
     // Write the value
     bool retVal = writeNvs32(KEY_TFT_BRIGHT, brightness);
 
+    // Save to RAM as well
+    settingsRam.tftBrightness = brightness;
+    settingsRam.tftBrightnessRead = true;
     // Set the brightness
     setTFTBacklight(getTftIntensity());
 
@@ -118,6 +204,9 @@ bool decTftBrightness(void)
     // Write the value
     bool retVal = writeNvs32(KEY_TFT_BRIGHT, brightness);
 
+    // Save to RAM as well
+    settingsRam.tftBrightness = brightness;
+    settingsRam.tftBrightnessRead = true;
     // Set the brightness
     setTFTBacklight(getTftIntensity());
 
@@ -140,15 +229,26 @@ uint8_t getTftIntensity(void)
  */
 int32_t getLedBrightness(void)
 {
-    int32_t ledBrightness = 5;
-    // Try reading the value
-    if(false == readNvs32(KEY_LED_BRIGHT, &ledBrightness))
+    // If it's already in RAM, return that
+    if(settingsRam.ledBrightnessRead)
     {
-        // Value didn't exist, so write the default
-        writeNvs32(KEY_LED_BRIGHT, ledBrightness);
+        return settingsRam.ledBrightness;
     }
-    // Return the read value
-    return ledBrightness;
+    else
+    {
+        int32_t ledBrightness = 5;
+        // Try reading the value
+        if(false == readNvs32(KEY_LED_BRIGHT, &ledBrightness))
+        {
+            // Value didn't exist, so write the default
+            writeNvs32(KEY_LED_BRIGHT, ledBrightness);
+        }
+        // Save to RAM as well
+        settingsRam.ledBrightness = ledBrightness;
+        settingsRam.ledBrightnessRead = true;
+        // Return the read value
+        return ledBrightness;
+    }
 }
 
 /**
@@ -162,6 +262,9 @@ bool incLedBrightness(void)
     uint8_t brightness = (getLedBrightness() + 1) % (MAX_LED_BRIGHTNESS + 1);
     // Adjust the LEDs
     setLedBrightness(brightness);
+    // Save to RAM as well
+    settingsRam.ledBrightness = brightness;
+    settingsRam.ledBrightnessRead = true;
     // Write the value
     return writeNvs32(KEY_LED_BRIGHT, brightness);
 }
@@ -185,6 +288,9 @@ bool decLedBrightness(void)
     }
     // Adjust the LEDs
     setLedBrightness(brightness);
+    // Save to RAM as well
+    settingsRam.ledBrightness = brightness;
+    settingsRam.ledBrightnessRead = true;
     // Write the value
     return writeNvs32(KEY_LED_BRIGHT, brightness);
 }
@@ -194,15 +300,26 @@ bool decLedBrightness(void)
  */
 int32_t getMicGain(void)
 {
-    int32_t micGain = MAX_MIC_GAIN;
-    // Try reading the value
-    if(false == readNvs32(KEY_MIC, &micGain))
+    // If it's already in RAM, return that
+    if(settingsRam.micGainRead)
     {
-        // Value didn't exist, so write the default
-        writeNvs32(KEY_MIC, micGain);
+        return settingsRam.micGain;
     }
-    // Return the read value
-    return micGain;
+    else
+    {
+        int32_t micGain = MAX_MIC_GAIN;
+        // Try reading the value
+        if(false == readNvs32(KEY_MIC, &micGain))
+        {
+            // Value didn't exist, so write the default
+            writeNvs32(KEY_MIC, micGain);
+        }
+        // Save to RAM as well
+        settingsRam.micGain = micGain;
+        settingsRam.micGainRead = true;
+        // Return the read value
+        return micGain;
+    }
 }
 
 /**
@@ -218,6 +335,9 @@ bool setMicGain(uint8_t newGain)
     {
         newGain = MAX_MIC_GAIN;
     }
+    // Save to RAM as well
+    settingsRam.micGain = newGain;
+    settingsRam.micGainRead = true;
     // Write the value
     return writeNvs32(KEY_MIC, newGain);
 }
@@ -231,6 +351,9 @@ bool incMicGain(void)
 {
     // Increment the value
     uint8_t newGain = (getMicGain() + 1) % (MAX_MIC_GAIN + 1);
+    // Save to RAM as well
+    settingsRam.micGain = newGain;
+    settingsRam.micGainRead = true;
     // Write the value
     return writeNvs32(KEY_MIC, newGain);
 }
@@ -252,6 +375,9 @@ bool decMicGain(void)
     {
         newGain--;
     }
+    // Save to RAM as well
+    settingsRam.micGain = newGain;
+    settingsRam.micGainRead = true;
     // Write the value
     return writeNvs32(KEY_MIC, newGain);
 }
@@ -281,15 +407,26 @@ uint16_t getMicAmplitude(void)
  */
 colorchordMode_t getColorchordMode(void)
 {
-    colorchordMode_t colorchordMode = ALL_SAME_LEDS;
-    // Try reading the value
-    if(false == readNvs32(KEY_CC_MODE, (int32_t*)&colorchordMode))
+        // If it's already in RAM, return that
+    if(settingsRam.colorchordModeRead)
     {
-        // Value didn't exist, so write the default
-        setColorchordMode(colorchordMode);
+        return settingsRam.colorchordMode;
     }
-    // Return the read value
-    return colorchordMode;
+    else
+    {
+        colorchordMode_t colorchordMode = ALL_SAME_LEDS;
+        // Try reading the value
+        if(false == readNvs32(KEY_CC_MODE, (int32_t*)&colorchordMode))
+        {
+            // Value didn't exist, so write the default
+            setColorchordMode(colorchordMode);
+        }
+        // Save to RAM as well
+        settingsRam.colorchordMode = colorchordMode;
+        settingsRam.colorchordModeRead = true;
+        // Return the read value
+        return colorchordMode;
+    }
 }
 
 /**
@@ -306,6 +443,9 @@ bool setColorchordMode(colorchordMode_t colorchordMode)
         colorchordMode = ALL_SAME_LEDS;
     }
 
+    // Save to RAM as well
+    settingsRam.colorchordMode = colorchordMode;
+    settingsRam.colorchordModeRead = true;
     // Write the value
     return writeNvs32(KEY_CC_MODE, colorchordMode);
 }

@@ -890,12 +890,13 @@ void fighterSendSceneToOther(fighterScene_t* scene, uint8_t len)
  * @param position The final position of the sandbag
  * @param velocity The final velocity of the sandbag
  * @param gravity The gravity affecting the sandbag
+ * @param platformStartX The start of the platform
  * @param platformEndX The end of the platform
  */
 void fighterShowHrResult(fightingCharacter_t character, vector_t position,
-                         vector_t velocity, int32_t gravity, int32_t platformEndX)
+                         vector_t velocity, int32_t gravity, int32_t platformStartX, int32_t platformEndX)
 {
-    initFighterHrResult(fm->disp, &fm->mmFont, character, position, velocity, gravity, platformEndX);
+    initFighterHrResult(fm->disp, &fm->mmFont, character, position, velocity, gravity, platformStartX, platformEndX);
     fm->screen = FIGHTER_HR_RESULT;
 }
 

@@ -1,3 +1,13 @@
+# Welcome
+
+This is the firmware repository for the Super Magfest 2023 Swadge.
+
+The corresponding hardware repository for the Super Magfest 2023 Swadge [can be found here](https://github.com/AEFeinstein/Super-2023-Swadge-HW).
+
+If you have any questions, feel free to create a Github ticket or email us at circuitboards@magfest.org.
+
+This is living documentation, so if you notice anything incorrect, please open a ticket and/or submit a pull request with a fix!
+
 # Table of Contents
 
 * [Welcome](#welcome)
@@ -23,10 +33,6 @@
   * [Best Practices](#best-practices)
 * [Troubleshooting](#troubleshooting)
 * [Tips](#tips)
-
-# Welcome
-
-Magfest is cool. Welcome to this playground.
 
 # Continuous Integration
 
@@ -121,7 +127,7 @@ git submodule update --init --recursive
 
 Note that `./export.ps1` does not make any permanent changes and it must be run each time you open a new terminal for a build.
 
-> ⚠ Warning ⚠
+> **Warning**
 > 
 > Sometimes `install.ps1` can be a bit finnicky and not install everything it's supposed to. If it doesn't create a `~/.espressif/python_env` folder, try running it again. And again. And again. As a last resort you can try editing `install.ps1` and swap the `"Setting up Python environment"` and `"Installing ESP-IDF tools"` sections to set up the Python environment first.
 
@@ -184,8 +190,8 @@ I also recommend installing the [Doxygen Documentation Generator
 
     ```powershell
     cd ~/esp/
-    git clone https://github.com/AEFeinstein/esp32-c3-playground.git
-    cd esp32-c3-playground
+    git clone https://github.com/AEFeinstein/Super-2023-Swadge-FW.git
+    cd Super-2023-Swadge-FW
     git submodule update --init --recursive
     ```
 
@@ -209,8 +215,8 @@ I also recommend installing the [Doxygen Documentation Generator
 
     ```powershell
     cd ~/esp/
-    git clone https://github.com/AEFeinstein/esp32-c3-playground.git
-    cd esp32-c3-playground
+    git clone https://github.com/AEFeinstein/Super-2023-Swadge-FW.git
+    cd Super-2023-Swadge-FW
     git submodule update --init --recursive
     ```
 

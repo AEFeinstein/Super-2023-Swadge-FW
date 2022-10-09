@@ -54,16 +54,15 @@ emu_buzzer_t emuBzrBgm = {0};
 emu_buzzer_t emuBzrSfx = {0};
 
 // Keep track of muted state
-bool emuMuted;
+bool emuBgmMuted;
+bool emuSfxMuted;
 
 //==============================================================================
 // Function Prototypes
 //==============================================================================
 
-void play_note(const musicalNote_t * notation);
 void EmuSoundCb(struct SoundDriver *sd, short *in, short *out, int samplesr, int samplesp);
 bool buzzer_track_check_next_note(emu_buzzer_t * track, bool isActive);
-void buzzer_stop_dont_clear(void);
 
 //==============================================================================
 // Functions
@@ -164,7 +163,7 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
 			memset(out, 0, samplesp * 2);
 			placeInWave = 0;
 		}
-		}
+	}
 }
 
 //==============================================================================
@@ -178,12 +177,16 @@ void EmuSoundCb(struct SoundDriver *sd UNUSED, short *in, short *out,
  * @param rmt unused
  * @param group_num unused
  * @param timer_num unused
- * @param isMuted true if sound is muted, false if it is not
+ * @param isBgmMuted true if music is muted, false if it is not
+ * @param isSfxMuted true if sfx is muted, false if it is not
  */
-void buzzer_init(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED,
-	timer_group_t group_num UNUSED, timer_idx_t timer_num UNUSED, bool isMuted)
+void buzzer_init(gpio_num_t bzrGpio,
+    ledc_timer_t ledcTimer, ledc_channel_t ledcChannel,
+    timer_group_t noteCheckGrpNum, timer_idx_t noteChkTmrNum,
+    bool isBgmMuted, bool isSfxMuted)
 {
-	emuMuted = isMuted;
+	emuBgmMuted = isBgmMuted;
+	emuSfxMuted = isSfxMuted;
 
 	buzzer_stop();
 	if (!sounddriver)
@@ -201,7 +204,7 @@ void buzzer_init(gpio_num_t gpio UNUSED, rmt_channel_t rmt UNUSED,
  */
 void buzzer_play_sfx(const song_t *song)
 {
-	if(emuMuted)
+	if(emuSfxMuted)
 	{
 		return;
 	}
@@ -212,7 +215,7 @@ void buzzer_play_sfx(const song_t *song)
 	emuBzrSfx.start_time = esp_timer_get_time();
 
 	// Start playing the first note
-	play_note(&emuBzrSfx.song->notes[0]);
+	playNote(emuBzrSfx.song->notes[0].note);
 }
 
 /**
@@ -222,7 +225,7 @@ void buzzer_play_sfx(const song_t *song)
  */
 void buzzer_play_bgm(const song_t *song)
 {
-	if(emuMuted)
+	if(emuBgmMuted)
 	{
 		return;
 	}
@@ -235,7 +238,7 @@ void buzzer_play_bgm(const song_t *song)
 	if(NULL == emuBzrSfx.song)
 	{
 		// Start playing the first note
-		play_note(&emuBzrBgm.song->notes[0]);
+		playNote(emuBzrBgm.song->notes[0].note);
 	}
 }
 
@@ -274,7 +277,7 @@ bool buzzer_track_check_next_note(emu_buzzer_t * track, bool isActive)
 				if(isActive)
 				{
 					// Play the note
-					play_note(&track->song->notes[track->note_index]);
+					playNote(track->song->notes[track->note_index].note);
 				}
 			}
 			else
@@ -282,7 +285,7 @@ bool buzzer_track_check_next_note(emu_buzzer_t * track, bool isActive)
 				if(isActive)
 				{
 					// Song is over
-					buzzer_stop_dont_clear();
+					buzzernote = SILENCE;
 				}
 
 				track->start_time = 0;
@@ -305,7 +308,7 @@ bool buzzer_track_check_next_note(emu_buzzer_t * track, bool isActive)
  */
 void buzzer_check_next_note(void)
 {
-	if(emuMuted)
+	if(emuBgmMuted && emuSfxMuted)
 	{
 		return;
 	}
@@ -315,21 +318,11 @@ void buzzer_check_next_note(void)
 }
 
 /**
- * @brief Stop the buzzer without clearing the BGM or SFX data
- * 
- */
-void buzzer_stop_dont_clear(void)
-{
-	buzzernote = SILENCE;
-	play_note(NULL);	
-}
-
-/**
  * @brief Stop playing a song on the emulated buzzer
  */
 void buzzer_stop(void)
 {
-	if(emuMuted)
+	if(emuBgmMuted && emuSfxMuted)
 	{
 		return;
 	}
@@ -343,29 +336,24 @@ void buzzer_stop(void)
 	emuBzrSfx.start_time = 0;
 
 	buzzernote = SILENCE;
-	play_note(NULL);
+	playNote(SILENCE);
 }
 
 /**
  * @brief Play the current note on the emulated buzzer
  */
-void play_note(const musicalNote_t * notation)
+void playNote(noteFrequency_t freq)
 {
-	if (NULL != notation)
-	{
-		if (SILENCE == notation->note)
-		{
-			buzzer_stop_dont_clear();
-		}
-		else
-		{
-			buzzernote = notation->note;
-			}
-	}
-	else
-	{
-		buzzernote = SILENCE;
-		}
+	buzzernote = freq;
+}
+
+/**
+ * @brief 
+ * 
+ */
+void stopNote(void)
+{
+	playNote(SILENCE);
 }
 
 //==============================================================================

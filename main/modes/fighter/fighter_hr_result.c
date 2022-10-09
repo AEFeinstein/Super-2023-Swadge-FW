@@ -49,10 +49,12 @@ hrRes_t* hrr;
  * @param pos
  * @param vel
  * @param gravity
+ * @param platformStartX
+ * @param platformEndX
  */
 void initFighterHrResult(display_t* disp, font_t* font,
                          fightingCharacter_t character, vector_t pos, vector_t vel, int32_t gravity,
-                         int32_t platformEndX)
+                         int32_t platformStartX, int32_t platformEndX)
 {
     hrr = calloc(1, sizeof(hrRes_t));
 
@@ -88,8 +90,23 @@ void initFighterHrResult(display_t* disp, font_t* font,
         int32_t deltaY = (((vel.y + v0.y) * FRAME_TIME_MS) >> (SF + 1));
         pos.y += deltaY;
     }
+
     // Save the final distance
-    hrr->finalXpos = (pos.x - platformEndX) >> (SF - 1);
+    if(pos.x > platformEndX)
+    {
+        // Sandbag is to the left of the platform
+        hrr->finalXpos = (pos.x - platformEndX) >> (SF - 1);
+    }
+    else if (pos.x + (hrr->sbi.w >> SF) < platformStartX)
+    {
+        // Sandbag is to the right of the platform
+        hrr->finalXpos = ((pos.x + (hrr->sbi.w >> SF)) - platformStartX) >> (SF - 1);
+    }
+    else
+    {
+        // Sandbag is on the platform
+        hrr->finalXpos = 0;
+    }
 
     // Check NVM if this is a high score. Get the key first
     hrr->isNewRecord = checkHomerunRecord(hrr->character, hrr->finalXpos);
@@ -97,25 +114,39 @@ void initFighterHrResult(display_t* disp, font_t* font,
     // X velocity is variable, 8000 is the max
     hrr->sbVel.x = 8000;
 
-    // If the X velocity is negative
-    if(vel.x < 0)
+    // If the sandbag ended up left of the platform
+    if(hrr->finalXpos < 0)
     {
         // Start in the bottom right
         hrr->sbPos.x = (disp->w - hrr->sbi.w) << SF;
         // Negate X velocity
         hrr->sbVel.x = -hrr->sbVel.x;
     }
+    else if(hrr->finalXpos > 0)
+    {
+        // If it ended o right of the platform, start in the bottom left
+        hrr->sbPos.x = 0;
+    }
     else
     {
-        // Start in the bottom left
-        hrr->sbPos.x = 0;
+        // No movement, start in the middle
+        hrr->sbPos.x = ((disp->w - hrr->sbi.w) / 2) << SF;
     }
     // Start at the bottom
     hrr->sbPos.y = (disp->h - hrr->sbi.h) << SF;
 
-    // This velocity & gravity combo go from the bottom of the screen to the top
-    hrr->sbVel.y = -30000;
-    hrr->grav = 8192;
+    if(0 != hrr->finalXpos)
+    {
+        // This velocity & gravity combo go from the bottom of the screen to the top
+        hrr->sbVel.y = -30000;
+        hrr->grav = 8192;
+    }
+    else
+    {
+        // Sandbag on a platform isn't moving
+        hrr->sbVel.y = 0;
+        hrr->grav = 0;
+    }
 }
 
 /**
@@ -174,24 +205,24 @@ void fighterHrResultLoop(int64_t elapsedUs)
             hrr->sbPos.y = lBound;
             hrr->sbVel.y = 0;
         }
+    }
 
-        // Draw sandbag
-        drawWsg(hrr->disp, &hrr->sbi, hrr->sbPos.x >> SF, hrr->sbPos.y >> SF, false, false, hrr->rotDeg);
+    // Draw sandbag
+    drawWsg(hrr->disp, &hrr->sbi, hrr->sbPos.x >> SF, hrr->sbPos.y >> SF, false, false, hrr->rotDeg);
 
-        // Draw centered text
-        char str[32];
-        sprintf(str, "%dm", hrr->finalXpos);
-        drawText(hrr->disp, hrr->font, c555, str,
-                 (hrr->disp->w - textWidth(hrr->font, str)) / 2,
-                 (hrr->disp->h - hrr->font->h) / 2);
+    // Draw centered text
+    char str[32];
+    sprintf(str, "%dm", hrr->finalXpos);
+    drawText(hrr->disp, hrr->font, c555, str,
+             (hrr->disp->w - textWidth(hrr->font, str)) / 2,
+             (hrr->disp->h - hrr->font->h) / 2);
 
-        // Draw "New Record!", maybe
-        if(hrr->isNewRecord)
-        {
-            const char newRecordStr[] = "New Record!";
-            drawText(hrr->disp, hrr->font, c555, newRecordStr,
-                     (hrr->disp->w - textWidth(hrr->font, newRecordStr)) / 2,
-                     ((hrr->disp->h - hrr->font->h) / 2) + 4 + hrr->font->h);
-        }
+    // Draw "New Record!", maybe
+    if(hrr->isNewRecord)
+    {
+        const char newRecordStr[] = "New Record!";
+        drawText(hrr->disp, hrr->font, c555, newRecordStr,
+                 (hrr->disp->w - textWidth(hrr->font, newRecordStr)) / 2,
+                 ((hrr->disp->h - hrr->font->h) / 2) + 4 + hrr->font->h);
     }
 }
