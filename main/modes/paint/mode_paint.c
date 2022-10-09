@@ -422,7 +422,7 @@ void paintSettingsMenuCb(const char* opt)
     }
     else if (opt == menuOptConfirmErase)
     {
-        paintEraseAllData();
+        paintDeleteAllData();
         paintMenu->eraseDataConfirm = false;
         paintMenu->eraseDataSelected = false;
     }
