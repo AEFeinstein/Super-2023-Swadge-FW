@@ -14,7 +14,6 @@ paletteColor_t getContrastingColor(paletteColor_t col)
     uint8_t b = 255 - ((rgb >> 16) & 0xFF);
     uint32_t contrastCol = (r << 16) | (g << 8) | (b);
 
-    PAINT_LOGV("Converted color to RGB c%d%d%d", r, g, b);
     return RGBtoPalette(contrastCol);
 }
 
@@ -132,10 +131,6 @@ void paintDrawWsgTemp(display_t* disp, const wsg_t* wsg, pxStack_t* saveTo, uint
 
                 disp->setPx(xOffset + x, yOffset + y, colorSwap ? colorSwap(disp->getPx(xOffset + x, yOffset + y)) : wsg->px[i]);
             }
-            else
-            {
-                PAINT_LOGV("Skipping cursor[%d][%d] == cTransparent", x, y);
-            }
         }
     }
 }
@@ -154,4 +149,46 @@ uint8_t paintGetMaxScale(display_t* disp, uint16_t imgW, uint16_t imgH, uint16_t
     }
 
     return scale;
+}
+
+/// @brief Writes the points of a pxStack_t into the given point_t array.
+/// @param pxStack The pxStack_t to be converted
+/// @param dest A pointer to an array of point_t. Must have room for at least pxStack->index entries.
+void paintConvertPickPoints(const pxStack_t* pxStack, point_t* dest)
+{
+    for (size_t i = 0; i < pxStack->index; i++)
+    {
+        dest[i].x = pxStack->data[i].x;
+        dest[i].y = pxStack->data[i].y;
+    }
+}
+
+/// @brief Writes the points of a pxStack_t into the given point_t array, converting them to canvas coordinates
+/// @param pxStack The pxStack_t to be converted
+/// @param canvas The canvas whose coordinates they should be changed back to
+/// @param dest A pointer to an array of point_t. Must have room for at least pxStackSize(pxStack)
+void paintConvertPickPointsScaled(const pxStack_t* pxStack, paintCanvas_t* canvas, point_t* dest)
+{
+    for (size_t i = 0; i < pxStackSize(pxStack); i++)
+    {
+        dest[i].x = (pxStack->data[i].x - canvas->x) / canvas->xScale;
+        dest[i].y = (pxStack->data[i].y - canvas->y) / canvas->yScale;
+    }
+}
+
+uint16_t canvasToDispX(const paintCanvas_t* canvas, uint16_t x)
+{
+    return canvas->x + x * canvas->xScale;
+}
+
+uint16_t canvasToDispY(const paintCanvas_t* canvas, uint16_t y)
+{
+    return canvas->y + y * canvas->yScale;
+}
+
+void swap(uint8_t* a, uint8_t* b)
+{
+    *a ^= *b;
+    *b ^= *a;
+    *a ^= *b;
 }

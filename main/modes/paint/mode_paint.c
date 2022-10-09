@@ -25,9 +25,6 @@
 /*
  * REMAINING BIG THINGS TO DO:
  *
- * - Draw icons for the tools?
- * - Explicitly mark everything that doesn't work in the canvas coordinate space for whatever reason
- * - Sharing! How will that work...
  * - Airbrush tool
  * - Stamp tool?
  * - Copy/paste???
@@ -41,12 +38,22 @@
  * - Use different pick markers / cursors for each brush (e.g. crosshair for circle pen, two L-shaped crosshairs for box pen...)
  */
 
-static const char paintTitle[] = "MFPaint";
-static const char menuOptDraw[] = "Draw";
-static const char menuOptGallery[] = "Gallery";
-static const char menuOptShare[] = "Share";
-static const char menuOptReceive[] = "Receive";
-static const char menuOptExit[] = "Exit";
+const char paintTitle[] = "MFPaint";
+const char menuOptDraw[] = "Draw";
+const char menuOptGallery[] = "Gallery";
+const char menuOptShare[] = "Share";
+const char menuOptReceive[] = "Receive";
+const char menuOptSettings[] = "Settings";
+
+const char menuOptLedsOn[] = "LEDs: On";
+const char menuOptLedsOff[] = "LEDs: Off";
+const char menuOptBlinkOn[] = "BlinkPx: On";
+const char menuOptBlinkOff[] = "BlinkPx: Off";
+const char menuOptEraseData[] = "Erase Data";
+const char menuOptCancelErase[] = "Confirm? No!";
+const char menuOptConfirmErase[] = "Confirm? Yes";
+
+const char menuOptExit[] = "Back";
 
 // Mode struct function declarations
 void paintEnterMode(display_t* disp);
@@ -54,6 +61,7 @@ void paintExitMode(void);
 void paintMainLoop(int64_t elapsedUs);
 void paintButtonCb(buttonEvt_t* evt);
 void paintMainMenuCb(const char* opt);
+void paintSettingsMenuCb(const char* opt);
 
 
 swadgeMode modePaint =
@@ -74,41 +82,77 @@ swadgeMode modePaint =
 
 // Util function declarations
 
-void paintInitialize(void);
+void paintDeleteAllData(void);
+void paintMenuInitialize(void);
+void paintSetupMainMenu(bool reset);
+void paintSetupSettingsMenu(bool reset);
 
 // Mode struct function implemetations
 
 void paintEnterMode(display_t* disp)
 {
-    PAINT_LOGI("Allocating %zu bytes for paintState...", sizeof(paintMenu_t));
-    paintState = calloc(1, sizeof(paintMenu_t));
+    PAINT_LOGI("Allocating %zu bytes for paintMenu...", sizeof(paintMenu_t));
+    paintMenu = calloc(1, sizeof(paintMenu_t));
 
-    paintState->disp = disp;
-    loadFont("mm.font", &(paintState->menuFont));
-    loadFont("radiostars.font", &(paintState->toolbarFont));
+    paintMenu->disp = disp;
+    loadFont("mm.font", &(paintMenu->menuFont));
 
-    paintState->menu = initMeleeMenu(paintTitle, &(paintState->menuFont), paintMainMenuCb);
-    paintInitialize();
+    paintMenu->menu = initMeleeMenu(paintTitle, &(paintMenu->menuFont), paintMainMenuCb);
+    paintMenu->settingsMenu = initMeleeMenu(menuOptSettings, &(paintMenu->menuFont), paintSettingsMenuCb);
+
+    paintMenuInitialize();
 }
 
 void paintExitMode(void)
 {
     PAINT_LOGD("Exiting");
-    deinitMeleeMenu(paintState->menu);
-    freeFont(&(paintState->menuFont));
+    deinitMeleeMenu(paintMenu->menu);
+    deinitMeleeMenu(paintMenu->settingsMenu);
+    freeFont(&(paintMenu->menuFont));
 
-    freePxStack(&paintState->pxStack);
-    freePxStack(&paintState->cursorPxs);
-    free(paintState);
+    switch (paintMenu->screen)
+    {
+        case PAINT_MENU:
+        case PAINT_SETTINGS_MENU:
+        break;
+
+        case PAINT_DRAW:
+            paintDrawScreenCleanup();
+        break;
+
+        case PAINT_SHARE:
+        break;
+
+        case PAINT_RECEIVE:
+        break;
+
+        case PAINT_VIEW:
+        break;
+
+        case PAINT_GALLERY:
+            paintGalleryCleanup();
+        break;
+
+        case PAINT_HELP:
+        break;
+    }
+
+    free(paintMenu);
 }
 
 void paintMainLoop(int64_t elapsedUs)
 {
-    switch (paintState->screen)
+    switch (paintMenu->screen)
     {
     case PAINT_MENU:
     {
-        drawMeleeMenu(paintState->disp, paintState->menu);
+        drawMeleeMenu(paintMenu->disp, paintMenu->menu);
+        break;
+    }
+
+    case PAINT_SETTINGS_MENU:
+    {
+        drawMeleeMenu(paintMenu->disp, paintMenu->settingsMenu);
         break;
     }
 
@@ -119,12 +163,15 @@ void paintMainLoop(int64_t elapsedUs)
     }
 
     case PAINT_SHARE:
+    // Implemented in a different mode
     break;
 
     case PAINT_RECEIVE:
+    // Implemented in a different mode
     break;
 
     case PAINT_VIEW:
+    // TODO get rid of PAINT_VIEW
     break;
 
     case PAINT_GALLERY:
@@ -140,40 +187,57 @@ void paintMainLoop(int64_t elapsedUs)
 
 void paintButtonCb(buttonEvt_t* evt)
 {
-    switch (paintState->screen)
+    switch (paintMenu->screen)
     {
         case PAINT_MENU:
         {
             if (evt->down)
             {
-                meleeMenuButton(paintState->menu, evt->button);
+                if (evt->button == BTN_B)
+                {
+                    switchToSwadgeMode(&modeMainMenu);
+                }
+                else
+                {
+                    meleeMenuButton(paintMenu->menu, evt->button);
+                }
+            }
+            break;
+        }
+
+        case PAINT_SETTINGS_MENU:
+        {
+            if (evt->down)
+            {
+                if (evt->button == LEFT || evt->button == RIGHT)
+                {
+                    if (menuOptCancelErase == paintMenu->settingsMenu->rows[paintMenu->settingsMenuSelection])
+                    {
+                        paintMenu->eraseDataConfirm = true;
+                        paintSetupSettingsMenu(false);
+                    }
+                    else if (menuOptConfirmErase == paintMenu->settingsMenu->rows[paintMenu->settingsMenuSelection])
+                    {
+                        paintMenu->eraseDataConfirm = false;
+                        paintSetupSettingsMenu(false);
+                    }
+                }
+                else if (evt->button == BTN_B)
+                {
+                    paintMenu->screen = PAINT_MENU;
+                    paintSetupMainMenu(false);
+                }
+                else
+                {
+                    meleeMenuButton(paintMenu->settingsMenu, evt->button);
+                }
             }
             break;
         }
 
         case PAINT_DRAW:
         {
-            switch (paintState->buttonMode)
-            {
-                case BTN_MODE_DRAW:
-                {
-                    paintDrawModeButtonCb(evt);
-                    break;
-                }
-
-                case BTN_MODE_SELECT:
-                {
-                    paintSelectModeButtonCb(evt);
-                    break;
-                }
-
-                case BTN_MODE_SAVE:
-                {
-                    paintSaveModeButtonCb(evt);
-                    break;
-                }
-            }
-
+            paintDrawScreenButtonCb(evt);
             break;
         }
 
@@ -199,50 +263,228 @@ void paintButtonCb(buttonEvt_t* evt)
 
 // Util function implementations
 
-void paintInitialize(void)
+void paintMenuInitialize(void)
 {
-    paintLoadIndex();
-    resetMeleeMenu(paintState->menu, paintTitle, paintMainMenuCb);
-    addRowToMeleeMenu(paintState->menu, menuOptDraw);
+    int32_t index;
+    paintLoadIndex(&index);
 
-    if (paintGetAnySlotInUse())
+    paintSetupMainMenu(true);
+
+    paintMenu->menuSelection = 0;
+    paintMenu->settingsMenuSelection = 0;
+    paintMenu->eraseDataSelected = false;
+    paintMenu->eraseDataConfirm = false;
+
+    paintMenu->screen = PAINT_MENU;
+}
+
+void paintSetupMainMenu(bool reset)
+{
+    resetMeleeMenu(paintMenu->menu, paintTitle, paintMainMenuCb);
+    addRowToMeleeMenu(paintMenu->menu, menuOptDraw);
+
+    if (paintGetAnySlotInUse(index))
     {
         // Only add "gallery" and "share" if there's something to share
-        addRowToMeleeMenu(paintState->menu, menuOptGallery);
-        addRowToMeleeMenu(paintState->menu, menuOptShare);
+        addRowToMeleeMenu(paintMenu->menu, menuOptGallery);
+        addRowToMeleeMenu(paintMenu->menu, menuOptShare);
     }
 
-    addRowToMeleeMenu(paintState->menu, menuOptReceive);
-    addRowToMeleeMenu(paintState->menu, menuOptExit);
+    addRowToMeleeMenu(paintMenu->menu, menuOptReceive);
+    addRowToMeleeMenu(paintMenu->menu, menuOptSettings);
+    addRowToMeleeMenu(paintMenu->menu, menuOptExit);
+}
 
-    paintState->screen = PAINT_MENU;
+void paintSetupSettingsMenu(bool reset)
+{
+    int32_t index;
+
+    resetMeleeMenu(paintMenu->settingsMenu, menuOptSettings, paintSettingsMenuCb);
+
+    paintLoadIndex(&index);
+    if (index & PAINT_ENABLE_LEDS)
+    {
+        addRowToMeleeMenu(paintMenu->settingsMenu, menuOptLedsOn);
+    }
+    else
+    {
+        addRowToMeleeMenu(paintMenu->settingsMenu, menuOptLedsOff);
+    }
+
+    if (index & PAINT_ENABLE_BLINK)
+    {
+        addRowToMeleeMenu(paintMenu->settingsMenu, menuOptBlinkOn);
+    }
+    else
+    {
+        addRowToMeleeMenu(paintMenu->settingsMenu, menuOptBlinkOff);
+    }
+
+    if (paintMenu->eraseDataSelected)
+    {
+        if (paintMenu->eraseDataConfirm)
+        {
+            addRowToMeleeMenu(paintMenu->settingsMenu, menuOptConfirmErase);
+        }
+        else
+        {
+            addRowToMeleeMenu(paintMenu->settingsMenu, menuOptCancelErase);
+        }
+    }
+    else
+    {
+        addRowToMeleeMenu(paintMenu->settingsMenu, menuOptEraseData);
+    }
+    addRowToMeleeMenu(paintMenu->settingsMenu, menuOptExit);
+
+    if (reset)
+    {
+        paintMenu->settingsMenuSelection = 0;
+        paintMenu->eraseDataSelected = false;
+        paintMenu->eraseDataConfirm = false;
+    }
+
+    paintMenu->settingsMenu->selectedRow = paintMenu->settingsMenuSelection;
 }
 
 void paintMainMenuCb(const char* opt)
 {
+    paintMenu->menuSelection = paintMenu->menu->selectedRow;
     if (opt == menuOptDraw)
     {
         PAINT_LOGI("Selected Draw");
-        paintDrawScreenSetup();
+        paintMenu->screen = PAINT_DRAW;
+        paintDrawScreenSetup(paintMenu->disp);
     }
     else if (opt == menuOptGallery)
     {
         PAINT_LOGI("Selected Gallery");
-        paintGallerySetup();
+        paintMenu->screen = PAINT_GALLERY;
+        paintGallerySetup(paintMenu->disp);
     }
     else if (opt == menuOptShare)
     {
         PAINT_LOGI("Selected Share");
+        paintMenu->screen = PAINT_SHARE;
         switchToSwadgeMode(&modePaintShare);
     }
     else if (opt == menuOptReceive)
     {
         PAINT_LOGI("Selected Receive");
+        paintMenu->screen = PAINT_RECEIVE;
         switchToSwadgeMode(&modePaintReceive);
+    }
+    else if (opt == menuOptSettings)
+    {
+        paintSetupSettingsMenu(true);
+        paintMenu->screen = PAINT_SETTINGS_MENU;
     }
     else if (opt == menuOptExit)
     {
         PAINT_LOGI("Selected Exit");
         switchToSwadgeMode(&modeMainMenu);
     }
+}
+
+void paintSettingsMenuCb(const char* opt)
+{
+    paintMenu->settingsMenuSelection = paintMenu->settingsMenu->selectedRow;
+
+    int32_t index;
+    if (opt == menuOptLedsOff)
+    {
+        // Enable the LEDsConfirm? NoConfirm? NoConfirm? No
+        paintLoadIndex(&index);
+        index |= PAINT_ENABLE_LEDS;
+        paintSaveIndex(index);
+    }
+    else if (opt == menuOptLedsOn)
+    {
+        paintLoadIndex(&index);
+        index &= ~PAINT_ENABLE_LEDS;
+        paintSaveIndex(index);
+    }
+    else if (opt == menuOptBlinkOff)
+    {
+        paintLoadIndex(&index);
+        index |= PAINT_ENABLE_BLINK;
+        paintSaveIndex(index);
+    }
+    else if (opt == menuOptBlinkOn)
+    {
+        paintLoadIndex(&index);
+        index &= ~PAINT_ENABLE_BLINK;
+        paintSaveIndex(index);
+    }
+    else if (opt == menuOptEraseData)
+    {
+        paintMenu->eraseDataSelected = true;
+    }
+    else if (opt == menuOptConfirmErase)
+    {
+        paintDeleteAllData();
+        paintMenu->eraseDataConfirm = false;
+        paintMenu->eraseDataSelected = false;
+    }
+    else if (opt == menuOptCancelErase)
+    {
+        paintMenu->eraseDataSelected = false;
+        paintMenu->eraseDataConfirm = false;
+    }
+    else if (opt == menuOptExit)
+    {
+        PAINT_LOGI("Selected Exit");
+        paintSetupMainMenu(true);
+        paintMenu->screen = PAINT_MENU;
+        return;
+    }
+
+    paintSetupSettingsMenu(false);
+}
+
+void paintReturnToMainMenu(void)
+{
+    switch(paintMenu->screen)
+    {
+        case PAINT_MENU:
+        break;
+
+        case PAINT_SETTINGS_MENU:
+            paintMenu->screen = PAINT_MENU;
+        break;
+
+        case PAINT_DRAW:
+            paintDrawScreenCleanup();
+        break;
+
+        case PAINT_SHARE:
+        case PAINT_RECEIVE:
+            switchToSwadgeMode(&modePaint);
+        break;
+
+        case PAINT_VIEW:
+        break;
+
+        case PAINT_GALLERY:
+            paintGalleryCleanup();
+        break;
+
+        case PAINT_HELP:
+        break;
+    }
+
+    paintMenu->screen = PAINT_MENU;
+}
+
+void paintDeleteAllData(void)
+{
+    int32_t index;
+    paintLoadIndex(&index);
+
+    for (uint8_t i = 0; i < PAINT_SAVE_SLOTS; i++)
+    {
+        paintDeleteSlot(&index, i);
+    }
+
+    paintDeleteIndex();
 }

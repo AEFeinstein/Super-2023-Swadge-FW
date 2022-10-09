@@ -36,7 +36,11 @@ void maybeGrowPxStack(pxStack_t* pxStack);
 void maybeShrinkPxStack(pxStack_t* pxStack);
 void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y);
 bool popPx(pxStack_t* pxStack, display_t* disp);
+bool peekPx(const pxStack_t* pxStack, pxVal_t* dest);
+bool getPx(const pxStack_t* pxStack, size_t pos, pxVal_t* dest);
+bool dropPx(pxStack_t* pxStack);
+size_t pxStackSize(const pxStack_t* pxStack);
 void pushPxScaled(pxStack_t* pxStack, display_t* disp, int x, int y, int xTr, int yTr, int xScale, int yScale);
-void popPxScaled(pxStack_t* pxStack, display_t* disp, int xScale, int yScale);
+bool popPxScaled(pxStack_t* pxStack, display_t* disp, int xScale, int yScale);
 
 #endif
