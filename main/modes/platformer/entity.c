@@ -813,45 +813,55 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     }
     case TILE_GOAL_100PTS:
     {
-        scorePoints(self->gameData, 100);
-        self->spriteIndex = SP_PLAYER_WIN;
-        self->updateFunction = &updateDummy;
-        self->gameData->changeState = ST_LEVEL_CLEAR;
+        if(direction == 4) {
+            scorePoints(self->gameData, 100);
+            self->spriteIndex = SP_PLAYER_WIN;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+        }
         break;
     }
     case TILE_GOAL_500PTS:
     {
-        scorePoints(self->gameData, 500);
-        self->spriteIndex = SP_PLAYER_WIN;
-        self->updateFunction = &updateDummy;
-        self->gameData->changeState = ST_LEVEL_CLEAR;
+        if(direction == 4) {
+            scorePoints(self->gameData, 500);
+            self->spriteIndex = SP_PLAYER_WIN;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+        }
         break;
     }
     case TILE_GOAL_1000PTS:
     {
-        scorePoints(self->gameData, 1000);
-        self->spriteIndex = SP_PLAYER_WIN;
-        self->updateFunction = &updateDummy;
-        self->gameData->changeState = ST_LEVEL_CLEAR;
+        if(direction == 4) {
+            scorePoints(self->gameData, 1000);
+            self->spriteIndex = SP_PLAYER_WIN;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+        }
         break;
     }
     case TILE_GOAL_2000PTS:
     {
-        scorePoints(self->gameData, 2000);
-        self->spriteIndex = SP_PLAYER_WIN;
-        self->updateFunction = &updateDummy;
-        self->gameData->changeState = ST_LEVEL_CLEAR;
+        if(direction == 4) {
+            scorePoints(self->gameData, 2000);
+            self->spriteIndex = SP_PLAYER_WIN;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+        }
         break;
     }
     case TILE_GOAL_5000PTS:
     {
-        scorePoints(self->gameData, 5000);
-        self->spriteIndex = SP_PLAYER_WIN;
-        self->updateFunction = &updateDummy;
-        self->gameData->changeState = ST_LEVEL_CLEAR;
+        if(direction == 4) {
+            scorePoints(self->gameData, 5000);
+            self->spriteIndex = SP_PLAYER_WIN;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+        }
         break;
     }
-    case TILE_COIN_1 ... TILE_COIN_3:
+    /*case TILE_COIN_1 ... TILE_COIN_3:
     {
         setTile(self->tilemap, tx, ty, TILE_EMPTY);
         addCoins(self->gameData, 1);
@@ -859,7 +869,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
         buzzer_play_sfx(&sndCoin);
         break;
     }
-    /*case TILE_LADDER:
+    case TILE_LADDER:
     {
         self->gravityEnabled = false;
         self->falling = false;
