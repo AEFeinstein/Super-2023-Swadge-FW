@@ -10,31 +10,49 @@
    "nJumps":2,
    "landing_lag":1,
    "idle_spr_0":{
-      "sprite":"kid0.wsg"
+      "sprite":"kid0.wsg",
+      "off_x":0,
+      "off_y":-7
    },
    "idle_spr_1":{
-      "sprite":"kid1.wsg"
+      "sprite":"kid1.wsg",
+      "off_x":0,
+      "off_y":-7
    },
    "run_spr_0":{
-      "sprite":"kru0.wsg"
+      "sprite":"kru0.wsg",
+      "off_x":0,
+      "off_y":-8
    },
    "run_spr_1":{
-      "sprite":"kru1.wsg"
+      "sprite":"kru1.wsg",
+      "off_x":0,
+      "off_y":-8
    },
    "jump_spr":{
-      "sprite":"kjm0.wsg"
+      "sprite":"kjm0.wsg",
+      "off_x":2,
+      "off_y":-9
    },
    "duck_spr":{
-      "sprite":"kdu0.wsg"
+      "sprite":"kdu0.wsg",
+      "off_x":0,
+      "off_y":-7
    },
    "land_lag_spr":{
-      "sprite":"kll0.wsg"
+      "sprite":"kll0.wsg",
+      "off_x":0,
+      "off_y":-7
    },
    "hitstun_ground_sprite":{
-      "sprite":"ksg0.wsg"
+      "sprite":"ksg0.wsg",
+      "off_x":1,
+      "off_y":-7
    },
    "hitstun_air_sprite":{
-      "sprite":"ksa0.wsg"
+      "sprite":"ksa0.wsg",
+      "off_x":1,
+      "off_y":-7
    },
    "attacks":[
       {
