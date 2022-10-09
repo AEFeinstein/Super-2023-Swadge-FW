@@ -326,6 +326,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
 
         // Spawn fighters in respective positions
         f->fighters[i].pos.x = ((((1 + i) * f->d->w) / 3) - ((f->fighters[i].size.x >> SF) / 2)) << SF;
+        f->fighters[i].pos.y = 12 << SF;
 
         switch(type)
         {
@@ -1871,7 +1872,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         ftr->cAttack = NO_ATTACK;
         setFighterState(ftr, FS_IDLE, &(ftr->idleSprite0), 0, NULL);
         ftr->pos.x = (f->d->w / 2) << SF;
-        ftr->pos.y = 0;
+        ftr->pos.y = 12 << SF;
         ftr->velocity.x = 0;
         ftr->velocity.y = 0;
         ftr->damage = 0;

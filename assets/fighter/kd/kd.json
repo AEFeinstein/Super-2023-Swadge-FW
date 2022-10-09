@@ -115,17 +115,21 @@
          "type":"down_gnd",
          "startupLag":150,
          "startupLagSpr":{
-            "sprite":"kdgw.wsg"
+            "sprite":"kdgw.wsg",
+            "off_x":1,
+            "off_y":-2
          },
          "attack_frames":[
             {
                "duration":600,
                "atkSpr":{
-                  "sprite":"kdga.wsg"
+                  "sprite":"kdga.wsg",
+                  "off_x":0,
+                  "off_y":-5
                },
                "hitboxes":[
                   {
-                     "relativePos_x":-12,
+                     "relativePos_x":0,
                      "relativePos_y":16,
                      "size_x":20,
                      "size_y":8,
@@ -135,7 +139,7 @@
                      "hitstun":10
                   },
                   {
-                     "relativePos_x":24,
+                     "relativePos_x":30,
                      "relativePos_y":16,
                      "size_x":16,
                      "size_y":8,
@@ -149,7 +153,9 @@
          ],
          "endLag":250,
          "endLagSpr":{
-            "sprite":"kdgc.wsg"
+            "sprite":"kdgc.wsg",
+            "off_x":0,
+            "off_y":-8
          }
       },
       {
