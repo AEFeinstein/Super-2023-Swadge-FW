@@ -336,7 +336,6 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
                 f->fighters[i].stocks = NUM_STOCKS;
                 // Invincible after spawning
                 f->fighters[i].iFrameTimer = IFRAMES_AFTER_SPAWN;
-                f->fighters[i].isInvincible = true;
                 break;
             }
             case HR_CONTEST:
@@ -345,7 +344,6 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
                 f->fighters[i].stocks = 0;
                 // No iframes
                 f->fighters[i].iFrameTimer = IFRAMES_AFTER_SPAWN;
-                f->fighters[i].isInvincible = false;
                 break;
             }
         }
@@ -787,12 +785,6 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
     if(ftr->iFrameTimer > 0)
     {
         ftr->iFrameTimer--;
-        // When it hits zero
-        if(0 == ftr->iFrameTimer)
-        {
-            // Become vulnerable
-            ftr->isInvincible = false;
-        }
     }
 
     // If the fighter is idle
@@ -903,8 +895,6 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
 
                     // Always copy the iframe value, may be 0
                     ftr->iFrameTimer = atk->iFrames;
-                    // Set invincibility if the timer is active
-                    ftr->isInvincible = (ftr->iFrameTimer > 0);
                 }
                 else
                 {
@@ -1214,8 +1204,6 @@ void checkFighterButtonInput(fighter_t* ftr)
 
                     // Always copy the iframe value, may be 0
                     ftr->iFrameTimer = ftr->attacks[ftr->cAttack].iFrames;
-                    // Set invincibility if the timer is active
-                    ftr->isInvincible = (ftr->iFrameTimer > 0);
                 }
                 break;
             }
@@ -1877,7 +1865,6 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         ftr->velocity.y = 0;
         ftr->damage = 0;
         ftr->iFrameTimer = IFRAMES_AFTER_SPAWN;
-        ftr->isInvincible = true;
     }
     return false;
 }
@@ -1906,7 +1893,7 @@ inline uint32_t getHitstop(uint16_t damage)
 void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
 {
     /* Can't get hurt if you're invincible! */
-    if(otherFtr->isInvincible)
+    if(otherFtr->iFrameTimer > 0)
     {
         return;
     }
@@ -2035,6 +2022,12 @@ void checkFighterProjectileCollisions(list_t* projectiles)
             {
                 // Get a convenience pointer
                 fighter_t* ftr = &f->fighters[i];
+
+                /* Can't get hurt if you're invincible! */
+                if(ftr->iFrameTimer > 0)
+                {
+                    continue;
+                }
 
                 // Make sure a projectile can't hurt its owner
                 if(ftr != proj->owner)

@@ -745,7 +745,12 @@ int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokId
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "hitstun"))
             {
                 tokIdx++;
-                hbx->hitstun = jsonInteger(jsonStr, toks[tokIdx]);
+                // Convert ms to frames
+                hbx->hitstun = jsonInteger(jsonStr, toks[tokIdx]) / FRAME_TIME_MS;
+                if(0 == hbx->hitstun)
+                {
+                    hbx->hitstun = 1;
+                }
                 tokIdx++;
                 numFieldsParsed++;
             }
