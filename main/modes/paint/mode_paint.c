@@ -280,6 +280,9 @@ void paintMenuInitialize(void)
 
 void paintSetupMainMenu(bool reset)
 {
+    int32_t index;
+    paintLoadIndex(&index);
+
     resetMeleeMenu(paintMenu->menu, paintTitle, paintMainMenuCb);
     addRowToMeleeMenu(paintMenu->menu, menuOptDraw);
 
