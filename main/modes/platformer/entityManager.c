@@ -282,6 +282,24 @@ entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint
         case ENTITY_CHECKPOINT:
             createdEntity = createCheckpoint(entityManager, x, y);
             break;
+        case ENTITY_BGM_CHANGE_0:
+            createdEntity = createBgmChange0(entityManager, x, y);
+            break;
+        case ENTITY_BGM_CHANGE_1:
+            createdEntity = createBgmChange1(entityManager, x, y);
+            break;
+        case ENTITY_BGM_CHANGE_2:
+            createdEntity = createBgmChange2(entityManager, x, y);
+            break;
+        case ENTITY_BGM_CHANGE_3:
+            createdEntity = createBgmChange3(entityManager, x, y);
+            break;
+        case ENTITY_BGM_CHANGE_4:
+            createdEntity = createBgmChange4(entityManager, x, y);
+            break;
+        case ENTITY_BGM_STOP:
+            createdEntity = createBgmStop(entityManager, x, y);
+            break;
 
         default:
             createdEntity = NULL;
@@ -1176,4 +1194,142 @@ void freeEntityManager(entityManager_t * self){
     for(uint8_t i=0; i<SPRITESET_SIZE; i++){
         freeWsg(&self->sprites[i]);
     }
+}
+
+entity_t* createBgmChange0(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    entity->xDamping = BGM_MAIN;
+    
+    entity->type = ENTITY_BGM_CHANGE_0;
+    entity->updateFunction = &updateBgmChange;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
+
+    return entity;
+}
+
+entity_t* createBgmChange1(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    entity->xDamping = BGM_ATHLETIC;
+    
+    entity->type = ENTITY_BGM_CHANGE_1;
+    entity->updateFunction = &updateBgmChange;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
+
+    return entity;
+}
+
+entity_t* createBgmChange2(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    entity->xDamping = BGM_UNDERGROUND;
+    
+    entity->type = ENTITY_BGM_CHANGE_2;
+    entity->updateFunction = &updateBgmChange;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
+
+    return entity;
+}
+
+entity_t* createBgmChange3(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    entity->xDamping = BGM_FORTRESS;
+    
+    entity->type = ENTITY_BGM_CHANGE_3;
+    entity->updateFunction = &updateBgmChange;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
+
+    return entity;
+}
+
+entity_t* createBgmChange4(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    entity->xDamping = BGM_MAIN;
+    
+    entity->type = ENTITY_BGM_CHANGE_4;
+    entity->updateFunction = &updateBgmChange;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
+
+    return entity;
+}
+
+entity_t* createBgmStop(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    entity->xDamping = BGM_NULL;
+    
+    entity->type = ENTITY_BGM_STOP;
+    entity->updateFunction = &updateBgmChange;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
+
+    return entity;
 }

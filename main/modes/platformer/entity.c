@@ -1611,3 +1611,8 @@ void playerOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8_
 void defaultOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8_t ty){
     //Nothing to do.
 }
+
+void updateBgmChange(entity_t* self){
+    self->gameData->changeBgm = self->xDamping;
+    destroyEntity(self, true);
+}
