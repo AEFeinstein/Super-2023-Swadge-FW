@@ -4,6 +4,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "swadgeMode.h"
 #include "musical_buzzer.h"
@@ -410,15 +411,6 @@ void jumperStartGame(display_t* disp, font_t* mmFont, bool ledEnabled)
     loadFont("early_gameboy_fill.font", &(j->fill_font));
     loadFont("early_gameboy_outline.font", &(j->outline_font));
     loadFont("early_gameboy.font", &(j->game_font));
-
-    if (ledEnabled)
-    {
-        ESP_LOGI("JUM", "LED ON");
-    }
-    else
-    {        
-        ESP_LOGI("JUM", "LED OFF");
-    }
 
     j->multiplier = calloc(3, sizeof(jumperMultiplier_t));
 
@@ -859,10 +851,10 @@ void jumperGameLoop(int64_t elapsedUs)
             {
                 //Player Lerp
                 float time = (player->jumpTime + .001) / (j->jumperJumpTime + .001);
-                int per = time * 10;
-                int offset[] = {0, 3, 5, 9, 11, 15, 11, 9, 5, 3, 0};
+                int joffset = sin(time * 3.14) * 15;
+
                 player->x = player->sx + (player->dx - player->sx) * time;
-                player->y = (player->sy + (player->dy - player->sy) * time) - offset[per];
+                player->y = (player->sy + (player->dy - player->sy) * time) - joffset;
             }
 
             break;
@@ -1058,7 +1050,7 @@ void jumperGameLoop(int64_t elapsedUs)
         if (j->scene->currentPowerup->powerupSpawned && !j->scene->currentPowerup->collected && boxesCollide(box1, box4, 1))
         {
             j->scene->currentPowerup->collected = true;
-            ESP_LOGI("JUM", "Got the powerup");
+            //ESP_LOGI("JUM", "Got the powerup");
             buzzer_play_sfx(&jumperPlayerCollect);
             j->scene->score += 2000;
 
@@ -1274,10 +1266,9 @@ void jumperDoBlump(int64_t elapsedUs)
             {
                 //Blump Lerp
                 float time = (blump->jumpTime + .001) / (j->jumperJumpTime + .001);
-                int per = time * 10;
-                int offset[] = {0, 3, 5, 9, 11, 15, 11, 9, 5, 3, 0};
+                int joffset = sin(time * 3.14) * 15;
                 blump->x = blump->sx + (blump->dx - blump->sx) * time;
-                blump->y = (blump->sy + (blump->dy - blump->sy) * time) - offset[per];
+                blump->y = (blump->sy + (blump->dy - blump->sy) * time) - joffset;
             }
 
             break;
@@ -1356,7 +1347,7 @@ void jumperDoBlump(int64_t elapsedUs)
 
             if (blump->respawnTime <= 3000000 && blump->respawnReady == false)
             {
-                ESP_LOGI("JUM","RESPAWN RESET");
+                //ESP_LOGI("JUM","RESPAWN RESET");
                 blump->respawnReady = true;
                 blump->respawnBlock = esp_random() % 6;
 
@@ -1486,10 +1477,10 @@ void jumperDoEvilDonut(int64_t elapsedUs)
             {
 
                 float time = (evilDonut->jumpTime + .001) / (j->jumperJumpTime + .001);
-                int per = time * 10;
-                int offset[] = {0, 3, 5, 9, 11, 15, 11, 9, 5, 3, 0};
+                int joffset = sin(time * 3.14) * 15;
+
                 evilDonut->x = evilDonut->sx + (evilDonut->dx - evilDonut->sx) * time;
-                evilDonut->y = (evilDonut->sy + (evilDonut->dy - evilDonut->sy) * time) - offset[per];
+                evilDonut->y = (evilDonut->sy + (evilDonut->dy - evilDonut->sy) * time) - joffset;
             }
 
             break;
