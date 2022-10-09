@@ -58,8 +58,8 @@ void picrossMenuOptionsCb(const char* opt);
 //Key values for persistent save data.
 const char picrossCurrentPuzzleIndexKey[] = "pic_cur_ind";
 const char picrossSavedOptionsKey[]       = "pic_opts"; 
-const char picrossCompletedLevelData[]    = "pic_victs";
-const char picrossProgressData[]          = "pic_prog";
+const char picrossCompletedLevelData[]    = "pic_victs";//todo: rename to Key suffix
+const char picrossProgressData[]          = "pic_prog";//todo: rename to key suffix
 
 //Main menu strings
 static char str_picrossTitle[] = "pi-cross";
@@ -80,7 +80,7 @@ static const char str_MarkX[] = "Empty Marks: X";
 static const char str_MarkSolid[] = "Empty Marks: Solid";
 static const char str_AnimateBGOn[] = "BG Animate: On";
 static const char str_AnimateBGOff[] = "BG Animate: Off";
-static const char str_eraseProgress[] = "Erase Progress";
+static const char str_eraseProgress[] = "Reset Current";
 
 swadgeMode modePicross =
 {
@@ -226,34 +226,38 @@ void loadLevels()
     loadWsg("3_boat.wsg", &pm->levels[13].levelWSG);//10x10
     loadWsg("3_boat_c.wsg", &pm->levels[13].completedWSG);
 
-    pm->levels[14].title = "Mouse";
-    loadWsg("Mouse_PZL.wsg", &pm->levels[14].levelWSG);//15x15
-    loadWsg("Mouse_SLV.wsg", &pm->levels[14].completedWSG);
+    pm->levels[14].title = "Lobster";   //Symmetry makes this less fun to solve. It's on the chopping block if we get better puzzles.
+    loadWsg("Lobster_PZL.wsg", &pm->levels[14].levelWSG);//10x10
+    loadWsg("Lobster_SLV.wsg", &pm->levels[14].completedWSG);
 
-    pm->levels[15].title = "Note";
-    loadWsg("Note_PZL.wsg", &pm->levels[15].levelWSG);//15x15
-    loadWsg("Note_SLV.wsg", &pm->levels[15].completedWSG);
+    pm->levels[15].title = "Mouse";
+    loadWsg("Mouse_PZL.wsg", &pm->levels[15].levelWSG);//15x15
+    loadWsg("Mouse_SLV.wsg", &pm->levels[15].completedWSG);
 
-    pm->levels[16].title = "Banana";
-    loadWsg("Banana_PZL.wsg", &pm->levels[16].levelWSG);//15x15
-    loadWsg("Banana_SLV.wsg", &pm->levels[16].completedWSG);
+    pm->levels[16].title = "Note";
+    loadWsg("Note_PZL.wsg", &pm->levels[16].levelWSG);//15x15
+    loadWsg("Note_SLV.wsg", &pm->levels[16].completedWSG);
 
-    pm->levels[17].title = "Fountain Pen";
-    loadWsg("Fountain_Pen_PZL.wsg", &pm->levels[17].levelWSG);//15x15
-    loadWsg("Fountain_Pen_SLV.wsg", &pm->levels[17].completedWSG);
+    pm->levels[17].title = "Banana";
+    loadWsg("Banana_PZL.wsg", &pm->levels[17].levelWSG);//15x15
+    loadWsg("Banana_SLV.wsg", &pm->levels[17].completedWSG);
 
-    pm->levels[18].title = "Power Plug";
-    loadWsg("Plug_PZL.wsg", &pm->levels[18].levelWSG);//15x15 - This one is on the harder side of things.
-    loadWsg("Plug_SLV.wsg", &pm->levels[18].completedWSG);
+    pm->levels[18].title = "Fountain Pen";
+    loadWsg("Fountain_Pen_PZL.wsg", &pm->levels[18].levelWSG);//15x15
+    loadWsg("Fountain_Pen_SLV.wsg", &pm->levels[18].completedWSG);
 
-    pm->levels[19].title = "Rocket League";
-    loadWsg("RocketLeague_PZL.wsg", &pm->levels[19].levelWSG);//15x15 - This one is on the harder side of things.
-    loadWsg("RocketLeague_SLV.wsg", &pm->levels[19].completedWSG);
+    pm->levels[19].title = "Power Plug";
+    loadWsg("Plug_PZL.wsg", &pm->levels[19].levelWSG);//15x15 - This one is on the harder side of things.
+    loadWsg("Plug_SLV.wsg", &pm->levels[19].completedWSG);
+
+    pm->levels[20].title = "Rocket League";
+    loadWsg("RocketLeague_PZL.wsg", &pm->levels[20].levelWSG);//15x15 - This one is on the harder side of things.
+    loadWsg("RocketLeague_SLV.wsg", &pm->levels[20].completedWSG);
 
     //this has to be the last puzzle.
-    pm->levels[20].title = "Never Gonna";//give you up, but title too long for single line.
-    loadWsg("RR_PZL.wsg", &pm->levels[20].levelWSG);//15/15
-    loadWsg("RR_SLV.wsg", &pm->levels[20].completedWSG);
+    pm->levels[21].title = "Never Gonna";//give you up, but title too long for single line.
+    loadWsg("RR_PZL.wsg", &pm->levels[21].levelWSG);//15/15
+    loadWsg("RR_SLV.wsg", &pm->levels[21].completedWSG);
 
     //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_consts.h) when adding levels.
 
@@ -444,11 +448,8 @@ void exitTutorial(void)
     setPicrossMainMenu(false);
 }
 
-//menu button & options menu callbacks. Set the screen and call the appropriate start functions
-void picrossMainMenuCb(const char* opt)
+void continueGame()
 {
-    if (opt == str_continue)
-    {
         //get the current level index
         int32_t currentIndex = 0;//just load 0 if its 0. 
         readNvs32(picrossCurrentPuzzleIndexKey, &currentIndex);
@@ -457,6 +458,14 @@ void picrossMainMenuCb(const char* opt)
         //uh. read the currentLevelIndex and get the value from 
         picrossStartGame(pm->disp, &pm->mmFont, &pm->levels[currentIndex], true);
         pm->screen = PICROSS_GAME;
+}
+
+//menu button & options menu callbacks. Set the screen and call the appropriate start functions
+void picrossMainMenuCb(const char* opt)
+{
+    if (opt == str_continue)
+    {
+        continueGame();
         return;
     }
     if (opt == str_howtoplay)
@@ -531,13 +540,22 @@ void picrossMainMenuCb(const char* opt)
     }
     else if(opt == str_eraseProgress)
     {
-        //Next time we load a puzzle it will re-save and zero-out the data, we just have to tell the mennu not to show the 'continue' option.
+        //todo: still need to do a confirmation on these, probably just by changing the text.
+        //Commented out 
+        // //Next time we load a puzzle it will re-save and zero-out the data, we just have to tell the mennu not to show the 'continue' option.
         writeNvs32(picrossCurrentPuzzleIndexKey,-1);
+        
+        //see comment above as to why this isn't needed.
+        // size_t size = sizeof(picrossProgressData_t);
+        // picrossProgressData_t* progData = calloc(1,size);//zero out = reset.
+        // writeNvsBlob(picrossProgressData,progData,size);
+        // free(progData);
 
-        size_t size = sizeof(picrossVictoryData_t);
-        picrossVictoryData_t* victData = calloc(1,size);//zero out = reset.
-        writeNvsBlob(picrossCompletedLevelData,victData,size);
-        free(victData);
+        //the code to erase ALL (victory) progress. Still want to put this... somewhere
+        // size_t size = sizeof(picrossVictoryData_t);
+        // picrossVictoryData_t* victData = calloc(1,size);//zero out = reset.
+        // writeNvsBlob(picrossCompletedLevelData,victData,size);
+        // free(victData);
     }
 }
 

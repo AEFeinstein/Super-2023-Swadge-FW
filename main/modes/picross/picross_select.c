@@ -27,7 +27,7 @@ picrossLevelSelect_t* ls;
 //
 void levelSelectInput(void);
 void drawLevelSelectScreen(display_t* d,font_t* font);
-void drawPicrossLevelWSG(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff);
+void drawPicrossLevelWSG(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff, bool highlight);
 void drawPicrossPreviewWindow(display_t* d, wsg_t* wsg);
 //====
 // Functions
@@ -46,7 +46,7 @@ void picrossStartLevelSelect(display_t* disp, font_t* bigFont, picrossLevelDef_t
     size_t size = sizeof(picrossVictoryData_t);
     picrossVictoryData_t* victData = calloc(1,size);//zero out. if data doesnt exist, then its been correctly initialized to all 0s. 
     readNvsBlob(picrossCompletedLevelData,victData,&size);
-
+    readNvs32(picrossCurrentPuzzleIndexKey, &ls->currentIndex);
     ls->allLevelsComplete = true;
     for(int i = 0;i<PICROSS_LEVEL_COUNT;i++)
     {
@@ -106,6 +106,13 @@ void levelSelectInput()
     //Choosing a Level
     if (ls->btnState & BTN_A && !(ls->prevBtnState & BTN_A) && !(ls->btnState & SELECT))
     {
+        if(ls->hoverLevelIndex == ls->currentIndex)
+        {
+            continueGame();
+            picrossExitLevelSelect();
+            return;
+        }
+
         ls->chosenLevel = &ls->levels[ls->hoverLevelIndex];
         writeNvs32(picrossCurrentPuzzleIndexKey, ls->hoverLevelIndex);//save the selected level before we lose context of the index.
 
@@ -176,11 +183,11 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
         y = y * s + ls->paddingTop + ls->gap*y;
         if(ls->levels[i].completed)
         {
-            drawPicrossLevelWSG(d,&ls->levels[i].completedWSG,x,y);
+            drawPicrossLevelWSG(d,&ls->levels[i].completedWSG,x,y,false);
         }else
         {
             //Draw ? sprite
-            drawPicrossLevelWSG(d,&ls->unknownPuzzle,x,y);
+            drawPicrossLevelWSG(d,&ls->unknownPuzzle,x,y,(i == ls->currentIndex));
         }
     }
 
@@ -191,7 +198,7 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
     drawText(d, &ls->smallFont, c555, textBuffer, (d->w)-54-t,(d->h)-28);
 
     //
-    if(ls->hoverLevelIndex < PICROSS_LEVEL_COUNT){//jic
+    if(ls->hoverLevelIndex < PICROSS_LEVEL_COUNT){//This doesnt actually work because the index goes off into pointer-land
         //draw level choose input
         x = ls->hoverX;
         y = ls->hoverY;
@@ -211,6 +218,11 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
         }else{
             //if incomplete, show ? image and red hvoer
             drawPicrossPreviewWindow(d,&ls->unknownPuzzle);
+            drawBox(d,inputBox,c511,false,0);
+            inputBox.x0++;
+            inputBox.x1--;
+            inputBox.y0++;
+            inputBox.y1--;
             drawBox(d,inputBox,c511,false,0);
         }
     }
@@ -244,7 +256,7 @@ void picrossExitLevelSelect()
 
 //Little replacement of drawWsg to draw the 2px for each px. Sprite scaling doesnt appear to be a thing yet, so this is my hack.
 //we could do 4x and have plenty of room?
-void drawPicrossLevelWSG(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
+void drawPicrossLevelWSG(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff, bool highlight)
 {
     if(NULL == wsg->px)
     {
@@ -302,6 +314,20 @@ void drawPicrossLevelWSG(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff
                 }
             }
         }
+    }
+    //draw square around the puzzle
+    if(highlight)
+    {
+        //-1 and +2 is to go around the image, not through
+        xOff = xOff -1;
+        yOff = yOff -1;
+        uint16_t w = pixelPerPixel*wsg->w+2;
+        uint16_t h = pixelPerPixel*wsg->h+2;
+
+        plotLine(disp,xOff,yOff,xOff+w,yOff,c550,3);//top
+        plotLine(disp,xOff,yOff+h,xOff+w,yOff+h,c550,3);//bottom
+        plotLine(disp,xOff,yOff,xOff,yOff+h,c550,3);//left
+        plotLine(disp,xOff+w,yOff,xOff+w,yOff+h,c550,3);//right
     }
 }
 

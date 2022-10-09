@@ -78,7 +78,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->puzzle = calloc(1, sizeof(picrossPuzzle_t));    
     //puzzle gets set in picrossSetupPuzzle.
     
-    p->fadeHints = false;
+    p->fadeHints = true;//When should this be turned on or off? Options menu is a lot.
     //Input Setup
     p->input = calloc(1, sizeof(picrossInput_t));
     p->input->x=0;
