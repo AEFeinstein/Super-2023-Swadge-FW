@@ -164,26 +164,26 @@ void updatePlayer(entity_t *self)
         }
     }
 
-/*
-    if (self->gameData->btnState & UP)
-    {
-        self->yspeed -= 16;
-
-        if (self->yspeed < -self->yMaxSpeed)
+    if(!self->gravityEnabled){
+        if (self->gameData->btnState & UP)
         {
-            self->yspeed = -self->yMaxSpeed;
+            self->yspeed -= 8;
+
+            if (self->yspeed < -16)
+            {
+                self->yspeed = -16;
+            }
+        }
+        else if (self->gameData->btnState & DOWN)
+        {
+            self->yspeed += 8;
+
+            if (self->yspeed > 32)
+            {
+                self->yspeed = 32;
+            }
         }
     }
-    else if (self->gameData->btnState & DOWN)
-    {
-        self->yspeed += 16;
-
-        if (self->yspeed > self->yMaxSpeed)
-        {
-            self->yspeed = self->yMaxSpeed;
-        }
-    }
-*/
 
     if (self->gameData->btnState & BTN_A)
     {
@@ -347,6 +347,7 @@ void moveEntityWithTileCollisions(entity_t *self)
 
     // Are we inside a block? Push self out of block
     uint8_t t = getTile(self->tilemap, tx, ty);
+    self->overlapTileHandler(self, t, tx, ty);
 
     if (isSolid(t))
     {
@@ -431,7 +432,7 @@ void moveEntityWithTileCollisions(entity_t *self)
                 {
                     uint8_t newBelowTile = getTile(self->tilemap, tx, ty + 1);
 
-                    if (!isSolid(newBelowTile))
+                    if ((self->gravityEnabled && !isSolid(newBelowTile)) /*(|| (!self->gravityEnabled && newBelowTile != TILE_LADDER)*/)
                     {
                         self->fallOffTileHandler(self);
                     }
@@ -543,7 +544,13 @@ void animatePlayer(entity_t *self)
         return;
     }
 
-    if (self->falling)
+    if (!self->gravityEnabled){
+        self->spriteIndex = SP_PLAYER_CLIMB;
+        if(self->yspeed < 0 && self->gameData->frameCount % 10 == 0){
+            self->spriteFlipHorizontal = !self->spriteFlipHorizontal;
+        }
+    }
+    else if (self->falling)
     {
         if (self->yspeed < 0)
         {
@@ -852,6 +859,12 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
         buzzer_play_sfx(&sndCoin);
         break;
     }
+    /*case TILE_LADDER:
+    {
+        self->gravityEnabled = false;
+        self->falling = false;
+        break;
+    }*/
     default:
     {
         break;
@@ -1553,4 +1566,38 @@ void updateCheckpoint(entity_t* self){
     }
 
     despawnWhenOffscreen(self);
+}
+
+void playerOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8_t ty){
+    switch(tileId){
+        case TILE_COIN_1...TILE_COIN_3:{
+            setTile(self->tilemap, tx, ty, TILE_EMPTY);
+            addCoins(self->gameData, 1);
+            scorePoints(self->gameData, 50);
+            buzzer_play_sfx(&sndCoin);
+            break;
+        }
+        case TILE_LADDER:{
+            if(self->gravityEnabled){
+                self->gravityEnabled = false;
+                self->xspeed = 0;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    if(!self->gravityEnabled && tileId != TILE_LADDER){
+        self->gravityEnabled = true;
+        self->falling = true;
+        if(self->yspeed < 0){
+            self->yspeed = -32;
+        }
+    }
+}
+
+void defaultOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8_t ty){
+    //Nothing to do.
 }

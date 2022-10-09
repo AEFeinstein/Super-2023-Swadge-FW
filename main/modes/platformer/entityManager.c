@@ -312,7 +312,7 @@ entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->xMaxSpeed = 40; //72; Walking
     entity->yMaxSpeed = 64; //72;
     entity->xDamping = 1;
-    entity->yDamping = 2;
+    entity->yDamping = 4;
     entity->gravityEnabled = true;
     entity->gravity = 4;
     entity->falling = true;
@@ -326,6 +326,7 @@ entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->collisionHandler = &playerCollisionHandler;
     entity->tileCollisionHandler = &playerTileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
+    entity->overlapTileHandler = &playerOverlapTileHandler;
     return entity;
 }
 
@@ -357,6 +358,7 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &enemyTileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -378,6 +380,7 @@ entity_t* createScrollLockLeft(entityManager_t * entityManager, uint16_t x, uint
     entity->updateFunction = &updateScrollLockLeft;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
     
     return entity;
 }
@@ -399,6 +402,7 @@ entity_t* createScrollLockRight(entityManager_t * entityManager, uint16_t x, uin
     entity->updateFunction = &updateScrollLockRight;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -420,6 +424,7 @@ entity_t* createScrollLockUp(entityManager_t * entityManager, uint16_t x, uint16
     entity->updateFunction = &updateScrollLockUp;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -441,6 +446,7 @@ entity_t* createScrollLockDown(entityManager_t * entityManager, uint16_t x, uint
     entity->updateFunction = &updateScrollLockDown;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -462,6 +468,7 @@ entity_t* createScrollUnlock(entityManager_t * entityManager, uint16_t x, uint16
     entity->updateFunction = &updateScrollUnlock;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -495,6 +502,7 @@ entity_t* createHitBlock(entityManager_t * entityManager, uint16_t x, uint16_t y
     entity->updateFunction = &updateHitBlock;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -527,6 +535,7 @@ entity_t* createPowerUp(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 };
@@ -558,6 +567,7 @@ entity_t* createWarp(entityManager_t * entityManager, uint16_t x, uint16_t y){
     entity->updateFunction = &updateWarp;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 };
@@ -594,6 +604,7 @@ entity_t* createDustBunny(entityManager_t * entityManager, uint16_t x, uint16_t 
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &dustBunnyTileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -630,6 +641,7 @@ entity_t* createWasp(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &waspTileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -662,6 +674,7 @@ entity_t* createEnemyBushL2(entityManager_t * entityManager, uint16_t x, uint16_
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &enemyTileCollisionHandler;
     entity->fallOffTileHandler = &turnAroundAtEdgeOfTileHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -696,6 +709,7 @@ entity_t* createEnemyBushL3(entityManager_t * entityManager, uint16_t x, uint16_
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &enemyTileCollisionHandler;
     entity->fallOffTileHandler = &turnAroundAtEdgeOfTileHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -731,6 +745,7 @@ entity_t* createDustBunnyL2(entityManager_t * entityManager, uint16_t x, uint16_
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &dustBunnyL2TileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -766,6 +781,7 @@ entity_t* createDustBunnyL3(entityManager_t * entityManager, uint16_t x, uint16_
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &dustBunnyL3TileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -804,6 +820,7 @@ entity_t* createWaspL2(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &waspTileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -841,6 +858,7 @@ entity_t* createWaspL3(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->collisionHandler = &enemyCollisionHandler;
     entity->tileCollisionHandler = &waspTileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -863,6 +881,7 @@ entity_t* createBgColBlue(entityManager_t * entityManager, uint16_t x, uint16_t 
     entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -885,6 +904,7 @@ entity_t* createBgColYellow(entityManager_t * entityManager, uint16_t x, uint16_
     entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -907,6 +927,7 @@ entity_t* createBgColOrange(entityManager_t * entityManager, uint16_t x, uint16_
     entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -929,6 +950,7 @@ entity_t* createBgColPurple(entityManager_t * entityManager, uint16_t x, uint16_
     entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -951,6 +973,7 @@ entity_t* createBgColDarkPurple(entityManager_t * entityManager, uint16_t x, uin
     entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -974,6 +997,7 @@ entity_t* createBgColBlack(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -996,6 +1020,7 @@ entity_t* createBgColNeutralGreen(entityManager_t * entityManager, uint16_t x, u
     entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -1018,6 +1043,7 @@ entity_t* createBgColNeutralDarkRed(entityManager_t * entityManager, uint16_t x,
     entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -1040,6 +1066,7 @@ entity_t* createBgColNeutralDarkGreen(entityManager_t * entityManager, uint16_t 
     entity->updateFunction = &updateBgCol;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 }
@@ -1072,6 +1099,7 @@ entity_t* create1up(entityManager_t * entityManager, uint16_t x, uint16_t y){
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 };
@@ -1104,6 +1132,7 @@ entity_t* createWaveBall(entityManager_t * entityManager, uint16_t x, uint16_t y
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 };
@@ -1137,6 +1166,7 @@ entity_t* createCheckpoint(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->updateFunction = &updateCheckpoint;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
 
     return entity;
 };

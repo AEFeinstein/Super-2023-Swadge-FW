@@ -57,6 +57,7 @@ typedef void(*updateFunction_t)(struct entity_t *self);
 typedef void(*collisionHandler_t)(struct entity_t *self, struct entity_t *other);
 typedef bool(*tileCollisionHandler_t)(struct entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
 typedef void(*fallOffTileHandler_t)(struct entity_t *self);
+typedef void(*overlapTileHandler_t)(struct entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty);
 
 struct entity_t
 {
@@ -106,6 +107,7 @@ struct entity_t
     collisionHandler_t collisionHandler;
     tileCollisionHandler_t tileCollisionHandler;
     fallOffTileHandler_t fallOffTileHandler;
+    overlapTileHandler_t overlapTileHandler;
 };
 
 //==============================================================================
@@ -178,5 +180,8 @@ void turnAroundAtEdgeOfTileHandler(entity_t *self);
 void updateEnemyBushL3(entity_t* self);
 
 void updateCheckpoint(entity_t* self);
+
+void playerOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8_t ty);
+void defaultOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8_t ty);
 
 #endif
