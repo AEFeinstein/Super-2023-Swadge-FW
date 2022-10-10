@@ -318,6 +318,15 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSp
                 tokIdx++;
                 numFieldsParsed++;
             }
+            else if(0 == jsoneq(jsonStr, &toks[tokIdx], "stock_icn"))
+            {
+                tokIdx++;
+                char* name = jsonString(jsonStr, toks[tokIdx]);
+                ftr->stockIconIdx = loadFighterSprite(name, loadedSprites);
+                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &ftr->idleSprite0);
+                free(name);
+                numFieldsParsed++;
+            }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "attacks"))
             {
                 // Move to the array, get the size
