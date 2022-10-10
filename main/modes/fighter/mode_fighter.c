@@ -2275,32 +2275,26 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     // Adjust camera
     // Check if either fighter is offscreen at all
     wsg_t* f1sprite = getFighterSprite(f1->currentSprite->spriteIdx, f->loadedSprites);
-    bool f1offscreen = (f1spritePos.x < 0) || (f1spritePos.x + f1sprite->w >= f->d->w) ||
-                       (f1spritePos.y < 0) || (f1spritePos.y + f1sprite->h >= f->d->h);
+    bool f1offscreenX = (f1spritePos.x < 0) || (f1spritePos.x + f1sprite->w >= f->d->w);
+    bool f1offscreenY = (f1spritePos.y < 0) || (f1spritePos.y + f1sprite->h >= f->d->h);
     wsg_t* f2sprite = getFighterSprite(f2->currentSprite->spriteIdx, f->loadedSprites);
-    bool f2offscreen = (f2spritePos.x < 0) || (f2spritePos.x + f2sprite->w >= f->d->w) ||
-                       (f2spritePos.y < 0) || (f2spritePos.y + f2sprite->h >= f->d->h);
+    bool f2offscreenX = (f2spritePos.x < 0) || (f2spritePos.x + f2sprite->w >= f->d->w);
+    bool f2offscreenY = (f2spritePos.y < 0) || (f2spritePos.y + f2sprite->h >= f->d->h);
 
     // Assume no camera offset
     vector_t centeredOffset = {.x = 0, .y = 0};
     // If a fighter is offscreen
-    if(f1offscreen || f2offscreen)
+    if(f1offscreenX || f2offscreenX)
     {
-        // Find the midpoint of the fighter sprites
-        vector_t f1mid =
-        {
-            .x = f1spritePos.x + (f1sprite->w / 2),
-            .y = f1spritePos.y + (f1sprite->h / 2),
-        };
-        vector_t f2mid =
-        {
-            .x = f2spritePos.x + (f2sprite->w / 2),
-            .y = f2spritePos.y + (f2sprite->h / 2),
-        };
-
-        // Find the offset between the midpoint between the fighters and the center of the screen
-        centeredOffset.x = (f->d->w - (f1mid.x + f2mid.x)) / 2;
-        centeredOffset.y = (f->d->h - (f1mid.y + f2mid.y)) / 2;
+        int16_t f1midX = f1spritePos.x + (f1sprite->w / 2);
+        int16_t f2midX = f2spritePos.x + (f2sprite->w / 2);
+        centeredOffset.x = (f->d->w - (f1midX + f2midX)) / 2;
+    }
+    if(f1offscreenY || f2offscreenY)
+    {
+        int16_t f1midY = f1spritePos.y + (f1sprite->w / 2);
+        int16_t f2midY = f2spritePos.y + (f2sprite->w / 2);
+        centeredOffset.y = (f->d->w - (f1midY + f2midY)) / 2;
     }
 
     // Pan the camera a quarter of the way to the midpoint
