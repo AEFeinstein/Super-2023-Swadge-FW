@@ -260,7 +260,7 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     }
 
     // Check for a pass
-    if(energy > 200000)
+    if(energy > 100000)
     {
         test->bzrMicPassed = true;
     }
