@@ -108,9 +108,9 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
                                     uint8_t* outLen);
 void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir, bool isInvincible);
 void drawFighterHud(display_t* d, font_t* font,
-    int16_t f1_dmg, int16_t f1_stock, int16_t f1_stockIconIdx,
-    int16_t f2_dmg, int16_t f2_stock, int16_t f2_stockIconIdx,
-    int32_t gameTimerUs, bool drawGo);
+                    int16_t f1_dmg, int16_t f1_stock, int16_t f1_stockIconIdx,
+                    int16_t f2_dmg, int16_t f2_stock, int16_t f2_stockIconIdx,
+                    int32_t gameTimerUs, bool drawGo);
 #ifdef DRAW_DEBUG_BOXES
     void drawFighterDebugBox(display_t* d, fighter_t* ftr, int16_t camOffX, int16_t camOffY);
     void drawProjectileDebugBox(display_t* d, list_t* projectiles, int16_t camOffX, int16_t camOffY);
@@ -2435,7 +2435,8 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
     }
 
     // Draw the HUD
-    drawFighterHud(d, f->mm_font, f1_dmg, f1_stock, f1_stockIconIdx, f2_dmg, f2_stock, f2_stockIconIdx, scene->gameTimerUs, scene->drawGo);
+    drawFighterHud(d, f->mm_font, f1_dmg, f1_stock, f1_stockIconIdx, f2_dmg, f2_stock, f2_stockIconIdx, scene->gameTimerUs,
+                   scene->drawGo);
 
     // Draw debug boxes, conditionally
 #ifdef DRAW_DEBUG_BOXES
@@ -2551,15 +2552,15 @@ void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirec
  * @param drawGo true to draw the word "GO!!!", false otherwise
  */
 void drawFighterHud(display_t* d, font_t* font,
-    int16_t f1_dmg, int16_t f1_stock, int16_t f1_stockIconIdx,
-    int16_t f2_dmg, int16_t f2_stock, int16_t f2_stockIconIdx,
-    int32_t gameTimerUs, bool drawGo)
+                    int16_t f1_dmg, int16_t f1_stock, int16_t f1_stockIconIdx,
+                    int16_t f2_dmg, int16_t f2_stock, int16_t f2_stockIconIdx,
+                    int32_t gameTimerUs, bool drawGo)
 {
     char dmgStr[16];
     uint16_t tWidth;
     uint16_t xPos;
 
-    wsg_t * stockIcon = getFighterSprite(f1_stockIconIdx, f->loadedSprites);
+    wsg_t* stockIcon = getFighterSprite(f1_stockIconIdx, f->loadedSprites);
     int16_t stockWidth = (NUM_STOCKS * stockIcon->w) + ((NUM_STOCKS - 1) * 4);
     int16_t stockX = (d->w / 3) - (stockWidth / 2);
     for(uint8_t stockToDraw = 0; stockToDraw < f1_stock; stockToDraw++)
