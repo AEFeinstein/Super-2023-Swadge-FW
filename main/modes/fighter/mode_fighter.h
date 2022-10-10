@@ -208,6 +208,7 @@ typedef struct
     /* Input Tracking */
     int32_t prevBtnState;
     int32_t btnState;
+    int32_t btnPressesSinceLast;
     /* Current state tracking */
     fighterState_t state;
     bool isAerialAttack;
