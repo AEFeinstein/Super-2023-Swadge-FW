@@ -323,8 +323,8 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSp
                 tokIdx++;
                 char* name = jsonString(jsonStr, toks[tokIdx]);
                 ftr->stockIconIdx = loadFighterSprite(name, loadedSprites);
-                tokIdx = parseJsonOffsetSprite(jsonStr, toks, tokIdx, loadedSprites, &ftr->idleSprite0);
                 free(name);
+                tokIdx++;
                 numFieldsParsed++;
             }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "attacks"))
