@@ -931,7 +931,7 @@ uint8_t loadFighterSprite(char* name, namedSprite_t* loadedSprites)
         if(NULL == loadedSprites[idx].name)
         {
             // If so, we've reached the end and should load this sprite
-            if(loadWsg(name, &loadedSprites[idx].sprite))
+            if(loadWsgSpiRam(name, &loadedSprites[idx].sprite, true))
             {
                 // If the sprite loads, save the name
                 loadedSprites[idx].name = calloc(1, strlen(name) + 1);
