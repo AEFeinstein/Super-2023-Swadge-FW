@@ -187,7 +187,7 @@ void fighterEnterMode(display_t* disp)
     loadWsgSpiRam("fdbg.wsg", &fm->fd_bg, true);
 
     // Load a background image to SPI RAM
-    loadWsg("conlogo.wsg", &fm->conlogo);
+    loadWsgSpiRam("conlogo.wsg", &fm->conlogo, true);
 
     // Set the main menu
     setFighterMainMenu();
