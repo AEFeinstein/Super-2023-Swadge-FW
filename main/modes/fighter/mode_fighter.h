@@ -153,6 +153,7 @@ typedef struct
 {
     box_t area;
     bool canFallThrough;
+    paletteColor_t color;
 } platform_t;
 
 typedef struct

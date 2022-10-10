@@ -49,10 +49,11 @@ typedef enum
 
 #define FPS_MEASUREMENT_SEC 3
 
-#define BARRIER_COLOR    c435
-#define PLATFORM_COLOR   c111
-#define HUD_COLOR        c444
-#define INVINCIBLE_COLOR c550
+#define BARRIER_COLOR         c435
+#define BOTTOM_PLATFORM_COLOR c111
+#define TOP_PLATFORM_COLOR    c333
+#define HUD_COLOR             c444
+#define INVINCIBLE_COLOR      c550
 
 //==============================================================================
 // Structs
@@ -164,7 +165,8 @@ static const stage_t battlefield =
                 .x1 = ((SCREEN_W - STAGE_MARGIN) << SF),
                 .y1 = ABS_BOTTOM,
             },
-            .canFallThrough = false
+            .canFallThrough = false,
+            .color = BOTTOM_PLATFORM_COLOR
         },
         // Left platform
         {
@@ -175,7 +177,8 @@ static const stage_t battlefield =
                 .x1 = ((PLATFORM_MARGIN + PLATFORM_WIDTH) << SF),
                 .y1 = ((STAGE_Y - PLATFORM_Y_SPACING + PLATFORM_HEIGHT) << SF),
             },
-            .canFallThrough = true
+            .canFallThrough = true,
+            .color = TOP_PLATFORM_COLOR
         },
         // Right Platform
         {
@@ -186,7 +189,8 @@ static const stage_t battlefield =
                 .x1 = ((SCREEN_W - PLATFORM_MARGIN) << SF),
                 .y1 = ((STAGE_Y - PLATFORM_Y_SPACING + PLATFORM_HEIGHT) << SF),
             },
-            .canFallThrough = true
+            .canFallThrough = true,
+            .color = TOP_PLATFORM_COLOR
         },
         // Top Platform
         {
@@ -197,7 +201,8 @@ static const stage_t battlefield =
                 .x1 = ((((SCREEN_W - PLATFORM_WIDTH) / 2) + PLATFORM_WIDTH) << SF),
                 .y1 = ((STAGE_Y - (2 * PLATFORM_Y_SPACING) + PLATFORM_HEIGHT) << SF),
             },
-            .canFallThrough = true
+            .canFallThrough = true,
+            .color = TOP_PLATFORM_COLOR
         }
     }
 };
@@ -215,7 +220,8 @@ static const stage_t finalDest =
                 .x1 = ((SCREEN_W - STAGE_MARGIN) << SF),
                 .y1 = ABS_BOTTOM,
             },
-            .canFallThrough = false
+            .canFallThrough = false,
+            .color = BOTTOM_PLATFORM_COLOR
         }
     }
 };
@@ -233,7 +239,8 @@ static const stage_t hrStadium =
                 .x1 = ((SCREEN_W - HR_STAGE_MARGIN) << SF),
                 .y1 = ABS_BOTTOM,
             },
-            .canFallThrough = false
+            .canFallThrough = false,
+            .color = BOTTOM_PLATFORM_COLOR
         }
     }
 };
@@ -2363,7 +2370,7 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
             .y0 = (platform.area.y0 >> SF) + scene->cameraOffsetY,
             .y1 = (platform.area.y1 >> SF) + scene->cameraOffsetY,
         };
-        drawBox(d, offsetArea, PLATFORM_COLOR, !platform.canFallThrough, 0);
+        drawBox(d, offsetArea, platform.color, true, 0);
     }
 
     // f1 position
