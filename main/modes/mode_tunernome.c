@@ -655,6 +655,7 @@ void instrumentTunerMagic(const uint16_t freqBinIdxs[], uint16_t numStrings, led
 void tunernomeMainLoop(int64_t elapsedUs)
 {
     tunernome->disp->clearPx();
+    fillDisplayArea(tunernome->disp, 0, 0, tunernome->disp->w, tunernome->disp->h, c001);
 
     if(tunernome->exitButtonHeld)
     {
