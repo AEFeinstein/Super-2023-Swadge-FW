@@ -1844,9 +1844,13 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     // Check kill zone for all other characters
     else if(hbox.y0 > (600 << SF))
     {
-        // Decrement stocks
-        if(ftr->stocks > 1)
+        if(HR_CONTEST == f->type)
         {
+            ; // HR contest doesn't decrement stock or show multiplayer results
+        }
+        else if(ftr->stocks > 1)
+        {
+            // Decrement stocks
             ftr->stocks--;
         }
         else
