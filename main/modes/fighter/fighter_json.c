@@ -318,6 +318,15 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSp
                 tokIdx++;
                 numFieldsParsed++;
             }
+            else if(0 == jsoneq(jsonStr, &toks[tokIdx], "stock_icn"))
+            {
+                tokIdx++;
+                char* name = jsonString(jsonStr, toks[tokIdx]);
+                ftr->stockIconIdx = loadFighterSprite(name, loadedSprites);
+                free(name);
+                tokIdx++;
+                numFieldsParsed++;
+            }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "attacks"))
             {
                 // Move to the array, get the size
@@ -745,7 +754,12 @@ int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokId
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "hitstun"))
             {
                 tokIdx++;
-                hbx->hitstun = jsonInteger(jsonStr, toks[tokIdx]);
+                // Convert ms to frames
+                hbx->hitstun = jsonInteger(jsonStr, toks[tokIdx]) / FRAME_TIME_MS;
+                if(0 == hbx->hitstun)
+                {
+                    hbx->hitstun = 1;
+                }
                 tokIdx++;
                 numFieldsParsed++;
             }
@@ -926,7 +940,7 @@ uint8_t loadFighterSprite(char* name, namedSprite_t* loadedSprites)
         if(NULL == loadedSprites[idx].name)
         {
             // If so, we've reached the end and should load this sprite
-            if(loadWsg(name, &loadedSprites[idx].sprite))
+            if(loadWsgSpiRam(name, &loadedSprites[idx].sprite, true))
             {
                 // If the sprite loads, save the name
                 loadedSprites[idx].name = calloc(1, strlen(name) + 1);

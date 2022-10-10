@@ -276,10 +276,6 @@ void check_esp_timer(uint64_t elapsed_us)
             {
                 tmr->alarm = tmr->period;
             }
-            else
-            {
-                tmr->alarm = 0;
-            }
         }
     }
 

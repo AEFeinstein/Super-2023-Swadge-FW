@@ -153,6 +153,7 @@ typedef struct
 {
     box_t area;
     bool canFallThrough;
+    paletteColor_t color;
 } platform_t;
 
 typedef struct
@@ -171,7 +172,6 @@ typedef struct
     vector_t velocity;
     bool isInAir;
     bool ledgeJumped;
-    bool isInvincible;
     uint16_t iFrameTimer;
     platformPos_t relativePos;
     const platform_t* touchingPlatform;
@@ -204,6 +204,7 @@ typedef struct
     offsetSprite_t landingLagSprite;
     offsetSprite_t hitstunGroundSprite;
     offsetSprite_t hitstunAirSprite;
+    uint8_t stockIconIdx;
     /* Input Tracking */
     int32_t prevBtnState;
     int32_t btnState;
@@ -258,6 +259,7 @@ typedef struct
     int16_t spriteIdx;
     int16_t damage;
     int16_t stocks;
+    int16_t stockIconIdx;
     int16_t isInvincible;
 } fighterSceneFighter_t;
 
