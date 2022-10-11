@@ -19,5 +19,5 @@ void exitTutorial(void);
 void picrossSetSaveFlag(int pos, bool on);
 bool picrossGetSaveFlag(int pos);
 bool picrossGetLoadedSaveFlag(int pos);
-
+void continueGame(void);
 #endif
