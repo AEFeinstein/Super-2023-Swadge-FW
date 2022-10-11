@@ -195,7 +195,7 @@ void drawBackgroundGrid(display_t * d)
             }
             else
             {
-                SET_PIXEL(d, x, y, c001); // Background
+                SET_PIXEL(d, x, y, c200); // Background
             }
         }
     }
