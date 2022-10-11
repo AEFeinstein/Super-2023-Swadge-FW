@@ -1181,7 +1181,7 @@ void jumperCheckLevel()
     j->scene->time = 5000000;
     j->respawnBlock = 0;
 
-    if (getIsMuted())
+    if (getBgmIsMuted())
     {
         j->scene->time = 2000000;
     }
