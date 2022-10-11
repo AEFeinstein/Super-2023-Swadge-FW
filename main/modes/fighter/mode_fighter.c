@@ -1031,21 +1031,24 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
  */
 void checkFighterButtonInput(fighter_t* ftr)
 {
+    // Button state is the known state and any inter-frame
+    uint32_t btnState = ftr->btnState | ftr->btnPressesSinceLast;
+
     // Manage ducking, only happens on the ground
     if(!ftr->isInAir)
     {
-        if ((FS_IDLE == ftr->state) && (ftr->btnState & DOWN))
+        if ((FS_IDLE == ftr->state) && (btnState & DOWN))
         {
             setFighterState(ftr, FS_DUCKING, &(ftr->duckSprite), 0, NULL);
         }
-        else if((FS_DUCKING == ftr->state) && !(ftr->btnState & DOWN))
+        else if((FS_DUCKING == ftr->state) && !(btnState & DOWN))
         {
             setFighterState(ftr, FS_IDLE, &(ftr->idleSprite0), 0, NULL);
         }
     }
 
     // Manage the A button
-    if (!(ftr->prevBtnState & BTN_A) && (ftr->btnState & BTN_A))
+    if (!(ftr->prevBtnState & BTN_A) && (btnState & BTN_A))
     {
         switch(ftr->state)
         {
@@ -1098,7 +1101,7 @@ void checkFighterButtonInput(fighter_t* ftr)
 
     // Releasing A when the short hop timer is active will do a short hop
     if((ftr->shortHopTimer > 0) &&
-            (ftr->prevBtnState & BTN_A) && !(ftr->btnState & BTN_A))
+            (ftr->prevBtnState & BTN_A) && !(btnState & BTN_A))
     {
         // Set this boolean, but don't stop the timer! The short hop will peak
         // when the timer expires, at a nice consistent height
@@ -1106,7 +1109,7 @@ void checkFighterButtonInput(fighter_t* ftr)
     }
 
     // Pressing B means attack, when not in the freefall state
-    if (!ftr->isInFreefall && !(ftr->prevBtnState & BTN_B) && (ftr->btnState & BTN_B))
+    if (!ftr->isInFreefall && !(ftr->prevBtnState & BTN_B) && (btnState & BTN_B))
     {
         switch(ftr->state)
         {
@@ -1124,12 +1127,12 @@ void checkFighterButtonInput(fighter_t* ftr)
                     // Attack on ground
                     ftr->isAerialAttack = false;
 
-                    if(ftr->btnState & UP)
+                    if(btnState & UP)
                     {
                         // Up tilt attack
                         ftr->cAttack = UP_GROUND;
                     }
-                    else if(ftr->btnState & DOWN)
+                    else if(btnState & DOWN)
                     {
                         // Down tilt attack
                         ftr->cAttack = DOWN_GROUND;
@@ -1144,7 +1147,7 @@ void checkFighterButtonInput(fighter_t* ftr)
                         // Running to the left
                         ftr->cAttack = DASH_GROUND;
                     }
-                    else if((ftr->btnState & LEFT) || (ftr->btnState & RIGHT))
+                    else if((btnState & LEFT) || (btnState & RIGHT))
                     {
                         // Side button pressed, but not running
                         ftr->cAttack = FRONT_GROUND;
@@ -1160,7 +1163,7 @@ void checkFighterButtonInput(fighter_t* ftr)
                     // Attack in air
                     ftr->isAerialAttack = true;
 
-                    if(ftr->btnState & UP)
+                    if(btnState & UP)
                     {
                         // Up air attack
                         ftr->cAttack = UP_AIR;
@@ -1170,28 +1173,28 @@ void checkFighterButtonInput(fighter_t* ftr)
 
                         // Change direction mid-air when performing an up air attack
                         // Otherwise direction is not changed while mid-air
-                        if(ftr->btnState & LEFT)
+                        if(btnState & LEFT)
                         {
                             ftr->dir = FACING_LEFT;
                         }
-                        else if (ftr->btnState & RIGHT)
+                        else if (btnState & RIGHT)
                         {
                             ftr->dir = FACING_RIGHT;
                         }
                     }
-                    else if(ftr->btnState & DOWN)
+                    else if(btnState & DOWN)
                     {
                         // Down air
                         ftr->cAttack = DOWN_AIR;
                     }
-                    else if(((ftr->btnState & LEFT ) && (FACING_RIGHT == ftr->dir)) ||
-                            ((ftr->btnState & RIGHT) && (FACING_LEFT  == ftr->dir)))
+                    else if(((btnState & LEFT ) && (FACING_RIGHT == ftr->dir)) ||
+                            ((btnState & RIGHT) && (FACING_LEFT  == ftr->dir)))
                     {
                         // Back air
                         ftr->cAttack = BACK_AIR;
                     }
-                    else if(((ftr->btnState & RIGHT) && (FACING_RIGHT == ftr->dir)) ||
-                            ((ftr->btnState & LEFT ) && (FACING_LEFT  == ftr->dir)))
+                    else if(((btnState & RIGHT) && (FACING_RIGHT == ftr->dir)) ||
+                            ((btnState & LEFT ) && (FACING_LEFT  == ftr->dir)))
                     {
                         // Front air
                         ftr->cAttack = FRONT_AIR;
@@ -1236,13 +1239,13 @@ void checkFighterButtonInput(fighter_t* ftr)
             if((!ftr->isInAir) && ftr->touchingPlatform->canFallThrough)
             {
                 // Check if down button was released
-                if ((ftr->prevBtnState & DOWN) && !(ftr->btnState & DOWN))
+                if ((ftr->prevBtnState & DOWN) && !(btnState & DOWN))
                 {
                     // Start timer to check for second press
                     ftr->fallThroughTimer = 250 / FRAME_TIME_MS; // 250ms
                 }
                 // Check if a second down press was detected while the timer is active
-                else if (ftr->fallThroughTimer > 0 && !(ftr->prevBtnState & DOWN) && (ftr->btnState & DOWN))
+                else if (ftr->fallThroughTimer > 0 && !(ftr->prevBtnState & DOWN) && (btnState & DOWN))
                 {
                     // Second press detected fast enough
                     ftr->fallThroughTimer = 0;
@@ -1272,6 +1275,8 @@ void checkFighterButtonInput(fighter_t* ftr)
 
     // Save the button state for the next frame comparison
     ftr->prevBtnState = ftr->btnState;
+    // Clear inter-frame events
+    ftr->btnPressesSinceLast = 0;
 }
 
 /**
@@ -1844,9 +1849,13 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     // Check kill zone for all other characters
     else if(hbox.y0 > (600 << SF))
     {
-        // Decrement stocks
-        if(ftr->stocks > 1)
+        if(HR_CONTEST == f->type)
         {
+            ; // HR contest doesn't decrement stock or show multiplayer results
+        }
+        else if(ftr->stocks > 1)
+        {
+            // Decrement stocks
             ftr->stocks--;
         }
         else
@@ -2275,32 +2284,26 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     // Adjust camera
     // Check if either fighter is offscreen at all
     wsg_t* f1sprite = getFighterSprite(f1->currentSprite->spriteIdx, f->loadedSprites);
-    bool f1offscreen = (f1spritePos.x < 0) || (f1spritePos.x + f1sprite->w >= f->d->w) ||
-                       (f1spritePos.y < 0) || (f1spritePos.y + f1sprite->h >= f->d->h);
+    bool f1offscreenX = (f1spritePos.x < 0) || (f1spritePos.x + f1sprite->w >= f->d->w);
+    bool f1offscreenY = (f1spritePos.y < 0) || (f1spritePos.y + f1sprite->h >= f->d->h);
     wsg_t* f2sprite = getFighterSprite(f2->currentSprite->spriteIdx, f->loadedSprites);
-    bool f2offscreen = (f2spritePos.x < 0) || (f2spritePos.x + f2sprite->w >= f->d->w) ||
-                       (f2spritePos.y < 0) || (f2spritePos.y + f2sprite->h >= f->d->h);
+    bool f2offscreenX = (f2spritePos.x < 0) || (f2spritePos.x + f2sprite->w >= f->d->w);
+    bool f2offscreenY = (f2spritePos.y < 0) || (f2spritePos.y + f2sprite->h >= f->d->h);
 
     // Assume no camera offset
     vector_t centeredOffset = {.x = 0, .y = 0};
     // If a fighter is offscreen
-    if(f1offscreen || f2offscreen)
+    if(f1offscreenX || f2offscreenX)
     {
-        // Find the midpoint of the fighter sprites
-        vector_t f1mid =
-        {
-            .x = f1spritePos.x + (f1sprite->w / 2),
-            .y = f1spritePos.y + (f1sprite->h / 2),
-        };
-        vector_t f2mid =
-        {
-            .x = f2spritePos.x + (f2sprite->w / 2),
-            .y = f2spritePos.y + (f2sprite->h / 2),
-        };
-
-        // Find the offset between the midpoint between the fighters and the center of the screen
-        centeredOffset.x = (f->d->w - (f1mid.x + f2mid.x)) / 2;
-        centeredOffset.y = (f->d->h - (f1mid.y + f2mid.y)) / 2;
+        int16_t f1midX = f1spritePos.x + (f1sprite->w / 2);
+        int16_t f2midX = f2spritePos.x + (f2sprite->w / 2);
+        centeredOffset.x = (f->d->w - (f1midX + f2midX)) / 2;
+    }
+    if(f1offscreenY || f2offscreenY)
+    {
+        int16_t f1midY = f1spritePos.y + (f1sprite->w / 2);
+        int16_t f2midY = f2spritePos.y + (f2sprite->w / 2);
+        centeredOffset.y = (f->d->w - (f1midY + f2midY)) / 2;
     }
 
     // Pan the camera a quarter of the way to the midpoint
@@ -2747,6 +2750,8 @@ void fighterGameButtonCb(buttonEvt_t* evt)
 {
     // Save the state to check synchronously
     f->fighters[f->playerIdx].btnState = evt->state;
+    // Save an OR'd list of presses separately
+    f->fighters[f->playerIdx].btnPressesSinceLast |= evt->state;
 }
 
 /**
@@ -2754,7 +2759,12 @@ void fighterGameButtonCb(buttonEvt_t* evt)
  */
 int32_t fighterGetButtonState(void)
 {
-    return f->fighters[f->playerIdx].btnState;
+    // Button state is the known state and any inter-frame
+    int32_t state = f->fighters[f->playerIdx].btnState |
+                    f->fighters[f->playerIdx].btnPressesSinceLast;
+    // Clear inter-frame presses after consumption
+    f->fighters[f->playerIdx].btnPressesSinceLast = 0;
+    return state;
 }
 
 /**
