@@ -1348,8 +1348,6 @@ void changeStateGame(platformer_t *self){
 
     self->tilemap.executeTileSpawnAll = true;
 
-    buzzer_play_bgm(&bgmDemagio);
-
     self->update = &updateGame;
 }
 
@@ -1419,6 +1417,7 @@ void changeStateDead(platformer_t *self){
     self->gameData.combo = 0;
     self->gameData.comboTimer = 0;
 
+    buzzer_stop();
     buzzer_play_bgm(&sndDie);
 
     self->update=&updateDead;
@@ -1475,6 +1474,7 @@ void changeStateLevelClear(platformer_t *self){
     self->gameData.checkpoint = 0;
     self->gameData.levelDeaths = 0;
     self->gameData.extraLifeCollected = false;
+    buzzer_stop();
     self->update=&updateLevelClear;
 }
 
