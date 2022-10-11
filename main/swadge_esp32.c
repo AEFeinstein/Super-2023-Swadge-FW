@@ -183,7 +183,7 @@ uint16_t tud_hid_get_report_cb(uint8_t itf,
     }
     else if( report_id == 173 && cSwadgeMode && cSwadgeMode->fnAdvancedUSB )
     {
-        cSwadgeMode->fnAdvancedUSB( buffer, reqlen, 1 );
+        return cSwadgeMode->fnAdvancedUSB( buffer, reqlen, 1 );
     }
     else
     {
