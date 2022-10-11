@@ -242,6 +242,22 @@ bool loadTiles(tilemap_t *tilemap)
     loadWsg("tile086.wsg", &tilemap->tiles[54]);
     loadWsg("tile087.wsg", &tilemap->tiles[55]);
     loadWsg("tile088.wsg", &tilemap->tiles[56]);
+    loadWsg("tile089.wsg", &tilemap->tiles[57]);
+    loadWsg("tile090.wsg", &tilemap->tiles[58]);
+    loadWsg("tile091.wsg", &tilemap->tiles[59]);
+    loadWsg("tile092.wsg", &tilemap->tiles[60]);
+    loadWsg("tile093.wsg", &tilemap->tiles[61]);
+    loadWsg("tile094.wsg", &tilemap->tiles[62]);
+    loadWsg("tile095.wsg", &tilemap->tiles[63]);
+    loadWsg("tile096.wsg", &tilemap->tiles[64]);
+    loadWsg("tile097.wsg", &tilemap->tiles[65]);
+    loadWsg("tile098.wsg", &tilemap->tiles[66]);
+    loadWsg("tile099.wsg", &tilemap->tiles[67]);
+    loadWsg("tile100.wsg", &tilemap->tiles[68]);
+    loadWsg("tile101.wsg", &tilemap->tiles[69]);
+    loadWsg("tile102.wsg", &tilemap->tiles[70]);
+    loadWsg("tile103.wsg", &tilemap->tiles[71]);
+
 
     return true;
 }
@@ -300,7 +316,7 @@ bool isSolid(uint8_t tileId)
     case TILE_BOUNCE_BLOCK:
         return false;
         break;
-    case TILE_METAL_PIPE_VEND ... TILE_CONTAINER_3:
+    case TILE_DIRT_PATH ... TILE_CONTAINER_3:
         return true;
         break;
     default:
@@ -328,8 +344,18 @@ bool needsTransparency(uint8_t tileId){
         case TILE_CONTAINER_1 ... TILE_CONTAINER_3:
         case TILE_COIN_1 ... TILE_COIN_3:
         case TILE_LADDER:
-        case TILE_BG_GOAL_ZONE ... TILE_BG_ARROW_RD:
+        case TILE_BG_GOAL_ZONE ... TILE_BG_CLOUD_D:
             return true;
+        case TILE_BG_CLOUD:
+            return false;
+        case TILE_BG_TALL_GRASS ... TILE_BG_MOUNTAIN_R:
+            return true;
+        case TILE_BG_MOUNTAIN ... TILE_BG_METAL:
+            return false;
+        case TILE_BG_CHAINS:
+            return true;
+        case TILE_BG_WALL:
+            return false;
         default:
             return false;
     }

@@ -24,7 +24,7 @@
 #define TILE_SIZE 16
 #define TILE_SIZE_IN_POWERS_OF_2 4
 
-#define TILESET_SIZE 64
+#define TILESET_SIZE 72
 
 //==============================================================================
 // Enums
