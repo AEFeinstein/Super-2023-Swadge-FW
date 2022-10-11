@@ -47,12 +47,12 @@ typedef enum {
     ENTITY_1UP,
     ENTITY_WAVE_BALL,
     ENTITY_CHECKPOINT,
-    ENTITY_BGM_CHANGE_0,
+    ENTITY_BGM_STOP,
     ENTITY_BGM_CHANGE_1,
     ENTITY_BGM_CHANGE_2,
     ENTITY_BGM_CHANGE_3,
     ENTITY_BGM_CHANGE_4,
-    ENTITY_BGM_STOP
+    ENTITY_BGM_CHANGE_5
 } entityIndex_t;
 
 //==============================================================================

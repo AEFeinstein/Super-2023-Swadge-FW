@@ -282,8 +282,8 @@ entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint
         case ENTITY_CHECKPOINT:
             createdEntity = createCheckpoint(entityManager, x, y);
             break;
-        case ENTITY_BGM_CHANGE_0:
-            createdEntity = createBgmChange0(entityManager, x, y);
+        case ENTITY_BGM_STOP:
+            createdEntity = createBgmStop(entityManager, x, y);
             break;
         case ENTITY_BGM_CHANGE_1:
             createdEntity = createBgmChange1(entityManager, x, y);
@@ -297,8 +297,8 @@ entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint
         case ENTITY_BGM_CHANGE_4:
             createdEntity = createBgmChange4(entityManager, x, y);
             break;
-        case ENTITY_BGM_STOP:
-            createdEntity = createBgmStop(entityManager, x, y);
+        case ENTITY_BGM_CHANGE_5:
+            createdEntity = createBgmChange5(entityManager, x, y);
             break;
 
         default:
@@ -1196,29 +1196,6 @@ void freeEntityManager(entityManager_t * self){
     }
 }
 
-entity_t* createBgmChange0(entityManager_t * entityManager, uint16_t x, uint16_t y)
-{
-    entity_t * entity = findInactiveEntity(entityManager);
-
-    if(entity == NULL) {
-        return NULL;
-    }
-
-    entity->active = true;
-    entity->visible = false;
-    entity->x = x << SUBPIXEL_RESOLUTION;
-    entity->y = y << SUBPIXEL_RESOLUTION;
-    entity->xDamping = BGM_MAIN;
-    
-    entity->type = ENTITY_BGM_CHANGE_0;
-    entity->updateFunction = &updateBgmChange;
-    entity->collisionHandler = &dummyCollisionHandler;
-    entity->tileCollisionHandler = &dummyTileCollisionHandler;
-    entity->overlapTileHandler = &defaultOverlapTileHandler;
-
-    return entity;
-}
-
 entity_t* createBgmChange1(entityManager_t * entityManager, uint16_t x, uint16_t y)
 {
     entity_t * entity = findInactiveEntity(entityManager);
@@ -1231,7 +1208,7 @@ entity_t* createBgmChange1(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
-    entity->xDamping = BGM_ATHLETIC;
+    entity->xDamping = BGM_MAIN;
     
     entity->type = ENTITY_BGM_CHANGE_1;
     entity->updateFunction = &updateBgmChange;
@@ -1254,7 +1231,7 @@ entity_t* createBgmChange2(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
-    entity->xDamping = BGM_UNDERGROUND;
+    entity->xDamping = BGM_ATHLETIC;
     
     entity->type = ENTITY_BGM_CHANGE_2;
     entity->updateFunction = &updateBgmChange;
@@ -1277,7 +1254,7 @@ entity_t* createBgmChange3(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
-    entity->xDamping = BGM_FORTRESS;
+    entity->xDamping = BGM_UNDERGROUND;
     
     entity->type = ENTITY_BGM_CHANGE_3;
     entity->updateFunction = &updateBgmChange;
@@ -1300,9 +1277,32 @@ entity_t* createBgmChange4(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
-    entity->xDamping = BGM_MAIN;
+    entity->xDamping = BGM_FORTRESS;
     
     entity->type = ENTITY_BGM_CHANGE_4;
+    entity->updateFunction = &updateBgmChange;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
+
+    return entity;
+}
+
+entity_t* createBgmChange5(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    entity->xDamping = BGM_NULL;
+    
+    entity->type = ENTITY_BGM_CHANGE_5;
     entity->updateFunction = &updateBgmChange;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
