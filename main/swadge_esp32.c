@@ -163,6 +163,10 @@ uint16_t tud_hid_get_report_cb(uint8_t itf,
     {
         return handle_advanced_usb_terminal_get( reqlen, buffer );
     }
+    else if( report_id == 173 && cSwadgeMode && cSwadgeMode->fnAdvancedUSB )
+    {
+        cSwadgeMode->fnAdvancedUSB( buffer, reqlen, 1 );
+    }
     else
     {
         return reqlen;
@@ -195,6 +199,10 @@ void tud_hid_set_report_cb(uint8_t itf,
     if( report_id >= 170 && report_id <= 171 )
     {
         handle_advanced_usb_control_set( bufsize, buffer );
+    }
+    else if( report_id == 173 && cSwadgeMode && cSwadgeMode->fnAdvancedUSB )
+    {
+        cSwadgeMode->fnAdvancedUSB( (uint8_t*)buffer, bufsize, 0 );
     }
 #endif
 }
