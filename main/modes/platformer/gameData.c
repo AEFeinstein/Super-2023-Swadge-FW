@@ -45,6 +45,8 @@
     gameData->extraLifeCollected = false;
     gameData->checkpoint = 0;
     gameData->levelDeaths = 0;
+    gameData->currentBgm = 0;
+    gameData->changeBgm = 0;
 }
 
 void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData){
