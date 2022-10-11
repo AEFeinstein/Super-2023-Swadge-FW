@@ -97,7 +97,7 @@ swadgeMode modeMainMenu =
     .overrideUsb = false,
 };
 
-const char mainMenuTitle[] = "TEST FW";
+const char mainMenuTitle[] = "Swadge!";
 const char mainMenuGames[] = "Games";
 const char mainMenuTools[] = "Tools";
 const char mainMenuMusic[] = "Music";
