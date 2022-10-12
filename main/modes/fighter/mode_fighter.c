@@ -83,6 +83,8 @@ typedef struct
     wsg_t indicator;
     vector_t cameraOffset;
     led_t leds[NUM_LEDS];
+    led_t lColor;
+    led_t rColor;
     int32_t ledTimerUs;
 } fightingGame_t;
 
@@ -594,11 +596,11 @@ void fighterGameLoop(int64_t elapsedUs)
     // Update LEDs every 2ms
     bool updateLeds = false;
     f->ledTimerUs += elapsedUs;
-    while(f->ledTimerUs > 1953)
+    while(f->ledTimerUs > 1000)
     {
-        f->ledTimerUs -= 1953;
+        f->ledTimerUs -= 1000;
 
-        // Decay all LEDs. One step every 1953us is 0.5s to fully decay
+        // Decay all LEDs. One step every 1000us is 0.256s to fully decay
         for(int i = 0; i < NUM_LEDS; i++)
         {
             if(f->leds[i].r > 0)
@@ -612,6 +614,20 @@ void fighterGameLoop(int64_t elapsedUs)
             if(f->leds[i].b > 0)
             {
                 f->leds[i].b--;
+            }
+
+            // When an LED reaches half-brightness
+            if((f->leds[i].r == 128) || (f->leds[i].g == 128) || (f->leds[i].b == 128))
+            {
+                // Turn the next one on
+                if(i < (NUM_LEDS / 2) - 1)
+                {
+                    f->leds[i + 1] = f->lColor;
+                }
+                else if (i > (NUM_LEDS / 2))
+                {
+                    f->leds[i - 1] = f->rColor;
+                }
             }
         }
 
@@ -2524,16 +2540,18 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
 
     if(scene->ledfx & LEDFX_FIGHTER_1_HIT)
     {
-        f->leds[0].r = 0xFF;
-        f->leds[0].g = 0xFF;
-        f->leds[0].b = 0xFF;
+        f->lColor.r = 0;
+        f->lColor.g = 0xFF;
+        f->lColor.b = 0;
+        f->leds[0] = f->lColor;
     }
 
     if(scene->ledfx & LEDFX_FIGHTER_2_HIT)
     {
-        f->leds[NUM_LEDS - 1].r = 0xFF;
-        f->leds[NUM_LEDS - 1].g = 0xFF;
-        f->leds[NUM_LEDS - 1].b = 0xFF;
+        f->rColor.r = 0;
+        f->rColor.g = 0;
+        f->rColor.b = 0xFF;
+        f->leds[NUM_LEDS - 1] = f->rColor;
     }
 
     // Draw debug boxes, conditionally
