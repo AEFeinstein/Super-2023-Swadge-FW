@@ -297,6 +297,7 @@ void updateHitBlock(entity_t *self)
     if (self->animationTimer > 12)
     {
         uint8_t aboveTile = self->tilemap->map[(self->homeTileY - 1) * self->tilemap->mapWidth + self->homeTileX];
+        uint8_t belowTile = self->tilemap->map[(self->homeTileY + 1) * self->tilemap->mapWidth + self->homeTileX];
         entity_t *createdEntity = NULL;
 
         switch (aboveTile)
@@ -311,7 +312,7 @@ void updateHitBlock(entity_t *self)
             }
             case TILE_CTNR_POW1:
             {
-                createdEntity = createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity = createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) || belowTile == TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
                 createdEntity->homeTileX = 0;
                 createdEntity->homeTileY = 0;
 
@@ -320,7 +321,7 @@ void updateHitBlock(entity_t *self)
             }
             case TILE_WARP_0 ... TILE_WARP_F:
             {
-                createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) || belowTile == TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
 
                 createdEntity->homeTileX = self->homeTileX;
                 createdEntity->homeTileY = self->homeTileY;
@@ -336,7 +337,7 @@ void updateHitBlock(entity_t *self)
                     scorePoints(self->gameData, 10);
                     buzzer_play_sfx(&sndCoin);
                 } else {
-                    createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                    createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, (self->homeTileY - 1) * TILE_SIZE + HALF_TILE_SIZE);
                     createdEntity->homeTileX = 0;
                     createdEntity->homeTileY = 0;
                     self->gameData->extraLifeCollected = true;
@@ -1087,6 +1088,8 @@ void updatePowerUp(entity_t *self)
         self->spriteIndex = ((self->entityManager->playerEntity->hp < 2) ? SP_GAMING_1 : SP_MUSIC_1) + ((self->spriteIndex + 1) % 3);
     }
 
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
     despawnWhenOffscreen(self);
 }
 
@@ -1831,5 +1834,33 @@ void waveBallOverlapTileHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     if(isSolid(tileId) || tileId == TILE_BOUNCE_BLOCK){
         destroyEntity(self, false);
         buzzer_play_sfx(&sndHit);
+    }
+}
+
+void powerUpCollisionHandler(entity_t *self, entity_t *other)
+{
+    switch (other->type)
+    {
+        case ENTITY_TEST:
+        case ENTITY_DUST_BUNNY:
+        case ENTITY_WASP:
+        case ENTITY_BUSH_2:
+        case ENTITY_BUSH_3:
+        case ENTITY_DUST_BUNNY_2:
+        case ENTITY_DUST_BUNNY_3:
+        case ENTITY_WASP_2:
+        case ENTITY_WASP_3:
+            if((self->xspeed > 0 && self->x < other->x) || (self->xspeed < 0 && self->x > other->x)){
+                self->xspeed = -self->xspeed;
+            }
+            break;
+        case ENTITY_HIT_BLOCK:
+            self->xspeed = other->xspeed;
+            self->yspeed = other->yspeed;
+            break;
+        default:
+        {
+            break;
+        }
     }
 }
