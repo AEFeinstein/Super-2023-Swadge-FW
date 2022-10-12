@@ -22,6 +22,7 @@
 #include "bresenham.h"
 #include "linked_list.h"
 #include "led_util.h"
+#include "musical_buzzer.h"
 
 #include "mode_fighter.h"
 #include "fighter_json.h"
@@ -251,6 +252,28 @@ static const stage_t* stages[] =
     &battlefield,
     &finalDest,
     &hrStadium
+};
+
+// Simple sound effect when fighter 1 is hit
+static const song_t f1hit =
+{
+    .notes =
+    {
+        {.note = B_3, .timeMs = 100}
+    },
+    .numNotes = 1,
+    .shouldLoop = false
+};
+
+// Simple sound effect when fighter 2 is hit
+static const song_t f2hit =
+{
+    .notes =
+    {
+        {.note = B_4, .timeMs = 100}
+    },
+    .numNotes = 1,
+    .shouldLoop = false
 };
 
 //==============================================================================
@@ -1965,6 +1988,9 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         otherFtr->damage += hbx->damage;
                         ftr->damageGiven += hbx->damage;
 
+                        // Note the fighter was hit for SFX & LEDs
+                        otherFtr->damagedThisFrame = true;
+
                         // Set the hitstop timer
                         otherFtr->hitstopTimer = getHitstop(hbx->damage);
 
@@ -2057,6 +2083,9 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                         // Tally the damage
                         ftr->damage += proj->damage;
                         proj->owner->damageGiven += proj->damage;
+
+                        // Note the fighter was hit for SFX & LEDs
+                        ftr->damagedThisFrame = true;
 
                         // Apply the knockback, scaled by damage
                         // roughly (1 + (0.02 * dmg))
@@ -2224,7 +2253,7 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
 
     // Allocate array to store the data to render a scene
     (*outLen) = (sizeof(fighterScene_t)) + (numProj * sizeof(fighterSceneProjectile_t));
-    fighterScene_t* scene = malloc((*outLen));
+    fighterScene_t* scene = calloc(1, (*outLen));
 
     // message type is filled in later
 
@@ -2266,6 +2295,13 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     scene->f1.stocks = f1->stocks;
     scene->f1.stockIconIdx = f1->stockIconIdx;
     scene->f1.isInvincible = (f1->iFrameTimer > 0);
+    // If f1 took damage this frame
+    if(f1->damagedThisFrame)
+    {
+        // Add the sound effect to the scene
+        scene->sfx = SFX_FIGHTER_1_HIT;
+        f1->damagedThisFrame = false;
+    }
 
     // f2 position
     vector_t f2spritePos;
@@ -2280,6 +2316,13 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     scene->f2.stocks = f2->stocks;
     scene->f2.stockIconIdx = f2->stockIconIdx;
     scene->f2.isInvincible = (f2->iFrameTimer > 0);
+    // If f2 took damage this frame
+    if(f2->damagedThisFrame)
+    {
+        // Add the sound effect to the scene
+        scene->sfx = SFX_FIGHTER_2_HIT;
+        f2->damagedThisFrame = false;
+    }
 
     // Adjust camera
     // Check if either fighter is offscreen at all
@@ -2440,6 +2483,27 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
     // Draw the HUD
     drawFighterHud(d, f->mm_font, f1_dmg, f1_stock, f1_stockIconIdx, f2_dmg, f2_stock, f2_stockIconIdx, scene->gameTimerUs,
                    scene->drawGo);
+
+    // Play a sound
+    switch(scene->sfx)
+    {
+        case SFX_FIGHTER_1_HIT:
+        {
+            buzzer_play_sfx(&f1hit);
+            break;
+        }
+        case SFX_FIGHTER_2_HIT:
+        {
+            buzzer_play_sfx(&f2hit);
+            break;
+        }
+        default:
+        case SFX_FIGHTER_NONE:
+        {
+            // shhhh
+            break;
+        }
+    }
 
     // Draw debug boxes, conditionally
 #ifdef DRAW_DEBUG_BOXES

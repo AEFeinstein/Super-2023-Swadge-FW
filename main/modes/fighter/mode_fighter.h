@@ -97,6 +97,13 @@ typedef enum
     BOUNCE_RIGHT
 } bounceDir_t;
 
+typedef enum
+{
+    SFX_FIGHTER_NONE,
+    SFX_FIGHTER_1_HIT,
+    SFX_FIGHTER_2_HIT,
+} fighterSfx_t;
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -220,6 +227,7 @@ typedef struct
     int32_t shortHopTimer;
     bool isShortHop;
     int32_t damage;
+    bool damagedThisFrame;
     uint8_t stocks;
     bounceDir_t bounceNextCollision;
     uint32_t damageGiven;
@@ -256,33 +264,34 @@ typedef struct
 {
     int16_t spritePosX;
     int16_t spritePosY;
-    int16_t spriteDir;
-    int16_t spriteIdx;
     int16_t damage;
-    int16_t stocks;
-    int16_t stockIconIdx;
-    int16_t isInvincible;
+    int8_t spriteDir;
+    int8_t spriteIdx;
+    int8_t stocks;
+    int8_t stockIconIdx;
+    int8_t isInvincible;
 } fighterSceneFighter_t;
 
 typedef struct
 {
     int16_t spritePosX;
     int16_t spritePosY;
-    int16_t spriteDir;
-    int16_t spriteIdx;
+    int8_t spriteDir;
+    int8_t spriteIdx;
 } fighterSceneProjectile_t;
 
 typedef struct
 {
     uint8_t msgType;
-    bool drawGo;
-    uint32_t gameTimerUs;
-    uint16_t stageIdx;
-    fighterSceneFighter_t f1;
-    fighterSceneFighter_t f2;
+    uint8_t stageIdx;
+    uint8_t numProjectiles;
+    uint8_t sfx;
     int16_t cameraOffsetX;
     int16_t cameraOffsetY;
-    int16_t numProjectiles;
+    uint32_t gameTimerUs;
+    bool drawGo;
+    fighterSceneFighter_t f1;
+    fighterSceneFighter_t f2;
     fighterSceneProjectile_t projs[];
 } fighterScene_t;
 
