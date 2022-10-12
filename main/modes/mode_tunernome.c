@@ -1104,7 +1104,7 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                     {
                         modifyBpm(1);
                         tunernome->lastBpmButton = evt->button;
-                        tunernome->bpmButtonStartUs = 0;
+                        tunernome->bpmButtonStartUs = esp_timer_get_time();
                         tunernome->bpmButtonCurChangeUs = 0;
                         tunernome->bpmButtonAccumulatedUs = 0;
                         break;
@@ -1113,7 +1113,7 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                     {
                         modifyBpm(-1);
                         tunernome->lastBpmButton = evt->button;
-                        tunernome->bpmButtonStartUs = 0;
+                        tunernome->bpmButtonStartUs = esp_timer_get_time();
                         tunernome->bpmButtonCurChangeUs = 0;
                         tunernome->bpmButtonAccumulatedUs = 0;
                         break;
