@@ -51,7 +51,7 @@
 
 #define METRONOME_CENTER_X    tunernome->disp->w / 2
 #define METRONOME_CENTER_Y    tunernome->disp->h - 16 - CORNER_OFFSET
-#define METRONOME_RADIUS      70
+#define METRONOME_RADIUS      65
 #define INITIAL_BPM           60
 #define MAX_BPM               400
 #define METRONOME_FLASH_MS    35
@@ -701,11 +701,11 @@ void tunernomeMainLoop(int64_t elapsedUs)
             // Up/Down arrows in middle of display around current note/mode
             drawWsg(tunernome->disp, &(tunernome->upArrowWsg),
                     (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
-                    tunernome->ibm_vga8.h + 4,
+                    (tunernome->disp->h - tunernome->mm.h) / 2 - tunernome->upArrowWsg.h - 4,
                     false, false, 0);
             drawWsg(tunernome->disp, &(tunernome->upArrowWsg),
                     (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
-                    tunernome->disp->h - tunernome->upArrowWsg.h,
+                    (tunernome->disp->h + tunernome->mm.h) / 2 + 4,
                     false, true, 0);
 
             // Current note/mode in middle of display
@@ -747,12 +747,14 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     {
                         // Plot text on top of everything else
                         bool shouldDrawFlat = (semitoneNoteNames[semitoneNum][strlen(semitoneNoteNames[semitoneNum]) - 1] == 1);
-                        int16_t tWidth = textWidth(&tunernome->mm, semitoneNoteNames[semitoneNum]);
+                        char buf[5] = {0};
+                        strncpy(buf, semitoneNoteNames[semitoneNum], 4);
+                        int16_t tWidth = textWidth(&tunernome->mm, buf);
                         if(shouldDrawFlat)
                         {
                             tWidth += tunernome->flatWsg.w + 1;
                         }
-                        int16_t textEnd = drawText(tunernome->disp, &tunernome->mm, c555, semitoneNoteNames[semitoneNum],
+                        int16_t textEnd = drawText(tunernome->disp, &tunernome->mm, c555, buf,
                                                    (tunernome->disp->w - tWidth) / 2 + 1,
                                                    (tunernome->disp->h - tunernome->mm.h) / 2);
 
@@ -823,18 +825,14 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     // Plot text on top of everything else
                     uint8_t semitoneNum = (tunernome->curTunerMode - SEMITONE_0);
                     bool shouldDrawFlat = (semitoneNoteNames[semitoneNum][strlen(semitoneNoteNames[semitoneNum]) - 1] == 1);
-                    int16_t tWidth = textWidth(&tunernome->mm, semitoneNoteNames[semitoneNum]);
+                    char buf[5] = {0};
+                    strncpy(buf, semitoneNoteNames[semitoneNum], 4);
+                    int16_t tWidth = textWidth(&tunernome->mm, buf);
                     if(shouldDrawFlat)
                     {
                         tWidth += tunernome->flatWsg.w + 1;
                     }
-                    fillDisplayArea(tunernome->disp,
-                                    (tunernome->disp->w - tWidth) / 2,
-                                    (tunernome->disp->h - tunernome->mm.h) / 2 - 1,
-                                    (tunernome->disp->w - tWidth) / 2 + tWidth,
-                                    ((tunernome->disp->h - tunernome->mm.h) / 2) + tunernome->mm.h,
-                                    c000);
-                    int16_t textEnd = drawText(tunernome->disp, &tunernome->mm, c555, semitoneNoteNames[semitoneNum],
+                    int16_t textEnd = drawText(tunernome->disp, &tunernome->mm, c555, buf,
                                                (tunernome->disp->w - tWidth) / 2 + 1,
                                                (tunernome->disp->h - tunernome->mm.h) / 2);
 
