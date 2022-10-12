@@ -115,7 +115,17 @@ static const song_t sndHurt =
             },
         .numNotes = 6,
         .shouldLoop = false
-    };                 
+    };   
+
+static const song_t sndWaveBall =
+{
+    .notes =
+    {
+        {D_4, 50},{D_5, 50},{A_6, 50},{A_5, 50}
+    },
+    .numNotes = 4,
+    .shouldLoop = false
+};              
 
 //==============================================================================
 // Functions
@@ -246,6 +256,7 @@ void updatePlayer(entity_t *self)
             createdEntity->xspeed= (self->spriteFlipHorizontal) ? -(128 + abs(self->xspeed) + abs(self->yspeed)):128 + abs(self->xspeed) + abs(self->yspeed);
             createdEntity->homeTileX = 0;
             createdEntity->homeTileY = 0;
+            buzzer_play_sfx(&sndWaveBall);
         }
         self->animationTimer = 30;
     }
@@ -1819,5 +1830,6 @@ bool waveBallTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, ui
 void waveBallOverlapTileHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty){
     if(isSolid(tileId) || tileId == TILE_BOUNCE_BLOCK){
         destroyEntity(self, false);
+        buzzer_play_sfx(&sndHit);
     }
 }
