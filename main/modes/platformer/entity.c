@@ -312,7 +312,7 @@ void updateHitBlock(entity_t *self)
             }
             case TILE_CTNR_POW1:
             {
-                createdEntity = createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) || belowTile == TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity = createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) && belowTile != TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
                 createdEntity->homeTileX = 0;
                 createdEntity->homeTileY = 0;
 
@@ -321,7 +321,7 @@ void updateHitBlock(entity_t *self)
             }
             case TILE_WARP_0 ... TILE_WARP_F:
             {
-                createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) || belowTile == TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) && belowTile != TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
 
                 createdEntity->homeTileX = self->homeTileX;
                 createdEntity->homeTileY = self->homeTileY;
