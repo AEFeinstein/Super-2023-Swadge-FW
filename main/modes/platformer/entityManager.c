@@ -367,6 +367,7 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->yMaxSpeed = 132;
     entity->gravityEnabled = true;
     entity->gravity = 4;
+    entity->spriteFlipHorizontal = false;
     entity->spriteFlipVertical = false;
     entity->scoreValue = 100;
 
@@ -512,6 +513,7 @@ entity_t* createHitBlock(entityManager_t * entityManager, uint16_t x, uint16_t y
     entity->gravityEnabled = true;
     entity->gravity = 4;
 
+    entity->spriteFlipHorizontal = false;
     entity->spriteFlipVertical = false;
 
     entity->type = ENTITY_HIT_BLOCK;
@@ -683,6 +685,7 @@ entity_t* createEnemyBushL2(entityManager_t * entityManager, uint16_t x, uint16_
     entity->yMaxSpeed = 132;
     entity->gravityEnabled = true;
     entity->gravity = 4;
+    entity->spriteFlipHorizontal = false;
     entity->spriteFlipVertical = false;
     entity->scoreValue = 150;
 
@@ -716,6 +719,7 @@ entity_t* createEnemyBushL3(entityManager_t * entityManager, uint16_t x, uint16_
     entity->yMaxSpeed = 132;
     entity->gravityEnabled = true;
     entity->gravity = 4;
+    entity->spriteFlipHorizontal = false;
     entity->spriteFlipVertical = false;
     entity->scoreValue = 250;
 

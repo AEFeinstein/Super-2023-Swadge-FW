@@ -132,6 +132,8 @@ void initializeEntity(entity_t *self, entityManager_t *entityManager, tilemap_t 
     self->entityManager = entityManager;
     self->spriteFlipVertical = false;
     self->fallOffTileHandler = &defaultFallOffTileHandler;
+    self->spriteFlipHorizontal = false;
+    self->spriteFlipVertical = false;
 };
 
 void updatePlayer(entity_t *self)
