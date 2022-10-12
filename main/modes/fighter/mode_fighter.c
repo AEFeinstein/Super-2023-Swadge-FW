@@ -82,6 +82,8 @@ typedef struct
     int32_t fps;
     wsg_t indicator;
     vector_t cameraOffset;
+    led_t leds[NUM_LEDS];
+    int32_t ledTimerUs;
 } fightingGame_t;
 
 //==============================================================================
@@ -391,27 +393,6 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
     {
         fighterSendButtonsToOther(fighterGetButtonState());
     }
-
-    // Set some LEDs, just because
-    // static led_t leds[NUM_LEDS] =
-    // {
-    //     {.r = 0x00, .g = 0x00, .b = 0x00},
-    //     {.r = 0xFF, .g = 0x00, .b = 0xFF},
-    //     {.r = 0x0C, .g = 0x19, .b = 0x60},
-    //     {.r = 0xFD, .g = 0x08, .b = 0x07},
-    //     {.r = 0x70, .g = 0x81, .b = 0xFF},
-    //     {.r = 0xFF, .g = 0xCC, .b = 0x00},
-    // };
-    static led_t leds[NUM_LEDS] =
-    {
-        {.r = 0x00, .g = 0x00, .b = 0x00},
-        {.r = 0x00, .g = 0x00, .b = 0x00},
-        {.r = 0x00, .g = 0x00, .b = 0x00},
-        {.r = 0x00, .g = 0x00, .b = 0x00},
-        {.r = 0x00, .g = 0x00, .b = 0x00},
-        {.r = 0x00, .g = 0x00, .b = 0x00},
-    };
-    setLeds(leds, NUM_LEDS);
 }
 
 /**
@@ -608,6 +589,40 @@ void fighterGameLoop(int64_t elapsedUs)
         f->fpsTimeCount -= (1000000 * FPS_MEASUREMENT_SEC);
         f->fps = (f->fpsFrameCount / FPS_MEASUREMENT_SEC);
         f->fpsFrameCount = 0;
+    }
+
+    // Update LEDs every 2ms
+    bool updateLeds = false;
+    f->ledTimerUs += elapsedUs;
+    while(f->ledTimerUs > 1953)
+    {
+        f->ledTimerUs -= 1953;
+
+        // Decay all LEDs. One step every 1953us is 0.5s to fully decay
+        for(int i = 0; i < NUM_LEDS; i++)
+        {
+            if(f->leds[i].r > 0)
+            {
+                f->leds[i].r--;
+            }
+            if(f->leds[i].g > 0)
+            {
+                f->leds[i].g--;
+            }
+            if(f->leds[i].b > 0)
+            {
+                f->leds[i].b--;
+            }
+        }
+
+        // Change outputs
+        updateLeds = true;
+    }
+
+    if(updateLeds)
+    {
+        // Shine those lights
+        setLeds(f->leds, NUM_LEDS);
     }
 
     // Only process the loop as single player, or as the server in multi
@@ -2300,6 +2315,7 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     {
         // Add the sound effect to the scene
         scene->sfx = SFX_FIGHTER_1_HIT;
+        scene->ledfx |= LEDFX_FIGHTER_1_HIT;
         f1->damagedThisFrame = false;
     }
 
@@ -2321,6 +2337,7 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     {
         // Add the sound effect to the scene
         scene->sfx = SFX_FIGHTER_2_HIT;
+        scene->ledfx |= LEDFX_FIGHTER_2_HIT;
         f2->damagedThisFrame = false;
     }
 
@@ -2503,6 +2520,20 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
             // shhhh
             break;
         }
+    }
+
+    if(scene->ledfx & LEDFX_FIGHTER_1_HIT)
+    {
+        f->leds[0].r = 0xFF;
+        f->leds[0].g = 0xFF;
+        f->leds[0].b = 0xFF;
+    }
+
+    if(scene->ledfx & LEDFX_FIGHTER_2_HIT)
+    {
+        f->leds[NUM_LEDS - 1].r = 0xFF;
+        f->leds[NUM_LEDS - 1].g = 0xFF;
+        f->leds[NUM_LEDS - 1].b = 0xFF;
     }
 
     // Draw debug boxes, conditionally

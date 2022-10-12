@@ -104,6 +104,14 @@ typedef enum
     SFX_FIGHTER_2_HIT,
 } fighterSfx_t;
 
+// Bitmask
+typedef enum
+{
+    LEDFX_FIGHTER_NONE = 0x00,
+    LEDFX_FIGHTER_1_HIT = 0x01,
+    LEDFX_FIGHTER_2_HIT = 0x02,
+} fighterLedFx_t;
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -286,10 +294,11 @@ typedef struct
     uint8_t stageIdx;
     uint8_t numProjectiles;
     uint8_t sfx;
+    uint8_t ledfx;
+    bool drawGo;
     int16_t cameraOffsetX;
     int16_t cameraOffsetY;
     uint32_t gameTimerUs;
-    bool drawGo;
     fighterSceneFighter_t f1;
     fighterSceneFighter_t f2;
     fighterSceneProjectile_t projs[];
