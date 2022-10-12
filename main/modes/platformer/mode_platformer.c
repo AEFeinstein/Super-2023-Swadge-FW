@@ -951,14 +951,14 @@ swadgeMode modePlatformer =
         .overrideUsb = false
 };
 
-#define NUM_LEVELS 11
+#define NUM_LEVELS 12
 
 static leveldef_t leveldef[NUM_LEVELS] = {
     {.filename = "level1-1.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
-    {.filename = "level1-2.bin",
-     .timeLimit = 120,
+    {.filename = "dac01.bin",
+     .timeLimit = 180,
      .checkpointTimeLimit = 90},
     {.filename = "level1-3.bin",
      .timeLimit = 180,
@@ -982,6 +982,9 @@ static leveldef_t leveldef[NUM_LEVELS] = {
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
     {.filename = "dac02.bin",
+     .timeLimit = 180,
+     .checkpointTimeLimit = 90},
+    {.filename = "level3-3.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
     {.filename = "debug.bin",
