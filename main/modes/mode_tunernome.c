@@ -357,7 +357,7 @@ void tunernomeEnterMode(display_t* disp)
     TUNER_THRES_Y = round(METRONOME_CENTER_Y - (ABS(intermedY) * METRONOME_RADIUS));
 
     loadWsg("uparrow.wsg", &(tunernome->upArrowWsg));
-    loadWsg("flat.wsg", &(tunernome->flatWsg));
+    loadWsg("flat_mm.wsg", &(tunernome->flatWsg));
 
     tunernome->tSigIdx = 0;
     tunernome->beatCtr = 0;
