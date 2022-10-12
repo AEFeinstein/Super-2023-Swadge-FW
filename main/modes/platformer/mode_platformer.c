@@ -1142,7 +1142,7 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
 void updateTitleScreen(platformer_t *self)
 {
     // Clear the display
-    self->disp->clearPx();
+    fillDisplayArea( self->disp, 0, 0, 280, 240, self->gameData.bgColor);
 
     self->gameData.frameCount++;
    
@@ -1257,6 +1257,7 @@ void updateTitleScreen(platformer_t *self)
                 )
             )
             {
+                self->gameData.frameCount = 0;
                 platformer->menuState = 0;
                 buzzer_play_sfx(&sndMenuConfirm);
             }
