@@ -235,6 +235,21 @@ void updatePlayer(entity_t *self)
         }
     }
 
+    if(self->animationTimer > 0){
+        self->animationTimer--;
+    }
+
+    if (self->hp >2 && self->gameData->btnState & BTN_B && !(self->gameData->prevBtnState & BTN_B) && self->animationTimer == 0)
+    {
+        entity_t * createdEntity = createEntity(self->entityManager, ENTITY_WAVE_BALL, self->x >> SUBPIXEL_RESOLUTION, self->y >> SUBPIXEL_RESOLUTION);
+        if(createdEntity != NULL){
+            createdEntity->xspeed= (self->spriteFlipHorizontal) ? -(128 + abs(self->xspeed) + abs(self->yspeed)):128 + abs(self->xspeed) + abs(self->yspeed);
+            createdEntity->homeTileX = 0;
+            createdEntity->homeTileY = 0;
+        }
+        self->animationTimer = 30;
+    }
+
 
     moveEntityWithTileCollisions(self);
     dieWhenFallingOffScreen(self);
@@ -730,9 +745,17 @@ void enemyCollisionHandler(entity_t *self, entity_t *other)
         case ENTITY_HIT_BLOCK:
             self->xspeed = other->xspeed*2;
             self->yspeed = other->yspeed*2;
-            scorePoints(self->gameData, 100);
+            scorePoints(self->gameData, self->scoreValue);
             buzzer_play_sfx(&sndSquish);
             killEnemy(self);
+            break;
+        case ENTITY_WAVE_BALL:
+            self->xspeed = other->xspeed >> 1;
+            self->yspeed = -abs(other->xspeed >> 1);
+            scorePoints(self->gameData, self->scoreValue);
+            buzzer_play_sfx(&sndBreak);
+            killEnemy(self);
+            destroyEntity(other, false);
             break;
         default:
         {
@@ -1743,4 +1766,58 @@ void defaultOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8
 void updateBgmChange(entity_t* self){
     self->gameData->changeBgm = self->xDamping;
     destroyEntity(self, true);
+}
+
+void updateWaveBall(entity_t* self){
+    if(self->gameData->frameCount % 4 == 0) {
+        self->spriteIndex = (SP_WAVEBALL_1 + ((self->spriteIndex + 1) % 3));
+    }
+
+    if(self->gameData->frameCount % 4 == 0) {
+        self->xDamping++;
+
+        switch(self->xDamping){
+            case 0:
+                break;
+            case 1:
+                self->yDamping = self->xspeed+2; //((esp_random() % 2)?-16:16);
+                self->yspeed = -abs(self->yDamping);
+                self->xspeed = 0;
+                break;
+            case 2:
+                self->yspeed = 0;
+                self->xspeed = self->yDamping;
+                break;
+            case 3:
+                self->yDamping = self->xspeed+2; //((esp_random() % 2)?-16:16);
+                self->yspeed = abs(self->yDamping);
+                self->xspeed = 0;
+                break;
+            case 4:
+                self->yspeed = 0;
+                self->xspeed = self->yDamping;
+                self->xDamping = 0;
+                break;
+            default:
+                break;
+        }
+    }
+
+    //self->yDamping++;
+
+    moveEntityWithTileCollisions(self);
+    despawnWhenOffscreen(self);
+}
+
+bool waveBallTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    if(self->yspeed == 0){
+        destroyEntity(self, false);
+    }
+    return false;
+}
+
+void waveBallOverlapTileHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty){
+    if(isSolid(tileId) || tileId == TILE_BOUNCE_BLOCK){
+        destroyEntity(self, false);
+    }
 }

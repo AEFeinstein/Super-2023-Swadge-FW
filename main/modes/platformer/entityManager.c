@@ -337,6 +337,7 @@ entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->jumpPower = 0;
     entity->spriteFlipVertical = false;
     entity->hp = 1;
+    entity->animationTimer = 0; //Used as a cooldown for shooting square wave balls
 
     entity->type = ENTITY_PLAYER;
     entity->spriteIndex = SP_PLAYER_IDLE;
@@ -1142,19 +1143,21 @@ entity_t* createWaveBall(entityManager_t * entityManager, uint16_t x, uint16_t y
     entity->yspeed = 0;
     entity->xMaxSpeed = 132;
     entity->yMaxSpeed = 132;
-    entity->gravityEnabled = true;
+    entity->gravityEnabled = false;
     entity->gravity = 4;
     entity->spriteFlipHorizontal = false;
     entity->spriteFlipVertical = false;
+    entity->yDamping = 3; //This will be repurposed as a state timer
+    entity->xDamping = 0; //This will be repurposed as a state tracker
 
-    entity->type = ENTITY_1UP;
-    entity->spriteIndex = SP_1UP_1;
+    entity->type = ENTITY_WAVE_BALL;
+    entity->spriteIndex = SP_WAVEBALL_1;
     entity->animationTimer = 0;
-    entity->updateFunction = &updatePowerUp;
+    entity->updateFunction = &updateWaveBall;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
-    entity->overlapTileHandler = &defaultOverlapTileHandler;
+    entity->overlapTileHandler = &waveBallOverlapTileHandler;
 
     return entity;
 };
