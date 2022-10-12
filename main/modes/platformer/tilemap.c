@@ -73,7 +73,7 @@ void drawTileMap(display_t *disp, tilemap_t *tilemap)
             }
 
             // Draw only non-garbage tiles
-            if (tile > 31 && tile < 90)
+            if (tile > 31 && tile < 104)
             {
                 if(needsTransparency(tile)){
                     drawWsgSimpleFast(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
