@@ -1346,9 +1346,11 @@ void changeStateGame(platformer_t *self){
 
     entityManager_t * entityManager = &(self->entityManager);
     entityManager->viewEntity = createPlayer(entityManager, entityManager->tilemap->warps[self->gameData.checkpoint].x * 16, entityManager->tilemap->warps[self->gameData.checkpoint].y * 16);
-    
     entityManager->playerEntity = entityManager->viewEntity;
+    entityManager->playerEntity->hp = self->gameData.initialHp;
     viewFollowEntity(&(self->tilemap),entityManager->playerEntity);
+
+
     updateLedsHpMeter(&(self->entityManager),&(self->gameData));
 
     self->tilemap.executeTileSpawnAll = true;
@@ -1421,6 +1423,7 @@ void changeStateDead(platformer_t *self){
     self->gameData.levelDeaths++;
     self->gameData.combo = 0;
     self->gameData.comboTimer = 0;
+    self->gameData.initialHp = 1;
 
     buzzer_stop();
     buzzer_play_bgm(&sndDie);
@@ -1446,6 +1449,7 @@ void updateDead(platformer_t *self){
     drawEntities(self->disp, &(self->entityManager));
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
 }
+
 
 void updateGameOver(platformer_t *self){
     // Clear the display
@@ -1478,6 +1482,7 @@ void changeStateLevelClear(platformer_t *self){
     self->gameData.frameCount = 0;
     self->gameData.checkpoint = 0;
     self->gameData.levelDeaths = 0;
+    self->gameData.initialHp = self->entityManager.playerEntity->hp;
     self->gameData.extraLifeCollected = false;
     buzzer_stop();
     self->update=&updateLevelClear;
