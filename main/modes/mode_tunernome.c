@@ -68,6 +68,7 @@
 // #define MAX(X, Y) ( ((X) > (Y)) ? (X) : (Y) )
 
 #define NUM_SEMITONES 12
+#define NUM_TSIGS 8
 
 typedef enum
 {
@@ -391,7 +392,7 @@ void switchToSubmode(tnMode newMode)
             buzzer_stop();
 
             led_t leds[NUM_LEDS] = {{0}};
-            setLeds(leds, sizeof(leds));
+            setLeds(leds, NUM_LEDS);
 
             tunernome->disp->clearPx();
 
@@ -418,7 +419,7 @@ void switchToSubmode(tnMode newMode)
             recalcMetronome();
 
             led_t leds[NUM_LEDS] = {{0}};
-            setLeds(leds, sizeof(leds));
+            setLeds(leds, NUM_LEDS);
 
             tunernome->disp->clearPx();
             break;
@@ -776,7 +777,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     }
 
                     // Set LEDs, this may turn them off
-                    setLeds(leds, sizeof(leds));
+                    setLeds(leds, NUM_LEDS);
                     break;
                 }
                 case MAX_GUITAR_MODES:
@@ -875,7 +876,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                 if(tunernome->blinkAccumulatedUs > METRONOME_FLASH_MS * 1000)
                 {
                     led_t leds[NUM_LEDS] = {{0}};
-                    setLeds(leds, sizeof(leds));
+                    setLeds(leds, NUM_LEDS);
                 }
             }
 
@@ -947,7 +948,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                 }
 
                 buzzer_play_sfx(song);
-                setLeds(leds, sizeof(leds));
+                setLeds(leds, NUM_LEDS);
                 tunernome->isBlinking = true;
                 tunernome->blinkStartUs = esp_timer_get_time();
                 tunernome->blinkAccumulatedUs = 0;
@@ -1121,7 +1122,7 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                     case BTN_A:
                     {
                         // Cycle the time signature
-                        tunernome->tSigIdx = (tunernome->tSigIdx + 1) % (sizeof(tSigs));
+                        tunernome->tSigIdx = (tunernome->tSigIdx + 1) % NUM_TSIGS;
                         break;
                     }
                     case RIGHT:
@@ -1317,7 +1318,7 @@ void tunernomeSampleHandler(uint16_t* samples, uint32_t sampleCnt)
             if(LISTENING != tunernome->curTunerMode)
             {
                 // Draw the LEDs
-                setLeds( colors, sizeof(colors) );
+                setLeds(colors, NUM_LEDS);
             }
             // Reset the sample count
             tunernome->audioSamplesProcessed = 0;
