@@ -1335,6 +1335,7 @@ void drawReadyScreen(display_t *d, font_t *font, gameData_t *gameData){
 
 void changeStateGame(platformer_t *self){
     self->gameData.frameCount = 0;
+    self->gameData.currentBgm = 0;
 
     deactivateAllEntities(&(self->entityManager), false);
 
