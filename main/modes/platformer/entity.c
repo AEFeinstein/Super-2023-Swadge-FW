@@ -1193,6 +1193,48 @@ void updateDustBunnyL3(entity_t *self)
 };
 
 bool dustBunnyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    switch(tileId){
+        case TILE_BOUNCE_BLOCK: {
+            switch (direction)
+            {
+                case 0:
+                    //hitBlock->xspeed = -64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = 48;
+                    }
+                    break;
+                case 1:
+                    //hitBlock->xspeed = 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = -48;
+                    }
+                    break;
+                case 2:
+                    //hitBlock->yspeed = -128;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->yspeed = 48;
+                    }
+                    break;
+                case 4:
+                    //hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xDamping = 0;
+                        self->xspeed = 0;
+                        self->yspeed = 0;
+                        self->falling = false;
+                        self->yDamping = -1;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
     if (isSolid(tileId))
     {
         switch (direction)
@@ -1224,6 +1266,48 @@ bool dustBunnyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, u
 };
 
 bool dustBunnyL2TileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    switch(tileId){
+        case TILE_BOUNCE_BLOCK: {
+            switch (direction)
+            {
+                case 0:
+                    //hitBlock->xspeed = -64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = 48;
+                    }
+                    break;
+                case 1:
+                    //hitBlock->xspeed = 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = -48;
+                    }
+                    break;
+                case 2:
+                    //hitBlock->yspeed = -128;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->yspeed = 48;
+                    }
+                    break;
+                case 4:
+                    //hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xDamping = 0;
+                        self->xspeed = 0;
+                        self->yspeed = 0;
+                        self->falling = false;
+                        self->yDamping = -1;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+    
     if (isSolid(tileId))
     {
         switch (direction)
@@ -1257,6 +1341,48 @@ bool dustBunnyL2TileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx,
 };
 
 bool dustBunnyL3TileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    switch(tileId){
+        case TILE_BOUNCE_BLOCK: {
+            switch (direction)
+            {
+                case 0:
+                    //hitBlock->xspeed = -64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = 48;
+                    }
+                    break;
+                case 1:
+                    //hitBlock->xspeed = 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = -48;
+                    }
+                    break;
+                case 2:
+                    //hitBlock->yspeed = -128;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->yspeed = 48;
+                    }
+                    break;
+                case 4:
+                    //hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xDamping = 0;
+                        self->xspeed = 0;
+                        self->yspeed = 0;
+                        self->falling = false;
+                        self->yDamping = -1;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+    
     if (isSolid(tileId))
     {
         switch (direction)
