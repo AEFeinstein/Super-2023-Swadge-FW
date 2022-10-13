@@ -263,20 +263,44 @@ static const song_t f1hit =
 {
     .notes =
     {
-        {.note = B_3, .timeMs = 100}
+        // Random frequencies between B3 and B4
+        {.note = 399, .timeMs = 5},
+        {.note = 293, .timeMs = 5},
+        {.note = 410, .timeMs = 5},
+        {.note = 367, .timeMs = 5},
+        {.note = 493, .timeMs = 5},
+        {.note = 359, .timeMs = 5},
+        {.note = 453, .timeMs = 5},
+        {.note = 303, .timeMs = 5},
+        {.note = 330, .timeMs = 5},
+        {.note = 450, .timeMs = 5},
+        {.note = 261, .timeMs = 5},
+        {.note = 292, .timeMs = 5},
     },
-    .numNotes = 1,
+    .numNotes = 12,
     .shouldLoop = false
 };
 
 // Simple sound effect when fighter 2 is hit
-static const song_t f2hit =
+song_t f2hit =
 {
     .notes =
     {
-        {.note = B_4, .timeMs = 100}
+        // Random frequencies between B4 and B5
+        {.note = 503, .timeMs = 5},
+        {.note = 664, .timeMs = 5},
+        {.note = 596, .timeMs = 5},
+        {.note = 741, .timeMs = 5},
+        {.note = 584, .timeMs = 5},
+        {.note = 813, .timeMs = 5},
+        {.note = 974, .timeMs = 5},
+        {.note = 589, .timeMs = 5},
+        {.note = 683, .timeMs = 5},
+        {.note = 519, .timeMs = 5},
+        {.note = 831, .timeMs = 5},
+        {.note = 531, .timeMs = 5},
     },
-    .numNotes = 1,
+    .numNotes = 12,
     .shouldLoop = false
 };
 
