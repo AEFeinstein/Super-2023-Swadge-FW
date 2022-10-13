@@ -10,24 +10,24 @@
    "nJumps":2,
    "landing_lag":1,
    "idle_spr_0":{
-      "sprite":"sid0.wsg",
+      "sprite":"Sid0.wsg",
       "off_x":0,
       "off_y":0
    },
    "idle_spr_1":{
-      "sprite":"sid1.wsg",
+      "sprite":"Sid1.wsg",
       "off_x":0,
       "off_y":0
    },
    "run_spr_0":{
-      "sprite":"kru0.wsg",
-      "off_x":0,
-      "off_y":0
+      "sprite":"Sru0.wsg",
+      "off_x":-9,
+      "off_y":6
    },
    "run_spr_1":{
-      "sprite":"kru1.wsg",
-      "off_x":0,
-      "off_y":0
+      "sprite":"Sru1.wsg",
+      "off_x":-9,
+      "off_y":6
    },
    "jump_spr":{
       "sprite":"kjm0.wsg",
