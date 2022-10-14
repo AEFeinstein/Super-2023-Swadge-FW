@@ -17,6 +17,17 @@ paletteColor_t getContrastingColor(paletteColor_t col)
     return RGBtoPalette(contrastCol);
 }
 
+paletteColor_t getContrastingColorBW(paletteColor_t col)
+{
+    uint32_t rgb = paletteToRGB(col);
+    uint8_t r = rgb & 0xFF;
+    uint8_t g = (rgb >> 8) & 0xFF;
+    uint8_t b = (rgb >> 16) & 0xFF;
+
+    // TODO something with HSL but this pretty much works...
+    return (r + g + b) / 3 > 76 ? c000 : c555;
+}
+
 void paintPlotSquareWave(display_t* disp, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
 {
     // swap so x0 < x1 && y0 < y1
@@ -111,6 +122,21 @@ void plotRectFilled(display_t* disp, int x0, int y0, int x1, int y1, paletteColo
 void plotRectFilledScaled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
 {
     fillDisplayArea(disp, xTr + x0 * xScale, yTr + y0 * yScale, xTr + (x1) * xScale, yTr + (y1) * yScale, col);
+}
+
+void paintColorReplace(paintCanvas_t* canvas, paletteColor_t search, paletteColor_t replace)
+{
+    // super inefficient dumb color replace, maybe do iterated color fill later?
+    for (uint8_t x = 0; x < canvas->w; x++)
+    {
+        for (uint8_t y = 0; y < canvas->h; y++)
+        {
+            if (canvas->disp->getPx(canvas->x + x * canvas->xScale, canvas->y + y * canvas->yScale) == search)
+            {
+                setPxScaled(canvas->disp, x, y, replace, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+            }
+        }
+    }
 }
 
 void setPxScaled(display_t* disp, int x, int y, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
