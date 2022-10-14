@@ -54,6 +54,18 @@ typedef struct
     char* name;
 
     /**
+     * @brief The base name of the toolbar icon.
+     * The icon sprites will be loaded from {iconName}_active.wsg and {iconName}_inactive.wsg
+     */
+    char* iconName;
+
+    /// @brief The icon to be shown in the toolbar when the tool is selected
+    wsg_t iconActive;
+
+    /// @brief The icon to be shown in the toolbar when the tool is not selected
+    wsg_t iconInactive;
+
+    /**
      * @brief Called when all necessary points have been selected and the final shape should be drawn
      */
     void (*fnDraw)(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col);
@@ -76,6 +88,5 @@ void paintDrawEllipse(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_
 void paintDrawPolygon(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawSquareWave(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawPaintBucket(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
-void paintDrawClear(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 
 #endif

@@ -51,7 +51,7 @@ typedef enum {
     TILE_CTNR_10COIN,
     TILE_CTNR_POW1,
     TILE_CTNR_POW2,
-    TILE_CTNR_POW3,
+    TILE_CTNR_LADDER,
     TILE_CTNR_1UP,
     TILE_CTRL_LEFT,
     TILE_CTRL_RIGHT,
@@ -70,7 +70,7 @@ typedef enum {
     TILE_METAL_PIPE_H,
     TILE_METAL_PIPE_V,
     TILE_BOUNCE_BLOCK,
-    TILE_METAL_PIPE_VEND,
+    TILE_DIRT_PATH,
     TILE_GIRDER,
     TILE_SOLID_UNUSED_42,
     TILE_SOLID_UNUSED_43,
@@ -118,7 +118,22 @@ typedef enum {
     TILE_BG_ARROW_LU,
     TILE_BG_ARROW_RU,
     TILE_BG_ARROW_LD,
-    TILE_BG_ARROW_RD
+    TILE_BG_ARROW_RD,
+    TILE_BG_CLOUD_LD,
+    TILE_BG_CLOUD_M,
+    TILE_BG_CLOUD_RD,
+    TILE_BG_CLOUD_LU,
+    TILE_BG_CLOUD_RU,
+    TILE_BG_CLOUD_D,
+    TILE_BG_CLOUD,
+    TILE_BG_TALL_GRASS,
+    TILE_BG_MOUNTAIN_L,
+    TILE_BG_MOUNTAIN_U,
+    TILE_BG_MOUNTAIN_R,
+    TILE_BG_MOUNTAIN,
+    TILE_BG_METAL,
+    TILE_BG_CHAINS,
+    TILE_BG_WALL
 } tileIndex_t;
 
 //==============================================================================

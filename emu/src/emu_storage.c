@@ -370,6 +370,83 @@ bool writeNvsBlob(const char* key, const void* value, size_t length)
 }
 
 /**
+ * @brief Delete the value with the given key from NVS
+ *
+ * @param key The NVS key to be deleted
+ * @return true if the value was deleted, false if it was not
+ */
+bool eraseNvsKey(const char* key)
+{
+    // Open the file
+    FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
+    if(NULL != nvsFile)
+    {
+        // Get the file size
+        fseek(nvsFile, 0L, SEEK_END);
+        size_t fsize = ftell(nvsFile);
+        fseek(nvsFile, 0L, SEEK_SET);
+
+        // Read the file
+        char fbuf[fsize + 1];
+        fbuf[fsize] = 0;
+        if(fsize == fread(fbuf, 1, fsize, nvsFile))
+        {
+            // Close the file
+            fclose(nvsFile);
+
+            // Parse the JSON
+            cJSON * json = cJSON_Parse(fbuf);
+
+            // Check if the key exists
+            cJSON * jsonIter;
+            bool keyExists = false;
+            cJSON_ArrayForEach(jsonIter, json)
+            {
+                if(0 == strcmp(jsonIter->string, key))
+                {
+                    keyExists = true;
+                }
+            }
+
+            // Remove the key if it exists
+            if(keyExists)
+            {
+                cJSON_DeleteItemFromObject(json, key);
+            }
+
+            // Write the new JSON back to the file
+            FILE * nvsFileW = fopen(NVS_JSON_FILE, "wb");
+            if(NULL != nvsFileW)
+            {
+                char * jsonStr = cJSON_Print(json);
+                fprintf(nvsFileW, "%s", jsonStr);
+                fclose(nvsFileW);
+
+                free(jsonStr);
+                cJSON_Delete(json);
+
+                return true;
+            }
+            else
+            {
+                // Couldn't open file to write
+            }
+            cJSON_Delete(json);
+        }
+        else
+        {
+            // Couldn't read file
+            fclose(nvsFile);
+        }
+    }
+    else
+    {
+        // couldn't open file to read
+    }
+    return false;
+}
+
+/**
  * @brief Convert a blob to a hex string
  * 
  * @param value The blob

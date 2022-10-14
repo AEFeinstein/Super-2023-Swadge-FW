@@ -299,7 +299,4 @@ void emu_loop(void)
 
     //Display the image and wait for time to display next frame.
     CNFGSwapBuffers();
-
-    // Sleep for 1 ms
-    usleep(1000);
-}
+    }

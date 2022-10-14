@@ -21,6 +21,14 @@ typedef enum {
 } gameStateEnum_t;
 
 typedef enum {
+    BGM_NULL,
+    BGM_MAIN,
+    BGM_ATHLETIC,
+    BGM_UNDERGROUND,
+    BGM_FORTRESS
+} bgmEnum_t;
+
+typedef enum {
     SP_PLAYER_IDLE,
     SP_PLAYER_WALK1,
     SP_PLAYER_WALK2,

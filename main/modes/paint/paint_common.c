@@ -2,4 +2,4 @@
 
 #include "display.h"
 
-paintMenu_t* paintState;
+paintMenu_t* paintMenu;

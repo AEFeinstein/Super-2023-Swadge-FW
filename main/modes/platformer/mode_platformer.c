@@ -364,6 +364,441 @@ static const song_t bgmIntro =
     .shouldLoop = false
 };
 
+static const song_t bgmSmooth =
+{
+    .notes =
+    {
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = A_SHARP_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = A_SHARP_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 93},
+        {.note = A_SHARP_3, .timeMs = 93},
+        {.note = C_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = A_SHARP_4, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = D_6, .timeMs = 46},
+        {.note = D_SHARP_6, .timeMs = 140},
+        {.note = A_SHARP_5, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 187},
+        {.note = A_SHARP_5, .timeMs = 187},
+        {.note = G_5, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 187},
+        {.note = G_5, .timeMs = 187},
+        {.note = D_SHARP_5, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = F_5, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_5, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 187},
+        {.note = G_5, .timeMs = 187},
+        {.note = D_SHARP_3, .timeMs = 187},
+        {.note = C_6, .timeMs = 187},
+        {.note = G_3, .timeMs = 187},
+        {.note = D_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_5, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 187},
+        {.note = G_3, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 187},
+        {.note = F_5, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = B_3, .timeMs = 46},
+        {.note = C_4, .timeMs = 140},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = F_5, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_5, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 187},
+        {.note = G_5, .timeMs = 187},
+        {.note = D_SHARP_3, .timeMs = 187},
+        {.note = C_6, .timeMs = 187},
+        {.note = G_3, .timeMs = 187},
+        {.note = D_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_5, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = C_6, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_5, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = B_3, .timeMs = 46},
+        {.note = C_4, .timeMs = 140},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_4, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = F_5, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_5, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 187},
+        {.note = G_5, .timeMs = 187},
+        {.note = D_SHARP_3, .timeMs = 187},
+        {.note = C_6, .timeMs = 187},
+        {.note = G_3, .timeMs = 187},
+        {.note = D_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_5, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 187},
+        {.note = G_3, .timeMs = 187},
+        {.note = A_SHARP_5, .timeMs = 187},
+        {.note = F_5, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = B_3, .timeMs = 46},
+        {.note = C_4, .timeMs = 140},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = C_3, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = F_5, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_5, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 187},
+        {.note = G_5, .timeMs = 187},
+        {.note = D_SHARP_3, .timeMs = 187},
+        {.note = C_6, .timeMs = 187},
+        {.note = G_3, .timeMs = 187},
+        {.note = D_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_5, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = C_6, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_5, .timeMs = 187},
+        {.note = A_SHARP_2, .timeMs = 187},
+        {.note = D_3, .timeMs = 187},
+        {.note = A_SHARP_2, .timeMs = 187},
+        {.note = SILENCE, .timeMs = 187},
+        {.note = A_SHARP_2, .timeMs = 187},
+        {.note = D_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = D_SHARP_6, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = C_4, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = B_3, .timeMs = 46},
+        {.note = C_4, .timeMs = 140},
+        {.note = B_3, .timeMs = 46},
+        {.note = C_4, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 46},
+        {.note = C_4, .timeMs = 46},
+        {.note = SILENCE, .timeMs = 46},
+        {.note = C_4, .timeMs = 46},
+        {.note = SILENCE, .timeMs = 46},
+        {.note = F_3, .timeMs = 140},
+        {.note = SILENCE, .timeMs = 46},
+        {.note = F_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = F_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 140},
+        {.note = SILENCE, .timeMs = 46},
+        {.note = F_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = G_SHARP_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_4, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = A_SHARP_4, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = A_SHARP_4, .timeMs = 117},
+        {.note = SILENCE, .timeMs = 70},
+        {.note = A_SHARP_4, .timeMs = 117},
+        {.note = SILENCE, .timeMs = 70},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 140},
+        {.note = SILENCE, .timeMs = 46},
+        {.note = F_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = F_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 140},
+        {.note = SILENCE, .timeMs = 46},
+        {.note = F_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = G_SHARP_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_4, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = A_SHARP_4, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = A_SHARP_4, .timeMs = 117},
+        {.note = SILENCE, .timeMs = 70},
+        {.note = A_SHARP_4, .timeMs = 117},
+        {.note = SILENCE, .timeMs = 70},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 93},
+        {.note = A_SHARP_3, .timeMs = 93},
+        {.note = C_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 140},
+        {.note = SILENCE, .timeMs = 46},
+        {.note = F_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = F_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 140},
+        {.note = SILENCE, .timeMs = 46},
+        {.note = F_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = G_SHARP_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_4, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = A_SHARP_4, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = A_SHARP_4, .timeMs = 117},
+        {.note = SILENCE, .timeMs = 70},
+        {.note = A_SHARP_4, .timeMs = 117},
+        {.note = SILENCE, .timeMs = 70},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 140},
+        {.note = SILENCE, .timeMs = 46},
+        {.note = F_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = F_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 140},
+        {.note = SILENCE, .timeMs = 46},
+        {.note = F_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = G_SHARP_3, .timeMs = 39},
+        {.note = SILENCE, .timeMs = 54},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = C_SHARP_4, .timeMs = 93},
+        {.note = F_4, .timeMs = 93},
+        {.note = A_SHARP_4, .timeMs = 93},
+        {.note = C_SHARP_5, .timeMs = 93},
+        {.note = C_4, .timeMs = 93},
+        {.note = D_SHARP_4, .timeMs = 93},
+        {.note = G_SHARP_4, .timeMs = 93},
+        {.note = C_5, .timeMs = 93},
+        {.note = A_SHARP_3, .timeMs = 93},
+        {.note = D_SHARP_4, .timeMs = 93},
+        {.note = G_4, .timeMs = 93},
+        {.note = A_SHARP_4, .timeMs = 93},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = G_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = F_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = A_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_4, .timeMs = 187},
+        {.note = F_6, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = F_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = A_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_4, .timeMs = 187},
+        {.note = F_6, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = G_5, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 187},
+        {.note = G_5, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = F_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = A_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_4, .timeMs = 187},
+        {.note = F_6, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = F_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = F_4, .timeMs = 187},
+        {.note = F_3, .timeMs = 187},
+        {.note = G_SHARP_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = A_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = A_SHARP_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = F_5, .timeMs = 93},
+        {.note = SILENCE, .timeMs = 93},
+        {.note = C_6, .timeMs = 187},
+        {.note = D_SHARP_6, .timeMs = 187},
+        {.note = F_6, .timeMs = 46},
+        {.note = E_6, .timeMs = 23},
+        {.note = D_SHARP_6, .timeMs = 23},
+        {.note = C_SHARP_6, .timeMs = 23},
+        {.note = C_6, .timeMs = 23},
+        {.note = A_5, .timeMs = 23},
+        {.note = G_5, .timeMs = 23},
+        {.note = F_SHARP_5, .timeMs = 23},
+        {.note = E_5, .timeMs = 23},
+        {.note = D_SHARP_5, .timeMs = 23},
+        {.note = C_SHARP_5, .timeMs = 23},
+        {.note = C_5, .timeMs = 23},
+        {.note = A_4, .timeMs = 23},
+        {.note = G_4, .timeMs = 23},
+        {.note = F_SHARP_4, .timeMs = 19},
+
+    },
+    .numNotes = 425,
+    .shouldLoop = true
+};
+
 /*static const song_t sndGameStart =
 {
     .notes =
@@ -468,6 +903,7 @@ void updateReadyScreen(platformer_t *self);
 void drawReadyScreen(display_t *d, font_t *font, gameData_t *gameData);
 void changeStateGame(platformer_t *self);
 void detectGameStateChange(platformer_t *self);
+void detectBgmChange(platformer_t *self);
 void changeStateDead(platformer_t *self);
 void updateDead(platformer_t *self);
 void changeStateGameOver(platformer_t *self);
@@ -650,6 +1086,7 @@ void updateGame(platformer_t *self)
     drawTileMap(self->disp, &(self->tilemap));
     drawEntities(self->disp, &(self->entityManager));
     detectGameStateChange(self);
+    detectBgmChange(self);
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
 
     self->gameData.frameCount++;
@@ -765,7 +1202,7 @@ void updateTitleScreen(platformer_t *self)
                     buzzer_play_sfx(&sndMenuSelect);
                 }
             } else if (
-                    (
+                (
                     self->gameData.btnState & LEFT
                     &&
                     !(self->gameData.prevBtnState & LEFT)
@@ -773,14 +1210,18 @@ void updateTitleScreen(platformer_t *self)
             )
             {
                 if(platformer->menuSelection == 1){
-                    platformer->gameData.level--;
-                    if(platformer->gameData.level < 1){
-                        platformer->gameData.level = 4;
-                        if(platformer->gameData.world > 1){
-                            platformer->gameData.world--;
+                    if(platformer->gameData.level == 1 && platformer->gameData.world == 1){
+                        buzzer_play_sfx(&sndMenuDeny);
+                    } else {
+                        platformer->gameData.level--;
+                        if(platformer->gameData.level < 1){
+                            platformer->gameData.level = 4;
+                            if(platformer->gameData.world > 1){
+                                platformer->gameData.world--;
+                            }
                         }
+                        buzzer_play_sfx(&sndMenuSelect);
                     }
-                    buzzer_play_sfx(&sndMenuSelect);
                 }
             } else if (
                     (
@@ -791,14 +1232,19 @@ void updateTitleScreen(platformer_t *self)
             )
             {
                 if(platformer->menuSelection == 1){
-                    platformer->gameData.level++;
-                    if(platformer->gameData.level > 4){
-                        platformer->gameData.level = 1;
-                        if(platformer->gameData.world < 8){
-                            platformer->gameData.world++;
+                    if(platformer->gameData.level == 4 && platformer->gameData.world == 8){
+                        buzzer_play_sfx(&sndMenuDeny);
+                    } else {
+                        platformer->gameData.level++;
+                        if(platformer->gameData.level > 4){
+                            platformer->gameData.level = 1;
+                            if(platformer->gameData.world < 8){
+                                platformer->gameData.world++;
+                            }
                         }
+                        buzzer_play_sfx(&sndMenuSelect);
                     }
-                    buzzer_play_sfx(&sndMenuSelect);
+                    
                 }
             } else if (
                     (
@@ -931,6 +1377,39 @@ void detectGameStateChange(platformer_t *self){
     }
 
     self->gameData.changeState = 0;
+}
+
+void detectBgmChange(platformer_t *self){
+    if(!self->gameData.changeBgm){
+        return;
+    }
+
+    switch (self->gameData.changeBgm)
+    {
+        case BGM_NULL:
+            if(self->gameData.currentBgm != BGM_NULL){
+                buzzer_stop();
+            }
+            break;
+
+        case BGM_MAIN:
+            if(self->gameData.currentBgm != BGM_MAIN){
+                buzzer_play_bgm(&bgmDemagio);
+            }
+            break;
+        
+        case BGM_ATHLETIC:
+            if(self->gameData.currentBgm != BGM_ATHLETIC){
+                buzzer_play_bgm(&bgmSmooth);
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    self->gameData.currentBgm = self->gameData.changeBgm;
+    self->gameData.changeBgm = 0;
 }
 
 void changeStateDead(platformer_t *self){

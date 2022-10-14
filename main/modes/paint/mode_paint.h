@@ -5,4 +5,6 @@
 
 extern swadgeMode modePaint;
 
+void paintReturnToMainMenu(void);
+
 #endif

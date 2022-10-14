@@ -8,17 +8,30 @@
 #include "paint_common.h"
 #include "paint_brush.h"
 
+extern paintDraw_t* paintState;
+
 extern wsg_t cursorCrosshairWsg;;
 
 extern wsg_t cursorBoxWsg;
 
 // Mode callback delegates
 void paintDrawScreenMainLoop(int64_t elapsedUs);
+void paintDrawScreenButtonCb(const buttonEvt_t* evt);
 void paintSaveModeButtonCb(const buttonEvt_t* evt);
 void paintSelectModeButtonCb(const buttonEvt_t* evt);
 void paintDrawModeButtonCb(const buttonEvt_t* evt);
 
-void paintDrawScreenSetup(void);
+// Save menu helpers
+void paintSaveModePrevItem(void);
+void paintSaveModeNextItem(void);
+void paintSaveModePrevOption(void);
+void paintSaveModeNextOption(void);
+
+void paintDrawScreenSetup(display_t* disp);
+void paintDrawScreenCleanup(void);
+
+void paintPositionDrawCanvas(void);
+
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
 void paintUpdateRecents(uint8_t selectedIndex);
 void paintUpdateLeds(void);
@@ -37,5 +50,9 @@ void setCursor(const wsg_t* cursorWsg);
 void paintMoveCursorRel(int8_t xDiff, int8_t yDiff);
 void enableCursor(void);
 void disableCursor(void);
+
+// Artist helpers
+paintArtist_t* getArtist(void);
+paintCursor_t* getCursor(void);
 
 #endif

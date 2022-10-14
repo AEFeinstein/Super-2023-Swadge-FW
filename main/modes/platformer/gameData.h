@@ -50,6 +50,9 @@ typedef struct
 
     char initials[3];
     uint8_t rank;
+
+    uint8_t changeBgm;
+    uint8_t currentBgm;
 } gameData_t;
 
 //==============================================================================

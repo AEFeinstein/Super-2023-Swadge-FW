@@ -300,7 +300,7 @@ bool isSolid(uint8_t tileId)
     case TILE_BOUNCE_BLOCK:
         return false;
         break;
-    case TILE_METAL_PIPE_VEND ... TILE_CONTAINER_3:
+    case TILE_DIRT_PATH ... TILE_CONTAINER_3:
         return true;
         break;
     default:
