@@ -116,6 +116,9 @@ void drawFighterHud(display_t* d, font_t* font,
                     int16_t f1_dmg, int16_t f1_stock, int16_t f1_stockIconIdx,
                     int16_t f2_dmg, int16_t f2_stock, int16_t f2_stockIconIdx,
                     int32_t gameTimerUs, bool drawGo);
+
+uint8_t cpuButtonAction(fighter_t* human, fighter_t* cpu, list_t projectiles, const stage_t* stage);
+
 #ifdef DRAW_DEBUG_BOXES
     void drawFighterDebugBox(display_t* d, fighter_t* ftr, int16_t camOffX, int16_t camOffY);
     void drawProjectileDebugBox(display_t* d, list_t* projectiles, int16_t camOffX, int16_t camOffY);
@@ -390,6 +393,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
         switch(type)
         {
             case MULTIPLAYER:
+            case VS_CPU:
             {
                 // Start with three stocks
                 f->fighters[i].stocks = NUM_STOCKS;
@@ -666,7 +670,8 @@ void fighterGameLoop(int64_t elapsedUs)
     }
 
     // Only process the loop as single player, or as the server in multi
-    bool runProcLoop = ((f->type == HR_CONTEST) || ((f->type == MULTIPLAYER) && (0 == f->playerIdx)));
+    bool runProcLoop = ((f->type == HR_CONTEST) || (f->type == VS_CPU) ||
+                        ((f->type == MULTIPLAYER) && (0 == f->playerIdx)));
 
     if(runProcLoop)
     {
@@ -678,7 +683,7 @@ void fighterGameLoop(int64_t elapsedUs)
                 if(f->gameTimerUs <= 0)
                 {
                     // After count-in, transition to the appropriate state
-                    if(MULTIPLAYER == f->type)
+                    if((MULTIPLAYER == f->type) || (VS_CPU == f->type))
                     {
                         f->gameTimerUs = 0; // Count up after this
                         f->gamePhase = MP_GAME;
@@ -761,6 +766,13 @@ void fighterGameLoop(int64_t elapsedUs)
                     // All button input is local
                     f->buttonInputReceived = true;
                     break;
+                }
+                case VS_CPU:
+                {
+                    // Figure out CPU actions
+                    f->fighters[1].btnState = cpuButtonAction(&f->fighters[0], &f->fighters[1], f->projectiles, stages[f->stageIdx]);
+                    // All button input is local
+                    f->buttonInputReceived = true;
                 }
             }
         }
@@ -2937,4 +2949,44 @@ void fighterRxScene(const fighterScene_t* scene, uint8_t len)
         // Save the new length
         f->composedSceneLen = len;
     }
+}
+
+/**
+ * @brief Figure out what the CPU should do
+ *
+ * @param human All the human fighter data
+ * @param cpu All the CPU fighter data
+ * @param projectiles A list of projectiles (type projectile_t)
+ * @param stage The stage being fought on (platform data)
+ * @return The current button state of the CPU (bitmask of buttonBit_t)
+ */
+uint8_t cpuButtonAction(fighter_t* human, fighter_t* cpu, list_t projectiles, const stage_t* stage)
+{
+    uint8_t btn = 0;
+
+    // Walk to the middle of the stage
+    if(cpu->pos.x > 140 << SF)
+    {
+        btn |= LEFT;
+    }
+    else
+    {
+        btn |= RIGHT;
+    }
+
+    // Short hop and attack like a maniac
+    static bool press = false;
+    if(false == press)
+    {
+        press = true;
+        btn |= BTN_A;
+    }
+    else
+    {
+        press = false;
+        btn |= BTN_B;
+    }
+
+    // return the button state
+    return btn;
 }

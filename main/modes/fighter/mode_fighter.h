@@ -85,7 +85,8 @@ typedef enum
 typedef enum
 {
     HR_CONTEST,
-    MULTIPLAYER
+    MULTIPLAYER,
+    VS_CPU
 } fightingGameType_t;
 
 typedef enum
