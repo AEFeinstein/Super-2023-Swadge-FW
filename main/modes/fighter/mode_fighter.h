@@ -107,9 +107,10 @@ typedef enum
 // Bitmask
 typedef enum
 {
-    LEDFX_FIGHTER_NONE = 0x00,
+    LEDFX_FIGHTER_NONE  = 0x00,
     LEDFX_FIGHTER_1_HIT = 0x01,
     LEDFX_FIGHTER_2_HIT = 0x02,
+    LEDFX_SANDBAG_HIT   = 0x04,
 } fighterLedFx_t;
 
 //==============================================================================

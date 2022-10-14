@@ -407,6 +407,16 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
             }
         }
 
+        // Spawn fighters facing each other
+        if(i == 0)
+        {
+            f->fighters[i].dir = FACING_RIGHT;
+        }
+        else
+        {
+            f->fighters[i].dir = FACING_LEFT;
+        }
+
         // Start counting in the match
         f->gamePhase = COUNTING_IN;
         f->gameTimerUs = 3000000;
@@ -1151,6 +1161,18 @@ void checkFighterButtonInput(fighter_t* ftr)
                         setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
                     }
                     setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
+
+                    // Change direction mid-air when jumping
+                    // Up Air attack can also change direction, otherwise
+                    // direction is not changed while mid-air
+                    if(btnState & LEFT)
+                    {
+                        ftr->dir = FACING_LEFT;
+                    }
+                    else if (btnState & RIGHT)
+                    {
+                        ftr->dir = FACING_RIGHT;
+                    }
                 }
                 break;
             }
@@ -1249,8 +1271,9 @@ void checkFighterButtonInput(fighter_t* ftr)
                         ftr->numJumpsLeft = 0;
                         ftr->isInFreefall = true;
 
-                        // Change direction mid-air when performing an up air attack
-                        // Otherwise direction is not changed while mid-air
+                        // Change direction mid-air when performing an up air attack.
+                        // Jumping can also change direction, otherwise direction
+                        // is not changed while mid-air
                         if(btnState & LEFT)
                         {
                             ftr->dir = FACING_LEFT;
@@ -1954,7 +1977,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
         ftr->cAttack = NO_ATTACK;
         setFighterState(ftr, FS_IDLE, &(ftr->idleSprite0), 0, NULL);
-        ftr->pos.x = (f->d->w / 2) << SF;
+        ftr->pos.x = ((f->d->w << SF) - ftr->size.x) / 2;
         ftr->pos.y = 12 << SF;
         ftr->velocity.x = 0;
         ftr->velocity.y = 0;
@@ -2377,7 +2400,14 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     {
         // Add the sound effect to the scene
         scene->sfx = SFX_FIGHTER_2_HIT;
-        scene->ledfx |= LEDFX_FIGHTER_2_HIT;
+        if(MULTIPLAYER == f->type)
+        {
+            scene->ledfx |= LEDFX_FIGHTER_2_HIT;
+        }
+        else
+        {
+            scene->ledfx |= LEDFX_SANDBAG_HIT;
+        }
         f2->damagedThisFrame = false;
     }
 
@@ -2575,6 +2605,17 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
         f->rColor.r = 0;
         f->rColor.g = 0;
         f->rColor.b = 0xFF;
+        f->leds[NUM_LEDS - 1] = f->rColor;
+    }
+
+    if(scene->ledfx & LEDFX_SANDBAG_HIT)
+    {
+        f->lColor.r = 0;
+        f->lColor.g = 0xFF;
+        f->lColor.b = 0xFF;
+        f->leds[0] = f->rColor;
+
+        f->rColor = f->lColor;
         f->leds[NUM_LEDS - 1] = f->rColor;
     }
 
