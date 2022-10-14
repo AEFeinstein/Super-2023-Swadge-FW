@@ -45,7 +45,15 @@ typedef enum
     BTN_MODE_DRAW,
     BTN_MODE_SELECT,
     BTN_MODE_SAVE,
+    BTN_MODE_PALETTE,
 } paintButtonMode_t;
+
+typedef enum
+{
+    PALETTE_R,
+    PALETTE_G,
+    PALETTE_B,
+} paintEditPalette_t;
 
 typedef enum
 {
@@ -54,6 +62,8 @@ typedef enum
     PICK_SLOT_LOAD,
     CONFIRM_OVERWRITE,
     CONFIRM_UNSAVED,
+    EDIT_PALETTE,
+    COLOR_PICKER,
     CLEAR,
     CONFIRM_CLEAR,
     EXIT,
