@@ -114,6 +114,7 @@ typedef struct
     uint64_t buttonPressedTimer;
 
     font_t infoFont;
+    wsg_t arrow;
 } danceMode_t;
 
 
@@ -154,15 +155,14 @@ void danceEnterMode(display_t* disp)
 
     danceState->buttonPressedTimer = 0;
 
-    if (!loadFont(DANCE_INFO_FONT, &(danceState->infoFont)))
-    {
-        ESP_LOGE("Dance", "Error loading " DANCE_INFO_FONT);
-    }
+    loadFont("mm.font", &(danceState->infoFont));
+    loadWsg("arrow21.wsg", &danceState->arrow);
 }
 
 void danceExitMode(void)
 {
     freeFont(&(danceState->infoFont));
+    freeWsg(&danceState->arrow);
     free(danceState);
     danceState = NULL;
 }
@@ -282,15 +282,37 @@ void danceRedrawScreen(void)
 
     if (!danceState->blankScreen)
     {
+        // Draw the name, perfectly centered
+        int16_t yOff = (danceState->disp->h - danceState->infoFont.h) / 2;
         uint16_t width = textWidth(&(danceState->infoFont), ledDances[danceState->danceIdx].name);
-        drawText(danceState->disp, &(danceState->infoFont), c555, ledDances[danceState->danceIdx].name,
-                 (danceState->disp->w - width) / 2, 60);
+        drawText(danceState->disp, &(danceState->infoFont), c555,
+                 ledDances[danceState->danceIdx].name,
+                 (danceState->disp->w - width) / 2,
+                 yOff);
+        // Draw some arrows
+        drawWsg(danceState->disp, &danceState->arrow,
+                ((danceState->disp->w - width) / 2) - 8 - danceState->arrow.w, yOff,
+                false, false, 270);
+        drawWsg(danceState->disp, &danceState->arrow,
+                ((danceState->disp->w - width) / 2) + width + 8, yOff,
+                false, false, 90);
 
+        // Draw the brightness at the top
         char brightnessText[14];
-
         snprintf(brightnessText, sizeof(brightnessText), "Brightness: %d", getLedBrightness());
         width = textWidth(&(danceState->infoFont), brightnessText);
-        drawText(danceState->disp, &(danceState->infoFont), c555, brightnessText, (danceState->disp->w - width) / 2, 10);
+        yOff = 16;
+        drawText(danceState->disp, &(danceState->infoFont), c555,
+                 brightnessText,
+                 (danceState->disp->w - width) / 2,
+                 yOff);
+        // Draw some arrows
+        drawWsg(danceState->disp, &danceState->arrow,
+                ((danceState->disp->w - width) / 2) - 8 - danceState->arrow.w, yOff,
+                false, false, 0);
+        drawWsg(danceState->disp, &danceState->arrow,
+                ((danceState->disp->w - width) / 2) + width + 8, yOff,
+                false, false, 180);
     }
 }
 

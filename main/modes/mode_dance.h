@@ -10,8 +10,6 @@
 
 #include "swadgeMode.h"
 
-#define DANCE_INFO_FONT "radiostars.font"
-
 extern swadgeMode modeDance;
 
 void danceEnterMode(display_t* display);
