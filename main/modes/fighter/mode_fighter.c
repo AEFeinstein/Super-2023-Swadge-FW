@@ -27,6 +27,7 @@
 #include "mode_fighter.h"
 #include "fighter_json.h"
 #include "fighter_menu.h"
+#include "fighter_music.h"
 
 //==============================================================================
 // Constants
@@ -429,6 +430,8 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
     {
         fighterSendButtonsToOther(fighterGetButtonState());
     }
+
+    buzzer_play_bgm(&fighter_music);
 }
 
 /**
@@ -467,6 +470,8 @@ void fighterExitGame(void)
         free(f);
         f = NULL;
     }
+
+    buzzer_stop();
 }
 
 /**
