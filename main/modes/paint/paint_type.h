@@ -24,8 +24,6 @@ typedef enum
     PAINT_DRAW,
     // Select and view/edit saved drawings
     PAINT_GALLERY,
-    // View a drawing, no editing
-    PAINT_VIEW,
     // Share a drawing via ESPNOW
     PAINT_SHARE,
     // Receive a shared drawing over ESPNOW

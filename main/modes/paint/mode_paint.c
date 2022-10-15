@@ -126,9 +126,6 @@ void paintExitMode(void)
         case PAINT_RECEIVE:
         break;
 
-        case PAINT_VIEW:
-        break;
-
         case PAINT_GALLERY:
             paintGalleryCleanup();
         break;
@@ -168,10 +165,6 @@ void paintMainLoop(int64_t elapsedUs)
 
     case PAINT_RECEIVE:
     // Implemented in a different mode
-    break;
-
-    case PAINT_VIEW:
-    // TODO get rid of PAINT_VIEW
     break;
 
     case PAINT_GALLERY:
@@ -240,9 +233,6 @@ void paintButtonCb(buttonEvt_t* evt)
             paintDrawScreenButtonCb(evt);
             break;
         }
-
-        case PAINT_VIEW:
-        break;
 
         case PAINT_HELP:
         break;
@@ -463,9 +453,6 @@ void paintReturnToMainMenu(void)
         case PAINT_SHARE:
         case PAINT_RECEIVE:
             switchToSwadgeMode(&modePaint);
-        break;
-
-        case PAINT_VIEW:
         break;
 
         case PAINT_GALLERY:
