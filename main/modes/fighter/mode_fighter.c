@@ -22,6 +22,7 @@
 #include "bresenham.h"
 #include "linked_list.h"
 #include "led_util.h"
+#include "musical_buzzer.h"
 
 #include "mode_fighter.h"
 #include "fighter_json.h"
@@ -81,6 +82,10 @@ typedef struct
     int32_t fps;
     wsg_t indicator;
     vector_t cameraOffset;
+    led_t leds[NUM_LEDS];
+    led_t lColor;
+    led_t rColor;
+    int32_t ledTimerUs;
 } fightingGame_t;
 
 //==============================================================================
@@ -253,6 +258,52 @@ static const stage_t* stages[] =
     &hrStadium
 };
 
+// Simple sound effect when fighter 1 is hit
+static const song_t f1hit =
+{
+    .notes =
+    {
+        // Random frequencies between B3 and B4
+        {.note = 399, .timeMs = 5},
+        {.note = 293, .timeMs = 5},
+        {.note = 410, .timeMs = 5},
+        {.note = 367, .timeMs = 5},
+        {.note = 493, .timeMs = 5},
+        {.note = 359, .timeMs = 5},
+        {.note = 453, .timeMs = 5},
+        {.note = 303, .timeMs = 5},
+        {.note = 330, .timeMs = 5},
+        {.note = 450, .timeMs = 5},
+        {.note = 261, .timeMs = 5},
+        {.note = 292, .timeMs = 5},
+    },
+    .numNotes = 12,
+    .shouldLoop = false
+};
+
+// Simple sound effect when fighter 2 is hit
+song_t f2hit =
+{
+    .notes =
+    {
+        // Random frequencies between B4 and B5
+        {.note = 503, .timeMs = 5},
+        {.note = 664, .timeMs = 5},
+        {.note = 596, .timeMs = 5},
+        {.note = 741, .timeMs = 5},
+        {.note = 584, .timeMs = 5},
+        {.note = 813, .timeMs = 5},
+        {.note = 974, .timeMs = 5},
+        {.note = 589, .timeMs = 5},
+        {.note = 683, .timeMs = 5},
+        {.note = 519, .timeMs = 5},
+        {.note = 831, .timeMs = 5},
+        {.note = 531, .timeMs = 5},
+    },
+    .numNotes = 12,
+    .shouldLoop = false
+};
+
 //==============================================================================
 // Functions
 //==============================================================================
@@ -356,6 +407,16 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
             }
         }
 
+        // Spawn fighters facing each other
+        if(i == 0)
+        {
+            f->fighters[i].dir = FACING_RIGHT;
+        }
+        else
+        {
+            f->fighters[i].dir = FACING_LEFT;
+        }
+
         // Start counting in the match
         f->gamePhase = COUNTING_IN;
         f->gameTimerUs = 3000000;
@@ -368,27 +429,6 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
     {
         fighterSendButtonsToOther(fighterGetButtonState());
     }
-
-    // Set some LEDs, just because
-    // static led_t leds[NUM_LEDS] =
-    // {
-    //     {.r = 0x00, .g = 0x00, .b = 0x00},
-    //     {.r = 0xFF, .g = 0x00, .b = 0xFF},
-    //     {.r = 0x0C, .g = 0x19, .b = 0x60},
-    //     {.r = 0xFD, .g = 0x08, .b = 0x07},
-    //     {.r = 0x70, .g = 0x81, .b = 0xFF},
-    //     {.r = 0xFF, .g = 0xCC, .b = 0x00},
-    // };
-    static led_t leds[NUM_LEDS] =
-    {
-        {.r = 0x00, .g = 0x00, .b = 0x00},
-        {.r = 0x00, .g = 0x00, .b = 0x00},
-        {.r = 0x00, .g = 0x00, .b = 0x00},
-        {.r = 0x00, .g = 0x00, .b = 0x00},
-        {.r = 0x00, .g = 0x00, .b = 0x00},
-        {.r = 0x00, .g = 0x00, .b = 0x00},
-    };
-    setLeds(leds, NUM_LEDS);
 }
 
 /**
@@ -585,6 +625,54 @@ void fighterGameLoop(int64_t elapsedUs)
         f->fpsTimeCount -= (1000000 * FPS_MEASUREMENT_SEC);
         f->fps = (f->fpsFrameCount / FPS_MEASUREMENT_SEC);
         f->fpsFrameCount = 0;
+    }
+
+    // Update LEDs every 2ms
+    bool updateLeds = false;
+    f->ledTimerUs += elapsedUs;
+    while(f->ledTimerUs > 1000)
+    {
+        f->ledTimerUs -= 1000;
+
+        // Decay all LEDs. One step every 1000us is 0.256s to fully decay
+        for(int i = 0; i < NUM_LEDS; i++)
+        {
+            if(f->leds[i].r > 0)
+            {
+                f->leds[i].r--;
+            }
+            if(f->leds[i].g > 0)
+            {
+                f->leds[i].g--;
+            }
+            if(f->leds[i].b > 0)
+            {
+                f->leds[i].b--;
+            }
+
+            // When an LED reaches half-brightness
+            if((f->leds[i].r == 128) || (f->leds[i].g == 128) || (f->leds[i].b == 128))
+            {
+                // Turn the next one on
+                if(i < (NUM_LEDS / 2) - 1)
+                {
+                    f->leds[i + 1] = f->lColor;
+                }
+                else if (i > (NUM_LEDS / 2))
+                {
+                    f->leds[i - 1] = f->rColor;
+                }
+            }
+        }
+
+        // Change outputs
+        updateLeds = true;
+    }
+
+    if(updateLeds)
+    {
+        // Shine those lights
+        setLeds(f->leds, NUM_LEDS);
     }
 
     // Only process the loop as single player, or as the server in multi
@@ -1073,6 +1161,18 @@ void checkFighterButtonInput(fighter_t* ftr)
                         setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
                     }
                     setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
+
+                    // Change direction mid-air when jumping
+                    // Up Air attack can also change direction, otherwise
+                    // direction is not changed while mid-air
+                    if(btnState & LEFT)
+                    {
+                        ftr->dir = FACING_LEFT;
+                    }
+                    else if (btnState & RIGHT)
+                    {
+                        ftr->dir = FACING_RIGHT;
+                    }
                 }
                 break;
             }
@@ -1171,8 +1271,9 @@ void checkFighterButtonInput(fighter_t* ftr)
                         ftr->numJumpsLeft = 0;
                         ftr->isInFreefall = true;
 
-                        // Change direction mid-air when performing an up air attack
-                        // Otherwise direction is not changed while mid-air
+                        // Change direction mid-air when performing an up air attack.
+                        // Jumping can also change direction, otherwise direction
+                        // is not changed while mid-air
                         if(btnState & LEFT)
                         {
                             ftr->dir = FACING_LEFT;
@@ -1876,7 +1977,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
         ftr->cAttack = NO_ATTACK;
         setFighterState(ftr, FS_IDLE, &(ftr->idleSprite0), 0, NULL);
-        ftr->pos.x = (f->d->w / 2) << SF;
+        ftr->pos.x = ((f->d->w << SF) - ftr->size.x) / 2;
         ftr->pos.y = 12 << SF;
         ftr->velocity.x = 0;
         ftr->velocity.y = 0;
@@ -1964,6 +2065,9 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         // Tally the damage
                         otherFtr->damage += hbx->damage;
                         ftr->damageGiven += hbx->damage;
+
+                        // Note the fighter was hit for SFX & LEDs
+                        otherFtr->damagedThisFrame = true;
 
                         // Set the hitstop timer
                         otherFtr->hitstopTimer = getHitstop(hbx->damage);
@@ -2057,6 +2161,9 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                         // Tally the damage
                         ftr->damage += proj->damage;
                         proj->owner->damageGiven += proj->damage;
+
+                        // Note the fighter was hit for SFX & LEDs
+                        ftr->damagedThisFrame = true;
 
                         // Apply the knockback, scaled by damage
                         // roughly (1 + (0.02 * dmg))
@@ -2224,7 +2331,7 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
 
     // Allocate array to store the data to render a scene
     (*outLen) = (sizeof(fighterScene_t)) + (numProj * sizeof(fighterSceneProjectile_t));
-    fighterScene_t* scene = malloc((*outLen));
+    fighterScene_t* scene = calloc(1, (*outLen));
 
     // message type is filled in later
 
@@ -2266,6 +2373,14 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     scene->f1.stocks = f1->stocks;
     scene->f1.stockIconIdx = f1->stockIconIdx;
     scene->f1.isInvincible = (f1->iFrameTimer > 0);
+    // If f1 took damage this frame
+    if(f1->damagedThisFrame)
+    {
+        // Add the sound effect to the scene
+        scene->sfx = SFX_FIGHTER_1_HIT;
+        scene->ledfx |= LEDFX_FIGHTER_1_HIT;
+        f1->damagedThisFrame = false;
+    }
 
     // f2 position
     vector_t f2spritePos;
@@ -2280,6 +2395,21 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     scene->f2.stocks = f2->stocks;
     scene->f2.stockIconIdx = f2->stockIconIdx;
     scene->f2.isInvincible = (f2->iFrameTimer > 0);
+    // If f2 took damage this frame
+    if(f2->damagedThisFrame)
+    {
+        // Add the sound effect to the scene
+        scene->sfx = SFX_FIGHTER_2_HIT;
+        if(MULTIPLAYER == f->type)
+        {
+            scene->ledfx |= LEDFX_FIGHTER_2_HIT;
+        }
+        else
+        {
+            scene->ledfx |= LEDFX_SANDBAG_HIT;
+        }
+        f2->damagedThisFrame = false;
+    }
 
     // Adjust camera
     // Check if either fighter is offscreen at all
@@ -2440,6 +2570,54 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
     // Draw the HUD
     drawFighterHud(d, f->mm_font, f1_dmg, f1_stock, f1_stockIconIdx, f2_dmg, f2_stock, f2_stockIconIdx, scene->gameTimerUs,
                    scene->drawGo);
+
+    // Play a sound
+    switch(scene->sfx)
+    {
+        case SFX_FIGHTER_1_HIT:
+        {
+            buzzer_play_sfx(&f1hit);
+            break;
+        }
+        case SFX_FIGHTER_2_HIT:
+        {
+            buzzer_play_sfx(&f2hit);
+            break;
+        }
+        default:
+        case SFX_FIGHTER_NONE:
+        {
+            // shhhh
+            break;
+        }
+    }
+
+    if(scene->ledfx & LEDFX_FIGHTER_1_HIT)
+    {
+        f->lColor.r = 0;
+        f->lColor.g = 0xFF;
+        f->lColor.b = 0;
+        f->leds[0] = f->lColor;
+    }
+
+    if(scene->ledfx & LEDFX_FIGHTER_2_HIT)
+    {
+        f->rColor.r = 0;
+        f->rColor.g = 0;
+        f->rColor.b = 0xFF;
+        f->leds[NUM_LEDS - 1] = f->rColor;
+    }
+
+    if(scene->ledfx & LEDFX_SANDBAG_HIT)
+    {
+        f->lColor.r = 0;
+        f->lColor.g = 0xFF;
+        f->lColor.b = 0xFF;
+        f->leds[0] = f->rColor;
+
+        f->rColor = f->lColor;
+        f->leds[NUM_LEDS - 1] = f->rColor;
+    }
 
     // Draw debug boxes, conditionally
 #ifdef DRAW_DEBUG_BOXES
