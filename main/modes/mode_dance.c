@@ -205,12 +205,12 @@ void danceMainLoop(int64_t elapsedUs)
 
 /**
  * @brief TODO
- * 
- * @param vBatt 
+ *
+ * @param vBatt
  */
 void danceBatteryCb(uint32_t vBatt)
 {
-    ESP_LOGI("BAT", "%lld %d", esp_timer_get_time(), vBatt);
+    // ESP_LOGI("BAT", "%lld %d", esp_timer_get_time(), vBatt);
 }
 
 void danceButtonCb(buttonEvt_t* evt)
@@ -274,7 +274,8 @@ void danceRedrawScreen()
     if (!danceState->blankScreen)
     {
         uint16_t width = textWidth(&(danceState->infoFont), ledDances[danceState->danceIdx].name);
-        drawText(danceState->disp, &(danceState->infoFont), c555, ledDances[danceState->danceIdx].name, (danceState->disp->w - width) / 2, 60);
+        drawText(danceState->disp, &(danceState->infoFont), c555, ledDances[danceState->danceIdx].name,
+                 (danceState->disp->w - width) / 2, 60);
 
         char brightnessText[14];
 
@@ -590,7 +591,7 @@ void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset)
  * @param tElapsedUs The time elapsed since last call, in microseconds
  * @param reset      true to reset this dance's variables
  */
-void danceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg , bool reset)
+void danceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset)
 {
     static uint32_t tAccumulated = 0;
     static uint8_t ledCount = 0;
@@ -1259,7 +1260,7 @@ void danceChristmas(uint32_t tElapsedUs, uint32_t arg, bool reset)
  * @param reset
  */
 void danceNone(uint32_t tElapsedUs __attribute__((unused)),
-                                 uint32_t arg __attribute__((unused)), bool reset)
+               uint32_t arg __attribute__((unused)), bool reset)
 {
     if(reset)
     {
