@@ -923,16 +923,13 @@ const char* drawTextWordWrap(display_t* disp, font_t* font, paletteColor_t color
 
         // The text is longer than will fit on the rest of the current line
         // Or we shortened it down to nothing. Either way, move to next line.
+        // Also, go back to the start of the loop so we don't
+        // accidentally overrun the yMax
         if (textX + textWidth(font, buf) > xMax || nextBreak == 0)
         {
             // The line won't fit
             textY += font->h + 1;
             textX = xOff;
-        }
-
-        if (nextBreak == 0)
-        {
-            // avoid a pointless call to drawText("")
             continue;
         }
 
