@@ -81,7 +81,8 @@ typedef struct
     int32_t fpsTimeCount;
     int32_t fpsFrameCount;
     int32_t fps;
-    wsg_t indicator;
+    wsg_t p1indicator;
+    wsg_t p2indicator;
     vector_t cameraOffset;
     led_t leds[NUM_LEDS];
     led_t lColor;
@@ -112,7 +113,8 @@ uint32_t getHitstop(uint16_t damage);
 void getSpritePos(fighter_t* ftr, vector_t* spritePos);
 fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, list_t* projectiles,
                                     uint8_t* outLen);
-void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir, bool isInvincible);
+void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir,
+                 bool isInvincible, wsg_t* indicator);
 void drawFighterHud(display_t* d, font_t* font,
                     int16_t f1_dmg, int16_t f1_stock, int16_t f1_stockIconIdx,
                     int16_t f2_dmg, int16_t f2_stock, int16_t f2_stockIconIdx,
@@ -333,7 +335,8 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
     f->mm_font = mmFont;
 
     // Load an indicator image
-    loadWsg("indic.wsg", &f->indicator);
+    loadWsg("p1indic.wsg", &f->p1indicator);
+    loadWsg("p2indic.wsg", &f->p2indicator);
 
     // Start the scene as NULL
     f->composedScene = NULL;
@@ -442,7 +445,8 @@ void fighterExitGame(void)
     if(NULL != f)
     {
         // Free the indicator
-        freeWsg(&f->indicator);
+        freeWsg(&f->p1indicator);
+        freeWsg(&f->p2indicator);
 
         // Free any stray projectiles
         projectile_t* toFree;
@@ -2536,8 +2540,8 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
     int16_t f2_stockIconIdx = scene->f2.stockIconIdx;
 
     // Actually draw fighters
-    drawFighter(d, getFighterSprite(f2_sprite, f->loadedSprites), f2_posX, f2_posY, f2_dir, f2_invincible);
-    drawFighter(d, getFighterSprite(f1_sprite, f->loadedSprites), f1_posX, f1_posY, f1_dir, f1_invincible);
+    drawFighter(d, getFighterSprite(f2_sprite, f->loadedSprites), f2_posX, f2_posY, f2_dir, f2_invincible, &f->p1indicator);
+    drawFighter(d, getFighterSprite(f1_sprite, f->loadedSprites), f1_posX, f1_posY, f1_dir, f1_invincible, &f->p2indicator);
 
     // Iterate through projectiles
     int16_t numProj = scene->numProjectiles;
@@ -2645,7 +2649,8 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
  * @param dir The direction the sprite is facing
  * @param isInvincible true if the fighter is invincible
  */
-void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir, bool isInvincible)
+void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir, bool isInvincible,
+                 wsg_t* indicator)
 {
     // Check if sprite is completely offscreen
     if ((x + sprite->w <= 0) || (x >= d->w) ||
@@ -2688,25 +2693,25 @@ void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirec
             if(x0 == 0)
             {
                 // Left boundary
-                drawWsg(d, &f->indicator, x0, y0 - (f->indicator.h / 2), false, false, 0);
+                drawWsg(d, indicator, x0 - 3, y0 - (indicator->h / 2), false, false, 90);
                 break;
             }
             else if (x0 == (d->w - 1))
             {
                 // Right boundary
-                drawWsg(d, &f->indicator, x0 - f->indicator.w, y0 - (f->indicator.h / 2), false, false, 180);
+                drawWsg(d, indicator, x0 - indicator->w + 4, y0 - (indicator->h / 2), false, false, 270);
                 break;
             }
             else if (y0 == 0)
             {
                 // Top boundary
-                drawWsg(d, &f->indicator, x0 - (f->indicator.w / 2), y0 - 2, false, false, 90);
+                drawWsg(d, indicator, x0 - (indicator->w / 2), y0 - 1, false, false, 180);
                 break;
             }
             else if(y0 == (d->h - 1))
             {
                 // Bottom boundary
-                drawWsg(d, &f->indicator, x0 - (f->indicator.w / 2), y0 - f->indicator.h + 3, false, false, 270);
+                drawWsg(d, indicator, x0 - (indicator->w / 2), y0 - indicator->h, false, false, 0);
                 break;
             }
         }
@@ -2720,6 +2725,9 @@ void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirec
             int16_t r = ((sprite->w > sprite->h) ? (sprite->w) : (sprite->h)) / 2;
             plotCircle(d, x + (sprite->w / 2), y + (sprite->h / 2), r, INVINCIBLE_COLOR);
         }
+
+        // Draw indicator above fighter
+        drawWsg(d, indicator, x + ((sprite->w - indicator->w) / 2), y - indicator->h - 1, false, false, 0);
     }
 }
 
