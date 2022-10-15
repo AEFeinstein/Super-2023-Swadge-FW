@@ -40,6 +40,9 @@ typedef struct
 #define ARG_G(arg) (((arg) >>  8)&0xFF)
 #define ARG_B(arg) (((arg) >>  0)&0xFF)
 
+// Sleep the TFT after 5s
+#define TFT_TIMEOUT_US 5000000
+
 /*============================================================================
  * Prototypes
  *==========================================================================*/
@@ -107,6 +110,8 @@ typedef struct
     bool resetDance;
     bool blankScreen;
 
+    uint64_t buttonPressedTimer;
+
     font_t infoFont;
 } danceMode_t;
 
@@ -146,6 +151,8 @@ void danceEnterMode(display_t* disp)
     danceState->resetDance = true;
     danceState->blankScreen = false;
 
+    danceState->buttonPressedTimer = 0;
+
     if (!loadFont(DANCE_INFO_FONT, &(danceState->infoFont)))
     {
         ESP_LOGE("Dance", "Error loading " DANCE_INFO_FONT);
@@ -163,7 +170,35 @@ void danceMainLoop(int64_t elapsedUs)
 {
     ledDances[danceState->danceIdx].func(elapsedUs, ledDances[danceState->danceIdx].arg, danceState->resetDance);
 
-    danceRedrawScreen();
+    // If the screen is blank
+    if(danceState->blankScreen)
+    {
+        // If a button has been pressed recently
+        if(danceState->buttonPressedTimer < TFT_TIMEOUT_US)
+        {
+            // Turn the screen on
+            enableTFTBacklight();
+            setTFTBacklight(getTftIntensity());
+            danceState->blankScreen = false;
+            // Draw to it
+            danceRedrawScreen();
+        }
+    }
+    else
+    {
+        // Check if it should be blanked
+        danceState->buttonPressedTimer += elapsedUs;
+        if (danceState->buttonPressedTimer >= TFT_TIMEOUT_US)
+        {
+            disableTFTBacklight();
+            danceState->blankScreen = true;
+        }
+        else
+        {
+            // Screen is not blank, draw to it
+            danceRedrawScreen();
+        }
+    }
 
     danceState->resetDance = false;
 }
@@ -180,6 +215,15 @@ void danceBatteryCb(uint32_t vBatt)
 
 void danceButtonCb(buttonEvt_t* evt)
 {
+    // Reset this on any button event
+    danceState->buttonPressedTimer = 0;
+
+    // This button press will wake the display, so don't process it
+    if(danceState->blankScreen)
+    {
+        return;
+    }
+
     if (evt->down)
     {
         switch(evt->button)
@@ -197,45 +241,23 @@ void danceButtonCb(buttonEvt_t* evt)
             }
 
             case LEFT:
+            case BTN_B:
             {
                 selectPrevDance();
                 break;
             }
 
             case RIGHT:
+            case BTN_A:
             {
                 selectNextDance();
                 break;
             }
 
-            case BTN_A:
-            {
-                danceState->blankScreen = !danceState->blankScreen;
-
-                if(danceState->blankScreen)
-                {
-                    disableTFTBacklight();
-                }
-                else
-                {
-                    enableTFTBacklight();
-                    setTFTBacklight(getTftIntensity());
-                }
-                break;
-            }
-
-            case BTN_B:
-            {
-                break;
-            }
-
             case SELECT:
-            {
-                break;
-            }
-
             case START:
             {
+                // Unused
                 break;
             }
         }
