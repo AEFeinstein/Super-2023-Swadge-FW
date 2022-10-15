@@ -21,11 +21,12 @@ typedef enum {
 } gameStateEnum_t;
 
 typedef enum {
-    BGM_NULL,
+    BGM_NO_CHANGE,
     BGM_MAIN,
     BGM_ATHLETIC,
     BGM_UNDERGROUND,
-    BGM_FORTRESS
+    BGM_FORTRESS,
+    BGM_NULL
 } bgmEnum_t;
 
 typedef enum {
