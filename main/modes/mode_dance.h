@@ -15,7 +15,7 @@
 extern swadgeMode modeDance;
 
 void danceEnterMode(display_t* display);
-void danceExitMode();
+void danceExitMode(void);
 void danceMainLoop(int64_t elapsedUs);
 void danceButtonCb(buttonEvt_t* evt);
 

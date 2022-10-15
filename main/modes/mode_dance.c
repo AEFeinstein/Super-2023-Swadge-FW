@@ -14,6 +14,7 @@
 #include <string.h>
 #include <esp_log.h>
 #include <esp_timer.h>
+#include <esp_sleep.h>
 
 #include "hdw-tft.h"
 #include "mode_dance.h"
@@ -48,9 +49,9 @@ typedef struct
  *==========================================================================*/
 
 uint32_t danceRand(uint32_t upperBound);
-void danceRedrawScreen();
-void selectNextDance();
-void selectPrevDance();
+void danceRedrawScreen(void);
+void selectNextDance(void);
+void selectPrevDance(void);
 void danceBatteryCb(uint32_t vBatt);
 
 void danceComet(uint32_t tElapsedUs, uint32_t arg, bool reset);
@@ -159,7 +160,7 @@ void danceEnterMode(display_t* disp)
     }
 }
 
-void danceExitMode()
+void danceExitMode(void)
 {
     freeFont(&(danceState->infoFont));
     free(danceState);
@@ -201,6 +202,14 @@ void danceMainLoop(int64_t elapsedUs)
     }
 
     danceState->resetDance = false;
+
+    // Only sleep with a blank screen, otherwise the screen flickers
+    if(danceState->blankScreen)
+    {
+        // Light sleep for 2ms
+        esp_sleep_enable_timer_wakeup(2000);
+        esp_light_sleep_start();
+    }
 }
 
 /**
@@ -267,7 +276,7 @@ void danceButtonCb(buttonEvt_t* evt)
 /**
  * @brief Blanks and redraws the entire screen
  */
-void danceRedrawScreen()
+void danceRedrawScreen(void)
 {
     danceState->disp->clearPx();
 
@@ -1272,7 +1281,7 @@ void danceNone(uint32_t tElapsedUs __attribute__((unused)),
 /**
  * @brief Switches to the previous dance in the list, with wrapping
  */
-void selectPrevDance()
+void selectPrevDance(void)
 {
     if (danceState->danceIdx > 0)
     {
@@ -1289,7 +1298,7 @@ void selectPrevDance()
 /**
  * @brief Switches to the next dance in the list, with wrapping
  */
-void selectNextDance()
+void selectNextDance(void)
 {
     if (danceState->danceIdx < getNumDances() - 1)
     {
