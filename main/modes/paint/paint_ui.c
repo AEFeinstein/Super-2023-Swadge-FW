@@ -16,6 +16,7 @@ static const char startMenuNo[] = "No";
 static const char startMenuClearCanvas[] = "Clear Canvas";
 static const char startMenuConfirmUnsaved[] = "Unsaved! OK?";
 static const char startMenuExit[] = "Exit";
+static const char startMenuEditPalette[] = "Edit Palette";
 
 void drawColorBox(display_t* disp, uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, paletteColor_t col, bool selected, paletteColor_t topBorder, paletteColor_t bottomBorder)
 {
@@ -101,7 +102,7 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
     //////// Recent Colors (palette)
     for (int i = 0; i < PAINT_MAX_COLORS; i++)
     {
-        drawColorBox(canvas->disp, colorBoxX, PAINT_COLORBOX_Y + i * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H), PAINT_COLORBOX_W, PAINT_COLORBOX_H, canvas->palette[i], paintState->buttonMode == BTN_MODE_SELECT && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
+        drawColorBox(canvas->disp, colorBoxX, PAINT_COLORBOX_Y + i * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H), PAINT_COLORBOX_W, PAINT_COLORBOX_H, canvas->palette[i], (paintState->buttonMode == BTN_MODE_SELECT || paintState->buttonMode == BTN_MODE_PALETTE) && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
     }
 
 
@@ -208,6 +209,117 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
     {
         drawText(canvas->disp, &paintState->saveMenuFont, c000, startMenuExit, textX, textY);
     }
+    else if (paintState->saveMenu == EDIT_PALETTE)
+    {
+        drawText(canvas->disp, &paintState->saveMenuFont, c000, startMenuEditPalette, textX, textY);
+    }
+    else if (paintState->saveMenu == COLOR_PICKER)
+    {
+        paintRenderColorPicker(artist, canvas, paintState);
+    }
+}
+
+uint16_t paintRenderGradientBox(paintCanvas_t* canvas, char channel, paletteColor_t col, uint16_t x, uint16_t y, uint16_t barW, uint16_t h, bool selected)
+{
+    uint16_t channelVal;
+    switch (channel)
+    {
+        case 'r': channelVal = col / 36;      break;
+        case 'g': channelVal = (col / 6) % 6; break;
+        case 'b': channelVal = col % 6;       break;
+        default:  channelVal = 0;             break;
+    }
+
+    // draw the color bar... under the text box?
+    for (uint8_t i = 0; i < 6; i++)
+    {
+        uint16_t r = channel == 'r' ? i : (col / 36);
+        uint16_t g = channel == 'g' ? i : (col / 6) % 6;
+        uint16_t b = channel == 'b' ? i : (col % 6);
+
+        fillDisplayArea(canvas->disp, x + i * barW, y, x + i * barW + barW, y + h + 1, r * 36 + g * 6 + b);
+    }
+
+    // Draw a bigger box for the active color in this segment
+    fillDisplayArea(canvas->disp, x + channelVal * barW - 1, y - 1, x + channelVal * barW + barW + 1, y + h + 2, col);
+
+    // Border around selected segment, ~if this channel is selected~
+    if (selected)
+    {
+        // Inner border
+        plotRect(canvas->disp, x + channelVal * barW - 2, y - 2, x + channelVal * barW + barW + 2, y + h + 3, c000);
+
+        // Top
+        plotLine(canvas->disp, x + channelVal * barW - 2, y - 3, x + channelVal * barW + barW + 1, y - 3, c555, 0);
+        // Left
+        plotLine(canvas->disp, x + channelVal * barW - 3, y - 2, x + channelVal * barW - 3, y + h + 2, c555, 0);
+        // Right
+        plotLine(canvas->disp, x + channelVal * barW + barW + 2, y - 2, x + channelVal * barW + barW + 2, y + h + 2, c555, 0);
+        // Bottom
+        plotLine(canvas->disp, x + channelVal * barW - 2, y + h + 3, x + channelVal * barW + barW + 1, y + h + 3, c555, 0);
+    }
+
+    // return total width of box
+    return 6 * barW + 2;
+}
+
+void paintRenderColorPicker(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_t* paintState)
+{
+    bool rCur = false, bCur = false, gCur = false;
+
+    if (paintState->editPaletteCur == &paintState->editPaletteR)
+    {
+        // R selected
+        rCur = true;
+    }
+    else if (paintState->editPaletteCur == &paintState->editPaletteG)
+    {
+        // G selected
+        gCur = true;
+    }
+    else
+    {
+        // B selected
+        bCur = true;
+    }
+
+    // Draw 3 color gradient bars, each showing what the color would be if it were changed
+    uint16_t barOffset = canvas->x, barMargin = 4;
+    uint16_t barY = paintState->smallFont.h + 2 + 2;
+    uint16_t barH = canvas->y - barY - 2 - 2 - 1;
+
+    uint16_t textW = textWidth(&paintState->smallFont, "Red");
+    uint16_t barWidth = paintRenderGradientBox(canvas, 'r', paintState->newColor, barOffset, barY, PAINT_COLOR_PICKER_BAR_W, barH, rCur);
+    drawText(canvas->disp, &paintState->smallFont, c000, "Red", barOffset + (barWidth - textW) / 2, 1);
+    barOffset += barWidth + barMargin;
+
+    textW = textWidth(&paintState->smallFont, "Green");
+    barWidth = paintRenderGradientBox(canvas, 'g', paintState->newColor, barOffset, barY, PAINT_COLOR_PICKER_BAR_W, barH, gCur);
+    drawText(canvas->disp, &paintState->smallFont, c000, "Green", barOffset + (barWidth - textW) / 2, 1);
+    barOffset += barWidth + barMargin;
+
+    textW = textWidth(&paintState->smallFont, "Blue");
+    barWidth = paintRenderGradientBox(canvas, 'b', paintState->newColor, barOffset, barY, PAINT_COLOR_PICKER_BAR_W, barH, bCur);
+    drawText(canvas->disp, &paintState->smallFont, c000, "Blue", barOffset + (barWidth - textW) / 2, 1);
+    barOffset += barWidth + barMargin;
+
+    char hexCode[16];
+    snprintf(hexCode, sizeof(hexCode), "#%02X%02X%02X", paintState->editPaletteR * 51, paintState->editPaletteG * 51, paintState->editPaletteB * 51);
+
+    textW = textWidth(&paintState->toolbarFont, hexCode);
+
+    uint16_t hexW = canvas->x + canvas->w * canvas->xScale - barOffset;
+    // Make sure the color box is wide enough for the hex text
+    if (hexW < textW + 4)
+    {
+        hexW = textW + 4;
+    }
+
+    // Draw a color box the same height as the gradient bars, extendng at least to the end of the canva
+    drawColorBox(canvas->disp, barOffset, barY, hexW, barH, paintState->newColor, false, c000, c000);
+
+    // Draw the hex code for the color centered (vertically + horizontally) in the box
+    drawText(canvas->disp, &paintState->toolbarFont, getContrastingColorBW(paintState->newColor), hexCode, barOffset + (hexW - textW) / 2, barY + (barH - paintState->toolbarFont.h) / 2);
 }
 
 void paintClearCanvas(const paintCanvas_t* canvas, paletteColor_t bgColor)
