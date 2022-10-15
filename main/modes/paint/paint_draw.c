@@ -8,6 +8,9 @@
 #include "paint_util.h"
 #include "mode_paint.h"
 
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 paintDraw_t* paintState;
 
 static paletteColor_t cursorPxsBox[] =
@@ -91,12 +94,14 @@ void paintDrawScreenSetup(display_t* disp)
 
     loadFont(PAINT_TOOLBAR_FONT, &(paintState->toolbarFont));
     loadFont(PAINT_SAVE_MENU_FONT, &(paintState->saveMenuFont));
+    loadFont(PAINT_SMALL_FONT, &(paintState->smallFont));
     paintState->clearScreen = true;
     paintState->blinkOn = true;
     paintState->blinkTimer = 0;
 
 
     // Set up the brush icons
+    uint16_t spriteH = 0;
     char iconName[32];
     for (brush_t* brush = firstBrush; brush <= lastBrush; brush++)
     {
@@ -111,11 +116,35 @@ void paintDrawScreenSetup(display_t* disp)
         {
             PAINT_LOGE("Loading icon %s failed!!!", iconName);
         }
+
+        // Keep track of the tallest sprite for layout purposes
+        if (brush->iconActive.h > spriteH)
+        {
+            spriteH = brush->iconActive.h;
+        }
+
+        if (brush->iconInactive.h > spriteH)
+        {
+            spriteH = brush->iconInactive.h;
+        }
     }
 
     // Setup the margins
-    // Top: Leave room for the toolbar text plus padding above and below it, plus 1px for canvas border
-    paintState->marginTop = paintState->toolbarFont.h + 2 * PAINT_TOOLBAR_TEXT_PADDING_Y + 1;
+    // Top: Leave room for the tallest of...
+    // * The save menu text plus padding above and below it
+    // * The tallest sprite, plus some padding
+    // * The minimum height of the color picker, plus some padding
+    // ... plus, 1px for the canvas border
+
+    uint16_t saveMenuSpace = paintState->saveMenuFont.h + 2 * PAINT_TOOLBAR_TEXT_PADDING_Y;
+    uint16_t toolbarSpace = spriteH + 2;
+
+    // text above picker bars, plus 2px margin, plus min colorbar height (6), plus 2px above and below for select borders
+    uint16_t colorPickerSpace = paintState->smallFont.h + 2 + PAINT_COLOR_PICKER_MIN_BAR_H + 2 + 2;
+
+    paintState->marginTop = MAX(saveMenuSpace, MAX(toolbarSpace, colorPickerSpace)) + 1;
+
+
     // Left: Leave room for the color boxes, their margins, their borders, and the canvas border
     paintState->marginLeft = PAINT_COLORBOX_W + PAINT_COLORBOX_MARGIN_X * 2 + 2 + 1;
     // Bottom: Leave room for the progress bar, plus 1px of separation, and canvas border
@@ -179,6 +208,7 @@ void paintDrawScreenCleanup(void)
         freePxStack(&paintState->artist[i].pickPoints);
     }
 
+    freeFont(&paintState->smallFont);
     freeFont(&paintState->saveMenuFont);
     freeFont(&paintState->toolbarFont);
     free(paintState);
@@ -344,9 +374,14 @@ void paintSaveModePrevItem(void)
             paintState->saveMenu = PICK_SLOT_SAVE;
         break;
 
+        case EDIT_PALETTE:
+        case COLOR_PICKER:
+            paintState->saveMenu = PICK_SLOT_LOAD;
+        break;
+
         case CLEAR:
         case CONFIRM_CLEAR:
-            paintState->saveMenu = PICK_SLOT_LOAD;
+            paintState->saveMenu = EDIT_PALETTE;
         break;
 
         case EXIT:
@@ -387,6 +422,11 @@ void paintSaveModeNextItem(void)
 
         case PICK_SLOT_LOAD:
         case CONFIRM_UNSAVED:
+            paintState->saveMenu = EDIT_PALETTE;
+        break;
+
+        case EDIT_PALETTE:
+        case COLOR_PICKER:
             paintState->saveMenu = CLEAR;
         break;
 
@@ -409,7 +449,7 @@ void paintSaveModeNextItem(void)
         // If no slots are in use, skip again
         if (!paintGetAnySlotInUse(paintState->index))
         {
-            paintState->saveMenu = CLEAR;
+            paintState->saveMenu = EDIT_PALETTE;
         }
         else if (!paintGetSlotInUse(paintState->index, paintState->selectedSlot))
         {
@@ -440,6 +480,8 @@ void paintSaveModePrevOption(void)
         break;
 
         case HIDDEN:
+        case EDIT_PALETTE:
+        case COLOR_PICKER:
         case CLEAR:
         case EXIT:
         // Do nothing, there are no options here
@@ -468,10 +510,191 @@ void paintSaveModeNextOption(void)
         break;
 
         case HIDDEN:
+        case EDIT_PALETTE:
+        case COLOR_PICKER:
         case CLEAR:
         case EXIT:
         // Do nothing, there are no options here
         break;
+    }
+}
+
+void paintEditPaletteUpdate(void)
+{
+    paintState->newColor = (paintState->editPaletteR * 36 + paintState->editPaletteG * 6 + paintState->editPaletteB);
+}
+
+void paintEditPaletteDecChannel(void)
+{
+    *(paintState->editPaletteCur) = PREV_WRAP(*(paintState->editPaletteCur), 6);
+    paintEditPaletteUpdate();
+}
+
+void paintEditPaletteIncChannel(void)
+{
+    *(paintState->editPaletteCur) = NEXT_WRAP(*(paintState->editPaletteCur), 6);
+    paintEditPaletteUpdate();
+}
+
+void paintEditPaletteNextChannel(void)
+{
+    if (paintState->editPaletteCur == &paintState->editPaletteR)
+    {
+        paintState->editPaletteCur = &paintState->editPaletteG;
+    }
+    else if (paintState->editPaletteCur == &paintState->editPaletteG)
+    {
+        paintState->editPaletteCur = &paintState->editPaletteB;
+    }
+    else
+    {
+        paintState->editPaletteCur = &paintState->editPaletteR;
+    }
+}
+
+void paintEditPaletteSetupColor(void)
+{
+    paletteColor_t col = paintState->canvas.palette[paintState->paletteSelect];
+    paintState->editPaletteCur = &paintState->editPaletteR;
+    paintState->editPaletteR = col / 36;
+    paintState->editPaletteG = (col / 6) % 6;
+    paintState->editPaletteB = col % 6;
+    paintState->newColor = col;
+    paintEditPaletteUpdate();
+}
+
+void paintEditPalettePrevColor(void)
+{
+    paintState->paletteSelect = PREV_WRAP(paintState->paletteSelect, PAINT_MAX_COLORS);
+    paintEditPaletteSetupColor();
+}
+
+void paintEditPaletteNextColor(void)
+{
+    paintState->paletteSelect = NEXT_WRAP(paintState->paletteSelect, PAINT_MAX_COLORS);
+    paintEditPaletteSetupColor();
+}
+
+void paintEditPaletteConfirm(void)
+{
+    // Save the old color, and update the palette with the new color
+    paletteColor_t old = paintState->canvas.palette[paintState->paletteSelect];
+    paletteColor_t new = paintState->newColor;
+    paintState->canvas.palette[paintState->paletteSelect] = new;
+
+    // Only replace the color on the canvas if the old color is no longer in the palette
+    bool doReplace = true;
+    for (uint8_t i = 0; i < PAINT_MAX_COLORS; i++)
+    {
+        if (paintState->canvas.palette[i] == old)
+        {
+            doReplace = false;
+            break;
+        }
+    }
+
+    // This color is no longer in the palette, so replace it with the new one
+    if (doReplace)
+    {
+        // Make sure the FG/BG colors aren't outsie of the palette
+        if (getArtist()->fgColor == old)
+        {
+            getArtist()->fgColor = new;
+        }
+
+        if (getArtist()->bgColor == old)
+        {
+            getArtist()->bgColor = new;
+        }
+
+        // And replace it within the canvas
+        paintColorReplace(&paintState->canvas, old, new);
+        paintState->unsaved = true;
+    }
+}
+
+void paintPaletteModeButtonCb(const buttonEvt_t* evt)
+{
+    if (evt->down)
+    {
+        paintState->redrawToolbar = true;
+        switch (evt->button)
+        {
+            case BTN_A:
+            {
+                // Don't do anything? Confirm change?
+                paintEditPaletteConfirm();
+                break;
+            }
+
+            case BTN_B:
+            {
+                // Revert back to the original color
+                if (paintState->newColor != paintState->canvas.palette[paintState->paletteSelect])
+                {
+                    paintEditPaletteSetupColor();
+                }
+                else
+                {
+                    paintState->paletteSelect = 0;
+                    paintState->buttonMode = BTN_MODE_DRAW;
+                    paintState->saveMenu = HIDDEN;
+                }
+                break;
+            }
+
+            case START:
+            {
+                // Handled in button up
+                break;
+            }
+
+            case SELECT:
+            {
+                // Swap between R, G, and B
+                paintEditPaletteNextChannel();
+                break;
+            }
+
+            case UP:
+            {
+                // Prev color
+                paintEditPalettePrevColor();
+                break;
+            }
+
+            case DOWN:
+            {
+                // Next color
+                paintEditPaletteNextColor();
+                break;
+            }
+
+            case LEFT:
+            {
+                // {R/G/B}--
+                paintEditPaletteDecChannel();
+                break;
+            }
+
+            case RIGHT:
+            {
+                // {R/G/B}++
+                paintEditPaletteIncChannel();
+                break;
+            }
+        }
+    }
+    else
+    {
+        // Button up
+        if (evt->button == START)
+        {
+            // Return to draw mode
+            paintState->paletteSelect = 0;
+            paintState->buttonMode = BTN_MODE_DRAW;
+            paintState->saveMenu = HIDDEN;
+        }
     }
 }
 
@@ -543,6 +766,15 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                         break;
                     }
 
+                    case EDIT_PALETTE:
+                    {
+                        paintState->saveMenu = COLOR_PICKER;
+                        paintState->buttonMode = BTN_MODE_PALETTE;
+                        paintState->paletteSelect = 0;
+                        paintEditPaletteSetupColor();
+                        break;
+                    }
+
                     case CONFIRM_CLEAR:
                     {
                         if (paintState->saveMenuBoolOption)
@@ -597,7 +829,9 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                         }
                         break;
                     }
+                    // These cases shouldn't actually happen
                     case HIDDEN:
+                    case COLOR_PICKER:
                     {
                         paintState->buttonMode = BTN_MODE_DRAW;
                         break;
@@ -758,6 +992,12 @@ void paintDrawScreenButtonCb(const buttonEvt_t* evt)
         case BTN_MODE_SAVE:
         {
             paintSaveModeButtonCb(evt);
+            break;
+        }
+
+        case BTN_MODE_PALETTE:
+        {
+            paintPaletteModeButtonCb(evt);
             break;
         }
     }
