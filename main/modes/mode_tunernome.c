@@ -855,7 +855,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
             sprintf(bpmStr, "%d bpm, %d/%d", tunernome->bpm, tSigs[tunernome->tSigIdx].top, tSigs[tunernome->tSigIdx].bottom);
 
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, bpmStr, (tunernome->disp->w - textWidth(&tunernome->ibm_vga8,
-                     bpmStr)) / 2, 0);
+                     bpmStr)) / 2, 5);
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, leftStr, CORNER_OFFSET,
                      tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrTuner,
