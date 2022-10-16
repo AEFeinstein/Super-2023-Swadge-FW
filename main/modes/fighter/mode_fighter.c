@@ -1065,7 +1065,11 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
             }
             if(0 != atk->velocity.y)
             {
-                ftr->velocity.y = atk->velocity.y;
+                // If a fighter ledge jumped, don't let an attack make them fall again
+                if(false == ftr->ledgeJumped)
+                {
+                    ftr->velocity.y = atk->velocity.y;
+                }
             }
 
             // Resize the hurtbox if there's a custom one
@@ -1892,9 +1896,28 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         if(((hbox.y0 >> SF) < (platforms[idx].area.y1 >> SF)) &&
                 ((hbox.y1 >> SF) > (platforms[idx].area.y0 >> SF)))
         {
+            bounceDir_t bounceDir = NO_BOUNCE;
+            platformPos_t platformPos = ftr->relativePos;
+
             // If the fighter is moving rightward and hit a wall
             if ((ftr->velocity.x >= 0) &&
                     (((hbox.x1 >> SF)) == (platforms[idx].area.x0 >> SF)))
+            {
+                // Check these things
+                bounceDir = BOUNCE_RIGHT;
+                platformPos = LEFT_OF_PLATFORM;
+            }
+            // If the fighter is moving leftward and hit a wall
+            else if ((ftr->velocity.x <= 0) &&
+                     ((hbox.x0 >> SF) == ((platforms[idx].area.x1 >> SF))))
+            {
+                // Check these things
+                bounceDir = BOUNCE_LEFT;
+                platformPos = RIGHT_OF_PLATFORM;
+            }
+
+            // If a wall was hit
+            if(NO_BOUNCE != bounceDir)
             {
                 if((true == platforms[idx].canFallThrough))
                 {
@@ -1903,8 +1926,8 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 }
                 else
                 {
-                    // Fighter to left of a solid platform
-                    if(BOUNCE_RIGHT == ftr->bounceNextCollision)
+                    // Fighter to side of a solid platform
+                    if(bounceDir == ftr->bounceNextCollision)
                     {
                         // Bounce right at half velocity
                         ftr->velocity.x = (-ftr->velocity.x);
@@ -1913,46 +1936,11 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     else
                     {
                         ftr->velocity.x = 0;
-                        setFighterRelPos(ftr, LEFT_OF_PLATFORM, &platforms[idx], NULL, true);
+                        setFighterRelPos(ftr, platformPos, &platforms[idx], NULL, true);
                     }
 
                     // Moving downward
-                    if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
-                    {
-                        // Give a bonus 'jump' to get back on the platform
-                        ftr->ledgeJumped = true;
-                        ftr->velocity.y = ftr->jump_velo;
-                        ftr->iFrameTimer = IFRAMES_AFTER_LEDGE_JUMP;
-                    }
-                }
-                break;
-            }
-            // If the fighter is moving leftward and hit a wall
-            else if ((ftr->velocity.x <= 0) &&
-                     ((hbox.x0 >> SF) == ((platforms[idx].area.x1 >> SF))))
-            {
-                if((true == platforms[idx].canFallThrough))
-                {
-                    // Pass through this platform from the side
-                    setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, &platforms[idx], true);
-                }
-                else
-                {
-                    // Fighter to right of a solid platform
-                    if(BOUNCE_LEFT == ftr->bounceNextCollision)
-                    {
-                        // Bounce left at half velocity
-                        ftr->velocity.x = (-ftr->velocity.x);
-                        ftr->bounceNextCollision = NO_BOUNCE;
-                    }
-                    else
-                    {
-                        ftr->velocity.x = 0;
-                        setFighterRelPos(ftr, RIGHT_OF_PLATFORM, &platforms[idx], NULL, true);
-                    }
-
-                    // Moving downward
-                    if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
+                    if((false == ftr->ledgeJumped) && (ftr->isInFreefall) && (ftr->velocity.y > 0))
                     {
                         // Give a bonus 'jump' to get back on the platform
                         ftr->ledgeJumped = true;
