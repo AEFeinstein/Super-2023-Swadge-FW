@@ -695,7 +695,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                      tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
             char gainStr[16] = {0};
-            snprintf(gainStr, sizeof(gainStr) - 1, "Gain:%d", getMicGain());
+            snprintf(gainStr, sizeof(gainStr) - 1, "Gain: %d", getMicGain());
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, gainStr, 30 + afterExit,
                      tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
