@@ -801,7 +801,9 @@ void fighterGameLoop(int64_t elapsedUs)
                 if(COUNTING_IN == f->gamePhase)
                 {
                     f->fighters[0].btnState = 0;
+                    f->fighters[0].btnPressesSinceLast = 0;
                     f->fighters[1].btnState = 0;
+                    f->fighters[1].btnPressesSinceLast = 0;
                 }
                 // Check fighter button inputs
                 checkFighterButtonInput(&f->fighters[0]);
