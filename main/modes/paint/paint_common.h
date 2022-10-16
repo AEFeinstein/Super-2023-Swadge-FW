@@ -59,6 +59,7 @@
 
 #define PAINT_TOOLBAR_FONT "ibm_vga8.font"
 #define PAINT_SAVE_MENU_FONT "radiostars.font"
+#define PAINT_SMALL_FONT "tom_thumb.font"
 
 #define PAINT_TOOLBAR_BG c333
 
@@ -84,6 +85,9 @@
 // Y position of the first palette color box (X is automatic)
 #define PAINT_COLORBOX_Y (PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_H * 2)
 
+// Color picker stuff
+#define PAINT_COLOR_PICKER_MIN_BAR_H 6
+#define PAINT_COLOR_PICKER_BAR_W 6
 
 //////// Macros
 
@@ -158,6 +162,8 @@ typedef struct
     font_t toolbarFont;
     // Font for drawing save / load / clear / exit menu
     font_t saveMenuFont;
+    // Small font for small things (text above color picker gradient bars)
+    font_t smallFont;
 
     // Index keeping track of which slots are in use and the most recent slot
     int32_t index;
@@ -185,8 +191,17 @@ typedef struct
     // The number of canvas pixels to move the cursor this frame
     int8_t moveX, moveY;
 
-    // The index of the currently selected color, while SELECT is held
+    // The index of the currently selected color, while SELECT is held or in EDIT_PALETTE mode
     uint8_t paletteSelect;
+
+    // Pointer to the selected color channel to edit (R, G, or B)
+    uint8_t* editPaletteCur;
+
+    // The separate values for the color channels
+    uint8_t editPaletteR, editPaletteG, editPaletteB;
+
+    // The color selected
+    paletteColor_t newColor;
 
     // Used for timing blinks
     int64_t blinkTimer;

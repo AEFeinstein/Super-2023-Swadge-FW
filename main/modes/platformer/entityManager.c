@@ -282,8 +282,8 @@ entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint
         case ENTITY_CHECKPOINT:
             createdEntity = createCheckpoint(entityManager, x, y);
             break;
-        case ENTITY_BGM_CHANGE_0:
-            createdEntity = createBgmChange0(entityManager, x, y);
+        case ENTITY_BGM_STOP:
+            createdEntity = createBgmStop(entityManager, x, y);
             break;
         case ENTITY_BGM_CHANGE_1:
             createdEntity = createBgmChange1(entityManager, x, y);
@@ -297,8 +297,8 @@ entity_t* createEntity(entityManager_t *entityManager, uint8_t objectIndex, uint
         case ENTITY_BGM_CHANGE_4:
             createdEntity = createBgmChange4(entityManager, x, y);
             break;
-        case ENTITY_BGM_STOP:
-            createdEntity = createBgmStop(entityManager, x, y);
+        case ENTITY_BGM_CHANGE_5:
+            createdEntity = createBgmChange5(entityManager, x, y);
             break;
 
         default:
@@ -337,6 +337,7 @@ entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->jumpPower = 0;
     entity->spriteFlipVertical = false;
     entity->hp = 1;
+    entity->animationTimer = 0; //Used as a cooldown for shooting square wave balls
 
     entity->type = ENTITY_PLAYER;
     entity->spriteIndex = SP_PLAYER_IDLE;
@@ -367,6 +368,7 @@ entity_t* createTestObject(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->yMaxSpeed = 132;
     entity->gravityEnabled = true;
     entity->gravity = 4;
+    entity->spriteFlipHorizontal = false;
     entity->spriteFlipVertical = false;
     entity->scoreValue = 100;
 
@@ -512,6 +514,7 @@ entity_t* createHitBlock(entityManager_t * entityManager, uint16_t x, uint16_t y
     entity->gravityEnabled = true;
     entity->gravity = 4;
 
+    entity->spriteFlipHorizontal = false;
     entity->spriteFlipVertical = false;
 
     entity->type = ENTITY_HIT_BLOCK;
@@ -537,7 +540,7 @@ entity_t* createPowerUp(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
     
-    entity->xspeed = 0;
+    entity->xspeed = (entityManager->playerEntity->x > entity->x)? -16: 16;
     entity->yspeed = 0;
     entity->xMaxSpeed = 132;
     entity->yMaxSpeed = 132;
@@ -550,8 +553,8 @@ entity_t* createPowerUp(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->spriteIndex = (entityManager->playerEntity->hp < 2) ? SP_GAMING_1 : SP_MUSIC_1;
     entity->animationTimer = 0;
     entity->updateFunction = &updatePowerUp;
-    entity->collisionHandler = &dummyCollisionHandler;
-    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->collisionHandler = &powerUpCollisionHandler;
+    entity->tileCollisionHandler = &enemyTileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
     entity->overlapTileHandler = &defaultOverlapTileHandler;
 
@@ -683,6 +686,7 @@ entity_t* createEnemyBushL2(entityManager_t * entityManager, uint16_t x, uint16_
     entity->yMaxSpeed = 132;
     entity->gravityEnabled = true;
     entity->gravity = 4;
+    entity->spriteFlipHorizontal = false;
     entity->spriteFlipVertical = false;
     entity->scoreValue = 150;
 
@@ -716,6 +720,7 @@ entity_t* createEnemyBushL3(entityManager_t * entityManager, uint16_t x, uint16_
     entity->yMaxSpeed = 132;
     entity->gravityEnabled = true;
     entity->gravity = 4;
+    entity->spriteFlipHorizontal = false;
     entity->spriteFlipVertical = false;
     entity->scoreValue = 250;
 
@@ -1138,19 +1143,21 @@ entity_t* createWaveBall(entityManager_t * entityManager, uint16_t x, uint16_t y
     entity->yspeed = 0;
     entity->xMaxSpeed = 132;
     entity->yMaxSpeed = 132;
-    entity->gravityEnabled = true;
+    entity->gravityEnabled = false;
     entity->gravity = 4;
     entity->spriteFlipHorizontal = false;
     entity->spriteFlipVertical = false;
+    entity->yDamping = 3; //This will be repurposed as a state timer
+    entity->xDamping = 0; //This will be repurposed as a state tracker
 
-    entity->type = ENTITY_1UP;
-    entity->spriteIndex = SP_1UP_1;
+    entity->type = ENTITY_WAVE_BALL;
+    entity->spriteIndex = SP_WAVEBALL_1;
     entity->animationTimer = 0;
-    entity->updateFunction = &updatePowerUp;
+    entity->updateFunction = &updateWaveBall;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
-    entity->overlapTileHandler = &defaultOverlapTileHandler;
+    entity->overlapTileHandler = &waveBallOverlapTileHandler;
 
     return entity;
 };
@@ -1196,29 +1203,6 @@ void freeEntityManager(entityManager_t * self){
     }
 }
 
-entity_t* createBgmChange0(entityManager_t * entityManager, uint16_t x, uint16_t y)
-{
-    entity_t * entity = findInactiveEntity(entityManager);
-
-    if(entity == NULL) {
-        return NULL;
-    }
-
-    entity->active = true;
-    entity->visible = false;
-    entity->x = x << SUBPIXEL_RESOLUTION;
-    entity->y = y << SUBPIXEL_RESOLUTION;
-    entity->xDamping = BGM_MAIN;
-    
-    entity->type = ENTITY_BGM_CHANGE_0;
-    entity->updateFunction = &updateBgmChange;
-    entity->collisionHandler = &dummyCollisionHandler;
-    entity->tileCollisionHandler = &dummyTileCollisionHandler;
-    entity->overlapTileHandler = &defaultOverlapTileHandler;
-
-    return entity;
-}
-
 entity_t* createBgmChange1(entityManager_t * entityManager, uint16_t x, uint16_t y)
 {
     entity_t * entity = findInactiveEntity(entityManager);
@@ -1231,7 +1215,7 @@ entity_t* createBgmChange1(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
-    entity->xDamping = BGM_ATHLETIC;
+    entity->xDamping = BGM_MAIN;
     
     entity->type = ENTITY_BGM_CHANGE_1;
     entity->updateFunction = &updateBgmChange;
@@ -1254,7 +1238,7 @@ entity_t* createBgmChange2(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
-    entity->xDamping = BGM_UNDERGROUND;
+    entity->xDamping = BGM_ATHLETIC;
     
     entity->type = ENTITY_BGM_CHANGE_2;
     entity->updateFunction = &updateBgmChange;
@@ -1277,7 +1261,7 @@ entity_t* createBgmChange3(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
-    entity->xDamping = BGM_FORTRESS;
+    entity->xDamping = BGM_UNDERGROUND;
     
     entity->type = ENTITY_BGM_CHANGE_3;
     entity->updateFunction = &updateBgmChange;
@@ -1300,9 +1284,32 @@ entity_t* createBgmChange4(entityManager_t * entityManager, uint16_t x, uint16_t
     entity->visible = false;
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
-    entity->xDamping = BGM_MAIN;
+    entity->xDamping = BGM_FORTRESS;
     
     entity->type = ENTITY_BGM_CHANGE_4;
+    entity->updateFunction = &updateBgmChange;
+    entity->collisionHandler = &dummyCollisionHandler;
+    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->overlapTileHandler = &defaultOverlapTileHandler;
+
+    return entity;
+}
+
+entity_t* createBgmChange5(entityManager_t * entityManager, uint16_t x, uint16_t y)
+{
+    entity_t * entity = findInactiveEntity(entityManager);
+
+    if(entity == NULL) {
+        return NULL;
+    }
+
+    entity->active = true;
+    entity->visible = false;
+    entity->x = x << SUBPIXEL_RESOLUTION;
+    entity->y = y << SUBPIXEL_RESOLUTION;
+    entity->xDamping = BGM_NULL;
+    
+    entity->type = ENTITY_BGM_CHANGE_5;
     entity->updateFunction = &updateBgmChange;
     entity->collisionHandler = &dummyCollisionHandler;
     entity->tileCollisionHandler = &dummyTileCollisionHandler;

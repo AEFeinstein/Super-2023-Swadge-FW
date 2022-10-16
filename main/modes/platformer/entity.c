@@ -115,7 +115,17 @@ static const song_t sndHurt =
             },
         .numNotes = 6,
         .shouldLoop = false
-    };                 
+    };   
+
+static const song_t sndWaveBall =
+{
+    .notes =
+    {
+        {D_4, 50},{D_5, 50},{A_6, 50},{A_5, 50}
+    },
+    .numNotes = 4,
+    .shouldLoop = false
+};              
 
 //==============================================================================
 // Functions
@@ -132,6 +142,8 @@ void initializeEntity(entity_t *self, entityManager_t *entityManager, tilemap_t 
     self->entityManager = entityManager;
     self->spriteFlipVertical = false;
     self->fallOffTileHandler = &defaultFallOffTileHandler;
+    self->spriteFlipHorizontal = false;
+    self->spriteFlipVertical = false;
 };
 
 void updatePlayer(entity_t *self)
@@ -233,6 +245,22 @@ void updatePlayer(entity_t *self)
         }
     }
 
+    if(self->animationTimer > 0){
+        self->animationTimer--;
+    }
+
+    if (self->hp >2 && self->gameData->btnState & BTN_B && !(self->gameData->prevBtnState & BTN_B) && self->animationTimer == 0)
+    {
+        entity_t * createdEntity = createEntity(self->entityManager, ENTITY_WAVE_BALL, self->x >> SUBPIXEL_RESOLUTION, self->y >> SUBPIXEL_RESOLUTION);
+        if(createdEntity != NULL){
+            createdEntity->xspeed= (self->spriteFlipHorizontal) ? -(128 + abs(self->xspeed) + abs(self->yspeed)):128 + abs(self->xspeed) + abs(self->yspeed);
+            createdEntity->homeTileX = 0;
+            createdEntity->homeTileY = 0;
+            buzzer_play_sfx(&sndWaveBall);
+        }
+        self->animationTimer = 30;
+    }
+
 
     moveEntityWithTileCollisions(self);
     dieWhenFallingOffScreen(self);
@@ -269,6 +297,7 @@ void updateHitBlock(entity_t *self)
     if (self->animationTimer > 12)
     {
         uint8_t aboveTile = self->tilemap->map[(self->homeTileY - 1) * self->tilemap->mapWidth + self->homeTileX];
+        uint8_t belowTile = self->tilemap->map[(self->homeTileY + 1) * self->tilemap->mapWidth + self->homeTileX];
         entity_t *createdEntity = NULL;
 
         switch (aboveTile)
@@ -283,7 +312,7 @@ void updateHitBlock(entity_t *self)
             }
             case TILE_CTNR_POW1:
             {
-                createdEntity = createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity = createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) && belowTile != TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
                 createdEntity->homeTileX = 0;
                 createdEntity->homeTileY = 0;
 
@@ -292,7 +321,7 @@ void updateHitBlock(entity_t *self)
             }
             case TILE_WARP_0 ... TILE_WARP_F:
             {
-                createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) && belowTile != TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
 
                 createdEntity->homeTileX = self->homeTileX;
                 createdEntity->homeTileY = self->homeTileY;
@@ -308,7 +337,7 @@ void updateHitBlock(entity_t *self)
                     scorePoints(self->gameData, 10);
                     buzzer_play_sfx(&sndCoin);
                 } else {
-                    createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                    createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, (self->homeTileY - 1) * TILE_SIZE + HALF_TILE_SIZE);
                     createdEntity->homeTileX = 0;
                     createdEntity->homeTileY = 0;
                     self->gameData->extraLifeCollected = true;
@@ -728,9 +757,17 @@ void enemyCollisionHandler(entity_t *self, entity_t *other)
         case ENTITY_HIT_BLOCK:
             self->xspeed = other->xspeed*2;
             self->yspeed = other->yspeed*2;
-            scorePoints(self->gameData, 100);
+            scorePoints(self->gameData, self->scoreValue);
             buzzer_play_sfx(&sndSquish);
             killEnemy(self);
+            break;
+        case ENTITY_WAVE_BALL:
+            self->xspeed = other->xspeed >> 1;
+            self->yspeed = -abs(other->xspeed >> 1);
+            scorePoints(self->gameData, self->scoreValue);
+            buzzer_play_sfx(&sndBreak);
+            killEnemy(self);
+            destroyEntity(other, false);
             break;
         default:
         {
@@ -1051,6 +1088,8 @@ void updatePowerUp(entity_t *self)
         self->spriteIndex = ((self->entityManager->playerEntity->hp < 2) ? SP_GAMING_1 : SP_MUSIC_1) + ((self->spriteIndex + 1) % 3);
     }
 
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
     despawnWhenOffscreen(self);
 }
 
@@ -1191,6 +1230,48 @@ void updateDustBunnyL3(entity_t *self)
 };
 
 bool dustBunnyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    switch(tileId){
+        case TILE_BOUNCE_BLOCK: {
+            switch (direction)
+            {
+                case 0:
+                    //hitBlock->xspeed = -64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = 48;
+                    }
+                    break;
+                case 1:
+                    //hitBlock->xspeed = 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = -48;
+                    }
+                    break;
+                case 2:
+                    //hitBlock->yspeed = -128;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->yspeed = 48;
+                    }
+                    break;
+                case 4:
+                    //hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xDamping = 0;
+                        self->xspeed = 0;
+                        self->yspeed = 0;
+                        self->falling = false;
+                        self->yDamping = -1;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
     if (isSolid(tileId))
     {
         switch (direction)
@@ -1222,6 +1303,48 @@ bool dustBunnyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, u
 };
 
 bool dustBunnyL2TileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    switch(tileId){
+        case TILE_BOUNCE_BLOCK: {
+            switch (direction)
+            {
+                case 0:
+                    //hitBlock->xspeed = -64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = 48;
+                    }
+                    break;
+                case 1:
+                    //hitBlock->xspeed = 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = -48;
+                    }
+                    break;
+                case 2:
+                    //hitBlock->yspeed = -128;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->yspeed = 48;
+                    }
+                    break;
+                case 4:
+                    //hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xDamping = 0;
+                        self->xspeed = 0;
+                        self->yspeed = 0;
+                        self->falling = false;
+                        self->yDamping = -1;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+    
     if (isSolid(tileId))
     {
         switch (direction)
@@ -1255,6 +1378,48 @@ bool dustBunnyL2TileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx,
 };
 
 bool dustBunnyL3TileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    switch(tileId){
+        case TILE_BOUNCE_BLOCK: {
+            switch (direction)
+            {
+                case 0:
+                    //hitBlock->xspeed = -64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = 48;
+                    }
+                    break;
+                case 1:
+                    //hitBlock->xspeed = 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = -48;
+                    }
+                    break;
+                case 2:
+                    //hitBlock->yspeed = -128;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->yspeed = 48;
+                    }
+                    break;
+                case 4:
+                    //hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xDamping = 0;
+                        self->xspeed = 0;
+                        self->yspeed = 0;
+                        self->falling = false;
+                        self->yDamping = -1;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+    
     if (isSolid(tileId))
     {
         switch (direction)
@@ -1615,4 +1780,87 @@ void defaultOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8
 void updateBgmChange(entity_t* self){
     self->gameData->changeBgm = self->xDamping;
     destroyEntity(self, true);
+}
+
+void updateWaveBall(entity_t* self){
+    if(self->gameData->frameCount % 4 == 0) {
+        self->spriteIndex = (SP_WAVEBALL_1 + ((self->spriteIndex + 1) % 3));
+    }
+
+    if(self->gameData->frameCount % 4 == 0) {
+        self->xDamping++;
+
+        switch(self->xDamping){
+            case 0:
+                break;
+            case 1:
+                self->yDamping = self->xspeed+2; //((esp_random() % 2)?-16:16);
+                self->yspeed = -abs(self->yDamping);
+                self->xspeed = 0;
+                break;
+            case 2:
+                self->yspeed = 0;
+                self->xspeed = self->yDamping;
+                break;
+            case 3:
+                self->yDamping = self->xspeed+2; //((esp_random() % 2)?-16:16);
+                self->yspeed = abs(self->yDamping);
+                self->xspeed = 0;
+                break;
+            case 4:
+                self->yspeed = 0;
+                self->xspeed = self->yDamping;
+                self->xDamping = 0;
+                break;
+            default:
+                break;
+        }
+    }
+
+    //self->yDamping++;
+
+    moveEntityWithTileCollisions(self);
+    despawnWhenOffscreen(self);
+}
+
+bool waveBallTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    if(self->yspeed == 0){
+        destroyEntity(self, false);
+    }
+    return false;
+}
+
+void waveBallOverlapTileHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty){
+    if(isSolid(tileId) || tileId == TILE_BOUNCE_BLOCK){
+        destroyEntity(self, false);
+        buzzer_play_sfx(&sndHit);
+    }
+}
+
+void powerUpCollisionHandler(entity_t *self, entity_t *other)
+{
+    switch (other->type)
+    {
+        case ENTITY_TEST:
+        case ENTITY_DUST_BUNNY:
+        case ENTITY_WASP:
+        case ENTITY_BUSH_2:
+        case ENTITY_BUSH_3:
+        case ENTITY_DUST_BUNNY_2:
+        case ENTITY_DUST_BUNNY_3:
+        case ENTITY_WASP_2:
+        case ENTITY_WASP_3:
+            if((self->xspeed > 0 && self->x < other->x) || (self->xspeed < 0 && self->x > other->x)){
+                self->xspeed = -self->xspeed;
+            }
+            break;
+        case ENTITY_HIT_BLOCK:
+            self->xspeed = other->xspeed;
+            self->yspeed = other->yspeed;
+            break;
+        default:
+        {
+            break;
+        }
+    }
 }

@@ -17,9 +17,21 @@ extern wsg_t cursorBoxWsg;
 // Mode callback delegates
 void paintDrawScreenMainLoop(int64_t elapsedUs);
 void paintDrawScreenButtonCb(const buttonEvt_t* evt);
+void paintPaletteModeButtonCb(const buttonEvt_t* evt);
 void paintSaveModeButtonCb(const buttonEvt_t* evt);
 void paintSelectModeButtonCb(const buttonEvt_t* evt);
 void paintDrawModeButtonCb(const buttonEvt_t* evt);
+
+// Palette mode helpers
+void paintEditPaletteUpdate(void);
+void paintEditPaletteDecChannel(void);
+void paintEditPaletteIncChannel(void);
+void paintEditPaletteNextChannel(void);
+void paintEditPaletteSetupColor(void);
+void paintEditPalettePrevColor(void);
+void paintEditPaletteNextColor(void);
+void paintEditPaletteConfirm(void);
+
 
 // Save menu helpers
 void paintSaveModePrevItem(void);

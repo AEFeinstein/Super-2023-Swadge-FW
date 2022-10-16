@@ -77,7 +77,7 @@ entity_t* createBgColNeutralDarkGreen(entityManager_t * entityManager, uint16_t 
 entity_t* create1up(entityManager_t * entityManager, uint16_t x, uint16_t y);
 entity_t* createWaveBall(entityManager_t * entityManager, uint16_t x, uint16_t y);
 entity_t* createCheckpoint(entityManager_t * entityManager, uint16_t x, uint16_t y);
-entity_t* createBgmChange0(entityManager_t * entityManager, uint16_t x, uint16_t y);
+entity_t* createBgmChange5(entityManager_t * entityManager, uint16_t x, uint16_t y);
 entity_t* createBgmChange1(entityManager_t * entityManager, uint16_t x, uint16_t y);
 entity_t* createBgmChange2(entityManager_t * entityManager, uint16_t x, uint16_t y);
 entity_t* createBgmChange3(entityManager_t * entityManager, uint16_t x, uint16_t y);
