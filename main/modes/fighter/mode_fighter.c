@@ -1521,23 +1521,43 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 if(ftr->btnState & LEFT)
                 {
                     movementInput = true;
-                    // Accelerate towards the left
-                    ftr->velocity.x = v0.x - (((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF);
-                    // Cap the velocity
-                    if (ftr->velocity.x < -ftr->run_max_velo)
+
+                    // Move left if not up against a wall
+                    if(RIGHT_OF_PLATFORM != ftr->relativePos)
                     {
-                        ftr->velocity.x = -ftr->run_max_velo;
+                        // Accelerate towards the left
+                        ftr->velocity.x = v0.x - (((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF);
+                        // Cap the velocity
+                        if (ftr->velocity.x < -ftr->run_max_velo)
+                        {
+                            ftr->velocity.x = -ftr->run_max_velo;
+                        }
+                    }
+                    else
+                    {
+                        // Otherwise stop
+                        ftr->velocity.x = 0;
                     }
                 }
                 else if (ftr->btnState & RIGHT)
                 {
                     movementInput = true;
-                    // Accelerate towards the right
-                    ftr->velocity.x = v0.x + (((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF);
-                    // Cap the velocity
-                    if(ftr->velocity.x > ftr->run_max_velo)
+
+                    // Move right if not up against a wall
+                    if(LEFT_OF_PLATFORM != ftr->relativePos)
                     {
-                        ftr->velocity.x = ftr->run_max_velo;
+                        // Accelerate towards the right
+                        ftr->velocity.x = v0.x + (((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF);
+                        // Cap the velocity
+                        if(ftr->velocity.x > ftr->run_max_velo)
+                        {
+                            ftr->velocity.x = ftr->run_max_velo;
+                        }
+                    }
+                    else
+                    {
+                        // Otherwise stop
+                        ftr->velocity.x = 0;
                     }
                 }
             }
