@@ -394,6 +394,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
         switch(type)
         {
             case MULTIPLAYER:
+            case LOCAL_VS:
             {
                 // Start with three stocks
                 f->fighters[i].stocks = NUM_STOCKS;
@@ -685,7 +686,10 @@ void fighterGameLoop(int64_t elapsedUs)
     }
 
     // Only process the loop as single player, or as the server in multi
-    bool runProcLoop = ((f->type == HR_CONTEST) || ((f->type == MULTIPLAYER) && (0 == f->playerIdx)));
+    bool runProcLoop =
+        (f->type == HR_CONTEST) ||
+        (f->type == LOCAL_VS) ||
+        ((f->type == MULTIPLAYER) && (0 == f->playerIdx));
 
     if(runProcLoop)
     {
@@ -697,7 +701,7 @@ void fighterGameLoop(int64_t elapsedUs)
                 if(f->gameTimerUs <= 0)
                 {
                     // After count-in, transition to the appropriate state
-                    if(MULTIPLAYER == f->type)
+                    if((MULTIPLAYER == f->type) || (LOCAL_VS == f->type))
                     {
                         f->gameTimerUs = 0; // Count up after this
                         f->gamePhase = MP_GAME;
@@ -776,6 +780,7 @@ void fighterGameLoop(int64_t elapsedUs)
                     break;
                 }
                 case HR_CONTEST:
+                case LOCAL_VS:
                 {
                     // All button input is local
                     f->buttonInputReceived = true;
@@ -2409,7 +2414,7 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     {
         // Add the sound effect to the scene
         scene->sfx = SFX_FIGHTER_2_HIT;
-        if(MULTIPLAYER == f->type)
+        if((MULTIPLAYER == f->type) || (LOCAL_VS == f->type))
         {
             scene->ledfx |= LEDFX_FIGHTER_2_HIT;
         }
@@ -2939,10 +2944,32 @@ void drawProjectileDebugBox(display_t* d, list_t* projectiles, int16_t camOffX, 
  */
 void fighterGameButtonCb(buttonEvt_t* evt)
 {
-    // Save the state to check synchronously
-    f->fighters[f->playerIdx].btnState = evt->state;
-    // Save an OR'd list of presses separately
-    f->fighters[f->playerIdx].btnPressesSinceLast |= evt->state;
+#if defined(EMU)
+    if(LOCAL_VS == f->type)
+    {
+        if(evt->button >= EMU_P2_UP)
+        {
+            // Save the state to check synchronously
+            f->fighters[1].btnState = (evt->state >> 8);
+            // Save an OR'd list of presses separately
+            f->fighters[1].btnPressesSinceLast |= (evt->state >> 8);
+        }
+        else
+        {
+            // Save the state to check synchronously
+            f->fighters[0].btnState = evt->state;
+            // Save an OR'd list of presses separately
+            f->fighters[0].btnPressesSinceLast |= evt->state;
+        }
+    }
+    else
+#endif
+    {
+        // Save the state to check synchronously
+        f->fighters[f->playerIdx].btnState = evt->state;
+        // Save an OR'd list of presses separately
+        f->fighters[f->playerIdx].btnPressesSinceLast |= evt->state;
+    }
 }
 
 /**

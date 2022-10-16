@@ -96,6 +96,7 @@ CFLAGS_WARNINGS_EXTRA = \
 	-Wmissing-declarations \
 	-Wmissing-prototypes \
 	-Wcast-qual \
+	-Wno-switch \
 #	-Wstrict-prototypes \
 #	-Wpedantic \
 #	-Wconversion \
