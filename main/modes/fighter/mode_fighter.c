@@ -1953,6 +1953,33 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         }
     }
 
+    // If the fighter is mid-air, make sure the state is valid
+    if(ftr->relativePos == NOT_TOUCHING_PLATFORM)
+    {
+        switch(ftr->state)
+        {
+            default:
+            case FS_IDLE:
+            case FS_RUNNING:
+            case FS_DUCKING:
+            {
+                // These are ground states, so transition to jump state
+                setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
+                setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
+                break;
+            }
+            case FS_JUMPING:
+            case FS_STARTUP:
+            case FS_ATTACK:
+            case FS_COOLDOWN:
+            case FS_HITSTUN:
+            {
+                // These states are allowed mid-air
+                break;
+            }
+        }
+    }
+
     // Revert position if dashing and dashed off a platform
     if((DASH_GROUND == ftr->cAttack) && (ftr->relativePos != ABOVE_PLATFORM))
     {
