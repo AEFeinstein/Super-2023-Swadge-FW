@@ -12,6 +12,16 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 paintDraw_t* paintState;
+paintHelp_t* paintHelp;
+
+const paintHelpStep_t helpSteps[] =
+{
+    { .trigger = PRESS_ALL_DPAD, .prompt = "Welcome to MFPaint! \n Use the D-pad to move the cursor around!" },
+    { .trigger = PRESS_A, .prompt = "Excellent! \n Now, press A to draw!" },
+    { .trigger = NO_TRIGGER, .prompt = "That's everything!" },
+};
+
+paintHelpStep_t* lastHelp = helpSteps + sizeof(helpSteps) / sizeof(helpSteps[0]) - 1;
 
 static paletteColor_t cursorPxsBox[] =
 {
@@ -152,6 +162,15 @@ void paintDrawScreenSetup(display_t* disp)
     // Right: We just need to stay away from the rounded corner, so like, 12px?
     paintState->marginRight = 12;
 
+    if (paintHelp != NULL)
+    {
+        // Set up some tutorial things that depend on basic paintState data
+        paintTutorialPostSetup();
+
+        // We're in help mode! We need some more space for the text
+        paintState->marginBottom += paintHelp->helpH;
+    }
+
     paintLoadIndex(&paintState->index);
 
     if (paintGetAnySlotInUse(paintState->index))
@@ -212,6 +231,80 @@ void paintDrawScreenCleanup(void)
     freeFont(&paintState->saveMenuFont);
     freeFont(&paintState->toolbarFont);
     free(paintState);
+}
+
+void paintTutorialSetup(display_t* disp)
+{
+    paintHelp = calloc(sizeof(paintHelp_t), 1);
+    paintHelp->curHelp = helpSteps;
+}
+
+// gets called after paintState is allocated and has basic info, but before canvas layout is done
+void paintTutorialPostSetup(void)
+{
+    paintHelp->helpH = PAINT_HELP_TEXT_LINES * (paintState->toolbarFont.h + 1) - 1;
+}
+
+void paintTutorialCleanup(void)
+{
+    free(paintHelp);
+    paintHelp = NULL;
+}
+
+bool paintTutorialCheckTriggers(void)
+{
+    switch (paintHelp->curHelp->trigger)
+    {
+    case PRESS_ALL_DPAD:
+        return (paintHelp->allButtons & (UP | DOWN | LEFT | RIGHT)) == (UP | DOWN | LEFT | RIGHT);
+
+    case PRESS_SELECT_UP:
+        return (paintHelp->curButtons & (SELECT | UP)) == (SELECT | UP);
+
+    case PRESS_SELECT_DOWN:
+        return (paintHelp->curButtons & (SELECT | DOWN)) == (SELECT | DOWN);
+
+    case PRESS_SELECT_LEFT:
+        return (paintHelp->curButtons & (SELECT | LEFT)) == (SELECT | LEFT);
+
+    case PRESS_SELECT_RIGHT:
+        return (paintHelp->curButtons & (SELECT | RIGHT)) == (SELECT | RIGHT);
+
+    case PRESS_SELECT_A:
+        return (paintHelp->curButtons & (SELECT | BTN_A)) == (SELECT | BTN_A);
+
+    case PRESS_SELECT_B:
+        return (paintHelp->curButtons & (SELECT | BTN_B)) == (SELECT | BTN_B);
+
+    case PRESS_UP:
+        return paintHelp->curButtons & UP;
+
+    case PRESS_DOWN:
+        return paintHelp->curButtons & DOWN;
+
+    case PRESS_LEFT:
+        return paintHelp->curButtons & LEFT;
+
+    case PRESS_RIGHT:
+        return paintHelp->curButtons & RIGHT;
+
+    case PRESS_A:
+        return paintHelp->curButtons & BTN_A;
+
+    case PRESS_B:
+        return paintHelp->curButtons & BTN_B;
+
+    case PRESS_SELECT:
+        return paintHelp->curButtons & SELECT;
+
+    case PRESS_START:
+        return paintHelp->curButtons & START;
+
+    default:
+        break;
+    }
+
+    return false;
 }
 
 void paintPositionDrawCanvas(void)
@@ -355,6 +448,17 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
     }
 
     drawCursor(getCursor(), &paintState->canvas);
+
+    if (paintHelp != NULL)
+    {
+        const char* rest = drawTextWordWrap(paintState->disp, &paintState->toolbarFont, c000, paintHelp->curHelp->prompt,
+                 paintState->canvas.x, paintState->canvas.y + paintState->canvas.h * paintState->canvas.yScale + 3,
+                 paintState->disp->w, paintState->disp->h - paintState->marginBottom + paintHelp->helpH);
+        if (rest)
+        {
+            PAINT_LOGW("Some tutorial text didn't fit: %s", rest);
+        }
+    }
 }
 
 void paintSaveModePrevItem(void)
@@ -975,6 +1079,12 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
 
 void paintDrawScreenButtonCb(const buttonEvt_t* evt)
 {
+    if (paintHelp != NULL)
+    {
+        paintHelp->allButtons |= evt->state;
+        paintHelp->curButtons = evt->state;
+    }
+
     switch (paintState->buttonMode)
     {
         case BTN_MODE_DRAW:
@@ -999,6 +1109,19 @@ void paintDrawScreenButtonCb(const buttonEvt_t* evt)
         {
             paintPaletteModeButtonCb(evt);
             break;
+        }
+    }
+
+    if (paintHelp != NULL)
+    {
+        if (paintTutorialCheckTriggers())
+        {
+            if (paintHelp->curHelp != lastHelp)
+            {
+                paintHelp->curHelp++;
+                paintHelp->allButtons = 0;
+                paintHelp->curButtons = 0;
+            }
         }
     }
 }

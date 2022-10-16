@@ -40,6 +40,7 @@
 
 const char paintTitle[] = "MFPaint";
 const char menuOptDraw[] = "Draw";
+const char menuOptHelp[] = "Tutorial";
 const char menuOptGallery[] = "Gallery";
 const char menuOptShare[] = "Share";
 const char menuOptReceive[] = "Receive";
@@ -131,6 +132,8 @@ void paintExitMode(void)
         break;
 
         case PAINT_HELP:
+            paintTutorialCleanup();
+            paintDrawScreenCleanup();
         break;
     }
 
@@ -154,27 +157,25 @@ void paintMainLoop(int64_t elapsedUs)
     }
 
     case PAINT_DRAW:
+    case PAINT_HELP:
     {
         paintDrawScreenMainLoop(elapsedUs);
         break;
     }
 
     case PAINT_SHARE:
-    // Implemented in a different mode
-    break;
+        // Implemented in a different mode
+        break;
 
     case PAINT_RECEIVE:
-    // Implemented in a different mode
-    break;
+        // Implemented in a different mode
+        break;
 
     case PAINT_GALLERY:
     {
         paintGalleryMainLoop(elapsedUs);
         break;
     }
-
-    case PAINT_HELP:
-    break;
     }
 }
 
@@ -229,13 +230,11 @@ void paintButtonCb(buttonEvt_t* evt)
         }
 
         case PAINT_DRAW:
+        case PAINT_HELP:
         {
             paintDrawScreenButtonCb(evt);
             break;
         }
-
-        case PAINT_HELP:
-        break;
 
         case PAINT_GALLERY:
         {
@@ -244,9 +243,8 @@ void paintButtonCb(buttonEvt_t* evt)
         }
 
         case PAINT_SHARE:
-        break;
-
         case PAINT_RECEIVE:
+            // Handled in a different mode
         break;
     }
 }
@@ -284,6 +282,7 @@ void paintSetupMainMenu(bool reset)
     }
 
     addRowToMeleeMenu(paintMenu->menu, menuOptReceive);
+    addRowToMeleeMenu(paintMenu->menu, menuOptHelp);
     addRowToMeleeMenu(paintMenu->menu, menuOptSettings);
     addRowToMeleeMenu(paintMenu->menu, menuOptExit);
 }
@@ -367,6 +366,13 @@ void paintMainMenuCb(const char* opt)
         paintMenu->screen = PAINT_RECEIVE;
         switchToSwadgeMode(&modePaintReceive);
     }
+    else if (opt == menuOptHelp)
+    {
+        PAINT_LOGE("Selected Help");
+        paintMenu->screen = PAINT_HELP;
+        paintTutorialSetup(paintMenu->disp);
+        paintDrawScreenSetup(paintMenu->disp);
+    }
     else if (opt == menuOptSettings)
     {
         paintSetupSettingsMenu(true);
@@ -386,7 +392,7 @@ void paintSettingsMenuCb(const char* opt)
     int32_t index;
     if (opt == menuOptLedsOff)
     {
-        // Enable the LEDsConfirm? NoConfirm? NoConfirm? No
+        // Enable the LEDs
         paintLoadIndex(&index);
         index |= PAINT_ENABLE_LEDS;
         paintSaveIndex(index);
@@ -460,6 +466,8 @@ void paintReturnToMainMenu(void)
         break;
 
         case PAINT_HELP:
+            paintTutorialCleanup();
+            paintDrawScreenCleanup();
         break;
     }
 
