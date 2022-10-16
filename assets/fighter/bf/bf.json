@@ -5,54 +5,54 @@
    "run_accel":13000,
    "run_decel":13000,
    "run_max_velo":15360,
-   "size_x":33,
+   "size_x":24,
    "size_y":24,
    "nJumps":2,
    "landing_lag":1,
    "idle_spr_0":{
       "sprite":"bid0.wsg",
       "off_x":0,
-      "off_y":-7
+      "off_y":0
    },
    "idle_spr_1":{
       "sprite":"bid1.wsg",
       "off_x":0,
-      "off_y":-7
+      "off_y":0
    },
    "run_spr_0":{
       "sprite":"kru0.wsg",
       "off_x":0,
-      "off_y":-8
+      "off_y":0
    },
    "run_spr_1":{
       "sprite":"kru1.wsg",
       "off_x":0,
-      "off_y":-8
+      "off_y":0
    },
    "jump_spr":{
       "sprite":"kjm0.wsg",
-      "off_x":2,
-      "off_y":-9
+      "off_x":0,
+      "off_y":0
    },
    "duck_spr":{
       "sprite":"kdu0.wsg",
       "off_x":0,
-      "off_y":-7
+      "off_y":0
    },
    "land_lag_spr":{
       "sprite":"kll0.wsg",
       "off_x":0,
-      "off_y":-7
+      "off_y":0
    },
    "hitstun_ground_sprite":{
       "sprite":"ksg0.wsg",
-      "off_x":1,
-      "off_y":-7
+      "off_x":0,
+      "off_y":0
    },
    "hitstun_air_sprite":{
       "sprite":"ksa0.wsg",
-      "off_x":1,
-      "off_y":-7
+      "off_x":0,
+      "off_y":0
    },
    "stock_icn":"kicon.wsg",
    "attacks":[
@@ -61,8 +61,8 @@
          "startupLag":100,
          "startupLagSpr":{
             "sprite":"kugw.wsg",
-            "off_x":1,
-            "off_y":-10
+            "off_x":0,
+            "off_y":0
          },
          "onlyFirstHit":true,
          "iframe_timer":0,
@@ -71,8 +71,8 @@
                "duration":275,
                "atkSpr":{
                   "sprite":"kuga1.wsg",
-                  "off_x":-5,
-                  "off_y":-7
+                  "off_x":0,
+                  "off_y":0
                },
                "iframe_timer":0,
                "hitboxes":[
@@ -93,7 +93,7 @@
                "atkSpr":{
                   "sprite":"kuga2.wsg",
                   "off_x":0,
-                  "off_y":-8
+                  "off_y":0
                },
                "hitboxes":[
                   {
@@ -113,7 +113,7 @@
          "endLagSpr":{
             "sprite":"kugc.wsg",
             "off_x":0,
-            "off_y":-9
+            "off_y":0
          }
       },
       {
@@ -121,8 +121,8 @@
          "startupLag":150,
          "startupLagSpr":{
             "sprite":"kdgw.wsg",
-            "off_x":1,
-            "off_y":-2
+            "off_x":0,
+            "off_y":0
          },
          "attack_frames":[
             {
@@ -130,7 +130,7 @@
                "atkSpr":{
                   "sprite":"kdga.wsg",
                   "off_x":0,
-                  "off_y":-5
+                  "off_y":0
                },
                "hitboxes":[
                   {
@@ -160,7 +160,7 @@
          "endLagSpr":{
             "sprite":"kdgc.wsg",
             "off_x":0,
-            "off_y":-8
+            "off_y":0
          }
       },
       {
@@ -169,7 +169,7 @@
          "startupLagSpr":{
             "sprite":"kfgw.wsg",
             "off_x":0,
-            "off_y":-6
+            "off_y":0
          },
          "attack_frames":[
             {
@@ -177,7 +177,7 @@
                "atkSpr":{
                   "sprite":"kfga.wsg",
                   "off_x":0,
-                  "off_y":-8
+                  "off_y":0
                },
                "velo_x":30000,
                "hitboxes":[
@@ -197,8 +197,8 @@
          "endLag":300,
          "endLagSpr":{
             "sprite":"kfgc.wsg",
-            "off_x":1,
-            "off_y":-6
+            "off_x":0,
+            "off_y":0
          }
       },
       {
@@ -206,8 +206,8 @@
          "startupLag":50,
          "startupLagSpr":{
             "sprite":"ktgw.wsg",
-            "off_x":1,
-            "off_y":-10
+            "off_x":0,
+            "off_y":0
          },
          "attack_frames":[
             {
@@ -215,7 +215,7 @@
                "atkSpr":{
                   "sprite":"ktga.wsg",
                   "off_x":0,
-                  "off_y":-6
+                  "off_y":0
                },
                "hitboxes":[
                   {
@@ -234,54 +234,45 @@
          "endLag":300,
          "endLagSpr":{
             "sprite":"ktgc.wsg",
-            "off_x":1,
-            "off_y":-6
+            "off_x":0,
+            "off_y":0
          }
       },
       {
          "type":"neutral_gnd",
          "startupLag":225,
          "startupLagSpr":{
-            "sprite":"kngw.wsg",
+            "sprite":"bngw.wsg",
             "off_x":0,
-            "off_y":-6
+            "off_y":-8
          },
          "attack_frames":[
             {
                "duration":300,
                "atkSpr":{
-                  "sprite":"knga.wsg",
-                  "off_x":0,
-                  "off_y":-11
+                  "sprite":"bnga.wsg",
+                  "off_x":-4,
+                  "off_y":1
                },
                "hitboxes":[
                   {
-                     "relativePos_x":14,
-                     "relativePos_y":7,
+                     "relativePos_x":27,
+                     "relativePos_y":4,
                      "size_x":19,
-                     "size_y":11,
+                     "size_y":17,
                      "damage":9,
                      "knockback_x":4000,
                      "knockback_y":-2000,
                      "hitstun":10,
-                     "isProjectile":true,
-                     "projectileSprite":{
-                        "sprite":"kngp.wsg"
-                     },
-                     "projectileDuration":20,
-                     "projectileVelo_x":20480,
-                     "projectileVelo_y":0,
-                     "projectileAccel_x":0,
-                     "projectileAccel_y":0
                   }
                ]
             }
          ],
          "endLag":350,
          "endLagSpr":{
-            "sprite":"kngc.wsg",
+            "sprite":"bid0.wsg",
             "off_x":0,
-            "off_y":-6
+            "off_y":0
          },
          "landing_lag":14
       },
@@ -291,7 +282,7 @@
          "startupLagSpr":{
             "sprite":"kngw.wsg",
             "off_x":0,
-            "off_y":-6
+            "off_y":0
          },
          "attack_frames":[
             {
@@ -299,7 +290,7 @@
                "atkSpr":{
                   "sprite":"knga.wsg",
                   "off_x":0,
-                  "off_y":-11
+                  "off_y":0
                },
                "hitboxes":[
                   {
@@ -328,7 +319,7 @@
          "endLagSpr":{
             "sprite":"kngc.wsg",
             "off_x":0,
-            "off_y":-6
+            "off_y":0
          },
          "landing_lag":14
       },
@@ -337,16 +328,16 @@
          "startupLag":175,
          "startupLagSpr":{
             "sprite":"kfaa.wsg",
-            "off_x":-6,
-            "off_y":-7
+            "off_x":0,
+            "off_y":0
          },
          "attack_frames":[
             {
                "duration":350,
                "atkSpr":{
                   "sprite":"kfaa.wsg",
-                  "off_x":-6,
-                  "off_y":-7
+                  "off_x":0,
+                  "off_y":0
                },
                "hitboxes":[
                   {
@@ -365,8 +356,8 @@
          "endLag":300,
          "endLagSpr":{
             "sprite":"kfaa.wsg",
-            "off_x":-6,
-            "off_y":-7
+            "off_x":0,
+            "off_y":0
          },
          "landing_lag":12
       },
@@ -375,16 +366,16 @@
          "startupLag":300,
          "startupLagSpr":{
             "sprite":"kbaa.wsg",
-            "off_x":-7,
-            "off_y":-9
+            "off_x":0,
+            "off_y":0
          },
          "attack_frames":[
             {
                "duration":400,
                "atkSpr":{
                   "sprite":"kbaa.wsg",
-                  "off_x":-7,
-                  "off_y":-9
+                  "off_x":0,
+                  "off_y":0
                },
                "hitboxes":[
                   {
@@ -403,8 +394,8 @@
          "endLag":275,
          "endLagSpr":{
             "sprite":"kbaa.wsg",
-            "off_x":-7,
-            "off_y":-9
+            "off_x":0,
+            "off_y":0
          },
          "landing_lag":11
       },
@@ -413,16 +404,16 @@
          "startupLag":50,
          "startupLagSpr":{
             "sprite":"kuaa.wsg",
-            "off_x":-6,
-            "off_y":-15
+            "off_x":0,
+            "off_y":0
          },
          "attack_frames":[
             {
                "duration":850,
                "atkSpr":{
                   "sprite":"kuaa.wsg",
-                  "off_x":-6,
-                  "off_y":-15
+                  "off_x":0,
+                  "off_y":0
                },
                "velo_x":4000,
                "velo_y":-25000,
@@ -443,8 +434,8 @@
                "duration":400,
                "atkSpr":{
                   "sprite":"kuaa.wsg",
-                  "off_x":-6,
-                  "off_y":-15
+                  "off_x":0,
+                  "off_y":0
                },
                "velo_x":10000,
                "velo_y":25000,
@@ -465,8 +456,8 @@
          "endLag":275,
          "endLagSpr":{
             "sprite":"kuaa.wsg",
-            "off_x":-6,
-            "off_y":-15
+            "off_x":0,
+            "off_y":0
          },
          "landing_lag":11
       },
@@ -476,15 +467,15 @@
          "startupLagSpr":{
             "sprite":"kdaw.wsg",
             "off_x":0,
-            "off_y":-11
+            "off_y":0
          },
          "attack_frames":[
             {
                "duration":550,
                "atkSpr":{
                   "sprite":"kdaa.wsg",
-                  "off_x":4,
-                  "off_y":-13
+                  "off_x":0,
+                  "off_y":0
                },
                "velo_y":10000,
                "hitboxes":[
@@ -504,8 +495,8 @@
          "endLag":350,
          "endLagSpr":{
             "sprite":"kdaa.wsg",
-            "off_x":-4,
-            "off_y":-11
+            "off_x":0,
+            "off_y":0
          },
          "landing_lag":14
       }

@@ -350,6 +350,10 @@ static uint16_t *s_lines[2] = {0};
 static gpio_num_t tftBacklightPin;
 static bool tftBacklightIsPwm;
 
+#if defined(CONFIG_GC9307_240x280) || defined(CONFIG_ST7735_128x160)
+esp_lcd_panel_io_handle_t io;
+#endif
+
 // static uint64_t tFpsStart = 0;
 // static int framesDrawn = 0;
 
@@ -476,7 +480,7 @@ void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
         uint8_t colmod_cal; // save surrent value of LCD_CMD_COLMOD register
     } st7789_panel_internal_t;
     st7789_panel_internal_t* st7789 = __containerof(panel_handle, st7789_panel_internal_t, base);
-    esp_lcd_panel_io_handle_t io = st7789->io;
+    io = st7789->io;
 #endif
 
 #if defined(CONFIG_GC9307_240x280)
@@ -552,6 +556,13 @@ void initTFT(display_t* disp, spi_host_device_t spiHost, gpio_num_t sclk,
  */
 void disableTFTBacklight(void)
 {
+#if defined(CONFIG_GC9307_240x280)
+    // Display OFF
+    esp_lcd_panel_io_tx_param(io, 0x28, NULL, 0);
+    // Enter sleep mode
+    esp_lcd_panel_io_tx_param(io, 0x10, NULL, 0);
+#endif
+
     ledc_stop(LEDC_LOW_SPEED_MODE, TFT_LEDC_CHANNEL, 0);
     gpio_reset_pin( tftBacklightPin );
     gpio_set_level( tftBacklightPin, 0 );
@@ -563,6 +574,13 @@ void disableTFTBacklight(void)
  */
 void enableTFTBacklight(void)
 {
+#if defined(CONFIG_GC9307_240x280)
+    // Exit sleep mode
+    esp_lcd_panel_io_tx_param(io, 0x11, NULL, 0);
+    // Display ON
+    esp_lcd_panel_io_tx_param(io, 0x29, NULL, 0);
+#endif
+
     if(false == tftBacklightIsPwm)
     {
         // Binary backlight

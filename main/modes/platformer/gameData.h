@@ -43,6 +43,7 @@ typedef struct
     bool extraLifeCollected;
     uint8_t checkpoint;
     uint8_t levelDeaths;
+    uint8_t initialHp;
     
     led_t leds[NUM_LEDS];
 

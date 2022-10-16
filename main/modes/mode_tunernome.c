@@ -51,7 +51,7 @@
 
 #define METRONOME_CENTER_X    tunernome->disp->w / 2
 #define METRONOME_CENTER_Y    tunernome->disp->h - 16 - CORNER_OFFSET
-#define METRONOME_RADIUS      70
+#define METRONOME_RADIUS      65
 #define INITIAL_BPM           60
 #define MAX_BPM               400
 #define METRONOME_FLASH_MS    35
@@ -68,6 +68,7 @@
 // #define MAX(X, Y) ( ((X) > (Y)) ? (X) : (Y) )
 
 #define NUM_SEMITONES 12
+#define NUM_TSIGS 8
 
 typedef enum
 {
@@ -357,7 +358,7 @@ void tunernomeEnterMode(display_t* disp)
     TUNER_THRES_Y = round(METRONOME_CENTER_Y - (ABS(intermedY) * METRONOME_RADIUS));
 
     loadWsg("uparrow.wsg", &(tunernome->upArrowWsg));
-    loadWsg("flat.wsg", &(tunernome->flatWsg));
+    loadWsg("flat_mm.wsg", &(tunernome->flatWsg));
 
     tunernome->tSigIdx = 0;
     tunernome->beatCtr = 0;
@@ -391,7 +392,7 @@ void switchToSubmode(tnMode newMode)
             buzzer_stop();
 
             led_t leds[NUM_LEDS] = {{0}};
-            setLeds(leds, sizeof(leds));
+            setLeds(leds, NUM_LEDS);
 
             tunernome->disp->clearPx();
 
@@ -418,7 +419,7 @@ void switchToSubmode(tnMode newMode)
             recalcMetronome();
 
             led_t leds[NUM_LEDS] = {{0}};
-            setLeds(leds, sizeof(leds));
+            setLeds(leds, NUM_LEDS);
 
             tunernome->disp->clearPx();
             break;
@@ -701,11 +702,11 @@ void tunernomeMainLoop(int64_t elapsedUs)
             // Up/Down arrows in middle of display around current note/mode
             drawWsg(tunernome->disp, &(tunernome->upArrowWsg),
                     (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
-                    tunernome->ibm_vga8.h + 4,
+                    (tunernome->disp->h - tunernome->mm.h) / 2 - tunernome->upArrowWsg.h - 4,
                     false, false, 0);
             drawWsg(tunernome->disp, &(tunernome->upArrowWsg),
                     (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
-                    tunernome->disp->h - tunernome->upArrowWsg.h,
+                    (tunernome->disp->h + tunernome->mm.h) / 2 + 4,
                     false, true, 0);
 
             // Current note/mode in middle of display
@@ -747,12 +748,14 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     {
                         // Plot text on top of everything else
                         bool shouldDrawFlat = (semitoneNoteNames[semitoneNum][strlen(semitoneNoteNames[semitoneNum]) - 1] == 1);
-                        int16_t tWidth = textWidth(&tunernome->mm, semitoneNoteNames[semitoneNum]);
+                        char buf[5] = {0};
+                        strncpy(buf, semitoneNoteNames[semitoneNum], 4);
+                        int16_t tWidth = textWidth(&tunernome->mm, buf);
                         if(shouldDrawFlat)
                         {
                             tWidth += tunernome->flatWsg.w + 1;
                         }
-                        int16_t textEnd = drawText(tunernome->disp, &tunernome->mm, c555, semitoneNoteNames[semitoneNum],
+                        int16_t textEnd = drawText(tunernome->disp, &tunernome->mm, c555, buf,
                                                    (tunernome->disp->w - tWidth) / 2 + 1,
                                                    (tunernome->disp->h - tunernome->mm.h) / 2);
 
@@ -774,7 +777,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     }
 
                     // Set LEDs, this may turn them off
-                    setLeds(leds, sizeof(leds));
+                    setLeds(leds, NUM_LEDS);
                     break;
                 }
                 case MAX_GUITAR_MODES:
@@ -823,18 +826,14 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     // Plot text on top of everything else
                     uint8_t semitoneNum = (tunernome->curTunerMode - SEMITONE_0);
                     bool shouldDrawFlat = (semitoneNoteNames[semitoneNum][strlen(semitoneNoteNames[semitoneNum]) - 1] == 1);
-                    int16_t tWidth = textWidth(&tunernome->mm, semitoneNoteNames[semitoneNum]);
+                    char buf[5] = {0};
+                    strncpy(buf, semitoneNoteNames[semitoneNum], 4);
+                    int16_t tWidth = textWidth(&tunernome->mm, buf);
                     if(shouldDrawFlat)
                     {
                         tWidth += tunernome->flatWsg.w + 1;
                     }
-                    fillDisplayArea(tunernome->disp,
-                                    (tunernome->disp->w - tWidth) / 2,
-                                    (tunernome->disp->h - tunernome->mm.h) / 2 - 1,
-                                    (tunernome->disp->w - tWidth) / 2 + tWidth,
-                                    ((tunernome->disp->h - tunernome->mm.h) / 2) + tunernome->mm.h,
-                                    c000);
-                    int16_t textEnd = drawText(tunernome->disp, &tunernome->mm, c555, semitoneNoteNames[semitoneNum],
+                    int16_t textEnd = drawText(tunernome->disp, &tunernome->mm, c555, buf,
                                                (tunernome->disp->w - tWidth) / 2 + 1,
                                                (tunernome->disp->h - tunernome->mm.h) / 2);
 
@@ -877,7 +876,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                 if(tunernome->blinkAccumulatedUs > METRONOME_FLASH_MS * 1000)
                 {
                     led_t leds[NUM_LEDS] = {{0}};
-                    setLeds(leds, sizeof(leds));
+                    setLeds(leds, NUM_LEDS);
                 }
             }
 
@@ -949,7 +948,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                 }
 
                 buzzer_play_sfx(song);
-                setLeds(leds, sizeof(leds));
+                setLeds(leds, NUM_LEDS);
                 tunernome->isBlinking = true;
                 tunernome->blinkStartUs = esp_timer_get_time();
                 tunernome->blinkAccumulatedUs = 0;
@@ -1106,7 +1105,7 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                     {
                         modifyBpm(1);
                         tunernome->lastBpmButton = evt->button;
-                        tunernome->bpmButtonStartUs = 0;
+                        tunernome->bpmButtonStartUs = esp_timer_get_time();
                         tunernome->bpmButtonCurChangeUs = 0;
                         tunernome->bpmButtonAccumulatedUs = 0;
                         break;
@@ -1115,7 +1114,7 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                     {
                         modifyBpm(-1);
                         tunernome->lastBpmButton = evt->button;
-                        tunernome->bpmButtonStartUs = 0;
+                        tunernome->bpmButtonStartUs = esp_timer_get_time();
                         tunernome->bpmButtonCurChangeUs = 0;
                         tunernome->bpmButtonAccumulatedUs = 0;
                         break;
@@ -1123,7 +1122,7 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                     case BTN_A:
                     {
                         // Cycle the time signature
-                        tunernome->tSigIdx = (tunernome->tSigIdx + 1) % (sizeof(tSigs));
+                        tunernome->tSigIdx = (tunernome->tSigIdx + 1) % NUM_TSIGS;
                         break;
                     }
                     case RIGHT:
@@ -1319,7 +1318,7 @@ void tunernomeSampleHandler(uint16_t* samples, uint32_t sampleCnt)
             if(LISTENING != tunernome->curTunerMode)
             {
                 // Draw the LEDs
-                setLeds( colors, sizeof(colors) );
+                setLeds(colors, NUM_LEDS);
             }
             // Reset the sample count
             tunernome->audioSamplesProcessed = 0;
