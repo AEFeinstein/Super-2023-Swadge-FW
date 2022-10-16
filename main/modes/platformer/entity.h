@@ -47,12 +47,12 @@ typedef enum {
     ENTITY_1UP,
     ENTITY_WAVE_BALL,
     ENTITY_CHECKPOINT,
-    ENTITY_BGM_CHANGE_0,
+    ENTITY_BGM_STOP,
     ENTITY_BGM_CHANGE_1,
     ENTITY_BGM_CHANGE_2,
     ENTITY_BGM_CHANGE_3,
     ENTITY_BGM_CHANGE_4,
-    ENTITY_BGM_STOP
+    ENTITY_BGM_CHANGE_5
 } entityIndex_t;
 
 //==============================================================================
@@ -191,5 +191,11 @@ void playerOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8_
 void defaultOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8_t ty);
 
 void updateBgmChange(entity_t* self);
+
+void updateWaveBall(entity_t* self);
+
+bool waveBallTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
+void waveBallOverlapTileHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty);
+void powerUpCollisionHandler(entity_t *self, entity_t *other);
 
 #endif

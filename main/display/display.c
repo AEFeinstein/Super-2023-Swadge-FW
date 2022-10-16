@@ -825,7 +825,10 @@ uint16_t textWidth(font_t* font, const char* text)
     uint16_t width = 0;
     while(*text != 0)
     {
-        width += (font->chars[(*text) - ' '].w + 1);
+        if((*text) >= ' ')
+        {
+            width += (font->chars[(*text) - ' '].w + 1);
+        }
         text++;
     }
     // Delete trailing space

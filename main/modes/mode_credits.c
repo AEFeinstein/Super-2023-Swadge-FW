@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "swadge_esp32.h"
 #include "swadgeMode.h"
@@ -32,7 +33,7 @@ void creditsButtonCb(buttonEvt_t* evt);
 typedef struct
 {
     display_t* disp;
-    font_t radiostars;
+    font_t font;
     int64_t tElapsedUs;
     int8_t scrollMod;
     int16_t yOffset;
@@ -60,19 +61,23 @@ swadgeMode modeCredits =
 // Everyone's here
 static const char* creditNames[] =
 {
-    "Adam Feinstein",
-    "Bedrock",
-    "Bryce Browner",
-    "Dac",
-    "Decnav",
-    "FuryfulFawful",
-    "Grocery Man",
-    "Hunter Dyar",
-    "J.Vega (@JVeg199X)",
-    "Jonathan Moriarty",
-    "Kevin \"PF3k\" Lin",
-    "MrTroy",
-    "Private Island",
+    "Adam Feinstein\n",
+    "Allison (AllieCat)",
+    "Brantley\n",
+    "Bedrock\n",
+    "Bryce Browner\n",
+    "Dac\n",
+    "Decnav\n",
+    "dylwhich\n",
+    "FuryfulFawful\n",
+    "Grocery Man\n",
+    "Hunter Dyar\n",
+    "J.Vega (@JVeg199X)\n",
+    "Jonathan Moriarty\n",
+    "Kaitie Lawson\n",
+    "Kevin \"PF3k\" Lin\n",
+    "MrTroy\n",
+    "Private Island\n",
     "",
     "",
 };
@@ -81,15 +86,19 @@ static const char* creditNames[] =
 static const paletteColor_t creditColors[] =
 {
     c031,
+    c423,
+    c423,
     c520,
     c115,
     c545,
     c325,
+    c035,
     c452,
     c505,
     c445,
     c250,
     c315,
+    c540,
     c205,
     c235,
     c114,
@@ -990,7 +999,7 @@ void creditsEnterMode(display_t* disp)
     credits->disp = disp;
 
     // Load some fonts
-    loadFont("radiostars.font", &credits->radiostars);
+    loadFont("mm.font", &credits->font);
 
     // Set initial variables
     credits->yOffset = disp->h;
@@ -1005,7 +1014,7 @@ void creditsEnterMode(display_t* disp)
  */
 void creditsExitMode(void)
 {
-    freeFont(&credits->radiostars);
+    freeFont(&credits->font);
     free(credits);
 }
 
@@ -1036,7 +1045,7 @@ void creditsMainLoop(int64_t elapsedUs)
         while((yPos + credits->yOffset) < credits->disp->h)
         {
             // Only draw names with negative offsets if they're a little on screen
-            if((yPos + credits->yOffset) >= -credits->radiostars.h)
+            if((yPos + credits->yOffset) >= -credits->font.h)
             {
                 // If the names have scrolled back to the start, reset the scroll vars
                 if(0 == (yPos + credits->yOffset) && 0 == idx)
@@ -1046,14 +1055,23 @@ void creditsMainLoop(int64_t elapsedUs)
                 }
 
                 // Center and draw the text
-                int16_t tWidth = textWidth(&credits->radiostars, creditNames[idx]);
-                drawText(credits->disp, &credits->radiostars, creditColors[idx], creditNames[idx],
+                int16_t tWidth = textWidth(&credits->font, creditNames[idx]);
+                drawText(credits->disp, &credits->font, creditColors[idx], creditNames[idx],
                          (credits->disp->w - tWidth) / 2, (yPos + credits->yOffset));
+            }
+
+            // Add more space if the credits end in a newline
+            if('\n' == creditNames[idx][strlen(creditNames[idx]) - 1])
+            {
+                yPos += credits->font.h + 8;
+            }
+            else
+            {
+                yPos += credits->font.h + 1;
             }
 
             // Always update the idx and cursor position, even if the text wasn't drawn
             idx = (idx + 1) % ARRAY_SIZE(creditNames);
-            yPos += credits->radiostars.h + 3;
         }
     }
 }
