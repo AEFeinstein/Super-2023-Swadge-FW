@@ -389,7 +389,7 @@ const rhythmArp_t major_7[] =
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 1},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 5},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
-    {.note = TRIPLET_EIGHTH_NOTE, .arp = 11},
+    {.note = TRIPLET_EIGHTH_NOTE, .arp = 12},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 5},
 };
@@ -399,7 +399,7 @@ const rhythmArp_t minor_7[] =
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 1},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 4},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
-    {.note = TRIPLET_EIGHTH_NOTE, .arp = 10},
+    {.note = TRIPLET_EIGHTH_NOTE, .arp = 11},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 4},
 };
@@ -409,7 +409,7 @@ const rhythmArp_t dom_7[] =
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 1},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 5},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
-    {.note = TRIPLET_EIGHTH_NOTE, .arp = 10},
+    {.note = TRIPLET_EIGHTH_NOTE, .arp = 11},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 4},
 };
