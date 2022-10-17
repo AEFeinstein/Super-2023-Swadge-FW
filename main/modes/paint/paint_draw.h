@@ -46,6 +46,7 @@ bool paintTutorialCheckTriggers(void);
 void paintPositionDrawCanvas(void);
 
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
+void paintSwapFgBgColors(void);
 void paintUpdateRecents(uint8_t selectedIndex);
 void paintUpdateLeds(void);
 void paintDrawPickPoints(void);

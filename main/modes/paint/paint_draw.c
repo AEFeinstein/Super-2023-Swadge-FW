@@ -1158,8 +1158,7 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
             case BTN_B:
             {
                 // Swap the foreground and background colors
-                swap(&getArtist()->fgColor, &getArtist()->bgColor);
-                swap(&paintState->canvas.palette[0], &paintState->canvas.palette[1]);
+                paintSwapFgBgColors();
 
                 paintState->redrawToolbar = true;
                 paintState->recolorPickPoints = true;
@@ -1431,6 +1430,38 @@ void paintIncBrushWidth()
     {
         getArtist()->brushWidth = getArtist()->brushDef->maxSize;
     }
+}
+
+void paintSwapFgBgColors(void)
+{
+    uint8_t fgIndex, bgIndex;
+    swap(&getArtist()->fgColor, &getArtist()->bgColor);
+
+    for (uint8_t i = 0; i < PAINT_MAX_COLORS; i++)
+    {
+        if (paintState->canvas.palette[i] == getArtist()->fgColor)
+        {
+            fgIndex = i;
+        }
+        else if (paintState->canvas.palette[i] == getArtist()->bgColor)
+        {
+            bgIndex = i;
+        }
+    }
+
+    for (uint8_t i = fgIndex; i > 0; i--)
+    {
+        if (i == bgIndex)
+        {
+            continue;
+        }
+        paintState->canvas.palette[i] = paintState->canvas.palette[i - 1 + ((i < bgIndex) ? 1 : 0)];
+    }
+
+    paintState->canvas.palette[0] = getArtist()->fgColor;
+
+    paintUpdateLeds();
+    paintDrawPickPoints();
 }
 
 void paintUpdateRecents(uint8_t selectedIndex)
