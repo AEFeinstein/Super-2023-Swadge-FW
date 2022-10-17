@@ -148,7 +148,7 @@ void danceEnterMode(display_t* disp)
 
     danceState->disp = disp;
 
-    danceState->danceIdx = 0;
+    danceState->danceIdx = 14;
 
     danceState->resetDance = true;
     danceState->blankScreen = false;
@@ -920,22 +920,22 @@ void dancePoliceSiren(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)),
         uint8_t i;
         if(ledCount < (NUM_LEDS >> 1))
         {
-            uint32_t red = EHSVtoHEXhelper(245, 0xFF, 0xFF, false); // Red, hint of blue
+            //red
             for(i = 0; i < (NUM_LEDS >> 1); i++)
             {
-                leds[i].r = (red >>  0) & 0xFF;
-                leds[i].g = (red >>  8) & 0xFF;
-                leds[i].b = (red >> 16) & 0xFF;
+                leds[i].r = 0xFF;
+                leds[i].g = 0x00;
+                leds[i].b = 0x00;
             }
         }
         else
         {
-            uint32_t blue = EHSVtoHEXhelper(180, 0xFF, 0xFF, false); // Blue, hint of red
+            //blue
             for(i = (NUM_LEDS >> 1); i < NUM_LEDS; i++)
             {
-                leds[i].r = (blue >>  0) & 0xFF;
-                leds[i].g = (blue >>  8) & 0xFF;
-                leds[i].b = (blue >> 16) & 0xFF;
+                leds[i].r = 0x00;
+                leds[i].g = 0x00;
+                leds[i].b = 0xFF;
             }
         }
     }
