@@ -1144,6 +1144,7 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
                 paintState->aHeld = false;
                 paintState->moveX = 0;
                 paintState->moveY = 0;
+                paintState->btnHoldTime = 0;
                 break;
             }
 
@@ -1211,6 +1212,12 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
                     paintState->buttonMode = BTN_MODE_SAVE;
                     paintState->saveMenu = PICK_SLOT_SAVE;
                     paintState->redrawToolbar = true;
+
+                    // Don't let the cursor keep moving
+                    paintState->moveX = 0;
+                    paintState->moveY = 0;
+                    paintState->btnHoldTime = 0;
+                    paintState->aHeld = false;
                 }
                 break;
             }
