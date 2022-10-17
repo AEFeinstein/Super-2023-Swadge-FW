@@ -12,6 +12,52 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 paintDraw_t* paintState;
+paintHelp_t* paintHelp;
+
+/*
+ * Interactive Help Definitions
+ *
+ * Each step here defines a tutorial step with a help message that will
+ * be displayed below the canvas, and a trigger that will cause the tutorial
+ * step to be considered "completed" and move on to the next step.
+ *
+ * TODO: Add steps for Polygon brush
+ * TODO: Add instructions for color picker
+ * TODO: Add an "Explain" for each brush after the tutorial
+ * TODO: Disallow certain actions at certain steps to prevent confusion/desyncing
+ */
+const paintHelpStep_t helpSteps[] =
+{
+    { .trigger = PRESS_ALL, .triggerData = (UP | DOWN | LEFT | RIGHT), .prompt = "Welcome to MFPaint!\nLet's get started: First, use the D-Pad to move the cursor around!" },
+    { .trigger = RELEASE, .triggerData = BTN_A, .prompt = "Excellent!\nNow, press A to draw something!" },
+    { .trigger = PRESS, .triggerData = SELECT, .prompt = "Now, let's pick a different color.\nFirst, hold SELECT..." },
+    { .trigger = PRESS, .triggerData = SELECT | DOWN, .prompt = "Then, press D-Pad DOWN to select a color..." },
+    { .trigger = RELEASE, .triggerData = SELECT, .prompt = "And release SELECT to confirm!" },
+    { .trigger = RELEASE, .triggerData = BTN_B, .prompt = "Great choice! You can also quickly swap the foreground and background colors with the B BUTTON" },
+    { .trigger = PRESS, .triggerData = SELECT, .prompt = "Now, let's change the brush size. Hold SELECT again..." },
+    { .trigger = PRESS, .triggerData = SELECT | BTN_A, .prompt = "Then, Press the A BUTTON to increase the brush size." },
+    { .trigger = RELEASE, .triggerData = SELECT, .prompt = "And release SELECT to confirm!" },
+    { .trigger = RELEASE, .triggerData = BTN_A, .prompt = "Press A to draw again with the larger brush!" },
+    { .trigger = PRESS, .triggerData = SELECT, .prompt = "Wow! Now, let's change it back. Hold SELECT again..." },
+    { .trigger = PRESS, .triggerData = SELECT | BTN_B, .prompt = "Then, press B to decrease the brush size." },
+    { .trigger = RELEASE, .triggerData = SELECT, .prompt = "And release SELECT to confirm!" },
+    { .trigger = PRESS, .triggerData = SELECT, .prompt = "Now, let's try a different brush. Hold SELECT again..." },
+    { .trigger = PRESS, .triggerData = SELECT | RIGHT, .prompt = "Then, press D-Pad RIGHT to select a brush..." },
+    { .trigger = RELEASE, .triggerData = SELECT, .prompt = "And release SELECT to confirm!" },
+    { .trigger = CHANGE_BRUSH, .triggerDataPtr = (void*)"Rectangle", .prompt = "Now, choose the RECTANGLE brush!" },
+    { .trigger = RELEASE, .triggerData = BTN_A, .prompt = "Now, press A to select the first corner of the rectangle..." },
+    { .trigger = PRESS_ANY, .triggerData = (UP | DOWN | LEFT | RIGHT), .prompt = "Then move somewhere else..." },
+    { .trigger = RELEASE, .triggerData = BTN_A, .prompt = "Press A again to pick the other coner of the rectangle. Note that the first point you picked will blink!" },
+    { .trigger = PRESS, .triggerData = START, .prompt = "Good job! Now, let's press START to toggle the menu." },
+    { .trigger = PRESS_ANY, .triggerData = UP | DOWN | SELECT, .prompt = "Press UP, DOWN, or SELECT to go through the menu items" },
+    { .trigger = SELECT_MENU_ITEM, .triggerData = PICK_SLOT_SAVE, .prompt = "Now, select the SAVE option.." },
+    { .trigger = PRESS_ANY, .triggerData = LEFT | RIGHT, .prompt = "Use D-Pad LEFT and RIGHT to switch between save slots, or other options in the menu" },
+    { .trigger = PRESS_ANY, .triggerData = BTN_A | BTN_B, .prompt = "Use the A BUTTON to confirm, or the B BUTTON to cancel and go back." },
+    { .trigger = SELECT_MENU_ITEM, .triggerData = HIDDEN, .prompt = "Press START or the B BUTTON to exit the menu." },
+    { .trigger = NO_TRIGGER, .prompt = "That's everything. Happy painting!" },
+};
+
+paintHelpStep_t* lastHelp = helpSteps + sizeof(helpSteps) / sizeof(helpSteps[0]) - 1;
 
 static paletteColor_t cursorPxsBox[] =
 {
@@ -152,6 +198,15 @@ void paintDrawScreenSetup(display_t* disp)
     // Right: We just need to stay away from the rounded corner, so like, 12px?
     paintState->marginRight = 12;
 
+    if (paintHelp != NULL)
+    {
+        // Set up some tutorial things that depend on basic paintState data
+        paintTutorialPostSetup();
+
+        // We're in help mode! We need some more space for the text
+        paintState->marginBottom += paintHelp->helpH;
+    }
+
     paintLoadIndex(&paintState->index);
 
     if (paintGetAnySlotInUse(paintState->index))
@@ -212,6 +267,57 @@ void paintDrawScreenCleanup(void)
     freeFont(&paintState->saveMenuFont);
     freeFont(&paintState->toolbarFont);
     free(paintState);
+}
+
+void paintTutorialSetup(display_t* disp)
+{
+    paintHelp = calloc(sizeof(paintHelp_t), 1);
+    paintHelp->curHelp = helpSteps;
+}
+
+// gets called after paintState is allocated and has basic info, but before canvas layout is done
+void paintTutorialPostSetup(void)
+{
+    paintHelp->helpH = PAINT_HELP_TEXT_LINES * (paintState->toolbarFont.h + 1) - 1;
+}
+
+void paintTutorialCleanup(void)
+{
+    free(paintHelp);
+    paintHelp = NULL;
+}
+
+bool paintTutorialCheckTriggers(void)
+{
+    switch (paintHelp->curHelp->trigger)
+    {
+    case PRESS_ALL:
+        return (paintHelp->allButtons & paintHelp->curHelp->triggerData) == paintHelp->curHelp->triggerData;
+
+    case PRESS_ANY:
+        return (paintHelp->curButtons & paintHelp->curHelp->triggerData) != 0 && paintHelp->lastButtonDown;
+
+    case PRESS:
+        return (paintHelp->curButtons & (paintHelp->curHelp->triggerData)) == paintHelp->curHelp->triggerData && paintHelp->lastButtonDown;
+
+    case RELEASE:
+        return paintHelp->lastButtonDown == false && paintHelp->lastButton == paintHelp->curHelp->triggerData;
+
+    case CHANGE_BRUSH:
+        return !strcmp(getArtist()->brushDef->name, paintHelp->curHelp->triggerDataPtr) && paintHelp->curButtons == 0;
+
+    case CHANGE_COLOR:
+        return getArtist()->fgColor == paintHelp->curHelp->triggerData;
+
+    case SELECT_MENU_ITEM:
+        return paintState->saveMenu == paintHelp->curHelp->triggerData;
+
+    case NO_TRIGGER:
+    default:
+        break;
+    }
+
+    return false;
 }
 
 void paintPositionDrawCanvas(void)
@@ -355,6 +461,17 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
     }
 
     drawCursor(getCursor(), &paintState->canvas);
+
+    if (paintHelp != NULL)
+    {
+        const char* rest = drawTextWordWrap(paintState->disp, &paintState->toolbarFont, c000, paintHelp->curHelp->prompt,
+                 paintState->canvas.x, paintState->canvas.y + paintState->canvas.h * paintState->canvas.yScale + 3,
+                 paintState->disp->w, paintState->disp->h - paintState->marginBottom + paintHelp->helpH);
+        if (rest)
+        {
+            PAINT_LOGW("Some tutorial text didn't fit: %s", rest);
+        }
+    }
 }
 
 void paintSaveModePrevItem(void)
@@ -975,6 +1092,14 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
 
 void paintDrawScreenButtonCb(const buttonEvt_t* evt)
 {
+    if (paintHelp != NULL)
+    {
+        paintHelp->allButtons |= evt->state;
+        paintHelp->curButtons = evt->state;
+        paintHelp->lastButton = evt->button;
+        paintHelp->lastButtonDown = evt->down;
+    }
+
     switch (paintState->buttonMode)
     {
         case BTN_MODE_DRAW:
@@ -999,6 +1124,22 @@ void paintDrawScreenButtonCb(const buttonEvt_t* evt)
         {
             paintPaletteModeButtonCb(evt);
             break;
+        }
+    }
+
+    if (paintHelp != NULL)
+    {
+        if (paintTutorialCheckTriggers())
+        {
+            paintState->redrawToolbar = true;
+            if (paintHelp->curHelp != lastHelp)
+            {
+                paintHelp->curHelp++;
+                paintHelp->allButtons = 0;
+                paintHelp->curButtons = 0;
+                paintHelp->lastButton = 0;
+                paintHelp->lastButtonDown = false;
+            }
         }
     }
 }
