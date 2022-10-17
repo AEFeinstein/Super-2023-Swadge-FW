@@ -112,6 +112,7 @@ void paintExitMode(void)
 {
     PAINT_LOGD("Exiting");
     deinitMeleeMenu(paintMenu->menu);
+    deinitMeleeMenu(paintMenu->networkMenu);
     deinitMeleeMenu(paintMenu->settingsMenu);
     freeFont(&(paintMenu->menuFont));
 
