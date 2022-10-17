@@ -861,7 +861,6 @@ const char* drawTextWordWrap(display_t* disp, font_t* font, paletteColor_t color
     int nextSpace, nextDash, nextNl;
     int nextBreak;
     char buf[64];
-    bool forceBreak;
 
     // don't dereference that null pointer
     if (text == NULL)
@@ -874,6 +873,15 @@ const char* drawTextWordWrap(display_t* disp, font_t* font, paletteColor_t color
     {
         // skip leading spaces if we're at the start of the line
         for (; textX == xOff && *textPtr == ' '; textPtr++);
+
+        // handle newlines
+        if (*textPtr == '\n')
+        {
+            textX = xOff;
+            textY += font->h + 1;
+            textPtr++;
+            continue;
+        }
 
         // if strchr() returns NULL, this will be negative...
         // otherwise, nextSpace will be the index of the next space of textPtr
@@ -904,8 +912,7 @@ const char* drawTextWordWrap(display_t* disp, font_t* font, paletteColor_t color
 
         if (nextNl >= 0 && nextNl < nextBreak)
         {
-            nextBreak = nextNl + 1;
-            forceBreak = true;
+            nextBreak = nextNl;
         }
 
         // end the string at the break
@@ -937,14 +944,6 @@ const char* drawTextWordWrap(display_t* disp, font_t* font, paletteColor_t color
         // print the line, and advance the text pointer and offset
         textX = drawText(disp, font, color, buf, textX, textY);
         textPtr += nextBreak;
-
-        if (forceBreak)
-        {
-            // Handle the newline
-            textX = xOff;
-            textY += font->h + 1;
-            forceBreak = false;
-        }
     }
 
     // Return NULL if we've printed everything
