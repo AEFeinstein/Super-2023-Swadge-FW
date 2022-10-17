@@ -57,7 +57,7 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = NO_TRIGGER, .prompt = "That's everything. Happy painting!" },
 };
 
-paintHelpStep_t* lastHelp = helpSteps + sizeof(helpSteps) / sizeof(helpSteps[0]) - 1;
+const paintHelpStep_t* lastHelp = helpSteps + sizeof(helpSteps) / sizeof(helpSteps[0]) - 1;
 
 
 static paletteColor_t defaultPalette[] =
@@ -100,8 +100,8 @@ brush_t brushes[] =
 const char activeIconStr[] = "%s_active.wsg";
 const char inactiveIconStr[] = "%s_inactive.wsg";
 
-brush_t* firstBrush = brushes;
-brush_t* lastBrush = brushes + sizeof(brushes) / sizeof(brushes[0]) - 1;
+const brush_t* firstBrush = brushes;
+const brush_t* lastBrush = brushes + sizeof(brushes) / sizeof(brushes[0]) - 1;
 
 void paintDrawScreenSetup(display_t* disp)
 {
@@ -120,7 +120,7 @@ void paintDrawScreenSetup(display_t* disp)
     // Set up the brush icons
     uint16_t spriteH = 0;
     char iconName[32];
-    for (brush_t* brush = firstBrush; brush <= lastBrush; brush++)
+    for (brush_t* brush = brushes; brush <= lastBrush; brush++)
     {
         snprintf(iconName, sizeof(iconName), activeIconStr, brush->iconName);
         if (!loadWsg(iconName, &brush->iconActive))
@@ -226,7 +226,7 @@ void paintDrawScreenSetup(display_t* disp)
 
 void paintDrawScreenCleanup(void)
 {
-    for (brush_t* brush = firstBrush; brush <= lastBrush; brush++)
+    for (brush_t* brush = brushes; brush <= lastBrush; brush++)
     {
         freeWsg(&brush->iconActive);
         freeWsg(&brush->iconInactive);

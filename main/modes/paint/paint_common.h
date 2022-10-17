@@ -361,7 +361,7 @@ typedef struct
 
 typedef struct
 {
-    paintHelpStep_t* curHelp;
+    const paintHelpStep_t* curHelp;
     uint16_t allButtons;
     uint16_t curButtons;
     buttonBit_t lastButton;
