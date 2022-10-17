@@ -314,6 +314,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
     // Screen Reset
     if (paintState->clearScreen)
     {
+        hideCursor(getCursor(), &paintState->canvas);
         paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
         paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
         paintUpdateLeds();
@@ -880,6 +881,7 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                         {
                             paintState->clearScreen = true;
                             paintState->saveMenu = HIDDEN;
+                            paintState->buttonMode = BTN_MODE_DRAW;
                         }
                         else
                         {
@@ -912,6 +914,7 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                         {
                             paintState->clearScreen = true;
                             paintState->saveMenu = HIDDEN;
+                            paintState->buttonMode = BTN_MODE_DRAW;
                         }
                         break;
                     }
