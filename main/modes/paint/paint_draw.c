@@ -59,35 +59,6 @@ const paintHelpStep_t helpSteps[] =
 
 paintHelpStep_t* lastHelp = helpSteps + sizeof(helpSteps) / sizeof(helpSteps[0]) - 1;
 
-static paletteColor_t cursorPxsBox[] =
-{
-    c000, c000, c000, c000, c000,
-    c000, cTransparent, cTransparent, cTransparent, c000,
-    c000, cTransparent, cTransparent, cTransparent, c000,
-    c000, cTransparent, cTransparent, cTransparent, c000,
-    c000, c000, c000, c000, c000,
-};
-
-static paletteColor_t cursorPxsCrosshair[] =
-{
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-    c000, c000, cTransparent, c000, c000,
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-};
-
-wsg_t cursorCrosshairWsg = {
-    .px = cursorPxsCrosshair,
-    .w = 5,
-    .h = 5,
-};
-
-wsg_t cursorBoxWsg = {
-    .px = cursorPxsBox,
-    .w = 5,
-    .h = 5,
-};
 
 static paletteColor_t defaultPalette[] =
 {
@@ -230,14 +201,18 @@ void paintDrawScreenSetup(display_t* disp)
         getArtist()->bgColor = paintState->canvas.palette[1];
     }
 
+    paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
+
     // Init the cursors for each artist
     // TODO only do one for singleplayer?
     for (uint8_t i = 0; i < sizeof(paintState->artist) / sizeof(paintState->artist[0]); i++)
     {
-        initCursor(&paintState->artist[i].cursor, &paintState->canvas, &cursorBoxWsg);
+        initCursor(&paintState->artist[i].cursor, &paintState->canvas, &paintState->cursorWsg);
         initPxStack(&paintState->artist[i].pickPoints);
         paintState->artist[i].brushDef = firstBrush;
         paintState->artist[i].brushWidth = firstBrush->minSize;
+
+        moveCursorRelative(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
     }
 
     paintState->disp->clearPx();
@@ -262,6 +237,8 @@ void paintDrawScreenCleanup(void)
         deinitCursor(&paintState->artist[i].cursor);
         freePxStack(&paintState->artist[i].pickPoints);
     }
+
+    paintFreeCursorSprite(&paintState->cursorWsg);
 
     freeFont(&paintState->smallFont);
     freeFont(&paintState->saveMenuFont);
@@ -373,6 +350,12 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                 getArtist()->fgColor = paintState->canvas.palette[0];
                 getArtist()->bgColor = paintState->canvas.palette[1];
 
+                paintFreeCursorSprite(&paintState->cursorWsg);
+                paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
+                setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
+
+                // Put the cursor in the middle of the screen
+                moveCursorRelative(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
                 showCursor(getCursor(), &paintState->canvas);
                 paintUpdateLeds();
             }
@@ -426,7 +409,6 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
             paintState->btnHoldTime += elapsedUs;
             if (paintState->firstMove || paintState->btnHoldTime >= BUTTON_REPEAT_TIME)
             {
-
                 moveCursorRelative(getCursor(), &paintState->canvas, paintState->moveX, paintState->moveY);
                 paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
 

@@ -176,6 +176,9 @@ typedef struct
     // All shared state for 1 or 2 players
     paintArtist_t artist[2];
 
+    // The generated cursor sprite
+    wsg_t cursorWsg;
+
 
     //////// Local-only UI state
 
@@ -225,17 +228,16 @@ typedef struct
     // True when a save has been started but not yet completed. Prevents input while saving.
     bool saveInProgress;
 
-    //// Save Menu Flags
-    // TODO: Move as much as possible into paintSaveMenu_t
 
-    // The save slot selected when in BTN_MODE_SAVE
-    uint8_t selectedSlot;
+    //// Save Menu Flags
 
     // The current state of the save / load menu
     paintSaveMenu_t saveMenu;
 
-    // State for Yes/No in overwrite save menu.
-    // TODO: Rename this to something more general
+    // The save slot selected for PICK_SLOT_SAVE and PICK_SLOT_LOAD
+    uint8_t selectedSlot;
+
+    // State for Yes/No options in the save menu.
     bool saveMenuBoolOption;
 
 

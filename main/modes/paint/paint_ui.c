@@ -1,5 +1,7 @@
 #include "paint_ui.h"
 
+#include <malloc.h>
+
 #include "bresenham.h"
 
 #include "paint_common.h"
@@ -325,6 +327,42 @@ void paintRenderColorPicker(paintArtist_t* artist, paintCanvas_t* canvas, paintD
 void paintClearCanvas(const paintCanvas_t* canvas, paletteColor_t bgColor)
 {
     fillDisplayArea(canvas->disp, canvas->x, canvas->y, canvas->x + canvas->w * canvas->xScale, canvas->y + canvas->h * canvas->yScale, bgColor);
+}
+
+// Generates a cursor sprite that's a box
+void paintGenerateCursorSprite(wsg_t* cursorWsg, const paintCanvas_t* canvas)
+{
+    cursorWsg->w = canvas->xScale + 2;
+    cursorWsg->h = canvas->yScale + 2;
+    cursorWsg->px = malloc(sizeof(paletteColor_t) * cursorWsg->w * cursorWsg->h);
+
+    paletteColor_t pxVal;
+    for (uint16_t x = 0; x < cursorWsg->w; x++)
+    {
+        for (uint16_t y = 0; y < cursorWsg->h; y++)
+        {
+            if (x == 0 || x == cursorWsg->w - 1 || y == 0 || y == cursorWsg->h - 1)
+            {
+                pxVal = c000;
+            }
+            else
+            {
+                pxVal = cTransparent;
+            }
+            cursorWsg->px[y * cursorWsg->w + x] = pxVal;
+        }
+    }
+}
+
+void paintFreeCursorSprite(wsg_t* cursorWsg)
+{
+    if (cursorWsg->px != NULL)
+    {
+        free(cursorWsg->px);
+        cursorWsg->px = NULL;
+        cursorWsg->w = 0;
+        cursorWsg->h = 0;
+    }
 }
 
 void initCursor(paintCursor_t* cursor, paintCanvas_t* canvas, const wsg_t* sprite)
