@@ -17,6 +17,7 @@ typedef enum
 {
     // Top menu
     PAINT_MENU,
+    PAINT_NETWORK_MENU,
     PAINT_SETTINGS_MENU,
     // Control instructions
     PAINT_HELP,

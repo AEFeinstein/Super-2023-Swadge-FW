@@ -377,8 +377,9 @@ typedef struct
     // Main Menu
     meleeMenu_t* menu;
     meleeMenu_t* settingsMenu;
+    meleeMenu_t* networkMenu;
 
-    uint8_t menuSelection, settingsMenuSelection;
+    uint8_t menuSelection, networkMenuSelection, settingsMenuSelection;
 
     bool eraseDataSelected, eraseDataConfirm;
 

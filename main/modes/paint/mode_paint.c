@@ -42,6 +42,7 @@ const char paintTitle[] = "MFPaint";
 const char menuOptDraw[] = "Draw";
 const char menuOptHelp[] = "Tutorial";
 const char menuOptGallery[] = "Gallery";
+const char menuOptNetwork[] = "Network";
 const char menuOptShare[] = "Share";
 const char menuOptReceive[] = "Receive";
 const char menuOptSettings[] = "Settings";
@@ -62,6 +63,7 @@ void paintExitMode(void);
 void paintMainLoop(int64_t elapsedUs);
 void paintButtonCb(buttonEvt_t* evt);
 void paintMainMenuCb(const char* opt);
+void paintNetworkMenuCb(const char* opt);
 void paintSettingsMenuCb(const char* opt);
 
 
@@ -86,6 +88,7 @@ swadgeMode modePaint =
 void paintDeleteAllData(void);
 void paintMenuInitialize(void);
 void paintSetupMainMenu(bool reset);
+void paintSetupNetworkMenu(bool reset);
 void paintSetupSettingsMenu(bool reset);
 
 // Mode struct function implemetations
@@ -99,6 +102,7 @@ void paintEnterMode(display_t* disp)
     loadFont("mm.font", &(paintMenu->menuFont));
 
     paintMenu->menu = initMeleeMenu(paintTitle, &(paintMenu->menuFont), paintMainMenuCb);
+    paintMenu->networkMenu = initMeleeMenu(menuOptNetwork, &(paintMenu->menuFont), paintNetworkMenuCb);
     paintMenu->settingsMenu = initMeleeMenu(menuOptSettings, &(paintMenu->menuFont), paintSettingsMenuCb);
 
     paintMenuInitialize();
@@ -114,6 +118,7 @@ void paintExitMode(void)
     switch (paintMenu->screen)
     {
         case PAINT_MENU:
+        case PAINT_NETWORK_MENU:
         case PAINT_SETTINGS_MENU:
         break;
 
@@ -147,6 +152,12 @@ void paintMainLoop(int64_t elapsedUs)
     case PAINT_MENU:
     {
         drawMeleeMenu(paintMenu->disp, paintMenu->menu);
+        break;
+    }
+
+    case PAINT_NETWORK_MENU:
+    {
+        drawMeleeMenu(paintMenu->disp, paintMenu->networkMenu);
         break;
     }
 
@@ -194,6 +205,23 @@ void paintButtonCb(buttonEvt_t* evt)
                 else
                 {
                     meleeMenuButton(paintMenu->menu, evt->button);
+                }
+            }
+            break;
+        }
+
+        case PAINT_NETWORK_MENU:
+        {
+            if (evt->down)
+            {
+                if (evt->button == BTN_B)
+                {
+                    paintMenu->screen = PAINT_MENU;
+                    paintSetupMainMenu(false);
+                }
+                else
+                {
+                    meleeMenuButton(paintMenu->networkMenu, evt->button);
                 }
             }
             break;
@@ -276,15 +304,45 @@ void paintSetupMainMenu(bool reset)
 
     if (paintGetAnySlotInUse(index))
     {
-        // Only add "gallery" and "share" if there's something to share
+        // Only add "gallery" if there's something to view
         addRowToMeleeMenu(paintMenu->menu, menuOptGallery);
-        addRowToMeleeMenu(paintMenu->menu, menuOptShare);
     }
 
-    addRowToMeleeMenu(paintMenu->menu, menuOptReceive);
+    addRowToMeleeMenu(paintMenu->menu, menuOptNetwork);
     addRowToMeleeMenu(paintMenu->menu, menuOptHelp);
     addRowToMeleeMenu(paintMenu->menu, menuOptSettings);
     addRowToMeleeMenu(paintMenu->menu, menuOptExit);
+
+    if (reset)
+    {
+        paintMenu->menuSelection = 0;
+    }
+
+    paintMenu->menu->selectedRow = paintMenu->menuSelection;
+}
+
+void paintSetupNetworkMenu(bool reset)
+{
+    int32_t index;
+    paintLoadIndex(&index);
+
+    resetMeleeMenu(paintMenu->networkMenu, menuOptNetwork, paintNetworkMenuCb);
+
+    if (paintGetAnySlotInUse(index))
+    {
+        // Only add "share" if there's something to share
+        addRowToMeleeMenu(paintMenu->networkMenu, menuOptShare);
+    }
+
+    addRowToMeleeMenu(paintMenu->networkMenu, menuOptReceive);
+    addRowToMeleeMenu(paintMenu->networkMenu, menuOptExit);
+
+    if (reset)
+    {
+        paintMenu->networkMenuSelection = 0;
+    }
+
+    paintMenu->networkMenu->selectedRow = paintMenu->networkMenuSelection;
 }
 
 void paintSetupSettingsMenu(bool reset)
@@ -354,17 +412,11 @@ void paintMainMenuCb(const char* opt)
         paintMenu->screen = PAINT_GALLERY;
         paintGallerySetup(paintMenu->disp);
     }
-    else if (opt == menuOptShare)
+    else if (opt == menuOptNetwork)
     {
-        PAINT_LOGI("Selected Share");
-        paintMenu->screen = PAINT_SHARE;
-        switchToSwadgeMode(&modePaintShare);
-    }
-    else if (opt == menuOptReceive)
-    {
-        PAINT_LOGI("Selected Receive");
-        paintMenu->screen = PAINT_RECEIVE;
-        switchToSwadgeMode(&modePaintReceive);
+        PAINT_LOGI("Selected Network");
+        paintSetupNetworkMenu(true);
+        paintMenu->screen = PAINT_NETWORK_MENU;
     }
     else if (opt == menuOptHelp)
     {
@@ -382,6 +434,29 @@ void paintMainMenuCb(const char* opt)
     {
         PAINT_LOGI("Selected Exit");
         switchToSwadgeMode(&modeMainMenu);
+    }
+}
+
+void paintNetworkMenuCb(const char* opt)
+{
+    paintMenu->networkMenuSelection = paintMenu->networkMenu->selectedRow;
+    if (opt == menuOptShare)
+    {
+        PAINT_LOGI("Selected Share");
+        paintMenu->screen = PAINT_SHARE;
+        switchToSwadgeMode(&modePaintShare);
+    }
+    else if (opt == menuOptReceive)
+    {
+        PAINT_LOGI("Selected Receive");
+        paintMenu->screen = PAINT_RECEIVE;
+        switchToSwadgeMode(&modePaintReceive);
+    }
+    else if (opt == menuOptExit)
+    {
+        PAINT_LOGI("Selected Exit");
+        paintSetupMainMenu(false);
+        paintMenu->screen = PAINT_MENU;
     }
 }
 
@@ -433,7 +508,7 @@ void paintSettingsMenuCb(const char* opt)
     else if (opt == menuOptExit)
     {
         PAINT_LOGI("Selected Exit");
-        paintSetupMainMenu(true);
+        paintSetupMainMenu(false);
         paintMenu->screen = PAINT_MENU;
         return;
     }
@@ -446,10 +521,8 @@ void paintReturnToMainMenu(void)
     switch(paintMenu->screen)
     {
         case PAINT_MENU:
-        break;
-
+        case PAINT_NETWORK_MENU:
         case PAINT_SETTINGS_MENU:
-            paintMenu->screen = PAINT_MENU;
         break;
 
         case PAINT_DRAW:
