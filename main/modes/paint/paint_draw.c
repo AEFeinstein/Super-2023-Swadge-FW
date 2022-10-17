@@ -14,11 +14,47 @@
 paintDraw_t* paintState;
 paintHelp_t* paintHelp;
 
+/*
+ * Interactive Help Definitions
+ *
+ * Each step here defines a tutorial step with a help message that will
+ * be displayed below the canvas, and a trigger that will cause the tutorial
+ * step to be considered "completed" and move on to the next step.
+ *
+ * TODO: Add steps for Polygon brush
+ * TODO: Add instructions for color picker
+ * TODO: Add an "Explain" for each brush after the tutorial
+ * TODO: Disallow certain actions at certain steps to prevent confusion/desyncing
+ */
 const paintHelpStep_t helpSteps[] =
 {
-    { .trigger = PRESS_ALL_DPAD, .prompt = "Welcome to MFPaint! \n Use the D-pad to move the cursor around!" },
-    { .trigger = PRESS_A, .prompt = "Excellent! \n Now, press A to draw!" },
-    { .trigger = NO_TRIGGER, .prompt = "That's everything!" },
+    { .trigger = PRESS_ALL, .triggerData = (UP | DOWN | LEFT | RIGHT), .prompt = "Welcome to MFPaint!\nLet's get started: First, use the D-Pad to move the cursor around!" },
+    { .trigger = RELEASE, .triggerData = BTN_A, .prompt = "Excellent!\nNow, press A to draw something!" },
+    { .trigger = PRESS, .triggerData = SELECT, .prompt = "Now, let's pick a different color.\nFirst, hold SELECT..." },
+    { .trigger = PRESS, .triggerData = SELECT | DOWN, .prompt = "Then, press D-Pad DOWN to select a color..." },
+    { .trigger = RELEASE, .triggerData = SELECT, .prompt = "And release SELECT to confirm!" },
+    { .trigger = RELEASE, .triggerData = BTN_B, .prompt = "Great choice! You can also quickly swap the foreground and background colors with the B BUTTON" },
+    { .trigger = PRESS, .triggerData = SELECT, .prompt = "Now, let's change the brush size. Hold SELECT again..." },
+    { .trigger = PRESS, .triggerData = SELECT | BTN_A, .prompt = "Then, Press the A BUTTON to increase the brush size." },
+    { .trigger = RELEASE, .triggerData = SELECT, .prompt = "And release SELECT to confirm!" },
+    { .trigger = RELEASE, .triggerData = BTN_A, .prompt = "Press A to draw again with the larger brush!" },
+    { .trigger = PRESS, .triggerData = SELECT, .prompt = "Wow! Now, let's change it back. Hold SELECT again..." },
+    { .trigger = PRESS, .triggerData = SELECT | BTN_B, .prompt = "Then, press B to decrease the brush size." },
+    { .trigger = RELEASE, .triggerData = SELECT, .prompt = "And release SELECT to confirm!" },
+    { .trigger = PRESS, .triggerData = SELECT, .prompt = "Now, let's try a different brush. Hold SELECT again..." },
+    { .trigger = PRESS, .triggerData = SELECT | RIGHT, .prompt = "Then, press D-Pad RIGHT to select a brush..." },
+    { .trigger = RELEASE, .triggerData = SELECT, .prompt = "And release SELECT to confirm!" },
+    { .trigger = CHANGE_BRUSH, .triggerDataPtr = (void*)"Rectangle", .prompt = "Now, choose the RECTANGLE brush!" },
+    { .trigger = RELEASE, .triggerData = BTN_A, .prompt = "Now, press A to select the first corner of the rectangle..." },
+    { .trigger = PRESS_ANY, .triggerData = (UP | DOWN | LEFT | RIGHT), .prompt = "Then move somewhere else..." },
+    { .trigger = RELEASE, .triggerData = BTN_A, .prompt = "Press A again to pick the other coner of the rectangle. Note that the first point you picked will blink!" },
+    { .trigger = PRESS, .triggerData = START, .prompt = "Good job! Now, let's press START to toggle the menu." },
+    { .trigger = PRESS_ANY, .triggerData = UP | DOWN | SELECT, .prompt = "Press UP, DOWN, or SELECT to go through the menu items" },
+    { .trigger = SELECT_MENU_ITEM, .triggerData = PICK_SLOT_SAVE, .prompt = "Now, select the SAVE option.." },
+    { .trigger = PRESS_ANY, .triggerData = LEFT | RIGHT, .prompt = "Use D-Pad LEFT and RIGHT to switch between save slots, or other options in the menu" },
+    { .trigger = PRESS_ANY, .triggerData = BTN_A | BTN_B, .prompt = "Use the A BUTTON to confirm, or the B BUTTON to cancel and go back." },
+    { .trigger = SELECT_MENU_ITEM, .triggerData = HIDDEN, .prompt = "Press START or the B BUTTON to exit the menu." },
+    { .trigger = NO_TRIGGER, .prompt = "That's everything. Happy painting!" },
 };
 
 paintHelpStep_t* lastHelp = helpSteps + sizeof(helpSteps) / sizeof(helpSteps[0]) - 1;
@@ -255,51 +291,28 @@ bool paintTutorialCheckTriggers(void)
 {
     switch (paintHelp->curHelp->trigger)
     {
-    case PRESS_ALL_DPAD:
-        return (paintHelp->allButtons & (UP | DOWN | LEFT | RIGHT)) == (UP | DOWN | LEFT | RIGHT);
+    case PRESS_ALL:
+        return (paintHelp->allButtons & paintHelp->curHelp->triggerData) == paintHelp->curHelp->triggerData;
 
-    case PRESS_SELECT_UP:
-        return (paintHelp->curButtons & (SELECT | UP)) == (SELECT | UP);
+    case PRESS_ANY:
+        return (paintHelp->curButtons & paintHelp->curHelp->triggerData) != 0 && paintHelp->lastButtonDown;
 
-    case PRESS_SELECT_DOWN:
-        return (paintHelp->curButtons & (SELECT | DOWN)) == (SELECT | DOWN);
+    case PRESS:
+        return (paintHelp->curButtons & (paintHelp->curHelp->triggerData)) == paintHelp->curHelp->triggerData && paintHelp->lastButtonDown;
 
-    case PRESS_SELECT_LEFT:
-        return (paintHelp->curButtons & (SELECT | LEFT)) == (SELECT | LEFT);
+    case RELEASE:
+        return paintHelp->lastButtonDown == false && paintHelp->lastButton == paintHelp->curHelp->triggerData;
 
-    case PRESS_SELECT_RIGHT:
-        return (paintHelp->curButtons & (SELECT | RIGHT)) == (SELECT | RIGHT);
+    case CHANGE_BRUSH:
+        return !strcmp(getArtist()->brushDef->name, paintHelp->curHelp->triggerDataPtr) && paintHelp->curButtons == 0;
 
-    case PRESS_SELECT_A:
-        return (paintHelp->curButtons & (SELECT | BTN_A)) == (SELECT | BTN_A);
+    case CHANGE_COLOR:
+        return getArtist()->fgColor == paintHelp->curHelp->triggerData;
 
-    case PRESS_SELECT_B:
-        return (paintHelp->curButtons & (SELECT | BTN_B)) == (SELECT | BTN_B);
+    case SELECT_MENU_ITEM:
+        return paintState->saveMenu == paintHelp->curHelp->triggerData;
 
-    case PRESS_UP:
-        return paintHelp->curButtons & UP;
-
-    case PRESS_DOWN:
-        return paintHelp->curButtons & DOWN;
-
-    case PRESS_LEFT:
-        return paintHelp->curButtons & LEFT;
-
-    case PRESS_RIGHT:
-        return paintHelp->curButtons & RIGHT;
-
-    case PRESS_A:
-        return paintHelp->curButtons & BTN_A;
-
-    case PRESS_B:
-        return paintHelp->curButtons & BTN_B;
-
-    case PRESS_SELECT:
-        return paintHelp->curButtons & SELECT;
-
-    case PRESS_START:
-        return paintHelp->curButtons & START;
-
+    case NO_TRIGGER:
     default:
         break;
     }
@@ -1083,6 +1096,8 @@ void paintDrawScreenButtonCb(const buttonEvt_t* evt)
     {
         paintHelp->allButtons |= evt->state;
         paintHelp->curButtons = evt->state;
+        paintHelp->lastButton = evt->button;
+        paintHelp->lastButtonDown = evt->down;
     }
 
     switch (paintState->buttonMode)
@@ -1116,11 +1131,14 @@ void paintDrawScreenButtonCb(const buttonEvt_t* evt)
     {
         if (paintTutorialCheckTriggers())
         {
+            paintState->redrawToolbar = true;
             if (paintHelp->curHelp != lastHelp)
             {
                 paintHelp->curHelp++;
                 paintHelp->allButtons = 0;
                 paintHelp->curButtons = 0;
+                paintHelp->lastButton = 0;
+                paintHelp->lastButtonDown = false;
             }
         }
     }

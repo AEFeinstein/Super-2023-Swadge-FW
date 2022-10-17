@@ -320,21 +320,13 @@ typedef struct
 // Triggers for advancing the tutorial step
 typedef enum
 {
-    PRESS_ALL_DPAD,
-    PRESS_SELECT_UP,
-    PRESS_SELECT_DOWN,
-    PRESS_SELECT_LEFT,
-    PRESS_SELECT_RIGHT,
-    PRESS_SELECT_A,
-    PRESS_SELECT_B,
-    PRESS_UP,
-    PRESS_DOWN,
-    PRESS_LEFT,
-    PRESS_RIGHT,
-    PRESS_A,
-    PRESS_B,
-    PRESS_SELECT,
-    PRESS_START,
+    PRESS_ALL,
+    PRESS_ANY,
+    PRESS,
+    RELEASE,
+    CHANGE_BRUSH,
+    CHANGE_COLOR,
+    SELECT_MENU_ITEM,
     NO_TRIGGER,
 } paintHelpTrigger_t;
 
@@ -358,6 +350,8 @@ typedef struct
 typedef struct
 {
     paintHelpTrigger_t trigger;
+    void* triggerDataPtr;
+    int64_t triggerData;
     paintHelpIndicator_t indicators[4];
 
     const char* prompt;
@@ -368,6 +362,8 @@ typedef struct
     paintHelpStep_t* curHelp;
     uint16_t allButtons;
     uint16_t curButtons;
+    buttonBit_t lastButton;
+    bool lastButtonDown;
 
     uint16_t helpH;
 } paintHelp_t;
