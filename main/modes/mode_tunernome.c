@@ -238,10 +238,20 @@ const uint16_t freqBinIdxsUkulele[NUM_UKULELE_STRINGS] =
     72  // A
 };
 
+const uint16_t sixNoteStringIdxToLedIdx[4] =
+{
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+};
+
 const uint16_t fourNoteStringIdxToLedIdx[4] =
 {
-    0,
-    1,
+    2,
+    3,
     4,
     5
 };
@@ -1208,7 +1218,7 @@ void tunernomeSampleHandler(uint16_t* samples, uint32_t sampleCnt)
             {
                 case GUITAR_TUNER:
                 {
-                    instrumentTunerMagic(freqBinIdxsGuitar, NUM_GUITAR_STRINGS, colors, NULL);
+                    instrumentTunerMagic(freqBinIdxsGuitar, NUM_GUITAR_STRINGS, colors, sixNoteStringIdxToLedIdx);
                     break;
                 }
                 case VIOLIN_TUNER:
