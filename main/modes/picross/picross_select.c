@@ -21,7 +21,6 @@
 //====
 picrossLevelSelect_t* ls;
 
-
 //===
 //Function Prototypes
 //
@@ -112,17 +111,18 @@ void levelSelectInput()
             picrossExitLevelSelect();
             return;
         }
+        if(ls->hoverLevelIndex < PICROSS_LEVEL_COUNT){
+            ls->chosenLevel = &ls->levels[ls->hoverLevelIndex];
+            writeNvs32(picrossCurrentPuzzleIndexKey, ls->hoverLevelIndex);//save the selected level before we lose context of the index.
 
-        ls->chosenLevel = &ls->levels[ls->hoverLevelIndex];
-        writeNvs32(picrossCurrentPuzzleIndexKey, ls->hoverLevelIndex);//save the selected level before we lose context of the index.
+            size_t size = sizeof(picrossProgressData_t);
+            picrossProgressData_t* progress = calloc(1,size);//zero out. if data doesnt exist, then its been correctly initialized to all 0s. 
+            readNvsBlob(picrossCompletedLevelData,progress,&size);
 
-        size_t size = sizeof(picrossProgressData_t);
-        picrossProgressData_t* progress = calloc(1,size);//zero out. if data doesnt exist, then its been correctly initialized to all 0s. 
-        readNvsBlob(picrossCompletedLevelData,progress,&size);
-
-        selectPicrossLevel(ls->chosenLevel);
-        picrossExitLevelSelect();
-        free(progress);
+            selectPicrossLevel(ls->chosenLevel);
+            picrossExitLevelSelect();
+            free(progress);
+        }
         return;
     }
     //Input Movement checks
@@ -191,14 +191,16 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
         }
     }
 
+    if(ls->hoverLevelIndex < PICROSS_LEVEL_COUNT)
+    {
     //Draw the current level difficulty at the bottom left.
     char textBuffer[13];
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%dx%d", (int)ls->levels[ls->hoverLevelIndex].levelWSG.w,(int)ls->levels[ls->hoverLevelIndex].levelWSG.h);
     int16_t t = textWidth(&ls->smallFont,textBuffer)/2;
     drawText(d, &ls->smallFont, c555, textBuffer, (d->w)-54-t,(d->h)-28);
+    }
 
     //
-    if(ls->hoverLevelIndex < PICROSS_LEVEL_COUNT){//This doesnt actually work because the index goes off into pointer-land
         //draw level choose input
         x = ls->hoverX;
         y = ls->hoverY;
@@ -213,7 +215,10 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
         //draw preview window
         if(ls->levels[ls->hoverLevelIndex].completed){
             //if completed, show victory image and green hover
-            drawPicrossPreviewWindow(d,&ls->levels[ls->hoverLevelIndex].completedWSG);
+            //only do error bounds checking on the window to prevent crashing. Cursor showing out of bounds is less confusing than cursor vanishing
+            if(ls->hoverLevelIndex < PICROSS_LEVEL_COUNT){//This doesnt actually work because the index goes off into pointer-land
+                drawPicrossPreviewWindow(d,&ls->levels[ls->hoverLevelIndex].completedWSG);
+            }
             drawBox(d,inputBox,c151,false,0);
         }else{
             //if incomplete, show ? image and red hvoer
@@ -225,7 +230,7 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
             inputBox.y1--;
             drawBox(d,inputBox,c511,false,0);
         }
-    }
+    
 
     if(ls->allLevelsComplete)
     {
