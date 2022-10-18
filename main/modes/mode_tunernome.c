@@ -134,10 +134,6 @@ typedef struct
     wsg_t upArrowWsg;
     wsg_t flatWsg;
 
-    uint32_t exitTimeStartUs;
-    uint32_t exitTimeAccumulatedUs;
-    bool exitButtonHeld;
-
     uint32_t blinkStartUs;
     uint32_t blinkAccumulatedUs;
     bool isBlinking;
@@ -173,7 +169,6 @@ static inline int16_t getMagnitude(uint16_t idx);
 static inline int16_t getDiffAround(uint16_t idx);
 static inline int16_t getSemiMagnitude(int16_t idx);
 static inline int16_t getSemiDiffAround(uint16_t idx);
-void tnExitTimerFn(void* arg);
 
 /*============================================================================
  * Variables
@@ -238,7 +233,7 @@ const uint16_t freqBinIdxsUkulele[NUM_UKULELE_STRINGS] =
     72  // A
 };
 
-const uint16_t sixNoteStringIdxToLedIdx[4] =
+const uint16_t sixNoteStringIdxToLedIdx[6] =
 {
     1,
     2,
@@ -378,10 +373,6 @@ void tunernomeEnterMode(display_t* disp)
     switchToSubmode(TN_TUNER);
 
     InitColorChord(&tunernome->end, &tunernome->dd);
-
-    tunernome->exitTimeStartUs = 0;
-    tunernome->exitTimeAccumulatedUs = 0;
-    tunernome->exitButtonHeld = false;
 
     tunernome->blinkStartUs = 0;
     tunernome->blinkAccumulatedUs = 0;
@@ -667,23 +658,6 @@ void tunernomeMainLoop(int64_t elapsedUs)
 {
     tunernome->disp->clearPx();
     fillDisplayArea(tunernome->disp, 0, 0, tunernome->disp->w, tunernome->disp->h, c001);
-
-    if(tunernome->exitButtonHeld)
-    {
-        if(tunernome->exitTimeAccumulatedUs == 0)
-        {
-            tunernome->exitTimeAccumulatedUs = esp_timer_get_time() - tunernome->exitTimeStartUs;
-        }
-        else
-        {
-            tunernome->exitTimeAccumulatedUs += elapsedUs;
-        }
-
-        if(tunernome->exitTimeAccumulatedUs >= US_TO_QUIT)
-        {
-            switchToSwadgeMode(&modeMainMenu);
-        }
-    }
 
     switch(tunernome->mode)
     {
@@ -1020,14 +994,6 @@ void tunernomeMainLoop(int64_t elapsedUs)
             break;
         } // case TN_METRONOME:
     } // switch(tunernome->mode)
-
-    // If the quit button is being held
-    if(tunernome->exitTimeAccumulatedUs > 0)
-    {
-        // Draw a bar
-        fillDisplayArea(tunernome->disp, 0, tunernome->disp->h - CORNER_OFFSET + 2,
-                        (tunernome->disp->w * tunernome->exitTimeAccumulatedUs) / US_TO_QUIT, tunernome->disp->h, c333);
-    }
 }
 
 /**
@@ -1037,24 +1003,6 @@ void tunernomeMainLoop(int64_t elapsedUs)
  */
 void tunernomeButtonCallback(buttonEvt_t* evt)
 {
-    if(LEFT == evt->button)
-    {
-        if(evt->down)
-        {
-            // Start the timer to exit
-            tunernome->exitButtonHeld = true;
-            tunernome-> exitTimeStartUs = esp_timer_get_time();
-        }
-        else
-        {
-            // Stop the timer to exit
-            tunernome->exitTimeStartUs = 0;
-            tunernome->exitTimeAccumulatedUs = 0;
-            tunernome->exitButtonHeld = false;
-        }
-        return;
-    }
-
     switch (tunernome->mode)
     {
         default:
@@ -1087,14 +1035,15 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                         incMicGain();
                         break;
                     }
-                    case RIGHT:
+                    case START:
                     {
                         switchToSubmode(TN_METRONOME);
                         break;
                     }
-                    case LEFT:
+                    case BTN_B:
                     {
-                        // Handled above
+                        // Cycle microphone sensitivity
+                        decMicGain();
                         break;
                     }
                     default:
@@ -1135,14 +1084,15 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                         tunernome->tSigIdx = (tunernome->tSigIdx + 1) % NUM_TSIGS;
                         break;
                     }
-                    case RIGHT:
+                    case BTN_B:
                     {
-                        switchToSubmode(TN_TUNER);
+                        // Cycle the time signature
+                        tunernome->tSigIdx = (tunernome->tSigIdx - 1) % NUM_TSIGS;
                         break;
                     }
-                    case LEFT:
+                    case START:
                     {
-                        // Handled above
+                        switchToSubmode(TN_TUNER);
                         break;
                     }
                     default:
