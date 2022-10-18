@@ -543,23 +543,22 @@ bool deinitSpiffs(void)
  */
 bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize, bool readToSpiRam)
 {
-    printf("Read from %s\n", fname);
     // Make sure the output pointer is NULL to begin with
     if(NULL != *output)
     {
-        ESP_LOGE("SPIFFS", "output not NULL");
+        // ESP_LOGE("SPIFFS", "output not NULL");
         return false;
     }
 
     // Read and display the contents of a small text file
-    ESP_LOGD("SPIFFS", "Reading %s", fname);
+    // ESP_LOGD("SPIFFS", "Reading %s", fname);
 
     // Open for reading the given file
     char fnameFull[128] = "./spiffs_image/";
     strcat(fnameFull, fname);
     FILE* f = fopen(fnameFull, "rb");
     if (f == NULL) {
-        ESP_LOGE("SPIFFS", "Failed to open %s", fnameFull);
+        // ESP_LOGE("SPIFFS", "Failed to open %s", fnameFull);
         return false;
     }
 
@@ -576,6 +575,6 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize, boo
     fclose(f);
 
     // Display the read contents from the file
-    ESP_LOGD("SPIFFS", "Read from %s: %d bytes", fname, (uint32_t)(*outsize));
+    // ESP_LOGD("SPIFFS", "Read from %s: %d bytes", fname, (uint32_t)(*outsize));
     return true;
 }
