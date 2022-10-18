@@ -1434,7 +1434,7 @@ void paintIncBrushWidth()
 
 void paintSwapFgBgColors(void)
 {
-    uint8_t fgIndex, bgIndex;
+    uint8_t fgIndex = 0, bgIndex = 0;
     swap(&getArtist()->fgColor, &getArtist()->bgColor);
 
     for (uint8_t i = 0; i < PAINT_MAX_COLORS; i++)
