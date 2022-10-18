@@ -6,6 +6,11 @@
 #include <unistd.h>
 #include <math.h>
 
+#ifdef __linux__
+#include <execinfo.h>
+#include <signal.h>
+#endif
+
 #include "esp_log.h"
 #include "swadge_esp32.h"
 #include "btn.h"
@@ -40,6 +45,11 @@
 
 void drawBitmapPixel(uint32_t* bitmapDisplay, int w, int h, int x, int y, uint32_t col);
 void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t col);
+
+#ifdef __linux__
+void init_crashSignals(void);
+void signalHandler_crash(int signum, siginfo_t* si, void* vcontext);
+#endif
 
 //==============================================================================
 // Variables
@@ -168,6 +178,10 @@ void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t c
  */
 int main(int argc UNUSED, char** argv UNUSED)
 {
+#ifdef __linux__
+    init_crashSignals();
+#endif
+
     // First initialize rawdraw
     // Screen-specific configurations
     // Save window dimensions from the last loop
@@ -299,4 +313,57 @@ void emu_loop(void)
 
     //Display the image and wait for time to display next frame.
     CNFGSwapBuffers();
+}
+
+#ifdef __linux__
+
+/**
+ * @brief Initialize a crash handler, only for Linux
+ */
+void init_crashSignals(void)
+{
+    const int sigs[] = {SIGSEGV, SIGBUS, SIGILL, SIGSYS, SIGABRT};
+    for(int i = 0; i < sizeof(sigs) / sizeof(sigs[0]); i++)
+    {
+        struct sigaction action;
+        memset(&action, 0, sizeof(struct sigaction));
+        action.sa_flags = SA_SIGINFO;
+        action.sa_sigaction = signalHandler_crash;
+        sigaction(sigs[i], &action, NULL);
     }
+}
+
+/**
+ * @brief Print a backtrace when a crash is caught, only for Linux
+ * 
+ * @param signum 
+ * @param si 
+ * @param vcontext 
+ */
+void signalHandler_crash(int signum, siginfo_t* si, void* vcontext)
+{
+	char msg[128] = {'\0'};
+	ssize_t result;
+
+    char fname[64] = {0};
+    sprintf(fname, "crash-%ld.txt", time(NULL));
+    int dumpFileDescriptor = open(fname, O_RDWR | O_CREAT | O_TRUNC,
+									S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+	if(-1 != dumpFileDescriptor)
+	{
+		snprintf(msg, sizeof(msg), "Signal %d received!\n", signum);
+		result = write(dumpFileDescriptor, msg, strnlen(msg, sizeof(msg)));
+		(void)result;
+        
+        // Print backtrace
+        void *array[128];
+		size_t size = backtrace(array, (sizeof(array) / sizeof(array[0])));
+		backtrace_symbols_fd(array, size, dumpFileDescriptor);
+		close(dumpFileDescriptor);
+	}
+
+	// Exit
+	_exit(1);
+}
+#endif

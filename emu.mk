@@ -161,7 +161,7 @@ ifeq ($(HOST_OS),Windows)
     LIBS = opengl32 gdi32 user32 winmm WSock32
 endif
 ifeq ($(HOST_OS),Linux)
-    LIBS = m X11 asound pulse rt GL GLX
+    LIBS = m X11 asound pulse rt GL GLX pthread
 endif
 
 # These are directories to look for library files in
