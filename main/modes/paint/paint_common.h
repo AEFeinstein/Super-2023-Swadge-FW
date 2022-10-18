@@ -300,6 +300,8 @@ typedef struct
     paintCanvas_t canvas;
     int32_t index;
 
+    font_t infoFont;
+
     // TODO rename these to better things now that they're in their own struct
 
     // Last timestamp of gallery transition
@@ -307,6 +309,9 @@ typedef struct
 
     // Amount of time between each transition, or 0 for disabled
     int64_t gallerySpeed;
+
+    // Reaining time that info text will be shown
+    int64_t infoTimeRemaining;
 
     // Current image used in gallery
     uint8_t gallerySlot;
