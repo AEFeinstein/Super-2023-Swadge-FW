@@ -20,14 +20,14 @@
       "off_y":0
    },
    "run_spr_0":{
-      "sprite":"bid0.wsg",
-      "off_x":0,
-      "off_y":0
+      "sprite":"bru0.wsg",
+      "off_x":-8,
+      "off_y":-3
    },
    "run_spr_1":{
-      "sprite":"bid0.wsg",
-      "off_x":0,
-      "off_y":0
+      "sprite":"bru1.wsg",
+      "off_x":-9,
+      "off_y":-4
    },
    "jump_spr":{
       "sprite":"bid0.wsg",
