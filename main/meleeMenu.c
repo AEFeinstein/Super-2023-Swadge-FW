@@ -166,6 +166,9 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
             menu->cbFunc(menu->rows[menu->selectedRow]);
             break;
         }
+        case LEFT:
+        case RIGHT:
+        case BTN_B:
         default:
         {
             // do nothing
@@ -175,12 +178,11 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
 }
 
 /**
- * Draw a melee menu to a display. This overwrites the entire framebuffer.
- *
- * @param d    The display to draw to
- * @param menu The menu to draw
+ * @brief Draw a background grid for the menu
+ * 
+ * @param d 
  */
-void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
+void drawBackgroundGrid(display_t * d)
 {
     // Draw a dim blue background with a grey grid
     for(int16_t y = 0; y < d->h; y++)
@@ -197,7 +199,18 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
             }
         }
     }
+}
 
+/**
+ * Draw a melee menu to a display. This overwrites the entire framebuffer.
+ *
+ * @param d    The display to draw to
+ * @param menu The menu to draw
+ */
+void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
+{
+    drawBackgroundGrid(d);
+    
     // Draw the title and note where it ends
     int16_t textEnd = drawText(d, menu->font, c222, menu->title, 33, 25);
 

@@ -18,7 +18,7 @@ endif
 
 FIND:=find
 ifeq ($(HOST_OS),Windows)
-	FIND:=$(shell cygpath -u \"`where find | grep bin`\")
+	FIND:=$(shell cygpath `where find | grep bin | grep -v " "`)
 endif
 
 ################################################################################
@@ -158,10 +158,10 @@ OBJECTS = $(patsubst %.c, $(OBJ_DIR)/%.o, $(SOURCES))
 # This is a list of libraries to include. Order doesn't matter
 
 ifeq ($(HOST_OS),Windows)
-    LIBS = opengl32 gdi32 user32 winmm pthread WSock32
+    LIBS = opengl32 gdi32 user32 winmm WSock32
 endif
 ifeq ($(HOST_OS),Linux)
-    LIBS = m X11 pthread asound pulse rt GL GLX
+    LIBS = m X11 asound pulse rt GL GLX
 endif
 
 # These are directories to look for library files in

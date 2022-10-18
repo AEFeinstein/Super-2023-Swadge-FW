@@ -7,7 +7,7 @@ orbs:
 parameters:
   src-repo-url:
     type: string
-    default: https://github.com/AEFeinstein/esp32-c3-playground.git
+    default: https://github.com/AEFeinstein/Super-2023-Swadge-FW.git
   windows-emu-artifact:
     type: string
     default: swadge-32-windows.zip
@@ -67,16 +67,16 @@ jobs:
             # Clone out the repository
             cd ~\project\
             git clone << pipeline.parameters.src-repo-url >> --recurse-submodules -j (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
-            cd ~\project\esp32-c3-playground
+            cd ~\project\Super-2023-Swadge-FW
             # Generate a file with the date and version. This will be used for the firmware zip too
             echo $(date) >> version.txt
-            echo "https://github.com/AEFeinstein/esp32-c3-playground/commit/$env:CIRCLE_SHA1" >> version.txt
+            echo "https://github.com/AEFeinstein/Super-2023-Swadge-FW/commit/$env:CIRCLE_SHA1" >> version.txt
       - run:
           name: Build Swadge Emulator
           shell: powershell.exe
           command: |
             $erroractionpreference = 'stop'
-            cd ~\project\esp32-c3-playground
+            cd ~\project\Super-2023-Swadge-FW
             # Set the path to find msys2 binaries
             $env:path = $env:path.Insert($env:path.ToLower().IndexOf("c:\windows\system32"), "C:\msys64\mingw64\bin;C:\msys64\usr\bin;")
             # Build the emulator
@@ -94,7 +94,7 @@ jobs:
           shell: powershell.exe
           command: |
             $erroractionpreference = 'stop'
-            cd ~\project\esp32-c3-playground
+            cd ~\project\Super-2023-Swadge-FW
             # Set the path to find msys2 binaries
             $env:path = $env:path.Insert($env:path.ToLower().IndexOf("c:\windows\system32"), "C:\msys64\mingw64\bin;C:\msys64\usr\bin;")
             # Export the IDF symbols

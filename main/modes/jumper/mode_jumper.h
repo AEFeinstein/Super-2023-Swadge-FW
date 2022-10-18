@@ -29,7 +29,8 @@ typedef enum
     JUMPER_GAMING,
     JUMPER_DEATH,
     JUMPER_WINSTAGE,
-    JUMPER_GAME_OVER
+    JUMPER_GAME_OVER,
+    JUMPER_PAUSE
 } jumperGamePhase_t;
 
 typedef enum
@@ -65,6 +66,8 @@ typedef struct
     uint8_t column;
     uint8_t block;
     uint8_t dBlock;
+    uint8_t respawnBlock;
+    bool respawnReady;
     bool flipped;
 
     uint32_t btnState;
@@ -82,6 +85,8 @@ typedef struct
     
     uint32_t powerupTime;
     bool powerupSpawned;
+    uint16_t frame;
+    uint32_t frameTime;
 
     uint16_t x;
     uint16_t y;
@@ -90,17 +95,21 @@ typedef struct
 
 typedef struct
 {
+    float ledSpeed;
+    float ledTimer;
     uint8_t numTiles;
     uint8_t lives;
     int32_t level;
     int32_t time;
     int32_t previousSecond;
+    int32_t freezeTimer;
     int32_t seconds;
     int8_t blockOffset_x;
     int8_t blockOffset_y;
     uint32_t score;
     uint8_t combo;
     uint8_t perfect;
+    bool pauseRelease;
 
     jumperPowerup_t* currentPowerup;
 
@@ -121,7 +130,8 @@ typedef struct
     wsg_t block[10];
     wsg_t digit[12];
     wsg_t livesIcon;
-    wsg_t powerup;
+    wsg_t target;
+    wsg_t powerup[4];
     jumperGamePhase_t currentPhase;
     int64_t frameElapsed;
     display_t* d;
@@ -131,6 +141,7 @@ typedef struct
     font_t* prompt_font;
     jumperStage_t* scene;
     bool controlsEnabled;
+    bool ledEnabled;
     uint8_t respawnBlock;
 
     uint64_t jumperJumpTime;
@@ -145,7 +156,7 @@ typedef struct
 } jumperGame_t;
 
 
-void jumperStartGame(display_t* disp, font_t* mmFont);
+void jumperStartGame(display_t* disp, font_t* mmFont,  bool ledEnabled);
 void jumperGameLoop(int64_t elapsedUs);
 void jumperGameButtonCb(buttonEvt_t* evt);
 void jumperExitGame(void);

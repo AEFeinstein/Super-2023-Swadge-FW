@@ -10,6 +10,7 @@
 #include "soc/soc.h"
 #include "soc/system_reg.h"
 
+#include "swadge_util.h"
 #include "meleeMenu.h"
 #include "mode_main_menu.h"
 

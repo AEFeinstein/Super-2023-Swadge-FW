@@ -12,7 +12,7 @@
 // Defines
 //==============================================================================
 
-#define FRAME_TIME_MS 50 // 20fps
+#define FRAME_TIME_MS 33 // 30fps
 
 //==============================================================================
 // Enums
@@ -54,6 +54,7 @@ typedef enum
     UP_GROUND,
     DOWN_GROUND,
     DASH_GROUND,
+    FRONT_GROUND,
     NEUTRAL_GROUND,
     NEUTRAL_AIR,
     FRONT_AIR,
@@ -96,9 +97,31 @@ typedef enum
     BOUNCE_RIGHT
 } bounceDir_t;
 
+typedef enum
+{
+    SFX_FIGHTER_NONE,
+    SFX_FIGHTER_1_HIT,
+    SFX_FIGHTER_2_HIT,
+} fighterSfx_t;
+
+// Bitmask
+typedef enum
+{
+    LEDFX_FIGHTER_NONE  = 0x00,
+    LEDFX_FIGHTER_1_HIT = 0x01,
+    LEDFX_FIGHTER_2_HIT = 0x02,
+    LEDFX_SANDBAG_HIT   = 0x04,
+} fighterLedFx_t;
+
 //==============================================================================
 // Structs
 //==============================================================================
+
+typedef struct
+{
+    uint8_t spriteIdx;
+    vector_t offset;
+} offsetSprite_t;
 
 typedef struct
 {
@@ -109,7 +132,7 @@ typedef struct
     uint16_t hitstun;
 
     bool isProjectile;
-    uint8_t projSprite;
+    offsetSprite_t projSprite;
     uint16_t projDuration;
     vector_t projVelo;
     vector_t projAccel;
@@ -117,9 +140,8 @@ typedef struct
 
 typedef struct
 {
-    uint8_t sprite;
+    offsetSprite_t sprite;
     attackHitbox_t* hitboxes;
-    vector_t sprite_offset;
     vector_t hurtbox_offset;
     vector_t hurtbox_size;
     vector_t velocity;
@@ -131,8 +153,8 @@ typedef struct
 
 typedef struct
 {
-    uint8_t startupLagSprite;
-    uint8_t endLagSprite;
+    offsetSprite_t startupLagSprite;
+    offsetSprite_t endLagSprite;
     attackFrame_t* attackFrames;
     uint16_t startupLag;
     uint16_t endLag;
@@ -147,6 +169,7 @@ typedef struct
 {
     box_t area;
     bool canFallThrough;
+    paletteColor_t color;
 } platform_t;
 
 typedef struct
@@ -157,6 +180,7 @@ typedef struct
 
 typedef struct
 {
+    fightingCharacter_t character;
     vector_t pos;
     vector_t hurtbox_offset;
     vector_t size;
@@ -164,7 +188,6 @@ typedef struct
     vector_t velocity;
     bool isInAir;
     bool ledgeJumped;
-    bool isInvincible;
     uint16_t iFrameTimer;
     platformPos_t relativePos;
     const platform_t* touchingPlatform;
@@ -188,18 +211,20 @@ typedef struct
     /* Attack data */
     attack_t attacks[NUM_ATTACKS];
     /* Sprite names */
-    uint8_t idleSprite0;
-    uint8_t idleSprite1;
-    uint8_t runSprite0;
-    uint8_t runSprite1;
-    uint8_t jumpSprite;
-    uint8_t duckSprite;
-    uint8_t landingLagSprite;
-    uint8_t hitstunGroundSprite;
-    uint8_t hitstunAirSprite;
+    offsetSprite_t idleSprite0;
+    offsetSprite_t idleSprite1;
+    offsetSprite_t runSprite0;
+    offsetSprite_t runSprite1;
+    offsetSprite_t jumpSprite;
+    offsetSprite_t duckSprite;
+    offsetSprite_t landingLagSprite;
+    offsetSprite_t hitstunGroundSprite;
+    offsetSprite_t hitstunAirSprite;
+    uint8_t stockIconIdx;
     /* Input Tracking */
     int32_t prevBtnState;
     int32_t btnState;
+    int32_t btnPressesSinceLast;
     /* Current state tracking */
     fighterState_t state;
     bool isAerialAttack;
@@ -211,17 +236,21 @@ typedef struct
     int32_t shortHopTimer;
     bool isShortHop;
     int32_t damage;
+    bool damagedThisFrame;
     uint8_t stocks;
     bounceDir_t bounceNextCollision;
+    uint32_t damageGiven;
     /* Animation timer */
     int32_t animTimer;
-    uint8_t currentSprite;
+    offsetSprite_t* currentSprite;
+    uint32_t hitstopTimer;
+    uint8_t hitstopShake;
 } fighter_t;
 
 typedef struct
 {
     fighter_t* owner;
-    uint8_t sprite;
+    offsetSprite_t sprite;
 
     vector_t size;
     vector_t pos;
@@ -244,27 +273,35 @@ typedef struct
 {
     int16_t spritePosX;
     int16_t spritePosY;
-    int16_t spriteDir;
-    int16_t spriteIdx;
     int16_t damage;
-    int16_t stocks;
+    int8_t spriteDir;
+    int8_t spriteIdx;
+    int8_t stocks;
+    int8_t stockIconIdx;
+    int8_t isInvincible;
 } fighterSceneFighter_t;
 
 typedef struct
 {
     int16_t spritePosX;
     int16_t spritePosY;
-    int16_t spriteDir;
-    int16_t spriteIdx;
+    int8_t spriteDir;
+    int8_t spriteIdx;
 } fighterSceneProjectile_t;
 
 typedef struct
 {
-    uint16_t p2pMsgType;
-    uint16_t stageIdx;
+    uint8_t msgType;
+    uint8_t stageIdx;
+    uint8_t numProjectiles;
+    uint8_t sfx;
+    uint8_t ledfx;
+    bool drawGo;
+    int16_t cameraOffsetX;
+    int16_t cameraOffsetY;
+    uint32_t gameTimerUs;
     fighterSceneFighter_t f1;
     fighterSceneFighter_t f2;
-    int16_t numProjectiles;
     fighterSceneProjectile_t projs[];
 } fighterScene_t;
 
@@ -278,10 +315,11 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
 void fighterExitGame(void);
 void fighterGameLoop(int64_t elapsedUs);
 void fighterGameButtonCb(buttonEvt_t* evt);
+int32_t fighterGetButtonState(void);
 
 void fighterRxButtonInput(int32_t btnState);
+void fighterRxScene(const fighterScene_t* scene, uint8_t len);
 
-void drawFighterScene(display_t* d, fighterScene_t* sceneData);
-void fighterDrawSceneAfterAck(void);
+void drawFighterScene(display_t* d, const fighterScene_t* sceneData);
 
 #endif

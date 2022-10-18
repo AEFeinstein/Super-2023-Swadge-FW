@@ -6,9 +6,7 @@
 
 #include <string.h>
 #include <esp_log.h>
-#ifdef _TEST_USE_SPIRAM_
-    #include <esp_heap_caps.h>
-#endif
+#include <esp_heap_caps.h>
 
 #include "display.h"
 #include "heatshrink_decoder.h"
@@ -168,18 +166,33 @@ void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
  */
 bool loadWsg(char* name, wsg_t* wsg)
 {
+    return loadWsgSpiRam(name, wsg, false);
+}
+
+/**
+ * @brief Load a WSG from ROM to RAM. WSGs placed in the spiffs_image folder
+ * before compilation will be automatically flashed to ROM
+ *
+ * @param name The filename of the WSG to load
+ * @param wsg  A handle to load the WSG to
+ * @param spiRam true to load to SPI RAM, false to load to normal RAM
+ * @return true if the WSG was loaded successfully,
+ *         false if the WSG load failed and should not be used
+ */
+bool loadWsgSpiRam(char* name, wsg_t* wsg, bool spiRam)
+{
     // Read WSG from file
     uint8_t* buf = NULL;
     size_t sz;
-    if(!spiffsReadFile(name, &buf, &sz))
+    if(!spiffsReadFile(name, &buf, &sz, true))
     {
         ESP_LOGE("WSG", "Failed to read %s", name);
         return false;
     }
 
     // Pick out the decompresed size and create a space for it
-    uint16_t decompressedSize = (buf[0] << 8) | buf[1];
-    uint8_t decompressedBuf[decompressedSize];
+    uint32_t decompressedSize = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | (buf[3]);
+    uint8_t * decompressedBuf = (uint8_t *)heap_caps_malloc(decompressedSize, MALLOC_CAP_SPIRAM);
 
     // Create the decoder
     size_t copied = 0;
@@ -189,16 +202,16 @@ bool loadWsg(char* name, wsg_t* wsg)
     // Decode the file in chunks
     uint32_t inputIdx = 0;
     uint32_t outputIdx = 0;
-    while(inputIdx < (sz - 2))
+    while(inputIdx < (sz - 4))
     {
         // Decode some data
         copied = 0;
-        heatshrink_decoder_sink(hsd, &buf[2 + inputIdx], sz - 2 - inputIdx, &copied);
+        heatshrink_decoder_sink(hsd, &buf[4 + inputIdx], sz - 2 - inputIdx, &copied);
         inputIdx += copied;
 
         // Save it to the output array
         copied = 0;
-        heatshrink_decoder_poll(hsd, &decompressedBuf[outputIdx], sizeof(decompressedBuf) - outputIdx, &copied);
+        heatshrink_decoder_poll(hsd, &decompressedBuf[outputIdx], decompressedSize - outputIdx, &copied);
         outputIdx += copied;
     }
 
@@ -207,7 +220,7 @@ bool loadWsg(char* name, wsg_t* wsg)
 
     // Flush any final output
     copied = 0;
-    heatshrink_decoder_poll(hsd, &decompressedBuf[outputIdx], sizeof(decompressedBuf) - outputIdx, &copied);
+    heatshrink_decoder_poll(hsd, &decompressedBuf[outputIdx], decompressedSize - outputIdx, &copied);
     outputIdx += copied;
 
     // All done decoding
@@ -220,18 +233,24 @@ bool loadWsg(char* name, wsg_t* wsg)
     wsg->w = (decompressedBuf[0] << 8) | decompressedBuf[1];
     wsg->h = (decompressedBuf[2] << 8) | decompressedBuf[3];
     // The rest of the bytes are pixels
-#if defined( _TEST_USE_SPIRAM_ ) && !defined( EMU )
-    wsg->px = (paletteColor_t*)heap_caps_malloc(sizeof(paletteColor_t) * wsg->w * wsg->h, MALLOC_CAP_SPIRAM);
-#else
-    wsg->px = (paletteColor_t*)malloc(sizeof(paletteColor_t) * wsg->w * wsg->h);
-#endif
+    if(spiRam)
+    {
+        wsg->px = (paletteColor_t*)heap_caps_malloc(sizeof(paletteColor_t) * wsg->w * wsg->h, MALLOC_CAP_SPIRAM);
+    }
+    else
+    {
+        wsg->px = (paletteColor_t*)malloc(sizeof(paletteColor_t) * wsg->w * wsg->h);
+    }
+
     if(NULL != wsg->px)
     {
         memcpy(wsg->px, &decompressedBuf[4], outputIdx - 4);
+        free(decompressedBuf);
         return true;
     }
 
     // all done
+    free(decompressedBuf);
     return false;
 }
 
@@ -623,7 +642,7 @@ bool loadFont(const char* name, font_t* font)
     uint8_t* buf = NULL;
     size_t bufIdx = 0;
     size_t sz;
-    if(!spiffsReadFile(name, &buf, &sz))
+    if(!spiffsReadFile(name, &buf, &sz, true))
     {
         ESP_LOGE("FONT", "Failed to read %s", name);
         return false;
@@ -684,8 +703,6 @@ void freeFont(font_t* font)
 void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16_t xOff, int16_t yOff)
 {
     //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
-    paletteColor_t* pxOutput = disp->pxFb + yOff * disp->w;
-
     int bitIdx = 0;
     uint8_t* bitmap = ch->bitmap;
     int wch = ch->w;
@@ -706,6 +723,8 @@ void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16
         h += yOff;
         yOff = 0;
     }
+
+    paletteColor_t* pxOutput = disp->pxFb + yOff * disp->w;
 
     for (int y = 0; y < h; y++)
     {
@@ -806,7 +825,10 @@ uint16_t textWidth(font_t* font, const char* text)
     uint16_t width = 0;
     while(*text != 0)
     {
-        width += (font->chars[(*text) - ' '].w + 1);
+        if((*text) >= ' ')
+        {
+            width += (font->chars[(*text) - ' '].w + 1);
+        }
         text++;
     }
     // Delete trailing space
@@ -815,4 +837,119 @@ uint16_t textWidth(font_t* font, const char* text)
         width--;
     }
     return width;
+}
+
+/// @brief Draws text, breaking on word boundaries, until the given bounds are filled or all text is drawn.
+///
+/// Text will be drawn, starting at `(xOff, yOff)`, wrapping to the next line at ' ' or '-' when the next
+/// word would exceed `xMax`, or immediately when a newline ('\n') is encountered. Carriage returns and
+/// tabs ('\r', '\t') are not supported. When the bottom of the next character would exceed `yMax`, no more
+/// text is drawn and a pointer to the next undrawn character within `text` is returned. If all text has
+/// been written, NULL is returned.
+///
+/// @param disp The display on which to draw the text
+/// @param font The font to use when drawing the text
+/// @param color The color of the text to be drawn
+/// @param text The text to be pointed, as a null-terminated string
+/// @param xOff The X-coordinate to begin drawing the text at
+/// @param yOff The Y-coordinate to begin drawing the text at
+/// @param xMax The maximum x-coordinate at which any text may be drawn
+/// @param yMax The maximum ycoordinate at which text may be drawn
+/// @return A pointer to the first unprinted character within `text`, or NULL if all text has been written
+const char* drawTextWordWrap(display_t* disp, font_t* font, paletteColor_t color, const char* text,
+                             int16_t xOff, int16_t yOff, int16_t xMax, int16_t yMax)
+{
+    const char* textPtr = text;
+    uint16_t textX = xOff, textY = yOff;
+    int nextSpace, nextDash, nextNl;
+    int nextBreak;
+    char buf[64];
+
+    // don't dereference that null pointer
+    if (text == NULL)
+    {
+        return NULL;
+    }
+
+    // while there is text left to print, and the text would not exceed the Y-bounds...
+    while (*textPtr && (textY + font->h <= yMax))
+    {
+        // skip leading spaces if we're at the start of the line
+        for (; textX == xOff && *textPtr == ' '; textPtr++);
+
+        // handle newlines
+        if (*textPtr == '\n')
+        {
+            textX = xOff;
+            textY += font->h + 1;
+            textPtr++;
+            continue;
+        }
+
+        // if strchr() returns NULL, this will be negative...
+        // otherwise, nextSpace will be the index of the next space of textPtr
+        nextSpace = strchr(textPtr, ' ') - textPtr;
+        nextDash = strchr(textPtr, '-') - textPtr;
+        nextNl = strchr(textPtr, '\n') - textPtr;
+
+        // copy as much text as will fit into the buffer
+        // leaving room for a null-terminator in case the string is longer
+        strncpy(buf, textPtr, sizeof(buf) - 1);
+
+        // ensure there is always a null-terminator even if
+        buf[sizeof(buf) - 1] = '\0';
+
+        // worst case, there are no breaks remaining
+        // I think this strlen call is necessary?
+        nextBreak = strlen(buf);
+
+        if (nextSpace >= 0 && nextSpace < nextBreak)
+        {
+            nextBreak = nextSpace + 1;
+        }
+
+        if (nextDash >= 0 && nextDash < nextBreak)
+        {
+            nextBreak = nextDash + 1;
+        }
+
+        if (nextNl >= 0 && nextNl < nextBreak)
+        {
+            nextBreak = nextNl;
+        }
+
+        // end the string at the break
+        buf[nextBreak] = '\0';
+
+        // The text is longer than an entire line, so we must shorten it
+        if (xOff + textWidth(font, buf) > xMax)
+        {
+            // shorten the text until it fits
+            while (textX + textWidth(font, buf) > xMax && nextBreak > 0)
+            {
+                buf[--nextBreak] = '\0';
+            }
+        }
+
+        // The text is longer than will fit on the rest of the current line
+        // Or we shortened it down to nothing. Either way, move to next line.
+        // Also, go back to the start of the loop so we don't
+        // accidentally overrun the yMax
+        if (textX + textWidth(font, buf) > xMax || nextBreak == 0)
+        {
+            // The line won't fit
+            textY += font->h + 1;
+            textX = xOff;
+            continue;
+        }
+
+        // the line must have enough space for the rest of the buffer
+        // print the line, and advance the text pointer and offset
+        textX = drawText(disp, font, color, buf, textX, textY);
+        textPtr += nextBreak;
+    }
+
+    // Return NULL if we've printed everything
+    // Otherwise, return the remaining text
+    return *textPtr ? textPtr : NULL;
 }

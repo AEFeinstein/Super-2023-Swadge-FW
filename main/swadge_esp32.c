@@ -87,6 +87,18 @@
 #define EXIT_TIME_US 1000000
 
 //==============================================================================
+// Enums
+//==============================================================================
+
+typedef enum
+{
+    NONE_PRESSED,
+    START_PRESSED,
+    SELECT_PRESSED,
+    START_SELECT_PRESSED
+} startSelState_t;
+
+//==============================================================================
 // Function Prototypes
 //==============================================================================
 
@@ -94,6 +106,7 @@ void mainSwadgeTask(void* arg);
 void swadgeModeEspNowRecvCb(const uint8_t* mac_addr, const char* data,
                             uint8_t len, int8_t rssi);
 void swadgeModeEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
+void simulateBtn(void (*fnButtonCallback)(buttonEvt_t* evt), buttonBit_t btn, uint16_t state);
 
 //==============================================================================
 // Variables
@@ -103,6 +116,11 @@ static RTC_DATA_ATTR swadgeMode* pendingSwadgeMode = NULL;
 static swadgeMode* cSwadgeMode = &modeMainMenu;
 static bool isSandboxMode = false;
 static uint32_t frameRateUs = 33333;
+
+// For monitoring Start+Select
+static startSelState_t sst = NONE_PRESSED;
+static int64_t dblBtnTmr = -1;
+static uint16_t lastBtnState = 0;
 
 //==============================================================================
 // Functions
@@ -163,6 +181,10 @@ uint16_t tud_hid_get_report_cb(uint8_t itf,
     {
         return handle_advanced_usb_terminal_get( reqlen, buffer );
     }
+    else if( report_id == 173 && cSwadgeMode && cSwadgeMode->fnAdvancedUSB )
+    {
+        return cSwadgeMode->fnAdvancedUSB( buffer, reqlen, 1 );
+    }
     else
     {
         return reqlen;
@@ -195,6 +217,10 @@ void tud_hid_set_report_cb(uint8_t itf,
     if( report_id >= 170 && report_id <= 171 )
     {
         handle_advanced_usb_control_set( bufsize, buffer );
+    }
+    else if( report_id == 173 && cSwadgeMode && cSwadgeMode->fnAdvancedUSB )
+    {
+        cSwadgeMode->fnAdvancedUSB( (uint8_t*)buffer, bufsize, 0 );
     }
 #endif
 }
@@ -277,17 +303,11 @@ void app_main(void)
     // esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_OFF);
     esp_efuse_set_rom_log_scheme(ESP_EFUSE_ROM_LOG_ALWAYS_ON);
 
-    /* Initialize USB peripheral */
-    tinyusb_config_t tusb_cfg = {};
-    tinyusb_driver_install(&tusb_cfg);
-
     // Set up timers
     esp_timer_init();
 
-    // Create a task for the swadge, then return
-    TaskHandle_t xHandle = NULL;
-    xTaskCreate(mainSwadgeTask, "SWADGE", 8192, NULL,
-                tskIDLE_PRIORITY /*configMAX_PRIORITIES / 2*/, &xHandle);
+    // Tricky: We never return, we just _become_ the main task.
+    mainSwadgeTask( 0 );
 }
 
 /**
@@ -342,6 +362,14 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     }
 #endif
 
+    /* If the mode isn't overriding USB */
+    if(!cSwadgeMode->overrideUsb)
+    {
+        /* Initialize USB peripheral */
+        tinyusb_config_t tusb_cfg = {};
+        tinyusb_driver_install(&tusb_cfg);
+    }
+
     /* Initialize SPIFFS */
     initSpiffs();
 
@@ -374,7 +402,8 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 
     // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
     // Make sure to use a different timer than initButtons()
-    buzzer_init(GPIO_NUM_40, RMT_CHANNEL_1, TIMER_GROUP_0, TIMER_1, getIsMuted());
+    buzzer_init(GPIO_NUM_40, LEDC_TIMER_3, LEDC_CHANNEL_0,
+        TIMER_GROUP_1, TIMER_0, getBgmIsMuted(), getSfxIsMuted());
 
 #if defined(CONFIG_SWADGE_DEVKIT)
     initTouchSensor(0.2f, true, 6,
@@ -414,7 +443,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 #elif defined(CONFIG_SWADGE_PROTOTYPE)
         static uint16_t adc1_chan_mask = BIT(6);
         static uint16_t adc2_chan_mask = 0;
-        static adc_channel_t channel[] = {ADC1_CHANNEL_6}; // GPIO_NUM_7
+        static adc_channel_t channel[] = {(adc_channel_t)ADC1_CHANNEL_6}; // GPIO_NUM_7
 #endif
         continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
         continuous_adc_start();
@@ -489,7 +518,18 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     if(ESP_NOW == cSwadgeMode->wifiMode)
 #endif
     {
-        espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb);
+        if(cSwadgeMode->overrideUsb)
+        {
+            // This can communicate over wifi or UART
+            espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb,
+                GPIO_NUM_19, GPIO_NUM_20, UART_NUM_1);
+        }
+        else
+        {
+            // This can communicate over wifi or UART
+            espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb,
+                GPIO_NUM_NC, GPIO_NUM_NC, UART_NUM_MAX);
+        }
     }
 
     /* Enter the swadge mode */
@@ -501,90 +541,9 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     int64_t time_exit_pressed = 0;
 
     /* Loop forever! */
-#if defined(EMU)
-    while(threadsShouldRun)
-#else
     while(true)
-#endif
     {
-        // Process ESP NOW
-        if(ESP_NOW == cSwadgeMode->wifiMode)
-        {
-            checkEspNowRxQueue();
-        }
-
-        // Process Accelerometer
-        if(accelInitialized && NULL != cSwadgeMode->fnAccelerometerCallback)
-        {
-            accel_t accel = {0};
-#if defined(QMA6981)
-            QMA6981_poll(&accel);
-#elif defined(QMA7981)
-            qma7981_get_acce_int(&accel.x, &accel.y, &accel.z);
-#endif
-            cSwadgeMode->fnAccelerometerCallback(&accel);
-        }
-
-        // Process temperature sensor
-        if(NULL != cSwadgeMode->fnTemperatureCallback)
-        {
-            cSwadgeMode->fnTemperatureCallback(readTemperatureSensor());
-        }
-
-        // Process button presses
-        buttonEvt_t bEvt = {0};
-        if(checkButtonQueue(&bEvt))
-        {
-            // Monitor start + select
-            if((&modeMainMenu != cSwadgeMode) && (bEvt.state & START) && (bEvt.state & SELECT))
-            {
-                time_exit_pressed = esp_timer_get_time();
-            }
-            else
-            {
-                time_exit_pressed = 0;
-            }
-
-            if(NULL != cSwadgeMode->fnButtonCallback)
-            {
-                cSwadgeMode->fnButtonCallback(&bEvt);
-            }
-        }
-
-        // Process touch events
-        touch_event_t tEvt = {0};
-        if(checkTouchSensor(&tEvt))
-        {
-            if(NULL != cSwadgeMode->fnTouchCallback)
-            {
-                cSwadgeMode->fnTouchCallback(&tEvt);
-            }
-        }
-
-        // Process ADC samples
-        if(NULL != cSwadgeMode->fnAudioCallback)
-        {
-            uint16_t micAmp = getMicAmplitude();
-
-            uint16_t adcSamps[BYTES_PER_READ / sizeof(adc_digi_output_data_t)];
-            uint32_t sampleCnt = 0;
-            while(0 < (sampleCnt = continuous_adc_read(adcSamps)))
-            {
-                // Run all samples through an IIR filter
-                for(uint32_t i = 0; i < sampleCnt; i++)
-                {
-                    static uint32_t samp_iir = 0;
-                    samp_iir = samp_iir - (samp_iir >> 10) + adcSamps[i];
-                    adcSamps[i] = (adcSamps[i] - (samp_iir >> 10)) * 16;
-                    // Amplify the sample
-                    adcSamps[i] = (adcSamps[i] * micAmp) >> 4;
-                }
-
-                cSwadgeMode->fnAudioCallback(adcSamps, sampleCnt);
-            }
-        }
-
-        // Run the mode's event loop
+        // Calculate time between loops
         static int64_t tLastLoopUs = 0;
         if(0 == tLastLoopUs)
         {
@@ -596,6 +555,210 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             int64_t tNowUs = esp_timer_get_time();
             int64_t tElapsedUs = tNowUs - tLastLoopUs;
             tLastLoopUs = tNowUs;
+
+            // Process ESP NOW
+            if(ESP_NOW == cSwadgeMode->wifiMode)
+            {
+                checkEspNowRxQueue();
+            }
+
+            // Process Accelerometer
+            if(accelInitialized && NULL != cSwadgeMode->fnAccelerometerCallback)
+            {
+                accel_t accel = {0};
+#if defined(QMA6981)
+                QMA6981_poll(&accel);
+#elif defined(QMA7981)
+                qma7981_get_acce_int(&accel.x, &accel.y, &accel.z);
+#endif
+                cSwadgeMode->fnAccelerometerCallback(&accel);
+            }
+
+            // Process temperature sensor
+            if(NULL != cSwadgeMode->fnTemperatureCallback)
+            {
+                cSwadgeMode->fnTemperatureCallback(readTemperatureSensor());
+            }
+
+            // Check the timer for pressing Start + Select simultaneously
+            if(dblBtnTmr > 0)
+            {
+                // Decrement it
+                dblBtnTmr -= tElapsedUs;
+
+                // If it expired
+                if(dblBtnTmr <= 0)
+                {
+                    switch (sst)
+                    {
+                        case NONE_PRESSED:
+                        case START_SELECT_PRESSED:
+                        {
+                            // Nothing to do if the timer expires in these states
+                            break;
+                        }
+                        case START_PRESSED:
+                        {
+                            // Timer expired when start was pressed, so simulate
+                            // the event that was ignored before
+                            simulateBtn(cSwadgeMode->fnButtonCallback, START, lastBtnState);
+                            break;
+                        }
+                        case SELECT_PRESSED:
+                        {
+                            // Timer expired when select was pressed, so simulate
+                            // the event that was ignored before
+                            simulateBtn(cSwadgeMode->fnButtonCallback, SELECT, lastBtnState);
+                            break;
+                        }
+                    }
+
+                    // Always reset the state
+                    sst = NONE_PRESSED;
+                }
+            }
+
+            // Process all queued button presses
+            buttonEvt_t bEvt = {0};
+            while(checkButtonQueue(&bEvt))
+            {
+                // Keep track of the last known button state
+                lastBtnState = bEvt.state;
+
+                // Don't ignore events by default
+                bool ignoreEvent = false;
+
+                // Run a little state machine to check for Start + Select pressed at the same time
+                // If they are pressed close enough to each other, don't pass that to the swadge mode
+                switch(sst)
+                {
+                    case NONE_PRESSED:
+                    {
+                        // Nothing currently pressed, check for either start or select
+                        if(bEvt.down)
+                        {
+                            if (START == bEvt.button)
+                            {
+                                sst = START_PRESSED;
+                                dblBtnTmr = 100000; // 100ms to wait for the other
+                                ignoreEvent = true;
+                            }
+                            else if (SELECT == bEvt.button)
+                            {
+                                sst = SELECT_PRESSED;
+                                dblBtnTmr = 100000; // 100ms to wait for the other
+                                ignoreEvent = true;
+                            }
+                        }
+                        break;
+                    }
+                    case START_PRESSED:
+                    {
+                        // Start already pressed, check for select
+                        if(bEvt.down)
+                        {
+                            if (SELECT == bEvt.button)
+                            {
+                                // Both pressed. Start time_exit_pressed and stop  dblBtnTmr
+                                sst = START_SELECT_PRESSED;
+                                time_exit_pressed = esp_timer_get_time();
+                                dblBtnTmr = -1;
+                                ignoreEvent = true;
+                            }
+                        }
+                        else if(START == bEvt.button)
+                        {
+                            // Start released
+                            sst = NONE_PRESSED;
+                            dblBtnTmr = -1;
+                            // Simulate the previously ignored press
+                            simulateBtn(cSwadgeMode->fnButtonCallback, START, lastBtnState);
+                        }
+                        break;
+                    }
+                    case SELECT_PRESSED:
+                    {
+                        // Select already pressed, check for start
+                        if(bEvt.down)
+                        {
+                            if(START == bEvt.button)
+                            {
+                                // Both pressed. Start time_exit_pressed and stop  dblBtnTmr
+                                sst = START_SELECT_PRESSED;
+                                time_exit_pressed = esp_timer_get_time();
+                                dblBtnTmr = -1;
+                                ignoreEvent = true;
+                            }
+                        }
+                        else if(SELECT == bEvt.button)
+                        {
+                            // Select released
+                            sst = NONE_PRESSED;
+                            dblBtnTmr = -1;
+                            // Simulate the previously ignored press
+                            simulateBtn(cSwadgeMode->fnButtonCallback, SELECT, lastBtnState);
+                        }
+                        break;
+                    }
+                    case START_SELECT_PRESSED:
+                    {
+                        // Check if both start and select released
+                        if(0 == (bEvt.state & (START | SELECT)))
+                        {
+                            sst = NONE_PRESSED;
+                            time_exit_pressed = 0;
+                        }
+
+                        // Ignore all start and select events in this state
+                        if(bEvt.button == START || bEvt.button == SELECT)
+                        {
+                            ignoreEvent = true;
+                        }
+                        break;
+                    }
+                }
+
+                if(!ignoreEvent && NULL != cSwadgeMode->fnButtonCallback)
+                {
+                    cSwadgeMode->fnButtonCallback(&bEvt);
+                }
+            }
+
+            // Process touch events
+            touch_event_t tEvt = {0};
+            while(checkTouchSensor(&tEvt))
+            {
+                if(NULL != cSwadgeMode->fnTouchCallback)
+                {
+                    cSwadgeMode->fnTouchCallback(&tEvt);
+                }
+            }
+
+            // Process ADC samples
+            if(NULL != cSwadgeMode->fnAudioCallback)
+            {
+                uint16_t micAmp = getMicAmplitude();
+                uint16_t adcSamps[BYTES_PER_READ / sizeof(adc_digi_output_data_t)];
+                uint32_t sampleCnt = 0;
+                while(0 < (sampleCnt = continuous_adc_read(adcSamps)))
+                {
+                    // Run all samples through an IIR filter
+                    for(uint32_t i = 0; i < sampleCnt; i++)
+                    {
+                        static uint32_t samp_iir = 0;
+                        int32_t sample = adcSamps[i];
+                        samp_iir = samp_iir - (samp_iir >> 9) + sample;
+                        int32_t newsamp = (sample - (samp_iir >> 9));
+                        newsamp = (newsamp * micAmp);
+
+                        if( newsamp <-32768 ) newsamp = -32768;
+                        else if( newsamp > 32767) newsamp = 32767;
+
+                        adcSamps[i] = newsamp;
+                    }
+                    cSwadgeMode->fnAudioCallback(adcSamps, sampleCnt);
+                }
+            }
 
             // Track time between battery reads
             if((NULL == cSwadgeMode->fnAudioCallback) &&
@@ -631,7 +794,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     tLastMainLoopCall = tNowUs;
                 }
 
-                // If start & select  being held
+                // If start & select are being held
                 if(0 != time_exit_pressed)
                 {
                     // Figure out for how long
@@ -656,63 +819,62 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 #endif
                 tftDisp.drawDisplay(&tftDisp, true, cSwadgeMode->fnBackgroundDrawCallback);
             }
+
 #if defined(EMU)
             check_esp_timer(tElapsedUs);
-#endif
-        }
-
-#if defined(EMU)
-        // EMU needs to check this, actual hardware has an ISR
-        buzzer_check_next_note();
+            // EMU needs to check this, actual hardware has an ISR
+            buzzer_check_next_note();
 #endif
 
-        /* If the mode should be switched, do it now */
-        if(NULL != pendingSwadgeMode)
-        {
+            /* If the mode should be switched, do it now */
+            if(NULL != pendingSwadgeMode)
+            {
+                time_exit_pressed = 0;
 #if defined(EMU)
-            int force_soft = 1;
+                int force_soft = 1;
 #else
-            int force_soft = 0;
+                int force_soft = 0;
 #endif
-            if( force_soft || isSandboxMode )
-            {
-                // Exit the current mode
-                if(NULL != cSwadgeMode->fnExitMode)
+                if( force_soft || isSandboxMode )
                 {
-                    cSwadgeMode->fnExitMode();
+                    // Exit the current mode
+                    if(NULL != cSwadgeMode->fnExitMode)
+                    {
+                        cSwadgeMode->fnExitMode();
+                    }
+
+                    buzzer_stop();
+
+                    // Switch the mode IDX
+                    cSwadgeMode = pendingSwadgeMode;
+                    pendingSwadgeMode = NULL;
+
+                    // Enter the next mode
+                    if(NULL != cSwadgeMode->fnEnterMode)
+                    {
+                        cSwadgeMode->fnEnterMode(&tftDisp);
+                    }
                 }
-
-                buzzer_stop();
-
-                // Switch the mode IDX
-                cSwadgeMode = pendingSwadgeMode;
-                pendingSwadgeMode = NULL;
-
-                // Enter the next mode
-                if(NULL != cSwadgeMode->fnEnterMode)
+                else
                 {
-                    cSwadgeMode->fnEnterMode(&tftDisp);
-                }
-            }
-            else
-            {
-                // Deep sleep, wake up, and switch to pendingSwadgeMode
+                    // Deep sleep, wake up, and switch to pendingSwadgeMode
 
-                // We have to do this otherwise the backlight can glitch
-                disableTFTBacklight();
+                    // We have to do this otherwise the backlight can glitch
+                    disableTFTBacklight();
 
 #ifndef EMU
-                // Prevent bootloader on reboot if rebooting from originally bootloaded instance
-                REG_WRITE(RTC_CNTL_OPTION1_REG, 0);
+                    // Prevent bootloader on reboot if rebooting from originally bootloaded instance
+                    REG_WRITE(RTC_CNTL_OPTION1_REG, 0);
 
-                // Only an issue if originally coming from bootloader.  This is actually a ROM function.
-                // It prevents the USB from glitching out on the reboot after the reboot after coming
-                // out of bootloader
-                void chip_usb_set_persist_flags(uint32_t flags);
-                chip_usb_set_persist_flags(1 << 31); // USBDC_PERSIST_ENA
+                    // Only an issue if originally coming from bootloader.  This is actually a ROM function.
+                    // It prevents the USB from glitching out on the reboot after the reboot after coming
+                    // out of bootloader
+                    void chip_usb_set_persist_flags(uint32_t flags);
+                    chip_usb_set_persist_flags(1 << 31); // USBDC_PERSIST_ENA
 #endif
-                esp_sleep_enable_timer_wakeup(1);
-                esp_deep_sleep_start();
+                    esp_sleep_enable_timer_wakeup(1);
+                    esp_deep_sleep_start();
+                }
             }
         }
 
@@ -721,7 +883,14 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         // Note, the RTOS tick rate can be changed in idf.py menuconfig
         // (100hz by default)
     }
+}
 
+/**
+ * @brief Deinitialize when exiting (mostly for emu)
+ * 
+ */
+void cleanupOnExit(void)
+{
     if(NULL != cSwadgeMode->fnAudioCallback)
     {
         continuous_adc_stop();
@@ -732,6 +901,14 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     {
         cSwadgeMode->fnExitMode();
     }
+
+    deinitButtons();
+
+    espNowDeinit();
+
+    deinitSpiffs();
+
+    buzzer_stop();
 
 #if defined(EMU)
     esp_timer_deinit();
@@ -768,4 +945,26 @@ void overrideToSwadgeMode( swadgeMode* mode )
 void setFrameRateUs(uint32_t frameRate)
 {
     frameRateUs = frameRate;
+}
+
+/**
+ * @brief Simulate a button event. This is used to generate
+ * button events after the fact, if a prior one was ignored
+ * 
+ * @param fnButtonCallback The callback to call
+ * @param btn The button that was pressed
+ * @param state The current state
+ */
+void simulateBtn(void (*fnButtonCallback)(buttonEvt_t* evt), buttonBit_t btn, uint16_t state)
+{
+    if(NULL != fnButtonCallback)
+    {
+        buttonEvt_t evt = 
+        {
+            .button = btn,
+            .down = true,
+            .state = state | btn
+        };
+        fnButtonCallback(&evt);
+    }
 }

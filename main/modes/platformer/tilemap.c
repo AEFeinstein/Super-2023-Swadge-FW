@@ -32,7 +32,7 @@ void initializeTileMap(tilemap_t *tilemap)
     tilemap->executeTileSpawnRow = -1;
 
     tilemap->animationFrame = 0;
-    tilemap->animationTimer = 7;
+    tilemap->animationTimer = 23;
 
     loadTiles(tilemap);
 }
@@ -43,7 +43,7 @@ void drawTileMap(display_t *disp, tilemap_t *tilemap)
     if (tilemap->animationTimer < 0)
     {
         tilemap->animationFrame = ((tilemap->animationFrame + 1) % 3);
-        tilemap->animationTimer = 7;
+        tilemap->animationTimer = 23;
     }
 
     for (uint16_t y = (tilemap->mapOffsetY >> TILE_SIZE_IN_POWERS_OF_2); y < (tilemap->mapOffsetY >> TILE_SIZE_IN_POWERS_OF_2) + TILEMAP_DISPLAY_HEIGHT_TILES; y++)
@@ -73,9 +73,14 @@ void drawTileMap(display_t *disp, tilemap_t *tilemap)
             }
 
             // Draw only non-garbage tiles
-            if (tile > 31 && tile < 90)
+            if (tile > 31 && tile < 104)
             {
-                drawWsgTile(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
+                if(needsTransparency(tile)){
+                    drawWsgSimpleFast(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
+                }
+                else {
+                    drawWsgTile(disp, &tilemap->tiles[tile - 32], x * TILE_SIZE - tilemap->mapOffsetX, y * TILE_SIZE - tilemap->mapOffsetY);
+                }
             }
             else if (tile > 127 && tilemap->tileSpawnEnabled && (tilemap->executeTileSpawnColumn == x || tilemap->executeTileSpawnRow == y || tilemap->executeTileSpawnAll))
             {
@@ -139,7 +144,7 @@ bool loadMapFromFile(tilemap_t *tilemap, char *name)
 
     uint8_t *buf = NULL;
     size_t sz;
-    if (!spiffsReadFile(name, &buf, &sz))
+    if (!spiffsReadFile(name, &buf, &sz, false))
     {
         ESP_LOGE("MAP", "Failed to read %s", name);
         return false;
@@ -181,8 +186,8 @@ bool loadTiles(tilemap_t *tilemap)
     loadWsg("tile036.wsg", &tilemap->tiles[4]);
     loadWsg("tile037.wsg", &tilemap->tiles[5]);
     loadWsg("tile038.wsg", &tilemap->tiles[6]);
+    loadWsg("tile039.wsg", &tilemap->tiles[7]);
 
-    tilemap->tiles[7] = tilemap->tiles[0];
     tilemap->tiles[8] = tilemap->tiles[0];
 
     loadWsg("tile041.wsg", &tilemap->tiles[9]);
@@ -216,8 +221,8 @@ bool loadTiles(tilemap_t *tilemap)
     loadWsg("tile067.wsg", &tilemap->tiles[35]);
     loadWsg("tile068.wsg", &tilemap->tiles[36]);
     loadWsg("tile069.wsg", &tilemap->tiles[37]);
+    loadWsg("tile070.wsg", &tilemap->tiles[38]);
 
-    tilemap->tiles[38] = tilemap->tiles[0];
     tilemap->tiles[39] = tilemap->tiles[0];
     tilemap->tiles[40] = tilemap->tiles[0];
     tilemap->tiles[41] = tilemap->tiles[0];
@@ -237,6 +242,22 @@ bool loadTiles(tilemap_t *tilemap)
     loadWsg("tile086.wsg", &tilemap->tiles[54]);
     loadWsg("tile087.wsg", &tilemap->tiles[55]);
     loadWsg("tile088.wsg", &tilemap->tiles[56]);
+    loadWsg("tile089.wsg", &tilemap->tiles[57]);
+    loadWsg("tile090.wsg", &tilemap->tiles[58]);
+    loadWsg("tile091.wsg", &tilemap->tiles[59]);
+    loadWsg("tile092.wsg", &tilemap->tiles[60]);
+    loadWsg("tile093.wsg", &tilemap->tiles[61]);
+    loadWsg("tile094.wsg", &tilemap->tiles[62]);
+    loadWsg("tile095.wsg", &tilemap->tiles[63]);
+    loadWsg("tile096.wsg", &tilemap->tiles[64]);
+    loadWsg("tile097.wsg", &tilemap->tiles[65]);
+    loadWsg("tile098.wsg", &tilemap->tiles[66]);
+    loadWsg("tile099.wsg", &tilemap->tiles[67]);
+    loadWsg("tile100.wsg", &tilemap->tiles[68]);
+    loadWsg("tile101.wsg", &tilemap->tiles[69]);
+    loadWsg("tile102.wsg", &tilemap->tiles[70]);
+    loadWsg("tile103.wsg", &tilemap->tiles[71]);
+
 
     return true;
 }
@@ -289,7 +310,13 @@ bool isSolid(uint8_t tileId)
     case TILE_EMPTY ... TILE_UNUSED_29:
         return false;
         break;
-    case TILE_INVISIBLE_BLOCK ... TILE_CONTAINER_3:
+    case TILE_INVISIBLE_BLOCK ... TILE_METAL_PIPE_V:
+        return true;
+        break;
+    case TILE_BOUNCE_BLOCK:
+        return false;
+        break;
+    case TILE_DIRT_PATH ... TILE_CONTAINER_3:
         return true;
         break;
     default:
@@ -308,4 +335,50 @@ void unlockScrolling(tilemap_t *tilemap){
 
     tilemap->minMapOffsetY = 0;
     tilemap->maxMapOffsetY = tilemap->mapHeight * TILE_SIZE - TILEMAP_DISPLAY_HEIGHT_PIXELS;
+}
+
+bool needsTransparency(uint8_t tileId){
+    switch(tileId) {
+        case TILE_BOUNCE_BLOCK:
+        case TILE_GIRDER:
+        case TILE_CONTAINER_1 ... TILE_CONTAINER_3:
+        case TILE_COIN_1 ... TILE_COIN_3:
+        case TILE_LADDER:
+        case TILE_BG_GOAL_ZONE ... TILE_BG_CLOUD_D:
+            return true;
+        case TILE_BG_CLOUD:
+            return false;
+        case TILE_BG_TALL_GRASS ... TILE_BG_MOUNTAIN_R:
+            return true;
+        case TILE_BG_MOUNTAIN ... TILE_BG_METAL:
+            return false;
+        case TILE_BG_CHAINS:
+            return true;
+        case TILE_BG_WALL:
+            return false;
+        default:
+            return false;
+    }
+}
+
+void freeTilemap(tilemap_t *tilemap){
+    free(tilemap->map);
+    for(uint8_t i=0; i<TILESET_SIZE; i++){
+        switch(i){
+            //Skip all placeholder tiles, since they reuse other tiles
+            //(see loadTiles)
+            case 8:
+            case 10 ... 26:
+            case 39 ... 47:
+            {
+                break;
+            }
+            default: {
+                freeWsg(&tilemap->tiles[i]);
+                break;
+            }
+        }
+    }
+
+
 }

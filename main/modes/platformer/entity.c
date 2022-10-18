@@ -75,7 +75,7 @@ static const song_t sndJump1 =
         .notes =
             { 
                 {C_5, 50}, {E_5, 50}, {C_5, 50}},
-        .numNotes = 3,
+        .numNotes = 2,
         .shouldLoop = false
     };         
 
@@ -84,7 +84,7 @@ static const song_t sndJump2 =
         .notes =
             { 
                 {E_5, 50}, {G_5, 50}, {E_5, 50}},
-        .numNotes = 3,
+        .numNotes = 2,
         .shouldLoop = false
     };         
 
@@ -93,7 +93,7 @@ static const song_t sndJump3 =
         .notes =
             { 
                 {G_5, 50}, {C_6, 50}, {G_5, 50}},
-        .numNotes = 3,
+        .numNotes = 2,
         .shouldLoop = false
     };
 
@@ -115,7 +115,17 @@ static const song_t sndHurt =
             },
         .numNotes = 6,
         .shouldLoop = false
-    };                 
+    };   
+
+static const song_t sndWaveBall =
+{
+    .notes =
+    {
+        {D_4, 50},{D_5, 50},{A_6, 50},{A_5, 50}
+    },
+    .numNotes = 4,
+    .shouldLoop = false
+};              
 
 //==============================================================================
 // Functions
@@ -131,22 +141,25 @@ void initializeEntity(entity_t *self, entityManager_t *entityManager, tilemap_t 
     self->falling = false;
     self->entityManager = entityManager;
     self->spriteFlipVertical = false;
+    self->fallOffTileHandler = &defaultFallOffTileHandler;
+    self->spriteFlipHorizontal = false;
+    self->spriteFlipVertical = false;
 };
 
 void updatePlayer(entity_t *self)
 {
     if (self->gameData->btnState & BTN_B)
     {
-        self->xMaxSpeed = 132;
+        self->xMaxSpeed = 52;
     }
     else
     {
-        self->xMaxSpeed = 72;
+        self->xMaxSpeed = 30;
     }
 
     if (self->gameData->btnState & LEFT)
     {
-        self->xspeed -= (self->falling) ? 12 : 16;
+        self->xspeed -= (self->falling && self->xspeed < 0) ? (self->xspeed < -24) ? 0 : 2 : 3;
 
         if (self->xspeed < -self->xMaxSpeed)
         {
@@ -155,7 +168,7 @@ void updatePlayer(entity_t *self)
     }
     else if (self->gameData->btnState & RIGHT)
     {
-        self->xspeed += (self->falling) ? 12 : 16;
+        self->xspeed += (self->falling && self->xspeed > 0) ? (self->xspeed > 24) ? 0 : 2 : 3;
 
         if (self->xspeed > self->xMaxSpeed)
         {
@@ -163,33 +176,33 @@ void updatePlayer(entity_t *self)
         }
     }
 
-/*
-    if (self->gameData->btnState & UP)
-    {
-        self->yspeed -= 16;
-
-        if (self->yspeed < -self->yMaxSpeed)
+    if(!self->gravityEnabled){
+        if (self->gameData->btnState & UP)
         {
-            self->yspeed = -self->yMaxSpeed;
+            self->yspeed -= 8;
+
+            if (self->yspeed < -16)
+            {
+                self->yspeed = -16;
+            }
+        }
+        else if (self->gameData->btnState & DOWN)
+        {
+            self->yspeed += 8;
+
+            if (self->yspeed > 32)
+            {
+                self->yspeed = 32;
+            }
         }
     }
-    else if (self->gameData->btnState & DOWN)
-    {
-        self->yspeed += 16;
-
-        if (self->yspeed > self->yMaxSpeed)
-        {
-            self->yspeed = self->yMaxSpeed;
-        }
-    }
-*/
 
     if (self->gameData->btnState & BTN_A)
     {
         if (!self->falling && !(self->gameData->prevBtnState & BTN_A))
         {
             // initiate jump
-            self->jumpPower = 180 + (abs(self->xspeed) >> 2);
+            self->jumpPower = 64 + ((abs(self->xspeed) + 16) >> 3);
             self->yspeed = -self->jumpPower;
             self->falling = true;
             buzzer_play_sfx(&sndJump1);
@@ -197,14 +210,14 @@ void updatePlayer(entity_t *self)
         else if (self->jumpPower > 0 && self->yspeed < 0)
         {
             // jump dampening
-            self->jumpPower -= 16; // 32
+            self->jumpPower -= 2; // 32
             self->yspeed = -self->jumpPower;
             
-            if(self->jumpPower > 112 && self->jumpPower < 128){
+            if(self->jumpPower > 35 && self->jumpPower < 37){
                 buzzer_play_sfx(&sndJump2);
             }
 
-            if(self->yspeed > -24 && self->yspeed < -16){
+            if(self->yspeed > -6 && self->yspeed < -2){
                 buzzer_play_sfx(&sndJump3);
             }
 
@@ -223,10 +236,29 @@ void updatePlayer(entity_t *self)
 
     if(self->invincibilityFrames > 0){
         self->invincibilityFrames--;
-        self->visible = (self->invincibilityFrames % 2);
+        if(self->invincibilityFrames % 2){
+            self->visible = !self->visible;
+        }
+
         if(self->invincibilityFrames <= 0){
             self->visible = true;
         }
+    }
+
+    if(self->animationTimer > 0){
+        self->animationTimer--;
+    }
+
+    if (self->hp >2 && self->gameData->btnState & BTN_B && !(self->gameData->prevBtnState & BTN_B) && self->animationTimer == 0)
+    {
+        entity_t * createdEntity = createEntity(self->entityManager, ENTITY_WAVE_BALL, self->x >> SUBPIXEL_RESOLUTION, self->y >> SUBPIXEL_RESOLUTION);
+        if(createdEntity != NULL){
+            createdEntity->xspeed= (self->spriteFlipHorizontal) ? -(128 + abs(self->xspeed) + abs(self->yspeed)):128 + abs(self->xspeed) + abs(self->yspeed);
+            createdEntity->homeTileX = 0;
+            createdEntity->homeTileY = 0;
+            buzzer_play_sfx(&sndWaveBall);
+        }
+        self->animationTimer = 30;
     }
 
 
@@ -241,7 +273,9 @@ void updatePlayer(entity_t *self)
 
 void updateTestObject(entity_t *self)
 {
-    self->spriteFlipHorizontal = !self->spriteFlipHorizontal;
+    if(self->gameData->frameCount % 10 == 0) {
+        self->spriteFlipHorizontal = !self->spriteFlipHorizontal;
+    }
 
     despawnWhenOffscreen(self);
     moveEntityWithTileCollisions(self);
@@ -255,14 +289,15 @@ void updateHitBlock(entity_t *self)
     self->y += self->yspeed;
 
     self->animationTimer++;
-    if (self->animationTimer == 2)
+    if (self->animationTimer == 6)
     {
         self->xspeed = -self->xspeed;
         self->yspeed = -self->yspeed;
     }
-    if (self->animationTimer > 4)
+    if (self->animationTimer > 12)
     {
         uint8_t aboveTile = self->tilemap->map[(self->homeTileY - 1) * self->tilemap->mapWidth + self->homeTileX];
+        uint8_t belowTile = self->tilemap->map[(self->homeTileY + 1) * self->tilemap->mapWidth + self->homeTileX];
         entity_t *createdEntity = NULL;
 
         switch (aboveTile)
@@ -277,7 +312,7 @@ void updateHitBlock(entity_t *self)
             }
             case TILE_CTNR_POW1:
             {
-                createdEntity = createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity = createEntity(self->entityManager, ENTITY_POWERUP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) && belowTile != TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
                 createdEntity->homeTileX = 0;
                 createdEntity->homeTileY = 0;
 
@@ -286,12 +321,28 @@ void updateHitBlock(entity_t *self)
             }
             case TILE_WARP_0 ... TILE_WARP_F:
             {
-                createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY - 1) * TILE_SIZE) + HALF_TILE_SIZE);
+                createdEntity = createEntity(self->entityManager, ENTITY_WARP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) && belowTile != TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
 
                 createdEntity->homeTileX = self->homeTileX;
                 createdEntity->homeTileY = self->homeTileY;
 
                 createdEntity->jumpPower = aboveTile - TILE_WARP_0;
+                self->jumpPower = TILE_CONTAINER_2;
+                break;
+            }
+            case TILE_CTNR_1UP:
+            {
+                if(self->gameData->extraLifeCollected){
+                    addCoins(self->gameData, 1);
+                    scorePoints(self->gameData, 10);
+                    buzzer_play_sfx(&sndCoin);
+                } else {
+                    createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, (self->homeTileY - 1) * TILE_SIZE + HALF_TILE_SIZE);
+                    createdEntity->homeTileX = 0;
+                    createdEntity->homeTileY = 0;
+                    self->gameData->extraLifeCollected = true;
+                }
+
                 self->jumpPower = TILE_CONTAINER_2;
                 break;
             }
@@ -325,6 +376,7 @@ void moveEntityWithTileCollisions(entity_t *self)
 
     // Are we inside a block? Push self out of block
     uint8_t t = getTile(self->tilemap, tx, ty);
+    self->overlapTileHandler(self, t, tx, ty);
 
     if (isSolid(t))
     {
@@ -409,9 +461,9 @@ void moveEntityWithTileCollisions(entity_t *self)
                 {
                     uint8_t newBelowTile = getTile(self->tilemap, tx, ty + 1);
 
-                    if (!isSolid(newBelowTile))
+                    if ((self->gravityEnabled && !isSolid(newBelowTile)) /*(|| (!self->gravityEnabled && newBelowTile != TILE_LADDER)*/)
                     {
-                        self->falling = true;
+                        self->fallOffTileHandler(self);
                     }
                 }
             }
@@ -420,6 +472,10 @@ void moveEntityWithTileCollisions(entity_t *self)
 
     self->x = newX + self->xspeed;
     self->y = newY + self->yspeed;
+}
+
+void defaultFallOffTileHandler(entity_t *self){
+    self->falling = true;
 }
 
 void applyDamping(entity_t *self)
@@ -517,7 +573,13 @@ void animatePlayer(entity_t *self)
         return;
     }
 
-    if (self->falling)
+    if (!self->gravityEnabled){
+        self->spriteIndex = SP_PLAYER_CLIMB;
+        if(self->yspeed < 0 && self->gameData->frameCount % 10 == 0){
+            self->spriteFlipHorizontal = !self->spriteFlipHorizontal;
+        }
+    }
+    else if (self->falling)
     {
         if (self->yspeed < 0)
         {
@@ -532,11 +594,14 @@ void animatePlayer(entity_t *self)
     }
     else if (self->xspeed != 0)
     {
-        if (self->gameData->btnState & LEFT || self->gameData->btnState & RIGHT)
+        if ( ((self->gameData->btnState & LEFT) && self->xspeed < 0) || ((self->gameData->btnState & RIGHT) && self->xspeed > 0))
         {
             // Running
             self->spriteFlipHorizontal = (self->xspeed > 0) ? 0 : 1;
-            self->spriteIndex = 1 + ((self->spriteIndex + 1) % 3);
+
+            if(self->gameData->frameCount % (10 - (abs(self->xspeed) >> 3) ) == 0) {
+                self->spriteIndex = 1 + ((self->spriteIndex + 1) % 3);
+            }
         }
         else
         {
@@ -574,18 +639,24 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
         case ENTITY_TEST:
         case ENTITY_DUST_BUNNY:
         case ENTITY_WASP:
+        case ENTITY_BUSH_2:
+        case ENTITY_BUSH_3:
+        case ENTITY_DUST_BUNNY_2:
+        case ENTITY_DUST_BUNNY_3:
+        case ENTITY_WASP_2:
+        case ENTITY_WASP_3:
         {
             other->xspeed = -other->xspeed;
 
             if (self->y < other->y || self->yspeed > 0)
             {
-                scorePoints(self->gameData, 100);
+                scorePoints(self->gameData, other->scoreValue);
 
                 killEnemy(other);
                 buzzer_play_sfx(&sndSquish);
 
-                self->yspeed = -512;
-                self->jumpPower = 180 + (abs(self->xspeed) >> 2);
+                self->yspeed = -180;
+                self->jumpPower = 64 + ((abs(self->xspeed) + 16) >> 3);
                 self->falling = true;
             }
             else if(self->invincibilityFrames <= 0)
@@ -598,7 +669,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                     self->updateFunction = &updateEntityDead;
                     self->type = ENTITY_DEAD;
                     self->xspeed = 0;
-                    self->yspeed = -180;
+                    self->yspeed = -60;
                     self->spriteIndex = SP_PLAYER_HURT;
                     self->gameData->changeState = ST_DEAD;
                     self->falling = true;
@@ -606,7 +677,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                     self->xspeed = 0;
                     self->yspeed = 0;
                     self->jumpPower = 0;
-                    self->invincibilityFrames = 40;
+                    self->invincibilityFrames = 120;
                     buzzer_play_sfx(&sndHurt);
                 }
             }
@@ -637,6 +708,27 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
             destroyEntity(other, false);
             break;
         }
+        case ENTITY_1UP:{
+            self->gameData->lives++;
+            scorePoints(self->gameData, 0);
+            buzzer_play_sfx(&sndPowerUp);
+            destroyEntity(other, false);
+            break;
+        }
+        case ENTITY_CHECKPOINT: {
+            if(!other->xDamping){
+                //Get tile above checkpoint
+                uint8_t aboveTile = self->tilemap->map[(other->homeTileY - 1) * self->tilemap->mapWidth + other->homeTileX];
+                
+                if(aboveTile >= TILE_WARP_0 && aboveTile <= TILE_WARP_F) {
+                    self->gameData->checkpoint = aboveTile - TILE_WARP_0;
+                    other->xDamping = 1;
+                    buzzer_play_sfx(&sndSquish);
+                    //play checkpoint sound
+                }
+            }
+            break;
+        }
         default:
         {
             break;
@@ -649,17 +741,33 @@ void enemyCollisionHandler(entity_t *self, entity_t *other)
     switch (other->type)
     {
         case ENTITY_TEST:
-            self->xspeed = -self->xspeed;
-            break;
         case ENTITY_DUST_BUNNY:
-            self->xspeed = -self->xspeed;
+        case ENTITY_WASP:
+        case ENTITY_BUSH_2:
+        case ENTITY_BUSH_3:
+        case ENTITY_DUST_BUNNY_2:
+        case ENTITY_DUST_BUNNY_3:
+        case ENTITY_WASP_2:
+        case ENTITY_WASP_3:
+            if((self->xspeed > 0 && self->x < other->x) || (self->xspeed < 0 && self->x > other->x)){
+                self->xspeed = -self->xspeed;
+                self->spriteFlipHorizontal = -self->spriteFlipHorizontal;
+            }
             break;
         case ENTITY_HIT_BLOCK:
             self->xspeed = other->xspeed*2;
             self->yspeed = other->yspeed*2;
-            self->gameData->score+=100;
+            scorePoints(self->gameData, self->scoreValue);
             buzzer_play_sfx(&sndSquish);
             killEnemy(self);
+            break;
+        case ENTITY_WAVE_BALL:
+            self->xspeed = other->xspeed >> 1;
+            self->yspeed = -abs(other->xspeed >> 1);
+            scorePoints(self->gameData, self->scoreValue);
+            buzzer_play_sfx(&sndBreak);
+            killEnemy(self);
+            destroyEntity(other, false);
             break;
         default:
         {
@@ -680,6 +788,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     case TILE_CONTAINER_1:
     case TILE_BRICK_BLOCK:
     case TILE_INVISIBLE_CONTAINER:
+    case TILE_BOUNCE_BLOCK:
     {
         entity_t *hitBlock = createEntity(self->entityManager, ENTITY_HIT_BLOCK, (tx * TILE_SIZE) + HALF_TILE_SIZE, (ty * TILE_SIZE) + HALF_TILE_SIZE);
 
@@ -693,24 +802,43 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
             if (tileId == TILE_BRICK_BLOCK)
             {
                 hitBlock->spriteIndex = SP_HITBLOCK_BRICKS;
-                 if(abs(self->xspeed) > 131 && self->yspeed <= 0){ 
+                 if(abs(self->xspeed) > 51 && self->yspeed <= 0){ 
                     hitBlock->yDamping = 1;
                 }
+            }
+
+            if (tileId == TILE_BOUNCE_BLOCK){
+                hitBlock->spriteIndex = SP_BOUNCE_BLOCK;
             }
 
             switch (direction)
             {
             case 0:
-                hitBlock->xspeed = -64;
+                hitBlock->xspeed = -24;
+                if(tileId == TILE_BOUNCE_BLOCK){
+                    self->xspeed = 48;
+                }
                 break;
             case 1:
-                hitBlock->xspeed = 64;
+                hitBlock->xspeed = 24;
+                if(tileId == TILE_BOUNCE_BLOCK){
+                    self->xspeed = -48;
+                }
                 break;
             case 2:
-                hitBlock->yspeed = -128;
+                hitBlock->yspeed = -48;
+                if(tileId == TILE_BOUNCE_BLOCK){
+                    self->yspeed = 48;
+                }
                 break;
             case 4:
-                hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
+                hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 16 : 24;
+                if(tileId == TILE_BOUNCE_BLOCK){
+                    self->yspeed = -64;
+                    if(self->gameData->btnState & BTN_A){
+                        self->jumpPower = 80 + ((abs(self->xspeed) + 16) >> 3);
+                    }
+                }
                 break;
             default:
                 break;
@@ -722,52 +850,68 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     }
     case TILE_GOAL_100PTS:
     {
-        self->gameData->score += 100;
-        self->spriteIndex = SP_PLAYER_WIN;
-        self->updateFunction = &updateDummy;
-        self->gameData->changeState = ST_LEVEL_CLEAR;
+        if(direction == 4) {
+            scorePoints(self->gameData, 100);
+            self->spriteIndex = SP_PLAYER_WIN;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+        }
         break;
     }
     case TILE_GOAL_500PTS:
     {
-        self->gameData->score += 200;
-        self->spriteIndex = SP_PLAYER_WIN;
-        self->updateFunction = &updateDummy;
-        self->gameData->changeState = ST_LEVEL_CLEAR;
+        if(direction == 4) {
+            scorePoints(self->gameData, 500);
+            self->spriteIndex = SP_PLAYER_WIN;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+        }
         break;
     }
     case TILE_GOAL_1000PTS:
     {
-        self->gameData->score += 1000;
-        self->spriteIndex = SP_PLAYER_WIN;
-        self->updateFunction = &updateDummy;
-        self->gameData->changeState = ST_LEVEL_CLEAR;
+        if(direction == 4) {
+            scorePoints(self->gameData, 1000);
+            self->spriteIndex = SP_PLAYER_WIN;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+        }
         break;
     }
     case TILE_GOAL_2000PTS:
     {
-        self->gameData->score += 2000;
-        self->spriteIndex = SP_PLAYER_WIN;
-        self->updateFunction = &updateDummy;
-        self->gameData->changeState = ST_LEVEL_CLEAR;
+        if(direction == 4) {
+            scorePoints(self->gameData, 2000);
+            self->spriteIndex = SP_PLAYER_WIN;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+        }
         break;
     }
     case TILE_GOAL_5000PTS:
     {
-        self->gameData->score += 5000;
-        self->spriteIndex = SP_PLAYER_WIN;
-        self->updateFunction = &updateDummy;
-        self->gameData->changeState = ST_LEVEL_CLEAR;
+        if(direction == 4) {
+            scorePoints(self->gameData, 5000);
+            self->spriteIndex = SP_PLAYER_WIN;
+            self->updateFunction = &updateDummy;
+            self->gameData->changeState = ST_LEVEL_CLEAR;
+        }
         break;
     }
-    case TILE_COIN_1 ... TILE_COIN_3:
+    /*case TILE_COIN_1 ... TILE_COIN_3:
     {
         setTile(self->tilemap, tx, ty, TILE_EMPTY);
-        self->gameData->coins++;
+        addCoins(self->gameData, 1);
         scorePoints(self->gameData, 50);
         buzzer_play_sfx(&sndCoin);
         break;
     }
+    case TILE_LADDER:
+    {
+        self->gravityEnabled = false;
+        self->falling = false;
+        break;
+    }*/
     default:
     {
         break;
@@ -804,6 +948,44 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
 
 bool enemyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction)
 {
+    switch(tileId){
+        case TILE_BOUNCE_BLOCK: {
+            switch (direction)
+            {
+                case 0:
+                    //hitBlock->xspeed = -64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = 48;
+                    }
+                    break;
+                case 1:
+                    //hitBlock->xspeed = 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = -48;
+                    }
+                    break;
+                case 2:
+                    //hitBlock->yspeed = -128;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->yspeed = 48;
+                    }
+                    break;
+                case 4:
+                    //hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->yspeed = -48;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
     if (isSolid(tileId))
     {
         switch (direction)
@@ -902,13 +1084,29 @@ void updateEntityDead(entity_t *self)
 
 void updatePowerUp(entity_t *self)
 {
-    self->spriteIndex = SP_GAMING_1 + ((self->spriteIndex + 1) % 3);
+    if(self->gameData->frameCount % 10 == 0) {
+        self->spriteIndex = ((self->entityManager->playerEntity->hp < 2) ? SP_GAMING_1 : SP_MUSIC_1) + ((self->spriteIndex + 1) % 3);
+    }
+
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
+    despawnWhenOffscreen(self);
+}
+
+void update1up(entity_t *self)
+{
+    if(self->gameData->frameCount % 10 == 0) {
+        self->spriteIndex = SP_1UP_1 + ((self->spriteIndex + 1) % 3);
+    }
+
     despawnWhenOffscreen(self);
 }
 
 void updateWarp(entity_t *self)
 {
-    self->spriteIndex = SP_WARP_1 + ((self->spriteIndex + 1) % 3);
+    if(self->gameData->frameCount % 10 == 0) {
+        self->spriteIndex = SP_WARP_1 + ((self->spriteIndex + 1) % 3);
+    }
 
     //Destroy self and respawn warp container block when offscreen
     if (
@@ -933,19 +1131,89 @@ void updateDustBunny(entity_t *self)
             
             switch(self->xDamping){
                 case 0: {
-                    self->xspeed = (1 + esp_random() % 4) * 16 * ((directionToPlayer)?-1:1);
-                    self->yspeed = (1 + esp_random() % 4) * -64;
+                    self->yspeed = (2 + esp_random() % 3) * -24;
+                    self->falling = true;
                     self->xDamping = 1;
-                    self->yDamping = (1 + esp_random() % 3) * 10;
+                    self->yDamping = (1 + esp_random() % 3) * 9;
                     self->spriteIndex = SP_DUSTBUNNY_JUMP;
-                    self->spriteFlipHorizontal = !directionToPlayer;
+                    self->spriteFlipHorizontal = directionToPlayer;
                     break;
                 }
                 case 1: {
                     self->xDamping = 0;
-                    self->yDamping = 10;
+                    self->yDamping = 30;
                     self->spriteIndex = SP_DUSTBUNNY_CHARGE;
-                    self->spriteFlipHorizontal = !directionToPlayer;
+                    self->spriteFlipHorizontal = directionToPlayer;
+                    break;
+                }
+                default:
+                    self->xDamping = 0;
+                    break;
+            }
+        }
+    }
+    
+    despawnWhenOffscreen(self);
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
+    detectEntityCollisions(self);
+};
+
+void updateDustBunnyL2(entity_t *self)
+{
+    if(!self->falling){
+        self->yDamping--;
+        if(self->yDamping <= 0){
+            switch(self->xDamping){
+                case 0: {
+                    self->xspeed = (1 + esp_random() % 4) * 6 * ((self->spriteFlipHorizontal)?-1:1);
+                    self->yspeed = (1 + esp_random() % 4) * -24;
+                    self->xDamping = 1;
+                    self->yDamping = (esp_random() % 3) * 6;
+                    self->spriteIndex = SP_DUSTBUNNY_L2_JUMP;
+                    break;
+                }
+                case 1: {
+                    self->xDamping = 0;
+                    self->yDamping = 15;
+                    self->spriteIndex = SP_DUSTBUNNY_L2_CHARGE;
+                    break;
+                }
+                default:
+                    self->xDamping = 0;
+                    break;
+            }
+        }
+    }
+    
+    despawnWhenOffscreen(self);
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
+    detectEntityCollisions(self);
+};
+
+void updateDustBunnyL3(entity_t *self)
+{
+    if(!self->falling){
+        self->yDamping--;
+        if(self->yDamping <= 0){
+            bool directionToPlayer = (self->entityManager->playerEntity->x < self->x);
+            
+            switch(self->xDamping){
+                case 0: {
+                    self->xspeed = (1 + esp_random() % 4) * 6 * ((directionToPlayer)?-1:1);
+                    self->yspeed = (1 + esp_random() % 4) * -24;
+                    self->xDamping = 1;
+                    self->yDamping = (esp_random() % 3) * 30;
+                    self->spriteIndex = SP_DUSTBUNNY_L3_JUMP;
+                    self->spriteFlipHorizontal = directionToPlayer;
+                    break;
+                }
+                case 1: {
+                    self->xDamping = 0;
+                    self->yDamping = 30;
+                    self->spriteIndex = SP_DUSTBUNNY_L3_CHARGE;
+                    self->spriteFlipHorizontal = directionToPlayer;
                     break;
                 }
                 default:
@@ -962,6 +1230,48 @@ void updateDustBunny(entity_t *self)
 };
 
 bool dustBunnyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    switch(tileId){
+        case TILE_BOUNCE_BLOCK: {
+            switch (direction)
+            {
+                case 0:
+                    //hitBlock->xspeed = -64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = 48;
+                    }
+                    break;
+                case 1:
+                    //hitBlock->xspeed = 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = -48;
+                    }
+                    break;
+                case 2:
+                    //hitBlock->yspeed = -128;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->yspeed = 48;
+                    }
+                    break;
+                case 4:
+                    //hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xDamping = 0;
+                        self->xspeed = 0;
+                        self->yspeed = 0;
+                        self->falling = false;
+                        self->yDamping = -1;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
     if (isSolid(tileId))
     {
         switch (direction)
@@ -992,20 +1302,170 @@ bool dustBunnyTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, u
     return false;
 };
 
+bool dustBunnyL2TileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    switch(tileId){
+        case TILE_BOUNCE_BLOCK: {
+            switch (direction)
+            {
+                case 0:
+                    //hitBlock->xspeed = -64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = 48;
+                    }
+                    break;
+                case 1:
+                    //hitBlock->xspeed = 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = -48;
+                    }
+                    break;
+                case 2:
+                    //hitBlock->yspeed = -128;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->yspeed = 48;
+                    }
+                    break;
+                case 4:
+                    //hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xDamping = 0;
+                        self->xspeed = 0;
+                        self->yspeed = 0;
+                        self->falling = false;
+                        self->yDamping = -1;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+    
+    if (isSolid(tileId))
+    {
+        switch (direction)
+        {
+        case 0: // LEFT
+            self->xspeed = -self->xspeed;
+            self->spriteFlipHorizontal = false;
+            break;
+        case 1: // RIGHT
+            self->xspeed = -self->xspeed;
+            self->spriteFlipHorizontal = true;
+            break;
+        case 2: // UP
+            self->yspeed = 0;
+            break;
+        case 4: // DOWN
+            // Landed on platform
+            self->falling = false;
+            self->yspeed = 0;
+            self->xspeed = 0;
+            self->spriteIndex = SP_DUSTBUNNY_L2_IDLE;
+            break;
+        default: // Should never hit
+            return false;
+        }
+        // trigger tile collision resolution
+        return true;
+    }
+
+    return false;
+};
+
+bool dustBunnyL3TileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    switch(tileId){
+        case TILE_BOUNCE_BLOCK: {
+            switch (direction)
+            {
+                case 0:
+                    //hitBlock->xspeed = -64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = 48;
+                    }
+                    break;
+                case 1:
+                    //hitBlock->xspeed = 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xspeed = -48;
+                    }
+                    break;
+                case 2:
+                    //hitBlock->yspeed = -128;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->yspeed = 48;
+                    }
+                    break;
+                case 4:
+                    //hitBlock->yspeed = (tileId == TILE_BRICK_BLOCK) ? 32 : 64;
+                    if(tileId == TILE_BOUNCE_BLOCK){
+                        self->xDamping = 0;
+                        self->xspeed = 0;
+                        self->yspeed = 0;
+                        self->falling = false;
+                        self->yDamping = -1;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+    
+    if (isSolid(tileId))
+    {
+        switch (direction)
+        {
+        case 0: // LEFT
+            self->xspeed = -self->xspeed;
+            break;
+        case 1: // RIGHT
+            self->xspeed = -self->xspeed;
+            break;
+        case 2: // UP
+            self->yspeed = 0;
+            break;
+        case 4: // DOWN
+            // Landed on platform
+            self->falling = false;
+            self->yspeed = 0;
+            self->xspeed = 0;
+            self->spriteIndex = SP_DUSTBUNNY_L3_IDLE;
+            break;
+        default: // Should never hit
+            return false;
+        }
+        // trigger tile collision resolution
+        return true;
+    }
+
+    return false;
+};
+
 void updateWasp(entity_t *self)
 {
     switch(self->xDamping){
         case 0:
-            self->spriteIndex = SP_WASP_1 + ((self->spriteIndex + 1) % 2);
+            if(self->gameData->frameCount % 5 == 0) {
+                self->spriteIndex = SP_WASP_1 + ((self->spriteIndex + 1) % 2);
+            }
             self->yDamping--;
 
-            if(self->yDamping < 0 && abs(self->x - self->entityManager->playerEntity->x) < 512) {
+            if(self->entityManager->playerEntity->y > self->y && self->yDamping < 0 && abs(self->x - self->entityManager->playerEntity->x) < 512) {
                 self->xDamping = 1;
                 self->gravityEnabled = true;
                 self->falling = true;
                 self->spriteIndex = SP_WASP_DIVE;
                 self->xspeed = 0;
-                self->yspeed = 128;
+                self->yspeed = 64;
             }
             break;
         case 1:
@@ -1015,15 +1475,20 @@ void updateWasp(entity_t *self)
                     self->xDamping = 2;
                     self->gravityEnabled = false;
                     self->falling = false;
-                    self->yspeed = -64;
+                    self->yspeed = -24;
+                    self->yDamping = 120;
                 }
             }
             break;
         case 2:
-            self->spriteIndex = SP_WASP_1 + ((self->spriteIndex + 1) % 2);
-            if(self->y <= ((self->homeTileY * TILE_SIZE) << SUBPIXEL_RESOLUTION )) {
+            if(self->gameData->frameCount % 2 == 0) {
+                self->spriteIndex = SP_WASP_1 + ((self->spriteIndex + 1) % 2);
+            }
+
+            self->yDamping--;
+            if(self->yDamping <0 || self->y <= ((self->homeTileY * TILE_SIZE + 8) << SUBPIXEL_RESOLUTION )) {
                 self->xDamping = 0;
-                self->xspeed = (self->spriteFlipHorizontal)? -32 : 32;
+                self->xspeed = (self->spriteFlipHorizontal)? -16 : 16;
                 self->yspeed = 0;
                 self->yDamping = (1 + esp_random() % 2) * 20;
             }
@@ -1037,7 +1502,157 @@ void updateWasp(entity_t *self)
     detectEntityCollisions(self);
 };
 
+void updateWaspL2(entity_t *self)
+{
+    switch(self->xDamping){
+        case 0:
+            if(self->gameData->frameCount % 5 == 0) {
+                self->spriteIndex = SP_WASP_L2_1 + ((self->spriteIndex) % 2);
+            }
+
+            self->yDamping--;
+            if(esp_random() % 256 > 240){
+                bool directionToPlayer = self->entityManager->playerEntity->x < self->x;
+                self->xspeed = directionToPlayer ? -24:24;
+                self->spriteFlipHorizontal = directionToPlayer;
+            }
+
+            if(self->entityManager->playerEntity->y > self->y && self->yDamping < 0 && abs(self->x - self->entityManager->playerEntity->x) < self->jumpPower) {
+                self->xDamping = 1;
+                self->gravityEnabled = true;
+                self->falling = true;
+                self->spriteIndex = SP_WASP_L2_DIVE;
+                self->xspeed = 0;
+                self->yspeed = 96;
+            }
+            break;
+        case 1:
+            if(!self->falling) {
+                self->yDamping -= 2;
+                if(self->yDamping < 0){
+                    self->xDamping = 2;
+                    self->gravityEnabled = false;
+                    self->falling = false;
+                    self->yspeed = -48;
+                    self->jumpPower = (1 + esp_random() % 3) * 256;
+                    self->yDamping = 80;
+                }
+            }
+            break;
+        case 2:
+            if(self->gameData->frameCount % 2 == 0) {
+                self->spriteIndex = SP_WASP_L2_1 + ((self->spriteIndex) % 2);
+            }
+
+            self->yDamping--;
+            if(self->yDamping < 0 || self->y <= ((self->homeTileY * TILE_SIZE + 8) << SUBPIXEL_RESOLUTION )) {
+                self->xDamping = 0;
+                self->xspeed = (self->spriteFlipHorizontal)? -24 : 24;
+                self->yspeed = 0;
+                self->yDamping = (1 + esp_random() % 2) * 20;
+            }
+            break;
+        default:
+            break;
+    }
+    
+    despawnWhenOffscreen(self);
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
+    detectEntityCollisions(self);
+};
+
+void updateWaspL3(entity_t *self)
+{
+    switch(self->xDamping){
+        case 0:
+            if(self->gameData->frameCount % 5 == 0) {
+                self->spriteIndex = SP_WASP_L3_1 + ((self->spriteIndex + 1) % 2);
+            }
+
+            self->yDamping--;
+            if(esp_random() % 256 > 192){
+                bool directionToPlayer = self->entityManager->playerEntity->x < self->x;
+                self->xspeed = directionToPlayer ? -32:32;
+                self->spriteFlipHorizontal = directionToPlayer;
+            }
+
+            if(self->entityManager->playerEntity->y > self->y && self->yDamping < 0 && abs(self->x - self->entityManager->playerEntity->x) < self->jumpPower) {
+                self->xDamping = 1;
+                self->gravityEnabled = true;
+                self->falling = true;
+                self->spriteIndex = SP_WASP_L3_DIVE;
+                self->xspeed = 0;
+                self->yspeed = 128;
+            }
+            break;
+        case 1:
+            if(!self->falling) {
+                self->yDamping -= 4;
+                if(self->yDamping < 0){
+                    self->xDamping = 2;
+                    self->gravityEnabled = false;
+                    self->falling = false;
+                    self->yspeed = -64;
+                    self->jumpPower = (1 + esp_random() % 3) * 256;
+                    self->yDamping = (2 + esp_random() % 6) * 8;
+                }
+            }
+            break;
+        case 2:
+            if(self->gameData->frameCount % 2 == 0) {
+                self->spriteIndex = SP_WASP_L3_1 + ((self->spriteIndex + 1) % 2);
+            }
+
+            self->yDamping--;
+            if(self->yDamping < 0 || self->y <= ((self->homeTileY * TILE_SIZE + 8) << SUBPIXEL_RESOLUTION )) {
+                self->xDamping = 0;
+                self->xspeed = (self->spriteFlipHorizontal)? -32 : 32;
+                self->yspeed = 0;
+                self->yDamping = (1 + esp_random() % 2) * 20;
+            }
+            break;
+        default:
+            break;
+    }
+    
+    despawnWhenOffscreen(self);
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
+    detectEntityCollisions(self);
+};
+
 bool waspTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    switch(tileId){
+        case TILE_BOUNCE_BLOCK: {
+            self->xDamping = 1;
+            self->falling = false;
+            self->yDamping = 40;
+
+            switch (direction)
+            {
+                case 0:
+                    self->xspeed = 48;
+                    break;
+                case 1:
+                    self->xspeed = -48;
+                    break;
+                case 2:
+                    self->yspeed = 48;
+                    break;
+                case 4:
+                    self->yspeed = -48;
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
     if (isSolid(tileId))
     {
         switch (direction)
@@ -1072,8 +1687,180 @@ bool waspTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_
 void killEnemy(entity_t* target){
     target->homeTileX = 0;
     target->homeTileY = 0;
+    target->gravityEnabled = true;
     target->falling = true;
     target->type = ENTITY_DEAD;
     target->spriteFlipVertical = true;
     target->updateFunction = &updateEntityDead;
+}
+
+void updateBgCol(entity_t *self)
+{
+    self->gameData->bgColor = self->xDamping;
+    destroyEntity(self, true);
+}
+
+void turnAroundAtEdgeOfTileHandler(entity_t *self){
+    self->falling = true;
+    self->xspeed = -self->xspeed;
+    self->yspeed = -self->gravity*4;
+}
+
+void updateEnemyBushL3(entity_t* self){
+    if(self->gameData->frameCount % 10 == 0) {
+        self->spriteFlipHorizontal = !self->spriteFlipHorizontal;
+    }
+
+    self->yDamping--;
+    if(self->yDamping < 0){
+        bool directionToPlayer = (self->entityManager->playerEntity->x < self->x);
+
+        if( (self->xspeed < 0 && directionToPlayer) || (self->xspeed > 0 && !directionToPlayer) ){
+            self->xspeed = -self->xspeed;
+        } else {
+            self->xspeed = (directionToPlayer)? -16: 16;
+            self->yspeed = -24;
+            self->falling = true;
+        }
+
+        self->yDamping = (1 + esp_random() % 7) * 30;
+        
+    }
+
+    despawnWhenOffscreen(self);
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
+    detectEntityCollisions(self);
+}
+
+void updateCheckpoint(entity_t* self){
+    if(self->xDamping){
+        if(self->gameData->frameCount % 15 == 0) {
+            self->spriteIndex = SP_CHECKPOINT_ACTIVE_1 + ((self->spriteIndex + 1) % 2);
+        }
+    }
+
+    despawnWhenOffscreen(self);
+}
+
+void playerOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8_t ty){
+    switch(tileId){
+        case TILE_COIN_1...TILE_COIN_3:{
+            setTile(self->tilemap, tx, ty, TILE_EMPTY);
+            addCoins(self->gameData, 1);
+            scorePoints(self->gameData, 50);
+            buzzer_play_sfx(&sndCoin);
+            break;
+        }
+        case TILE_LADDER:{
+            if(self->gravityEnabled){
+                self->gravityEnabled = false;
+                self->xspeed = 0;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    if(!self->gravityEnabled && tileId != TILE_LADDER){
+        self->gravityEnabled = true;
+        self->falling = true;
+        if(self->yspeed < 0){
+            self->yspeed = -32;
+        }
+    }
+}
+
+void defaultOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8_t ty){
+    //Nothing to do.
+}
+
+void updateBgmChange(entity_t* self){
+    self->gameData->changeBgm = self->xDamping;
+    destroyEntity(self, true);
+}
+
+void updateWaveBall(entity_t* self){
+    if(self->gameData->frameCount % 4 == 0) {
+        self->spriteIndex = (SP_WAVEBALL_1 + ((self->spriteIndex + 1) % 3));
+    }
+
+    if(self->gameData->frameCount % 4 == 0) {
+        self->xDamping++;
+
+        switch(self->xDamping){
+            case 0:
+                break;
+            case 1:
+                self->yDamping = self->xspeed+2; //((esp_random() % 2)?-16:16);
+                self->yspeed = -abs(self->yDamping);
+                self->xspeed = 0;
+                break;
+            case 2:
+                self->yspeed = 0;
+                self->xspeed = self->yDamping;
+                break;
+            case 3:
+                self->yDamping = self->xspeed+2; //((esp_random() % 2)?-16:16);
+                self->yspeed = abs(self->yDamping);
+                self->xspeed = 0;
+                break;
+            case 4:
+                self->yspeed = 0;
+                self->xspeed = self->yDamping;
+                self->xDamping = 0;
+                break;
+            default:
+                break;
+        }
+    }
+
+    //self->yDamping++;
+
+    moveEntityWithTileCollisions(self);
+    despawnWhenOffscreen(self);
+}
+
+bool waveBallTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+    if(self->yspeed == 0){
+        destroyEntity(self, false);
+    }
+    return false;
+}
+
+void waveBallOverlapTileHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty){
+    if(isSolid(tileId) || tileId == TILE_BOUNCE_BLOCK){
+        destroyEntity(self, false);
+        buzzer_play_sfx(&sndHit);
+    }
+}
+
+void powerUpCollisionHandler(entity_t *self, entity_t *other)
+{
+    switch (other->type)
+    {
+        case ENTITY_TEST:
+        case ENTITY_DUST_BUNNY:
+        case ENTITY_WASP:
+        case ENTITY_BUSH_2:
+        case ENTITY_BUSH_3:
+        case ENTITY_DUST_BUNNY_2:
+        case ENTITY_DUST_BUNNY_3:
+        case ENTITY_WASP_2:
+        case ENTITY_WASP_3:
+            if((self->xspeed > 0 && self->x < other->x) || (self->xspeed < 0 && self->x > other->x)){
+                self->xspeed = -self->xspeed;
+            }
+            break;
+        case ENTITY_HIT_BLOCK:
+            self->xspeed = other->xspeed;
+            self->yspeed = other->yspeed;
+            break;
+        default:
+        {
+            break;
+        }
+    }
 }

@@ -6,5 +6,6 @@
 
 void app_main(void);
 void setFrameRateUs(uint32_t frameRate);
+void cleanupOnExit(void);
 
 #endif

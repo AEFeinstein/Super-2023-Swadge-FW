@@ -14,6 +14,7 @@
 #include <string.h>
 #include <esp_log.h>
 #include <esp_timer.h>
+#include <esp_sleep.h>
 
 #include "hdw-tft.h"
 #include "mode_dance.h"
@@ -40,14 +41,17 @@ typedef struct
 #define ARG_G(arg) (((arg) >>  8)&0xFF)
 #define ARG_B(arg) (((arg) >>  0)&0xFF)
 
+// Sleep the TFT after 5s
+#define TFT_TIMEOUT_US 5000000
+
 /*============================================================================
  * Prototypes
  *==========================================================================*/
 
 uint32_t danceRand(uint32_t upperBound);
-void danceRedrawScreen();
-void selectNextDance();
-void selectPrevDance();
+void danceRedrawScreen(void);
+void selectNextDance(void);
+void selectPrevDance(void);
 void danceBatteryCb(uint32_t vBatt);
 
 void danceComet(uint32_t tElapsedUs, uint32_t arg, bool reset);
@@ -70,18 +74,18 @@ void danceNone(uint32_t tElapsedUs, uint32_t arg, bool reset);
 
 static const ledDanceArg ledDances[] =
 {
+    {.func = danceComet, .arg = RGB_2_ARG(0, 0, 0),    .name = "Comet RGB"},
     {.func = danceComet, .arg = RGB_2_ARG(0xFF, 0, 0), .name = "Comet R"},
     {.func = danceComet, .arg = RGB_2_ARG(0, 0xFF, 0), .name = "Comet G"},
     {.func = danceComet, .arg = RGB_2_ARG(0, 0, 0xFF), .name = "Comet B"},
-    {.func = danceComet, .arg = RGB_2_ARG(0, 0, 0),    .name = "Comet RGB"},
+    {.func = danceRise,  .arg = RGB_2_ARG(0, 0, 0),    .name = "Rise RGB"},
     {.func = danceRise,  .arg = RGB_2_ARG(0xFF, 0, 0), .name = "Rise R"},
     {.func = danceRise,  .arg = RGB_2_ARG(0, 0xFF, 0), .name = "Rise G"},
     {.func = danceRise,  .arg = RGB_2_ARG(0, 0, 0xFF), .name = "Rise B"},
-    {.func = danceRise,  .arg = RGB_2_ARG(0, 0, 0),    .name = "Rise RGB"},
+    {.func = dancePulse, .arg = RGB_2_ARG(0, 0, 0),    .name = "Pulse RGB"},
     {.func = dancePulse, .arg = RGB_2_ARG(0xFF, 0, 0), .name = "Pulse R"},
     {.func = dancePulse, .arg = RGB_2_ARG(0, 0xFF, 0), .name = "Pulse G"},
     {.func = dancePulse, .arg = RGB_2_ARG(0, 0, 0xFF), .name = "Pulse B"},
-    {.func = dancePulse, .arg = RGB_2_ARG(0, 0, 0),    .name = "Pulse RGB"},
     {.func = danceSharpRainbow,  .arg = 0, .name = "Rainbow Sharp"},
     {.func = danceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
     {.func = danceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
@@ -91,11 +95,11 @@ static const ledDanceArg ledDances[] =
     {.func = danceFire, .arg = RGB_2_ARG(51, 0, 0xFF), .name = "Fire B"},
     {.func = danceBinaryCounter, .arg = 0, .name = "Binary"},
     {.func = dancePoliceSiren,   .arg = 0, .name = "Siren"},
-    {.func = dancePureRandom,    .arg = 0, .name = "Random"},
+    {.func = dancePureRandom,    .arg = 0, .name = "Random LEDs"},
     {.func = danceChristmas,     .arg = 1, .name = "Holiday 1"},
     {.func = danceChristmas,     .arg = 0, .name = "Holiday 2"},
     {.func = danceNone,          .arg = 0, .name = "None"},
-    {.func = danceRandomDance,   .arg = 0, .name = "???"},
+    {.func = danceRandomDance,   .arg = 0, .name = "Shuffle All"},
 };
 
 typedef struct
@@ -107,7 +111,10 @@ typedef struct
     bool resetDance;
     bool blankScreen;
 
+    uint64_t buttonPressedTimer;
+
     font_t infoFont;
+    wsg_t arrow;
 } danceMode_t;
 
 
@@ -125,7 +132,8 @@ swadgeMode modeDance =
     .fnAccelerometerCallback = NULL,
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL,
-    .fnBatteryCallback = danceBatteryCb
+    .fnBatteryCallback = danceBatteryCb,
+    .overrideUsb = false
 };
 
 danceMode_t* danceState;
@@ -145,15 +153,16 @@ void danceEnterMode(display_t* disp)
     danceState->resetDance = true;
     danceState->blankScreen = false;
 
-    if (!loadFont(DANCE_INFO_FONT, &(danceState->infoFont)))
-    {
-        ESP_LOGE("Dance", "Error loading " DANCE_INFO_FONT);
-    }
+    danceState->buttonPressedTimer = 0;
+
+    loadFont("mm.font", &(danceState->infoFont));
+    loadWsg("arrow21.wsg", &danceState->arrow);
 }
 
-void danceExitMode()
+void danceExitMode(void)
 {
     freeFont(&(danceState->infoFont));
+    freeWsg(&danceState->arrow);
     free(danceState);
     danceState = NULL;
 }
@@ -162,23 +171,69 @@ void danceMainLoop(int64_t elapsedUs)
 {
     ledDances[danceState->danceIdx].func(elapsedUs, ledDances[danceState->danceIdx].arg, danceState->resetDance);
 
-    danceRedrawScreen();
+    // If the screen is blank
+    if(danceState->blankScreen)
+    {
+        // If a button has been pressed recently
+        if(danceState->buttonPressedTimer < TFT_TIMEOUT_US)
+        {
+            // Turn the screen on
+            enableTFTBacklight();
+            setTFTBacklight(getTftIntensity());
+            danceState->blankScreen = false;
+            // Draw to it
+            danceRedrawScreen();
+        }
+    }
+    else
+    {
+        // Check if it should be blanked
+        danceState->buttonPressedTimer += elapsedUs;
+        if (danceState->buttonPressedTimer >= TFT_TIMEOUT_US)
+        {
+            disableTFTBacklight();
+            danceState->blankScreen = true;
+        }
+        else
+        {
+            // Screen is not blank, draw to it
+            danceRedrawScreen();
+        }
+    }
 
     danceState->resetDance = false;
+
+    // Only sleep with a blank screen, otherwise the screen flickers
+    if(danceState->blankScreen)
+    {
+        // Light sleep for 4ms. The longer the sleep, the choppier the LED animations
+        // 4ms looks pretty good, though some LED timers do run faster (like 'rise')
+        esp_sleep_enable_timer_wakeup(4000);
+        esp_light_sleep_start();
+    }
 }
 
 /**
  * @brief TODO
- * 
- * @param vBatt 
+ *
+ * @param vBatt
  */
 void danceBatteryCb(uint32_t vBatt)
 {
-    ESP_LOGI("BAT", "%lld %d", esp_timer_get_time(), vBatt);
+    // ESP_LOGI("BAT", "%lld %d", esp_timer_get_time(), vBatt);
 }
 
 void danceButtonCb(buttonEvt_t* evt)
 {
+    // Reset this on any button event
+    danceState->buttonPressedTimer = 0;
+
+    // This button press will wake the display, so don't process it
+    if(danceState->blankScreen)
+    {
+        return;
+    }
+
     if (evt->down)
     {
         switch(evt->button)
@@ -196,45 +251,23 @@ void danceButtonCb(buttonEvt_t* evt)
             }
 
             case LEFT:
+            case BTN_B:
             {
                 selectPrevDance();
                 break;
             }
 
             case RIGHT:
+            case BTN_A:
             {
                 selectNextDance();
                 break;
             }
 
-            case BTN_A:
-            {
-                danceState->blankScreen = !danceState->blankScreen;
-
-                if(danceState->blankScreen)
-                {
-                    disableTFTBacklight();
-                }
-                else
-                {
-                    enableTFTBacklight();
-                    setTFTBacklight(getTftIntensity());
-                }
-                break;
-            }
-
-            case BTN_B:
-            {
-                break;
-            }
-
             case SELECT:
-            {
-                break;
-            }
-
             case START:
             {
+                // Unused
                 break;
             }
         }
@@ -244,20 +277,43 @@ void danceButtonCb(buttonEvt_t* evt)
 /**
  * @brief Blanks and redraws the entire screen
  */
-void danceRedrawScreen()
+void danceRedrawScreen(void)
 {
     danceState->disp->clearPx();
 
     if (!danceState->blankScreen)
     {
+        // Draw the name, perfectly centered
+        int16_t yOff = (danceState->disp->h - danceState->infoFont.h) / 2;
         uint16_t width = textWidth(&(danceState->infoFont), ledDances[danceState->danceIdx].name);
-        drawText(danceState->disp, &(danceState->infoFont), c555, ledDances[danceState->danceIdx].name, (danceState->disp->w - width) / 2, 60);
+        drawText(danceState->disp, &(danceState->infoFont), c555,
+                 ledDances[danceState->danceIdx].name,
+                 (danceState->disp->w - width) / 2,
+                 yOff);
+        // Draw some arrows
+        drawWsg(danceState->disp, &danceState->arrow,
+                ((danceState->disp->w - width) / 2) - 8 - danceState->arrow.w, yOff,
+                false, false, 270);
+        drawWsg(danceState->disp, &danceState->arrow,
+                ((danceState->disp->w - width) / 2) + width + 8, yOff,
+                false, false, 90);
 
+        // Draw the brightness at the top
         char brightnessText[14];
-
         snprintf(brightnessText, sizeof(brightnessText), "Brightness: %d", getLedBrightness());
         width = textWidth(&(danceState->infoFont), brightnessText);
-        drawText(danceState->disp, &(danceState->infoFont), c555, brightnessText, (danceState->disp->w - width) / 2, 10);
+        yOff = 16;
+        drawText(danceState->disp, &(danceState->infoFont), c555,
+                 brightnessText,
+                 (danceState->disp->w - width) / 2,
+                 yOff);
+        // Draw some arrows
+        drawWsg(danceState->disp, &danceState->arrow,
+                ((danceState->disp->w - width) / 2) - 8 - danceState->arrow.w, yOff,
+                false, false, 0);
+        drawWsg(danceState->disp, &danceState->arrow,
+                ((danceState->disp->w - width) / 2) + width + 8, yOff,
+                false, false, 180);
     }
 }
 
@@ -567,7 +623,7 @@ void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset)
  * @param tElapsedUs The time elapsed since last call, in microseconds
  * @param reset      true to reset this dance's variables
  */
-void danceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg , bool reset)
+void danceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset)
 {
     static uint32_t tAccumulated = 0;
     static uint8_t ledCount = 0;
@@ -1236,7 +1292,7 @@ void danceChristmas(uint32_t tElapsedUs, uint32_t arg, bool reset)
  * @param reset
  */
 void danceNone(uint32_t tElapsedUs __attribute__((unused)),
-                                 uint32_t arg __attribute__((unused)), bool reset)
+               uint32_t arg __attribute__((unused)), bool reset)
 {
     if(reset)
     {
@@ -1248,7 +1304,7 @@ void danceNone(uint32_t tElapsedUs __attribute__((unused)),
 /**
  * @brief Switches to the previous dance in the list, with wrapping
  */
-void selectPrevDance()
+void selectPrevDance(void)
 {
     if (danceState->danceIdx > 0)
     {
@@ -1265,7 +1321,7 @@ void selectPrevDance()
 /**
  * @brief Switches to the next dance in the list, with wrapping
  */
-void selectNextDance()
+void selectNextDance(void)
 {
     if (danceState->danceIdx < getNumDances() - 1)
     {

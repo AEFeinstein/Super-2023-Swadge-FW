@@ -22,6 +22,9 @@
 #define TIMER_DIVIDER (16)  //  Hardware timer clock divider
 #define TIMER_SCALE   (TIMER_BASE_CLK / TIMER_DIVIDER)  // convert counter value to seconds
 
+#define ISR_PERIOD_MS 1
+#define DEBOUNCE_HIST_LEN 5
+
 //==============================================================================
 // Prototypes
 //==============================================================================
@@ -123,7 +126,7 @@ void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButt
     timer_set_counter_value(group_num, timer_num, 0);
 
     // Configure the alarm value and the interrupt on alarm.
-    timer_set_alarm_value(group_num, timer_num, TIMER_SCALE / 1000); // 0.2ms timer
+    timer_set_alarm_value(group_num, timer_num, (TIMER_SCALE * ISR_PERIOD_MS) / 1000);
     timer_enable_intr(group_num, timer_num);
 
     // Configure the ISR
@@ -150,24 +153,48 @@ void deinitButtons(void)
  */
 static bool IRAM_ATTR btn_timer_isr_cb(void* args __attribute__((unused)))
 {
-    BaseType_t high_task_awoken = pdFALSE;
     // Static variable lives forever!
     static uint32_t lastEvt = 0;
+    static uint32_t evtHist[DEBOUNCE_HIST_LEN] = {0};
+    static uint32_t evtIdx = 0;
+
+    BaseType_t high_task_awoken = pdFALSE;
+
     // Read GPIOs
     uint32_t evt = dedic_gpio_bundle_read_in(bundle);
+
+    // Store the event in a ring
+    evtHist[evtIdx] = evt;
+    evtIdx = (evtIdx + 1) % DEBOUNCE_HIST_LEN;
+
+    // Look for any difference in the debounce history
+    for(int32_t ei = 0; ei < (DEBOUNCE_HIST_LEN - 1); ei++)
+    {
+        // Exclusive OR
+        if(evtHist[ei] ^ evtHist[ei + 1])
+        {
+            // There is a difference, so return.
+            // this is still debouncing
+            return false;
+        }
+    }
+    // No difference in the history, accept this input
+
     // Only queue changes
     if(lastEvt != evt)
     {
         xQueueSendFromISR(gpio_evt_queue, &evt, &high_task_awoken);
+        // save the event
+        lastEvt = evt;
     }
-    // save the event
-    lastEvt = evt;
     // return whether we need to yield at the end of ISR
     return high_task_awoken == pdTRUE;
 }
 
 /**
  * @brief Service the queue of button events that caused interrupts
+ * This only reutrns a single event, even if there are multiple in the queue
+ * This function may be called multiple times in a row to completely empty the queue
  *
  * @param evt If an event occurred, return it through this argument
  * @return true if an event occurred, false if nothing happened

@@ -120,6 +120,7 @@ esp_err_t esp_timer_create(const esp_timer_create_args_t* create_args,
     (*out_handle)->callback = create_args->callback;
     (*out_handle)->arg = create_args->arg;
     (*out_handle)->alarm = 0;
+    (*out_handle)->period = 0;
     if(create_args->skip_unhandled_events)
     {
         (*out_handle)->flags |= FL_SKIP_UNHANDLED_EVENTS;
@@ -187,6 +188,7 @@ esp_err_t esp_timer_delete(esp_timer_handle_t timer)
 esp_err_t esp_timer_stop(esp_timer_handle_t timer)
 {
     timer->alarm = 0;
+    timer->period = 0;
     return ESP_OK;
 }
 
@@ -205,6 +207,27 @@ esp_err_t esp_timer_stop(esp_timer_handle_t timer)
 esp_err_t esp_timer_start_once(esp_timer_handle_t timer, uint64_t timeout_us)
 {
     timer->alarm = timeout_us;
+    timer->period = 0;
+    return ESP_OK;
+}
+
+/**
+ * @brief Start a periodic timer
+ *
+ * Timer should not be running when this function is called. This function will
+ * start the timer which will trigger every 'period' microseconds.
+ *
+ * @param timer timer handle created using esp_timer_create
+ * @param period timer period, in microseconds
+ * @return
+ *      - ESP_OK on success
+ *      - ESP_ERR_INVALID_ARG if the handle is invalid
+ *      - ESP_ERR_INVALID_STATE if the timer is already running
+ */
+esp_err_t esp_timer_start_periodic(esp_timer_handle_t timer, uint64_t period)
+{
+    timer->alarm = period;
+    timer->period = period;
     return ESP_OK;
 }
 
@@ -226,15 +249,33 @@ void check_esp_timer(uint64_t elapsed_us)
     list_node_t *node;
     while ((node = list_iterator_next(iter)))
     {
+        bool timerExpired = false;
         esp_timer_handle_t tmr = node->val;
         if(tmr->alarm > elapsed_us)
         {
             tmr->alarm -= elapsed_us;
+
+            if(0 == tmr->alarm)
+            {
+                // If it decrements to 0 exactly, expire
+                timerExpired = true;
+            }
         }
         else if(tmr->alarm)
         {
-            tmr->alarm = 0;
+            // If there's less time on left than elapsed, expire
+            timerExpired = true;
+        }
+
+        if(timerExpired)
+        {
+            // Call the callback
             tmr->callback(tmr->arg);
+            // Reset the timer if periodic
+            if(tmr->period)
+            {
+                tmr->alarm = tmr->period;
+            }
         }
     }
 

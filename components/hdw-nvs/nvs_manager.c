@@ -301,3 +301,59 @@ bool readNvsBlob(const char* key, void* out_value, size_t* length)
         }
     }
 }
+
+/**
+ * @brief Delete the value with the given key from NVS
+ *
+ * @param key The NVS key to be deleted
+ * @return true if the value was deleted, false if it was not
+ */
+bool eraseNvsKey(const char* key)
+{
+    nvs_handle_t handle;
+    esp_err_t openErr = nvs_open(PARTITION_NAME, NVS_READWRITE, &handle);
+    switch(openErr)
+    {
+        case ESP_OK:
+        {
+            // Assume the commit is bad
+            bool commitOk = false;
+            // Write the NVS
+            esp_err_t writeErr = nvs_erase_key(handle, key);
+            // Check the write error
+            switch(writeErr)
+            {
+                case ESP_OK:
+                {
+                    // Commit NVS
+                    commitOk = (ESP_OK == nvs_commit(handle));
+                    break;
+                }
+                default:
+                case ESP_ERR_NVS_INVALID_HANDLE:
+                case ESP_ERR_NVS_READ_ONLY:
+                case ESP_ERR_NVS_INVALID_NAME:
+                case ESP_ERR_NVS_NOT_ENOUGH_SPACE:
+                case ESP_ERR_NVS_REMOVE_FAILED:
+                {
+                    ESP_LOGE("NVS", "%s err %s", __func__, esp_err_to_name(writeErr));
+                    break;
+                }
+            }
+
+            // Close the handle
+            nvs_close(handle);
+            return commitOk;
+        }
+        default:
+        case ESP_ERR_NVS_NOT_INITIALIZED:
+        case ESP_ERR_NVS_PART_NOT_FOUND:
+        case ESP_ERR_NVS_NOT_FOUND:
+        case ESP_ERR_NVS_INVALID_NAME:
+        case ESP_ERR_NO_MEM:
+        {
+            ESP_LOGE("NVS", "%s openErr %s", __func__, esp_err_to_name(openErr));
+            return false;
+        }
+    }
+}

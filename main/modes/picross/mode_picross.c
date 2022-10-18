@@ -539,16 +539,20 @@ bool hintIsFilledIn(picrossHint_t* hint)
             break;
             case SPACE_MARKEMPTY:
             case OUTOFBOUNDS:
-            if (lastSpace == SPACE_FILLED)
             {
-                segmentIndex++;
+                if (lastSpace == SPACE_FILLED)
+                {
+                    segmentIndex++;
+                }
+                lastSpace = SPACE_EMPTY;
             }
-            lastSpace = SPACE_EMPTY;
             break;
 
             case SPACE_FILLED:
-            segmentLengths[segmentIndex]++;
-            lastSpace = SPACE_FILLED;
+            {
+                segmentLengths[segmentIndex]++;
+                lastSpace = SPACE_FILLED;
+            }
             break;
         }
     }

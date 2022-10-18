@@ -216,10 +216,10 @@ bool readNvs32(const char* key, int32_t* outVal)
 
 /**
  * @brief Read a blob from NVS with a given string key
- * 
+ *
  * @param key The key for the value to read
  * @param out_value The value will be written to this memory. It must be allocated before calling readNvsBlob()
- * @param length The length of the value that was read
+ * @param length If out_value is `NULL`, this will be set to the length of the given key. Otherwise, it is the length of the blob to read.
  * @return true if the value was read, false if it was not
  */
 bool readNvsBlob(const char* key, void* out_value, size_t* length)
@@ -257,8 +257,17 @@ bool readNvsBlob(const char* key, void* out_value, size_t* length)
                     {
                         // Return the value
                         char* strBlob = cJSON_GetStringValue(jsonIter);
-                        *length = strlen(strBlob) / 2;
-                        strToBlob(strBlob, out_value, *length);
+
+                        if (out_value != NULL)
+                        {
+                            // The call to read, using returned length
+                            strToBlob(strBlob, out_value, *length);
+                        }
+                        else
+                        {
+                            // The call to get length of blob
+                            *length = strlen(strBlob) / 2;
+                        }
                         cJSON_Delete(json);
                         return true;
                     }
@@ -326,6 +335,83 @@ bool writeNvsBlob(const char* key, const void* value, size_t length)
             else
             {
                 cJSON_AddItemToObject(json, key, jsonVal);
+            }
+
+            // Write the new JSON back to the file
+            FILE * nvsFileW = fopen(NVS_JSON_FILE, "wb");
+            if(NULL != nvsFileW)
+            {
+                char * jsonStr = cJSON_Print(json);
+                fprintf(nvsFileW, "%s", jsonStr);
+                fclose(nvsFileW);
+
+                free(jsonStr);
+                cJSON_Delete(json);
+
+                return true;
+            }
+            else
+            {
+                // Couldn't open file to write
+            }
+            cJSON_Delete(json);
+        }
+        else
+        {
+            // Couldn't read file
+            fclose(nvsFile);
+        }
+    }
+    else
+    {
+        // couldn't open file to read
+    }
+    return false;
+}
+
+/**
+ * @brief Delete the value with the given key from NVS
+ *
+ * @param key The NVS key to be deleted
+ * @return true if the value was deleted, false if it was not
+ */
+bool eraseNvsKey(const char* key)
+{
+    // Open the file
+    FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
+    if(NULL != nvsFile)
+    {
+        // Get the file size
+        fseek(nvsFile, 0L, SEEK_END);
+        size_t fsize = ftell(nvsFile);
+        fseek(nvsFile, 0L, SEEK_SET);
+
+        // Read the file
+        char fbuf[fsize + 1];
+        fbuf[fsize] = 0;
+        if(fsize == fread(fbuf, 1, fsize, nvsFile))
+        {
+            // Close the file
+            fclose(nvsFile);
+
+            // Parse the JSON
+            cJSON * json = cJSON_Parse(fbuf);
+
+            // Check if the key exists
+            cJSON * jsonIter;
+            bool keyExists = false;
+            cJSON_ArrayForEach(jsonIter, json)
+            {
+                if(0 == strcmp(jsonIter->string, key))
+                {
+                    keyExists = true;
+                }
+            }
+
+            // Remove the key if it exists
+            if(keyExists)
+            {
+                cJSON_DeleteItemFromObject(json, key);
             }
 
             // Write the new JSON back to the file
@@ -452,10 +538,12 @@ bool deinitSpiffs(void)
  * @param output  A pointer to a pointer to return the read data in. This memory
  *                will be allocated with calloc(). Must be NULL to start
  * @param outsize A pointer to a size_t to return how much data was read
+ * @param readToSpiRam unused
  * @return true if the file was read successfully, false otherwise
  */
-bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize)
+bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize, bool readToSpiRam)
 {
+    printf("Read from %s\n", fname);
     // Make sure the output pointer is NULL to begin with
     if(NULL != *output)
     {

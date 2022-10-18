@@ -4,7 +4,6 @@
 
 #include <stdbool.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <math.h>
 
 #include "esp_log.h"
@@ -18,6 +17,7 @@
 #include "emu_display.h"
 #include "emu_sound.h"
 #include "emu_sensors.h"
+#include "emu_main.h"
 
 //Make it so we don't need to include any other C files in our build.
 #define CNFG_IMPLEMENTATION
@@ -53,9 +53,6 @@ static bool isRunning = true;
 
 /**
  * This function must be provided for rawdraw. Key events are received here
- *
- * Note that this is called on the main thread and the swadge task is on a
- * separate thread, so queue accesses must be mutexed
  *
  * @param keycode The key code, a lowercase ascii char
  * @param bDown true if the key was pressed, false if it was released
@@ -98,17 +95,14 @@ void HandleDestroy()
     // Stop the main loop
     isRunning = false;
 
-    // Upon exit, stop all tasks
-    joinThreads();
+    // Cleanup swadge stuff
+    cleanupOnExit();
 
     // Then free display memory
     deinitDisplayMemory();
 
     // Close sound
     deinitSound();
-
-    // Free button queue
-    deinitButtons();
 }
 
 /**
@@ -177,137 +171,132 @@ int main(int argc UNUSED, char** argv UNUSED)
     // First initialize rawdraw
     // Screen-specific configurations
     // Save window dimensions from the last loop
-    short lastWindow_w = 0;
-    short lastWindow_h = 0;
-    int16_t led_w = MIN_LED_WIDTH;
-    CNFGSetup( "SQUAREWAVEBIRD Simulator", (TFT_WIDTH * 2) + (led_w * 4) + 2, (TFT_HEIGHT * 2));
+    CNFGSetup( "SQUAREWAVEBIRD Simulator", (TFT_WIDTH * 2) + (MIN_LED_WIDTH * 4) + 2, (TFT_HEIGHT * 2));
 
-    // This is the 'main' that gets called when the ESP boots
+    // This is the 'main' that gets called when the ESP boots. It does not return
     app_main();
+}
 
-    // Spin around waiting for a program exit afterwards
-    while(1)
+/**
+ * Handle key input and drawing the display
+ */
+void emu_loop(void)
+{
+    // These are persistent!
+    static short lastWindow_w = 0;
+    static short lastWindow_h = 0;
+    static int16_t led_w = MIN_LED_WIDTH;
+
+    // Always handle inputs
+    CNFGHandleInput();
+
+    // If not running anymore, don't handle graphics
+    // Must be checked after handling input, before graphics
+    if(!isRunning)
     {
-        // Always handle inputs
-        CNFGHandleInput();
-
-        // If not running anymore, don't handle graphics
-        // Must be checked after handling input, before graphics
-        if(!isRunning)
-        {
-            break;
-        }
-
-        // Grey Background
-        CNFGBGColor = BG_COLOR;
-        CNFGClearFrame();
-
-        // Get the current window dimensions
-        short window_w, window_h;
-        CNFGGetDimensions(&window_w, &window_h);
-
-        // If the dimensions changed
-        if((lastWindow_h != window_h) || (lastWindow_w != window_w))
-        {
-            // Figure out how much the TFT should be scaled by
-            uint8_t widthMult = (window_w - (4 * MIN_LED_WIDTH) - 2) / TFT_WIDTH;
-            if(0 == widthMult)
-            {
-                widthMult = 1;
-            }
-            uint8_t heightMult = window_h / TFT_HEIGHT;
-            if(0 == heightMult)
-            {
-                heightMult = 1;
-            }
-            uint8_t screenMult = MIN(widthMult, heightMult);
-
-            // LEDs take up the rest of the horizontal space
-            led_w = (window_w - 2 - (screenMult * TFT_WIDTH)) / 4;
-
-            // Set the multiplier
-            setDisplayBitmapMultiplier(screenMult);
-
-            // Save for the next loop
-            lastWindow_w = window_w;
-            lastWindow_h = window_h;
-        }
-
-        // Get a lock on the display memory mutex (LED & TFT)
-        lockDisplayMemoryMutex();
-
-        // Get the LED memory
-        uint8_t numLeds;
-        led_t* leds = getLedMemory(&numLeds);
-
-        // Where LEDs are drawn, kinda
-        const int16_t ledOffsets[8][2] =
-        {
-            {1, 2},
-            {0, 3},
-            {0, 1},
-            {1, 0},
-            {2, 0},
-            {3, 1},
-            {3, 3},
-            {2, 2},
-        };
-
-        // Draw simulated LEDs
-        if (numLeds > 0 && NULL != leds)
-        {
-            short led_h = window_h / (numLeds / 2);
-            for(int i = 0; i < numLeds; i++)
-            {
-                CNFGColor( (leds[i].r << 24) | (leds[i].g << 16) | (leds[i].b << 8) | 0xFF);
-
-                int16_t xOffset = 0;
-                if(ledOffsets[i][0] < 2)
-                {
-                    xOffset = ledOffsets[i][0] * (led_w / 2);
-                }
-                else
-                {
-                    xOffset = window_w - led_w - ((4 - ledOffsets[i][0]) * (led_w / 2));
-                }
-
-                int16_t yOffset = ledOffsets[i][1] * led_h;
-
-                // Draw the LED
-                CNFGTackRectangle(
-                    xOffset, yOffset,
-                    xOffset + (led_w * 3) / 2, yOffset + led_h);
-            }
-        }
-
-        // Draw dividing lines
-        CNFGColor( DIV_COLOR );
-        CNFGTackSegment(led_w * 2, 0, led_w * 2, window_h);
-        CNFGTackSegment(window_w - (led_w * 2), 0, window_w - (led_w * 2), window_h);
-
-        // Get the display memory
-        uint16_t bitmapWidth, bitmapHeight;
-        uint32_t* bitmapDisplay = getDisplayBitmap(&bitmapWidth, &bitmapHeight);
-
-        if((0 != bitmapWidth) && (0 != bitmapHeight) && (NULL != bitmapDisplay))
-        {
-#if defined(CONFIG_GC9307_240x280)
-            plotRoundedCorners(bitmapDisplay, bitmapWidth, bitmapHeight, (bitmapWidth / TFT_WIDTH) * 40, BG_COLOR);
-#endif
-            // Update the display, centered
-            CNFGBlitImage(bitmapDisplay,
-                          (led_w * 2) + 1, (window_h - bitmapHeight) / 2,
-                          bitmapWidth, bitmapHeight);
-        }
-
-        //Display the image and wait for time to display next frame.
-        CNFGSwapBuffers();
-
-        unlockDisplayMemoryMutex();
-
-        // Sleep for 1 ms
-        usleep(1000);
+        exit(0);
+        return;
     }
 
-    return 0;
-}
+    // Grey Background
+    CNFGBGColor = BG_COLOR;
+    CNFGClearFrame();
+
+    // Get the current window dimensions
+    short window_w, window_h;
+    CNFGGetDimensions(&window_w, &window_h);
+
+    // If the dimensions changed
+    if((lastWindow_h != window_h) || (lastWindow_w != window_w))
+    {
+        // Figure out how much the TFT should be scaled by
+        uint8_t widthMult = (window_w - (4 * MIN_LED_WIDTH) - 2) / TFT_WIDTH;
+        if(0 == widthMult)
+        {
+            widthMult = 1;
+        }
+        uint8_t heightMult = window_h / TFT_HEIGHT;
+        if(0 == heightMult)
+        {
+            heightMult = 1;
+        }
+        uint8_t screenMult = MIN(widthMult, heightMult);
+
+        // LEDs take up the rest of the horizontal space
+        led_w = (window_w - 2 - (screenMult * TFT_WIDTH)) / 4;
+
+        // Set the multiplier
+        setDisplayBitmapMultiplier(screenMult);
+
+        // Save for the next loop
+        lastWindow_w = window_w;
+        lastWindow_h = window_h;
+    }
+
+    // Get the LED memory
+    uint8_t numLeds;
+    led_t* leds = getLedMemory(&numLeds);
+
+    // Where LEDs are drawn, kinda
+    const int16_t ledOffsets[8][2] =
+    {
+        {1, 2},
+        {0, 3},
+        {0, 1},
+        {1, 0},
+        {2, 0},
+        {3, 1},
+        {3, 3},
+        {2, 2},
+    };
+
+    // Draw simulated LEDs
+    if (numLeds > 0 && NULL != leds)
+    {
+        short led_h = window_h / (numLeds / 2);
+        for(int i = 0; i < numLeds; i++)
+        {
+            CNFGColor( (leds[i].r << 24) | (leds[i].g << 16) | (leds[i].b << 8) | 0xFF);
+
+            int16_t xOffset = 0;
+            if(ledOffsets[i][0] < 2)
+            {
+                xOffset = ledOffsets[i][0] * (led_w / 2);
+            }
+            else
+            {
+                xOffset = window_w - led_w - ((4 - ledOffsets[i][0]) * (led_w / 2));
+            }
+
+            int16_t yOffset = ledOffsets[i][1] * led_h;
+
+            // Draw the LED
+            CNFGTackRectangle(
+                xOffset, yOffset,
+                xOffset + (led_w * 3) / 2, yOffset + led_h);
+        }
+    }
+
+    // Draw dividing lines
+    CNFGColor( DIV_COLOR );
+    CNFGTackSegment(led_w * 2, 0, led_w * 2, window_h);
+    CNFGTackSegment(window_w - (led_w * 2), 0, window_w - (led_w * 2), window_h);
+
+    // Get the display memory
+    uint16_t bitmapWidth, bitmapHeight;
+    uint32_t* bitmapDisplay = getDisplayBitmap(&bitmapWidth, &bitmapHeight);
+
+    if((0 != bitmapWidth) && (0 != bitmapHeight) && (NULL != bitmapDisplay))
+    {
+#if defined(CONFIG_GC9307_240x280)
+        plotRoundedCorners(bitmapDisplay, bitmapWidth, bitmapHeight, (bitmapWidth / TFT_WIDTH) * 40, BG_COLOR);
+#endif
+        // Update the display, centered
+        CNFGBlitImage(bitmapDisplay,
+                        (led_w * 2) + 1, (window_h - bitmapHeight) / 2,
+                        bitmapWidth, bitmapHeight);
+    }
+
+    //Display the image and wait for time to display next frame.
+    CNFGSwapBuffers();
+    }
