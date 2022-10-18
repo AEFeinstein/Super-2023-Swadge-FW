@@ -170,7 +170,7 @@ void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
     // Increment this timer
     mainMenu->autoLightDanceTimer += elapsedUs;
     // If 10s have elapsed with no user input
-    if(mainMenu->autoLightDanceTimer >= (10 * 1000000))
+    if(mainMenu->autoLightDanceTimer >= (30 * 1000000))
     {
         // Switch to the LED dance mode
         switchToSwadgeMode(&modeDance);
