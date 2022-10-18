@@ -61,7 +61,7 @@
 #define BG_COLOR  0x191919FF // This color isn't part of the palette
 #define DIV_COLOR 0x808080FF
 
-#define MONKEY_AROUND
+// #define MONKEY_AROUND
 
 //==============================================================================
 // Function prototypes
