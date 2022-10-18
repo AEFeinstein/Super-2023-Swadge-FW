@@ -40,7 +40,9 @@
 
 const char paintTitle[] = "MFPaint";
 const char menuOptDraw[] = "Draw";
+const char menuOptHelp[] = "Tutorial";
 const char menuOptGallery[] = "Gallery";
+const char menuOptNetwork[] = "Sharing";
 const char menuOptShare[] = "Share";
 const char menuOptReceive[] = "Receive";
 const char menuOptSettings[] = "Settings";
@@ -61,6 +63,7 @@ void paintExitMode(void);
 void paintMainLoop(int64_t elapsedUs);
 void paintButtonCb(buttonEvt_t* evt);
 void paintMainMenuCb(const char* opt);
+void paintNetworkMenuCb(const char* opt);
 void paintSettingsMenuCb(const char* opt);
 
 
@@ -85,6 +88,7 @@ swadgeMode modePaint =
 void paintDeleteAllData(void);
 void paintMenuInitialize(void);
 void paintSetupMainMenu(bool reset);
+void paintSetupNetworkMenu(bool reset);
 void paintSetupSettingsMenu(bool reset);
 
 // Mode struct function implemetations
@@ -98,6 +102,7 @@ void paintEnterMode(display_t* disp)
     loadFont("mm.font", &(paintMenu->menuFont));
 
     paintMenu->menu = initMeleeMenu(paintTitle, &(paintMenu->menuFont), paintMainMenuCb);
+    paintMenu->networkMenu = initMeleeMenu(menuOptNetwork, &(paintMenu->menuFont), paintNetworkMenuCb);
     paintMenu->settingsMenu = initMeleeMenu(menuOptSettings, &(paintMenu->menuFont), paintSettingsMenuCb);
 
     paintMenuInitialize();
@@ -107,12 +112,14 @@ void paintExitMode(void)
 {
     PAINT_LOGD("Exiting");
     deinitMeleeMenu(paintMenu->menu);
+    deinitMeleeMenu(paintMenu->networkMenu);
     deinitMeleeMenu(paintMenu->settingsMenu);
     freeFont(&(paintMenu->menuFont));
 
     switch (paintMenu->screen)
     {
         case PAINT_MENU:
+        case PAINT_NETWORK_MENU:
         case PAINT_SETTINGS_MENU:
         break;
 
@@ -126,14 +133,13 @@ void paintExitMode(void)
         case PAINT_RECEIVE:
         break;
 
-        case PAINT_VIEW:
-        break;
-
         case PAINT_GALLERY:
             paintGalleryCleanup();
         break;
 
         case PAINT_HELP:
+            paintTutorialCleanup();
+            paintDrawScreenCleanup();
         break;
     }
 
@@ -150,6 +156,12 @@ void paintMainLoop(int64_t elapsedUs)
         break;
     }
 
+    case PAINT_NETWORK_MENU:
+    {
+        drawMeleeMenu(paintMenu->disp, paintMenu->networkMenu);
+        break;
+    }
+
     case PAINT_SETTINGS_MENU:
     {
         drawMeleeMenu(paintMenu->disp, paintMenu->settingsMenu);
@@ -157,31 +169,25 @@ void paintMainLoop(int64_t elapsedUs)
     }
 
     case PAINT_DRAW:
+    case PAINT_HELP:
     {
         paintDrawScreenMainLoop(elapsedUs);
         break;
     }
 
     case PAINT_SHARE:
-    // Implemented in a different mode
-    break;
+        // Implemented in a different mode
+        break;
 
     case PAINT_RECEIVE:
-    // Implemented in a different mode
-    break;
-
-    case PAINT_VIEW:
-    // TODO get rid of PAINT_VIEW
-    break;
+        // Implemented in a different mode
+        break;
 
     case PAINT_GALLERY:
     {
         paintGalleryMainLoop(elapsedUs);
         break;
     }
-
-    case PAINT_HELP:
-    break;
     }
 }
 
@@ -200,6 +206,23 @@ void paintButtonCb(buttonEvt_t* evt)
                 else
                 {
                     meleeMenuButton(paintMenu->menu, evt->button);
+                }
+            }
+            break;
+        }
+
+        case PAINT_NETWORK_MENU:
+        {
+            if (evt->down)
+            {
+                if (evt->button == BTN_B)
+                {
+                    paintMenu->screen = PAINT_MENU;
+                    paintSetupMainMenu(false);
+                }
+                else
+                {
+                    meleeMenuButton(paintMenu->networkMenu, evt->button);
                 }
             }
             break;
@@ -236,16 +259,11 @@ void paintButtonCb(buttonEvt_t* evt)
         }
 
         case PAINT_DRAW:
+        case PAINT_HELP:
         {
             paintDrawScreenButtonCb(evt);
             break;
         }
-
-        case PAINT_VIEW:
-        break;
-
-        case PAINT_HELP:
-        break;
 
         case PAINT_GALLERY:
         {
@@ -254,9 +272,8 @@ void paintButtonCb(buttonEvt_t* evt)
         }
 
         case PAINT_SHARE:
-        break;
-
         case PAINT_RECEIVE:
+            // Handled in a different mode
         break;
     }
 }
@@ -288,14 +305,45 @@ void paintSetupMainMenu(bool reset)
 
     if (paintGetAnySlotInUse(index))
     {
-        // Only add "gallery" and "share" if there's something to share
+        // Only add "gallery" if there's something to view
         addRowToMeleeMenu(paintMenu->menu, menuOptGallery);
-        addRowToMeleeMenu(paintMenu->menu, menuOptShare);
     }
 
-    addRowToMeleeMenu(paintMenu->menu, menuOptReceive);
+    addRowToMeleeMenu(paintMenu->menu, menuOptNetwork);
+    addRowToMeleeMenu(paintMenu->menu, menuOptHelp);
     addRowToMeleeMenu(paintMenu->menu, menuOptSettings);
     addRowToMeleeMenu(paintMenu->menu, menuOptExit);
+
+    if (reset)
+    {
+        paintMenu->menuSelection = 0;
+    }
+
+    paintMenu->menu->selectedRow = paintMenu->menuSelection;
+}
+
+void paintSetupNetworkMenu(bool reset)
+{
+    int32_t index;
+    paintLoadIndex(&index);
+
+    resetMeleeMenu(paintMenu->networkMenu, menuOptNetwork, paintNetworkMenuCb);
+
+    if (paintGetAnySlotInUse(index))
+    {
+        // Only add "share" if there's something to share
+        addRowToMeleeMenu(paintMenu->networkMenu, menuOptShare);
+    }
+
+    addRowToMeleeMenu(paintMenu->networkMenu, menuOptReceive);
+    addRowToMeleeMenu(paintMenu->networkMenu, menuOptExit);
+
+    if (reset)
+    {
+        paintMenu->networkMenuSelection = 0;
+    }
+
+    paintMenu->networkMenu->selectedRow = paintMenu->networkMenuSelection;
 }
 
 void paintSetupSettingsMenu(bool reset)
@@ -365,17 +413,18 @@ void paintMainMenuCb(const char* opt)
         paintMenu->screen = PAINT_GALLERY;
         paintGallerySetup(paintMenu->disp);
     }
-    else if (opt == menuOptShare)
+    else if (opt == menuOptNetwork)
     {
-        PAINT_LOGI("Selected Share");
-        paintMenu->screen = PAINT_SHARE;
-        switchToSwadgeMode(&modePaintShare);
+        PAINT_LOGI("Selected Network");
+        paintSetupNetworkMenu(true);
+        paintMenu->screen = PAINT_NETWORK_MENU;
     }
-    else if (opt == menuOptReceive)
+    else if (opt == menuOptHelp)
     {
-        PAINT_LOGI("Selected Receive");
-        paintMenu->screen = PAINT_RECEIVE;
-        switchToSwadgeMode(&modePaintReceive);
+        PAINT_LOGE("Selected Help");
+        paintMenu->screen = PAINT_HELP;
+        paintTutorialSetup(paintMenu->disp);
+        paintDrawScreenSetup(paintMenu->disp);
     }
     else if (opt == menuOptSettings)
     {
@@ -389,6 +438,29 @@ void paintMainMenuCb(const char* opt)
     }
 }
 
+void paintNetworkMenuCb(const char* opt)
+{
+    paintMenu->networkMenuSelection = paintMenu->networkMenu->selectedRow;
+    if (opt == menuOptShare)
+    {
+        PAINT_LOGI("Selected Share");
+        paintMenu->screen = PAINT_SHARE;
+        switchToSwadgeMode(&modePaintShare);
+    }
+    else if (opt == menuOptReceive)
+    {
+        PAINT_LOGI("Selected Receive");
+        paintMenu->screen = PAINT_RECEIVE;
+        switchToSwadgeMode(&modePaintReceive);
+    }
+    else if (opt == menuOptExit)
+    {
+        PAINT_LOGI("Selected Exit");
+        paintSetupMainMenu(false);
+        paintMenu->screen = PAINT_MENU;
+    }
+}
+
 void paintSettingsMenuCb(const char* opt)
 {
     paintMenu->settingsMenuSelection = paintMenu->settingsMenu->selectedRow;
@@ -396,7 +468,7 @@ void paintSettingsMenuCb(const char* opt)
     int32_t index;
     if (opt == menuOptLedsOff)
     {
-        // Enable the LEDsConfirm? NoConfirm? NoConfirm? No
+        // Enable the LEDs
         paintLoadIndex(&index);
         index |= PAINT_ENABLE_LEDS;
         paintSaveIndex(index);
@@ -437,7 +509,7 @@ void paintSettingsMenuCb(const char* opt)
     else if (opt == menuOptExit)
     {
         PAINT_LOGI("Selected Exit");
-        paintSetupMainMenu(true);
+        paintSetupMainMenu(false);
         paintMenu->screen = PAINT_MENU;
         return;
     }
@@ -450,10 +522,8 @@ void paintReturnToMainMenu(void)
     switch(paintMenu->screen)
     {
         case PAINT_MENU:
-        break;
-
+        case PAINT_NETWORK_MENU:
         case PAINT_SETTINGS_MENU:
-            paintMenu->screen = PAINT_MENU;
         break;
 
         case PAINT_DRAW:
@@ -465,14 +535,13 @@ void paintReturnToMainMenu(void)
             switchToSwadgeMode(&modePaint);
         break;
 
-        case PAINT_VIEW:
-        break;
-
         case PAINT_GALLERY:
             paintGalleryCleanup();
         break;
 
         case PAINT_HELP:
+            paintTutorialCleanup();
+            paintDrawScreenCleanup();
         break;
     }
 

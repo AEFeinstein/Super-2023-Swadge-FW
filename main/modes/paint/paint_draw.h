@@ -39,8 +39,13 @@ void paintSaveModeNextItem(void);
 void paintSaveModePrevOption(void);
 void paintSaveModeNextOption(void);
 
+// Setup/cleanup functions
 void paintDrawScreenSetup(display_t* disp);
 void paintDrawScreenCleanup(void);
+void paintTutorialSetup(display_t* disp);
+void paintTutorialPostSetup(void);
+void paintTutorialCleanup(void);
+bool paintTutorialCheckTriggers(void);
 
 void paintPositionDrawCanvas(void);
 

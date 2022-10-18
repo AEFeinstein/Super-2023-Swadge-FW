@@ -89,6 +89,11 @@
 #define PAINT_COLOR_PICKER_MIN_BAR_H 6
 #define PAINT_COLOR_PICKER_BAR_W 6
 
+//////// Help layout stuff
+
+// Number of lines of text to make room for below the canvas
+#define PAINT_HELP_TEXT_LINES 4
+
 //////// Macros
 
 // Calculates previous and next items with wraparound
@@ -312,6 +317,57 @@ typedef struct
     uint8_t galleryScale;
 } paintGallery_t;
 
+// Triggers for advancing the tutorial step
+typedef enum
+{
+    PRESS_ALL,
+    PRESS_ANY,
+    PRESS,
+    RELEASE,
+    CHANGE_BRUSH,
+    CHANGE_COLOR,
+    SELECT_MENU_ITEM,
+    NO_TRIGGER,
+} paintHelpTrigger_t;
+
+typedef enum
+{
+    IND_NONE,
+    IND_BOX,
+    IND_ARROW,
+} paintHelpIndicatorType_t;
+
+typedef struct
+{
+    paintHelpIndicatorType_t type;
+
+    union {
+        struct { uint16_t x0, y0, x1, y1; } box;
+        struct { uint16_t x, y; int dir; } arrow;
+    };
+} paintHelpIndicator_t;
+
+typedef struct
+{
+    paintHelpTrigger_t trigger;
+    void* triggerDataPtr;
+    int64_t triggerData;
+    paintHelpIndicator_t indicators[4];
+
+    const char* prompt;
+} paintHelpStep_t;
+
+typedef struct
+{
+    paintHelpStep_t* curHelp;
+    uint16_t allButtons;
+    uint16_t curButtons;
+    buttonBit_t lastButton;
+    bool lastButtonDown;
+
+    uint16_t helpH;
+} paintHelp_t;
+
 typedef struct
 {
     //////// General app data
@@ -321,13 +377,13 @@ typedef struct
     // Main Menu
     meleeMenu_t* menu;
     meleeMenu_t* settingsMenu;
+    meleeMenu_t* networkMenu;
 
-    uint8_t menuSelection, settingsMenuSelection;
+    uint8_t menuSelection, networkMenuSelection, settingsMenuSelection;
 
     bool eraseDataSelected, eraseDataConfirm;
 
-    // Font for drawing tool info
-    // TODO: Use images instead!
+    // Font for drawing brush info
     font_t toolbarFont;
 
     display_t* disp;
