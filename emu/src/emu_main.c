@@ -272,13 +272,14 @@ void emu_loop(void)
         emuSensorHandleKey(randKeys[keyIdx], keyState[keyIdx]);
     }
 
-    // Randomly change the swadge mode every minute
+    // Change the swadge mode every minute
     static int64_t resetToMenuTimer = 0;
     resetToMenuTimer += tElapsed;
     while(resetToMenuTimer >= (1000000 * 60))
     {
         resetToMenuTimer -= (1000000 * 60);
-        int modeIdx = esp_random() % (sizeof(allModes) / sizeof(allModes[0]));
+        static int modeIdx = 0;
+        modeIdx = (modeIdx + 1) % (sizeof(allModes) / sizeof(allModes[0]));
         switchToSwadgeMode(allModes[modeIdx]);
     }
 
