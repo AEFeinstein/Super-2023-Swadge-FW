@@ -35,5 +35,6 @@ void hideCursor(paintCursor_t* cursor, paintCanvas_t* canvas);
 void showCursor(paintCursor_t* cursor, paintCanvas_t* canvas);
 void drawCursor(paintCursor_t* cursor, paintCanvas_t* canvas);
 void moveCursorRelative(paintCursor_t* cursor, paintCanvas_t* canvas, int16_t xDiff, int16_t yDiff);
+void moveCursorAbsolute(paintCursor_t* cursor, paintCanvas_t* canvas, uint16_t x, uint16_t y);
 
 #endif

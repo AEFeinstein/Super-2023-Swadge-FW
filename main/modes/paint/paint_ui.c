@@ -499,3 +499,12 @@ void moveCursorRelative(paintCursor_t* cursor, paintCanvas_t* canvas, int16_t xD
         cursor->y = newY;
     }
 }
+
+void moveCursorAbsolute(paintCursor_t* cursor, paintCanvas_t* canvas, uint16_t x, uint16_t y)
+{
+    if (x < canvas->w && y < canvas->h) {
+        cursor->redraw = true;
+        cursor->x = x;
+        cursor->y = y;
+    }
+}

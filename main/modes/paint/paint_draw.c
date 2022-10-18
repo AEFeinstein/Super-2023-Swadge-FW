@@ -218,7 +218,9 @@ void paintDrawScreenSetup(display_t* disp)
         paintState->artist[i].brushDef = firstBrush;
         paintState->artist[i].brushWidth = firstBrush->minSize;
 
-        moveCursorRelative(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
+        setCursorSprite(&paintState->artist[i].cursor, &paintState->canvas, &paintState->cursorWsg);
+        setCursorOffset(&paintState->artist[i].cursor, (paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
+        moveCursorAbsolute(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
     }
 
     paintState->disp->clearPx();
@@ -360,9 +362,10 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                 paintFreeCursorSprite(&paintState->cursorWsg);
                 paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
                 setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
+                setCursorOffset(getCursor(), (paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
 
                 // Put the cursor in the middle of the screen
-                moveCursorRelative(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
+                moveCursorAbsolute(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
                 showCursor(getCursor(), &paintState->canvas);
                 paintUpdateLeds();
             }
