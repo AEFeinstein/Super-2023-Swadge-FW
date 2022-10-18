@@ -631,6 +631,7 @@ void paintSaveModeNextOption(void)
 void paintEditPaletteUpdate(void)
 {
     paintState->newColor = (paintState->editPaletteR * 36 + paintState->editPaletteG * 6 + paintState->editPaletteB);
+    paintUpdateLeds();
 }
 
 void paintEditPaletteDecChannel(void)
@@ -1027,12 +1028,8 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
             {
                 // Select previous color
                 paintState->redrawToolbar = true;
-                if (paintState->paletteSelect == 0)
-                {
-                    paintState->paletteSelect = PAINT_MAX_COLORS - 1;
-                } else {
-                    paintState->paletteSelect -= 1;
-                }
+                paintState->paletteSelect = PREV_WRAP(paintState->paletteSelect, PAINT_MAX_COLORS);
+                paintUpdateLeds();
                 break;
             }
 
@@ -1040,7 +1037,8 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
             {
                 // Select next color
                 paintState->redrawToolbar = true;
-                paintState->paletteSelect = (paintState->paletteSelect + 1) % PAINT_MAX_COLORS;
+                paintState->paletteSelect = NEXT_WRAP(paintState->paletteSelect, PAINT_MAX_COLORS);
+                paintUpdateLeds();
                 break;
             }
 
@@ -1491,7 +1489,28 @@ void paintUpdateRecents(uint8_t selectedIndex)
 
 void paintUpdateLeds(void)
 {
-    uint32_t rgb = (paintState->index & PAINT_ENABLE_LEDS) ? paletteToRGB(getArtist()->fgColor) : 0;
+    uint32_t rgb = 0;
+
+    // Only set the LED color if LEDs are enabled
+    if (paintState->index & PAINT_ENABLE_LEDS)
+    {
+        if (paintState->buttonMode == BTN_MODE_PALETTE)
+        {
+            // Show the edited color if we're editing the palette
+            rgb = paletteToRGB(paintState->newColor);
+        }
+        else if (paintState->buttonMode == BTN_MODE_SELECT)
+        {
+            // Show the selected color if we're picking colors
+            rgb = paletteToRGB(paintState->canvas.palette[paintState->paletteSelect]);
+        }
+        else
+        {
+            // Otherwise, use the current draw color
+            rgb = paletteToRGB(getArtist()->fgColor);
+        }
+    }
+
     for (uint8_t i = 0; i < NUM_LEDS; i++)
     {
         paintState->leds[i].b = (rgb >>  0) & 0xFF;
