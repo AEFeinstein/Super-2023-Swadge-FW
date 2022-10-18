@@ -298,9 +298,9 @@ const char* semitoneNoteNames[NUM_SEMITONES] =
 static const char theWordGuitar[] = "Guitar";
 static const char theWordViolin[] = "Violin";
 static const char theWordUkulele[] = "Ukulele";
-static const char leftStr[] = "< Exit";
-static const char rightStrTuner[] = "Tuner >";
-static const char rightStrMetronome[] = "Metronome >";
+static const char leftStr[] = ": ";
+static const char rightStrTuner[] = "Start: Tuner";
+static const char rightStrMetronome[] = "Start: Metronome";
 
 // TODO: these should be const after being assigned
 static int TUNER_FLAT_THRES_X;
@@ -665,22 +665,29 @@ void tunernomeMainLoop(int64_t elapsedUs)
         case TN_TUNER:
         {
             // Instructions at top of display
-            drawText(tunernome->disp, &tunernome->ibm_vga8, c115, "Blue=Flat", CORNER_OFFSET, CORNER_OFFSET);
-            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, "White=OK", (tunernome->disp->w - textWidth(&tunernome->ibm_vga8,
-                     "White=OK")) / 2, CORNER_OFFSET);
-            drawText(tunernome->disp, &tunernome->ibm_vga8, c500, "Red=Sharp", tunernome->disp->w - textWidth(&tunernome->ibm_vga8,
-                     "Red=Sharp") - CORNER_OFFSET, CORNER_OFFSET);
+            drawText(tunernome->disp, &tunernome->radiostars, c115, "Flat", CORNER_OFFSET, CORNER_OFFSET);
+            drawText(tunernome->disp, &tunernome->radiostars, c555, "In-Tune", (tunernome->disp->w - textWidth(&tunernome->radiostars,
+                     "In-Tune")) / 2, CORNER_OFFSET);
+            drawText(tunernome->disp, &tunernome->radiostars, c500, "Sharp", tunernome->disp->w - textWidth(&tunernome->radiostars,
+                     "Sharp") - CORNER_OFFSET, CORNER_OFFSET);
 
             // Left/Right button functions at bottom of display
-            int16_t afterExit = drawText(tunernome->disp, &tunernome->ibm_vga8, c555, leftStr, CORNER_OFFSET,
+            int16_t afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c151, "A", CORNER_OFFSET,
                                          tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
-            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrMetronome,
-                     tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrMetronome) - CORNER_OFFSET,
-                     tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+            afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c555, "/", afterText,
+                                 tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+            afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c511, "B", afterText,
+                                 tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+            afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c555, leftStr, afterText,
+                                         tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
             char gainStr[16] = {0};
             snprintf(gainStr, sizeof(gainStr) - 1, "Gain: %d", getMicGain());
-            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, gainStr, 30 + afterExit,
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, gainStr, afterText,
+                     tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrMetronome,
+                     tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrMetronome) - CORNER_OFFSET,
                      tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
             // Up/Down arrows in middle of display around current note/mode
