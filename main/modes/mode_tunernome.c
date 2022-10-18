@@ -51,7 +51,8 @@
 
 #define METRONOME_CENTER_X    tunernome->disp->w / 2
 #define METRONOME_CENTER_Y    tunernome->disp->h - 16 - CORNER_OFFSET
-#define METRONOME_RADIUS      65
+#define METRONOME_RADIUS      138
+#define TUNER_RADIUS          65
 #define INITIAL_BPM           60
 #define MAX_BPM               400
 #define METRONOME_FLASH_MS    35
@@ -357,9 +358,9 @@ void tunernomeEnterMode(display_t* disp)
 
     float intermedX = cosf(TONAL_DIFF_IN_TUNE_DEVIATION * M_PI / 17 );
     float intermedY = sinf(TONAL_DIFF_IN_TUNE_DEVIATION * M_PI / 17 );
-    TUNER_SHARP_THRES_X = round(METRONOME_CENTER_X - (intermedX * METRONOME_RADIUS));
-    TUNER_FLAT_THRES_X = round(METRONOME_CENTER_X + (intermedX * METRONOME_RADIUS));
-    TUNER_THRES_Y = round(METRONOME_CENTER_Y - (ABS(intermedY) * METRONOME_RADIUS));
+    TUNER_SHARP_THRES_X = round(METRONOME_CENTER_X - (intermedX * TUNER_RADIUS));
+    TUNER_FLAT_THRES_X = round(METRONOME_CENTER_X + (intermedX * TUNER_RADIUS));
+    TUNER_THRES_Y = round(METRONOME_CENTER_Y - (ABS(intermedY) * TUNER_RADIUS));
 
     loadWsg("uparrow.wsg", &(tunernome->upArrowWsg));
     loadWsg("flat_mm.wsg", &(tunernome->flatWsg));
@@ -794,8 +795,8 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     float intermedY = cosf(clampedTonalDiff * M_PI / 360.0f );
 
                     // Find the actual end point of the full-length needle
-                    int x = round(METRONOME_CENTER_X + (intermedX * METRONOME_RADIUS));
-                    int y = round(METRONOME_CENTER_Y - (intermedY * METRONOME_RADIUS));
+                    int x = round(METRONOME_CENTER_X + (intermedX * TUNER_RADIUS));
+                    int y = round(METRONOME_CENTER_Y - (intermedY * TUNER_RADIUS));
 
                     // Plot the needle
                     plotLine(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y, x, y, c555, 0);
@@ -803,7 +804,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     plotLine(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y, TUNER_FLAT_THRES_X, TUNER_THRES_Y, c555, 2);
                     plotLine(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y, TUNER_SHARP_THRES_X, TUNER_THRES_Y, c555, 2);
                     // Plot a semicircle around it all
-                    plotCircleQuadrants(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y, METRONOME_RADIUS, false, false, true, true,
+                    plotCircleQuadrants(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y, TUNER_RADIUS, false, false, true, true,
                                         c555);
 
                     // Plot text on top of everything else
