@@ -109,8 +109,14 @@ void paintDrawSquarePen(paintCanvas_t* canvas, point_t* points, uint8_t numPoint
 
 void paintDrawCirclePen(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    // Add one to the size because it isn't really a circle at r=1
-    plotCircleFilledScaled(canvas->disp, points[0].x, points[0].y, size + 1, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+    plotCircleFilledScaled(canvas->disp, points[0].x, points[0].y, size, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+
+    // fill out the circle if it's very small
+    if (size == 1)
+    {
+        setPxScaled(canvas->disp, points[0].x, points[0].y - 1, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+        setPxScaled(canvas->disp, points[0].x, points[0].y + 1, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+    }
 }
 
 void paintDrawLine(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)

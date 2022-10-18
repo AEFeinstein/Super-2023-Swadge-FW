@@ -57,37 +57,8 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = NO_TRIGGER, .prompt = "That's everything. Happy painting!" },
 };
 
-paintHelpStep_t* lastHelp = helpSteps + sizeof(helpSteps) / sizeof(helpSteps[0]) - 1;
+const paintHelpStep_t* lastHelp = helpSteps + sizeof(helpSteps) / sizeof(helpSteps[0]) - 1;
 
-static paletteColor_t cursorPxsBox[] =
-{
-    c000, c000, c000, c000, c000,
-    c000, cTransparent, cTransparent, cTransparent, c000,
-    c000, cTransparent, cTransparent, cTransparent, c000,
-    c000, cTransparent, cTransparent, cTransparent, c000,
-    c000, c000, c000, c000, c000,
-};
-
-static paletteColor_t cursorPxsCrosshair[] =
-{
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-    c000, c000, cTransparent, c000, c000,
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-    cTransparent, cTransparent, c000, cTransparent, cTransparent,
-};
-
-wsg_t cursorCrosshairWsg = {
-    .px = cursorPxsCrosshair,
-    .w = 5,
-    .h = 5,
-};
-
-wsg_t cursorBoxWsg = {
-    .px = cursorPxsBox,
-    .w = 5,
-    .h = 5,
-};
 
 static paletteColor_t defaultPalette[] =
 {
@@ -129,8 +100,8 @@ brush_t brushes[] =
 const char activeIconStr[] = "%s_active.wsg";
 const char inactiveIconStr[] = "%s_inactive.wsg";
 
-brush_t* firstBrush = brushes;
-brush_t* lastBrush = brushes + sizeof(brushes) / sizeof(brushes[0]) - 1;
+const brush_t* firstBrush = brushes;
+const brush_t* lastBrush = brushes + sizeof(brushes) / sizeof(brushes[0]) - 1;
 
 void paintDrawScreenSetup(display_t* disp)
 {
@@ -149,7 +120,7 @@ void paintDrawScreenSetup(display_t* disp)
     // Set up the brush icons
     uint16_t spriteH = 0;
     char iconName[32];
-    for (brush_t* brush = firstBrush; brush <= lastBrush; brush++)
+    for (brush_t* brush = brushes; brush <= lastBrush; brush++)
     {
         snprintf(iconName, sizeof(iconName), activeIconStr, brush->iconName);
         if (!loadWsg(iconName, &brush->iconActive))
@@ -230,14 +201,18 @@ void paintDrawScreenSetup(display_t* disp)
         getArtist()->bgColor = paintState->canvas.palette[1];
     }
 
+    paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
+
     // Init the cursors for each artist
     // TODO only do one for singleplayer?
     for (uint8_t i = 0; i < sizeof(paintState->artist) / sizeof(paintState->artist[0]); i++)
     {
-        initCursor(&paintState->artist[i].cursor, &paintState->canvas, &cursorBoxWsg);
+        initCursor(&paintState->artist[i].cursor, &paintState->canvas, &paintState->cursorWsg);
         initPxStack(&paintState->artist[i].pickPoints);
         paintState->artist[i].brushDef = firstBrush;
         paintState->artist[i].brushWidth = firstBrush->minSize;
+
+        moveCursorRelative(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
     }
 
     paintState->disp->clearPx();
@@ -251,7 +226,7 @@ void paintDrawScreenSetup(display_t* disp)
 
 void paintDrawScreenCleanup(void)
 {
-    for (brush_t* brush = firstBrush; brush <= lastBrush; brush++)
+    for (brush_t* brush = brushes; brush <= lastBrush; brush++)
     {
         freeWsg(&brush->iconActive);
         freeWsg(&brush->iconInactive);
@@ -262,6 +237,8 @@ void paintDrawScreenCleanup(void)
         deinitCursor(&paintState->artist[i].cursor);
         freePxStack(&paintState->artist[i].pickPoints);
     }
+
+    paintFreeCursorSprite(&paintState->cursorWsg);
 
     freeFont(&paintState->smallFont);
     freeFont(&paintState->saveMenuFont);
@@ -337,6 +314,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
     // Screen Reset
     if (paintState->clearScreen)
     {
+        hideCursor(getCursor(), &paintState->canvas);
         paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
         paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
         paintUpdateLeds();
@@ -373,6 +351,12 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                 getArtist()->fgColor = paintState->canvas.palette[0];
                 getArtist()->bgColor = paintState->canvas.palette[1];
 
+                paintFreeCursorSprite(&paintState->cursorWsg);
+                paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
+                setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
+
+                // Put the cursor in the middle of the screen
+                moveCursorRelative(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
                 showCursor(getCursor(), &paintState->canvas);
                 paintUpdateLeds();
             }
@@ -426,7 +410,6 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
             paintState->btnHoldTime += elapsedUs;
             if (paintState->firstMove || paintState->btnHoldTime >= BUTTON_REPEAT_TIME)
             {
-
                 moveCursorRelative(getCursor(), &paintState->canvas, paintState->moveX, paintState->moveY);
                 paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
 
@@ -898,6 +881,7 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                         {
                             paintState->clearScreen = true;
                             paintState->saveMenu = HIDDEN;
+                            paintState->buttonMode = BTN_MODE_DRAW;
                         }
                         else
                         {
@@ -930,6 +914,7 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                         {
                             paintState->clearScreen = true;
                             paintState->saveMenu = HIDDEN;
+                            paintState->buttonMode = BTN_MODE_DRAW;
                         }
                         break;
                     }
@@ -1159,6 +1144,7 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
                 paintState->aHeld = false;
                 paintState->moveX = 0;
                 paintState->moveY = 0;
+                paintState->btnHoldTime = 0;
                 break;
             }
 
@@ -1172,8 +1158,7 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
             case BTN_B:
             {
                 // Swap the foreground and background colors
-                swap(&getArtist()->fgColor, &getArtist()->bgColor);
-                swap(&paintState->canvas.palette[0], &paintState->canvas.palette[1]);
+                paintSwapFgBgColors();
 
                 paintState->redrawToolbar = true;
                 paintState->recolorPickPoints = true;
@@ -1226,6 +1211,12 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
                     paintState->buttonMode = BTN_MODE_SAVE;
                     paintState->saveMenu = PICK_SLOT_SAVE;
                     paintState->redrawToolbar = true;
+
+                    // Don't let the cursor keep moving
+                    paintState->moveX = 0;
+                    paintState->moveY = 0;
+                    paintState->btnHoldTime = 0;
+                    paintState->aHeld = false;
                 }
                 break;
             }
@@ -1439,6 +1430,38 @@ void paintIncBrushWidth()
     {
         getArtist()->brushWidth = getArtist()->brushDef->maxSize;
     }
+}
+
+void paintSwapFgBgColors(void)
+{
+    uint8_t fgIndex = 0, bgIndex = 0;
+    swap(&getArtist()->fgColor, &getArtist()->bgColor);
+
+    for (uint8_t i = 0; i < PAINT_MAX_COLORS; i++)
+    {
+        if (paintState->canvas.palette[i] == getArtist()->fgColor)
+        {
+            fgIndex = i;
+        }
+        else if (paintState->canvas.palette[i] == getArtist()->bgColor)
+        {
+            bgIndex = i;
+        }
+    }
+
+    for (uint8_t i = fgIndex; i > 0; i--)
+    {
+        if (i == bgIndex)
+        {
+            continue;
+        }
+        paintState->canvas.palette[i] = paintState->canvas.palette[i - 1 + ((i < bgIndex) ? 1 : 0)];
+    }
+
+    paintState->canvas.palette[0] = getArtist()->fgColor;
+
+    paintUpdateLeds();
+    paintDrawPickPoints();
 }
 
 void paintUpdateRecents(uint8_t selectedIndex)

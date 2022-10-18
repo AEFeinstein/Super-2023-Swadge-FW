@@ -1,5 +1,7 @@
 #include "paint_ui.h"
 
+#include <malloc.h>
+
 #include "bresenham.h"
 
 #include "paint_common.h"
@@ -97,12 +99,22 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
     drawColorBox(canvas->disp, PAINT_ACTIVE_COLOR_X + PAINT_COLORBOX_W / 2, PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_H / 2, PAINT_COLORBOX_W, PAINT_COLORBOX_H, artist->fgColor, false, cTransparent, PAINT_COLORBOX_SHADOW_BOTTOM);
 
     uint16_t colorBoxX = PAINT_COLORBOX_MARGIN_X + (paintState->canvas.x - 1 - PAINT_COLORBOX_W - PAINT_COLORBOX_MARGIN_X * 2 - 2) / 2;
+    uint16_t colorBoxY = PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_W + PAINT_COLORBOX_W / 2 + 1 + PAINT_COLORBOX_MARGIN_TOP;
+
+    // vertically center the color boxes in the available space
+    colorBoxY = colorBoxY + (canvas->disp->h - PAINT_COLORBOX_MARGIN_TOP - (PAINT_MAX_COLORS * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H)) - colorBoxY - PAINT_COLORBOX_MARGIN_TOP - 11) / 2;
 
 
     //////// Recent Colors (palette)
     for (int i = 0; i < PAINT_MAX_COLORS; i++)
     {
-        drawColorBox(canvas->disp, colorBoxX, PAINT_COLORBOX_Y + i * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H), PAINT_COLORBOX_W, PAINT_COLORBOX_H, canvas->palette[i], (paintState->buttonMode == BTN_MODE_SELECT || paintState->buttonMode == BTN_MODE_PALETTE) && paintState->paletteSelect == i, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
+        drawColorBox(canvas->disp, colorBoxX, colorBoxY + i * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H), PAINT_COLORBOX_W, PAINT_COLORBOX_H, canvas->palette[i], false, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
+    }
+
+    if (paintState->buttonMode == BTN_MODE_SELECT || paintState->buttonMode == BTN_MODE_PALETTE)
+    {
+        // Draw a slightly bigger color box for the selected color
+        drawColorBox(canvas->disp, colorBoxX - 3, colorBoxY + paintState->paletteSelect * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H) - 3, PAINT_COLORBOX_W + 6, PAINT_COLORBOX_H + 6, canvas->palette[paintState->paletteSelect], true, PAINT_COLORBOX_SHADOW_TOP, PAINT_COLORBOX_SHADOW_BOTTOM);
     }
 
 
@@ -325,6 +337,42 @@ void paintRenderColorPicker(paintArtist_t* artist, paintCanvas_t* canvas, paintD
 void paintClearCanvas(const paintCanvas_t* canvas, paletteColor_t bgColor)
 {
     fillDisplayArea(canvas->disp, canvas->x, canvas->y, canvas->x + canvas->w * canvas->xScale, canvas->y + canvas->h * canvas->yScale, bgColor);
+}
+
+// Generates a cursor sprite that's a box
+void paintGenerateCursorSprite(wsg_t* cursorWsg, const paintCanvas_t* canvas)
+{
+    cursorWsg->w = canvas->xScale + 2;
+    cursorWsg->h = canvas->yScale + 2;
+    cursorWsg->px = malloc(sizeof(paletteColor_t) * cursorWsg->w * cursorWsg->h);
+
+    paletteColor_t pxVal;
+    for (uint16_t x = 0; x < cursorWsg->w; x++)
+    {
+        for (uint16_t y = 0; y < cursorWsg->h; y++)
+        {
+            if (x == 0 || x == cursorWsg->w - 1 || y == 0 || y == cursorWsg->h - 1)
+            {
+                pxVal = c000;
+            }
+            else
+            {
+                pxVal = cTransparent;
+            }
+            cursorWsg->px[y * cursorWsg->w + x] = pxVal;
+        }
+    }
+}
+
+void paintFreeCursorSprite(wsg_t* cursorWsg)
+{
+    if (cursorWsg->px != NULL)
+    {
+        free(cursorWsg->px);
+        cursorWsg->px = NULL;
+        cursorWsg->w = 0;
+        cursorWsg->h = 0;
+    }
 }
 
 void initCursor(paintCursor_t* cursor, paintCanvas_t* canvas, const wsg_t* sprite)
