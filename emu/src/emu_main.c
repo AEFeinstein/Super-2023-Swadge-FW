@@ -408,7 +408,7 @@ void emu_loop(void)
  */
 void init_crashSignals(void)
 {
-    const int sigs[] = {SIGSEGV, SIGBUS, SIGILL, SIGSYS, SIGABRT};
+    const int sigs[] = {SIGSEGV, SIGBUS, SIGILL, SIGSYS, SIGABRT, SIGFPE, SIGIOT, SIGTRAP};
     for(int i = 0; i < sizeof(sigs) / sizeof(sigs[0]); i++)
     {
         struct sigaction action;
@@ -438,7 +438,18 @@ void signalHandler_crash(int signum, siginfo_t* si, void* vcontext)
 
 	if(-1 != dumpFileDescriptor)
 	{
-		snprintf(msg, sizeof(msg), "Signal %d received!\n", signum);
+		snprintf(msg, sizeof(msg), "Signal %d received!\nsigno: %d, errno %d\n, code %d\n", signum, si->si_signo, si->si_errno, si->si_code);
+		result = write(dumpFileDescriptor, msg, strnlen(msg, sizeof(msg)));
+		(void)result;
+
+        memset(msg, 0, sizeof(msg));
+        for(int i = 0; i < __SI_PAD_SIZE; i++)
+        {
+            char tmp[8];
+            sprintf(tmp, "%02X", si->_sifields._pad[i]);
+            strcat(msg, tmp);
+        }
+        strcat(msg, "\n");
 		result = write(dumpFileDescriptor, msg, strnlen(msg, sizeof(msg)));
 		(void)result;
         
