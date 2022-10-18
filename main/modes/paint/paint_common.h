@@ -76,14 +76,11 @@
 // Vertical margin between each color box
 #define PAINT_COLORBOX_MARGIN_TOP 2
 // Minimum margin to the left and right of each color box
-#define PAINT_COLORBOX_MARGIN_X 2
+#define PAINT_COLORBOX_MARGIN_X 4
 
 // X and Y position of the active color boxes (foreground/background color)
 #define PAINT_ACTIVE_COLOR_X ((canvas->x - PAINT_COLORBOX_W - PAINT_COLORBOX_W / 2) / 2)
 #define PAINT_ACTIVE_COLOR_Y (canvas->y - PAINT_COLORBOX_H / 2)
-
-// Y position of the first palette color box (X is automatic)
-#define PAINT_COLORBOX_Y (PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_H * 2)
 
 // Color picker stuff
 #define PAINT_COLOR_PICKER_MIN_BAR_H 6
@@ -176,6 +173,9 @@ typedef struct
     // All shared state for 1 or 2 players
     paintArtist_t artist[2];
 
+    // The generated cursor sprite
+    wsg_t cursorWsg;
+
 
     //////// Local-only UI state
 
@@ -225,17 +225,16 @@ typedef struct
     // True when a save has been started but not yet completed. Prevents input while saving.
     bool saveInProgress;
 
-    //// Save Menu Flags
-    // TODO: Move as much as possible into paintSaveMenu_t
 
-    // The save slot selected when in BTN_MODE_SAVE
-    uint8_t selectedSlot;
+    //// Save Menu Flags
 
     // The current state of the save / load menu
     paintSaveMenu_t saveMenu;
 
-    // State for Yes/No in overwrite save menu.
-    // TODO: Rename this to something more general
+    // The save slot selected for PICK_SLOT_SAVE and PICK_SLOT_LOAD
+    uint8_t selectedSlot;
+
+    // State for Yes/No options in the save menu.
     bool saveMenuBoolOption;
 
 
@@ -301,6 +300,8 @@ typedef struct
     paintCanvas_t canvas;
     int32_t index;
 
+    font_t infoFont;
+
     // TODO rename these to better things now that they're in their own struct
 
     // Last timestamp of gallery transition
@@ -308,6 +309,9 @@ typedef struct
 
     // Amount of time between each transition, or 0 for disabled
     int64_t gallerySpeed;
+
+    // Reaining time that info text will be shown
+    int64_t infoTimeRemaining;
 
     // Current image used in gallery
     uint8_t gallerySlot;
@@ -359,7 +363,7 @@ typedef struct
 
 typedef struct
 {
-    paintHelpStep_t* curHelp;
+    const paintHelpStep_t* curHelp;
     uint16_t allButtons;
     uint16_t curButtons;
     buttonBit_t lastButton;

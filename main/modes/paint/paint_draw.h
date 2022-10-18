@@ -10,10 +10,6 @@
 
 extern paintDraw_t* paintState;
 
-extern wsg_t cursorCrosshairWsg;;
-
-extern wsg_t cursorBoxWsg;
-
 // Mode callback delegates
 void paintDrawScreenMainLoop(int64_t elapsedUs);
 void paintDrawScreenButtonCb(const buttonEvt_t* evt);
@@ -50,6 +46,7 @@ bool paintTutorialCheckTriggers(void);
 void paintPositionDrawCanvas(void);
 
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
+void paintSwapFgBgColors(void);
 void paintUpdateRecents(uint8_t selectedIndex);
 void paintUpdateLeds(void);
 void paintDrawPickPoints(void);
@@ -63,7 +60,6 @@ void paintDecBrushWidth(void);
 void paintIncBrushWidth(void);
 
 // Cursor helper functions
-void setCursor(const wsg_t* cursorWsg);
 void paintMoveCursorRel(int8_t xDiff, int8_t yDiff);
 void enableCursor(void);
 void disableCursor(void);
