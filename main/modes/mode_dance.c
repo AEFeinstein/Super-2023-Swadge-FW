@@ -439,7 +439,7 @@ void danceComet(uint32_t tElapsedUs, uint32_t arg, bool reset)
 
     if(ledsUpdated)
     {
-        setLeds(leds, sizeof(leds));
+        setLeds(leds, NUM_LEDS);
     }
 }
 
@@ -513,7 +513,7 @@ void dancePulse(uint32_t tElapsedUs, uint32_t arg, bool reset)
 
     if(ledsUpdated)
     {
-        setLeds(leds, sizeof(leds));
+        setLeds(leds, NUM_LEDS);
     }
 }
 
@@ -614,7 +614,7 @@ void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset)
 
     if(ledsUpdated)
     {
-        setLeds(leds, sizeof(leds));
+        setLeds(leds, NUM_LEDS);
     }
 }
 
@@ -661,7 +661,7 @@ void danceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset)
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setLeds(leds, sizeof(leds));
+        setLeds(leds, NUM_LEDS);
     }
 }
 
@@ -712,7 +712,7 @@ void danceSharpRainbow(uint32_t tElapsedUs, uint32_t arg __attribute__((unused))
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setLeds(leds, sizeof(leds));
+        setLeds(leds, NUM_LEDS);
     }
 }
 
@@ -802,7 +802,7 @@ void danceBinaryCounter(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setLeds(leds, sizeof(leds));
+        setLeds(leds, NUM_LEDS);
     }
 }
 
@@ -878,7 +878,7 @@ void danceFire(uint32_t tElapsedUs, uint32_t arg, bool reset)
     }
     if(ledsUpdated)
     {
-        setLeds(leds, sizeof(leds));
+        setLeds(leds, NUM_LEDS);
     }
 }
 
@@ -942,7 +942,7 @@ void dancePoliceSiren(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)),
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setLeds(leds, sizeof(leds));
+        setLeds(leds, NUM_LEDS);
     }
 }
 
@@ -1019,7 +1019,7 @@ void dancePureRandom(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)), 
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setLeds(leds, sizeof(leds));
+        setLeds(leds, NUM_LEDS);
     }
 }
 
@@ -1072,7 +1072,7 @@ void danceRainbowSolid(uint32_t tElapsedUs, uint32_t arg __attribute__((unused))
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setLeds(leds, sizeof(leds));
+        setLeds(leds, NUM_LEDS);
     }
 }
 
@@ -1280,7 +1280,7 @@ void danceChristmas(uint32_t tElapsedUs, uint32_t arg, bool reset)
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setLeds(leds, sizeof(leds));
+        setLeds(leds, NUM_LEDS);
     }
 }
 
@@ -1297,7 +1297,7 @@ void danceNone(uint32_t tElapsedUs __attribute__((unused)),
     if(reset)
     {
         led_t leds[NUM_LEDS] = {{0}};
-        setLeds(leds, sizeof(leds));
+        setLeds(leds, NUM_LEDS);
     }
 }
 

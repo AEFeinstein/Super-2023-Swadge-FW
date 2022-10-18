@@ -1908,7 +1908,7 @@ void jumperDoLEDs(int64_t elapsedUs)
     }
     
     //ledTimer
-    setLeds(leds, sizeof(leds));
+    setLeds(leds, NUM_LEDS);
 }
 
 void jumperGameButtonCb(buttonEvt_t* evt)
