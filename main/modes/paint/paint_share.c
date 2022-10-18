@@ -669,6 +669,7 @@ void paintBeginShare(void)
 void paintShareExitMode(void)
 {
     p2pDeinit(&paintShare->p2pInfo);
+    freeFont(&paintShare->toolbarFont);
     free(paintShare);
 }
 
