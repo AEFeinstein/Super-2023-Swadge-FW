@@ -2158,7 +2158,7 @@ void ttScoresDisplay(void)
 
     // Draw the clear score text and bar.
     int16_t clearScoresTextX = 29;
-    int16_t clearScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h + 1);
+    // int16_t clearScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h + 1);
 
     // fill the clear scores area depending on how long the button's held down.
     if (tiltrads->clearScoreTimer != 0)
