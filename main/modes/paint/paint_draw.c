@@ -22,7 +22,6 @@ paintHelp_t* paintHelp;
  * step to be considered "completed" and move on to the next step.
  *
  * TODO: Add steps for Polygon brush
- * TODO: Add instructions for color picker
  * TODO: Add an "Explain" for each brush after the tutorial
  * TODO: Disallow certain actions at certain steps to prevent confusion/desyncing
  */
@@ -52,8 +51,15 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = PRESS_ANY, .triggerData = UP | DOWN | SELECT, .prompt = "Press UP, DOWN, or SELECT to go through the menu items" },
     { .trigger = SELECT_MENU_ITEM, .triggerData = PICK_SLOT_SAVE, .prompt = "Now, select the SAVE option.." },
     { .trigger = PRESS_ANY, .triggerData = LEFT | RIGHT, .prompt = "Use D-Pad LEFT and RIGHT to switch between save slots, or other options in the menu" },
-    { .trigger = PRESS_ANY, .triggerData = BTN_A | BTN_B, .prompt = "Use the A BUTTON to confirm, or the B BUTTON to cancel and go back." },
+    { .trigger = PRESS_ANY, .triggerData = BTN_A | BTN_B, .prompt = "Use the A BUTTON to confirm, or the B BUTTON to cancel and go back. If data could be lost, you'll always be asked to confirm!" },
     { .trigger = SELECT_MENU_ITEM, .triggerData = HIDDEN, .prompt = "Press START or the B BUTTON to exit the menu." },
+    { .trigger = PRESS, .triggerData = START, .prompt = "Let's try editing the palette! Press START to open the menu one more time." },
+    { .trigger = SELECT_MENU_ITEM, .triggerData = EDIT_PALETTE, .prompt = "Use UP, DOWN, and SELECT to select EDIT PALETTE" },
+    { .trigger = PRESS, .triggerData = BTN_A, .prompt = "Press the A BUTTON to begin editing the palette" },
+    { .trigger = PRESS_ANY, .triggerData = UP | DOWN, .prompt = "Use D-Pad UP and DOWN to select a color to edit" },
+    { .trigger = PRESS_ANY, .triggerData = LEFT | RIGHT, .prompt = "Use D-Pad LEFT and RIGHT to change the selected color's RED, GREED, or BLUE value." },
+    { .trigger = PRESS, .triggerData = SELECT, .prompt = "Press SELECT to switch between editing the color's RED, GREEN, or BLUE values." },
+    { .trigger = PRESS_ANY, .triggerData = BTN_A | BTN_B, .prompt = "Press the A BUTTON to confirm and update the canvas with the new color. Or, press the B BUTTON to reset." },
     { .trigger = NO_TRIGGER, .prompt = "That's everything. Happy painting!" },
 };
 
