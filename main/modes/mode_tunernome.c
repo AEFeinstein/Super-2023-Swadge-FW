@@ -68,7 +68,7 @@
 // #define MAX(X, Y) ( ((X) > (Y)) ? (X) : (Y) )
 
 #define NUM_SEMITONES 12
-#define NUM_TSIGS 8
+#define NUM_TSIGS 7
 
 typedef enum
 {
@@ -309,13 +309,12 @@ static int TUNER_THRES_Y;
 static const timeSignature tSigs[] =
 {
     {.top = 4, .bottom = 4},
-    {.top = 3, .bottom = 4},
+    {.top = 2, .bottom = 2},
+    {.top = 6, .bottom = 8},
+    {.top = 9, .bottom = 8},
+    {.top = 12, .bottom = 8},
     {.top = 2, .bottom = 4},
-    {.top = 1, .bottom = 4},
-    {.top = 8, .bottom = 4},
-    {.top = 7, .bottom = 4},
-    {.top = 6, .bottom = 4},
-    {.top = 5, .bottom = 4},
+    {.top = 3, .bottom = 4},
 };
 
 static const song_t metronome_primary =
@@ -1087,7 +1086,12 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                     case BTN_B:
                     {
                         // Cycle the time signature
-                        tunernome->tSigIdx = (tunernome->tSigIdx - 1) % NUM_TSIGS;
+                        if (tunernome->tSigIdx == 0)
+                        {
+                            tunernome->tSigIdx = NUM_TSIGS;
+                        }
+                        
+                        tunernome->tSigIdx = tunernome->tSigIdx - 1;
                         break;
                     }
                     case START:
