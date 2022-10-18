@@ -206,7 +206,7 @@ bool loadWsgSpiRam(char* name, wsg_t* wsg, bool spiRam)
     {
         // Decode some data
         copied = 0;
-        heatshrink_decoder_sink(hsd, &buf[4 + inputIdx], sz - 2 - inputIdx, &copied);
+        heatshrink_decoder_sink(hsd, &buf[4 + inputIdx], sz - 4 - inputIdx, &copied);
         inputIdx += copied;
 
         // Save it to the output array
