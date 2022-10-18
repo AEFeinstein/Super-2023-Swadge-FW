@@ -5,12 +5,20 @@
 #include "paint_nvs.h"
 #include "paint_util.h"
 
+static const char transitionTime[] = "Interval: %d sec";
+static const char transitionOff[] = "Interval: Off";
+
+#define US_PER_SEC 1000000
+
 // 1s
 #define GALLERY_MIN_TIME 5000000
 // 60s
 #define GALLERY_MAX_TIME 60000000
 // 5s
 #define GALLERY_TIME_STEP 5000000
+
+// 3s for info text to stay up
+#define GALLERY_INFO_TIME 3000000
 
 paintGallery_t* paintGallery;
 
@@ -22,12 +30,14 @@ void paintGallerySetup(display_t* disp)
     paintGallery->gallerySpeed = GALLERY_MIN_TIME;
     paintGallery->galleryTime = 0;
     paintGallery->galleryLoadNew = true;
+    loadFont("radiostars.font", &paintGallery->infoFont);
 
     paintLoadIndex(&paintGallery->index);
 }
 
 void paintGalleryCleanup(void)
 {
+    freeFont(&paintGallery->infoFont);
     free(paintGallery);
 }
 
@@ -38,6 +48,20 @@ void paintGalleryMainLoop(int64_t elapsedUs)
         paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, paintGallery->gallerySlot);
         paintGallery->galleryLoadNew = true;
         paintGallery->galleryTime -= paintGallery->gallerySpeed;
+
+        // reset info time if we're going to transition and clear the screen
+        paintGallery->infoTimeRemaining = 0;
+    }
+
+    if (paintGallery->infoTimeRemaining > 0)
+    {
+        paintGallery->infoTimeRemaining -= elapsedUs;
+
+        if (paintGallery->infoTimeRemaining <= 0)
+        {
+            paintGallery->infoTimeRemaining = 0;
+            paintGallery->galleryLoadNew = true;
+        }
     }
 
     if (paintGallery->galleryLoadNew)
@@ -49,8 +73,23 @@ void paintGalleryMainLoop(int64_t elapsedUs)
     paintGallery->galleryTime += elapsedUs;
 }
 
+void paintGalleryAddInfoText(const char* text)
+{
+    uint16_t width = textWidth(&paintGallery->infoFont, text);
+    uint16_t yMargin = 6, padding = 3;
+
+    fillDisplayArea(paintGallery->disp, 0, yMargin, paintGallery->disp->w, yMargin + padding * 2 + paintGallery->infoFont.h, c555);
+    drawText(paintGallery->disp, &paintGallery->infoFont, c000, text, (paintGallery->disp->w - width) / 2, yMargin + padding);
+
+    // start the timer to clear the screen
+    paintGallery->infoTimeRemaining = GALLERY_INFO_TIME;
+}
+
 void paintGalleryModeButtonCb(buttonEvt_t* evt)
 {
+    bool updateTimeText;
+    char text[32];
+
     if (evt->down)
     {
         switch (evt->button)
@@ -69,6 +108,7 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
                         paintGallery->gallerySpeed = GALLERY_MIN_TIME;
                     }
                 }
+                updateTimeText = true;
                 paintGallery->galleryTime = 0;
                 break;
             }
@@ -83,6 +123,7 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
                         paintGallery->gallerySpeed = GALLERY_MAX_TIME;
                     }
                 }
+                updateTimeText = true;
                 paintGallery->galleryTime = 0;
                 break;
             }
@@ -116,9 +157,18 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
             break;
         }
     }
-    else
+
+    if (updateTimeText)
     {
-        // button up? don't care
+        if (paintGallery->gallerySpeed == 0)
+        {
+            paintGalleryAddInfoText(transitionOff);
+        }
+        else
+        {
+            snprintf(text, sizeof(text), transitionTime, (uint16_t)(paintGallery->gallerySpeed / US_PER_SEC));
+            paintGalleryAddInfoText(text);
+        }
     }
 }
 
