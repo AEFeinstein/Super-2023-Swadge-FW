@@ -378,8 +378,6 @@ void paintFreeCursorSprite(wsg_t* cursorWsg)
 void initCursor(paintCursor_t* cursor, paintCanvas_t* canvas, const wsg_t* sprite)
 {
     cursor->sprite = sprite;
-    cursor->spriteOffsetX = canvas->xScale / 2 - sprite->w / 2 + 1;
-    cursor->spriteOffsetY = canvas->yScale / 2 - sprite->h / 2 + 1;
 
     cursor->show = false;
     cursor->x = 0;
@@ -400,12 +398,16 @@ void setCursorSprite(paintCursor_t* cursor, paintCanvas_t* canvas, const wsg_t* 
     undrawCursor(cursor, canvas);
 
     cursor->sprite = sprite;
-    cursor->spriteOffsetX = canvas->xScale / 2 - sprite->w / 2;
-    cursor->spriteOffsetY = canvas->yScale / 2 - sprite->h / 2;
-
     cursor->redraw = true;
 
     drawCursor(cursor, canvas);
+}
+
+void setCursorOffset(paintCursor_t* cursor, int16_t x, int16_t y)
+{
+    cursor->spriteOffsetX = x;
+    cursor->spriteOffsetY = y;
+    cursor->redraw = true;
 }
 
 /// @brief Undraws the cursor and removes its pixels from the stack
