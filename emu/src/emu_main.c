@@ -12,7 +12,11 @@
 #endif
 
 #include "esp_log.h"
+#include "esp_timer.h"
+#include "esp_random.h"
 #include "swadge_esp32.h"
+#include "swadgeMode.h"
+#include "mode_main_menu.h"
 #include "btn.h"
 
 #include "list.h"
@@ -23,6 +27,24 @@
 #include "emu_sound.h"
 #include "emu_sensors.h"
 #include "emu_main.h"
+
+#include "fighter_menu.h"
+#include "jumper_menu.h"
+#include "mode_colorchord.h"
+#include "mode_credits.h"
+#include "mode_dance.h"
+#include "mode_flight.h"
+#include "mode_gamepad.h"
+#include "mode_main_menu.h"
+#include "mode_slide_whistle.h"
+#include "mode_test.h"
+#include "mode_tiltrads.h"
+#include "mode_tunernome.h"
+#include "mode_paint.h"
+#include "paint_share.h"
+#include "paint_share.h"
+#include "picross_menu.h"
+#include "mode_platformer.h"
 
 //Make it so we don't need to include any other C files in our build.
 #define CNFG_IMPLEMENTATION
@@ -38,6 +60,8 @@
 
 #define BG_COLOR  0x191919FF // This color isn't part of the palette
 #define DIV_COLOR 0x808080FF
+
+#define MONKEY_AROUND
 
 //==============================================================================
 // Function prototypes
@@ -200,6 +224,67 @@ void emu_loop(void)
     static short lastWindow_w = 0;
     static short lastWindow_h = 0;
     static int16_t led_w = MIN_LED_WIDTH;
+
+#ifdef MONKEY_AROUND
+    // A list of all modes to randomly jump to
+    swadgeMode * allModes[] = 
+    {
+        &modeFighter,
+        &modeJumper,
+        &modeColorchord,
+        &modeCredits,
+        &modeDance,
+        &modeFlight,
+        &modeGamepad,
+        &modeMainMenu,
+        &modeSlideWhistle,
+        &modeTest,
+        &modeTiltrads,
+        &modeTunernome,
+        &modePaint,
+        &modePaintShare,
+        &modePaintReceive,
+        &modePicross,
+        &modePlatformer
+    };
+
+    // A list of all keys to randomly press or release, and their states
+    const char randKeys[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i'};
+    static bool keyState[sizeof(randKeys) / sizeof(randKeys[0])] = {false};
+
+    // Time keeping
+    static int64_t tLastCall = 0;
+    if(0 == tLastCall)
+    {
+        tLastCall = esp_timer_get_time();
+    }
+    int64_t tNow = esp_timer_get_time();
+    int64_t tElapsed = (tNow - tLastCall);
+
+    // Randomly press or release keys every 100ms
+    static int64_t keyTimer = 0;
+    keyTimer += tElapsed;
+    while(keyTimer >= 100000)
+    {
+        keyTimer -= 100000;
+        int keyIdx = esp_random() % (sizeof(randKeys) / sizeof(randKeys[0]));
+        keyState[keyIdx] = !keyState[keyIdx];
+        emuSensorHandleKey(randKeys[keyIdx], keyState[keyIdx]);
+    }
+
+    // Randomly change the swadge mode every minute
+    static int64_t resetToMenuTimer = 0;
+    resetToMenuTimer += tElapsed;
+    while(resetToMenuTimer >= (1000000 * 60))
+    {
+        resetToMenuTimer -= (1000000 * 60);
+        int modeIdx = esp_random() % (sizeof(allModes) / sizeof(allModes[0]));
+        switchToSwadgeMode(allModes[modeIdx]);
+    }
+
+    // Timekeeping
+    tLastCall = tNow;
+#endif // MONKEY_AROUND
 
     // Always handle inputs
     CNFGHandleInput();
