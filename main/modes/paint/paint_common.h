@@ -76,14 +76,11 @@
 // Vertical margin between each color box
 #define PAINT_COLORBOX_MARGIN_TOP 2
 // Minimum margin to the left and right of each color box
-#define PAINT_COLORBOX_MARGIN_X 2
+#define PAINT_COLORBOX_MARGIN_X 4
 
 // X and Y position of the active color boxes (foreground/background color)
 #define PAINT_ACTIVE_COLOR_X ((canvas->x - PAINT_COLORBOX_W - PAINT_COLORBOX_W / 2) / 2)
 #define PAINT_ACTIVE_COLOR_Y (canvas->y - PAINT_COLORBOX_H / 2)
-
-// Y position of the first palette color box (X is automatic)
-#define PAINT_COLORBOX_Y (PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_H * 2)
 
 // Color picker stuff
 #define PAINT_COLOR_PICKER_MIN_BAR_H 6
