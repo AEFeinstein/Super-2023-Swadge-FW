@@ -22,7 +22,6 @@ paintHelp_t* paintHelp;
  * step to be considered "completed" and move on to the next step.
  *
  * TODO: Add steps for Polygon brush
- * TODO: Add instructions for color picker
  * TODO: Add an "Explain" for each brush after the tutorial
  * TODO: Disallow certain actions at certain steps to prevent confusion/desyncing
  */
@@ -52,8 +51,15 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = PRESS_ANY, .triggerData = UP | DOWN | SELECT, .prompt = "Press UP, DOWN, or SELECT to go through the menu items" },
     { .trigger = SELECT_MENU_ITEM, .triggerData = PICK_SLOT_SAVE, .prompt = "Now, select the SAVE option.." },
     { .trigger = PRESS_ANY, .triggerData = LEFT | RIGHT, .prompt = "Use D-Pad LEFT and RIGHT to switch between save slots, or other options in the menu" },
-    { .trigger = PRESS_ANY, .triggerData = BTN_A | BTN_B, .prompt = "Use the A BUTTON to confirm, or the B BUTTON to cancel and go back." },
+    { .trigger = PRESS_ANY, .triggerData = BTN_A | BTN_B, .prompt = "Use the A BUTTON to confirm, or the B BUTTON to cancel and go back. If data could be lost, you'll always be asked to confirm!" },
     { .trigger = SELECT_MENU_ITEM, .triggerData = HIDDEN, .prompt = "Press START or the B BUTTON to exit the menu." },
+    { .trigger = PRESS, .triggerData = START, .prompt = "Let's try editing the palette! Press START to open the menu one more time." },
+    { .trigger = SELECT_MENU_ITEM, .triggerData = EDIT_PALETTE, .prompt = "Use UP, DOWN, and SELECT to select EDIT PALETTE" },
+    { .trigger = PRESS, .triggerData = BTN_A, .prompt = "Press the A BUTTON to begin editing the palette" },
+    { .trigger = PRESS_ANY, .triggerData = UP | DOWN, .prompt = "Use D-Pad UP and DOWN to select a color to edit" },
+    { .trigger = PRESS_ANY, .triggerData = LEFT | RIGHT, .prompt = "Use D-Pad LEFT and RIGHT to change the selected color's RED, GREED, or BLUE value." },
+    { .trigger = PRESS, .triggerData = SELECT, .prompt = "Press SELECT to switch between editing the color's RED, GREEN, or BLUE values." },
+    { .trigger = PRESS_ANY, .triggerData = BTN_A | BTN_B, .prompt = "Press the A BUTTON to confirm and update the canvas with the new color. Or, press the B BUTTON to reset." },
     { .trigger = NO_TRIGGER, .prompt = "That's everything. Happy painting!" },
 };
 
@@ -180,9 +186,9 @@ void paintDrawScreenSetup(display_t* disp)
 
     paintLoadIndex(&paintState->index);
 
-    if (paintGetAnySlotInUse(paintState->index))
+    if (paintHelp == NULL && paintGetAnySlotInUse(paintState->index))
     {
-        // If there's a saved image, load that
+        // If there's a saved image, load that (but not in the tutorial)
         paintState->selectedSlot = paintGetRecentSlot(paintState->index);
         paintState->doLoad = true;
     }
@@ -212,7 +218,9 @@ void paintDrawScreenSetup(display_t* disp)
         paintState->artist[i].brushDef = firstBrush;
         paintState->artist[i].brushWidth = firstBrush->minSize;
 
-        moveCursorRelative(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
+        setCursorSprite(&paintState->artist[i].cursor, &paintState->canvas, &paintState->cursorWsg);
+        setCursorOffset(&paintState->artist[i].cursor, (paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
+        moveCursorAbsolute(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
     }
 
     paintState->disp->clearPx();
@@ -354,9 +362,10 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                 paintFreeCursorSprite(&paintState->cursorWsg);
                 paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
                 setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
+                setCursorOffset(getCursor(), (paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
 
                 // Put the cursor in the middle of the screen
-                moveCursorRelative(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
+                moveCursorAbsolute(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
                 showCursor(getCursor(), &paintState->canvas);
                 paintUpdateLeds();
             }
@@ -622,6 +631,7 @@ void paintSaveModeNextOption(void)
 void paintEditPaletteUpdate(void)
 {
     paintState->newColor = (paintState->editPaletteR * 36 + paintState->editPaletteG * 6 + paintState->editPaletteB);
+    paintUpdateLeds();
 }
 
 void paintEditPaletteDecChannel(void)
@@ -1018,12 +1028,8 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
             {
                 // Select previous color
                 paintState->redrawToolbar = true;
-                if (paintState->paletteSelect == 0)
-                {
-                    paintState->paletteSelect = PAINT_MAX_COLORS - 1;
-                } else {
-                    paintState->paletteSelect -= 1;
-                }
+                paintState->paletteSelect = PREV_WRAP(paintState->paletteSelect, PAINT_MAX_COLORS);
+                paintUpdateLeds();
                 break;
             }
 
@@ -1031,7 +1037,8 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
             {
                 // Select next color
                 paintState->redrawToolbar = true;
-                paintState->paletteSelect = (paintState->paletteSelect + 1) % PAINT_MAX_COLORS;
+                paintState->paletteSelect = NEXT_WRAP(paintState->paletteSelect, PAINT_MAX_COLORS);
+                paintUpdateLeds();
                 break;
             }
 
@@ -1482,7 +1489,28 @@ void paintUpdateRecents(uint8_t selectedIndex)
 
 void paintUpdateLeds(void)
 {
-    uint32_t rgb = (paintState->index & PAINT_ENABLE_LEDS) ? paletteToRGB(getArtist()->fgColor) : 0;
+    uint32_t rgb = 0;
+
+    // Only set the LED color if LEDs are enabled
+    if (paintState->index & PAINT_ENABLE_LEDS)
+    {
+        if (paintState->buttonMode == BTN_MODE_PALETTE)
+        {
+            // Show the edited color if we're editing the palette
+            rgb = paletteToRGB(paintState->newColor);
+        }
+        else if (paintState->buttonMode == BTN_MODE_SELECT)
+        {
+            // Show the selected color if we're picking colors
+            rgb = paletteToRGB(paintState->canvas.palette[paintState->paletteSelect]);
+        }
+        else
+        {
+            // Otherwise, use the current draw color
+            rgb = paletteToRGB(getArtist()->fgColor);
+        }
+    }
+
     for (uint8_t i = 0; i < NUM_LEDS; i++)
     {
         paintState->leds[i].b = (rgb >>  0) & 0xFF;
