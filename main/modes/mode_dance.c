@@ -148,7 +148,7 @@ void danceEnterMode(display_t* disp)
 
     danceState->disp = disp;
 
-    danceState->danceIdx = 14;
+    danceState->danceIdx = 0;
 
     danceState->resetDance = true;
     danceState->blankScreen = false;
