@@ -109,8 +109,14 @@ void paintDrawSquarePen(paintCanvas_t* canvas, point_t* points, uint8_t numPoint
 
 void paintDrawCirclePen(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    // Add one to the size because it isn't really a circle at r=1
-    plotCircleFilledScaled(canvas->disp, points[0].x, points[0].y, size + 1, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+    plotCircleFilledScaled(canvas->disp, points[0].x, points[0].y, size, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+
+    // fill out the circle if it's very small
+    if (size == 1)
+    {
+        setPxScaled(canvas->disp, points[0].x, points[0].y - 1, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+        setPxScaled(canvas->disp, points[0].x, points[0].y + 1, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+    }
 }
 
 void paintDrawLine(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
@@ -165,17 +171,19 @@ void paintDrawFilledCircle(paintCanvas_t* canvas, point_t* points, uint8_t numPo
 
 void paintDrawEllipse(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
+    pxStack_t tmpPxs;
+    // TODO maybe we shouldn't use a heap-allocated pxStack here
+    initPxStack(&tmpPxs);
+
     // for some reason, plotting an ellipse also plots 2 extra points outside of the ellipse
     // let's just work around that
-    pushPxScaled(&paintState->pxStack, canvas->disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[0].y - 2 : points[1].y - 2, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
-    pushPxScaled(&paintState->pxStack, canvas->disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[1].y + 2 : points[0].y + 2, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+    pushPxScaled(&tmpPxs, canvas->disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[0].y - 2 : points[1].y - 2, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+    pushPxScaled(&tmpPxs, canvas->disp, (points[0].x < points[1].x ? points[0].x : points[1].x) + (abs(points[1].x - points[0].x) + 1) / 2, points[0].y < points[1].y ? points[1].y + 2 : points[0].y + 2, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 
     plotEllipseRectScaled(canvas->disp, points[0].x, points[0].y, points[1].x, points[1].y, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 
-    for (uint8_t i = 0; i < canvas->xScale * canvas->yScale * 2; i++)
-    {
-        popPx(&paintState->pxStack, canvas->disp);
-    }
+    while (popPxScaled(&tmpPxs, canvas->disp, canvas->xScale, canvas->yScale));
+    freePxStack(&tmpPxs);
 }
 
 void paintDrawPolygon(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
@@ -194,9 +202,4 @@ void paintDrawSquareWave(paintCanvas_t* canvas, point_t* points, uint8_t numPoin
 void paintDrawPaintBucket(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
     floodFill(canvas->disp, canvas->x + canvas->xScale * points[0].x, canvas->y + canvas->yScale * points[0].y, col, canvas->x, canvas->y, canvas->x + canvas->xScale * canvas->w, canvas->y + canvas->yScale * canvas->h);
-}
-
-void paintDrawClear(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
-{
-    fillDisplayArea(canvas->disp, canvas->x, canvas->y, canvas->x + canvas->xScale * canvas->w, canvas->y + canvas->yScale * canvas->h, col);
 }

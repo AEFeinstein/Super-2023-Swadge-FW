@@ -173,16 +173,16 @@ paletteColor_t RGBtoPalette( uint32_t rgb )
     uint8_t r = (rgb >>  0) & 0xFF;
     uint8_t g = (rgb >>  8) & 0xFF;
     uint8_t b = (rgb >> 16) & 0xFF;
-    r = (r * 6) / 256;
-    g = (g * 6) / 256;
-    b = (b * 6) / 256;
+    r = (r * 5) / 255;
+    g = (g * 5) / 255;
+    b = (b * 5) / 255;
     return (paletteColor_t) ( r * 36) + (g * 6) + b;
 }
 
 uint32_t paletteToRGB(paletteColor_t pal)
 {
-    uint8_t b = ((pal % 6) * 256) / 6;
-    uint8_t g = (((pal / 6) % 6) * 256) / 6;
-    uint8_t r = ((pal / 36) * 256) / 6;
+    uint8_t b = ((pal % 6) * 255) / 5;
+    uint8_t g = (((pal / 6) % 6) * 255) / 5;
+    uint8_t r = ((pal / 36) * 255) / 5;
     return (r << 16) | (g << 8) | (b);
 }

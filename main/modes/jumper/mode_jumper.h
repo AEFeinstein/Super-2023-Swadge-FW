@@ -29,7 +29,8 @@ typedef enum
     JUMPER_GAMING,
     JUMPER_DEATH,
     JUMPER_WINSTAGE,
-    JUMPER_GAME_OVER
+    JUMPER_GAME_OVER,
+    JUMPER_PAUSE
 } jumperGamePhase_t;
 
 typedef enum
@@ -65,6 +66,8 @@ typedef struct
     uint8_t column;
     uint8_t block;
     uint8_t dBlock;
+    uint8_t respawnBlock;
+    bool respawnReady;
     bool flipped;
 
     uint32_t btnState;
@@ -82,6 +85,8 @@ typedef struct
     
     uint32_t powerupTime;
     bool powerupSpawned;
+    uint16_t frame;
+    uint32_t frameTime;
 
     uint16_t x;
     uint16_t y;
@@ -104,6 +109,7 @@ typedef struct
     uint32_t score;
     uint8_t combo;
     uint8_t perfect;
+    bool pauseRelease;
 
     jumperPowerup_t* currentPowerup;
 
@@ -124,7 +130,8 @@ typedef struct
     wsg_t block[10];
     wsg_t digit[12];
     wsg_t livesIcon;
-    wsg_t powerup;
+    wsg_t target;
+    wsg_t powerup[4];
     jumperGamePhase_t currentPhase;
     int64_t frameElapsed;
     display_t* d;

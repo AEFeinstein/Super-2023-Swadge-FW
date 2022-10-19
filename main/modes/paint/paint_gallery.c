@@ -1,8 +1,14 @@
 #include "paint_gallery.h"
 
+#include "mode_paint.h"
 #include "paint_common.h"
 #include "paint_nvs.h"
 #include "paint_util.h"
+
+static const char transitionTime[] = "Interval: %d sec";
+static const char transitionOff[] = "Interval: Off";
+
+#define US_PER_SEC 1000000
 
 // 1s
 #define GALLERY_MIN_TIME 5000000
@@ -11,92 +17,138 @@
 // 5s
 #define GALLERY_TIME_STEP 5000000
 
-void paintGallerySetup(void)
+// 3s for info text to stay up
+#define GALLERY_INFO_TIME 3000000
+
+paintGallery_t* paintGallery;
+
+void paintGallerySetup(display_t* disp)
 {
-    paintState->canvas.disp = paintState->disp;
-    paintState->gallerySpeed = GALLERY_MIN_TIME;
-    paintState->galleryTime = 0;
-    paintState->galleryLoadNew = true;
-    paintState->screen = PAINT_GALLERY;
+    paintGallery = calloc(sizeof(paintGallery_t), 1);
+    paintGallery->disp = disp;
+    paintGallery->canvas.disp = disp;
+    paintGallery->gallerySpeed = GALLERY_MIN_TIME;
+    paintGallery->galleryTime = 0;
+    paintGallery->galleryLoadNew = true;
+    loadFont("radiostars.font", &paintGallery->infoFont);
+
+    paintLoadIndex(&paintGallery->index);
+}
+
+void paintGalleryCleanup(void)
+{
+    freeFont(&paintGallery->infoFont);
+    free(paintGallery);
 }
 
 void paintGalleryMainLoop(int64_t elapsedUs)
 {
-    if (paintState->gallerySpeed != 0 && paintState->galleryTime >= paintState->gallerySpeed)
+    if (paintGallery->gallerySpeed != 0 && paintGallery->galleryTime >= paintGallery->gallerySpeed)
     {
-        paintState->gallerySlot = paintGetNextSlotInUse(paintState->gallerySlot);
-        paintState->galleryLoadNew = true;
-        paintState->galleryTime -= paintState->gallerySpeed;
+        paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, paintGallery->gallerySlot);
+        paintGallery->galleryLoadNew = true;
+        paintGallery->galleryTime -= paintGallery->gallerySpeed;
+
+        // reset info time if we're going to transition and clear the screen
+        paintGallery->infoTimeRemaining = 0;
     }
 
-    if (paintState->galleryLoadNew)
+    if (paintGallery->infoTimeRemaining > 0)
     {
-        paintState->galleryLoadNew = false;
+        paintGallery->infoTimeRemaining -= elapsedUs;
+
+        if (paintGallery->infoTimeRemaining <= 0)
+        {
+            paintGallery->infoTimeRemaining = 0;
+            paintGallery->galleryLoadNew = true;
+        }
+    }
+
+    if (paintGallery->galleryLoadNew)
+    {
+        paintGallery->galleryLoadNew = false;
         paintGalleryDoLoad();
     }
 
-    paintState->galleryTime += elapsedUs;
+    paintGallery->galleryTime += elapsedUs;
+}
+
+void paintGalleryAddInfoText(const char* text)
+{
+    uint16_t width = textWidth(&paintGallery->infoFont, text);
+    uint16_t yMargin = 6, padding = 3;
+
+    fillDisplayArea(paintGallery->disp, 0, yMargin, paintGallery->disp->w, yMargin + padding * 2 + paintGallery->infoFont.h, c555);
+    drawText(paintGallery->disp, &paintGallery->infoFont, c000, text, (paintGallery->disp->w - width) / 2, yMargin + padding);
+
+    // start the timer to clear the screen
+    paintGallery->infoTimeRemaining = GALLERY_INFO_TIME;
 }
 
 void paintGalleryModeButtonCb(buttonEvt_t* evt)
 {
+    bool updateTimeText;
+    char text[32];
+
     if (evt->down)
     {
         switch (evt->button)
         {
             case UP:
             {
-                if (paintState->gallerySpeed <= GALLERY_MIN_TIME)
+                if (paintGallery->gallerySpeed <= GALLERY_MIN_TIME)
                 {
-                    paintState->gallerySpeed = 0;
+                    paintGallery->gallerySpeed = 0;
                 }
                 else
                 {
-                    paintState->gallerySpeed -= GALLERY_TIME_STEP;
-                    if (paintState->gallerySpeed < GALLERY_MIN_TIME)
+                    paintGallery->gallerySpeed -= GALLERY_TIME_STEP;
+                    if (paintGallery->gallerySpeed < GALLERY_MIN_TIME)
                     {
-                        paintState->gallerySpeed = GALLERY_MIN_TIME;
+                        paintGallery->gallerySpeed = GALLERY_MIN_TIME;
                     }
                 }
-                paintState->galleryTime = 0;
+                updateTimeText = true;
+                paintGallery->galleryTime = 0;
                 break;
             }
 
             case DOWN:
             {
-                if (paintState->gallerySpeed != GALLERY_MAX_TIME)
+                if (paintGallery->gallerySpeed != GALLERY_MAX_TIME)
                 {
-                    paintState->gallerySpeed += GALLERY_TIME_STEP;
-                    if (paintState->gallerySpeed > GALLERY_MAX_TIME)
+                    paintGallery->gallerySpeed += GALLERY_TIME_STEP;
+                    if (paintGallery->gallerySpeed > GALLERY_MAX_TIME)
                     {
-                        paintState->gallerySpeed = GALLERY_MAX_TIME;
+                        paintGallery->gallerySpeed = GALLERY_MAX_TIME;
                     }
                 }
-                paintState->galleryTime = 0;
+                updateTimeText = true;
+                paintGallery->galleryTime = 0;
                 break;
             }
 
             case LEFT:
-            paintState->gallerySlot = paintGetPrevSlotInUse(paintState->gallerySlot);
-            paintState->galleryLoadNew = true;
-            paintState->galleryTime = 0;
+            paintGallery->gallerySlot = paintGetPrevSlotInUse(paintGallery->index, paintGallery->gallerySlot);
+            paintGallery->galleryLoadNew = true;
+            paintGallery->galleryTime = 0;
             break;
 
             case RIGHT:
-            paintState->gallerySlot = paintGetNextSlotInUse(paintState->gallerySlot);
-            paintState->galleryLoadNew = true;
-            paintState->galleryTime = 0;
+            paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, paintGallery->gallerySlot);
+            paintGallery->galleryLoadNew = true;
+            paintGallery->galleryTime = 0;
             break;
 
             case BTN_B:
             // Exit
-                paintState->screen = PAINT_MENU;
+            paintReturnToMainMenu();
             break;
 
             case BTN_A:
             // Increase size
-            paintState->galleryScale++;
-            paintState->galleryLoadNew = true;
+            paintGallery->galleryScale++;
+            paintGallery->galleryLoadNew = true;
             break;
 
             case SELECT:
@@ -105,38 +157,47 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
             break;
         }
     }
-    else
+
+    if (updateTimeText)
     {
-        // button up? don't care
+        if (paintGallery->gallerySpeed == 0)
+        {
+            paintGalleryAddInfoText(transitionOff);
+        }
+        else
+        {
+            snprintf(text, sizeof(text), transitionTime, (uint16_t)(paintGallery->gallerySpeed / US_PER_SEC));
+            paintGalleryAddInfoText(text);
+        }
     }
 }
 
 void paintGalleryDoLoad(void)
 {
-    paintLoadDimensions(&paintState->canvas, paintState->gallerySlot);
+    paintLoadDimensions(&paintGallery->canvas, paintGallery->gallerySlot);
 
-    uint8_t maxScale = paintGetMaxScale(paintState->canvas.disp, paintState->canvas.w, paintState->canvas.h, 0, 0);
+    uint8_t maxScale = paintGetMaxScale(paintGallery->canvas.disp, paintGallery->canvas.w, paintGallery->canvas.h, 0, 0);
 
-    if (paintState->galleryScale >= maxScale)
+    if (paintGallery->galleryScale >= maxScale)
     {
-        paintState->galleryScale = 0;
+        paintGallery->galleryScale = 0;
     }
 
-    if (paintState->galleryScale == 0)
+    if (paintGallery->galleryScale == 0)
     {
-        paintState->canvas.xScale = maxScale;
-        paintState->canvas.yScale = maxScale;
+        paintGallery->canvas.xScale = maxScale;
+        paintGallery->canvas.yScale = maxScale;
     }
     else
     {
-        paintState->canvas.xScale = paintState->galleryScale;
-        paintState->canvas.yScale = paintState->galleryScale;
+        paintGallery->canvas.xScale = paintGallery->galleryScale;
+        paintGallery->canvas.yScale = paintGallery->galleryScale;
     }
 
-    paintState->canvas.x = (paintState->disp->w - paintState->canvas.w * paintState->canvas.xScale) / 2;
-    paintState->canvas.y = (paintState->disp->h - paintState->canvas.h * paintState->canvas.yScale) / 2;
+    paintGallery->canvas.x = (paintGallery->disp->w - paintGallery->canvas.w * paintGallery->canvas.xScale) / 2;
+    paintGallery->canvas.y = (paintGallery->disp->h - paintGallery->canvas.h * paintGallery->canvas.yScale) / 2;
 
-    paintState->disp->clearPx();
+    paintGallery->disp->clearPx();
 
-    paintLoad(&paintState->canvas, paintState->gallerySlot);
+    paintLoad(&paintGallery->index, &paintGallery->canvas, paintGallery->gallerySlot);
 }

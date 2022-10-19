@@ -54,6 +54,8 @@ typedef struct
     fightingStage_t stage;
     fighterMessageType_t lastSentMsg;
     wsg_t fd_bg;
+    wsg_t conlogo;
+    int16_t rotDeg;
 } fighterMenu_t;
 
 typedef struct
@@ -184,6 +186,9 @@ void fighterEnterMode(display_t* disp)
     // Load a background image to SPI RAM
     loadWsgSpiRam("fdbg.wsg", &fm->fd_bg, true);
 
+    // Load a background image to SPI RAM
+    loadWsgSpiRam("conlogo.wsg", &fm->conlogo, true);
+
     // Set the main menu
     setFighterMainMenu();
 
@@ -209,6 +214,7 @@ void fighterExitMode(void)
     p2pDeinit(&fm->p2p);
     freeFont(&(fm->mmFont));
     freeWsg(&fm->fd_bg);
+    freeWsg(&fm->conlogo);
     free(fm);
 }
 
@@ -219,6 +225,13 @@ void fighterExitMode(void)
  */
 void fighterMainLoop(int64_t elapsedUs)
 {
+    // Rotate the logo at 120 degrees per second
+    fm->rotDeg += (elapsedUs * 120) / 1000000;
+    if(fm->rotDeg >= 360)
+    {
+        fm->rotDeg -= 360;
+    }
+
     switch(fm->screen)
     {
         case FIGHTER_MENU:
@@ -234,18 +247,20 @@ void fighterMainLoop(int64_t elapsedUs)
         }
         case FIGHTER_CONNECTING:
         {
-            // TODO spin a wheel or something
             drawBackgroundGrid(fm->disp);
             int16_t tWidth = textWidth(&fm->mmFont, ftrConnectingStringTop);
             drawText(fm->disp, &fm->mmFont, c540, ftrConnectingStringTop, (fm->disp->w - tWidth) / 2,
                      (fm->disp->h / 2) - fm->mmFont.h - 4);
             tWidth = textWidth(&fm->mmFont, ftrConnectingStringBottom);
             drawText(fm->disp, &fm->mmFont, c540, ftrConnectingStringBottom, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
+
+            // Spin a wheel
+            drawWsg(fm->disp, &fm->conlogo, (fm->disp->w - fm->conlogo.w) / 2, ((4 * fm->disp->h) / 5) - (fm->conlogo.h / 2), false,
+                    false, fm->rotDeg);
             break;
         }
         case FIGHTER_WAITING:
         {
-            // TODO spin a wheel or something
             drawBackgroundGrid(fm->disp);
             const char searching_for[] = "Waiting for";
             const char another_swadge[] = "Other Swadge";
@@ -253,6 +268,10 @@ void fighterMainLoop(int64_t elapsedUs)
             drawText(fm->disp, &fm->mmFont, c540, searching_for, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) - fm->mmFont.h - 4);
             tWidth = textWidth(&fm->mmFont, another_swadge);
             drawText(fm->disp, &fm->mmFont, c540, another_swadge, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
+
+            // Spin a wheel
+            drawWsg(fm->disp, &fm->conlogo, (fm->disp->w - fm->conlogo.w) / 2, ((4 * fm->disp->h) / 5) - (fm->conlogo.h / 2), false,
+                    false, fm->rotDeg);
             break;
         }
         case FIGHTER_HR_RESULT:

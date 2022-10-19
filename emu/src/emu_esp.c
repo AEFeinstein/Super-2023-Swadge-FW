@@ -84,7 +84,7 @@ bool tud_ready(void)
 void taskYIELD(void)
 {
     emu_loop();
-	// Just sleep for ten ms
+	// Sleep for one ms
 	usleep(1000);
 }
 

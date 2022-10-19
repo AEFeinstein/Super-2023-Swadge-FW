@@ -6,8 +6,17 @@
 #include <unistd.h>
 #include <math.h>
 
+#ifdef __linux__
+#include <execinfo.h>
+#include <signal.h>
+#endif
+
 #include "esp_log.h"
+#include "esp_timer.h"
+#include "esp_random.h"
 #include "swadge_esp32.h"
+#include "swadgeMode.h"
+#include "mode_main_menu.h"
 #include "btn.h"
 
 #include "list.h"
@@ -18,6 +27,24 @@
 #include "emu_sound.h"
 #include "emu_sensors.h"
 #include "emu_main.h"
+
+#include "fighter_menu.h"
+#include "jumper_menu.h"
+#include "mode_colorchord.h"
+#include "mode_credits.h"
+#include "mode_dance.h"
+#include "mode_flight.h"
+#include "mode_gamepad.h"
+#include "mode_main_menu.h"
+#include "mode_slide_whistle.h"
+#include "mode_test.h"
+#include "mode_tiltrads.h"
+#include "mode_tunernome.h"
+#include "mode_paint.h"
+#include "paint_share.h"
+#include "paint_share.h"
+#include "picross_menu.h"
+#include "mode_platformer.h"
 
 //Make it so we don't need to include any other C files in our build.
 #define CNFG_IMPLEMENTATION
@@ -34,12 +61,19 @@
 #define BG_COLOR  0x191919FF // This color isn't part of the palette
 #define DIV_COLOR 0x808080FF
 
+// #define MONKEY_AROUND
+
 //==============================================================================
 // Function prototypes
 //==============================================================================
 
 void drawBitmapPixel(uint32_t* bitmapDisplay, int w, int h, int x, int y, uint32_t col);
 void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t col);
+
+#ifdef __linux__
+void init_crashSignals(void);
+void signalHandler_crash(int signum, siginfo_t* si, void* vcontext);
+#endif
 
 //==============================================================================
 // Variables
@@ -168,6 +202,10 @@ void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t c
  */
 int main(int argc UNUSED, char** argv UNUSED)
 {
+#ifdef __linux__
+    init_crashSignals();
+#endif
+
     // First initialize rawdraw
     // Screen-specific configurations
     // Save window dimensions from the last loop
@@ -186,6 +224,68 @@ void emu_loop(void)
     static short lastWindow_w = 0;
     static short lastWindow_h = 0;
     static int16_t led_w = MIN_LED_WIDTH;
+
+#ifdef MONKEY_AROUND
+    // A list of all modes to randomly jump to
+    swadgeMode * allModes[] = 
+    {
+        &modeFighter,
+        &modeJumper,
+        &modeColorchord,
+        &modeCredits,
+        &modeDance,
+        &modeFlight,
+        &modeGamepad,
+        &modeMainMenu,
+        &modeSlideWhistle,
+        &modeTest,
+        &modeTiltrads,
+        &modeTunernome,
+        &modePaint,
+        &modePaintShare,
+        &modePaintReceive,
+        &modePicross,
+        &modePlatformer
+    };
+
+    // A list of all keys to randomly press or release, and their states
+    const char randKeys[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i'};
+    static bool keyState[sizeof(randKeys) / sizeof(randKeys[0])] = {false};
+
+    // Time keeping
+    static int64_t tLastCall = 0;
+    if(0 == tLastCall)
+    {
+        tLastCall = esp_timer_get_time();
+    }
+    int64_t tNow = esp_timer_get_time();
+    int64_t tElapsed = (tNow - tLastCall);
+
+    // Randomly press or release keys every 100ms
+    static int64_t keyTimer = 0;
+    keyTimer += tElapsed;
+    while(keyTimer >= 100000)
+    {
+        keyTimer -= 100000;
+        int keyIdx = esp_random() % (sizeof(randKeys) / sizeof(randKeys[0]));
+        keyState[keyIdx] = !keyState[keyIdx];
+        emuSensorHandleKey(randKeys[keyIdx], keyState[keyIdx]);
+    }
+
+    // Change the swadge mode every minute
+    static int64_t resetToMenuTimer = 0;
+    resetToMenuTimer += tElapsed;
+    while(resetToMenuTimer >= (1000000 * 60))
+    {
+        resetToMenuTimer -= (1000000 * 60);
+        static int modeIdx = 0;
+        modeIdx = (modeIdx + 1) % (sizeof(allModes) / sizeof(allModes[0]));
+        switchToSwadgeMode(allModes[modeIdx]);
+    }
+
+    // Timekeeping
+    tLastCall = tNow;
+#endif // MONKEY_AROUND
 
     // Always handle inputs
     CNFGHandleInput();
@@ -299,7 +399,57 @@ void emu_loop(void)
 
     //Display the image and wait for time to display next frame.
     CNFGSwapBuffers();
-
-    // Sleep for 1 ms
-    usleep(1000);
 }
+
+#ifdef __linux__
+
+/**
+ * @brief Initialize a crash handler, only for Linux
+ */
+void init_crashSignals(void)
+{
+    const int sigs[] = {SIGSEGV, SIGBUS, SIGILL, SIGSYS, SIGABRT};
+    for(int i = 0; i < sizeof(sigs) / sizeof(sigs[0]); i++)
+    {
+        struct sigaction action;
+        memset(&action, 0, sizeof(struct sigaction));
+        action.sa_flags = SA_SIGINFO;
+        action.sa_sigaction = signalHandler_crash;
+        sigaction(sigs[i], &action, NULL);
+    }
+}
+
+/**
+ * @brief Print a backtrace when a crash is caught, only for Linux
+ * 
+ * @param signum 
+ * @param si 
+ * @param vcontext 
+ */
+void signalHandler_crash(int signum, siginfo_t* si, void* vcontext)
+{
+	char msg[128] = {'\0'};
+	ssize_t result;
+
+    char fname[64] = {0};
+    sprintf(fname, "crash-%ld.txt", time(NULL));
+    int dumpFileDescriptor = open(fname, O_RDWR | O_CREAT | O_TRUNC,
+									S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+	if(-1 != dumpFileDescriptor)
+	{
+		snprintf(msg, sizeof(msg), "Signal %d received!\n", signum);
+		result = write(dumpFileDescriptor, msg, strnlen(msg, sizeof(msg)));
+		(void)result;
+        
+        // Print backtrace
+        void *array[128];
+		size_t size = backtrace(array, (sizeof(array) / sizeof(array[0])));
+		backtrace_symbols_fd(array, size, dumpFileDescriptor);
+		close(dumpFileDescriptor);
+	}
+
+	// Exit
+	_exit(1);
+}
+#endif

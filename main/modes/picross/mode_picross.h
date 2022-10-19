@@ -38,6 +38,7 @@ typedef struct
 {
     //input x position
     //input y position
+    // uint8_t currentIndex;
     picrossSpaceType_t level[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE]; 
 }picrossProgressData_t;
 

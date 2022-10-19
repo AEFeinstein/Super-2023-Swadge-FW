@@ -252,6 +252,7 @@ uint32_t * scaledBitmapDisplay = NULL; //0xRRGGBBAA
 int bitmapWidth = 0;
 int bitmapHeight = 0;
 int displayMult = 1;
+bool tftDisabled = false;
 
 // LED state
 uint8_t rdNumLeds = 0;
@@ -409,7 +410,7 @@ int setTFTBacklight(uint8_t intensity UNUSED)
  */
 void enableTFTBacklight(void)
 {
-	WARN_UNIMPLEMENTED();
+    tftDisabled = false;
 }
 
 /**
@@ -417,7 +418,8 @@ void enableTFTBacklight(void)
  */
 void disableTFTBacklight(void)
 {
-	WARN_UNIMPLEMENTED();
+    tftDisabled = true;
+    emuClearPxTft();
 }
 
 /**
@@ -430,10 +432,15 @@ void disableTFTBacklight(void)
  */
 void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px)
 {
+    if(tftDisabled)
+    {
+        return;
+    }
+
     if(0 <= x && x < TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
         frameBuffer[(y * TFT_WIDTH) + x] = px;
-        }
+    }
 }
 
 /**
@@ -446,6 +453,11 @@ void emuSetPxTft(int16_t x, int16_t y, paletteColor_t px)
  */
 paletteColor_t emuGetPxTft(int16_t x, int16_t y)
 {
+    if(tftDisabled)
+    {
+        return c000;
+    }
+
     if(0 <= x && x < TFT_WIDTH && 0 <= y && y < TFT_HEIGHT)
     {
         paletteColor_t px = frameBuffer[(y * TFT_WIDTH) + x];
@@ -469,6 +481,12 @@ void emuClearPxTft(void)
  */
 void emuDrawDisplayTft(display_t * disp, bool drawDiff UNUSED, fnBackgroundDrawCallback_t fnBackgroundDrawCallback )
 {
+    if(tftDisabled)
+    {
+        // Wipe any framebuffer changes
+        emuClearPxTft();
+    }
+
     /* Copy the current framebuffer to memory that won't be modified by the
     * Swadge mode. rawdraw will use this non-changing bitmap to draw
     */
