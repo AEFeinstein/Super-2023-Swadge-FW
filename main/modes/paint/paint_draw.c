@@ -171,8 +171,8 @@ void paintDrawScreenSetup(display_t* disp)
 
     // Left: Leave room for the color boxes, their margins, their borders, and the canvas border
     paintState->marginLeft = PAINT_COLORBOX_W + PAINT_COLORBOX_MARGIN_X * 2 + 2 + 1;
-    // Bottom: Leave room for the progress bar, plus 1px of separation, and canvas border
-    paintState->marginBottom = 10 + 1 + 1;
+    // Bottom: Leave room for the brush name, 4px margin, and the canvas border
+    paintState->marginBottom = paintState->toolbarFont.h + 4 + 1;
     // Right: We just need to stay away from the rounded corner, so like, 12px?
     paintState->marginRight = 12;
 

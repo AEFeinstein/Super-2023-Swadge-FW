@@ -61,7 +61,7 @@
 #define PAINT_SAVE_MENU_FONT "radiostars.font"
 #define PAINT_SMALL_FONT "tom_thumb.font"
 
-#define PAINT_TOOLBAR_BG c333
+#define PAINT_TOOLBAR_BG c444
 
 // Dimensions of the color boxes in the palette
 #define PAINT_COLORBOX_W 9
@@ -70,8 +70,8 @@
 // Spacing between the tool icons and the size, and the size and pick point counts
 #define TOOL_INFO_TEXT_MARGIN_Y 6
 
-#define PAINT_COLORBOX_SHADOW_TOP c444
-#define PAINT_COLORBOX_SHADOW_BOTTOM c222
+#define PAINT_COLORBOX_SHADOW_TOP c000
+#define PAINT_COLORBOX_SHADOW_BOTTOM c111
 
 // Vertical margin between each color box
 #define PAINT_COLORBOX_MARGIN_TOP 2
