@@ -35,8 +35,8 @@
       "off_y":0
    },
    "duck_spr":{
-      "sprite":"bid0.wsg",
-      "off_x":0,
+      "sprite":"bdu.wsg",
+      "off_x":-9,
       "off_y":0
    },
    "land_lag_spr":{
