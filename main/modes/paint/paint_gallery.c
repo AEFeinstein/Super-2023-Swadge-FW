@@ -87,7 +87,7 @@ void paintGalleryAddInfoText(const char* text)
 
 void paintGalleryModeButtonCb(buttonEvt_t* evt)
 {
-    bool updateTimeText;
+    bool updateTimeText = false;
     char text[32];
 
     if (evt->down)
