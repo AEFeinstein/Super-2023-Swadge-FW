@@ -61,8 +61,6 @@
 #define BG_COLOR  0x191919FF // This color isn't part of the palette
 #define DIV_COLOR 0x808080FF
 
-// #define MONKEY_AROUND
-
 //==============================================================================
 // Function prototypes
 //==============================================================================
@@ -272,15 +270,15 @@ void emu_loop(void)
         emuSensorHandleKey(randKeys[keyIdx], keyState[keyIdx]);
     }
 
-    // Change the swadge mode every minute
+    // Change the swadge mode two minutes
     static int64_t resetToMenuTimer = 0;
     resetToMenuTimer += tElapsed;
-    while(resetToMenuTimer >= (1000000 * 60))
+    while(resetToMenuTimer >= (1000000 * 120))
     {
-        resetToMenuTimer -= (1000000 * 60);
+        resetToMenuTimer -= (1000000 * 120);
         static int modeIdx = 0;
         modeIdx = (modeIdx + 1) % (sizeof(allModes) / sizeof(allModes[0]));
-        switchToSwadgeMode(allModes[modeIdx]);
+        switchToSwadgeModeFuzzer(allModes[modeIdx]);
     }
 
     // Timekeeping
