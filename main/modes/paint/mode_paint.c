@@ -533,6 +533,7 @@ void paintReturnToMainMenu(void)
         case PAINT_SHARE:
         case PAINT_RECEIVE:
             switchToSwadgeMode(&modePaint);
+            return;
         break;
 
         case PAINT_GALLERY:
