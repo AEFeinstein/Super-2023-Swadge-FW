@@ -191,74 +191,87 @@ void loadLevels()
     loadWsg("Bliss.wsg", &pm->levels[4].levelWSG);//5x10
     loadWsg("Bliss_c.wsg", &pm->levels[4].completedWSG);
 
-    pm->levels[5].title = "Snare Drum";
-    loadWsg("Snare_Drum_PZL.wsg", &pm->levels[5].levelWSG);//10x10
-    loadWsg("Snare_Drum_SLV.wsg", &pm->levels[5].completedWSG);
+    pm->levels[5].title = "Discord Notification";
+    loadWsg("Discord_PZL.wsg", &pm->levels[5].levelWSG);//10x10
+    loadWsg("Discord_SLV.wsg", &pm->levels[5].completedWSG);
 
-    pm->levels[6].title = "Danny";
-    loadWsg("Danny_PZL.wsg", &pm->levels[6].levelWSG);//10x10
-    loadWsg("Danny_SLV.wsg", &pm->levels[6].completedWSG);
+    pm->levels[6].title = "Snare Drum";
+    loadWsg("Snare_Drum_PZL.wsg", &pm->levels[6].levelWSG);//10x10
+    loadWsg("Snare_Drum_SLV.wsg", &pm->levels[6].completedWSG);
 
-    pm->levels[7].title = "Controller";
-    loadWsg("Controller_PZL.wsg", &pm->levels[7].levelWSG);//10x10
-    loadWsg("Controller_SLV.wsg", &pm->levels[7].completedWSG);
+    pm->levels[7].title = "Danny";
+    loadWsg("Danny_PZL.wsg", &pm->levels[7].levelWSG);//10x10
+    loadWsg("Danny_SLV.wsg", &pm->levels[7].completedWSG);
 
-    pm->levels[8].title = "Cat";
-    loadWsg("Cat_PZL.wsg", &pm->levels[8].levelWSG);//10x10
-    loadWsg("Cat_SLV.wsg", &pm->levels[8].completedWSG);
+    pm->levels[8].title = "Controller";
+    loadWsg("Controller_PZL.wsg", &pm->levels[8].levelWSG);//10x10
+    loadWsg("Controller_SLV.wsg", &pm->levels[8].completedWSG);
 
-    pm->levels[9].title = "Pear";
-    loadWsg("Pear_PZL.wsg", &pm->levels[9].levelWSG);//10x10
-    loadWsg("Pear_SLV.wsg", &pm->levels[9].completedWSG);
+    pm->levels[9].title = "Cat";
+    loadWsg("Cat_PZL.wsg", &pm->levels[9].levelWSG);//10x10
+    loadWsg("Cat_SLV.wsg", &pm->levels[9].completedWSG);
+
+    pm->levels[10].title = "Pear";//todo: move this lower, it can be tricky ish.
+    loadWsg("Pear_PZL.wsg", &pm->levels[10].levelWSG);//10x10
+    loadWsg("Pear_SLV.wsg", &pm->levels[10].completedWSG);
     
-    pm->levels[10].title = "Cherry";
-    loadWsg("Cherry_PZL.wsg", &pm->levels[10].levelWSG);//10x10
-    loadWsg("Cherry_SLV.wsg", &pm->levels[10].completedWSG);
+    pm->levels[11].title = "Boat";   
+    loadWsg("3_boat.wsg", &pm->levels[11].levelWSG);//10x10
+    loadWsg("3_boat_c.wsg", &pm->levels[11].completedWSG);
 
-    pm->levels[11].title = "Strawberry";
-    loadWsg("Strawberry_PZL.wsg", &pm->levels[11].levelWSG);//10x10
-    loadWsg("Strawberry_SLV.wsg", &pm->levels[11].completedWSG);
+    pm->levels[12].title = "Cherry";
+    loadWsg("Cherry_PZL.wsg", &pm->levels[12].levelWSG);//10x10
+    loadWsg("Cherry_SLV.wsg", &pm->levels[12].completedWSG);
 
-    pm->levels[12].title = "Coffee Bean";
-    loadWsg("CoffeeBean_PZL.wsg", &pm->levels[12].levelWSG);//coffeBean is pretty hard for a 10x10
-    loadWsg("CoffeeBean_SLV.wsg", &pm->levels[12].completedWSG);
+    pm->levels[13].title = "Magnet";
+    loadWsg("Magnet_PZL.wsg", &pm->levels[13].levelWSG);//10x10
+    loadWsg("Magnet_SLV.wsg", &pm->levels[13].completedWSG);
 
-    pm->levels[13].title = "Boat";   
-    loadWsg("3_boat.wsg", &pm->levels[13].levelWSG);//10x10
-    loadWsg("3_boat_c.wsg", &pm->levels[13].completedWSG);
+    pm->levels[14].title = "Strawberry";
+    loadWsg("Strawberry_PZL.wsg", &pm->levels[14].levelWSG);//10x10
+    loadWsg("Strawberry_SLV.wsg", &pm->levels[14].completedWSG);
 
-    pm->levels[14].title = "Lobster";   //Symmetry makes this less fun to solve. It's on the chopping block if we get better puzzles.
-    loadWsg("Lobster_PZL.wsg", &pm->levels[14].levelWSG);//10x10
-    loadWsg("Lobster_SLV.wsg", &pm->levels[14].completedWSG);
+    pm->levels[15].title = "Coffee Bean";
+    loadWsg("CoffeeBean_PZL.wsg", &pm->levels[15].levelWSG);//coffeBean is pretty hard for a 10x10
+    loadWsg("CoffeeBean_SLV.wsg", &pm->levels[15].completedWSG);
 
-    pm->levels[15].title = "Mouse";
-    loadWsg("Mouse_PZL.wsg", &pm->levels[15].levelWSG);//15x15
-    loadWsg("Mouse_SLV.wsg", &pm->levels[15].completedWSG);
+    pm->levels[16].title = "Lobster";   //Symmetry makes this less fun to solve. It's on the chopping block if we get better puzzles.
+    loadWsg("Lobster_PZL.wsg", &pm->levels[16].levelWSG);//10x10
+    loadWsg("Lobster_SLV.wsg", &pm->levels[16].completedWSG);
 
-    pm->levels[16].title = "Note";
-    loadWsg("Note_PZL.wsg", &pm->levels[16].levelWSG);//15x15
-    loadWsg("Note_SLV.wsg", &pm->levels[16].completedWSG);
+    pm->levels[17].title = "Mouse";
+    loadWsg("Mouse_PZL.wsg", &pm->levels[17].levelWSG);//15x15
+    loadWsg("Mouse_SLV.wsg", &pm->levels[17].completedWSG);
 
-    pm->levels[17].title = "Banana";
-    loadWsg("Banana_PZL.wsg", &pm->levels[17].levelWSG);//15x15
-    loadWsg("Banana_SLV.wsg", &pm->levels[17].completedWSG);
+    pm->levels[18].title = "Note";
+    loadWsg("Note_PZL.wsg", &pm->levels[18].levelWSG);//15x15
+    loadWsg("Note_SLV.wsg", &pm->levels[18].completedWSG);
 
-    pm->levels[18].title = "Fountain Pen";
-    loadWsg("Fountain_Pen_PZL.wsg", &pm->levels[18].levelWSG);//15x15
-    loadWsg("Fountain_Pen_SLV.wsg", &pm->levels[18].completedWSG);
+    pm->levels[19].title = "Banana";
+    loadWsg("Banana_PZL.wsg", &pm->levels[19].levelWSG);//15x15
+    loadWsg("Banana_SLV.wsg", &pm->levels[19].completedWSG);
 
-    pm->levels[19].title = "Power Plug";
-    loadWsg("Plug_PZL.wsg", &pm->levels[19].levelWSG);//15x15 - This one is on the harder side of things.
-    loadWsg("Plug_SLV.wsg", &pm->levels[19].completedWSG);
+    pm->levels[20].title = "Big Mouth Billy Bass";
+    loadWsg("bass_PZL.wsg", &pm->levels[20].levelWSG);//15x15
+    loadWsg("bass_SLV.wsg", &pm->levels[20].completedWSG);
 
-    pm->levels[20].title = "Rocket League";
-    loadWsg("RocketLeague_PZL.wsg", &pm->levels[20].levelWSG);//15x15 - This one is on the harder side of things.
-    loadWsg("RocketLeague_SLV.wsg", &pm->levels[20].completedWSG);
+
+    pm->levels[21].title = "Fountain Pen";
+    loadWsg("Fountain_Pen_PZL.wsg", &pm->levels[21].levelWSG);//15x15
+    loadWsg("Fountain_Pen_SLV.wsg", &pm->levels[21].completedWSG);
+
+    pm->levels[22].title = "Power Plug";
+    loadWsg("Plug_PZL.wsg", &pm->levels[22].levelWSG);//15x15 - This one is on the harder side of things.
+    loadWsg("Plug_SLV.wsg", &pm->levels[22].completedWSG);
+
+    pm->levels[23].title = "Rocket League";
+    loadWsg("RocketLeague_PZL.wsg", &pm->levels[23].levelWSG);//15x15 - This one is on the harder side of things.
+    loadWsg("RocketLeague_SLV.wsg", &pm->levels[23].completedWSG);
 
     //this has to be the last puzzle.
-    pm->levels[21].title = "Never Gonna";//give you up, but title too long for single line.
-    loadWsg("RR_PZL.wsg", &pm->levels[21].levelWSG);//15/15
-    loadWsg("RR_SLV.wsg", &pm->levels[21].completedWSG);
+    pm->levels[24].title = "Never Gonna";//give you up, but title too long for single line.
+    loadWsg("RR_PZL.wsg", &pm->levels[24].levelWSG);//15/15
+    loadWsg("RR_SLV.wsg", &pm->levels[24].completedWSG);
 
     //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_consts.h) when adding levels.
 

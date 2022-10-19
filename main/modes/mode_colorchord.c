@@ -182,14 +182,15 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
         uint16_t * sampleHist = colorchord->sampleHist;
         uint16_t sampleHistCount = colorchord->sampleHistCount;
         int16_t sampleHistMark = colorchord->sampleHistHead - 1;
+
         for( x = 0; x < dispWidth; x++ )
         {
-            int16_t sample = sampleHist[sampleHistMark];
-            sampleHistMark--;
             if(sampleHistMark < 0)
             {
-                sampleHistMark = sampleHistCount;
+                sampleHistMark = sampleHistCount - 1;
             }
+            int16_t sample = sampleHist[sampleHistMark];
+            sampleHistMark--;
             uint16_t y = ((sample * dispHeight)>>16) + (dispHeight/2);
             if( y >= dispHeight ) continue;
             TURBO_SET_PIXEL( colorchord->disp, x, y, 215 );
