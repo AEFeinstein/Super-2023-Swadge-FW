@@ -499,9 +499,16 @@ void strToBlob(char * str, void * outBlob, size_t blobLen)
     uint8_t * outBlob8 = (uint8_t*)outBlob;
     for(size_t i = 0; i < blobLen; i++)
     {
-        uint8_t upperNib = hexCharToInt(str[2 * i]);
-        uint8_t lowerNib = hexCharToInt(str[(2 * i) + 1]);
-        outBlob8[i] = (upperNib << 4) | (lowerNib);
+        if(((2 * i) + 1) < strlen(str))
+        {
+            uint8_t upperNib = hexCharToInt(str[2 * i]);
+            uint8_t lowerNib = hexCharToInt(str[(2 * i) + 1]);
+            outBlob8[i] = (upperNib << 4) | (lowerNib);
+        }
+        else
+        {
+            outBlob8[i] = 0;
+        }
     }
 }
 
