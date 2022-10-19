@@ -70,21 +70,22 @@ static paletteColor_t defaultPalette[] =
 {
     c000, // black
     c555, // white
+    c012, // dark blue
+    c505, // fuchsia
+    c540, // yellow
+    c235, // cornflower
+
     c222, // light gray
     c444, // dark gray
+
     c500, // red
-    c550, // yellow
     c050, // green
     c055, // cyan
-
     c005, // blue
     c530, // orange?
-    c505, // fuchsia
     c503, // pink
     c350, // lime green
-    c035, // sky blue
     c522, // salmon
-    c103, // dark blue
 };
 
 brush_t brushes[] =
