@@ -187,7 +187,7 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
         {
             if(sampleHistMark < 0)
             {
-                sampleHistMark = sampleHistCount;
+                sampleHistMark = sampleHistCount - 1;
             }
             int16_t sample = sampleHist[sampleHistMark];
             sampleHistMark--;

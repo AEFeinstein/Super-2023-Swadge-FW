@@ -425,7 +425,7 @@ bool eraseNvsKey(const char* key)
                 free(jsonStr);
                 cJSON_Delete(json);
 
-                return true;
+                return keyExists;
             }
             else
             {
