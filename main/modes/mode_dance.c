@@ -161,6 +161,12 @@ void danceEnterMode(display_t* disp)
 
 void danceExitMode(void)
 {
+    if(danceState->blankScreen)
+    {
+        // Turn the screen on
+        enableTFTBacklight();
+        setTFTBacklight(getTftIntensity());
+    }
     freeFont(&(danceState->infoFont));
     freeWsg(&danceState->arrow);
     free(danceState);
