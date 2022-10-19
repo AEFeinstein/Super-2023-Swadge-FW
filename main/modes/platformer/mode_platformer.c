@@ -1157,9 +1157,17 @@ void updateTitleScreen(platformer_t *self)
                 changeStateShowHighScores(self);
             }
             else if (
-                (self->gameData.btnState & START)
-                &&
-                !(self->gameData.prevBtnState & START)
+                (
+                    (self->gameData.btnState & START)
+                    &&
+                    !(self->gameData.prevBtnState & START)
+                )
+                    ||
+                (
+                    (self->gameData.btnState & BTN_A)
+                    &&
+                    !(self->gameData.prevBtnState & BTN_A)
+                )
             )
             {
                 buzzer_play_sfx(&sndMenuConfirm);
@@ -1170,9 +1178,17 @@ void updateTitleScreen(platformer_t *self)
         }
         case 1:{
             if (
-                self->gameData.btnState & START
-                &&
-                !(self->gameData.prevBtnState & START)
+                (
+                    (self->gameData.btnState & START)
+                    &&
+                    !(self->gameData.prevBtnState & START)
+                )
+                    ||
+                (
+                    (self->gameData.btnState & BTN_A)
+                    &&
+                    !(self->gameData.prevBtnState & BTN_A)
+                )
             )
             {
                 uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
@@ -1747,9 +1763,17 @@ void updateShowHighScores(platformer_t *self){
     self->gameData.frameCount++;
 
     if((self->gameData.frameCount > 300) || (
-        (self->gameData.btnState & START)
-        &&
-        !(self->gameData.prevBtnState & START)
+        (
+            (self->gameData.btnState & START)
+            &&
+            !(self->gameData.prevBtnState & START)
+        )
+            ||
+        (
+            (self->gameData.btnState & BTN_A)
+            &&
+            !(self->gameData.prevBtnState & BTN_A)
+        )
     )){
         self->menuState = 0;
         self->menuSelection = 0;
