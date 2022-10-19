@@ -351,23 +351,31 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                 // Load from the selected slot if it's been used
                 hideCursor(getCursor(), &paintState->canvas);
                 paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
-                paintLoadDimensions(&paintState->canvas, paintState->selectedSlot);
-                paintPositionDrawCanvas();
-                paintLoad(&paintState->index, &paintState->canvas, paintState->selectedSlot);
-                paintSetRecentSlot(&paintState->index, paintState->selectedSlot);
+                if(paintLoadDimensions(&paintState->canvas, paintState->selectedSlot))
+                {
+                    paintPositionDrawCanvas();
+                    paintLoad(&paintState->index, &paintState->canvas, paintState->selectedSlot);
+                    paintSetRecentSlot(&paintState->index, paintState->selectedSlot);
 
-                getArtist()->fgColor = paintState->canvas.palette[0];
-                getArtist()->bgColor = paintState->canvas.palette[1];
+                    getArtist()->fgColor = paintState->canvas.palette[0];
+                    getArtist()->bgColor = paintState->canvas.palette[1];
 
-                paintFreeCursorSprite(&paintState->cursorWsg);
-                paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
-                setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
-                setCursorOffset(getCursor(), (paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
+                    paintFreeCursorSprite(&paintState->cursorWsg);
+                    paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
+                    setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
+                    setCursorOffset(getCursor(), (paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
 
-                // Put the cursor in the middle of the screen
-                moveCursorAbsolute(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
-                showCursor(getCursor(), &paintState->canvas);
-                paintUpdateLeds();
+                    // Put the cursor in the middle of the screen
+                    moveCursorAbsolute(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
+                    showCursor(getCursor(), &paintState->canvas);
+                    paintUpdateLeds();
+                }
+                else
+                {
+                    PAINT_LOGE("Slot %d has 0 dimension! Stopping load and clearing slot", paintState->selectedSlot);
+                    paintClearSlot(&paintState->index, paintState->selectedSlot);
+                    paintReturnToMainMenu();
+                }
             }
             else
             {
