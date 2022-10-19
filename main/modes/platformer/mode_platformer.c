@@ -936,7 +936,7 @@ platformer_t *platformer;
 
 swadgeMode modePlatformer =
     {
-        .modeName = "Platformer",
+        .modeName = "Swadge Land",
         .fnEnterMode = platformerEnterMode,
         .fnExitMode = platformerExitMode,
         .fnMainLoop = platformerMainLoop,
