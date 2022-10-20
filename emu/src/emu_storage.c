@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h> 
 
 #include "esp_log.h"
 #include "cJSON.h"
@@ -554,6 +555,34 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize, boo
     if(NULL != *output)
     {
         // ESP_LOGE("SPIFFS", "output not NULL");
+        return false;
+    }
+
+    // Make sure the file exists, case sensitive
+    bool fileExists = false;
+    DIR *d;
+    struct dirent *dir;
+    d = opendir("./spiffs_image/");
+    if (d)
+    {
+        while ((dir = readdir(d)) != NULL)
+        {
+            if(0 == strcmp(dir->d_name, fname))
+            {
+                fileExists = true;
+                break;
+            }
+        }
+        closedir(d);
+    }
+
+    // If the file does not exist
+    if(false == fileExists)
+    {
+        // Print the error, then quit.
+        // Abnormal quitting is a strong indicator something failed
+        ESP_LOGE("SPIFFS", "%s doesnt exist!!!!", fname);
+        exit(1);
         return false;
     }
 

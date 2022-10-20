@@ -236,8 +236,8 @@ void loadLevels()
     loadWsg("CoffeeBean_SLV.wsg", &pm->levels[15].completedWSG);
 
     pm->levels[16].title = "Lobster";   //Symmetry makes this less fun to solve. It's on the chopping block if we get better puzzles.
-    loadWsg("Lobster_PZL.wsg", &pm->levels[16].levelWSG);//10x10
-    loadWsg("Lobster_SLV.wsg", &pm->levels[16].completedWSG);
+    loadWsg("lobster_PZL.wsg", &pm->levels[16].levelWSG);//10x10
+    loadWsg("lobster_SLV.wsg", &pm->levels[16].completedWSG);
 
     pm->levels[17].title = "Mouse";
     loadWsg("Mouse_PZL.wsg", &pm->levels[17].levelWSG);//15x15
