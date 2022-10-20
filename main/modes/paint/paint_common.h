@@ -380,15 +380,10 @@ typedef struct
     font_t menuFont;
     // Main Menu
     meleeMenu_t* menu;
-    meleeMenu_t* settingsMenu;
-    meleeMenu_t* networkMenu;
 
     uint8_t menuSelection, networkMenuSelection, settingsMenuSelection;
 
     bool eraseDataSelected, eraseDataConfirm;
-
-    // Font for drawing brush info
-    font_t toolbarFont;
 
     display_t* disp;
 
