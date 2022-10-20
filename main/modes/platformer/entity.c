@@ -140,10 +140,32 @@ void initializeEntity(entity_t *self, entityManager_t *entityManager, tilemap_t 
     self->gravity = false;
     self->falling = false;
     self->entityManager = entityManager;
-    self->spriteFlipVertical = false;
     self->fallOffTileHandler = &defaultFallOffTileHandler;
     self->spriteFlipHorizontal = false;
     self->spriteFlipVertical = false;
+
+    // Fields not explicitly initialized
+    // self->type = 0;
+    // self->updateFunction = NULL;
+    // self->x = 0;
+    // self->y = 0;
+    // self->xspeed = 0;
+    // self->yspeed = 0;
+    // self->xMaxSpeed = 0;
+    // self->yMaxSpeed = 0;
+    // self->xDamping = 0;
+    // self->yDamping = 0;
+    // self->gravityEnabled = false;
+    // self->spriteIndex = 0;
+    // self->animationTimer = 0;
+    // self->jumpPower = 0;
+    // self->visible = false;
+    // self->hp = 0;
+    // self->invincibilityFrames = 0;
+    // self->scoreValue = 0;
+    // self->collisionHandler = NULL;
+    // self->tileCollisionHandler = NULL;
+    // self->overlapTileHandler = NULL;
 };
 
 void updatePlayer(entity_t *self)
@@ -234,7 +256,7 @@ void updatePlayer(entity_t *self)
         self->yspeed = self->yspeed >> 2; // technically shouldn't do this with a signed int
     }
 
-    if(self->invincibilityFrames > 0){
+    if(self->invincibilityFrames > 0){ // TODO not init
         self->invincibilityFrames--;
         if(self->invincibilityFrames % 2){
             self->visible = !self->visible;
