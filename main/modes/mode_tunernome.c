@@ -51,7 +51,7 @@
 
 #define METRONOME_CENTER_X    tunernome->disp->w / 2
 #define METRONOME_CENTER_Y    tunernome->disp->h - 16 - CORNER_OFFSET
-#define METRONOME_RADIUS      138
+#define METRONOME_RADIUS      135
 #define TUNER_RADIUS          65
 #define INITIAL_BPM           60
 #define MAX_BPM               400
@@ -133,6 +133,7 @@ typedef struct
     int16_t intensity[NUM_SEMITONES];
 
     wsg_t upArrowWsg;
+    wsg_t bigUpArrowWsg;
     wsg_t flatWsg;
 
     uint32_t blinkStartUs;
@@ -363,6 +364,7 @@ void tunernomeEnterMode(display_t* disp)
     TUNER_THRES_Y = round(METRONOME_CENTER_Y - (ABS(intermedY) * TUNER_RADIUS));
 
     loadWsg("uparrow.wsg", &(tunernome->upArrowWsg));
+    loadWsg("arrow21.wsg", &(tunernome->bigUpArrowWsg));
     loadWsg("flat_mm.wsg", &(tunernome->flatWsg));
 
     tunernome->tSigIdx = 0;
@@ -444,6 +446,7 @@ void tunernomeExitMode(void)
     freeFont(&tunernome->mm);
 
     freeWsg(&(tunernome->upArrowWsg));
+    freeWsg(&(tunernome->bigUpArrowWsg));
     freeWsg(&(tunernome->flatWsg));
 
     free(tunernome);
@@ -671,7 +674,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
             drawText(tunernome->disp, &tunernome->radiostars, c500, "Sharp", tunernome->disp->w - textWidth(&tunernome->radiostars,
                      "Sharp") - CORNER_OFFSET, CORNER_OFFSET);
 
-            // Left/Right button functions at bottom of display
+            // A/B/Start button functions at bottom of display
             int16_t afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c151, "A", CORNER_OFFSET,
                                          tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
             afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c555, "/", afterText,
@@ -842,13 +845,36 @@ void tunernomeMainLoop(int64_t elapsedUs)
         }
         case TN_METRONOME:
         {
-            char bpmStr[32];
-            sprintf(bpmStr, "%d bpm, %d/%d", tunernome->bpm, tSigs[tunernome->tSigIdx].top, tSigs[tunernome->tSigIdx].bottom);
+            // BPM at top of display
+            char bpmStr[16];
+            sprintf(bpmStr, "%d BPM", tunernome->bpm);
+            int16_t beforeText = (tunernome->disp->w - textWidth(&tunernome->mm, bpmStr)) / 2;
+            int16_t afterText = drawText(tunernome->disp, &tunernome->mm, c555, bpmStr, beforeText, 5);
+            
+            drawWsg(tunernome->disp, &(tunernome->bigUpArrowWsg),
+                    beforeText - tunernome->bigUpArrowWsg.w - 8,
+                    5,
+                    false, false, 0);
+            drawWsg(tunernome->disp, &(tunernome->bigUpArrowWsg),
+                    afterText + 7,
+                    5,
+                    false, true, 0);
 
-            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, bpmStr, (tunernome->disp->w - textWidth(&tunernome->ibm_vga8,
-                     bpmStr)) / 2, 5);
-            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, leftStr, CORNER_OFFSET,
+            // A/B/Start button functions at bottom of display
+            afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c151, "A", CORNER_OFFSET,
+                                         tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+            afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c555, "/", afterText,
+                                 tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+            afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c511, "B", afterText,
+                                 tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+            afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c555, leftStr, afterText,
+                                 tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+
+            char tSigStr[32];
+            sprintf(tSigStr, "%d/%d", tSigs[tunernome->tSigIdx].top, tSigs[tunernome->tSigIdx].bottom);
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, tSigStr, afterText,
                      tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+            
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrTuner,
                      tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrTuner) - CORNER_OFFSET,
                      tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
