@@ -253,6 +253,20 @@ const uint16_t fourNoteStringIdxToLedIdx[4] =
     5
 };
 
+const uint16_t twoLedFlashIdxes[2] =
+{
+    0,
+    7
+};
+
+const uint16_t fourLedFlashIdxes[4] =
+{
+    1,
+    3,
+    4,
+    6
+};
+
 const char* guitarNoteNames[6] =
 {
     "E2",
@@ -950,18 +964,12 @@ void tunernomeMainLoop(int64_t elapsedUs)
                 else
                 {
                     song = &metronome_secondary;
-                    for(int i = 0; i < NUM_LEDS; i++)
+                    for(int i = 0; i < 4; i++)
                     {
-                        leds[i].r = 0x40;
-                        leds[i].g = 0x00;
-                        leds[i].b = 0xFF;
+                        leds[fourLedFlashIdxes[i]].r = 0x40;
+                        leds[fourLedFlashIdxes[i]].g = 0x00;
+                        leds[fourLedFlashIdxes[i]].b = 0xFF;
                     }
-                    leds[2].r = 0x00;
-                    leds[2].g = 0x00;
-                    leds[2].b = 0x00;
-                    leds[3].r = 0x00;
-                    leds[3].g = 0x00;
-                    leds[3].b = 0x00;
                 }
 
                 buzzer_play_sfx(song);
