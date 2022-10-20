@@ -112,6 +112,7 @@ const brush_t* lastBrush = brushes + sizeof(brushes) / sizeof(brushes[0]) - 1;
 
 void paintDrawScreenSetup(display_t* disp)
 {
+    PAINT_LOGD("Allocating %zu bytes for paintState", sizeof(paintDraw_t));
     paintState = calloc(sizeof(paintDraw_t), 1);
     paintState->disp = disp;
     paintState->canvas.disp = disp;
@@ -1071,7 +1072,7 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
             case BTN_A:
             {
                 // Increase brush size / next variant
-                paintIncBrushWidth();
+                paintIncBrushWidth(1);
                 paintState->redrawToolbar = true;
                 break;
             }
@@ -1079,7 +1080,7 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
             case BTN_B:
             {
                 // Decrease brush size / prev variant
-                paintDecBrushWidth();
+                paintDecBrushWidth(1);
                 paintState->redrawToolbar = true;
                 break;
             }
@@ -1088,6 +1089,56 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
             // Start does nothing in select-mode, plus it's used for exit
             break;
         }
+    }
+}
+
+void paintDrawScreenTouchCb(const touch_event_t* evt)
+{
+    PAINT_LOGD("touchCb({ .state = %d, .touch_pad_t = %d, .down = %d, .position = %d })", evt->state, evt->pad, evt->down, evt->position);
+    // we get the first down event
+    // check if paintState->down is false, set it to true
+    // save the position at paintState->firstTouch (and also lastTouch)
+    // then, for any more down events while any touchpad is still down, update lastTouch
+    // once we get an up event and state == 0 (no touchpads down), clear touchDown, save the position(?)
+    // swipe direction = (lastTouch > firstTouch) ? DOWN : UP
+    // TODO flip this if it's backwards
+    if (evt->down && evt->state != 0 && !paintState->touchDown)
+    {
+        paintState->touchDown = true;
+        paintState->firstTouch = evt->position;
+        paintState->lastTouch = evt->position;
+    }
+    else if (evt->down && evt->state != 0 && paintState->touchDown) {
+        paintState->lastTouch = evt->position;
+    }
+    else if (!evt->down && evt->state == 0 && paintState->touchDown)
+    {
+        if (paintState->firstTouch < paintState->lastTouch)
+        {
+            PAINT_LOGD("Swipe RIGHT (%d)", (paintState->lastTouch - paintState->firstTouch) / 32);
+            paintDecBrushWidth((paintState->lastTouch - paintState->firstTouch) / 32);
+        }
+        else if (paintState->firstTouch > paintState->lastTouch)
+        {
+            PAINT_LOGD("Swipe LEFT (%d)", (paintState->firstTouch - paintState->lastTouch + 1) / 32);
+            paintIncBrushWidth((paintState->firstTouch - paintState->lastTouch + 1) / 32);
+        }
+        else
+        {
+            // TAP
+            PAINT_LOGD("Tap pad %d", evt->pad);
+            if (evt->pad == 0)
+            {
+                // Tap X (?)
+                paintIncBrushWidth(1);
+            }
+            else if (evt->pad == 4)
+            {
+                // Tap Y (?)
+                paintDecBrushWidth(1);
+            }
+        }
+        paintState->touchDown = false;
     }
 }
 
@@ -1426,26 +1477,28 @@ void paintNextTool(void)
     paintSetupTool();
 }
 
-void paintDecBrushWidth()
+void paintDecBrushWidth(uint8_t dec)
 {
-    if (getArtist()->brushWidth == 0 || getArtist()->brushWidth <= getArtist()->brushDef->minSize)
+    if (getArtist()->brushWidth <= dec || getArtist()->brushWidth <= getArtist()->brushDef->minSize)
     {
         getArtist()->brushWidth = getArtist()->brushDef->minSize;
     }
     else
     {
-        getArtist()->brushWidth--;
+        getArtist()->brushWidth -= dec;
     }
+    paintState->redrawToolbar = true;
 }
 
-void paintIncBrushWidth()
+void paintIncBrushWidth(uint8_t inc)
 {
-    getArtist()->brushWidth++;
+    getArtist()->brushWidth += inc;
 
     if (getArtist()->brushWidth > getArtist()->brushDef->maxSize)
     {
         getArtist()->brushWidth = getArtist()->brushDef->maxSize;
     }
+    paintState->redrawToolbar = true;
 }
 
 void paintSwapFgBgColors(void)

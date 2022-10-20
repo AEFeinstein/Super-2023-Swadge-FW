@@ -13,6 +13,7 @@ extern paintDraw_t* paintState;
 // Mode callback delegates
 void paintDrawScreenMainLoop(int64_t elapsedUs);
 void paintDrawScreenButtonCb(const buttonEvt_t* evt);
+void paintDrawScreenTouchCb(const touch_event_t* evt);
 void paintPaletteModeButtonCb(const buttonEvt_t* evt);
 void paintSaveModeButtonCb(const buttonEvt_t* evt);
 void paintSelectModeButtonCb(const buttonEvt_t* evt);
@@ -56,8 +57,8 @@ void paintHidePickPoints(void);
 void paintSetupTool(void);
 void paintPrevTool(void);
 void paintNextTool(void);
-void paintDecBrushWidth(void);
-void paintIncBrushWidth(void);
+void paintDecBrushWidth(uint8_t dec);
+void paintIncBrushWidth(uint8_t inc);
 
 // Cursor helper functions
 void enableCursor(void);

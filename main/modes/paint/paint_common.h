@@ -212,6 +212,9 @@ typedef struct
     int64_t blinkTimer;
     bool blinkOn;
 
+    bool touchDown;
+    uint8_t firstTouch;
+    uint8_t lastTouch;
 
 
     //////// Save data flags
