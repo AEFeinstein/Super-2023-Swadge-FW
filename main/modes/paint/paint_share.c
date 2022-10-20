@@ -887,7 +887,7 @@ void paintShareButtonCb(buttonEvt_t* evt)
 
                 case BTN_B:
                 {
-                    paintReturnToMainMenu();
+                    switchToSwadgeMode(&modePaint);
                     break;
                 }
 
@@ -945,7 +945,7 @@ void paintShareButtonCb(buttonEvt_t* evt)
                 case BTN_B:
                 {
                     // Exit without saving
-                    paintReturnToMainMenu();
+                    switchToSwadgeMode(&modePaint);
                     break;
                 }
 
@@ -977,7 +977,7 @@ void paintShareButtonCb(buttonEvt_t* evt)
     {
         if (evt->down && evt->button == BTN_B)
         {
-            paintReturnToMainMenu();
+            switchToSwadgeMode(&modePaint);
         }
         else
         {

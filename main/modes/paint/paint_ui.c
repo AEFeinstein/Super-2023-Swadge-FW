@@ -82,7 +82,6 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
 
 
         // Draw a black rectangle under where the exit progress bar will be so it can be seen
-        fillDisplayArea(canvas->disp, 0, canvas->disp->h - 11, canvas->disp->w, canvas->disp->h, c000);
     }
 
 
@@ -102,7 +101,7 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
     uint16_t colorBoxY = PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_W + PAINT_COLORBOX_W / 2 + 1 + PAINT_COLORBOX_MARGIN_TOP;
 
     // vertically center the color boxes in the available space
-    colorBoxY = colorBoxY + (canvas->disp->h - PAINT_COLORBOX_MARGIN_TOP - (PAINT_MAX_COLORS * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H)) - colorBoxY - PAINT_COLORBOX_MARGIN_TOP - 11) / 2;
+    colorBoxY = colorBoxY + (canvas->disp->h - PAINT_COLORBOX_MARGIN_TOP - (PAINT_MAX_COLORS * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H)) - colorBoxY - PAINT_COLORBOX_MARGIN_TOP) / 2;
 
 
     //////// Recent Colors (palette)
@@ -184,6 +183,13 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
 
             textW = textWidth(&paintState->toolbarFont, text);
             drawText(canvas->disp, &paintState->toolbarFont, c000, text, canvas->x + canvas->w * canvas->xScale + 2 + (canvas->disp->w - canvas->x - canvas->w * canvas->xScale - 2 - textW) / 2, textY);
+        }
+
+        // Draw the brush name after all...
+        // TODO: Have a flag to enable this after going through the tutorial
+        if (paintMenu->screen != PAINT_HELP)
+        {
+            drawText(canvas->disp, &paintState->toolbarFont, c000, artist->brushDef->name, canvas->x, canvas->y + canvas->h * canvas->yScale + 1 + (canvas->disp->h - paintState->toolbarFont.h - 4 - canvas->y - canvas->h * canvas->yScale - 1) / 2);
         }
     }
     else if (paintState->saveMenu == PICK_SLOT_SAVE || paintState->saveMenu == PICK_SLOT_LOAD)
