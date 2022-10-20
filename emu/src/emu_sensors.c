@@ -46,8 +46,9 @@ void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButt
 {
     // The order in which keys are initialized
     // Note that the actuall number of buttons initialized may be less than this
-    char keyOrder[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i'};
-    memcpy(inputKeys, keyOrder, numButtons);
+    char keyOrder[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i',
+	                   't', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
+    memcpy(inputKeys, keyOrder, (sizeof(keyOrder) / sizeof(keyOrder[0])));
 	buttonState = 0;
 	buttonQueue = list_new();
 }

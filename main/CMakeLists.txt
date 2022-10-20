@@ -16,6 +16,7 @@ idf_component_register(
         "modes/fighter/fighter_hr_result.c"
         "modes/fighter/fighter_mp_result.c"
         "modes/fighter/fighter_records.c"
+        "modes/fighter/fighter_music.c"
         "modes/mode_flight.c"
         "modes/mode_credits.c"
         "modes/jumper/jumper_menu.c"
