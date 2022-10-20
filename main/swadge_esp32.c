@@ -68,6 +68,7 @@
 
 #if defined(EMU)
     #include "emu_esp.h"
+    #include "emu_main.h"
 #else
     #include "soc/dport_access.h"
     #include "soc/periph_defs.h"
@@ -922,8 +923,23 @@ void cleanupOnExit(void)
  */
 void switchToSwadgeMode(swadgeMode* mode)
 {
+#if !defined(MONKEY_AROUND)
     pendingSwadgeMode = mode;
     isSandboxMode = false;
+#endif
+}
+
+/**
+ * Set up variables to synchronously switch the swadge mode in the main loop
+ *
+ * @param mode The index of the mode to switch to
+ */
+void switchToSwadgeModeFuzzer(swadgeMode* mode)
+{
+#if defined(MONKEY_AROUND)
+    pendingSwadgeMode = mode;
+    isSandboxMode = false;
+#endif
 }
 
 /**

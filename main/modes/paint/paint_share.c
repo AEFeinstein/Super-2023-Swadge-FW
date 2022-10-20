@@ -669,6 +669,7 @@ void paintBeginShare(void)
 void paintShareExitMode(void)
 {
     p2pDeinit(&paintShare->p2pInfo);
+    freeFont(&paintShare->toolbarFont);
     free(paintShare);
 }
 
@@ -886,7 +887,7 @@ void paintShareButtonCb(buttonEvt_t* evt)
 
                 case BTN_B:
                 {
-                    paintReturnToMainMenu();
+                    switchToSwadgeMode(&modePaint);
                     break;
                 }
 
@@ -944,7 +945,7 @@ void paintShareButtonCb(buttonEvt_t* evt)
                 case BTN_B:
                 {
                     // Exit without saving
-                    paintReturnToMainMenu();
+                    switchToSwadgeMode(&modePaint);
                     break;
                 }
 
@@ -976,7 +977,7 @@ void paintShareButtonCb(buttonEvt_t* evt)
     {
         if (evt->down && evt->button == BTN_B)
         {
-            paintReturnToMainMenu();
+            switchToSwadgeMode(&modePaint);
         }
         else
         {

@@ -82,7 +82,6 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
 
 
         // Draw a black rectangle under where the exit progress bar will be so it can be seen
-        fillDisplayArea(canvas->disp, 0, canvas->disp->h - 11, canvas->disp->w, canvas->disp->h, c000);
     }
 
 
@@ -102,7 +101,7 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
     uint16_t colorBoxY = PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_W + PAINT_COLORBOX_W / 2 + 1 + PAINT_COLORBOX_MARGIN_TOP;
 
     // vertically center the color boxes in the available space
-    colorBoxY = colorBoxY + (canvas->disp->h - PAINT_COLORBOX_MARGIN_TOP - (PAINT_MAX_COLORS * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H)) - colorBoxY - PAINT_COLORBOX_MARGIN_TOP - 11) / 2;
+    colorBoxY = colorBoxY + (canvas->disp->h - PAINT_COLORBOX_MARGIN_TOP - (PAINT_MAX_COLORS * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H)) - colorBoxY - PAINT_COLORBOX_MARGIN_TOP) / 2;
 
 
     //////// Recent Colors (palette)
@@ -184,6 +183,13 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
 
             textW = textWidth(&paintState->toolbarFont, text);
             drawText(canvas->disp, &paintState->toolbarFont, c000, text, canvas->x + canvas->w * canvas->xScale + 2 + (canvas->disp->w - canvas->x - canvas->w * canvas->xScale - 2 - textW) / 2, textY);
+        }
+
+        // Draw the brush name after all...
+        // TODO: Have a flag to enable this after going through the tutorial
+        if (paintMenu->screen != PAINT_HELP)
+        {
+            drawText(canvas->disp, &paintState->toolbarFont, c000, artist->brushDef->name, canvas->x, canvas->y + canvas->h * canvas->yScale + 1 + (canvas->disp->h - paintState->toolbarFont.h - 4 - canvas->y - canvas->h * canvas->yScale - 1) / 2);
         }
     }
     else if (paintState->saveMenu == PICK_SLOT_SAVE || paintState->saveMenu == PICK_SLOT_LOAD)
@@ -378,8 +384,6 @@ void paintFreeCursorSprite(wsg_t* cursorWsg)
 void initCursor(paintCursor_t* cursor, paintCanvas_t* canvas, const wsg_t* sprite)
 {
     cursor->sprite = sprite;
-    cursor->spriteOffsetX = canvas->xScale / 2 - sprite->w / 2 + 1;
-    cursor->spriteOffsetY = canvas->yScale / 2 - sprite->h / 2 + 1;
 
     cursor->show = false;
     cursor->x = 0;
@@ -400,12 +404,16 @@ void setCursorSprite(paintCursor_t* cursor, paintCanvas_t* canvas, const wsg_t* 
     undrawCursor(cursor, canvas);
 
     cursor->sprite = sprite;
-    cursor->spriteOffsetX = canvas->xScale / 2 - sprite->w / 2;
-    cursor->spriteOffsetY = canvas->yScale / 2 - sprite->h / 2;
-
     cursor->redraw = true;
 
     drawCursor(cursor, canvas);
+}
+
+void setCursorOffset(paintCursor_t* cursor, int16_t x, int16_t y)
+{
+    cursor->spriteOffsetX = x;
+    cursor->spriteOffsetY = y;
+    cursor->redraw = true;
 }
 
 /// @brief Undraws the cursor and removes its pixels from the stack
@@ -495,5 +503,14 @@ void moveCursorRelative(paintCursor_t* cursor, paintCanvas_t* canvas, int16_t xD
         cursor->redraw = true;
         cursor->x = newX;
         cursor->y = newY;
+    }
+}
+
+void moveCursorAbsolute(paintCursor_t* cursor, paintCanvas_t* canvas, uint16_t x, uint16_t y)
+{
+    if (x < canvas->w && y < canvas->h) {
+        cursor->redraw = true;
+        cursor->x = x;
+        cursor->y = y;
     }
 }

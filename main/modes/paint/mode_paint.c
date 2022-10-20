@@ -116,32 +116,8 @@ void paintExitMode(void)
     deinitMeleeMenu(paintMenu->settingsMenu);
     freeFont(&(paintMenu->menuFont));
 
-    switch (paintMenu->screen)
-    {
-        case PAINT_MENU:
-        case PAINT_NETWORK_MENU:
-        case PAINT_SETTINGS_MENU:
-        break;
-
-        case PAINT_DRAW:
-            paintDrawScreenCleanup();
-        break;
-
-        case PAINT_SHARE:
-        break;
-
-        case PAINT_RECEIVE:
-        break;
-
-        case PAINT_GALLERY:
-            paintGalleryCleanup();
-        break;
-
-        case PAINT_HELP:
-            paintTutorialCleanup();
-            paintDrawScreenCleanup();
-        break;
-    }
+    // Cleanup any sub-modes based on paintMenu->screen
+    paintReturnToMainMenu();
 
     free(paintMenu);
 }
@@ -524,15 +500,12 @@ void paintReturnToMainMenu(void)
         case PAINT_MENU:
         case PAINT_NETWORK_MENU:
         case PAINT_SETTINGS_MENU:
+        case PAINT_SHARE:
+        case PAINT_RECEIVE:
         break;
 
         case PAINT_DRAW:
             paintDrawScreenCleanup();
-        break;
-
-        case PAINT_SHARE:
-        case PAINT_RECEIVE:
-            switchToSwadgeMode(&modePaint);
         break;
 
         case PAINT_GALLERY:
