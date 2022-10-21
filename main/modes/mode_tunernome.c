@@ -53,6 +53,7 @@
 #define METRONOME_CENTER_Y    tunernome->disp->h - 16 - CORNER_OFFSET
 #define METRONOME_RADIUS      135
 #define TUNER_RADIUS          65
+#define TUNER_TEXT_Y_OFFSET   30
 #define INITIAL_BPM           60
 #define MAX_BPM               400
 #define METRONOME_FLASH_MS    35
@@ -543,7 +544,7 @@ void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrum
     // Mode name
     drawText(tunernome->disp, &tunernome->mm, c555, instrumentName,
              (tunernome->disp->w - textWidth(&tunernome->mm, instrumentName)) / 2,
-             (tunernome->disp->h - tunernome->mm.h) / 2);
+             (tunernome->disp->h - tunernome->mm.h) / 2 - TUNER_TEXT_Y_OFFSET);
 
     // Note names of strings, arranged to match LED positions
     bool oddNumLedRows = (numNotes / 2) % 2;
@@ -552,11 +553,11 @@ void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrum
         int y;
         if(oddNumLedRows)
         {
-            y = (tunernome->disp->h - tunernome->mm.h) / 2 + (tunernome->mm.h + 5) * (1 - i);
+            y = (tunernome->disp->h - tunernome->mm.h) / 2 + (tunernome->mm.h + 5) * (1 - i) - TUNER_TEXT_Y_OFFSET;
         }
         else
         {
-            y = tunernome->disp->h / 2 + (tunernome->mm.h + 5) * (- i) + 2;
+            y = tunernome->disp->h / 2 + (tunernome->mm.h + 5) * (- i) + 2 - TUNER_TEXT_Y_OFFSET;
         }
 
         char buf[2] = {0};
@@ -575,11 +576,11 @@ void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrum
         int y;
         if(oddNumLedRows)
         {
-            y = (tunernome->disp->h - tunernome->mm.h) / 2 + (tunernome->mm.h + 5) * (i - (numNotes / 2) - 1);
+            y = (tunernome->disp->h - tunernome->mm.h) / 2 + (tunernome->mm.h + 5) * (i - (numNotes / 2) - 1) - TUNER_TEXT_Y_OFFSET;
         }
         else
         {
-            y = tunernome->disp->h / 2 + (tunernome->mm.h + 5) * (i - (numNotes / 2) - 1) + 2;
+            y = tunernome->disp->h / 2 + (tunernome->mm.h + 5) * (i - (numNotes / 2) - 1) + 2 - TUNER_TEXT_Y_OFFSET;
         }
 
         char buf[2] = {0};
@@ -710,11 +711,11 @@ void tunernomeMainLoop(int64_t elapsedUs)
             // Up/Down arrows in middle of display around current note/mode
             drawWsg(tunernome->disp, &(tunernome->upArrowWsg),
                     (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
-                    (tunernome->disp->h - tunernome->mm.h) / 2 - tunernome->upArrowWsg.h - 4,
+                    (tunernome->disp->h - tunernome->mm.h) / 2 - tunernome->upArrowWsg.h - 4 - TUNER_TEXT_Y_OFFSET,
                     false, false, 0);
-            drawWsg(tunernome->disp, &(tunernome->upArrowWsg),
+            drawWsg(tunernome->disp, &(tunernome->pArrowWsg),
                     (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
-                    (tunernome->disp->h + tunernome->mm.h) / 2 + 4,
+                    (tunernome->disp->h + tunernome->mm.h) / 2 + 4 - TUNER_TEXT_Y_OFFSET,
                     false, true, 0);
 
             // Current note/mode in middle of display
@@ -765,13 +766,14 @@ void tunernomeMainLoop(int64_t elapsedUs)
                         }
                         int16_t textEnd = drawText(tunernome->disp, &tunernome->mm, c555, buf,
                                                    (tunernome->disp->w - tWidth) / 2 + 1,
-                                                   (tunernome->disp->h - tunernome->mm.h) / 2);
+                                                   (tunernome->disp->h - tunernome->mm.h) / 2 - TUNER_TEXT_Y_OFFSET);
 
                         // Append the wsg for a flat
                         if(shouldDrawFlat)
                         {
-                            drawWsg(tunernome->disp, &tunernome->flatWsg, textEnd, (tunernome->disp->h - tunernome->mm.h) / 2, false, false,
-                                    0);
+                            drawWsg(tunernome->disp, &tunernome->flatWsg, textEnd,
+                                    (tunernome->disp->h - tunernome->mm.h) / 2 - TUNER_TEXT_Y_OFFSET,
+                                    false, false, 0);
                         }
 
                         // Set the LEDs to a colorchord-like value
@@ -843,13 +845,14 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     }
                     int16_t textEnd = drawText(tunernome->disp, &tunernome->mm, c555, buf,
                                                (tunernome->disp->w - tWidth) / 2 + 1,
-                                               (tunernome->disp->h - tunernome->mm.h) / 2);
+                                               (tunernome->disp->h - tunernome->mm.h) / 2 - TUNER_TEXT_Y_OFFSET);
 
                     // Append the wsg for a flat
                     if(shouldDrawFlat)
                     {
-                        drawWsg(tunernome->disp, &tunernome->flatWsg, textEnd, (tunernome->disp->h - tunernome->mm.h) / 2, false, false,
-                                0);
+                        drawWsg(tunernome->disp, &tunernome->flatWsg, textEnd,
+                                (tunernome->disp->h - tunernome->mm.h) / 2 - TUNER_TEXT_Y_OFFSET,
+                                false, false, 0);
                     }
                     break;
                 }
