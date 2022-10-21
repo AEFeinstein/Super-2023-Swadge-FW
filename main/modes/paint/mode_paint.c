@@ -62,6 +62,7 @@ void paintEnterMode(display_t* disp);
 void paintExitMode(void);
 void paintMainLoop(int64_t elapsedUs);
 void paintButtonCb(buttonEvt_t* evt);
+void paintTouchCb(touch_event_t* evt);
 void paintMainMenuCb(const char* opt);
 void paintNetworkMenuCb(const char* opt);
 void paintSettingsMenuCb(const char* opt);
@@ -74,7 +75,7 @@ swadgeMode modePaint =
     .fnExitMode = paintExitMode,
     .fnMainLoop = paintMainLoop,
     .fnButtonCallback = paintButtonCb,
-    .fnTouchCallback = NULL,
+    .fnTouchCallback = paintTouchCb,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
@@ -237,6 +238,14 @@ void paintButtonCb(buttonEvt_t* evt)
         case PAINT_RECEIVE:
             // Handled in a different mode
         break;
+    }
+}
+
+void paintTouchCb(touch_event_t* evt)
+{
+    if (paintMenu->screen == PAINT_DRAW || paintMenu->screen == PAINT_HELP)
+    {
+        paintDrawScreenTouchCb(evt);
     }
 }
 

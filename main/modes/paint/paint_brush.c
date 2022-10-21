@@ -196,7 +196,7 @@ void paintDrawPolygon(paintCanvas_t* canvas, point_t* points, uint8_t numPoints,
 
 void paintDrawSquareWave(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    paintPlotSquareWave(canvas->disp, points[0].x, points[0].y, points[1].x, points[1].y, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+    paintPlotSquareWave(canvas->disp, points[0].x, points[0].y, points[1].x, points[1].y, size, col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 }
 
 void paintDrawPaintBucket(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)

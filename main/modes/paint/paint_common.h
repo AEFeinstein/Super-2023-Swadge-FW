@@ -176,6 +176,12 @@ typedef struct
     // The generated cursor sprite
     wsg_t cursorWsg;
 
+    // The "brush size" indicator sprite
+    wsg_t brushSizeWsg;
+
+    // The "picks remaining" sprite
+    wsg_t picksWsg;
+
 
     //////// Local-only UI state
 
@@ -212,6 +218,9 @@ typedef struct
     int64_t blinkTimer;
     bool blinkOn;
 
+    bool touchDown;
+    uint8_t firstTouch;
+    uint8_t lastTouch;
 
 
     //////// Save data flags
