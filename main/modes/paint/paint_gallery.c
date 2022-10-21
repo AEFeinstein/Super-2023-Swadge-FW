@@ -67,7 +67,10 @@ void paintGalleryMainLoop(int64_t elapsedUs)
     if (paintGallery->galleryLoadNew)
     {
         paintGallery->galleryLoadNew = false;
-        paintGalleryDoLoad();
+        if (!paintGalleryDoLoad())
+        {
+            return;
+        }
     }
 
     paintGallery->galleryTime += elapsedUs;
@@ -172,7 +175,7 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
     }
 }
 
-void paintGalleryDoLoad(void)
+bool paintGalleryDoLoad(void)
 {
     if(paintLoadDimensions(&paintGallery->canvas, paintGallery->gallerySlot))
     {
@@ -199,12 +202,13 @@ void paintGalleryDoLoad(void)
 
         paintGallery->disp->clearPx();
 
-        paintLoad(&paintGallery->index, &paintGallery->canvas, paintGallery->gallerySlot);
+        return paintLoad(&paintGallery->index, &paintGallery->canvas, paintGallery->gallerySlot);
     }
     else
     {
         PAINT_LOGE("Slot %d has 0 dimension! Stopping load and clearing slot", paintGallery->gallerySlot);
         paintClearSlot(&paintGallery->index, paintGallery->gallerySlot);
         paintReturnToMainMenu();
+        return false;
     }
 }
