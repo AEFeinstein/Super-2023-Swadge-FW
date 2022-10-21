@@ -176,6 +176,12 @@ typedef struct
     // The generated cursor sprite
     wsg_t cursorWsg;
 
+    // The "brush size" indicator sprite
+    wsg_t brushSizeWsg;
+
+    // The "picks remaining" sprite
+    wsg_t picksWsg;
+
 
     //////// Local-only UI state
 

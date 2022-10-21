@@ -154,6 +154,16 @@ void paintDrawScreenSetup(display_t* disp)
         }
     }
 
+    if (!loadWsg("pointer.wsg", &paintState->picksWsg))
+    {
+        PAINT_LOGE("Loading pointer.wsg icon failed!!!");
+    }
+
+    if (!loadWsg("brush_size.wsg", &paintState->brushSizeWsg))
+    {
+        PAINT_LOGE("Loading brush_size.wsg icon failed!!!");
+    }
+
     // Setup the margins
     // Top: Leave room for the tallest of...
     // * The save menu text plus padding above and below it
@@ -241,6 +251,9 @@ void paintDrawScreenCleanup(void)
         freeWsg(&brush->iconActive);
         freeWsg(&brush->iconInactive);
     }
+
+    freeWsg(&paintState->brushSizeWsg);
+    freeWsg(&paintState->picksWsg);
 
     for (uint8_t i = 0; i < sizeof(paintState->artist) / sizeof(paintState->artist[0]) ;i++)
     {
