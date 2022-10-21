@@ -63,6 +63,7 @@ void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButt
 void deinitButtons(void)
 {
 	free(buttonQueue);
+	free(touchQueue);
 }
 
 /**

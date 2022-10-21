@@ -606,7 +606,7 @@ void initLeds(gpio_num_t gpio, gpio_num_t gpioAlt, rmt_channel_t rmt, uint16_t n
     if(NULL == rdLeds)
     {
         // Allocate some LED memory
-        rdLeds = malloc(sizeof(led_t) * numLeds);
+        rdLeds = calloc(numLeds, sizeof(led_t));
         // Save the number of LEDs
         rdNumLeds = numLeds;
         // Save the brightness
