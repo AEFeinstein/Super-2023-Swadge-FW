@@ -1373,9 +1373,6 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         case HOLD_DRAW:
         break;
 
-        case INSTANT:
-        break;
-
         default:
         break;
     }
@@ -1412,10 +1409,6 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         {
             drawNow = true;
         }
-    }
-    else if (getArtist()->brushDef->mode == INSTANT)
-    {
-        drawNow = true;
     }
 
     if (drawNow)
@@ -1457,6 +1450,23 @@ void paintSetupTool(void)
     {
         getArtist()->brushWidth = getArtist()->brushDef->maxSize;
     }
+
+    hideCursor(getCursor(), &paintState->canvas);
+    switch (getArtist()->brushDef->mode)
+    {
+        case HOLD_DRAW:
+            setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
+            setCursorOffset(getCursor(), (paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
+
+        break;
+
+        case PICK_POINT:
+        case PICK_POINT_LOOP:
+            setCursorSprite(getCursor(), &paintState->canvas, &paintState->picksWsg);
+            setCursorOffset(getCursor(), -paintState->picksWsg.w, paintState->canvas.yScale);
+        break;
+    }
+    showCursor(getCursor(), &paintState->canvas);
 
     // Undraw and hide any stored temporary pixels
     while (popPxScaled(&getArtist()->pickPoints, paintState->disp, paintState->canvas.xScale, paintState->canvas.yScale));
