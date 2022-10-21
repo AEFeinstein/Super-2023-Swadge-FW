@@ -13,7 +13,7 @@ paletteColor_t getContrastingColorBW(paletteColor_t col);
 // Extra drawing functions
 void paintDrawWsgTemp(display_t* display, const wsg_t* wsg, pxStack_t* saveTo, uint16_t x, uint16_t y, colorMapFn_t colorSwap);
 
-void paintPlotSquareWave(display_t* disp, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
+void paintPlotSquareWave(display_t* disp, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t waveLength, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
 void plotRectFilled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col);
 void plotRectFilledScaled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale);
 void paintColorReplace(paintCanvas_t* canvas, paletteColor_t search, paletteColor_t replace);
