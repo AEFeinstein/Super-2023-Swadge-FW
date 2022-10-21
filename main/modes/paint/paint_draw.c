@@ -740,9 +740,15 @@ void paintEditPaletteConfirm(void)
             getArtist()->bgColor = new;
         }
 
+        hideCursor(getCursor(), &paintState->canvas);
+        paintHidePickPoints();
+
         // And replace it within the canvas
         paintColorReplace(&paintState->canvas, old, new);
         paintState->unsaved = true;
+
+        paintDrawPickPoints();
+        showCursor(getCursor(), &paintState->canvas);
     }
 }
 
