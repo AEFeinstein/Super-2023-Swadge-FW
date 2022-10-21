@@ -206,7 +206,7 @@ bool loadWsgSpiRam(char* name, wsg_t* wsg, bool spiRam)
     {
         // Decode some data
         copied = 0;
-        heatshrink_decoder_sink(hsd, &buf[4 + inputIdx], sz - 2 - inputIdx, &copied);
+        heatshrink_decoder_sink(hsd, &buf[4 + inputIdx], sz - 4 - inputIdx, &copied);
         inputIdx += copied;
 
         // Save it to the output array
@@ -707,6 +707,9 @@ void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16
     uint8_t* bitmap = ch->bitmap;
     int wch = ch->w;
 
+    // Get a pointer to the end of the bitmap
+    uint8_t* endOfBitmap = &bitmap[((wch * h) + 7) >> 3] - 1;
+
     // Don't draw off the bottom of the screen.
     if( yOff + h > disp->h )
     {
@@ -765,7 +768,16 @@ void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16
             if( 8 == ++bitIdx )
             {
                 bitIdx = 0;
-                thisByte = *(++bitmap);
+                // Make sure not to read past the bitmap
+                if(bitmap < endOfBitmap)
+                {
+                    thisByte = *(++bitmap);
+                }
+                else
+                {
+                    // No more bitmap, so return
+                    return;
+                }
             }
         }
 

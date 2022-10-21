@@ -28,25 +28,18 @@ paletteColor_t getContrastingColorBW(paletteColor_t col)
     return (r + g + b) / 3 > 76 ? c000 : c555;
 }
 
-void paintPlotSquareWave(display_t* disp, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
+void paintPlotSquareWave(display_t* disp, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t waveLength, paletteColor_t col, int xTr, int yTr, int xScale, int yScale)
 {
-    // swap so x0 < x1 && y0 < y1
-    if (x0 > x1)
-    {
-        x0 ^= x1;
-        x1 ^= x0;
-        x0 ^= x1;
-    }
-
-    if (y0 > y1)
-    {
-        y0 ^= y1;
-        y1 ^= y0;
-        y0 ^= y1;
-    }
+    uint16_t xDiff = (x0 < x1) ? x1 - x0 : x0 - x1;
+    uint16_t yDiff = (y0 < y1) ? y1 - y0 : y0 - y1;
 
     // use the shortest axis as the wave size
-    uint16_t waveSize = (x1 - x0 < y1 - y0) ? x1 - x0 : y1 - y0;
+    uint16_t waveHeight = (xDiff < yDiff) ? xDiff : yDiff;
+
+    if (waveLength == 0)
+    {
+        waveLength = waveHeight;
+    }
 
     uint16_t x = x0;
     uint16_t y = y0;
@@ -55,30 +48,29 @@ void paintPlotSquareWave(display_t* disp, uint16_t x0, uint16_t y0, uint16_t x1,
     int16_t xDir = (x0 < x1) ? 1 : -1;
     int16_t yDir = (y0 < y1) ? 1 : -1;
 
-    if (waveSize < 2)
+    if (waveHeight < 2 && waveLength < 2)
     {
-        // TODO: Draw a rectangular wave if a real square wave would be too small?
         // (a 2xN square wave is just a 2-thick line)
         return;
     }
 
-    if (x1 - x0 > y1 - y0)
+    if (xDiff > yDiff)
     {
-        // Horizontal
-        extra = (x1 - x0 + 1) % (waveSize * 2);
-        stop = x + waveSize * xDir - extra / 2;
+        // Horizontal -- waveHeight is on Y axis
+        PAINT_LOGD("This wave is %d wide and %d tall, which means it will contain %d complete waves plus %d extra", xDiff, yDiff, xDiff / (waveLength * 2), xDiff % (waveLength * 2));
+        extra = xDiff % (waveLength * 2);
+        stop = x + waveLength * xDir - extra / 2;
 
         while (x != x1)
         {
-            PAINT_LOGV("Squarewave H -- (%d, %d)", x, y);
             setPxScaled(disp, x, y, col, xTr, yTr, xScale, yScale);
 
             if (x == stop)
             {
-                plotLineScaled(disp, x, y, x, y + yDir * waveSize, col, 0, xTr, yTr, xScale, yScale);
-                y += yDir * waveSize;
+                plotLineScaled(disp, x, y, x, y + yDir * waveHeight, col, 0, xTr, yTr, xScale, yScale);
+                y += yDir * waveHeight;
                 yDir = -yDir;
-                stop = x + waveSize * xDir;
+                stop = x + waveLength * xDir;
             }
 
             x+= xDir;
@@ -86,21 +78,20 @@ void paintPlotSquareWave(display_t* disp, uint16_t x0, uint16_t y0, uint16_t x1,
     }
     else
     {
-        // Vertical
-        extra = (x1 - x0 + 1) % (waveSize * 2);
-        stop = y + waveSize * yDir - extra / 2;
+        // Vertical -- waveHeight is on X axis
+        extra = yDiff % (waveLength * 2);
+        stop = y + waveLength * yDir - extra / 2;
 
         while (y != y1)
         {
-            PAINT_LOGV("Squarewave V -- (%d, %d)", x, y);
             setPxScaled(disp, x, y, col, xTr, yTr, xScale, yScale);
 
             if (y == stop)
             {
-                plotLineScaled(disp, x, y, x + xDir * waveSize, y, col, 0, xTr, yTr, xScale, yScale);
-                x += xDir * waveSize;
+                plotLineScaled(disp, x, y, x + xDir * waveHeight, y, col, 0, xTr, yTr, xScale, yScale);
+                x += xDir * waveHeight;
                 xDir = -xDir;
-                stop = y + waveSize * yDir;
+                stop = y + waveLength * yDir;
             }
 
             y += yDir;
@@ -147,9 +138,9 @@ void setPxScaled(display_t* disp, int x, int y, paletteColor_t col, int xTr, int
 void paintDrawWsgTemp(display_t* disp, const wsg_t* wsg, pxStack_t* saveTo, uint16_t xOffset, uint16_t yOffset, colorMapFn_t colorSwap)
 {
     size_t i = 0;
-    for (uint16_t x = 0; x < wsg->w; x++)
+    for (uint16_t y = 0; y < wsg->h; y++)
     {
-        for (uint16_t y = 0; y < wsg->h; y++, i++)
+        for (uint16_t x = 0; x < wsg->w; x++, i++)
         {
             if (wsg->px[i] != cTransparent)
             {
@@ -164,6 +155,12 @@ void paintDrawWsgTemp(display_t* disp, const wsg_t* wsg, pxStack_t* saveTo, uint
 // Calculate the maximum possible [square] scale, given the display's dimensions and the image dimensions, plus any margins required
 uint8_t paintGetMaxScale(display_t* disp, uint16_t imgW, uint16_t imgH, uint16_t xMargin, uint16_t yMargin)
 {
+    // Prevent infinite loops and overflows
+    if (xMargin >= disp->w || yMargin >= disp->w)
+    {
+        return 1;
+    }
+
     uint16_t maxW = disp->w - xMargin;
     uint16_t maxH = disp->h - yMargin;
 

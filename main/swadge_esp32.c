@@ -16,6 +16,8 @@
 #include "esp_efuse.h"
 #include "esp_log.h"
 #include "esp_sleep.h"
+#include "esp_random.h"
+#include "bootloader_random.h"
 
 #include "swadge_esp32.h"
 
@@ -68,6 +70,7 @@
 
 #if defined(EMU)
     #include "emu_esp.h"
+    #include "emu_main.h"
 #else
     #include "soc/dport_access.h"
     #include "soc/periph_defs.h"
@@ -514,7 +517,11 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     setTFTBacklight(getTftIntensity());
 
     /* Initialize Wifi peripheral */
-#if !defined(EMU)
+#if defined(EMU)
+    // Always init on emu b/c it will never be called again
+    if(true)
+#else
+    // Only init wifi on actual hardware if requested (saves power)
     if(ESP_NOW == cSwadgeMode->wifiMode)
 #endif
     {
@@ -530,6 +537,11 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb,
                 GPIO_NUM_NC, GPIO_NUM_NC, UART_NUM_MAX);
         }
+    }
+    else
+    {
+        // If wifi is not initialzed, enable this entropy source
+        bootloader_random_enable();
     }
 
     /* Enter the swadge mode */
@@ -922,8 +934,23 @@ void cleanupOnExit(void)
  */
 void switchToSwadgeMode(swadgeMode* mode)
 {
+#if !defined(MONKEY_AROUND)
     pendingSwadgeMode = mode;
     isSandboxMode = false;
+#endif
+}
+
+/**
+ * Set up variables to synchronously switch the swadge mode in the main loop
+ *
+ * @param mode The index of the mode to switch to
+ */
+void switchToSwadgeModeFuzzer(swadgeMode* mode)
+{
+#if defined(MONKEY_AROUND)
+    pendingSwadgeMode = mode;
+    isSandboxMode = false;
+#endif
 }
 
 /**

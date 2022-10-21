@@ -21,5 +21,6 @@ typedef struct
 void picrossStartTutorial(display_t* disp, font_t* font);
 void picrossTutorialLoop(int64_t elapsedUs);
 void picrossTutorialButtonCb(buttonEvt_t* evt);
+void picrossExitTutorial(void);
 
 #endif

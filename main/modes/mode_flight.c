@@ -394,7 +394,7 @@ static void flightUpdateLEDs(flight_t * tflight)
         break;
     }
 
-    setLeds(leds, sizeof(leds));
+    setLeds(leds, NUM_LEDS);
 }
 
 /**
