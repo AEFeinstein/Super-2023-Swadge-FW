@@ -147,9 +147,9 @@ void setPxScaled(display_t* disp, int x, int y, paletteColor_t col, int xTr, int
 void paintDrawWsgTemp(display_t* disp, const wsg_t* wsg, pxStack_t* saveTo, uint16_t xOffset, uint16_t yOffset, colorMapFn_t colorSwap)
 {
     size_t i = 0;
-    for (uint16_t x = 0; x < wsg->w; x++)
+    for (uint16_t y = 0; y < wsg->h; y++)
     {
-        for (uint16_t y = 0; y < wsg->h; y++, i++)
+        for (uint16_t x = 0; x < wsg->w; x++, i++)
         {
             if (wsg->px[i] != cTransparent)
             {

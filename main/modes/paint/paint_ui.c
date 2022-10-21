@@ -458,7 +458,8 @@ void showCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
 /// @param canvas The canvas to draw it on and save the pixels from
 void drawCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
 {
-    if (cursor->show && cursor->redraw)
+    bool cursorIsNearEdge = (canvasToDispX(canvas, cursor->x) + cursor->spriteOffsetX < canvas->x || canvasToDispX(canvas, cursor->x) + cursor->spriteOffsetX + cursor->sprite->w > canvas->x + canvas->w * canvas->xScale || canvasToDispY(canvas, cursor->y) + cursor->spriteOffsetY < canvas->y || canvasToDispY(canvas, cursor->y) + cursor->spriteOffsetY + cursor->sprite->h > canvas->y + canvas->h * canvas->yScale);
+    if (cursor->show && (cursor->redraw || cursorIsNearEdge))
     {
         // Undraw the previous cursor pixels, if there are any
         undrawCursor(cursor, canvas);
