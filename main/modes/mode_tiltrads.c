@@ -2158,7 +2158,7 @@ void ttScoresDisplay(void)
 
     // Draw the clear score text and bar.
     int16_t clearScoresTextX = 29;
-    int16_t clearScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h + 1);
+    // int16_t clearScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h + 1);
 
     // fill the clear scores area depending on how long the button's held down.
     if (tiltrads->clearScoreTimer != 0)
@@ -3774,7 +3774,7 @@ void singlePulseLEDs(uint8_t numLEDs, led_t fxColor, double progress)
     }
 
     applyLEDBrightness(numLEDs, MODE_LED_BRIGHTNESS);
-    setLeds(tiltrads->leds, sizeof(tiltrads->leds));
+    setLeds(tiltrads->leds, NUM_LEDS);
 }
 
 // blink red in sync with OLED gameover FX.
@@ -3792,7 +3792,7 @@ void blinkLEDs(uint8_t numLEDs, led_t fxColor, uint32_t time)
     }
 
     applyLEDBrightness(numLEDs, MODE_LED_BRIGHTNESS);
-    setLeds(tiltrads->leds, sizeof(tiltrads->leds));
+    setLeds(tiltrads->leds, NUM_LEDS);
 }
 
 // alternate lit up like a bulb sign
@@ -3821,7 +3821,7 @@ void alternatingPulseLEDS(uint8_t numLEDs, led_t fxColor, uint32_t time)
     }
 
     applyLEDBrightness(numLEDs, MODE_LED_BRIGHTNESS);
-    setLeds(tiltrads->leds, sizeof(tiltrads->leds));
+    setLeds(tiltrads->leds, NUM_LEDS);
 }
 
 // radial wanderers.
@@ -3839,7 +3839,7 @@ void dancingLEDs(uint8_t numLEDs, led_t fxColor, uint32_t time)
     }
 
     applyLEDBrightness(numLEDs, MODE_LED_BRIGHTNESS);
-    setLeds(tiltrads->leds, sizeof(tiltrads->leds));
+    setLeds(tiltrads->leds, NUM_LEDS);
 }
 
 void countdownLEDs(uint8_t numLEDs, led_t fxColor, double progress)
@@ -3879,7 +3879,7 @@ void countdownLEDs(uint8_t numLEDs, led_t fxColor, double progress)
     }
 
     applyLEDBrightness(numLEDs, MODE_LED_BRIGHTNESS);
-    setLeds(tiltrads->leds, sizeof(tiltrads->leds));
+    setLeds(tiltrads->leds, NUM_LEDS);
 }
 
 void clearLEDs(uint8_t numLEDs)
@@ -3891,7 +3891,7 @@ void clearLEDs(uint8_t numLEDs)
         tiltrads->leds[i].b = 0x00;
     }
 
-    setLeds(tiltrads->leds, sizeof(tiltrads->leds));
+    setLeds(tiltrads->leds, NUM_LEDS);
 }
 
 void applyLEDBrightness(uint8_t numLEDs, double brightness)

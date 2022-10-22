@@ -17,6 +17,7 @@ typedef enum
 {
     // Top menu
     PAINT_MENU,
+    PAINT_NETWORK_MENU,
     PAINT_SETTINGS_MENU,
     // Control instructions
     PAINT_HELP,
@@ -24,8 +25,6 @@ typedef enum
     PAINT_DRAW,
     // Select and view/edit saved drawings
     PAINT_GALLERY,
-    // View a drawing, no editing
-    PAINT_VIEW,
     // Share a drawing via ESPNOW
     PAINT_SHARE,
     // Receive a shared drawing over ESPNOW

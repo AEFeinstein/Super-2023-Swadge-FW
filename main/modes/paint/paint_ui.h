@@ -22,13 +22,19 @@ void paintRenderColorPicker(paintArtist_t* artist, paintCanvas_t* canvas, paintD
 void paintRenderAll(void);
 
 void paintClearCanvas(const paintCanvas_t* canvas, paletteColor_t bgColor);
+
+void paintGenerateCursorSprite(wsg_t* sprite, const paintCanvas_t* canvas);
+void paintFreeCursorSprite(wsg_t* sprite);
+
 void initCursor(paintCursor_t* cursor, paintCanvas_t* canvas, const wsg_t* sprite);
 void deinitCursor(paintCursor_t* cursor);
 void setCursorSprite(paintCursor_t* cursor, paintCanvas_t* canvas, const wsg_t* sprite);
+void setCursorOffset(paintCursor_t* cursor, int16_t x, int16_t y);
 void undrawCursor(paintCursor_t* cursor, paintCanvas_t* canvas);
 void hideCursor(paintCursor_t* cursor, paintCanvas_t* canvas);
 void showCursor(paintCursor_t* cursor, paintCanvas_t* canvas);
 void drawCursor(paintCursor_t* cursor, paintCanvas_t* canvas);
 void moveCursorRelative(paintCursor_t* cursor, paintCanvas_t* canvas, int16_t xDiff, int16_t yDiff);
+void moveCursorAbsolute(paintCursor_t* cursor, paintCanvas_t* canvas, uint16_t x, uint16_t y);
 
 #endif

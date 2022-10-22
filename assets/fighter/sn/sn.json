@@ -10,22 +10,22 @@
    "nJumps":2,
    "landing_lag":1,
    "idle_spr_0":{
-      "sprite":"Sid0.wsg",
+      "sprite":"sid0.wsg",
       "off_x":0,
       "off_y":0
    },
    "idle_spr_1":{
-      "sprite":"Sid1.wsg",
+      "sprite":"sid1.wsg",
       "off_x":0,
       "off_y":0
    },
    "run_spr_0":{
-      "sprite":"Sru0.wsg",
+      "sprite":"sru0.wsg",
       "off_x":-9,
       "off_y":6
    },
    "run_spr_1":{
-      "sprite":"Sru1.wsg",
+      "sprite":"sru1.wsg",
       "off_x":-9,
       "off_y":6
    },
@@ -412,7 +412,7 @@
          "type":"up_air",
          "startupLag":50,
          "startupLagSpr":{
-            "sprite":"kuaa.wsg",
+            "sprite":"kuaw.wsg",
             "off_x":0,
             "off_y":0
          },
@@ -420,7 +420,7 @@
             {
                "duration":850,
                "atkSpr":{
-                  "sprite":"kuaa.wsg",
+                  "sprite":"kuaa1.wsg",
                   "off_x":0,
                   "off_y":0
                },
@@ -428,10 +428,10 @@
                "velo_y":-25000,
                "hitboxes":[
                   {
-                     "relativePos_x":5,
-                     "relativePos_y":-15,
+                     "relativePos_x":-2,
+                     "relativePos_y":-10,
                      "size_x":10,
-                     "size_y":15,
+                     "size_y":19,
                      "damage":10,
                      "knockback_x":0,
                      "knockback_y":-7000,
@@ -442,7 +442,7 @@
             {
                "duration":400,
                "atkSpr":{
-                  "sprite":"kuaa.wsg",
+                  "sprite":"kuaa2.wsg",
                   "off_x":0,
                   "off_y":0
                },
@@ -450,10 +450,20 @@
                "velo_y":25000,
                "hitboxes":[
                   {
-                     "relativePos_x":11,
-                     "relativePos_y":24,
-                     "size_x":10,
+                     "relativePos_x":3,
+                     "relativePos_y":20,
+                     "size_x":11,
                      "size_y":13,
+                     "damage":9,
+                     "knockback_x":500,
+                     "knockback_y":8000,
+                     "hitstun":10
+                  },
+                  {
+                     "relativePos_x":23,
+                     "relativePos_y":16,
+                     "size_x":16,
+                     "size_y":8,
                      "damage":9,
                      "knockback_x":500,
                      "knockback_y":8000,
@@ -464,7 +474,7 @@
          ],
          "endLag":275,
          "endLagSpr":{
-            "sprite":"kuaa.wsg",
+            "sprite":"kuac.wsg",
             "off_x":0,
             "off_y":0
          },

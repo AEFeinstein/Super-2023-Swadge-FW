@@ -12,9 +12,6 @@
  */
 typedef enum
 {
-    // The brush is drawn immediately upon selection without picking or drawing any points
-    INSTANT,
-
     // The brush is drawn whenever A is pressed or held and dragged
     HOLD_DRAW,
 

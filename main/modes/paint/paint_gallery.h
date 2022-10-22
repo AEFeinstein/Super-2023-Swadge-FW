@@ -13,6 +13,7 @@ void paintGallerySetup(display_t* disp);
 void paintGalleryCleanup(void);
 void paintGalleryMainLoop(int64_t elapsedUs);
 void paintGalleryModeButtonCb(buttonEvt_t* evt);
-void paintGalleryDoLoad(void);
+void paintGalleryAddInfoText(const char* text);
+bool paintGalleryDoLoad(void);
 
 #endif

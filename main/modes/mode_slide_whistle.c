@@ -1400,7 +1400,7 @@ void  slideWhistleBeatTimerFunc(void* arg __attribute__((unused)))
         leds[ledIdx].g = leds[0].g;
         leds[ledIdx].b = leds[0].b;
     }
-    setLeds(leds, sizeof(leds));
+    setLeds(leds, NUM_LEDS);
 }
 
 /**

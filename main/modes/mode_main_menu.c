@@ -71,6 +71,7 @@ typedef struct
     uint32_t battVal;
     wsg_t batt[4];
     wsg_t usb;
+    int32_t autoLightDanceTimer;
 } mainMenu_t;
 
 //==============================================================================
@@ -166,6 +167,16 @@ void mainMenuExitMode(void)
  */
 void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
 {
+    // Increment this timer
+    mainMenu->autoLightDanceTimer += elapsedUs;
+    // If 10s have elapsed with no user input
+    if(mainMenu->autoLightDanceTimer >= (20 * 1000000))
+    {
+        // Switch to the LED dance mode
+        switchToSwadgeMode(&modeDance);
+        return;
+    }
+
     // Draw the menu
     drawMeleeMenu(mainMenu->disp, mainMenu->menu);
 
@@ -212,6 +223,9 @@ void mainMenuBatteryCb(uint32_t vBatt)
  */
 void mainMenuButtonCb(buttonEvt_t* evt)
 {
+    // Any button event resets this timer
+    mainMenu->autoLightDanceTimer = 0;
+
     if(evt->down)
     {
         switch(evt->button)

@@ -15,6 +15,16 @@ typedef enum
     BTN_B  = 0x20,
     START  = 0x40,
     SELECT = 0x80,
+#if defined(EMU)
+    EMU_P2_UP     = 0x0100,
+    EMU_P2_DOWN   = 0x0200,
+    EMU_P2_LEFT   = 0x0400,
+    EMU_P2_RIGHT  = 0x0800,
+    EMU_P2_BTN_A  = 0x1000,
+    EMU_P2_BTN_B  = 0x2000,
+    EMU_P2_START  = 0x4000,
+    EMU_P2_SELECT = 0x8000,
+#endif
 } buttonBit_t;
 
 typedef struct

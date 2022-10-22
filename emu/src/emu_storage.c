@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h> 
 
 #include "esp_log.h"
 #include "cJSON.h"
@@ -425,7 +426,7 @@ bool eraseNvsKey(const char* key)
                 free(jsonStr);
                 cJSON_Delete(json);
 
-                return true;
+                return keyExists;
             }
             else
             {
@@ -499,9 +500,16 @@ void strToBlob(char * str, void * outBlob, size_t blobLen)
     uint8_t * outBlob8 = (uint8_t*)outBlob;
     for(size_t i = 0; i < blobLen; i++)
     {
-        uint8_t upperNib = hexCharToInt(str[2 * i]);
-        uint8_t lowerNib = hexCharToInt(str[(2 * i) + 1]);
-        outBlob8[i] = (upperNib << 4) | (lowerNib);
+        if(((2 * i) + 1) < strlen(str))
+        {
+            uint8_t upperNib = hexCharToInt(str[2 * i]);
+            uint8_t lowerNib = hexCharToInt(str[(2 * i) + 1]);
+            outBlob8[i] = (upperNib << 4) | (lowerNib);
+        }
+        else
+        {
+            outBlob8[i] = 0;
+        }
     }
 }
 
@@ -543,23 +551,50 @@ bool deinitSpiffs(void)
  */
 bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize, bool readToSpiRam)
 {
-    printf("Read from %s\n", fname);
     // Make sure the output pointer is NULL to begin with
     if(NULL != *output)
     {
-        ESP_LOGE("SPIFFS", "output not NULL");
+        // ESP_LOGE("SPIFFS", "output not NULL");
+        return false;
+    }
+
+    // Make sure the file exists, case sensitive
+    bool fileExists = false;
+    DIR *d;
+    struct dirent *dir;
+    d = opendir("./spiffs_image/");
+    if (d)
+    {
+        while ((dir = readdir(d)) != NULL)
+        {
+            if(0 == strcmp(dir->d_name, fname))
+            {
+                fileExists = true;
+                break;
+            }
+        }
+        closedir(d);
+    }
+
+    // If the file does not exist
+    if(false == fileExists)
+    {
+        // Print the error, then quit.
+        // Abnormal quitting is a strong indicator something failed
+        ESP_LOGE("SPIFFS", "%s doesnt exist!!!!", fname);
+        exit(1);
         return false;
     }
 
     // Read and display the contents of a small text file
-    ESP_LOGD("SPIFFS", "Reading %s", fname);
+    // ESP_LOGD("SPIFFS", "Reading %s", fname);
 
     // Open for reading the given file
     char fnameFull[128] = "./spiffs_image/";
     strcat(fnameFull, fname);
     FILE* f = fopen(fnameFull, "rb");
     if (f == NULL) {
-        ESP_LOGE("SPIFFS", "Failed to open %s", fnameFull);
+        // ESP_LOGE("SPIFFS", "Failed to open %s", fnameFull);
         return false;
     }
 
@@ -576,6 +611,6 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize, boo
     fclose(f);
 
     // Display the read contents from the file
-    ESP_LOGD("SPIFFS", "Read from %s: %d bytes", fname, (uint32_t)(*outsize));
+    // ESP_LOGD("SPIFFS", "Read from %s: %d bytes", fname, (uint32_t)(*outsize));
     return true;
 }

@@ -166,5 +166,6 @@ typedef struct _swadgeMode
 
 void overrideToSwadgeMode(swadgeMode* mode);
 void switchToSwadgeMode(swadgeMode* mode);
+void switchToSwadgeModeFuzzer(swadgeMode* mode);
 
 #endif

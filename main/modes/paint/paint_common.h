@@ -61,7 +61,7 @@
 #define PAINT_SAVE_MENU_FONT "radiostars.font"
 #define PAINT_SMALL_FONT "tom_thumb.font"
 
-#define PAINT_TOOLBAR_BG c333
+#define PAINT_TOOLBAR_BG c444
 
 // Dimensions of the color boxes in the palette
 #define PAINT_COLORBOX_W 9
@@ -70,24 +70,26 @@
 // Spacing between the tool icons and the size, and the size and pick point counts
 #define TOOL_INFO_TEXT_MARGIN_Y 6
 
-#define PAINT_COLORBOX_SHADOW_TOP c444
-#define PAINT_COLORBOX_SHADOW_BOTTOM c222
+#define PAINT_COLORBOX_SHADOW_TOP c000
+#define PAINT_COLORBOX_SHADOW_BOTTOM c111
 
 // Vertical margin between each color box
 #define PAINT_COLORBOX_MARGIN_TOP 2
 // Minimum margin to the left and right of each color box
-#define PAINT_COLORBOX_MARGIN_X 2
+#define PAINT_COLORBOX_MARGIN_X 4
 
 // X and Y position of the active color boxes (foreground/background color)
 #define PAINT_ACTIVE_COLOR_X ((canvas->x - PAINT_COLORBOX_W - PAINT_COLORBOX_W / 2) / 2)
 #define PAINT_ACTIVE_COLOR_Y (canvas->y - PAINT_COLORBOX_H / 2)
 
-// Y position of the first palette color box (X is automatic)
-#define PAINT_COLORBOX_Y (PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_H * 2)
-
 // Color picker stuff
 #define PAINT_COLOR_PICKER_MIN_BAR_H 6
 #define PAINT_COLOR_PICKER_BAR_W 6
+
+//////// Help layout stuff
+
+// Number of lines of text to make room for below the canvas
+#define PAINT_HELP_TEXT_LINES 4
 
 //////// Macros
 
@@ -171,6 +173,15 @@ typedef struct
     // All shared state for 1 or 2 players
     paintArtist_t artist[2];
 
+    // The generated cursor sprite
+    wsg_t cursorWsg;
+
+    // The "brush size" indicator sprite
+    wsg_t brushSizeWsg;
+
+    // The "picks remaining" sprite
+    wsg_t picksWsg;
+
 
     //////// Local-only UI state
 
@@ -207,6 +218,9 @@ typedef struct
     int64_t blinkTimer;
     bool blinkOn;
 
+    bool touchDown;
+    uint8_t firstTouch;
+    uint8_t lastTouch;
 
 
     //////// Save data flags
@@ -220,17 +234,16 @@ typedef struct
     // True when a save has been started but not yet completed. Prevents input while saving.
     bool saveInProgress;
 
-    //// Save Menu Flags
-    // TODO: Move as much as possible into paintSaveMenu_t
 
-    // The save slot selected when in BTN_MODE_SAVE
-    uint8_t selectedSlot;
+    //// Save Menu Flags
 
     // The current state of the save / load menu
     paintSaveMenu_t saveMenu;
 
-    // State for Yes/No in overwrite save menu.
-    // TODO: Rename this to something more general
+    // The save slot selected for PICK_SLOT_SAVE and PICK_SLOT_LOAD
+    uint8_t selectedSlot;
+
+    // State for Yes/No options in the save menu.
     bool saveMenuBoolOption;
 
 
@@ -296,6 +309,8 @@ typedef struct
     paintCanvas_t canvas;
     int32_t index;
 
+    font_t infoFont;
+
     // TODO rename these to better things now that they're in their own struct
 
     // Last timestamp of gallery transition
@@ -303,6 +318,9 @@ typedef struct
 
     // Amount of time between each transition, or 0 for disabled
     int64_t gallerySpeed;
+
+    // Reaining time that info text will be shown
+    int64_t infoTimeRemaining;
 
     // Current image used in gallery
     uint8_t gallerySlot;
@@ -312,6 +330,57 @@ typedef struct
     uint8_t galleryScale;
 } paintGallery_t;
 
+// Triggers for advancing the tutorial step
+typedef enum
+{
+    PRESS_ALL,
+    PRESS_ANY,
+    PRESS,
+    RELEASE,
+    CHANGE_BRUSH,
+    CHANGE_COLOR,
+    SELECT_MENU_ITEM,
+    NO_TRIGGER,
+} paintHelpTrigger_t;
+
+typedef enum
+{
+    IND_NONE,
+    IND_BOX,
+    IND_ARROW,
+} paintHelpIndicatorType_t;
+
+typedef struct
+{
+    paintHelpIndicatorType_t type;
+
+    union {
+        struct { uint16_t x0, y0, x1, y1; } box;
+        struct { uint16_t x, y; int dir; } arrow;
+    };
+} paintHelpIndicator_t;
+
+typedef struct
+{
+    paintHelpTrigger_t trigger;
+    void* triggerDataPtr;
+    int64_t triggerData;
+    paintHelpIndicator_t indicators[4];
+
+    const char* prompt;
+} paintHelpStep_t;
+
+typedef struct
+{
+    const paintHelpStep_t* curHelp;
+    uint16_t allButtons;
+    uint16_t curButtons;
+    buttonBit_t lastButton;
+    bool lastButtonDown;
+
+    uint16_t helpH;
+} paintHelp_t;
+
 typedef struct
 {
     //////// General app data
@@ -320,15 +389,10 @@ typedef struct
     font_t menuFont;
     // Main Menu
     meleeMenu_t* menu;
-    meleeMenu_t* settingsMenu;
 
-    uint8_t menuSelection, settingsMenuSelection;
+    uint8_t menuSelection, networkMenuSelection, settingsMenuSelection;
 
     bool eraseDataSelected, eraseDataConfirm;
-
-    // Font for drawing tool info
-    // TODO: Use images instead!
-    font_t toolbarFont;
 
     display_t* disp;
 
