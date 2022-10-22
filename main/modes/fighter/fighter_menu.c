@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <esp_log.h>
+#include <esp_random.h>
 
 #include "swadge_esp32.h"
 #include "swadgeMode.h"
@@ -18,6 +19,12 @@
 #include "fighter_hr_result.h"
 #include "fighter_mp_result.h"
 #include "fighter_records.h"
+
+//==============================================================================
+// Defines
+//==============================================================================
+
+#define FIGHTER_MENU_IDLE_US (1000000 * 15)
 
 //==============================================================================
 // Enums & Structs
@@ -57,6 +64,7 @@ typedef struct
     wsg_t conlogo;
     int16_t rotDeg;
     uint8_t playerInput;
+    int32_t idleTimer;
 } fighterMenu_t;
 
 typedef struct
@@ -246,18 +254,25 @@ void fighterExitMode(void)
  */
 void fighterMainLoop(int64_t elapsedUs)
 {
-    // Rotate the logo at 120 degrees per second
-    fm->rotDeg += (elapsedUs * 120) / 1000000;
-    if(fm->rotDeg >= 360)
-    {
-        fm->rotDeg -= 360;
-    }
-
     switch(fm->screen)
     {
         case FIGHTER_MENU:
         {
-            drawMeleeMenu(fm->disp, fm->menu);
+            fm->idleTimer += elapsedUs;
+            if(fm->idleTimer >= FIGHTER_MENU_IDLE_US)
+            {
+                // Random valid character and stage
+                fm->characters[0] = esp_random() % SANDBAG;
+                fm->characters[1] = esp_random() % SANDBAG;
+                fm->stage = esp_random() % HR_STADIUM;
+                // CPU Battle!
+                fighterStartGame(fm->disp, &fm->mmFont, CPU_ONLY, fm->characters, fm->stage, true);
+                fm->screen = FIGHTER_GAME;
+            }
+            else
+            {
+                drawMeleeMenu(fm->disp, fm->menu);
+            }
             break;
         }
         case FIGHTER_GAME:
@@ -275,7 +290,12 @@ void fighterMainLoop(int64_t elapsedUs)
             tWidth = textWidth(&fm->mmFont, ftrConnectingStringBottom);
             drawText(fm->disp, &fm->mmFont, c540, ftrConnectingStringBottom, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
 
-            // Spin a wheel
+            // Spin a wheel at 120 degrees per second
+            fm->rotDeg += (elapsedUs * 120) / 1000000;
+            if(fm->rotDeg >= 360)
+            {
+                fm->rotDeg -= 360;
+            }
             drawWsg(fm->disp, &fm->conlogo, (fm->disp->w - fm->conlogo.w) / 2, ((4 * fm->disp->h) / 5) - (fm->conlogo.h / 2), false,
                     false, fm->rotDeg);
             break;
@@ -290,7 +310,12 @@ void fighterMainLoop(int64_t elapsedUs)
             tWidth = textWidth(&fm->mmFont, another_swadge);
             drawText(fm->disp, &fm->mmFont, c540, another_swadge, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
 
-            // Spin a wheel
+            // Spin a wheel at 120 degrees per second
+            fm->rotDeg += (elapsedUs * 120) / 1000000;
+            if(fm->rotDeg >= 360)
+            {
+                fm->rotDeg -= 360;
+            }
             drawWsg(fm->disp, &fm->conlogo, (fm->disp->w - fm->conlogo.w) / 2, ((4 * fm->disp->h) / 5) - (fm->conlogo.h / 2), false,
                     false, fm->rotDeg);
             break;
@@ -345,8 +370,18 @@ void fighterButtonCb(buttonEvt_t* evt)
         }
         case FIGHTER_GAME:
         {
-            // Pass button events from the Swdage mode to the game
-            fighterGameButtonCb(evt);
+            if(fm->idleTimer >= FIGHTER_MENU_IDLE_US)
+            {
+                // Exit the CPU only battle
+                fighterExitGame();
+                setFighterMainMenu();
+                fm->idleTimer = 0;
+            }
+            else
+            {
+                // Pass button events from the Swdage mode to the game
+                fighterGameButtonCb(evt);
+            }
             break;
         }
         case FIGHTER_CONNECTING:

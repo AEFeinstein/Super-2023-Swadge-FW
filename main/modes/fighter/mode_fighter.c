@@ -424,6 +424,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
             case MULTIPLAYER:
             case VS_CPU:
             case LOCAL_VS:
+            case CPU_ONLY:
             {
                 // Start with three stocks
                 f->fighters[i].stocks = NUM_STOCKS;
@@ -721,6 +722,7 @@ void fighterGameLoop(int64_t elapsedUs)
         (f->type == HR_CONTEST) ||
         (f->type == LOCAL_VS) ||
         (f->type == VS_CPU) ||
+        (f->type == CPU_ONLY) ||
         ((f->type == MULTIPLAYER) && (0 == f->playerIdx));
 
     if(runProcLoop)
@@ -733,7 +735,7 @@ void fighterGameLoop(int64_t elapsedUs)
                 if(f->gameTimerUs <= 0)
                 {
                     // After count-in, transition to the appropriate state
-                    if((MULTIPLAYER == f->type) || (LOCAL_VS == f->type) || (VS_CPU == f->type))
+                    if((MULTIPLAYER == f->type) || (LOCAL_VS == f->type) || (VS_CPU == f->type) || (CPU_ONLY == f->type))
                     {
                         f->gameTimerUs = 0; // Count up after this
                         f->gamePhase = MP_GAME;
@@ -818,6 +820,13 @@ void fighterGameLoop(int64_t elapsedUs)
                     f->buttonInputReceived = true;
                     break;
                 }
+                case CPU_ONLY:
+                {
+                    // Figure out CPU actions
+                    f->fighters[0].btnState = cpuButtonAction(&f->cpu1, &f->fighters[1], &f->fighters[0], f->projectiles,
+                                              stages[f->stageIdx]);
+                }
+                // fall through
                 case VS_CPU:
                 {
                     // Figure out CPU actions
@@ -3025,6 +3034,12 @@ void drawProjectileDebugBox(display_t* d, list_t* projectiles, int16_t camOffX, 
  */
 void fighterGameButtonCb(buttonEvt_t* evt)
 {
+    // Don't handle button input when CPU only
+    if(CPU_ONLY == f->type)
+    {
+        return;
+    }
+
 #if defined(EMU)
     if(LOCAL_VS == f->type)
     {
