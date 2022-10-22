@@ -55,6 +55,7 @@
 #define METRONOME_RADIUS      135
 #define TUNER_RADIUS          80
 #define TUNER_TEXT_Y_OFFSET   30
+#define TUNER_ARROW_Y_OFFSET  8
 #define INITIAL_BPM           60
 #define MAX_BPM               400
 #define METRONOME_FLASH_MS    35
@@ -749,11 +750,11 @@ void tunernomeMainLoop(int64_t elapsedUs)
             // Up/Down arrows in middle of display around current note/mode
             drawWsg(tunernome->disp, &(tunernome->upArrowWsg),
                     (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
-                    (tunernome->disp->h - tunernome->mm.h) / 2 - tunernome->upArrowWsg.h - 4 - TUNER_TEXT_Y_OFFSET,
+                    (tunernome->disp->h - tunernome->mm.h) / 2 - tunernome->upArrowWsg.h - TUNER_ARROW_Y_OFFSET - TUNER_TEXT_Y_OFFSET,
                     false, false, 0);
             drawWsg(tunernome->disp, &(tunernome->upArrowWsg),
                     (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
-                    (tunernome->disp->h + tunernome->mm.h) / 2 + 4 - TUNER_TEXT_Y_OFFSET,
+                    (tunernome->disp->h + tunernome->mm.h) / 2 + TUNER_ARROW_Y_OFFSET - TUNER_TEXT_Y_OFFSET,
                     false, true, 0);
 
             // Current note/mode in middle of display
@@ -795,7 +796,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
 
                     drawText(tunernome->disp, &tunernome->radiostars, c555, listeningText,
                              (tunernome->disp->w - textWidth(&tunernome->radiostars, listeningText)) / 2,
-                             METRONOME_CENTER_Y - TUNER_RADIUS / 2);
+                             METRONOME_CENTER_Y - (TUNER_RADIUS + tunernome->radiostars.h) / 2);
 
                     led_t leds[NUM_LEDS] = {{0}};
 
