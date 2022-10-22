@@ -44,6 +44,7 @@
 #define NUM_GUITAR_STRINGS    6
 #define NUM_VIOLIN_STRINGS    4
 #define NUM_UKULELE_STRINGS   4
+#define NUM_BANJO_STRINGS     5
 #define GUITAR_OFFSET         0
 #define CHROMATIC_OFFSET      6 // adjust start point by quartertones
 #define SENSITIVITY           5
@@ -52,7 +53,7 @@
 #define METRONOME_CENTER_X    tunernome->disp->w / 2
 #define METRONOME_CENTER_Y    tunernome->disp->h - 16 - CORNER_OFFSET
 #define METRONOME_RADIUS      135
-#define TUNER_RADIUS          65
+#define TUNER_RADIUS          80
 #define TUNER_TEXT_Y_OFFSET   30
 #define INITIAL_BPM           60
 #define MAX_BPM               400
@@ -83,6 +84,7 @@ typedef enum
     GUITAR_TUNER = 0,
     VIOLIN_TUNER,
     UKULELE_TUNER,
+    BANJO_TUNER,
     SEMITONE_0,
     SEMITONE_1,
     SEMITONE_2,
@@ -236,14 +238,17 @@ const uint16_t freqBinIdxsUkulele[NUM_UKULELE_STRINGS] =
     72  // A
 };
 
-const uint16_t sixNoteStringIdxToLedIdx[6] =
+/**
+ * Indicies into fuzzed_bins[], a realtime DFT of sorts
+ * fuzzed_bins[0] = A ... 1/2 steps are every 2.
+ */
+const uint16_t freqBinIdxsBanjo[NUM_BANJO_STRINGS] =
 {
-    1,
-    2,
-    3,
-    4,
-    5,
-    6
+    68, // G
+    34, // D = A + 5 half steps = 34
+    44, // G
+    52, // B
+    58  // D
 };
 
 const uint16_t fourNoteStringIdxToLedIdx[4] =
@@ -254,13 +259,32 @@ const uint16_t fourNoteStringIdxToLedIdx[4] =
     5
 };
 
-const uint16_t twoLedFlashIdxes[2] =
+const uint16_t fiveNoteStringIdxToLedIdx[5] =
+{
+    1,
+    2,
+    3,
+    4,
+    5
+};
+
+const uint16_t sixNoteStringIdxToLedIdx[6] =
+{
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+};
+
+const uint16_t twoLedFlashIdxs[2] =
 {
     0,
     7
 };
 
-const uint16_t fourLedFlashIdxes[4] =
+const uint16_t fourLedFlashIdxs[4] =
 {
     1,
     3,
@@ -268,7 +292,7 @@ const uint16_t fourLedFlashIdxes[4] =
     6
 };
 
-const char* guitarNoteNames[6] =
+const char* guitarNoteNames[NUM_GUITAR_STRINGS] =
 {
     "E2",
     "A2",
@@ -278,7 +302,7 @@ const char* guitarNoteNames[6] =
     "E4"
 };
 
-const char* violinNoteNames[4] =
+const char* violinNoteNames[NUM_VIOLIN_STRINGS] =
 {
     "G3",
     "D4",
@@ -286,7 +310,7 @@ const char* violinNoteNames[4] =
     "E5"
 };
 
-const char* UkuleleNoteNames[4] =
+const char* ukuleleNoteNames[NUM_UKULELE_STRINGS] =
 {
     "G4",
     "C4",
@@ -294,7 +318,16 @@ const char* UkuleleNoteNames[4] =
     "A4"
 };
 
-// End a string with "\1" to draw the flat symbol
+const char* banjoNoteNames[NUM_BANJO_STRINGS] =
+{
+    "G4",
+    "D3",
+    "G3",
+    "B3",
+    "D4"
+};
+
+// End a string ending with "\1" to draw the flat symbol
 const char* semitoneNoteNames[NUM_SEMITONES] =
 {
     "C",
@@ -314,6 +347,7 @@ const char* semitoneNoteNames[NUM_SEMITONES] =
 static const char theWordGuitar[] = "Guitar";
 static const char theWordViolin[] = "Violin";
 static const char theWordUkulele[] = "Ukulele";
+static const char theWordBanjo[] = "Banjo";
 static const char leftStr[] = ": ";
 static const char rightStrTuner[] = "Start: Tuner";
 static const char rightStrMetronome[] = "Start: Metronome";
@@ -547,8 +581,9 @@ void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrum
              (tunernome->disp->h - tunernome->mm.h) / 2 - TUNER_TEXT_Y_OFFSET);
 
     // Note names of strings, arranged to match LED positions
-    bool oddNumLedRows = (numNotes / 2) % 2;
-    for(int i = 0; i < numNotes / 2; i++)
+    bool oddNumLedRows = (int) ceil(numNotes / 2.0) % 2 == 1;
+    // Left Column
+    for(int i = 0; i < ceil(numNotes / 2.0); i++)
     {
         int y;
         if(oddNumLedRows)
@@ -571,16 +606,18 @@ void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrum
                  (tunernome->disp->w - textWidth(&tunernome->mm, instrumentName)) / 2 -
                  textWidth(&tunernome->mm, /*placeholder for widest octave number + ' '*/ "4 "), y);
     }
-    for(int i = numNotes / 2; i < numNotes; i++)
+    oddNumLedRows = (int) floor(numNotes / 2.0) % 2 == 1;
+    // Right Column
+    for(int i = ceil(numNotes / 2.0); i < numNotes; i++)
     {
         int y;
         if(oddNumLedRows)
         {
-            y = (tunernome->disp->h - tunernome->mm.h) / 2 + (tunernome->mm.h + 5) * (i - (numNotes / 2) - 1) - TUNER_TEXT_Y_OFFSET;
+            y = (tunernome->disp->h - tunernome->mm.h) / 2 + (tunernome->mm.h + 5) * (i - ceil(numNotes / 2.0) - 1) - TUNER_TEXT_Y_OFFSET;
         }
         else
         {
-            y = tunernome->disp->h / 2 + (tunernome->mm.h + 5) * (i - (numNotes / 2) - 1) + 2 - TUNER_TEXT_Y_OFFSET;
+            y = tunernome->disp->h / 2 + (tunernome->mm.h + 5) * (i - ceil(numNotes / 2.0) - 1) + 2 - TUNER_TEXT_Y_OFFSET;
         }
 
         char buf[2] = {0};
@@ -713,7 +750,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
                     (tunernome->disp->h - tunernome->mm.h) / 2 - tunernome->upArrowWsg.h - 4 - TUNER_TEXT_Y_OFFSET,
                     false, false, 0);
-            drawWsg(tunernome->disp, &(tunernome->pArrowWsg),
+            drawWsg(tunernome->disp, &(tunernome->upArrowWsg),
                     (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
                     (tunernome->disp->h + tunernome->mm.h) / 2 + 4 - TUNER_TEXT_Y_OFFSET,
                     false, true, 0);
@@ -733,7 +770,12 @@ void tunernomeMainLoop(int64_t elapsedUs)
                 }
                 case UKULELE_TUNER:
                 {
-                    plotInstrumentNameAndNotes(theWordUkulele, UkuleleNoteNames, NUM_UKULELE_STRINGS);
+                    plotInstrumentNameAndNotes(theWordUkulele, ukuleleNoteNames, NUM_UKULELE_STRINGS);
+                    break;
+                }
+                case BANJO_TUNER:
+                {
+                    plotInstrumentNameAndNotes(theWordBanjo, banjoNoteNames, NUM_BANJO_STRINGS);
                     break;
                 }
                 case LISTENING:
@@ -969,9 +1011,9 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     song = &metronome_secondary;
                     for(int i = 0; i < 4; i++)
                     {
-                        leds[fourLedFlashIdxes[i]].r = 0x40;
-                        leds[fourLedFlashIdxes[i]].g = 0x00;
-                        leds[fourLedFlashIdxes[i]].b = 0xFF;
+                        leds[fourLedFlashIdxs[i]].r = 0x40;
+                        leds[fourLedFlashIdxs[i]].g = 0x00;
+                        leds[fourLedFlashIdxs[i]].b = 0xFF;
                     }
                 }
 
@@ -1228,6 +1270,11 @@ void tunernomeSampleHandler(uint16_t* samples, uint32_t sampleCnt)
                 case UKULELE_TUNER:
                 {
                     instrumentTunerMagic(freqBinIdxsUkulele, NUM_UKULELE_STRINGS, colors, fourNoteStringIdxToLedIdx);
+                    break;
+                }
+                case BANJO_TUNER:
+                {
+                    instrumentTunerMagic(freqBinIdxsBanjo, NUM_BANJO_STRINGS, colors, fiveNoteStringIdxToLedIdx);
                     break;
                 }
                 case MAX_GUITAR_MODES:
