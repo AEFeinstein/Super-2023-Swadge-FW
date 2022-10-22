@@ -48,9 +48,16 @@ void jumperMainMenuCb(const char* opt);
 // Variables
 //==============================================================================
 
+static const char str_jumpTitle[] = "Donut Jump";
+static const char str_jump[] = "Jump";
+static const char str_exit[] = "Exit";
+
+static const char str_LEDOn[] = "LED [X]";
+static const char str_LEDOff[] = "LED [ ]";
+
 swadgeMode modeJumper =
 {
-    .modeName = "Jumper",
+    .modeName = str_jumpTitle,
     .fnEnterMode = jumperEnterMode,
     .fnExitMode = jumperExitMode,
     .fnMainLoop = jumperMainLoop,
@@ -65,12 +72,6 @@ swadgeMode modeJumper =
     .overrideUsb = false,
 };
 
-static const char str_jumpTitle[] = "Donut Jump!";
-static const char str_jump[] = "Jump";
-static const char str_exit[] = "Exit";
-
-static const char str_LEDOn[] = "LED [X]";
-static const char str_LEDOff[] = "LED [ ]";
 
 jumperMenu_t* jm;
 

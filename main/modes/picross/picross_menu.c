@@ -58,8 +58,8 @@ void picrossMenuOptionsCb(const char* opt);
 //Key values for persistent save data.
 const char picrossCurrentPuzzleIndexKey[] = "pic_cur_ind";
 const char picrossSavedOptionsKey[]       = "pic_opts"; 
-const char picrossCompletedLevelData[]    = "pic_victs";
-const char picrossProgressData[]          = "pic_prog";
+const char picrossCompletedLevelData[]    = "pic_victs";//todo: rename to Key suffix
+const char picrossProgressData[]          = "pic_prog";//todo: rename to key suffix
 
 //Main menu strings
 static char str_picrossTitle[] = "pi-cross";
@@ -80,7 +80,7 @@ static const char str_MarkX[] = "Empty Marks: X";
 static const char str_MarkSolid[] = "Empty Marks: Solid";
 static const char str_AnimateBGOn[] = "BG Animate: On";
 static const char str_AnimateBGOff[] = "BG Animate: Off";
-static const char str_eraseProgress[] = "Erase Progress";
+static const char str_eraseProgress[] = "Reset Current";
 
 swadgeMode modePicross =
 {
@@ -191,70 +191,87 @@ void loadLevels()
     loadWsg("Bliss.wsg", &pm->levels[4].levelWSG);//5x10
     loadWsg("Bliss_c.wsg", &pm->levels[4].completedWSG);
 
-    pm->levels[5].title = "Snare Drum";
-    loadWsg("Snare_Drum_PZL.wsg", &pm->levels[5].levelWSG);//10x10
-    loadWsg("Snare_Drum_SLV.wsg", &pm->levels[5].completedWSG);
+    pm->levels[5].title = "Discord Notification";
+    loadWsg("Discord_PZL.wsg", &pm->levels[5].levelWSG);//10x10
+    loadWsg("Discord_SLV.wsg", &pm->levels[5].completedWSG);
 
-    pm->levels[6].title = "Danny";
-    loadWsg("Danny_PZL.wsg", &pm->levels[6].levelWSG);//10x10
-    loadWsg("Danny_SLV.wsg", &pm->levels[6].completedWSG);
+    pm->levels[6].title = "Snare Drum";
+    loadWsg("Snare_Drum_PZL.wsg", &pm->levels[6].levelWSG);//10x10
+    loadWsg("Snare_Drum_SLV.wsg", &pm->levels[6].completedWSG);
 
-    pm->levels[7].title = "Controller";
-    loadWsg("Controller_PZL.wsg", &pm->levels[7].levelWSG);//10x10
-    loadWsg("Controller_SLV.wsg", &pm->levels[7].completedWSG);
+    pm->levels[7].title = "Danny";
+    loadWsg("Danny_PZL.wsg", &pm->levels[7].levelWSG);//10x10
+    loadWsg("Danny_SLV.wsg", &pm->levels[7].completedWSG);
 
-    pm->levels[8].title = "Cat";
-    loadWsg("Cat_PZL.wsg", &pm->levels[8].levelWSG);//10x10
-    loadWsg("Cat_SLV.wsg", &pm->levels[8].completedWSG);
+    pm->levels[8].title = "Controller";
+    loadWsg("Controller_PZL.wsg", &pm->levels[8].levelWSG);//10x10
+    loadWsg("Controller_SLV.wsg", &pm->levels[8].completedWSG);
 
-    pm->levels[9].title = "Pear";
-    loadWsg("Pear_PZL.wsg", &pm->levels[9].levelWSG);//10x10
-    loadWsg("Pear_SLV.wsg", &pm->levels[9].completedWSG);
+    pm->levels[9].title = "Cat";
+    loadWsg("Cat_PZL.wsg", &pm->levels[9].levelWSG);//10x10
+    loadWsg("Cat_SLV.wsg", &pm->levels[9].completedWSG);
+
+    pm->levels[10].title = "Pear";//todo: move this lower, it can be tricky ish.
+    loadWsg("Pear_PZL.wsg", &pm->levels[10].levelWSG);//10x10
+    loadWsg("Pear_SLV.wsg", &pm->levels[10].completedWSG);
     
-    pm->levels[10].title = "Cherry";
-    loadWsg("Cherry_PZL.wsg", &pm->levels[10].levelWSG);//10x10
-    loadWsg("Cherry_SLV.wsg", &pm->levels[10].completedWSG);
+    pm->levels[11].title = "Boat";   
+    loadWsg("3_boat.wsg", &pm->levels[11].levelWSG);//10x10
+    loadWsg("3_boat_c.wsg", &pm->levels[11].completedWSG);
 
-    pm->levels[11].title = "Strawberry";
-    loadWsg("Strawberry_PZL.wsg", &pm->levels[11].levelWSG);//10x10
-    loadWsg("Strawberry_SLV.wsg", &pm->levels[11].completedWSG);
+    pm->levels[12].title = "Cherry";
+    loadWsg("Cherry_PZL.wsg", &pm->levels[12].levelWSG);//10x10
+    loadWsg("Cherry_SLV.wsg", &pm->levels[12].completedWSG);
 
-    pm->levels[12].title = "Coffee Bean";
-    loadWsg("CoffeeBean_PZL.wsg", &pm->levels[12].levelWSG);//coffeBean is pretty hard for a 10x10
-    loadWsg("CoffeeBean_SLV.wsg", &pm->levels[12].completedWSG);
+    pm->levels[13].title = "Magnet";
+    loadWsg("Magnet_PZL.wsg", &pm->levels[13].levelWSG);//10x10
+    loadWsg("Magnet_SLV.wsg", &pm->levels[13].completedWSG);
 
-    pm->levels[13].title = "Boat";   
-    loadWsg("3_boat.wsg", &pm->levels[13].levelWSG);//10x10
-    loadWsg("3_boat_c.wsg", &pm->levels[13].completedWSG);
+    pm->levels[14].title = "Strawberry";
+    loadWsg("Strawberry_PZL.wsg", &pm->levels[14].levelWSG);//10x10
+    loadWsg("Strawberry_SLV.wsg", &pm->levels[14].completedWSG);
 
-    pm->levels[14].title = "Mouse";
-    loadWsg("Mouse_PZL.wsg", &pm->levels[14].levelWSG);//15x15
-    loadWsg("Mouse_SLV.wsg", &pm->levels[14].completedWSG);
+    pm->levels[15].title = "Coffee Bean";
+    loadWsg("CoffeeBean_PZL.wsg", &pm->levels[15].levelWSG);//coffeBean is pretty hard for a 10x10
+    loadWsg("CoffeeBean_SLV.wsg", &pm->levels[15].completedWSG);
 
-    pm->levels[15].title = "Note";
-    loadWsg("Note_PZL.wsg", &pm->levels[15].levelWSG);//15x15
-    loadWsg("Note_SLV.wsg", &pm->levels[15].completedWSG);
+    pm->levels[16].title = "Lobster";   //Symmetry makes this less fun to solve. It's on the chopping block if we get better puzzles.
+    loadWsg("lobster_PZL.wsg", &pm->levels[16].levelWSG);//10x10
+    loadWsg("lobster_SLV.wsg", &pm->levels[16].completedWSG);
 
-    pm->levels[16].title = "Banana";
-    loadWsg("Banana_PZL.wsg", &pm->levels[16].levelWSG);//15x15
-    loadWsg("Banana_SLV.wsg", &pm->levels[16].completedWSG);
+    pm->levels[17].title = "Mouse";
+    loadWsg("Mouse_PZL.wsg", &pm->levels[17].levelWSG);//15x15
+    loadWsg("Mouse_SLV.wsg", &pm->levels[17].completedWSG);
 
-    pm->levels[17].title = "Fountain Pen";
-    loadWsg("Fountain_Pen_PZL.wsg", &pm->levels[17].levelWSG);//15x15
-    loadWsg("Fountain_Pen_SLV.wsg", &pm->levels[17].completedWSG);
+    pm->levels[18].title = "Note";
+    loadWsg("Note_PZL.wsg", &pm->levels[18].levelWSG);//15x15
+    loadWsg("Note_SLV.wsg", &pm->levels[18].completedWSG);
 
-    pm->levels[18].title = "Power Plug";
-    loadWsg("Plug_PZL.wsg", &pm->levels[18].levelWSG);//15x15 - This one is on the harder side of things.
-    loadWsg("Plug_SLV.wsg", &pm->levels[18].completedWSG);
+    pm->levels[19].title = "Banana";
+    loadWsg("Banana_PZL.wsg", &pm->levels[19].levelWSG);//15x15
+    loadWsg("Banana_SLV.wsg", &pm->levels[19].completedWSG);
 
-    pm->levels[19].title = "Rocket League";
-    loadWsg("RocketLeague_PZL.wsg", &pm->levels[19].levelWSG);//15x15 - This one is on the harder side of things.
-    loadWsg("RocketLeague_SLV.wsg", &pm->levels[19].completedWSG);
+    pm->levels[20].title = "Big Mouth Billy Bass";
+    loadWsg("bass_PZL.wsg", &pm->levels[20].levelWSG);//15x15
+    loadWsg("bass_SLV.wsg", &pm->levels[20].completedWSG);
+
+
+    pm->levels[21].title = "Fountain Pen";
+    loadWsg("Fountain_Pen_PZL.wsg", &pm->levels[21].levelWSG);//15x15
+    loadWsg("Fountain_Pen_SLV.wsg", &pm->levels[21].completedWSG);
+
+    pm->levels[22].title = "Power Plug";
+    loadWsg("Plug_PZL.wsg", &pm->levels[22].levelWSG);//15x15 - This one is on the harder side of things.
+    loadWsg("Plug_SLV.wsg", &pm->levels[22].completedWSG);
+
+    pm->levels[23].title = "Rocket League";
+    loadWsg("RocketLeague_PZL.wsg", &pm->levels[23].levelWSG);//15x15 - This one is on the harder side of things.
+    loadWsg("RocketLeague_SLV.wsg", &pm->levels[23].completedWSG);
 
     //this has to be the last puzzle.
-    pm->levels[20].title = "Never Gonna";//give you up, but title too long for single line.
-    loadWsg("RR_PZL.wsg", &pm->levels[20].levelWSG);
-    loadWsg("RR_SLV.wsg", &pm->levels[20].completedWSG);
+    pm->levels[24].title = "Never Gonna";//give you up, but title too long for single line.
+    loadWsg("RR_PZL.wsg", &pm->levels[24].levelWSG);//15/15
+    loadWsg("RR_SLV.wsg", &pm->levels[24].completedWSG);
 
     //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_consts.h) when adding levels.
 
@@ -445,11 +462,8 @@ void exitTutorial(void)
     setPicrossMainMenu(false);
 }
 
-//menu button & options menu callbacks. Set the screen and call the appropriate start functions
-void picrossMainMenuCb(const char* opt)
+void continueGame()
 {
-    if (opt == str_continue)
-    {
         //get the current level index
         int32_t currentIndex = 0;//just load 0 if its 0. 
         readNvs32(picrossCurrentPuzzleIndexKey, &currentIndex);
@@ -458,6 +472,14 @@ void picrossMainMenuCb(const char* opt)
         //uh. read the currentLevelIndex and get the value from 
         picrossStartGame(pm->disp, &pm->mmFont, &pm->levels[currentIndex], true);
         pm->screen = PICROSS_GAME;
+}
+
+//menu button & options menu callbacks. Set the screen and call the appropriate start functions
+void picrossMainMenuCb(const char* opt)
+{
+    if (opt == str_continue)
+    {
+        continueGame();
         return;
     }
     if (opt == str_howtoplay)
@@ -532,13 +554,22 @@ void picrossMainMenuCb(const char* opt)
     }
     else if(opt == str_eraseProgress)
     {
-        //Next time we load a puzzle it will re-save and zero-out the data, we just have to tell the mennu not to show the 'continue' option.
+        //todo: still need to do a confirmation on these, probably just by changing the text.
+        //Commented out 
+        // //Next time we load a puzzle it will re-save and zero-out the data, we just have to tell the mennu not to show the 'continue' option.
         writeNvs32(picrossCurrentPuzzleIndexKey,-1);
+        
+        //see comment above as to why this isn't needed.
+        // size_t size = sizeof(picrossProgressData_t);
+        // picrossProgressData_t* progData = calloc(1,size);//zero out = reset.
+        // writeNvsBlob(picrossProgressData,progData,size);
+        // free(progData);
 
-        size_t size = sizeof(picrossVictoryData_t);
-        picrossVictoryData_t* victData = calloc(1,size);//zero out = reset.
-        writeNvsBlob(picrossCompletedLevelData,victData,size);
-        free(victData);
+        //the code to erase ALL (victory) progress. Still want to put this... somewhere
+        // size_t size = sizeof(picrossVictoryData_t);
+        // picrossVictoryData_t* victData = calloc(1,size);//zero out = reset.
+        // writeNvsBlob(picrossCompletedLevelData,victData,size);
+        // free(victData);
     }
 }
 

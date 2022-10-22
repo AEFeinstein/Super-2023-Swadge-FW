@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h> 
 
 #include "esp_log.h"
 #include "cJSON.h"
@@ -370,6 +371,83 @@ bool writeNvsBlob(const char* key, const void* value, size_t length)
 }
 
 /**
+ * @brief Delete the value with the given key from NVS
+ *
+ * @param key The NVS key to be deleted
+ * @return true if the value was deleted, false if it was not
+ */
+bool eraseNvsKey(const char* key)
+{
+    // Open the file
+    FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
+    if(NULL != nvsFile)
+    {
+        // Get the file size
+        fseek(nvsFile, 0L, SEEK_END);
+        size_t fsize = ftell(nvsFile);
+        fseek(nvsFile, 0L, SEEK_SET);
+
+        // Read the file
+        char fbuf[fsize + 1];
+        fbuf[fsize] = 0;
+        if(fsize == fread(fbuf, 1, fsize, nvsFile))
+        {
+            // Close the file
+            fclose(nvsFile);
+
+            // Parse the JSON
+            cJSON * json = cJSON_Parse(fbuf);
+
+            // Check if the key exists
+            cJSON * jsonIter;
+            bool keyExists = false;
+            cJSON_ArrayForEach(jsonIter, json)
+            {
+                if(0 == strcmp(jsonIter->string, key))
+                {
+                    keyExists = true;
+                }
+            }
+
+            // Remove the key if it exists
+            if(keyExists)
+            {
+                cJSON_DeleteItemFromObject(json, key);
+            }
+
+            // Write the new JSON back to the file
+            FILE * nvsFileW = fopen(NVS_JSON_FILE, "wb");
+            if(NULL != nvsFileW)
+            {
+                char * jsonStr = cJSON_Print(json);
+                fprintf(nvsFileW, "%s", jsonStr);
+                fclose(nvsFileW);
+
+                free(jsonStr);
+                cJSON_Delete(json);
+
+                return keyExists;
+            }
+            else
+            {
+                // Couldn't open file to write
+            }
+            cJSON_Delete(json);
+        }
+        else
+        {
+            // Couldn't read file
+            fclose(nvsFile);
+        }
+    }
+    else
+    {
+        // couldn't open file to read
+    }
+    return false;
+}
+
+/**
  * @brief Convert a blob to a hex string
  * 
  * @param value The blob
@@ -422,9 +500,16 @@ void strToBlob(char * str, void * outBlob, size_t blobLen)
     uint8_t * outBlob8 = (uint8_t*)outBlob;
     for(size_t i = 0; i < blobLen; i++)
     {
-        uint8_t upperNib = hexCharToInt(str[2 * i]);
-        uint8_t lowerNib = hexCharToInt(str[(2 * i) + 1]);
-        outBlob8[i] = (upperNib << 4) | (lowerNib);
+        if(((2 * i) + 1) < strlen(str))
+        {
+            uint8_t upperNib = hexCharToInt(str[2 * i]);
+            uint8_t lowerNib = hexCharToInt(str[(2 * i) + 1]);
+            outBlob8[i] = (upperNib << 4) | (lowerNib);
+        }
+        else
+        {
+            outBlob8[i] = 0;
+        }
     }
 }
 
@@ -466,23 +551,50 @@ bool deinitSpiffs(void)
  */
 bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize, bool readToSpiRam)
 {
-    printf("Read from %s\n", fname);
     // Make sure the output pointer is NULL to begin with
     if(NULL != *output)
     {
-        ESP_LOGE("SPIFFS", "output not NULL");
+        // ESP_LOGE("SPIFFS", "output not NULL");
+        return false;
+    }
+
+    // Make sure the file exists, case sensitive
+    bool fileExists = false;
+    DIR *d;
+    struct dirent *dir;
+    d = opendir("./spiffs_image/");
+    if (d)
+    {
+        while ((dir = readdir(d)) != NULL)
+        {
+            if(0 == strcmp(dir->d_name, fname))
+            {
+                fileExists = true;
+                break;
+            }
+        }
+        closedir(d);
+    }
+
+    // If the file does not exist
+    if(false == fileExists)
+    {
+        // Print the error, then quit.
+        // Abnormal quitting is a strong indicator something failed
+        ESP_LOGE("SPIFFS", "%s doesnt exist!!!!", fname);
+        exit(1);
         return false;
     }
 
     // Read and display the contents of a small text file
-    ESP_LOGD("SPIFFS", "Reading %s", fname);
+    // ESP_LOGD("SPIFFS", "Reading %s", fname);
 
     // Open for reading the given file
     char fnameFull[128] = "./spiffs_image/";
     strcat(fnameFull, fname);
     FILE* f = fopen(fnameFull, "rb");
     if (f == NULL) {
-        ESP_LOGE("SPIFFS", "Failed to open %s", fnameFull);
+        // ESP_LOGE("SPIFFS", "Failed to open %s", fnameFull);
         return false;
     }
 
@@ -499,6 +611,6 @@ bool spiffsReadFile(const char * fname, uint8_t ** output, size_t * outsize, boo
     fclose(f);
 
     // Display the read contents from the file
-    ESP_LOGD("SPIFFS", "Read from %s: %d bytes", fname, (uint32_t)(*outsize));
+    // ESP_LOGD("SPIFFS", "Read from %s: %d bytes", fname, (uint32_t)(*outsize));
     return true;
 }

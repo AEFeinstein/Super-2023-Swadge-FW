@@ -1,7 +1,7 @@
 #ifndef _PAINT_TYPE_H_
 #define _PAINT_TYPE_H_
 
-#include "stdint.h"
+#include <stdint.h>
 
 #include "display.h"
 
@@ -17,14 +17,14 @@ typedef enum
 {
     // Top menu
     PAINT_MENU,
+    PAINT_NETWORK_MENU,
+    PAINT_SETTINGS_MENU,
     // Control instructions
     PAINT_HELP,
     // Drawing mode
     PAINT_DRAW,
     // Select and view/edit saved drawings
     PAINT_GALLERY,
-    // View a drawing, no editing
-    PAINT_VIEW,
     // Share a drawing via ESPNOW
     PAINT_SHARE,
     // Receive a shared drawing over ESPNOW
@@ -44,13 +44,29 @@ typedef enum
     BTN_MODE_DRAW,
     BTN_MODE_SELECT,
     BTN_MODE_SAVE,
+    BTN_MODE_PALETTE,
 } paintButtonMode_t;
 
 typedef enum
 {
+    PALETTE_R,
+    PALETTE_G,
+    PALETTE_B,
+} paintEditPalette_t;
+
+typedef enum
+{
     HIDDEN,
-    PICK_SLOT_SAVE_LOAD,
+    PICK_SLOT_SAVE,
+    PICK_SLOT_LOAD,
     CONFIRM_OVERWRITE,
+    CONFIRM_UNSAVED,
+    EDIT_PALETTE,
+    COLOR_PICKER,
+    CLEAR,
+    CONFIRM_CLEAR,
+    EXIT,
+    CONFIRM_EXIT,
 } paintSaveMenu_t;
 
 // For tracking the state of the sharing / receiving process

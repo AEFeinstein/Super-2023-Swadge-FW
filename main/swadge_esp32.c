@@ -68,6 +68,7 @@
 
 #if defined(EMU)
     #include "emu_esp.h"
+    #include "emu_main.h"
 #else
     #include "soc/dport_access.h"
     #include "soc/periph_defs.h"
@@ -181,6 +182,10 @@ uint16_t tud_hid_get_report_cb(uint8_t itf,
     {
         return handle_advanced_usb_terminal_get( reqlen, buffer );
     }
+    else if( report_id == 173 && cSwadgeMode && cSwadgeMode->fnAdvancedUSB )
+    {
+        return cSwadgeMode->fnAdvancedUSB( buffer, reqlen, 1 );
+    }
     else
     {
         return reqlen;
@@ -213,6 +218,10 @@ void tud_hid_set_report_cb(uint8_t itf,
     if( report_id >= 170 && report_id <= 171 )
     {
         handle_advanced_usb_control_set( bufsize, buffer );
+    }
+    else if( report_id == 173 && cSwadgeMode && cSwadgeMode->fnAdvancedUSB )
+    {
+        cSwadgeMode->fnAdvancedUSB( (uint8_t*)buffer, bufsize, 0 );
     }
 #endif
 }
@@ -914,8 +923,23 @@ void cleanupOnExit(void)
  */
 void switchToSwadgeMode(swadgeMode* mode)
 {
+#if !defined(MONKEY_AROUND)
     pendingSwadgeMode = mode;
     isSandboxMode = false;
+#endif
+}
+
+/**
+ * Set up variables to synchronously switch the swadge mode in the main loop
+ *
+ * @param mode The index of the mode to switch to
+ */
+void switchToSwadgeModeFuzzer(swadgeMode* mode)
+{
+#if defined(MONKEY_AROUND)
+    pendingSwadgeMode = mode;
+    isSandboxMode = false;
+#endif
 }
 
 /**

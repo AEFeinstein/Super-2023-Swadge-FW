@@ -8,4 +8,6 @@
 extern swadgeMode modePaintShare;
 extern swadgeMode modePaintReceive;
 
+extern paintShare_t* paintShare;
+
 #endif

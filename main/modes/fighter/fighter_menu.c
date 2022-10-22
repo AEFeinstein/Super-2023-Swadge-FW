@@ -56,6 +56,7 @@ typedef struct
     wsg_t fd_bg;
     wsg_t conlogo;
     int16_t rotDeg;
+    uint8_t playerInput;
 } fighterMenu_t;
 
 typedef struct
@@ -108,6 +109,20 @@ void fighterCheckGameBegin(void);
 //==============================================================================
 // Variables
 //==============================================================================
+
+#if defined(EMU)
+    // Local VS is for the emulator only!
+    static const char str_localVs[]   = "Local VS";
+    static const char str_localVsP1[] = "Player 1";
+    static const char str_localVsP2[] = "Player 2";
+
+    void setFighterLocalVsP1Menu(void);
+    void fighterLocalVsP1MenuCb(const char* opt);
+    void setFighterLocalVsP2Menu(void);
+    void fighterLocalVsP2MenuCb(const char* opt);
+    void setFighterLocalVsStageMenu(void);
+    void fighterLocalVsStageMenuCb(const char* opt);
+#endif
 
 static const char str_swadgeBros[]  = "Swadge Bros";
 const char str_multiplayer[] = "Multiplayer";
@@ -312,6 +327,15 @@ void fighterButtonCb(buttonEvt_t* evt)
     {
         case FIGHTER_MENU:
         {
+#if defined(EMU)
+            // Local VS is for the emulator only!
+            if(1 == fm->playerInput)
+            {
+                // Shift down button bit and state
+                evt->button >>= 8;
+                evt->state >>= 8;
+            }
+#endif
             // Pass button events from the Swadge mode to the menu
             if(evt->down)
             {
@@ -439,7 +463,12 @@ void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
  */
 void setFighterMainMenu(void)
 {
+    fm->playerInput = 0;
     resetMeleeMenu(fm->menu, str_swadgeBros, fighterMainMenuCb);
+#if defined(EMU)
+    // Local VS is for the emulator only!
+    addRowToMeleeMenu(fm->menu, str_localVs);
+#endif
     addRowToMeleeMenu(fm->menu, str_wirelessMulti);
     addRowToMeleeMenu(fm->menu, str_wireMultiA);
     addRowToMeleeMenu(fm->menu, str_wireMultiB);
@@ -492,6 +521,14 @@ void fighterMainMenuCb(const char* opt)
         // Start the connection
         p2pStartConnection(&fm->p2p);
     }
+#if defined(EMU)
+    // Local VS is for the emulator only!
+    else if (opt == str_localVs)
+    {
+        // Go to character select
+        setFighterLocalVsP1Menu();
+    }
+#endif
     else if (opt == str_hrContest)
     {
         // Home Run contest selected, display character select menu
@@ -520,6 +557,7 @@ void fighterMainMenuCb(const char* opt)
  */
 void setFighterHrMenu(void)
 {
+    fm->playerInput = 0;
     resetMeleeMenu(fm->menu, str_hrContest, fighterHrMenuCb);
     addRowToMeleeMenu(fm->menu, str_charKD);
     addRowToMeleeMenu(fm->menu, str_charSN);
@@ -665,6 +703,7 @@ void fighterVsCpuStageMenuCb(const char* opt)
  */
 void setFighterMultiplayerCharSelMenu(void)
 {
+    fm->playerInput = 0;
     resetMeleeMenu(fm->menu, str_multiplayer, fighterMultiplayerCharMenuCb);
     addRowToMeleeMenu(fm->menu, str_charKD);
     addRowToMeleeMenu(fm->menu, str_charSN);
@@ -730,6 +769,7 @@ void fighterMultiplayerCharMenuCb(const char* opt)
  */
 void setFighterMultiplayerStageSelMenu(void)
 {
+    fm->playerInput = 0;
     resetMeleeMenu(fm->menu, str_multiplayer, fighterMultiplayerStageMenuCb);
     addRowToMeleeMenu(fm->menu, str_stgBF);
     addRowToMeleeMenu(fm->menu, str_stgFD);
@@ -770,6 +810,164 @@ void fighterMultiplayerStageMenuCb(const char* opt)
     // Wait for the other swadge to pick a character
     fm->screen = FIGHTER_WAITING;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Local VS is for the emulator only!
+#if defined(EMU)
+
+/**
+ * @brief Sets up the Home Run Contest menu for Fighter, including callback
+ */
+void setFighterLocalVsP1Menu(void)
+{
+    fm->playerInput = 0;
+    resetMeleeMenu(fm->menu, str_localVsP1, fighterLocalVsP1MenuCb);
+    addRowToMeleeMenu(fm->menu, str_charKD);
+    addRowToMeleeMenu(fm->menu, str_charSN);
+    addRowToMeleeMenu(fm->menu, str_charBF);
+    addRowToMeleeMenu(fm->menu, str_back);
+    fm->screen = FIGHTER_MENU;
+}
+
+/**
+ * This is called when a menu option is selected from the Home Run Contest menu
+ *
+ * @param opt The option that was selected (string pointer)
+ */
+void fighterLocalVsP1MenuCb(const char* opt)
+{
+    // Check the menu option selected
+    if (opt == str_charKD)
+    {
+        // King Donut Selected
+        fm->characters[0] = KING_DONUT;
+    }
+    else if (opt == str_charSN)
+    {
+        // Sunny Selected
+        fm->characters[0] = SUNNY;
+    }
+    else if (opt == str_charBF)
+    {
+        // Big Funkus Selected
+        fm->characters[0] = BIG_FUNKUS;
+    }
+    else if (opt == str_back)
+    {
+        // Reset to top level melee menu
+        setFighterMainMenu();
+        return;
+    }
+    else
+    {
+        // Shouldn't happen, but return just in case
+        return;
+    }
+
+    // Go to P2 character select
+    setFighterLocalVsP2Menu();
+}
+
+/**
+ * @brief Sets up the Home Run Contest menu for Fighter, including callback
+ */
+void setFighterLocalVsP2Menu(void)
+{
+    fm->playerInput = 1;
+    resetMeleeMenu(fm->menu, str_localVsP2, fighterLocalVsP2MenuCb);
+    addRowToMeleeMenu(fm->menu, str_charKD);
+    addRowToMeleeMenu(fm->menu, str_charSN);
+    addRowToMeleeMenu(fm->menu, str_charBF);
+    addRowToMeleeMenu(fm->menu, str_back);
+    fm->screen = FIGHTER_MENU;
+}
+
+/**
+ * This is called when a menu option is selected from the Home Run Contest menu
+ *
+ * @param opt The option that was selected (string pointer)
+ */
+void fighterLocalVsP2MenuCb(const char* opt)
+{
+    // Check the menu option selected
+    if (opt == str_charKD)
+    {
+        // King Donut Selected
+        fm->characters[1] = KING_DONUT;
+    }
+    else if (opt == str_charSN)
+    {
+        // Sunny Selected
+        fm->characters[1] = SUNNY;
+    }
+    else if (opt == str_charBF)
+    {
+        // Big Funkus Selected
+        fm->characters[1] = BIG_FUNKUS;
+    }
+    else if (opt == str_back)
+    {
+        // Reset to top level melee menu
+        setFighterLocalVsP1Menu();
+        return;
+    }
+    else
+    {
+        // Shouldn't happen, but return just in case
+        return;
+    }
+
+    // Go to P2 character select
+    setFighterLocalVsStageMenu();
+}
+
+/**
+ * @brief Sets up the multiplayer stage select menu for Fighter, including callback
+ */
+void setFighterLocalVsStageMenu(void)
+{
+    fm->playerInput = 0;
+    resetMeleeMenu(fm->menu, str_multiplayer, fighterLocalVsStageMenuCb);
+    addRowToMeleeMenu(fm->menu, str_stgBF);
+    addRowToMeleeMenu(fm->menu, str_stgFD);
+    addRowToMeleeMenu(fm->menu, str_back);
+    fm->screen = FIGHTER_MENU;
+}
+
+/**
+ * This is called when a menu option is selected from the multiplayer stage select menu
+ *
+ * @param opt The option that was selected (string pointer)
+ */
+void fighterLocalVsStageMenuCb(const char* opt)
+{
+    if(str_stgBF == opt)
+    {
+        fm->stage = BATTLEFIELD;
+    }
+    else if(str_stgFD == opt)
+    {
+        fm->stage = FINAL_DESTINATION;
+    }
+    else if(str_back == opt)
+    {
+        // Go back
+        setFighterLocalVsP2Menu();
+        return;
+    }
+    else
+    {
+        // Shouldn't happen, but return just in case
+        return;
+    }
+
+    // No return, start the game
+    fighterStartGame(fm->disp, &fm->mmFont, LOCAL_VS, fm->characters, fm->stage, true);
+    fm->screen = FIGHTER_GAME;
+}
+
+#endif // defined(EMU)
 
 ////////////////////////////////////////////////////////////////////////////////
 

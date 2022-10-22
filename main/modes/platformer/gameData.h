@@ -43,6 +43,7 @@ typedef struct
     bool extraLifeCollected;
     uint8_t checkpoint;
     uint8_t levelDeaths;
+    uint8_t initialHp;
     
     led_t leds[NUM_LEDS];
 
@@ -50,6 +51,9 @@ typedef struct
 
     char initials[3];
     uint8_t rank;
+
+    uint8_t changeBgm;
+    uint8_t currentBgm;
 } gameData_t;
 
 //==============================================================================

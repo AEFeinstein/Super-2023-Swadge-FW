@@ -3,6 +3,7 @@
 #include <malloc.h>
 
 #include "paint_common.h"
+#include "paint_util.h"
 
 void initPxStack(pxStack_t* pxStack)
 {
@@ -65,8 +66,6 @@ void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y)
     pxStack->data[pxStack->index].x = x;
     pxStack->data[pxStack->index].y = y;
     pxStack->data[pxStack->index].col = disp->getPx(x, y);
-
-    PAINT_LOGV("Saved pixel %d at (%d, %d)", pxStack->index, x, y);
 }
 
 /**
@@ -83,8 +82,6 @@ bool popPx(pxStack_t* pxStack, display_t* disp)
     // Make sure the stack isn't empty
     if (pxStack->index >= 0)
     {
-        PAINT_LOGV("Popping pixel %d...", pxStack->index);
-
         // Draw the pixel from the top of the stack
         disp->setPx(pxStack->data[pxStack->index].x, pxStack->data[pxStack->index].y, pxStack->data[pxStack->index].col);
         pxStack->index--;
@@ -98,21 +95,59 @@ bool popPx(pxStack_t* pxStack, display_t* disp)
     return false;
 }
 
+bool peekPx(const pxStack_t* pxStack, pxVal_t* dest)
+{
+    if (pxStack->index >= 0)
+    {
+        *dest = pxStack->data[pxStack->index];
+        return true;
+    }
 
+    return false;
+}
+
+bool getPx(const pxStack_t* pxStack, size_t pos, pxVal_t* dest)
+{
+    if (pos <= pxStack->index)
+    {
+        *dest = pxStack->data[pos];
+        return true;
+    }
+
+    return false;
+}
+
+bool dropPx(pxStack_t* pxStack)
+{
+    if (pxStack->index >= 0)
+    {
+        pxStack->index--;
+        return true;
+    }
+
+    return false;
+}
+
+size_t pxStackSize(const pxStack_t* pxStack)
+{
+    return pxStack->index + 1;
+}
 
 void pushPxScaled(pxStack_t* pxStack, display_t* disp, int x, int y, int xTr, int yTr, int xScale, int yScale)
 {
-    for (int i = 0; i < xScale * yScale; i++)
-    {
-        pushPx(pxStack, disp, xTr + x * xScale + i % yScale, yTr + y * yScale + i / xScale);
-    }
+    pushPx(pxStack, disp, xTr + x * xScale, yTr + y * yScale);
 }
 
-void popPxScaled(pxStack_t* pxStack, display_t* disp, int xScale, int yScale)
+bool popPxScaled(pxStack_t* pxStack, display_t* disp, int xScale, int yScale)
 {
-    for (int i = 0; i < xScale * yScale; i++)
+    pxVal_t px;
+    if (peekPx(pxStack, &px))
     {
-        popPx(pxStack, disp);
-    }
-}
+        plotRectFilled(disp, px.x, px.y, px.x + xScale + 1, px.y + yScale + 1, px.col);
+        dropPx(pxStack);
 
+        return true;
+    }
+
+    return false;
+}

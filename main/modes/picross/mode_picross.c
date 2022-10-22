@@ -78,7 +78,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->puzzle = calloc(1, sizeof(picrossPuzzle_t));    
     //puzzle gets set in picrossSetupPuzzle.
     
-    p->fadeHints = false;
+    p->fadeHints = true;//When should this be turned on or off? Options menu is a lot.
     //Input Setup
     p->input = calloc(1, sizeof(picrossInput_t));
     p->input->x=0;
@@ -397,6 +397,7 @@ void picrossGameLoop(int64_t elapsedUs)
     if(p->input->showGuides){
         picrossCalculateHoverHint();
     }
+
     drawPicrossScene(p->d);
 
     
@@ -529,10 +530,13 @@ bool hintIsFilledIn(picrossHint_t* hint)
         switch (p->puzzle->level[col][row])
         {
             case SPACE_EMPTY:
-            {
-                isFilledIn = false;//set false, but still fall through (dont break)
-            }
-            /* FALLTHRU */
+                isFilledIn = false;//we could just do this line and fall through the switch, but the compiler didn't like it.
+                if (lastSpace == SPACE_FILLED)
+                {
+                    segmentIndex++;
+                }
+                lastSpace = SPACE_EMPTY;
+            break;
             case SPACE_MARKEMPTY:
             case OUTOFBOUNDS:
             {
@@ -670,11 +674,19 @@ void picrossUserInput(int64_t elapsedUs)
         return;
     }
 
-    if (p->controlsEnabled == false || p->currentPhase != PICROSS_SOLVING)
+    //victory screen input
+    if(p->controlsEnabled == false || p->currentPhase == PICROSS_YOUAREWIN)
     {
+        //&& !(p->input->prevBtnState & BTN_B)
+        if (p->input->btnState & BTN_B )
+        {
+            //return to level select instead of main menu?
+            p->exitThisFrame = true;
+        }
+        
+        p->input->prevBtnState = p->input->btnState;
         return;
     }
-
     //Input checks
     
     //Reset the counter by pressing start. It should auto-reset, but it can be wonky.
@@ -1124,8 +1136,6 @@ box_t boxFromCoord(int8_t x,int8_t y)
 void drawPicrossHud(display_t* d,font_t* font)
 {
     uint8_t s = p->drawScale;
-    //width of thicker center lines
-    // uint16_t w = 2;//p->drawScale/4;
     //draw a vertical line every grid
     for(int i=0;i<=p->puzzle->width;i++)//skip 0 and skip last. literally the fence post problem.
     {
