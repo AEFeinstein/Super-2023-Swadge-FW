@@ -156,7 +156,7 @@ typedef struct
 // The swadge mode
 swadgeMode modeSlideWhistle =
 {
-    .modeName = "Slide Whistle",
+    .modeName = "TechnoSlideWhistle",
     .fnEnterMode = slideWhistleEnterMode,
     .fnExitMode = slideWhistleExitMode,
     .fnButtonCallback = slideWhistleButtonCallback,
