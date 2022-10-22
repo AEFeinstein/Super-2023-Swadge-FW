@@ -348,6 +348,7 @@ static const char theWordGuitar[] = "Guitar";
 static const char theWordViolin[] = "Violin";
 static const char theWordUkulele[] = "Ukulele";
 static const char theWordBanjo[] = "Banjo";
+static const char listeningText[] = "Listening for a note";
 static const char leftStr[] = ": ";
 static const char rightStrTuner[] = "Start: Tuner";
 static const char rightStrMetronome[] = "Start: Metronome";
@@ -791,6 +792,10 @@ void tunernomeMainLoop(int64_t elapsedUs)
                             semitoneNum = semitone;
                         }
                     }
+
+                    drawText(tunernome->disp, &tunernome->radiostars, c555, listeningText,
+                             (tunernome->disp->w - textWidth(&tunernome->radiostars, listeningText)) / 2,
+                             METRONOME_CENTER_Y - TUNER_RADIUS / 2);
 
                     led_t leds[NUM_LEDS] = {{0}};
 
