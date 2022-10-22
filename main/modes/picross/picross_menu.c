@@ -280,8 +280,6 @@ void loadLevels()
     loadWsg("RR_PZL.wsg", &pm->levels[26].levelWSG);//15/15
     loadWsg("RR_SLV.wsg", &pm->levels[26].completedWSG);
 
-
-
     //dont forget to update PICROSS_LEVEL_COUNT (in #define in picross_consts.h) when adding levels.
 
     //set indices. Used to correctly set save data. levels are loaded without context of the levels array, so they carry the index info with them so we can save victories.

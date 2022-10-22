@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "swadgeMode.h"
+#include "swadge_util.h"
 #include "musical_buzzer.h"
 #include "esp_log.h"
 #include "led_util.h"
@@ -42,7 +43,7 @@ void drawNumberAtCoord(display_t* d, font_t* font, paletteColor_t color, uint8_t
 int8_t getHintShift(uint8_t hint);
 void saveCompletedOnSelectedLevel(bool completed);
 void enterSpace(uint8_t x,uint8_t y,picrossSpaceType_t newSpace);
-
+void picrossVictoryLEDs(uint32_t tElapsedUs, uint32_t arg, bool reset);
 //==============================================================================
 // Variables
 //==============================================================================
@@ -371,7 +372,6 @@ picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t so
 
 void picrossGameLoop(int64_t elapsedUs)
 {
-
     p->bgScrollTimer += elapsedUs;
 
     //We do this at the top of the loop for 2 reasons. THe first is so that changedLevelThisFrame doesn't get reset, so when we set it from loading (true) or new (false), it updates.
@@ -404,28 +404,18 @@ void picrossGameLoop(int64_t elapsedUs)
     //You won! Only called once, since you cant go from win->solving without resetting everything (ie: menu and back)
     if(p->previousPhase == PICROSS_SOLVING && p->currentPhase == PICROSS_YOUAREWIN)
     {
-        //Set LEDs to ON BECAUSE YOU ARE WIN
-        //The game doesn't use a timer, so making them blink ABAB->BABA like I want will have to wait.
-        led_t leds[NUM_LEDS] =
-        {
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF}
-        };
-
-        setLeds(leds, NUM_LEDS);
-
         //Unsave progress. Hides "current" in the main menu. we dont need to zero-out the actual data that will just happen when we load a new level.
         writeNvs32(picrossCurrentPuzzleIndexKey, -1);
 
         //save the fact that we won
         saveCompletedOnSelectedLevel(true);
 
+    }
+
+    //Victory animation
+    if(p->currentPhase == PICROSS_YOUAREWIN)
+    {
+        picrossVictoryLEDs(elapsedUs,20000,false);
     }
 
     p->previousPhase = p->currentPhase;
@@ -1596,4 +1586,44 @@ void saveCompletedOnSelectedLevel(bool completed)
     victData->victories[(int)*&p->selectedLevel.index] = completed;
     writeNvsBlob(picrossCompletedLevelData,victData,size);
     free(victData);
+}
+
+
+void picrossVictoryLEDs(uint32_t tElapsedUs, uint32_t arg, bool reset)
+{
+    if(reset)
+    {
+        p->ledAnimCount = 0;//this doesn't behave like I anticipate it behaving? but im not gonna touch what isn't broken.
+        p->animtAccumulated = arg;
+        return;
+    }
+
+    // Declare some LEDs, all off
+    led_t leds[NUM_LEDS] = {{0}};
+    bool ledsUpdated = false;
+
+    p->animtAccumulated += tElapsedUs;
+    while(p->animtAccumulated >= arg)
+    {
+        p->animtAccumulated -= arg;
+        ledsUpdated = true;
+
+        p->ledAnimCount--;
+
+        uint8_t i;
+        for(i = 0; i < NUM_LEDS; i++)
+        {
+            int16_t angle = ((((i * 256) / NUM_LEDS)) + p->ledAnimCount) % 256;
+            uint32_t color = EHSVtoHEXhelper(angle, 0xFF, 0xFF, false);
+
+            leds[i].r = (color >>  0) & 0xFF;
+            leds[i].g = (color >>  8) & 0xFF;
+            leds[i].b = (color >> 16) & 0xFF;
+        }
+    }
+    // Output the LED data, actually turning them on
+    if(ledsUpdated)
+    {
+        setLeds(leds, sizeof(leds));
+    }
 }
