@@ -124,7 +124,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
 
         if(i%2 == 0)
         {
-            p->errorALEDBlinkLEDS[i].r = 0xFF;
+            p->errorALEDBlinkLEDS[i].r = 0xFF;//make less bright?
             p->errorALEDBlinkLEDS[i].g = 0x00;
             p->errorALEDBlinkLEDS[i].b = 0x00;
 
@@ -1100,9 +1100,9 @@ void drawPicrossScene(display_t* d)
         }
 
         //Draw the title of the puzzle, centered.       
-        int16_t t = textWidth(&p->UIFont,*&p->selectedLevel.title);
+        int16_t t = textWidth(&p->UIFont,p->selectedLevel.title);
         t = ((d->w) - t)/2;//from text width into padding.
-        drawText(d,&p->UIFont,c555,*&p->selectedLevel.title,t,14);
+        drawText(d,&p->UIFont,c555,p->selectedLevel.title,t,14);
     }
 }
 
