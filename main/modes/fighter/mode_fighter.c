@@ -18,6 +18,7 @@
 
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_random.h"
 
 #include "bresenham.h"
 #include "linked_list.h"
@@ -3079,8 +3080,15 @@ void fighterRxScene(const fighterScene_t* scene, uint8_t len)
     }
 }
 
+typedef enum
+{
+    CPU_RUN,
+    CPU_RECOVER
+} cpuBehavior_t;
+
 /**
  * @brief Figure out what the CPU should do
+ * Called every FRAME_TIME_MS
  *
  * @param human All the human fighter data
  * @param cpu All the CPU fighter data
@@ -3090,29 +3098,175 @@ void fighterRxScene(const fighterScene_t* scene, uint8_t len)
  */
 uint8_t cpuButtonAction(fighter_t* human, fighter_t* cpu, list_t projectiles, const stage_t* stage)
 {
+#define ABS(X) (((X) < 0) ? -(X) : (X))
+#define CPU_CLOSE_ENOUGH (24 << SF)
+    // These need to get structed later
+    static int behaviorChangeTimer = 0;
+    static bool cpuAttractX = true;
+    static bool cpuAttractY = true;
+    static cpuBehavior_t cpuBehavior = CPU_RUN;
+    static int32_t cpuJumpTimerMs = 0;
+
+    // Change behavior every second
+    behaviorChangeTimer += FRAME_TIME_MS;
+    if(behaviorChangeTimer >= 1000)
+    {
+        behaviorChangeTimer -= 1000;
+        // Randomly move close or further from the player
+        cpuAttractX = (esp_random() % 10) < 8;
+        cpuAttractY = (esp_random() % 10) < 8;
+    }
+
+    // Decrement this timer to not short hop all the time
+    if(cpuJumpTimerMs > 0)
+    {
+        cpuJumpTimerMs -= FRAME_TIME_MS;
+    }
+
+    // Set up button presses
     uint8_t btn = 0;
 
-    // Walk to the middle of the stage
-    if(cpu->pos.x > 140 << SF)
+    // Get some data references
+    box_t cpuHurtbox;
+    getHurtbox(cpu, &cpuHurtbox);
+    box_t humanHurtbox;
+    getHurtbox(human, &humanHurtbox);
+    box_t mainPlatform = stages[f->stageIdx]->platforms[0].area;
+
+    // Adjust behavior based on position
+    if(ABOVE_PLATFORM == cpu->relativePos)
     {
-        btn |= LEFT;
+        // Standing on a platform
+        cpuBehavior = CPU_RUN;
     }
-    else
+    else if((cpuHurtbox.x0 < mainPlatform.x0) || (cpuHurtbox.x1 > mainPlatform.x1))
     {
-        btn |= RIGHT;
+        // Somewhere off the stage
+        cpuBehavior = CPU_RECOVER;
     }
 
-    // Short hop and attack like a maniac
-    static bool press = false;
-    if(false == press)
+    switch(cpuBehavior)
     {
-        press = true;
-        btn |= BTN_A;
-    }
-    else
-    {
-        press = false;
-        btn |= BTN_B;
+        case CPU_RUN:
+        {
+            // Handle X axis movement
+            if(cpuHurtbox.x0 < humanHurtbox.x0)
+            {
+                if(cpuAttractX)
+                {
+                    if(ABS(cpuHurtbox.x0 - humanHurtbox.x0) > CPU_CLOSE_ENOUGH)
+                    {
+                        // Run towards player if not too close
+                        btn |= RIGHT;
+                    }
+                }
+                else
+                {
+                    if(cpuHurtbox.x0 > mainPlatform.x0 + CPU_CLOSE_ENOUGH)
+                    {
+                        // Run away from player, but not off the platform
+                        btn |= LEFT;
+                    }
+                }
+            }
+            else
+            {
+                if(cpuAttractX)
+                {
+                    if(ABS(cpuHurtbox.x0 - humanHurtbox.x0) > CPU_CLOSE_ENOUGH)
+                    {
+                        // Run towards player if not too close
+                        btn |= LEFT;
+                    }
+                }
+                else
+                {
+                    if(cpuHurtbox.x1 < mainPlatform.x1 - CPU_CLOSE_ENOUGH)
+                    {
+                        // Run away from player, but not off the platform
+                        btn |= RIGHT;
+                    }
+                }
+            }
+
+            // Handle Y axis movement
+            if(ABS(cpuHurtbox.y1 - humanHurtbox.y1) > CPU_CLOSE_ENOUGH)
+            {
+                if (( cpuAttractY && (cpuHurtbox.y1 > humanHurtbox.y1)) ||
+                        (!cpuAttractY && (cpuHurtbox.y1 < humanHurtbox.y1)))
+                {
+                    // JUMP!
+                    if(cpuJumpTimerMs <= 0)
+                    {
+                        // Jump back towards the stage
+                        cpuJumpTimerMs = 600;
+                        // BTN_A is 'released' here
+                    }
+                    else
+                    {
+                        // Keep the button held most of the time to not shorthop
+                        btn |= BTN_A;
+                    }
+                }
+                else if (( cpuAttractY && (cpuHurtbox.y1 < humanHurtbox.y1)) ||
+                         (!cpuAttractY && (cpuHurtbox.y1 > humanHurtbox.y1)))
+                {
+                    // Fall through the platform
+                    if(ABOVE_PLATFORM == cpu->relativePos && cpu->touchingPlatform->canFallThrough)
+                    {
+                        if(FS_DUCKING != cpu->state)
+                        {
+                            btn |= DOWN;
+                        }
+                    }
+                }
+            }
+
+            // TODO attacking
+            // TODO shooting?
+            // TODO movement lag to not stay on top of player all the time
+            break;
+        }
+        case CPU_RECOVER:
+        {
+            // Recover towards center of the stage
+            if(cpuHurtbox.x0 > (f->d->w / 2) << SF)
+            {
+                btn |= LEFT;
+            }
+            else
+            {
+                btn |= RIGHT;
+            }
+
+            // Check if above platform
+            if((cpuHurtbox.y1 < mainPlatform.y0) &&
+                    ((cpuHurtbox.x1 > mainPlatform.x0) || (cpuHurtbox.x0 < mainPlatform.x1)))
+            {
+                // Fighter is over the main platform, don't jump
+            }
+            else if(cpuJumpTimerMs <= 0)
+            {
+                // No more jumps and timer expired, UP AIR time
+                if(cpu->numJumpsLeft == 0)
+                {
+                    btn |= UP;
+                    btn |= BTN_B;
+                }
+                else
+                {
+                    // Jump timer expired, so set it
+                    cpuJumpTimerMs = 600;
+                    // BTN_A is 'released' here
+                }
+            }
+            else
+            {
+                // Jump timer is nonzero, hold down BTN_A to jump
+                btn |= BTN_A;
+            }
+            break;
+        }
     }
 
     // return the button state
