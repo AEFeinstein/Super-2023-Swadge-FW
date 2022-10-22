@@ -182,7 +182,7 @@ void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
 
     // Draw the battery indicator depending on the last read value
     wsg_t * toDraw = NULL;
-    if(mainMenu->battVal > 900)
+    if(mainMenu->battVal == 0 || mainMenu->battVal > 900)
     {
         toDraw = &mainMenu->usb;
     }
