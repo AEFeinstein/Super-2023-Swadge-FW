@@ -1010,7 +1010,7 @@ led_t platLeds[NUM_LEDS];
 void platformerEnterMode(display_t *disp)
 {
     // Allocate memory for this mode
-    platformer = (platformer_t *)malloc(sizeof(platformer_t));
+    platformer = (platformer_t *)calloc(1, sizeof(platformer_t));
     memset(platformer, 0, sizeof(platformer_t));
 
     // Save a pointer to the display

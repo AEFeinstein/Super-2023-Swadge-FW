@@ -23,7 +23,7 @@
 void initializeEntityManager(entityManager_t * entityManager, tilemap_t * tilemap, gameData_t * gameData)
 {
     loadSprites(entityManager);
-    entityManager->entities = malloc(sizeof(entity_t) * MAX_ENTITIES);
+    entityManager->entities = calloc(MAX_ENTITIES, sizeof(entity_t));
     
     for(uint8_t i=0; i < MAX_ENTITIES; i++)
     {
