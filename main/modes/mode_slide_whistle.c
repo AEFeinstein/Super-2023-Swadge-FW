@@ -99,6 +99,7 @@ typedef enum
 void  slideWhistleEnterMode(display_t * disp);
 void  slideWhistleExitMode(void);
 void  slideWhistleButtonCallback(buttonEvt_t* evt);
+void  slideWhistleTouchCallback(touch_event_t* evt);
 void  slideWhistleAccelerometerHandler(accel_t* accel);
 void  slideWhistleMainLoop(int64_t elapsedUs);
 void  slideWhistleBeatTimerFunc(void* arg __attribute__((unused)));
@@ -158,6 +159,7 @@ swadgeMode modeSlideWhistle =
     .fnEnterMode = slideWhistleEnterMode,
     .fnExitMode = slideWhistleExitMode,
     .fnButtonCallback = slideWhistleButtonCallback,
+    .fnTouchCallback = slideWhistleTouchCallback,
     .fnMainLoop = slideWhistleMainLoop,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
@@ -181,6 +183,10 @@ typedef struct
     char accelStr[32];
     char accelStr2[32];
 
+    // Track touch
+    bool touchDown;
+    int16_t touchPosition;
+
     // Track rhythm
     esp_timer_create_args_t beatTimerArgs;
     esp_timer_handle_t beatTimer;
@@ -190,6 +196,7 @@ typedef struct
     uint8_t bpmIdx;
 
     // Track the button
+    bool aHeld;
     bool upHeld;
     bool downHeld;
     bool shouldPlay;
@@ -1040,6 +1047,29 @@ void  slideWhistleExitMode(void)
 }
 
 /**
+ * This function is called when a button press is pressed. Buttons are
+ * handled by interrupts and queued up for this callback, so there are no
+ * strict timing restrictions for this function.
+ *
+ * @param evt The button event that occurred
+ */
+void  slideWhistleTouchCallback(touch_event_t* evt)
+{
+    slideWhistle->touchDown = evt->state != 0;
+    slideWhistle->shouldPlay = evt->state != 0 || slideWhistle->aHeld;
+
+    slideWhistle->touchPosition = roundf((evt->position * slideWhistle->disp->w) / 255);
+    if(slideWhistle->touchPosition >= slideWhistle->disp->w)
+    {
+        slideWhistle->touchPosition = slideWhistle->disp->w - 1;
+    }
+    else if(slideWhistle->touchPosition < 0)
+    {
+        slideWhistle->touchPosition = 0;
+    }
+}
+
+/**
  * @brief Button callback function, plays notes and switches parameters
  *
  * @param evt The button event that occurred
@@ -1097,10 +1127,12 @@ void  slideWhistleButtonCallback(buttonEvt_t* evt)
             {
                 slideWhistle->rhythmNoteIdx = 0;
                 slideWhistle->lastCallTimeUs = 0;
-                slideWhistle->shouldPlay = evt->down;
+                slideWhistle->aHeld = evt->down;
+                slideWhistle->shouldPlay = evt->down || slideWhistle->touchDown;
             }
             else
             {
+                slideWhistle->aHeld = false;
                 slideWhistle->shouldPlay = false;
             }
 
@@ -1232,9 +1264,20 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
             y1 -= (2 * CURSOR_HEIGHT + 5);
         }
 
+        int16_t x;
+
+        if(slideWhistle->touchDown)
+        {
+            x = slideWhistle->touchPosition * slideWhistle->disp->w / 255;
+        }
+        else
+        {
+            x = slideWhistle->roll;
+        }
+
         // Plot the cursor
-        plotLine(slideWhistle->disp, slideWhistle->roll, y0,
-                 slideWhistle->roll, y1,
+        plotLine(slideWhistle->disp, x, y0,
+                 x, y1,
                  c540, 0);
     }
 
@@ -1272,8 +1315,11 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
     }
 
     // Debug print
+    char buffer[32];
+    snprintf(buffer, 32, "touch: %d", slideWhistle->touchPosition);
     drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c444, slideWhistle->accelStr, 0, slideWhistle->disp->h / 4 + CORNER_OFFSET);
     drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c444, slideWhistle->accelStr2, 0, slideWhistle->disp->h / 4 + slideWhistle->ibm_vga8.h + 1 + CORNER_OFFSET);
+    drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c444, buffer, 0, slideWhistle->disp->h / 4 + slideWhistle->ibm_vga8.h * 2 + 1 + CORNER_OFFSET);
 
     // Warn the user that the swadge is muted, if that's the case
     if(getSfxIsMuted())
@@ -1430,7 +1476,16 @@ void  slideWhistleBeatTimerFunc(void* arg __attribute__((unused)))
 noteFrequency_t  getCurrentNote(void)
 {
     // Get the index of the note to play based on roll
-    uint8_t noteIdx = (slideWhistle->roll * (scales[slideWhistle->scaleIdx].notesLen / 2)) / slideWhistle->disp->w;
+    uint8_t noteIdx;
+    if(slideWhistle->touchDown)
+    {
+        noteIdx = (slideWhistle->touchPosition * (scales[slideWhistle->scaleIdx].notesLen / 2)) / slideWhistle->disp->w;
+    }
+    else
+    {
+        noteIdx = (slideWhistle->roll * (scales[slideWhistle->scaleIdx].notesLen / 2)) / slideWhistle->disp->w;
+    }
+
     // See if we should play the higher note
     if(slideWhistle->upHeld && !slideWhistle->downHeld)
     {
