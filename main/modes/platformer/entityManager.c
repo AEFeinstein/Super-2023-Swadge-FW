@@ -166,7 +166,7 @@ entity_t * findInactiveEntity(entityManager_t * entityManager)
 
 void viewFollowEntity(tilemap_t * tilemap, entity_t * entity){
     int16_t moveViewByX = (entity->x) >> SUBPIXEL_RESOLUTION;
-    int16_t moveViewByY = (entity->y > 32767) ? 0: (entity->y) >> SUBPIXEL_RESOLUTION;
+    int16_t moveViewByY = (entity->y > 63616) ? 0: (entity->y) >> SUBPIXEL_RESOLUTION;
 
     int16_t centerOfViewX = tilemap->mapOffsetX + 140;
     int16_t centerOfViewY = tilemap->mapOffsetY + 120;
