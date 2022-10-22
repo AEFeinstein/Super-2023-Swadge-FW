@@ -135,8 +135,8 @@ typedef struct
     int16_t tonalDiff[NUM_SEMITONES];
     int16_t intensity[NUM_SEMITONES];
 
-    wsg_t upArrowWsg;
-    wsg_t bigUpArrowWsg;
+    wsg_t radiostarsArrowWsg;
+    wsg_t mmArrowWsg;
     wsg_t flatWsg;
 
     uint32_t blinkStartUs;
@@ -414,8 +414,8 @@ void tunernomeEnterMode(display_t* disp)
     TUNER_FLAT_THRES_X = round(METRONOME_CENTER_X + (intermedX * TUNER_RADIUS));
     TUNER_THRES_Y = round(METRONOME_CENTER_Y - (ABS(intermedY) * TUNER_RADIUS));
 
-    loadWsg("uparrow.wsg", &(tunernome->upArrowWsg));
-    loadWsg("arrow21.wsg", &(tunernome->bigUpArrowWsg));
+    loadWsg("arrow12.wsg", &(tunernome->radiostarsArrowWsg));
+    loadWsg("arrow21.wsg", &(tunernome->mmArrowWsg));
     loadWsg("flat_mm.wsg", &(tunernome->flatWsg));
 
     tunernome->tSigIdx = 0;
@@ -496,8 +496,8 @@ void tunernomeExitMode(void)
     freeFont(&tunernome->radiostars);
     freeFont(&tunernome->mm);
 
-    freeWsg(&(tunernome->upArrowWsg));
-    freeWsg(&(tunernome->bigUpArrowWsg));
+    freeWsg(&(tunernome->radiostarsArrowWsg));
+    freeWsg(&(tunernome->mmArrowWsg));
     freeWsg(&(tunernome->flatWsg));
 
     free(tunernome);
@@ -752,12 +752,12 @@ void tunernomeMainLoop(int64_t elapsedUs)
                      tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
             // Up/Down arrows in middle of display around current note/mode
-            drawWsg(tunernome->disp, &(tunernome->upArrowWsg),
-                    (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
-                    (tunernome->disp->h - tunernome->mm.h) / 2 - tunernome->upArrowWsg.h - TUNER_ARROW_Y_OFFSET - TUNER_TEXT_Y_OFFSET,
+            drawWsg(tunernome->disp, &(tunernome->radiostarsArrowWsg),
+                    (tunernome->disp->w - tunernome->radiostarsArrowWsg.w) / 2 + 1,
+                    (tunernome->disp->h - tunernome->mm.h) / 2 - tunernome->radiostarsArrowWsg.h - TUNER_ARROW_Y_OFFSET - TUNER_TEXT_Y_OFFSET,
                     false, false, 0);
-            drawWsg(tunernome->disp, &(tunernome->upArrowWsg),
-                    (tunernome->disp->w - tunernome->upArrowWsg.w) / 2 + 1,
+            drawWsg(tunernome->disp, &(tunernome->radiostarsArrowWsg),
+                    (tunernome->disp->w - tunernome->radiostarsArrowWsg.w) / 2 + 1,
                     (tunernome->disp->h + tunernome->mm.h) / 2 + TUNER_ARROW_Y_OFFSET - TUNER_TEXT_Y_OFFSET,
                     false, true, 0);
 
@@ -920,11 +920,11 @@ void tunernomeMainLoop(int64_t elapsedUs)
             int16_t beforeText = (tunernome->disp->w - textWidth(&tunernome->mm, bpmStr)) / 2;
             int16_t afterText = drawText(tunernome->disp, &tunernome->mm, c555, bpmStr, beforeText, 5);
             
-            drawWsg(tunernome->disp, &(tunernome->bigUpArrowWsg),
-                    beforeText - tunernome->bigUpArrowWsg.w - 8,
+            drawWsg(tunernome->disp, &(tunernome->mmArrowWsg),
+                    beforeText - tunernome->mmArrowWsg.w - 8,
                     5,
                     false, false, 0);
-            drawWsg(tunernome->disp, &(tunernome->bigUpArrowWsg),
+            drawWsg(tunernome->disp, &(tunernome->mmArrowWsg),
                     afterText + 7,
                     5,
                     false, true, 0);
