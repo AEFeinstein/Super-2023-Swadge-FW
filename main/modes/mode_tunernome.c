@@ -39,12 +39,11 @@
 #endif
 
 #define CORNER_OFFSET 12
-#define US_TO_QUIT 1048576 // 2^20, makes division easy
 
-#define NUM_GUITAR_STRINGS    6
-#define NUM_VIOLIN_STRINGS    4
-#define NUM_UKULELE_STRINGS   4
-#define NUM_BANJO_STRINGS     5
+#define NUM_GUITAR_STRINGS    (sizeof(guitarNoteNames) / sizeof(guitarNoteNames[0]))
+#define NUM_VIOLIN_STRINGS    (sizeof(violinNoteNames) / sizeof(violinNoteNames[0]))
+#define NUM_UKULELE_STRINGS   (sizeof(ukuleleNoteNames) / sizeof(ukuleleNoteNames[0]))
+#define NUM_BANJO_STRINGS     (sizeof(banjoNoteNames) / sizeof(banjoNoteNames[0]))
 #define GUITAR_OFFSET         0
 #define CHROMATIC_OFFSET      6 // adjust start point by quartertones
 #define SENSITIVITY           5
@@ -72,7 +71,7 @@
 // #define MAX(X, Y) ( ((X) > (Y)) ? (X) : (Y) )
 
 #define NUM_SEMITONES 12
-#define NUM_TSIGS 7
+#define NUM_TSIGS (sizeof(tSigs) / sizeof(tSigs[0]))
 
 typedef enum
 {
@@ -131,7 +130,7 @@ typedef struct
     bool isClockwise;
     int32_t usPerBeat;
 
-    uint32_t semitone_intensitiy_filt[NUM_SEMITONES];
+    uint32_t semitone_intensity_filt[NUM_SEMITONES];
     int32_t semitone_diff_filt[NUM_SEMITONES];
     int16_t tonalDiff[NUM_SEMITONES];
     int16_t intensity[NUM_SEMITONES];
@@ -205,7 +204,7 @@ tunernome_t* tunernome;
  * Indicies into fuzzed_bins[], a realtime DFT of sorts
  * fuzzed_bins[0] = A ... 1/2 steps are every 2.
  */
-const uint16_t freqBinIdxsGuitar[NUM_GUITAR_STRINGS] =
+const uint16_t freqBinIdxsGuitar[] =
 {
     38, // E string needs to skip an octave... Can't read sounds this low.
     24, // A string is exactly at note #24
@@ -219,7 +218,7 @@ const uint16_t freqBinIdxsGuitar[NUM_GUITAR_STRINGS] =
  * Indicies into fuzzed_bins[], a realtime DFT of sorts
  * fuzzed_bins[0] = A ... 1/2 steps are every 2.
  */
-const uint16_t freqBinIdxsViolin[NUM_VIOLIN_STRINGS] =
+const uint16_t freqBinIdxsViolin[] =
 {
     44, // G
     58, // D
@@ -231,7 +230,7 @@ const uint16_t freqBinIdxsViolin[NUM_VIOLIN_STRINGS] =
  * Indicies into fuzzed_bins[], a realtime DFT of sorts
  * fuzzed_bins[0] = A ... 1/2 steps are every 2.
  */
-const uint16_t freqBinIdxsUkulele[NUM_UKULELE_STRINGS] =
+const uint16_t freqBinIdxsUkulele[] =
 {
     68, // G
     54, // C
@@ -243,7 +242,7 @@ const uint16_t freqBinIdxsUkulele[NUM_UKULELE_STRINGS] =
  * Indicies into fuzzed_bins[], a realtime DFT of sorts
  * fuzzed_bins[0] = A ... 1/2 steps are every 2.
  */
-const uint16_t freqBinIdxsBanjo[NUM_BANJO_STRINGS] =
+const uint16_t freqBinIdxsBanjo[] =
 {
     68, // G
     34, // D = A + 5 half steps = 34
@@ -252,7 +251,7 @@ const uint16_t freqBinIdxsBanjo[NUM_BANJO_STRINGS] =
     58  // D
 };
 
-const uint16_t fourNoteStringIdxToLedIdx[4] =
+const uint16_t fourNoteStringIdxToLedIdx[] =
 {
     2,
     3,
@@ -260,7 +259,7 @@ const uint16_t fourNoteStringIdxToLedIdx[4] =
     5
 };
 
-const uint16_t fiveNoteStringIdxToLedIdx[5] =
+const uint16_t fiveNoteStringIdxToLedIdx[] =
 {
     1,
     2,
@@ -269,7 +268,7 @@ const uint16_t fiveNoteStringIdxToLedIdx[5] =
     5
 };
 
-const uint16_t sixNoteStringIdxToLedIdx[6] =
+const uint16_t sixNoteStringIdxToLedIdx[] =
 {
     1,
     2,
@@ -279,13 +278,13 @@ const uint16_t sixNoteStringIdxToLedIdx[6] =
     6
 };
 
-const uint16_t twoLedFlashIdxs[2] =
+const uint16_t twoLedFlashIdxs[] =
 {
     0,
     7
 };
 
-const uint16_t fourLedFlashIdxs[4] =
+const uint16_t fourLedFlashIdxs[] =
 {
     1,
     3,
@@ -293,7 +292,7 @@ const uint16_t fourLedFlashIdxs[4] =
     6
 };
 
-const char* guitarNoteNames[NUM_GUITAR_STRINGS] =
+const char* guitarNoteNames[] =
 {
     "E2",
     "A2",
@@ -303,7 +302,7 @@ const char* guitarNoteNames[NUM_GUITAR_STRINGS] =
     "E4"
 };
 
-const char* violinNoteNames[NUM_VIOLIN_STRINGS] =
+const char* violinNoteNames[] =
 {
     "G3",
     "D4",
@@ -311,7 +310,7 @@ const char* violinNoteNames[NUM_VIOLIN_STRINGS] =
     "E5"
 };
 
-const char* ukuleleNoteNames[NUM_UKULELE_STRINGS] =
+const char* ukuleleNoteNames[] =
 {
     "G4",
     "C4",
@@ -319,7 +318,7 @@ const char* ukuleleNoteNames[NUM_UKULELE_STRINGS] =
     "A4"
 };
 
-const char* banjoNoteNames[NUM_BANJO_STRINGS] =
+const char* banjoNoteNames[] =
 {
     "G4",
     "D3",
@@ -329,7 +328,7 @@ const char* banjoNoteNames[NUM_BANJO_STRINGS] =
 };
 
 // End a string ending with "\1" to draw the flat symbol
-const char* semitoneNoteNames[NUM_SEMITONES] =
+const char* semitoneNoteNames[] =
 {
     "C",
     "C#/D\1",
@@ -349,6 +348,7 @@ static const char theWordGuitar[] = "Guitar";
 static const char theWordViolin[] = "Violin";
 static const char theWordUkulele[] = "Ukulele";
 static const char theWordBanjo[] = "Banjo";
+static const char playStringsText[] = "Play all open strings";
 static const char listeningText[] = "Listening for a note";
 static const char leftStr[] = ": ";
 static const char rightStrTuner[] = "Start: Tuner";
@@ -631,6 +631,10 @@ void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrum
         drawText(tunernome->disp, &tunernome->mm, c555, buf,
                  (tunernome->disp->w + textWidth(&tunernome->mm, instrumentName)) / 2 + textWidth(&tunernome->mm, /*' ' + placeholder for widest note name without octave number*/ " A"), y);
     }
+
+    drawText(tunernome->disp, &tunernome->radiostars, c555, playStringsText,
+             (tunernome->disp->w - textWidth(&tunernome->radiostars, playStringsText)) / 2,
+             METRONOME_CENTER_Y - (TUNER_RADIUS + tunernome->radiostars.h) / 2);
 }
 
 /**
@@ -859,7 +863,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     int16_t clampedTonalDiff = CLAMP(tunernome->tonalDiff[tunernome->curTunerMode - SEMITONE_0] / 2, -180, 180);
 
                     // If the signal isn't intense enough, don't move the needle
-                    if(tunernome->semitone_intensitiy_filt[tunernome->curTunerMode - SEMITONE_0] < 1000)
+                    if(tunernome->semitone_intensity_filt[tunernome->curTunerMode - SEMITONE_0] < 1000)
                     {
                         clampedTonalDiff = -180;
                     }
@@ -1305,9 +1309,9 @@ void tunernomeSampleHandler(uint16_t* samples, uint32_t sampleCnt)
                         // uint8_t semitoneIdx = (tunernome->curTunerMode - SEMITONE_0) * 2;
                         uint8_t semitoneIdx = semitone * 2;
                         // Pick out the current magnitude and filter it
-                        tunernome->semitone_intensitiy_filt[semitone] = (getSemiMagnitude(semitoneIdx + CHROMATIC_OFFSET) +
-                                tunernome->semitone_intensitiy_filt[semitone]) -
-                                (tunernome->semitone_intensitiy_filt[semitone] >> 5);
+                        tunernome->semitone_intensity_filt[semitone] = (getSemiMagnitude(semitoneIdx + CHROMATIC_OFFSET) +
+                                tunernome->semitone_intensity_filt[semitone]) -
+                                (tunernome->semitone_intensity_filt[semitone] >> 5);
 
                         // Pick out the difference around current magnitude and filter it too
                         tunernome->semitone_diff_filt[semitone] = (getSemiDiffAround(semitoneIdx + CHROMATIC_OFFSET) +
@@ -1316,7 +1320,7 @@ void tunernomeSampleHandler(uint16_t* samples, uint32_t sampleCnt)
 
 
                         // This is the magnitude of the target frequency bin, cleaned up
-                        tunernome->intensity[semitone] = (tunernome->semitone_intensitiy_filt[semitone] >> SENSITIVITY) -
+                        tunernome->intensity[semitone] = (tunernome->semitone_intensity_filt[semitone] >> SENSITIVITY) -
                                                          40; // drop a baseline.
                         tunernome->intensity[semitone] = CLAMP(tunernome->intensity[semitone], 0, 255);
 
