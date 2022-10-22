@@ -34,6 +34,8 @@
 // Constants
 //==============================================================================
 
+#define ABS(X) (((X) < 0) ? -(X) : (X))
+
 #define IFRAMES_AFTER_SPAWN ((3 * 1000) / FRAME_TIME_MS) // 3 seconds
 #define IFRAMES_AFTER_LEDGE_JUMP ((2 * 1000) / FRAME_TIME_MS) // 2 seconds
 
@@ -58,9 +60,25 @@ typedef enum
 #define HUD_COLOR             c444
 #define INVINCIBLE_COLOR      c550
 
+typedef enum
+{
+    CPU_RUN,
+    CPU_RECOVER
+} cpuBehavior_t;
+
 //==============================================================================
 // Structs
 //==============================================================================
+
+typedef struct
+{
+    int behaviorChangeTimer;
+    bool cpuAttractX;
+    bool cpuAttractY;
+    cpuBehavior_t cpuBehavior;
+    int32_t cpuJumpTimerMs;
+    bool cpuBpressed;
+} cpuState_t;
 
 typedef struct
 {
@@ -91,6 +109,8 @@ typedef struct
     led_t lColor;
     led_t rColor;
     int32_t ledTimerUs;
+    cpuState_t cpu0;
+    cpuState_t cpu1;
 } fightingGame_t;
 
 //==============================================================================
@@ -123,7 +143,7 @@ void drawFighterHud(display_t* d, font_t* font,
                     int16_t f2_dmg, int16_t f2_stock, int16_t f2_stockIconIdx,
                     int32_t gameTimerUs, bool drawGo);
 
-uint8_t cpuButtonAction(fighter_t* human, fighter_t* cpu, list_t projectiles, const stage_t* stage);
+uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t projectiles, const stage_t* stage);
 
 #ifdef DRAW_DEBUG_BOXES
     void drawFighterDebugBox(display_t* d, fighter_t* ftr, int16_t camOffX, int16_t camOffY);
@@ -801,7 +821,8 @@ void fighterGameLoop(int64_t elapsedUs)
                 case VS_CPU:
                 {
                     // Figure out CPU actions
-                    f->fighters[1].btnState = cpuButtonAction(&f->fighters[0], &f->fighters[1], f->projectiles, stages[f->stageIdx]);
+                    f->fighters[1].btnState = cpuButtonAction(&f->cpu0, &f->fighters[0], &f->fighters[1], f->projectiles,
+                                              stages[f->stageIdx]);
                     // All button input is local
                     f->buttonInputReceived = true;
                 }
@@ -3080,47 +3101,37 @@ void fighterRxScene(const fighterScene_t* scene, uint8_t len)
     }
 }
 
-typedef enum
-{
-    CPU_RUN,
-    CPU_RECOVER
-} cpuBehavior_t;
-
 /**
  * @brief Figure out what the CPU should do
  * Called every FRAME_TIME_MS
  *
+ * @param cs The CPU fighter state
  * @param human All the human fighter data
  * @param cpu All the CPU fighter data
  * @param projectiles A list of projectiles (type projectile_t)
  * @param stage The stage being fought on (platform data)
  * @return The current button state of the CPU (bitmask of buttonBit_t)
  */
-uint8_t cpuButtonAction(fighter_t* human, fighter_t* cpu, list_t projectiles, const stage_t* stage)
+uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t projectiles, const stage_t* stage)
 {
-#define ABS(X) (((X) < 0) ? -(X) : (X))
-#define CPU_CLOSE_ENOUGH (24 << SF)
-    // These need to get structed later
-    static int behaviorChangeTimer = 0;
-    static bool cpuAttractX = true;
-    static bool cpuAttractY = true;
-    static cpuBehavior_t cpuBehavior = CPU_RUN;
-    static int32_t cpuJumpTimerMs = 0;
+#define CPU_CLOSE_ENOUGH_PX (24)
+#define CPU_CLOSE_ENOUGH (CPU_CLOSE_ENOUGH_PX << SF)
+#define CPU_JUMP_TIMER_MS 600
 
     // Change behavior every second
-    behaviorChangeTimer += FRAME_TIME_MS;
-    if(behaviorChangeTimer >= 1000)
+    cs->behaviorChangeTimer += FRAME_TIME_MS;
+    if(cs->behaviorChangeTimer >= 1000)
     {
-        behaviorChangeTimer -= 1000;
+        cs->behaviorChangeTimer -= 1000;
         // Randomly move close or further from the player
-        cpuAttractX = (esp_random() % 10) < 8;
-        cpuAttractY = (esp_random() % 10) < 8;
+        cs->cpuAttractX = (esp_random() % 10) < 8;
+        cs->cpuAttractY = (esp_random() % 10) < 8;
     }
 
     // Decrement this timer to not short hop all the time
-    if(cpuJumpTimerMs > 0)
+    if(cs->cpuJumpTimerMs > 0)
     {
-        cpuJumpTimerMs -= FRAME_TIME_MS;
+        cs->cpuJumpTimerMs -= FRAME_TIME_MS;
     }
 
     // Set up button presses
@@ -3131,28 +3142,28 @@ uint8_t cpuButtonAction(fighter_t* human, fighter_t* cpu, list_t projectiles, co
     getHurtbox(cpu, &cpuHurtbox);
     box_t humanHurtbox;
     getHurtbox(human, &humanHurtbox);
-    box_t mainPlatform = stages[f->stageIdx]->platforms[0].area;
+    box_t mainPlatform = stage->platforms[0].area;
 
     // Adjust behavior based on position
     if(ABOVE_PLATFORM == cpu->relativePos)
     {
         // Standing on a platform
-        cpuBehavior = CPU_RUN;
+        cs->cpuBehavior = CPU_RUN;
     }
     else if((cpuHurtbox.x0 < mainPlatform.x0) || (cpuHurtbox.x1 > mainPlatform.x1))
     {
         // Somewhere off the stage
-        cpuBehavior = CPU_RECOVER;
+        cs->cpuBehavior = CPU_RECOVER;
     }
 
-    switch(cpuBehavior)
+    switch(cs->cpuBehavior)
     {
         case CPU_RUN:
         {
             // Handle X axis movement
             if(cpuHurtbox.x0 < humanHurtbox.x0)
             {
-                if(cpuAttractX)
+                if(cs->cpuAttractX)
                 {
                     if(ABS(cpuHurtbox.x0 - humanHurtbox.x0) > CPU_CLOSE_ENOUGH)
                     {
@@ -3171,7 +3182,7 @@ uint8_t cpuButtonAction(fighter_t* human, fighter_t* cpu, list_t projectiles, co
             }
             else
             {
-                if(cpuAttractX)
+                if(cs->cpuAttractX)
                 {
                     if(ABS(cpuHurtbox.x0 - humanHurtbox.x0) > CPU_CLOSE_ENOUGH)
                     {
@@ -3192,14 +3203,14 @@ uint8_t cpuButtonAction(fighter_t* human, fighter_t* cpu, list_t projectiles, co
             // Handle Y axis movement
             if(ABS(cpuHurtbox.y1 - humanHurtbox.y1) > CPU_CLOSE_ENOUGH)
             {
-                if (( cpuAttractY && (cpuHurtbox.y1 > humanHurtbox.y1)) ||
-                        (!cpuAttractY && (cpuHurtbox.y1 < humanHurtbox.y1)))
+                if (( cs->cpuAttractY && (cpuHurtbox.y1 > humanHurtbox.y1)) ||
+                        (!cs->cpuAttractY && (cpuHurtbox.y1 < humanHurtbox.y1)))
                 {
                     // JUMP!
-                    if(cpuJumpTimerMs <= 0)
+                    if(cs->cpuJumpTimerMs <= 0)
                     {
                         // Jump back towards the stage
-                        cpuJumpTimerMs = 600;
+                        cs->cpuJumpTimerMs = CPU_JUMP_TIMER_MS;
                         // BTN_A is 'released' here
                     }
                     else
@@ -3208,8 +3219,8 @@ uint8_t cpuButtonAction(fighter_t* human, fighter_t* cpu, list_t projectiles, co
                         btn |= BTN_A;
                     }
                 }
-                else if (( cpuAttractY && (cpuHurtbox.y1 < humanHurtbox.y1)) ||
-                         (!cpuAttractY && (cpuHurtbox.y1 > humanHurtbox.y1)))
+                else if (( cs->cpuAttractY && (cpuHurtbox.y1 < humanHurtbox.y1)) ||
+                         (!cs->cpuAttractY && (cpuHurtbox.y1 > humanHurtbox.y1)))
                 {
                     // Fall through the platform
                     if(ABOVE_PLATFORM == cpu->relativePos && cpu->touchingPlatform->canFallThrough)
@@ -3222,9 +3233,59 @@ uint8_t cpuButtonAction(fighter_t* human, fighter_t* cpu, list_t projectiles, co
                 }
             }
 
-            // TODO attacking
-            // TODO shooting?
-            // TODO movement lag to not stay on top of player all the time
+            // Pixel space, not subpixel
+            int32_t cpuMidpointX = ((cpuHurtbox.x0 + cpuHurtbox.x1) / 2) >> SF;
+            int32_t cpuMidpointY = ((cpuHurtbox.y0 + cpuHurtbox.y1) / 2) >> SF;
+            int32_t humanMidpointX = ((humanHurtbox.x0 + humanHurtbox.x1) / 2) >> SF;
+            int32_t humanMidpointY = ((humanHurtbox.y0 + humanHurtbox.y1) / 2) >> SF;
+
+            int32_t pDist = ((cpuMidpointX - humanMidpointX) * (cpuMidpointX - humanMidpointX)) +
+                            ((cpuMidpointY - humanMidpointY) * (cpuMidpointY - humanMidpointY));
+
+            // If the CPU is close enough to the player
+            if(pDist < (CPU_CLOSE_ENOUGH_PX * CPU_CLOSE_ENOUGH_PX))
+            {
+                // And it's not in an attack state
+                switch(cpu->state)
+                {
+                    case FS_STARTUP:
+                    case FS_ATTACK:
+                    case FS_COOLDOWN:
+                    {
+                        // Attacking
+                        break;
+                    }
+                    default:
+                    {
+                        // Start an attack
+                        btn |= BTN_B;
+                        // Do up and down attacks somewhat randomly
+                        switch(esp_random() % 4)
+                        {
+                            case 0:
+                            {
+                                // Only up-tilt, not up-air
+                                if(ABOVE_PLATFORM == cpu->relativePos)
+                                {
+                                    btn |= UP;
+                                }
+                                break;
+                            }
+                            case 1:
+                            {
+                                // Down tilt
+                                btn |= DOWN;
+                                break;
+                            }
+                            case 2 ... 3:
+                            {
+                                // May be neutral, dash, or tilt side attack
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
             break;
         }
         case CPU_RECOVER:
@@ -3245,7 +3306,7 @@ uint8_t cpuButtonAction(fighter_t* human, fighter_t* cpu, list_t projectiles, co
             {
                 // Fighter is over the main platform, don't jump
             }
-            else if(cpuJumpTimerMs <= 0)
+            else if(cs->cpuJumpTimerMs <= 0)
             {
                 // No more jumps and timer expired, UP AIR time
                 if(cpu->numJumpsLeft == 0)
@@ -3256,7 +3317,7 @@ uint8_t cpuButtonAction(fighter_t* human, fighter_t* cpu, list_t projectiles, co
                 else
                 {
                     // Jump timer expired, so set it
-                    cpuJumpTimerMs = 600;
+                    cs->cpuJumpTimerMs = CPU_JUMP_TIMER_MS;
                     // BTN_A is 'released' here
                 }
             }
