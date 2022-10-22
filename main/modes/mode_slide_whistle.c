@@ -40,8 +40,6 @@
 #define BAR_X_MARGIN 0
 #define BAR_Y_MARGIN (slideWhistle->radiostars.h + CURSOR_HEIGHT + 1)
 
-#define PITCH_THRESHOLD 32
-
 #define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
 #define REST_BIT 0x10000 // Largest note is 144, which is 0b10010000
@@ -192,6 +190,8 @@ typedef struct
     uint8_t bpmIdx;
 
     // Track the button
+    bool upHeld;
+    bool downHeld;
     bool shouldPlay;
     uint8_t rhythmIdx;
     uint8_t scaleIdx;
@@ -629,7 +629,7 @@ const rhythmArp_t fifteen_sixteen[] =
     {.note = SIXTEENTH_NOTE, .arp = 13},
 };
 
-const rhythmArp_t sb[] =
+const rhythmArp_t stickerbush[] =
 {
     {.note = EIGHTH_NOTE, .arp = 12},
     {.note = DOTTED_EIGHTH_NOTE, .arp = 13},
@@ -818,9 +818,9 @@ const rhythm_t rhythms[] =
         .defaultBpm = 6 // 86
     },
     {
-        .name = "sb",
-        .rhythm = sb,
-        .rhythmLen = lengthof(sb),
+        .name = "stickerbush",
+        .rhythm = stickerbush,
+        .rhythmLen = lengthof(stickerbush),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 6 // 86
     }
@@ -1106,6 +1106,16 @@ void  slideWhistleButtonCallback(buttonEvt_t* evt)
 
             break;
         }
+        case UP:
+        {
+            slideWhistle->upHeld = evt->down;
+            break;
+        }
+        case DOWN:
+        {
+            slideWhistle->downHeld = evt->down;
+            break;
+        }
         default:
         {
             break;
@@ -1198,24 +1208,34 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
     // Plot the bars
     plotBar(slideWhistle->disp->h - BAR_Y_MARGIN - 1 - CORNER_OFFSET * 2);
     plotBar(slideWhistle->disp->h - BAR_Y_MARGIN - (2 * CURSOR_HEIGHT + 5) - CORNER_OFFSET * 2);
+    plotBar(slideWhistle->disp->h - BAR_Y_MARGIN - 2* (2 * CURSOR_HEIGHT + 5) - CORNER_OFFSET * 2);
 
     // Draw the cursor if the BPM isn't being modified
     if(false == slideWhistle->modifyBpm)
     {
-        if(slideWhistle->pitch < PITCH_THRESHOLD)
+        int16_t y0 = slideWhistle->disp->h - BAR_Y_MARGIN - CURSOR_HEIGHT - CORNER_OFFSET * 2;
+        int16_t y1 = slideWhistle->disp->h - BAR_Y_MARGIN + CURSOR_HEIGHT - CORNER_OFFSET * 2;
+
+        if(slideWhistle->upHeld && !slideWhistle->downHeld)
         {
-            // Plot the cursor
-            plotLine(slideWhistle->disp, slideWhistle->roll, slideWhistle->disp->h - BAR_Y_MARGIN - (2 * CURSOR_HEIGHT + 5) - CURSOR_HEIGHT - CORNER_OFFSET * 2,
-                     slideWhistle->roll, slideWhistle->disp->h - BAR_Y_MARGIN - (2 * CURSOR_HEIGHT + 5) + CURSOR_HEIGHT - CORNER_OFFSET * 2,
-                     c555, 0);
+            y0 -= 2 * (2 * CURSOR_HEIGHT + 5);
+            y1 -= 2 * (2 * CURSOR_HEIGHT + 5);
+        }
+        else if(slideWhistle->downHeld && !slideWhistle->upHeld)
+        {
+            y0 -= 1;
+            y1 -= 1;
         }
         else
         {
-            // Plot the cursor
-            plotLine(slideWhistle->disp, slideWhistle->roll, slideWhistle->disp->h - BAR_Y_MARGIN - 1 - CURSOR_HEIGHT - CORNER_OFFSET * 2,
-                     slideWhistle->roll, slideWhistle->disp->h - BAR_Y_MARGIN - 1 + CURSOR_HEIGHT - CORNER_OFFSET * 2,
-                     c555, 0);
+            y0 -= (2 * CURSOR_HEIGHT + 5);
+            y1 -= (2 * CURSOR_HEIGHT + 5);
         }
+
+        // Plot the cursor
+        plotLine(slideWhistle->disp, slideWhistle->roll, y0,
+                 slideWhistle->roll, y1,
+                 c540, 0);
     }
 
     // Plot the title
@@ -1412,14 +1432,20 @@ noteFrequency_t  getCurrentNote(void)
     // Get the index of the note to play based on roll
     uint8_t noteIdx = (slideWhistle->roll * (scales[slideWhistle->scaleIdx].notesLen / 2)) / slideWhistle->disp->w;
     // See if we should play the higher note
-    if(slideWhistle->pitch < PITCH_THRESHOLD)
+    if(slideWhistle->upHeld && !slideWhistle->downHeld)
     {
+        // TODO: Increase octave?? or re-jigger all of this to work off octaves instead of arbitrary notes
         uint8_t offset = scales[slideWhistle->scaleIdx].notesLen / 2;
         return scales[slideWhistle->scaleIdx].notes[noteIdx + offset];
     }
-    else
+    else if(slideWhistle->downHeld && !slideWhistle->upHeld)
     {
         return scales[slideWhistle->scaleIdx].notes[noteIdx];
+    }
+    else
+    {
+        uint8_t offset = scales[slideWhistle->scaleIdx].notesLen / 2;
+        return scales[slideWhistle->scaleIdx].notes[noteIdx + offset];
     }
 }
 
