@@ -36,8 +36,9 @@
  *============================================================================*/
 
 #define CORNER_OFFSET 12
+#define TOP_TEXT_X_MARGIN CORNER_OFFSET / 2
 #define LINE_BREAK_Y 8
-#define TICK_HEIGHT 3
+#define TICK_HEIGHT 4
 #define CURSOR_HEIGHT 5
 #define CURSOR_WIDTH 1
 #define BAR_X_MARGIN 0
@@ -227,6 +228,7 @@ slideWhistle_t* slideWhistle;
 const char rhythmText[] = "Sel: Rhythm";
 const char scaleText[] =  "Start: Scale";
 const char bpmText[] =    "< >: BPM";
+const char steerMeText[] = "Turn me like a steering wheel";
 const char mutedText[] =  "Swadge is muted!";
 const char holdText[] = ": Hold";
 const char playText[] =   ": Play";
@@ -807,7 +809,7 @@ const rhythmArp_t sans[] =
     {.note = SIXTEENTH_NOTE, .arp = 6},
 };
 
-const rhythmArp_t fifteen_sixteen[] =
+const rhythmArp_t ducktales_moon[] =
 {
     {.note = SIXTEENTH_NOTE, .arp = 1},
     {.note = SIXTEENTH_NOTE, .arp = 8},
@@ -854,14 +856,14 @@ const rhythm_t rhythms[] =
         .defaultBpm = 5 // 114
     },
     {
-        .name = "octave",
+        .name = "Octave",
         .rhythm = octaves,
         .rhythmLen = lengthof(octaves),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 4 // 139
     },
     {
-        .name = "fifth",
+        .name = "Fifth",
         .rhythm = fifth,
         .rhythmLen = lengthof(fifth),
         .interNotePauseMs = DEFAULT_PAUSE,
@@ -903,35 +905,35 @@ const rhythm_t rhythms[] =
         .defaultBpm = 4 // 139
     },
     {
-        .name = "swing",
+        .name = "Swing",
         .rhythm = swing,
         .rhythmLen = lengthof(swing),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 3 // 167
     },
     {
-        .name = "syncop",
+        .name = "Syncopa",
         .rhythm = syncopa,
         .rhythmLen = lengthof(syncopa),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 2 // 192
     },
     {
-        .name = "dw_stabs",
+        .name = "DW_stabs",
         .rhythm = dw_stabs,
         .rhythmLen = lengthof(dw_stabs),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 6 // 86
     },
     {
-        .name = "lgnd",
+        .name = "Lgnd",
         .rhythm = legendary,
         .rhythmLen = lengthof(legendary),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 4 // 139
     },
     {
-        .name = "j-dawg",
+        .name = "J-Dawg",
         .rhythm = j_dawg,
         .rhythmLen = lengthof(j_dawg),
         .interNotePauseMs = DEFAULT_PAUSE,
@@ -945,14 +947,14 @@ const rhythm_t rhythms[] =
         .defaultBpm = 3 // 167
     },
     {
-        .name = "goat",
+        .name = "Goat",
         .rhythm = the_goat,
         .rhythmLen = lengthof(the_goat),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 5 // 114
     },
     {
-        .name = "sgp",
+        .name = "Sgp",
         .rhythm = sgp,
         .rhythmLen = lengthof(sgp),
         .interNotePauseMs = DEFAULT_PAUSE,
@@ -973,49 +975,49 @@ const rhythm_t rhythms[] =
         .defaultBpm = 4 // 139
     },
     {
-        .name = "octavio",
+        .name = "Octavio",
         .rhythm = octavio,
         .rhythmLen = lengthof(octavio),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 0 // 250
     },
     {
-        .name = "chacha",
+        .name = "Cha-Cha",
         .rhythm = cha_cha,
         .rhythmLen = lengthof(cha_cha),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 3 // 167
     },
     {
-        .name = "its-a-me",
+        .name = "It's-A-Me",
         .rhythm = its_a_me,
         .rhythmLen = lengthof(its_a_me),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 3 // 167
     },
     {
-        .name = "strange",
+        .name = "Strange",
         .rhythm = so_strange,
         .rhythmLen = lengthof(so_strange),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 4 // 139
     },
     {
-        .name = "sans?",
+        .name = "Sans?",
         .rhythm = sans,
         .rhythmLen = lengthof(sans),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 5 // 114
     },
     {
-        .name = "15/16",
-        .rhythm = fifteen_sixteen,
-        .rhythmLen = lengthof(fifteen_sixteen),
+        .name = "Quack",
+        .rhythm = ducktales_moon,
+        .rhythmLen = lengthof(ducktales_moon),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 6 // 86
     },
     {
-        .name = "stckrbsh",
+        .name = "Stckrbsh",
         .rhythm = stickerbush,
         .rhythmLen = lengthof(stickerbush),
         .interNotePauseMs = DEFAULT_PAUSE,
@@ -1410,19 +1412,29 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
                 getCurrentCursorY() + CURSOR_HEIGHT,
                 c551);
 
+    // Plot instructions
+    drawText(
+            slideWhistle->disp,
+            &slideWhistle->ibm_vga8, c235,
+            steerMeText,
+            (slideWhistle->disp->w - textWidth(&slideWhistle->ibm_vga8, steerMeText)) / 2,
+            TOP_TEXT_X_MARGIN);
+    
+    int16_t secondLineStartY = slideWhistle->ibm_vga8.h + LINE_BREAK_Y + TOP_TEXT_X_MARGIN;
+
     // Plot the rhythm
     drawText(
         slideWhistle->disp,
         &slideWhistle->radiostars, c444,
         rhythmText,
         CORNER_OFFSET,
-        CORNER_OFFSET);
+        secondLineStartY);
     drawText(
         slideWhistle->disp,
         &slideWhistle->radiostars, c555,
         rhythms[slideWhistle->rhythmIdx].name,
         slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, rhythms[slideWhistle->rhythmIdx].name) - CORNER_OFFSET,
-        CORNER_OFFSET);
+        secondLineStartY);
 
     // Plot the scale
     drawText(
@@ -1430,13 +1442,13 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
         &slideWhistle->radiostars, c444,
         scaleText,
         CORNER_OFFSET,
-        slideWhistle->radiostars.h + LINE_BREAK_Y + CORNER_OFFSET);
+        secondLineStartY + slideWhistle->radiostars.h + LINE_BREAK_Y);
     drawText(
         slideWhistle->disp,
         &slideWhistle->radiostars, c555,
         scales[slideWhistle->scaleIdx].name,
         slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, scales[slideWhistle->scaleIdx].name) - CORNER_OFFSET,
-        slideWhistle->radiostars.h + LINE_BREAK_Y + CORNER_OFFSET);
+        secondLineStartY + slideWhistle->radiostars.h + LINE_BREAK_Y);
 
     // Plot the BPM
     drawText(
@@ -1444,7 +1456,7 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
         &slideWhistle->radiostars, c444,
         bpmText,
         CORNER_OFFSET,
-        (slideWhistle->radiostars.h + LINE_BREAK_Y) * 2 + CORNER_OFFSET);
+        secondLineStartY + (slideWhistle->radiostars.h + LINE_BREAK_Y) * 2);
 
     char bpmStr[16] = {0};
     snprintf(bpmStr, sizeof(bpmStr), "%d", bpms[slideWhistle->bpmIdx].bpm);
@@ -1453,32 +1465,30 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
         &slideWhistle->radiostars, c555,
         bpmStr,
         slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, bpmStr) - CORNER_OFFSET,
-        (slideWhistle->radiostars.h + LINE_BREAK_Y) * 2 + CORNER_OFFSET);
+        secondLineStartY + (slideWhistle->radiostars.h + LINE_BREAK_Y) * 2);
 
     // Debug print
-    char buffer[32];
-    snprintf(buffer, 32, "touch: %d", slideWhistle->touchPosition);
     drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c444, slideWhistle->accelStr, 0,
-             slideWhistle->disp->h / 4 + CORNER_OFFSET);
+             slideWhistle->disp->h / 4 + CORNER_OFFSET + 10);
     drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c444, slideWhistle->accelStr2, 0,
-             slideWhistle->disp->h / 4 + slideWhistle->ibm_vga8.h + 1 + CORNER_OFFSET);
-    drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c444, buffer, 0,
-             slideWhistle->disp->h / 4 + slideWhistle->ibm_vga8.h * 2 + 1 + CORNER_OFFSET);
+             slideWhistle->disp->h / 4 + slideWhistle->ibm_vga8.h + 11 + CORNER_OFFSET);
 
     // Warn the user that the swadge is muted, if that's the case
     if(getSfxIsMuted())
     {
         drawText(
             slideWhistle->disp,
-            &slideWhistle->radiostars, c555,
+            &slideWhistle->radiostars, c551,
             mutedText,
             (slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, mutedText)) / 2,
             slideWhistle->disp->h / 2);
     }
-
-    // Plot the note
-    drawText(slideWhistle->disp, &slideWhistle->mm, c555, noteToStr(getCurrentNote()),
-             (slideWhistle->disp->w - textWidth(&slideWhistle->mm, noteToStr(getCurrentNote()))) / 2, slideWhistle->disp->h / 2);
+    else
+    {
+        // Plot the note
+        drawText(slideWhistle->disp, &slideWhistle->mm, c555, noteToStr(getCurrentNote()),
+                 (slideWhistle->disp->w - textWidth(&slideWhistle->mm, noteToStr(getCurrentNote()))) / 2, slideWhistle->disp->h / 2);
+    }
 
     // Plot the button funcs
     int16_t afterText = drawText(
