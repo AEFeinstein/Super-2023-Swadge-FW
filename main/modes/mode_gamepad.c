@@ -51,6 +51,7 @@ void gamepadMainLoop(int64_t elapsedUs);
 void gamepadButtonCb(buttonEvt_t* evt);
 void gamepadTouchCb(touch_event_t* evt);
 void gamepadAccelCb(accel_t* accel);
+void gamepadReportStateToHost(void);
 
 //==============================================================================
 // Variables
@@ -323,12 +324,8 @@ void gamepadButtonCb(buttonEvt_t* evt)
         gamepad->gpState.hat |= GAMEPAD_HAT_LEFT;
     }
 
-    // Only send data if USB is ready
-    if(tud_ready())
-    {
-        // Send the state over USB
-        tud_gamepad_report(&gamepad->gpState);
-    }
+    // Send state to host
+    gamepadReportStateToHost();
 }
 
 /**
@@ -347,15 +344,8 @@ void gamepadTouchCb(touch_event_t* evt)
         gamepad->gpState.buttons &= ~touchMap[evt->pad];
     }
 
-    // Gamepad expects -128->127, but position is 0->255
-    gamepad->gpState.z = (evt->position - 128);
-
-    // Only send data if USB is ready
-    if(tud_ready())
-    {
-        // Send the state over USB
-        tud_gamepad_report(&gamepad->gpState);
-    }
+    // Send state to host
+    gamepadReportStateToHost();
 }
 
 /**
@@ -370,10 +360,41 @@ void gamepadAccelCb(accel_t* accel)
     gamepad->gpState.ry = (accel->y) >> 6;
     gamepad->gpState.rz = (accel->z) >> 6;
 
+    // Send state to host
+    gamepadReportStateToHost();
+}
+
+/**
+ * @brief Send the state over USB to the host
+ */
+void gamepadReportStateToHost(void)
+{
     // Only send data if USB is ready
     if(tud_ready())
     {
+        if(gamepad->gpState.buttons & ((GAMEPAD_BUTTON_C | GAMEPAD_BUTTON_X | GAMEPAD_BUTTON_Y | GAMEPAD_BUTTON_Z | GAMEPAD_BUTTON_TL)))
+        {
+            int32_t center, intensity;
+            getTouchCentroid(&center, &intensity);
+            int16_t scaledVal = (center >> 2) - 128;
+            if(scaledVal < -128)
+            {
+                gamepad->gpState.z = -128;
+            }
+            else if (scaledVal > 127)
+            {
+                gamepad->gpState.z = 127;
+            }
+            else
+            {
+                gamepad->gpState.z = scaledVal;
+            }
+        }
+        else
+        {
+            gamepad->gpState.z = 0;
+        }
         // Send the state over USB
         tud_gamepad_report(&gamepad->gpState);
-    }
+    }    
 }
