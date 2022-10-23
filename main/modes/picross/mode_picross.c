@@ -74,6 +74,8 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->bgScrollSpeed = 50000;
     p->bgScrollXFrame = 0;
     p->bgScrollYFrame = 0;
+    p->animtAccumulated = 0;
+    p->ledAnimCount = 0;
 
     //Puzzle
     p->puzzle = calloc(1, sizeof(picrossPuzzle_t));    
@@ -86,13 +88,13 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->y=0;
     p->input->hoverBlockSizeX = 0;
     p->input->hoverBlockSizeY = 0;
-    p->input->btnState=0;
-    p->input->prevBtnState= 0x80 | 0x10 | 0x40 | 0x20;//prevents us from instantly fillling in a square because A is held from selecting level.
+    p->input->btnState = 0;
+    p->input->prevBtnState = 0x80 | 0x10 | 0x40 | 0x20;//prevents us from instantly fillling in a square because A is held from selecting level.
     p->countState = PICROSSDIR_IDLE;
     p->controlsEnabled = true;
     p->input->DASActive = false;
     p->input->blinkError = false;
-    p->input->blinkAnimTimer =0;
+    p->input->blinkAnimTimer = 0;
     p->input->startHeldType = OUTOFBOUNDS;
     p->input->inputBoxColor = c005;//now greenish for more pop against marked. old burnt orange: c430. old green: c043
         //lets test this game against various forms of colorblindness. I'm concerned about deuteranopia. Input square is my largest concern. 
@@ -273,7 +275,6 @@ void setCompleteLevelFromWSG(wsg_t* puzz)
     }
 }
 
-//lol i dont know how to do constructors, im a unity developer! anyway this constructs a source.
 //we use the same data type for rows and columns, hence the bool flag. index is the position in the row/col, and we pass in the level.
 //I guess that could be a pointer? Somebody more experienced with c, code review this and optimize please.
 picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t source[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE])
@@ -1588,7 +1589,7 @@ void saveCompletedOnSelectedLevel(bool completed)
     free(victData);
 }
 
-
+/// @brief Called when in victory state, animates RGBs. Copied from the dance code, needs cleaned up/minified; but it works so it's fine.
 void picrossVictoryLEDs(uint32_t tElapsedUs, uint32_t arg, bool reset)
 {
     if(reset)
