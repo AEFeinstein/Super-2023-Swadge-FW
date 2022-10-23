@@ -295,6 +295,31 @@ bool checkTouchSensor(touch_event_t * evt UNUSED)
 	}
 }
 
+int getTouchRawValues( uint32_t * rawvalues, int maxPads )
+{
+	for(int i = 0; i < maxPads; i++)
+	{
+		rawvalues[i] = 0;
+	}
+	return 0;
+}
+
+int getBaseTouchVals( int32_t * data, int count )
+{
+	for(int i = 0; i < count; i++)
+	{
+		data[i] = 0;
+	}
+	return 0;
+}
+
+int getTouchCentroid( int32_t * centerVal, int32_t * intensityVal )
+{
+	*centerVal = 0;
+	*intensityVal = 0;
+	return 0;
+}
+
 //==============================================================================
 // Temperature Sensor
 //==============================================================================
