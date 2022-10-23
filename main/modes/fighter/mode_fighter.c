@@ -118,11 +118,12 @@ typedef struct
 //==============================================================================
 
 void getHurtbox(fighter_t* ftr, box_t* hurtbox);
-#define setFighterState(f, st, sp, tm, kb) _setFighterState(f, st, sp, tm, kb, __LINE__);
+#define setFighterState(ftr, st, sp, tm, kb) _setFighterState(ftr, st, sp, tm, kb, __LINE__)
 void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* newSprite,
                       int32_t timer, vector_t* knockback, uint32_t line);
-void setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* touchingPlatform,
-                      const platform_t* passingThroughPlatform, bool isInAir);
+#define setFighterRelPos(ftr, rp, tp, ptp, iia) _setFighterRelPos(ftr, rp, tp, ptp, iia, __LINE__)
+void _setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* touchingPlatform,
+                       const platform_t* passingThroughPlatform, bool isInAir, uint32_t line);
 void checkFighterButtonInput(fighter_t* ftr);
 bool updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
 void checkFighterTimer(fighter_t* ftr, bool hitstopActive);
@@ -641,9 +642,10 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* n
  * @param touchingPlatform The platform the fighter is touching, may be NULL
  * @param passingThroughPlatform The platform the fighter is passing through, may be NULL
  * @param isInAir true if the fighter is in the air, false if it is not
+ * @param line      The line number this was called from, for debugging
  */
-void setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* touchingPlatform,
-                      const platform_t* passingThroughPlatform, bool isInAir)
+void _setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* touchingPlatform,
+                       const platform_t* passingThroughPlatform, bool isInAir, uint32_t line)
 {
     ftr->relativePos = relPos;
     ftr->touchingPlatform = touchingPlatform;
@@ -1252,6 +1254,8 @@ void checkFighterButtonInput(fighter_t* ftr)
                 {
                     // Fall through a platform
                     setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
+                    // Shift down one pixel to guarantee a collision with the platform
+                    ftr->pos.y += (1 << SF);
                     setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
                     ftr->fallThroughTimer = 0;
                 }
@@ -1421,6 +1425,8 @@ void checkFighterButtonInput(fighter_t* ftr)
                     ftr->fallThroughTimer = 0;
                     // Fall through a platform
                     setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
+                    // Shift down one pixel to guarantee a collision with the platform
+                    ftr->pos.y += (1 << SF);
                     setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
                 }
             }
@@ -3144,6 +3150,8 @@ uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t
     if(cs->behaviorChangeTimer >= 1000)
     {
         cs->behaviorChangeTimer -= 1000;
+        // Add some randomness to these transitions
+        cs->behaviorChangeTimer += ((esp_random() % 512) - 256);
         // Randomly move close or further from the player
         cs->cpuAttractX = (esp_random() % 10) < 8;
         cs->cpuAttractY = (esp_random() % 10) < 8;
