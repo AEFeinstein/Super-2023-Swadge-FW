@@ -30,6 +30,9 @@
 #include "mode_diceroller.h"
 
 
+//TODO: Add Doxygen Blocks
+//TODO: Add Cosmetic Features of Colored background/foreground objects. Add Smoother animations. Add LED interaction.
+
 const double pi = 3.14159265359;
 
 void diceEnterMode(display_t* disp);
