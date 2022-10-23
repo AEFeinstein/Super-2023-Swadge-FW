@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <malloc.h>
+
+#define _USE_MATH_DEFINES
 #include <math.h>
 
 #include "cndraw.h"
@@ -23,6 +25,7 @@
 #include "linked_list.h"
 //#include "bootloader_random.h"
 #include "esp_random.h"
+#include "aabb_utils.h"
 
 #include "swadge_util.h"
 #include "text_entry.h"
@@ -33,7 +36,6 @@
 //TODO: Add Doxygen Blocks
 //TODO: Add Cosmetic Features of Colored background/foreground objects. Add Smoother animations. Add LED interaction.
 
-const double pi = 3.14159265359;
 
 void diceEnterMode(display_t* disp);
 void diceExitMode(void);
@@ -42,7 +44,7 @@ void diceButtonCb(buttonEvt_t* evt);
 //void diceTouchCb(touch_event_t* evt);
 //void diceAccelerometerCb(accel_t* accel);
 //void diceAudioCb(uint16_t* samples, uint32_t sampleCnt);
-coord_t* getRegularPolygonVertices(int8_t sides, float rotDeg, int16_t radius);
+vector_t* getRegularPolygonVertices(int8_t sides, float rotDeg, int16_t radius);
 void drawRegularPolygon(int xCenter, int yCenter, int8_t sides, float rotDeg, int16_t radius, paletteColor_t col, int dashWidth);
 void changeActiveSelection();
 void changeDiceCountRequest(int change);
@@ -52,12 +54,14 @@ void doStateMachine(int64_t elapsedUs);
 
 const int MAXDICE = 6;
 const int COUNTCOUNT = 7;
-int validSides[] = {4, 6, 8, 10, 12, 20, 100};
-int polygonSides[] = {3, 4, 3, 4, 5, 3, 6};
+const int8_t validSides[] = {4, 6, 8, 10, 12, 20, 100};
+const int8_t polygonSides[] = {3, 4, 3, 4, 5, 3, 6};
 
-int64_t rollAnimationPeriod = 1000000; //1 Second Spin
-int64_t fakeValRerollPeriod = 200000; //200 ms
-double spinScaler = 1;
+const int32_t rollAnimationPeriod = 1000000; //1 Second Spin
+const int32_t fakeValRerollPeriod = 200000; //200 ms
+const float spinScaler = 1;
+
+const char DR_NAMESTRING[] = "Dice Roller";
 
 enum dr_stateVals 
 {
@@ -71,7 +75,7 @@ enum dr_stateVals
 
 swadgeMode modeDiceRoller =
 {
-    .modeName = "Dice Roller",
+    .modeName = DR_NAMESTRING,
     .fnEnterMode = diceEnterMode,
     .fnExitMode = diceExitMode,
     .fnMainLoop = diceMainLoop,
@@ -127,6 +131,8 @@ void diceEnterMode(display_t* disp)
 
     loadFont("ibm_vga8.font", &diceRoller->ibm_vga8);
 
+    diceRoller->rolls = NULL;
+
     diceRoller->timeAngle = 0;
     diceRoller->rollSize = 0;
     diceRoller->rollSides = 0;
@@ -146,7 +152,10 @@ void diceEnterMode(display_t* disp)
 void diceExitMode(void)
 {
     freeFont(&diceRoller->ibm_vga8);
-    free(diceRoller->rolls);
+    if(diceRoller->rolls != NULL)
+    {
+        free(diceRoller->rolls);
+    }
     free(diceRoller);
     //bootloader_random_disable();
 }
@@ -171,10 +180,11 @@ void diceButtonCb(buttonEvt_t* evt)
                 if(diceRoller->requestCount > 0 && diceRoller->requestSides > 0)
                 {
                     doRoll(diceRoller->requestCount,diceRoller->requestSides, diceRoller->sideIndex);
+                    diceRoller->rollStartTimeUs = esp_timer_get_time();
+                    diceRoller->fakeValIndex = -1;
+                    diceRoller->state = DR_ROLLING;
                 }
-                diceRoller->rollStartTimeUs = esp_timer_get_time();
-                diceRoller->fakeValIndex = -1;
-                diceRoller->stateAdvanceFlag = 1;
+                
             }
             break;
         }
@@ -243,14 +253,11 @@ void doStateMachine(int64_t elapsedUs)
         {
                 diceRoller->disp->clearPx();
 
-                char staticText[] = "Dice Roller";
-
-
                 drawText(
                     diceRoller->disp,
                     &diceRoller->ibm_vga8, c555,
-                    staticText,
-                    diceRoller->disp->w/2 - textWidth(&diceRoller->ibm_vga8,staticText)/2,
+                    DR_NAMESTRING,
+                    diceRoller->disp->w/2 - textWidth(&diceRoller->ibm_vga8,DR_NAMESTRING)/2,
                     diceRoller->disp->h/2
                 );
 
@@ -323,8 +330,6 @@ void doStateMachine(int64_t elapsedUs)
                 //    diceRoller->disp->h*7/8
                 //);
 
-                int64_t periodUs = 10000000;
-                diceRoller->timeAngle += elapsedUs%periodUs/(double)periodUs*360;
 
 
                 //Cool Nested Spinny Polygons
@@ -424,8 +429,6 @@ void doStateMachine(int64_t elapsedUs)
                     diceRoller->disp->h*7/8
                 );
 
-                int64_t periodUs = 10000000;
-                diceRoller->timeAngle += elapsedUs%periodUs/(double)periodUs*360;
 
 
                 //Cool Nested Spinny Polygons
@@ -487,7 +490,7 @@ void doStateMachine(int64_t elapsedUs)
 
                 //int total = 0;
 
-                uint64_t rollAnimationTimeUs = esp_timer_get_time() - diceRoller->rollStartTimeUs;
+                int32_t rollAnimationTimeUs = esp_timer_get_time() - diceRoller->rollStartTimeUs;
                 double rotationOffsetDeg = rollAnimationTimeUs / (double)rollAnimationPeriod * 360.0 * spinScaler;
 
                 if(floor(rollAnimationTimeUs / fakeValRerollPeriod) > diceRoller->fakeValIndex)
@@ -526,8 +529,6 @@ void doStateMachine(int64_t elapsedUs)
                 //    diceRoller->disp->h*7/8
                 //);
 
-                int64_t periodUs = 10000000;
-                diceRoller->timeAngle += elapsedUs%periodUs/(double)periodUs*360;
 
 
                 //Cool Nested Spinny Polygons
@@ -580,20 +581,20 @@ void doRoll(int count, int sides, int ind)
 
 double cosDeg(double degrees)
 {
-    return cos(degrees/360.0*2*pi);
+    return cos(degrees/360.0*2*M_PI);
 }
 
 double sinDeg(double degrees)
 {
-    return sin(degrees/360.0*2*pi);
+    return sin(degrees/360.0*2*M_PI);
 }
 
 //Coords of vertices as offsets so we can reuse this calculation.
 //MUST DEALLOCATE AFTER EACH ROLL
-coord_t* getRegularPolygonVertices(int8_t sides, float rotDeg, int16_t radius)
+vector_t* getRegularPolygonVertices(int8_t sides, float rotDeg, int16_t radius)
 {
      
-    coord_t* vertices = (coord_t*) malloc(sizeof(coord_t)*sides);
+    vector_t* vertices = (vector_t*) malloc(sizeof(vector_t)*sides);
     double increment = 360.0/sides;
     for(int k = 0; k < sides; k++)
     {
@@ -606,7 +607,7 @@ coord_t* getRegularPolygonVertices(int8_t sides, float rotDeg, int16_t radius)
 
 void drawRegularPolygon(int xCenter, int yCenter, int8_t sides, float rotDeg, int16_t radius, paletteColor_t col, int dashWidth)
 {
-    coord_t* vertices = getRegularPolygonVertices(sides, rotDeg, radius);
+    vector_t* vertices = getRegularPolygonVertices(sides, rotDeg, radius);
     
     for(int vertInd = 0; vertInd < sides; vertInd++)
     {
@@ -627,7 +628,6 @@ void drawRegularPolygon(int xCenter, int yCenter, int8_t sides, float rotDeg, in
 void maskDiceTexture();
 void drawDie(int sides, int value);
 void drawDice(int sides, int* values);
-void printTotal();
 
 //void diceState(int input)
 //{
