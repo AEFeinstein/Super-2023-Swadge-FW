@@ -268,7 +268,10 @@ void fighterMainLoop(int64_t elapsedUs)
     {
         case FIGHTER_MENU:
         {
-            fm->idleTimer += elapsedUs;
+            if(fm->menu->title == str_swadgeBros)
+            {
+                fm->idleTimer += elapsedUs;
+            }
             if(fm->idleTimer >= FIGHTER_MENU_IDLE_US)
             {
                 // Random valid character and stage
