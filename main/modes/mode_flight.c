@@ -197,9 +197,17 @@ int abs(int j);
  * Variables
  *==========================================================================*/
 
+static const char fl_title[]  = "Flyin Donut";
+static const char fl_flight_env[] = "Atrium Course";
+static const char fl_flight_invertY0_env[] = "[ ] Y Invert";
+static const char fl_flight_invertY1_env[] = "[*] Y Invert";
+static const char fl_flight_perf[] = "Free Flight";
+static const char str_quit[] = "Back";
+static const char str_high_scores[] = "High Scores";
+
 swadgeMode modeFlight =
 {
-    .modeName = "Flyin Donut",
+    .modeName = fl_title,
     .fnEnterMode = flightEnterMode,
     .fnExitMode = flightExitMode,
     .fnButtonCallback = flightButtonCallback,
@@ -213,14 +221,6 @@ swadgeMode modeFlight =
     .overrideUsb = false
 };
 flight_t* flight;
-
-static const char fl_title[]  = "Flightsim";
-static const char fl_flight_env[] = "Take Flight";
-static const char fl_flight_invertY0_env[] = "[ ] Y Invert";
-static const char fl_flight_invertY1_env[] = "[*] Y Invert";
-static const char fl_flight_perf[] = "Perf Test";
-static const char str_quit[] = "Quit";
-static const char str_high_scores[] = "High Scores";
 
 /*============================================================================
  * Functions
@@ -269,8 +269,8 @@ static void flightEnterMode(display_t * disp)
     addRowToMeleeMenu(flight->menu, fl_flight_env);
     addRowToMeleeMenu(flight->menu, fl_flight_perf);
     flight->menuEntryForInvertY = addRowToMeleeMenu( flight->menu, flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env );
-    addRowToMeleeMenu(flight->menu, str_quit);
     addRowToMeleeMenu(flight->menu, str_high_scores);
+    addRowToMeleeMenu(flight->menu, str_quit);
 }
 
 /**
@@ -962,7 +962,7 @@ static void flightRender()
 
         int label = m->label;
         int draw = 1;
-        if( label )
+        if( (flight->mode != FLIGHT_PERFTEST) && label )
         {
             draw = 0;
             if( label >= 100 && (label - 100) == tflight->ondonut )
@@ -1063,7 +1063,7 @@ static void flightRender()
         //draw = 3 = other flashing
         if( draw == 1 )
             tdDrawModel( disp, m );
-        else if( draw == 2 || draw == 3 )
+        else if( (flight->mode != FLIGHT_PERFTEST) && (draw == 2 || draw == 3) )
         {
             if( draw == 2 )
             {
@@ -1099,31 +1099,35 @@ static void flightRender()
     if( flight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_PERFTEST )
     {
         char framesStr[32] = {0};
+        int16_t width;
 
-        fillDisplayArea(disp, 0, 0, TFT_WIDTH, flight->radiostars.h + 1, CNDRAW_BLACK);
-
-        //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
-        int elapsed = ((uint32_t)esp_timer_get_time()-tflight->timeOfStart)/10000;
-
-        snprintf(framesStr, sizeof(framesStr), "%d/%d, %d", tflight->ondonut, MAX_DONUTS, tflight->beans );
-        int16_t width = textWidth(&flight->radiostars, framesStr);
-        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 50, 0 );
-
-        snprintf(framesStr, sizeof(framesStr), "%d.%02d", elapsed/100, elapsed%100 );
-        width = textWidth(&flight->radiostars, framesStr);
-        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, 0 );
-        
-        if( flight->mode == FLIGHT_PERFTEST )
+        if( flight->mode != FLIGHT_PERFTEST )
         {
-            snprintf(framesStr, sizeof(framesStr), "%d", mid1 - start );
-            drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h+1 );
-            snprintf(framesStr, sizeof(framesStr), "%d", mid2 - mid1 );
-            drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*2+2 );
-            snprintf(framesStr, sizeof(framesStr), "%d", stop - mid2 );
-            drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*3+3 );
-            snprintf(framesStr, sizeof(framesStr), "%d FPS", fps );
-            drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*4+4 );
+            fillDisplayArea(disp, 0, 0, TFT_WIDTH, flight->radiostars.h + 1, CNDRAW_BLACK);
+
+            //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
+            int elapsed = ((uint32_t)esp_timer_get_time()-tflight->timeOfStart)/10000;
+
+            snprintf(framesStr, sizeof(framesStr), "%d/%d, %d", tflight->ondonut, MAX_DONUTS, tflight->beans );
+            width = textWidth(&flight->radiostars, framesStr);
+            drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 50, 0 );
+
+            snprintf(framesStr, sizeof(framesStr), "%d.%02d", elapsed/100, elapsed%100 );
+            width = textWidth(&flight->radiostars, framesStr);
+            drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, 0 );
         }
+        
+        // if( flight->mode == FLIGHT_PERFTEST )
+        // {
+        //     snprintf(framesStr, sizeof(framesStr), "%d", mid1 - start );
+        //     drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h+1 );
+        //     snprintf(framesStr, sizeof(framesStr), "%d", mid2 - mid1 );
+        //     drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*2+2 );
+        //     snprintf(framesStr, sizeof(framesStr), "%d", stop - mid2 );
+        //     drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*3+3 );
+        //     snprintf(framesStr, sizeof(framesStr), "%d FPS", fps );
+        //     drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h*4+4 );
+        // }
 
         snprintf(framesStr, sizeof(framesStr), "%d", tflight->speed);
         width = textWidth(&flight->radiostars, framesStr);
