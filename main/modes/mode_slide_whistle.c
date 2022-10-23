@@ -1338,7 +1338,7 @@ void  plotBar(uint8_t yOffset)
                                      (scales[slideWhistle->scaleIdx].notesLen / 2)) ;
         plotLine(slideWhistle->disp, x, yOffset - TICK_HEIGHT,
                  x, yOffset + TICK_HEIGHT,
-                 c235, 0);
+                 c555, 0);
     }
 }
 
