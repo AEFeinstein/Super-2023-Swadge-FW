@@ -1468,14 +1468,10 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
         secondLineStartY + (slideWhistle->radiostars.h + LINE_BREAK_Y) * 2);
 
     // Debug print
-    char buffer[32];
-    snprintf(buffer, 32, "touch: %d", slideWhistle->touchPosition);
     drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c444, slideWhistle->accelStr, 0,
-             slideWhistle->disp->h / 4 + CORNER_OFFSET);
+             slideWhistle->disp->h / 4 + CORNER_OFFSET + 10);
     drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c444, slideWhistle->accelStr2, 0,
-             slideWhistle->disp->h / 4 + slideWhistle->ibm_vga8.h + 1 + CORNER_OFFSET);
-    drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c444, buffer, 0,
-             slideWhistle->disp->h / 4 + slideWhistle->ibm_vga8.h * 2 + 1 + CORNER_OFFSET);
+             slideWhistle->disp->h / 4 + slideWhistle->ibm_vga8.h + 11 + CORNER_OFFSET);
 
     // Warn the user that the swadge is muted, if that's the case
     if(getSfxIsMuted())
