@@ -248,6 +248,16 @@ void fighterExitMode(void)
 }
 
 /**
+ * @brief Display the main fighter menu
+ */
+void fighterReturnToMainMenu(void)
+{
+    setFighterMainMenu();
+    fm->screen = FIGHTER_MENU;
+    fm->idleTimer = 0;
+}
+
+/**
  * Call the appropriate main loop function for the screen being displayed
  *
  * @param elapsedUs Microseconds since this function was last called
@@ -375,6 +385,7 @@ void fighterButtonCb(buttonEvt_t* evt)
                 // Exit the CPU only battle
                 fighterExitGame();
                 setFighterMainMenu();
+                fm->screen = FIGHTER_MENU;
                 fm->idleTimer = 0;
             }
             else

@@ -2065,6 +2065,16 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             // Decrement stocks
             ftr->stocks--;
         }
+        else if(CPU_ONLY == f->type)
+        {
+            // After a CPU only match, return to the main screen
+            // Deinit the game
+            fighterExitGame();
+            // Show the main menu
+            fighterReturnToMainMenu();
+            // Return after deinit
+            return true;
+        }
         else
         {
             ftr->stocks = 0;
