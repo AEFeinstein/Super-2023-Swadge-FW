@@ -29,6 +29,7 @@
 #include "mode_colorchord.h"
 #include "mode_tunernome.h"
 #include "mode_slide_whistle.h"
+#include "mode_diceroller.h"
 // #include "picross_select.h"
 
 //==============================================================================
@@ -459,6 +460,7 @@ void mainMenuSetUpToolsMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, modeGamepad.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeDance.modeName);
     addRowToMeleeMenu(mainMenu->menu, modePaint.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeDiceRoller.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -503,6 +505,10 @@ void mainMenuToolsCb(const char* opt)
     {
         // Start Paint
         switchToSwadgeMode(&modePaint);
+    }
+    else if (modeDiceRoller.modeName == opt)
+    {
+        switchToSwadgeMode(&modeDiceRoller);
     }
     else if(mainMenuBack == opt)
     {
