@@ -40,10 +40,10 @@
 
 #define CORNER_OFFSET 12
 
-#define NUM_GUITAR_STRINGS    (sizeof(guitarNoteNames) / sizeof(guitarNoteNames[0]))
-#define NUM_VIOLIN_STRINGS    (sizeof(violinNoteNames) / sizeof(violinNoteNames[0]))
-#define NUM_UKULELE_STRINGS   (sizeof(ukuleleNoteNames) / sizeof(ukuleleNoteNames[0]))
-#define NUM_BANJO_STRINGS     (sizeof(banjoNoteNames) / sizeof(banjoNoteNames[0]))
+#define NUM_GUITAR_STRINGS    lengthof(guitarNoteNames)
+#define NUM_VIOLIN_STRINGS    lengthof(violinNoteNames)
+#define NUM_UKULELE_STRINGS   lengthof(ukuleleNoteNames)
+#define NUM_BANJO_STRINGS     lengthof(banjoNoteNames)
 #define GUITAR_OFFSET         0
 #define CHROMATIC_OFFSET      6 // adjust start point by quartertones
 #define SENSITIVITY           5
@@ -69,9 +69,10 @@
 #define ABS(X) (((X) < 0) ? -(X) : (X))
 /// Helper macro to return the highest of two integers
 // #define MAX(X, Y) ( ((X) > (Y)) ? (X) : (Y) )
+#define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
 #define NUM_SEMITONES 12
-#define NUM_TSIGS (sizeof(tSigs) / sizeof(tSigs[0]))
+#define NUM_TSIGS lengthof(tSigs)
 
 typedef enum
 {
@@ -583,9 +584,9 @@ void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrum
              (tunernome->disp->h - tunernome->mm.h) / 2 - TUNER_TEXT_Y_OFFSET);
 
     // Note names of strings, arranged to match LED positions
-    bool oddNumLedRows = (int) ceil(numNotes / 2.0) % 2 == 1;
+    bool oddNumLedRows = (int) ceil(numNotes / 2.0f) % 2 == 1;
     // Left Column
-    for(int i = 0; i < ceil(numNotes / 2.0); i++)
+    for(int i = 0; i < ceil(numNotes / 2.0f); i++)
     {
         int y;
         if(oddNumLedRows)
@@ -608,18 +609,18 @@ void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrum
                  (tunernome->disp->w - textWidth(&tunernome->mm, instrumentName)) / 2 -
                  textWidth(&tunernome->mm, /*placeholder for widest octave number + ' '*/ "4 "), y);
     }
-    oddNumLedRows = (int) floor(numNotes / 2.0) % 2 == 1;
+    oddNumLedRows = (int) floor(numNotes / 2.0f) % 2 == 1;
     // Right Column
-    for(int i = ceil(numNotes / 2.0); i < numNotes; i++)
+    for(int i = ceil(numNotes / 2.0f); i < numNotes; i++)
     {
         int y;
         if(oddNumLedRows)
         {
-            y = (tunernome->disp->h - tunernome->mm.h) / 2 + (tunernome->mm.h + 5) * (i - ceil(numNotes / 2.0) - 1) - TUNER_TEXT_Y_OFFSET;
+            y = (tunernome->disp->h - tunernome->mm.h) / 2 + (tunernome->mm.h + 5) * (i - ceil(numNotes / 2.0f) - 1) - TUNER_TEXT_Y_OFFSET;
         }
         else
         {
-            y = tunernome->disp->h / 2 + (tunernome->mm.h + 5) * (i - ceil(numNotes / 2.0) - 1) + 2 - TUNER_TEXT_Y_OFFSET;
+            y = tunernome->disp->h / 2 + (tunernome->mm.h + 5) * (i - ceil(numNotes / 2.0f) - 1) + 2 - TUNER_TEXT_Y_OFFSET;
         }
 
         char buf[2] = {0};
