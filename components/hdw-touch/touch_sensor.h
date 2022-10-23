@@ -27,5 +27,9 @@ typedef struct
 void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
                      uint8_t numTouchPads, ...);
 bool checkTouchSensor(touch_event_t*);
+int getTouchRawValues( uint32_t * rawvalues, int maxPads );
+
+int getBaseTouchVals( int32_t * data, int count );
+int getTouchCentroid( int32_t * centerVal, int32_t * intensityVal );
 
 #endif /* _TOUCH_SENSOR_H_ */

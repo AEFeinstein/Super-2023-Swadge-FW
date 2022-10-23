@@ -11,6 +11,14 @@
 #include "esp_log.h"
 #include "touch_sensor.h"
 
+static inline uint32_t getCycleCount()
+{
+    uint32_t ccount;
+    asm volatile("rsr %0,ccount":"=a" (ccount));
+    return ccount;
+}
+
+
 //==============================================================================
 // Structs
 //==============================================================================
@@ -30,6 +38,10 @@ typedef struct touch_msg
 static QueueHandle_t touchEvtQueue = NULL;
 static touch_pad_t minPad = 0xFF;
 static uint32_t tpState = 0;
+static int numTouchPadsKept;
+static touch_pad_t * touchPads;
+static int32_t * baseOffsets = 0;
+
 
 //==============================================================================
 // Prototypes
@@ -60,11 +72,13 @@ void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
         touchEvtQueue = xQueueCreate(3 * numTouchPads, sizeof(touch_isr_event_t));
     }
 
+    touchPads = realloc( touchPads, sizeof( touchPads[0] * numTouchPads ) );
+    numTouchPadsKept = numTouchPads;
+
     /* Initialize touch pad peripheral. */
     ESP_ERROR_CHECK(touch_pad_init());
 
     /* Initialie each touch pad */
-    touch_pad_t touchPads[numTouchPads];
     va_list ap;
     va_start(ap, numTouchPads);
     for(uint8_t i = 0; i < numTouchPads; i++)
@@ -140,6 +154,15 @@ void initTouchSensor(float touchPadSensitivity, bool denoiseEnable,
         ESP_LOGD("TOUCH", "touch pad [%d] base %d, thresh %d", touchPads[i],
                  touch_value, (uint32_t)(touch_value * touchPadSensitivity));
     }
+
+    // Make sure this starts off completely cleared for the filter calculation.
+    if( baseOffsets )
+    {
+        free( baseOffsets );
+        baseOffsets = 0;
+    }
+
+    getTouchCentroid( 0, 0 );
 }
 
 /**
@@ -156,12 +179,143 @@ static void touchsensor_interrupt_cb(void* arg)
     evt.intr_mask = touch_pad_read_intr_status_mask();
     evt.pad_status = touch_pad_get_status();
     evt.pad_num = touch_pad_get_current_meas_channel();
+    //touch_ll_filter_read_smooth(touch_pad_t touch_num, uint32_t *smooth_data)
 
     xQueueSendFromISR(touchEvtQueue, &evt, &task_awoken);
     if (task_awoken == pdTRUE)
     {
         portYIELD_FROM_ISR();
     }
+}
+
+/**
+ * @brief Get totally raw touch sensor values from buffer. NOTE: You must have touch callbacks enabled to use this.
+ *
+ * @param data is a pointer to an array of int32_t's to receive the raw touch data.
+ * @param count is the number of ints in your array.
+ * @return is the number of values that were successfully read.
+ */
+int getTouchRawValues( uint32_t * rawvalues, int maxPads )
+{
+    if( maxPads > numTouchPadsKept ) maxPads = numTouchPadsKept;
+    int i;
+    for( i = 0; i < maxPads; i++ )
+    {
+        // If any errors, abort.
+        if( touch_pad_read_raw_data( touchPads[i], &rawvalues[i] ) ) return 0;
+    }
+    return maxPads;
+}
+
+/**
+ * @brief Get "zeroed" touch sensor values. NOTE: You must have touch callbacks enabled to use this.
+ *
+ * @param data is a pointer to an array of int32_t's to receive the zeroed touch data.
+ * @param count is the number of ints in your array.
+ * @return is the number of values that were successfully read.
+ */
+int getBaseTouchVals( int32_t * data, int count )
+{
+    int i;
+    uint32_t curVals[numTouchPadsKept];
+    if( getTouchRawValues( curVals, numTouchPadsKept ) == 0 ) return 0;
+    for( i = 0; i < numTouchPadsKept; i++ )
+    {
+        if( curVals[i] <= 0 ) return 0;
+    }
+
+    if( count > numTouchPadsKept ) count = numTouchPadsKept;
+
+    // curVals is valid.
+    if( !baseOffsets )
+    {
+        baseOffsets = malloc( sizeof( baseOffsets[0] ) * numTouchPadsKept );
+        for( i = 0; i < numTouchPadsKept; i++ )
+            baseOffsets[i] = curVals[i]<<8;
+    }
+
+    for( i = 0; i < numTouchPadsKept; i++ )
+    {
+        int32_t base = baseOffsets[i];
+        int32_t val = curVals[i];
+        int32_t baseNorm = (base>>8);
+
+        // Asymmetric filter on base.
+        if( baseNorm < val )
+        {
+            base++; // VERY slowly slack offset up.
+        }
+        else
+        {
+            base-=8192; // VERY quickly slack up.
+        }
+
+        baseOffsets[i] = base;
+        if( i < count )
+            data[i] = val - baseNorm;
+    }
+
+    return count;
+}
+
+/**
+ * @brief Get totally raw touch sensor values from buffer.  NOTE: You must have touch callbacks enabled to use this.
+ *
+ * @param centerVal = pointer to centroid of touch locaiton from 0..1024 inclusive.  Cannot be NULL.
+ * @param intensityVal = intensity of touch press.  Cannot be NULL.
+ * @return 1 if touched (centroid), 0 if not touched (no centroid)
+ */
+int getTouchCentroid( int32_t * centerVal, int32_t * intensityVal )
+{
+    int32_t baseVals[numTouchPadsKept];
+    if( !centerVal || !intensityVal || getBaseTouchVals( baseVals, numTouchPadsKept ) == 0 )
+        return 0;
+
+    int peak = -1;
+    int peakBin = -1;
+    int i;
+    for( i = 0; i < numTouchPadsKept; i++ )
+    {
+        int32_t bv = baseVals[i];
+        if( bv > peak )
+        {
+            peak = bv;
+            peakBin = i;
+        }
+    }
+
+    if( peakBin < 0 ) return 0;
+
+    // Arbitrary, but we use 1200 as the minimum peak value.
+    if( peak < 1200 ) return 0;
+
+    // We know our peak bin, now we need to know the average and differential of the adjacent bins.
+    int leftOfPeak = (peakBin>0)?baseVals[peakBin-1]:0;
+    int rightOfPeak = (peakBin<numTouchPadsKept-1)?baseVals[peakBin+1]:0;
+
+    int opeak = peak;
+    int center = peakBin<<8;
+
+    if( rightOfPeak >= leftOfPeak  )
+    {
+        // We bend upward (or are neutral)
+        rightOfPeak -= leftOfPeak;
+        peak -= leftOfPeak;
+        center += (rightOfPeak<<8)/(rightOfPeak + peak );
+
+        *intensityVal = opeak + rightOfPeak;
+    }
+    else
+    {
+        // We bend downward
+        leftOfPeak -= rightOfPeak;
+        peak -= rightOfPeak;
+        center -= (leftOfPeak<<8)/(leftOfPeak + peak );
+
+        *intensityVal = opeak + leftOfPeak;
+    }
+    *centerVal = center;
+    return 1;
 }
 
 /**
@@ -175,6 +329,7 @@ bool checkTouchSensor(touch_event_t* evt)
     /* Check the queue, but don't block */
     touch_isr_event_t isrEvt;
     int ret = xQueueReceive(touchEvtQueue, &isrEvt, 0);
+
     if (ret != pdTRUE)
     {
         return false;
