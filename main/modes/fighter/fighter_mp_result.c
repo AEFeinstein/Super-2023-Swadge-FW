@@ -131,7 +131,7 @@ void fighterMpResultLoop(int64_t elapsedUs)
     yOff += mpr->font->h + Y_MARGIN;
 
     // Round time
-    sprintf(text, "%d:%02d.%03d", (mpr->roundTimeMs / 60000), (mpr->roundTimeMs / 1000) % 60, mpr->roundTimeMs % 1000);
+    sprintf(text, "%u:%02u.%03u", (mpr->roundTimeMs / 60000), (mpr->roundTimeMs / 1000) % 60, mpr->roundTimeMs % 1000);
     tWidth = textWidth(mpr->font, text);
     drawText(mpr->disp, mpr->font, statColor, text, (mpr->disp->w - tWidth) / 2, yOff);
     yOff += mpr->font->h + Y_MARGIN;

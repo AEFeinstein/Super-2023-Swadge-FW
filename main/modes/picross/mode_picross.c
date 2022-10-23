@@ -1544,7 +1544,7 @@ void savePicrossProgress()
 {
     //save level progress
     size_t size = sizeof(picrossProgressData_t);
-    picrossProgressData_t* progress = malloc(size);
+    picrossProgressData_t* progress = calloc(1, size);
     //I know im doing things a kind of brute-force way here, copying over every value 1 by 1. I should be, i dunno, just swapping pointers around? and...freeing up the old pointer?
     //also, we dont need to save OUTOFBOUNDS for smaller levels, since it shouldnt get read. while debugging and poking around at what its saving, I prefer not having garbage getting saved.
     

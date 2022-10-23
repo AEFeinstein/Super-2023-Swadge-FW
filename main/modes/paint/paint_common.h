@@ -176,6 +176,12 @@ typedef struct
     // The generated cursor sprite
     wsg_t cursorWsg;
 
+    // The "brush size" indicator sprite
+    wsg_t brushSizeWsg;
+
+    // The "picks remaining" sprite
+    wsg_t picksWsg;
+
 
     //////// Local-only UI state
 
@@ -212,6 +218,9 @@ typedef struct
     int64_t blinkTimer;
     bool blinkOn;
 
+    bool touchDown;
+    uint8_t firstTouch;
+    uint8_t lastTouch;
 
 
     //////// Save data flags
@@ -380,15 +389,10 @@ typedef struct
     font_t menuFont;
     // Main Menu
     meleeMenu_t* menu;
-    meleeMenu_t* settingsMenu;
-    meleeMenu_t* networkMenu;
 
     uint8_t menuSelection, networkMenuSelection, settingsMenuSelection;
 
     bool eraseDataSelected, eraseDataConfirm;
-
-    // Font for drawing brush info
-    font_t toolbarFont;
 
     display_t* disp;
 

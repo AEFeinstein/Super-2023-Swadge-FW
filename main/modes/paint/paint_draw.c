@@ -100,7 +100,7 @@ brush_t brushes[] =
     { .name = "Filled Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledCircle, .iconName = "circle_filled" },
     { .name = "Ellipse",    .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawEllipse, .iconName = "ellipse" },
     { .name = "Polygon",    .mode = PICK_POINT_LOOP, .maxPoints = 16, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawPolygon, .iconName = "polygon" },
-    { .name = "Squarewave", .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 1, .fnDraw = paintDrawSquareWave, .iconName = "squarewave" },
+    { .name = "Squarewave", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 32, .fnDraw = paintDrawSquareWave, .iconName = "squarewave" },
     { .name = "Paint Bucket", .mode = PICK_POINT, .maxPoints = 1, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawPaintBucket, .iconName = "paint_bucket" },
 };
 
@@ -112,6 +112,7 @@ const brush_t* lastBrush = brushes + sizeof(brushes) / sizeof(brushes[0]) - 1;
 
 void paintDrawScreenSetup(display_t* disp)
 {
+    PAINT_LOGD("Allocating %zu bytes for paintState", sizeof(paintDraw_t));
     paintState = calloc(sizeof(paintDraw_t), 1);
     paintState->disp = disp;
     paintState->canvas.disp = disp;
@@ -151,6 +152,16 @@ void paintDrawScreenSetup(display_t* disp)
         {
             spriteH = brush->iconInactive.h;
         }
+    }
+
+    if (!loadWsg("pointer.wsg", &paintState->picksWsg))
+    {
+        PAINT_LOGE("Loading pointer.wsg icon failed!!!");
+    }
+
+    if (!loadWsg("brush_size.wsg", &paintState->brushSizeWsg))
+    {
+        PAINT_LOGE("Loading brush_size.wsg icon failed!!!");
     }
 
     // Setup the margins
@@ -240,6 +251,9 @@ void paintDrawScreenCleanup(void)
         freeWsg(&brush->iconActive);
         freeWsg(&brush->iconInactive);
     }
+
+    freeWsg(&paintState->brushSizeWsg);
+    freeWsg(&paintState->picksWsg);
 
     for (uint8_t i = 0; i < sizeof(paintState->artist) / sizeof(paintState->artist[0]) ;i++)
     {
@@ -726,9 +740,15 @@ void paintEditPaletteConfirm(void)
             getArtist()->bgColor = new;
         }
 
+        hideCursor(getCursor(), &paintState->canvas);
+        paintHidePickPoints();
+
         // And replace it within the canvas
         paintColorReplace(&paintState->canvas, old, new);
         paintState->unsaved = true;
+
+        paintDrawPickPoints();
+        showCursor(getCursor(), &paintState->canvas);
     }
 }
 
@@ -1071,7 +1091,7 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
             case BTN_A:
             {
                 // Increase brush size / next variant
-                paintIncBrushWidth();
+                paintIncBrushWidth(1);
                 paintState->redrawToolbar = true;
                 break;
             }
@@ -1079,7 +1099,7 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
             case BTN_B:
             {
                 // Decrease brush size / prev variant
-                paintDecBrushWidth();
+                paintDecBrushWidth(1);
                 paintState->redrawToolbar = true;
                 break;
             }
@@ -1088,6 +1108,56 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
             // Start does nothing in select-mode, plus it's used for exit
             break;
         }
+    }
+}
+
+void paintDrawScreenTouchCb(const touch_event_t* evt)
+{
+    PAINT_LOGD("touchCb({ .state = %d, .touch_pad_t = %d, .down = %d, .position = %d })", evt->state, evt->pad, evt->down, evt->position);
+    // we get the first down event
+    // check if paintState->down is false, set it to true
+    // save the position at paintState->firstTouch (and also lastTouch)
+    // then, for any more down events while any touchpad is still down, update lastTouch
+    // once we get an up event and state == 0 (no touchpads down), clear touchDown, save the position(?)
+    // swipe direction = (lastTouch > firstTouch) ? DOWN : UP
+    // TODO flip this if it's backwards
+    if (evt->down && evt->state != 0 && !paintState->touchDown)
+    {
+        paintState->touchDown = true;
+        paintState->firstTouch = evt->position;
+        paintState->lastTouch = evt->position;
+    }
+    else if (evt->down && evt->state != 0 && paintState->touchDown) {
+        paintState->lastTouch = evt->position;
+    }
+    else if (!evt->down && evt->state == 0 && paintState->touchDown)
+    {
+        if (paintState->firstTouch < paintState->lastTouch)
+        {
+            PAINT_LOGD("Swipe RIGHT (%d)", (paintState->lastTouch - paintState->firstTouch) / 32);
+            paintDecBrushWidth((paintState->lastTouch - paintState->firstTouch) / 32);
+        }
+        else if (paintState->firstTouch > paintState->lastTouch)
+        {
+            PAINT_LOGD("Swipe LEFT (%d)", (paintState->firstTouch - paintState->lastTouch + 1) / 32);
+            paintIncBrushWidth((paintState->firstTouch - paintState->lastTouch + 1) / 32);
+        }
+        else
+        {
+            // TAP
+            PAINT_LOGD("Tap pad %d", evt->pad);
+            if (evt->pad == 0)
+            {
+                // Tap X (?)
+                paintIncBrushWidth(1);
+            }
+            else if (evt->pad == 4)
+            {
+                // Tap Y (?)
+                paintDecBrushWidth(1);
+            }
+        }
+        paintState->touchDown = false;
     }
 }
 
@@ -1309,9 +1379,6 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         case HOLD_DRAW:
         break;
 
-        case INSTANT:
-        break;
-
         default:
         break;
     }
@@ -1348,10 +1415,6 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         {
             drawNow = true;
         }
-    }
-    else if (getArtist()->brushDef->mode == INSTANT)
-    {
-        drawNow = true;
     }
 
     if (drawNow)
@@ -1394,6 +1457,23 @@ void paintSetupTool(void)
         getArtist()->brushWidth = getArtist()->brushDef->maxSize;
     }
 
+    hideCursor(getCursor(), &paintState->canvas);
+    switch (getArtist()->brushDef->mode)
+    {
+        case HOLD_DRAW:
+            setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
+            setCursorOffset(getCursor(), (paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
+
+        break;
+
+        case PICK_POINT:
+        case PICK_POINT_LOOP:
+            setCursorSprite(getCursor(), &paintState->canvas, &paintState->picksWsg);
+            setCursorOffset(getCursor(), -paintState->picksWsg.w, paintState->canvas.yScale);
+        break;
+    }
+    showCursor(getCursor(), &paintState->canvas);
+
     // Undraw and hide any stored temporary pixels
     while (popPxScaled(&getArtist()->pickPoints, paintState->disp, paintState->canvas.xScale, paintState->canvas.yScale));
 }
@@ -1426,26 +1506,28 @@ void paintNextTool(void)
     paintSetupTool();
 }
 
-void paintDecBrushWidth()
+void paintDecBrushWidth(uint8_t dec)
 {
-    if (getArtist()->brushWidth == 0 || getArtist()->brushWidth <= getArtist()->brushDef->minSize)
+    if (getArtist()->brushWidth <= dec || getArtist()->brushWidth <= getArtist()->brushDef->minSize)
     {
         getArtist()->brushWidth = getArtist()->brushDef->minSize;
     }
     else
     {
-        getArtist()->brushWidth--;
+        getArtist()->brushWidth -= dec;
     }
+    paintState->redrawToolbar = true;
 }
 
-void paintIncBrushWidth()
+void paintIncBrushWidth(uint8_t inc)
 {
-    getArtist()->brushWidth++;
+    getArtist()->brushWidth += inc;
 
     if (getArtist()->brushWidth > getArtist()->brushDef->maxSize)
     {
         getArtist()->brushWidth = getArtist()->brushDef->maxSize;
     }
+    paintState->redrawToolbar = true;
 }
 
 void paintSwapFgBgColors(void)

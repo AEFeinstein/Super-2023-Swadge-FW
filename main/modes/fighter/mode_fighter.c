@@ -1684,7 +1684,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 (dest_hurtbox.x1 > hrStadium.platforms[0].area.x1 && ftr->velocity.x > 0))
         {
             // Reverse direction at 3/4 speed
-            ftr->velocity.x = -((3 * ftr->velocity.x) >> 2);
+            ftr->velocity.x = -((3 * ftr->velocity.x) / 4);
         }
     }
 
@@ -2760,11 +2760,11 @@ void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirec
         // Calculate and draw indicator
         int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
         int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-        int err = dx + dy, e2; /* error value e_xy */
+        int err = dx + dy; /* error value e_xy */
 
         for (;;)   /* loop */
         {
-            e2 = 2 * err;
+            int e2 = 2 * err;
             if (e2 >= dy)   /* e_xy+e_x > 0 */
             {
                 if (x0 == x1)

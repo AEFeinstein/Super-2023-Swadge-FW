@@ -936,7 +936,7 @@ platformer_t *platformer;
 
 swadgeMode modePlatformer =
     {
-        .modeName = "Platformer",
+        .modeName = "Swadge Land",
         .fnEnterMode = platformerEnterMode,
         .fnExitMode = platformerExitMode,
         .fnMainLoop = platformerMainLoop,
@@ -951,7 +951,7 @@ swadgeMode modePlatformer =
         .overrideUsb = false
 };
 
-#define NUM_LEVELS 12
+#define NUM_LEVELS 13
 
 static leveldef_t leveldef[NUM_LEVELS] = {
     {.filename = "level1-1.bin",
@@ -970,7 +970,7 @@ static leveldef_t leveldef[NUM_LEVELS] = {
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
     {.filename = "dac03.bin",
-     .timeLimit = 200,
+     .timeLimit = 220,
      .checkpointTimeLimit = 90},
     {.filename = "level2-3.bin",
      .timeLimit = 200,
@@ -987,6 +987,9 @@ static leveldef_t leveldef[NUM_LEVELS] = {
     {.filename = "level3-3.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
+    {.filename = "level3-4.bin",
+     .timeLimit = 220,
+     .checkpointTimeLimit = 110},
     {.filename = "debug.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90}};
@@ -1004,7 +1007,7 @@ led_t platLeds[NUM_LEDS];
 void platformerEnterMode(display_t *disp)
 {
     // Allocate memory for this mode
-    platformer = (platformer_t *)malloc(sizeof(platformer_t));
+    platformer = (platformer_t *)calloc(1, sizeof(platformer_t));
     memset(platformer, 0, sizeof(platformer_t));
 
     // Save a pointer to the display
@@ -1154,9 +1157,17 @@ void updateTitleScreen(platformer_t *self)
                 changeStateShowHighScores(self);
             }
             else if (
-                (self->gameData.btnState & START)
-                &&
-                !(self->gameData.prevBtnState & START)
+                (
+                    (self->gameData.btnState & START)
+                    &&
+                    !(self->gameData.prevBtnState & START)
+                )
+                    ||
+                (
+                    (self->gameData.btnState & BTN_A)
+                    &&
+                    !(self->gameData.prevBtnState & BTN_A)
+                )
             )
             {
                 buzzer_play_sfx(&sndMenuConfirm);
@@ -1167,9 +1178,17 @@ void updateTitleScreen(platformer_t *self)
         }
         case 1:{
             if (
-                self->gameData.btnState & START
-                &&
-                !(self->gameData.prevBtnState & START)
+                (
+                    (self->gameData.btnState & START)
+                    &&
+                    !(self->gameData.prevBtnState & START)
+                )
+                    ||
+                (
+                    (self->gameData.btnState & BTN_A)
+                    &&
+                    !(self->gameData.prevBtnState & BTN_A)
+                )
             )
             {
                 uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
@@ -1744,9 +1763,17 @@ void updateShowHighScores(platformer_t *self){
     self->gameData.frameCount++;
 
     if((self->gameData.frameCount > 300) || (
-        (self->gameData.btnState & START)
-        &&
-        !(self->gameData.prevBtnState & START)
+        (
+            (self->gameData.btnState & START)
+            &&
+            !(self->gameData.prevBtnState & START)
+        )
+            ||
+        (
+            (self->gameData.btnState & BTN_A)
+            &&
+            !(self->gameData.prevBtnState & BTN_A)
+        )
     )){
         self->menuState = 0;
         self->menuSelection = 0;

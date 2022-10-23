@@ -260,7 +260,7 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
     const char exitText[] = "Start + Select to Exit";
     int16_t exitWidth = textWidth(&colorchord->ibm_vga8, exitText);
     drawText(colorchord->disp, &colorchord->ibm_vga8, c555, exitText,
-             (colorchord->disp->w - exitWidth) / 2, colorchord->disp->h - colorchord->ibm_vga8.h);
+             (colorchord->disp->w - exitWidth) / 2, colorchord->disp->h - colorchord->ibm_vga8.h - TEXT_Y);
 }
 
 /**

@@ -153,7 +153,7 @@ bool loadMapFromFile(tilemap_t *tilemap, char *name)
     uint8_t width = buf[0];
     uint8_t height = buf[1];
 
-    tilemap->map = (uint8_t *)malloc(sizeof(uint8_t) * width * height);
+    tilemap->map = (uint8_t *)calloc(width * height, sizeof(uint8_t));
     memcpy(tilemap->map, &buf[2], width * height);
 
     tilemap->mapWidth = width;

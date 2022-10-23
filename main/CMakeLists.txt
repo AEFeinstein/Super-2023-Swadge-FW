@@ -47,6 +47,7 @@ idf_component_register(
         "modes/paint/paint_brush.c"
         "modes/paint/paint_draw.c"
         "modes/platformer/gameData.c"
+        "modes/mode_diceroller.c"
         "utils/linked_list.c"
         "utils/text_entry.c"
         "p2pConnection.c"

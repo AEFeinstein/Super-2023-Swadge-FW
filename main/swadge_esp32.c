@@ -16,6 +16,8 @@
 #include "esp_efuse.h"
 #include "esp_log.h"
 #include "esp_sleep.h"
+#include "esp_random.h"
+#include "bootloader_random.h"
 
 #include "swadge_esp32.h"
 
@@ -515,7 +517,11 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     setTFTBacklight(getTftIntensity());
 
     /* Initialize Wifi peripheral */
-#if !defined(EMU)
+#if defined(EMU)
+    // Always init on emu b/c it will never be called again
+    if(true)
+#else
+    // Only init wifi on actual hardware if requested (saves power)
     if(ESP_NOW == cSwadgeMode->wifiMode)
 #endif
     {
@@ -531,6 +537,11 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb,
                 GPIO_NUM_NC, GPIO_NUM_NC, UART_NUM_MAX);
         }
+    }
+    else
+    {
+        // If wifi is not initialzed, enable this entropy source
+        bootloader_random_enable();
     }
 
     /* Enter the swadge mode */
