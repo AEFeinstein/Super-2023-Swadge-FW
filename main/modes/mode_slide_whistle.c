@@ -1457,7 +1457,7 @@ noteFrequency_t  getCurrentNote(void)
     }
     else
     {
-        noteIdx = (slideWhistle->roll * (scales[slideWhistle->scaleIdx].notesLen / 2)) / BAR_X_WIDTH;
+        noteIdx = (slideWhistle->roll * (scales[slideWhistle->scaleIdx].notesLen / 2)) / (BAR_X_WIDTH + 1);
     }
 
     // See if we should play the higher note
