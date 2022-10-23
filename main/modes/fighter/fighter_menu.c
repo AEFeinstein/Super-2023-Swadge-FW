@@ -93,6 +93,9 @@ void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
 void setFighterMainMenu(void);
 void fighterMainMenuCb(const char* opt);
 
+void setFighterWireMultiMenu(void);
+void fighterWireMultiMenuCb(const char* opt);
+
 void setFighterHrMenu(void);
 void fighterHrMenuCb(const char* opt);
 
@@ -138,8 +141,9 @@ const char str_hrContest[]   = "HR Contest";
 const char str_vsCpu[] = "VS. CPU";
 
 static const char str_wirelessMulti[] = "Wireless Multi";
-static const char str_wireMultiA[]    = "Wire Multi A";
-static const char str_wireMultiB[]    = "Wire Multi B";
+static const char str_wireMulti[]    = "Wire Multi";
+static const char str_wireMultiA[]    = "Swadge A";
+static const char str_wireMultiB[]    = "Swadge B";
 static const char str_records[]     = "Records";
 static const char str_exit[]        = "Exit";
 
@@ -519,8 +523,7 @@ void setFighterMainMenu(void)
     addRowToMeleeMenu(fm->menu, str_localVs);
 #endif
     addRowToMeleeMenu(fm->menu, str_wirelessMulti);
-    addRowToMeleeMenu(fm->menu, str_wireMultiA);
-    addRowToMeleeMenu(fm->menu, str_wireMultiB);
+    addRowToMeleeMenu(fm->menu, str_wireMulti);
     addRowToMeleeMenu(fm->menu, str_hrContest);
     addRowToMeleeMenu(fm->menu, str_vsCpu);
     addRowToMeleeMenu(fm->menu, str_records);
@@ -536,27 +539,12 @@ void setFighterMainMenu(void)
 void fighterMainMenuCb(const char* opt)
 {
     // When a row is clicked, print the label for debugging
-    if((opt == str_wirelessMulti) || (opt == str_wireMultiA) || (opt == str_wireMultiB))
+    if(opt == str_wirelessMulti)
     {
-        // Set espnow to wireless or serial
-        if(opt == str_wireMultiB)
-        {
-            espNowUseSerial(true);
-            ftrConnectingStringTop = str_please_connect;
-            ftrConnectingStringBottom = str_wireMultiA;
-        }
-        else if(opt == str_wireMultiA)
-        {
-            espNowUseSerial(false);
-            ftrConnectingStringTop = str_please_connect;
-            ftrConnectingStringBottom = str_wireMultiB;
-        }
-        else if(opt == str_wirelessMulti)
-        {
-            espNowUseWireless();
-            ftrConnectingStringTop = str_searching_for;
-            ftrConnectingStringBottom = str_another_swadge;
-        }
+        // Set espnow to use wireless
+        espNowUseWireless();
+        ftrConnectingStringTop = str_searching_for;
+        ftrConnectingStringBottom = str_another_swadge;
 
         // Clear state
         fm->characters[0] = NO_CHARACTER;
@@ -569,6 +557,10 @@ void fighterMainMenuCb(const char* opt)
         p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
         // Start the connection
         p2pStartConnection(&fm->p2p);
+    }
+    else if (opt == str_wireMulti)
+    {
+        setFighterWireMultiMenu();
     }
 #if defined(EMU)
     // Local VS is for the emulator only!
@@ -597,6 +589,66 @@ void fighterMainMenuCb(const char* opt)
         // Exit selected
         switchToSwadgeMode(&modeMainMenu);
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Sets up the Home Run Contest menu for Fighter, including callback
+ */
+void setFighterWireMultiMenu(void)
+{
+    fm->playerInput = 0;
+    resetMeleeMenu(fm->menu, str_wireMulti, fighterWireMultiMenuCb);
+    addRowToMeleeMenu(fm->menu, str_wireMultiA);
+    addRowToMeleeMenu(fm->menu, str_wireMultiB);
+    addRowToMeleeMenu(fm->menu, str_back);
+    fm->screen = FIGHTER_MENU;
+}
+
+/**
+ * This is called when a menu option is selected from the Home Run Contest menu
+ *
+ * @param opt The option that was selected (string pointer)
+ */
+void fighterWireMultiMenuCb(const char* opt)
+{
+    // Check the menu option selected
+    if (opt == str_wireMultiA)
+    {
+        espNowUseSerial(false);
+        ftrConnectingStringTop = str_please_connect;
+        ftrConnectingStringBottom = str_wireMultiB;
+    }
+    else if (opt == str_wireMultiB)
+    {
+        espNowUseSerial(true);
+        ftrConnectingStringTop = str_please_connect;
+        ftrConnectingStringBottom = str_wireMultiA;
+    }
+    else if (opt == str_back)
+    {
+        // Reset to top level melee menu
+        setFighterMainMenu();
+        return;
+    }
+    else
+    {
+        // Shouldn't happen, return to be safe
+        return;
+    }
+
+    // No return, clear state, start connection
+    fm->characters[0] = NO_CHARACTER;
+    fm->characters[1] = NO_CHARACTER;
+    fm->stage = NO_STAGE;
+    // Show the screen for connecting
+    fm->screen = FIGHTER_CONNECTING;
+    // Initialize p2p
+    p2pDeinit(&(fm->p2p));
+    p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
+    // Start the connection
+    p2pStartConnection(&fm->p2p);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
