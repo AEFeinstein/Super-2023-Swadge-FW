@@ -1158,12 +1158,7 @@ void  slideWhistleTouchCallback(touch_event_t* evt)
 {
     slideWhistle->touchHeld = evt->state != 0;
     slideWhistle->shouldPlay = evt->state != 0 || slideWhistle->aHeld;
-
     //slideWhistle->touchPosition = roundf((evt->position * BAR_X_WIDTH) / 255);
-    getTouchCentroid(&slideWhistle->touchPosition, &slideWhistle->touchIntensity);
-    slideWhistle->touchPosition = (slideWhistle->touchPosition / 1024.0f) * BAR_X_WIDTH;
-
-    slideWhistle->touchPosition = CLAMP(slideWhistle->touchPosition, BAR_X_MARGIN, slideWhistle->disp->w - 1 - BAR_X_MARGIN);
 }
 
 /**
@@ -1251,6 +1246,11 @@ void  slideWhistleButtonCallback(buttonEvt_t* evt)
  */
 void  slideWhistleAccelerometerHandler(accel_t* accel)
 {
+    // Get the centroid at the same rate at the accel for smoothness
+    getTouchCentroid(&slideWhistle->touchPosition, &slideWhistle->touchIntensity);
+    slideWhistle->touchPosition = (slideWhistle->touchPosition * BAR_X_WIDTH) / 1024;
+    slideWhistle->touchPosition = CLAMP(slideWhistle->touchPosition, BAR_X_MARGIN, slideWhistle->disp->w - 1 - BAR_X_MARGIN);
+
     // Only find values when the swadge is pointed up
     if(accel-> x <= 0)
     {
@@ -1296,41 +1296,41 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
     plotBar(slideWhistle->disp->h - BAR_Y_MARGIN - 2* (2 * CURSOR_HEIGHT + 5) - CORNER_OFFSET * 2);
 
     // Draw the cursor
-        int16_t y0 = slideWhistle->disp->h - BAR_Y_MARGIN - CURSOR_HEIGHT - CORNER_OFFSET * 2;
-        int16_t y1 = slideWhistle->disp->h - BAR_Y_MARGIN + CURSOR_HEIGHT - CORNER_OFFSET * 2;
+    int16_t y0 = slideWhistle->disp->h - BAR_Y_MARGIN - CURSOR_HEIGHT - CORNER_OFFSET * 2;
+    int16_t y1 = slideWhistle->disp->h - BAR_Y_MARGIN + CURSOR_HEIGHT - CORNER_OFFSET * 2;
 
-        if(slideWhistle->upHeld && !slideWhistle->downHeld)
-        {
-            y0 -= 2 * (2 * CURSOR_HEIGHT + 5);
-            y1 -= 2 * (2 * CURSOR_HEIGHT + 5);
-        }
-        else if(slideWhistle->downHeld && !slideWhistle->upHeld)
-        {
-            y0 -= 1;
-            y1 -= 1;
-        }
-        else
-        {
-            y0 -= (2 * CURSOR_HEIGHT + 5);
-            y1 -= (2 * CURSOR_HEIGHT + 5);
-        }
+    if(slideWhistle->upHeld && !slideWhistle->downHeld)
+    {
+        y0 -= 2 * (2 * CURSOR_HEIGHT + 5);
+        y1 -= 2 * (2 * CURSOR_HEIGHT + 5);
+    }
+    else if(slideWhistle->downHeld && !slideWhistle->upHeld)
+    {
+        y0 -= 1;
+        y1 -= 1;
+    }
+    else
+    {
+        y0 -= (2 * CURSOR_HEIGHT + 5);
+        y1 -= (2 * CURSOR_HEIGHT + 5);
+    }
 
-        int16_t x0;
-        int16_t x1;
+    int16_t x0;
+    int16_t x1;
 
-        if(slideWhistle->touchHeld)
-        {
-            x0 = slideWhistle->touchPosition - CURSOR_WIDTH / 2;
-            x1 = slideWhistle->touchPosition + CURSOR_WIDTH / 2;
-        }
-        else
-        {
-            x0 = slideWhistle->roll - CURSOR_WIDTH / 2;
-            x1 = slideWhistle->roll + CURSOR_WIDTH / 2;
-        }
+    if(slideWhistle->touchHeld)
+    {
+        x0 = slideWhistle->touchPosition - CURSOR_WIDTH / 2;
+        x1 = slideWhistle->touchPosition + CURSOR_WIDTH / 2;
+    }
+    else
+    {
+        x0 = slideWhistle->roll - CURSOR_WIDTH / 2;
+        x1 = slideWhistle->roll + CURSOR_WIDTH / 2;
+    }
 
-        // Plot the cursor
-        fillDisplayArea(slideWhistle->disp, x0, y0, x1, y1, c551);
+    // Plot the cursor
+    fillDisplayArea(slideWhistle->disp, x0, y0, x1, y1, c551);
 
     // Plot the rhythm
     drawText(
