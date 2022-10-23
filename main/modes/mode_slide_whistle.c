@@ -27,6 +27,7 @@
 #include "musical_buzzer.h"
 #include "swadgeMode.h"
 #include "settingsManager.h"
+#include "touch_sensor.h"
 
 #include "mode_slide_whistle.h"
 
@@ -35,11 +36,16 @@
  *============================================================================*/
 
 #define CORNER_OFFSET 12
-#define TICK_HEIGHT 2
-#define CURSOR_HEIGHT 4
+#define LINE_BREAK_Y 8
+#define TICK_HEIGHT 3
+#define CURSOR_HEIGHT 5
+#define CURSOR_WIDTH 3
 #define BAR_X_MARGIN 0
-#define BAR_Y_MARGIN (slideWhistle->radiostars.h + CURSOR_HEIGHT + 1)
+#define BAR_Y_MARGIN (slideWhistle->radiostars.h + CURSOR_HEIGHT + 2)
+#define BAR_X_WIDTH (slideWhistle->disp->w - (2 * BAR_X_MARGIN) - 1)
 
+/// Helper macro to return an integer clamped within a range (MIN to MAX)
+#define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
 #define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
 #define REST_BIT 0x10000 // Largest note is 144, which is 0b10010000
@@ -108,7 +114,6 @@ noteFrequency_t  getCurrentNote(void);
 char*  noteToStr(noteFrequency_t note);
 void  plotBar(uint8_t yOffset);
 void  noteToColor( led_t* led, noteFrequency_t note, uint8_t brightness);
-void  paramSwitchTimerFunc(void* arg __attribute__((unused)));
 
 /*==============================================================================
  * Structs
@@ -184,8 +189,9 @@ typedef struct
     char accelStr2[32];
 
     // Track touch
-    bool touchDown;
-    int16_t touchPosition;
+    bool touchHeld;
+    int32_t touchPosition;
+    int32_t touchIntensity;
 
     // Track rhythm
     esp_timer_create_args_t beatTimerArgs;
@@ -202,9 +208,6 @@ typedef struct
     bool shouldPlay;
     uint8_t rhythmIdx;
     uint8_t scaleIdx;
-    bool modifyBpm;
-    esp_timer_create_args_t paramSwitchTimerArgs;
-    esp_timer_handle_t paramSwitchTimer;
 } slideWhistle_t;
 
 slideWhistle_t* slideWhistle;
@@ -212,6 +215,13 @@ slideWhistle_t* slideWhistle;
 /*==============================================================================
  * Const Variables
  *============================================================================*/
+
+// Text
+const char rhythmText[] = "Sel: Rhythm";
+const char scaleText[] =  "Start: Scale";
+const char bpmText[] =    "< >: BPM";
+const char mutedText[] =  "Swadge is muted!";
+const char playText[] =   ": Play";
 
 // All the scales
 #define LOWER_OCTAVE
@@ -825,7 +835,7 @@ const rhythm_t rhythms[] =
         .defaultBpm = 6 // 86
     },
     {
-        .name = "stickerbush",
+        .name = "stckrbsh",
         .rhythm = stickerbush,
         .rhythmLen = lengthof(stickerbush),
         .interNotePauseMs = DEFAULT_PAUSE,
@@ -1013,17 +1023,6 @@ void  slideWhistleEnterMode(display_t * disp)
     {
         esp_timer_start_periodic(slideWhistle->beatTimer, 1000);
     }
-
-    // Draw an initial display
-    //slideWhistleMainLoop();
-
-    // Set up a timer to handle the parameter button
-    slideWhistle->paramSwitchTimerArgs.arg = NULL;
-    slideWhistle->paramSwitchTimerArgs.callback = paramSwitchTimerFunc;
-    slideWhistle->paramSwitchTimerArgs.dispatch_method = ESP_TIMER_TASK;
-    slideWhistle->paramSwitchTimerArgs.name = "slideWhistleparamSwitchTimer";
-    slideWhistle->paramSwitchTimerArgs.skip_unhandled_events = true;
-    esp_timer_create(&slideWhistle->paramSwitchTimerArgs, &slideWhistle->paramSwitchTimer);
 }
 
 /**
@@ -1038,10 +1037,8 @@ void  slideWhistleExitMode(void)
     freeFont(&slideWhistle->mm);
 
     esp_timer_stop(slideWhistle->beatTimer);
-    esp_timer_stop(slideWhistle->paramSwitchTimer);
 
     esp_timer_delete(slideWhistle->beatTimer);
-    esp_timer_delete(slideWhistle->paramSwitchTimer);
 
     free(slideWhistle);
 }
@@ -1055,18 +1052,14 @@ void  slideWhistleExitMode(void)
  */
 void  slideWhistleTouchCallback(touch_event_t* evt)
 {
-    slideWhistle->touchDown = evt->state != 0;
+    slideWhistle->touchHeld = evt->state != 0;
     slideWhistle->shouldPlay = evt->state != 0 || slideWhistle->aHeld;
 
-    slideWhistle->touchPosition = roundf((evt->position * slideWhistle->disp->w) / 255);
-    if(slideWhistle->touchPosition >= slideWhistle->disp->w)
-    {
-        slideWhistle->touchPosition = slideWhistle->disp->w - 1;
-    }
-    else if(slideWhistle->touchPosition < 0)
-    {
-        slideWhistle->touchPosition = 0;
-    }
+    //slideWhistle->touchPosition = roundf((evt->position * BAR_X_WIDTH) / 255);
+    getTouchCentroid(&slideWhistle->touchPosition, &slideWhistle->touchIntensity);
+    slideWhistle->touchPosition = (slideWhistle->touchPosition / 1024.0f) * BAR_X_WIDTH;
+
+    slideWhistle->touchPosition = CLAMP(slideWhistle->touchPosition, BAR_X_MARGIN, slideWhistle->disp->w - 1 - BAR_X_MARGIN);
 }
 
 /**
@@ -1080,62 +1073,33 @@ void  slideWhistleButtonCallback(buttonEvt_t* evt)
     {
         case START:
         {
-            // Center
             if(evt->down)
             {
                 // Cycle the scale
                 slideWhistle->scaleIdx = (slideWhistle->scaleIdx + 1) % lengthof(scales);
-                //slideWhistleMainLoop();
             }
             break;
         }
-        case BTN_B:
+        case SELECT:
         {
-            // Left
             if(evt->down)
             {
-                // Start a timer to either switch the mode or change the BPM
-                esp_timer_start_once(slideWhistle->paramSwitchTimer, 1000 * 1000);
-                slideWhistle->modifyBpm = false;
-            }
-            else // Released
-            {
-                // Stop the timer no matter what
-                esp_timer_stop(slideWhistle->paramSwitchTimer);
-
-                // Button released while timer is still active, switch the mode
-                if(false == slideWhistle->modifyBpm)
-                {
-                    // cycle params
-                    slideWhistle->rhythmIdx = (slideWhistle->rhythmIdx + 1) % lengthof(rhythms);
-                    slideWhistle->timeUs = 0;
-                    slideWhistle->rhythmNoteIdx = 0;
-                    slideWhistle->lastCallTimeUs = 0;
-                    slideWhistle->bpmIdx = rhythms[slideWhistle->rhythmIdx].defaultBpm;
-                    //slideWhistleMainLoop();
-                }
-                // Clear this flag on release, always
-                slideWhistle->modifyBpm = false;
+                // Cycle the rhythm
+                slideWhistle->rhythmIdx = (slideWhistle->rhythmIdx + 1) % lengthof(rhythms);
+                slideWhistle->timeUs = 0;
+                slideWhistle->rhythmNoteIdx = 0;
+                slideWhistle->lastCallTimeUs = 0;
+                slideWhistle->bpmIdx = rhythms[slideWhistle->rhythmIdx].defaultBpm;
             }
 
             break;
         }
         case BTN_A:
         {
-            // Right, track whether a note should be played or not
-            if(false == slideWhistle->modifyBpm)
-            {
-                slideWhistle->rhythmNoteIdx = 0;
-                slideWhistle->lastCallTimeUs = 0;
-                slideWhistle->aHeld = evt->down;
-                slideWhistle->shouldPlay = evt->down || slideWhistle->touchDown;
-            }
-            else
-            {
-                slideWhistle->aHeld = false;
-                slideWhistle->shouldPlay = false;
-            }
-
+            slideWhistle->rhythmNoteIdx = 0;
+            slideWhistle->lastCallTimeUs = 0;
+            slideWhistle->aHeld = evt->down;
+            slideWhistle->shouldPlay = evt->down || slideWhistle->touchHeld;
             break;
         }
         case UP:
@@ -1148,24 +1112,31 @@ void  slideWhistleButtonCallback(buttonEvt_t* evt)
             slideWhistle->downHeld = evt->down;
             break;
         }
+        case LEFT:
+        {
+            if(evt->down)
+            {
+                slideWhistle->bpmIdx = (slideWhistle->bpmIdx + 1) % lengthof(bpms);
+            }
+            break;
+        }
+        case RIGHT:
+        {
+            if(evt->down)
+            {
+                if(slideWhistle->bpmIdx == 0)
+                {
+                    slideWhistle->bpmIdx = lengthof(bpms);
+                }
+                slideWhistle->bpmIdx = slideWhistle->bpmIdx - 1;
+            }
+            break;
+        }
         default:
         {
             break;
         }
     }
-}
-
-/**
- * Timer started when the 'choose' button is pressed.
- * If it expires before the button is released, set the flag to modify BPM
- * If it doesn't expire before the button is released, switch the mode params
- *
- * @param arg unused
- */
-void  paramSwitchTimerFunc(void* arg __attribute__((unused)))
-{
-    slideWhistle->modifyBpm = true;
-    slideWhistle->shouldPlay = false;
 }
 
 /**
@@ -1190,39 +1161,16 @@ void  slideWhistleAccelerometerHandler(accel_t* accel)
     rollF = ((rollF) / M_PI) + 0.5f;
     pitchF = ((pitchF) / M_PI) + 0.5f;
 
-    // Round and scale to slideWhistle->disp->w
+    // Round and scale to BAR_X_WIDTH
     // this maps 30 degrees to the far left and 150 degrees to the far right
     // (30 / 180) == 0.167, (180 - (2 * 30)) / 180 == 0.666
-    slideWhistle->roll = roundf(((rollF - 0.167f) * slideWhistle->disp->w) / 0.666f);
-    if(slideWhistle->roll >= slideWhistle->disp->w)
-    {
-        slideWhistle->roll = slideWhistle->disp->w - 1;
-    }
-    else if(slideWhistle->roll < 0)
-    {
-        slideWhistle->roll = 0;
-    }
-    slideWhistle->pitch = roundf(pitchF * slideWhistle->disp->w);
-    if(slideWhistle->pitch >= slideWhistle->disp->w)
-    {
-        slideWhistle->pitch = slideWhistle->disp->w - 1;
-    }
+    slideWhistle->roll = BAR_X_WIDTH - roundf(((rollF - 0.167f) * BAR_X_WIDTH) / 0.666f);
+    slideWhistle->roll = CLAMP(slideWhistle->roll, BAR_X_MARGIN, slideWhistle->disp->w - 1 - BAR_X_MARGIN);
 
-    // Check if the BPM should be adjusted
-    if(true == slideWhistle->modifyBpm)
-    {
-        // Get the number of BPMs
-        uint8_t numBpms = lengthof(bpms);
-        // Scale the roll to the BPM range and reverse it
-        slideWhistle->bpmIdx = (int)(rollF * numBpms);
-        if(slideWhistle->bpmIdx >= numBpms)
-        {
-            slideWhistle->bpmIdx = numBpms - 1;
-        }
-        slideWhistle->bpmIdx = numBpms - slideWhistle->bpmIdx - 1;
-    }
+    slideWhistle->pitch = roundf(pitchF * BAR_X_WIDTH);
+    slideWhistle->pitch = CLAMP(slideWhistle->pitch, BAR_X_MARGIN, slideWhistle->disp->w - 1 - BAR_X_MARGIN);
 
-    snprintf(slideWhistle->accelStr, sizeof(slideWhistle->accelStr), "roll %6d pitch %6d",
+    snprintf(slideWhistle->accelStr, sizeof(slideWhistle->accelStr), "roll %5d pitch %5d",
     slideWhistle->roll, slideWhistle->pitch);
     snprintf(slideWhistle->accelStr2, sizeof(slideWhistle->accelStr2), "x %4d, y %4d, z %4d",
     accel->x, accel->y, accel->z);
@@ -1236,15 +1184,14 @@ void  slideWhistleAccelerometerHandler(accel_t* accel)
 void  slideWhistleMainLoop(int64_t elapsedUs)
 {
     slideWhistle->disp->clearPx();
+    fillDisplayArea(slideWhistle->disp, 0, 0, slideWhistle->disp->w, slideWhistle->disp->h, c100);
 
     // Plot the bars
     plotBar(slideWhistle->disp->h - BAR_Y_MARGIN - 1 - CORNER_OFFSET * 2);
     plotBar(slideWhistle->disp->h - BAR_Y_MARGIN - (2 * CURSOR_HEIGHT + 5) - CORNER_OFFSET * 2);
     plotBar(slideWhistle->disp->h - BAR_Y_MARGIN - 2* (2 * CURSOR_HEIGHT + 5) - CORNER_OFFSET * 2);
 
-    // Draw the cursor if the BPM isn't being modified
-    if(false == slideWhistle->modifyBpm)
-    {
+    // Draw the cursor
         int16_t y0 = slideWhistle->disp->h - BAR_Y_MARGIN - CURSOR_HEIGHT - CORNER_OFFSET * 2;
         int16_t y1 = slideWhistle->disp->h - BAR_Y_MARGIN + CURSOR_HEIGHT - CORNER_OFFSET * 2;
 
@@ -1264,55 +1211,67 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
             y1 -= (2 * CURSOR_HEIGHT + 5);
         }
 
-        int16_t x;
+        int16_t x0;
+        int16_t x1;
 
-        if(slideWhistle->touchDown)
+        if(slideWhistle->touchHeld)
         {
-            x = slideWhistle->touchPosition * slideWhistle->disp->w / 255;
+            x0 = slideWhistle->touchPosition - CURSOR_WIDTH / 2;
+            x1 = slideWhistle->touchPosition + CURSOR_WIDTH / 2;
         }
         else
         {
-            x = slideWhistle->roll;
+            x0 = slideWhistle->roll - CURSOR_WIDTH / 2;
+            x1 = slideWhistle->roll + CURSOR_WIDTH / 2;
         }
 
         // Plot the cursor
-        plotLine(slideWhistle->disp, x, y0,
-                 x, y1,
-                 c540, 0);
-    }
+        fillDisplayArea(slideWhistle->disp, x0, y0, x1, y1, c551);
 
-    // Plot the title
+    // Plot the rhythm
     drawText(
         slideWhistle->disp,
-        &slideWhistle->radiostars, c555,
-        scales[slideWhistle->scaleIdx].name,
-        slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, scales[slideWhistle->scaleIdx].name) - CORNER_OFFSET,
+        &slideWhistle->radiostars, c444,
+        rhythmText,
+        CORNER_OFFSET,
         CORNER_OFFSET);
     drawText(
         slideWhistle->disp,
         &slideWhistle->radiostars, c555,
         rhythms[slideWhistle->rhythmIdx].name,
-        CORNER_OFFSET,
+        slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, rhythms[slideWhistle->rhythmIdx].name) - CORNER_OFFSET,
         CORNER_OFFSET);
 
-    // Plot the BPM
-    char bpmStr[8] = {0};
-    snprintf(bpmStr, sizeof(bpmStr), "%d", bpms[slideWhistle->bpmIdx].bpm);
-    drawText(slideWhistle->disp, &slideWhistle->radiostars, c555, bpmStr, CORNER_OFFSET, slideWhistle->radiostars.h + 4 + CORNER_OFFSET);
+    // Plot the scale
+    drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c444,
+        scaleText,
+        CORNER_OFFSET,
+        slideWhistle->radiostars.h + LINE_BREAK_Y + CORNER_OFFSET);
+    drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c555,
+        scales[slideWhistle->scaleIdx].name,
+        slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, scales[slideWhistle->scaleIdx].name) - CORNER_OFFSET,
+        slideWhistle->radiostars.h + LINE_BREAK_Y + CORNER_OFFSET);
 
-    // Underline it if it's being modified
-    if(true == slideWhistle->modifyBpm)
-    {
-        for(uint8_t i = 2; i < 4; i++)
-        {
-            plotLine(slideWhistle->disp, 
-                0,
-                (2 * slideWhistle->radiostars.h) + 4 + i,
-                textWidth(&slideWhistle->radiostars, bpmStr),
-                (2 * slideWhistle->radiostars.h) + 4 + i,
-                c555, 0);
-        }
-    }
+    // Plot the BPM
+    drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c444,
+        bpmText,
+        CORNER_OFFSET,
+        (slideWhistle->radiostars.h + LINE_BREAK_Y) * 2 + CORNER_OFFSET);
+    
+    char bpmStr[16] = {0};
+    snprintf(bpmStr, sizeof(bpmStr), "%d", bpms[slideWhistle->bpmIdx].bpm);
+    drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c555,
+        bpmStr,
+        slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, bpmStr) - CORNER_OFFSET,
+        (slideWhistle->radiostars.h + LINE_BREAK_Y) * 2 + CORNER_OFFSET);
 
     // Debug print
     char buffer[32];
@@ -1327,19 +1286,34 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
         drawText(
         slideWhistle->disp,
         &slideWhistle->radiostars, c555,
-        "Swadge is muted!",
-        (slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, "Swadge is muted!")) / 2,
+        mutedText,
+        (slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, mutedText)) / 2,
         slideWhistle->disp->h / 2);
-    } // Plot the note if BPM isn't being modified
-    else if(false == slideWhistle->modifyBpm)
-    {
-        drawText(slideWhistle->disp, &slideWhistle->mm, c555, noteToStr(getCurrentNote()), (slideWhistle->disp->w - textWidth(&slideWhistle->mm, noteToStr(getCurrentNote()))) / 2, slideWhistle->disp->h / 2);
     }
+    
+    // Plot the note
+    drawText(slideWhistle->disp, &slideWhistle->mm, c555, noteToStr(getCurrentNote()), (slideWhistle->disp->w - textWidth(&slideWhistle->mm, noteToStr(getCurrentNote()))) / 2, slideWhistle->disp->h / 2);
 
     // Plot the button funcs
-    drawText(slideWhistle->disp, &slideWhistle->radiostars, c555, "Rhythm (BPM)", CORNER_OFFSET, slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
-    drawText(slideWhistle->disp, &slideWhistle->radiostars, c555, "Scale", (slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, "Scale")) / 2 - CORNER_OFFSET, slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
-    drawText(slideWhistle->disp, &slideWhistle->radiostars, c555, "Play", slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, "Play") - CORNER_OFFSET, slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
+    drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c222,
+        "B: Nothing yet",
+        CORNER_OFFSET,
+        slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
+
+    int16_t afterText = drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c151,
+        "A",
+        slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, playText) - textWidth(&slideWhistle->radiostars, "A") - CORNER_OFFSET,
+        slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
+    drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c444,
+        playText,
+        afterText,
+        slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
 }
 
 /**
@@ -1364,7 +1338,7 @@ void  plotBar(uint8_t yOffset)
                                      (scales[slideWhistle->scaleIdx].notesLen / 2)) ;
         plotLine(slideWhistle->disp, x, yOffset - TICK_HEIGHT,
                  x, yOffset + TICK_HEIGHT,
-                 c555, 0);
+                 c235, 0);
     }
 }
 
@@ -1438,7 +1412,7 @@ void  slideWhistleBeatTimerFunc(void* arg __attribute__((unused)))
         }
 
         // If the button isn't held, or the BPM is being modified, or this is a rest
-        if(!slideWhistle->shouldPlay || true == slideWhistle->modifyBpm ||
+        if(!slideWhistle->shouldPlay ||
                 (rhythms[slideWhistle->rhythmIdx].rhythm[slideWhistle->rhythmNoteIdx].note & REST_BIT))
         {
             // Turn off the buzzer and set the LEDs to dim
@@ -1477,13 +1451,13 @@ noteFrequency_t  getCurrentNote(void)
 {
     // Get the index of the note to play based on roll
     uint8_t noteIdx;
-    if(slideWhistle->touchDown)
+    if(slideWhistle->touchHeld)
     {
-        noteIdx = (slideWhistle->touchPosition * (scales[slideWhistle->scaleIdx].notesLen / 2)) / slideWhistle->disp->w;
+        noteIdx = (slideWhistle->touchPosition * (scales[slideWhistle->scaleIdx].notesLen / 2)) / BAR_X_WIDTH;
     }
     else
     {
-        noteIdx = (slideWhistle->roll * (scales[slideWhistle->scaleIdx].notesLen / 2)) / slideWhistle->disp->w;
+        noteIdx = (slideWhistle->roll * (scales[slideWhistle->scaleIdx].notesLen / 2)) / BAR_X_WIDTH;
     }
 
     // See if we should play the higher note
