@@ -182,14 +182,15 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
         uint16_t * sampleHist = colorchord->sampleHist;
         uint16_t sampleHistCount = colorchord->sampleHistCount;
         int16_t sampleHistMark = colorchord->sampleHistHead - 1;
+
         for( x = 0; x < dispWidth; x++ )
         {
-            int16_t sample = sampleHist[sampleHistMark];
-            sampleHistMark--;
             if(sampleHistMark < 0)
             {
-                sampleHistMark = sampleHistCount;
+                sampleHistMark = sampleHistCount - 1;
             }
+            int16_t sample = sampleHist[sampleHistMark];
+            sampleHistMark--;
             uint16_t y = ((sample * dispHeight)>>16) + (dispHeight/2);
             if( y >= dispHeight ) continue;
             TURBO_SET_PIXEL( colorchord->disp, x, y, 215 );
@@ -259,7 +260,7 @@ void colorchordMainLoop(int64_t elapsedUs __attribute__((unused)))
     const char exitText[] = "Start + Select to Exit";
     int16_t exitWidth = textWidth(&colorchord->ibm_vga8, exitText);
     drawText(colorchord->disp, &colorchord->ibm_vga8, c555, exitText,
-             (colorchord->disp->w - exitWidth) / 2, colorchord->disp->h - colorchord->ibm_vga8.h);
+             (colorchord->disp->w - exitWidth) / 2, colorchord->disp->h - colorchord->ibm_vga8.h - TEXT_Y);
 }
 
 /**

@@ -42,6 +42,7 @@
 *.su
 *.idb
 *.pdb
+crash*
 
 # Kernel Module Compile Results
 *.mod*

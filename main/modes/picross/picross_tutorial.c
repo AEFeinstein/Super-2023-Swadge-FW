@@ -12,7 +12,6 @@
 void drawTutorial(void);
 void drawNavigation(void);
 void drawPicrossQRCode(void);
-void picrossExitTutorial(void);
 
 //variables
 picrossTutorial_t* tut;

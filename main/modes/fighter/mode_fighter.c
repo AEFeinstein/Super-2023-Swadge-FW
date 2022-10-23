@@ -27,6 +27,7 @@
 #include "mode_fighter.h"
 #include "fighter_json.h"
 #include "fighter_menu.h"
+#include "fighter_music.h"
 
 //==============================================================================
 // Constants
@@ -80,7 +81,10 @@ typedef struct
     int32_t fpsTimeCount;
     int32_t fpsFrameCount;
     int32_t fps;
-    wsg_t indicator;
+    wsg_t p1indicH;
+    wsg_t p1indicV;
+    wsg_t p2indicH;
+    wsg_t p2indicV;
     vector_t cameraOffset;
     led_t leds[NUM_LEDS];
     led_t lColor;
@@ -111,7 +115,8 @@ uint32_t getHitstop(uint16_t damage);
 void getSpritePos(fighter_t* ftr, vector_t* spritePos);
 fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, list_t* projectiles,
                                     uint8_t* outLen);
-void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir, bool isInvincible);
+void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir, bool isInvincible,
+                 wsg_t* indicH, wsg_t* indicV);
 void drawFighterHud(display_t* d, font_t* font,
                     int16_t f1_dmg, int16_t f1_stock, int16_t f1_stockIconIdx,
                     int16_t f2_dmg, int16_t f2_stock, int16_t f2_stockIconIdx,
@@ -332,7 +337,10 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
     f->mm_font = mmFont;
 
     // Load an indicator image
-    loadWsg("indic.wsg", &f->indicator);
+    loadWsg("p1indicH.wsg", &f->p1indicH);
+    loadWsg("p1indicV.wsg", &f->p1indicV);
+    loadWsg("p2indicH.wsg", &f->p2indicH);
+    loadWsg("p2indicV.wsg", &f->p2indicV);
 
     // Start the scene as NULL
     f->composedScene = NULL;
@@ -390,6 +398,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
         switch(type)
         {
             case MULTIPLAYER:
+            case LOCAL_VS:
             {
                 // Start with three stocks
                 f->fighters[i].stocks = NUM_STOCKS;
@@ -429,6 +438,8 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
     {
         fighterSendButtonsToOther(fighterGetButtonState());
     }
+
+    buzzer_play_bgm(&fighter_music);
 }
 
 /**
@@ -439,7 +450,10 @@ void fighterExitGame(void)
     if(NULL != f)
     {
         // Free the indicator
-        freeWsg(&f->indicator);
+        freeWsg(&f->p1indicH);
+        freeWsg(&f->p1indicV);
+        freeWsg(&f->p2indicH);
+        freeWsg(&f->p2indicV);
 
         // Free any stray projectiles
         projectile_t* toFree;
@@ -467,6 +481,8 @@ void fighterExitGame(void)
         free(f);
         f = NULL;
     }
+
+    buzzer_stop();
 }
 
 /**
@@ -676,7 +692,10 @@ void fighterGameLoop(int64_t elapsedUs)
     }
 
     // Only process the loop as single player, or as the server in multi
-    bool runProcLoop = ((f->type == HR_CONTEST) || ((f->type == MULTIPLAYER) && (0 == f->playerIdx)));
+    bool runProcLoop =
+        (f->type == HR_CONTEST) ||
+        (f->type == LOCAL_VS) ||
+        ((f->type == MULTIPLAYER) && (0 == f->playerIdx));
 
     if(runProcLoop)
     {
@@ -688,7 +707,7 @@ void fighterGameLoop(int64_t elapsedUs)
                 if(f->gameTimerUs <= 0)
                 {
                     // After count-in, transition to the appropriate state
-                    if(MULTIPLAYER == f->type)
+                    if((MULTIPLAYER == f->type) || (LOCAL_VS == f->type))
                     {
                         f->gameTimerUs = 0; // Count up after this
                         f->gamePhase = MP_GAME;
@@ -767,6 +786,7 @@ void fighterGameLoop(int64_t elapsedUs)
                     break;
                 }
                 case HR_CONTEST:
+                case LOCAL_VS:
                 {
                     // All button input is local
                     f->buttonInputReceived = true;
@@ -787,7 +807,9 @@ void fighterGameLoop(int64_t elapsedUs)
                 if(COUNTING_IN == f->gamePhase)
                 {
                     f->fighters[0].btnState = 0;
+                    f->fighters[0].btnPressesSinceLast = 0;
                     f->fighters[1].btnState = 0;
+                    f->fighters[1].btnPressesSinceLast = 0;
                 }
                 // Check fighter button inputs
                 checkFighterButtonInput(&f->fighters[0]);
@@ -1043,7 +1065,11 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
             }
             if(0 != atk->velocity.y)
             {
-                ftr->velocity.y = atk->velocity.y;
+                // If a fighter ledge jumped, don't let an attack make them fall again
+                if(false == ftr->ledgeJumped)
+                {
+                    ftr->velocity.y = atk->velocity.y;
+                }
             }
 
             // Resize the hurtbox if there's a custom one
@@ -1505,23 +1531,43 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 if(ftr->btnState & LEFT)
                 {
                     movementInput = true;
-                    // Accelerate towards the left
-                    ftr->velocity.x = v0.x - (((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF);
-                    // Cap the velocity
-                    if (ftr->velocity.x < -ftr->run_max_velo)
+
+                    // Move left if not up against a wall
+                    if(RIGHT_OF_PLATFORM != ftr->relativePos)
                     {
-                        ftr->velocity.x = -ftr->run_max_velo;
+                        // Accelerate towards the left
+                        ftr->velocity.x = v0.x - (((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF);
+                        // Cap the velocity
+                        if (ftr->velocity.x < -ftr->run_max_velo)
+                        {
+                            ftr->velocity.x = -ftr->run_max_velo;
+                        }
+                    }
+                    else
+                    {
+                        // Otherwise stop
+                        ftr->velocity.x = 0;
                     }
                 }
                 else if (ftr->btnState & RIGHT)
                 {
                     movementInput = true;
-                    // Accelerate towards the right
-                    ftr->velocity.x = v0.x + (((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF);
-                    // Cap the velocity
-                    if(ftr->velocity.x > ftr->run_max_velo)
+
+                    // Move right if not up against a wall
+                    if(LEFT_OF_PLATFORM != ftr->relativePos)
                     {
-                        ftr->velocity.x = ftr->run_max_velo;
+                        // Accelerate towards the right
+                        ftr->velocity.x = v0.x + (((ftr->run_accel / 4) * FRAME_TIME_MS) >> SF);
+                        // Cap the velocity
+                        if(ftr->velocity.x > ftr->run_max_velo)
+                        {
+                            ftr->velocity.x = ftr->run_max_velo;
+                        }
+                    }
+                    else
+                    {
+                        // Otherwise stop
+                        ftr->velocity.x = 0;
                     }
                 }
             }
@@ -1595,7 +1641,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 (dest_hurtbox.x1 > hrStadium.platforms[0].area.x1 && ftr->velocity.x > 0))
         {
             // Reverse direction at 3/4 speed
-            ftr->velocity.x = -((3 * ftr->velocity.x) >> 2);
+            ftr->velocity.x = -((3 * ftr->velocity.x) / 4);
         }
     }
 
@@ -1850,9 +1896,28 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         if(((hbox.y0 >> SF) < (platforms[idx].area.y1 >> SF)) &&
                 ((hbox.y1 >> SF) > (platforms[idx].area.y0 >> SF)))
         {
+            bounceDir_t bounceDir = NO_BOUNCE;
+            platformPos_t platformPos = ftr->relativePos;
+
             // If the fighter is moving rightward and hit a wall
             if ((ftr->velocity.x >= 0) &&
                     (((hbox.x1 >> SF)) == (platforms[idx].area.x0 >> SF)))
+            {
+                // Check these things
+                bounceDir = BOUNCE_RIGHT;
+                platformPos = LEFT_OF_PLATFORM;
+            }
+            // If the fighter is moving leftward and hit a wall
+            else if ((ftr->velocity.x <= 0) &&
+                     ((hbox.x0 >> SF) == ((platforms[idx].area.x1 >> SF))))
+            {
+                // Check these things
+                bounceDir = BOUNCE_LEFT;
+                platformPos = RIGHT_OF_PLATFORM;
+            }
+
+            // If a wall was hit
+            if(NO_BOUNCE != bounceDir)
             {
                 if((true == platforms[idx].canFallThrough))
                 {
@@ -1861,8 +1926,8 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 }
                 else
                 {
-                    // Fighter to left of a solid platform
-                    if(BOUNCE_RIGHT == ftr->bounceNextCollision)
+                    // Fighter to side of a solid platform
+                    if(bounceDir == ftr->bounceNextCollision)
                     {
                         // Bounce right at half velocity
                         ftr->velocity.x = (-ftr->velocity.x);
@@ -1871,11 +1936,11 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     else
                     {
                         ftr->velocity.x = 0;
-                        setFighterRelPos(ftr, LEFT_OF_PLATFORM, &platforms[idx], NULL, true);
+                        setFighterRelPos(ftr, platformPos, &platforms[idx], NULL, true);
                     }
 
                     // Moving downward
-                    if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
+                    if((false == ftr->ledgeJumped) && (ftr->isInFreefall) && (ftr->velocity.y > 0))
                     {
                         // Give a bonus 'jump' to get back on the platform
                         ftr->ledgeJumped = true;
@@ -1885,39 +1950,31 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 }
                 break;
             }
-            // If the fighter is moving leftward and hit a wall
-            else if ((ftr->velocity.x <= 0) &&
-                     ((hbox.x0 >> SF) == ((platforms[idx].area.x1 >> SF))))
-            {
-                if((true == platforms[idx].canFallThrough))
-                {
-                    // Pass through this platform from the side
-                    setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, &platforms[idx], true);
-                }
-                else
-                {
-                    // Fighter to right of a solid platform
-                    if(BOUNCE_LEFT == ftr->bounceNextCollision)
-                    {
-                        // Bounce left at half velocity
-                        ftr->velocity.x = (-ftr->velocity.x);
-                        ftr->bounceNextCollision = NO_BOUNCE;
-                    }
-                    else
-                    {
-                        ftr->velocity.x = 0;
-                        setFighterRelPos(ftr, RIGHT_OF_PLATFORM, &platforms[idx], NULL, true);
-                    }
+        }
+    }
 
-                    // Moving downward
-                    if((false == ftr->ledgeJumped) && (ftr->velocity.y > 0))
-                    {
-                        // Give a bonus 'jump' to get back on the platform
-                        ftr->ledgeJumped = true;
-                        ftr->velocity.y = ftr->jump_velo;
-                        ftr->iFrameTimer = IFRAMES_AFTER_LEDGE_JUMP;
-                    }
-                }
+    // If the fighter is mid-air, make sure the state is valid
+    if(ftr->relativePos == NOT_TOUCHING_PLATFORM)
+    {
+        switch(ftr->state)
+        {
+            default:
+            case FS_IDLE:
+            case FS_RUNNING:
+            case FS_DUCKING:
+            {
+                // These are ground states, so transition to jump state
+                setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
+                setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
+                break;
+            }
+            case FS_JUMPING:
+            case FS_STARTUP:
+            case FS_ATTACK:
+            case FS_COOLDOWN:
+            case FS_HITSTUN:
+            {
+                // These states are allowed mid-air
                 break;
             }
         }
@@ -2400,7 +2457,7 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     {
         // Add the sound effect to the scene
         scene->sfx = SFX_FIGHTER_2_HIT;
-        if(MULTIPLAYER == f->type)
+        if((MULTIPLAYER == f->type) || (LOCAL_VS == f->type))
         {
             scene->ledfx |= LEDFX_FIGHTER_2_HIT;
         }
@@ -2531,8 +2588,10 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
     int16_t f2_stockIconIdx = scene->f2.stockIconIdx;
 
     // Actually draw fighters
-    drawFighter(d, getFighterSprite(f2_sprite, f->loadedSprites), f2_posX, f2_posY, f2_dir, f2_invincible);
-    drawFighter(d, getFighterSprite(f1_sprite, f->loadedSprites), f1_posX, f1_posY, f1_dir, f1_invincible);
+    drawFighter(d, getFighterSprite(f2_sprite, f->loadedSprites), f2_posX, f2_posY, f2_dir, f2_invincible, &f->p1indicH,
+                &f->p1indicV);
+    drawFighter(d, getFighterSprite(f1_sprite, f->loadedSprites), f1_posX, f1_posY, f1_dir, f1_invincible, &f->p2indicH,
+                &f->p2indicV);
 
     // Iterate through projectiles
     int16_t numProj = scene->numProjectiles;
@@ -2639,8 +2698,11 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
  * @param y The y coordinate of the sprite
  * @param dir The direction the sprite is facing
  * @param isInvincible true if the fighter is invincible
+ * @param indicH Indicator WSG that points left or right
+ * @param indicV Indicator WSG that points up or down
  */
-void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir, bool isInvincible)
+void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir, bool isInvincible,
+                 wsg_t* indicH, wsg_t* indicV)
 {
     // Check if sprite is completely offscreen
     if ((x + sprite->w <= 0) || (x >= d->w) ||
@@ -2655,11 +2717,11 @@ void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirec
         // Calculate and draw indicator
         int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
         int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-        int err = dx + dy, e2; /* error value e_xy */
+        int err = dx + dy; /* error value e_xy */
 
         for (;;)   /* loop */
         {
-            e2 = 2 * err;
+            int e2 = 2 * err;
             if (e2 >= dy)   /* e_xy+e_x > 0 */
             {
                 if (x0 == x1)
@@ -2683,25 +2745,25 @@ void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirec
             if(x0 == 0)
             {
                 // Left boundary
-                drawWsg(d, &f->indicator, x0, y0 - (f->indicator.h / 2), false, false, 0);
+                drawWsg(d, indicH, x0, y0 - (indicH->h / 2), true, false, 0);
                 break;
             }
             else if (x0 == (d->w - 1))
             {
                 // Right boundary
-                drawWsg(d, &f->indicator, x0 - f->indicator.w, y0 - (f->indicator.h / 2), false, false, 180);
+                drawWsg(d, indicH, x0 - indicH->w + 1, y0 - (indicH->h / 2), false, false, 0);
                 break;
             }
             else if (y0 == 0)
             {
                 // Top boundary
-                drawWsg(d, &f->indicator, x0 - (f->indicator.w / 2), y0 - 2, false, false, 90);
+                drawWsg(d, indicV, x0 - (indicV->w / 2), y0, false, true, 0);
                 break;
             }
             else if(y0 == (d->h - 1))
             {
                 // Bottom boundary
-                drawWsg(d, &f->indicator, x0 - (f->indicator.w / 2), y0 - f->indicator.h + 3, false, false, 270);
+                drawWsg(d, indicV, x0 - (indicV->w / 2), y0 - indicV->h + 1, false, false, 0);
                 break;
             }
         }
@@ -2715,6 +2777,9 @@ void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirec
             int16_t r = ((sprite->w > sprite->h) ? (sprite->w) : (sprite->h)) / 2;
             plotCircle(d, x + (sprite->w / 2), y + (sprite->h / 2), r, INVINCIBLE_COLOR);
         }
+
+        // Draw indicator above fighter
+        drawWsg(d, indicV, x + ((sprite->w - indicV->w) / 2), y - indicV->h - 1, false, false, 0);
     }
 }
 
@@ -2926,10 +2991,32 @@ void drawProjectileDebugBox(display_t* d, list_t* projectiles, int16_t camOffX, 
  */
 void fighterGameButtonCb(buttonEvt_t* evt)
 {
-    // Save the state to check synchronously
-    f->fighters[f->playerIdx].btnState = evt->state;
-    // Save an OR'd list of presses separately
-    f->fighters[f->playerIdx].btnPressesSinceLast |= evt->state;
+#if defined(EMU)
+    if(LOCAL_VS == f->type)
+    {
+        if(evt->button >= EMU_P2_UP)
+        {
+            // Save the state to check synchronously
+            f->fighters[1].btnState = (evt->state >> 8);
+            // Save an OR'd list of presses separately
+            f->fighters[1].btnPressesSinceLast |= (evt->state >> 8);
+        }
+        else
+        {
+            // Save the state to check synchronously
+            f->fighters[0].btnState = evt->state;
+            // Save an OR'd list of presses separately
+            f->fighters[0].btnPressesSinceLast |= evt->state;
+        }
+    }
+    else
+#endif
+    {
+        // Save the state to check synchronously
+        f->fighters[f->playerIdx].btnState = evt->state;
+        // Save an OR'd list of presses separately
+        f->fighters[f->playerIdx].btnPressesSinceLast |= evt->state;
+    }
 }
 
 /**

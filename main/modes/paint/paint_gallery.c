@@ -67,7 +67,10 @@ void paintGalleryMainLoop(int64_t elapsedUs)
     if (paintGallery->galleryLoadNew)
     {
         paintGallery->galleryLoadNew = false;
-        paintGalleryDoLoad();
+        if (!paintGalleryDoLoad())
+        {
+            return;
+        }
     }
 
     paintGallery->galleryTime += elapsedUs;
@@ -87,7 +90,7 @@ void paintGalleryAddInfoText(const char* text)
 
 void paintGalleryModeButtonCb(buttonEvt_t* evt)
 {
-    bool updateTimeText;
+    bool updateTimeText = false;
     char text[32];
 
     if (evt->down)
@@ -172,32 +175,40 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
     }
 }
 
-void paintGalleryDoLoad(void)
+bool paintGalleryDoLoad(void)
 {
-    paintLoadDimensions(&paintGallery->canvas, paintGallery->gallerySlot);
-
-    uint8_t maxScale = paintGetMaxScale(paintGallery->canvas.disp, paintGallery->canvas.w, paintGallery->canvas.h, 0, 0);
-
-    if (paintGallery->galleryScale >= maxScale)
+    if(paintLoadDimensions(&paintGallery->canvas, paintGallery->gallerySlot))
     {
-        paintGallery->galleryScale = 0;
-    }
+        uint8_t maxScale = paintGetMaxScale(paintGallery->canvas.disp, paintGallery->canvas.w, paintGallery->canvas.h, 0, 0);
 
-    if (paintGallery->galleryScale == 0)
-    {
-        paintGallery->canvas.xScale = maxScale;
-        paintGallery->canvas.yScale = maxScale;
+        if (paintGallery->galleryScale >= maxScale)
+        {
+            paintGallery->galleryScale = 0;
+        }
+
+        if (paintGallery->galleryScale == 0)
+        {
+            paintGallery->canvas.xScale = maxScale;
+            paintGallery->canvas.yScale = maxScale;
+        }
+        else
+        {
+            paintGallery->canvas.xScale = paintGallery->galleryScale;
+            paintGallery->canvas.yScale = paintGallery->galleryScale;
+        }
+
+        paintGallery->canvas.x = (paintGallery->disp->w - paintGallery->canvas.w * paintGallery->canvas.xScale) / 2;
+        paintGallery->canvas.y = (paintGallery->disp->h - paintGallery->canvas.h * paintGallery->canvas.yScale) / 2;
+
+        paintGallery->disp->clearPx();
+
+        return paintLoad(&paintGallery->index, &paintGallery->canvas, paintGallery->gallerySlot);
     }
     else
     {
-        paintGallery->canvas.xScale = paintGallery->galleryScale;
-        paintGallery->canvas.yScale = paintGallery->galleryScale;
+        PAINT_LOGE("Slot %d has 0 dimension! Stopping load and clearing slot", paintGallery->gallerySlot);
+        paintClearSlot(&paintGallery->index, paintGallery->gallerySlot);
+        paintReturnToMainMenu();
+        return false;
     }
-
-    paintGallery->canvas.x = (paintGallery->disp->w - paintGallery->canvas.w * paintGallery->canvas.xScale) / 2;
-    paintGallery->canvas.y = (paintGallery->disp->h - paintGallery->canvas.h * paintGallery->canvas.yScale) / 2;
-
-    paintGallery->disp->clearPx();
-
-    paintLoad(&paintGallery->index, &paintGallery->canvas, paintGallery->gallerySlot);
 }

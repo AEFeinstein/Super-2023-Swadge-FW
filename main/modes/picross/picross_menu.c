@@ -136,6 +136,31 @@ void picrossEnterMode(display_t* disp)
 
 void picrossExitMode(void)
 {
+    switch (pm->screen)
+    {
+        case PICROSS_MENU:
+        case PICROSS_OPTIONS:
+        {
+            // Nothing extra
+            break;
+        }
+        case PICROSS_LEVELSELECT:
+        {
+            picrossExitLevelSelect();
+            break;
+        }
+        case PICROSS_GAME:
+        {
+            picrossExitGame();
+            break;
+        }
+        case PICROSS_TUTORIAL:
+        {
+            picrossExitTutorial();
+            break;
+        }
+    }
+
     //Free WSG's
     for(int i = 0;i<PICROSS_LEVEL_COUNT;i++)
     {
@@ -144,7 +169,6 @@ void picrossExitMode(void)
 
     }
     picrossExitLevelSelect();//this doesnt actually get called as we go in and out of levelselect (because it breaks everything), so lets call it now
-    // picrossExitGame();//this is already getting called! hooray.
     deinitMeleeMenu(pm->menu);
     //p2pDeinit(&jm->p2p);
     freeFont(&(pm->mmFont));
@@ -235,9 +259,9 @@ void loadLevels()
     loadWsg("CoffeeBean_PZL.wsg", &pm->levels[15].levelWSG);//coffeBean is pretty hard for a 10x10
     loadWsg("CoffeeBean_SLV.wsg", &pm->levels[15].completedWSG);
 
-    pm->levels[16].title = "Lobster";//Symmetry makes this less fun to solve. It's on the chopping block if we get better puzzles.
-    loadWsg("Lobster_PZL.wsg", &pm->levels[16].levelWSG);//10x10
-    loadWsg("Lobster_SLV.wsg", &pm->levels[16].completedWSG);
+    pm->levels[16].title = "Lobster";   //Symmetry makes this less fun to solve. It's on the chopping block if we get better puzzles.
+    loadWsg("lobster_PZL.wsg", &pm->levels[16].levelWSG);//10x10
+    loadWsg("lobster_SLV.wsg", &pm->levels[16].completedWSG);
 
     pm->levels[17].title = "Green Shell";
     loadWsg("GreenShell_PZL.wsg", &pm->levels[17].levelWSG);//10x10
