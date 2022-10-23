@@ -2500,13 +2500,13 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     {
         // Add the sound effect to the scene
         scene->sfx = SFX_FIGHTER_2_HIT;
-        if((MULTIPLAYER == f->type) || (LOCAL_VS == f->type))
+        if(HR_CONTEST == f->type)
         {
-            scene->ledfx |= LEDFX_FIGHTER_2_HIT;
+            scene->ledfx |= LEDFX_SANDBAG_HIT;
         }
         else
         {
-            scene->ledfx |= LEDFX_SANDBAG_HIT;
+            scene->ledfx |= LEDFX_FIGHTER_2_HIT;
         }
         f2->damagedThisFrame = false;
     }
