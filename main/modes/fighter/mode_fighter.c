@@ -2548,6 +2548,12 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
         f->cameraOffset.y += (diff / 4);
     }
 
+    // Don't pan too far down
+    if(f->cameraOffset.y < -(f->d->h / 2))
+    {
+        f->cameraOffset.y = -(f->d->h / 2);
+    }
+
     // Put the camera offset in the packet
     scene->cameraOffsetX = f->cameraOffset.x;
     scene->cameraOffsetY = f->cameraOffset.y;
@@ -3165,7 +3171,7 @@ uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t
         // Standing on a platform
         cs->cpuBehavior = CPU_RUN;
     }
-    else if((cpuHurtbox.x0 < mainPlatform.x0) || (cpuHurtbox.x1 > mainPlatform.x1))
+    else if((cpuHurtbox.x1 < mainPlatform.x0) || (cpuHurtbox.x0 > mainPlatform.x1))
     {
         // Somewhere off the stage
         cs->cpuBehavior = CPU_RECOVER;
@@ -3270,33 +3276,99 @@ uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t
                         // Attacking
                         break;
                     }
+                    case FS_IDLE:
+                    case FS_RUNNING:
+                    case FS_DUCKING:
+                    case FS_JUMPING:
+                    case FS_HITSTUN:
                     default:
                     {
-                        // Start an attack
-                        btn |= BTN_B;
-                        // Do up and down attacks somewhat randomly
-                        switch(esp_random() % 4)
+                        if(0 != cpu->numJumpsLeft)
                         {
-                            case 0:
+                            // Start an attack
+                            btn |= BTN_B;
+                            // Do up and down attacks somewhat randomly
+                            switch(esp_random() % 4)
                             {
-                                // Only up-tilt, not up-air
-                                if(ABOVE_PLATFORM == cpu->relativePos)
+                                case 0:
                                 {
-                                    btn |= UP;
+                                    // Only up-tilt, not up-air
+                                    if(ABOVE_PLATFORM == cpu->relativePos)
+                                    {
+                                        btn |= UP;
+                                    }
+                                    break;
                                 }
-                                break;
+                                case 1:
+                                {
+                                    // Down tilt
+                                    btn |= DOWN;
+                                    break;
+                                }
+                                case 2:
+                                {
+                                    // Short hop attack
+                                    btn |= BTN_A;
+                                }
+                                // Fall Through
+                                case 3:
+                                {
+                                    // May be neutral, dash, or tilt side attack
+                                    // Make sure the CPU is facing the human
+                                    if((cpuHurtbox.x0 > humanHurtbox.x0) && cpu->dir == FACING_RIGHT)
+                                    {
+                                        btn |= LEFT;
+                                    }
+                                    else if ((cpuHurtbox.x0 < humanHurtbox.x0) && cpu->dir == FACING_LEFT)
+                                    {
+                                        btn |= RIGHT;
+                                    }
+                                    break;
+                                }
                             }
-                            case 1:
+                        }
+                    }
+                }
+            }
+            // CPU facing human, but out of direct attack distance
+            else if (((cpuHurtbox.x0 > humanHurtbox.x0) && (cpu->dir == FACING_LEFT)) ||
+                     ((cpuHurtbox.x0 < humanHurtbox.x0) && (cpu->dir == FACING_RIGHT)))
+            {
+                // Check if CPU and human are at the same vertical level
+                if((cpuHurtbox.y0) < (humanHurtbox.y1) &&
+                        (cpuHurtbox.y1) > (humanHurtbox.y0))
+                {
+                    // Attack a 16th of the time
+                    switch(esp_random() % 16)
+                    {
+                        case 0:
+                        {
+                            if(ABOVE_PLATFORM == cpu->relativePos)
                             {
-                                // Down tilt
-                                btn |= DOWN;
-                                break;
+                                if(cpu->velocity.x > ((3 * cpu->run_max_velo) / 4))
+                                {
+                                    // Dash attack
+                                    btn |= BTN_B;
+                                }
+                                else
+                                {
+                                    // Projectile attack. Make sure not to tilt attack
+                                    btn &= ~(LEFT | RIGHT);
+                                    btn |= BTN_B;
+                                }
                             }
-                            case 2 ... 3:
+                            else
                             {
-                                // May be neutral, dash, or tilt side attack
-                                break;
+                                // Only neutral air (projectile). Make sure not to tilt attack
+                                btn &= ~(LEFT | RIGHT);
+                                btn |= BTN_B;
                             }
+                            break;
+                        }
+                        case 1 ... 15:
+                        {
+                            // Do nothing
+                            break;
                         }
                     }
                 }
