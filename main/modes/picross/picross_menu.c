@@ -62,7 +62,7 @@ const char picrossCompletedLevelData[]    = "pic_victs";//todo: rename to Key su
 const char picrossProgressData[]          = "pic_prog";//todo: rename to key suffix
 
 //Main menu strings
-static char str_picrossTitle[] = "pi-cross";
+static char str_picrossTitle[] = "\x7f-cross"; // \x7f is interpreted as the pi char
 static const char str_continue[] = "Continue";
 static const char str_levelSelect[] = "Puzzle Select";
 static const char str_howtoplay[] = "How To Play";

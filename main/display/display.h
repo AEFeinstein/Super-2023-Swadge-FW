@@ -94,7 +94,7 @@ typedef struct
 typedef struct
 {
     uint8_t h;
-    font_ch_t chars['~' - ' ' + 1];
+    font_ch_t chars['~' - ' ' + 2]; // enough space for all printed ascii chars, and pi
 } font_t;
 
 //==============================================================================
