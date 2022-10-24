@@ -55,7 +55,7 @@
 #define TUNER_RADIUS          80
 #define TUNER_TEXT_Y_OFFSET   30
 #define TUNER_ARROW_Y_OFFSET  8
-#define INITIAL_BPM           60
+#define INITIAL_BPM           120
 #define MAX_BPM               400
 #define MAX_BEATS             16 // I mean, realistically, who's going to have more than 16 beats in a measure?
 #define METRONOME_FLASH_MS    35
