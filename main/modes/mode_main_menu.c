@@ -29,6 +29,7 @@
 #include "mode_colorchord.h"
 #include "mode_tunernome.h"
 #include "mode_slide_whistle.h"
+#include "mode_swadgestrument.h"
 #include "mode_diceroller.h"
 // #include "picross_select.h"
 
@@ -528,6 +529,7 @@ void mainMenuSetUpMusicMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, modeColorchord.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeTunernome.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeSlideWhistle.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeSwadgestrument.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -562,6 +564,11 @@ void mainMenuMusicCb(const char* opt)
     {
         // Start slide whistle
         switchToSwadgeMode(&modeSlideWhistle);
+    }
+    else if(modeSwadgestrument.modeName == opt)
+    {
+        // Start swadgestrument
+        switchToSwadgeMode(&modeSwadgestrument);
     }
     else if(mainMenuBack == opt)
     {

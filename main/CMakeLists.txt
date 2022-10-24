@@ -34,6 +34,8 @@ idf_component_register(
         "modes/jumper/jumper_menu.c"
         "modes/jumper/mode_jumper.c"
         "modes/music/mode_slide_whistle.c"
+        "modes/music/mode_swadgestrument.c"
+        "modes/music/swadgeMusic.c"
         "modes/paint/mode_paint.c"
         "modes/paint/paint_brush.c"
         "modes/paint/paint_common.c"
