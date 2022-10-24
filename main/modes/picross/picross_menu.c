@@ -223,7 +223,7 @@ void loadLevels()
     loadWsg("Snare_Drum_PZL.wsg", &pm->levels[6].levelWSG);//10x10
     loadWsg("Snare_Drum_SLV.wsg", &pm->levels[6].completedWSG);
 
-    pm->levels[7].title = "Crewmate";//"Sus" or just "Among Us"
+    pm->levels[7].title = "Sus";//"Sus" or just "Among Us"
     loadWsg("Among_PZL.wsg", &pm->levels[7].levelWSG);//5x5
     loadWsg("Among_SLV.wsg", &pm->levels[7].completedWSG);
 
