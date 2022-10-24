@@ -364,7 +364,7 @@ static const song_t metronome_primary =
 {
     .notes =
     {
-        {A_4, METRONOME_CLICK_MS}
+        {F_SHARP_5, METRONOME_CLICK_MS}
     },
     .numNotes = 1,
     .shouldLoop = false
@@ -374,7 +374,7 @@ static const song_t metronome_secondary =
 {
     .notes =
     {
-        {A_3, METRONOME_CLICK_MS}
+        {F_SHARP_4, METRONOME_CLICK_MS}
     },
     .numNotes = 1,
     .shouldLoop = false
