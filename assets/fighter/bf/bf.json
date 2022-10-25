@@ -30,9 +30,9 @@
       "off_y":-4
    },
    "jump_spr":{
-      "sprite":"bid0.wsg",
-      "off_x":0,
-      "off_y":0
+      "sprite":"bju.wsg",
+      "off_x":-6,
+      "off_y":-12
    },
    "duck_spr":{
       "sprite":"bdu.wsg",
@@ -45,14 +45,14 @@
       "off_y":0
    },
    "hitstun_ground_sprite":{
-      "sprite":"bid0.wsg",
-      "off_x":0,
-      "off_y":0
+      "sprite":"bsa.wsg",
+      "off_x":-7,
+      "off_y":-6
    },
    "hitstun_air_sprite":{
-      "sprite":"bid0.wsg",
-      "off_x":0,
-      "off_y":0
+      "sprite":"bsa.wsg",
+      "off_x":-7,
+      "off_y":-6
    },
    "stock_icn":"kicon.wsg",
    "attacks":[
