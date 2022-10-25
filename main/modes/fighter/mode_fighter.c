@@ -651,6 +651,19 @@ void _setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* t
     ftr->touchingPlatform = touchingPlatform;
     ftr->passingThroughPlatform = passingThroughPlatform;
     ftr->isInAir = isInAir;
+
+    // Adjust the the hitstun sprite based on position
+    if(FS_HITSTUN == ftr->state)
+    {
+        if(isInAir)
+        {
+            ftr->currentSprite = &ftr->hitstunAirSprite;
+        }
+        else
+        {
+            ftr->currentSprite = &ftr->hitstunGroundSprite;
+        }
+    }
 }
 
 /**
@@ -2209,7 +2222,7 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         otherFtr->velocity.y = knockback.y;
 
                         // Knock the fighter into the air
-                        if(!otherFtr->isInAir)
+                        if(!otherFtr->isInAir && ftr->velocity.y < 0)
                         {
                             setFighterRelPos(otherFtr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
                         }
@@ -2302,7 +2315,7 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                         ftr->velocity.y = knockback.y;
 
                         // Knock the fighter into the air
-                        if(!ftr->isInAir)
+                        if(!ftr->isInAir && ftr->velocity.y < 0)
                         {
                             setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
                         }
