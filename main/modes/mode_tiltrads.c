@@ -34,6 +34,7 @@
 // Controls (title)
 #define BTN_TITLE_START_SCORES SELECT
 #define BTN_TITLE_START_GAME START
+#define BTN_TITLE_START_GAME_ALT BTN_A
 //#define BTN_TITLE_EXIT_MODE BTN_B
 
 // Controls (game)
@@ -49,6 +50,7 @@
 // Controls (gameover)
 #define BTN_GAMEOVER_START_TITLE SELECT
 #define BTN_GAMEOVER_START_GAME START
+#define BTN_GAMEOVER_START_GAME_ALT BTN_A
 
 // Update task info
 #define UPDATE_TIME_MS 16
@@ -1746,7 +1748,7 @@ void ttTitleInput(void)
     moveTetrad(&(tiltrads->tutorialTetrad), TUTORIAL_GRID_COLS, TUTORIAL_GRID_ROWS, tiltrads->tutorialTetradsGrid);
 
     // Start game.
-    if(ttIsButtonPressed(BTN_TITLE_START_GAME))
+    if(ttIsButtonPressed(BTN_TITLE_START_GAME) || ttIsButtonPressed(BTN_TITLE_START_GAME_ALT))
     {
         ttChangeState(TT_GAME);
     }
@@ -1872,7 +1874,7 @@ void ttScoresInput(void)
 void ttGameoverInput(void)
 {
     // Start game.
-    if(ttIsButtonPressed(BTN_GAMEOVER_START_GAME))
+    if(ttIsButtonPressed(BTN_GAMEOVER_START_GAME) || ttIsButtonPressed(BTN_GAMEOVER_START_GAME_ALT))
     {
         ttChangeState(TT_GAME);
     }
