@@ -66,7 +66,7 @@ idf_component_register(
         "modes"
         "modes/fighter"
         "modes/jumper"
-        "modes/music"
+        "modes/flight"
         "modes/paint"
         "modes/picross"
         "modes/platformer"

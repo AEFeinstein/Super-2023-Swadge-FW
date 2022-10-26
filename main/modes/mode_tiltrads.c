@@ -91,8 +91,8 @@
 #define CLEAR_LINES_ANIM_TIME (0.5 * S_TO_MS_FACTOR * MS_TO_US_FACTOR)
 
 // game input
-#define ACCEL_SEG_SIZE 300 // higher value more or less means less sensitive.
-#define ACCEL_JITTER_GUARD 120 // higher = less sensitive.
+#define ACCEL_SEG_SIZE 25 // higher value more or less means less sensitive.
+#define ACCEL_JITTER_GUARD 14 // higher = less sensitive.
 #define SOFT_DROP_FACTOR 8
 #define SOFT_DROP_FX_FACTOR 2
 
@@ -2677,7 +2677,7 @@ bool moveTetrad(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
     bool moved = false;
 
     //ESP_LOGW("EMU", "ttAccel.y: %d", tiltrads->ttAccel.y);
-    int32_t yMod = -tiltrads->ttAccel.y / ACCEL_SEG_SIZE;
+    int32_t yMod = tiltrads->ttAccel.y / ACCEL_SEG_SIZE;
     //ESP_LOGW("EMU", "yMod: %d", yMod);
     //ESP_LOGW("EMU", "ttAccel.delta: %d", abs(tiltrads->ttAccel.y - tiltrads->ttLastTestAccel.y));
 

@@ -355,10 +355,11 @@ void gamepadTouchCb(touch_event_t* evt)
  */
 void gamepadAccelCb(accel_t* accel)
 {
+    #define CLAMP(x,l,u) ((x) < l ? l : ((x) > u ? u : (x)))
     // Take 14 bits down to 8 bits, save it
-    gamepad->gpState.rx = (accel->x) >> 6;
-    gamepad->gpState.ry = (accel->y) >> 6;
-    gamepad->gpState.rz = (accel->z) >> 6;
+    gamepad->gpState.rx = CLAMP((accel->x) >> 1, -128, 127);
+    gamepad->gpState.ry = CLAMP((accel->y) >> 1, -128, 127);
+    gamepad->gpState.rz = CLAMP((accel->z) >> 1, -128, 127);
 
     // Send state to host
     gamepadReportStateToHost();

@@ -680,7 +680,7 @@ void testAccelerometerCallback(accel_t* accel)
     if((accel->x != 0) && (accel->y != 0) && (accel->z != 0))
     {
         // Make sure some value is shook
-        if((accel->x > 4096) || (accel->y > 4096) || (accel->z > 4096))
+        if((accel->x > 300) || (accel->y > 300) || (accel->z > 300))
         {
             // Pass!
             test->accelPassed = true;

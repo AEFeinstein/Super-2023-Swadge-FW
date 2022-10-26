@@ -1363,11 +1363,20 @@ void  slideWhistleAccelerometerHandler(accel_t* accel)
     // Round and scale to BAR_X_WIDTH
     // this maps 30 degrees to the far left and 150 degrees to the far right
     // (30 / 180) == 0.167, (180 - (2 * 30)) / 180 == 0.666
-    slideWhistle->roll = BAR_X_WIDTH - roundf(((rollF - 0.167f) * BAR_X_WIDTH) / 0.666f);
-    slideWhistle->roll = CLAMP(slideWhistle->roll, BAR_X_MARGIN, slideWhistle->disp->w - 1 - BAR_X_MARGIN);
-
+    slideWhistle->roll = roundf(((rollF - 0.167f) * BAR_X_WIDTH) / 0.666f);
+    if(slideWhistle->roll >= BAR_X_WIDTH)
+    {
+        slideWhistle->roll = BAR_X_WIDTH - 1;
+    }
+    else if(slideWhistle->roll < 0)
+    {
+        slideWhistle->roll = 0;
+    }
     slideWhistle->pitch = roundf(pitchF * BAR_X_WIDTH);
-    slideWhistle->pitch = CLAMP(slideWhistle->pitch, BAR_X_MARGIN, slideWhistle->disp->w - 1 - BAR_X_MARGIN);
+    if(slideWhistle->pitch >= BAR_X_WIDTH)
+    {
+        slideWhistle->pitch = BAR_X_WIDTH - 1;
+    }
 
     snprintf(slideWhistle->accelStr, sizeof(slideWhistle->accelStr), "roll %5d pitch %5d",
              slideWhistle->roll, slideWhistle->pitch);
