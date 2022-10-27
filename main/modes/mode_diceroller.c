@@ -58,7 +58,9 @@ const int8_t validSides[] = {4, 6, 8, 10, 12, 20, 100};
 const int8_t polygonSides[] = {3, 4, 3, 4, 5, 3, 6};
 
 const int32_t rollAnimationPeriod = 1000000; //1 Second Spin
-const int32_t fakeValRerollPeriod = 200000; //200 ms
+//const int32_t fakeValRerollPeriod = 200000; //200 ms
+//const uint8_t ticksPerRollAnimation = 10;
+const int32_t fakeValRerollPeriod = 90919;//(rollAnimationPeriod / (ticksPerRollAnimation + 1)) + 10;
 const float spinScaler = 1;
 
 const char DR_NAMESTRING[] = "Dice Roller";
@@ -140,9 +142,11 @@ void diceEnterMode(display_t* disp)
     //bootloader_random_enable();
     diceRoller->rollerNum = 0;
 
-    diceRoller->requestCount = 0;
-    diceRoller->requestSides = 0;
-    diceRoller->sideIndex = 0;
+    diceRoller->requestCount = 1;
+    diceRoller->sideIndex = 5;
+    diceRoller->requestSides = validSides[diceRoller->sideIndex];
+    
+    
     diceRoller->activeSelection = 0;
 
     diceRoller->state = DR_STARTUP;
@@ -173,6 +177,22 @@ void diceButtonCb(buttonEvt_t* evt)
     switch(evt->button)
     {
         case BTN_A:
+        {
+            if(evt->down)
+            {
+                //diceRoller->rollerNum = (esp_random() % 20) + 1;
+                if(diceRoller->requestCount > 0 && diceRoller->requestSides > 0)
+                {
+                    doRoll(diceRoller->requestCount,diceRoller->requestSides, diceRoller->sideIndex);
+                    diceRoller->rollStartTimeUs = esp_timer_get_time();
+                    diceRoller->fakeValIndex = -1;
+                    diceRoller->state = DR_ROLLING;
+                }
+                
+            }
+            break;
+        }
+        case BTN_B:
         {
             if(evt->down)
             {
@@ -289,9 +309,15 @@ void doStateMachine(int64_t elapsedUs)
                 int w = diceRoller->disp->w;
                 int h = diceRoller->disp->h;
 
-                drawRegularPolygon(w/2 + centerToEndPix - endToNumStartPix + firstNumPix/2 + (diceRoller->activeSelection)*(lastNumPix/2 + dWidth),
+                int countSelX = w/2 + centerToEndPix - endToNumStartPix + firstNumPix/2;
+                int sideSelX = w/2 + centerToEndPix - lastNumPix/2;
+                drawRegularPolygon(diceRoller->activeSelection ? sideSelX : countSelX,
                     h/8+yPointerOffset, 3, -90, 5, c555, 0
                 );
+
+                //drawRegularPolygon(w/2 + centerToEndPix - endToNumStartPix + firstNumPix/2 + (diceRoller->activeSelection)*(lastNumPix/2 + dWidth),
+                //    h/8+yPointerOffset, 3, -90, 5, c555, 0
+                //);
 
                 int xGridMargin = w/4;
                 int yGridMargin = h/7;
@@ -388,9 +414,14 @@ void doStateMachine(int64_t elapsedUs)
                 int w = diceRoller->disp->w;
                 int h = diceRoller->disp->h;
 
-                drawRegularPolygon(w/2 + centerToEndPix - endToNumStartPix + firstNumPix/2 + (diceRoller->activeSelection)*(lastNumPix/2 + dWidth),
+                int countSelX = w/2 + centerToEndPix - endToNumStartPix + firstNumPix/2;
+                int sideSelX = w/2 + centerToEndPix - lastNumPix/2;
+                drawRegularPolygon(diceRoller->activeSelection ? sideSelX : countSelX,
                     h/8+yPointerOffset, 3, -90, 5, c555, 0
                 );
+                //drawRegularPolygon(w/2 + centerToEndPix - endToNumStartPix + firstNumPix/2 + (diceRoller->activeSelection)*(lastNumPix/2 + dWidth),
+                //    h/8+yPointerOffset, 3, -90, 5, c555, 0
+                //);
 
                 int xGridMargin = w/4;
                 int yGridMargin = h/7;
@@ -496,7 +527,7 @@ void doStateMachine(int64_t elapsedUs)
                 if(floor(rollAnimationTimeUs / fakeValRerollPeriod) > diceRoller->fakeValIndex)
                 {
                     diceRoller->fakeValIndex = floor(rollAnimationTimeUs / fakeValRerollPeriod);
-                    diceRoller->fakeVal = esp_random() % diceRoller->rollSides;
+                    diceRoller->fakeVal = esp_random() % diceRoller->rollSides + 1;
                 }
 
                 for(int m = 0; m < diceRoller->rollSize; m++)
