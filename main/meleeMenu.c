@@ -213,6 +213,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     
     // Draw the title and note where it ends
     int16_t textEnd = drawText(d, menu->font, c222, menu->title, 33, 25);
+    textEnd += 8;
 
     // The width of the border
 #define BORDER_WIDTH 7
@@ -236,17 +237,17 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
                     borderColors[menu->selectedRow]);
     // Right of title
     fillDisplayArea(d,
-                    textEnd + 1,                BORDER_GAP,
-                    textEnd + 1 + BORDER_WIDTH, BORDER_GAP + menu->font->h + 3,
+                    textEnd,                BORDER_GAP,
+                    textEnd + BORDER_WIDTH, BORDER_GAP + menu->font->h + 3,
                     borderColors[menu->selectedRow]);
     // Below title
     fillDisplayArea(d,
                     BORDER_GAP,                 BORDER_GAP + menu->font->h + 3,
-                    textEnd + 1 + BORDER_WIDTH, BORDER_GAP + menu->font->h + 3 + BORDER_WIDTH,
+                    textEnd + BORDER_WIDTH, BORDER_GAP + menu->font->h + 3 + BORDER_WIDTH,
                     borderColors[menu->selectedRow]);
     // Top right of the title
     fillDisplayArea(d,
-                    textEnd + 1,       BORDER_GAP,
+                    textEnd,       BORDER_GAP,
                     d->w - BORDER_GAP, BORDER_GAP + BORDER_WIDTH,
                     borderColors[menu->selectedRow]);
 
