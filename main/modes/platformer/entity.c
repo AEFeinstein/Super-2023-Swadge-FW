@@ -502,7 +502,7 @@ void defaultFallOffTileHandler(entity_t *self){
 
 void applyDamping(entity_t *self)
 {
-    if (!self->falling)
+    if (!self->falling || !self->gravityEnabled)
     {
         if (self->xspeed > 0)
         {
