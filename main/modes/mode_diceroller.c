@@ -60,6 +60,9 @@ void drawDiceBackgroundAnimation(int* xGridOffsets, int* yGridOffsets, int32_t r
 void drawFakeDiceText(int* xGridOffsets, int* yGridOffsets);
 void genFakeVal(int32_t rollAnimationTimeUs, double rotationOffsetDeg);
 
+void oddEvenFillFix(display_t* disp, int x0, int y0, int x1, int y1,
+                 paletteColor_t boundaryColor, paletteColor_t fillColor);
+
 const int MAXDICE = 6;
 const int COUNTCOUNT = 7;
 const int8_t validSides[] = {4, 6, 8, 10, 12, 20, 100};
@@ -461,6 +464,90 @@ void drawRegularPolygon(int xCenter, int yCenter, int8_t sides, float rotDeg, in
     free(vertices);
 }
 
+void oddEvenFillFix(display_t* disp, int x0, int y0, int x1, int y1,
+                 paletteColor_t boundaryColor, paletteColor_t fillColor)
+{
+    SETUP_FOR_TURBO( disp );
+
+    // Adjust the bounding box if it's out of bounds
+    if(x0 < 0)
+    {
+        x0 = 0;
+    }
+    if(x1 > disp->w)
+    {
+        x1 = disp->w;
+    }
+    if(y0 < 0)
+    {
+        y0 = 0;
+    }
+    if(y1 > disp->h)
+    {
+        y1 = disp->h;
+    }
+    for(int y = y0; y < y1; y++)
+    {
+        // Assume starting outside the shape for each row
+        bool isInside = false;
+        bool insideHysteresis = false;
+        uint16_t transitionCount = 0;
+        for(int x = x0; x < x1; x++)
+        {
+            if(boundaryColor == GET_PIXEL(disp, x, y))
+            {
+                // Flip this boolean, don't color the boundary
+                if(!insideHysteresis)
+                {
+                    isInside = !isInside;
+                    insideHysteresis = true;
+                    transitionCount++;
+                }
+            }
+            else if(isInside)
+            {
+                // If we're in-bounds, color the pixel
+                
+                insideHysteresis = false;
+            }
+            else
+            {
+                insideHysteresis = false;
+            }
+        }
+        //printf("Transition Count %d: %d",y,transitionCount);
+        if(!(transitionCount%2))
+        {
+            isInside = false;
+            insideHysteresis = false;
+            for(int x = x0; x < x1; x++)
+            {
+                // If a boundary is hit
+                if(boundaryColor == GET_PIXEL(disp, x, y))
+                {
+                    // Flip this boolean, don't color the boundary
+                    if(!insideHysteresis)
+                    {
+                        isInside = !isInside;
+                        insideHysteresis = true;
+                    }
+                }
+                else if(isInside)
+                {
+                    // If we're in-bounds, color the pixel
+                    TURBO_SET_PIXEL_BOUNDS(disp, x, y, fillColor);
+                    insideHysteresis = false;
+                }
+                else
+                {
+                    insideHysteresis = false;
+                }
+            }
+        }
+    }
+}
+
+
 void drawSelectionText(int w,int h,char* rollStr, int bfrSize)
 {
     snprintf(rollStr,bfrSize,"Next roll is %dd%d",diceRoller->requestCount,diceRoller->requestSides);
@@ -502,6 +589,7 @@ void drawSelectionPointer(int w,int h,char* rollStr,int bfrSize)
     );
 }
 
+
 void drawDiceBackground(int* xGridOffsets,int* yGridOffsets)
 {
     for(int m = 0; m < diceRoller->rollSize; m++)
@@ -509,8 +597,17 @@ void drawDiceBackground(int* xGridOffsets,int* yGridOffsets)
         drawRegularPolygon(xGridOffsets[m],yGridOffsets[m]+5,
         polygonSides[diceRoller->rollIndex],-90,20,c555,0
         );
+        int oERadius = 23;
+        
+        oddEvenFillFix(diceRoller->disp, xGridOffsets[m]-oERadius,
+        yGridOffsets[m]-oERadius+5,
+        xGridOffsets[m]+oERadius,
+        yGridOffsets[m]+oERadius+5,
+        c555,c111);
     }
 }
+
+
 
 void drawDiceText(int* xGridOffsets,int* yGridOffsets)
 {
@@ -534,13 +631,21 @@ void drawDiceText(int* xGridOffsets,int* yGridOffsets)
 void drawDiceBackgroundAnimation(int* xGridOffsets, int* yGridOffsets, int32_t rollAnimationTimUs, double rotationOffsetDeg)
 {
     for(int m = 0; m < diceRoller->rollSize; m++)
-                    {
-                       
+    {
+        
 
-                        drawRegularPolygon(xGridOffsets[m],yGridOffsets[m]+5,
-                            polygonSides[diceRoller->rollIndex],-90 + rotationOffsetDeg,20,c555,0
-                        );
-                    }
+        drawRegularPolygon(xGridOffsets[m],yGridOffsets[m]+5,
+            polygonSides[diceRoller->rollIndex],-90 + rotationOffsetDeg,20,c555,0
+        );
+
+        int oERadius = 23;
+
+        oddEvenFillFix(diceRoller->disp, xGridOffsets[m]-oERadius,
+        yGridOffsets[m]-oERadius+5,
+        xGridOffsets[m]+oERadius,
+        yGridOffsets[m]+oERadius+5,
+        c555,c111);
+    }
 }
 
 void drawFakeDiceText(int* xGridOffsets, int* yGridOffsets){
