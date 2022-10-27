@@ -96,6 +96,7 @@ CFLAGS_WARNINGS_EXTRA = \
 	-Wmissing-declarations \
 	-Wmissing-prototypes \
 	-Wcast-qual \
+	-Wno-switch \
 #	-Wstrict-prototypes \
 #	-Wpedantic \
 #	-Wconversion \
@@ -191,7 +192,7 @@ EXECUTABLE = swadge_emulator
 all: $(EXECUTABLE) assets
 
 assets:
-	make -C ./spiffs_file_preprocessor/
+	$(MAKE) -C ./spiffs_file_preprocessor/
 	./spiffs_file_preprocessor/spiffs_file_preprocessor -i ./assets/ -o ./spiffs_image/
 
 # To build the main file, you have to compile the objects
@@ -205,7 +206,7 @@ $(EXECUTABLE): $(OBJECTS)
 
 # This clean everything
 clean:
-	make -C ./spiffs_file_preprocessor/ clean
+	$(MAKE) -C ./spiffs_file_preprocessor/ clean
 	-@rm -f $(OBJECTS) $(EXECUTABLE)
 	-@rm -rf docs
 

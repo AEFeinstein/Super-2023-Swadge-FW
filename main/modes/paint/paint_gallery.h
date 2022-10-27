@@ -14,6 +14,6 @@ void paintGalleryCleanup(void);
 void paintGalleryMainLoop(int64_t elapsedUs);
 void paintGalleryModeButtonCb(buttonEvt_t* evt);
 void paintGalleryAddInfoText(const char* text);
-void paintGalleryDoLoad(void);
+bool paintGalleryDoLoad(void);
 
 #endif

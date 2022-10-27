@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "swadgeMode.h"
+#include "swadge_util.h"
 #include "musical_buzzer.h"
 #include "esp_log.h"
 #include "led_util.h"
@@ -42,7 +43,7 @@ void drawNumberAtCoord(display_t* d, font_t* font, paletteColor_t color, uint8_t
 int8_t getHintShift(uint8_t hint);
 void saveCompletedOnSelectedLevel(bool completed);
 void enterSpace(uint8_t x,uint8_t y,picrossSpaceType_t newSpace);
-
+void picrossVictoryLEDs(uint32_t tElapsedUs, uint32_t arg, bool reset);
 //==============================================================================
 // Variables
 //==============================================================================
@@ -73,6 +74,8 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->bgScrollSpeed = 50000;
     p->bgScrollXFrame = 0;
     p->bgScrollYFrame = 0;
+    p->animtAccumulated = 0;
+    p->ledAnimCount = 0;
 
     //Puzzle
     p->puzzle = calloc(1, sizeof(picrossPuzzle_t));    
@@ -85,13 +88,13 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->y=0;
     p->input->hoverBlockSizeX = 0;
     p->input->hoverBlockSizeY = 0;
-    p->input->btnState=0;
-    p->input->prevBtnState= 0x80 | 0x10 | 0x40 | 0x20;//prevents us from instantly fillling in a square because A is held from selecting level.
+    p->input->btnState = 0;
+    p->input->prevBtnState = 0x80 | 0x10 | 0x40 | 0x20;//prevents us from instantly fillling in a square because A is held from selecting level.
     p->countState = PICROSSDIR_IDLE;
     p->controlsEnabled = true;
     p->input->DASActive = false;
     p->input->blinkError = false;
-    p->input->blinkAnimTimer =0;
+    p->input->blinkAnimTimer = 0;
     p->input->startHeldType = OUTOFBOUNDS;
     p->input->inputBoxColor = c005;//now greenish for more pop against marked. old burnt orange: c430. old green: c043
         //lets test this game against various forms of colorblindness. I'm concerned about deuteranopia. Input square is my largest concern. 
@@ -124,7 +127,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
 
         if(i%2 == 0)
         {
-            p->errorALEDBlinkLEDS[i].r = 0xFF;
+            p->errorALEDBlinkLEDS[i].r = 0xFF;//make less bright?
             p->errorALEDBlinkLEDS[i].g = 0x00;
             p->errorALEDBlinkLEDS[i].b = 0x00;
 
@@ -272,7 +275,6 @@ void setCompleteLevelFromWSG(wsg_t* puzz)
     }
 }
 
-//lol i dont know how to do constructors, im a unity developer! anyway this constructs a source.
 //we use the same data type for rows and columns, hence the bool flag. index is the position in the row/col, and we pass in the level.
 //I guess that could be a pointer? Somebody more experienced with c, code review this and optimize please.
 picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t source[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE])
@@ -371,7 +373,6 @@ picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t so
 
 void picrossGameLoop(int64_t elapsedUs)
 {
-
     p->bgScrollTimer += elapsedUs;
 
     //We do this at the top of the loop for 2 reasons. THe first is so that changedLevelThisFrame doesn't get reset, so when we set it from loading (true) or new (false), it updates.
@@ -404,28 +405,18 @@ void picrossGameLoop(int64_t elapsedUs)
     //You won! Only called once, since you cant go from win->solving without resetting everything (ie: menu and back)
     if(p->previousPhase == PICROSS_SOLVING && p->currentPhase == PICROSS_YOUAREWIN)
     {
-        //Set LEDs to ON BECAUSE YOU ARE WIN
-        //The game doesn't use a timer, so making them blink ABAB->BABA like I want will have to wait.
-        led_t leds[NUM_LEDS] =
-        {
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF},
-            {.r = 0xFF, .g = 0xFF, .b = 0xFF}
-        };
-
-        setLeds(leds, NUM_LEDS);
-
         //Unsave progress. Hides "current" in the main menu. we dont need to zero-out the actual data that will just happen when we load a new level.
         writeNvs32(picrossCurrentPuzzleIndexKey, -1);
 
         //save the fact that we won
         saveCompletedOnSelectedLevel(true);
 
+    }
+
+    //Victory animation
+    if(p->currentPhase == PICROSS_YOUAREWIN)
+    {
+        picrossVictoryLEDs(elapsedUs,20000,false);
     }
 
     p->previousPhase = p->currentPhase;
@@ -1100,9 +1091,9 @@ void drawPicrossScene(display_t* d)
         }
 
         //Draw the title of the puzzle, centered.       
-        int16_t t = textWidth(&p->UIFont,*&p->selectedLevel.title);
+        int16_t t = textWidth(&p->UIFont,p->selectedLevel.title);
         t = ((d->w) - t)/2;//from text width into padding.
-        drawText(d,&p->UIFont,c555,*&p->selectedLevel.title,t,14);
+        drawText(d,&p->UIFont,c555,p->selectedLevel.title,t,14);
     }
 }
 
@@ -1544,7 +1535,7 @@ void savePicrossProgress()
 {
     //save level progress
     size_t size = sizeof(picrossProgressData_t);
-    picrossProgressData_t* progress = malloc(size);
+    picrossProgressData_t* progress = calloc(1, size);
     //I know im doing things a kind of brute-force way here, copying over every value 1 by 1. I should be, i dunno, just swapping pointers around? and...freeing up the old pointer?
     //also, we dont need to save OUTOFBOUNDS for smaller levels, since it shouldnt get read. while debugging and poking around at what its saving, I prefer not having garbage getting saved.
     
@@ -1596,4 +1587,44 @@ void saveCompletedOnSelectedLevel(bool completed)
     victData->victories[(int)*&p->selectedLevel.index] = completed;
     writeNvsBlob(picrossCompletedLevelData,victData,size);
     free(victData);
+}
+
+/// @brief Called when in victory state, animates RGBs. Copied from the dance code, needs cleaned up/minified; but it works so it's fine.
+void picrossVictoryLEDs(uint32_t tElapsedUs, uint32_t arg, bool reset)
+{
+    if(reset)
+    {
+        p->ledAnimCount = 0;//this doesn't behave like I anticipate it behaving? but im not gonna touch what isn't broken.
+        p->animtAccumulated = arg;
+        return;
+    }
+
+    // Declare some LEDs, all off
+    led_t leds[NUM_LEDS] = {{0}};
+    bool ledsUpdated = false;
+
+    p->animtAccumulated += tElapsedUs;
+    while(p->animtAccumulated >= arg)
+    {
+        p->animtAccumulated -= arg;
+        ledsUpdated = true;
+
+        p->ledAnimCount--;
+
+        uint8_t i;
+        for(i = 0; i < NUM_LEDS; i++)
+        {
+            int16_t angle = ((((i * 256) / NUM_LEDS)) + p->ledAnimCount) % 256;
+            uint32_t color = EHSVtoHEXhelper(angle, 0xFF, 0xFF, false);
+
+            leds[i].r = (color >>  0) & 0xFF;
+            leds[i].g = (color >>  8) & 0xFF;
+            leds[i].b = (color >> 16) & 0xFF;
+        }
+    }
+    // Output the LED data, actually turning them on
+    if(ledsUpdated)
+    {
+        setLeds(leds, sizeof(leds));
+    }
 }

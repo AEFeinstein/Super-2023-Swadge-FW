@@ -29,6 +29,7 @@
 #include "mode_colorchord.h"
 #include "mode_tunernome.h"
 #include "mode_slide_whistle.h"
+#include "mode_diceroller.h"
 // #include "picross_select.h"
 
 //==============================================================================
@@ -170,7 +171,7 @@ void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
     // Increment this timer
     mainMenu->autoLightDanceTimer += elapsedUs;
     // If 10s have elapsed with no user input
-    if(mainMenu->autoLightDanceTimer >= (10 * 1000000))
+    if(mainMenu->autoLightDanceTimer >= (20 * 1000000))
     {
         // Switch to the LED dance mode
         switchToSwadgeMode(&modeDance);
@@ -182,7 +183,7 @@ void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
 
     // Draw the battery indicator depending on the last read value
     wsg_t * toDraw = NULL;
-    if(mainMenu->battVal > 900)
+    if(mainMenu->battVal == 0 || mainMenu->battVal > 900)
     {
         toDraw = &mainMenu->usb;
     }
@@ -459,6 +460,7 @@ void mainMenuSetUpToolsMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, modeGamepad.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeDance.modeName);
     addRowToMeleeMenu(mainMenu->menu, modePaint.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeDiceRoller.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -503,6 +505,10 @@ void mainMenuToolsCb(const char* opt)
     {
         // Start Paint
         switchToSwadgeMode(&modePaint);
+    }
+    else if (modeDiceRoller.modeName == opt)
+    {
+        switchToSwadgeMode(&modeDiceRoller);
     }
     else if(mainMenuBack == opt)
     {

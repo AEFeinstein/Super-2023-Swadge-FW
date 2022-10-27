@@ -82,7 +82,6 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
 
 
         // Draw a black rectangle under where the exit progress bar will be so it can be seen
-        fillDisplayArea(canvas->disp, 0, canvas->disp->h - 11, canvas->disp->w, canvas->disp->h, c000);
     }
 
 
@@ -102,7 +101,7 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
     uint16_t colorBoxY = PAINT_ACTIVE_COLOR_Y + PAINT_COLORBOX_W + PAINT_COLORBOX_W / 2 + 1 + PAINT_COLORBOX_MARGIN_TOP;
 
     // vertically center the color boxes in the available space
-    colorBoxY = colorBoxY + (canvas->disp->h - PAINT_COLORBOX_MARGIN_TOP - (PAINT_MAX_COLORS * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H)) - colorBoxY - PAINT_COLORBOX_MARGIN_TOP - 11) / 2;
+    colorBoxY = colorBoxY + (canvas->disp->h - PAINT_COLORBOX_MARGIN_TOP - (PAINT_MAX_COLORS * (PAINT_COLORBOX_MARGIN_TOP + PAINT_COLORBOX_H)) - colorBoxY - PAINT_COLORBOX_MARGIN_TOP) / 2;
 
 
     //////// Recent Colors (palette)
@@ -151,22 +150,40 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
 
         // Draw the brush size, if applicable and not constant
         char text[16];
-        uint16_t textW;
-        textY = maxIconBottom + TOOL_INFO_TEXT_MARGIN_Y;
-        if (artist->brushDef->minSize > 0 && artist->brushDef->maxSize > 0 && artist->brushDef->minSize != artist->brushDef->maxSize)
+
+        textX = canvas->x;
+        textY = canvas->disp->h - paintState->toolbarFont.h - 4;
+
+        // Draw the brush name
+        textX = drawText(canvas->disp, &paintState->toolbarFont, c000, artist->brushDef->name, textX, textY);
+
+        if (artist->brushDef->minSize != artist->brushDef->maxSize)
         {
-            snprintf(text, sizeof(text), "%d", artist->brushWidth);
-            textW = textWidth(&paintState->toolbarFont, text);
-            drawText(canvas->disp, &paintState->toolbarFont, c000, text, canvas->x + canvas->w * canvas->xScale + 2 + (canvas->disp->w - canvas->x - canvas->w * canvas->xScale - 2 - textW) / 2, textY);
+            if (artist->brushWidth == 0)
+            {
+                snprintf(text, sizeof(text), "Auto");
+            }
+            else
+            {
+                snprintf(text, sizeof(text), "%d", artist->brushWidth);
+            }
+
+            textX += 4;
+            // Draw the icon on the text's baseline
+            drawWsg(canvas->disp, &paintState->brushSizeWsg, textX, textY + paintState->toolbarFont.h - paintState->brushSizeWsg.h, false, false, 0);
+            textX += paintState->brushSizeWsg.w + 1;
+            textX = drawText(canvas->disp, &paintState->toolbarFont, c000, text, textX, textY);
         }
 
-        textY += paintState->toolbarFont.h + TOOL_INFO_TEXT_MARGIN_Y;
         if (artist->brushDef->mode == PICK_POINT && artist->brushDef->maxPoints > 1)
         {
             // Draw the number of picks made / total
             snprintf(text, sizeof(text), "%zu/%d", pxStackSize(&artist->pickPoints), artist->brushDef->maxPoints);
-            textW = textWidth(&paintState->toolbarFont, text);
-            drawText(paintState->disp, &paintState->toolbarFont, c000, text, canvas->x + canvas->w * canvas->xScale + 2 + (canvas->disp->w - canvas->x - canvas->w * canvas->xScale - 2 - textW) / 2, textY);
+
+            textX += 4;
+            drawWsg(canvas->disp, &paintState->picksWsg, textX, textY + paintState->toolbarFont.h - paintState->picksWsg.h, false, false, 0);
+            textX += paintState->picksWsg.w + 1;
+            textX = drawText(paintState->disp, &paintState->toolbarFont, c000, text, textX, textY);
         }
         else if (artist->brushDef->mode == PICK_POINT_LOOP && artist->brushDef->maxPoints > 1)
         {
@@ -182,8 +199,10 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
                 snprintf(text, sizeof(text), "%zu", maxPicks - pxStackSize(&artist->pickPoints) - 1);
             }
 
-            textW = textWidth(&paintState->toolbarFont, text);
-            drawText(canvas->disp, &paintState->toolbarFont, c000, text, canvas->x + canvas->w * canvas->xScale + 2 + (canvas->disp->w - canvas->x - canvas->w * canvas->xScale - 2 - textW) / 2, textY);
+            textX += 4;
+            drawWsg(canvas->disp, &paintState->picksWsg, textX, textY + paintState->toolbarFont.h - paintState->picksWsg.h, false, false, 0);
+            textX += paintState->picksWsg.w + 1;
+            drawText(canvas->disp, &paintState->toolbarFont, c000, text, textX, textY);
         }
     }
     else if (paintState->saveMenu == PICK_SLOT_SAVE || paintState->saveMenu == PICK_SLOT_LOAD)
@@ -452,7 +471,8 @@ void showCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
 /// @param canvas The canvas to draw it on and save the pixels from
 void drawCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
 {
-    if (cursor->show && cursor->redraw)
+    bool cursorIsNearEdge = (canvasToDispX(canvas, cursor->x) + cursor->spriteOffsetX < canvas->x || canvasToDispX(canvas, cursor->x) + cursor->spriteOffsetX + cursor->sprite->w > canvas->x + canvas->w * canvas->xScale || canvasToDispY(canvas, cursor->y) + cursor->spriteOffsetY < canvas->y || canvasToDispY(canvas, cursor->y) + cursor->spriteOffsetY + cursor->sprite->h > canvas->y + canvas->h * canvas->yScale);
+    if (cursor->show && (cursor->redraw || cursorIsNearEdge))
     {
         // Undraw the previous cursor pixels, if there are any
         undrawCursor(cursor, canvas);

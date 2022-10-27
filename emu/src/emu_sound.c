@@ -73,8 +73,11 @@ bool buzzer_track_check_next_note(emu_buzzer_t * track, bool isActive);
  */
 void deinitSound(void)
 {
-	// CloseSound(sounddriver); TODO when calling this on Windows, it halts
+#if defined(_WIN32)
 	CloseSound(NULL);
+#else
+	CloseSound(sounddriver); // when calling this on Windows, it halts
+#endif
 }
 
 /**

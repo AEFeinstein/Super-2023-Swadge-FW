@@ -129,7 +129,6 @@ void loadJsonFighterData(fighter_t* fighter, const char* jsonFile, namedSprite_t
     if (numToks < 0)
     {
         ESP_LOGE("FTR", "Failed to parse JSON: %d\n", numToks);
-        free(toks);
     }
     else
     {

@@ -16,5 +16,6 @@ void fighterShowHrResult(fightingCharacter_t character, vector_t position,
 void fighterShowMpResult(uint32_t roundTimeMs,
                          fightingCharacter_t self,  int8_t selfKOs, int16_t selfDmg,
                          fightingCharacter_t other, int8_t otherKOs, int16_t otherDmg);
+void fighterReturnToMainMenu(void);
 
 #endif

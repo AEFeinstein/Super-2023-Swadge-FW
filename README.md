@@ -67,7 +67,7 @@ To set up the build environment, the first thing you'll need to install is the l
 
 ![image](https://user-images.githubusercontent.com/231180/190054131-fa0d2d12-a520-41c1-88fc-6eb45e23654d.png)
 
-Next, you'll need to install [msys2](https://www.msys2.org/). You can do that with their installer. Once you have an msys2 shell, the command to install required packages for building from an msys2 terinal after installing msys2 is:
+Next, you'll need to install [msys2](https://www.msys2.org/). You can do that with their installer. Once you have an msys2 shell, the command to install required packages for building from an msys2 terminal after installing msys2 is:
 
 ```bash
 pacman -S base-devel mingw-w64-x86_64-toolchain make zip mingw-w64-x86_64-python-pip
@@ -129,7 +129,7 @@ Note that `./export.ps1` does not make any permanent changes and it must be run 
 
 > **Warning**
 > 
-> Sometimes `install.ps1` can be a bit finnicky and not install everything it's supposed to. If it doesn't create a `~/.espressif/python_env` folder, try running it again. And again. And again. As a last resort you can try editing `install.ps1` and swap the `"Setting up Python environment"` and `"Installing ESP-IDF tools"` sections to set up the Python environment first.
+> Sometimes `install.ps1` can be a bit finicky and not install everything it's supposed to. If it doesn't create a `~/.espressif/python_env` folder, try running it again. And again. And again. As a last resort you can try editing `install.ps1` and swap the `"Setting up Python environment"` and `"Installing ESP-IDF tools"` sections to set up the Python environment first.
 
 ## Linux
 
@@ -182,7 +182,7 @@ If you've already configured your environment, which you should have, then when 
 The `.vscode` folder already has tasks for making and cleaning the emulator. It also has launch settings for launching the emulator with `gdb` attached. To build the firmware from VSCode, use the espressif extension buttons on the bottom toolbar. The build icon looks like a cylinder. Hover over the other icons to see what they do.
 
 I also recommend installing the [Doxygen Documentation Generator
-](https://marketplace.visualstudio.com/items?itemName=cschlosser.doxdocgen) plugin to generate [Doxygen comments](http://www.doxygen.nl/manual/docblocks.html) and the [Astyle](https://marketplace.visualstudio.com/items?itemName=chiehyu.vscode-astyle) plugin to automatically format code with with [this project's .astylerc file](/.astylerc).
+](https://marketplace.visualstudio.com/items?itemName=cschlosser.doxdocgen) plugin to generate [Doxygen comments](http://www.doxygen.nl/manual/docblocks.html) and the [Astyle](https://marketplace.visualstudio.com/items?itemName=chiehyu.vscode-astyle) plugin to automatically format code with [this project's .astylerc file](/.astylerc).
 
 # Building and Flashing Firmware
 
@@ -415,7 +415,7 @@ plotCircle(demo->disp, 140, 30, 20, c055);
 
 ## Loading and Freeing Assets
 
-The build system will automatically process, pack, and flash assets as a read-only part of the firmware. The the [`spiffs_file_preprocessor`](/spiffs_file_preprocessor/) is responsible for this. Assets are an easy way to include things like images, fonts, and eventually other file types. Any files in the [`/assets/`](/assets/) folder will be processed and the output will be written to [`/spiffs_image/`](/spiffs_image/).
+The build system will automatically process, pack, and flash assets as a read-only part of the firmware. The [`spiffs_file_preprocessor`](/spiffs_file_preprocessor/) is responsible for this. Assets are an easy way to include things like images, fonts, and eventually other file types. Any files in the [`/assets/`](/assets/) folder will be processed and the output will be written to [`/spiffs_image/`](/spiffs_image/).
 
 `spiffs_file_preprocessor` currently only processes `.png` and `.font.png` files. `.png` are converted into `.wsg` files, which use an 8 bit web-safe color palette, are reasonably compressed and have very little overhead to decode. `.font.png` files are a line of characters with underlines to denote char width (open one up to see what I'm talking about). They are converted into a one-bit bitmapped format.
 
