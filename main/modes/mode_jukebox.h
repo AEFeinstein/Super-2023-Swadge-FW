@@ -1,0 +1,13 @@
+/*
+ * mode_jukebox.h
+ *
+ *  Created on: September 17th, 2020
+ *      Author: VanillyNeko
+ */
+
+#ifndef _MODE_JUKEBOX_H_
+#define _MODE_JUKEBOX_H_
+
+extern swadgeMode modeJukebox;
+
+#endif /* _MODE_JUKEBOX_H_ */
