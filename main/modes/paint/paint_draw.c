@@ -1042,14 +1042,7 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
         {
             case SELECT:
             {
-                // Exit select mode
-                paintState->buttonMode = BTN_MODE_DRAW;
-
-                // Set the current selection as the FG color and rearrange the rest
-                paintUpdateRecents(paintState->paletteSelect);
-                paintState->paletteSelect = 0;
-
-                paintState->redrawToolbar = true;
+                paintExitSelectMode();
                 break;
             }
 
@@ -1120,43 +1113,47 @@ void paintDrawScreenTouchCb(const touch_event_t* evt)
     // then, for any more down events while any touchpad is still down, update lastTouch
     // once we get an up event and state == 0 (no touchpads down), clear touchDown, save the position(?)
     // swipe direction = (lastTouch > firstTouch) ? DOWN : UP
-    // TODO flip this if it's backwards
     if (evt->down && evt->state != 0 && !paintState->touchDown)
     {
         paintState->touchDown = true;
         paintState->firstTouch = evt->position;
         paintState->lastTouch = evt->position;
+
+        paintEnterSelectMode();
     }
     else if (evt->down && evt->state != 0 && paintState->touchDown) {
         paintState->lastTouch = evt->position;
     }
     else if (!evt->down && evt->state == 0 && paintState->touchDown)
     {
-        if (paintState->firstTouch < paintState->lastTouch)
+        if (paintState->firstTouch + 32 < paintState->lastTouch)
         {
             PAINT_LOGD("Swipe RIGHT (%d)", (paintState->lastTouch - paintState->firstTouch) / 32);
             paintDecBrushWidth((paintState->lastTouch - paintState->firstTouch) / 32);
         }
-        else if (paintState->firstTouch > paintState->lastTouch)
+        else if (paintState->firstTouch > paintState->lastTouch + 32)
         {
             PAINT_LOGD("Swipe LEFT (%d)", (paintState->firstTouch - paintState->lastTouch + 1) / 32);
             paintIncBrushWidth((paintState->firstTouch - paintState->lastTouch + 1) / 32);
         }
-        else
+        else if (paintState->firstTouch == paintState->lastTouch)
         {
             // TAP
-            PAINT_LOGD("Tap pad %d", evt->pad);
             if (evt->pad == 0)
             {
                 // Tap X (?)
+                PAINT_LOGD("Tap X");
                 paintIncBrushWidth(1);
             }
             else if (evt->pad == 4)
             {
                 // Tap Y (?)
+                PAINT_LOGD("Tap Y");
                 paintDecBrushWidth(1);
             }
         }
+
+        paintExitSelectMode();
         paintState->touchDown = false;
     }
 }
@@ -1224,13 +1221,7 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
         {
             case SELECT:
             {
-                // Enter select mode (change color / brush)
-                paintState->buttonMode = BTN_MODE_SELECT;
-                paintState->redrawToolbar = true;
-                paintState->aHeld = false;
-                paintState->moveX = 0;
-                paintState->moveY = 0;
-                paintState->btnHoldTime = 0;
+                paintEnterSelectMode();
                 break;
             }
 
@@ -1560,6 +1551,28 @@ void paintSwapFgBgColors(void)
 
     paintUpdateLeds();
     paintDrawPickPoints();
+}
+
+void paintEnterSelectMode(void)
+{
+    paintState->buttonMode = BTN_MODE_SELECT;
+    paintState->redrawToolbar = true;
+    paintState->aHeld = false;
+    paintState->moveX = 0;
+    paintState->moveY = 0;
+    paintState->btnHoldTime = 0;
+}
+
+void paintExitSelectMode(void)
+{
+    // Exit select mode
+    paintState->buttonMode = BTN_MODE_DRAW;
+
+    // Set the current selection as the FG color and rearrange the rest
+    paintUpdateRecents(paintState->paletteSelect);
+    paintState->paletteSelect = 0;
+
+    paintState->redrawToolbar = true;
 }
 
 void paintUpdateRecents(uint8_t selectedIndex)
