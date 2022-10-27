@@ -641,6 +641,7 @@ bool loadFont(const char* name, font_t* font)
     // Read font from file
     uint8_t* buf = NULL;
     size_t bufIdx = 0;
+    uint8_t chIdx = 0;
     size_t sz;
     if(!spiffsReadFile(name, &buf, &sz, true))
     {
@@ -652,10 +653,10 @@ bool loadFont(const char* name, font_t* font)
     font->h = buf[bufIdx++];
 
     // Read each char
-    for(char ch = ' '; ch <= '~'; ch++)
+    while(bufIdx < sz)
     {
         // Get an easy refence to this character
-        font_ch_t* this = &font->chars[ch - ' '];
+        font_ch_t* this = &font->chars[chIdx++];
 
         // Read the width
         this->w = buf[bufIdx++];

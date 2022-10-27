@@ -33,6 +33,7 @@ list_t * buttonQueue;
 char touchKeys[32];
 uint32_t touchState = 0;
 list_t * touchQueue;
+int32_t lastTouchLoc = 0;
 
 //==============================================================================
 // Buttons
@@ -234,6 +235,7 @@ void emuSensorHandleKey( int keycode, int bDown )
 				128, // 11111
 			};
 			evt->position = touchLoc[touchState];
+			lastTouchLoc = touchLoc[touchState];
 
 			// Add the event to the list
 			list_node_t * touchNode = list_node_new(evt);
@@ -315,9 +317,9 @@ int getBaseTouchVals( int32_t * data, int count )
 
 int getTouchCentroid( int32_t * centerVal, int32_t * intensityVal )
 {
-	*centerVal = 0;
-	*intensityVal = 0;
-	return 0;
+	*centerVal = lastTouchLoc * 4;
+	*intensityVal = 1;
+	return (touchState ? true : false);
 }
 
 //==============================================================================

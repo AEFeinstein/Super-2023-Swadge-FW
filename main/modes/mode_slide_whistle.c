@@ -27,6 +27,7 @@
 #include "musical_buzzer.h"
 #include "swadgeMode.h"
 #include "settingsManager.h"
+#include "touch_sensor.h"
 
 #include "mode_slide_whistle.h"
 
@@ -35,18 +36,23 @@
  *============================================================================*/
 
 #define CORNER_OFFSET 12
-#define TICK_HEIGHT 2
-#define CURSOR_HEIGHT 4
+#define TOP_TEXT_X_MARGIN CORNER_OFFSET / 2
+#define LINE_BREAK_Y 8
+#define TICK_HEIGHT 4
+#define CURSOR_HEIGHT 5
+#define CURSOR_WIDTH 1
 #define BAR_X_MARGIN 0
-#define BAR_Y_MARGIN (slideWhistle->radiostars.h + CURSOR_HEIGHT + 1)
-
-#define PITCH_THRESHOLD 32
-
-#define lengthof(x) (sizeof(x) / sizeof(x[0]))
+#define BAR_Y_MARGIN (slideWhistle->radiostars.h + CURSOR_HEIGHT + 2 + CORNER_OFFSET * 2)
+#define BAR_X_WIDTH (slideWhistle->disp->w - (2 * BAR_X_MARGIN) - 1)
+#define BAR_Y_SPACING (2 * CURSOR_HEIGHT + 5)
 
 #define REST_BIT 0x10000 // Largest note is 144, which is 0b10010000
 
 #define DEFAULT_PAUSE 5
+
+/// Helper macro to return an integer clamped within a range (MIN to MAX)
+#define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
+#define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
 /*==============================================================================
  * Enums
@@ -98,18 +104,21 @@ typedef enum
  * Prototypes
  *============================================================================*/
 
-void  slideWhistleEnterMode(display_t * disp);
+void  slideWhistleEnterMode(display_t* disp);
 void  slideWhistleExitMode(void);
 void  slideWhistleButtonCallback(buttonEvt_t* evt);
+void  slideWhistleTouchCallback(touch_event_t* evt);
 void  slideWhistleAccelerometerHandler(accel_t* accel);
 void  slideWhistleMainLoop(int64_t elapsedUs);
 void  slideWhistleBeatTimerFunc(void* arg __attribute__((unused)));
 noteFrequency_t  arpModify(noteFrequency_t note, int8_t arpInterval);
+int16_t  getCurrentCursorX(void);
+int16_t  getCurrentCursorY(void);
+uint8_t  getCurrentOctaveIdx(void);
 noteFrequency_t  getCurrentNote(void);
 char*  noteToStr(noteFrequency_t note);
 void  plotBar(uint8_t yOffset);
 void  noteToColor( led_t* led, noteFrequency_t note, uint8_t brightness);
-void  paramSwitchTimerFunc(void* arg __attribute__((unused)));
 
 /*==============================================================================
  * Structs
@@ -156,10 +165,11 @@ typedef struct
 // The swadge mode
 swadgeMode modeSlideWhistle =
 {
-    .modeName = "Slide Whistle",
+    .modeName = "TechnoSlideWhistle",
     .fnEnterMode = slideWhistleEnterMode,
     .fnExitMode = slideWhistleExitMode,
     .fnButtonCallback = slideWhistleButtonCallback,
+    .fnTouchCallback = slideWhistleTouchCallback,
     .fnMainLoop = slideWhistleMainLoop,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
@@ -183,6 +193,11 @@ typedef struct
     char accelStr[32];
     char accelStr2[32];
 
+    // Track touch
+    bool touchHeld;
+    int32_t touchPosition;
+    int32_t touchIntensity;
+
     // Track rhythm
     esp_timer_create_args_t beatTimerArgs;
     esp_timer_handle_t beatTimer;
@@ -192,12 +207,15 @@ typedef struct
     uint8_t bpmIdx;
 
     // Track the button
+    bool aHeld;
+    bool upHeld;
+    bool downHeld;
     bool shouldPlay;
+    noteFrequency_t heldNote;
+    int16_t heldCursorX;
+    int16_t heldCursorY;
     uint8_t rhythmIdx;
     uint8_t scaleIdx;
-    bool modifyBpm;
-    esp_timer_create_args_t paramSwitchTimerArgs;
-    esp_timer_handle_t paramSwitchTimer;
 } slideWhistle_t;
 
 slideWhistle_t* slideWhistle;
@@ -206,44 +224,225 @@ slideWhistle_t* slideWhistle;
  * Const Variables
  *============================================================================*/
 
+// Text
+const char rhythmText[] = "Sel: Rhythm";
+const char scaleText[] =  "Start: Scale";
+const char bpmText[] =    "< >: BPM";
+const char steerMeText[] = "Turn me like a steering wheel";
+const char mutedText[] =  "Swadge is muted!";
+const char holdText[] = ": Hold";
+const char playText[] =   ": Play";
+
 // All the scales
+#define NUM_OCTAVES 3
 #define LOWER_OCTAVE
+
 #ifdef LOWER_OCTAVE
-const noteFrequency_t scl_M_Penta[] = {C_4, D_4, E_4, G_4, A_4, C_5, C_5, D_5, E_5, G_5, A_5, C_6, };
-const noteFrequency_t scl_m_Penta[] = {C_4, D_SHARP_4, F_4, G_4, A_SHARP_4, C_5, C_5, D_SHARP_5, F_5, G_5, A_SHARP_5, C_6, };
-const noteFrequency_t scl_m_Blues[] = {C_4, D_SHARP_4, F_4, F_SHARP_4, G_4, A_SHARP_4, C_5, C_5, D_SHARP_5, F_5, F_SHARP_5, G_5, A_SHARP_5, C_6, };
-const noteFrequency_t scl_M_Blues[] = {C_4, D_4, D_SHARP_4, E_4, G_4, A_4, C_5, C_5, D_5, D_SHARP_5, E_5, G_5, A_5, C_6, };
-const noteFrequency_t scl_Major[] = {C_4, D_4, E_4, F_4, G_4, A_4, B_4, C_5, C_5, D_5, E_5, F_5, G_5, A_5, B_5, C_6, };
-const noteFrequency_t scl_Minor_Aeolian[] = {C_4, D_4, D_SHARP_4, F_4, G_4, G_SHARP_4, A_SHARP_4, C_5, C_5, D_5, D_SHARP_5, F_5, G_5, G_SHARP_5, A_SHARP_5, C_6, };
-const noteFrequency_t scl_Harm_Minor[] = {C_4, D_4, D_SHARP_4, F_4, G_4, G_SHARP_4, B_4, C_5, C_5, D_5, D_SHARP_5, F_5, G_5, G_SHARP_5, B_5, C_6, };
-const noteFrequency_t scl_Dorian[] = {C_4, D_4, D_SHARP_4, F_4, G_4, A_4, A_SHARP_4, C_5, C_5, D_5, D_SHARP_5, F_5, G_5, A_5, A_SHARP_5, C_6, };
-const noteFrequency_t scl_Phrygian[] = {C_4, C_SHARP_4, D_SHARP_4, F_4, G_4, G_SHARP_4, A_SHARP_4, C_5, C_5, C_SHARP_5, D_SHARP_5, F_5, G_5, G_SHARP_5, A_SHARP_5, C_6, };
-const noteFrequency_t scl_Lydian[] = {C_4, D_4, E_4, F_SHARP_4, G_4, A_4, B_4, C_5, C_5, D_5, E_5, F_SHARP_5, G_5, A_5, B_5, C_6, };
-const noteFrequency_t scl_Mixolydian[] = {C_4, D_4, E_4, F_4, G_4, A_4, A_SHARP_4, C_5, C_5, D_5, E_5, F_5, G_5, A_5, A_SHARP_5, C_6, };
-const noteFrequency_t scl_Locrian[] = {C_4, C_SHARP_4, D_SHARP_4, F_4, F_SHARP_4, G_SHARP_4, A_SHARP_4, C_5, C_5, C_SHARP_5, D_SHARP_5, F_5, F_SHARP_5, G_SHARP_5, A_SHARP_5, C_6, };
-const noteFrequency_t scl_Dom_Bebop[] = {C_4, D_4, E_4, F_4, G_4, A_4, A_SHARP_4, B_4, C_5, C_5, D_5, E_5, F_5, G_5, A_5, A_SHARP_5, B_5, C_6, };
-const noteFrequency_t scl_M_Bebop[] = {C_4, D_4, E_4, F_4, G_4, G_SHARP_4, A_SHARP_4, B_4, C_5, C_5, D_5, E_5, F_5, G_5, G_SHARP_5, A_SHARP_5, B_5, C_6, };
-const noteFrequency_t scl_Whole_Tone[] = {C_4, D_4, E_4, F_SHARP_4, G_SHARP_4, A_SHARP_4, C_5, C_5, D_5, E_5, F_SHARP_5, G_SHARP_5, A_SHARP_5, C_6, };
-const noteFrequency_t scl_Dacs[] = {C_4, D_SHARP_4, F_4, F_SHARP_4, G_4, A_4, C_5, D_SHARP_5, F_5, F_SHARP_5, G_5, A_5};
-const noteFrequency_t scl_Chromatic[] = {C_4, C_SHARP_4, D_4, D_SHARP_4, E_4, F_4, F_SHARP_4, G_4, G_SHARP_4, A_4, A_SHARP_4, B_4, C_5, C_5, C_SHARP_5, D_5, D_SHARP_5, E_5, F_5, F_SHARP_5, G_5, G_SHARP_5, A_5, A_SHARP_5, B_5, C_6, };
+const noteFrequency_t scl_M_Penta[] =
+{
+    C_4, D_4, E_4, G_4, A_4, C_5,
+    C_5, D_5, E_5, G_5, A_5, C_6,
+    C_6, D_6, E_6, G_6, A_6, C_7,
+};
+const noteFrequency_t scl_m_Penta[] =
+{
+    C_4, D_SHARP_4, F_4, G_4, A_SHARP_4, C_5,
+    C_5, D_SHARP_5, F_5, G_5, A_SHARP_5, C_6,
+    C_6, D_SHARP_6, F_6, G_6, A_SHARP_6, C_7,
+};
+const noteFrequency_t scl_m_Blues[] =
+{
+    C_4, D_SHARP_4, F_4, F_SHARP_4, G_4, A_SHARP_4, C_5,
+    C_5, D_SHARP_5, F_5, F_SHARP_5, G_5, A_SHARP_5, C_6,
+    C_6, D_SHARP_6, F_6, F_SHARP_6, G_6, A_SHARP_6, C_7,
+};
+const noteFrequency_t scl_M_Blues[] =
+{
+    C_4, D_4, D_SHARP_4, E_4, G_4, A_4, C_5,
+    C_5, D_5, D_SHARP_5, E_5, G_5, A_5, C_6,
+    C_6, D_6, D_SHARP_6, E_6, G_6, A_6, C_7,
+};
+const noteFrequency_t scl_Major[] =
+{
+    C_4, D_4, E_4, F_4, G_4, A_4, B_4, C_5,
+    C_5, D_5, E_5, F_5, G_5, A_5, B_5, C_6,
+    C_6, D_6, E_6, F_6, G_6, A_6, B_6, C_7,
+};
+const noteFrequency_t scl_Minor_Aeolian[] =
+{
+    C_4, D_4, D_SHARP_4, F_4, G_4, G_SHARP_4, A_SHARP_4, C_5,
+    C_5, D_5, D_SHARP_5, F_5, G_5, G_SHARP_5, A_SHARP_5, C_6,
+    C_6, D_6, D_SHARP_6, F_6, G_6, G_SHARP_6, A_SHARP_6, C_7,
+};
+const noteFrequency_t scl_Harm_Minor[] =
+{
+    C_4, D_4, D_SHARP_4, F_4, G_4, G_SHARP_4, B_4, C_5,
+    C_5, D_5, D_SHARP_5, F_5, G_5, G_SHARP_5, B_5, C_6,
+    C_6, D_6, D_SHARP_6, F_6, G_6, G_SHARP_6, B_6, C_7,
+};
+const noteFrequency_t scl_Dorian[] =
+{
+    C_4, D_4, D_SHARP_4, F_4, G_4, A_4, A_SHARP_4, C_5,
+    C_5, D_5, D_SHARP_5, F_5, G_5, A_5, A_SHARP_5, C_6,
+    C_6, D_6, D_SHARP_6, F_6, G_6, A_6, A_SHARP_6, C_7,
+};
+const noteFrequency_t scl_Phrygian[] =
+{
+    C_4, C_SHARP_4, D_SHARP_4, F_4, G_4, G_SHARP_4, A_SHARP_4, C_5,
+    C_5, C_SHARP_5, D_SHARP_5, F_5, G_5, G_SHARP_5, A_SHARP_5, C_6,
+    C_6, C_SHARP_6, D_SHARP_6, F_6, G_6, G_SHARP_6, A_SHARP_6, C_7,
+};
+const noteFrequency_t scl_Lydian[] =
+{
+    C_4, D_4, E_4, F_SHARP_4, G_4, A_4, B_4, C_5,
+    C_5, D_5, E_5, F_SHARP_5, G_5, A_5, B_5, C_6,
+    C_6, D_6, E_6, F_SHARP_6, G_6, A_6, B_6, C_7,
+};
+const noteFrequency_t scl_Mixolydian[] =
+{
+    C_4, D_4, E_4, F_4, G_4, A_4, A_SHARP_4, C_5,
+    C_5, D_5, E_5, F_5, G_5, A_5, A_SHARP_5, C_6,
+    C_6, D_6, E_6, F_6, G_6, A_6, A_SHARP_6, C_7,
+};
+const noteFrequency_t scl_Locrian[] =
+{
+    C_4, C_SHARP_4, D_SHARP_4, F_4, F_SHARP_4, G_SHARP_4, A_SHARP_4, C_5,
+    C_5, C_SHARP_5, D_SHARP_5, F_5, F_SHARP_5, G_SHARP_5, A_SHARP_5, C_6,
+    C_6, C_SHARP_6, D_SHARP_6, F_6, F_SHARP_6, G_SHARP_6, A_SHARP_6, C_7,
+};
+const noteFrequency_t scl_Dom_Bebop[] =
+{
+    C_4, D_4, E_4, F_4, G_4, A_4, A_SHARP_4, B_4, C_5,
+    C_5, D_5, E_5, F_5, G_5, A_5, A_SHARP_5, B_5, C_6,
+    C_6, D_6, E_6, F_6, G_6, A_6, A_SHARP_6, B_6, C_7,
+};
+const noteFrequency_t scl_M_Bebop[] =
+{
+    C_4, D_4, E_4, F_4, G_4, G_SHARP_4, A_SHARP_4, B_4, C_5,
+    C_5, D_5, E_5, F_5, G_5, G_SHARP_5, A_SHARP_5, B_5, C_6,
+    C_6, D_6, E_6, F_6, G_6, G_SHARP_6, A_SHARP_6, B_6, C_7,
+};
+const noteFrequency_t scl_Whole_Tone[] =
+{
+    C_4, D_4, E_4, F_SHARP_4, G_SHARP_4, A_SHARP_4, C_5,
+    C_5, D_5, E_5, F_SHARP_5, G_SHARP_5, A_SHARP_5, C_6,
+    C_6, D_6, E_6, F_SHARP_6, G_SHARP_6, A_SHARP_6, C_7,
+};
+const noteFrequency_t scl_Dacs[] =
+{
+    C_4, D_SHARP_4, F_4, F_SHARP_4, G_4, A_4,
+    C_5, D_SHARP_5, F_5, F_SHARP_5, G_5, A_5,
+    C_6, D_SHARP_6, F_6, F_SHARP_6, G_6, A_6,
+};
+const noteFrequency_t scl_Chromatic[] =
+{
+    C_4, C_SHARP_4, D_4, D_SHARP_4, E_4, F_4, F_SHARP_4, G_4, G_SHARP_4, A_4, A_SHARP_4, B_4, C_5,
+    C_5, C_SHARP_5, D_5, D_SHARP_5, E_5, F_5, F_SHARP_5, G_5, G_SHARP_5, A_5, A_SHARP_5, B_5, C_6,
+    C_6, C_SHARP_6, D_6, D_SHARP_6, E_6, F_6, F_SHARP_6, G_6, G_SHARP_6, A_6, A_SHARP_6, B_6, C_7,
+};
 #else
-const noteFrequency_t scl_M_Penta[] = {C_5, D_5, E_5, G_5, A_5, C_6, C_6, D_6, E_6, G_6, A_6, C_7, };
-const noteFrequency_t scl_m_Penta[] = {C_5, D_SHARP_5, F_5, G_5, A_SHARP_5, C_6, C_6, D_SHARP_6, F_6, G_6, A_SHARP_6, C_7, };
-const noteFrequency_t scl_m_Blues[] = {C_5, D_SHARP_5, F_5, F_SHARP_5, G_5, A_SHARP_5, C_6, C_6, D_SHARP_6, F_6, F_SHARP_6, G_6, A_SHARP_6, C_7, };
-const noteFrequency_t scl_M_Blues[] = {C_5, D_5, D_SHARP_5, E_5, G_5, A_5, C_6, C_6, D_6, D_SHARP_6, E_6, G_6, A_6, C_7, };
-const noteFrequency_t scl_Major[] = {C_5, D_5, E_5, F_5, G_5, A_5, B_5, C_6, C_6, D_6, E_6, F_6, G_6, A_6, B_6, C_7, };
-const noteFrequency_t scl_Minor_Aeolian[] = {C_5, D_5, D_SHARP_5, F_5, G_5, G_SHARP_5, A_SHARP_5, C_6, C_6, D_6, D_SHARP_6, F_6, G_6, G_SHARP_6, A_SHARP_6, C_7, };
-const noteFrequency_t scl_Harm_Minor[] = {C_5, D_5, D_SHARP_5, F_5, G_5, G_SHARP_5, B_5, C_6, C_6, D_6, D_SHARP_6, F_6, G_6, G_SHARP_6, B_6, C_7, };
-const noteFrequency_t scl_Dorian[] = {C_5, D_5, D_SHARP_5, F_5, G_5, A_5, A_SHARP_5, C_6, C_6, D_6, D_SHARP_6, F_6, G_6, A_6, A_SHARP_6, C_7, };
-const noteFrequency_t scl_Phrygian[] = {C_5, C_SHARP_5, D_SHARP_5, F_5, G_5, G_SHARP_5, A_SHARP_5, C_6, C_6, C_SHARP_6, D_SHARP_6, F_6, G_6, G_SHARP_6, A_SHARP_6, C_7, };
-const noteFrequency_t scl_Lydian[] = {C_5, D_5, E_5, F_SHARP_5, G_5, A_5, B_5, C_6, C_6, D_6, E_6, F_SHARP_6, G_6, A_6, B_6, C_7, };
-const noteFrequency_t scl_Mixolydian[] = {C_5, D_5, E_5, F_5, G_5, A_5, A_SHARP_5, C_6, C_6, D_6, E_6, F_6, G_6, A_6, A_SHARP_6, C_7, };
-const noteFrequency_t scl_Locrian[] = {C_5, C_SHARP_5, D_SHARP_5, F_5, F_SHARP_5, G_SHARP_5, A_SHARP_5, C_6, C_6, C_SHARP_6, D_SHARP_6, F_6, F_SHARP_6, G_SHARP_6, A_SHARP_6, C_7, };
-const noteFrequency_t scl_Dom_Bebop[] = {C_5, D_5, E_5, F_5, G_5, A_5, A_SHARP_5, B_5, C_6, C_6, D_6, E_6, F_6, G_6, A_6, A_SHARP_6, B_6, C_7, };
-const noteFrequency_t scl_M_Bebop[] = {C_5, D_5, E_5, F_5, G_5, G_SHARP_5, A_SHARP_5, B_5, C_6, C_6, D_6, E_6, F_6, G_6, G_SHARP_6, A_SHARP_6, B_6, C_7, };
-const noteFrequency_t scl_Whole_Tone[] = {C_5, D_5, E_5, F_SHARP_5, G_SHARP_5, A_SHARP_5, C_6, C_6, D_6, E_6, F_SHARP_6, G_SHARP_6, A_SHARP_6, C_7, };
-const noteFrequency_t scl_Dacs[] = {C_5, D_SHARP_5, F_5, F_SHARP_5, G_5, A_5, C_6, D_SHARP_6, F_6, F_SHARP_6, G_6, A_6};
-const noteFrequency_t scl_Chromatic[] = {C_5, C_SHARP_5, D_5, D_SHARP_5, E_5, F_5, F_SHARP_5, G_5, G_SHARP_5, A_5, A_SHARP_5, B_5, C_6, C_6, C_SHARP_6, D_6, D_SHARP_6, E_6, F_6, F_SHARP_6, G_6, G_SHARP_6, A_6, A_SHARP_6, B_6, C_7, };
+const noteFrequency_t scl_M_Penta[] =
+{
+    C_5, D_5, E_5, G_5, A_5, C_6,
+    C_6, D_6, E_6, G_6, A_6, C_7,
+    C_7, D_7, E_7, G_7, A_7, C_8,
+};
+const noteFrequency_t scl_m_Penta[] =
+{
+    C_5, D_SHARP_5, F_5, G_5, A_SHARP_5, C_6,
+    C_6, D_SHARP_6, F_6, G_6, A_SHARP_6, C_7,
+    C_7, D_SHARP_7, F_7, G_7, A_SHARP_7, C_8,
+};
+const noteFrequency_t scl_m_Blues[] =
+{
+    C_5, D_SHARP_5, F_5, F_SHARP_5, G_5, A_SHARP_5, C_6,
+    C_6, D_SHARP_6, F_6, F_SHARP_6, G_6, A_SHARP_6, C_7,
+    C_7, D_SHARP_7, F_7, F_SHARP_7, G_7, A_SHARP_7, C_8,
+};
+const noteFrequency_t scl_M_Blues[] =
+{
+    C_5, D_5, D_SHARP_5, E_5, G_5, A_5, C_6,
+    C_6, D_6, D_SHARP_6, E_6, G_6, A_6, C_7,
+    C_7, D_7, D_SHARP_7, E_7, G_7, A_7, C_8,
+};
+const noteFrequency_t scl_Major[] =
+{
+    C_5, D_5, E_5, F_5, G_5, A_5, B_5, C_6,
+    C_6, D_6, E_6, F_6, G_6, A_6, B_6, C_7,
+    C_7, D_7, E_7, F_7, G_7, A_7, B_7, C_8,
+};
+const noteFrequency_t scl_Minor_Aeolian[] =
+{
+    C_5, D_5, D_SHARP_5, F_5, G_5, G_SHARP_5, A_SHARP_5, C_6,
+    C_6, D_6, D_SHARP_6, F_6, G_6, G_SHARP_6, A_SHARP_6, C_7,
+    C_7, D_7, D_SHARP_7, F_7, G_7, G_SHARP_7, A_SHARP_7, C_8,
+};
+const noteFrequency_t scl_Harm_Minor[] =
+{
+    C_5, D_5, D_SHARP_5, F_5, G_5, G_SHARP_5, B_5, C_6,
+    C_6, D_6, D_SHARP_6, F_6, G_6, G_SHARP_6, B_6, C_7,
+    C_7, D_7, D_SHARP_7, F_7, G_7, G_SHARP_7, B_7, C_8,
+};
+const noteFrequency_t scl_Dorian[] =
+{
+    C_5, D_5, D_SHARP_5, F_5, G_5, A_5, A_SHARP_5, C_6,
+    C_6, D_6, D_SHARP_6, F_6, G_6, A_6, A_SHARP_6, C_7,
+    C_7, D_7, D_SHARP_7, F_7, G_7, A_7, A_SHARP_7, C_8,
+};
+const noteFrequency_t scl_Phrygian[] =
+{
+    C_5, C_SHARP_5, D_SHARP_5, F_5, G_5, G_SHARP_5, A_SHARP_5, C_6,
+    C_6, C_SHARP_6, D_SHARP_6, F_6, G_6, G_SHARP_6, A_SHARP_6, C_7,
+    C_7, C_SHARP_7, D_SHARP_7, F_7, G_7, G_SHARP_7, A_SHARP_7, C_8,
+};
+const noteFrequency_t scl_Lydian[] =
+{
+    C_5, D_5, E_5, F_SHARP_5, G_5, A_5, B_5, C_6,
+    C_6, D_6, E_6, F_SHARP_6, G_6, A_6, B_6, C_7,
+    C_7, D_7, E_7, F_SHARP_7, G_7, A_7, B_7, C_8,
+};
+const noteFrequency_t scl_Mixolydian[] =
+{
+    C_5, D_5, E_5, F_5, G_5, A_5, A_SHARP_5, C_6,
+    C_6, D_6, E_6, F_6, G_6, A_6, A_SHARP_6, C_7,
+    C_7, D_7, E_7, F_7, G_7, A_7, A_SHARP_7, C_8,
+};
+const noteFrequency_t scl_Locrian[] =
+{
+    C_5, C_SHARP_5, D_SHARP_5, F_5, F_SHARP_5, G_SHARP_5, A_SHARP_5, C_6,
+    C_6, C_SHARP_6, D_SHARP_6, F_6, F_SHARP_6, G_SHARP_6, A_SHARP_6, C_7,
+    C_7, C_SHARP_7, D_SHARP_7, F_7, F_SHARP_7, G_SHARP_7, A_SHARP_7, C_8,
+};
+const noteFrequency_t scl_Dom_Bebop[] =
+{
+    C_5, D_5, E_5, F_5, G_5, A_5, A_SHARP_5, B_5, C_6,
+    C_6, D_6, E_6, F_6, G_6, A_6, A_SHARP_6, B_6, C_7,
+    C_7, D_7, E_7, F_7, G_7, A_7, A_SHARP_7, B_7, C_8,
+};
+const noteFrequency_t scl_M_Bebop[] =
+{
+    C_5, D_5, E_5, F_5, G_5, G_SHARP_5, A_SHARP_5, B_5, C_6,
+    C_6, D_6, E_6, F_6, G_6, G_SHARP_6, A_SHARP_6, B_6, C_7,
+    C_7, D_7, E_7, F_7, G_7, G_SHARP_7, A_SHARP_7, B_7, C_8,
+};
+const noteFrequency_t scl_Whole_Tone[] =
+{
+    C_5, D_5, E_5, F_SHARP_5, G_SHARP_5, A_SHARP_5, C_6,
+    C_6, D_6, E_6, F_SHARP_6, G_SHARP_6, A_SHARP_6, C_7,
+    C_7, D_7, E_7, F_SHARP_7, G_SHARP_7, A_SHARP_7, C_8,
+};
+const noteFrequency_t scl_Dacs[] =
+{
+    C_5, D_SHARP_5, F_5, F_SHARP_5, G_5, A_5,
+    C_6, D_SHARP_6, F_6, F_SHARP_6, G_6, A_6,
+    C_7, D_SHARP_7, F_7, F_SHARP_7, G_7, A_7,
+};
+const noteFrequency_t scl_Chromatic[] =
+{
+    C_5, C_SHARP_5, D_5, D_SHARP_5, E_5, F_5, F_SHARP_5, G_5, G_SHARP_5, A_5, A_SHARP_5, B_5, C_6,
+    C_6, C_SHARP_6, D_6, D_SHARP_6, E_6, F_6, F_SHARP_6, G_6, G_SHARP_6, A_6, A_SHARP_6, B_6, C_7,
+    C_7, C_SHARP_7, D_7, D_SHARP_7, E_7, F_7, F_SHARP_7, G_7, G_SHARP_7, A_7, A_SHARP_7, B_7, C_8,
+};
 #endif
 
 const scale_t scales[] =
@@ -389,7 +588,7 @@ const rhythmArp_t major_7[] =
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 1},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 5},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
-    {.note = TRIPLET_EIGHTH_NOTE, .arp = 11},
+    {.note = TRIPLET_EIGHTH_NOTE, .arp = 12},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 5},
 };
@@ -399,7 +598,7 @@ const rhythmArp_t minor_7[] =
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 1},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 4},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
-    {.note = TRIPLET_EIGHTH_NOTE, .arp = 10},
+    {.note = TRIPLET_EIGHTH_NOTE, .arp = 11},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 4},
 };
@@ -409,7 +608,7 @@ const rhythmArp_t dom_7[] =
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 1},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 5},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
-    {.note = TRIPLET_EIGHTH_NOTE, .arp = 10},
+    {.note = TRIPLET_EIGHTH_NOTE, .arp = 11},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 4},
 };
@@ -610,7 +809,7 @@ const rhythmArp_t sans[] =
     {.note = SIXTEENTH_NOTE, .arp = 6},
 };
 
-const rhythmArp_t fifteen_sixteen[] =
+const rhythmArp_t ducktales_moon[] =
 {
     {.note = SIXTEENTH_NOTE, .arp = 1},
     {.note = SIXTEENTH_NOTE, .arp = 8},
@@ -629,7 +828,7 @@ const rhythmArp_t fifteen_sixteen[] =
     {.note = SIXTEENTH_NOTE, .arp = 13},
 };
 
-const rhythmArp_t sb[] =
+const rhythmArp_t stickerbush[] =
 {
     {.note = EIGHTH_NOTE, .arp = 12},
     {.note = DOTTED_EIGHTH_NOTE, .arp = 13},
@@ -657,14 +856,14 @@ const rhythm_t rhythms[] =
         .defaultBpm = 5 // 114
     },
     {
-        .name = "octave",
+        .name = "Octave",
         .rhythm = octaves,
         .rhythmLen = lengthof(octaves),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 4 // 139
     },
     {
-        .name = "fifth",
+        .name = "Fifth",
         .rhythm = fifth,
         .rhythmLen = lengthof(fifth),
         .interNotePauseMs = DEFAULT_PAUSE,
@@ -706,35 +905,35 @@ const rhythm_t rhythms[] =
         .defaultBpm = 4 // 139
     },
     {
-        .name = "swing",
+        .name = "Swing",
         .rhythm = swing,
         .rhythmLen = lengthof(swing),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 3 // 167
     },
     {
-        .name = "syncop",
+        .name = "Syncopa",
         .rhythm = syncopa,
         .rhythmLen = lengthof(syncopa),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 2 // 192
     },
     {
-        .name = "dw_stabs",
+        .name = "DW_stabs",
         .rhythm = dw_stabs,
         .rhythmLen = lengthof(dw_stabs),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 6 // 86
     },
     {
-        .name = "lgnd",
+        .name = "Lgnd",
         .rhythm = legendary,
         .rhythmLen = lengthof(legendary),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 4 // 139
     },
     {
-        .name = "j-dawg",
+        .name = "J-Dawg",
         .rhythm = j_dawg,
         .rhythmLen = lengthof(j_dawg),
         .interNotePauseMs = DEFAULT_PAUSE,
@@ -748,14 +947,14 @@ const rhythm_t rhythms[] =
         .defaultBpm = 3 // 167
     },
     {
-        .name = "goat",
+        .name = "Goat",
         .rhythm = the_goat,
         .rhythmLen = lengthof(the_goat),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 5 // 114
     },
     {
-        .name = "sgp",
+        .name = "Sgp",
         .rhythm = sgp,
         .rhythmLen = lengthof(sgp),
         .interNotePauseMs = DEFAULT_PAUSE,
@@ -776,51 +975,51 @@ const rhythm_t rhythms[] =
         .defaultBpm = 4 // 139
     },
     {
-        .name = "octavio",
+        .name = "Octavio",
         .rhythm = octavio,
         .rhythmLen = lengthof(octavio),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 0 // 250
     },
     {
-        .name = "chacha",
+        .name = "Cha-Cha",
         .rhythm = cha_cha,
         .rhythmLen = lengthof(cha_cha),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 3 // 167
     },
     {
-        .name = "its-a-me",
+        .name = "It's-A-Me",
         .rhythm = its_a_me,
         .rhythmLen = lengthof(its_a_me),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 3 // 167
     },
     {
-        .name = "strange",
+        .name = "Strange",
         .rhythm = so_strange,
         .rhythmLen = lengthof(so_strange),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 4 // 139
     },
     {
-        .name = "sans?",
+        .name = "Sans?",
         .rhythm = sans,
         .rhythmLen = lengthof(sans),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 5 // 114
     },
     {
-        .name = "15/16",
-        .rhythm = fifteen_sixteen,
-        .rhythmLen = lengthof(fifteen_sixteen),
+        .name = "Quack",
+        .rhythm = ducktales_moon,
+        .rhythmLen = lengthof(ducktales_moon),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 6 // 86
     },
     {
-        .name = "sb",
-        .rhythm = sb,
-        .rhythmLen = lengthof(sb),
+        .name = "Stckrbsh",
+        .rhythm = stickerbush,
+        .rhythmLen = lengthof(stickerbush),
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 6 // 86
     }
@@ -979,7 +1178,7 @@ const noteFrequency_t allNotes[] =
 /**
  * Initializer for slideWhistle
  */
-void  slideWhistleEnterMode(display_t * disp)
+void  slideWhistleEnterMode(display_t* disp)
 {
     // Allocate zero'd memory for the mode
     slideWhistle = calloc(1, sizeof(slideWhistle_t));
@@ -1006,17 +1205,6 @@ void  slideWhistleEnterMode(display_t * disp)
     {
         esp_timer_start_periodic(slideWhistle->beatTimer, 1000);
     }
-
-    // Draw an initial display
-    //slideWhistleMainLoop();
-
-    // Set up a timer to handle the parameter button
-    slideWhistle->paramSwitchTimerArgs.arg = NULL;
-    slideWhistle->paramSwitchTimerArgs.callback = paramSwitchTimerFunc;
-    slideWhistle->paramSwitchTimerArgs.dispatch_method = ESP_TIMER_TASK;
-    slideWhistle->paramSwitchTimerArgs.name = "slideWhistleparamSwitchTimer";
-    slideWhistle->paramSwitchTimerArgs.skip_unhandled_events = true;
-    esp_timer_create(&slideWhistle->paramSwitchTimerArgs, &slideWhistle->paramSwitchTimer);
 }
 
 /**
@@ -1031,12 +1219,24 @@ void  slideWhistleExitMode(void)
     freeFont(&slideWhistle->mm);
 
     esp_timer_stop(slideWhistle->beatTimer);
-    esp_timer_stop(slideWhistle->paramSwitchTimer);
 
     esp_timer_delete(slideWhistle->beatTimer);
-    esp_timer_delete(slideWhistle->paramSwitchTimer);
 
     free(slideWhistle);
+}
+
+/**
+ * This function is called when a button press is pressed. Buttons are
+ * handled by interrupts and queued up for this callback, so there are no
+ * strict timing restrictions for this function.
+ *
+ * @param evt The button event that occurred
+ */
+void  slideWhistleTouchCallback(touch_event_t* evt)
+{
+    slideWhistle->touchHeld = evt->state != 0;
+    slideWhistle->shouldPlay = evt->state != 0 || slideWhistle->aHeld;
+    //slideWhistle->touchPosition = roundf((evt->position * BAR_X_WIDTH) / 255);
 }
 
 /**
@@ -1050,60 +1250,79 @@ void  slideWhistleButtonCallback(buttonEvt_t* evt)
     {
         case START:
         {
-            // Center
             if(evt->down)
             {
                 // Cycle the scale
                 slideWhistle->scaleIdx = (slideWhistle->scaleIdx + 1) % lengthof(scales);
-                //slideWhistleMainLoop();
             }
             break;
         }
-        case BTN_B:
+        case SELECT:
         {
-            // Left
             if(evt->down)
             {
-                // Start a timer to either switch the mode or change the BPM
-                esp_timer_start_once(slideWhistle->paramSwitchTimer, 1000 * 1000);
-                slideWhistle->modifyBpm = false;
-            }
-            else // Released
-            {
-                // Stop the timer no matter what
-                esp_timer_stop(slideWhistle->paramSwitchTimer);
-
-                // Button released while timer is still active, switch the mode
-                if(false == slideWhistle->modifyBpm)
-                {
-                    // cycle params
-                    slideWhistle->rhythmIdx = (slideWhistle->rhythmIdx + 1) % lengthof(rhythms);
-                    slideWhistle->timeUs = 0;
-                    slideWhistle->rhythmNoteIdx = 0;
-                    slideWhistle->lastCallTimeUs = 0;
-                    slideWhistle->bpmIdx = rhythms[slideWhistle->rhythmIdx].defaultBpm;
-                    //slideWhistleMainLoop();
-                }
-                // Clear this flag on release, always
-                slideWhistle->modifyBpm = false;
+                // Cycle the rhythm
+                slideWhistle->rhythmIdx = (slideWhistle->rhythmIdx + 1) % lengthof(rhythms);
+                slideWhistle->timeUs = 0;
+                slideWhistle->rhythmNoteIdx = 0;
+                slideWhistle->lastCallTimeUs = 0;
+                slideWhistle->bpmIdx = rhythms[slideWhistle->rhythmIdx].defaultBpm;
             }
 
             break;
         }
         case BTN_A:
         {
-            // Right, track whether a note should be played or not
-            if(false == slideWhistle->modifyBpm)
+            slideWhistle->rhythmNoteIdx = 0;
+            slideWhistle->lastCallTimeUs = 0;
+            slideWhistle->aHeld = evt->down;
+            slideWhistle->shouldPlay = evt->down || slideWhistle->touchHeld;
+            break;
+        }
+        case BTN_B:
+        {
+            if(evt->down)
             {
-                slideWhistle->rhythmNoteIdx = 0;
-                slideWhistle->lastCallTimeUs = 0;
-                slideWhistle->shouldPlay = evt->down;
+                slideWhistle->heldNote = getCurrentNote();
+                slideWhistle->heldCursorX = getCurrentCursorX();
+                slideWhistle->heldCursorY = getCurrentCursorY();
             }
             else
             {
-                slideWhistle->shouldPlay = false;
+                slideWhistle->heldNote = SILENCE;
+                slideWhistle->heldCursorX = 0;
+                slideWhistle->heldCursorY = 0;
             }
-
+            break;
+        }
+        case UP:
+        {
+            slideWhistle->upHeld = evt->down;
+            break;
+        }
+        case DOWN:
+        {
+            slideWhistle->downHeld = evt->down;
+            break;
+        }
+        case LEFT:
+        {
+            if(evt->down)
+            {
+                slideWhistle->bpmIdx = (slideWhistle->bpmIdx + 1) % lengthof(bpms);
+            }
+            break;
+        }
+        case RIGHT:
+        {
+            if(evt->down)
+            {
+                if(slideWhistle->bpmIdx == 0)
+                {
+                    slideWhistle->bpmIdx = lengthof(bpms);
+                }
+                slideWhistle->bpmIdx = slideWhistle->bpmIdx - 1;
+            }
             break;
         }
         default:
@@ -1114,19 +1333,6 @@ void  slideWhistleButtonCallback(buttonEvt_t* evt)
 }
 
 /**
- * Timer started when the 'choose' button is pressed.
- * If it expires before the button is released, set the flag to modify BPM
- * If it doesn't expire before the button is released, switch the mode params
- *
- * @param arg unused
- */
-void  paramSwitchTimerFunc(void* arg __attribute__((unused)))
-{
-    slideWhistle->modifyBpm = true;
-    slideWhistle->shouldPlay = false;
-}
-
-/**
  * @brief Callback function for accelerometer values
  * Use the current vector to find pitch and roll, then update the display
  *
@@ -1134,6 +1340,12 @@ void  paramSwitchTimerFunc(void* arg __attribute__((unused)))
  */
 void  slideWhistleAccelerometerHandler(accel_t* accel)
 {
+    // Get the centroid at the same rate at the accel for smoothness
+    getTouchCentroid(&slideWhistle->touchPosition, &slideWhistle->touchIntensity);
+    slideWhistle->touchPosition = (slideWhistle->touchPosition * BAR_X_WIDTH) / 1023;
+    slideWhistle->touchPosition = CLAMP(slideWhistle->touchPosition, BAR_X_MARGIN,
+                                        slideWhistle->disp->w - 1 - BAR_X_MARGIN);
+
     // Only find values when the swadge is pointed up
     if(accel-> x <= 0)
     {
@@ -1148,42 +1360,19 @@ void  slideWhistleAccelerometerHandler(accel_t* accel)
     rollF = ((rollF) / M_PI) + 0.5f;
     pitchF = ((pitchF) / M_PI) + 0.5f;
 
-    // Round and scale to slideWhistle->disp->w
+    // Round and scale to BAR_X_WIDTH
     // this maps 30 degrees to the far left and 150 degrees to the far right
     // (30 / 180) == 0.167, (180 - (2 * 30)) / 180 == 0.666
-    slideWhistle->roll = roundf(((rollF - 0.167f) * slideWhistle->disp->w) / 0.666f);
-    if(slideWhistle->roll >= slideWhistle->disp->w)
-    {
-        slideWhistle->roll = slideWhistle->disp->w - 1;
-    }
-    else if(slideWhistle->roll < 0)
-    {
-        slideWhistle->roll = 0;
-    }
-    slideWhistle->pitch = roundf(pitchF * slideWhistle->disp->w);
-    if(slideWhistle->pitch >= slideWhistle->disp->w)
-    {
-        slideWhistle->pitch = slideWhistle->disp->w - 1;
-    }
+    slideWhistle->roll = BAR_X_WIDTH - roundf(((rollF - 0.167f) * BAR_X_WIDTH) / 0.666f);
+    slideWhistle->roll = CLAMP(slideWhistle->roll, BAR_X_MARGIN, slideWhistle->disp->w - 1 - BAR_X_MARGIN);
 
-    // Check if the BPM should be adjusted
-    if(true == slideWhistle->modifyBpm)
-    {
-        // Get the number of BPMs
-        uint8_t numBpms = lengthof(bpms);
-        // Scale the roll to the BPM range and reverse it
-        slideWhistle->bpmIdx = (int)(rollF * numBpms);
-        if(slideWhistle->bpmIdx >= numBpms)
-        {
-            slideWhistle->bpmIdx = numBpms - 1;
-        }
-        slideWhistle->bpmIdx = numBpms - slideWhistle->bpmIdx - 1;
-    }
+    slideWhistle->pitch = roundf(pitchF * BAR_X_WIDTH);
+    slideWhistle->pitch = CLAMP(slideWhistle->pitch, BAR_X_MARGIN, slideWhistle->disp->w - 1 - BAR_X_MARGIN);
 
-    snprintf(slideWhistle->accelStr, sizeof(slideWhistle->accelStr), "roll %6d pitch %6d",
-    slideWhistle->roll, slideWhistle->pitch);
+    snprintf(slideWhistle->accelStr, sizeof(slideWhistle->accelStr), "roll %5d pitch %5d",
+             slideWhistle->roll, slideWhistle->pitch);
     snprintf(slideWhistle->accelStr2, sizeof(slideWhistle->accelStr2), "x %4d, y %4d, z %4d",
-    accel->x, accel->y, accel->z);
+             accel->x, accel->y, accel->z);
 
     //slideWhistleMainLoop();
 }
@@ -1194,86 +1383,146 @@ void  slideWhistleAccelerometerHandler(accel_t* accel)
 void  slideWhistleMainLoop(int64_t elapsedUs)
 {
     slideWhistle->disp->clearPx();
+    fillDisplayArea(slideWhistle->disp, 0, 0, slideWhistle->disp->w, slideWhistle->disp->h, c100);
 
     // Plot the bars
-    plotBar(slideWhistle->disp->h - BAR_Y_MARGIN - 1 - CORNER_OFFSET * 2);
-    plotBar(slideWhistle->disp->h - BAR_Y_MARGIN - (2 * CURSOR_HEIGHT + 5) - CORNER_OFFSET * 2);
-
-    // Draw the cursor if the BPM isn't being modified
-    if(false == slideWhistle->modifyBpm)
+    for(int i = 0; i < NUM_OCTAVES; i++)
     {
-        if(slideWhistle->pitch < PITCH_THRESHOLD)
-        {
-            // Plot the cursor
-            plotLine(slideWhistle->disp, slideWhistle->roll, slideWhistle->disp->h - BAR_Y_MARGIN - (2 * CURSOR_HEIGHT + 5) - CURSOR_HEIGHT - CORNER_OFFSET * 2,
-                     slideWhistle->roll, slideWhistle->disp->h - BAR_Y_MARGIN - (2 * CURSOR_HEIGHT + 5) + CURSOR_HEIGHT - CORNER_OFFSET * 2,
-                     c555, 0);
-        }
-        else
-        {
-            // Plot the cursor
-            plotLine(slideWhistle->disp, slideWhistle->roll, slideWhistle->disp->h - BAR_Y_MARGIN - 1 - CURSOR_HEIGHT - CORNER_OFFSET * 2,
-                     slideWhistle->roll, slideWhistle->disp->h - BAR_Y_MARGIN - 1 + CURSOR_HEIGHT - CORNER_OFFSET * 2,
-                     c555, 0);
-        }
+        plotBar(slideWhistle->disp->h - BAR_Y_MARGIN - i * BAR_Y_SPACING);
     }
 
-    // Plot the title
+    if(slideWhistle->heldNote != SILENCE)
+    {
+        // Plot the cursor for the held note
+        fillDisplayArea(
+                    slideWhistle->disp,
+                    slideWhistle->heldCursorX - CURSOR_WIDTH,
+                    slideWhistle->heldCursorY - CURSOR_HEIGHT,
+                    slideWhistle->heldCursorX + CURSOR_WIDTH,
+                    slideWhistle->heldCursorY + CURSOR_HEIGHT,
+                    c511);
+    }
+
+    // Plot the cursor
+    fillDisplayArea(
+                slideWhistle->disp,
+                getCurrentCursorX() - CURSOR_WIDTH,
+                getCurrentCursorY() - CURSOR_HEIGHT,
+                getCurrentCursorX() + CURSOR_WIDTH,
+                getCurrentCursorY() + CURSOR_HEIGHT,
+                c551);
+
+    // Plot instructions
+    drawText(
+            slideWhistle->disp,
+            &slideWhistle->ibm_vga8, c235,
+            steerMeText,
+            (slideWhistle->disp->w - textWidth(&slideWhistle->ibm_vga8, steerMeText)) / 2,
+            TOP_TEXT_X_MARGIN);
+    
+    int16_t secondLineStartY = slideWhistle->ibm_vga8.h + LINE_BREAK_Y + TOP_TEXT_X_MARGIN;
+
+    // Plot the rhythm
+    drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c444,
+        rhythmText,
+        CORNER_OFFSET,
+        secondLineStartY);
+    drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c555,
+        rhythms[slideWhistle->rhythmIdx].name,
+        slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, rhythms[slideWhistle->rhythmIdx].name) - CORNER_OFFSET,
+        secondLineStartY);
+
+    // Plot the scale
+    drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c444,
+        scaleText,
+        CORNER_OFFSET,
+        secondLineStartY + slideWhistle->radiostars.h + LINE_BREAK_Y);
     drawText(
         slideWhistle->disp,
         &slideWhistle->radiostars, c555,
         scales[slideWhistle->scaleIdx].name,
         slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, scales[slideWhistle->scaleIdx].name) - CORNER_OFFSET,
-        CORNER_OFFSET);
+        secondLineStartY + slideWhistle->radiostars.h + LINE_BREAK_Y);
+
+    // Plot the BPM
+    drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c444,
+        bpmText,
+        CORNER_OFFSET,
+        secondLineStartY + (slideWhistle->radiostars.h + LINE_BREAK_Y) * 2);
+
+    char bpmStr[16] = {0};
+    snprintf(bpmStr, sizeof(bpmStr), "%d", bpms[slideWhistle->bpmIdx].bpm);
     drawText(
         slideWhistle->disp,
         &slideWhistle->radiostars, c555,
-        rhythms[slideWhistle->rhythmIdx].name,
-        CORNER_OFFSET,
-        CORNER_OFFSET);
-
-    // Plot the BPM
-    char bpmStr[8] = {0};
-    snprintf(bpmStr, sizeof(bpmStr), "%d", bpms[slideWhistle->bpmIdx].bpm);
-    drawText(slideWhistle->disp, &slideWhistle->radiostars, c555, bpmStr, CORNER_OFFSET, slideWhistle->radiostars.h + 4 + CORNER_OFFSET);
-
-    // Underline it if it's being modified
-    if(true == slideWhistle->modifyBpm)
-    {
-        for(uint8_t i = 2; i < 4; i++)
-        {
-            plotLine(slideWhistle->disp, 
-                0,
-                (2 * slideWhistle->radiostars.h) + 4 + i,
-                textWidth(&slideWhistle->radiostars, bpmStr),
-                (2 * slideWhistle->radiostars.h) + 4 + i,
-                c555, 0);
-        }
-    }
+        bpmStr,
+        slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, bpmStr) - CORNER_OFFSET,
+        secondLineStartY + (slideWhistle->radiostars.h + LINE_BREAK_Y) * 2);
 
     // Debug print
-    drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c444, slideWhistle->accelStr, 0, slideWhistle->disp->h / 4 + CORNER_OFFSET);
-    drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c444, slideWhistle->accelStr2, 0, slideWhistle->disp->h / 4 + slideWhistle->ibm_vga8.h + 1 + CORNER_OFFSET);
+    drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c444, slideWhistle->accelStr, 0,
+             slideWhistle->disp->h / 4 + CORNER_OFFSET + 10);
+    drawText(slideWhistle->disp, &slideWhistle->ibm_vga8, c444, slideWhistle->accelStr2, 0,
+             slideWhistle->disp->h / 4 + slideWhistle->ibm_vga8.h + 11 + CORNER_OFFSET);
 
     // Warn the user that the swadge is muted, if that's the case
     if(getSfxIsMuted())
     {
         drawText(
-        slideWhistle->disp,
-        &slideWhistle->radiostars, c555,
-        "Swadge is muted!",
-        (slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, "Swadge is muted!")) / 2,
-        slideWhistle->disp->h / 2);
-    } // Plot the note if BPM isn't being modified
-    else if(false == slideWhistle->modifyBpm)
+            slideWhistle->disp,
+            &slideWhistle->radiostars, c551,
+            mutedText,
+            (slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, mutedText)) / 2,
+            slideWhistle->disp->h / 2);
+    }
+    else
     {
-        drawText(slideWhistle->disp, &slideWhistle->mm, c555, noteToStr(getCurrentNote()), (slideWhistle->disp->w - textWidth(&slideWhistle->mm, noteToStr(getCurrentNote()))) / 2, slideWhistle->disp->h / 2);
+        // Plot the note
+        drawText(slideWhistle->disp, &slideWhistle->mm, c555, noteToStr(getCurrentNote()),
+                 (slideWhistle->disp->w - textWidth(&slideWhistle->mm, noteToStr(getCurrentNote()))) / 2, slideWhistle->disp->h / 2);
     }
 
     // Plot the button funcs
-    drawText(slideWhistle->disp, &slideWhistle->radiostars, c555, "Rhythm (BPM)", CORNER_OFFSET, slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
-    drawText(slideWhistle->disp, &slideWhistle->radiostars, c555, "Scale", (slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, "Scale")) / 2 - CORNER_OFFSET, slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
-    drawText(slideWhistle->disp, &slideWhistle->radiostars, c555, "Play", slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, "Play") - CORNER_OFFSET, slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
+    int16_t afterText = drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c511,
+        "B",
+        CORNER_OFFSET,
+        slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
+    drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c444,
+        holdText,
+        afterText,
+        slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
+
+    afterText = drawText(
+                    slideWhistle->disp,
+                    &slideWhistle->radiostars, c444,
+                    "X~Y/",
+                    slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, playText) - textWidth(&slideWhistle->radiostars,
+                            "X~Y/A") - CORNER_OFFSET,
+                    slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
+    afterText = drawText(
+                    slideWhistle->disp,
+                    &slideWhistle->radiostars, c151,
+                    "A",
+                    afterText,
+                    slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
+    drawText(
+        slideWhistle->disp,
+        &slideWhistle->radiostars, c444,
+        playText,
+        afterText,
+        slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
 }
 
 /**
@@ -1284,19 +1533,18 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
 void  plotBar(uint8_t yOffset)
 {
     // Plot the main bar
-    plotLine(slideWhistle->disp, 
-        BAR_X_MARGIN,
-        yOffset,
-        slideWhistle->disp->w - BAR_X_MARGIN,
-        yOffset,
-        c555, 0);
+    plotLine(slideWhistle->disp,
+             BAR_X_MARGIN,
+             yOffset,
+             slideWhistle->disp->w - BAR_X_MARGIN,
+             yOffset,
+             c555, 0);
 
     // Plot tick marks at each of the note boundaries
-    uint8_t tick;
-    for(tick = 0; tick < (scales[slideWhistle->scaleIdx].notesLen / 2) + 1; tick++)
+    for(uint8_t tick = 0; tick < (scales[slideWhistle->scaleIdx].notesLen / NUM_OCTAVES) + 1; tick++)
     {
-        uint8_t x = BAR_X_MARGIN + ( (tick * ((slideWhistle->disp->w - 1) - (BAR_X_MARGIN * 2))) /
-                                     (scales[slideWhistle->scaleIdx].notesLen / 2)) ;
+        int16_t x = BAR_X_MARGIN + ( (tick * ((slideWhistle->disp->w - 1) - (BAR_X_MARGIN * 2))) /
+                                     (scales[slideWhistle->scaleIdx].notesLen / NUM_OCTAVES)) ;
         plotLine(slideWhistle->disp, x, yOffset - TICK_HEIGHT,
                  x, yOffset + TICK_HEIGHT,
                  c555, 0);
@@ -1373,7 +1621,7 @@ void  slideWhistleBeatTimerFunc(void* arg __attribute__((unused)))
         }
 
         // If the button isn't held, or the BPM is being modified, or this is a rest
-        if(!slideWhistle->shouldPlay || true == slideWhistle->modifyBpm ||
+        if(!slideWhistle->shouldPlay ||
                 (rhythms[slideWhistle->rhythmIdx].rhythm[slideWhistle->rhythmNoteIdx].note & REST_BIT))
         {
             // Turn off the buzzer and set the LEDs to dim
@@ -1405,22 +1653,79 @@ void  slideWhistleBeatTimerFunc(void* arg __attribute__((unused)))
 }
 
 /**
- * @return the current note the angle coresponds to. doesn't matter if it should
- * be played right now or not
+ * @return the current X coordinate of the cursor
+ * 
  */
-noteFrequency_t  getCurrentNote(void)
+int16_t  getCurrentCursorX(void)
 {
-    // Get the index of the note to play based on roll
-    uint8_t noteIdx = (slideWhistle->roll * (scales[slideWhistle->scaleIdx].notesLen / 2)) / slideWhistle->disp->w;
-    // See if we should play the higher note
-    if(slideWhistle->pitch < PITCH_THRESHOLD)
+    if(slideWhistle->touchHeld)
     {
-        uint8_t offset = scales[slideWhistle->scaleIdx].notesLen / 2;
-        return scales[slideWhistle->scaleIdx].notes[noteIdx + offset];
+        return slideWhistle->touchPosition;
     }
     else
     {
+        return slideWhistle->roll;
+    }
+}
+
+/**
+ * @return the current Y coordinate of the cursor
+ * 
+ */
+int16_t  getCurrentCursorY(void)
+{
+    return slideWhistle->disp->h - BAR_Y_MARGIN - getCurrentOctaveIdx() * BAR_Y_SPACING;
+}
+
+/**
+ * @return the current octave index selected
+ * 
+ */
+uint8_t  getCurrentOctaveIdx(void)
+{
+    if(slideWhistle->upHeld && !slideWhistle->downHeld)
+    {
+        return 2;
+    }
+    else if(slideWhistle->downHeld && !slideWhistle->upHeld)
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
+/**
+ * @return the current note the angle or touch position coresponds to.
+ * doesn't matter if it should be played right now or not
+ * 
+ */
+noteFrequency_t  getCurrentNote(void)
+{
+    if(slideWhistle->heldNote != SILENCE)
+    {
+        return slideWhistle->heldNote;
+    }
+
+    // Get the index of the note to play
+    uint8_t noteIdx = (getCurrentCursorX() * (scales[slideWhistle->scaleIdx].notesLen / NUM_OCTAVES)) / (BAR_X_WIDTH + 1);
+
+    // See which octave we should play
+    if(slideWhistle->upHeld && !slideWhistle->downHeld)
+    {
+        uint8_t offset = scales[slideWhistle->scaleIdx].notesLen / NUM_OCTAVES;
+        return scales[slideWhistle->scaleIdx].notes[noteIdx + (offset * 2)];
+    }
+    else if(slideWhistle->downHeld && !slideWhistle->upHeld)
+    {
         return scales[slideWhistle->scaleIdx].notes[noteIdx];
+    }
+    else
+    {
+        uint8_t offset = scales[slideWhistle->scaleIdx].notesLen / NUM_OCTAVES;
+        return scales[slideWhistle->scaleIdx].notes[noteIdx + offset];
     }
 }
 
@@ -1469,7 +1774,7 @@ noteFrequency_t  arpModify(noteFrequency_t note, int8_t arpInterval)
 }
 
 /**
- * @brief Translate a slideWhistleal note to a color
+ * @brief Translate a musical note to a color
  *
  * @param led The led_t to write the color data to
  * @param note The note to translate to color
@@ -1495,7 +1800,7 @@ void  noteToColor( led_t* led, noteFrequency_t note, uint8_t brightness)
 }
 
 /**
- * @brief Translate a slideWhistleal note to a string. Only covers the notes we play
+ * @brief Translate a musical note to a string. Only covers the notes we play
  *
  * @param note The note to translate to color
  * @return A null terminated string for this note

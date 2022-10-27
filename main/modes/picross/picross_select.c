@@ -350,9 +350,9 @@ void drawPicrossPreviewWindow(display_t* d, wsg_t* wsg)
             
             box_t box =
                 {
-                    .x0 = (i * s) + ls->paddingLeft+172,//110=left offet for image
-                    .y0 = (j * s) + ls->paddingTop+90,//60=topoffset for image below text
-                    .x1 = (i * s) + s + ls->paddingLeft+172,
+                    .x0 = (i * s) + ls->paddingLeft+176,
+                    .y0 = (j * s) + ls->paddingTop+90,
+                    .x1 = (i * s) + s + ls->paddingLeft+176,
                     .y1 = (j * s) + s + ls->paddingTop+90,
                 };  
             drawBox(d, box, wsg->px[(j * wsg->w) + i], true, 0);
