@@ -427,7 +427,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
     {
         // Don't remember why we only do this when redrawToolbar is true
         // Oh, it's because `paintState->redrawToolbar` is mostly only set in select mode unless you press B?
-        if (paintState->aHeld)
+        if (paintState->aHeld || paintState->aPress)
         {
             paintDoTool(getCursor()->x, getCursor()->y, getArtist()->fgColor);
 
@@ -435,6 +435,8 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
             {
                 paintState->aHeld = false;
             }
+
+            paintState->aPress = false;
         }
 
         if (paintState->moveX || paintState->moveY)
@@ -1229,6 +1231,7 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
             {
                 // Draw
                 paintState->aHeld = true;
+                paintState->aPress = true;
                 break;
             }
 

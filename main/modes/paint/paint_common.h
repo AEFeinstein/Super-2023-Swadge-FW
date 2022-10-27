@@ -188,8 +188,11 @@ typedef struct
     // Which mode will be used to interpret button presses
     paintButtonMode_t buttonMode;
 
-    // Whether or not A is currently pressed
+    // Whether or not A is currently held
     bool aHeld;
+
+    // flag so that an a press shorter than 1 frame always gets handled
+    bool aPress;
 
     // When true, this is the initial D-pad button down.
     // If set, the cursor will move by one pixel and then it will be cleared.
