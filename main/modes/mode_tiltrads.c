@@ -32,10 +32,10 @@
 //#define NO_STRESS_TRIS // Debug mode that when enabled, stops tetrads from dropping automatically, they will only drop when the drop button is pressed. Useful for testing line clears.
 
 // Controls (title)
-#define BTN_TITLE_START_SCORES LEFT
+#define BTN_TITLE_START_SCORES SELECT
 #define BTN_TITLE_START_GAME START
 #define BTN_TITLE_START_GAME_ALT BTN_A
-#define BTN_TITLE_EXIT_MODE SELECT
+//#define BTN_TITLE_EXIT_MODE BTN_B
 
 // Controls (game)
 #define BTN_GAME_SOFT_DROP DOWN
@@ -1321,9 +1321,11 @@ typedef struct
     // Title screen vars
     tetrad_t tutorialTetrad;
     uint32_t tutorialTetradsGrid[TUTORIAL_GRID_ROWS][TUTORIAL_GRID_COLS];
+    /*
     int64_t exitTimer;
     int64_t lastExitTimer;
     bool holdingExit;
+    */
 
     // Score screen vars
     int64_t clearScoreTimer;
@@ -2179,9 +2181,9 @@ void ttTitleDisplay(void)
                           tiltrads->stateTime, c112);
 
     // LEFT FOR
-    int16_t scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "LEFT FOR", 0, GRID_X);
+    int16_t scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "SELECT FOR", 0, GRID_X);
     int16_t scoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 7 + 1);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "LEFT FOR", scoresTextX, scoresTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "SELECT FOR", scoresTextX, scoresTextY);
 
     // SCORES
     scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "SCORES", 0, GRID_X);
@@ -2220,8 +2222,9 @@ void ttTitleDisplay(void)
     titleTextY += tiltrads->radiostars.h + 2;
     drawText(tiltrads->disp, &(tiltrads->radiostars), tiltrads->stateFrames % c555, "COLOR", titleTextX, titleTextY);
 
+    /*
     // SELECT TO EXIT
-    int16_t exitX = getCenteredTextX(&(tiltrads->ibm_vga8), "SELECT TO EXIT", 0, tiltrads->disp->w);
+    int16_t exitX = getCenteredTextX(&(tiltrads->ibm_vga8), "B TO EXIT", 0, tiltrads->disp->w);
     int16_t exitY = tiltrads->disp->h - tiltrads->ibm_vga8.h - 2;
     // Fill the SELECT TO EXIT area depending on how long the button's held down.
     if (tiltrads->exitTimer != 0)
@@ -2234,7 +2237,8 @@ void ttTitleDisplay(void)
         int16_t holdAreaY1 = tiltrads->disp->h - 1;
         fillDisplayArea(tiltrads->disp, holdAreaX0, holdAreaY0, holdAreaX1, holdAreaY1, c321);
     }
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "SELECT TO EXIT", exitX, exitY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "B TO EXIT", exitX, exitY);
+    */
 
     // Fill in the floor of the grid on-screen for visual consistency.
     plotLine(tiltrads->disp, GRID_X, tiltrads->disp->h - 1, xFromGridCol(GRID_X, TUTORIAL_GRID_COLS, GRID_UNIT_SIZE) - 1, tiltrads->disp->h - 1, c224, 0);
@@ -2440,6 +2444,7 @@ void ttScoresDisplay(void)
         double holdAreaWidth = textWidth(&(tiltrads->ibm_vga8), "CLEAR") + 3;
         int16_t holdAreaX1 = holdAreaX0 + (int16_t)(holdProgress * holdAreaWidth);
         int16_t holdAreaY1 = tiltrads->disp->h - 1;
+        plotRect(tiltrads->disp, holdAreaX0, holdAreaY0, holdAreaX0 + holdAreaWidth, holdAreaY1, c321);
         fillDisplayArea(tiltrads->disp, holdAreaX0, holdAreaY0, holdAreaX1, holdAreaY1, c321);
     }
 
@@ -2559,8 +2564,10 @@ void ttChangeState(tiltradsState_t newState)
     switch( tiltrads->currState )
     {
         case TT_TITLE:
+            /*
             tiltrads->exitTimer = 0;
             tiltrads->holdingExit = false;
+            */
 
             clearLandedTetrads();
             tiltrads->landTetradFX = false;
