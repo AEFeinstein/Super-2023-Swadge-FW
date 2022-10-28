@@ -783,6 +783,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     {
         if(direction == 4) {
             scorePoints(self->gameData, 100);
+            buzzer_stop();
             buzzer_play_sfx(&sndLevelClearD);
             self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
@@ -794,6 +795,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     {
         if(direction == 4) {
             scorePoints(self->gameData, 500);
+            buzzer_stop();
             buzzer_play_sfx(&sndLevelClearC);
             self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
@@ -805,6 +807,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     {
         if(direction == 4) {
             scorePoints(self->gameData, 1000);
+            buzzer_stop();
             buzzer_play_sfx(&sndLevelClearB);
             self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
@@ -816,6 +819,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     {
         if(direction == 4) {
             scorePoints(self->gameData, 2000);
+            buzzer_stop();
             buzzer_play_sfx(&sndLevelClearA);
             self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
@@ -827,6 +831,7 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     {
         if(direction == 4) {
             scorePoints(self->gameData, 5000);
+            buzzer_stop();
             buzzer_play_sfx(&sndLevelClearS);
             self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
