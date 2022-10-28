@@ -283,6 +283,15 @@ void updatePlayer(entity_t *self)
         self->animationTimer = 30;
     }
 
+    if(
+        (
+            (self->gameData->btnState & START)
+            &&
+            !(self->gameData->prevBtnState & START)
+        )
+    ){
+        self->gameData->changeState = ST_PAUSE;
+    }
 
     moveEntityWithTileCollisions(self);
     dieWhenFallingOffScreen(self);

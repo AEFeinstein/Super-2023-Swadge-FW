@@ -853,6 +853,16 @@ static const song_t sndMenuDeny =
     .shouldLoop = false
 };
 
+static const song_t sndPause =
+{
+    .notes = 
+    {
+        {G_6, 80},{E_6, 80},{G_6, 80},{E_6, 80}
+    },
+    .numNotes = 4,
+    .shouldLoop = false
+};
+
 static const paletteColor_t highScoreNewEntryColors[4] = {c050, c055, c005, c055};
 
 //==============================================================================
@@ -927,6 +937,9 @@ void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData, uint8_t cur
 void changeStateShowHighScores(platformer_t *self);
 void updateShowHighScores(platformer_t *self);
 void drawShowHighScores(display_t *d, font_t *font, uint8_t menuState);
+void changeStatePause(platformer_t *self);
+void updatePause(platformer_t *self);
+void drawPause(display_t *d, font_t *font);
 
 //==============================================================================
 // Variables
@@ -1402,6 +1415,10 @@ void detectGameStateChange(platformer_t *self){
             changeStateLevelClear(self);
             break;
 
+        case ST_PAUSE:
+            changeStatePause(self);
+            break;
+
         default:
             break;
     }
@@ -1799,4 +1816,34 @@ void drawShowHighScores(display_t *d, font_t *font, uint8_t menuState){
     } else {
         drawText(d, font, c555, "Do your best!", 72, 32);
     }
+}
+
+void changeStatePause(platformer_t *self){
+    buzzer_play_bgm(&sndPause);
+    self->update=&updatePause;
+}
+
+void updatePause(platformer_t *self){
+    if((
+        (self->gameData.btnState & START)
+        &&
+        !(self->gameData.prevBtnState & START)
+    )){
+        buzzer_play_sfx(&sndPause);
+        self->gameData.changeBgm = self->gameData.currentBgm;
+        self->gameData.currentBgm = BGM_NULL;
+        self->update=&updateGame;
+    }
+
+    drawTileMap(self->disp, &(self->tilemap));
+    drawEntities(self->disp, &(self->entityManager));
+    drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
+    drawPause(self->disp, &(self->radiostars));
+
+    self->prevBtnState = self->btnState;
+    self->gameData.prevBtnState = self->prevBtnState;
+}
+
+void drawPause(display_t *d, font_t *font){
+    drawText(d, font, c555, "-Pause-", 108, 128);
 }
