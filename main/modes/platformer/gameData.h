@@ -47,7 +47,7 @@ typedef struct
 
     uint16_t combo;
     int16_t comboTimer;
-    uint16_t comboScore;
+    uint32_t comboScore;
 
     bool extraLifeCollected;
     uint8_t checkpoint;

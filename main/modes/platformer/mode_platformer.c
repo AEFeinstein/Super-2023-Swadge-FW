@@ -25,6 +25,7 @@
 #include "palette.h"
 #include "nvs_manager.h"
 #include "platformer_sounds.h"
+#include "inttypes.h"
 
 //==============================================================================
 // Constants
@@ -298,7 +299,7 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
     snprintf(coinStr, sizeof(coinStr) - 1, "C:%02d", gameData->coins);
 
     char scoreStr[32];
-    snprintf(scoreStr, sizeof(scoreStr) - 1, "%06d", gameData->score);
+    snprintf(scoreStr, sizeof(scoreStr) - 1, "%06" PRIu32, gameData->score);
 
     char levelStr[15];
     snprintf(levelStr, sizeof(levelStr) - 1, "Level %d-%d", gameData->world, gameData->level);
@@ -323,7 +324,7 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
         return;
     }
 
-    snprintf(scoreStr, sizeof(scoreStr) - 1, "+%d (x%d)", gameData->comboScore, gameData->combo);
+    snprintf(scoreStr, sizeof(scoreStr) - 1, "+%" PRIu32 " (x%d)", gameData->comboScore, gameData->combo);
     drawText(d, font, c050, scoreStr, 8, 30);
 }
 
