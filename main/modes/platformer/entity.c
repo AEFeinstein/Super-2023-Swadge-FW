@@ -127,6 +127,16 @@ static const song_t sndWaveBall =
     .shouldLoop = false
 };              
 
+static const song_t snd1up =
+{
+    .notes = 
+    {
+        {G_7, 40},{D_6, 40},{B_5, 80}
+    },
+    .numNotes = 3,
+    .shouldLoop = false
+};
+
 //==============================================================================
 // Functions
 //==============================================================================
@@ -742,7 +752,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
         case ENTITY_1UP:{
             self->gameData->lives++;
             scorePoints(self->gameData, 0);
-            buzzer_play_sfx(&sndPowerUp);
+            buzzer_play_sfx(&snd1up);
             destroyEntity(other, false);
             break;
         }
