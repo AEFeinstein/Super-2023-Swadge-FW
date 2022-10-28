@@ -88,7 +88,7 @@ void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData){
 void scorePoints(gameData_t * gameData, uint16_t points){
     gameData->combo++;
     
-    uint16_t comboPoints = points * gameData->combo;
+    uint32_t comboPoints = points * gameData->combo;
 
     gameData->score += comboPoints;
     gameData->comboScore = comboPoints;
