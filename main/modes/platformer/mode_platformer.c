@@ -692,7 +692,6 @@ void changeStateLevelClear(platformer_t *self){
     self->gameData.levelDeaths = 0;
     self->gameData.initialHp = self->entityManager.playerEntity->hp;
     self->gameData.extraLifeCollected = false;
-    buzzer_stop();
     self->update=&updateLevelClear;
 }
 
@@ -706,6 +705,10 @@ void updateLevelClear(platformer_t *self){
         if(self->gameData.countdown > 0){
             self->gameData.countdown--;
             
+            if(self->gameData.countdown % 2){
+                buzzer_play_bgm(&sndTally);
+            }
+
             uint16_t comboPoints = 50 * self->gameData.combo;
 
             self->gameData.score += comboPoints;

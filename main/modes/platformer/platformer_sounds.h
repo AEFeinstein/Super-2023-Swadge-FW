@@ -966,4 +966,64 @@ static const song_t sndCheckpoint =
     .shouldLoop = false
 };
 
+static const song_t sndLevelClearD =
+{
+    .notes = 
+    {
+        {C_4, 100},{E_4, 100},{G_4, 100},{C_5, 200}
+    },
+    .numNotes = 4,
+    .shouldLoop = false
+};
+
+static const song_t sndLevelClearC =
+{
+    .notes = 
+    {
+        {E_4, 100},{G_4, 100},{C_5, 100},{E_5, 200}
+    },
+    .numNotes = 4,
+    .shouldLoop = false
+};
+
+static const song_t sndLevelClearB =
+{
+    .notes = 
+    {
+        {C_4, 100},{E_4, 100},{G_4, 100},{E_4, 100},{C_5, 100},{E_5, 100},{C_5, 200}
+    },
+    .numNotes = 7,
+    .shouldLoop = false
+};
+
+static const song_t sndLevelClearA =
+{
+    .notes = 
+    {
+        {C_4, 100},{E_4, 100},{G_4, 100},{E_4, 100},{C_5, 100},{E_5, 100},{C_5, 100},{B_4, 100},{D_5, 100},{G_5, 200}
+    },
+    .numNotes = 10,
+    .shouldLoop = false
+};
+
+static const song_t sndLevelClearS =
+{
+    .notes = 
+    {
+        {C_4, 100},{E_4, 100},{G_4, 100},{E_4, 100},{C_5, 100},{E_5, 100},{C_5, 100},{B_4, 100},{D_5, 100},{G_5, 100},{D_5, 100},{C_6, 100},{E_6, 100},{D_6, 200}
+    },
+    .numNotes = 14,
+    .shouldLoop = false
+};
+
+static const song_t sndTally =
+{
+    .notes = 
+    {
+        {C_7, 8}
+    },
+    .numNotes = 1,
+    .shouldLoop = false
+};
+
 #endif
