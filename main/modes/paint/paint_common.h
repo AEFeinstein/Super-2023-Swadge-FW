@@ -100,6 +100,8 @@
 
 //////// Various Constants
 
+#define PAINT_MAX_BRUSH_SWIPE 16
+
 // hold button for .3s to begin repeating
 #define BUTTON_REPEAT_TIME 300000
 
@@ -188,8 +190,11 @@ typedef struct
     // Which mode will be used to interpret button presses
     paintButtonMode_t buttonMode;
 
-    // Whether or not A is currently pressed
+    // Whether or not A is currently held
     bool aHeld;
+
+    // flag so that an a press shorter than 1 frame always gets handled
+    bool aPress;
 
     // When true, this is the initial D-pad button down.
     // If set, the cursor will move by one pixel and then it will be cleared.
@@ -219,8 +224,11 @@ typedef struct
     bool blinkOn;
 
     bool touchDown;
-    uint8_t firstTouch;
-    uint8_t lastTouch;
+    int32_t firstTouch;
+    int32_t lastTouch;
+
+    // The brush width
+    uint8_t startBrushWidth;
 
 
     //////// Save data flags
