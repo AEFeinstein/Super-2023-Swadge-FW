@@ -950,9 +950,19 @@ static const song_t snd1up =
 {
     .notes = 
     {
-        {G_7, 40},{D_6, 40},{B_5, 80}
+        {G_7, 80},{D_6, 80},{B_5, 120}
     },
     .numNotes = 3,
+    .shouldLoop = false
+};
+
+static const song_t sndCheckpoint =
+{
+    .notes = 
+    {
+        {C_6, 80},{A_5, 120}
+    },
+    .numNotes = 2,
     .shouldLoop = false
 };
 

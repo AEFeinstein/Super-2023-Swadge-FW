@@ -653,8 +653,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                 if(aboveTile >= TILE_WARP_0 && aboveTile <= TILE_WARP_F) {
                     self->gameData->checkpoint = aboveTile - TILE_WARP_0;
                     other->xDamping = 1;
-                    buzzer_play_sfx(&sndSquish);
-                    //play checkpoint sound
+                    buzzer_play_sfx(&sndCheckpoint);
                 }
             }
             break;
