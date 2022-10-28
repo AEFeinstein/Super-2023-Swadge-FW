@@ -10,6 +10,7 @@
 #include "musical_buzzer.h"
 #include "btn.h"
 #include "esp_random.h"
+#include "platformer_sounds.h"
 
 //==============================================================================
 // Constants
@@ -127,6 +128,7 @@ static const song_t sndWaveBall =
     .shouldLoop = false
 };              
 
+/*
 static const song_t snd1up =
 {
     .notes = 
@@ -136,6 +138,7 @@ static const song_t snd1up =
     .numNotes = 3,
     .shouldLoop = false
 };
+*/
 
 //==============================================================================
 // Functions

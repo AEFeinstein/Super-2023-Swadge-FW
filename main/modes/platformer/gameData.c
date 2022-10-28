@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "gameData.h"
 #include "entityManager.h"
+#include "platformer_sounds.h"
 
 //==============================================================================
 // Functions
@@ -99,7 +100,7 @@ void addCoins(gameData_t * gameData, uint8_t coins){
     gameData->coins+=coins;
     if(gameData->coins > 100){
         gameData->lives++;
-        //play sound here
+        buzzer_play_sfx(&snd1up);
         gameData->coins = 0;
     }
 }
