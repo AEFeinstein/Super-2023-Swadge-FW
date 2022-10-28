@@ -267,7 +267,7 @@ void updateHitBlock(entity_t *self)
                     scorePoints(self->gameData, 10);
                     buzzer_play_sfx(&sndCoin);
                 } else {
-                    createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, (self->homeTileY - 1) * TILE_SIZE + HALF_TILE_SIZE);
+                    createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) && belowTile != TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
                     createdEntity->homeTileX = 0;
                     createdEntity->homeTileY = 0;
                     self->gameData->extraLifeCollected = true;
@@ -678,6 +678,8 @@ void enemyCollisionHandler(entity_t *self, entity_t *other)
         case ENTITY_DUST_BUNNY_3:
         case ENTITY_WASP_2:
         case ENTITY_WASP_3:
+        case ENTITY_POWERUP:
+        case ENTITY_1UP:
             if((self->xspeed > 0 && self->x < other->x) || (self->xspeed < 0 && self->x > other->x)){
                 self->xspeed = -self->xspeed;
                 self->spriteFlipHorizontal = -self->spriteFlipHorizontal;
@@ -1028,6 +1030,8 @@ void update1up(entity_t *self)
         self->spriteIndex = SP_1UP_1 + ((self->spriteIndex + 1) % 3);
     }
 
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
     despawnWhenOffscreen(self);
 }
 
@@ -1779,6 +1783,8 @@ void powerUpCollisionHandler(entity_t *self, entity_t *other)
         case ENTITY_DUST_BUNNY_3:
         case ENTITY_WASP_2:
         case ENTITY_WASP_3:
+        case ENTITY_POWERUP:
+        case ENTITY_1UP:
             if((self->xspeed > 0 && self->x < other->x) || (self->xspeed < 0 && self->x > other->x)){
                 self->xspeed = -self->xspeed;
             }

@@ -1106,7 +1106,7 @@ entity_t* create1up(entityManager_t * entityManager, uint16_t x, uint16_t y){
     entity->x = x << SUBPIXEL_RESOLUTION;
     entity->y = y << SUBPIXEL_RESOLUTION;
     
-    entity->xspeed = 0;
+    entity->xspeed = (entityManager->playerEntity->x > entity->x)? -16: 16;
     entity->yspeed = 0;
     entity->xMaxSpeed = 132;
     entity->yMaxSpeed = 132;
@@ -1119,8 +1119,8 @@ entity_t* create1up(entityManager_t * entityManager, uint16_t x, uint16_t y){
     entity->spriteIndex = SP_1UP_1;
     entity->animationTimer = 0;
     entity->updateFunction = &update1up;
-    entity->collisionHandler = &dummyCollisionHandler;
-    entity->tileCollisionHandler = &dummyTileCollisionHandler;
+    entity->collisionHandler = &powerUpCollisionHandler;
+    entity->tileCollisionHandler = &enemyTileCollisionHandler;
     entity->fallOffTileHandler = &defaultFallOffTileHandler;
     entity->overlapTileHandler = &defaultOverlapTileHandler;
 
