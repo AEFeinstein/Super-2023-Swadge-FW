@@ -25,6 +25,7 @@ idf_component_register(
         "modes/mode_diceroller.c"
         "modes/mode_flight.c"
         "modes/mode_gamepad.c"
+        "modes/mode_jukebox.c"
         "modes/mode_main_menu.c"
         "modes/mode_slide_whistle.c"
         "modes/mode_test.c"

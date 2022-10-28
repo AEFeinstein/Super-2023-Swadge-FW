@@ -23,6 +23,7 @@
 #include "mode_diceroller.h"
 #include "mode_flight.h"
 #include "mode_gamepad.h"
+#include "mode_jukebox.h"
 #include "mode_paint.h"
 #include "mode_picross.h"
 #include "mode_platformer.h"
@@ -528,6 +529,7 @@ void mainMenuSetUpMusicMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, modeColorchord.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeTunernome.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeSlideWhistle.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeJukebox.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -562,6 +564,11 @@ void mainMenuMusicCb(const char* opt)
     {
         // Start slide whistle
         switchToSwadgeMode(&modeSlideWhistle);
+    }
+    else if(modeJukebox.modeName == opt)
+    {
+        // Start jukebox
+        switchToSwadgeMode(&modeJukebox);
     }
     else if(mainMenuBack == opt)
     {
