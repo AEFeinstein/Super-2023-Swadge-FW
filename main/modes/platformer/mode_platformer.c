@@ -916,7 +916,7 @@ void updateNameEntry(platformer_t *self){
             insertScoreIntoHighScores(&(self->highScores), self->gameData.score, self->gameData.initials, self->gameData.rank);
             savePlatformerHighScores(self);
             changeStateShowHighScores(self);
-            buzzer_play_sfx(&sndMenuConfirm);
+            buzzer_play_sfx(&sndPowerUp);
         } else {
             self->menuSelection = self->gameData.initials[self->menuState];
             buzzer_play_sfx(&sndMenuSelect);
