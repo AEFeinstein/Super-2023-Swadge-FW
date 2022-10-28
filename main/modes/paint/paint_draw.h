@@ -21,9 +21,11 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt);
 
 // Palette mode helpers
 void paintEditPaletteUpdate(void);
+void paintEditPaletteSetChannelValue(uint8_t val);
 void paintEditPaletteDecChannel(void);
 void paintEditPaletteIncChannel(void);
 void paintEditPaletteNextChannel(void);
+void paintEditPalettePrevChannel(void);
 void paintEditPaletteSetupColor(void);
 void paintEditPalettePrevColor(void);
 void paintEditPaletteNextColor(void);

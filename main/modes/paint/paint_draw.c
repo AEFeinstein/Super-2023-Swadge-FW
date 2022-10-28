@@ -656,7 +656,14 @@ void paintSaveModeNextOption(void)
 void paintEditPaletteUpdate(void)
 {
     paintState->newColor = (paintState->editPaletteR * 36 + paintState->editPaletteG * 6 + paintState->editPaletteB);
+    paintState->redrawToolbar = true;
     paintUpdateLeds();
+}
+
+void paintEditPaletteSetChannelValue(uint8_t val)
+{
+    *(paintState->editPaletteCur) = val % 6;
+    paintEditPaletteUpdate();
 }
 
 void paintEditPaletteDecChannel(void)
@@ -684,6 +691,22 @@ void paintEditPaletteNextChannel(void)
     else
     {
         paintState->editPaletteCur = &paintState->editPaletteR;
+    }
+}
+
+void paintEditPalettePrevChannel(void)
+{
+    if (paintState->editPaletteCur == &paintState->editPaletteR)
+    {
+        paintState->editPaletteCur = &paintState->editPaletteB;
+    }
+    else if (paintState->editPaletteCur == &paintState->editPaletteG)
+    {
+        paintState->editPaletteCur = &paintState->editPaletteR;
+    }
+    else
+    {
+        paintState->editPaletteCur = &paintState->editPaletteG;
     }
 }
 
@@ -792,8 +815,9 @@ void paintPaletteModeButtonCb(const buttonEvt_t* evt)
 
             case SELECT:
             {
-                // Swap between R, G, and B
-                paintEditPaletteNextChannel();
+                // {R/G/B}++
+                // We will normally use the touchpad for this
+                paintEditPaletteIncChannel();
                 break;
             }
 
@@ -813,15 +837,15 @@ void paintPaletteModeButtonCb(const buttonEvt_t* evt)
 
             case LEFT:
             {
-                // {R/G/B}--
-                paintEditPaletteDecChannel();
+                // Swap between R, G, and B
+                paintEditPalettePrevChannel();
                 break;
             }
 
             case RIGHT:
             {
-                // {R/G/B}++
-                paintEditPaletteIncChannel();
+                // Swap between R, G, and B
+                paintEditPaletteNextChannel();
                 break;
             }
         }
@@ -1115,48 +1139,73 @@ void paintDrawScreenTouchCb(const touch_event_t* evt)
     // then, for any more down events while any touchpad is still down, update lastTouch
     // once we get an up event and state == 0 (no touchpads down), clear touchDown, save the position(?)
     // swipe direction = (lastTouch > firstTouch) ? DOWN : UP
-    if (evt->down && evt->state != 0 && !paintState->touchDown)
+    switch (paintState->buttonMode)
     {
-        paintState->touchDown = true;
-        paintState->firstTouch = evt->position;
-        paintState->lastTouch = evt->position;
-
-        paintEnterSelectMode();
-    }
-    else if (evt->down && evt->state != 0 && paintState->touchDown) {
-        paintState->lastTouch = evt->position;
-    }
-    else if (!evt->down && evt->state == 0 && paintState->touchDown)
-    {
-        if (paintState->firstTouch + 32 < paintState->lastTouch)
+        case BTN_MODE_DRAW:
+        case BTN_MODE_SELECT:
         {
-            PAINT_LOGD("Swipe RIGHT (%d)", (paintState->lastTouch - paintState->firstTouch) / 32);
-            paintDecBrushWidth((paintState->lastTouch - paintState->firstTouch) / 32);
-        }
-        else if (paintState->firstTouch > paintState->lastTouch + 32)
-        {
-            PAINT_LOGD("Swipe LEFT (%d)", (paintState->firstTouch - paintState->lastTouch + 1) / 32);
-            paintIncBrushWidth((paintState->firstTouch - paintState->lastTouch + 1) / 32);
-        }
-        else if (paintState->firstTouch == paintState->lastTouch)
-        {
-            // TAP
-            if (evt->pad == 0)
+            if (evt->down && evt->state != 0 && !paintState->touchDown)
             {
-                // Tap X (?)
-                PAINT_LOGD("Tap X");
-                paintIncBrushWidth(1);
+                paintState->touchDown = true;
+                paintState->firstTouch = evt->position;
+                paintState->lastTouch = evt->position;
+
+                paintEnterSelectMode();
             }
-            else if (evt->pad == 4)
+            else if (evt->down && evt->state != 0 && paintState->touchDown) {
+                paintState->lastTouch = evt->position;
+            }
+            else if (!evt->down && evt->state == 0 && paintState->touchDown)
             {
-                // Tap Y (?)
-                PAINT_LOGD("Tap Y");
-                paintDecBrushWidth(1);
+                if (paintState->firstTouch + 32 < paintState->lastTouch)
+                {
+                    PAINT_LOGD("Swipe RIGHT (%d)", (paintState->lastTouch - paintState->firstTouch) / 32);
+                    paintDecBrushWidth((paintState->lastTouch - paintState->firstTouch) / 32);
+                }
+                else if (paintState->firstTouch > paintState->lastTouch + 32)
+                {
+                    PAINT_LOGD("Swipe LEFT (%d)", (paintState->firstTouch - paintState->lastTouch + 1) / 32);
+                    paintIncBrushWidth((paintState->firstTouch - paintState->lastTouch + 1) / 32);
+                }
+                else if (paintState->firstTouch == paintState->lastTouch)
+                {
+                    // TAP
+                    if (evt->pad == 0)
+                    {
+                        // Tap X (?)
+                        PAINT_LOGD("Tap X");
+                        paintIncBrushWidth(1);
+                    }
+                    else if (evt->pad == 4)
+                    {
+                        // Tap Y (?)
+                        PAINT_LOGD("Tap Y");
+                        paintDecBrushWidth(1);
+                    }
+                }
+
+                paintExitSelectMode();
+                paintState->touchDown = false;
             }
+
+            break;
         }
 
-        paintExitSelectMode();
-        paintState->touchDown = false;
+        case BTN_MODE_PALETTE:
+        {
+            int32_t centroid, intensity;
+            if (getTouchCentroid(&centroid, &intensity))
+            {
+                uint8_t index = ((centroid * 5 + 512) / 1024);
+                PAINT_LOGD("Centroid: %d, Intensity: %d, Index: %d", centroid, intensity, index);
+                paintEditPaletteSetChannelValue(index);
+            }
+            break;
+        }
+
+        case BTN_MODE_SAVE:
+        // Do nothing
+        break;
     }
 }
 
