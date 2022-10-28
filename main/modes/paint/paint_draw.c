@@ -1390,12 +1390,7 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
             }
 
             case SELECT:
-            {
-                paintState->saveMenuBoolOption = false;
-                // TODO: Why did this work? I'm pretty sure this should be BTN_MODE_SELECT
-                paintState->buttonMode = BTN_MODE_SAVE;
-                paintState->redrawToolbar = true;
-            }
+            // This is handle in BTN_MODE_SELECT already
             break;
         }
     }
