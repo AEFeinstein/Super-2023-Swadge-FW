@@ -234,7 +234,7 @@ void updateHitBlock(entity_t *self)
         {
             case TILE_CTNR_COIN:
             {
-                self->gameData->coins++;
+                addCoins(self->gameData, 1);
                 scorePoints(self->gameData, 10);
                 buzzer_play_sfx(&sndCoin);
                 self->jumpPower = TILE_CONTAINER_2;
