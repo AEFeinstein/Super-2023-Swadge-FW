@@ -100,6 +100,8 @@
 
 //////// Various Constants
 
+#define PAINT_MAX_BRUSH_SWIPE 16
+
 // hold button for .3s to begin repeating
 #define BUTTON_REPEAT_TIME 300000
 
@@ -222,8 +224,11 @@ typedef struct
     bool blinkOn;
 
     bool touchDown;
-    uint8_t firstTouch;
-    uint8_t lastTouch;
+    int32_t firstTouch;
+    int32_t lastTouch;
+
+    // The brush width
+    uint8_t startBrushWidth;
 
 
     //////// Save data flags
