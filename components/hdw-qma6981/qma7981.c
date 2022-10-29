@@ -226,7 +226,7 @@ esp_err_t qma7981_get_acce_int(int16_t* x, int16_t* y, int16_t* z)
     static int16_t lastY = 0;
     static int16_t lastZ = 0;
 
-    // Read 7 bytes of data(0x00)
+    // Read 6 bytes of data(0x00)
     uint8_t raw_data[6];
     // Do the read
     esp_err_t ret_val = qma7981_read_bytes(QMA7981_REG_DX_L, 6, raw_data);

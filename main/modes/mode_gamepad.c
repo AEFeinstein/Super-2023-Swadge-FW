@@ -21,6 +21,8 @@
 // Defines
 //==============================================================================
 
+#define CLAMP(x,l,u) ((x) < l ? l : ((x) > u ? u : (x)))
+
 #define Y_OFF 20
 
 #define DPAD_BTN_RADIUS     16
@@ -355,11 +357,10 @@ void gamepadTouchCb(touch_event_t* evt)
  */
 void gamepadAccelCb(accel_t* accel)
 {
-    #define CLAMP(x,l,u) ((x) < l ? l : ((x) > u ? u : (x)))
-    // Take 14 bits down to 8 bits, save it
-    gamepad->gpState.rx = CLAMP((accel->x) >> 1, -128, 127);
-    gamepad->gpState.ry = CLAMP((accel->y) >> 1, -128, 127);
-    gamepad->gpState.rz = CLAMP((accel->z) >> 1, -128, 127);
+    // Values are roughly -256 to 256, so divide, clamp, and save
+    gamepad->gpState.rx = CLAMP((accel->x) / 2, -128, 127);
+    gamepad->gpState.ry = CLAMP((accel->y) / 2, -128, 127);
+    gamepad->gpState.rz = CLAMP((accel->z) / 2, -128, 127);
 
     // Send state to host
     gamepadReportStateToHost();
