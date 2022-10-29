@@ -1343,7 +1343,7 @@ void  slideWhistleAccelerometerHandler(accel_t* accel)
     // Get the centroid at the same rate at the accel for smoothness
     getTouchCentroid(&slideWhistle->touchPosition, &slideWhistle->touchIntensity);
     slideWhistle->touchPosition = (slideWhistle->touchPosition * BAR_X_WIDTH) / 1023;
-    slideWhistle->touchPosition = CLAMP(slideWhistle->touchPosition, BAR_X_MARGIN,
+    slideWhistle->touchPosition = CLAMP(BAR_X_MARGIN + slideWhistle->touchPosition, BAR_X_MARGIN,
                                         slideWhistle->disp->w - 1 - BAR_X_MARGIN);
 
     // Only find values when the swadge is pointed up
@@ -1363,20 +1363,11 @@ void  slideWhistleAccelerometerHandler(accel_t* accel)
     // Round and scale to BAR_X_WIDTH
     // this maps 30 degrees to the far left and 150 degrees to the far right
     // (30 / 180) == 0.167, (180 - (2 * 30)) / 180 == 0.666
-    slideWhistle->roll = roundf(((rollF - 0.167f) * BAR_X_WIDTH) / 0.666f);
-    if(slideWhistle->roll >= BAR_X_WIDTH)
-    {
-        slideWhistle->roll = BAR_X_WIDTH - 1;
-    }
-    else if(slideWhistle->roll < 0)
-    {
-        slideWhistle->roll = 0;
-    }
-    slideWhistle->pitch = roundf(pitchF * BAR_X_WIDTH);
-    if(slideWhistle->pitch >= BAR_X_WIDTH)
-    {
-        slideWhistle->pitch = BAR_X_WIDTH - 1;
-    }
+    slideWhistle->roll = BAR_X_MARGIN + roundf(((rollF - 0.167f) * BAR_X_WIDTH) / 0.666f);
+    slideWhistle->roll = CLAMP(slideWhistle->roll, BAR_X_MARGIN, slideWhistle->disp->w - 1 - BAR_X_MARGIN);
+
+    slideWhistle->pitch = BAR_X_MARGIN + roundf(pitchF * BAR_X_WIDTH);
+    slideWhistle->pitch = CLAMP(slideWhistle->pitch, BAR_X_MARGIN, slideWhistle->disp->w - 1 - BAR_X_MARGIN);
 
     snprintf(slideWhistle->accelStr, sizeof(slideWhistle->accelStr), "roll %5d pitch %5d",
              slideWhistle->roll, slideWhistle->pitch);
@@ -1719,7 +1710,7 @@ noteFrequency_t  getCurrentNote(void)
     }
 
     // Get the index of the note to play
-    uint8_t noteIdx = (getCurrentCursorX() * (scales[slideWhistle->scaleIdx].notesLen / NUM_OCTAVES)) / (BAR_X_WIDTH + 1);
+    uint8_t noteIdx = ((getCurrentCursorX() - BAR_X_MARGIN) * (scales[slideWhistle->scaleIdx].notesLen / NUM_OCTAVES)) / (BAR_X_WIDTH + 1);
 
     // See which octave we should play
     if(slideWhistle->upHeld && !slideWhistle->downHeld)
