@@ -71,7 +71,7 @@
 
 #define TITLE_LEVEL 5 // The level used for calculating drop speed on the title screen.
 
-#define EXIT_MODE_HOLD_TIME (2 * S_TO_MS_FACTOR * MS_TO_US_FACTOR)
+//#define EXIT_MODE_HOLD_TIME (2 * S_TO_MS_FACTOR * MS_TO_US_FACTOR)
 
 // Score screen
 #define SCORE_SCREEN_TITLE_Y 30
@@ -1811,6 +1811,20 @@ void ttGameInput(void)
         {
             tiltrads->dropTimer = tiltrads->dropTime;
         }
+        else if (ttIsButtonPressed(BTN_GAME_HARD_DROP)) 
+        {
+            // Drop piece as far as it will go before landing.
+            int32_t dropDistance = 0;
+            while (dropTetrad(&(tiltrads->activeTetrad), GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid))
+            {
+                dropDistance++;
+            }
+
+            tiltrads->score += dropDistance * SCORE_HARD_DROP;
+            // Set the drop timer so it will land on update.
+            tiltrads->dropTimer = tiltrads->dropTime;
+            debugPrintGrid(GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid);
+        }
 #else
         // Button down = soft drop piece.
         if(ttIsButtonDown(BTN_GAME_SOFT_DROP))
@@ -2479,6 +2493,8 @@ void ttGameoverDisplay(void)
 
     if (drawUI)
     {
+        // Draw the gameplay frame first to catch any last minute landed tetrads.
+        ttGameDisplay();
         // Draw the active tetrad that was the killing tetrad once so that the flash effect works.
         plotTetrad(tiltrads->disp, xFromGridCol(GRID_X, tiltrads->activeTetrad.topLeft.c, GRID_UNIT_SIZE),
                    yFromGridRow(GRID_Y, tiltrads->activeTetrad.topLeft.r, GRID_UNIT_SIZE), GRID_UNIT_SIZE, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE,
