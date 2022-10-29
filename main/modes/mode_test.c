@@ -339,18 +339,27 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     }
 
     // Plot X accel
-    int16_t barWidth = ((test->accel.x + 8192) * MAX_ACCEL_BAR_W) / 16384;
-    fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
+    int16_t barWidth = ((test->accel.x + 256) * MAX_ACCEL_BAR_W) / 512;
+    if(barWidth >= 0)
+    {
+        fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
+    }
     barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
 
     // Plot Y accel
-    barWidth = ((test->accel.y + 8192) * MAX_ACCEL_BAR_W) / 16384;
-    fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
+    barWidth = ((test->accel.y + 256) * MAX_ACCEL_BAR_W) / 512;
+    if(barWidth >= 0)
+    {
+        fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
+    }
     barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
 
     // Plot Z accel
-    barWidth = ((test->accel.z + 8192) * MAX_ACCEL_BAR_W) / 16384;
-    fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
+    barWidth = ((test->accel.z + 256) * MAX_ACCEL_BAR_W) / 512;
+    if(barWidth >= 0)
+    {
+        fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
+    }
     barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
 
     // Plot some text depending on test status
@@ -680,7 +689,7 @@ void testAccelerometerCallback(accel_t* accel)
     if((accel->x != 0) && (accel->y != 0) && (accel->z != 0))
     {
         // Make sure some value is shook
-        if((accel->x > 300) || (accel->y > 300) || (accel->z > 300))
+        if((accel->x > 500) || (accel->y > 500) || (accel->z > 500))
         {
             // Pass!
             test->accelPassed = true;
