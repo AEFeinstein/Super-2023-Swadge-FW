@@ -651,6 +651,19 @@ void _setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* t
     ftr->touchingPlatform = touchingPlatform;
     ftr->passingThroughPlatform = passingThroughPlatform;
     ftr->isInAir = isInAir;
+
+    // Adjust the the hitstun sprite based on position
+    if(FS_HITSTUN == ftr->state)
+    {
+        if(isInAir)
+        {
+            ftr->currentSprite = &ftr->hitstunAirSprite;
+        }
+        else
+        {
+            ftr->currentSprite = &ftr->hitstunGroundSprite;
+        }
+    }
 }
 
 /**
@@ -1096,8 +1109,9 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
         // If this is an attack, check for velocity changes and projectiles
         if(NULL != atk)
         {
-            // Apply any velocity from this attack to the fighter
-            if(0 != atk->velocity.x)
+            // Apply any X velocity from this attack to the fighter, but not
+            // after ledge jumping to stick on the wall
+            if((false == ftr->ledgeJumped) && (0 != atk->velocity.x))
             {
                 if(FACING_RIGHT == ftr->dir)
                 {
@@ -1108,10 +1122,12 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
                     ftr->velocity.x = -atk->velocity.x;
                 }
             }
+
+            // Apply any Y velocity from this attack to the fighter
             if(0 != atk->velocity.y)
             {
-                // If a fighter ledge jumped, don't let an attack make them fall again
-                if(false == ftr->ledgeJumped)
+                // If a fighter ledge jumped, only more negative velocities can be applied
+                if((false == ftr->ledgeJumped) || (atk->velocity.y < ftr->velocity.y))
                 {
                     ftr->velocity.y = atk->velocity.y;
                 }
@@ -1994,6 +2010,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                         // Give a bonus 'jump' to get back on the platform
                         ftr->ledgeJumped = true;
                         ftr->velocity.y = ftr->jump_velo;
+                        ftr->velocity.x = 0;
                         ftr->iFrameTimer = IFRAMES_AFTER_LEDGE_JUMP;
                     }
                 }
@@ -2205,7 +2222,7 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         otherFtr->velocity.y = knockback.y;
 
                         // Knock the fighter into the air
-                        if(!otherFtr->isInAir)
+                        if(!otherFtr->isInAir && ftr->velocity.y < 0)
                         {
                             setFighterRelPos(otherFtr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
                         }
@@ -2298,7 +2315,7 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                         ftr->velocity.y = knockback.y;
 
                         // Knock the fighter into the air
-                        if(!ftr->isInAir)
+                        if(!ftr->isInAir && ftr->velocity.y < 0)
                         {
                             setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
                         }
