@@ -334,6 +334,8 @@ void paintPositionDrawCanvas(void)
 
 void paintDrawScreenMainLoop(int64_t elapsedUs)
 {
+    paintDrawScreenPollTouch();
+
     // Screen Reset
     if (paintState->clearScreen)
     {
@@ -427,7 +429,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
     {
         // Don't remember why we only do this when redrawToolbar is true
         // Oh, it's because `paintState->redrawToolbar` is mostly only set in select mode unless you press B?
-        if (paintState->aHeld)
+        if (paintState->aHeld || paintState->aPress)
         {
             paintDoTool(getCursor()->x, getCursor()->y, getArtist()->fgColor);
 
@@ -435,6 +437,8 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
             {
                 paintState->aHeld = false;
             }
+
+            paintState->aPress = false;
         }
 
         if (paintState->moveX || paintState->moveY)
@@ -654,7 +658,14 @@ void paintSaveModeNextOption(void)
 void paintEditPaletteUpdate(void)
 {
     paintState->newColor = (paintState->editPaletteR * 36 + paintState->editPaletteG * 6 + paintState->editPaletteB);
+    paintState->redrawToolbar = true;
     paintUpdateLeds();
+}
+
+void paintEditPaletteSetChannelValue(uint8_t val)
+{
+    *(paintState->editPaletteCur) = val % 6;
+    paintEditPaletteUpdate();
 }
 
 void paintEditPaletteDecChannel(void)
@@ -682,6 +693,22 @@ void paintEditPaletteNextChannel(void)
     else
     {
         paintState->editPaletteCur = &paintState->editPaletteR;
+    }
+}
+
+void paintEditPalettePrevChannel(void)
+{
+    if (paintState->editPaletteCur == &paintState->editPaletteR)
+    {
+        paintState->editPaletteCur = &paintState->editPaletteB;
+    }
+    else if (paintState->editPaletteCur == &paintState->editPaletteG)
+    {
+        paintState->editPaletteCur = &paintState->editPaletteR;
+    }
+    else
+    {
+        paintState->editPaletteCur = &paintState->editPaletteG;
     }
 }
 
@@ -790,8 +817,9 @@ void paintPaletteModeButtonCb(const buttonEvt_t* evt)
 
             case SELECT:
             {
-                // Swap between R, G, and B
-                paintEditPaletteNextChannel();
+                // {R/G/B}++
+                // We will normally use the touchpad for this
+                paintEditPaletteIncChannel();
                 break;
             }
 
@@ -811,15 +839,15 @@ void paintPaletteModeButtonCb(const buttonEvt_t* evt)
 
             case LEFT:
             {
-                // {R/G/B}--
-                paintEditPaletteDecChannel();
+                // Swap between R, G, and B
+                paintEditPalettePrevChannel();
                 break;
             }
 
             case RIGHT:
             {
-                // {R/G/B}++
-                paintEditPaletteIncChannel();
+                // Swap between R, G, and B
+                paintEditPaletteNextChannel();
                 break;
             }
         }
@@ -1042,14 +1070,7 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
         {
             case SELECT:
             {
-                // Exit select mode
-                paintState->buttonMode = BTN_MODE_DRAW;
-
-                // Set the current selection as the FG color and rearrange the rest
-                paintUpdateRecents(paintState->paletteSelect);
-                paintState->paletteSelect = 0;
-
-                paintState->redrawToolbar = true;
+                paintExitSelectMode();
                 break;
             }
 
@@ -1111,54 +1132,111 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
     }
 }
 
+void paintDrawScreenPollTouch()
+{
+    int32_t centroid, intensity;
+
+    if (getTouchCentroid(&centroid, &intensity))
+    {
+        // Bar is touched
+        switch (paintState->buttonMode)
+        {
+            case BTN_MODE_DRAW:
+            case BTN_MODE_SELECT:
+            {
+                paintState->lastTouch = centroid;
+
+                // Set up variables for swiping
+                if (!paintState->touchDown)
+                {
+                    // Beginning of swipe
+                    paintState->touchDown = true;
+                    paintState->firstTouch = centroid;
+
+                    // Store the original brush width
+                    paintState->startBrushWidth = getArtist()->brushWidth;
+                    paintEnterSelectMode();
+                }
+                else
+                {
+                    // We're mid-swipe
+                    int32_t swipeMagnitude = ((centroid - paintState->firstTouch) * PAINT_MAX_BRUSH_SWIPE) / 1024;
+                    int32_t newWidth = paintState->startBrushWidth - swipeMagnitude;
+
+                    if (newWidth < 0)
+                    {
+                        newWidth = 0;
+                    }
+                    else if (newWidth > UINT8_MAX)
+                    {
+                        newWidth = UINT8_MAX;
+                    }
+
+                    paintSetBrushWidth((uint8_t)(newWidth));
+                    PAINT_LOGD("Mid-swipe %d", swipeMagnitude);
+                }
+                break;
+            }
+
+            case BTN_MODE_PALETTE:
+            {
+                // Just get the
+                uint8_t index = ((centroid * 5 + 512) / 1024);
+                PAINT_LOGD("Centroid: %d, Intensity: %d, Index: %d", centroid, intensity, index);
+                paintEditPaletteSetChannelValue(index);
+                break;
+            }
+
+            case BTN_MODE_SAVE:
+            break;
+        }
+    }
+    else
+    {
+        // Bar is not touched
+        // Do not use centroid/intensity here
+        // And only do anything if paintState->touchDown is still true
+
+        if (paintState->touchDown)
+        {
+            paintState->touchDown = false;
+
+            switch (paintState->buttonMode)
+            {
+                case BTN_MODE_DRAW:
+                case BTN_MODE_SELECT:
+                {
+                    int32_t swipeMagnitude = ((paintState->lastTouch - paintState->firstTouch) * PAINT_MAX_BRUSH_SWIPE) / 1024;
+                    PAINT_LOGD("End swipe: %d", swipeMagnitude);
+                    if (swipeMagnitude == 0)
+                    {
+                        // Tap! But only if we started on X or Y
+                        if (paintState->firstTouch < (1024 / 5))
+                        {
+                            paintIncBrushWidth(1);
+                        }
+                        else if (paintState->firstTouch > (1024 * 4 / 5))
+                        {
+                            paintDecBrushWidth(1);
+                        }
+                    }
+                    paintExitSelectMode();
+                    break;
+                }
+
+                case BTN_MODE_PALETTE:
+                // Nothing to do on release
+                case BTN_MODE_SAVE:
+                break;
+            }
+        }
+    }
+}
+
 void paintDrawScreenTouchCb(const touch_event_t* evt)
 {
-    PAINT_LOGD("touchCb({ .state = %d, .touch_pad_t = %d, .down = %d, .position = %d })", evt->state, evt->pad, evt->down, evt->position);
-    // we get the first down event
-    // check if paintState->down is false, set it to true
-    // save the position at paintState->firstTouch (and also lastTouch)
-    // then, for any more down events while any touchpad is still down, update lastTouch
-    // once we get an up event and state == 0 (no touchpads down), clear touchDown, save the position(?)
-    // swipe direction = (lastTouch > firstTouch) ? DOWN : UP
-    // TODO flip this if it's backwards
-    if (evt->down && evt->state != 0 && !paintState->touchDown)
-    {
-        paintState->touchDown = true;
-        paintState->firstTouch = evt->position;
-        paintState->lastTouch = evt->position;
-    }
-    else if (evt->down && evt->state != 0 && paintState->touchDown) {
-        paintState->lastTouch = evt->position;
-    }
-    else if (!evt->down && evt->state == 0 && paintState->touchDown)
-    {
-        if (paintState->firstTouch < paintState->lastTouch)
-        {
-            PAINT_LOGD("Swipe RIGHT (%d)", (paintState->lastTouch - paintState->firstTouch) / 32);
-            paintDecBrushWidth((paintState->lastTouch - paintState->firstTouch) / 32);
-        }
-        else if (paintState->firstTouch > paintState->lastTouch)
-        {
-            PAINT_LOGD("Swipe LEFT (%d)", (paintState->firstTouch - paintState->lastTouch + 1) / 32);
-            paintIncBrushWidth((paintState->firstTouch - paintState->lastTouch + 1) / 32);
-        }
-        else
-        {
-            // TAP
-            PAINT_LOGD("Tap pad %d", evt->pad);
-            if (evt->pad == 0)
-            {
-                // Tap X (?)
-                paintIncBrushWidth(1);
-            }
-            else if (evt->pad == 4)
-            {
-                // Tap Y (?)
-                paintDecBrushWidth(1);
-            }
-        }
-        paintState->touchDown = false;
-    }
+    // Call the centroid polling function here too
+    paintDrawScreenPollTouch();
 }
 
 void paintDrawScreenButtonCb(const buttonEvt_t* evt)
@@ -1224,13 +1302,7 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
         {
             case SELECT:
             {
-                // Enter select mode (change color / brush)
-                paintState->buttonMode = BTN_MODE_SELECT;
-                paintState->redrawToolbar = true;
-                paintState->aHeld = false;
-                paintState->moveX = 0;
-                paintState->moveY = 0;
-                paintState->btnHoldTime = 0;
+                paintEnterSelectMode();
                 break;
             }
 
@@ -1238,6 +1310,7 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
             {
                 // Draw
                 paintState->aHeld = true;
+                paintState->aPress = true;
                 break;
             }
 
@@ -1347,12 +1420,7 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
             }
 
             case SELECT:
-            {
-                paintState->saveMenuBoolOption = false;
-                // TODO: Why did this work? I'm pretty sure this should be BTN_MODE_SELECT
-                paintState->buttonMode = BTN_MODE_SAVE;
-                paintState->redrawToolbar = true;
-            }
+            // This is handle in BTN_MODE_SELECT already
             break;
         }
     }
@@ -1451,10 +1519,12 @@ void paintSetupTool(void)
     if (getArtist()->brushWidth < getArtist()->brushDef->minSize)
     {
         getArtist()->brushWidth = getArtist()->brushDef->minSize;
+        paintState->startBrushWidth = getArtist()->brushWidth;
     }
     else if (getArtist()->brushWidth > getArtist()->brushDef->maxSize)
     {
         getArtist()->brushWidth = getArtist()->brushDef->maxSize;
+        paintState->startBrushWidth = getArtist()->brushWidth;
     }
 
     hideCursor(getCursor(), &paintState->canvas);
@@ -1504,6 +1574,23 @@ void paintNextTool(void)
     }
 
     paintSetupTool();
+}
+
+void paintSetBrushWidth(uint8_t width)
+{
+    if (width < getArtist()->brushDef->minSize)
+    {
+        getArtist()->brushWidth = getArtist()->brushDef->minSize;
+    }
+    else if (width > getArtist()->brushDef->maxSize)
+    {
+        getArtist()->brushWidth = getArtist()->brushDef->maxSize;
+    }
+    else
+    {
+        getArtist()->brushWidth = width;
+    }
+    paintState->redrawToolbar = true;
 }
 
 void paintDecBrushWidth(uint8_t dec)
@@ -1560,6 +1647,38 @@ void paintSwapFgBgColors(void)
 
     paintUpdateLeds();
     paintDrawPickPoints();
+}
+
+void paintEnterSelectMode(void)
+{
+    if (paintState->buttonMode == BTN_MODE_SELECT)
+    {
+        return;
+    }
+
+    paintState->buttonMode = BTN_MODE_SELECT;
+    paintState->redrawToolbar = true;
+    paintState->aHeld = false;
+    paintState->moveX = 0;
+    paintState->moveY = 0;
+    paintState->btnHoldTime = 0;
+}
+
+void paintExitSelectMode(void)
+{
+    if (paintState->buttonMode == BTN_MODE_DRAW)
+    {
+        return;
+    }
+
+    // Exit select mode
+    paintState->buttonMode = BTN_MODE_DRAW;
+
+    // Set the current selection as the FG color and rearrange the rest
+    paintUpdateRecents(paintState->paletteSelect);
+    paintState->paletteSelect = 0;
+
+    paintState->redrawToolbar = true;
 }
 
 void paintUpdateRecents(uint8_t selectedIndex)
