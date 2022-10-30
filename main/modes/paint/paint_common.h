@@ -338,12 +338,25 @@ typedef struct
     uint8_t galleryScale;
 } paintGallery_t;
 
+typedef enum
+{
+    TOUCH_ANY   = 0x0100,
+    TOUCH_X     = 0x0200,
+    TOUCH_Y     = 0x0400,
+    SWIPE_LEFT  = 0x0800,
+    SWIPE_RIGHT = 0x1000,
+} virtualButton_t;
+
 // Triggers for advancing the tutorial step
 typedef enum
 {
+    // Press all of the given buttons at least once, in any order
     PRESS_ALL,
+    // Press any one of the give buttons
     PRESS_ANY,
+    // Press all of the given buttons
     PRESS,
+    // Release the given button
     RELEASE,
     CHANGE_BRUSH,
     CHANGE_COLOR,
