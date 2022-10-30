@@ -32,8 +32,8 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = { .type = PRESS, .data = (BTN_A | DOWN), }, .prompt = "Cool! You can also hold A to draw while moving with the D-Pad. Let's try it! Hold A and press D-Pad DOWN"},
     { .trigger = { .type = RELEASE, .data = DOWN, }, .prompt = "Cool! You can also hold A to draw while moving with the D-Pad. Let's try it! Hold A and press D-Pad DOWN"},
     { .trigger = { .type = PRESS, .data = TOUCH_ANY, }, .prompt = "Now, let's change the color. Press and hold the TOUCH PAD between X and Y" },
-    { .trigger = { .type = PRESS, .data = TOUCH_ANY | DOWN, }, .backtrack = { .type = RELEASE, .data = TOUCH_ANY }, .backtrackSteps = 1, .prompt = "Then, press D-Pad DOWN to change the color selection..." },
-    { .trigger = { .type = RELEASE, .data = TOUCH_ANY | TOUCH_X | TOUCH_Y, }, .prompt = "And release the TOUCH PAD to confirm!" },
+    { .trigger = { .type = PRESS, .data = TOUCH_ANY | DOWN, }, .backtrack = { .type = RELEASE, .data = TOUCH_ANY | SWIPE_LEFT | SWIPE_RIGHT | TOUCH_X | TOUCH_Y }, .backtrackSteps = 1, .prompt = "Then, press D-Pad DOWN to change the color selection..." },
+    { .trigger = { .type = RELEASE, .data = TOUCH_ANY | TOUCH_X | TOUCH_Y | SWIPE_LEFT | SWIPE_RIGHT }, .prompt = "And release the TOUCH PAD to confirm!" },
     { .trigger = { .type = RELEASE, .data = BTN_B, }, .prompt = "Great choice! You can also quickly swap the foreground and background colors with the B BUTTON" },
     { .trigger = { .type = RELEASE, .data = TOUCH_Y, }, .prompt = "Now, let's change the brush size. Just tap Y on the TOUCH PAD to increase the brush size by 1" },
     { .trigger = { .type = RELEASE, .data = BTN_A, }, .prompt = "Press A to draw again with the larger brush!" },
@@ -41,8 +41,8 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = { .type = RELEASE, .data = SWIPE_LEFT, }, .prompt = "You can also increase the brush size smoothly by swiping UP (from X to Y) on the TOUCH PAD"},
     { .trigger = { .type = RELEASE, .data = SWIPE_RIGHT, }, .prompt = "And you can decrease it smoothly by swiping DOWN (from Y to X) on the TOUCH PAD" },
     { .trigger = { .type = PRESS, .data = TOUCH_ANY, }, .prompt = "You're ready to use the Pen brushes!\nNow, let's try a different brush. Press and hold the TOUCH PAD again..." },
-    { .trigger = { .type = PRESS, .data = TOUCH_ANY | RIGHT, }, .backtrack = { .type = RELEASE, .data = TOUCH_ANY }, .backtrackSteps = 1, .prompt = "Then, press D-Pad RIGHT to change the brush..." },
-    { .trigger = { .type = RELEASE, .data = TOUCH_ANY | TOUCH_X | TOUCH_Y, }, .prompt = "And release the TOUCH PAD to confirm!" },
+    { .trigger = { .type = PRESS, .data = TOUCH_ANY | RIGHT, }, .backtrack = { .type = RELEASE, .data = TOUCH_ANY | SWIPE_LEFT | SWIPE_RIGHT | TOUCH_X | TOUCH_Y }, .backtrackSteps = 1, .prompt = "Then, press D-Pad RIGHT to change the brush..." },
+    { .trigger = { .type = RELEASE, .data = TOUCH_ANY | TOUCH_X | TOUCH_Y | SWIPE_LEFT | SWIPE_RIGHT, }, .prompt = "And release the TOUCH PAD to confirm!" },
     { .trigger = { .type = CHANGE_BRUSH, .dataPtr = (void*)"Rectangle", }, .prompt = "Now, choose the RECTANGLE brush!" },
     { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 1, .prompt = "Now, press A to select the first corner of the rectangle..." },
     { .trigger = { .type = PRESS_ANY, .data = (UP | DOWN | LEFT | RIGHT), }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 2, .prompt = "Then move somewhere else..." },
@@ -1234,6 +1234,7 @@ void paintDrawScreenPollTouch()
 
             case BTN_MODE_PALETTE:
             {
+                paintState->touchDown = true;
                 // Don't do anything for tutorial until release
                 uint8_t index = ((centroid * 5 + 512) / 1024);
                 PAINT_LOGD("Centroid: %d, Intensity: %d, Index: %d", centroid, intensity, index);
