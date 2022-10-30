@@ -26,6 +26,7 @@
 //#include "bootloader_random.h"
 #include "esp_random.h"
 #include "aabb_utils.h"
+#include "esp_log.h"
 
 #include "swadge_util.h"
 #include "text_entry.h"
@@ -233,7 +234,7 @@ void diceButtonCb(buttonEvt_t* evt)
     {
         case BTN_A:
         {
-            if(evt->down)
+            if(evt->down && (diceRoller->state != DR_ROLLING))
             {
                 //diceRoller->rollerNum = (esp_random() % 20) + 1;
                 if(diceRoller->requestCount > 0 && diceRoller->requestSides > 0)
@@ -249,7 +250,7 @@ void diceButtonCb(buttonEvt_t* evt)
         }
         case BTN_B:
         {
-            if(evt->down)
+            if(evt->down && (diceRoller->state != DR_ROLLING))
             {
                 //diceRoller->rollerNum = (esp_random() % 20) + 1;
                 if(diceRoller->requestCount > 0 && diceRoller->requestSides > 0)
@@ -265,7 +266,7 @@ void diceButtonCb(buttonEvt_t* evt)
         }
         case UP:
         {
-            if(evt->down)
+            if(evt->down && (diceRoller->state != DR_ROLLING))
             {
                 if(!(diceRoller->activeSelection))
                 {
@@ -280,7 +281,7 @@ void diceButtonCb(buttonEvt_t* evt)
         }
         case DOWN:
         {
-            if(evt->down)
+            if(evt->down && (diceRoller->state != DR_ROLLING))
             {
                 if(!(diceRoller->activeSelection))
                 {
@@ -295,7 +296,7 @@ void diceButtonCb(buttonEvt_t* evt)
         }
         case LEFT:
         {
-            if(evt->down)
+            if(evt->down && (diceRoller->state != DR_ROLLING))
             {
                 changeActiveSelection();
             }
@@ -303,7 +304,7 @@ void diceButtonCb(buttonEvt_t* evt)
         }
         case RIGHT:
         {
-            if(evt->down)
+            if(evt->down && (diceRoller->state != DR_ROLLING))
             {
                 changeActiveSelection();
             }
@@ -547,16 +548,16 @@ void addTotalToHistory()
 
 void dbgPrintHist()
 {
-    printf("History:");
+    ESP_LOGD("DICEROLLER","History:");
     for(int i = 0; i < diceRoller->histSize; i++)
     {
-        printf("%dd%d:%d",diceRoller->histCounts[i],diceRoller->histSides[i],diceRoller->histTotals[i]);
+        ESP_LOGD("DICEROLLER","%dd%d:%d",diceRoller->histCounts[i],diceRoller->histSides[i],diceRoller->histTotals[i]);
         if(i < diceRoller->histSize-1)
         {
-            printf(", ");
+            ESP_LOGD("DICEROLLER",", ");
         }
     }
-    printf("\n");
+    ESP_LOGD("DICEROLLER","\n");
 }
 
 void drawCurrentTotal(int w, int h )
