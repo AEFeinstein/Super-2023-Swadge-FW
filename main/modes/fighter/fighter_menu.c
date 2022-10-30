@@ -722,6 +722,7 @@ void setFighterVsCpuCharSelMenu(void)
     addRowToMeleeMenu(fm->menu, str_charKD);
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
+    addRowToMeleeMenu(fm->menu, str_back);
     fm->screen = FIGHTER_MENU;
 }
 
@@ -746,6 +747,12 @@ void fighterVsCpuCharMenuCb(const char* opt)
     {
         // Big Funkus Selected
         fm->characters[0] = BIG_FUNKUS;
+    }
+    else if(opt == str_back)
+    {
+        // Reset to top level melee menu
+        setFighterMainMenu();
+        return;
     }
     else
     {
