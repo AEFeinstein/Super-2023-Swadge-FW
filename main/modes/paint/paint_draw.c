@@ -27,40 +27,40 @@ paintHelp_t* paintHelp;
  */
 const paintHelpStep_t helpSteps[] =
 {
-    { .trigger = PRESS_ALL, .triggerData = (UP | DOWN | LEFT | RIGHT), .prompt = "Welcome to MFPaint!\nLet's get started: First, use the D-Pad to move the cursor around!" },
-    { .trigger = RELEASE, .triggerData = BTN_A, .prompt = "Excellent!\nNow, press A to draw something!" },
-    { .trigger = PRESS, .triggerData = (BTN_A | DOWN), .prompt = "Cool! You can also hold A to draw while moving with the D-Pad. Let's try it! Hold A and press D-Pad DOWN"},
-    { .trigger = RELEASE, .triggerData = DOWN, .prompt = "Cool! You can also hold A to draw while moving with the D-Pad. Let's try it! Hold A and press D-Pad DOWN"},
-    { .trigger = PRESS, .triggerData = TOUCH_ANY, .prompt = "Now, let's change the color. Press and hold the TOUCH PAD between X and Y" },
-    { .trigger = PRESS, .triggerData = TOUCH_ANY | DOWN, .prompt = "Then, press D-Pad DOWN to change the color selection..." },
-    { .trigger = RELEASE, .triggerData = TOUCH_ANY | TOUCH_X | TOUCH_Y, .prompt = "And release the TOUCH PAD to confirm!" },
-    { .trigger = RELEASE, .triggerData = BTN_B, .prompt = "Great choice! You can also quickly swap the foreground and background colors with the B BUTTON" },
-    { .trigger = RELEASE, .triggerData = TOUCH_Y, .prompt = "Now, let's change the brush size. Just tap Y on the TOUCH PAD to increase the brush size by 1" },
-    { .trigger = RELEASE, .triggerData = BTN_A, .prompt = "Press A to draw again with the larger brush!" },
-    { .trigger = RELEASE, .triggerData = TOUCH_X, .prompt = "Wow! Now, to decrease the brush size, just tap X on the TOUCH PAD!" },
-    { .trigger = RELEASE, .triggerData = SWIPE_LEFT, .prompt = "You can also increase the brush size smoothly by swiping UP (from X to Y) on the TOUCH PAD"},
-    { .trigger = RELEASE, .triggerData = SWIPE_RIGHT, .prompt = "And you can decrease it smoothly by swiping DOWN (from Y to X) on the TOUCH PAD" },
-    { .trigger = PRESS, .triggerData = TOUCH_ANY, .prompt = "You're ready to use the Pen brushes!\nNow, let's try a different brush. Press and hold the TOUCH PAD again..." },
-    { .trigger = PRESS, .triggerData = TOUCH_ANY | RIGHT, .prompt = "Then, press D-Pad RIGHT to change the brush..." },
-    { .trigger = RELEASE, .triggerData = TOUCH_ANY | TOUCH_X | TOUCH_Y, .prompt = "And release the TOUCH PAD to confirm!" },
-    { .trigger = CHANGE_BRUSH, .triggerDataPtr = (void*)"Rectangle", .prompt = "Now, choose the RECTANGLE brush!" },
-    { .trigger = RELEASE, .triggerData = BTN_A, .prompt = "Now, press A to select the first corner of the rectangle..." },
-    { .trigger = PRESS_ANY, .triggerData = (UP | DOWN | LEFT | RIGHT), .prompt = "Then move somewhere else..." },
-    { .trigger = RELEASE, .triggerData = BTN_A, .prompt = "Press A again to pick the other coner of the rectangle. Note that the first point you picked will blink!" },
-    { .trigger = PRESS, .triggerData = START, .prompt = "Good job! Now you know how to use all the brushes.\nNext, let's press START to toggle the menu" },
-    { .trigger = PRESS_ANY, .triggerData = UP | DOWN | SELECT, .prompt = "Press UP, DOWN, or SELECT to go through the menu items" },
-    { .trigger = SELECT_MENU_ITEM, .triggerData = PICK_SLOT_SAVE, .prompt = "Great! Now, navigate to the SAVE option" },
-    { .trigger = PRESS_ANY, .triggerData = LEFT | RIGHT, .prompt = "Use D-Pad LEFT and RIGHT to switch between save slots here, or any other menu options" },
-    { .trigger = PRESS_ANY, .triggerData = BTN_A | BTN_B, .prompt = "Use the A BUTTON to confirm, or the B BUTTON to cancel and go back. You'll have to confirm again before deleting any art!" },
-    { .trigger = SELECT_MENU_ITEM, .triggerData = HIDDEN, .prompt = "Press START or the B BUTTON to exit the menu" },
-    { .trigger = PRESS, .triggerData = START, .prompt = "Let's try editing the palette! Press START to open the menu one more time" },
-    { .trigger = SELECT_MENU_ITEM, .triggerData = EDIT_PALETTE, .prompt = "Use UP, DOWN, and SELECT to select EDIT PALETTE" },
-    { .trigger = PRESS, .triggerData = BTN_A, .prompt = "Press the A BUTTON to begin editing the palette" },
-    { .trigger = PRESS_ANY, .triggerData = UP | DOWN, .prompt = "Use D-Pad UP and DOWN to select a color to edit" },
-    { .trigger = PRESS_ANY, .triggerData = LEFT | RIGHT, .prompt = "Use D-Pad LEFT and RIGHT to switch between the RED, GREEN, and BLUE color sliders" },
-    { .trigger = RELEASE, .triggerData = TOUCH_ANY | SELECT, .prompt = "Tap along the TOUCH PAD to edit the selected color slider. You can also use SELECT" },
-    { .trigger = PRESS_ANY, .triggerData = BTN_A | BTN_B, .prompt = "Press the A BUTTON to confirm and swap to the new color. Or, press the B BUTTON to restore the original color." },
-    { .trigger = NO_TRIGGER, .prompt = "That's everything.\nHappy painting!" },
+    { .trigger = { .type = PRESS_ALL, .data = (UP | DOWN | LEFT | RIGHT) }, .prompt = "Welcome to MFPaint!\nLet's get started: First, use the D-Pad to move the cursor around!" },
+    { .trigger = { .type = RELEASE, .data = BTN_A, }, .prompt = "Excellent!\nNow, press A to draw something!" },
+    { .trigger = { .type = PRESS, .data = (BTN_A | DOWN), }, .prompt = "Cool! You can also hold A to draw while moving with the D-Pad. Let's try it! Hold A and press D-Pad DOWN"},
+    { .trigger = { .type = RELEASE, .data = DOWN, }, .prompt = "Cool! You can also hold A to draw while moving with the D-Pad. Let's try it! Hold A and press D-Pad DOWN"},
+    { .trigger = { .type = PRESS, .data = TOUCH_ANY, }, .prompt = "Now, let's change the color. Press and hold the TOUCH PAD between X and Y" },
+    { .trigger = { .type = PRESS, .data = TOUCH_ANY | DOWN, }, .backtrack = { .type = RELEASE, .data = TOUCH_ANY }, .backtrackSteps = 1, .prompt = "Then, press D-Pad DOWN to change the color selection..." },
+    { .trigger = { .type = RELEASE, .data = TOUCH_ANY | TOUCH_X | TOUCH_Y, }, .prompt = "And release the TOUCH PAD to confirm!" },
+    { .trigger = { .type = RELEASE, .data = BTN_B, }, .prompt = "Great choice! You can also quickly swap the foreground and background colors with the B BUTTON" },
+    { .trigger = { .type = RELEASE, .data = TOUCH_Y, }, .prompt = "Now, let's change the brush size. Just tap Y on the TOUCH PAD to increase the brush size by 1" },
+    { .trigger = { .type = RELEASE, .data = BTN_A, }, .prompt = "Press A to draw again with the larger brush!" },
+    { .trigger = { .type = RELEASE, .data = TOUCH_X, }, .prompt = "Wow! Now, to decrease the brush size, just tap X on the TOUCH PAD!" },
+    { .trigger = { .type = RELEASE, .data = SWIPE_LEFT, }, .prompt = "You can also increase the brush size smoothly by swiping UP (from X to Y) on the TOUCH PAD"},
+    { .trigger = { .type = RELEASE, .data = SWIPE_RIGHT, }, .prompt = "And you can decrease it smoothly by swiping DOWN (from Y to X) on the TOUCH PAD" },
+    { .trigger = { .type = PRESS, .data = TOUCH_ANY, }, .prompt = "You're ready to use the Pen brushes!\nNow, let's try a different brush. Press and hold the TOUCH PAD again..." },
+    { .trigger = { .type = PRESS, .data = TOUCH_ANY | RIGHT, }, .backtrack = { .type = RELEASE, .data = TOUCH_ANY }, .backtrackSteps = 1, .prompt = "Then, press D-Pad RIGHT to change the brush..." },
+    { .trigger = { .type = RELEASE, .data = TOUCH_ANY | TOUCH_X | TOUCH_Y, }, .prompt = "And release the TOUCH PAD to confirm!" },
+    { .trigger = { .type = CHANGE_BRUSH, .dataPtr = (void*)"Rectangle", }, .prompt = "Now, choose the RECTANGLE brush!" },
+    { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 1, .prompt = "Now, press A to select the first corner of the rectangle..." },
+    { .trigger = { .type = PRESS_ANY, .data = (UP | DOWN | LEFT | RIGHT), }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 2, .prompt = "Then move somewhere else..." },
+    { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 3, .prompt = "Press A again to pick the other coner of the rectangle. Note that the first point you picked will blink!" },
+    { .trigger = { .type = PRESS, .data = START, }, .prompt = "Good job! Now you know how to use all the brushes.\nNext, let's press START to toggle the menu" },
+    { .trigger = { .type = PRESS_ANY, .data = UP | DOWN | SELECT, }, .backtrack = { .type = SELECT_MENU_ITEM, .data = HIDDEN }, .backtrackSteps = 1, .prompt = "Press UP, DOWN, or SELECT to go through the menu items" },
+    { .trigger = { .type = SELECT_MENU_ITEM, .data = PICK_SLOT_SAVE, }, .backtrack = { .type = SELECT_MENU_ITEM, .data = HIDDEN }, .backtrackSteps = 2, .prompt = "Great! Now, navigate to the SAVE option" },
+    { .trigger = { .type = PRESS_ANY, .data = LEFT | RIGHT, }, .backtrack = { .type = MENU_ITEM_NOT, .data = PICK_SLOT_SAVE }, .backtrackSteps = 1, .prompt = "Use D-Pad LEFT and RIGHT to switch between save slots here, or any other menu options" },
+    { .trigger = { .type = PRESS_ANY, .data = BTN_A | BTN_B, }, .backtrack = { .type = MENU_ITEM_NOT, .data = PICK_SLOT_SAVE }, .backtrackSteps = 2, .prompt = "Use the A BUTTON to confirm, or the B BUTTON to cancel and go back. You'll have to confirm again before deleting any art!" },
+    { .trigger = { .type = SELECT_MENU_ITEM, .data = HIDDEN, }, .prompt = "Press START or the B BUTTON to exit the menu" },
+    { .trigger = { .type = PRESS, .data = START, }, .prompt = "Let's try editing the palette! Press START to open the menu one more time" },
+    { .trigger = { .type = SELECT_MENU_ITEM, .data = EDIT_PALETTE, }, .backtrack = { .type = SELECT_MENU_ITEM, .data = HIDDEN }, .backtrackSteps = 1, .prompt = "Use UP, DOWN, and SELECT to select EDIT PALETTE" },
+    { .trigger = { .type = PRESS, .data = BTN_A, }, .backtrack = { .type = MENU_ITEM_NOT, .data = EDIT_PALETTE }, .backtrackSteps = 1, .prompt = "Press the A BUTTON to begin editing the palette" },
+    { .trigger = { .type = PRESS_ANY, .data = UP | DOWN, }, .backtrack = { .type = MODE_NOT, .data = BTN_MODE_PALETTE }, .backtrackSteps = 2, .prompt = "Use D-Pad UP and DOWN to select a color to edit" },
+    { .trigger = { .type = PRESS_ANY, .data = LEFT | RIGHT, }, .backtrack = { .type = MODE_NOT, .data = BTN_MODE_PALETTE }, .backtrackSteps = 3, .prompt = "Use D-Pad LEFT and RIGHT to switch between the RED, GREEN, and BLUE color sliders" },
+    { .trigger = { .type = RELEASE, .data = TOUCH_ANY | SELECT, }, .backtrack = { .type = MODE_NOT, .data = BTN_MODE_PALETTE }, .backtrackSteps = 4, .prompt = "Tap along the TOUCH PAD to edit the selected color slider. You can also use SELECT" },
+    { .trigger = { .type = PRESS_ANY, .data = BTN_A | BTN_B, }, .backtrack = { .type = MODE_NOT, .data = BTN_MODE_PALETTE }, .backtrackSteps = 5, .prompt = "Press the A BUTTON to confirm and swap to the new color. Or, press the B BUTTON to restore the original color." },
+    { .trigger = { .type = NO_TRIGGER, }, .prompt = "That's everything.\nHappy painting!" },
 };
 
 const paintHelpStep_t* lastHelp = helpSteps + sizeof(helpSteps) / sizeof(helpSteps[0]) - 1;
@@ -289,7 +289,7 @@ void paintTutorialCleanup(void)
 
 void paintTutorialOnEvent(void)
 {
-    if (paintTutorialCheckTriggers())
+    if (paintTutorialCheckTrigger(&paintHelp->curHelp->trigger))
     {
         paintState->redrawToolbar = true;
         if (paintHelp->curHelp != lastHelp)
@@ -300,32 +300,61 @@ void paintTutorialOnEvent(void)
             paintHelp->lastButtonDown = false;
         }
     }
+    else if (paintTutorialCheckTrigger(&paintHelp->curHelp->backtrack))
+    {
+        paintState->redrawToolbar = true;
+
+        // check some bonuds even though it's constant
+        if (paintHelp->curHelp - paintHelp->curHelp->backtrackSteps >= helpSteps)
+        {
+            paintHelp->curHelp -= paintHelp->curHelp->backtrackSteps;
+        }
+        else
+        {
+            paintHelp->curHelp = helpSteps;
+        }
+
+        paintHelp->allButtons = 0;
+        paintHelp->lastButton = 0;
+        paintHelp->lastButtonDown = false;
+    }
 }
 
-bool paintTutorialCheckTriggers(void)
+bool paintTutorialCheckTrigger(paintHelpTrigger_t* trigger)
 {
-    switch (paintHelp->curHelp->trigger)
+    switch (trigger->type)
     {
     case PRESS_ALL:
-        return (paintHelp->allButtons & paintHelp->curHelp->triggerData) == paintHelp->curHelp->triggerData;
+        return (paintHelp->allButtons & trigger->data) == trigger->data;
 
     case PRESS_ANY:
-        return (paintHelp->curButtons & paintHelp->curHelp->triggerData) != 0 && paintHelp->lastButtonDown;
+        return (paintHelp->curButtons & trigger->data) != 0 && paintHelp->lastButtonDown;
 
     case PRESS:
-        return (paintHelp->curButtons & (paintHelp->curHelp->triggerData)) == paintHelp->curHelp->triggerData && paintHelp->lastButtonDown;
+        PAINT_LOGD("current buttons %x", paintHelp->curButtons);
+        return (paintHelp->curButtons & (trigger->data)) == trigger->data && paintHelp->lastButtonDown;
 
     case RELEASE:
-        return paintHelp->lastButtonDown == false && (paintHelp->lastButton & paintHelp->curHelp->triggerData) == paintHelp->lastButton;
+        PAINT_LOGD("last button %x, mask %lx", paintHelp->lastButton, trigger->data);
+        return paintHelp->lastButtonDown == false && (paintHelp->lastButton & trigger->data) == paintHelp->lastButton;
 
     case CHANGE_BRUSH:
-        return !strcmp(getArtist()->brushDef->name, paintHelp->curHelp->triggerDataPtr) && paintHelp->curButtons == 0;
+        return !strcmp(getArtist()->brushDef->name, trigger->dataPtr) && paintHelp->curButtons == 0;
 
-    case CHANGE_COLOR:
-        return getArtist()->fgColor == paintHelp->curHelp->triggerData;
+    case CHANGE_MODE:
+        return paintState->buttonMode == trigger->data;
+
+    case BRUSH_NOT:
+        return strcmp(getArtist()->brushDef->name, trigger->dataPtr) && paintHelp->curButtons == 0;
 
     case SELECT_MENU_ITEM:
-        return paintState->saveMenu == paintHelp->curHelp->triggerData;
+        return paintState->saveMenu == trigger->data;
+
+    case MENU_ITEM_NOT:
+        return paintState->saveMenu != trigger->data;
+
+    case MODE_NOT:
+        return paintState->buttonMode != trigger->data;
 
     case NO_TRIGGER:
     default:
@@ -1201,7 +1230,6 @@ void paintDrawScreenPollTouch()
                     }
 
                     paintSetBrushWidth((uint8_t)(newWidth));
-                    PAINT_LOGD("Mid-swipe %d", swipeMagnitude);
                 }
                 break;
             }
