@@ -656,7 +656,15 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                         // Nothing currently pressed, check for either start or select
                         if(bEvt.down)
                         {
-                            if (START == bEvt.button)
+                            if ((START | SELECT) == bEvt.button)
+                            {
+                                // Start and select pressed at the exact same time
+                                sst = START_SELECT_PRESSED;
+                                time_exit_pressed = esp_timer_get_time();
+                                dblBtnTmr = -1;
+                                ignoreEvent = true;
+                            }
+                            else if (START == bEvt.button)
                             {
                                 sst = START_PRESSED;
                                 dblBtnTmr = 100000; // 100ms to wait for the other
