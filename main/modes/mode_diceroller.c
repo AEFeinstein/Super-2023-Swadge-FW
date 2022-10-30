@@ -70,7 +70,7 @@ void printHistory();
 void addTotalToHistory();
 void dbgPrintHist();
 
-#define MAXHIST 6
+#define DR_MAXHIST 6
 
 const int MAXDICE = 6;
 const int COUNTCOUNT = 7;
@@ -154,9 +154,9 @@ typedef struct
     uint32_t lastCallTimeUs;
     uint32_t rollerNum;
     
-    int histTotals[MAXHIST];
-    int histSides[MAXHIST];
-    int histCounts[MAXHIST];
+    int histTotals[DR_MAXHIST];
+    int histSides[DR_MAXHIST];
+    int histCounts[DR_MAXHIST];
     int histSize;
 } diceRoller_t;
 
@@ -457,7 +457,7 @@ void printHistory()
 
 void addTotalToHistory()
 {
-    if(diceRoller->histSize < MAXHIST) //S
+    if(diceRoller->histSize < DR_MAXHIST) //S
     {
         
         int size = diceRoller->histSize;
