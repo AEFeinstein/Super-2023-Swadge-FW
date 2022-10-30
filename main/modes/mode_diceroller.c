@@ -71,6 +71,9 @@ void printHistory();
 void addTotalToHistory();
 void dbgPrintHist();
 
+void drawPanel(int x0, int y0, int x1, int y1);
+void drawHistoryPanel();
+
 #define DR_MAXHIST 6
 
 const int MAXDICE = 6;
@@ -129,6 +132,7 @@ typedef struct
     font_t ibm_vga8;
     wsg_t woodTexture;
     wsg_t cursor;
+    wsg_t corner;
 
     double timeAngle;
 
@@ -173,6 +177,7 @@ void diceEnterMode(display_t* disp)
     loadFont("ibm_vga8.font", &diceRoller->ibm_vga8);
     loadWsg("woodTexture64.wsg",&diceRoller->woodTexture);
     loadWsg("upCursor8.wsg",&diceRoller->cursor);
+    loadWsg("goldCornerTR.wsg",&diceRoller->corner);
 
     diceRoller->rolls = NULL;
 
@@ -203,6 +208,7 @@ void diceExitMode(void)
     freeFont(&diceRoller->ibm_vga8);
     freeWsg(&diceRoller->woodTexture);
     freeWsg(&diceRoller->cursor);
+    freeWsg(&diceRoller->corner);
 
     if(diceRoller->rolls != NULL)
     {
@@ -382,6 +388,7 @@ void doStateMachine(int64_t elapsedUs)
             drawDiceText(xGridOffsets, yGridOffsets);
             drawCurrentTotal(w,h);
             //dbgPrintHist();
+            drawHistoryPanel();
             printHistory();
             if(diceRoller->stateAdvanceFlag)
             {
@@ -417,6 +424,7 @@ void doStateMachine(int64_t elapsedUs)
             genFakeVal(rollAnimationTimeUs,rotationOffsetDeg);
             drawDiceBackgroundAnimation(xGridOffsets, yGridOffsets,rollAnimationTimeUs,rotationOffsetDeg);
             drawFakeDiceText(xGridOffsets, yGridOffsets);
+            drawHistoryPanel();
             printHistory();
             if(rollAnimationTimeUs > rollAnimationPeriod)
             {
@@ -432,6 +440,38 @@ void doStateMachine(int64_t elapsedUs)
             break;
         }
     }
+}
+
+
+
+void drawPanel(int x0, int y0, int x1, int y1)
+{
+    paletteColor_t outerGold = c550;
+    paletteColor_t innerGold = c540;
+    paletteColor_t panelColor = c400;
+    plotRect(diceRoller->disp,x0,y0,x1,y1,outerGold);
+    plotRect(diceRoller->disp,x0+1,y0+1,x1-1,y1-1,innerGold);
+    oddEvenFillFix(diceRoller->disp,x0,y0,x1,y1,innerGold,panelColor);
+
+    int cornerEdge = 8;
+    drawWsg(diceRoller->disp,&diceRoller->corner,x0,y0,true,false,0); //Draw TopLeft
+    drawWsg(diceRoller->disp,&diceRoller->corner,x1-cornerEdge,y0,false,false,0); //Draw TopRight
+    drawWsg(diceRoller->disp,&diceRoller->corner,x0,y1-cornerEdge,true,true,0); //Draw BotLeft
+    drawWsg(diceRoller->disp,&diceRoller->corner,x1-cornerEdge,y1-cornerEdge,false,true,0); //Draw BotRight
+
+
+}
+
+void drawHistoryPanel()
+{
+    int histX = diceRoller->disp->w/14 + 30;
+    int histY = diceRoller->disp->h/8 + 40;
+    int histYEntryOffset = 15;
+    int xMargin = 40;
+    int yMargin = 10;
+
+
+    drawPanel(histX-xMargin,histY - yMargin,histX+xMargin,histY + (DR_MAXHIST+1)*histYEntryOffset + yMargin);
 }
 
 void printHistory()
@@ -758,8 +798,8 @@ void drawSelectionPointerSprite(int w,int h,char* rollStr,int bfrSize)
     //printf("%s\n", rollStr);
    
 
-    int countSelX = w/2 + centerToEndPix - endToNumStartPix + firstNumPix/2 - 4;
-    int sideSelX = w/2 + centerToEndPix - lastNumPix/2 - 4;
+    int countSelX = w/2 + centerToEndPix - endToNumStartPix + firstNumPix/2 - 3;
+    int sideSelX = w/2 + centerToEndPix - lastNumPix/2 - 3;
     drawWsg(diceRoller->disp,&diceRoller->cursor,diceRoller->activeSelection ? sideSelX : countSelX, h/8+yPointerOffset - 4, false, false, 0);
     //drawRegularPolygon(diceRoller->activeSelection ? sideSelX : countSelX,
     //    h/8+yPointerOffset, 3, -90, 5, selectionArrowColor, 0
