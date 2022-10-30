@@ -24,6 +24,7 @@
 #include "settingsManager.h"
 
 #include "mode_jukebox.h"
+#include "meleeMenu.h"
 
 /*==============================================================================
  * Defines
@@ -49,6 +50,7 @@ void  jukeboxEnterMode(display_t* disp);
 void  jukeboxExitMode(void);
 void  jukeboxButtonCallback(buttonEvt_t* evt);
 void  jukeboxMainLoop(int64_t elapsedUs);
+void  jukeboxMainMenuCb(const char* opt);
 
 /*==============================================================================
  * Structs
@@ -61,6 +63,8 @@ void  jukeboxMainLoop(int64_t elapsedUs);
  *============================================================================*/
 
 // The swadge mode
+static const char str_exit[] = "Exit";
+
 swadgeMode modeJukebox =
 {
     .modeName = "Jukebox",
@@ -78,13 +82,21 @@ swadgeMode modeJukebox =
 };
 
 // The state data
+typedef enum
+{
+    JUKEBOX_MENU,
+    JUKEBOX_PLAYER
+} jukeboxScreen_t;
+
+
 typedef struct
 {
     display_t* disp;
     font_t ibm_vga8;
     font_t radiostars;
     font_t mm;
-
+    meleeMenu_t* menu;
+    jukeboxScreen_t screen;    
 } jukebox_t;
 
 jukebox_t* jukebox;
@@ -94,6 +106,7 @@ jukebox_t* jukebox;
  *============================================================================*/
 
 // Text
+static const char str_jukebox[]  = "Jukebox";
 const char jukeboxMutedText[] =  "Swadge is muted!";
 
 /*============================================================================
@@ -113,6 +126,12 @@ void  jukeboxEnterMode(display_t* disp)
     loadFont("ibm_vga8.font", &jukebox->ibm_vga8);
     loadFont("radiostars.font", &jukebox->radiostars);
     loadFont("mm.font", &jukebox->mm);
+
+    jukebox->menu = initMeleeMenu(str_jukebox, &(jukebox->mm), jukeboxMainMenuCb);
+
+    setJukeboxMainMenu();
+
+    jukebox->screen = JUKEBOX_MENU;
 
     stopNote();
 }
@@ -138,10 +157,14 @@ void  jukeboxExitMode(void)
  */
 void  jukeboxButtonCallback(buttonEvt_t* evt)
 {
-    switch(evt->button)
+    switch(jukebox->screen)
     {
-        default:
+        case JUKEBOX_MENU:
         {
+            if (evt->down)
+            {
+                meleeMenuButton(jukebox->menu, evt->button);
+            }
             break;
         }
     }
@@ -153,7 +176,16 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
 void  jukeboxMainLoop(int64_t elapsedUs)
 {
     jukebox->disp->clearPx();
-    fillDisplayArea(jukebox->disp, 0, 0, jukebox->disp->w, jukebox->disp->h, c010);
+    //fillDisplayArea(jukebox->disp, 0, 0, jukebox->disp->w, jukebox->disp->h, c010);
+    switch(jukebox->screen)
+    {
+        case JUKEBOX_MENU:
+        {
+            drawMeleeMenu(jukebox->disp, jukebox->menu);
+            break;
+        }
+    }
+
 
     // Warn the user that the swadge is muted, if that's the case
     if(getSfxIsMuted())
@@ -164,5 +196,22 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             jukeboxMutedText,
             (jukebox->disp->w - textWidth(&jukebox->radiostars, jukeboxMutedText)) / 2,
             jukebox->disp->h / 2);
+    }
+}
+
+void setJukeboxMainMenu(void)
+{
+    resetMeleeMenu(jukebox->menu, str_jukebox, jukeboxMainMenuCb);
+    addRowToMeleeMenu(jukebox->menu, str_exit);
+
+    jukebox->screen = JUKEBOX_MENU;
+}
+
+void jukeboxMainMenuCb(const char * opt)
+{
+    if (opt == str_exit)
+    {
+        switchToSwadgeMode(&modeMainMenu);
+        return;
     }
 }

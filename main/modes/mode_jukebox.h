@@ -8,6 +8,10 @@
 #ifndef _MODE_JUKEBOX_H_
 #define _MODE_JUKEBOX_H_
 
+#include "musical_buzzer.h" 
+
 extern swadgeMode modeJukebox;
+
+void setJukeboxMainMenu(void);
 
 #endif /* _MODE_JUKEBOX_H_ */
