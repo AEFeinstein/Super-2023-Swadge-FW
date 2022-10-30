@@ -54,6 +54,7 @@ void doStateMachine(int64_t elapsedUs);
 
 void drawSelectionText(int w,int h,char* rollStr, int bfrSize);
 void drawSelectionPointer(int w,int h,char* rollStr,int bfrSize);
+void drawSelectionPointerSprite(int w,int h,char* rollStr,int bfrSize);
 void drawDiceBackground(int* xGridOffsets,int* yGridOffsets);
 void drawDiceText(int* xGridOffsets,int* yGridOffsets);
 void drawDiceBackgroundAnimation(int* xGridOffsets, int* yGridOffsets, int32_t rollAnimationTimUs, double rotationOffsetDeg);
@@ -127,6 +128,7 @@ typedef struct
     display_t* disp;
     font_t ibm_vga8;
     wsg_t woodTexture;
+    wsg_t cursor;
 
     double timeAngle;
 
@@ -170,6 +172,7 @@ void diceEnterMode(display_t* disp)
 
     loadFont("ibm_vga8.font", &diceRoller->ibm_vga8);
     loadWsg("woodTexture64.wsg",&diceRoller->woodTexture);
+    loadWsg("upCursor8.wsg",&diceRoller->cursor);
 
     diceRoller->rolls = NULL;
 
@@ -199,6 +202,8 @@ void diceExitMode(void)
 {
     freeFont(&diceRoller->ibm_vga8);
     freeWsg(&diceRoller->woodTexture);
+    freeWsg(&diceRoller->cursor);
+
     if(diceRoller->rolls != NULL)
     {
         free(diceRoller->rolls);
@@ -344,7 +349,7 @@ void doStateMachine(int64_t elapsedUs)
                 int h = diceRoller->disp->h;
                 char rollStr[32];
                 drawSelectionText(w,h,rollStr,32);
-                drawSelectionPointer(w,h,rollStr,32);
+                drawSelectionPointerSprite(w,h,rollStr,32);
                 
                 
                 if(diceRoller->stateAdvanceFlag)
@@ -364,12 +369,14 @@ void doStateMachine(int64_t elapsedUs)
             int h = diceRoller->disp->h;
             char rollStr[32];
             drawSelectionText(w,h,rollStr,32);
-            drawSelectionPointer(w,h,rollStr,32);
+            drawSelectionPointerSprite(w,h,rollStr,32);
+            
+            int xGridOffset = w/8;
             //int xGridMargin = w/4;
-            int xGridMargin = w/6;
+            int xGridMargin = w/5;
             //int yGridMargin = h/7;
-            int yGridMargin = h/9;
-            int xGridOffsets[] = {w/2-xGridMargin, w/2, w/2+xGridMargin, w/2-xGridMargin, w/2, w/2+xGridMargin};
+            int yGridMargin = h/7;
+            int xGridOffsets[] = {w/2-xGridMargin+xGridOffset, w/2+xGridOffset, w/2+xGridMargin+xGridOffset, w/2-xGridMargin+xGridOffset, w/2+xGridOffset, w/2+xGridMargin+xGridOffset};
             int yGridOffsets[] = {h/2-yGridMargin, h/2-yGridMargin, h/2-yGridMargin, h/2+yGridMargin, h/2+yGridMargin, h/2+yGridMargin};
             drawDiceBackground(xGridOffsets, yGridOffsets);
             drawDiceText(xGridOffsets, yGridOffsets);
@@ -396,11 +403,12 @@ void doStateMachine(int64_t elapsedUs)
             char rollStr[32];
             drawSelectionText(w,h,rollStr,32);
 
+            int xGridOffset = w/8;
             //int xGridMargin = w/4;
-            int xGridMargin = w/6;
+            int xGridMargin = w/5;
             //int yGridMargin = h/7;
-            int yGridMargin = h/9;
-            int xGridOffsets[] = {w/2-xGridMargin, w/2, w/2+xGridMargin, w/2-xGridMargin, w/2, w/2+xGridMargin};
+            int yGridMargin = h/7;
+            int xGridOffsets[] = {w/2-xGridMargin+xGridOffset, w/2+xGridOffset, w/2+xGridMargin+xGridOffset, w/2-xGridMargin+xGridOffset, w/2+xGridOffset, w/2+xGridMargin+xGridOffset};
             int yGridOffsets[] = {h/2-yGridMargin, h/2-yGridMargin, h/2-yGridMargin, h/2+yGridMargin, h/2+yGridMargin, h/2+yGridMargin};
 
             //int total = 0;
@@ -428,7 +436,7 @@ void doStateMachine(int64_t elapsedUs)
 
 void printHistory()
 {
-    int histX = diceRoller->disp->w/14 + 16;
+    int histX = diceRoller->disp->w/14 + 30;
     int histY = diceRoller->disp->h/8 + 40;
     int histYEntryOffset = 15;
 
@@ -444,7 +452,7 @@ void printHistory()
 
     for(int i = 0; i < diceRoller->histSize; i++)
     {
-        snprintf(totalStr,sizeof(totalStr),"%dd%d:%d",diceRoller->histCounts[i],diceRoller->histSides[i],diceRoller->histTotals[i]);
+        snprintf(totalStr,sizeof(totalStr),"%dd%d: %d",diceRoller->histCounts[i],diceRoller->histSides[i],diceRoller->histTotals[i]);
         drawText(
             diceRoller->disp,
             &diceRoller->ibm_vga8, histTextColor,
@@ -729,6 +737,34 @@ void drawSelectionPointer(int w,int h,char* rollStr,int bfrSize)
     );
 }
 
+void drawSelectionPointerSprite(int w,int h,char* rollStr,int bfrSize)
+{
+    
+    
+    int xPointerOffset = 40;
+    int xPointerSelectionOffset = 16; 
+    int yPointerOffset = 17;
+    //printf("rollStrSize: %d\n",(int)sizeof(rollStr));
+    snprintf(rollStr,bfrSize,"Next roll is %dd%d",diceRoller->requestCount,diceRoller->requestSides);
+    int centerToEndPix = textWidth(&diceRoller->ibm_vga8,rollStr)/2;
+    snprintf(rollStr,bfrSize,"%dd%d",diceRoller->requestCount,diceRoller->requestSides);
+    int endToNumStartPix = textWidth(&diceRoller->ibm_vga8,rollStr);
+    snprintf(rollStr,bfrSize,"%d",diceRoller->requestCount);
+    int firstNumPix = textWidth(&diceRoller->ibm_vga8,rollStr);
+    int dWidth = textWidth(&diceRoller->ibm_vga8,"d");
+    snprintf(rollStr,bfrSize,"%d",diceRoller->requestSides);
+    int lastNumPix = textWidth(&diceRoller->ibm_vga8,rollStr);
+
+    //printf("%s\n", rollStr);
+   
+
+    int countSelX = w/2 + centerToEndPix - endToNumStartPix + firstNumPix/2 - 4;
+    int sideSelX = w/2 + centerToEndPix - lastNumPix/2 - 4;
+    drawWsg(diceRoller->disp,&diceRoller->cursor,diceRoller->activeSelection ? sideSelX : countSelX, h/8+yPointerOffset - 4, false, false, 0);
+    //drawRegularPolygon(diceRoller->activeSelection ? sideSelX : countSelX,
+    //    h/8+yPointerOffset, 3, -90, 5, selectionArrowColor, 0
+    //);
+}
 
 void drawDiceBackground(int* xGridOffsets,int* yGridOffsets)
 {
