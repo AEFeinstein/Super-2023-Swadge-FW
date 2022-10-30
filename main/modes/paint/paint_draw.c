@@ -320,7 +320,7 @@ void paintTutorialOnEvent(void)
     }
 }
 
-bool paintTutorialCheckTrigger(paintHelpTrigger_t* trigger)
+bool paintTutorialCheckTrigger(const paintHelpTrigger_t* trigger)
 {
     switch (trigger->type)
     {
@@ -331,11 +331,9 @@ bool paintTutorialCheckTrigger(paintHelpTrigger_t* trigger)
         return (paintHelp->curButtons & trigger->data) != 0 && paintHelp->lastButtonDown;
 
     case PRESS:
-        PAINT_LOGD("current buttons %x", paintHelp->curButtons);
         return (paintHelp->curButtons & (trigger->data)) == trigger->data && paintHelp->lastButtonDown;
 
     case RELEASE:
-        PAINT_LOGD("last button %x, mask %lx", paintHelp->lastButton, trigger->data);
         return paintHelp->lastButtonDown == false && (paintHelp->lastButton & trigger->data) == paintHelp->lastButton;
 
     case CHANGE_BRUSH:

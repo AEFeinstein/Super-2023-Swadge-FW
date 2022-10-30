@@ -46,7 +46,7 @@ void paintTutorialSetup(display_t* disp);
 void paintTutorialPostSetup(void);
 void paintTutorialCleanup(void);
 void paintTutorialOnEvent(void);
-bool paintTutorialCheckTrigger(paintHelpTrigger_t* trigger);
+bool paintTutorialCheckTrigger(const paintHelpTrigger_t* trigger);
 
 void paintPositionDrawCanvas(void);
 
