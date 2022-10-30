@@ -64,10 +64,6 @@ void genFakeVal(int32_t rollAnimationTimeUs, double rotationOffsetDeg);
 
 void drawCurrentTotal(int w, int h );
 
-void oddEvenFillFix(display_t* disp, int x0, int y0, int x1, int y1,
-                 paletteColor_t boundaryColor, paletteColor_t fillColor);
-
-
 void printHistory();
 void addTotalToHistory();
 void dbgPrintHist();
@@ -453,7 +449,7 @@ void drawPanel(int x0, int y0, int x1, int y1)
     paletteColor_t panelColor = c400;
     plotRect(diceRoller->disp,x0,y0,x1,y1,outerGold);
     plotRect(diceRoller->disp,x0+1,y0+1,x1-1,y1-1,innerGold);
-    oddEvenFillFix(diceRoller->disp,x0,y0,x1,y1,innerGold,panelColor);
+    oddEvenFill(diceRoller->disp,x0,y0,x1,y1,innerGold,panelColor);
 
     int cornerEdge = 8;
     drawWsg(diceRoller->disp,&diceRoller->corner,x0,y0,true,false,0); //Draw TopLeft
@@ -617,8 +613,15 @@ double sinDeg(double degrees)
     return sin(degrees/360.0*2*M_PI);
 }
 
-//Coords of vertices as offsets so we can reuse this calculation.
-//MUST DEALLOCATE AFTER EACH ROLL
+/**
+ * @brief Get the Regular Polygon Vertices object. Used in drawRegularPolygon. The vector array returned
+ * by this function must be freed to prevent memory leaks.
+ * 
+ * @param sides Number of sides of regular polygon
+ * @param rotDeg rotation of regular polygon clockwise in degrees (first point is draw pointing to the right)
+ * @param radius Radius in pixels on which vertices will be placed.
+ * @return vector_t* Returns vertices in an array of (x,y) coordinates in pixels centered at (0,0) of length sides.
+ */
 vector_t* getRegularPolygonVertices(int8_t sides, float rotDeg, int16_t radius)
 {
      
@@ -633,6 +636,17 @@ vector_t* getRegularPolygonVertices(int8_t sides, float rotDeg, int16_t radius)
     return vertices;
 }
 
+/**
+ * @brief Draw a regular polygon given a center point, number of sides, rotation, radius, outline color, and dash width.
+ * WARNING: Lines are not guaranteed to be exactly one pixel thick due to behavior of the plotLine function.
+ * @param xCenter x axis center of polygon
+ * @param yCenter y axis center of polygon
+ * @param sides number of sides of polygon
+ * @param rotDeg clockwise degrees of rotation
+ * @param radius radius on which vertices will be placed from center
+ * @param col color of outline
+ * @param dashWidth dotted line behavior. 0 for solid line.
+ */
 void drawRegularPolygon(int xCenter, int yCenter, int8_t sides, float rotDeg, int16_t radius, paletteColor_t col, int dashWidth)
 {
     vector_t* vertices = getRegularPolygonVertices(sides, rotDeg, radius);
@@ -652,91 +666,6 @@ void drawRegularPolygon(int xCenter, int yCenter, int8_t sides, float rotDeg, in
     
     free(vertices);
 }
-
-void oddEvenFillFix(display_t* disp, int x0, int y0, int x1, int y1,
-                 paletteColor_t boundaryColor, paletteColor_t fillColor)
-{
-    SETUP_FOR_TURBO( disp );
-
-    // Adjust the bounding box if it's out of bounds
-    if(x0 < 0)
-    {
-        x0 = 0;
-    }
-    if(x1 > disp->w)
-    {
-        x1 = disp->w;
-    }
-    if(y0 < 0)
-    {
-        y0 = 0;
-    }
-    if(y1 > disp->h)
-    {
-        y1 = disp->h;
-    }
-    for(int y = y0; y < y1; y++)
-    {
-        // Assume starting outside the shape for each row
-        bool isInside = false;
-        bool insideHysteresis = false;
-        uint16_t transitionCount = 0;
-        for(int x = x0; x < x1; x++)
-        {
-            if(boundaryColor == GET_PIXEL(disp, x, y))
-            {
-                // Flip this boolean, don't color the boundary
-                if(!insideHysteresis)
-                {
-                    isInside = !isInside;
-                    insideHysteresis = true;
-                    transitionCount++;
-                }
-            }
-            else if(isInside)
-            {
-                // If we're in-bounds, color the pixel
-                
-                insideHysteresis = false;
-            }
-            else
-            {
-                insideHysteresis = false;
-            }
-        }
-        //printf("Transition Count %d: %d",y,transitionCount);
-        if(!(transitionCount%2))
-        {
-            isInside = false;
-            insideHysteresis = false;
-            for(int x = x0; x < x1; x++)
-            {
-                // If a boundary is hit
-                if(boundaryColor == GET_PIXEL(disp, x, y))
-                {
-                    // Flip this boolean, don't color the boundary
-                    if(!insideHysteresis)
-                    {
-                        isInside = !isInside;
-                        insideHysteresis = true;
-                    }
-                }
-                else if(isInside)
-                {
-                    // If we're in-bounds, color the pixel
-                    TURBO_SET_PIXEL_BOUNDS(disp, x, y, fillColor);
-                    insideHysteresis = false;
-                }
-                else
-                {
-                    insideHysteresis = false;
-                }
-            }
-        }
-    }
-}
-
-
 
 void drawSelectionText(int w,int h,char* rollStr, int bfrSize)
 {
@@ -817,7 +746,7 @@ void drawDiceBackground(int* xGridOffsets,int* yGridOffsets)
         );
         int oERadius = 23;
         
-        oddEvenFillFix(diceRoller->disp, xGridOffsets[m]-oERadius,
+        oddEvenFill(diceRoller->disp, xGridOffsets[m]-oERadius,
         yGridOffsets[m]-oERadius+5,
         xGridOffsets[m]+oERadius,
         yGridOffsets[m]+oERadius+5,
@@ -858,7 +787,7 @@ void drawDiceBackgroundAnimation(int* xGridOffsets, int* yGridOffsets, int32_t r
 
         int oERadius = 23;
 
-        oddEvenFillFix(diceRoller->disp, xGridOffsets[m]-oERadius,
+        oddEvenFill(diceRoller->disp, xGridOffsets[m]-oERadius,
         yGridOffsets[m]-oERadius+5,
         xGridOffsets[m]+oERadius,
         yGridOffsets[m]+oERadius+5,
