@@ -60,8 +60,17 @@ void drawDiceBackgroundAnimation(int* xGridOffsets, int* yGridOffsets, int32_t r
 void drawFakeDiceText(int* xGridOffsets, int* yGridOffsets);
 void genFakeVal(int32_t rollAnimationTimeUs, double rotationOffsetDeg);
 
+void drawCurrentTotal(int w, int h );
+
 void oddEvenFillFix(display_t* disp, int x0, int y0, int x1, int y1,
                  paletteColor_t boundaryColor, paletteColor_t fillColor);
+
+
+void printHistory();
+void addTotalToHistory();
+void dbgPrintHist();
+
+#define MAXHIST 6
 
 const int MAXDICE = 6;
 const int COUNTCOUNT = 7;
@@ -75,6 +84,16 @@ const int32_t fakeValRerollPeriod = 90919;//(rollAnimationPeriod / (ticksPerRoll
 const float spinScaler = 1;
 
 const char DR_NAMESTRING[] = "Dice Roller";
+
+const paletteColor_t diceBackgroundColor = c112;
+const paletteColor_t diceTextColor = c550;
+const paletteColor_t selectionArrowColor = c555;
+const paletteColor_t selectionTextColor = c555;
+const paletteColor_t diceOutlineColor = c223;
+//const paletteColor_t diceSecondaryOutlineColor = c224;
+const paletteColor_t rollTextColor = c555;
+const paletteColor_t totalTextColor = c555;
+const paletteColor_t histTextColor = c444;
 
 enum dr_stateVals 
 {
@@ -107,6 +126,7 @@ typedef struct
 {
     display_t* disp;
     font_t ibm_vga8;
+    wsg_t woodTexture;
 
     double timeAngle;
 
@@ -133,6 +153,11 @@ typedef struct
     uint32_t timeUs;
     uint32_t lastCallTimeUs;
     uint32_t rollerNum;
+    
+    int histTotals[MAXHIST];
+    int histSides[MAXHIST];
+    int histCounts[MAXHIST];
+    int histSize;
 } diceRoller_t;
 
 diceRoller_t* diceRoller;
@@ -144,6 +169,7 @@ void diceEnterMode(display_t* disp)
     diceRoller->disp = disp;
 
     loadFont("ibm_vga8.font", &diceRoller->ibm_vga8);
+    loadWsg("woodTexture64.wsg",&diceRoller->woodTexture);
 
     diceRoller->rolls = NULL;
 
@@ -164,11 +190,15 @@ void diceEnterMode(display_t* disp)
 
     diceRoller->state = DR_STARTUP;
     diceRoller->stateAdvanceFlag = 0;
+
+    diceRoller->histSize = 0;
+
 }
 
 void diceExitMode(void)
 {
     freeFont(&diceRoller->ibm_vga8);
+    freeWsg(&diceRoller->woodTexture);
     if(diceRoller->rolls != NULL)
     {
         free(diceRoller->rolls);
@@ -277,7 +307,20 @@ void diceButtonCb(buttonEvt_t* evt)
 
 //}
 
-
+void drawBackgroundTable()
+{
+    int edgeSize = 64;
+    int x_seg = diceRoller->disp->w/edgeSize+1;
+    int y_seg = diceRoller->disp->h/edgeSize+1;
+    for (int j = 0; j < y_seg; j++)
+    {
+        for (int k = 0; k < x_seg; k++)
+        {
+            drawWsg(diceRoller->disp,&diceRoller->woodTexture,edgeSize*k,edgeSize*j,false,false,0);
+        }
+    }
+    //drawWsg(diceRoller->disp,&diceRoller->woodTexture,diceRoller->disp->w/2,diceRoller->disp->h/2,false,false,0);
+}
 
 
 void doStateMachine(int64_t elapsedUs)
@@ -287,7 +330,7 @@ void doStateMachine(int64_t elapsedUs)
         case DR_STARTUP:
         {
                 diceRoller->disp->clearPx();
-
+                drawBackgroundTable();
                 drawText(
                     diceRoller->disp,
                     &diceRoller->ibm_vga8, c555,
@@ -316,28 +359,23 @@ void doStateMachine(int64_t elapsedUs)
         case DR_SHOWROLL:
         {
             diceRoller->disp->clearPx();
-
+            drawBackgroundTable();
             int w = diceRoller->disp->w;
             int h = diceRoller->disp->h;
             char rollStr[32];
             drawSelectionText(w,h,rollStr,32);
             drawSelectionPointer(w,h,rollStr,32);
-            int xGridMargin = w/4;
-            int yGridMargin = h/7;
+            //int xGridMargin = w/4;
+            int xGridMargin = w/6;
+            //int yGridMargin = h/7;
+            int yGridMargin = h/9;
             int xGridOffsets[] = {w/2-xGridMargin, w/2, w/2+xGridMargin, w/2-xGridMargin, w/2, w/2+xGridMargin};
             int yGridOffsets[] = {h/2-yGridMargin, h/2-yGridMargin, h/2-yGridMargin, h/2+yGridMargin, h/2+yGridMargin, h/2+yGridMargin};
             drawDiceBackground(xGridOffsets, yGridOffsets);
             drawDiceText(xGridOffsets, yGridOffsets);
-            char totalStr[32];
-            snprintf(totalStr,sizeof(totalStr),"Total: %d",diceRoller->rollTotal);
-
-            drawText(
-                diceRoller->disp,
-                &diceRoller->ibm_vga8, c555,
-                totalStr,
-                diceRoller->disp->w/2 - textWidth(&diceRoller->ibm_vga8,totalStr)/2,
-                diceRoller->disp->h*7/8
-            );
+            drawCurrentTotal(w,h);
+            //dbgPrintHist();
+            printHistory();
             if(diceRoller->stateAdvanceFlag)
             {
                 diceRoller->state = DR_ROLLING;
@@ -351,13 +389,17 @@ void doStateMachine(int64_t elapsedUs)
         case DR_ROLLING:
         {
             diceRoller->disp->clearPx();
+            drawBackgroundTable();
+
             int w = diceRoller->disp->w;
             int h = diceRoller->disp->h;
             char rollStr[32];
             drawSelectionText(w,h,rollStr,32);
 
-            int xGridMargin = w/4;
-            int yGridMargin = h/7;
+            //int xGridMargin = w/4;
+            int xGridMargin = w/6;
+            //int yGridMargin = h/7;
+            int yGridMargin = h/9;
             int xGridOffsets[] = {w/2-xGridMargin, w/2, w/2+xGridMargin, w/2-xGridMargin, w/2, w/2+xGridMargin};
             int yGridOffsets[] = {h/2-yGridMargin, h/2-yGridMargin, h/2-yGridMargin, h/2+yGridMargin, h/2+yGridMargin, h/2+yGridMargin};
 
@@ -367,10 +409,11 @@ void doStateMachine(int64_t elapsedUs)
             genFakeVal(rollAnimationTimeUs,rotationOffsetDeg);
             drawDiceBackgroundAnimation(xGridOffsets, yGridOffsets,rollAnimationTimeUs,rotationOffsetDeg);
             drawFakeDiceText(xGridOffsets, yGridOffsets);
-            
+            printHistory();
             if(rollAnimationTimeUs > rollAnimationPeriod)
             {
                 diceRoller->state = DR_SHOWROLL;
+                addTotalToHistory();
             }
             break;
            
@@ -383,6 +426,102 @@ void doStateMachine(int64_t elapsedUs)
     }
 }
 
+void printHistory()
+{
+    int histX = diceRoller->disp->w/14 + 16;
+    int histY = diceRoller->disp->h/8 + 40;
+    int histYEntryOffset = 15;
+
+    char totalStr[32];
+    snprintf(totalStr,sizeof(totalStr),"History");
+    drawText(
+        diceRoller->disp,
+        &diceRoller->ibm_vga8, totalTextColor,
+        totalStr,
+        histX - textWidth(&diceRoller->ibm_vga8,totalStr)/2,
+        histY
+    );
+
+    for(int i = 0; i < diceRoller->histSize; i++)
+    {
+        snprintf(totalStr,sizeof(totalStr),"%dd%d:%d",diceRoller->histCounts[i],diceRoller->histSides[i],diceRoller->histTotals[i]);
+        drawText(
+            diceRoller->disp,
+            &diceRoller->ibm_vga8, histTextColor,
+            totalStr,
+            histX - textWidth(&diceRoller->ibm_vga8,totalStr)/2,
+            histY + (i+1)*histYEntryOffset
+        );
+    }
+}
+
+void addTotalToHistory()
+{
+    if(diceRoller->histSize < MAXHIST) //S
+    {
+        
+        int size = diceRoller->histSize;
+        for(int i = 0; i < size; i++)
+        {
+            
+                diceRoller->histTotals[size-i] = diceRoller->histTotals[size-i-1]; //Shift vals to right
+                diceRoller->histCounts[size-i] = diceRoller->histCounts[size-i-1];
+                diceRoller->histSides[size-i] = diceRoller->histSides[size-i-1];
+            
+        }
+        diceRoller->histTotals[0] = diceRoller->rollTotal;
+        diceRoller->histCounts[0] = diceRoller->rollSize;
+        diceRoller->histSides[0] = diceRoller->rollSides;
+        diceRoller->histSize += 1;
+    }
+    else //shift out last value;
+    {
+        int size = diceRoller->histSize;
+        for(int i = 0; i < size; i++)
+        {
+            if(i < size-1)
+            {
+                diceRoller->histTotals[size-1-i] = diceRoller->histTotals[size-2-i]; //Shift vals to right
+                diceRoller->histCounts[size-1-i] = diceRoller->histCounts[size-2-i];
+                diceRoller->histSides[size-1-i] = diceRoller->histSides[size-2-i];
+            }
+            else
+            {
+                diceRoller->histTotals[0] = diceRoller->rollTotal;
+                diceRoller->histCounts[0] = diceRoller->rollSize;
+                diceRoller->histSides[0] = diceRoller->rollSides;
+            }
+        }
+    }
+
+}
+
+void dbgPrintHist()
+{
+    printf("History:");
+    for(int i = 0; i < diceRoller->histSize; i++)
+    {
+        printf("%dd%d:%d",diceRoller->histCounts[i],diceRoller->histSides[i],diceRoller->histTotals[i]);
+        if(i < diceRoller->histSize-1)
+        {
+            printf(", ");
+        }
+    }
+    printf("\n");
+}
+
+void drawCurrentTotal(int w, int h )
+{
+    char totalStr[32];
+    snprintf(totalStr,sizeof(totalStr),"Total: %d",diceRoller->rollTotal);
+    drawText(
+        diceRoller->disp,
+        &diceRoller->ibm_vga8, totalTextColor,
+        totalStr,
+        diceRoller->disp->w/2 - textWidth(&diceRoller->ibm_vga8,totalStr)/2,
+        diceRoller->disp->h*7/8
+    );
+}
 
 void changeActiveSelection()
 {
@@ -548,13 +687,14 @@ void oddEvenFillFix(display_t* disp, int x0, int y0, int x1, int y1,
 }
 
 
+
 void drawSelectionText(int w,int h,char* rollStr, int bfrSize)
 {
     snprintf(rollStr,bfrSize,"Next roll is %dd%d",diceRoller->requestCount,diceRoller->requestSides);
 
     drawText(
         diceRoller->disp,
-        &diceRoller->ibm_vga8, c555,
+        &diceRoller->ibm_vga8, selectionTextColor,
         rollStr,
         diceRoller->disp->w/2 - textWidth(&diceRoller->ibm_vga8,rollStr)/2,
         diceRoller->disp->h/8
@@ -580,12 +720,12 @@ void drawSelectionPointer(int w,int h,char* rollStr,int bfrSize)
     int lastNumPix = textWidth(&diceRoller->ibm_vga8,rollStr);
 
     //printf("%s\n", rollStr);
-    
+   
 
     int countSelX = w/2 + centerToEndPix - endToNumStartPix + firstNumPix/2;
     int sideSelX = w/2 + centerToEndPix - lastNumPix/2;
     drawRegularPolygon(diceRoller->activeSelection ? sideSelX : countSelX,
-        h/8+yPointerOffset, 3, -90, 5, c555, 0
+        h/8+yPointerOffset, 3, -90, 5, selectionArrowColor, 0
     );
 }
 
@@ -595,7 +735,7 @@ void drawDiceBackground(int* xGridOffsets,int* yGridOffsets)
     for(int m = 0; m < diceRoller->rollSize; m++)
     {
         drawRegularPolygon(xGridOffsets[m],yGridOffsets[m]+5,
-        polygonSides[diceRoller->rollIndex],-90,20,c555,0
+        polygonSides[diceRoller->rollIndex],-90,20,diceOutlineColor,0
         );
         int oERadius = 23;
         
@@ -603,7 +743,7 @@ void drawDiceBackground(int* xGridOffsets,int* yGridOffsets)
         yGridOffsets[m]-oERadius+5,
         xGridOffsets[m]+oERadius,
         yGridOffsets[m]+oERadius+5,
-        c555,c111);
+        diceOutlineColor,diceBackgroundColor);
     }
 }
 
@@ -619,7 +759,7 @@ void drawDiceText(int* xGridOffsets,int* yGridOffsets)
     
         drawText(
             diceRoller->disp,
-            &diceRoller->ibm_vga8, c555,
+            &diceRoller->ibm_vga8, diceTextColor,
             rollOutcome,
             xGridOffsets[m] - textWidth(&diceRoller->ibm_vga8,rollOutcome)/2,
             yGridOffsets[m]
@@ -635,7 +775,7 @@ void drawDiceBackgroundAnimation(int* xGridOffsets, int* yGridOffsets, int32_t r
         
 
         drawRegularPolygon(xGridOffsets[m],yGridOffsets[m]+5,
-            polygonSides[diceRoller->rollIndex],-90 + rotationOffsetDeg,20,c555,0
+            polygonSides[diceRoller->rollIndex],-90 + rotationOffsetDeg,20,diceOutlineColor,0
         );
 
         int oERadius = 23;
@@ -644,7 +784,7 @@ void drawDiceBackgroundAnimation(int* xGridOffsets, int* yGridOffsets, int32_t r
         yGridOffsets[m]-oERadius+5,
         xGridOffsets[m]+oERadius,
         yGridOffsets[m]+oERadius+5,
-        c555,c111);
+        diceOutlineColor,diceBackgroundColor);
     }
 }
 
@@ -657,7 +797,7 @@ void drawFakeDiceText(int* xGridOffsets, int* yGridOffsets){
                         
                         drawText(
                             diceRoller->disp,
-                            &diceRoller->ibm_vga8, c555,
+                            &diceRoller->ibm_vga8, diceTextColor,
                             rollOutcome,
                             xGridOffsets[m] - textWidth(&diceRoller->ibm_vga8,rollOutcome)/2,
                             yGridOffsets[m]
