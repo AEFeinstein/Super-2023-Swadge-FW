@@ -165,27 +165,27 @@
       },
       {
          "type":"dash_gnd",
-         "startupLag":50,
+         "startupLag":240,
          "startupLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bfgw.wsg",
+            "off_x":3,
+            "off_y":6
          },
          "attack_frames":[
             {
-               "duration":375,
+               "duration":240,
                "atkSpr":{
-                  "sprite":"bid0.wsg",
-                  "off_x":0,
-                  "off_y":0
-               },
-               "velo_x":30000,
+                  "sprite":"bfga.wsg",
+                  "off_x":3,
+                  "off_y":6
+                     },
+               "velo_x":25000,
                "hitboxes":[
                   {
-                     "relativePos_x":26,
-                     "relativePos_y":9,
-                     "size_x":21,
-                     "size_y":8,
+                     "relativePos_x":3,
+                     "relativePos_y":6,
+                     "size_x":23,
+                     "size_y":23,
                      "damage":9,
                      "knockback_x":9000,
                      "knockback_y":-3000,
@@ -194,11 +194,11 @@
                ]
             }
          ],
-         "endLag":300,
+         "endLag":240,
          "endLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bfgc.wsg",
+            "off_x":3,
+            "off_y":6
          }
       },
       {
