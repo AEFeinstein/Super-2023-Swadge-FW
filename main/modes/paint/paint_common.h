@@ -338,17 +338,50 @@ typedef struct
     uint8_t galleryScale;
 } paintGallery_t;
 
+typedef enum
+{
+    TOUCH_ANY   = 0x0100,
+    TOUCH_X     = 0x0200,
+    TOUCH_Y     = 0x0400,
+    SWIPE_LEFT  = 0x0800,
+    SWIPE_RIGHT = 0x1000,
+} virtualButton_t;
+
 // Triggers for advancing the tutorial step
 typedef enum
 {
+    NO_TRIGGER,
+
+    // Press all of the given buttons at least once, in any order
     PRESS_ALL,
+
+    // Press any one of the give buttons
     PRESS_ANY,
+
+    // Press all of the given buttons at once
     PRESS,
+
+    // Release the given button
     RELEASE,
     CHANGE_BRUSH,
-    CHANGE_COLOR,
     SELECT_MENU_ITEM,
-    NO_TRIGGER,
+    CHANGE_MODE,
+
+    // Inverse of CHANGE_BRUSH
+    BRUSH_NOT,
+
+    // Inverse of SELECT_MENU_ITEM
+    MENU_ITEM_NOT,
+
+    // Inverse of CHANGE_MODE
+    MODE_NOT,
+} paintHelpTriggerType_t;
+
+typedef struct
+{
+    paintHelpTriggerType_t type;
+    void* dataPtr;
+    int64_t data;
 } paintHelpTrigger_t;
 
 typedef enum
@@ -371,9 +404,12 @@ typedef struct
 typedef struct
 {
     paintHelpTrigger_t trigger;
-    void* triggerDataPtr;
-    int64_t triggerData;
-    paintHelpIndicator_t indicators[4];
+
+    // If this trigger is met, go back to a previous step
+    paintHelpTrigger_t backtrack;
+
+    // The number of steps to go back if the backtrack trigger is met
+    uint8_t backtrackSteps;
 
     const char* prompt;
 } paintHelpStep_t;
