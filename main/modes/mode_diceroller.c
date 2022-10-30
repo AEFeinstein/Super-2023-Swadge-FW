@@ -79,7 +79,8 @@ void drawHistoryPanel();
 const int MAXDICE = 6;
 const int COUNTCOUNT = 7;
 const int8_t validSides[] = {4, 6, 8, 10, 12, 20, 100};
-const int8_t polygonSides[] = {3, 4, 3, 4, 5, 3, 6};
+//const int8_t polygonSides[] = {3, 4, 3, 4, 5, 3, 6};
+const int8_t polygonSides[] = {3, 4, 6, 4, 10, 6, 6};
 
 const int32_t rollAnimationPeriod = 1000000; //1 Second Spin
 //const int32_t fakeValRerollPeriod = 200000; //200 ms
