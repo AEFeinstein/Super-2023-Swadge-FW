@@ -13,6 +13,7 @@ extern paintDraw_t* paintState;
 // Mode callback delegates
 void paintDrawScreenMainLoop(int64_t elapsedUs);
 void paintDrawScreenButtonCb(const buttonEvt_t* evt);
+void paintDrawScreenPollTouch();
 void paintDrawScreenTouchCb(const touch_event_t* evt);
 void paintPaletteModeButtonCb(const buttonEvt_t* evt);
 void paintSaveModeButtonCb(const buttonEvt_t* evt);
@@ -21,9 +22,11 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt);
 
 // Palette mode helpers
 void paintEditPaletteUpdate(void);
+void paintEditPaletteSetChannelValue(uint8_t val);
 void paintEditPaletteDecChannel(void);
 void paintEditPaletteIncChannel(void);
 void paintEditPaletteNextChannel(void);
+void paintEditPalettePrevChannel(void);
 void paintEditPaletteSetupColor(void);
 void paintEditPalettePrevColor(void);
 void paintEditPaletteNextColor(void);
@@ -48,6 +51,8 @@ void paintPositionDrawCanvas(void);
 
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
 void paintSwapFgBgColors(void);
+void paintEnterSelectMode(void);
+void paintExitSelectMode(void);
 void paintUpdateRecents(uint8_t selectedIndex);
 void paintUpdateLeds(void);
 void paintDrawPickPoints(void);
@@ -57,6 +62,7 @@ void paintHidePickPoints(void);
 void paintSetupTool(void);
 void paintPrevTool(void);
 void paintNextTool(void);
+void paintSetBrushWidth(uint8_t width);
 void paintDecBrushWidth(uint8_t dec);
 void paintIncBrushWidth(uint8_t inc);
 
