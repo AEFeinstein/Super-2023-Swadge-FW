@@ -42,22 +42,22 @@ void plotCubicBezierInner(display_t*, int x0, int y0, int x1, int y1, int x2, in
 // #define assert(x) if(false == (x)) {  return;  }
 
 /**
- * Attempt to fill a shape bounded by a one-pixel border of a given color using
+ * @brief Attempt to fill a convex shape bounded by a border of a given color using
  * the even-odd rule:
  * https://en.wikipedia.org/wiki/Even%E2%80%93odd_rule
- *
+ * 
  * WARNING!!! This is very finicky and is not guaranteed to work in all cases.
- *
+ * 
  * This iterates over each row in the bounding box, top to bottom, left to right
- *
+ * 
  * This assumes that each row starts outside or on the boundary of the shape to
  * be filled.
- *
+ * 
  * Each time a pixel of the 'boundary color' is iterated over, the in/out
- * boolean will flip, no matter what. This means that stray pixels in the shape
- * can flip the in/out state, and thick boundaries with an even number of pixels
- * will also mess it up.
- *
+ * boolean will flip. Thick boundaries will have hysteresis, but shapes with
+ * concave features will have undrawn rows because the function checks for
+ * an even number of transitions within a row before drawing.
+ * 
  * @param disp The display to read from and draw to
  * @param x0 The left index of the bounding box
  * @param y0 The top index of the bounding box
@@ -88,24 +88,57 @@ void oddEvenFill(display_t* disp, int x0, int y0, int x1, int y1,
     {
         y1 = disp->h;
     }
-
-    // Iterate over the bounding box
     for(int y = y0; y < y1; y++)
     {
-        // Assume starting outside the shape for each row
+        // Assume starting outside the shape or on border for each row
+        //Count rising edges of row
         bool isInside = false;
+        bool insideHysteresis = false;
+        uint16_t transitionCount = 0;
+        //Pre-scan the row for even number of transitions. Algo only works for even number of transitions.
         for(int x = x0; x < x1; x++)
         {
-            // If a boundary is hit
             if(boundaryColor == GET_PIXEL(disp, x, y))
             {
                 // Flip this boolean, don't color the boundary
-                isInside = !isInside;
+                if(!insideHysteresis)
+                {
+                    isInside = !isInside;
+                    insideHysteresis = true;
+                    transitionCount++;
+                }
             }
-            else if(isInside)
+            else
             {
-                // If we're in-bounds, color the pixel
-                TURBO_SET_PIXEL_BOUNDS(disp, x, y, fillColor);
+                insideHysteresis = false; //If not on a boundary color, reset hysteresis
+            }
+        }
+        if(!(transitionCount%2)) //Check for even number of transitions to prevent coloring to edge of bounding box.
+        {
+            isInside = false;
+            insideHysteresis = false;
+            for(int x = x0; x < x1; x++)
+            {
+                // If a boundary is hit
+                if(boundaryColor == GET_PIXEL(disp, x, y))
+                {
+                    // Flip this boolean, don't color the boundary
+                    if(!insideHysteresis)
+                    {
+                        isInside = !isInside;
+                        insideHysteresis = true;
+                    }
+                }
+                else if(isInside)
+                {
+                    // If we're in-bounds, color the pixel
+                    TURBO_SET_PIXEL_BOUNDS(disp, x, y, fillColor);
+                    insideHysteresis = false;
+                }
+                else
+                {
+                    insideHysteresis = false;
+                }
             }
         }
     }
