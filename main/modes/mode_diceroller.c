@@ -467,7 +467,7 @@ void drawHistoryPanel()
     int histX = diceRoller->disp->w/14 + 30;
     int histY = diceRoller->disp->h/8 + 40;
     int histYEntryOffset = 15;
-    int xMargin = 40;
+    int xMargin = 45;
     int yMargin = 10;
 
 
