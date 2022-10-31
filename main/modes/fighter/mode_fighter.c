@@ -547,6 +547,11 @@ void getHurtbox(fighter_t* ftr, box_t* hurtbox)
 void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* newSprite,
                       int32_t timer, vector_t* knockback, uint32_t line)
 {
+    // if(ftr == &f->fighters[1])
+    // {
+    //     ESP_LOGD("FTR", "%s:%d %d\n", __func__, line, newState);
+    // }
+
     // Clean up variables when leaving a state
     if((FS_ATTACK == ftr->state) && (FS_ATTACK != newState) && (ftr->cAttack < NUM_ATTACKS))
     {
@@ -647,6 +652,11 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* n
 void _setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* touchingPlatform,
                        const platform_t* passingThroughPlatform, bool isInAir, uint32_t line)
 {
+    // if(ftr == &f->fighters[0])
+    // {
+    //     ESP_LOGD("FTR", "%s:%d %d, %s\n", __func__, line, relPos, isInAir ? "in air" : "on ground");
+    // }
+
     ftr->relativePos = relPos;
     ftr->touchingPlatform = touchingPlatform;
     ftr->passingThroughPlatform = passingThroughPlatform;
@@ -2222,7 +2232,7 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         otherFtr->velocity.y = knockback.y;
 
                         // Knock the fighter into the air
-                        if(!otherFtr->isInAir && ftr->velocity.y < 0)
+                        if(!otherFtr->isInAir && otherFtr->velocity.y < 0)
                         {
                             setFighterRelPos(otherFtr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
                         }
