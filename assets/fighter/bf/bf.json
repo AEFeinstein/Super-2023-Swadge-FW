@@ -62,7 +62,7 @@
          "startupLagSpr":{
             "sprite":"bugw.wsg",
             "off_x":-14,
-            "off_y":-14
+            "off_y":-1
          },
          "onlyFirstHit":true,
          "iframe_timer":0,
@@ -93,7 +93,7 @@
          "endLagSpr":{
             "sprite":"bugc.wsg",
             "off_x":-10,
-            "off_y":-14
+            "off_y":-1
          }
       },
       {
