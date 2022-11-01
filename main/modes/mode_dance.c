@@ -71,6 +71,7 @@ void danceNone(uint32_t tElapsedUs, uint32_t arg, bool reset);
 /*============================================================================
  * Variables
  *==========================================================================*/
+const char ledDancesExitText[] = "Exit: Start + Select";
 
 static const ledDanceArg ledDances[] =
 {
@@ -320,6 +321,13 @@ void danceRedrawScreen(void)
         drawWsg(danceState->disp, &danceState->arrow,
                 ((danceState->disp->w - width) / 2) + width + 8, yOff,
                 false, false, 180);
+        // Draw text to show how to exit at the bottom
+        width = textWidth(&(danceState->infoFont), ledDancesExitText);
+        yOff = danceState->disp->h - danceState->infoFont.h - 16;
+        drawText(danceState->disp, &(danceState->infoFont), c555,
+                 ledDancesExitText,
+                 (danceState->disp->w - width) / 2,
+                 yOff);
     }
 }
 
