@@ -381,7 +381,14 @@ void fighterButtonCb(buttonEvt_t* evt)
             // Pass button events from the Swadge mode to the menu
             if(evt->down)
             {
-                meleeMenuButton(fm->menu, evt->button);
+                if (evt->button == BTN_B && fm->menu->title != str_swadgeBros)
+                {
+                    fm->menu->cbFunc(str_back);
+                }
+                else
+                {
+                    meleeMenuButton(fm->menu, evt->button);
+                }
             }
             break;
         }
