@@ -411,8 +411,8 @@ void fighterButtonCb(buttonEvt_t* evt)
         }
         case FIGHTER_CONNECTING:
         {
-            // START or SELECT exits the HR Result
-            if(evt->down && ((START == evt->button) || (SELECT == evt->button)))
+            // START, SELECT, or B exits the connecting screen
+            if(evt->down && ((START == evt->button) || (SELECT == evt->button) || (BTN_B == evt->button)))
             {
                 p2pDeinit(&(fm->p2p));
                 setFighterMainMenu();
