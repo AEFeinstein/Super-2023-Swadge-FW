@@ -55,7 +55,7 @@ const char menuOptEraseData[] = "Erase Data";
 const char menuOptCancelErase[] = "Confirm? No!";
 const char menuOptConfirmErase[] = "Confirm? Yes";
 
-const char menuOptExit[] = "Back";
+const char menuOptExit[] = "Exit";
 
 // Mode struct function declarations
 void paintEnterMode(display_t* disp);

@@ -381,7 +381,14 @@ void fighterButtonCb(buttonEvt_t* evt)
             // Pass button events from the Swadge mode to the menu
             if(evt->down)
             {
-                meleeMenuButton(fm->menu, evt->button);
+                if (evt->button == BTN_B && fm->menu->title != str_swadgeBros)
+                {
+                    fm->menu->cbFunc(str_back);
+                }
+                else
+                {
+                    meleeMenuButton(fm->menu, evt->button);
+                }
             }
             break;
         }
@@ -404,8 +411,8 @@ void fighterButtonCb(buttonEvt_t* evt)
         }
         case FIGHTER_CONNECTING:
         {
-            // START or SELECT exits the HR Result
-            if(evt->down && ((START == evt->button) || (SELECT == evt->button)))
+            // START, SELECT, or B exits the connecting screen
+            if(evt->down && ((START == evt->button) || (SELECT == evt->button) || (BTN_B == evt->button)))
             {
                 p2pDeinit(&(fm->p2p));
                 setFighterMainMenu();
