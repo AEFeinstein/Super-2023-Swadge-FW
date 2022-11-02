@@ -671,6 +671,13 @@ bool loadFont(const char* name, font_t* font)
         bufIdx += bytes;
     }
 
+    // Zero out any unused chars
+    while (chIdx <= '~' - ' ' + 1)
+    {
+        font->chars[chIdx].bitmap = NULL;
+        font->chars[chIdx++].w = 0;
+    }
+
     // Free the SPIFFS data
     free(buf);
 
@@ -684,9 +691,13 @@ bool loadFont(const char* name, font_t* font)
  */
 void freeFont(font_t* font)
 {
-    for(char ch = ' '; ch <= '~'; ch++)
+    // using uint8_t instead of char because a char will overflow to -128 after the last char is freed (\x7f)
+    for(uint8_t idx = 0; idx <= '~' - ' ' + 1; idx++)
     {
-        free(font->chars[ch - ' '].bitmap);
+        if (font->chars[idx].bitmap != NULL)
+        {
+            free(font->chars[idx].bitmap);
+        }
     }
 }
 
