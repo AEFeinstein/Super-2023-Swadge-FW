@@ -373,7 +373,15 @@ void picrossButtonCb(buttonEvt_t* evt)
             //Pass button events from the Swadge mode to the menu
             if (evt->down)
             {
-                meleeMenuButton(pm->menu, evt->button);
+                if (pm->screen == PICROSS_OPTIONS && evt->button == BTN_B)
+                {
+                    // Simulate selecting "Back" on B press
+                    picrossMainMenuCb(str_back);
+                }
+                else
+                {
+                    meleeMenuButton(pm->menu, evt->button);
+                }
             }
             break;
         }

@@ -58,99 +58,32 @@
    "attacks":[
       {
          "type":"up_gnd",
-         "startupLag":100,
+         "startupLag":250,
          "startupLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bugw.wsg",
+            "off_x":-14,
+            "off_y":-1
          },
          "onlyFirstHit":true,
          "iframe_timer":0,
          "attack_frames":[
             {
-               "duration":275,
+               "duration":350,
                "atkSpr":{
-                  "sprite":"bid0.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"buga.wsg",
+                  "off_x":1,
+                  "off_y":-19
                },
                "iframe_timer":0,
                "hitboxes":[
                   {
-                     "relativePos_x":-5,
-                     "relativePos_y":-6,
-                     "size_x":11,
-                     "size_y":11,
+                     "relativePos_x":2,
+                     "relativePos_y":-19,
+                     "size_x":24,
+                     "size_y":25,
                      "damage":9,
                      "knockback_x":1000,
                      "knockback_y":-8000,
-                     "hitstun":10
-                  }
-               ]
-            },
-            {
-               "duration":250,
-               "atkSpr":{
-                  "sprite":"bid0.wsg",
-                  "off_x":0,
-                  "off_y":0
-               },
-               "hitboxes":[
-                  {
-                     "relativePos_x":25,
-                     "relativePos_y":-7,
-                     "size_x":11,
-                     "size_y":11,
-                     "damage":12,
-                     "knockback_x":5000,
-                     "knockback_y":-10000,
-                     "hitstun":10
-                  }
-               ]
-            }
-         ],
-         "endLag":200,
-         "endLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
-         }
-      },
-      {
-         "type":"down_gnd",
-         "startupLag":150,
-         "startupLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
-         },
-         "attack_frames":[
-            {
-               "duration":600,
-               "atkSpr":{
-                  "sprite":"bid0.wsg",
-                  "off_x":0,
-                  "off_y":0
-               },
-               "hitboxes":[
-                  {
-                     "relativePos_x":0,
-                     "relativePos_y":16,
-                     "size_x":20,
-                     "size_y":8,
-                     "damage":12,
-                     "knockback_x":-10000,
-                     "knockback_y":3000,
-                     "hitstun":10
-                  },
-                  {
-                     "relativePos_x":30,
-                     "relativePos_y":16,
-                     "size_x":16,
-                     "size_y":8,
-                     "damage":10,
-                     "knockback_x":8000,
-                     "knockback_y":3000,
                      "hitstun":10
                   }
                ]
@@ -158,34 +91,91 @@
          ],
          "endLag":250,
          "endLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bugc.wsg",
+            "off_x":-10,
+            "off_y":-1
+         }
+      },
+      {
+         "type":"down_gnd",
+         "startupLag":250,
+         "startupLagSpr":{
+            "sprite":"bdgw.wsg",
+            "off_x":-2,
+            "off_y":2
+         },
+         "attack_frames":[
+            {
+               "duration":400,
+               "atkSpr":{
+                  "sprite":"bdga1.wsg",
+                  "off_x":-3,
+                  "off_y":-6
+               },
+               "hitboxes":[
+                  {
+                     "relativePos_x":15,
+                     "relativePos_y":16,
+                     "size_x":18,
+                     "size_y":13,
+                     "damage":12,
+                     "knockback_x":20000,
+                     "knockback_y":-10000,
+                     "hitstun":10
+                  }
+               ]
+            },
+            {
+               "duration":400,
+               "atkSpr":{
+                  "sprite":"bdga2.wsg",
+                  "off_x":-3,
+                  "off_y":-6
+               },
+               "hitboxes":[
+                  {
+                     "relativePos_x":-3,
+                     "relativePos_y":16,
+                     "size_x":18,
+                     "size_y":13,
+                     "damage":12,
+                     "knockback_x":-20000,
+                     "knockback_y":-10000,
+                     "hitstun":10
+                  }
+               ]
+            }
+         ],
+         "endLag":250,
+         "endLagSpr":{
+            "sprite":"bdgw.wsg",
+            "off_x":-2,
+            "off_y":2
          }
       },
       {
          "type":"dash_gnd",
-         "startupLag":50,
+         "startupLag":240,
          "startupLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bfgw.wsg",
+            "off_x":3,
+            "off_y":6
          },
          "attack_frames":[
             {
-               "duration":375,
+               "duration":240,
                "atkSpr":{
-                  "sprite":"bid0.wsg",
-                  "off_x":0,
-                  "off_y":0
-               },
-               "velo_x":30000,
+                  "sprite":"bfga.wsg",
+                  "off_x":3,
+                  "off_y":6
+                     },
+               "velo_x":25000,
                "hitboxes":[
                   {
-                     "relativePos_x":26,
-                     "relativePos_y":9,
-                     "size_x":21,
-                     "size_y":8,
+                     "relativePos_x":3,
+                     "relativePos_y":6,
+                     "size_x":23,
+                     "size_y":23,
                      "damage":9,
                      "knockback_x":9000,
                      "knockback_y":-3000,
@@ -194,11 +184,11 @@
                ]
             }
          ],
-         "endLag":300,
+         "endLag":240,
          "endLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bfgc.wsg",
+            "off_x":3,
+            "off_y":6
          }
       },
       {
