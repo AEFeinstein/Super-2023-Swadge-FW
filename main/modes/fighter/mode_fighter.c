@@ -1913,9 +1913,11 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 {
                     ftr->velocity.y = 0;
                     setFighterRelPos(ftr, ABOVE_PLATFORM, &platforms[idx], NULL, false);
+
+                    ftr->numJumpsLeft = ftr->numJumps;
+                    ftr->isInFreefall = false;
                 }
-                ftr->numJumpsLeft = ftr->numJumps;
-                ftr->isInFreefall = false;
+
                 // If the fighter was jumping, land
                 switch(ftr->state)
                 {
@@ -2235,6 +2237,7 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         if(!otherFtr->isInAir && otherFtr->velocity.y < 0)
                         {
                             setFighterRelPos(otherFtr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
+                            otherFtr->numJumpsLeft = 1;
                         }
 
                         // Apply hitstun, scaled by defendant's percentage
@@ -2328,6 +2331,7 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                         if(!ftr->isInAir && ftr->velocity.y < 0)
                         {
                             setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
+                            ftr->numJumpsLeft = 1;
                         }
 
                         // Apply hitstun, scaled by defendant's percentage
