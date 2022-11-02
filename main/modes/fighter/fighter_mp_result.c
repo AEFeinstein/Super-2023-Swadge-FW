@@ -7,6 +7,7 @@
 
 #include "display.h"
 #include "nvs_manager.h"
+#include "musical_buzzer.h"
 
 #include "fighter_mp_result.h"
 #include "fighter_records.h"
@@ -42,6 +43,28 @@ typedef struct
 //==============================================================================
 
 hrRes_t* mpr;
+
+static const song_t fVictoryJingle =
+{
+    .notes =
+    {
+        {.note = F_5, .timeMs = 110},
+        {.note = SILENCE, .timeMs = 15},
+        {.note = F_5, .timeMs = 110},
+        {.note = SILENCE, .timeMs = 15},
+        {.note = F_5, .timeMs = 110},
+        {.note = SILENCE, .timeMs = 15},
+        {.note = F_5, .timeMs = 125},
+        {.note = SILENCE, .timeMs = 125},
+        {.note = D_SHARP_5, .timeMs = 125},
+        {.note = SILENCE, .timeMs = 125},
+        {.note = G_5, .timeMs = 125},
+        {.note = SILENCE, .timeMs = 125},
+        {.note = F_5, .timeMs = 875},
+    },
+    .numNotes = 13,
+    .shouldLoop = false
+};
 
 //==============================================================================
 // Functions
@@ -121,6 +144,7 @@ void fighterMpResultLoop(int64_t elapsedUs)
     if(mpr->selfKOs > mpr->otherKOs)
     {
         sprintf(text, "You Win!");
+        buzzer_play_sfx(&fVictoryJingle);
     }
     else
     {
