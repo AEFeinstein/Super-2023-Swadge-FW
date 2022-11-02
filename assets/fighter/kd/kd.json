@@ -268,7 +268,7 @@
                      "projectileSprite":{
                         "sprite":"kngp.wsg"
                      },
-                     "projectileDuration":20,
+                     "projectileDuration":1000,
                      "projectileVelo_x":20480,
                      "projectileVelo_y":0,
                      "projectileAccel_x":0,
