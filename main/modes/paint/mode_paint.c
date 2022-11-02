@@ -110,13 +110,15 @@ void paintEnterMode(display_t* disp)
 void paintExitMode(void)
 {
     PAINT_LOGD("Exiting");
-    deinitMeleeMenu(paintMenu->menu);
-    freeFont(&(paintMenu->menuFont));
 
     // Cleanup any sub-modes based on paintMenu->screen
     paintReturnToMainMenu();
 
+    deinitMeleeMenu(paintMenu->menu);
+    freeFont(&(paintMenu->menuFont));
+
     free(paintMenu);
+    paintMenu = NULL;
 }
 
 void paintMainLoop(int64_t elapsedUs)
@@ -269,11 +271,6 @@ void paintTouchCb(touch_event_t* evt)
 
 void paintMenuInitialize(void)
 {
-    int32_t index;
-    paintLoadIndex(&index);
-
-    paintSetupMainMenu(true);
-
     paintMenu->menuSelection = 0;
     paintMenu->settingsMenuSelection = 0;
     paintMenu->eraseDataSelected = false;
@@ -281,6 +278,8 @@ void paintMenuInitialize(void)
     paintMenu->idleTimer = 0;
 
     paintMenu->screen = PAINT_MENU;
+
+    paintSetupMainMenu(true);
 }
 
 void paintSetupMainMenu(bool reset)
