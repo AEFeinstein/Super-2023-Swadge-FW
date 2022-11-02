@@ -18,6 +18,8 @@
 #include "picross_menu.h"
 #include "picross_select.h"
 #include "bresenham.h"
+
+#include "picross_music.h"
 // #include "picross_consts.h"
 
 //==============================================================================
@@ -405,6 +407,9 @@ void picrossGameLoop(int64_t elapsedUs)
     //You won! Only called once, since you cant go from win->solving without resetting everything (ie: menu and back)
     if(p->previousPhase == PICROSS_SOLVING && p->currentPhase == PICROSS_YOUAREWIN)
     {
+        if(p->selectedLevel.index == 0){
+            buzzer_play_bgm(&picross_music_rick);
+        }
         //Unsave progress. Hides "current" in the main menu. we dont need to zero-out the actual data that will just happen when we load a new level.
         writeNvs32(picrossCurrentPuzzleIndexKey, -1);
 

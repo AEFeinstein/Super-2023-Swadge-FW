@@ -44,6 +44,7 @@ idf_component_register(
         "modes/picross/picross_menu.c"
         "modes/picross/picross_select.c"
         "modes/picross/picross_tutorial.c"
+        "modes/picross/picross_music.c"
         "modes/platformer/entity.c"
         "modes/platformer/entityManager.c"
         "modes/platformer/gameData.c"
