@@ -127,7 +127,21 @@ void paintMainLoop(int64_t elapsedUs)
     case PAINT_NETWORK_MENU:
     case PAINT_SETTINGS_MENU:
     {
-        drawMeleeMenu(paintMenu->disp, paintMenu->menu);
+        if (paintMenu->enableScreensaver)
+        {
+            paintMenu->idleTimer += elapsedUs;
+        }
+
+        if (paintMenu->idleTimer >= 10000000)
+        {
+            PAINT_LOGI("Selected Gallery");
+            paintMenu->screen = PAINT_GALLERY;
+            paintGallerySetup(paintMenu->disp, true);
+        }
+        else
+        {
+            drawMeleeMenu(paintMenu->disp, paintMenu->menu);
+        }
         break;
     }
 
@@ -156,6 +170,8 @@ void paintMainLoop(int64_t elapsedUs)
 
 void paintButtonCb(buttonEvt_t* evt)
 {
+    paintMenu->idleTimer = 0;
+
     switch (paintMenu->screen)
     {
         case PAINT_MENU:
@@ -262,6 +278,7 @@ void paintMenuInitialize(void)
     paintMenu->settingsMenuSelection = 0;
     paintMenu->eraseDataSelected = false;
     paintMenu->eraseDataConfirm = false;
+    paintMenu->idleTimer = 0;
 
     paintMenu->screen = PAINT_MENU;
 }
@@ -277,7 +294,12 @@ void paintSetupMainMenu(bool reset)
     if (paintGetAnySlotInUse(index))
     {
         // Only add "gallery" if there's something to view
+        paintMenu->enableScreensaver = true;
         addRowToMeleeMenu(paintMenu->menu, menuOptGallery);
+    }
+    else
+    {
+        paintMenu->enableScreensaver = false;
     }
 
     addRowToMeleeMenu(paintMenu->menu, menuOptNetwork);
@@ -382,7 +404,7 @@ void paintMainMenuCb(const char* opt)
     {
         PAINT_LOGI("Selected Gallery");
         paintMenu->screen = PAINT_GALLERY;
-        paintGallerySetup(paintMenu->disp);
+        paintGallerySetup(paintMenu->disp, false);
     }
     else if (opt == menuOptNetwork)
     {
@@ -514,6 +536,8 @@ void paintReturnToMainMenu(void)
     }
 
     paintMenu->screen = PAINT_MENU;
+    paintMenu->idleTimer = 0;
+    paintSetupMainMenu(false);
 }
 
 void paintDeleteAllData(void)
