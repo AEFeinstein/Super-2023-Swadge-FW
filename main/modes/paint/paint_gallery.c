@@ -5,6 +5,8 @@
 #include "paint_nvs.h"
 #include "paint_util.h"
 
+#include <string.h>
+
 static const char transitionTime[] = "Interval: %g sec";
 static const char transitionOff[] = "Interval: Off";
 static const char transitionTimeNvsKey[] = "paint_gal_time";
@@ -58,6 +60,11 @@ void paintGallerySetup(display_t* disp, bool screensaver)
     }
 
     paintGallery->gallerySpeed = US_PER_MS * transitionTimeMap[paintGallery->gallerySpeedIndex];
+
+    // clear LEDs, which might still be set by menu
+    led_t leds[NUM_LEDS];
+    memset(leds, 0, sizeof(led_t) * NUM_LEDS);
+    setLeds(leds, NUM_LEDS);
 }
 
 void paintGalleryCleanup(void)
