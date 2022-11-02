@@ -36,6 +36,7 @@ typedef struct
     int8_t otherKOs;
     int16_t otherDmg;
     uint32_t roundTimeMs;
+    bool jingleIsPlaying;
 } hrRes_t;
 
 //==============================================================================
@@ -63,6 +64,34 @@ static const song_t fVictoryJingle =
         {.note = F_5, .timeMs = 875},
     },
     .numNotes = 13,
+    .shouldLoop = false
+};
+
+static const song_t fLossJingle =
+{
+    .notes =
+    {
+        {.note = F_5, .timeMs = 209},
+        {.note = D_4, .timeMs = 186},
+        {.note = A_4, .timeMs = 197},
+        {.note = F_5, .timeMs = 209},
+        {.note = E_5, .timeMs = 197},
+        {.note = C_SHARP_4, .timeMs = 197},
+        {.note = A_4, .timeMs = 197},
+        {.note = E_5, .timeMs = 209},
+        {.note = D_5, .timeMs = 197},
+        {.note = A_SHARP_3, .timeMs = 197},
+        {.note = G_4, .timeMs = 197},
+        {.note = D_5, .timeMs = 209},
+        {.note = C_SHARP_5, .timeMs = 244},
+        {.note = A_SHARP_4, .timeMs = 133},
+        {.note = A_4, .timeMs = 331},
+        {.note = G_SHARP_4, .timeMs = 255},
+        {.note = A_4, .timeMs = 81},
+        {.note = G_SHARP_4, .timeMs = 63},
+        {.note = A_4, .timeMs = 959},
+    },
+    .numNotes = 19,
     .shouldLoop = false
 };
 
@@ -127,6 +156,19 @@ void deinitFighterMpResult(void)
  */
 void fighterMpResultLoop(int64_t elapsedUs)
 {
+    if(!mpr->jingleIsPlaying)
+    {
+        mpr->jingleIsPlaying = true;
+        if(mpr->selfKOs > mpr->otherKOs)
+        {
+            buzzer_play_sfx(&fVictoryJingle);
+        }
+        else
+        {
+            buzzer_play_sfx(&fLossJingle);
+        }
+    }
+
     drawBackgroundGrid(mpr->disp);
 
     // Text colors
@@ -144,7 +186,6 @@ void fighterMpResultLoop(int64_t elapsedUs)
     if(mpr->selfKOs > mpr->otherKOs)
     {
         sprintf(text, "You Win!");
-        buzzer_play_sfx(&fVictoryJingle);
     }
     else
     {
