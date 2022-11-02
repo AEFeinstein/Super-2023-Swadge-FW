@@ -62,6 +62,7 @@ swadgeMode modeCredits =
 static const char* creditNames[] =
 {
     "Adam Feinstein\n",
+    "Agnew\n",
     "Allison (AllieCat)",
     "Brantley\n",
     "Bedrock\n",
@@ -86,6 +87,7 @@ static const char* creditNames[] =
 static const paletteColor_t creditColors[] =
 {
     c031,
+    c530,
     c423,
     c423,
     c520,

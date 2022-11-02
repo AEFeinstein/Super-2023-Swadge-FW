@@ -313,7 +313,12 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSp
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "landing_lag"))
             {
                 tokIdx++;
-                ftr->landingLag = jsonInteger(jsonStr, toks[tokIdx]);
+                // Convert ms to frames
+                ftr->landingLag = jsonInteger(jsonStr, toks[tokIdx]) / FRAME_TIME_MS;
+                if(0 == ftr->landingLag)
+                {
+                    ftr->landingLag = 1;
+                }
                 tokIdx++;
                 numFieldsParsed++;
             }
@@ -471,7 +476,12 @@ int32_t parseJsonAttack(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSpr
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "landing_lag"))
             {
                 tokIdx++;
-                atk->landingLag = jsonInteger(jsonStr, toks[tokIdx]);
+                // Convert ms to frames
+                atk->landingLag = jsonInteger(jsonStr, toks[tokIdx]) / FRAME_TIME_MS;
+                if(0 == atk->landingLag)
+                {
+                    atk->landingLag = 1;
+                }
                 tokIdx++;
                 numFieldsParsed++;
             }
@@ -780,7 +790,12 @@ int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokId
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "projectileDuration"))
             {
                 tokIdx++;
-                hbx->projDuration = jsonInteger(jsonStr, toks[tokIdx]);
+                // Convert ms to frames
+                hbx->projDuration = jsonInteger(jsonStr, toks[tokIdx]) / FRAME_TIME_MS;
+                if(0 == hbx->projDuration)
+                {
+                    hbx->projDuration = 1;
+                }
                 tokIdx++;
                 numFieldsParsed++;
             }
