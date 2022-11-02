@@ -671,6 +671,8 @@ void paintShareExitMode(void)
     p2pDeinit(&paintShare->p2pInfo);
     freeFont(&paintShare->toolbarFont);
     free(paintShare);
+
+    paintShare = NULL;
 }
 
 // Go back to the previous state so we retry the last thing
