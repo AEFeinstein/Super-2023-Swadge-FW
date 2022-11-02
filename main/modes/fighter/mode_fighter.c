@@ -3182,7 +3182,7 @@ void fighterRxScene(const fighterScene_t* scene, uint8_t len)
  */
 uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t projectiles, const stage_t* stage)
 {
-#define CPU_CLOSE_ENOUGH_PX (24)
+#define CPU_CLOSE_ENOUGH_PX (32)
 #define CPU_CLOSE_ENOUGH (CPU_CLOSE_ENOUGH_PX << SF)
 #define CPU_JUMP_TIMER_MS 600
 
@@ -3313,7 +3313,7 @@ uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t
                             ((cpuMidpointY - humanMidpointY) * (cpuMidpointY - humanMidpointY));
 
             // If the CPU is close enough to the player
-            if(pDist < (CPU_CLOSE_ENOUGH_PX * CPU_CLOSE_ENOUGH_PX))
+            if(pDist <= (CPU_CLOSE_ENOUGH_PX * CPU_CLOSE_ENOUGH_PX))
             {
                 // And it's not in an attack state
                 switch(cpu->state)
@@ -3336,43 +3336,41 @@ uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t
                         {
                             // Start an attack
                             btn |= BTN_B;
-                            // Do up and down attacks somewhat randomly
-                            switch(esp_random() % 4)
+
+                            // Attack in the direction of the human
+                            if(ABS(humanMidpointX - cpuMidpointX) > ABS(humanMidpointY - cpuMidpointY))
                             {
-                                case 0:
+                                if(cpuMidpointX < humanMidpointX)
                                 {
-                                    // Only up-tilt, not up-air
-                                    if(ABOVE_PLATFORM == cpu->relativePos)
+                                    btn |= RIGHT;
+                                }
+                                else
+                                {
+                                    btn |= LEFT;
+                                }
+                            }
+                            else
+                            {
+                                if(cpuMidpointY < humanMidpointY)
+                                {
+                                    // Don't use up-air unless recovering
+                                    if(!cpu->isInAir)
                                     {
                                         btn |= UP;
                                     }
-                                    break;
                                 }
-                                case 1:
+                                else
                                 {
-                                    // Down tilt
                                     btn |= DOWN;
-                                    break;
                                 }
-                                case 2:
+                            }
+
+                            // Short hop sometimes
+                            if(!cpu->isInAir)
+                            {
+                                if(0 == esp_random() % 2)
                                 {
-                                    // Short hop attack
                                     btn |= BTN_A;
-                                }
-                                // Fall Through
-                                case 3:
-                                {
-                                    // May be neutral, dash, or tilt side attack
-                                    // Make sure the CPU is facing the human
-                                    if((cpuHurtbox.x0 > humanHurtbox.x0) && cpu->dir == FACING_RIGHT)
-                                    {
-                                        btn |= LEFT;
-                                    }
-                                    else if ((cpuHurtbox.x0 < humanHurtbox.x0) && cpu->dir == FACING_LEFT)
-                                    {
-                                        btn |= RIGHT;
-                                    }
-                                    break;
                                 }
                             }
                         }
@@ -3387,8 +3385,8 @@ uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t
                 if((cpuHurtbox.y0) < (humanHurtbox.y1) &&
                         (cpuHurtbox.y1) > (humanHurtbox.y0))
                 {
-                    // Attack a 16th of the time
-                    switch(esp_random() % 16)
+                    // Attack a 8th of the time
+                    switch(esp_random() % 8)
                     {
                         case 0:
                         {
@@ -3414,7 +3412,7 @@ uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t
                             }
                             break;
                         }
-                        case 1 ... 15:
+                        case 1 ... 7:
                         {
                             // Do nothing
                             break;
