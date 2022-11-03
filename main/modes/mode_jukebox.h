@@ -2,7 +2,7 @@
  * mode_jukebox.h
  *
  *  Created on: 27 Oct 2022
- *      Author: VanillyNeko#4169 & Brycey92#9215
+ *      Author: VanillyNeko#4169 & Bryce
  */
 
 #ifndef _MODE_JUKEBOX_H_
