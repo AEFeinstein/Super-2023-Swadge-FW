@@ -20,8 +20,9 @@
 #include "led_util.h"
 #include "mode_main_menu.h"
 #include "musical_buzzer.h"
-#include "swadgeMode.h"
 #include "settingsManager.h"
+#include "swadgeMode.h"
+#include "swadge_util.h"
 
 #include "mode_jukebox.h"
 #include "meleeMenu.h"
@@ -52,23 +53,32 @@ void  jukeboxButtonCallback(buttonEvt_t* evt);
 void  jukeboxMainLoop(int64_t elapsedUs);
 void  jukeboxMainMenuCb(const char* opt);
 
+void jukeboxDanceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset);
+
 /*==============================================================================
  * Structs
  *============================================================================*/
 
+typedef void (*jukeboxLedDance)(uint32_t, uint32_t, bool);
 
+typedef struct
+{
+    jukeboxLedDance func;
+    uint32_t arg;
+    char* name;
+} jukeboxLedDanceArg;
 
 /*==============================================================================
  * Variables
  *============================================================================*/
 
-// The swadge mode
+// Text
 static const char str_exit[] = "Exit";
 
-static const songSelectionarg songSelection[]=
+static const jukeboxLedDanceArg jukeboxLedDances[]=
 {
-    {.func = danceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
-    {.func = danceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
+    {.func = jukeboxDanceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
+    {.func = jukeboxDanceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
 };
 
 swadgeMode modeJukebox =
@@ -98,9 +108,15 @@ typedef enum
 typedef struct
 {
     display_t* disp;
+
     font_t ibm_vga8;
     font_t radiostars;
     font_t mm;
+
+    uint8_t danceIdx;
+
+    bool resetDance;
+
     meleeMenu_t* menu;
     jukeboxScreen_t screen;    
 } jukebox_t;
@@ -176,12 +192,60 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
     }
 }
 
+/**
+ * Update the display by drawing the current state of affairs
+ */
+void  jukeboxMainLoop(int64_t elapsedUs)
+{
+    jukeboxLedDances[jukebox->danceIdx].func(elapsedUs, jukeboxLedDances[jukebox->danceIdx].arg, jukebox->resetDance);
+
+    jukebox->disp->clearPx();
+    //fillDisplayArea(jukebox->disp, 0, 0, jukebox->disp->w, jukebox->disp->h, c010);
+    switch(jukebox->screen)
+    {
+        case JUKEBOX_MENU:
+        {
+            //drawMeleeMenu(jukebox->disp, jukebox->menu);
+            break;
+        }
+    }
+
+
+    // Warn the user that the swadge is muted, if that's the case
+    if(getSfxIsMuted())
+    {
+        drawText(
+            jukebox->disp,
+            &jukebox->radiostars, c551,
+            jukeboxMutedText,
+            (jukebox->disp->w - textWidth(&jukebox->radiostars, jukeboxMutedText)) / 2,
+            jukebox->disp->h / 2);
+    }
+}
+
+void setJukeboxMainMenu(void)
+{
+    resetMeleeMenu(jukebox->menu, str_jukebox, jukeboxMainMenuCb);
+    addRowToMeleeMenu(jukebox->menu, str_exit);
+
+    jukebox->screen = JUKEBOX_MENU;
+}
+
+void jukeboxMainMenuCb(const char * opt)
+{
+    if (opt == str_exit)
+    {
+        switchToSwadgeMode(&modeMainMenu);
+        return;
+    }
+}
+
 /** Smoothly rotate a color wheel around the swadge
  *
  * @param tElapsedUs The time elapsed since last call, in microseconds
  * @param reset      true to reset this dance's variables
  */
-void danceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset)
+void jukeboxDanceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset)
 {
     static uint32_t tAccumulated = 0;
     static uint8_t ledCount = 0;
@@ -220,51 +284,5 @@ void danceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset)
     if(ledsUpdated)
     {
         setLeds(leds, NUM_LEDS);
-    }
-}
-
-/**
- * Update the display by drawing the current state of affairs
- */
-void  jukeboxMainLoop(int64_t elapsedUs)
-{
-    jukebox->disp->clearPx();
-    //fillDisplayArea(jukebox->disp, 0, 0, jukebox->disp->w, jukebox->disp->h, c010);
-    switch(jukebox->screen)
-    {
-        case JUKEBOX_MENU:
-        {
-            drawMeleeMenu(jukebox->disp, jukebox->menu);
-            break;
-        }
-    }
-
-
-    // Warn the user that the swadge is muted, if that's the case
-    if(getSfxIsMuted())
-    {
-        drawText(
-            jukebox->disp,
-            &jukebox->radiostars, c551,
-            jukeboxMutedText,
-            (jukebox->disp->w - textWidth(&jukebox->radiostars, jukeboxMutedText)) / 2,
-            jukebox->disp->h / 2);
-    }
-}
-
-void setJukeboxMainMenu(void)
-{
-    resetMeleeMenu(jukebox->menu, str_jukebox, jukeboxMainMenuCb);
-    addRowToMeleeMenu(jukebox->menu, str_exit);
-
-    jukebox->screen = JUKEBOX_MENU;
-}
-
-void jukeboxMainMenuCb(const char * opt)
-{
-    if (opt == str_exit)
-    {
-        switchToSwadgeMode(&modeMainMenu);
-        return;
     }
 }
