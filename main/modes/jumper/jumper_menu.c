@@ -98,9 +98,6 @@ void jumperEnterMode(display_t* disp)
     jm->menu = initMeleeMenu(str_jumpTitle, &(jm->mmFont), jumperMainMenuCb);
 
     setJumperMainMenu();
-
-    jm->screen = JUMPER_MENU;
-
 }
 
 void jumperExitMode(void)
