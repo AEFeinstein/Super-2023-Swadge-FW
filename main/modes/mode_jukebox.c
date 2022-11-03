@@ -24,6 +24,8 @@
 #include "swadgeMode.h"
 #include "swadge_util.h"
 
+#include "mode_platformer.h"
+
 #include "mode_jukebox.h"
 #include "meleeMenu.h"
 
@@ -41,7 +43,12 @@
  * Enums
  *============================================================================*/
 
-
+// The state data
+typedef enum
+{
+    JUKEBOX_MENU,
+    JUKEBOX_PLAYER
+} jukeboxScreen_t;
 
 /*==============================================================================
  * Prototypes
@@ -68,18 +75,22 @@ typedef struct
     char* name;
 } jukeboxLedDanceArg;
 
+typedef struct
+{
+    char* name;
+    song_t song;
+} jukeboxSong;
+
+typedef struct
+{
+    char* categoryName;
+    jukeboxSong songs[];
+} jukeboxCategory;
+
+
 /*==============================================================================
  * Variables
  *============================================================================*/
-
-// Text
-static const char str_exit[] = "Exit";
-
-static const jukeboxLedDanceArg jukeboxLedDances[]=
-{
-    {.func = jukeboxDanceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
-    {.func = jukeboxDanceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
-};
 
 swadgeMode modeJukebox =
 {
@@ -97,14 +108,6 @@ swadgeMode modeJukebox =
     .overrideUsb = false
 };
 
-// The state data
-typedef enum
-{
-    JUKEBOX_MENU,
-    JUKEBOX_PLAYER
-} jukeboxScreen_t;
-
-
 typedef struct
 {
     display_t* disp;
@@ -114,8 +117,10 @@ typedef struct
     font_t mm;
 
     uint8_t danceIdx;
-
     bool resetDance;
+
+    uint8_t categoryIdx;
+    uint8_t songIdx;
 
     meleeMenu_t* menu;
     jukeboxScreen_t screen;    
@@ -129,7 +134,22 @@ jukebox_t* jukebox;
 
 // Text
 static const char str_jukebox[]  = "Jukebox";
-const char jukeboxMutedText[] =  "Swadge is muted!";
+static const char str_muted[] =  "Swadge is muted!";
+static const char str_exit[] = "Exit";
+
+static const jukeboxLedDanceArg jukeboxLedDances[]=
+{
+    {.func = jukeboxDanceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
+    {.func = jukeboxDanceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
+};
+
+static const jukeboxCategory jukeboxCategories[] =
+{
+    {.categoryName = "Swadge Land",
+    .songs = {{.name = "Demagio", .song = bgmDemagio},
+               {.name = "Intro", .song = bgmIntro},
+               {.name = "Smooth", .song = bgmSmooth},}},
+};
 
 /*============================================================================
  * Functions
@@ -217,9 +237,13 @@ void  jukeboxMainLoop(int64_t elapsedUs)
         drawText(
             jukebox->disp,
             &jukebox->radiostars, c551,
-            jukeboxMutedText,
-            (jukebox->disp->w - textWidth(&jukebox->radiostars, jukeboxMutedText)) / 2,
+            str_muted,
+            (jukebox->disp->w - textWidth(&jukebox->radiostars, str_muted)) / 2,
             jukebox->disp->h / 2);
+    }
+    else
+    {
+        buzzer_play_bgm(&jukeboxCategories[jukebox->categoryIdx].songs[jukebox->songIdx].song);
     }
 }
 
