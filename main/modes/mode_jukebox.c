@@ -222,17 +222,20 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
         }
         case JUKEBOX_PLAYER:
         {
-            switch(evt->button)
+            if(evt->down)
             {
-                case BTN_A:
+                switch(evt->button)
                 {
-                    buzzer_play_bgm(jukeboxCategories[jukebox->categoryIdx].songs[jukebox->songIdx].song);
-                    break;
-                }
-                case BTN_B:
-                {
-                    buzzer_stop();
-                    break;
+                    case BTN_A:
+                    {
+                        buzzer_play_bgm(jukeboxCategories[jukebox->categoryIdx].songs[jukebox->songIdx].song);
+                        break;
+                    }
+                    case BTN_B:
+                    {
+                        buzzer_stop();
+                        break;
+                    }
                 }
             }
             break;
