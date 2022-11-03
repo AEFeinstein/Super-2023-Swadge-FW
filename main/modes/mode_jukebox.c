@@ -24,6 +24,7 @@
 #include "swadgeMode.h"
 #include "swadge_util.h"
 
+#include "mode_tiltrads.h"
 #include "mode_platformer.h"
 
 #include "mode_jukebox.h"
@@ -134,13 +135,19 @@ swadgeMode modeJukebox =
 // Text
 static const char str_jukebox[]  = "Jukebox";
 static const char str_muted[] =  "Swadge is muted!";
-static const char str_bgm[] = "BGM";
+static const char str_bgm[] = "Music";
 static const char str_exit[] = "Exit";
 
 static const jukeboxLedDanceArg jukeboxLedDances[] =
 {
     {.func = jukeboxDanceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
     {.func = jukeboxDanceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
+};
+
+static const jukeboxSong tiltradsSongs[] =
+{
+    {.name = "Title", .song = &titleMusic},
+    {.name = "Game", .song = &gameMusic},
 };
 
 static const jukeboxSong platformerSongs[] =
@@ -150,16 +157,10 @@ static const jukeboxSong platformerSongs[] =
     {.name = "Smooth", .song = &bgmSmooth},
 };
 
-static const jukeboxCategory platformerCategory =
-{
-    .categoryName = "Swadge Land",
-    .songs = platformerSongs,
-};
-
 static const jukeboxCategory jukeboxCategories[] =
 {
-    platformerCategory,
-    //{.categoryName = "Swadge Land", .songs = platformerSongs},
+    {.categoryName = "Tiltrads", .songs = tiltradsSongs},
+    {.categoryName = "Swadge Land", .songs = platformerSongs},
 };
 
 /*============================================================================
