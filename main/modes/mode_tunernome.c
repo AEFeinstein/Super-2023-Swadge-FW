@@ -124,6 +124,7 @@ typedef struct
     uint32_t intensities_filt[NUM_LEDS];
     int32_t diffs_filt[NUM_LEDS];
 
+    uint8_t subdividedBeats;
     uint8_t beatCtr;
     int bpm;
     int32_t tAccumulatedUs;
@@ -410,6 +411,7 @@ void tunernomeEnterMode(display_t* disp)
 
     tunernome->beatLength = 4;
     tunernome->beatCtr = 0;
+    tunernome->subdividedBeats = 0;
     tunernome->bpm = INITIAL_BPM;
     tunernome->curTunerMode = GUITAR_TUNER;
 
@@ -448,6 +450,7 @@ void switchToSubmode(tnMode newMode)
 
             tunernome->isClockwise = true;
             tunernome->beatCtr = tunernome->beatLength - 1; // This assures that the first beat is a primary beat/downbeat
+            tunernome->subdividedBeats = 0;
             tunernome->tAccumulatedUs = 0;
 
             tunernome->lastBpmButton = 0;
@@ -553,6 +556,13 @@ void recalcMetronome(void)
 {
     // Figure out how many microseconds are in one beat
     tunernome->usPerBeat = (60 * 1000000) / tunernome->bpm;
+
+    switch (tunernome->subdividedBeats) {
+        case 0: break;
+        case 1: tunernome->usPerBeat /= 2; break;
+        case 2: tunernome->usPerBeat /= 3; break;
+        case 3: tunernome->usPerBeat /= 4; break;
+    }
 
 }
 
@@ -1189,6 +1199,12 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                         {
                             tunernome->beatLength += 1;
                         }
+                        break;
+                    }
+                    case SELECT:
+                    {
+                        tunernome->subdividedBeats = (tunernome->subdividedBeats + 1) % 4;
+                        recalcMetronome();
                         break;
                     }
                     case START:
