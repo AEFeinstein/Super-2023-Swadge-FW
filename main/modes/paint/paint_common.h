@@ -278,6 +278,7 @@ typedef struct
     int32_t index;
 
     font_t toolbarFont;
+    wsg_t arrowWsg;
 
     // The save slot being displayed / shared
     uint8_t shareSaveSlot;
@@ -306,6 +307,7 @@ typedef struct
 
     // Time for the progress bar timer
     int64_t shareTime;
+    int64_t timeSincePacket;
 
     // True if we are the sender, false if not
     bool isSender;
@@ -339,6 +341,7 @@ typedef struct
 
     bool galleryLoadNew;
     bool screensaverMode;
+    paintScreen_t returnScreen;
 
     uint8_t galleryScale;
 } paintGallery_t;
