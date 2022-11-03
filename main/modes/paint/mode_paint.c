@@ -56,6 +56,7 @@ const char menuOptCancelErase[] = "Confirm? No!";
 const char menuOptConfirmErase[] = "Confirm? Yes";
 
 const char menuOptExit[] = "Exit";
+const char menuOptBack[] = "Back";
 
 // Mode struct function declarations
 void paintEnterMode(display_t* disp);
@@ -328,7 +329,7 @@ void paintSetupNetworkMenu(bool reset)
     }
 
     addRowToMeleeMenu(paintMenu->menu, menuOptReceive);
-    addRowToMeleeMenu(paintMenu->menu, menuOptExit);
+    addRowToMeleeMenu(paintMenu->menu, menuOptBack);
 
     if (reset)
     {
@@ -378,7 +379,7 @@ void paintSetupSettingsMenu(bool reset)
     {
         addRowToMeleeMenu(paintMenu->menu, menuOptEraseData);
     }
-    addRowToMeleeMenu(paintMenu->menu, menuOptExit);
+    addRowToMeleeMenu(paintMenu->menu, menuOptBack);
 
     if (reset)
     {
@@ -445,9 +446,9 @@ void paintNetworkMenuCb(const char* opt)
         paintMenu->screen = PAINT_RECEIVE;
         switchToSwadgeMode(&modePaintReceive);
     }
-    else if (opt == menuOptExit)
+    else if (opt == menuOptBack)
     {
-        PAINT_LOGI("Selected Exit");
+        PAINT_LOGI("Selected Back");
         paintSetupMainMenu(false);
         paintMenu->screen = PAINT_MENU;
     }
@@ -498,9 +499,9 @@ void paintSettingsMenuCb(const char* opt)
         paintMenu->eraseDataSelected = false;
         paintMenu->eraseDataConfirm = false;
     }
-    else if (opt == menuOptExit)
+    else if (opt == menuOptBack)
     {
-        PAINT_LOGI("Selected Exit");
+        PAINT_LOGI("Selected Back");
         paintSetupMainMenu(false);
         paintMenu->screen = PAINT_MENU;
         return;
