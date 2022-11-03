@@ -96,7 +96,7 @@ void levelSelectInput()
 {
     //todo: quit with both start+select
 
-    if (ls->btnState & SELECT && !(ls->prevBtnState & SELECT) && !(ls->btnState & BTN_A))
+    if (ls->btnState & (SELECT | BTN_B) && !(ls->prevBtnState & SELECT) && !(ls->btnState & BTN_A))
     {
         //exit to main menu
         returnToPicrossMenu();//from level select.

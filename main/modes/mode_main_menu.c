@@ -100,7 +100,7 @@ swadgeMode modeMainMenu =
     .overrideUsb = false,
 };
 
-const char mainMenuTitle[] = "Swadge!";
+const char mainMenuTitle[] = "Swadge 1.0";
 const char mainMenuGames[] = "Games";
 const char mainMenuTools[] = "Tools";
 const char mainMenuMusic[] = "Music";

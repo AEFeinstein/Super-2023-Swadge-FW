@@ -671,6 +671,8 @@ void paintShareExitMode(void)
     p2pDeinit(&paintShare->p2pInfo);
     freeFont(&paintShare->toolbarFont);
     free(paintShare);
+
+    paintShare = NULL;
 }
 
 // Go back to the previous state so we retry the last thing
@@ -983,6 +985,12 @@ void paintShareButtonCb(buttonEvt_t* evt)
         {
             paintShare->shareState = SHARE_SEND_SELECT_SLOT;
             paintShare->shareUpdateScreen = true;
+        }
+    } else if (paintShare->shareState == SHARE_SEND_WAIT_FOR_CONN || paintShare->shareState == SHARE_RECV_WAIT_FOR_CONN)
+    {
+        if (evt->down && evt->button == BTN_B)
+        {
+            switchToSwadgeMode(&modePaint);
         }
     }
 }

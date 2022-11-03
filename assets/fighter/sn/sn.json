@@ -30,13 +30,13 @@
       "off_y":6
    },
    "jump_spr":{
-      "sprite":"kjm0.wsg",
-      "off_x":0,
-      "off_y":0
+      "sprite":"sjm.wsg",
+      "off_x":-3,
+      "off_y":-1
    },
    "duck_spr":{
-      "sprite":"kdu0.wsg",
-      "off_x":0,
+      "sprite":"sdu.wsg",
+      "off_x":-2,
       "off_y":0
    },
    "land_lag_spr":{
@@ -45,13 +45,13 @@
       "off_y":0
    },
    "hitstun_ground_sprite":{
-      "sprite":"ksg0.wsg",
-      "off_x":0,
-      "off_y":0
+      "sprite":"ssg.wsg",
+      "off_x":-5,
+      "off_y":-1
    },
    "hitstun_air_sprite":{
-      "sprite":"ksa0.wsg",
-      "off_x":0,
+      "sprite":"ssa.wsg",
+      "off_x":-9,
       "off_y":0
    },
    "stock_icn":"kicon.wsg",
