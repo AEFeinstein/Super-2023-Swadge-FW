@@ -341,6 +341,7 @@ typedef struct
 
     bool galleryLoadNew;
     bool screensaverMode;
+    paintScreen_t returnScreen;
 
     uint8_t galleryScale;
 } paintGallery_t;

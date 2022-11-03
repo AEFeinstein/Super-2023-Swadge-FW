@@ -138,8 +138,9 @@ void paintMainLoop(int64_t elapsedUs)
         if (paintMenu->idleTimer >= PAINT_SCREENSAVER_TIMEOUT)
         {
             PAINT_LOGI("Selected Gallery");
-            paintMenu->screen = PAINT_GALLERY;
             paintGallerySetup(paintMenu->disp, true);
+            paintGallery->returnScreen = paintMenu->screen;
+            paintMenu->screen = PAINT_GALLERY;
         }
         else
         {
@@ -526,7 +527,28 @@ void paintReturnToMainMenu(void)
         break;
 
         case PAINT_GALLERY:
-            paintGalleryCleanup();
+            if (paintGallery->screensaverMode)
+            {
+                paintMenu->screen = paintGallery->returnScreen;
+                paintGalleryCleanup();
+                if (paintMenu->screen == PAINT_MENU)
+                {
+                    paintSetupMainMenu(false);
+                }
+                else if (paintMenu->screen == PAINT_NETWORK_MENU)
+                {
+                    paintSetupNetworkMenu(false);
+                }
+                else if (paintMenu->screen == PAINT_SETTINGS_MENU)
+                {
+                    paintSetupSettingsMenu(false);
+                }
+                return;
+            }
+            else
+            {
+                paintGalleryCleanup();
+            }
         break;
 
         case PAINT_HELP:
