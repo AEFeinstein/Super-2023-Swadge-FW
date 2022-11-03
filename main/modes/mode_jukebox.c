@@ -134,6 +134,7 @@ swadgeMode modeJukebox =
 // Text
 static const char str_jukebox[]  = "Jukebox";
 static const char str_muted[] =  "Swadge is muted!";
+static const char str_bgm[] = "BGM";
 static const char str_exit[] = "Exit";
 
 static const jukeboxLedDanceArg jukeboxLedDances[] =
@@ -221,7 +222,19 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
         }
         case JUKEBOX_PLAYER:
         {
-            // TODO
+            switch(evt->button)
+            {
+                case BTN_A:
+                {
+                    buzzer_play_bgm(jukeboxCategories[jukebox->categoryIdx].songs[jukebox->songIdx].song);
+                    break;
+                }
+                case BTN_B:
+                {
+                    buzzer_stop();
+                    break;
+                }
+            }
             break;
         }
     }
@@ -240,7 +253,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
     {
         case JUKEBOX_MENU:
         {
-            //drawMeleeMenu(jukebox->disp, jukebox->menu);
+            drawMeleeMenu(jukebox->disp, jukebox->menu);
             break;
         }
         case JUKEBOX_PLAYER:
@@ -261,15 +274,12 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             (jukebox->disp->w - textWidth(&jukebox->radiostars, str_muted)) / 2,
             jukebox->disp->h / 2);
     }
-    else
-    {
-        buzzer_play_bgm(jukeboxCategories[jukebox->categoryIdx].songs[jukebox->songIdx].song);
-    }
 }
 
 void setJukeboxMainMenu(void)
 {
     resetMeleeMenu(jukebox->menu, str_jukebox, jukeboxMainMenuCb);
+    addRowToMeleeMenu(jukebox->menu, str_bgm);
     addRowToMeleeMenu(jukebox->menu, str_exit);
 
     jukebox->screen = JUKEBOX_MENU;
@@ -281,6 +291,10 @@ void jukeboxMainMenuCb(const char * opt)
     {
         switchToSwadgeMode(&modeMainMenu);
         return;
+    }
+    else if (opt == str_bgm)
+    {
+        jukebox->screen = JUKEBOX_PLAYER;
     }
 }
 
