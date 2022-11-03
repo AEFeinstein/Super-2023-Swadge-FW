@@ -125,6 +125,7 @@ typedef struct
     int32_t diffs_filt[NUM_LEDS];
 
     uint8_t subdividedBeats;
+    uint8_t subBeatCtr;
     uint8_t beatCtr;
     int bpm;
     int32_t tAccumulatedUs;
@@ -411,6 +412,7 @@ void tunernomeEnterMode(display_t* disp)
 
     tunernome->beatLength = 4;
     tunernome->beatCtr = 0;
+    tunernome->subBeatCtr = 0;
     tunernome->subdividedBeats = 0;
     tunernome->bpm = INITIAL_BPM;
     tunernome->curTunerMode = GUITAR_TUNER;
@@ -450,6 +452,7 @@ void switchToSubmode(tnMode newMode)
 
             tunernome->isClockwise = true;
             tunernome->beatCtr = tunernome->beatLength - 1; // This assures that the first beat is a primary beat/downbeat
+            tunernome->subBeatCtr = 0;
             tunernome->subdividedBeats = 0;
             tunernome->tAccumulatedUs = 0;
 
@@ -1012,12 +1015,16 @@ void tunernomeMainLoop(int64_t elapsedUs)
             if(shouldBlink)
             {
                 // Add one to the beat counter
-                tunernome->beatCtr = (tunernome->beatCtr + 1) % tunernome->beatLength;
+                tunernome->subBeatCtr += 1;
+                if (tunernome->subBeatCtr > tunernome->subdividedBeats) {
+                    tunernome->subBeatCtr = 0;
+                    tunernome->beatCtr = (tunernome->beatCtr + 1) % tunernome->beatLength;
+                }
 
                 const song_t* song;
                 led_t leds[NUM_LEDS] = {{0}};
 
-                if(0 == tunernome->beatCtr)
+                if(tunernome->beatCtr == 0 && tunernome->subBeatCtr == 0)
                 {
                     song = &metronome_primary;
                     for(int i = 0; i < NUM_LEDS; i++)
