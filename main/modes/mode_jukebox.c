@@ -39,11 +39,11 @@
  * Defines
  *============================================================================*/
 
-// #define CORNER_OFFSET 12
+#define CORNER_OFFSET 12
 
 /// Helper macro to return an integer clamped within a range (MIN to MAX)
 // #define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
-// #define lengthof(x) (sizeof(x) / sizeof(x[0]))
+#define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
 /*==============================================================================
  * Enums
@@ -66,7 +66,10 @@ void  jukeboxButtonCallback(buttonEvt_t* evt);
 void  jukeboxMainLoop(int64_t elapsedUs);
 void  jukeboxMainMenuCb(const char* opt);
 
+void jukeboxSelectNextDance(void);
+void jukeboxSelectPrevDance(void);
 void jukeboxDanceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset);
+void jukeboxDanceNone(uint32_t tElapsedUs, uint32_t arg, bool reset);
 
 /*==============================================================================
  * Structs
@@ -145,11 +148,16 @@ static const char str_sfx_muted[] =  "Swadge SFX are muted!";
 static const char str_bgm[] = "Music";
 static const char str_sfx[] = "SFX";
 static const char str_exit[] = "Exit";
+static const char str_leds[] = "Sel: LEDs";
+static const char str_back[] = "Start: Back";
+static const char str_stop[] = ": Stop";
+static const char str_play[] = ": Play";
 
 static const jukeboxLedDanceArg jukeboxLedDances[] =
 {
     {.func = jukeboxDanceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
     {.func = jukeboxDanceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
+    {.func = jukeboxDanceNone,          .arg =     0, .name = "None"},
 };
 
 static const jukeboxSong fighterMusic[] =
@@ -275,8 +283,6 @@ void  jukeboxEnterMode(display_t* disp)
 
     setJukeboxMainMenu();
 
-    jukebox->screen = JUKEBOX_MENU;
-
     stopNote();
 }
 
@@ -334,6 +340,11 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                         buzzer_stop();
                         break;
                     }
+                    case SELECT:
+                    {
+                        jukeboxSelectNextDance();
+                        break;
+                    }
                     case START:
                     {
                         setJukeboxMainMenu();
@@ -356,6 +367,7 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
 void  jukeboxMainLoop(int64_t elapsedUs)
 {
     jukeboxLedDances[jukebox->danceIdx].func(elapsedUs, jukeboxLedDances[jukebox->danceIdx].arg, jukebox->resetDance);
+    jukebox->resetDance = false;
 
     jukebox->disp->clearPx();
     switch(jukebox->screen)
@@ -369,9 +381,55 @@ void  jukeboxMainLoop(int64_t elapsedUs)
         {
             fillDisplayArea(jukebox->disp, 0, 0, jukebox->disp->w, jukebox->disp->h, c010);
 
+            // Plot the button funcs
+            // LEDs
+            drawText(
+                jukebox->disp,
+                &jukebox->radiostars, c444,
+                str_leds,
+                CORNER_OFFSET,
+                CORNER_OFFSET);
+            
+            // Back
+            drawText(
+                jukebox->disp,
+                &jukebox->radiostars, c444,
+                str_back,
+                jukebox->disp->w - textWidth(&jukebox->radiostars, str_back) - CORNER_OFFSET,
+                CORNER_OFFSET);
+
+            // Stop
+            int16_t afterText = drawText(
+                                    jukebox->disp,
+                                    &jukebox->radiostars, c511,
+                                    "B",
+                                    CORNER_OFFSET,
+                                    jukebox->disp->h - jukebox->radiostars.h - CORNER_OFFSET);
+            drawText(
+                jukebox->disp,
+                &jukebox->radiostars, c444,
+                str_stop,
+                afterText,
+                jukebox->disp->h - jukebox->radiostars.h - CORNER_OFFSET);
+            
+            // Play
+            afterText = drawText(
+                            jukebox->disp,
+                            &jukebox->radiostars, c151,
+                            "A",
+                            jukebox->disp->w - textWidth(&jukebox->radiostars, str_play) - textWidth(&jukebox->radiostars, "A") - CORNER_OFFSET,
+                            jukebox->disp->h - jukebox->radiostars.h - CORNER_OFFSET);
+            drawText(
+                jukebox->disp,
+                &jukebox->radiostars, c444,
+                str_play,
+                afterText,
+                jukebox->disp->h - jukebox->radiostars.h - CORNER_OFFSET);
+
+
+            // Warn the user that the swadge is muted, if that's the case
             if(jukebox->inMusicSubmode)
             {
-                // Warn the user that the swadge is muted, if that's the case
                 if(getBgmIsMuted())
                 {
                     drawText(
@@ -381,7 +439,10 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                         (jukebox->disp->w - textWidth(&jukebox->radiostars, str_bgm_muted)) / 2,
                         jukebox->disp->h / 2);
                 }
-                else if(getSfxIsMuted())
+            }
+            else
+            {
+                if(getSfxIsMuted())
                 {
                     drawText(
                         jukebox->disp,
@@ -474,4 +535,57 @@ void jukeboxDanceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset)
     {
         setLeds(leds, NUM_LEDS);
     }
+}
+
+/**
+ * @brief Blank the LEDs
+ *
+ * @param tElapsedUs
+ * @param arg
+ * @param reset
+ */
+void jukeboxDanceNone(uint32_t tElapsedUs __attribute__((unused)),
+               uint32_t arg __attribute__((unused)), bool reset)
+{
+    if(reset)
+    {
+        led_t leds[NUM_LEDS] = {{0}};
+        setLeds(leds, NUM_LEDS);
+    }
+}
+
+/**
+ * @brief Switches to the previous dance in the list, with wrapping
+ */
+void jukeboxSelectPrevDance(void)
+{
+    uint8_t length = lengthof(jukeboxLedDances);
+
+    if (jukebox->danceIdx > 0)
+    {
+        jukebox->danceIdx--;
+    }
+    else
+    {
+        jukebox->danceIdx = lengthof(jukeboxLedDances) - 1;
+    }
+
+    jukebox->resetDance = true;
+}
+
+/**
+ * @brief Switches to the next dance in the list, with wrapping
+ */
+void jukeboxSelectNextDance(void)
+{
+    if (jukebox->danceIdx < lengthof(jukeboxLedDances) - 1)
+    {
+        jukebox->danceIdx++;
+    }
+    else
+    {
+        jukebox->danceIdx = 0;
+    }
+
+    jukebox->resetDance = true;
 }
