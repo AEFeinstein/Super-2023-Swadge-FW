@@ -14,6 +14,7 @@ typedef int (*translateFn_t)(int);
 
 void oddEvenFill(display_t* disp, int x0, int y0, int x1, int y1,
                  paletteColor_t boundaryColor, paletteColor_t fillColor);
+void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col, uint16_t xMin, uint16_t yMin, uint16_t xMax, uint16_t yMax);
 
 void plotLineScaled(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth, int xTr, int yTr, int xScale, int yScale);
 void plotLine(display_t* disp, int x0, int y0, int x1, int y1, paletteColor_t col, int dashWidth);

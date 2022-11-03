@@ -69,10 +69,6 @@ typedef struct
 } brush_t;
 
 
-void floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t col, uint16_t xMin, uint16_t yMin, uint16_t xMax, uint16_t yMax);
-void _floodFill(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill, uint16_t xMin, uint16_t yMin, uint16_t xMax, uint16_t yMax);
-void _floodFillInner(display_t* disp, uint16_t x, uint16_t y, paletteColor_t search, paletteColor_t fill, uint16_t xMin, uint16_t yMin, uint16_t xMax, uint16_t yMax);
-
 void paintDrawSquarePen(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawCirclePen(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
 void paintDrawLine(paintCanvas_t*, point_t*, uint8_t, uint16_t, paletteColor_t);
