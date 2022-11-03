@@ -33,11 +33,11 @@
  * Defines
  *============================================================================*/
 
-#define CORNER_OFFSET 12
+// #define CORNER_OFFSET 12
 
 /// Helper macro to return an integer clamped within a range (MIN to MAX)
-#define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
-#define lengthof(x) (sizeof(x) / sizeof(x[0]))
+// #define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
+// #define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
 /*==============================================================================
  * Enums
@@ -98,13 +98,13 @@ typedef struct
 typedef struct
 {
     char* name;
-    song_t song;
+    const song_t* song;
 } jukeboxSong;
 
 typedef struct
 {
     char* categoryName;
-    jukeboxSong songs[];
+    const jukeboxSong* songs;
 } jukeboxCategory;
 
 /*==============================================================================
@@ -144,9 +144,9 @@ static const jukeboxLedDanceArg jukeboxLedDances[] =
 
 static const jukeboxSong platformerSongs[] =
 {
-    {.name = "Demagio", .song = bgmDemagio},
-    {.name = "Intro", .song = bgmIntro},
-    {.name = "Smooth", .song = bgmSmooth},
+    {.name = "Demagio", .song = &bgmDemagio},
+    {.name = "Intro", .song = &bgmIntro},
+    {.name = "Smooth", .song = &bgmSmooth},
 };
 
 static const jukeboxCategory platformerCategory =
@@ -219,6 +219,11 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
             }
             break;
         }
+        case JUKEBOX_PLAYER:
+        {
+            // TODO
+            break;
+        }
     }
 }
 
@@ -238,6 +243,11 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             //drawMeleeMenu(jukebox->disp, jukebox->menu);
             break;
         }
+        case JUKEBOX_PLAYER:
+        {
+            // TODO
+            break;
+        }
     }
 
 
@@ -253,7 +263,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
     }
     else
     {
-        buzzer_play_bgm(&jukeboxCategories[jukebox->categoryIdx].songs[jukebox->songIdx].song);
+        buzzer_play_bgm(jukeboxCategories[jukebox->categoryIdx].songs[jukebox->songIdx].song);
     }
 }
 
