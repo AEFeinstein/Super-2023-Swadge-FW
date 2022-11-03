@@ -66,6 +66,26 @@ void jukeboxDanceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset);
  * Structs
  *============================================================================*/
 
+typedef struct
+{
+    display_t* disp;
+
+    font_t ibm_vga8;
+    font_t radiostars;
+    font_t mm;
+
+    uint8_t danceIdx;
+    bool resetDance;
+
+    uint8_t categoryIdx;
+    uint8_t songIdx;
+
+    meleeMenu_t* menu;
+    jukeboxScreen_t screen;    
+} jukebox_t;
+
+jukebox_t* jukebox;
+
 typedef void (*jukeboxLedDance)(uint32_t, uint32_t, bool);
 
 typedef struct
@@ -87,7 +107,6 @@ typedef struct
     jukeboxSong songs[];
 } jukeboxCategory;
 
-
 /*==============================================================================
  * Variables
  *============================================================================*/
@@ -108,26 +127,6 @@ swadgeMode modeJukebox =
     .overrideUsb = false
 };
 
-typedef struct
-{
-    display_t* disp;
-
-    font_t ibm_vga8;
-    font_t radiostars;
-    font_t mm;
-
-    uint8_t danceIdx;
-    bool resetDance;
-
-    uint8_t categoryIdx;
-    uint8_t songIdx;
-
-    meleeMenu_t* menu;
-    jukeboxScreen_t screen;    
-} jukebox_t;
-
-jukebox_t* jukebox;
-
 /*==============================================================================
  * Const Variables
  *============================================================================*/
@@ -137,18 +136,29 @@ static const char str_jukebox[]  = "Jukebox";
 static const char str_muted[] =  "Swadge is muted!";
 static const char str_exit[] = "Exit";
 
-static const jukeboxLedDanceArg jukeboxLedDances[]=
+static const jukeboxLedDanceArg jukeboxLedDances[] =
 {
     {.func = jukeboxDanceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
     {.func = jukeboxDanceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
 };
 
+static const jukeboxSong platformerSongs[] =
+{
+    {.name = "Demagio", .song = bgmDemagio},
+    {.name = "Intro", .song = bgmIntro},
+    {.name = "Smooth", .song = bgmSmooth},
+};
+
+static const jukeboxCategory platformerCategory =
+{
+    .categoryName = "Swadge Land",
+    .songs = platformerSongs,
+};
+
 static const jukeboxCategory jukeboxCategories[] =
 {
-    {.categoryName = "Swadge Land",
-    .songs = {{.name = "Demagio", .song = bgmDemagio},
-               {.name = "Intro", .song = bgmIntro},
-               {.name = "Smooth", .song = bgmSmooth},}},
+    platformerCategory,
+    //{.categoryName = "Swadge Land", .songs = platformerSongs},
 };
 
 /*============================================================================
