@@ -29,7 +29,7 @@
 // Constants
 //==============================================================================
 
-/*const song_t sndGameStart =
+const song_t sndGameStart =
 {
     .notes =
     {
@@ -39,7 +39,7 @@
     },
     .numNotes = 14,
     .shouldLoop = false
-};*/
+};
 
 const song_t sndDie =
 {

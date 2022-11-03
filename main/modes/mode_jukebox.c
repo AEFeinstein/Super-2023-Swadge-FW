@@ -24,8 +24,13 @@
 #include "swadgeMode.h"
 #include "swadge_util.h"
 
+#include "fighter_music.h"
+#include "mode_fighter.h"
 #include "mode_tiltrads.h"
 #include "mode_platformer.h"
+#include "mode_jumper.h"
+#include "mode_credits.h"
+#include "mode_test.h"
 
 #include "mode_jukebox.h"
 #include "meleeMenu.h"
@@ -80,6 +85,7 @@ typedef struct
 
     uint8_t categoryIdx;
     uint8_t songIdx;
+    bool inMusicSubmode;
 
     meleeMenu_t* menu;
     jukeboxScreen_t screen;    
@@ -134,8 +140,10 @@ swadgeMode modeJukebox =
 
 // Text
 static const char str_jukebox[]  = "Jukebox";
-static const char str_muted[] =  "Swadge is muted!";
+static const char str_bgm_muted[] =  "Swadge music is muted!";
+static const char str_sfx_muted[] =  "Swadge SFX are muted!";
 static const char str_bgm[] = "Music";
+static const char str_sfx[] = "SFX";
 static const char str_exit[] = "Exit";
 
 static const jukeboxLedDanceArg jukeboxLedDances[] =
@@ -144,23 +152,105 @@ static const jukeboxLedDanceArg jukeboxLedDances[] =
     {.func = jukeboxDanceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
 };
 
-static const jukeboxSong tiltradsSongs[] =
+static const jukeboxSong fighterMusic[] =
+{
+};
+
+static const jukeboxSong tiltradsMusic[] =
 {
     {.name = "Title", .song = &titleMusic},
     {.name = "Game", .song = &gameMusic},
 };
 
-static const jukeboxSong platformerSongs[] =
+static const jukeboxSong platformerMusic[] =
 {
     {.name = "Demagio", .song = &bgmDemagio},
     {.name = "Intro", .song = &bgmIntro},
     {.name = "Smooth", .song = &bgmSmooth},
 };
 
-static const jukeboxCategory jukeboxCategories[] =
+static const jukeboxSong jumperMusic[] =
 {
-    {.categoryName = "Tiltrads", .songs = tiltradsSongs},
-    {.categoryName = "Swadge Land", .songs = platformerSongs},
+};
+
+static const jukeboxSong creditsMusic[] =
+{
+};
+
+static const jukeboxSong testMusic[] =
+{
+};
+
+static const jukeboxCategory musicCategories[] =
+{
+    {.categoryName = "Swadge Bros", .songs = fighterMusic},
+    {.categoryName = "Tiltrads", .songs = tiltradsMusic},
+    {.categoryName = "Swadge Land", .songs = platformerMusic},
+    {.categoryName = "Donut Jump", .songs = jumperMusic},
+    {.categoryName = "Credits", .songs = creditsMusic},
+    {.categoryName = "Test Mode", .songs = testMusic},
+};
+
+static const jukeboxSong fighterSfx[] =
+{
+};
+
+static const jukeboxSong tiltradsSfx[] =
+{
+    {.name = "Game Start Sting", .song = &gameStartSting},
+    {.name = "Line 1", .song = &lineOneSFX},
+    {.name = "Line 2", .song = &lineTwoSFX},
+    {.name = "Line 3", .song = &lineThreeSFX},
+    {.name = "Line 4", .song = &lineFourSFX},
+    {.name = "Line 5", .song = &lineFiveSFX},
+    {.name = "Line 6", .song = &lineSixSFX},
+    {.name = "Line 7", .song = &lineSevenSFX},
+    {.name = "Line 8", .song = &lineEightSFX},
+    {.name = "Line 9", .song = &lineNineSFX},
+    {.name = "Line 10", .song = &lineTenSFX},
+    {.name = "Line 11", .song = &lineElevenSFX},
+    {.name = "Line 12", .song = &lineTwelveSFX},
+    {.name = "Line 13", .song = &lineThirteenSFX},
+    {.name = "Line 14", .song = &lineFourteenSFX},
+    {.name = "Line 15", .song = &lineFifteenSFX},
+    {.name = "Line 16", .song = &lineSixteenSFX},
+    {.name = "Single Line Clear", .song = &singleLineClearSFX},
+    {.name = "Double Line Clear", .song = &doubleLineClearSFX},
+    {.name = "Triple Line Clear", .song = &tripleLineClearSFX},
+    {.name = "Quadruple Line Clear", .song = &quadLineClearSFX},
+    {.name = "Game Over Sting", .song = &gameOverSting},
+};
+
+static const jukeboxSong platformerSfx[] =
+{
+    {.name = "Menu Select", .song = &sndMenuSelect},
+    {.name = "Menu Confirm", .song = &sndMenuConfirm},
+    {.name = "Menu Deny", .song = &sndMenuDeny},
+    {.name = "Game Start (Unused)", .song = &sndGameStart},
+    {.name = "Jump 1", .song = &sndJump1},
+    {.name = "Jump 2", .song = &sndJump2},
+    {.name = "Jump 3", .song = &sndJump3},
+    {.name = "Hurt", .song = &sndHurt},
+    {.name = "Hit", .song = &sndHit},
+    {.name = "Squish", .song = &sndSquish},
+    {.name = "Break", .song = &sndBreak},
+    {.name = "Coin", .song = &sndCoin},
+    {.name = "Power Up", .song = &sndPowerUp},
+    {.name = "Warp", .song = &sndWarp},
+    {.name = "Wave Ball", .song = &sndWaveBall},
+    {.name = "Death", .song = &sndDie},
+};
+
+static const jukeboxSong jumperSfx[] =
+{
+};
+
+static const jukeboxCategory sfxCategories[] =
+{
+    {.categoryName = "Swadge Bros", .songs = fighterSfx},
+    {.categoryName = "Tiltrads", .songs = tiltradsSfx},
+    {.categoryName = "Swadge Land", .songs = platformerSfx},
+    {.categoryName = "Donut Jump", .songs = jumperSfx},
 };
 
 /*============================================================================
@@ -229,12 +319,28 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                 {
                     case BTN_A:
                     {
-                        buzzer_play_bgm(jukeboxCategories[jukebox->categoryIdx].songs[jukebox->songIdx].song);
+                        if(jukebox->inMusicSubmode)
+                        {
+                            buzzer_play_bgm(musicCategories[jukebox->categoryIdx].songs[jukebox->songIdx].song);
+                        }
+                        else
+                        {
+                            buzzer_play_sfx(sfxCategories[jukebox->categoryIdx].songs[jukebox->songIdx].song);
+                        }
                         break;
                     }
                     case BTN_B:
                     {
                         buzzer_stop();
+                        break;
+                    }
+                    case START:
+                    {
+                        setJukeboxMainMenu();
+                        break;
+                    }
+                    default:
+                    {
                         break;
                     }
                 }
@@ -252,7 +358,6 @@ void  jukeboxMainLoop(int64_t elapsedUs)
     jukeboxLedDances[jukebox->danceIdx].func(elapsedUs, jukeboxLedDances[jukebox->danceIdx].arg, jukebox->resetDance);
 
     jukebox->disp->clearPx();
-    //fillDisplayArea(jukebox->disp, 0, 0, jukebox->disp->w, jukebox->disp->h, c010);
     switch(jukebox->screen)
     {
         case JUKEBOX_MENU:
@@ -262,21 +367,32 @@ void  jukeboxMainLoop(int64_t elapsedUs)
         }
         case JUKEBOX_PLAYER:
         {
-            // TODO
+            fillDisplayArea(jukebox->disp, 0, 0, jukebox->disp->w, jukebox->disp->h, c010);
+
+            if(jukebox->inMusicSubmode)
+            {
+                // Warn the user that the swadge is muted, if that's the case
+                if(getBgmIsMuted())
+                {
+                    drawText(
+                        jukebox->disp,
+                        &jukebox->radiostars, c551,
+                        str_bgm_muted,
+                        (jukebox->disp->w - textWidth(&jukebox->radiostars, str_bgm_muted)) / 2,
+                        jukebox->disp->h / 2);
+                }
+                else if(getSfxIsMuted())
+                {
+                    drawText(
+                        jukebox->disp,
+                        &jukebox->radiostars, c551,
+                        str_sfx_muted,
+                        (jukebox->disp->w - textWidth(&jukebox->radiostars, str_sfx_muted)) / 2,
+                        jukebox->disp->h / 2);
+                }
+            }
             break;
         }
-    }
-
-
-    // Warn the user that the swadge is muted, if that's the case
-    if(getSfxIsMuted())
-    {
-        drawText(
-            jukebox->disp,
-            &jukebox->radiostars, c551,
-            str_muted,
-            (jukebox->disp->w - textWidth(&jukebox->radiostars, str_muted)) / 2,
-            jukebox->disp->h / 2);
     }
 }
 
@@ -284,6 +400,7 @@ void setJukeboxMainMenu(void)
 {
     resetMeleeMenu(jukebox->menu, str_jukebox, jukeboxMainMenuCb);
     addRowToMeleeMenu(jukebox->menu, str_bgm);
+    addRowToMeleeMenu(jukebox->menu, str_sfx);
     addRowToMeleeMenu(jukebox->menu, str_exit);
 
     jukebox->screen = JUKEBOX_MENU;
@@ -299,6 +416,16 @@ void jukeboxMainMenuCb(const char * opt)
     else if (opt == str_bgm)
     {
         jukebox->screen = JUKEBOX_PLAYER;
+        jukebox->categoryIdx = 0;
+        jukebox->songIdx = 0;
+        jukebox->inMusicSubmode = true;
+    }
+    else if (opt == str_sfx)
+    {
+        jukebox->screen = JUKEBOX_PLAYER;
+        jukebox->categoryIdx = 0;
+        jukebox->songIdx = 0;
+        jukebox->inMusicSubmode = false;
     }
 }
 

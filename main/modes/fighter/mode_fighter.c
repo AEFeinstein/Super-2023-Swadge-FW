@@ -312,7 +312,7 @@ static const song_t f1hit =
 };
 
 // Simple sound effect when fighter 2 is hit
-song_t f2hit =
+const song_t f2hit =
 {
     .notes =
     {
