@@ -6,6 +6,7 @@
 
 #include "common_typedef.h"
 #include "musical_buzzer.h"
+#include "swadgeMode.h"
 
 /*==============================================================================
  * Defines
