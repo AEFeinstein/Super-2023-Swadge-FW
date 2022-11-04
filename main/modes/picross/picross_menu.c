@@ -271,21 +271,21 @@ void loadLevels()
     loadWsg("Link_PZL.wsg", &pm->levels[18].levelWSG);//10x10
     loadWsg("Link_SLV.wsg", &pm->levels[18].completedWSG);
 
-    pm->levels[19].title = "Goomba";
-    loadWsg("Goomba_PZL.wsg", &pm->levels[19].levelWSG);//15x15
-    loadWsg("Goomba_SLV.wsg", &pm->levels[19].completedWSG);
+    pm->levels[19].title = "Lil' B";
+    loadWsg("LilB_PZL.wsg", &pm->levels[19].levelWSG);//15x15
+    loadWsg("LilB_SLV.wsg", &pm->levels[19].completedWSG);
 
-    pm->levels[20].title = "Mouse";
-    loadWsg("Mouse_PZL.wsg", &pm->levels[20].levelWSG);//15x15
-    loadWsg("Mouse_SLV.wsg", &pm->levels[20].completedWSG);
+    pm->levels[20].title = "Goomba";
+    loadWsg("Goomba_PZL.wsg", &pm->levels[20].levelWSG);//15x15
+    loadWsg("Goomba_SLV.wsg", &pm->levels[20].completedWSG);
 
-    pm->levels[21].title = "Note";
-    loadWsg("Note_PZL.wsg", &pm->levels[21].levelWSG);//15x15
-    loadWsg("Note_SLV.wsg", &pm->levels[21].completedWSG);
+    pm->levels[21].title = "Mouse";
+    loadWsg("Mouse_PZL.wsg", &pm->levels[21].levelWSG);//15x15
+    loadWsg("Mouse_SLV.wsg", &pm->levels[21].completedWSG);
 
-    pm->levels[22].title = "Banana";
-    loadWsg("Banana_PZL.wsg", &pm->levels[22].levelWSG);//15x15
-    loadWsg("Banana_SLV.wsg", &pm->levels[22].completedWSG);
+    pm->levels[22].title = "Note";
+    loadWsg("Note_PZL.wsg", &pm->levels[22].levelWSG);//15x15
+    loadWsg("Note_SLV.wsg", &pm->levels[22].completedWSG);
 
     pm->levels[23].title = "Big Mouth Billy";
     loadWsg("bass_PZL.wsg", &pm->levels[23].levelWSG);//15x15
