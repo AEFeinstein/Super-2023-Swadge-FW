@@ -137,25 +137,25 @@
          "type":"dash_gnd",
          "startupLag":50,
          "startupLagSpr":{
-            "sprite":"kfgw.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"sfgw.wsg",
+            "off_x":-1,
+            "off_y":1
          },
          "attack_frames":[
             {
                "duration":375,
                "atkSpr":{
-                  "sprite":"kfga.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"sfga.wsg",
+                  "off_x":-10,
+                  "off_y":7
                },
                "velo_x":30000,
                "hitboxes":[
                   {
-                     "relativePos_x":26,
-                     "relativePos_y":9,
-                     "size_x":21,
-                     "size_y":8,
+                     "relativePos_x":16,
+                     "relativePos_y":19,
+                     "size_x":16,
+                     "size_y":13,
                      "damage":9,
                      "knockback_x":9000,
                      "knockback_y":-3000,
@@ -166,9 +166,9 @@
          ],
          "endLag":300,
          "endLagSpr":{
-            "sprite":"kfgc.wsg",
+            "sprite":"sfgc.wsg",
             "off_x":0,
-            "off_y":0
+            "off_y":2
          }
       },
       {
