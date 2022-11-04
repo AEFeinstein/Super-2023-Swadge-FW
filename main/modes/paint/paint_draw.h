@@ -50,6 +50,7 @@ bool paintTutorialCheckTrigger(const paintHelpTrigger_t* trigger);
 
 void paintPositionDrawCanvas(void);
 
+void paintHandleDpad(uint16_t state);
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
 void paintSwapFgBgColors(void);
 void paintEnterSelectMode(void);

@@ -204,6 +204,9 @@ typedef struct
     // The cursor will not move again until a D-pad button has been held for BUTTON_REPEAT_TIME microseconds
     bool firstMove;
 
+    // So we don't miss a button press that happens between frames
+    uint16_t unhandledButtons;
+
     // The time a D-pad button has been held down for, in microseconds
     int64_t btnHoldTime;
 
