@@ -69,7 +69,7 @@ typedef enum
 {
     KING_DONUT,
     SUNNY,
-    BIG_FUNKUS,
+    BIGG_FUNKUS,
     SANDBAG,
     NO_CHARACTER
 } fightingCharacter_t;

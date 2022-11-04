@@ -397,7 +397,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
                 loadJsonFighterData(&f->fighters[i], "sn.json", f->loadedSprites);
                 break;
             }
-            case BIG_FUNKUS:
+            case BIGG_FUNKUS:
             {
                 loadJsonFighterData(&f->fighters[i], "bf.json", f->loadedSprites);
                 break;
