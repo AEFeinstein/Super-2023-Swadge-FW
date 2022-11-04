@@ -483,15 +483,16 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
             paintState->aPress = false;
         }
 
-        if (paintState->unhandledButtons && !paintState->moveX && !paintState->moveY)
-        {
-            // This means someone pressed a button so fast that it was pressed and released before a frame
-            paintHandleDpad(paintState->unhandledButtons);
-        }
-
         if (paintState->moveX || paintState->moveY || paintState->unhandledButtons)
         {
-            paintState->unhandledButtons = 0;
+            bool clearMovement = false;
+
+            if (!paintState->moveX && !paintState->moveY)
+            {
+                paintHandleDpad(paintState->unhandledButtons);
+                clearMovement = true;
+            }
+
             paintState->btnHoldTime += elapsedUs;
             if (paintState->firstMove || paintState->btnHoldTime >= BUTTON_REPEAT_TIME)
             {
@@ -499,6 +500,13 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                 paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
 
                 paintState->firstMove = false;
+            }
+
+            paintState->unhandledButtons = 0;
+            if (clearMovement)
+            {
+                paintState->moveX = 0;
+                paintState->moveY = 0;
             }
         }
     }
