@@ -55,8 +55,9 @@
 #define TUNER_RADIUS          80
 #define TUNER_TEXT_Y_OFFSET   30
 #define TUNER_ARROW_Y_OFFSET  8
-#define INITIAL_BPM           60
+#define INITIAL_BPM           120
 #define MAX_BPM               400
+#define MAX_BEATS             16 // I mean, realistically, who's going to have more than 16 beats in a measure?
 #define METRONOME_FLASH_MS    35
 #define METRONOME_CLICK_MS    35
 #define BPM_CHANGE_FIRST_MS   500
@@ -72,7 +73,6 @@
 #define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
 #define NUM_SEMITONES 12
-#define NUM_TSIGS lengthof(tSigs)
 
 typedef enum
 {
@@ -124,12 +124,12 @@ typedef struct
     uint32_t intensities_filt[NUM_LEDS];
     int32_t diffs_filt[NUM_LEDS];
 
-    uint8_t tSigIdx;
     uint8_t beatCtr;
     int bpm;
     int32_t tAccumulatedUs;
     bool isClockwise;
     int32_t usPerBeat;
+    uint8_t beatLength;
 
     uint32_t semitone_intensity_filt[NUM_SEMITONES];
     int32_t semitone_diff_filt[NUM_SEMITONES];
@@ -360,22 +360,11 @@ static int TUNER_FLAT_THRES_X;
 static int TUNER_SHARP_THRES_X;
 static int TUNER_THRES_Y;
 
-static const timeSignature tSigs[] =
-{
-    {.top = 4, .bottom = 4},
-    {.top = 2, .bottom = 2},
-    {.top = 6, .bottom = 8},
-    {.top = 9, .bottom = 8},
-    {.top = 12, .bottom = 8},
-    {.top = 2, .bottom = 4},
-    {.top = 3, .bottom = 4},
-};
-
 static const song_t metronome_primary =
 {
     .notes =
     {
-        {A_4, METRONOME_CLICK_MS}
+        {F_SHARP_5, METRONOME_CLICK_MS}
     },
     .numNotes = 1,
     .shouldLoop = false
@@ -385,7 +374,7 @@ static const song_t metronome_secondary =
 {
     .notes =
     {
-        {A_3, METRONOME_CLICK_MS}
+        {F_SHARP_4, METRONOME_CLICK_MS}
     },
     .numNotes = 1,
     .shouldLoop = false
@@ -419,7 +408,7 @@ void tunernomeEnterMode(display_t* disp)
     loadWsg("arrow21.wsg", &(tunernome->mmArrowWsg));
     loadWsg("flat_mm.wsg", &(tunernome->flatWsg));
 
-    tunernome->tSigIdx = 0;
+    tunernome->beatLength = 4;
     tunernome->beatCtr = 0;
     tunernome->bpm = INITIAL_BPM;
     tunernome->curTunerMode = GUITAR_TUNER;
@@ -458,8 +447,7 @@ void switchToSubmode(tnMode newMode)
             tunernome-> mode = newMode;
 
             tunernome->isClockwise = true;
-            tunernome->tSigIdx = 0;
-            tunernome->beatCtr = 0;
+            tunernome->beatCtr = tunernome->beatLength - 1; // This assures that the first beat is a primary beat/downbeat
             tunernome->tAccumulatedUs = 0;
 
             tunernome->lastBpmButton = 0;
@@ -930,25 +918,36 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     5,
                     false, true, 0);
 
-            // A/B/Start button functions at bottom of display
-            afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c151, "A", CORNER_OFFSET,
-                                         tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
-            afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c555, "/", afterText,
-                                 tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
-            afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c511, "B", afterText,
-                                 tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
-            afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c555, leftStr, afterText,
-                                 tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+            // Draw the current beat it's on
+            float beatXSpacing = (tunernome->disp->w / tunernome->beatLength);
+            uint8_t beatRadius = 12;
+            if (tunernome->beatLength > 11) {
+                beatRadius = 8;
+            }
+            for(uint8_t i = 0; i < tunernome->beatLength; i++)
+            {
+                // Am aware of the fact that the spacing is off when you add more circles.
+                // Oh well.
+                uint16_t beatX = (beatXSpacing * i) + (beatXSpacing / 2);
+                if (tunernome->beatCtr == i) {
+                    plotCircleFilled(tunernome->disp, beatX, 48, beatRadius, c555);
+                } else {
+                    plotCircle(tunernome->disp, beatX, 48, beatRadius, c555);
+                }
+            }
 
-            char tSigStr[32];
-            sprintf(tSigStr, "%d/%d", tSigs[tunernome->tSigIdx].top, tSigs[tunernome->tSigIdx].bottom);
-            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, tSigStr, afterText,
-                     tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+            // Draw the amount of beats
+            char beatStr[16];
+            sprintf(beatStr, "< Beats %d >", tunernome->beatLength);
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, beatStr, 
+                     CORNER_OFFSET, tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
             
+            // Draw text to switch to tuner mode
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrTuner,
                      tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrTuner) - CORNER_OFFSET,
                      tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
+            // Other logic things
             if(tunernome->isBlinking)
             {
                 if(tunernome->blinkAccumulatedUs == 0)
@@ -1002,7 +1001,8 @@ void tunernomeMainLoop(int64_t elapsedUs)
 
             if(shouldBlink)
             {
-                tunernome->beatCtr = (tunernome->beatCtr + 1) % tSigs[tunernome->tSigIdx].top;
+                // Add one to the beat counter
+                tunernome->beatCtr = (tunernome->beatCtr + 1) % tunernome->beatLength;
 
                 const song_t* song;
                 led_t leds[NUM_LEDS] = {{0}};
@@ -1175,21 +1175,20 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                         tunernome->bpmButtonAccumulatedUs = 0;
                         break;
                     }
-                    case BTN_A:
+                    case LEFT:
                     {
-                        // Cycle the time signature
-                        tunernome->tSigIdx = (tunernome->tSigIdx + 1) % NUM_TSIGS;
+                        if (tunernome->beatLength > 1)
+                        {
+                            tunernome->beatLength -= 1;
+                        }
                         break;
                     }
-                    case BTN_B:
+                    case RIGHT:
                     {
-                        // Cycle the time signature
-                        if (tunernome->tSigIdx == 0)
+                        if (tunernome->beatLength < MAX_BEATS)
                         {
-                            tunernome->tSigIdx = NUM_TSIGS;
+                            tunernome->beatLength += 1;
                         }
-                        
-                        tunernome->tSigIdx = tunernome->tSigIdx - 1;
                         break;
                     }
                     case START:
