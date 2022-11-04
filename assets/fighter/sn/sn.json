@@ -212,33 +212,33 @@
          "type":"neutral_gnd",
          "startupLag":225,
          "startupLagSpr":{
-            "sprite":"kngw.wsg",
-            "off_x":0,
+            "sprite":"sngw.wsg",
+            "off_x":-4,
             "off_y":0
          },
          "attack_frames":[
             {
                "duration":300,
                "atkSpr":{
-                  "sprite":"knga.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"snga.wsg",
+                  "off_x":-2,
+                  "off_y":3
                },
                "hitboxes":[
                   {
-                     "relativePos_x":14,
-                     "relativePos_y":7,
-                     "size_x":19,
-                     "size_y":11,
+                     "relativePos_x":9,
+                     "relativePos_y":16,
+                     "size_x":15,
+                     "size_y":9,
                      "damage":9,
                      "knockback_x":4000,
                      "knockback_y":-2000,
                      "hitstun":10,
                      "isProjectile":true,
                      "projectileSprite":{
-                        "sprite":"kngp.wsg"
+                        "sprite":"sngp.wsg"
                      },
-                     "projectileDuration":20,
+                     "projectileDuration":1000,
                      "projectileVelo_x":20480,
                      "projectileVelo_y":0,
                      "projectileAccel_x":0,
@@ -249,8 +249,8 @@
          ],
          "endLag":350,
          "endLagSpr":{
-            "sprite":"kngc.wsg",
-            "off_x":0,
+            "sprite":"sngc.wsg",
+            "off_x":-7,
             "off_y":0
          },
          "landing_lag":14
@@ -285,7 +285,7 @@
                      "projectileSprite":{
                         "sprite":"kngp.wsg"
                      },
-                     "projectileDuration":16,
+                     "projectileDuration":1000,
                      "projectileVelo_x":20480,
                      "projectileVelo_y":0,
                      "projectileAccel_x":0,
