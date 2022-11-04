@@ -54,7 +54,7 @@
       "off_x":-9,
       "off_y":0
    },
-   "stock_icn":"kicon.wsg",
+   "stock_icn":"sicon.wsg",
    "attacks":[
       {
          "type":"up_gnd",
