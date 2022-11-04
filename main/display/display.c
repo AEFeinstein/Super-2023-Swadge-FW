@@ -300,21 +300,21 @@ static void rotatePixel(int16_t* x, int16_t* y, int16_t rotateDeg, int16_t width
         // (x, y) -> (y, -x)
         int16_t tmp = wx;
         wx = wy;
-        wy = -tmp;
+        wy = width - 1 - (tmp + (width / 2)) - (width / 2);
         rotateDeg -= 270;
     }
     else if(rotateDeg >= 180)
     {
         // (x, y) -> (-x, -y)
-        wx = -wx;
-        wy = -wy;
+        wx = width - 1 - (wx + (width / 2)) - (width / 2);
+        wy = height - 1 - (wy + (height / 2)) - (height / 2);
         rotateDeg -= 180;
     }
     else if(rotateDeg >= 90)
     {
         // (x, y) -> (-y, x)
         int16_t tmp = wx;
-        wx = -wy;
+        wx = height - 1 - (wy + (height / 2)) - (height / 2);
         wy = tmp;
         rotateDeg -= 90;
     }
