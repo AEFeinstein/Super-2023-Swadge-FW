@@ -34,7 +34,7 @@ void picrossTutorialLoop(int64_t elapsedUs)
 {
     //user input
     //exit on hitting select
-    if((tut->btn & SELECT) && !(tut->prevBtn & SELECT))
+    if((tut->btn & (SELECT | BTN_B)) && !(tut->prevBtn & SELECT))
     {
         //by convention of the rest of the code base, freeing memory and going back to menu in different functions
         //(maybe that shouldnt be how it is *cough*)

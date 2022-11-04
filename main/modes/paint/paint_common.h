@@ -105,6 +105,9 @@
 // hold button for .3s to begin repeating
 #define BUTTON_REPEAT_TIME 300000
 
+// 10 seconds to go to gallery screensaver
+#define PAINT_SCREENSAVER_TIMEOUT 10000000
+
 #define BLINK_TIME_ON 500000
 #define BLINK_TIME_OFF 200000
 
@@ -275,6 +278,7 @@ typedef struct
     int32_t index;
 
     font_t toolbarFont;
+    wsg_t arrowWsg;
 
     // The save slot being displayed / shared
     uint8_t shareSaveSlot;
@@ -303,6 +307,7 @@ typedef struct
 
     // Time for the progress bar timer
     int64_t shareTime;
+    int64_t timeSincePacket;
 
     // True if we are the sender, false if not
     bool isSender;
@@ -326,6 +331,7 @@ typedef struct
 
     // Amount of time between each transition, or 0 for disabled
     int64_t gallerySpeed;
+    int32_t gallerySpeedIndex;
 
     // Reaining time that info text will be shown
     int64_t infoTimeRemaining;
@@ -334,6 +340,8 @@ typedef struct
     uint8_t gallerySlot;
 
     bool galleryLoadNew;
+    bool screensaverMode;
+    paintScreen_t returnScreen;
 
     uint8_t galleryScale;
 } paintGallery_t;
@@ -437,6 +445,9 @@ typedef struct
     uint8_t menuSelection, networkMenuSelection, settingsMenuSelection;
 
     bool eraseDataSelected, eraseDataConfirm;
+
+    int64_t idleTimer;
+    bool enableScreensaver;
 
     display_t* disp;
 

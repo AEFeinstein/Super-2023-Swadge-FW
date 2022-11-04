@@ -199,10 +199,10 @@ int abs(int j);
 
 static const char fl_title[]  = "Flyin Donut";
 static const char fl_flight_env[] = "Atrium Course";
-static const char fl_flight_invertY0_env[] = "[ ] Y Invert";
-static const char fl_flight_invertY1_env[] = "[*] Y Invert";
+static const char fl_flight_invertY0_env[] = "Y Invert: Off";
+static const char fl_flight_invertY1_env[] = "Y Invert: On";
 static const char fl_flight_perf[] = "Free Flight";
-static const char str_quit[] = "Back";
+static const char str_quit[] = "Exit";
 static const char str_high_scores[] = "High Scores";
 
 swadgeMode modeFlight =
