@@ -16,6 +16,15 @@ typedef struct {
     char initials[NUM_PLATFORMER_HIGH_SCORES][3];
 } platformerHighScores_t;
 
+typedef struct {
+    uint8_t maxLevelIndexUnlocked;
+    bool gameCleared;
+    bool oneCreditCleared;
+    bool bigScore;
+    bool fastTime;
+    bool biggerScore;
+} platformerUnlockables_t;
+
 //==============================================================================
 // Prototypes
 //==============================================================================

@@ -31,6 +31,9 @@
     gameData->checkpoint = 0;
     gameData->levelDeaths = 0;
     gameData->initialHp = 1;
+    gameData->debugMode = false;
+    gameData->continuesUsed = false;
+    gameData->inGameTimer = 0;
 }
 
  void initializeGameDataFromTitleScreen(gameData_t * gameData){
@@ -50,6 +53,8 @@
     gameData->currentBgm = 0;
     gameData->changeBgm = 0;
     gameData->initialHp = 1;
+    gameData->continuesUsed = (gameData->world == 1 && gameData->level == 1) ? false : true;
+    gameData->inGameTimer = 0;
 }
 
 void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData){
