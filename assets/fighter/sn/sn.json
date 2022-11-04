@@ -58,11 +58,11 @@
    "attacks":[
       {
          "type":"up_gnd",
-         "startupLag":100,
+         "startupLag":275,
          "startupLagSpr":{
-            "sprite":"kugw.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"sugw.wsg",
+            "off_x":-2,
+            "off_y":8
          },
          "onlyFirstHit":true,
          "iframe_timer":0,
@@ -70,50 +70,30 @@
             {
                "duration":275,
                "atkSpr":{
-                  "sprite":"kuga1.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"suga.wsg",
+                  "off_x":-1,
+                  "off_y":-22
                },
                "iframe_timer":0,
                "hitboxes":[
                   {
-                     "relativePos_x":-5,
-                     "relativePos_y":-6,
-                     "size_x":11,
-                     "size_y":11,
+                     "relativePos_x":4,
+                     "relativePos_y":-22,
+                     "size_x":13,
+                     "size_y":24,
                      "damage":9,
                      "knockback_x":1000,
                      "knockback_y":-8000,
                      "hitstun":10
                   }
                ]
-            },
-            {
-               "duration":250,
-               "atkSpr":{
-                  "sprite":"kuga2.wsg",
-                  "off_x":0,
-                  "off_y":0
-               },
-               "hitboxes":[
-                  {
-                     "relativePos_x":25,
-                     "relativePos_y":-7,
-                     "size_x":11,
-                     "size_y":11,
-                     "damage":12,
-                     "knockback_x":5000,
-                     "knockback_y":-10000,
-                     "hitstun":10
-                  }
-               ]
             }
          ],
-         "endLag":200,
+         "endLag":275,
          "endLagSpr":{
-            "sprite":"kugc.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"sugc.wsg",
+            "off_x":-4,
+            "off_y":7
          }
       },
       {
