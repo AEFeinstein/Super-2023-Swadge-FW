@@ -317,24 +317,24 @@
          "type":"front_air",
          "startupLag":175,
          "startupLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bfaw.wsg",
+            "off_x":-9,
+            "off_y":-7
          },
          "attack_frames":[
             {
                "duration":350,
                "atkSpr":{
-                  "sprite":"bid0.wsg",
+                  "sprite":"bfaa.wsg",
                   "off_x":0,
-                  "off_y":0
+                  "off_y":-4
                },
                "hitboxes":[
                   {
-                     "relativePos_x":29,
-                     "relativePos_y":10,
-                     "size_x":10,
-                     "size_y":10,
+                     "relativePos_x":23,
+                     "relativePos_y":2,
+                     "size_x":26,
+                     "size_y":16,
                      "damage":9,
                      "knockback_x":8000,
                      "knockback_y":-4000,
@@ -345,9 +345,9 @@
          ],
          "endLag":300,
          "endLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bfac.wsg",
+            "off_x":-3,
+            "off_y":-7
          },
          "landing_lag":12
       },
@@ -355,24 +355,24 @@
          "type":"back_air",
          "startupLag":300,
          "startupLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bbaw.wsg",
+            "off_x":-2,
+            "off_y":-3
          },
          "attack_frames":[
             {
                "duration":400,
                "atkSpr":{
-                  "sprite":"bid0.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"bbaa.wsg",
+                  "off_x":-19,
+                  "off_y":-4
                },
                "hitboxes":[
                   {
-                     "relativePos_x":-7,
-                     "relativePos_y":9,
-                     "size_x":12,
-                     "size_y":9,
+                     "relativePos_x":-19,
+                     "relativePos_y":14,
+                     "size_x":30,
+                     "size_y":11,
                      "damage":9,
                      "knockback_x":-9000,
                      "knockback_y":-4000,
@@ -383,9 +383,9 @@
          ],
          "endLag":275,
          "endLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bbac.wsg",
+            "off_x":-3,
+            "off_y":-7
          },
          "landing_lag":11
       },
