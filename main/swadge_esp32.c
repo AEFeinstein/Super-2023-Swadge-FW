@@ -747,7 +747,27 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 
                 if(!ignoreEvent && NULL != cSwadgeMode->fnButtonCallback)
                 {
-                    cSwadgeMode->fnButtonCallback(&bEvt);
+                    if ((bEvt.button & (bEvt.button - 1)) != 0)
+                    {
+                        // Multiple buttons were pressed at the same exact time
+                        uint16_t allButtons = bEvt.button;
+
+                        // Call the callback separately for each one
+                        for (uint16_t btn = UP; allButtons && btn <= SELECT; btn <<= 1)
+                        {
+                            if (allButtons & btn)
+                            {
+                                bEvt.button = btn;
+                                // clear this button from the remaining ones so we can exit earlier
+                                allButtons &= ~btn;
+                                cSwadgeMode->fnButtonCallback(&bEvt);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        cSwadgeMode->fnButtonCallback(&bEvt);
+                    }
                 }
             }
 
