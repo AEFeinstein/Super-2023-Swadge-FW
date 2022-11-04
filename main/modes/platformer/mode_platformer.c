@@ -43,7 +43,7 @@ static const paletteColor_t yellowColors[4] = {c220, c330, c440, c550};
 static const paletteColor_t greenColors[4] = {c020, c030, c040, c050};
 static const paletteColor_t blueColors[4] = {c002, c003, c004, c005};
 
-static const int16_t cheatCode[10] = {UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, BTN_B, BTN_A};
+static const int16_t cheatCode[11] = {UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, BTN_B, BTN_A, START};
 
 //==============================================================================
 // Functions Prototypes
