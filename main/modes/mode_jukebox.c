@@ -25,10 +25,12 @@
 #include "swadge_util.h"
 
 #include "fighter_music.h"
+#include "fighter_mp_result.h"
 #include "mode_fighter.h"
 #include "mode_tiltrads.h"
 #include "mode_platformer.h"
 #include "mode_jumper.h"
+#include "mode_tunernome.h"
 #include "mode_credits.h"
 #include "mode_test.h"
 
@@ -163,6 +165,7 @@ static const jukeboxLedDanceArg jukeboxLedDances[] =
 
 static const jukeboxSong fighterMusic[] =
 {
+    {.name = "Game", .song = &fighter_music},
 };
 
 static const jukeboxSong tiltradsMusic[] =
@@ -180,14 +183,21 @@ static const jukeboxSong platformerMusic[] =
 
 static const jukeboxSong jumperMusic[] =
 {
+    {.name = "Death", .song = &jumpDeathTune},
+    {.name = "Game Over", .song = &jumpGameOverTune},
+    {.name = "Winner", .song = &jumpWinTune},
+    {.name = "Game", .song = &jumpGameLoop},
+    {.name = "Perfect Tune", .song = &jumpPerfectTune},
 };
 
 static const jukeboxSong creditsMusic[] =
 {
+    {.name = "Credits", .song = &creditsSong},
 };
 
 static const jukeboxSong testMusic[] =
 {
+    {.name = "BlackDog", .song = &BlackDog}
 };
 
 static const jukeboxCategory musicCategories[] =
@@ -202,6 +212,8 @@ static const jukeboxCategory musicCategories[] =
 
 static const jukeboxSong fighterSfx[] =
 {
+    {.name = "Victory", .song = &fVictoryJingle},
+    {.name = "Loss", .song = &fLossJingle},
 };
 
 static const jukeboxSong tiltradsSfx[] =
@@ -252,6 +264,18 @@ static const jukeboxSong platformerSfx[] =
 
 static const jukeboxSong jumperSfx[] =
 {
+    {.name = "Jump", .song = &jumpPlayerJump},
+    {.name = "Collect", .song = &jumperPlayerCollect},
+    {.name = "Broke Combo", .song = &jumpPlayerBrokeCombo},
+    {.name = "Countdown", .song = &jumpCountdown},
+    {.name = "EvilDonut Jump", .song = &jumpEvilDonutJump},
+    {.name = "Blump Jump", .song = &jumpBlumpJump},
+};
+
+static const jukeboxSong tunernomesfx[] =
+{
+    {.name = "Primary", .song = &metronome_primary},
+    {.name = "Secondary", .song = &metronome_secondary},
 };
 
 static const jukeboxCategory sfxCategories[] =
@@ -260,6 +284,7 @@ static const jukeboxCategory sfxCategories[] =
     {.categoryName = "Tiltrads", .songs = tiltradsSfx},
     {.categoryName = "Swadge Land", .songs = platformerSfx},
     {.categoryName = "Donut Jump", .songs = jumperSfx},
+    {.categoryName = "Tunernome", .songs = tunernomesfx},
 };
 
 /*============================================================================

@@ -360,7 +360,7 @@ static int TUNER_FLAT_THRES_X;
 static int TUNER_SHARP_THRES_X;
 static int TUNER_THRES_Y;
 
-static const timeSignature tSigs[] =
+const timeSignature tSigs[] =
 {
     {.top = 4, .bottom = 4},
     {.top = 2, .bottom = 2},
@@ -371,7 +371,7 @@ static const timeSignature tSigs[] =
     {.top = 3, .bottom = 4},
 };
 
-static const song_t metronome_primary =
+const song_t metronome_primary =
 {
     .notes =
     {
@@ -381,7 +381,7 @@ static const song_t metronome_primary =
     .shouldLoop = false
 };
 
-static const song_t metronome_secondary =
+const song_t metronome_secondary =
 {
     .notes =
     {

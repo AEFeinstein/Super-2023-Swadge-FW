@@ -108,7 +108,7 @@ static const paletteColor_t creditColors[] =
     c000,
 };
 
-static const song_t creditsSong =
+const song_t creditsSong =
 {
     .notes =
     {
