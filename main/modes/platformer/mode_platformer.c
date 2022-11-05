@@ -803,6 +803,18 @@ void detectBgmChange(platformer_t *self){
             }
             break;
 
+        case BGM_UNDERGROUND:
+            if(self->gameData.currentBgm != BGM_UNDERGROUND){
+                buzzer_play_bgm(&bgmUnderground);
+            }
+            break;
+
+        case BGM_FORTRESS:
+            if(self->gameData.currentBgm != BGM_FORTRESS){
+                buzzer_play_bgm(&bgmCastle);
+            }
+            break;
+
         default:
             break;
     }
