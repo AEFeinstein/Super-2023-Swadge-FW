@@ -314,6 +314,14 @@ void updateGame(platformer_t *self)
         self->gameData.frameCount = 0;
         self->gameData.countdown--;
         self->gameData.inGameTimer++;
+
+        if(self->gameData.countdown < 10){
+            buzzer_play_bgm(&sndOuttaTime);
+        }
+
+        if(self->gameData.countdown < 0){
+            killPlayer(self->entityManager.playerEntity);
+        }
     }
 
     updateComboTimer(&(self->gameData));
@@ -347,7 +355,7 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
     drawText(d, font, c555, coinStr, 160, 16);
     drawText(d, font, c555, scoreStr, 8, 16);
     drawText(d, font, c555, levelStr, 152, 2);
-    drawText(d, font, c555, timeStr, 220, 16);
+    drawText(d, font, (gameData->countdown > 30) ? c555 : redColors[(gameData->frameCount >> 3) % 4], timeStr, 220, 16);
 
     if(gameData->comboTimer == 0){
         return;
@@ -854,6 +862,10 @@ void updateDead(platformer_t *self){
     drawTileMap(self->disp, &(self->tilemap));
     drawEntities(self->disp, &(self->entityManager));
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
+
+    if(self->gameData.countdown < 0){
+        drawText(self->disp, &(self->radiostars), c555, "-Time Up!-", 80, 128);
+    }
 }
 
 
@@ -885,6 +897,7 @@ void updateGameOver(platformer_t *self){
 
 void changeStateGameOver(platformer_t *self){
     self->gameData.frameCount = 0;
+    buzzer_play_bgm(&bgmGameOver);
     self->update=&updateGameOver;    
 }
 
@@ -1132,7 +1145,7 @@ void changeStateNameEntry(platformer_t *self){
         return;
     }
 
-    
+    buzzer_play_bgm(&bgmNameEntry);
     self->menuSelection = self->gameData.initials[0];
     self->update=&updateNameEntry;
 }

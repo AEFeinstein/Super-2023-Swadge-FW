@@ -1809,3 +1809,17 @@ void powerUpCollisionHandler(entity_t *self, entity_t *other)
         }
     }
 }
+
+void killPlayer(entity_t *self)
+{
+    self->hp = 0;
+    updateLedsHpMeter(self->entityManager, self->gameData);
+    
+    self->updateFunction = &updateEntityDead;
+    self->type = ENTITY_DEAD;
+    self->xspeed = 0;
+    self->yspeed = -60;
+    self->spriteIndex = SP_PLAYER_HURT;
+    self->gameData->changeState = ST_DEAD;
+    self->falling = true;
+}
