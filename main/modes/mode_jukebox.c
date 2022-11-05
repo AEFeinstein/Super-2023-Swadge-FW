@@ -467,9 +467,6 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
  */
 void  jukeboxMainLoop(int64_t elapsedUs)
 {
-    jukeboxLedDances[jukebox->danceIdx].func(elapsedUs, jukeboxLedDances[jukebox->danceIdx].arg, jukebox->resetDance);
-    jukebox->resetDance = false;
-
     jukebox->disp->clearPx();
     switch(jukebox->screen)
     {
@@ -480,6 +477,9 @@ void  jukeboxMainLoop(int64_t elapsedUs)
         }
         case JUKEBOX_PLAYER:
         {
+            jukeboxLedDances[jukebox->danceIdx].func(elapsedUs, jukeboxLedDances[jukebox->danceIdx].arg, jukebox->resetDance);
+            jukebox->resetDance = false;
+
             fillDisplayArea(jukebox->disp, 0, 0, jukebox->disp->w, jukebox->disp->h, c010);
 
             // Plot the button funcs
