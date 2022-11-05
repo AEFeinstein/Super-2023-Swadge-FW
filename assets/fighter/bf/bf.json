@@ -268,48 +268,48 @@
       },
       {
          "type":"neutral_air",
-         "startupLag":225,
+         "startupLag":175,
          "startupLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bnaw.wsg",
+            "off_x":-19,
+            "off_y":-6
          },
          "attack_frames":[
             {
-               "duration":300,
+               "duration":175,
                "atkSpr":{
-                  "sprite":"bid0.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"bnaa.wsg",
+                  "off_x":-4,
+                  "off_y":-9
                },
                "hitboxes":[
                   {
-                     "relativePos_x":14,
-                     "relativePos_y":7,
-                     "size_x":19,
-                     "size_y":11,
+                     "relativePos_x":18,
+                     "relativePos_y":23,
+                     "size_x":7,
+                     "size_y":12,
                      "damage":9,
                      "knockback_x":4000,
                      "knockback_y":-2000,
                      "hitstun":10,
                      "isProjectile":true,
                      "projectileSprite":{
-                        "sprite":"bid0.wsg"
+                        "sprite":"bnap.wsg"
                      },
-                     "projectileDuration":16,
-                     "projectileVelo_x":20480,
-                     "projectileVelo_y":0,
+                     "projectileDuration":3000,
+                     "projectileVelo_x":10000,
+                     "projectileVelo_y":-10000,
                      "projectileAccel_x":0,
-                     "projectileAccel_y":0
+                     "projectileAccel_y":8192
                   }
                ]
             }
          ],
-         "endLag":350,
+         "endLag":175,
          "endLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bnac.wsg",
+            "off_x":-5,
+            "off_y":-10
          },
          "landing_lag":14
       },
