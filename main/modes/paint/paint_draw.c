@@ -198,7 +198,7 @@ void paintDrawScreenSetup(display_t* disp)
 
     paintLoadIndex(&paintState->index);
 
-    if (paintHelp == NULL && paintGetAnySlotInUse(paintState->index))
+    if (paintHelp == NULL && paintGetAnySlotInUse(paintState->index) && paintGetRecentSlot(paintState->index) != PAINT_SAVE_SLOTS)
     {
         // If there's a saved image, load that (but not in the tutorial)
         paintState->selectedSlot = paintGetRecentSlot(paintState->index);
@@ -483,8 +483,16 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
             paintState->aPress = false;
         }
 
-        if (paintState->moveX || paintState->moveY)
+        if (paintState->moveX || paintState->moveY || paintState->unhandledButtons)
         {
+            bool clearMovement = false;
+
+            if (!paintState->moveX && !paintState->moveY)
+            {
+                paintHandleDpad(paintState->unhandledButtons);
+                clearMovement = true;
+            }
+
             paintState->btnHoldTime += elapsedUs;
             if (paintState->firstMove || paintState->btnHoldTime >= BUTTON_REPEAT_TIME)
             {
@@ -492,6 +500,13 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                 paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
 
                 paintState->firstMove = false;
+            }
+
+            paintState->unhandledButtons = 0;
+            if (clearMovement)
+            {
+                paintState->moveX = 0;
+                paintState->moveY = 0;
             }
         }
     }
@@ -1414,30 +1429,12 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
             }
 
             case UP:
-            {
-                paintState->firstMove = true;
-                paintState->moveY = -1;
-                break;
-            }
-
             case DOWN:
-            {
-                paintState->firstMove = true;
-                paintState->moveY = 1;
-                break;
-            }
-
             case LEFT:
-            {
-                paintState->firstMove = true;
-                paintState->moveX = -1;
-                break;
-            }
-
             case RIGHT:
             {
+                paintHandleDpad(evt->state & (UP | DOWN | LEFT | RIGHT));
                 paintState->firstMove = true;
-                paintState->moveX = 1;
                 break;
             }
 
@@ -1482,29 +1479,10 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
 
             case UP:
             case DOWN:
-            {
-                // Stop moving vertically
-                paintState->moveY = 0;
-
-                // Reset the button hold time, but only if we're not holding another direction
-                // This lets you make turns quickly instead of waiting for the repeat timeout in the middle
-                if (!paintState->moveX)
-                {
-                    paintState->btnHoldTime = 0;
-                }
-                break;
-            }
-
             case LEFT:
             case RIGHT:
             {
-                // Stop moving horizontally
-                paintState->moveX = 0;
-
-                if (!paintState->moveY)
-                {
-                    paintState->btnHoldTime = 0;
-                }
+                paintHandleDpad(evt->state & (UP | DOWN | LEFT | RIGHT));
                 break;
             }
 
@@ -1512,6 +1490,38 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
             // This is handled in BTN_MODE_SELECT already
             break;
         }
+    }
+}
+
+void paintHandleDpad(uint16_t state)
+{
+    paintState->unhandledButtons |= state;
+
+    if (!(state & UP) != !(state & DOWN))
+    {
+        // Up or down, but not both, are pressed
+        paintState->moveY = (state & DOWN) ? 1 : -1;
+    }
+    else
+    {
+        paintState->moveY = 0;
+    }
+
+    if (!(state & LEFT) != !(state & RIGHT))
+    {
+        // Left or right, but not both, are pressed
+        paintState->moveX = (state & RIGHT) ? 1 : -1;
+    }
+    else
+    {
+        paintState->moveX = 0;
+    }
+
+    if (!state)
+    {
+        // Reset the button hold time if all D-pad buttons are released
+        // This lets you make turns quickly instead of waiting for the repeat timeout in the middle
+        paintState->btnHoldTime = 0;
     }
 }
 
