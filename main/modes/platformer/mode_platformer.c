@@ -955,6 +955,10 @@ void updateLevelClear(platformer_t *self){
                 
                 if(!self->gameData.continuesUsed){
                     self->unlockables.oneCreditCleared = true;
+
+                    if(self->gameData.inGameTimer < FAST_TIME) {
+                        self->unlockables.fastTime = true;
+                    }
                 }
 
                 if(self->gameData.score >= BIG_SCORE) {
@@ -963,10 +967,6 @@ void updateLevelClear(platformer_t *self){
 
                 if(self->gameData.score >= BIGGER_SCORE) {
                     self->unlockables.biggerScore = true;
-                }
-
-                if(self->gameData.inGameTimer < FAST_TIME) {
-                    self->unlockables.fastTime = true;
                 }
 
                 changeStateGameClear(self);
