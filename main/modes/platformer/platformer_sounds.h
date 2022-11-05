@@ -2268,4 +2268,111 @@ static const song_t sndTally =
     .shouldLoop = false
 };
 
+static const song_t bgmNameEntry =
+{
+    .notes = 
+    {
+        {.note = F_SHARP_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_SHARP_2, .timeMs = 187},
+        {.note = C_SHARP_3, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = F_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = G_SHARP_3, .timeMs = 187},
+        {.note = F_SHARP_3, .timeMs = 187},
+        {.note = A_SHARP_3, .timeMs = 187},
+        {.note = F_SHARP_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_SHARP_2, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = F_SHARP_3, .timeMs = 187},
+        {.note = A_3, .timeMs = 187},
+        {.note = B_2, .timeMs = 187},
+        {.note = B_3, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = A_2, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = C_SHARP_4, .timeMs = 187},
+        {.note = A_2, .timeMs = 187},
+        {.note = G_3, .timeMs = 187},
+        {.note = C_SHARP_4, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = G_SHARP_4, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = D_4, .timeMs = 187},
+        {.note = E_2, .timeMs = 187},
+        {.note = F_SHARP_4, .timeMs = 187},
+        {.note = A_2, .timeMs = 187},
+        {.note = E_4, .timeMs = 187},
+        {.note = C_SHARP_4, .timeMs = 187},
+        {.note = G_SHARP_2, .timeMs = 187},
+        {.note = D_SHARP_4, .timeMs = 187},
+        {.note = C_4, .timeMs = 187},
+        {.note = G_2, .timeMs = 187},
+        {.note = D_4, .timeMs = 187}
+    },
+    .numNotes = 64,
+    .shouldLoop = true
+};
+
+static const song_t bgmGameOver =
+{
+    .notes = 
+    {
+        {A_SHARP_6, 80},
+        {B_6, 80},
+        {B_7, 80},
+        {SILENCE, 80},
+        {F_6, 80},
+        {F_SHARP_6, 80},
+        {G_6, 80},
+        {SILENCE, 80},
+        {D_6, 80},
+        {D_SHARP_6, 80},
+        {E_6, 80},
+        {C_6, 160}
+    },
+    .numNotes = 12,
+    .shouldLoop = false
+};
+
+static const song_t sndOuttaTime=
+{
+    .notes = 
+    {
+        {C_6, 80},
+        {D_SHARP_6, 80},
+        {F_SHARP_6, 80},
+        {SILENCE, 80}
+    },
+    .numNotes = 4,
+    .shouldLoop = true
+};
+
 #endif
