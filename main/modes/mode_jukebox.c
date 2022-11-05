@@ -21,6 +21,7 @@
 #include "mode_main_menu.h"
 #include "musical_buzzer.h"
 #include "settingsManager.h"
+#include "touch_sensor.h"
 #include "swadgeMode.h"
 #include "swadge_util.h"
 #include "mode_dance.h"
@@ -48,6 +49,9 @@
 
 #define RGB_2_ARG(r,g,b) ((((r)&0xFF) << 16) | (((g)&0xFF) << 8) | (((b)&0xFF)))
 
+/// Helper macro to return an integer clamped within a range (MIN to MAX)
+#define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
+
 /*==============================================================================
  * Enums
  *============================================================================*/
@@ -62,6 +66,8 @@ typedef enum
 /*==============================================================================
  * Prototypes
  *============================================================================*/
+
+void  jukeboxTouchCallback(touch_event_t* evt);
 
 void  jukeboxEnterMode(display_t* disp);
 void  jukeboxExitMode(void);
@@ -84,6 +90,9 @@ typedef struct
     font_t radiostars;
     font_t mm;
     wsg_t arrow;
+
+    int32_t touchPosition;
+    int32_t touchIntensity;
 
     uint8_t danceIdx;
     bool resetDance;
@@ -130,7 +139,7 @@ swadgeMode modeJukebox =
     .fnEnterMode = jukeboxEnterMode,
     .fnExitMode = jukeboxExitMode,
     .fnButtonCallback = jukeboxButtonCallback,
-    .fnTouchCallback = NULL,
+    .fnTouchCallback = jukeboxTouchCallback,
     .fnMainLoop = jukeboxMainLoop,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
@@ -351,6 +360,19 @@ void  jukeboxExitMode(void)
     freeWsg(&jukebox->arrow);
 
     free(jukebox);
+}
+
+/**
+ * This function is called when a button press is pressed. Buttons are
+ * handled by interrupts and queued up for this callback, so there are no
+ * strict timing restrictions for this function.
+ *
+ * @param evt The button event that occurred
+ */
+void  jukeboxTouchCallback(touch_event_t* evt)
+{
+    // jukebox->touchHeld = evt->state != 0;
+    // jukebox->touchPosition = roundf((evt->position * BAR_X_WIDTH) / 255);
 }
 
 /**
@@ -581,7 +603,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                     text,
                     (jukebox->disp->w - width) / 2,
                     yOff);
-                    
+
             // Draw the mode name
             snprintf(text, sizeof(text), "Mode: %s", categoryName);
             width = textWidth(&(jukebox->radiostars), text);
@@ -617,7 +639,11 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                         false, false, 90);
             }
 
-            
+            // Touch Controls?
+            getTouchCentroid(&jukebox->touchPosition, &jukebox->touchIntensity);
+            jukebox->touchPosition = (jukebox->touchPosition * jukebox->disp->w) / 1023;
+            jukebox->touchPosition = CLAMP(jukebox->touchPosition, 0,
+                                        jukebox->disp->w - 1);
 
             // Warn the user that the swadge is muted, if that's the case
             if(jukebox->inMusicSubmode)
