@@ -539,25 +539,25 @@
          "type":"down_air",
          "startupLag":225,
          "startupLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bdaw.wsg",
+            "off_x":-6,
+            "off_y":-11
          },
          "attack_frames":[
             {
                "duration":550,
                "atkSpr":{
-                  "sprite":"bid0.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"bdaa.wsg",
+                  "off_x":-3,
+                  "off_y":-6
                },
                "velo_y":10000,
                "hitboxes":[
                   {
-                     "relativePos_x":9,
-                     "relativePos_y":22,
-                     "size_x":15,
-                     "size_y":14,
+                     "relativePos_x":-3,
+                     "relativePos_y":12,
+                     "size_x":25,
+                     "size_y":39,
                      "damage":9,
                      "knockback_x":500,
                      "knockback_y":8000,
@@ -568,9 +568,9 @@
          ],
          "endLag":350,
          "endLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bdac.wsg",
+            "off_x":-5,
+            "off_y":-3
          },
          "landing_lag":14
       }
