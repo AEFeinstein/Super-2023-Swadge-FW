@@ -245,7 +245,7 @@ static const jukeboxSong platformerSfx[] =
     {.name = "Menu Select", .song = &sndMenuSelect},
     {.name = "Menu Confirm", .song = &sndMenuConfirm},
     {.name = "Menu Deny", .song = &sndMenuDeny},
-    {.name = "Game Start (Unused)", .song = &sndGameStart},
+    {.name = "Start (Unused)", .song = &sndGameStart},
     {.name = "Jump 1", .song = &sndJump1},
     {.name = "Jump 2", .song = &sndJump2},
     {.name = "Jump 3", .song = &sndJump3},
@@ -304,7 +304,7 @@ void  jukeboxEnterMode(display_t* disp)
     loadFont("radiostars.font", &jukebox->radiostars);
     loadFont("mm.font", &jukebox->mm);
 
-    loadWsg("arrow21.wsg", &jukebox->arrow);
+    loadWsg("arrow12.wsg", &jukebox->arrow);
 
     jukebox->menu = initMeleeMenu(str_jukebox, &(jukebox->mm), jukeboxMainMenuCb);
 
@@ -551,9 +551,9 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             // Draw the mode name
             char text[32];
             snprintf(text, sizeof(text), "Mode: %s", categoryName);
-            int16_t width = textWidth(&(jukebox->mm), text);
-            int16_t yOff = (jukebox->disp->h - jukebox->mm.h) / 2 - jukebox->mm.h * 2;
-            drawText(jukebox->disp, &(jukebox->mm), c555,
+            int16_t width = textWidth(&(jukebox->radiostars), text);
+            int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 2;
+            drawText(jukebox->disp, &(jukebox->radiostars), c555,
                     text,
                     (jukebox->disp->w - width) / 2,
                     yOff);
@@ -567,9 +567,9 @@ void  jukeboxMainLoop(int64_t elapsedUs)
 
             // Draw the song name
             snprintf(text, sizeof(text), "%s: %s", songTypeName, songName);
-            yOff = (jukebox->disp->h - jukebox->mm.h) / 2 + jukebox->mm.h * 2;
-            width = textWidth(&(jukebox->mm), text);
-            drawText(jukebox->disp, &(jukebox->mm), c555,
+            yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 + jukebox->radiostars.h * 2;
+            width = textWidth(&(jukebox->radiostars), text);
+            drawText(jukebox->disp, &(jukebox->radiostars), c555,
                     text,
                     (jukebox->disp->w - width) / 2,
                     yOff);
@@ -618,6 +618,8 @@ void  jukeboxMainLoop(int64_t elapsedUs)
 
 void setJukeboxMainMenu(void)
 {
+    buzzer_stop();
+
     resetMeleeMenu(jukebox->menu, str_jukebox, jukeboxMainMenuCb);
     addRowToMeleeMenu(jukebox->menu, str_bgm);
     addRowToMeleeMenu(jukebox->menu, str_sfx);
