@@ -231,39 +231,49 @@
       },
       {
          "type":"neutral_gnd",
-         "startupLag":225,
+         "startupLag":175,
          "startupLagSpr":{
             "sprite":"bngw.wsg",
-            "off_x":-1,
+            "off_x":-19,
             "off_y":-3
          },
          "attack_frames":[
             {
-               "duration":300,
+               "duration":175,
                "atkSpr":{
                   "sprite":"bnga.wsg",
-                  "off_x":-2,
-                  "off_y":6
+                  "off_x":-4,
+                  "off_y":-8
                },
                "hitboxes":[
                   {
-                     "relativePos_x":29,
-                     "relativePos_y":9,
-                     "size_x":20,
-                     "size_y":17,
+                     "relativePos_x":18,
+                     "relativePos_y":23,
+                     "size_x":7,
+                     "size_y":12,
                      "damage":9,
                      "knockback_x":4000,
                      "knockback_y":-2000,
-                     "hitstun":10
+                     "hitstun":10,
+                     "isProjectile":true,
+                     "projectileSprite":{
+                        "sprite":"bnap.wsg"
+                     },
+                     "projectileDuration":3000,
+                     "projectileVelo_x":10000,
+                     "projectileVelo_y":-10000,
+                     "projectileAccel_x":0,
+                     "projectileAccel_y":8192,
+                     "projectilePassThru":true
                   }
                ]
             }
          ],
-         "endLag":350,
+         "endLag":175,
          "endLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"bngc.wsg",
+            "off_x":-5,
+            "off_y":-7
          },
          "landing_lag":14
       },
@@ -301,7 +311,8 @@
                      "projectileVelo_x":10000,
                      "projectileVelo_y":-10000,
                      "projectileAccel_x":0,
-                     "projectileAccel_y":8192
+                     "projectileAccel_y":8192,
+                     "projectilePassThru":true
                   }
                ]
             }
