@@ -536,7 +536,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
 
             // Draw the light dance name
             char text[32];
-            snprintf(text, sizeof(text), "Light Dance: %s", jukeboxLedDances[jukebox->danceIdx].name);
+            snprintf(text, sizeof(text), "LED Dance: %s", jukeboxLedDances[jukebox->danceIdx].name);
             int16_t width = textWidth(&(jukebox->radiostars), text);
             drawText(jukebox->disp, &(jukebox->radiostars), c444,
                     text,
@@ -591,16 +591,6 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                 songTypeName = "SFX";
                 numSongs = sfxCategories[jukebox->categoryIdx].numSongs;
             }
-
-            // Draw the light mode name
-            char text[32];
-            snprintf(text, sizeof(text), "Led Dance: %s", jukeboxLedDances[jukebox->danceIdx].name);
-            int16_t width = textWidth(&(jukebox->radiostars), text);
-            int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 5;
-            drawText(jukebox->disp, &(jukebox->radiostars), c555,
-                    text,
-                    (jukebox->disp->w - width) / 2,
-                    yOff);
 
             // Draw the mode name
             snprintf(text, sizeof(text), "Mode: %s", categoryName);
