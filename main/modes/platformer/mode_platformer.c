@@ -1033,10 +1033,18 @@ void updateGameClear(platformer_t *self){
 
 void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     drawPlatformerHud(d, font, gameData);
+
+    drawText(d, font, c555, "Congratulations!", 24, 48);
+    drawText(d, font, c555, "You've completed your", 8, 96);
+    drawText(d, font, c555, "trip across Swadge Land!", 8, 112);
+    drawText(d, font, c555, "Bonus 100000pts per life!", 8, 160);
+
+    /*
     drawText(d, font, c555, "Thanks for playing.", 24, 48);
     drawText(d, font, c555, "Many more battle scenes", 8, 96);
     drawText(d, font, c555, "will soon be available!", 8, 112);
     drawText(d, font, c555, "Bonus 100000pts per life!", 8, 160);
+    */
 }
 
 void initializePlatformerHighScores(platformer_t* self){
