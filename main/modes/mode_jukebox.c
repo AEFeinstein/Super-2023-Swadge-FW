@@ -43,8 +43,6 @@
 
 #define CORNER_OFFSET 12
 
-/// Helper macro to return an integer clamped within a range (MIN to MAX)
-// #define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
 #define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
 /*==============================================================================
@@ -176,17 +174,17 @@ static const jukeboxSong tiltradsMusic[] =
 
 static const jukeboxSong platformerMusic[] =
 {
-    {.name = "Demagio", .song = &bgmDemagio},
     {.name = "Intro", .song = &bgmIntro},
+    {.name = "Demagio", .song = &bgmDemagio},
     {.name = "Smooth", .song = &bgmSmooth},
 };
 
 static const jukeboxSong jumperMusic[] =
 {
+    {.name = "Game", .song = &jumpGameLoop},
     {.name = "Death", .song = &jumpDeathTune},
     {.name = "Game Over", .song = &jumpGameOverTune},
     {.name = "Winner", .song = &jumpWinTune},
-    {.name = "Game", .song = &jumpGameLoop},
     {.name = "Perfect Tune", .song = &jumpPerfectTune},
 };
 
@@ -197,7 +195,7 @@ static const jukeboxSong creditsMusic[] =
 
 static const jukeboxSong testMusic[] =
 {
-    {.name = "BlackDog", .song = &BlackDog}
+    {.name = "Black Dog", .song = &BlackDog}
 };
 
 static const jukeboxCategory musicCategories[] =
@@ -218,7 +216,7 @@ static const jukeboxSong fighterSfx[] =
 
 static const jukeboxSong tiltradsSfx[] =
 {
-    {.name = "Game Start Sting", .song = &gameStartSting},
+    {.name = "Game Start", .song = &gameStartSting},
     {.name = "Line 1", .song = &lineOneSFX},
     {.name = "Line 2", .song = &lineTwoSFX},
     {.name = "Line 3", .song = &lineThreeSFX},
@@ -235,11 +233,11 @@ static const jukeboxSong tiltradsSfx[] =
     {.name = "Line 14", .song = &lineFourteenSFX},
     {.name = "Line 15", .song = &lineFifteenSFX},
     {.name = "Line 16", .song = &lineSixteenSFX},
-    {.name = "Single Line Clear", .song = &singleLineClearSFX},
-    {.name = "Double Line Clear", .song = &doubleLineClearSFX},
-    {.name = "Triple Line Clear", .song = &tripleLineClearSFX},
-    {.name = "Quadruple Line Clear", .song = &quadLineClearSFX},
-    {.name = "Game Over Sting", .song = &gameOverSting},
+    {.name = "1-Line Clear", .song = &singleLineClearSFX},
+    {.name = "2-Line Clear", .song = &doubleLineClearSFX},
+    {.name = "3-Line Clear", .song = &tripleLineClearSFX},
+    {.name = "4-Line Clear", .song = &quadLineClearSFX},
+    {.name = "Game Over", .song = &gameOverSting},
 };
 
 static const jukeboxSong platformerSfx[] =
@@ -267,9 +265,9 @@ static const jukeboxSong jumperSfx[] =
     {.name = "Jump", .song = &jumpPlayerJump},
     {.name = "Collect", .song = &jumperPlayerCollect},
     {.name = "Broke Combo", .song = &jumpPlayerBrokeCombo},
-    {.name = "Countdown", .song = &jumpCountdown},
     {.name = "EvilDonut Jump", .song = &jumpEvilDonutJump},
     {.name = "Blump Jump", .song = &jumpBlumpJump},
+    {.name = "Countdown", .song = &jumpCountdown},
 };
 
 static const jukeboxSong tunernomesfx[] =
