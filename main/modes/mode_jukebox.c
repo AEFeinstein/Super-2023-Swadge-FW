@@ -355,6 +355,78 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                         setJukeboxMainMenu();
                         break;
                     }
+                    case UP:
+                    {
+                        uint8_t length;
+                        if(jukebox->inMusicSubmode)
+                        {
+                            length = lengthof(musicCategories);
+                        }
+                        else
+                        {
+                            length = lengthof(sfxCategories);
+                        }
+
+                        if(jukebox->categoryIdx == 0)
+                        {
+                            jukebox->categoryIdx = length;
+                        }
+                        jukebox->categoryIdx = jukebox->categoryIdx - 1;
+
+                        jukebox->songIdx = 0;
+                        break;
+                    }
+                    case DOWN:
+                    {
+                        uint8_t length;
+                        if(jukebox->inMusicSubmode)
+                        {
+                            length = lengthof(musicCategories);
+                        }
+                        else
+                        {
+                            length = lengthof(sfxCategories);
+                        }
+
+                        jukebox->categoryIdx = (jukebox->categoryIdx + 1) % length;
+
+                        jukebox->songIdx = 0;
+                        break;
+                    }
+                    case LEFT:
+                    {
+                        uint8_t length;
+                        if(jukebox->inMusicSubmode)
+                        {
+                            length = lengthof(musicCategories[jukebox->categoryIdx].songs);
+                        }
+                        else
+                        {
+                            length = lengthof(sfxCategories[jukebox->categoryIdx].songs);
+                        }
+
+                        if(jukebox->songIdx == 0)
+                        {
+                            jukebox->songIdx = length;
+                        }
+                        jukebox->songIdx = jukebox->songIdx - 1;
+                        break;
+                    }
+                    case RIGHT:
+                    {
+                        uint8_t length;
+                        if(jukebox->inMusicSubmode)
+                        {
+                            length = lengthof(musicCategories[jukebox->categoryIdx].songs);
+                        }
+                        else
+                        {
+                            length = lengthof(sfxCategories[jukebox->categoryIdx].songs);
+                        }
+
+                        jukebox->songIdx = (jukebox->songIdx + 1) % length;
+                        break;
+                    }
                     default:
                     {
                         break;
@@ -467,7 +539,6 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                     false, false, 180);
 
             // Draw the song name
-
             snprintf(text, sizeof(text), "%s: %s", songTypeName, songName);
             yOff = (jukebox->disp->h - jukebox->mm.h) / 2 + jukebox->mm.h * 2;
             width = textWidth(&(jukebox->mm), text);
@@ -617,8 +688,6 @@ void jukeboxDanceNone(uint32_t tElapsedUs __attribute__((unused)),
  */
 void jukeboxSelectPrevDance(void)
 {
-    uint8_t length = lengthof(jukeboxLedDances);
-
     if (jukebox->danceIdx > 0)
     {
         jukebox->danceIdx--;
