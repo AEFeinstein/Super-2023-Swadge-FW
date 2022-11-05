@@ -22,9 +22,9 @@
 #include "mode_main_menu.h"
 #include "musical_buzzer.h"
 #include "settingsManager.h"
-#include "touch_sensor.h"
 #include "swadgeMode.h"
 #include "swadge_util.h"
+#include "touch_sensor.h"
 
 #include "fighter_music.h"
 #include "fighter_mp_result.h"
@@ -66,11 +66,10 @@ typedef enum
  * Prototypes
  *============================================================================*/
 
-void  jukeboxTouchCallback(touch_event_t* evt);
-
 void  jukeboxEnterMode(display_t* disp);
 void  jukeboxExitMode(void);
 void  jukeboxButtonCallback(buttonEvt_t* evt);
+void  jukeboxTouchCallback(touch_event_t* evt);
 void  jukeboxMainLoop(int64_t elapsedUs);
 void  jukeboxMainMenuCb(const char* opt);
 
@@ -355,19 +354,6 @@ void  jukeboxExitMode(void)
 }
 
 /**
- * This function is called when a button press is pressed. Buttons are
- * handled by interrupts and queued up for this callback, so there are no
- * strict timing restrictions for this function.
- *
- * @param evt The button event that occurred
- */
-void  jukeboxTouchCallback(touch_event_t* evt)
-{
-    jukebox->touchHeld = evt->state != 0;
-    // jukebox->touchPosition = roundf((evt->position * BAR_X_WIDTH) / 255);
-}
-
-/**
  * @brief Button callback function
  *
  * @param evt The button event that occurred
@@ -505,6 +491,19 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
 }
 
 /**
+ * This function is called when a button press is pressed. Buttons are
+ * handled by interrupts and queued up for this callback, so there are no
+ * strict timing restrictions for this function.
+ *
+ * @param evt The button event that occurred
+ */
+void  jukeboxTouchCallback(touch_event_t* evt)
+{
+    jukebox->touchHeld = evt->state != 0;
+    // jukebox->touchPosition = roundf((evt->position * BAR_X_WIDTH) / 255);
+}
+
+/**
  * Update the display by drawing the current state of affairs
  */
 void  jukeboxMainLoop(int64_t elapsedUs)
@@ -634,15 +633,6 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                         false, false, 90);
             }
 
-            // Touch Controls
-            if(jukebox->touchHeld)
-            {
-                getTouchCentroid(&jukebox->touchPosition, &jukebox->touchIntensity);
-                jukebox->touchPosition = (jukebox->touchPosition * MAX_LED_BRIGHTNESS) / 1023;
-                
-                setAndSaveLedBrightness(jukebox->touchPosition);
-            }
-
             // Warn the user that the swadge is muted, if that's the case
             if(jukebox->inMusicSubmode)
             {
@@ -669,6 +659,15 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                 }
             }
             break;
+
+            // Touch Controls
+            if(jukebox->touchHeld)
+            {
+                getTouchCentroid(&jukebox->touchPosition, &jukebox->touchIntensity);
+                jukebox->touchPosition = (jukebox->touchPosition * MAX_LED_BRIGHTNESS) / 1023;
+                
+                setAndSaveLedBrightness(jukebox->touchPosition);
+            }
         }
     }
 }
