@@ -115,6 +115,7 @@ typedef struct
 typedef struct
 {
     char* categoryName;
+    uint8_t numSongs;
     const jukeboxSong* songs;
 } jukeboxCategory;
 
@@ -200,12 +201,12 @@ static const jukeboxSong testMusic[] =
 
 static const jukeboxCategory musicCategories[] =
 {
-    {.categoryName = "Swadge Bros", .songs = fighterMusic},
-    {.categoryName = "Tiltrads", .songs = tiltradsMusic},
-    {.categoryName = "Swadge Land", .songs = platformerMusic},
-    {.categoryName = "Donut Jump", .songs = jumperMusic},
-    {.categoryName = "Credits", .songs = creditsMusic},
-    {.categoryName = "Test Mode", .songs = testMusic},
+    {.categoryName = "Swadge Bros", .numSongs = 1, .songs = fighterMusic},
+    {.categoryName = "Tiltrads", .numSongs = 2, .songs = tiltradsMusic},
+    {.categoryName = "Swadge Land", .numSongs = 3, .songs = platformerMusic},
+    {.categoryName = "Donut Jump", .numSongs = 5, .songs = jumperMusic},
+    {.categoryName = "Credits", .numSongs = 1, .songs = creditsMusic},
+    {.categoryName = "Test Mode", .numSongs = 1, .songs = testMusic},
 };
 
 static const jukeboxSong fighterSfx[] =
@@ -278,11 +279,11 @@ static const jukeboxSong tunernomesfx[] =
 
 static const jukeboxCategory sfxCategories[] =
 {
-    {.categoryName = "Swadge Bros", .songs = fighterSfx},
-    {.categoryName = "Tiltrads", .songs = tiltradsSfx},
-    {.categoryName = "Swadge Land", .songs = platformerSfx},
-    {.categoryName = "Donut Jump", .songs = jumperSfx},
-    {.categoryName = "Tunernome", .songs = tunernomesfx},
+    {.categoryName = "Swadge Bros", .numSongs = 2, .songs = fighterSfx},
+    {.categoryName = "Tiltrads", .numSongs = 22, .songs = tiltradsSfx},
+    {.categoryName = "Swadge Land", .numSongs = 16, .songs = platformerSfx},
+    {.categoryName = "Donut Jump", .numSongs = 6, .songs = jumperSfx},
+    {.categoryName = "Tunernome", .numSongs = 2, .songs = tunernomesfx},
 };
 
 /*============================================================================
@@ -421,11 +422,11 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                         uint8_t length;
                         if(jukebox->inMusicSubmode)
                         {
-                            length = lengthof(musicCategories[jukebox->categoryIdx].songs);
+                            length = musicCategories[jukebox->categoryIdx].numSongs;
                         }
                         else
                         {
-                            length = lengthof(sfxCategories[jukebox->categoryIdx].songs);
+                            length = sfxCategories[jukebox->categoryIdx].numSongs;
                         }
 
                         if(jukebox->songIdx == 0)
@@ -440,11 +441,11 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                         uint8_t length;
                         if(jukebox->inMusicSubmode)
                         {
-                            length = lengthof(musicCategories[jukebox->categoryIdx].songs);
+                            length = musicCategories[jukebox->categoryIdx].numSongs;
                         }
                         else
                         {
-                            length = lengthof(sfxCategories[jukebox->categoryIdx].songs);
+                            length = sfxCategories[jukebox->categoryIdx].numSongs;
                         }
 
                         jukebox->songIdx = (jukebox->songIdx + 1) % length;
@@ -531,17 +532,20 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             char* categoryName;
             char* songName;
             char* songTypeName;
+            uint8_t numSongs;
             if(jukebox->inMusicSubmode)
             {
                 categoryName = musicCategories[jukebox->categoryIdx].categoryName;
                 songName = musicCategories[jukebox->categoryIdx].songs[jukebox->songIdx].name;
                 songTypeName = "Music";
+                numSongs = musicCategories[jukebox->categoryIdx].numSongs;
             }
             else
             {
                 categoryName = sfxCategories[jukebox->categoryIdx].categoryName;
                 songName = sfxCategories[jukebox->categoryIdx].songs[jukebox->songIdx].name;
                 songTypeName = "SFX";
+                numSongs = sfxCategories[jukebox->categoryIdx].numSongs;
             }
 
             // Draw the mode name
@@ -569,13 +573,16 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                     text,
                     (jukebox->disp->w - width) / 2,
                     yOff);
-            // Draw some arrows
-            drawWsg(jukebox->disp, &jukebox->arrow,
-                    ((jukebox->disp->w - width) / 2) - 8 - jukebox->arrow.w, yOff,
-                    false, false, 270);
-            drawWsg(jukebox->disp, &jukebox->arrow,
-                    ((jukebox->disp->w - width) / 2) + width + 8, yOff,
-                    false, false, 90);
+            // Draw some arrows if this category has more than 1 song
+            if(numSongs > 1)
+            {
+                drawWsg(jukebox->disp, &jukebox->arrow,
+                        ((jukebox->disp->w - width) / 2) - 8 - jukebox->arrow.w, yOff,
+                        false, false, 270);
+                drawWsg(jukebox->disp, &jukebox->arrow,
+                        ((jukebox->disp->w - width) / 2) + width + 8, yOff,
+                        false, false, 90);
+            }
 
             
 
