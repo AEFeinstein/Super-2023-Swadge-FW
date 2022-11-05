@@ -500,7 +500,13 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
 void  jukeboxTouchCallback(touch_event_t* evt)
 {
     jukebox->touchHeld = evt->state != 0;
-    // jukebox->touchPosition = roundf((evt->position * BAR_X_WIDTH) / 255);
+
+    if(jukebox->touchHeld)
+    {
+        jukebox->touchPosition = roundf((evt->position * MAX_LED_BRIGHTNESS) / 255.0f);
+
+        setAndSaveLedBrightness(jukebox->touchPosition);
+    }
 }
 
 /**
@@ -660,14 +666,14 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             }
             break;
 
-            // Touch Controls
-            if(jukebox->touchHeld)
-            {
-                getTouchCentroid(&jukebox->touchPosition, &jukebox->touchIntensity);
-                jukebox->touchPosition = (jukebox->touchPosition * MAX_LED_BRIGHTNESS) / 1023;
+            // // Touch Controls
+            // if(jukebox->touchHeld)
+            // {
+            //     getTouchCentroid(&jukebox->touchPosition, &jukebox->touchIntensity);
+            //     jukebox->touchPosition = (jukebox->touchPosition * MAX_LED_BRIGHTNESS) / 1023;
                 
-                setAndSaveLedBrightness(jukebox->touchPosition);
-            }
+            //     setAndSaveLedBrightness(jukebox->touchPosition);
+            // }
         }
     }
 }
