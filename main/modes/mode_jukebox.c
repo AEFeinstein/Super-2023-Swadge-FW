@@ -268,7 +268,7 @@ static const jukeboxSong jumperSfx[] =
     {.name = "EvilDonut Jump", .song = &jumpEvilDonutJump},
     {.name = "Blump Jump", .song = &jumpBlumpJump},
     {.name = "Countdown", .song = &jumpCountdown},
-    {.name = "Perfect ", .song = &jumpPerfectTune},
+    {.name = "Perfect", .song = &jumpPerfectTune},
 };
 
 static const jukeboxSong tunernomesfx[] =
