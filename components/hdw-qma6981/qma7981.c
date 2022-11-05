@@ -51,6 +51,7 @@ static qma_range_t qma_range = QMA_RANGE_2G;
 static esp_err_t qma7981_read_byte(uint8_t reg_addr, uint8_t* data);
 static esp_err_t qma7981_write_byte(uint8_t reg_addr, uint8_t data);
 static esp_err_t qma7981_read_bytes(uint8_t reg_addr, size_t data_len, uint8_t* data);
+int16_t convertTwosComplement10bit(uint16_t in);
 
 /**
  * @brief
@@ -221,31 +222,46 @@ esp_err_t qma7981_get_acce(float* x, float* y, float* z)
  */
 esp_err_t qma7981_get_acce_int(int16_t* x, int16_t* y, int16_t* z)
 {
-    struct qma_acce_data_t
-    {
-        int16_t x;
-        int16_t y;
-        int16_t z;
-    } data;
-    static struct qma_acce_data_t lastKnownAccel;
+    static int16_t lastX = 0;
+    static int16_t lastY = 0;
+    static int16_t lastZ = 0;
 
+    // Read 6 bytes of data(0x00)
+    uint8_t raw_data[6];
     // Do the read
-    esp_err_t ret_val = qma7981_read_bytes(QMA7981_REG_DX_L, 6, (uint8_t*)&data);
+    esp_err_t ret_val = qma7981_read_bytes(QMA7981_REG_DX_L, 6, raw_data);
 
     // If the read was successsful
     if(ESP_OK == ret_val)
     {
-        /* QMA7981's range is 14 bit. Adjust data format */
-        lastKnownAccel.x = data.x >> 2;
-        lastKnownAccel.y = data.y >> 2;
-        lastKnownAccel.z = data.z >> 2;
+        // Convert the data to 12-bits, save it as the last known value
+        lastX =  convertTwosComplement10bit(((raw_data[0] >> 6 ) | (raw_data[1]) << 2) & 0x03FF);
+        lastY = -convertTwosComplement10bit(((raw_data[2] >> 6 ) | (raw_data[3]) << 2) & 0x03FF);
+        lastZ = -convertTwosComplement10bit(((raw_data[4] >> 6 ) | (raw_data[5]) << 2) & 0x03FF);
     }
 
-    // Return the values
-    *x = lastKnownAccel.x;
-    *y = lastKnownAccel.y;
-    *z = lastKnownAccel.z;
+    // Copy out the acceleration value
+    *x = lastX;
+    *y = lastY;
+    *z = lastZ;
 
-    // Return the read status
     return ret_val;
+}
+
+/**
+ * @brief Helper function to convert a 10 bit 2's complement number to 16 bit
+ *
+ * @param in
+ * @return int16_t convertTwosComplement10bit
+ */
+int16_t convertTwosComplement10bit(uint16_t in)
+{
+    if(in & 0x200)
+    {
+        return (in | 0xFC00); // extend the sign bit all the way out
+    }
+    else
+    {
+        return (in & 0x01FF); // make sure the sign bits are cleared
+    }
 }

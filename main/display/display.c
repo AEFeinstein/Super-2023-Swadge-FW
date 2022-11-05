@@ -290,9 +290,12 @@ static void rotatePixel(int16_t* x, int16_t* y, int16_t rotateDeg, int16_t width
     // See http://datagenetics.com/blog/august32013/index.html
     // See https://graphicsinterface.org/wp-content/uploads/gi1986-15.pdf
 
+    int32_t tx = -(width / 2);
+    int32_t ty = -(height / 2);
+
     // Center around (0, 0)
-    wx -= (width / 2);
-    wy -= (height / 2);
+    wx += tx;
+    wy += ty;
 
     // First rotate to the nearest 90 degree boundary, which is trivial
     if(rotateDeg >= 270)
@@ -300,21 +303,21 @@ static void rotatePixel(int16_t* x, int16_t* y, int16_t rotateDeg, int16_t width
         // (x, y) -> (y, -x)
         int16_t tmp = wx;
         wx = wy;
-        wy = -tmp;
+        wy = 2 * tx - tmp + width - 1;
         rotateDeg -= 270;
     }
     else if(rotateDeg >= 180)
     {
         // (x, y) -> (-x, -y)
-        wx = -wx;
-        wy = -wy;
+        wx = 2 * tx - wx + width - 1;
+        wy = 2 * ty - wy + height - 1;
         rotateDeg -= 180;
     }
     else if(rotateDeg >= 90)
     {
         // (x, y) -> (-y, x)
         int16_t tmp = wx;
-        wx = -wy;
+        wx = 2 * ty - wy + height - 1;
         wy = tmp;
         rotateDeg -= 90;
     }
@@ -335,8 +338,8 @@ static void rotatePixel(int16_t* x, int16_t* y, int16_t rotateDeg, int16_t width
     }
 
     // Return pixel to original position
-    wx += (width / 2);
-    wy += (height / 2);
+    wx -= tx;
+    wy -= ty;
 
     *x = wx;
     *y = wy;
@@ -671,6 +674,13 @@ bool loadFont(const char* name, font_t* font)
         bufIdx += bytes;
     }
 
+    // Zero out any unused chars
+    while (chIdx <= '~' - ' ' + 1)
+    {
+        font->chars[chIdx].bitmap = NULL;
+        font->chars[chIdx++].w = 0;
+    }
+
     // Free the SPIFFS data
     free(buf);
 
@@ -684,9 +694,13 @@ bool loadFont(const char* name, font_t* font)
  */
 void freeFont(font_t* font)
 {
-    for(char ch = ' '; ch <= '~'; ch++)
+    // using uint8_t instead of char because a char will overflow to -128 after the last char is freed (\x7f)
+    for(uint8_t idx = 0; idx <= '~' - ' ' + 1; idx++)
     {
-        free(font->chars[ch - ' '].bitmap);
+        if (font->chars[idx].bitmap != NULL)
+        {
+            free(font->chars[idx].bitmap);
+        }
     }
 }
 

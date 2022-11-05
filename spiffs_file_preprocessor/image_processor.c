@@ -167,8 +167,10 @@ void process_image(const char *infile, const char *outdir)
 			image8b[y][x].r = CLAMP((127 + ((sourceR + image8b[y][x].eR) * 5)) / 255, 0, 5);
 			image8b[y][x].g = CLAMP((127 + ((sourceG + image8b[y][x].eG) * 5)) / 255, 0, 5);
 			image8b[y][x].b = CLAMP((127 + ((sourceB + image8b[y][x].eB) * 5)) / 255, 0, 5);
-			image8b[y][x].a = sourceA ? 0xFF : 0x00;
+			image8b[y][x].a = (sourceA >= 128) ? 0xFF : 0x00;
 
+// Don't dither small sprites, it just doesn't look good
+#if defined(DITHER)
 			/* Find the total error, 8 bits per channel */
 			int teR = sourceR - ((image8b[y][x].r * 255) / 5);
 			int teG = sourceG - ((image8b[y][x].g * 255) / 5);
@@ -201,6 +203,7 @@ void process_image(const char *infile, const char *outdir)
 			spreadError(image8b, x + 1, y + 0, w, h, teR, teG, teB, adjScalar);
 			spreadError(image8b, x + 0, y - 1, w, h, teR, teG, teB, adjScalar);
 			spreadError(image8b, x + 0, y + 1, w, h, teR, teG, teB, adjScalar);
+#endif
 
 			/* Mark the random pixel as drawn */
 			image8b[y][x].isDrawn = true;

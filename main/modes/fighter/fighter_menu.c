@@ -149,7 +149,7 @@ static const char str_exit[]        = "Exit";
 
 static const char str_charKD[]      = "King Donut";
 static const char str_charSN[]      = "Sunny";
-static const char str_charBF[]      = "Big Funkus";
+static const char str_charBF[]      = "Bigg Funkus";
 
 const char str_searching_for[] = "Searching For";
 const char str_another_swadge[] = "Another Swadge";
@@ -225,9 +225,6 @@ void fighterEnterMode(display_t* disp)
     // Set the main menu
     setFighterMainMenu();
 
-    // Start on the menu
-    fm->screen = FIGHTER_MENU;
-
     // Clear state
     fm->characters[0] = NO_CHARACTER;
     fm->characters[1] = NO_CHARACTER;
@@ -257,7 +254,6 @@ void fighterExitMode(void)
 void fighterReturnToMainMenu(void)
 {
     setFighterMainMenu();
-    fm->screen = FIGHTER_MENU;
     fm->idleTimer = 0;
 }
 
@@ -381,7 +377,14 @@ void fighterButtonCb(buttonEvt_t* evt)
             // Pass button events from the Swadge mode to the menu
             if(evt->down)
             {
-                meleeMenuButton(fm->menu, evt->button);
+                if (evt->button == BTN_B && fm->menu->title != str_swadgeBros)
+                {
+                    fm->menu->cbFunc(str_back);
+                }
+                else
+                {
+                    meleeMenuButton(fm->menu, evt->button);
+                }
             }
             break;
         }
@@ -392,7 +395,6 @@ void fighterButtonCb(buttonEvt_t* evt)
                 // Exit the CPU only battle
                 fighterExitGame();
                 setFighterMainMenu();
-                fm->screen = FIGHTER_MENU;
                 fm->idleTimer = 0;
             }
             else
@@ -404,12 +406,11 @@ void fighterButtonCb(buttonEvt_t* evt)
         }
         case FIGHTER_CONNECTING:
         {
-            // START or SELECT exits the HR Result
-            if(evt->down && ((START == evt->button) || (SELECT == evt->button)))
+            // START, SELECT, or B exits the connecting screen
+            if(evt->down && ((START == evt->button) || (SELECT == evt->button) || (BTN_B == evt->button)))
             {
                 p2pDeinit(&(fm->p2p));
                 setFighterMainMenu();
-                fm->screen = FIGHTER_MENU;
             }
             break;
         }
@@ -425,7 +426,6 @@ void fighterButtonCb(buttonEvt_t* evt)
             {
                 deinitFighterHrResult();
                 setFighterMainMenu();
-                fm->screen = FIGHTER_MENU;
             }
             break;
         }
@@ -436,7 +436,6 @@ void fighterButtonCb(buttonEvt_t* evt)
             {
                 deinitFighterMpResult();
                 setFighterMainMenu();
-                fm->screen = FIGHTER_MENU;
             }
             break;
         }
@@ -691,8 +690,8 @@ void fighterHrMenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[0] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[0] = BIGG_FUNKUS;
     }
     else if (opt == str_back)
     {
@@ -722,6 +721,7 @@ void setFighterVsCpuCharSelMenu(void)
     addRowToMeleeMenu(fm->menu, str_charKD);
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
+    addRowToMeleeMenu(fm->menu, str_back);
     fm->screen = FIGHTER_MENU;
 }
 
@@ -744,8 +744,14 @@ void fighterVsCpuCharMenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[0] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[0] = BIGG_FUNKUS;
+    }
+    else if(opt == str_back)
+    {
+        // Reset to top level melee menu
+        setFighterMainMenu();
+        return;
     }
     else
     {
@@ -832,8 +838,8 @@ void fighterMultiplayerCharMenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[charIdx] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[charIdx] = BIGG_FUNKUS;
     }
     else
     {
@@ -951,8 +957,8 @@ void fighterLocalVsP1MenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[0] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[0] = BIGG_FUNKUS;
     }
     else if (opt == str_back)
     {
@@ -1004,8 +1010,8 @@ void fighterLocalVsP2MenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[1] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[1] = BIGG_FUNKUS;
     }
     else if (opt == str_back)
     {

@@ -5,34 +5,66 @@
 #include "paint_nvs.h"
 #include "paint_util.h"
 
-static const char transitionTime[] = "Interval: %d sec";
+#include <string.h>
+
+static const char transitionTime[] = "Interval: %g sec";
 static const char transitionOff[] = "Interval: Off";
+static const char transitionTimeNvsKey[] = "paint_gal_time";
+
+// Possible transition times, in ms
+static const uint16_t transitionTimeMap[] = {
+    0, // off
+    500,
+    1000,
+    2000,
+    5000,
+    10000,
+    15000,
+    30000,
+    45000,
+    60000,
+};
+
+// Denotes 5s
+#define DEFAULT_TRANSITION_INDEX 4
 
 #define US_PER_SEC 1000000
-
-// 1s
-#define GALLERY_MIN_TIME 5000000
-// 60s
-#define GALLERY_MAX_TIME 60000000
-// 5s
-#define GALLERY_TIME_STEP 5000000
+#define US_PER_MS 1000
 
 // 3s for info text to stay up
 #define GALLERY_INFO_TIME 3000000
 
 paintGallery_t* paintGallery;
 
-void paintGallerySetup(display_t* disp)
+void paintGallerySetup(display_t* disp, bool screensaver)
 {
     paintGallery = calloc(sizeof(paintGallery_t), 1);
     paintGallery->disp = disp;
     paintGallery->canvas.disp = disp;
-    paintGallery->gallerySpeed = GALLERY_MIN_TIME;
     paintGallery->galleryTime = 0;
     paintGallery->galleryLoadNew = true;
+    paintGallery->screensaverMode = screensaver;
     loadFont("radiostars.font", &paintGallery->infoFont);
 
     paintLoadIndex(&paintGallery->index);
+
+    if (!readNvs32(transitionTimeNvsKey, &paintGallery->gallerySpeedIndex))
+    {
+        // Default of 5s if not yet set
+        paintGallery->gallerySpeedIndex = DEFAULT_TRANSITION_INDEX;
+    }
+
+    if (paintGallery->gallerySpeedIndex < 0 || paintGallery->gallerySpeedIndex >= sizeof(transitionTimeMap) / sizeof(*transitionTimeMap))
+    {
+        paintGallery->gallerySpeedIndex = DEFAULT_TRANSITION_INDEX;
+    }
+
+    paintGallery->gallerySpeed = US_PER_MS * transitionTimeMap[paintGallery->gallerySpeedIndex];
+
+    // clear LEDs, which might still be set by menu
+    led_t leds[NUM_LEDS];
+    memset(leds, 0, sizeof(led_t) * NUM_LEDS);
+    setLeds(leds, NUM_LEDS);
 }
 
 void paintGalleryCleanup(void)
@@ -45,8 +77,10 @@ void paintGalleryMainLoop(int64_t elapsedUs)
 {
     if (paintGallery->gallerySpeed != 0 && paintGallery->galleryTime >= paintGallery->gallerySpeed)
     {
+        uint8_t prevSlot = paintGallery->gallerySlot;
         paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, paintGallery->gallerySlot);
-        paintGallery->galleryLoadNew = true;
+        // Only load the next image if it's actually a different image
+        paintGallery->galleryLoadNew = (paintGallery->gallerySlot != prevSlot);
         paintGallery->galleryTime -= paintGallery->gallerySpeed;
 
         // reset info time if we're going to transition and clear the screen
@@ -88,65 +122,77 @@ void paintGalleryAddInfoText(const char* text)
     paintGallery->infoTimeRemaining = GALLERY_INFO_TIME;
 }
 
+void paintGalleryDecreaseSpeed()
+{
+    if (paintGallery->gallerySpeedIndex + 1 < sizeof(transitionTimeMap) / sizeof(*transitionTimeMap))
+    {
+        paintGallery->gallerySpeedIndex++;
+        paintGallery->gallerySpeed = US_PER_MS * transitionTimeMap[paintGallery->gallerySpeedIndex];
+        writeNvs32(transitionTimeNvsKey, paintGallery->gallerySpeedIndex);
+
+        paintGallery->galleryTime = 0;
+    }
+}
+
+void paintGalleryIncreaseSpeed()
+{
+    if (paintGallery->gallerySpeedIndex > 0)
+    {
+        paintGallery->gallerySpeedIndex--;
+        paintGallery->gallerySpeed = US_PER_MS * transitionTimeMap[paintGallery->gallerySpeedIndex];
+        writeNvs32(transitionTimeNvsKey, paintGallery->gallerySpeedIndex);
+
+        paintGallery->galleryTime = 0;
+    }
+}
+
 void paintGalleryModeButtonCb(buttonEvt_t* evt)
 {
     bool updateTimeText = false;
     char text[32];
+    uint8_t prevSlot = paintGallery->gallerySlot;
 
     if (evt->down)
     {
+        if (paintGallery->screensaverMode)
+        {
+            // Return to main menu immediately
+            paintReturnToMainMenu();
+            return;
+        }
+
         switch (evt->button)
         {
             case UP:
             {
-                if (paintGallery->gallerySpeed <= GALLERY_MIN_TIME)
-                {
-                    paintGallery->gallerySpeed = 0;
-                }
-                else
-                {
-                    paintGallery->gallerySpeed -= GALLERY_TIME_STEP;
-                    if (paintGallery->gallerySpeed < GALLERY_MIN_TIME)
-                    {
-                        paintGallery->gallerySpeed = GALLERY_MIN_TIME;
-                    }
-                }
                 updateTimeText = true;
-                paintGallery->galleryTime = 0;
+                paintGalleryDecreaseSpeed();
                 break;
             }
 
             case DOWN:
             {
-                if (paintGallery->gallerySpeed != GALLERY_MAX_TIME)
-                {
-                    paintGallery->gallerySpeed += GALLERY_TIME_STEP;
-                    if (paintGallery->gallerySpeed > GALLERY_MAX_TIME)
-                    {
-                        paintGallery->gallerySpeed = GALLERY_MAX_TIME;
-                    }
-                }
                 updateTimeText = true;
-                paintGallery->galleryTime = 0;
+                paintGalleryIncreaseSpeed();
                 break;
             }
 
             case LEFT:
             paintGallery->gallerySlot = paintGetPrevSlotInUse(paintGallery->index, paintGallery->gallerySlot);
-            paintGallery->galleryLoadNew = true;
+            paintGallery->galleryLoadNew = (prevSlot != paintGallery->gallerySlot);
             paintGallery->galleryTime = 0;
             break;
 
             case RIGHT:
             paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, paintGallery->gallerySlot);
-            paintGallery->galleryLoadNew = true;
+            paintGallery->galleryLoadNew = (prevSlot != paintGallery->gallerySlot);
             paintGallery->galleryTime = 0;
             break;
 
             case BTN_B:
             // Exit
             paintReturnToMainMenu();
-            break;
+            return;
 
             case BTN_A:
             // Increase size
@@ -169,7 +215,7 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
         }
         else
         {
-            snprintf(text, sizeof(text), transitionTime, (uint16_t)(paintGallery->gallerySpeed / US_PER_SEC));
+            snprintf(text, sizeof(text), transitionTime, (1.0 * paintGallery->gallerySpeed / US_PER_SEC));
             paintGalleryAddInfoText(text);
         }
     }
