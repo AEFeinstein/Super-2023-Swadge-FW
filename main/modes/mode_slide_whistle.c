@@ -1369,12 +1369,10 @@ void  slideWhistleAccelerometerHandler(accel_t* accel)
     slideWhistle->pitch = BAR_X_MARGIN + roundf(pitchF * BAR_X_WIDTH);
     slideWhistle->pitch = CLAMP(slideWhistle->pitch, BAR_X_MARGIN, slideWhistle->disp->w - 1 - BAR_X_MARGIN);
 
-    snprintf(slideWhistle->accelStr, sizeof(slideWhistle->accelStr), "roll %5d pitch %5d",
-             slideWhistle->roll, slideWhistle->pitch);
-    snprintf(slideWhistle->accelStr2, sizeof(slideWhistle->accelStr2), "x %4d, y %4d, z %4d",
-             accel->x, accel->y, accel->z);
-
-    //slideWhistleMainLoop();
+    // snprintf(slideWhistle->accelStr, sizeof(slideWhistle->accelStr), "roll %5d pitch %5d",
+    //          slideWhistle->roll, slideWhistle->pitch);
+    // snprintf(slideWhistle->accelStr2, sizeof(slideWhistle->accelStr2), "x %4d, y %4d, z %4d",
+    //          accel->x, accel->y, accel->z);
 }
 
 /**
