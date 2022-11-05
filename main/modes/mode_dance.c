@@ -331,7 +331,7 @@ void danceRedrawScreen(void)
     }
 }
 
-/** @return The number of different tances
+/** @return The number of different dances
  */
 uint8_t getNumDances(void)
 {

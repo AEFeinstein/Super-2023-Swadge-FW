@@ -56,6 +56,7 @@ const char menuOptCancelErase[] = "Confirm? No!";
 const char menuOptConfirmErase[] = "Confirm? Yes";
 
 const char menuOptExit[] = "Exit";
+const char menuOptBack[] = "Back";
 
 // Mode struct function declarations
 void paintEnterMode(display_t* disp);
@@ -137,8 +138,9 @@ void paintMainLoop(int64_t elapsedUs)
         if (paintMenu->idleTimer >= PAINT_SCREENSAVER_TIMEOUT)
         {
             PAINT_LOGI("Selected Gallery");
-            paintMenu->screen = PAINT_GALLERY;
             paintGallerySetup(paintMenu->disp, true);
+            paintGallery->returnScreen = paintMenu->screen;
+            paintMenu->screen = PAINT_GALLERY;
         }
         else
         {
@@ -328,7 +330,7 @@ void paintSetupNetworkMenu(bool reset)
     }
 
     addRowToMeleeMenu(paintMenu->menu, menuOptReceive);
-    addRowToMeleeMenu(paintMenu->menu, menuOptExit);
+    addRowToMeleeMenu(paintMenu->menu, menuOptBack);
 
     if (reset)
     {
@@ -378,7 +380,7 @@ void paintSetupSettingsMenu(bool reset)
     {
         addRowToMeleeMenu(paintMenu->menu, menuOptEraseData);
     }
-    addRowToMeleeMenu(paintMenu->menu, menuOptExit);
+    addRowToMeleeMenu(paintMenu->menu, menuOptBack);
 
     if (reset)
     {
@@ -445,9 +447,9 @@ void paintNetworkMenuCb(const char* opt)
         paintMenu->screen = PAINT_RECEIVE;
         switchToSwadgeMode(&modePaintReceive);
     }
-    else if (opt == menuOptExit)
+    else if (opt == menuOptBack)
     {
-        PAINT_LOGI("Selected Exit");
+        PAINT_LOGI("Selected Back");
         paintSetupMainMenu(false);
         paintMenu->screen = PAINT_MENU;
     }
@@ -498,9 +500,9 @@ void paintSettingsMenuCb(const char* opt)
         paintMenu->eraseDataSelected = false;
         paintMenu->eraseDataConfirm = false;
     }
-    else if (opt == menuOptExit)
+    else if (opt == menuOptBack)
     {
-        PAINT_LOGI("Selected Exit");
+        PAINT_LOGI("Selected Back");
         paintSetupMainMenu(false);
         paintMenu->screen = PAINT_MENU;
         return;
@@ -525,7 +527,28 @@ void paintReturnToMainMenu(void)
         break;
 
         case PAINT_GALLERY:
-            paintGalleryCleanup();
+            if (paintGallery->screensaverMode)
+            {
+                paintMenu->screen = paintGallery->returnScreen;
+                paintGalleryCleanup();
+                if (paintMenu->screen == PAINT_MENU)
+                {
+                    paintSetupMainMenu(false);
+                }
+                else if (paintMenu->screen == PAINT_NETWORK_MENU)
+                {
+                    paintSetupNetworkMenu(false);
+                }
+                else if (paintMenu->screen == PAINT_SETTINGS_MENU)
+                {
+                    paintSetupSettingsMenu(false);
+                }
+                return;
+            }
+            else
+            {
+                paintGalleryCleanup();
+            }
         break;
 
         case PAINT_HELP:
