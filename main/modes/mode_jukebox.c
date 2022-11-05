@@ -416,6 +416,7 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                     }
                     case UP:
                     {
+                        buzzer_stop();
                         uint8_t length;
                         if(jukebox->inMusicSubmode)
                         {
@@ -437,6 +438,7 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                     }
                     case DOWN:
                     {
+                        buzzer_stop();
                         uint8_t length;
                         if(jukebox->inMusicSubmode)
                         {
@@ -454,6 +456,7 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                     }
                     case LEFT:
                     {
+                        buzzer_stop();
                         uint8_t length;
                         if(jukebox->inMusicSubmode)
                         {
@@ -473,6 +476,7 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                     }
                     case RIGHT:
                     {
+                        buzzer_stop();
                         uint8_t length;
                         if(jukebox->inMusicSubmode)
                         {
