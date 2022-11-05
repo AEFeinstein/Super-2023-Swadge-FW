@@ -112,6 +112,8 @@ const char mainMenuSoundSfxOff[] = "SFX: Off";
 char mainMenuTftBrightness[] = "TFT Brightness: 1";
 char mainMenuLedBrightness[] = "LED Brightness: 1";
 char mainMenuMicGain[] = "Mic Gain: 1";
+char mainMenuScreensaverTimeout[] = "Screensave: 20s";
+char mainMenuScreensaverOff[] = "Screensave: Off";
 const char mainMenuCredits[] = "Credits";
 
 //==============================================================================
@@ -166,12 +168,12 @@ void mainMenuExitMode(void)
  *
  * @param elapsedUs unused
  */
-void mainMenuMainLoop(int64_t elapsedUs __attribute__((unused)))
+void mainMenuMainLoop(int64_t elapsedUs)
 {
     // Increment this timer
     mainMenu->autoLightDanceTimer += elapsedUs;
     // If 10s have elapsed with no user input
-    if(mainMenu->autoLightDanceTimer >= (20 * 1000000))
+    if(getScreensaverTime() != 0 && mainMenu->autoLightDanceTimer >= (getScreensaverTime() * 1000000))
     {
         // Switch to the LED dance mode
         switchToSwadgeMode(&modeDance);
@@ -301,6 +303,18 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                         else
                         {
                             incLedBrightness();
+                        }
+                    }
+                    else if(mainMenuScreensaverOff == mainMenu->menu->rows[mainMenu->menu->selectedRow] ||
+                            mainMenuScreensaverTimeout == mainMenu->menu->rows[mainMenu->menu->selectedRow])
+                    {
+                        if (LEFT == evt->button)
+                        {
+                            decScreensaverTime();
+                        }
+                        else
+                        {
+                            incScreensaverTime();
                         }
                     }
                     // Redraw menu options
@@ -605,6 +619,20 @@ void mainMenuSetUpSettingsMenu(bool resetPos)
     // Print the mic gain option
     snprintf(mainMenuMicGain, sizeof(mainMenuMicGain), "Mic Gain: %d", getMicGain());
 
+    // Print the screensaver time option
+    const char* screensaverMenuOpt;
+    int16_t screensaverTime = getScreensaverTime();
+    if (screensaverTime == 0)
+    {
+        screensaverMenuOpt = mainMenuScreensaverOff;
+    } else
+    {
+        char screensaverUnit = (screensaverTime >= 60) ? 'm' : 's';
+        int16_t screensaverDisplay = (screensaverTime >= 60) ? (screensaverTime / 60) : screensaverTime;
+        snprintf(mainMenuScreensaverTimeout, sizeof(mainMenuScreensaverTimeout), "Screensave: %d%c", abs(screensaverDisplay) % 100, screensaverUnit);
+        screensaverMenuOpt = mainMenuScreensaverTimeout;
+    }
+
     // Reset the menu
     resetMeleeMenu(mainMenu->menu, mainMenuSettings, mainMenuSettingsCb);
     addRowToMeleeMenu(mainMenu->menu, soundBgmOpt);
@@ -612,6 +640,7 @@ void mainMenuSetUpSettingsMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuMicGain);
     addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuTftBrightness);
     addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuLedBrightness);
+    addRowToMeleeMenu(mainMenu->menu, screensaverMenuOpt);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -663,6 +692,11 @@ void mainMenuSettingsCb(const char* opt)
     else if (mainMenuMicGain == opt)
     {
         incMicGain();
+    }
+    else if (mainMenuScreensaverOff == opt ||
+             mainMenuScreensaverTimeout == opt)
+    {
+        incScreensaverTime();
     }
     else if (mainMenuBack == opt)
     {

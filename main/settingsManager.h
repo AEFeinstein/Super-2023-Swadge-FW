@@ -29,6 +29,10 @@ bool setMicGain(uint8_t newGain);
 bool decMicGain(void);
 bool incMicGain(void);
 
+uint16_t getScreensaverTime(void);
+bool incScreensaverTime(void);
+bool decScreensaverTime(void);
+
 colorchordMode_t getColorchordMode(void);
 bool setColorchordMode(colorchordMode_t);
 
