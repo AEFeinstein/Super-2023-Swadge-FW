@@ -20,6 +20,7 @@ bool decTftBrightness(void);
 uint8_t getTftIntensity(void);
 
 int32_t getLedBrightness(void);
+bool setAndSaveLedBrightness(uint8_t brightness);
 bool incLedBrightness(void);
 bool decLedBrightness(void);
 

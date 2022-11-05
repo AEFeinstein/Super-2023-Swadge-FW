@@ -18,11 +18,13 @@
 
 #include "display.h"
 #include "led_util.h"
+#include "mode_dance.h"
 #include "mode_main_menu.h"
 #include "musical_buzzer.h"
 #include "settingsManager.h"
 #include "swadgeMode.h"
 #include "swadge_util.h"
+#include "touch_sensor.h"
 
 #include "fighter_music.h"
 #include "fighter_mp_result.h"
@@ -41,9 +43,13 @@
  * Defines
  *============================================================================*/
 
-#define CORNER_OFFSET 12
+#define CORNER_OFFSET 13
+
+#define MAX_LED_BRIGHTNESS 7
 
 #define lengthof(x) (sizeof(x) / sizeof(x[0]))
+
+#define RGB_2_ARG(r,g,b) ((((r)&0xFF) << 16) | (((g)&0xFF) << 8) | (((b)&0xFF)))
 
 /*==============================================================================
  * Enums
@@ -63,13 +69,14 @@ typedef enum
 void  jukeboxEnterMode(display_t* disp);
 void  jukeboxExitMode(void);
 void  jukeboxButtonCallback(buttonEvt_t* evt);
+void  jukeboxTouchCallback(touch_event_t* evt);
 void  jukeboxMainLoop(int64_t elapsedUs);
 void  jukeboxMainMenuCb(const char* opt);
 
+void setJukeboxMainMenu(void);
+
 void jukeboxSelectNextDance(void);
 void jukeboxSelectPrevDance(void);
-void jukeboxDanceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void jukeboxDanceNone(uint32_t tElapsedUs, uint32_t arg, bool reset);
 
 /*==============================================================================
  * Structs
@@ -84,9 +91,16 @@ typedef struct
     font_t mm;
     wsg_t arrow;
 
+    // Touch
+    bool touchHeld;
+    int32_t touchPosition;
+    int32_t touchIntensity;
+
+    // Light Dances
     uint8_t danceIdx;
     bool resetDance;
 
+    // Jukebox Stuff
     uint8_t categoryIdx;
     uint8_t songIdx;
     bool inMusicSubmode;
@@ -129,7 +143,7 @@ swadgeMode modeJukebox =
     .fnEnterMode = jukeboxEnterMode,
     .fnExitMode = jukeboxExitMode,
     .fnButtonCallback = jukeboxButtonCallback,
-    .fnTouchCallback = NULL,
+    .fnTouchCallback = jukeboxTouchCallback,
     .fnMainLoop = jukeboxMainLoop,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
@@ -157,9 +171,21 @@ static const char str_play[] = ": Play";
 
 static const jukeboxLedDanceArg jukeboxLedDances[] =
 {
-    {.func = jukeboxDanceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
-    {.func = jukeboxDanceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
-    {.func = jukeboxDanceNone,          .arg =     0, .name = "None"},
+    {.func = danceComet, .arg = RGB_2_ARG(0, 0, 0),    .name = "Comet RGB"},
+    {.func = danceRise,  .arg = RGB_2_ARG(0, 0, 0),    .name = "Rise RGB"},
+    {.func = dancePulse, .arg = RGB_2_ARG(0, 0, 0),    .name = "Pulse RGB"},
+    {.func = danceSharpRainbow,  .arg = 0, .name = "Rainbow Sharp"},
+    {.func = danceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
+    {.func = danceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
+    {.func = danceRainbowSolid,  .arg = 0, .name = "Rainbow Solid"},
+    {.func = danceFire, .arg = RGB_2_ARG(0xFF, 51, 0), .name = "Fire R"},
+    {.func = danceBinaryCounter, .arg = 0, .name = "Binary"},
+    {.func = dancePoliceSiren,   .arg = 0, .name = "Siren"},
+    {.func = dancePureRandom,    .arg = 0, .name = "Random LEDs"},
+    {.func = danceChristmas,     .arg = 1, .name = "Holiday 1"},
+    {.func = danceChristmas,     .arg = 0, .name = "Holiday 2"},
+    {.func = danceNone,          .arg = 0, .name = "None"},
+    {.func = danceRandomDance,   .arg = 0, .name = "Shuffle All"},
 };
 
 static const jukeboxSong fighterMusic[] =
@@ -211,6 +237,8 @@ static const jukeboxCategory musicCategories[] =
 
 static const jukeboxSong fighterSfx[] =
 {
+    {.name = "Fighter 1 Hit", .song = &f1hit},
+    {.name = "Fighter 2 Hit", .song = &f2hit},
     {.name = "Victory", .song = &fVictoryJingle},
     {.name = "Loss", .song = &fLossJingle},
 };
@@ -279,7 +307,7 @@ static const jukeboxSong tunernomesfx[] =
 
 static const jukeboxCategory sfxCategories[] =
 {
-    {.categoryName = "Swadge Bros", .numSongs = 2, .songs = fighterSfx},
+    {.categoryName = "Swadge Bros", .numSongs = 4, .songs = fighterSfx},
     {.categoryName = "Tiltrads", .numSongs = 22, .songs = tiltradsSfx},
     {.categoryName = "Swadge Land", .numSongs = 16, .songs = platformerSfx},
     {.categoryName = "Donut Jump", .numSongs = 6, .songs = jumperSfx},
@@ -325,6 +353,8 @@ void  jukeboxExitMode(void)
     freeFont(&jukebox->mm);
 
     freeWsg(&jukebox->arrow);
+
+    deinitMeleeMenu(jukebox->menu);
 
     free(jukebox);
 }
@@ -381,6 +411,7 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                     }
                     case UP:
                     {
+                        buzzer_stop();
                         uint8_t length;
                         if(jukebox->inMusicSubmode)
                         {
@@ -402,6 +433,7 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                     }
                     case DOWN:
                     {
+                        buzzer_stop();
                         uint8_t length;
                         if(jukebox->inMusicSubmode)
                         {
@@ -419,6 +451,7 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                     }
                     case LEFT:
                     {
+                        buzzer_stop();
                         uint8_t length;
                         if(jukebox->inMusicSubmode)
                         {
@@ -438,6 +471,7 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                     }
                     case RIGHT:
                     {
+                        buzzer_stop();
                         uint8_t length;
                         if(jukebox->inMusicSubmode)
                         {
@@ -463,15 +497,34 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
 }
 
 /**
+ * This function is called when a button press is pressed. Buttons are
+ * handled by interrupts and queued up for this callback, so there are no
+ * strict timing restrictions for this function.
+ *
+ * @param evt The button event that occurred
+ */
+void  jukeboxTouchCallback(touch_event_t* evt)
+{
+    jukebox->touchHeld = evt->state != 0;
+
+    if(jukebox->touchHeld)
+    {
+        jukebox->touchPosition = roundf((evt->position * MAX_LED_BRIGHTNESS) / 255.0f);
+
+        setAndSaveLedBrightness(jukebox->touchPosition);
+    }
+}
+
+/**
  * Update the display by drawing the current state of affairs
  */
 void  jukeboxMainLoop(int64_t elapsedUs)
 {
-    jukebox->disp->clearPx();
     switch(jukebox->screen)
     {
         case JUKEBOX_MENU:
         {
+            jukebox->disp->clearPx();
             drawMeleeMenu(jukebox->disp, jukebox->menu);
             break;
         }
@@ -498,6 +551,15 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                 str_back,
                 jukebox->disp->w - textWidth(&jukebox->radiostars, str_back) - CORNER_OFFSET,
                 CORNER_OFFSET);
+
+            // Draw the light dance name
+            char text[32];
+            snprintf(text, sizeof(text), "LED Dance: %s", jukeboxLedDances[jukebox->danceIdx].name);
+            int16_t width = textWidth(&(jukebox->radiostars), text);
+            drawText(jukebox->disp, &(jukebox->radiostars), c444,
+                    text,
+                    CORNER_OFFSET,
+                    CORNER_OFFSET + jukebox->radiostars.h * 2);
 
             // Stop
             int16_t afterText = drawText(
@@ -549,9 +611,8 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             }
 
             // Draw the mode name
-            char text[32];
             snprintf(text, sizeof(text), "Mode: %s", categoryName);
-            int16_t width = textWidth(&(jukebox->radiostars), text);
+            width = textWidth(&(jukebox->radiostars), text);
             int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 2;
             drawText(jukebox->disp, &(jukebox->radiostars), c555,
                     text,
@@ -584,8 +645,6 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                         false, false, 90);
             }
 
-            
-
             // Warn the user that the swadge is muted, if that's the case
             if(jukebox->inMusicSubmode)
             {
@@ -612,6 +671,15 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                 }
             }
             break;
+
+            // // Touch Controls
+            // if(jukebox->touchHeld)
+            // {
+            //     getTouchCentroid(&jukebox->touchPosition, &jukebox->touchIntensity);
+            //     jukebox->touchPosition = (jukebox->touchPosition * MAX_LED_BRIGHTNESS) / 1023;
+                
+            //     setAndSaveLedBrightness(jukebox->touchPosition);
+            // }
         }
     }
 }
@@ -638,80 +706,16 @@ void jukeboxMainMenuCb(const char * opt)
     else if (opt == str_bgm)
     {
         jukebox->screen = JUKEBOX_PLAYER;
-        jukebox->categoryIdx = 1;
+        jukebox->categoryIdx = 0;
         jukebox->songIdx = 0;
         jukebox->inMusicSubmode = true;
     }
     else if (opt == str_sfx)
     {
         jukebox->screen = JUKEBOX_PLAYER;
-        jukebox->categoryIdx = 1;
+        jukebox->categoryIdx = 0;
         jukebox->songIdx = 0;
         jukebox->inMusicSubmode = false;
-    }
-}
-
-/** Smoothly rotate a color wheel around the swadge
- *
- * @param tElapsedUs The time elapsed since last call, in microseconds
- * @param reset      true to reset this dance's variables
- */
-void jukeboxDanceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset)
-{
-    static uint32_t tAccumulated = 0;
-    static uint8_t ledCount = 0;
-
-    if(reset)
-    {
-        ledCount = 0;
-        tAccumulated = arg;
-        return;
-    }
-
-    // Declare some LEDs, all off
-    led_t leds[NUM_LEDS] = {{0}};
-    bool ledsUpdated = false;
-
-    tAccumulated += tElapsedUs;
-    while(tAccumulated >= arg)
-    {
-        tAccumulated -= arg;
-        ledsUpdated = true;
-
-        ledCount--;
-
-        uint8_t i;
-        for(i = 0; i < NUM_LEDS; i++)
-        {
-            int16_t angle = ((((i * 256) / NUM_LEDS)) + ledCount) % 256;
-            uint32_t color = EHSVtoHEXhelper(angle, 0xFF, 0xFF, false);
-
-            leds[i].r = (color >>  0) & 0xFF;
-            leds[i].g = (color >>  8) & 0xFF;
-            leds[i].b = (color >> 16) & 0xFF;
-        }
-    }
-    // Output the LED data, actually turning them on
-    if(ledsUpdated)
-    {
-        setLeds(leds, NUM_LEDS);
-    }
-}
-
-/**
- * @brief Blank the LEDs
- *
- * @param tElapsedUs
- * @param arg
- * @param reset
- */
-void jukeboxDanceNone(uint32_t tElapsedUs __attribute__((unused)),
-               uint32_t arg __attribute__((unused)), bool reset)
-{
-    if(reset)
-    {
-        led_t leds[NUM_LEDS] = {{0}};
-        setLeds(leds, NUM_LEDS);
     }
 }
 
