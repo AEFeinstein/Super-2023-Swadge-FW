@@ -47,6 +47,7 @@ void paintGallerySetup(display_t* disp, bool screensaver)
     loadFont("radiostars.font", &paintGallery->infoFont);
 
     paintLoadIndex(&paintGallery->index);
+    paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, PAINT_SAVE_SLOTS - 1);
 
     if (!readNvs32(transitionTimeNvsKey, &paintGallery->gallerySpeedIndex))
     {

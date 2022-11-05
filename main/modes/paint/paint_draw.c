@@ -198,7 +198,7 @@ void paintDrawScreenSetup(display_t* disp)
 
     paintLoadIndex(&paintState->index);
 
-    if (paintHelp == NULL && paintGetAnySlotInUse(paintState->index))
+    if (paintHelp == NULL && paintGetAnySlotInUse(paintState->index) && paintGetRecentSlot(paintState->index) != PAINT_SAVE_SLOTS)
     {
         // If there's a saved image, load that (but not in the tutorial)
         paintState->selectedSlot = paintGetRecentSlot(paintState->index);
