@@ -18,13 +18,13 @@
 
 #include "display.h"
 #include "led_util.h"
+#include "mode_dance.h"
 #include "mode_main_menu.h"
 #include "musical_buzzer.h"
 #include "settingsManager.h"
 #include "touch_sensor.h"
 #include "swadgeMode.h"
 #include "swadge_util.h"
-#include "mode_dance.h"
 
 #include "fighter_music.h"
 #include "fighter_mp_result.h"
@@ -168,24 +168,13 @@ static const char str_play[] = ": Play";
 static const jukeboxLedDanceArg jukeboxLedDances[] =
 {
     {.func = danceComet, .arg = RGB_2_ARG(0, 0, 0),    .name = "Comet RGB"},
-    {.func = danceComet, .arg = RGB_2_ARG(0xFF, 0, 0), .name = "Comet R"},
-    {.func = danceComet, .arg = RGB_2_ARG(0, 0xFF, 0), .name = "Comet G"},
-    {.func = danceComet, .arg = RGB_2_ARG(0, 0, 0xFF), .name = "Comet B"},
     {.func = danceRise,  .arg = RGB_2_ARG(0, 0, 0),    .name = "Rise RGB"},
-    {.func = danceRise,  .arg = RGB_2_ARG(0xFF, 0, 0), .name = "Rise R"},
-    {.func = danceRise,  .arg = RGB_2_ARG(0, 0xFF, 0), .name = "Rise G"},
-    {.func = danceRise,  .arg = RGB_2_ARG(0, 0, 0xFF), .name = "Rise B"},
     {.func = dancePulse, .arg = RGB_2_ARG(0, 0, 0),    .name = "Pulse RGB"},
-    {.func = dancePulse, .arg = RGB_2_ARG(0xFF, 0, 0), .name = "Pulse R"},
-    {.func = dancePulse, .arg = RGB_2_ARG(0, 0xFF, 0), .name = "Pulse G"},
-    {.func = dancePulse, .arg = RGB_2_ARG(0, 0, 0xFF), .name = "Pulse B"},
     {.func = danceSharpRainbow,  .arg = 0, .name = "Rainbow Sharp"},
     {.func = danceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
     {.func = danceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
     {.func = danceRainbowSolid,  .arg = 0, .name = "Rainbow Solid"},
     {.func = danceFire, .arg = RGB_2_ARG(0xFF, 51, 0), .name = "Fire R"},
-    {.func = danceFire, .arg = RGB_2_ARG(0, 0xFF, 51), .name = "Fire G"},
-    {.func = danceFire, .arg = RGB_2_ARG(51, 0, 0xFF), .name = "Fire B"},
     {.func = danceBinaryCounter, .arg = 0, .name = "Binary"},
     {.func = dancePoliceSiren,   .arg = 0, .name = "Siren"},
     {.func = dancePureRandom,    .arg = 0, .name = "Random LEDs"},
@@ -545,6 +534,15 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                 jukebox->disp->w - textWidth(&jukebox->radiostars, str_back) - CORNER_OFFSET,
                 CORNER_OFFSET);
 
+            // Draw the light dance name
+            char text[32];
+            snprintf(text, sizeof(text), "Light Dance: %s", jukeboxLedDances[jukebox->danceIdx].name);
+            int16_t width = textWidth(&(jukebox->radiostars), text);
+            drawText(jukebox->disp, &(jukebox->radiostars), c444,
+                    text,
+                    CORNER_OFFSET,
+                    CORNER_OFFSET + jukebox->radiostars.h * 2);
+
             // Stop
             int16_t afterText = drawText(
                                     jukebox->disp,
@@ -607,7 +605,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             // Draw the mode name
             snprintf(text, sizeof(text), "Mode: %s", categoryName);
             width = textWidth(&(jukebox->radiostars), text);
-            yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 2;
+            int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 2;
             drawText(jukebox->disp, &(jukebox->radiostars), c555,
                     text,
                     (jukebox->disp->w - width) / 2,
