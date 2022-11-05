@@ -23,6 +23,7 @@
 #include "settingsManager.h"
 #include "swadgeMode.h"
 #include "swadge_util.h"
+#include "mode_dance.h"
 
 #include "fighter_music.h"
 #include "fighter_mp_result.h"
@@ -44,6 +45,8 @@
 #define CORNER_OFFSET 12
 
 #define lengthof(x) (sizeof(x) / sizeof(x[0]))
+
+#define RGB_2_ARG(r,g,b) ((((r)&0xFF) << 16) | (((g)&0xFF) << 8) | (((b)&0xFF)))
 
 /*==============================================================================
  * Enums
@@ -68,8 +71,6 @@ void  jukeboxMainMenuCb(const char* opt);
 
 void jukeboxSelectNextDance(void);
 void jukeboxSelectPrevDance(void);
-void jukeboxDanceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void jukeboxDanceNone(uint32_t tElapsedUs, uint32_t arg, bool reset);
 
 /*==============================================================================
  * Structs
@@ -157,9 +158,32 @@ static const char str_play[] = ": Play";
 
 static const jukeboxLedDanceArg jukeboxLedDances[] =
 {
-    {.func = jukeboxDanceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
-    {.func = jukeboxDanceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
-    {.func = jukeboxDanceNone,          .arg =     0, .name = "None"},
+    {.func = danceComet, .arg = RGB_2_ARG(0, 0, 0),    .name = "Comet RGB"},
+    {.func = danceComet, .arg = RGB_2_ARG(0xFF, 0, 0), .name = "Comet R"},
+    {.func = danceComet, .arg = RGB_2_ARG(0, 0xFF, 0), .name = "Comet G"},
+    {.func = danceComet, .arg = RGB_2_ARG(0, 0, 0xFF), .name = "Comet B"},
+    {.func = danceRise,  .arg = RGB_2_ARG(0, 0, 0),    .name = "Rise RGB"},
+    {.func = danceRise,  .arg = RGB_2_ARG(0xFF, 0, 0), .name = "Rise R"},
+    {.func = danceRise,  .arg = RGB_2_ARG(0, 0xFF, 0), .name = "Rise G"},
+    {.func = danceRise,  .arg = RGB_2_ARG(0, 0, 0xFF), .name = "Rise B"},
+    {.func = dancePulse, .arg = RGB_2_ARG(0, 0, 0),    .name = "Pulse RGB"},
+    {.func = dancePulse, .arg = RGB_2_ARG(0xFF, 0, 0), .name = "Pulse R"},
+    {.func = dancePulse, .arg = RGB_2_ARG(0, 0xFF, 0), .name = "Pulse G"},
+    {.func = dancePulse, .arg = RGB_2_ARG(0, 0, 0xFF), .name = "Pulse B"},
+    {.func = danceSharpRainbow,  .arg = 0, .name = "Rainbow Sharp"},
+    {.func = danceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
+    {.func = danceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
+    {.func = danceRainbowSolid,  .arg = 0, .name = "Rainbow Solid"},
+    {.func = danceFire, .arg = RGB_2_ARG(0xFF, 51, 0), .name = "Fire R"},
+    {.func = danceFire, .arg = RGB_2_ARG(0, 0xFF, 51), .name = "Fire G"},
+    {.func = danceFire, .arg = RGB_2_ARG(51, 0, 0xFF), .name = "Fire B"},
+    {.func = danceBinaryCounter, .arg = 0, .name = "Binary"},
+    {.func = dancePoliceSiren,   .arg = 0, .name = "Siren"},
+    {.func = dancePureRandom,    .arg = 0, .name = "Random LEDs"},
+    {.func = danceChristmas,     .arg = 1, .name = "Holiday 1"},
+    {.func = danceChristmas,     .arg = 0, .name = "Holiday 2"},
+    {.func = danceNone,          .arg = 0, .name = "None"},
+    {.func = danceRandomDance,   .arg = 0, .name = "Shuffle All"},
 };
 
 static const jukeboxSong fighterMusic[] =
@@ -548,6 +572,23 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                 numSongs = sfxCategories[jukebox->categoryIdx].numSongs;
             }
 
+                                                                            // Draw the light mode name
+                                                                            char text[32];
+                                                                            snprintf(text, sizeof(text), "Mode: %s", categoryName);
+                                                                            int16_t width = textWidth(&(jukebox->radiostars), text);
+                                                                            int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 2;
+                                                                            drawText(jukebox->disp, &(jukebox->radiostars), c555,
+                                                                                    text,
+                                                                                    (jukebox->disp->w - width) / 2,
+                                                                                    yOff);
+                                                                            // Draw some arrows
+                                                                            drawWsg(jukebox->disp, &jukebox->arrow,
+                                                                                    ((jukebox->disp->w - width) / 2) - 8 - jukebox->arrow.w, yOff,
+                                                                                    false, false, 0);
+                                                                            drawWsg(jukebox->disp, &jukebox->arrow,
+                                                                                    ((jukebox->disp->w - width) / 2) + width + 8, yOff,
+                                                                                    false, false, 180);
+
             // Draw the mode name
             char text[32];
             snprintf(text, sizeof(text), "Mode: %s", categoryName);
@@ -648,70 +689,6 @@ void jukeboxMainMenuCb(const char * opt)
         jukebox->categoryIdx = 1;
         jukebox->songIdx = 0;
         jukebox->inMusicSubmode = false;
-    }
-}
-
-/** Smoothly rotate a color wheel around the swadge
- *
- * @param tElapsedUs The time elapsed since last call, in microseconds
- * @param reset      true to reset this dance's variables
- */
-void jukeboxDanceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset)
-{
-    static uint32_t tAccumulated = 0;
-    static uint8_t ledCount = 0;
-
-    if(reset)
-    {
-        ledCount = 0;
-        tAccumulated = arg;
-        return;
-    }
-
-    // Declare some LEDs, all off
-    led_t leds[NUM_LEDS] = {{0}};
-    bool ledsUpdated = false;
-
-    tAccumulated += tElapsedUs;
-    while(tAccumulated >= arg)
-    {
-        tAccumulated -= arg;
-        ledsUpdated = true;
-
-        ledCount--;
-
-        uint8_t i;
-        for(i = 0; i < NUM_LEDS; i++)
-        {
-            int16_t angle = ((((i * 256) / NUM_LEDS)) + ledCount) % 256;
-            uint32_t color = EHSVtoHEXhelper(angle, 0xFF, 0xFF, false);
-
-            leds[i].r = (color >>  0) & 0xFF;
-            leds[i].g = (color >>  8) & 0xFF;
-            leds[i].b = (color >> 16) & 0xFF;
-        }
-    }
-    // Output the LED data, actually turning them on
-    if(ledsUpdated)
-    {
-        setLeds(leds, NUM_LEDS);
-    }
-}
-
-/**
- * @brief Blank the LEDs
- *
- * @param tElapsedUs
- * @param arg
- * @param reset
- */
-void jukeboxDanceNone(uint32_t tElapsedUs __attribute__((unused)),
-               uint32_t arg __attribute__((unused)), bool reset)
-{
-    if(reset)
-    {
-        led_t leds[NUM_LEDS] = {{0}};
-        setLeds(leds, NUM_LEDS);
     }
 }
 
