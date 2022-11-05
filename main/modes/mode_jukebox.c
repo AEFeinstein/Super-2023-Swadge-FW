@@ -186,6 +186,7 @@ static const jukeboxSong jumperMusic[] =
     {.name = "Death", .song = &jumpDeathTune},
     {.name = "Game Over", .song = &jumpGameOverTune},
     {.name = "Winner", .song = &jumpWinTune},
+    {.name = "Perfect", .song = &jumpPerfectTune},
 };
 
 static const jukeboxSong creditsMusic[] =
@@ -268,7 +269,6 @@ static const jukeboxSong jumperSfx[] =
     {.name = "EvilDonut Jump", .song = &jumpEvilDonutJump},
     {.name = "Blump Jump", .song = &jumpBlumpJump},
     {.name = "Countdown", .song = &jumpCountdown},
-    {.name = "Perfect", .song = &jumpPerfectTune},
 };
 
 static const jukeboxSong tunernomesfx[] =
