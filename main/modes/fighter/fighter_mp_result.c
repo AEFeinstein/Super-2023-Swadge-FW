@@ -45,7 +45,7 @@ typedef struct
 
 hrRes_t* mpr;
 
-static const song_t fVictoryJingle =
+const song_t fVictoryJingle =
 {
     .notes =
     {
@@ -67,7 +67,7 @@ static const song_t fVictoryJingle =
     .shouldLoop = false
 };
 
-static const song_t fLossJingle =
+const song_t fLossJingle =
 {
     .notes =
     {

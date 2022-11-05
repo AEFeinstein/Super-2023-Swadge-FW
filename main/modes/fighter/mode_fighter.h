@@ -5,8 +5,9 @@
 // Includes
 //==============================================================================
 
-#include "swadgeMode.h"
 #include "aabb_utils.h"
+#include "musical_buzzer.h"
+#include "swadgeMode.h"
 
 //==============================================================================
 // Defines
@@ -69,7 +70,7 @@ typedef enum
 {
     KING_DONUT,
     SUNNY,
-    BIG_FUNKUS,
+    BIGG_FUNKUS,
     SANDBAG,
     NO_CHARACTER
 } fightingCharacter_t;
@@ -130,15 +131,16 @@ typedef struct
 {
     vector_t hitboxPos;
     vector_t hitboxSize;
-    uint16_t damage;
     vector_t knockback;
+    uint16_t damage;
     uint16_t hitstun;
 
-    bool isProjectile;
     offsetSprite_t projSprite;
-    uint16_t projDuration;
     vector_t projVelo;
     vector_t projAccel;
+    uint16_t projDuration;
+    bool isProjectile;
+    bool projPassThru;
 } attackHitbox_t;
 
 typedef struct
@@ -265,6 +267,7 @@ typedef struct
     uint16_t damage;
     uint16_t hitstun;
 
+    bool passThru;
     bool removeNextFrame;
     fighterDirection_t dir;
 } projectile_t;
@@ -307,6 +310,13 @@ typedef struct
     fighterSceneFighter_t f2;
     fighterSceneProjectile_t projs[];
 } fighterScene_t;
+
+/*==============================================================================
+ * Const Variables
+ *============================================================================*/
+
+extern const song_t f1hit;
+extern const song_t f2hit;
 
 //==============================================================================
 // Functions

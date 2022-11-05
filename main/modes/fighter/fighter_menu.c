@@ -149,7 +149,7 @@ static const char str_exit[]        = "Exit";
 
 static const char str_charKD[]      = "King Donut";
 static const char str_charSN[]      = "Sunny";
-static const char str_charBF[]      = "Big Funkus";
+static const char str_charBF[]      = "Bigg Funkus";
 
 const char str_searching_for[] = "Searching For";
 const char str_another_swadge[] = "Another Swadge";
@@ -690,8 +690,8 @@ void fighterHrMenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[0] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[0] = BIGG_FUNKUS;
     }
     else if (opt == str_back)
     {
@@ -744,8 +744,8 @@ void fighterVsCpuCharMenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[0] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[0] = BIGG_FUNKUS;
     }
     else if(opt == str_back)
     {
@@ -838,8 +838,8 @@ void fighterMultiplayerCharMenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[charIdx] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[charIdx] = BIGG_FUNKUS;
     }
     else
     {
@@ -957,8 +957,8 @@ void fighterLocalVsP1MenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[0] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[0] = BIGG_FUNKUS;
     }
     else if (opt == str_back)
     {
@@ -1010,8 +1010,8 @@ void fighterLocalVsP2MenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[1] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[1] = BIGG_FUNKUS;
     }
     else if (opt == str_back)
     {
