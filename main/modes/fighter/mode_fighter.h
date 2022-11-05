@@ -5,8 +5,9 @@
 // Includes
 //==============================================================================
 
-#include "swadgeMode.h"
 #include "aabb_utils.h"
+#include "musical_buzzer.h"
+#include "swadgeMode.h"
 
 //==============================================================================
 // Defines
@@ -309,6 +310,13 @@ typedef struct
     fighterSceneFighter_t f2;
     fighterSceneProjectile_t projs[];
 } fighterScene_t;
+
+/*==============================================================================
+ * Const Variables
+ *============================================================================*/
+
+extern const song_t f1hit;
+extern const song_t f2hit;
 
 //==============================================================================
 // Functions

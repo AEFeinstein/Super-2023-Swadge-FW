@@ -289,7 +289,7 @@ static const stage_t* stages[] =
 };
 
 // Simple sound effect when fighter 1 is hit
-static const song_t f1hit =
+const song_t f1hit =
 {
     .notes =
     {
@@ -312,7 +312,7 @@ static const song_t f1hit =
 };
 
 // Simple sound effect when fighter 2 is hit
-song_t f2hit =
+const song_t f2hit =
 {
     .notes =
     {

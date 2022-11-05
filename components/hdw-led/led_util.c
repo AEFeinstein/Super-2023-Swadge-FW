@@ -6,6 +6,12 @@
 #include "led_util.h"
 
 //==============================================================================
+// Defines
+//==============================================================================
+
+#define MAX_LED_BRIGHTNESS 7
+
+//==============================================================================
 // Variables
 //==============================================================================
 
@@ -29,23 +35,23 @@ void initLeds(gpio_num_t gpio, gpio_num_t gpioAlt, rmt_channel_t rmt, uint16_t n
 {
     ledStrip = led_strip_init(rmt, gpio, gpioAlt, numLeds);
     maxNumLeds = numLeds;
-    ledBrightness = (7 - brightness);
+    ledBrightness = (MAX_LED_BRIGHTNESS - brightness);
 }
 
 /**
  * Set the global LED brightness
  *
- * @param brightness 0 (off) to 8 (max bright)
+ * @param brightness 0 (off) to MAX_LED_BRIGHTNESS (max bright)
  */
 void setLedBrightness(uint8_t brightness)
 {
     // Bound
-    if(brightness > 7)
+    if(brightness > MAX_LED_BRIGHTNESS)
     {
-        brightness = 7;
+        brightness = MAX_LED_BRIGHTNESS;
     }
     // Set a value to rshift by
-    ledBrightness = (7 - brightness);
+    ledBrightness = (MAX_LED_BRIGHTNESS - brightness);
 }
 
 /**

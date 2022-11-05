@@ -54,20 +54,6 @@ void selectNextDance(void);
 void selectPrevDance(void);
 void danceBatteryCb(uint32_t vBatt);
 
-void danceComet(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void dancePulse(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceSharpRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceRainbowSolid(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceBinaryCounter(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceFire(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void dancePoliceSiren(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void dancePureRandom(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceRandomDance(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceChristmas(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceNone(uint32_t tElapsedUs, uint32_t arg, bool reset);
-
 /*============================================================================
  * Variables
  *==========================================================================*/
