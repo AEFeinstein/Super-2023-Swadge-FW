@@ -43,7 +43,7 @@
  * Defines
  *============================================================================*/
 
-#define CORNER_OFFSET 12
+#define CORNER_OFFSET 13
 
 #define MAX_LED_BRIGHTNESS 7
 
@@ -72,6 +72,8 @@ void  jukeboxButtonCallback(buttonEvt_t* evt);
 void  jukeboxTouchCallback(touch_event_t* evt);
 void  jukeboxMainLoop(int64_t elapsedUs);
 void  jukeboxMainMenuCb(const char* opt);
+
+void setJukeboxMainMenu(void);
 
 void jukeboxSelectNextDance(void);
 void jukeboxSelectPrevDance(void);
@@ -235,6 +237,8 @@ static const jukeboxCategory musicCategories[] =
 
 static const jukeboxSong fighterSfx[] =
 {
+    {.name = "Fighter 1 Hit", .song = &f1hit},
+    {.name = "Fighter 2 Hit", .song = &f2hit},
     {.name = "Victory", .song = &fVictoryJingle},
     {.name = "Loss", .song = &fLossJingle},
 };
@@ -303,7 +307,7 @@ static const jukeboxSong tunernomesfx[] =
 
 static const jukeboxCategory sfxCategories[] =
 {
-    {.categoryName = "Swadge Bros", .numSongs = 2, .songs = fighterSfx},
+    {.categoryName = "Swadge Bros", .numSongs = 4, .songs = fighterSfx},
     {.categoryName = "Tiltrads", .numSongs = 22, .songs = tiltradsSfx},
     {.categoryName = "Swadge Land", .numSongs = 16, .songs = platformerSfx},
     {.categoryName = "Donut Jump", .numSongs = 6, .songs = jumperSfx},
@@ -349,6 +353,8 @@ void  jukeboxExitMode(void)
     freeFont(&jukebox->mm);
 
     freeWsg(&jukebox->arrow);
+
+    deinitMeleeMenu(jukebox->menu);
 
     free(jukebox);
 }
@@ -514,11 +520,11 @@ void  jukeboxTouchCallback(touch_event_t* evt)
  */
 void  jukeboxMainLoop(int64_t elapsedUs)
 {
-    jukebox->disp->clearPx();
     switch(jukebox->screen)
     {
         case JUKEBOX_MENU:
         {
+            jukebox->disp->clearPx();
             drawMeleeMenu(jukebox->disp, jukebox->menu);
             break;
         }
@@ -700,14 +706,14 @@ void jukeboxMainMenuCb(const char * opt)
     else if (opt == str_bgm)
     {
         jukebox->screen = JUKEBOX_PLAYER;
-        jukebox->categoryIdx = 1;
+        jukebox->categoryIdx = 0;
         jukebox->songIdx = 0;
         jukebox->inMusicSubmode = true;
     }
     else if (opt == str_sfx)
     {
         jukebox->screen = JUKEBOX_PLAYER;
-        jukebox->categoryIdx = 1;
+        jukebox->categoryIdx = 0;
         jukebox->songIdx = 0;
         jukebox->inMusicSubmode = false;
     }

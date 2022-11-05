@@ -38,7 +38,7 @@
     #define M_PI 3.14159265358979323846
 #endif
 
-#define CORNER_OFFSET 12
+#define CORNER_OFFSET 13
 
 #define NUM_GUITAR_STRINGS    lengthof(guitarNoteNames)
 #define NUM_VIOLIN_STRINGS    lengthof(violinNoteNames)

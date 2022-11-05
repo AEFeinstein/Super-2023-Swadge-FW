@@ -12,6 +12,4 @@
 
 extern swadgeMode modeJukebox;
 
-void setJukeboxMainMenu(void);
-
 #endif /* _MODE_JUKEBOX_H_ */

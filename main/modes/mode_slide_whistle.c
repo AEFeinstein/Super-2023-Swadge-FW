@@ -35,7 +35,7 @@
  * Defines
  *============================================================================*/
 
-#define CORNER_OFFSET 12
+#define CORNER_OFFSET 13
 #define TOP_TEXT_X_MARGIN CORNER_OFFSET / 2
 #define LINE_BREAK_Y 8
 #define TICK_HEIGHT 4
