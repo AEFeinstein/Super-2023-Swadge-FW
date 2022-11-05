@@ -63,7 +63,9 @@ typedef struct
 {
     display_t* disp;
     hid_gamepad_report_t gpState;
+    hid_gamepad_ns_report_t gpNsState;
     font_t ibmFont;
+    uint8_t gamepadType;
     bool isPluggedIn;
 } gamepad_t;
 
@@ -95,6 +97,20 @@ const hid_gamepad_button_bm_t touchMap[] =
     GAMEPAD_BUTTON_TL,
 };
 
+const hid_gamepad_button_bm_t touchMapNs[] =
+{
+    GAMEPAD_BUTTON_TL,
+    GAMEPAD_BUTTON_Y,
+    GAMEPAD_BUTTON_MODE,
+    GAMEPAD_BUTTON_X,
+    GAMEPAD_BUTTON_TR,
+};
+
+typedef enum {
+    GAMEPAD_GENERIC,
+    GAMEPAD_NS
+} gamepadType_t;
+
 //==============================================================================
 // Functions
 //==============================================================================
@@ -109,6 +125,15 @@ void gamepadEnterMode(display_t* disp)
 
     // Save a pointer to the display
     gamepad->disp = disp;
+
+    gamepad->gamepadType = GAMEPAD_GENERIC;
+
+    if(gamepad->gamepadType == GAMEPAD_NS){
+        gamepad->gpNsState.x = 128;
+        gamepad->gpNsState.y = 128;
+        gamepad->gpNsState.rx = 128;
+        gamepad->gpNsState.ry = 128;
+    }
 
     // Load the font
     loadFont("ibm_vga8.font", &(gamepad->ibmFont));
@@ -266,66 +291,135 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
  */
 void gamepadButtonCb(buttonEvt_t* evt)
 {
-    // Build a list of all independent buttons held down
-    gamepad->gpState.buttons = 0;
-    if(evt->state & BTN_A)
-    {
-        gamepad->gpState.buttons |= GAMEPAD_BUTTON_A;
-    }
-    if(evt->state & BTN_B)
-    {
-        gamepad->gpState.buttons |= GAMEPAD_BUTTON_B;
-    }
-    if(evt->state & START)
-    {
-        gamepad->gpState.buttons |= GAMEPAD_BUTTON_START;
-    }
-    if(evt->state & SELECT)
-    {
-        gamepad->gpState.buttons |= GAMEPAD_BUTTON_SELECT;
-    }
+    switch(gamepad->gamepadType){
+        case GAMEPAD_GENERIC: {
+            // Build a list of all independent buttons held down
+            gamepad->gpState.buttons = 0;
+            if(evt->state & BTN_A)
+            {
+                gamepad->gpState.buttons |= GAMEPAD_BUTTON_A;
+            }
+            if(evt->state & BTN_B)
+            {
+                gamepad->gpState.buttons |= GAMEPAD_BUTTON_B;
+            }
+            if(evt->state & START)
+            {
+                gamepad->gpState.buttons |= GAMEPAD_BUTTON_START;
+            }
+            if(evt->state & SELECT)
+            {
+                gamepad->gpState.buttons |= GAMEPAD_BUTTON_SELECT;
+            }
 
-    // Figure out which way the D-Pad is pointing
-    gamepad->gpState.hat = GAMEPAD_HAT_CENTERED;
-    if(evt->state & UP)
-    {
-        if(evt->state & RIGHT)
-        {
-            gamepad->gpState.hat |= GAMEPAD_HAT_UP_RIGHT;
-        }
-        else if(evt->state & LEFT)
-        {
-            gamepad->gpState.hat |= GAMEPAD_HAT_UP_LEFT;
-        }
-        else
-        {
-            gamepad->gpState.hat |= GAMEPAD_HAT_UP;
-        }
-    }
-    else if(evt->state & DOWN)
-    {
-        if(evt->state & RIGHT)
-        {
-            gamepad->gpState.hat |= GAMEPAD_HAT_DOWN_RIGHT;
-        }
-        else if(evt->state & LEFT)
-        {
-            gamepad->gpState.hat |= GAMEPAD_HAT_DOWN_LEFT;
-        }
-        else
-        {
-            gamepad->gpState.hat |= GAMEPAD_HAT_DOWN;
-        }
-    }
-    else if(evt->state & RIGHT)
-    {
-        gamepad->gpState.hat |= GAMEPAD_HAT_RIGHT;
-    }
-    else if(evt->state & LEFT)
-    {
-        gamepad->gpState.hat |= GAMEPAD_HAT_LEFT;
-    }
+            // Figure out which way the D-Pad is pointing
+            gamepad->gpState.hat = GAMEPAD_HAT_CENTERED;
+            if(evt->state & UP)
+            {
+                if(evt->state & RIGHT)
+                {
+                    gamepad->gpState.hat = GAMEPAD_HAT_UP_RIGHT;
+                }
+                else if(evt->state & LEFT)
+                {
+                    gamepad->gpState.hat = GAMEPAD_HAT_UP_LEFT;
+                }
+                else
+                {
+                    gamepad->gpState.hat = GAMEPAD_HAT_UP;
+                }
+            }
+            else if(evt->state & DOWN)
+            {
+                if(evt->state & RIGHT)
+                {
+                    gamepad->gpState.hat = GAMEPAD_HAT_DOWN_RIGHT;
+                }
+                else if(evt->state & LEFT)
+                {
+                    gamepad->gpState.hat = GAMEPAD_HAT_DOWN_LEFT;
+                }
+                else
+                {
+                    gamepad->gpState.hat = GAMEPAD_HAT_DOWN;
+                }
+            }
+            else if(evt->state & RIGHT)
+            {
+                gamepad->gpState.hat = GAMEPAD_HAT_RIGHT;
+            }
+            else if(evt->state & LEFT)
+            {
+                gamepad->gpState.hat = GAMEPAD_HAT_LEFT;
+            }
 
+            break;
+        }
+        case GAMEPAD_NS:{
+            // Build a list of all independent buttons held down
+            gamepad->gpNsState.buttons = 0;
+            if(evt->state & BTN_A)
+            {
+                gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_A;
+            }
+            if(evt->state & BTN_B)
+            {
+                gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_B;
+            }
+            if(evt->state & START)
+            {
+                gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_START;
+            }
+            if(evt->state & SELECT)
+            {
+                gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_SELECT;
+            }
+
+            // Figure out which way the D-Pad is pointing
+            gamepad->gpNsState.hat = GAMEPAD_NS_HAT_CENTERED;
+            if(evt->state & UP)
+            {
+                if(evt->state & RIGHT)
+                {
+                    gamepad->gpNsState.hat = GAMEPAD_NS_HAT_UP_RIGHT;
+                }
+                else if(evt->state & LEFT)
+                {
+                    gamepad->gpNsState.hat = GAMEPAD_NS_HAT_UP_LEFT;
+                }
+                else
+                {
+                    gamepad->gpNsState.hat = GAMEPAD_NS_HAT_UP;
+                }
+            }
+            else if(evt->state & DOWN)
+            {
+                if(evt->state & RIGHT)
+                {
+                    gamepad->gpNsState.hat = GAMEPAD_NS_HAT_DOWN_RIGHT;
+                }
+                else if(evt->state & LEFT)
+                {
+                    gamepad->gpNsState.hat = GAMEPAD_NS_HAT_DOWN_LEFT;
+                }
+                else
+                {
+                    gamepad->gpNsState.hat = GAMEPAD_NS_HAT_DOWN;
+                }
+            }
+            else if(evt->state & RIGHT)
+            {
+                gamepad->gpNsState.hat = GAMEPAD_NS_HAT_RIGHT;
+            }
+            else if(evt->state & LEFT)
+            {
+                gamepad->gpNsState.hat = GAMEPAD_NS_HAT_LEFT;
+            }
+
+            break;
+        }
+    }
+    
     // Send state to host
     gamepadReportStateToHost();
 }
@@ -337,13 +431,31 @@ void gamepadButtonCb(buttonEvt_t* evt)
  */
 void gamepadTouchCb(touch_event_t* evt)
 {
-    if(evt->down)
-    {
-        gamepad->gpState.buttons |= touchMap[evt->pad];
-    }
-    else
-    {
-        gamepad->gpState.buttons &= ~touchMap[evt->pad];
+    switch(gamepad->gamepadType){
+        case GAMEPAD_GENERIC: {
+            if(evt->down)
+            {
+                gamepad->gpState.buttons |= touchMap[evt->pad];
+            }
+            else
+            {
+                gamepad->gpState.buttons &= ~touchMap[evt->pad];
+            }
+
+            break;
+        }
+        case GAMEPAD_NS: {
+            if(evt->down)
+            {
+                gamepad->gpNsState.buttons |= touchMapNs[evt->pad];
+            }
+            else
+            {
+                gamepad->gpNsState.buttons &= ~touchMapNs[evt->pad];
+            }
+
+            break;
+        }
     }
 
     // Send state to host
@@ -357,13 +469,21 @@ void gamepadTouchCb(touch_event_t* evt)
  */
 void gamepadAccelCb(accel_t* accel)
 {
-    // Values are roughly -256 to 256, so divide, clamp, and save
-    gamepad->gpState.rx = CLAMP((accel->x) / 2, -128, 127);
-    gamepad->gpState.ry = CLAMP((accel->y) / 2, -128, 127);
-    gamepad->gpState.rz = CLAMP((accel->z) / 2, -128, 127);
+    switch(gamepad->gamepadType){
+        case GAMEPAD_GENERIC:{
+            // Values are roughly -256 to 256, so divide, clamp, and save
+            gamepad->gpState.rx = CLAMP((accel->x) / 2, -128, 127);
+            gamepad->gpState.ry = CLAMP((accel->y) / 2, -128, 127);
+            gamepad->gpState.rz = CLAMP((accel->z) / 2, -128, 127);
 
-    // Send state to host
-    gamepadReportStateToHost();
+            // Send state to host
+            gamepadReportStateToHost();
+            break;
+        }
+        default:
+            break;
+    }
+
 }
 
 /**
@@ -374,29 +494,40 @@ void gamepadReportStateToHost(void)
     // Only send data if USB is ready
     if(tud_ready())
     {
-        if(gamepad->gpState.buttons & ((GAMEPAD_BUTTON_C | GAMEPAD_BUTTON_X | GAMEPAD_BUTTON_Y | GAMEPAD_BUTTON_Z | GAMEPAD_BUTTON_TL)))
-        {
-            int32_t center, intensity;
-            getTouchCentroid(&center, &intensity);
-            int16_t scaledVal = (center >> 2) - 128;
-            if(scaledVal < -128)
-            {
-                gamepad->gpState.z = -128;
+        switch(gamepad->gamepadType){
+            case GAMEPAD_GENERIC: {
+                if(gamepad->gpState.buttons & ((GAMEPAD_BUTTON_C | GAMEPAD_BUTTON_X | GAMEPAD_BUTTON_Y | GAMEPAD_BUTTON_Z | GAMEPAD_BUTTON_TL)))
+                {
+                    int32_t center, intensity;
+                    getTouchCentroid(&center, &intensity);
+                    int16_t scaledVal = (center >> 2) - 128;
+                    if(scaledVal < -128)
+                    {
+                        gamepad->gpState.z = -128;
+                    }
+                    else if (scaledVal > 127)
+                    {
+                        gamepad->gpState.z = 127;
+                    }
+                    else
+                    {
+                        gamepad->gpState.z = scaledVal;
+                    }
+                }
+                else
+                {
+                    gamepad->gpState.z = 0;
+                }
+                // Send the state over USB
+                tud_gamepad_report(&gamepad->gpState);
+                break;
             }
-            else if (scaledVal > 127)
-            {
-                gamepad->gpState.z = 127;
-            }
-            else
-            {
-                gamepad->gpState.z = scaledVal;
+            case GAMEPAD_NS: {
+                tud_gamepad_ns_report(&gamepad->gpNsState);
+                break;
             }
         }
-        else
-        {
-            gamepad->gpState.z = 0;
-        }
-        // Send the state over USB
-        tud_gamepad_report(&gamepad->gpState);
+        
+        
     }    
 }
