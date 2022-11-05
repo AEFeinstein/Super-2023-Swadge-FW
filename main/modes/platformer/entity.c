@@ -595,7 +595,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                 updateLedsHpMeter(self->entityManager, self->gameData);
                 self->gameData->comboTimer = 0;
                 
-                if(self->hp <= 0){
+                if(!self->gameData->debugMode && self->hp <= 0){
                     self->updateFunction = &updateEntityDead;
                     self->type = ENTITY_DEAD;
                     self->xspeed = 0;
