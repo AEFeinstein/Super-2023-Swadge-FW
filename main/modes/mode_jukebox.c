@@ -572,28 +572,20 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                 numSongs = sfxCategories[jukebox->categoryIdx].numSongs;
             }
 
-                                                                            // Draw the light mode name
-                                                                            char text[32];
-                                                                            snprintf(text, sizeof(text), "Mode: %s", categoryName);
-                                                                            int16_t width = textWidth(&(jukebox->radiostars), text);
-                                                                            int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 2;
-                                                                            drawText(jukebox->disp, &(jukebox->radiostars), c555,
-                                                                                    text,
-                                                                                    (jukebox->disp->w - width) / 2,
-                                                                                    yOff);
-                                                                            // Draw some arrows
-                                                                            drawWsg(jukebox->disp, &jukebox->arrow,
-                                                                                    ((jukebox->disp->w - width) / 2) - 8 - jukebox->arrow.w, yOff,
-                                                                                    false, false, 0);
-                                                                            drawWsg(jukebox->disp, &jukebox->arrow,
-                                                                                    ((jukebox->disp->w - width) / 2) + width + 8, yOff,
-                                                                                    false, false, 180);
-
-            // Draw the mode name
+            // Draw the light mode name
             char text[32];
-            snprintf(text, sizeof(text), "Mode: %s", categoryName);
+            snprintf(text, sizeof(text), "Led Dance: %s", jukeboxLedDances[jukebox->danceIdx].name);
             int16_t width = textWidth(&(jukebox->radiostars), text);
-            int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 2;
+            int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 5;
+            drawText(jukebox->disp, &(jukebox->radiostars), c555,
+                    text,
+                    (jukebox->disp->w - width) / 2,
+                    yOff);
+                    
+            // Draw the mode name
+            snprintf(text, sizeof(text), "Mode: %s", categoryName);
+            width = textWidth(&(jukebox->radiostars), text);
+            yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 2;
             drawText(jukebox->disp, &(jukebox->radiostars), c555,
                     text,
                     (jukebox->disp->w - width) / 2,
