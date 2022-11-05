@@ -18,6 +18,9 @@
 #define MAX_TFT_BRIGHTNESS 7
 #define MAX_MIC_GAIN       7
 
+/// Helper macro to return an integer clamped within a range (MIN to MAX)
+#define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
+
 //==============================================================================
 // Variables
 //==============================================================================
@@ -249,6 +252,28 @@ int32_t getLedBrightness(void)
         // Return the read value
         return ledBrightness;
     }
+}
+
+/**
+ * Set the brightness level for the LED, saving to RAM and NVS
+ *
+ * @param brightness 0 (off) to 7 (max bright)
+ * @return true if the setting was saved, false if it was not
+ */
+bool setAndSaveLedBrightness(uint8_t brightness)
+{
+    // Bound
+    if(brightness > MAX_LED_BRIGHTNESS)
+    {
+        brightness = MAX_LED_BRIGHTNESS;
+    }
+    // Adjust the LEDs
+    setLedBrightness(brightness);
+    // Save to RAM as well
+    settingsRam.ledBrightness = brightness;
+    settingsRam.ledBrightnessRead = true;
+    // Write the value
+    return writeNvs32(KEY_LED_BRIGHT, brightness);
 }
 
 /**

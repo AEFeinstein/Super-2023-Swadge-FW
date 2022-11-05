@@ -45,12 +45,11 @@
 
 #define CORNER_OFFSET 12
 
+#define MAX_LED_BRIGHTNESS 7
+
 #define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
 #define RGB_2_ARG(r,g,b) ((((r)&0xFF) << 16) | (((g)&0xFF) << 8) | (((b)&0xFF)))
-
-/// Helper macro to return an integer clamped within a range (MIN to MAX)
-#define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
 
 /*==============================================================================
  * Enums
@@ -91,12 +90,16 @@ typedef struct
     font_t mm;
     wsg_t arrow;
 
+    // Touch
+    bool touchHeld;
     int32_t touchPosition;
     int32_t touchIntensity;
 
+    // Light Dances
     uint8_t danceIdx;
     bool resetDance;
 
+    // Jukebox Stuff
     uint8_t categoryIdx;
     uint8_t songIdx;
     bool inMusicSubmode;
@@ -360,7 +363,7 @@ void  jukeboxExitMode(void)
  */
 void  jukeboxTouchCallback(touch_event_t* evt)
 {
-    // jukebox->touchHeld = evt->state != 0;
+    jukebox->touchHeld = evt->state != 0;
     // jukebox->touchPosition = roundf((evt->position * BAR_X_WIDTH) / 255);
 }
 
@@ -631,11 +634,14 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                         false, false, 90);
             }
 
-            // Touch Controls?
-            getTouchCentroid(&jukebox->touchPosition, &jukebox->touchIntensity);
-            jukebox->touchPosition = (jukebox->touchPosition * jukebox->disp->w) / 1023;
-            jukebox->touchPosition = CLAMP(jukebox->touchPosition, 0,
-                                        jukebox->disp->w - 1);
+            // Touch Controls
+            if(jukebox->touchHeld)
+            {
+                getTouchCentroid(&jukebox->touchPosition, &jukebox->touchIntensity);
+                jukebox->touchPosition = (jukebox->touchPosition * MAX_LED_BRIGHTNESS) / 1023;
+                
+                setAndSaveLedBrightness(jukebox->touchPosition);
+            }
 
             // Warn the user that the swadge is muted, if that's the case
             if(jukebox->inMusicSubmode)
