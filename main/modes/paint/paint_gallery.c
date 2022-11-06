@@ -10,8 +10,8 @@
 
 #include <string.h>
 
-static const char transitionTime[] = "Interval: %g sec";
-static const char transitionOff[] = "Interval: Off";
+static const char transitionTime[] = "Slideshow: %g sec";
+static const char transitionOff[] = "Slideshow: Off";
 static const char transitionTimeNvsKey[] = "paint_gal_time";
 static const char danceIndexKey[] = "paint_dance_idx";
 
@@ -53,7 +53,17 @@ void paintGallerySetup(display_t* disp, bool screensaver)
     loadFont("radiostars.font", &paintGallery->infoFont);
 
     paintLoadIndex(&paintGallery->index);
-    paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, PAINT_SAVE_SLOTS - 1);
+
+    if (paintGetAnySlotInUse(paintGallery->index) && paintGetRecentSlot(paintGallery->index) != PAINT_SAVE_SLOTS)
+    {
+        paintGallery->gallerySlot = paintGetRecentSlot(paintGallery->index);
+        PAINT_LOGD("Using the most recent gallery slot: %d", paintGallery->gallerySlot);
+    }
+    else
+    {
+        paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, PAINT_SAVE_SLOTS - 1);
+        PAINT_LOGD("Using the first slot: %d", paintGallery->gallerySlot);
+    }
 
     if (!readNvs32(transitionTimeNvsKey, &paintGallery->gallerySpeedIndex))
     {
@@ -104,16 +114,21 @@ void paintGalleryMainLoop(int64_t elapsedUs)
             paintGallery->galleryLoadNew = true;
         }
     }
-    else if (paintGallery->gallerySpeed != 0 && paintGallery->galleryTime >= paintGallery->gallerySpeed)
+    else
     {
-        uint8_t prevSlot = paintGallery->gallerySlot;
-        paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, paintGallery->gallerySlot);
-        // Only load the next image if it's actually a different image
-        paintGallery->galleryLoadNew = (paintGallery->gallerySlot != prevSlot);
-        paintGallery->galleryTime -= paintGallery->gallerySpeed;
+        if (paintGallery->gallerySpeed != 0 && paintGallery->galleryTime >= paintGallery->gallerySpeed)
+        {
+            uint8_t prevSlot = paintGallery->gallerySlot;
+            paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, paintGallery->gallerySlot);
+            // Only load the next image if it's actually a different image
+            paintGallery->galleryLoadNew = (paintGallery->gallerySlot != prevSlot);
+            paintGallery->galleryTime %= paintGallery->gallerySpeed;
 
-        // reset info time if we're going to transition and clear the screen
-        paintGallery->infoTimeRemaining = 0;
+            // reset info time if we're going to transition and clear the screen
+            paintGallery->infoTimeRemaining = 0;
+        }
+
+        paintGallery->galleryTime += elapsedUs;
     }
 
     if (paintGallery->galleryLoadNew)
@@ -124,8 +139,6 @@ void paintGalleryMainLoop(int64_t elapsedUs)
             return;
         }
     }
-
-    paintGallery->galleryTime += elapsedUs;
 }
 
 void paintGalleryAddInfoText(const char* text, int16_t yOffset)
@@ -200,39 +213,43 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
                 break;
             }
 
-            /*
             case LEFT:
-            paintGallery->gallerySlot = paintGetPrevSlotInUse(paintGallery->index, paintGallery->gallerySlot);
-            paintGallery->galleryLoadNew = (prevSlot != paintGallery->gallerySlot);
-            paintGallery->galleryTime = 0;
-            break;
-            */
-
-            case LEFT:
+            {
                 portableDancePrev(paintGallery->portableDances);
                 updateDanceText = true;
-            break;
+                break;
+            }
 
             case RIGHT:
+            {
                 portableDanceNext(paintGallery->portableDances);
                 updateDanceText = true;
-            break;
+                break;
+            }
 
             case BTN_B:
-            // Exit
-            paintReturnToMainMenu();
-            return;
-
-            case BTN_A:
-            // Increase size
-            paintGallery->galleryScale++;
-            paintGallery->galleryLoadNew = true;
-            break;
+            {
+                // Exit
+                paintReturnToMainMenu();
+                return;
+            }
 
             case SELECT:
             {
+                // Increase size
+                paintGallery->galleryScale++;
+                paintGallery->galleryLoadNew = true;
+                break;
+            }
+
+            case BTN_A:
+            {
                 paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, paintGallery->gallerySlot);
                 paintGallery->galleryLoadNew = (prevSlot != paintGallery->gallerySlot);
+                if (paintGallery->galleryLoadNew)
+                {
+                    paintSetRecentSlot(&paintGallery->index, paintGallery->gallerySlot);
+                }
                 paintGallery->galleryTime = 0;
                 break;
             }
