@@ -327,6 +327,8 @@ typedef struct
     int32_t index;
 
     font_t infoFont;
+    wsg_t arrow;
+
 
     // TODO rename these to better things now that they're in their own struct
 
@@ -345,6 +347,7 @@ typedef struct
     // Current image used in gallery
     uint8_t gallerySlot;
 
+    bool showUi;
     bool galleryLoadNew;
     bool screensaverMode;
     paintScreen_t returnScreen;
