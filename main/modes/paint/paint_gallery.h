@@ -17,7 +17,8 @@ void paintGalleryModeTouchCb(touch_event_t* evt);
 
 void paintGalleryModePollTouch(void);
 
-void paintGalleryAddInfoText(const char* text, int16_t yOffset);
+void paintGalleryDrawUi(void);
+void paintGalleryAddInfoText(const char* text, int8_t row, bool center, char leftArrow, char rightArrow);
 void paintGalleryDecreaseSpeed(void);
 void paintGalleryIncreaseSpeed(void);
 
