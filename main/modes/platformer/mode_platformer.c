@@ -1013,6 +1013,7 @@ void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData){
 void changeStateGameClear(platformer_t *self){
     self->gameData.frameCount = 0;
     self->update=&updateGameClear;
+    buzzer_play_bgm(&bgmSmooth);
 }
 
 void updateGameClear(platformer_t *self){
@@ -1021,13 +1022,14 @@ void updateGameClear(platformer_t *self){
     
     self->gameData.frameCount++;
 
-    if(self->gameData.frameCount > 120){
+    if(self->gameData.frameCount > 450){
         if(self->gameData.lives > 0){
             if(self->gameData.frameCount % 60 == 0){
                 self->gameData.lives--;
                 self->gameData.score += 100000;
+                buzzer_play_sfx(&snd1up);
             }
-        } else if(self->gameData.frameCount % 240 == 0) {
+        } else if(self->gameData.frameCount % 960 == 0) {
             changeStateGameOver(self);
         }
     }
@@ -1039,10 +1041,28 @@ void updateGameClear(platformer_t *self){
 void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     drawPlatformerHud(d, font, gameData);
 
-    drawText(d, font, c555, "Congratulations!", 24, 48);
-    drawText(d, font, c555, "You've completed your", 8, 96);
-    drawText(d, font, c555, "trip across Swadge Land!", 8, 112);
-    drawText(d, font, c555, "Bonus 100000pts per life!", 8, 160);
+    char timeStr[32];
+    snprintf(timeStr, sizeof(timeStr) - 1, "in %06" PRIu32 " seconds!", gameData->inGameTimer);
+
+    drawText(d, font, yellowColors[(gameData->frameCount >> 3) % 4], "Congratulations!", 48, 48);
+
+    if(gameData->frameCount > 120){
+        drawText(d, font, c555, "You've completed your", 8, 80);
+        drawText(d, font, c555, "trip across Swadge Land", 8, 96);
+    }
+    
+    if(gameData->frameCount > 180){
+        drawText(d, font, (gameData->inGameTimer < FAST_TIME) ? cyanColors[(gameData->frameCount >> 3) % 4] : c555, timeStr, 48, 112);
+    }
+
+    if(gameData->frameCount > 300){
+        drawText(d, font, c555, "The Swadge staff", 8, 144);
+        drawText(d, font, c555, "thanks you for playing!", 8, 160);
+    }
+
+    if(gameData->frameCount > 420){
+        drawText(d, font, highScoreNewEntryColors[(gameData->frameCount >> 3) % 4], "Bonus 100000pts per life!", 8, 192);
+    }
 
     /*
     drawText(d, font, c555, "Thanks for playing.", 24, 48);
@@ -1232,7 +1252,7 @@ void updateNameEntry(platformer_t *self){
 }
 
 void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData, uint8_t currentInitial){
-    drawText(d, font, c555, "Enter your initials!", 48, 64);
+    drawText(d, font, greenColors[(platformer->gameData.frameCount >> 3) % 4], "Enter your initials!", 48, 64);
 
     char rowStr[32];
     snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06d", gameData->rank+1, gameData->score);
@@ -1268,6 +1288,7 @@ void updateShowHighScores(platformer_t *self){
     )){
         self->menuState = 0;
         self->menuSelection = 0;
+        buzzer_stop();
         changeStateTitleScreen(self);
     }
 
@@ -1282,7 +1303,7 @@ void drawShowHighScores(display_t *d, font_t *font, uint8_t menuState){
     if(platformer->easterEgg){
         drawText(d, font, highScoreNewEntryColors[(platformer->gameData.frameCount >> 3) % 4], "Happy Birthday, Evelyn!", 20, 32);
     } else if(menuState == 3){
-        drawText(d, font, c555, "Your name registrated.", 24, 32);
+        drawText(d, font, redColors[(platformer->gameData.frameCount >> 3) % 4], "Your name registrated.", 24, 32);
     } else {
         drawText(d, font, c555, "Do your best!", 72, 32);
     }
