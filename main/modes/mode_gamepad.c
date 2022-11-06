@@ -139,9 +139,9 @@ const hid_gamepad_button_bm_t touchMap[] =
 const hid_gamepad_button_bm_t touchMapNs[] =
 {
     GAMEPAD_BUTTON_TL,
-    GAMEPAD_BUTTON_Y,
-    GAMEPAD_BUTTON_MODE,
-    GAMEPAD_BUTTON_X,
+    GAMEPAD_BUTTON_TL,
+    GAMEPAD_BUTTON_Z,
+    GAMEPAD_BUTTON_TR,
     GAMEPAD_BUTTON_TR,
 };
 
@@ -394,12 +394,13 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
 
             // Draw either a filled or outline circle, if this is the direction pressed
             switch(gamepad->gamepadType){
-                case GAMEPAD_GENERIC:{
-                    drawFunc = (gamepad->gpState.hat == hatDirs[i]) ? &plotCircleFilled : &plotCircle;
-                    break;
-                }
                 case GAMEPAD_NS:{
                     drawFunc = (gamepad->gpNsState.hat == (hatDirs[i]-1)) ? &plotCircleFilled : &plotCircle;
+                    break;
+                }
+                case GAMEPAD_GENERIC:
+                default: {
+                    drawFunc = (gamepad->gpState.hat == hatDirs[i]) ? &plotCircleFilled : &plotCircle;
                     break;
                 }
             }
@@ -409,12 +410,13 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
 
         // Select button
         switch(gamepad->gamepadType){
-            case GAMEPAD_GENERIC:{
-                drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
-                break;
-            }
             case GAMEPAD_NS:{
                 drawFunc = (gamepad->gpNsState.buttons & GAMEPAD_NS_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
+                break;
+            }
+            case GAMEPAD_GENERIC:
+            default:{
+                drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
                 break;
             }
         }
@@ -424,13 +426,14 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
                  START_BTN_RADIUS, c333);
 
         // Start button
-        switch(gamepad->gamepadType){
-            case GAMEPAD_GENERIC:{
-                drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_START) ? &plotCircleFilled : &plotCircle;
-                break;
-            }
+        switch(gamepad->gamepadType){ 
             case GAMEPAD_NS:{
                 drawFunc = (gamepad->gpNsState.buttons & GAMEPAD_NS_BUTTON_START) ? &plotCircleFilled : &plotCircle;
+                break;
+            }
+            case GAMEPAD_GENERIC:
+            default:{
+                drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_START) ? &plotCircleFilled : &plotCircle;
                 break;
             }
         }
@@ -441,12 +444,13 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
 
         // Button A
         switch(gamepad->gamepadType){
-            case GAMEPAD_GENERIC:{
-                drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_A) ? &plotCircleFilled : &plotCircle;
-                break;
-            }
             case GAMEPAD_NS:{
                 drawFunc = (gamepad->gpNsState.buttons & GAMEPAD_NS_BUTTON_A) ? &plotCircleFilled : &plotCircle;
+                break;
+            }
+            case GAMEPAD_GENERIC:
+            default: {
+                drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_A) ? &plotCircleFilled : &plotCircle;
                 break;
             }
         }
@@ -457,12 +461,13 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
 
         // Button B
         switch(gamepad->gamepadType){
-            case GAMEPAD_GENERIC:{
-                drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_B) ? &plotCircleFilled : &plotCircle;
-                break;
-            }
             case GAMEPAD_NS:{
                 drawFunc = (gamepad->gpNsState.buttons & GAMEPAD_NS_BUTTON_B) ? &plotCircleFilled : &plotCircle;
+                break;
+            }
+            case GAMEPAD_GENERIC:
+            default:{
+                drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_B) ? &plotCircleFilled : &plotCircle;
                 break;
             }
         }
@@ -600,6 +605,7 @@ void gamepadButtonCb(buttonEvt_t* evt)
         case GAMEPAD_NS:{
             // Build a list of all independent buttons held down
             gamepad->gpNsState.buttons = 0;
+
             if(evt->state & BTN_A)
             {
                 gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_A;
@@ -610,11 +616,19 @@ void gamepadButtonCb(buttonEvt_t* evt)
             }
             if(evt->state & START)
             {
-                gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_START;
+                if(evt->state & DOWN){
+                    gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_MODE;
+                } else {
+                    gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_START;
+                }
             }
             if(evt->state & SELECT)
             {
-                gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_SELECT;
+                if(evt->state & DOWN){
+                    gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_C;
+                } else {
+                    gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_SELECT;
+                }
             }
 
             // Figure out which way the D-Pad is pointing
