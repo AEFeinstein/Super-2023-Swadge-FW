@@ -38,7 +38,8 @@ static const uint16_t transitionTimeMap[] = {
 
 // 3s for info text to stay up
 #define GALLERY_INFO_TIME 3000000
-#define GALLERY_INFO_Y_MARGIN 6
+#define GALLERY_INFO_Y_MARGIN 13
+#define GALLERY_INFO_X_MARGIN 13
 #define GALLERY_ARROW_MARGIN 6
 
 paintGallery_t* paintGallery;
@@ -181,27 +182,28 @@ static int16_t arrowCharToRot(char dir)
 void paintGalleryDrawUi(void)
 {
     char text[32];
-    // Draw speed at the top
-    if (paintGallery->gallerySpeed == 0)
-    {
-        paintGalleryAddInfoText(transitionOff, 4, true, 'U', 0);
-    }
-    else
-    {
-        snprintf(text, sizeof(text), transitionTime, (1.0 * paintGallery->gallerySpeed / US_PER_SEC));
-        paintGalleryAddInfoText(text, 4, true, (paintGallery->gallerySpeedIndex + 1 < sizeof(transitionTimeMap) / sizeof(*transitionTimeMap)) ? 'U' : 0,'D');
-    }
 
-    // Assume square scaling
-    snprintf(text, sizeof(text), "Select: Scale: %dx", paintGallery->galleryScale);
+    snprintf(text, sizeof(text), "A: Next Slide   B: Exit");
     paintGalleryAddInfoText(text, 0, false, 0, 0);
 
-    snprintf(text, sizeof(text), "A: Next Slide");
+    snprintf(text, sizeof(text), "Select: Scale: %dx", paintGallery->galleryScale);
     paintGalleryAddInfoText(text, 1, false, 0, 0);
 
     // Draw the controls
     snprintf(text, sizeof(text), "X~Y: LED Brightness: %d", getLedBrightness());
     paintGalleryAddInfoText(text, 2, false, 0, 0);
+
+
+    // Draw speed 2 rows from the bottom
+    if (paintGallery->gallerySpeed == 0)
+    {
+        paintGalleryAddInfoText(transitionOff, -3, true, 'U', 0);
+    }
+    else
+    {
+        snprintf(text, sizeof(text), transitionTime, (1.0 * paintGallery->gallerySpeed / US_PER_SEC));
+        paintGalleryAddInfoText(text, -3, true, (paintGallery->gallerySpeedIndex + 1 < sizeof(transitionTimeMap) / sizeof(*transitionTimeMap)) ? 'U' : 0,'D');
+    }
 
     // Draw the LED dance at the bottom
     snprintf(text, sizeof(text), "LEDs: %s", portableDanceGetName(paintGallery->portableDances));
@@ -213,11 +215,11 @@ void paintGalleryAddInfoText(const char* text, int8_t row, bool center, char lef
     uint16_t width = textWidth(&paintGallery->infoFont, text);
     uint16_t padding = 3;
     int16_t yOffset;
-    int16_t xOffset = center ? ((paintGallery->disp->w - width) / 2) : 13;
+    int16_t xOffset = center ? ((paintGallery->disp->w - width) / 2) : GALLERY_INFO_X_MARGIN;
 
     if (row < 0)
     {
-        yOffset = paintGallery->disp->h + ((row - 1) * (paintGallery->infoFont.h - padding * 2)) - GALLERY_INFO_Y_MARGIN;
+        yOffset = paintGallery->disp->h + ((row) * (paintGallery->infoFont.h + padding * 2)) - GALLERY_INFO_Y_MARGIN;
     }
     else
     {
