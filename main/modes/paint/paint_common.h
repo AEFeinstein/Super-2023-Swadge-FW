@@ -336,6 +336,10 @@ typedef struct
     int64_t gallerySpeed;
     int32_t gallerySpeedIndex;
 
+    uint8_t danceIndex;
+    bool resetDance;
+
+
     // Reaining time that info text will be shown
     int64_t infoTimeRemaining;
 

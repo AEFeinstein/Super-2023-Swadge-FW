@@ -10,7 +10,26 @@
 
 #include "swadgeMode.h"
 
+/*============================================================================
+ * Typedefs
+ *==========================================================================*/
+
+#define RGB_2_ARG(r,g,b) ((((r)&0xFF) << 16) | (((g)&0xFF) << 8) | (((b)&0xFF)))
+#define ARG_R(arg) (((arg) >> 16)&0xFF)
+#define ARG_G(arg) (((arg) >>  8)&0xFF)
+#define ARG_B(arg) (((arg) >>  0)&0xFF)
+
+typedef void (*ledDance)(uint32_t, uint32_t, bool);
+
+typedef struct
+{
+    ledDance func;
+    uint32_t arg;
+    char* name;
+} ledDanceArg;
+
 extern swadgeMode modeDance;
+extern const ledDanceArg ledDances[];
 
 void danceComet(uint32_t tElapsedUs, uint32_t arg, bool reset);
 void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset);

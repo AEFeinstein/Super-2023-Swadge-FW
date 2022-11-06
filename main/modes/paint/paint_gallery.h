@@ -13,9 +13,12 @@ void paintGallerySetup(display_t* disp, bool screensaver);
 void paintGalleryCleanup(void);
 void paintGalleryMainLoop(int64_t elapsedUs);
 void paintGalleryModeButtonCb(buttonEvt_t* evt);
-void paintGalleryAddInfoText(const char* text);
+void paintGalleryAddInfoText(const char* text, int16_t yOffset);
 void paintGalleryDecreaseSpeed(void);
 void paintGalleryIncreaseSpeed(void);
+void paintGalleryPrevDance(void);
+void paintGalleryNextDance(void);
+
 bool paintGalleryDoLoad(void);
 
 #endif

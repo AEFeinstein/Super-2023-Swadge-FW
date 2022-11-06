@@ -23,24 +23,6 @@
 #include "swadge_util.h"
 #include "settingsManager.h"
 
-/*============================================================================
- * Typedefs
- *==========================================================================*/
-
-typedef void (*ledDance)(uint32_t, uint32_t, bool);
-
-typedef struct
-{
-    ledDance func;
-    uint32_t arg;
-    char* name;
-} ledDanceArg;
-
-#define RGB_2_ARG(r,g,b) ((((r)&0xFF) << 16) | (((g)&0xFF) << 8) | (((b)&0xFF)))
-#define ARG_R(arg) (((arg) >> 16)&0xFF)
-#define ARG_G(arg) (((arg) >>  8)&0xFF)
-#define ARG_B(arg) (((arg) >>  0)&0xFF)
-
 // Sleep the TFT after 5s
 #define TFT_TIMEOUT_US 5000000
 
@@ -59,7 +41,7 @@ void danceBatteryCb(uint32_t vBatt);
  *==========================================================================*/
 const char ledDancesExitText[] = "Exit: Start + Select";
 
-static const ledDanceArg ledDances[] =
+const ledDanceArg ledDances[] =
 {
     {.func = danceComet, .arg = RGB_2_ARG(0, 0, 0),    .name = "Comet RGB"},
     {.func = danceComet, .arg = RGB_2_ARG(0xFF, 0, 0), .name = "Comet R"},
