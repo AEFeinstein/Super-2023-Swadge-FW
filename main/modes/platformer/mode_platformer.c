@@ -363,7 +363,7 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
     }
 
     snprintf(scoreStr, sizeof(scoreStr) - 1, "+%" PRIu32 " (x%d)", gameData->comboScore, gameData->combo);
-    drawText(d, font, c050, scoreStr, 8, 30);
+    drawText(d, font, (gameData->comboTimer < 60) ? c030: greenColors[(platformer->gameData.frameCount >> 3) % 4], scoreStr, 8, 30);
 }
 
 void updateTitleScreen(platformer_t *self)
