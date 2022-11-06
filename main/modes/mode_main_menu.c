@@ -112,8 +112,8 @@ const char mainMenuSoundSfxOff[] = "SFX: Off";
 char mainMenuTftBrightness[] = "TFT Brightness: 1";
 char mainMenuLedBrightness[] = "LED Brightness: 1";
 char mainMenuMicGain[] = "Mic Gain: 1";
-char mainMenuScreensaverTimeout[] = "Screensave: 20s";
-char mainMenuScreensaverOff[] = "Screensave: Off";
+char mainMenuScreensaverTimeout[] = "Screensaver: 20s";
+char mainMenuScreensaverOff[] = "Screensaver: Off";
 const char mainMenuCredits[] = "Credits";
 
 //==============================================================================
@@ -623,13 +623,14 @@ void mainMenuSetUpSettingsMenu(bool resetPos)
     const char* screensaverMenuOpt;
     int16_t screensaverTime = getScreensaverTime();
     if (screensaverTime == 0)
+
     {
         screensaverMenuOpt = mainMenuScreensaverOff;
     } else
     {
         char screensaverUnit = (screensaverTime >= 60) ? 'm' : 's';
         int16_t screensaverDisplay = (screensaverTime >= 60) ? (screensaverTime / 60) : screensaverTime;
-        snprintf(mainMenuScreensaverTimeout, sizeof(mainMenuScreensaverTimeout), "Screensave: %d%c", abs(screensaverDisplay) % 100, screensaverUnit);
+        snprintf(mainMenuScreensaverTimeout, sizeof(mainMenuScreensaverTimeout), "Screensaver: %d%c", abs(screensaverDisplay) % 100, screensaverUnit);
         screensaverMenuOpt = mainMenuScreensaverTimeout;
     }
 
@@ -637,10 +638,10 @@ void mainMenuSetUpSettingsMenu(bool resetPos)
     resetMeleeMenu(mainMenu->menu, mainMenuSettings, mainMenuSettingsCb);
     addRowToMeleeMenu(mainMenu->menu, soundBgmOpt);
     addRowToMeleeMenu(mainMenu->menu, soundSfxOpt);
-    addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuMicGain);
+    addRowToMeleeMenu(mainMenu->menu, screensaverMenuOpt);
     addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuTftBrightness);
     addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuLedBrightness);
-    addRowToMeleeMenu(mainMenu->menu, screensaverMenuOpt);
+    addRowToMeleeMenu(mainMenu->menu, (const char*)mainMenuMicGain);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
