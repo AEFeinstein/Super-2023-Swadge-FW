@@ -37,11 +37,12 @@
 
 static const paletteColor_t highScoreNewEntryColors[4] = {c050, c055, c005, c055};
 
-static const paletteColor_t redColors[4] = {c200, c300, c400, c500};
-static const paletteColor_t orangeColors[4] = {c210, c320, c430, c540};
-static const paletteColor_t yellowColors[4] = {c220, c330, c440, c550};
-static const paletteColor_t greenColors[4] = {c020, c030, c040, c050};
-static const paletteColor_t blueColors[4] = {c002, c003, c004, c005};
+static const paletteColor_t redColors[4] = {c501, c540, c550, c540};
+static const paletteColor_t yellowColors[4] = {c550, c331, c550, c555};
+static const paletteColor_t greenColors[4] = {c555, c051, c030, c051};
+static const paletteColor_t cyanColors[4] = {c055, c455, c055, c033};
+static const paletteColor_t purpleColors[4] = {c213, c535, c555, c535};
+static const paletteColor_t rgbColors[4] = {c500, c050, c005, c050};
 
 static const int16_t cheatCode[11] = {UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, BTN_B, BTN_A, START};
 
@@ -681,23 +682,27 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
 
         case 2: {
             if(platformer->unlockables.gameCleared){
-                drawText(d, font, redColors[(gameData->frameCount >> 3) % 4], "Beat the game!", 48, 96);
+                drawText(d, font, redColors[(gameData->frameCount >> 3) % 4], "Beat the game!", 48, 80);
             }
 
             if(platformer->unlockables.oneCreditCleared){
-                drawText(d, font, orangeColors[(gameData->frameCount >> 3) % 4], "1 Credit Clear!", 48, 112);
+                drawText(d, font, yellowColors[(gameData->frameCount >> 3) % 4], "1 Credit Clear!", 48, 96);
             }
 
             if(platformer->unlockables.bigScore){
-                drawText(d, font, yellowColors[(gameData->frameCount >> 3) % 4], "Got 2 million points!", 48, 128);
+                drawText(d, font, greenColors[(gameData->frameCount >> 3) % 4], "Got 2 million points!", 48, 112);
             }
 
             if(platformer->unlockables.biggerScore){
-                drawText(d, font, greenColors[(gameData->frameCount >> 3) % 4], "Got 5 million points!", 48, 144);
+                drawText(d, font, cyanColors[(gameData->frameCount >> 3) % 4], "Got 5 million points!", 48, 128);
             }
 
             if(platformer->unlockables.fastTime){
-                drawText(d, font, blueColors[(gameData->frameCount >> 3) % 4], "Beat within 30 min!", 48, 160);
+                drawText(d, font, purpleColors[(gameData->frameCount >> 3) % 4], "Beat within 30 min!", 48, 144);
+            }
+
+            if(platformer->unlockables.gameCleared && platformer->unlockables.oneCreditCleared && platformer->unlockables.bigScore && platformer->unlockables.biggerScore && platformer->unlockables.fastTime){
+                drawText(d, font, rgbColors[(gameData->frameCount >> 3) % 4], "100% 100% 100%", 48, 160);
             }
 
             drawText(d, font, c555, "Press B to Return", 48, 192);
