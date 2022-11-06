@@ -952,7 +952,7 @@ void updateLevelClear(platformer_t *self){
             
             uint16_t levelIndex = getLevelIndex(self->gameData.world, self->gameData.level);
             
-            if(levelIndex >= NUM_LEVELS){
+            if(levelIndex >= NUM_LEVELS - 1){
                 //Game Cleared!
 
                 //Determine achievements
