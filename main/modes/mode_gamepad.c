@@ -368,7 +368,7 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
         void (*drawFunc)(display_t*, int, int, int, paletteColor_t);
 
         // A list of all the hat directions, in order
-        static const uint8_t hatDirs[] =
+        static const uint8_t hatDirs[] = 
         {
             GAMEPAD_HAT_UP,
             GAMEPAD_HAT_UP_RIGHT,
@@ -393,33 +393,79 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
             yc += ((-getCos1024(deg) * DPAD_CLUSTER_RADIUS) / 1024);
 
             // Draw either a filled or outline circle, if this is the direction pressed
-            drawFunc = (gamepad->gpState.hat == hatDirs[i]) ? &plotCircleFilled : &plotCircle;
+            switch(gamepad->gamepadType){
+                case GAMEPAD_GENERIC:{
+                    drawFunc = (gamepad->gpState.hat == hatDirs[i]) ? &plotCircleFilled : &plotCircle;
+                    break;
+                }
+                case GAMEPAD_NS:{
+                    drawFunc = (gamepad->gpNsState.hat == (hatDirs[i]-1)) ? &plotCircleFilled : &plotCircle;
+                    break;
+                }
+            }
+
             drawFunc(gamepad->disp, xc, yc, DPAD_BTN_RADIUS, c551 /*paletteHsvToHex(i * 32, 0xFF, 0xFF)*/);
         }
 
         // Select button
-        drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
+        switch(gamepad->gamepadType){
+            case GAMEPAD_GENERIC:{
+                drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
+                break;
+            }
+            case GAMEPAD_NS:{
+                drawFunc = (gamepad->gpNsState.buttons & GAMEPAD_NS_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
+                break;
+            }
+        }
         drawFunc(gamepad->disp,
                  (gamepad->disp->w / 2) - START_BTN_RADIUS - START_BTN_SEP,
                  (gamepad->disp->h / 4) + Y_OFF,
                  START_BTN_RADIUS, c333);
 
         // Start button
-        drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_START) ? &plotCircleFilled : &plotCircle;
+        switch(gamepad->gamepadType){
+            case GAMEPAD_GENERIC:{
+                drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_START) ? &plotCircleFilled : &plotCircle;
+                break;
+            }
+            case GAMEPAD_NS:{
+                drawFunc = (gamepad->gpNsState.buttons & GAMEPAD_NS_BUTTON_START) ? &plotCircleFilled : &plotCircle;
+                break;
+            }
+        }
         drawFunc(gamepad->disp,
                  (gamepad->disp->w / 2) + START_BTN_RADIUS + START_BTN_SEP,
                  (gamepad->disp->h / 4) + Y_OFF,
                  START_BTN_RADIUS, c333);
 
         // Button A
-        drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_A) ? &plotCircleFilled : &plotCircle;
+        switch(gamepad->gamepadType){
+            case GAMEPAD_GENERIC:{
+                drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_A) ? &plotCircleFilled : &plotCircle;
+                break;
+            }
+            case GAMEPAD_NS:{
+                drawFunc = (gamepad->gpNsState.buttons & GAMEPAD_NS_BUTTON_A) ? &plotCircleFilled : &plotCircle;
+                break;
+            }
+        }
         drawFunc(gamepad->disp,
                  ((3 * gamepad->disp->w) / 4) + AB_BTN_RADIUS + AB_BTN_SEP,
                  (gamepad->disp->h / 2) - AB_BTN_Y_OFF + Y_OFF,
                  AB_BTN_RADIUS, c243);
 
         // Button B
-        drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_B) ? &plotCircleFilled : &plotCircle;
+        switch(gamepad->gamepadType){
+            case GAMEPAD_GENERIC:{
+                drawFunc = (gamepad->gpState.buttons & GAMEPAD_BUTTON_B) ? &plotCircleFilled : &plotCircle;
+                break;
+            }
+            case GAMEPAD_NS:{
+                drawFunc = (gamepad->gpNsState.buttons & GAMEPAD_NS_BUTTON_B) ? &plotCircleFilled : &plotCircle;
+                break;
+            }
+        }
         drawFunc(gamepad->disp,
                  ((3 * gamepad->disp->w) / 4) - AB_BTN_RADIUS - AB_BTN_SEP,
                  (gamepad->disp->h / 2) + AB_BTN_Y_OFF + Y_OFF,
@@ -429,8 +475,8 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
         int16_t tBarX = gamepad->disp->w - TOUCHBAR_WIDTH;
         uint8_t numTouchElem = (sizeof(touchMap) / sizeof(touchMap[0]));
         for(uint8_t touchIdx = 0; touchIdx < numTouchElem; touchIdx++)
-        {
-            if(gamepad->gpState.buttons & touchMap[touchIdx])
+        {            
+            if((gamepad->gamepadType == GAMEPAD_GENERIC) ? gamepad->gpState.buttons & touchMap[touchIdx]:gamepad->gpNsState.buttons & touchMapNs[touchIdx])
             {
                 fillDisplayArea(gamepad->disp,
                                 tBarX - 1, TOUCHBAR_Y_OFF,
@@ -445,6 +491,10 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
                          c111);
             }
             tBarX += (TOUCHBAR_WIDTH / numTouchElem);
+        }
+
+        if(gamepad->gamepadType != GAMEPAD_GENERIC){
+            return;
         }
 
         // Set up drawing accel bars
