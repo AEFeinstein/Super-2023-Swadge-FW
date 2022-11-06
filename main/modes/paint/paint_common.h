@@ -434,7 +434,7 @@ typedef struct
     const paintHelpStep_t* curHelp;
     uint16_t allButtons;
     uint16_t curButtons;
-    buttonBit_t lastButton;
+    uint16_t lastButton;
     bool lastButtonDown;
 
     uint16_t helpH;
