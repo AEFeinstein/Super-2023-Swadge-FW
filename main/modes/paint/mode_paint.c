@@ -310,6 +310,10 @@ void paintTouchCb(touch_event_t* evt)
     {
         paintDrawScreenTouchCb(evt);
     }
+    else if (paintMenu->screen == PAINT_GALLERY)
+    {
+        paintGalleryModeTouchCb(evt);
+    }
 }
 
 // Util function implementations

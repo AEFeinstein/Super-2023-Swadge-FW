@@ -101,6 +101,8 @@ void paintGalleryCleanup(void)
 
 void paintGalleryMainLoop(int64_t elapsedUs)
 {
+    paintGalleryModePollTouch();
+
     ledDances[paintGallery->danceIndex].func((int32_t)elapsedUs, ledDances[paintGallery->danceIndex].arg, paintGallery->resetDance);
     paintGallery->resetDance = false;
 
@@ -306,6 +308,25 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
         paintGalleryAddInfoText(text, -GALLERY_INFO_Y_MARGIN);
     }
 }
+
+void paintGalleryModeTouchCb(touch_event_t* evt)
+{
+    paintGalleryModePollTouch();
+}
+
+void paintGalleryModePollTouch(void)
+{
+    int32_t centroid, intensity;
+    if (getTouchCentroid(&centroid, &intensity))
+    {
+        // Bar is touched, convert the centroid into 8 segments (0-7)
+        // But also reverse it so up is bright and down is less bright
+        uint8_t curTouchSegment = 7 - ((centroid * 7 + 512) / 1024);
+
+        if (curTouchSegment != getLedBrightness())
+        {
+            PAINT_LOGD("Changing LED brightness from %d to %d", getLedBrightness(), curTouchSegment);
+            setAndSaveLedBrightness(curTouchSegment);
         }
     }
 }
