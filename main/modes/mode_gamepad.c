@@ -8,6 +8,7 @@
 #include "esp_log.h"
 #include "tinyusb.h"
 #include "tusb_hid_gamepad.h"
+#include "meleeMenu.h"
 
 #include "bresenham.h"
 #include "swadge_esp32.h"
@@ -44,6 +45,20 @@
 #define TOUCHBAR_Y_OFF   55
 
 //==============================================================================
+// Enums
+//==============================================================================
+typedef enum
+{
+    GAMEPAD_MENU,
+    GAMEPAD_MAIN
+} gamepadScreen_t;
+
+typedef enum {
+    GAMEPAD_GENERIC,
+    GAMEPAD_NS
+} gamepadType_t;
+
+//==============================================================================
 // Functions Prototypes
 //==============================================================================
 
@@ -55,10 +70,32 @@ void gamepadTouchCb(touch_event_t* evt);
 void gamepadAccelCb(accel_t* accel);
 void gamepadReportStateToHost(void);
 
+void setGamepadMainMenu(void);
+void gamepadMainMenuCb(const char* opt);
+void gamepadMenuLoop(int64_t elapsedUs);
+void gamepadMenuButtonCb(buttonEvt_t* evt);
+void gamepadMenuTouchCb(touch_event_t* evt);
+void gamepadMenuAccelCb(accel_t* accel);
+void gamepadStart(display_t* disp, gamepadType_t type);
+
 //==============================================================================
 // Variables
 //==============================================================================
 
+
+static const char str_gamepadTitle[] = "Gamepad Type";
+static const char str_pc[] = "PC";
+static const char str_ns[] = "NS";
+static const char str_exit[] = "Exit";
+
+typedef struct
+{
+    font_t mmFont;
+    meleeMenu_t* menu;
+    display_t* disp;
+    gamepadScreen_t screen;
+    uint8_t selectedGamepadType
+} gamepadMenu_t;
 typedef struct
 {
     display_t* disp;
@@ -76,17 +113,19 @@ swadgeMode modeGamepad =
     .modeName = "Gamepad",
     .fnEnterMode = gamepadEnterMode,
     .fnExitMode = gamepadExitMode,
-    .fnMainLoop = gamepadMainLoop,
-    .fnButtonCallback = gamepadButtonCb,
-    .fnTouchCallback = gamepadTouchCb,
+    .fnMainLoop = gamepadMenuLoop,
+    .fnButtonCallback = gamepadMenuButtonCb,
+    .fnTouchCallback = gamepadMenuTouchCb,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
-    .fnAccelerometerCallback = gamepadAccelCb,
+    .fnAccelerometerCallback = gamepadMenuAccelCb,
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL,
     .overrideUsb = true
 };
+
+gamepadMenu_t* gm;
 
 const hid_gamepad_button_bm_t touchMap[] =
 {
@@ -106,11 +145,6 @@ const hid_gamepad_button_bm_t touchMapNs[] =
     GAMEPAD_BUTTON_TR,
 };
 
-typedef enum {
-    GAMEPAD_GENERIC,
-    GAMEPAD_NS
-} gamepadType_t;
-
 //==============================================================================
 // Functions
 //==============================================================================
@@ -120,13 +154,75 @@ typedef enum {
  */
 void gamepadEnterMode(display_t* disp)
 {
+     // Allocate and zero memory
+    gm = calloc(1, sizeof(gamepadMenu_t));
+
+    gm->disp = disp;
+    
+    loadFont("mm.font", &(gm->mmFont));
+
+    gm->menu = initMeleeMenu("Gamepad", &(gm->mmFont), gamepadMainMenuCb);
+
+    setGamepadMainMenu();
+}
+
+/**
+ * Exit the gamepad mode and free memory
+ */
+void gamepadExitMode(void)
+{
+    deinitMeleeMenu(gm->menu);
+    freeFont(&(gm->mmFont));
+    free(gm);
+
+    if(gamepad != NULL){
+        freeFont(&(gamepad->ibmFont));
+        free(gamepad);
+    }
+}
+
+void setGamepadMainMenu(void)
+{
+    resetMeleeMenu(gm->menu, str_gamepadTitle, gamepadMainMenuCb);
+    addRowToMeleeMenu(gm->menu, str_pc);
+    addRowToMeleeMenu(gm->menu, str_ns);
+    addRowToMeleeMenu(gm->menu, str_exit);
+
+    gm->screen = GAMEPAD_MENU;
+}
+
+void gamepadMainMenuCb(const char* opt)
+{
+    if (opt == str_pc)
+    {
+        gamepadStart(gm->disp, GAMEPAD_GENERIC);
+        gm->screen = GAMEPAD_MAIN;
+        return;
+    }
+
+    if (opt == str_ns)
+    {
+        gamepadStart(gm->disp, GAMEPAD_NS);
+        gm->screen = GAMEPAD_MAIN;
+        return;
+    }
+
+    if (opt == str_exit)
+    {
+        // Exit to main menu
+        switchToSwadgeMode(&modeMainMenu);
+        return;
+    }
+}
+
+void gamepadStart(display_t* disp, gamepadType_t type){
     // Allocate memory for this mode
     gamepad = (gamepad_t*)calloc(1, sizeof(gamepad_t));
 
     // Save a pointer to the display
     gamepad->disp = disp;
 
-    gamepad->gamepadType = GAMEPAD_GENERIC;
+    gamepad->gamepadType = type;
 
     tusb_desc_device_t nsDescriptor = {
         .bLength = 18U,
@@ -165,13 +261,84 @@ void gamepadEnterMode(display_t* disp)
 }
 
 /**
- * Exit the gamepad mode and free memory
+ * Call the appropriate main loop function for the screen being displayed
+ *
+ * @param elapsedUd Time.deltaTime
  */
-void gamepadExitMode(void)
+void gamepadMenuLoop(int64_t elapsedUs)
 {
-    freeFont(&(gamepad->ibmFont));
-    free(gamepad);
+    switch(gm->screen)
+    {
+        case GAMEPAD_MENU:
+        {
+            drawMeleeMenu(gm->disp, gm->menu);
+            break;
+        }
+        case GAMEPAD_MAIN:
+        {
+            gamepadMainLoop(elapsedUs);
+            break;
+        }
+            //No wifi mode stuff
+    }
 }
+
+/**
+ * @brief Call the appropriate button functions for the screen being displayed
+ *
+ * @param evt
+ */
+void gamepadMenuButtonCb(buttonEvt_t* evt)
+{
+    switch(gm->screen)
+    {
+        case GAMEPAD_MENU:
+        {
+            //Pass button events from the Swadge mode to the menu
+            if (evt->down)
+            {
+                meleeMenuButton(gm->menu, evt->button);
+            }
+            break;
+        }
+        case GAMEPAD_MAIN:
+        {
+            gamepadButtonCb(evt);
+            break;
+        }
+            //No wifi mode stuff
+    }
+}
+
+void gamepadMenuTouchCb(touch_event_t* evt){
+    switch(gm->screen)
+    {
+        case GAMEPAD_MENU:
+        {
+            break;
+        }
+        case GAMEPAD_MAIN:
+        {
+            gamepadTouchCb(evt);
+            break;
+        }
+    }
+};
+
+void gamepadMenuAccelCb(accel_t* accel){
+    switch(gm->screen)
+    {
+        case GAMEPAD_MENU:
+        {
+            break;
+        }
+        case GAMEPAD_MAIN:
+        {
+            gamepadAccelCb(accel);
+            break;
+        }
+    }
+};
 
 /**
  * Draw the gamepad state to the display when it changes
