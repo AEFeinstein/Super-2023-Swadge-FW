@@ -73,9 +73,6 @@ void  jukeboxMainMenuCb(const char* opt);
 
 void setJukeboxMainMenu(void);
 
-void jukeboxSelectNextDance(void);
-void jukeboxSelectPrevDance(void);
-
 /*==============================================================================
  * Structs
  *============================================================================*/
@@ -95,8 +92,7 @@ typedef struct
     int32_t touchIntensity;
 
     // Light Dances
-    uint8_t danceIdx;
-    bool resetDance;
+    portableDance_t* portableDances;
 
     // Jukebox Stuff
     uint8_t categoryIdx;
@@ -104,19 +100,10 @@ typedef struct
     bool inMusicSubmode;
 
     meleeMenu_t* menu;
-    jukeboxScreen_t screen;    
+    jukeboxScreen_t screen;
 } jukebox_t;
 
 jukebox_t* jukebox;
-
-typedef void (*jukeboxLedDance)(uint32_t, uint32_t, bool);
-
-typedef struct
-{
-    jukeboxLedDance func;
-    uint32_t arg;
-    char* name;
-} jukeboxLedDanceArg;
 
 typedef struct
 {
@@ -166,25 +153,6 @@ static const char str_leds[] = "Sel: LEDs";
 static const char str_back[] = "Start: Back";
 static const char str_stop[] = ": Stop";
 static const char str_play[] = ": Play";
-
-static const jukeboxLedDanceArg jukeboxLedDances[] =
-{
-    {.func = danceComet, .arg = RGB_2_ARG(0, 0, 0),    .name = "Comet RGB"},
-    {.func = danceRise,  .arg = RGB_2_ARG(0, 0, 0),    .name = "Rise RGB"},
-    {.func = dancePulse, .arg = RGB_2_ARG(0, 0, 0),    .name = "Pulse RGB"},
-    {.func = danceSharpRainbow,  .arg = 0, .name = "Rainbow Sharp"},
-    {.func = danceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
-    {.func = danceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
-    {.func = danceRainbowSolid,  .arg = 0, .name = "Rainbow Solid"},
-    {.func = danceFire, .arg = RGB_2_ARG(0xFF, 51, 0), .name = "Fire R"},
-    {.func = danceBinaryCounter, .arg = 0, .name = "Binary"},
-    {.func = dancePoliceSiren,   .arg = 0, .name = "Siren"},
-    {.func = dancePureRandom,    .arg = 0, .name = "Random LEDs"},
-    {.func = danceChristmas,     .arg = 1, .name = "Holiday 1"},
-    {.func = danceChristmas,     .arg = 0, .name = "Holiday 2"},
-    {.func = danceNone,          .arg = 0, .name = "None"},
-    {.func = danceRandomDance,   .arg = 0, .name = "Shuffle All"},
-};
 
 static const jukeboxSong fighterMusic[] =
 {
@@ -334,6 +302,21 @@ void  jukeboxEnterMode(display_t* disp)
 
     jukebox->menu = initMeleeMenu(str_jukebox, &(jukebox->mm), jukeboxMainMenuCb);
 
+    jukebox->portableDances = initPortableDance(NULL);
+
+    // Disable Comet {R,G,B}, Rise {R,G,B}, Pulse {R,G,B}, and Fire {G,B}
+    portableDanceDisableDance(jukebox->portableDances, "Comet R");
+    portableDanceDisableDance(jukebox->portableDances, "Comet G");
+    portableDanceDisableDance(jukebox->portableDances, "Comet B");
+    portableDanceDisableDance(jukebox->portableDances, "Rise R");
+    portableDanceDisableDance(jukebox->portableDances, "Rise G");
+    portableDanceDisableDance(jukebox->portableDances, "Rise B");
+    portableDanceDisableDance(jukebox->portableDances, "Pulse R");
+    portableDanceDisableDance(jukebox->portableDances, "Pulse G");
+    portableDanceDisableDance(jukebox->portableDances, "Pulse B");
+    portableDanceDisableDance(jukebox->portableDances, "Fire G");
+    portableDanceDisableDance(jukebox->portableDances, "Fire B");
+
     setJukeboxMainMenu();
 
     stopNote();
@@ -351,6 +334,8 @@ void  jukeboxExitMode(void)
     freeFont(&jukebox->mm);
 
     freeWsg(&jukebox->arrow);
+
+    freePortableDance(jukebox->portableDances);
 
     deinitMeleeMenu(jukebox->menu);
 
@@ -399,7 +384,7 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                     }
                     case SELECT:
                     {
-                        jukeboxSelectNextDance();
+                        portableDanceNext(jukebox->portableDances);
                         break;
                     }
                     case START:
@@ -528,8 +513,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
         }
         case JUKEBOX_PLAYER:
         {
-            jukeboxLedDances[jukebox->danceIdx].func(elapsedUs, jukeboxLedDances[jukebox->danceIdx].arg, jukebox->resetDance);
-            jukebox->resetDance = false;
+            portableDanceMainLoop(jukebox->portableDances, elapsedUs);
 
             fillDisplayArea(jukebox->disp, 0, 0, jukebox->disp->w, jukebox->disp->h, c010);
 
@@ -552,7 +536,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
 
             // Draw the light dance name
             char text[32];
-            snprintf(text, sizeof(text), "LED Dance: %s", jukeboxLedDances[jukebox->danceIdx].name);
+            snprintf(text, sizeof(text), "LED Dance: %s", portableDanceGetName(jukebox->portableDances));
             int16_t width = textWidth(&(jukebox->radiostars), text);
             drawText(jukebox->disp, &(jukebox->radiostars), c444,
                     text,
@@ -715,38 +699,4 @@ void jukeboxMainMenuCb(const char * opt)
         jukebox->songIdx = 0;
         jukebox->inMusicSubmode = false;
     }
-}
-
-/**
- * @brief Switches to the previous dance in the list, with wrapping
- */
-void jukeboxSelectPrevDance(void)
-{
-    if (jukebox->danceIdx > 0)
-    {
-        jukebox->danceIdx--;
-    }
-    else
-    {
-        jukebox->danceIdx = lengthof(jukeboxLedDances) - 1;
-    }
-
-    jukebox->resetDance = true;
-}
-
-/**
- * @brief Switches to the next dance in the list, with wrapping
- */
-void jukeboxSelectNextDance(void)
-{
-    if (jukebox->danceIdx < lengthof(jukeboxLedDances) - 1)
-    {
-        jukebox->danceIdx++;
-    }
-    else
-    {
-        jukebox->danceIdx = 0;
-    }
-
-    jukebox->resetDance = true;
 }

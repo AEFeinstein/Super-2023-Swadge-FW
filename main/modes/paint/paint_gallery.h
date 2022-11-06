@@ -20,8 +20,6 @@ void paintGalleryModePollTouch(void);
 void paintGalleryAddInfoText(const char* text, int16_t yOffset);
 void paintGalleryDecreaseSpeed(void);
 void paintGalleryIncreaseSpeed(void);
-void paintGalleryPrevDance(void);
-void paintGalleryNextDance(void);
 
 bool paintGalleryDoLoad(void);
 

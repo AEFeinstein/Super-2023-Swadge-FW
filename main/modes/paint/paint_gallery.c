@@ -50,8 +50,6 @@ void paintGallerySetup(display_t* disp, bool screensaver)
     paintGallery->galleryTime = 0;
     paintGallery->galleryLoadNew = true;
     paintGallery->screensaverMode = screensaver;
-    paintGallery->danceIndex = 0;
-    paintGallery->resetDance = true;
     loadFont("radiostars.font", &paintGallery->infoFont);
 
     paintLoadIndex(&paintGallery->index);
@@ -70,22 +68,13 @@ void paintGallerySetup(display_t* disp, bool screensaver)
 
     paintGallery->gallerySpeed = US_PER_MS * transitionTimeMap[paintGallery->gallerySpeedIndex];
 
-    int32_t danceIndex = 0;
-    if (!readNvs32(danceIndexKey, &danceIndex))
+    paintGallery->portableDances = initPortableDance(danceIndexKey);
+
+    if (!(paintGallery->index & PAINT_ENABLE_LEDS))
     {
-        writeNvs32(danceIndexKey, danceIndex);
+        portableDanceSetByName(paintGallery->portableDances, "None");
     }
 
-    if (danceIndex < 0)
-    {
-        danceIndex = 0;
-    }
-    else if (danceIndex >= getNumDances())
-    {
-        danceIndex = getNumDances() - 1;
-    }
-
-    paintGallery->danceIndex = (uint8_t)danceIndex;
 
     // clear LEDs, which might still be set by menu
     led_t leds[NUM_LEDS];
@@ -96,15 +85,14 @@ void paintGallerySetup(display_t* disp, bool screensaver)
 void paintGalleryCleanup(void)
 {
     freeFont(&paintGallery->infoFont);
+    freePortableDance(paintGallery->portableDances);
     free(paintGallery);
 }
 
 void paintGalleryMainLoop(int64_t elapsedUs)
 {
     paintGalleryModePollTouch();
-
-    ledDances[paintGallery->danceIndex].func((int32_t)elapsedUs, ledDances[paintGallery->danceIndex].arg, paintGallery->resetDance);
-    paintGallery->resetDance = false;
+    portableDanceMainLoop(paintGallery->portableDances, elapsedUs);
 
     if (paintGallery->infoTimeRemaining > 0)
     {
@@ -181,40 +169,6 @@ void paintGalleryIncreaseSpeed(void)
     }
 }
 
-void paintGalleryPrevDance(void)
-{
-    if (paintGallery->danceIndex <= 0)
-    {
-        paintGallery->danceIndex = getNumDances() - 1;
-    }
-    else
-    {
-        paintGallery->danceIndex--;
-    }
-
-    int32_t danceIndex = (int32_t)(paintGallery->danceIndex);
-    writeNvs32(danceIndexKey, danceIndex);
-
-    paintGallery->resetDance = true;
-}
-
-void paintGalleryNextDance(void)
-{
-    if (paintGallery->danceIndex + 1 >= getNumDances())
-    {
-        paintGallery->danceIndex = 0;
-    }
-    else
-    {
-        paintGallery->danceIndex++;
-    }
-
-    int32_t danceIndex = (int32_t)(paintGallery->danceIndex);
-    writeNvs32(danceIndexKey, danceIndex);
-
-    paintGallery->resetDance = true;
-}
-
 void paintGalleryModeButtonCb(buttonEvt_t* evt)
 {
     bool updateTimeText = false, updateDanceText = false;
@@ -255,12 +209,12 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
             */
 
             case LEFT:
-                paintGalleryPrevDance();
+                portableDancePrev(paintGallery->portableDances);
                 updateDanceText = true;
             break;
 
             case RIGHT:
-                paintGalleryNextDance();
+                portableDanceNext(paintGallery->portableDances);
                 updateDanceText = true;
             break;
 
@@ -304,7 +258,7 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
 
     if (updateDanceText)
     {
-        snprintf(text, sizeof(text), "LEDs: %s", getDanceName(paintGallery->danceIndex));
+        snprintf(text, sizeof(text), "LEDs: %s", portableDanceGetName(paintGallery->portableDances));
         paintGalleryAddInfoText(text, -GALLERY_INFO_Y_MARGIN);
     }
 }

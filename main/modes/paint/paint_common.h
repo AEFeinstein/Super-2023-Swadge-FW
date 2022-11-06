@@ -8,6 +8,7 @@
 #include "meleeMenu.h"
 #include "led_util.h"
 #include "p2pConnection.h"
+#include "mode_dance.h"
 
 #include "px_stack.h"
 #include "paint_type.h"
@@ -336,9 +337,7 @@ typedef struct
     int64_t gallerySpeed;
     int32_t gallerySpeedIndex;
 
-    uint8_t danceIndex;
-    bool resetDance;
-
+    portableDance_t* portableDances;
 
     // Reaining time that info text will be shown
     int64_t infoTimeRemaining;
