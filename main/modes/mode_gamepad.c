@@ -85,7 +85,7 @@ swadgeMode modeGamepad =
     .fnAccelerometerCallback = gamepadAccelCb,
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL,
-    .overrideUsb = false
+    .overrideUsb = true
 };
 
 const hid_gamepad_button_bm_t touchMap[] =
@@ -128,12 +128,37 @@ void gamepadEnterMode(display_t* disp)
 
     gamepad->gamepadType = GAMEPAD_GENERIC;
 
-    if(gamepad->gamepadType == GAMEPAD_NS){
-        gamepad->gpNsState.x = 128;
-        gamepad->gpNsState.y = 128;
-        gamepad->gpNsState.rx = 128;
-        gamepad->gpNsState.ry = 128;
-    }
+    tusb_desc_device_t nsDescriptor = {
+        .bLength = 18U,
+        .bDescriptorType = 1,
+        .bcdUSB = 0x0200,
+        .bDeviceClass = 0x00,
+        .bDeviceSubClass = 0x00,
+        .bDeviceProtocol = 0x00,
+        .bMaxPacketSize0 = 64,
+        .idVendor = 0x0f0d,
+        .idProduct = 0x0092,
+        .bcdDevice = 0x0100,
+        .iManufacturer = 0x01,
+        .iProduct = 0x02,
+        .iSerialNumber = 0x03,
+        .bNumConfigurations = 0x01
+    };
+
+    tinyusb_config_t default_cfg = {
+    };
+
+    tinyusb_config_t tusb_cfg = {
+        .descriptor = &nsDescriptor
+    };
+
+    tinyusb_driver_install((gamepad->gamepadType==GAMEPAD_NS) ? &tusb_cfg :&default_cfg);
+
+    gamepad->gpNsState.x = 128;
+    gamepad->gpNsState.y = 128;
+    gamepad->gpNsState.rx = 128;
+    gamepad->gpNsState.ry = 128;
+
 
     // Load the font
     loadFont("ibm_vga8.font", &(gamepad->ibmFont));
