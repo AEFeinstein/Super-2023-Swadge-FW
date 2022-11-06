@@ -44,6 +44,7 @@
  *============================================================================*/
 
 #define CORNER_OFFSET 13
+#define LINE_BREAK_Y 8
 
 #define MAX_LED_BRIGHTNESS 7
 
@@ -149,8 +150,9 @@ static const char str_sfx_muted[] =  "Swadge SFX are muted!";
 static const char str_bgm[] = "Music";
 static const char str_sfx[] = "SFX";
 static const char str_exit[] = "Exit";
-static const char str_leds[] = "Sel: LEDs";
+static const char str_leds[] = "Sel: LEDs:";
 static const char str_back[] = "Start: Back";
+static const char str_brightness[] = "X~Y: LED Brightness:";
 static const char str_stop[] = ": Stop";
 static const char str_play[] = ": Play";
 
@@ -525,23 +527,35 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                 str_leds,
                 CORNER_OFFSET,
                 CORNER_OFFSET);
-            
+            // Light dance name
+            drawText(jukebox->disp, &(jukebox->radiostars), c555,
+                portableDanceGetName(jukebox->portableDances),
+                jukebox->disp->w - CORNER_OFFSET - textWidth(&jukebox->radiostars, portableDanceGetName(jukebox->portableDances)),
+                CORNER_OFFSET);
+
             // Back
             drawText(
                 jukebox->disp,
                 &jukebox->radiostars, c444,
                 str_back,
-                jukebox->disp->w - textWidth(&jukebox->radiostars, str_back) - CORNER_OFFSET,
-                CORNER_OFFSET);
+                CORNER_OFFSET,
+                CORNER_OFFSET + LINE_BREAK_Y + jukebox->radiostars.h);
 
-            // Draw the light dance name
+            // LED Brightness
+            drawText(
+                jukebox->disp,
+                &jukebox->radiostars, c444,
+                str_brightness,
+                CORNER_OFFSET,
+                CORNER_OFFSET + (LINE_BREAK_Y + jukebox->radiostars.h) * 2);
             char text[32];
-            snprintf(text, sizeof(text), "LED Dance: %s", portableDanceGetName(jukebox->portableDances));
-            int16_t width = textWidth(&(jukebox->radiostars), text);
-            drawText(jukebox->disp, &(jukebox->radiostars), c444,
-                    text,
-                    CORNER_OFFSET,
-                    CORNER_OFFSET + jukebox->radiostars.h * 2);
+            snprintf(text, sizeof(text), "%d", getLedBrightness());
+            drawText(
+                jukebox->disp,
+                &jukebox->radiostars, c555,
+                text,
+                jukebox->disp->w - textWidth(&jukebox->radiostars, text) - CORNER_OFFSET,
+                CORNER_OFFSET + (LINE_BREAK_Y + jukebox->radiostars.h) * 2);
 
             // Stop
             int16_t afterText = drawText(
@@ -556,7 +570,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                 str_stop,
                 afterText,
                 jukebox->disp->h - jukebox->radiostars.h - CORNER_OFFSET);
-            
+
             // Play
             afterText = drawText(
                             jukebox->disp,
@@ -572,7 +586,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                 jukebox->disp->h - jukebox->radiostars.h - CORNER_OFFSET);
 
 
-            
+
             char* categoryName;
             char* songName;
             char* songTypeName;
@@ -594,9 +608,9 @@ void  jukeboxMainLoop(int64_t elapsedUs)
 
             // Draw the mode name
             snprintf(text, sizeof(text), "Mode: %s", categoryName);
-            width = textWidth(&(jukebox->radiostars), text);
-            int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 2;
-            drawText(jukebox->disp, &(jukebox->radiostars), c555,
+            int16_t width = textWidth(&(jukebox->radiostars), text);
+            int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 0;
+            drawText(jukebox->disp, &(jukebox->radiostars), c525,
                     text,
                     (jukebox->disp->w - width) / 2,
                     yOff);
@@ -610,9 +624,9 @@ void  jukeboxMainLoop(int64_t elapsedUs)
 
             // Draw the song name
             snprintf(text, sizeof(text), "%s: %s", songTypeName, songName);
-            yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 + jukebox->radiostars.h * 2;
+            yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 + jukebox->radiostars.h * 3;
             width = textWidth(&(jukebox->radiostars), text);
-            drawText(jukebox->disp, &(jukebox->radiostars), c555,
+            drawText(jukebox->disp, &(jukebox->radiostars), c225,
                     text,
                     (jukebox->disp->w - width) / 2,
                     yOff);
@@ -659,7 +673,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             // {
             //     getTouchCentroid(&jukebox->touchPosition, &jukebox->touchIntensity);
             //     jukebox->touchPosition = (jukebox->touchPosition * MAX_LED_BRIGHTNESS) / 1023;
-                
+
             //     setAndSaveLedBrightness(jukebox->touchPosition);
             // }
         }
