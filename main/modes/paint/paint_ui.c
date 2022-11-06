@@ -126,10 +126,10 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
 
         // Draw the brush icons
         uint16_t iconOffset = 30;
-        brush_t* curBrush;
+        const brush_t* curBrush;
         for (curBrush = firstBrush; curBrush <= lastBrush; curBrush++)
         {
-            wsg_t* brushIcon = (curBrush == artist->brushDef) ? &curBrush->iconActive : &curBrush->iconInactive;
+            const wsg_t* brushIcon = (curBrush == artist->brushDef) ? &curBrush->iconActive : &curBrush->iconInactive;
             uint16_t iconY = (paintState->canvas.y - 1 - brushIcon->h) / 2;
 
             if (iconY + brushIcon->h > maxIconBottom)

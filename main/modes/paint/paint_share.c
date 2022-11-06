@@ -101,6 +101,7 @@ void paintShareHandleCanvas(void);
 void paintShareSendPixels(void);
 void paintShareHandlePixels(void);
 
+void paintShareCheckForTimeout(void);
 void paintShareRetry(void);
 
 void paintShareDoLoad(void);
