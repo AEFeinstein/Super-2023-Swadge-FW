@@ -59,6 +59,14 @@ void paintGallerySetup(display_t* disp, bool screensaver)
     loadFont("radiostars.font", &paintGallery->infoFont);
     loadWsg("arrow12.wsg", &paintGallery->arrow);
 
+    for (uint16_t i = 0; i < paintGallery->arrow.h * paintGallery->arrow.w; i++)
+    {
+        // Recolor the arrow to black
+        if (paintGallery->arrow.px[i] != cTransparent) {
+            paintGallery->arrow.px[i] = c000;
+        }
+    }
+
     paintLoadIndex(&paintGallery->index);
 
     if (paintGetAnySlotInUse(paintGallery->index) && paintGetRecentSlot(paintGallery->index) != PAINT_SAVE_SLOTS)
@@ -183,7 +191,7 @@ void paintGalleryDrawUi(void)
 {
     char text[32];
 
-    snprintf(text, sizeof(text), "A: Next Slide   B: Exit");
+    snprintf(text, sizeof(text), "A: Next Slide      B: Exit");
     paintGalleryAddInfoText(text, 0, false, 0, 0);
 
     snprintf(text, sizeof(text), "Select: Scale: %dx", paintGallery->galleryScale);
@@ -226,7 +234,7 @@ void paintGalleryAddInfoText(const char* text, int8_t row, bool center, char lef
         yOffset = GALLERY_INFO_Y_MARGIN + row * (paintGallery->infoFont.h + padding * 2);
     }
 
-    fillDisplayArea(paintGallery->disp, 0, yOffset, paintGallery->disp->w, yOffset + padding * 2 + paintGallery->infoFont.h, c000);
+    fillDisplayArea(paintGallery->disp, 0, yOffset, paintGallery->disp->w, yOffset + padding * 2 + paintGallery->infoFont.h, c555);
 
     if (leftArrow != 0)
     {
@@ -246,7 +254,7 @@ void paintGalleryAddInfoText(const char* text, int8_t row, bool center, char lef
                 false, false, arrowCharToRot(rightArrow));
     }
 
-    drawText(paintGallery->disp, &paintGallery->infoFont, c555, text, xOffset, yOffset + padding);
+    drawText(paintGallery->disp, &paintGallery->infoFont, c000, text, xOffset, yOffset + padding);
 
     // start the timer to clear the screen
     paintGallery->infoTimeRemaining = GALLERY_INFO_TIME;
