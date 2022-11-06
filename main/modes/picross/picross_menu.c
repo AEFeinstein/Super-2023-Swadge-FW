@@ -255,9 +255,9 @@ void loadLevels()
     loadWsg("Strawberry_PZL.wsg", &pm->levels[14].levelWSG);//10x10
     loadWsg("Strawberry_SLV.wsg", &pm->levels[14].completedWSG);
 
-    pm->levels[15].title = "Coffee Bean";
-    loadWsg("CoffeeBean_PZL.wsg", &pm->levels[15].levelWSG);//coffeBean is pretty hard for a 10x10
-    loadWsg("CoffeeBean_SLV.wsg", &pm->levels[15].completedWSG);
+    pm->levels[15].title = "Frog";
+    loadWsg("Frog_PZL.wsg", &pm->levels[15].levelWSG);
+    loadWsg("Frog_SLV.wsg", &pm->levels[15].completedWSG);
 
     pm->levels[16].title = "Galaga Bug";
     loadWsg("Galaga_PZL.wsg", &pm->levels[16].levelWSG);//10x10
