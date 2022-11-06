@@ -22,21 +22,6 @@
 #include "paint_share.h"
 #include "paint_nvs.h"
 
-/*
- * REMAINING BIG THINGS TO DO:
- *
- * - Airbrush tool
- * - Stamp tool?
- * - Copy/paste???
- * - Easter egg?
- *
- *
- * MORE MINOR POLISH THINGS:
- *
- * - Fix swapping fg/bg color sometimes causing current color not to be the first in the color picker list
- *   (sometimes this makes it so if you change a tool, it also changes your color)
- * - Use different pick markers / cursors for each brush (e.g. crosshair for circle pen, two L-shaped crosshairs for box pen...)
- */
 
 const char paintTitle[] = "MFPaint";
 const char menuOptDraw[] = "Draw";
@@ -49,8 +34,8 @@ const char menuOptSettings[] = "Settings";
 
 const char menuOptLedsOn[] = "LEDs: On";
 const char menuOptLedsOff[] = "LEDs: Off";
-const char menuOptBlinkOn[] = "BlinkPx: On";
-const char menuOptBlinkOff[] = "BlinkPx: Off";
+const char menuOptBlinkOn[] = "Blink Picks: On";
+const char menuOptBlinkOff[] = "Blink Picks: Off";
 const char menuOptEraseData[] = "Erase: All";
 char menuOptEraseSlot[] = "Erase: Slot 1";
 const char menuOptCancelErase[] = "Confirm: No!";
@@ -309,6 +294,10 @@ void paintTouchCb(touch_event_t* evt)
     if (paintMenu->screen == PAINT_DRAW || paintMenu->screen == PAINT_HELP)
     {
         paintDrawScreenTouchCb(evt);
+    }
+    else if (paintMenu->screen == PAINT_GALLERY)
+    {
+        paintGalleryModeTouchCb(evt);
     }
 }
 

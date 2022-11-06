@@ -44,12 +44,11 @@
  *============================================================================*/
 
 #define CORNER_OFFSET 13
+#define LINE_BREAK_Y 8
 
 #define MAX_LED_BRIGHTNESS 7
 
 #define lengthof(x) (sizeof(x) / sizeof(x[0]))
-
-#define RGB_2_ARG(r,g,b) ((((r)&0xFF) << 16) | (((g)&0xFF) << 8) | (((b)&0xFF)))
 
 /*==============================================================================
  * Enums
@@ -75,9 +74,6 @@ void  jukeboxMainMenuCb(const char* opt);
 
 void setJukeboxMainMenu(void);
 
-void jukeboxSelectNextDance(void);
-void jukeboxSelectPrevDance(void);
-
 /*==============================================================================
  * Structs
  *============================================================================*/
@@ -97,8 +93,7 @@ typedef struct
     int32_t touchIntensity;
 
     // Light Dances
-    uint8_t danceIdx;
-    bool resetDance;
+    portableDance_t* portableDances;
 
     // Jukebox Stuff
     uint8_t categoryIdx;
@@ -106,19 +101,10 @@ typedef struct
     bool inMusicSubmode;
 
     meleeMenu_t* menu;
-    jukeboxScreen_t screen;    
+    jukeboxScreen_t screen;
 } jukebox_t;
 
 jukebox_t* jukebox;
-
-typedef void (*jukeboxLedDance)(uint32_t, uint32_t, bool);
-
-typedef struct
-{
-    jukeboxLedDance func;
-    uint32_t arg;
-    char* name;
-} jukeboxLedDanceArg;
 
 typedef struct
 {
@@ -164,29 +150,11 @@ static const char str_sfx_muted[] =  "Swadge SFX are muted!";
 static const char str_bgm[] = "Music";
 static const char str_sfx[] = "SFX";
 static const char str_exit[] = "Exit";
-static const char str_leds[] = "Sel: LEDs";
+static const char str_leds[] = "Sel: LEDs:";
 static const char str_back[] = "Start: Back";
+static const char str_brightness[] = "X~Y: LED Brightness:";
 static const char str_stop[] = ": Stop";
 static const char str_play[] = ": Play";
-
-static const jukeboxLedDanceArg jukeboxLedDances[] =
-{
-    {.func = danceComet, .arg = RGB_2_ARG(0, 0, 0),    .name = "Comet RGB"},
-    {.func = danceRise,  .arg = RGB_2_ARG(0, 0, 0),    .name = "Rise RGB"},
-    {.func = dancePulse, .arg = RGB_2_ARG(0, 0, 0),    .name = "Pulse RGB"},
-    {.func = danceSharpRainbow,  .arg = 0, .name = "Rainbow Sharp"},
-    {.func = danceSmoothRainbow, .arg = 20000, .name = "Rainbow Slow"},
-    {.func = danceSmoothRainbow, .arg =  4000, .name = "Rainbow Fast"},
-    {.func = danceRainbowSolid,  .arg = 0, .name = "Rainbow Solid"},
-    {.func = danceFire, .arg = RGB_2_ARG(0xFF, 51, 0), .name = "Fire R"},
-    {.func = danceBinaryCounter, .arg = 0, .name = "Binary"},
-    {.func = dancePoliceSiren,   .arg = 0, .name = "Siren"},
-    {.func = dancePureRandom,    .arg = 0, .name = "Random LEDs"},
-    {.func = danceChristmas,     .arg = 1, .name = "Holiday 1"},
-    {.func = danceChristmas,     .arg = 0, .name = "Holiday 2"},
-    {.func = danceNone,          .arg = 0, .name = "None"},
-    {.func = danceRandomDance,   .arg = 0, .name = "Shuffle All"},
-};
 
 static const jukeboxSong fighterMusic[] =
 {
@@ -336,6 +304,21 @@ void  jukeboxEnterMode(display_t* disp)
 
     jukebox->menu = initMeleeMenu(str_jukebox, &(jukebox->mm), jukeboxMainMenuCb);
 
+    jukebox->portableDances = initPortableDance(NULL);
+
+    // Disable Comet {R,G,B}, Rise {R,G,B}, Pulse {R,G,B}, and Fire {G,B}
+    portableDanceDisableDance(jukebox->portableDances, "Comet R");
+    portableDanceDisableDance(jukebox->portableDances, "Comet G");
+    portableDanceDisableDance(jukebox->portableDances, "Comet B");
+    portableDanceDisableDance(jukebox->portableDances, "Rise R");
+    portableDanceDisableDance(jukebox->portableDances, "Rise G");
+    portableDanceDisableDance(jukebox->portableDances, "Rise B");
+    portableDanceDisableDance(jukebox->portableDances, "Pulse R");
+    portableDanceDisableDance(jukebox->portableDances, "Pulse G");
+    portableDanceDisableDance(jukebox->portableDances, "Pulse B");
+    portableDanceDisableDance(jukebox->portableDances, "Fire G");
+    portableDanceDisableDance(jukebox->portableDances, "Fire B");
+
     setJukeboxMainMenu();
 
     stopNote();
@@ -353,6 +336,8 @@ void  jukeboxExitMode(void)
     freeFont(&jukebox->mm);
 
     freeWsg(&jukebox->arrow);
+
+    freePortableDance(jukebox->portableDances);
 
     deinitMeleeMenu(jukebox->menu);
 
@@ -401,7 +386,7 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                     }
                     case SELECT:
                     {
-                        jukeboxSelectNextDance();
+                        portableDanceNext(jukebox->portableDances);
                         break;
                     }
                     case START:
@@ -530,8 +515,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
         }
         case JUKEBOX_PLAYER:
         {
-            jukeboxLedDances[jukebox->danceIdx].func(elapsedUs, jukeboxLedDances[jukebox->danceIdx].arg, jukebox->resetDance);
-            jukebox->resetDance = false;
+            portableDanceMainLoop(jukebox->portableDances, elapsedUs);
 
             fillDisplayArea(jukebox->disp, 0, 0, jukebox->disp->w, jukebox->disp->h, c010);
 
@@ -543,23 +527,35 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                 str_leds,
                 CORNER_OFFSET,
                 CORNER_OFFSET);
-            
+            // Light dance name
+            drawText(jukebox->disp, &(jukebox->radiostars), c555,
+                portableDanceGetName(jukebox->portableDances),
+                jukebox->disp->w - CORNER_OFFSET - textWidth(&jukebox->radiostars, portableDanceGetName(jukebox->portableDances)),
+                CORNER_OFFSET);
+
             // Back
             drawText(
                 jukebox->disp,
                 &jukebox->radiostars, c444,
                 str_back,
-                jukebox->disp->w - textWidth(&jukebox->radiostars, str_back) - CORNER_OFFSET,
-                CORNER_OFFSET);
+                CORNER_OFFSET,
+                CORNER_OFFSET + LINE_BREAK_Y + jukebox->radiostars.h);
 
-            // Draw the light dance name
+            // LED Brightness
+            drawText(
+                jukebox->disp,
+                &jukebox->radiostars, c444,
+                str_brightness,
+                CORNER_OFFSET,
+                CORNER_OFFSET + (LINE_BREAK_Y + jukebox->radiostars.h) * 2);
             char text[32];
-            snprintf(text, sizeof(text), "LED Dance: %s", jukeboxLedDances[jukebox->danceIdx].name);
-            int16_t width = textWidth(&(jukebox->radiostars), text);
-            drawText(jukebox->disp, &(jukebox->radiostars), c444,
-                    text,
-                    CORNER_OFFSET,
-                    CORNER_OFFSET + jukebox->radiostars.h * 2);
+            snprintf(text, sizeof(text), "%d", getLedBrightness());
+            drawText(
+                jukebox->disp,
+                &jukebox->radiostars, c555,
+                text,
+                jukebox->disp->w - textWidth(&jukebox->radiostars, text) - CORNER_OFFSET,
+                CORNER_OFFSET + (LINE_BREAK_Y + jukebox->radiostars.h) * 2);
 
             // Stop
             int16_t afterText = drawText(
@@ -574,7 +570,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                 str_stop,
                 afterText,
                 jukebox->disp->h - jukebox->radiostars.h - CORNER_OFFSET);
-            
+
             // Play
             afterText = drawText(
                             jukebox->disp,
@@ -590,7 +586,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                 jukebox->disp->h - jukebox->radiostars.h - CORNER_OFFSET);
 
 
-            
+
             char* categoryName;
             char* songName;
             char* songTypeName;
@@ -612,9 +608,9 @@ void  jukeboxMainLoop(int64_t elapsedUs)
 
             // Draw the mode name
             snprintf(text, sizeof(text), "Mode: %s", categoryName);
-            width = textWidth(&(jukebox->radiostars), text);
-            int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 2;
-            drawText(jukebox->disp, &(jukebox->radiostars), c555,
+            int16_t width = textWidth(&(jukebox->radiostars), text);
+            int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 0;
+            drawText(jukebox->disp, &(jukebox->radiostars), c525,
                     text,
                     (jukebox->disp->w - width) / 2,
                     yOff);
@@ -628,9 +624,9 @@ void  jukeboxMainLoop(int64_t elapsedUs)
 
             // Draw the song name
             snprintf(text, sizeof(text), "%s: %s", songTypeName, songName);
-            yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 + jukebox->radiostars.h * 2;
+            yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 + jukebox->radiostars.h * 3;
             width = textWidth(&(jukebox->radiostars), text);
-            drawText(jukebox->disp, &(jukebox->radiostars), c555,
+            drawText(jukebox->disp, &(jukebox->radiostars), c225,
                     text,
                     (jukebox->disp->w - width) / 2,
                     yOff);
@@ -677,7 +673,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             // {
             //     getTouchCentroid(&jukebox->touchPosition, &jukebox->touchIntensity);
             //     jukebox->touchPosition = (jukebox->touchPosition * MAX_LED_BRIGHTNESS) / 1023;
-                
+
             //     setAndSaveLedBrightness(jukebox->touchPosition);
             // }
         }
@@ -717,38 +713,4 @@ void jukeboxMainMenuCb(const char * opt)
         jukebox->songIdx = 0;
         jukebox->inMusicSubmode = false;
     }
-}
-
-/**
- * @brief Switches to the previous dance in the list, with wrapping
- */
-void jukeboxSelectPrevDance(void)
-{
-    if (jukebox->danceIdx > 0)
-    {
-        jukebox->danceIdx--;
-    }
-    else
-    {
-        jukebox->danceIdx = lengthof(jukeboxLedDances) - 1;
-    }
-
-    jukebox->resetDance = true;
-}
-
-/**
- * @brief Switches to the next dance in the list, with wrapping
- */
-void jukeboxSelectNextDance(void)
-{
-    if (jukebox->danceIdx < lengthof(jukeboxLedDances) - 1)
-    {
-        jukebox->danceIdx++;
-    }
-    else
-    {
-        jukebox->danceIdx = 0;
-    }
-
-    jukebox->resetDance = true;
 }

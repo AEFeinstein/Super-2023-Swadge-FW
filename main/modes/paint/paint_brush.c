@@ -60,22 +60,22 @@ void paintDrawRectangle(paintCanvas_t* canvas, point_t* points, uint8_t numPoint
     tmpPoints[0].y = y0;
     tmpPoints[1].x = x0;
     tmpPoints[1].y = y1;
-    paintDrawLine(canvas, &tmpPoints, 2, size, col);
+    paintDrawLine(canvas, tmpPoints, 2, size, col);
 
     // x0, y0 -> x1, y0
     tmpPoints[1].x = x1;
     tmpPoints[1].y = y0;
-    paintDrawLine(canvas, &tmpPoints, 2, size, col);
+    paintDrawLine(canvas, tmpPoints, 2, size, col);
 
     // x0, y1 -> x1, y1
     tmpPoints[0].y = y1;
     tmpPoints[1].y = y1;
-    paintDrawLine(canvas, &tmpPoints, 2, size, col);
+    paintDrawLine(canvas, tmpPoints, 2, size, col);
 
     // x1, y0 -> x1, y1
     tmpPoints[0].x = x1;
     tmpPoints[0].y = y0;
-    paintDrawLine(canvas, &tmpPoints, 2, size, col);
+    paintDrawLine(canvas, tmpPoints, 2, size, col);
 }
 
 void paintDrawFilledRectangle(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)

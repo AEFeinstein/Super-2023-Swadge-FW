@@ -1,5 +1,7 @@
 #include "paint_nvs.h"
 
+#include "nvs_manager.h"
+
 #include "paint_common.h"
 #include "paint_draw.h"
 #include "paint_ui.h"

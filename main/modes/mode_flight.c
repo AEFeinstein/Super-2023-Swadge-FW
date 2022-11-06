@@ -47,10 +47,10 @@ static int didFlightsimDataLoad;
 #define FLIGHT_MAX_SPEED 50
 #define FLIGHT_MIN_SPEED 8
 
-flightSimSaveData_t * getFlightSaveData();
+flightSimSaveData_t * getFlightSaveData(void);
 void setFlightSaveData( flightSimSaveData_t * sd );
 
-flightSimSaveData_t * getFlightSaveData()
+flightSimSaveData_t * getFlightSaveData(void)
 {
     if( !didFlightsimDataLoad )
     {

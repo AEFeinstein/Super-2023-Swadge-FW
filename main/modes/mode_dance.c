@@ -22,6 +22,8 @@
 #include "bresenham.h"
 #include "swadge_util.h"
 #include "settingsManager.h"
+#include "linked_list.h"
+#include "nvs_manager.h"
 
 /*============================================================================
  * Typedefs
@@ -89,6 +91,24 @@ static const ledDanceArg ledDances[] =
     {.func = danceRandomDance,   .arg = 0, .name = "Shuffle All"},
 };
 
+typedef struct {
+    const ledDanceArg* dance;
+    bool enable;
+} ledDanceOpt_t;
+
+typedef struct portableDance_t {
+    // List of dances to loop through
+    ledDanceOpt_t dances[sizeof(ledDances) / sizeof(ledDanceArg)];
+
+    // Set when dance needs to be reset
+    bool resetDance;
+
+    uint8_t danceIndex;
+
+    // If non-NULL, the ddance index will be saved/loaded from this nvs key
+    const char* nvsKey;
+} portableDance_t;
+
 typedef struct
 {
     display_t* disp;
@@ -123,11 +143,156 @@ swadgeMode modeDance =
     .overrideUsb = false
 };
 
+void portableDanceLoadSetting(portableDance_t* dance);
+
 danceMode_t* danceState;
 
 /*============================================================================
  * Functions
  *==========================================================================*/
+
+/*
+ * Portable Dance Functionality
+ */
+portableDance_t* initPortableDance(const char* nvsKey)
+{
+    portableDance_t* dance = calloc(1 ,sizeof(portableDance_t));
+    for (uint8_t i = 0; i < sizeof(dance->dances) / sizeof(dance->dances[0]); i++)
+    {
+        dance->dances[i].dance = ledDances + i;
+        dance->dances[i].enable = true;
+    }
+
+    dance->resetDance = true;
+
+    if (nvsKey != NULL)
+    {
+        dance->nvsKey = nvsKey;
+        portableDanceLoadSetting(dance);
+    }
+
+    return dance;
+}
+
+void freePortableDance(portableDance_t* dance)
+{
+    if (dance != NULL)
+    {
+        free(dance);
+    }
+}
+
+void portableDanceMainLoop(portableDance_t* dance, int64_t elapsedUs)
+{
+    dance->dances[dance->danceIndex].dance->func((int32_t)elapsedUs, dance->dances[dance->danceIndex].dance->arg, dance->resetDance);
+    dance->resetDance = false;
+}
+
+void portableDanceLoadSetting(portableDance_t* dance)
+{
+    int32_t danceIndex = 0;
+    if (!readNvs32(dance->nvsKey, &danceIndex))
+    {
+        writeNvs32(dance->nvsKey, danceIndex);
+    }
+
+    if (danceIndex < 0)
+    {
+        danceIndex = 0;
+    }
+    else if (danceIndex >= getNumDances())
+    {
+        danceIndex = getNumDances() - 1;
+    }
+
+    dance->danceIndex = (uint8_t)danceIndex;
+}
+
+bool portableDanceSetByName(portableDance_t* dance, const char* danceName)
+{
+    for (uint8_t i = 0; i < getNumDances(); i++)
+    {
+        if (!strcmp(dance->dances[i].dance->name, danceName))
+        {
+            dance->danceIndex = i;
+            dance->resetDance = true;
+
+            if (dance->nvsKey != NULL)
+            {
+                writeNvs32(dance->nvsKey, dance->danceIndex);
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+void portableDanceNext(portableDance_t* dance)
+{
+    uint8_t originalIndex = dance->danceIndex;
+
+    do
+    {
+        if (dance->danceIndex + 1 >= getNumDances())
+        {
+            dance->danceIndex = 0;
+        }
+        else
+        {
+            dance->danceIndex++;
+        }
+    } while (!dance->dances[dance->danceIndex].enable && dance->danceIndex != originalIndex);
+
+    dance->resetDance = true;
+
+    if (dance->nvsKey != NULL)
+    {
+        writeNvs32(dance->nvsKey, dance->danceIndex);
+    }
+}
+
+void portableDancePrev(portableDance_t* dance)
+{
+    uint8_t originalIndex = dance->danceIndex;
+    do
+    {
+        if (dance->danceIndex == 0)
+        {
+            dance->danceIndex = getNumDances() - 1;
+        }
+        else
+        {
+            dance->danceIndex--;
+        }
+    } while (!dance->dances[dance->danceIndex].enable && dance->danceIndex != originalIndex);
+
+    dance->resetDance = true;
+
+    if (dance->nvsKey != NULL)
+    {
+        writeNvs32(dance->nvsKey, dance->danceIndex);
+    }
+}
+
+bool portableDanceDisableDance(portableDance_t* dance, const char* danceName)
+{
+    for (uint8_t i = 0; i < getNumDances(); i++)
+    {
+        if (!strcmp(dance->dances[i].dance->name, danceName))
+        {
+            dance->dances[i].enable = false;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+const char* portableDanceGetName(portableDance_t* dance)
+{
+    return dance->dances[dance->danceIndex].dance->name;
+}
+
 
 void danceEnterMode(display_t* disp)
 {

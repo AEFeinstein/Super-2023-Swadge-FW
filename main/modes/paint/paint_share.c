@@ -101,6 +101,7 @@ void paintShareHandleCanvas(void);
 void paintShareSendPixels(void);
 void paintShareHandlePixels(void);
 
+void paintShareCheckForTimeout(void);
 void paintShareRetry(void);
 
 void paintShareDoLoad(void);
@@ -226,6 +227,7 @@ void paintShareEnterMode(display_t* disp)
     {
         PAINT_LOGE("Share mode started without any saved images. Exiting");
         switchToSwadgeMode(&modePaint);
+        return;
     }
 
     // Start on the most recently saved slot
