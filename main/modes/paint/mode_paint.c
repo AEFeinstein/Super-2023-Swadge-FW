@@ -13,6 +13,7 @@
 
 #include "mode_main_menu.h"
 #include "swadge_util.h"
+#include "settingsManager.h"
 
 #include "mode_paint.h"
 #include "paint_common.h"
@@ -118,12 +119,12 @@ void paintMainLoop(int64_t elapsedUs)
     case PAINT_NETWORK_MENU:
     case PAINT_SETTINGS_MENU:
     {
-        if (paintMenu->enableScreensaver)
+        if (paintMenu->enableScreensaver && getScreensaverTime() != 0)
         {
             paintMenu->idleTimer += elapsedUs;
         }
 
-        if (paintMenu->idleTimer >= PAINT_SCREENSAVER_TIMEOUT)
+        if (getScreensaverTime() != 0 && paintMenu->idleTimer >= (getScreensaverTime() * 1000000))
         {
             PAINT_LOGI("Selected Gallery");
             paintGallerySetup(paintMenu->disp, true);
