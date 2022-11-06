@@ -43,27 +43,27 @@ menu "TinyUSB Stack"
         menu "Descriptor configuration"
             config TINYUSB_DESC_USE_ESPRESSIF_VID
                 bool "VID: Use Espressif's vendor ID"
-                default n
+                default y
                 help
                     Enable this option, USB device will use Espressif's vendor ID as its VID.
                     This is helpful at product develop stage.
 
             config TINYUSB_DESC_CUSTOM_VID
                 hex "VID: Custom vendor ID"
-                default 0x0f0d
+                default 0x1234
                 depends on !TINYUSB_DESC_USE_ESPRESSIF_VID
                 help
                     Custom Vendor ID.
 
             config TINYUSB_DESC_USE_DEFAULT_PID
                 bool "PID: Use a default PID assigned to TinyUSB"
-                default n
+                default y
                 help
                     Default TinyUSB PID assigning uses values 0x4000...0x4007.
 
             config TINYUSB_DESC_CUSTOM_PID
                 hex "PID: Custom product ID"
-                default 0x0092
+                default 0x5678
                 depends on !TINYUSB_DESC_USE_DEFAULT_PID
                 help
                     Custom Product ID.
