@@ -380,6 +380,10 @@ typedef enum
 
     // Release the given button
     RELEASE,
+
+    // A tool has drawn (not just picked a point)
+    DRAW_COMPLETE,
+
     CHANGE_BRUSH,
     SELECT_MENU_ITEM,
     CHANGE_MODE,
@@ -438,6 +442,8 @@ typedef struct
     uint16_t curButtons;
     uint16_t lastButton;
     bool lastButtonDown;
+
+    bool drawComplete;
 
     uint16_t helpH;
 } paintHelp_t;

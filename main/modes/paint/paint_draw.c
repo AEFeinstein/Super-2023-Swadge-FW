@@ -95,7 +95,13 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 1, .prompt = "Now, press A to select the first corner of the rectangle..." },
     { .trigger = { .type = PRESS_ANY, .data = (UP | DOWN | LEFT | RIGHT), }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 2, .prompt = "Then move somewhere else..." },
     { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 3, .prompt = "Press A again to pick the other coner of the rectangle. Note that the first point you picked will blink!" },
-    { .trigger = { .type = PRESS, .data = START, }, .prompt = "Good job! Now you know how to use all the brushes.\nNext, let's press START to toggle the menu" },
+    { .trigger = { .type = CHANGE_BRUSH, .dataPtr = (void*)"Polygon", }, .prompt = "Nice! Let's try out the POLYGON brush next." },
+
+    { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Polygon" }, .backtrackSteps = 1, .prompt = "Press A to select the first point of the polygon..." },
+    { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Polygon" }, .backtrackSteps = 2, .prompt = "Pick at least one more point for the polygon..." },
+    { .trigger = { .type = DRAW_COMPLETE, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Polygon" }, .backtrackSteps = 3, .prompt = "To finish the polygon, connect it back to the original point, or use up all the remaining picks." },
+
+    { .trigger = { .type = PRESS, .data = START, }, .prompt = "Good job! Now you know how to use all the brush types.\nNext, let's press START to toggle the menu" },
     { .trigger = { .type = PRESS_ANY, .data = UP | DOWN | SELECT, }, .backtrack = { .type = SELECT_MENU_ITEM, .data = HIDDEN }, .backtrackSteps = 1, .prompt = "Press UP, DOWN, or SELECT to go through the menu items" },
     { .trigger = { .type = SELECT_MENU_ITEM, .data = PICK_SLOT_SAVE, }, .backtrack = { .type = SELECT_MENU_ITEM, .data = HIDDEN }, .backtrackSteps = 2, .prompt = "Great! Now, navigate to the SAVE option" },
     { .trigger = { .type = PRESS_ANY, .data = LEFT | RIGHT, }, .backtrack = { .type = MENU_ITEM_NOT, .data = PICK_SLOT_SAVE }, .backtrackSteps = 1, .prompt = "Use D-Pad LEFT and RIGHT to switch between save slots here, or any other menu options" },
@@ -351,6 +357,7 @@ void paintTutorialOnEvent(void)
             paintHelp->allButtons = 0;
             paintHelp->lastButton = 0;
             paintHelp->lastButtonDown = false;
+            paintHelp->drawComplete = false;
         }
     }
     else if (paintTutorialCheckTrigger(&paintHelp->curHelp->backtrack))
@@ -370,6 +377,7 @@ void paintTutorialOnEvent(void)
         paintHelp->allButtons = 0;
         paintHelp->lastButton = 0;
         paintHelp->lastButtonDown = false;
+            paintHelp->drawComplete = false;
     }
 }
 
@@ -388,6 +396,9 @@ bool paintTutorialCheckTrigger(const paintHelpTrigger_t* trigger)
 
     case RELEASE:
         return paintHelp->lastButtonDown == false && (paintHelp->lastButton & trigger->data) == paintHelp->lastButton;
+
+    case DRAW_COMPLETE:
+        return paintHelp->drawComplete;
 
     case CHANGE_BRUSH:
         return !strcmp(getArtist()->brushDef->name, trigger->dataPtr) && paintHelp->curButtons == 0;
@@ -1652,6 +1663,10 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         getArtist()->brushDef->fnDraw(&paintState->canvas, canvasPickPoints, pickCount, getArtist()->brushWidth, col);
 
         free(canvasPickPoints);
+        if (paintHelp != NULL)
+        {
+            paintHelp->drawComplete = true;
+        }
     }
     else
     {
