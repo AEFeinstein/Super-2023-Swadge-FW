@@ -1154,6 +1154,7 @@ void changeStateNameEntry(platformer_t *self){
 
     if(rank >= NUM_PLATFORMER_HIGH_SCORES || self->gameData.debugMode){
         self->menuSelection = 0;
+        self->gameData.rank = NUM_PLATFORMER_HIGH_SCORES;
         changeStateShowHighScores(self);
         return;
     }
