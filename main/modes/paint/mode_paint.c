@@ -136,7 +136,7 @@ void paintMainLoop(int64_t elapsedUs)
             paintMenu->idleTimer += elapsedUs;
         }
 
-        if (paintMenu->idleTimer >= (getScreensaverTime() * 1000000))
+        if (getScreensaverTime() != 0 && paintMenu->idleTimer >= (getScreensaverTime() * 1000000))
         {
             PAINT_LOGI("Selected Gallery");
             paintGallerySetup(paintMenu->disp, true);
