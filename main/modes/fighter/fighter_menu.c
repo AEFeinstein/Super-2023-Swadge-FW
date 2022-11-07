@@ -148,7 +148,7 @@ static const char str_records[]     = "Records";
 static const char str_exit[]        = "Exit";
 
 static const char str_charKD[]      = "King Donut";
-static const char str_charSN[]      = "Sunny";
+static const char str_charSN[]      = "Sunny McShreds";
 static const char str_charBF[]      = "Bigg Funkus";
 
 const char str_searching_for[] = "Searching For";

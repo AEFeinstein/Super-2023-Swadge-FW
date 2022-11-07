@@ -466,7 +466,14 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
         fighterSendButtonsToOther(fighterGetButtonState());
     }
 
-    buzzer_play_bgm(&fighter_music);
+    if(&finalDest == stages[f->stageIdx])
+    {
+        buzzer_play_bgm(&final_dest_music);
+    }
+    else
+    {
+        buzzer_play_bgm(&battlefield_music);
+    }
 }
 
 /**
