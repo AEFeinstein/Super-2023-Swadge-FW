@@ -341,23 +341,20 @@ void mainMenuMainLoop(int64_t elapsedUs)
 
     // Draw the battery indicator depending on the last read value
     wsg_t * toDraw = NULL;
-    if(mainMenu->battVal == 0 || mainMenu->battVal > 900)
-    {
-        toDraw = &mainMenu->usb;
-    }
-    else if (mainMenu->battVal > 721)
+    // 872 is full
+    if (mainMenu->battVal > 741)
     {
         toDraw = &mainMenu->batt[3];        
     }
-    else if (mainMenu->battVal > 671)
+    else if (mainMenu->battVal > 695)
     {
         toDraw = &mainMenu->batt[2];        
     }
-    else if (mainMenu->battVal > 625)
+    else if (mainMenu->battVal > 652)
     {
         toDraw = &mainMenu->batt[1];        
     }
-    else
+    else // 452 is dead
     {
         toDraw = &mainMenu->batt[0];        
     }

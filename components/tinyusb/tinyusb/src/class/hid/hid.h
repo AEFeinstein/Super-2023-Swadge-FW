@@ -197,6 +197,19 @@ typedef struct TU_ATTR_PACKED
   uint16_t buttons;  ///< Buttons mask for currently pressed buttons
 }hid_gamepad_report_t;
 
+/// HID Switch Gamepad Protocol Report.
+typedef struct TU_ATTR_PACKED
+{
+  uint16_t buttons;  ///< Buttons mask for currently pressed buttons
+  uint8_t hat;       ///< Buttons mask for currently pressed buttons in the DPad/hat
+  int8_t  x;         ///< Delta x  movement of left analog-stick
+  int8_t  y;         ///< Delta y  movement of left analog-stick
+  int8_t  rx;        ///< Delta Rx movement of analog left trigger
+  int8_t  ry;        ///< Delta Ry movement of analog right trigger
+  int8_t  z;         ///< Delta z  movement of right analog-joystick
+  int8_t  rz;        ///< Delta Rz movement of right analog-joystick
+}hid_gamepad_ns_report_t;
+
 /// Standard Gamepad Buttons Bitmap (from Linux input event codes)
 typedef enum
 {
@@ -218,6 +231,27 @@ typedef enum
 //GAMEPAD_BUTTON_       = TU_BIT(15), ///< Undefined button
 }hid_gamepad_button_bm_t;
 
+/// Switch Gamepad Buttons Bitmap
+typedef enum
+{
+  GAMEPAD_NS_BUTTON_Y      = 0x01, //TU_BIT(0),  ///< A/South button
+  GAMEPAD_NS_BUTTON_B      = 0x02, //TU_BIT(1),  ///< B/East button
+  GAMEPAD_NS_BUTTON_A      = 0x04, //TU_BIT(2),  ///< C button
+  GAMEPAD_NS_BUTTON_X      = 0x08, //TU_BIT(3),  ///< X/North button
+  GAMEPAD_NS_BUTTON_TL      = 0x10, //TU_BIT(4),  ///< Y/West button
+  GAMEPAD_NS_BUTTON_TR      = 0x20, //TU_BIT(5),  ///< Z button //CAPTURE
+  GAMEPAD_NS_BUTTON_TL2     = 0x40, //TU_BIT(6),  ///< L1 button
+  GAMEPAD_NS_BUTTON_TR2     = 0x80, //TU_BIT(7),  ///< R1 button
+  GAMEPAD_NS_BUTTON_SELECT    = 0x100, //TU_BIT(8),  ///< L2 button
+  GAMEPAD_NS_BUTTON_START    = 0x200, //TU_BIT(9),  ///< R2 button
+  GAMEPAD_NS_BUTTON_THUMBL = 0x400, //TU_BIT(10), ///< Select button
+  GAMEPAD_NS_BUTTON_THUMBR  = 0x800, //TU_BIT(11), ///< Start button
+  GAMEPAD_NS_BUTTON_MODE   = 0x1000, //TU_BIT(12), ///< Mode button //UNUSED?
+  GAMEPAD_NS_BUTTON_C = 0x2000, //TU_BIT(13), ///< L3 button
+  GAMEPAD_NS_BUTTON_Z = 0x4000, //TU_BIT(14), ///< R3 button
+//GAMEPAD_NS_BUTTON_       = TU_BIT(15), ///< Undefined button
+}hid_gamepad_ns_button_bm_t;
+
 /// Standard Gamepad HAT/DPAD Buttons (from Linux input event codes)
 typedef enum
 {
@@ -231,6 +265,20 @@ typedef enum
   GAMEPAD_HAT_LEFT       = 7,  ///< DPAD_LEFT
   GAMEPAD_HAT_UP_LEFT    = 8,  ///< DPAD_UP_LEFT
 }hid_gamepad_hat_t;
+
+/// Switch Gamepad HAT/DPAD Buttons (from Linux input event codes)
+typedef enum
+{
+  GAMEPAD_NS_HAT_CENTERED   = 8,  ///< DPAD_CENTERED
+  GAMEPAD_NS_HAT_UP         = 0,  ///< DPAD_UP
+  GAMEPAD_NS_HAT_UP_RIGHT   = 1,  ///< DPAD_UP_RIGHT
+  GAMEPAD_NS_HAT_RIGHT      = 2,  ///< DPAD_RIGHT
+  GAMEPAD_NS_HAT_DOWN_RIGHT = 3,  ///< DPAD_DOWN_RIGHT
+  GAMEPAD_NS_HAT_DOWN       = 4,  ///< DPAD_DOWN
+  GAMEPAD_NS_HAT_DOWN_LEFT  = 5,  ///< DPAD_DOWN_LEFT
+  GAMEPAD_NS_HAT_LEFT       = 6,  ///< DPAD_LEFT
+  GAMEPAD_NS_HAT_UP_LEFT    = 7,  ///< DPAD_UP_LEFT
+}hid_gamepad_ns_hat_t;
 
 /// @}
 
