@@ -105,8 +105,10 @@ void fighterMultiplayerCharMenuCb(const char* opt);
 void setFighterMultiplayerStageSelMenu(void);
 void fighterMultiplayerStageMenuCb(const char* opt);
 
-void setFighterVsCpuCharSelMenu(void);
-void fighterVsCpuCharMenuCb(const char* opt);
+void setFighterVsCpuCharHmnSelMenu(void);
+void fighterVsCpuCharHmnMenuCb(const char* opt);
+void setFighterVsCpuCharCpuSelMenu(void);
+void fighterVsCpuCharCpuMenuCb(const char* opt);
 void setFighterVsCpuStageSelMenu(void);
 void fighterVsCpuStageMenuCb(const char* opt);
 
@@ -139,6 +141,8 @@ static const char str_swadgeBros[]  = "Swadge Bros";
 const char str_multiplayer[] = "Multiplayer";
 const char str_hrContest[]   = "HR Contest";
 const char str_vsCpu[] = "VS. CPU";
+const char str_vsCpuHmn[] = "Choose Human";
+const char str_vsCpuCpu[] = "Choose CPU";
 
 static const char str_wirelessMulti[] = "Wireless Multi";
 static const char str_wireMulti[]    = "Wire Multi";
@@ -148,7 +152,7 @@ static const char str_records[]     = "Records";
 static const char str_exit[]        = "Exit";
 
 static const char str_charKD[]      = "King Donut";
-static const char str_charSN[]      = "Sunny";
+static const char str_charSN[]      = "Sunny McShreds";
 static const char str_charBF[]      = "Bigg Funkus";
 
 const char str_searching_for[] = "Searching For";
@@ -576,7 +580,7 @@ void fighterMainMenuCb(const char* opt)
     }
     else if (opt == str_vsCpu)
     {
-        setFighterVsCpuCharSelMenu();
+        setFighterVsCpuCharHmnSelMenu();
     }
     else if (opt == str_records)
     {
@@ -715,9 +719,9 @@ void fighterHrMenuCb(const char* opt)
 /**
  * @brief Sets up the vsCpu character select menu for Fighter, including callback
  */
-void setFighterVsCpuCharSelMenu(void)
+void setFighterVsCpuCharHmnSelMenu(void)
 {
-    resetMeleeMenu(fm->menu, str_vsCpu, fighterVsCpuCharMenuCb);
+    resetMeleeMenu(fm->menu, str_vsCpuHmn, fighterVsCpuCharHmnMenuCb);
     addRowToMeleeMenu(fm->menu, str_charKD);
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
@@ -730,7 +734,7 @@ void setFighterVsCpuCharSelMenu(void)
  *
  * @param opt The option that was selected (string pointer)
  */
-void fighterVsCpuCharMenuCb(const char* opt)
+void fighterVsCpuCharHmnMenuCb(const char* opt)
 {
     if (opt == str_charKD)
     {
@@ -759,8 +763,59 @@ void fighterVsCpuCharMenuCb(const char* opt)
         return;
     }
 
-    // CPU is always KD
-    fm->characters[1] = KING_DONUT;
+    // Pick a CPU
+    setFighterVsCpuCharCpuSelMenu();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Sets up the vsCpu character select menu for Fighter, including callback
+ */
+void setFighterVsCpuCharCpuSelMenu(void)
+{
+    resetMeleeMenu(fm->menu, str_vsCpuCpu, fighterVsCpuCharCpuMenuCb);
+    addRowToMeleeMenu(fm->menu, str_charKD);
+    addRowToMeleeMenu(fm->menu, str_charSN);
+    addRowToMeleeMenu(fm->menu, str_charBF);
+    addRowToMeleeMenu(fm->menu, str_back);
+    fm->screen = FIGHTER_MENU;
+}
+
+/**
+ * This is called when a menu option is selected from the vsCpu character select menu
+ *
+ * @param opt The option that was selected (string pointer)
+ */
+void fighterVsCpuCharCpuMenuCb(const char* opt)
+{
+    if (opt == str_charKD)
+    {
+        // King Donut Selected
+        fm->characters[1] = KING_DONUT;
+    }
+    else if (opt == str_charSN)
+    {
+        // Sunny Selected
+        fm->characters[1] = SUNNY;
+    }
+    else if (opt == str_charBF)
+    {
+        // Bigg Funkus Selected
+        fm->characters[1] = BIGG_FUNKUS;
+    }
+    else if(opt == str_back)
+    {
+        // Return to human select
+        setFighterVsCpuCharHmnSelMenu();
+        return;
+    }
+    else
+    {
+        // Shouldn't happen, but return just in case
+        return;
+    }
+
     // Pick a stage
     setFighterVsCpuStageSelMenu();
 }
@@ -775,6 +830,7 @@ void setFighterVsCpuStageSelMenu(void)
     resetMeleeMenu(fm->menu, str_vsCpu, fighterVsCpuStageMenuCb);
     addRowToMeleeMenu(fm->menu, str_stgBF);
     addRowToMeleeMenu(fm->menu, str_stgFD);
+    addRowToMeleeMenu(fm->menu, str_back);
     fm->screen = FIGHTER_MENU;
 }
 
@@ -792,6 +848,12 @@ void fighterVsCpuStageMenuCb(const char* opt)
     else if(str_stgFD == opt)
     {
         fm->stage = FINAL_DESTINATION;
+    }
+    else if(opt == str_back)
+    {
+        // Return to human select
+        setFighterVsCpuCharCpuSelMenu();
+        return;
     }
     else
     {

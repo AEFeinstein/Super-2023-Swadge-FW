@@ -163,7 +163,8 @@ static const char str_play[] = ": Play";
 
 static const jukeboxSong fighterMusic[] =
 {
-    {.name = "Game", .song = &fighter_music},
+    {.name = "Battlefield", .song = &battlefield_music},
+    {.name = "Final Destination", .song = &final_dest_music},
 };
 
 static const jukeboxSong tiltradsMusic[] =
@@ -200,12 +201,12 @@ static const jukeboxSong testMusic[] =
 
 static const jukeboxCategory musicCategories[] =
 {
-    {.categoryName = "Swadge Bros", .numSongs = 1, .songs = fighterMusic},
-    {.categoryName = "Tiltrads", .numSongs = 2, .songs = tiltradsMusic},
-    {.categoryName = "Swadge Land", .numSongs = 3, .songs = platformerMusic},
-    {.categoryName = "Donut Jump", .numSongs = 5, .songs = jumperMusic},
-    {.categoryName = "Credits", .numSongs = 1, .songs = creditsMusic},
-    {.categoryName = "Test Mode", .numSongs = 1, .songs = testMusic},
+    {.categoryName = "Swadge Bros", .numSongs = lengthof(fighterMusic), .songs = fighterMusic},
+    {.categoryName = "Tiltrads", .numSongs = lengthof(tiltradsMusic), .songs = tiltradsMusic},
+    {.categoryName = "Swadge Land", .numSongs = lengthof(platformerMusic), .songs = platformerMusic},
+    {.categoryName = "Donut Jump", .numSongs = lengthof(jumperMusic), .songs = jumperMusic},
+    {.categoryName = "Credits", .numSongs = lengthof(creditsMusic), .songs = creditsMusic},
+    {.categoryName = "Test Mode", .numSongs = lengthof(testMusic), .songs = testMusic},
 };
 
 static const jukeboxSong fighterSfx[] =
@@ -280,11 +281,11 @@ static const jukeboxSong tunernomesfx[] =
 
 static const jukeboxCategory sfxCategories[] =
 {
-    {.categoryName = "Swadge Bros", .numSongs = 4, .songs = fighterSfx},
-    {.categoryName = "Tiltrads", .numSongs = 22, .songs = tiltradsSfx},
-    {.categoryName = "Swadge Land", .numSongs = 16, .songs = platformerSfx},
-    {.categoryName = "Donut Jump", .numSongs = 6, .songs = jumperSfx},
-    {.categoryName = "Tunernome", .numSongs = 2, .songs = tunernomesfx},
+    {.categoryName = "Swadge Bros", .numSongs = lengthof(fighterSfx), .songs = fighterSfx},
+    {.categoryName = "Tiltrads", .numSongs = lengthof(tiltradsSfx), .songs = tiltradsSfx},
+    {.categoryName = "Swadge Land", .numSongs = lengthof(platformerSfx), .songs = platformerSfx},
+    {.categoryName = "Donut Jump", .numSongs = lengthof(jumperSfx), .songs = jumperSfx},
+    {.categoryName = "Tunernome", .numSongs = lengthof(tunernomesfx), .songs = tunernomesfx},
 };
 
 /*============================================================================
