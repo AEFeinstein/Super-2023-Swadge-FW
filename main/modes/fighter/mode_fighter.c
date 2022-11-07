@@ -2688,6 +2688,16 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
     int16_t f2_stock = scene->f2.stocks;
     int16_t f2_stockIconIdx = scene->f2.stockIconIdx;
 
+    // Draw debug boxes, conditionally
+#ifdef DRAW_DEBUG_BOXES
+    if(f->type != MULTIPLAYER)
+    {
+        drawFighterDebugBox(d, &(f->fighters[0]), scene->cameraOffsetX, scene->cameraOffsetY);
+        drawFighterDebugBox(d, &(f->fighters[1]), scene->cameraOffsetX, scene->cameraOffsetY);
+        drawProjectileDebugBox(d, &(f->projectiles), scene->cameraOffsetX, scene->cameraOffsetY);
+    }
+#endif
+
     // Actually draw fighters
     drawFighter(d, getFighterSprite(f2_sprite, f->loadedSprites), f2_posX, f2_posY, f2_dir, f2_invincible, &f->p1indicH,
                 &f->p1indicV);
@@ -2778,16 +2788,6 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
         f->rColor = f->lColor;
         f->leds[NUM_LEDS - 1] = f->rColor;
     }
-
-    // Draw debug boxes, conditionally
-#ifdef DRAW_DEBUG_BOXES
-    if(f->type != MULTIPLAYER)
-    {
-        drawFighterDebugBox(d, &(f->fighters[0]), scene->cameraOffsetX, scene->cameraOffsetY);
-        drawFighterDebugBox(d, &(f->fighters[1]), scene->cameraOffsetX, scene->cameraOffsetY);
-        drawProjectileDebugBox(d, &(f->projectiles), scene->cameraOffsetX, scene->cameraOffsetY);
-    }
-#endif
 }
 
 /**
