@@ -194,6 +194,12 @@ typedef struct
     // The 12x12 arrow
     wsg_t bigArrowWsg;
 
+    // Icon to indicate free slot
+    wsg_t newfileWsg;
+
+    // Icon to indicate used slot
+    wsg_t overwriteWsg;
+
 
     //////// Local-only UI state
 

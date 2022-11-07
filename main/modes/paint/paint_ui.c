@@ -11,7 +11,6 @@
 static const char startMenuSave[] = "Save";
 static const char startMenuLoad[] = "Load";
 static const char startMenuSlot[] = "Slot %d";
-static const char startMenuSlotUsed[] = "Slot %d (!)";
 static const char startMenuOverwrite[] = "Overwrite?";
 static const char startMenuYes[] = "Yes";
 static const char startMenuNo[] = "No";
@@ -120,14 +119,16 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
     uint16_t textX = 30, textY = (paintState->canvas.y - 1 - 2 * PAINT_TOOLBAR_TEXT_PADDING_Y) / 2;
     uint16_t maxIconBottom = 0;
 
-    // Arrow logic, for all the options
+    // Up/down arrow logic, for all the options that have text at the top
     if (paintState->saveMenu != HIDDEN && paintState->saveMenu != COLOR_PICKER)
     {
-        // Up arrow
+        // Up arrow 1px above center of text
         drawWsg(canvas->disp, &paintState->smallArrowWsg, textX, textY + paintState->saveMenuFont.h / 2 - paintState->smallArrowWsg.h - 1, false, false, 0);
 
-        // Down arrow
+        // Down arrow 1px below center of text
         drawWsg(canvas->disp, &paintState->smallArrowWsg, textX, textY + paintState->saveMenuFont.h / 2 + 1, false, false, 180);
+
+        // Move the text over to accomodate the arrow, plus 4px spacing
         textX += paintState->smallArrowWsg.w + 4;
     }
 
@@ -222,16 +223,31 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
         // Draw "Save" / "Load"
         drawText(canvas->disp, &paintState->saveMenuFont, c000, saving ? startMenuSave : startMenuLoad, textX, textY);
 
+        const wsg_t* fileIcon = NULL;
+
+        if (saving)
+        {
+            fileIcon = paintGetSlotInUse(paintState->index, paintState->selectedSlot) ? &paintState->overwriteWsg : &paintState->newfileWsg;
+        }
+
         // Draw the slot number
         char text[16];
-        snprintf(text, sizeof(text), (saving && paintGetSlotInUse(paintState->index, paintState->selectedSlot)) ? startMenuSlotUsed : startMenuSlot, paintState->selectedSlot + 1);
+        snprintf(text, sizeof(text), startMenuSlot, paintState->selectedSlot + 1);
         uint16_t textW = textWidth(&paintState->saveMenuFont, text);
 
-        // Text goes all the way to the right, minus 13px for the corner, then the arrow, arrow spacing, and the text itself
-        textX = canvas->disp->w - 13 - paintState->bigArrowWsg.w - 4 - textW;
+        // Text goes all the way to the right, minus 13px for the corner, then the arrow, arrow spacing, [icon and spacing,] and the text itself
+        textX = canvas->disp->w - 13 - paintState->bigArrowWsg.w - 4 - (fileIcon ? fileIcon->w + 4 : 0) - textW;
         drawText(canvas->disp, &paintState->saveMenuFont, c000, text, textX, textY);
+
+        if (fileIcon)
+        {
+            drawWsgSimpleFast(canvas->disp, fileIcon, textX + textW + 4, textY);
+        }
+
+        // Left arrow
         drawWsg(canvas->disp, &paintState->bigArrowWsg, textX - 4 - paintState->bigArrowWsg.w, textY + (paintState->saveMenuFont.h - paintState->bigArrowWsg.h) / 2, false, false, 270);
-        drawWsg(canvas->disp, &paintState->bigArrowWsg, textX + textW + 4, textY + (paintState->saveMenuFont.h - paintState->bigArrowWsg.h) / 2, false, false, 90);
+        // Right arrow
+        drawWsg(canvas->disp, &paintState->bigArrowWsg, textX + textW + 4 + (fileIcon ? fileIcon->w + 4 : 0), textY + (paintState->saveMenuFont.h - paintState->bigArrowWsg.h) / 2, false, false, 90);
 
     }
     else if (paintState->saveMenu == CONFIRM_OVERWRITE)

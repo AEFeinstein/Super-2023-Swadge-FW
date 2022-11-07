@@ -236,6 +236,16 @@ void paintDrawScreenSetup(display_t* disp)
         colorReplaceWsg(&paintState->bigArrowWsg, c555, c000);
     }
 
+    if (!loadWsg("newfile.wsg", &paintState->newfileWsg))
+    {
+        PAINT_LOGE("Loading newfile.wsg icon failed!!!");
+    }
+
+    if (!loadWsg("overwrite.wsg", &paintState->overwriteWsg))
+    {
+        PAINT_LOGE("Loading overwrite.wsg icon failed!!!");
+    }
+
     // Setup the margins
     // Top: Leave room for the tallest of...
     // * The save menu text plus padding above and below it
@@ -331,6 +341,10 @@ void paintDrawScreenCleanup(void)
 
     freeWsg(&paintState->brushSizeWsg);
     freeWsg(&paintState->picksWsg);
+    freeWsg(&paintState->bigArrowWsg);
+    freeWsg(&paintState->smallArrowWsg);
+    freeWsg(&paintState->newfileWsg);
+    freeWsg(&paintState->overwriteWsg);
 
     for (uint8_t i = 0; i < sizeof(paintState->artist) / sizeof(paintState->artist[0]) ;i++)
     {
