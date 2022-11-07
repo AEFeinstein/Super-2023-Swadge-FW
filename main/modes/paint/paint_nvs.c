@@ -1,10 +1,43 @@
 #include "paint_nvs.h"
 
+#include "nvs_manager.h"
+
 #include "paint_common.h"
 #include "paint_draw.h"
 #include "paint_ui.h"
 #include "paint_util.h"
 
+
+void paintDebugIndex(int32_t index)
+{
+    char bintext[33];
+
+    for (uint8_t i = 0; i < 32; i++)
+    {
+        bintext[31 - i] = (index & (1 << i)) ? '1' : '0';
+    }
+
+    bintext[32] = '\0';
+
+    PAINT_LOGD("PAINT INDEX:");
+    PAINT_LOGD("  Raw: %s", bintext);
+    PAINT_LOGD("  Slots:");
+    PAINT_LOGD("  - [%c] Slot 1", paintGetSlotInUse(index, 0) ? 'X' : ' ');
+    PAINT_LOGD("  - [%c] Slot 2", paintGetSlotInUse(index, 1) ? 'X' : ' ');
+    PAINT_LOGD("  - [%c] Slot 3", paintGetSlotInUse(index, 2) ? 'X' : ' ');
+    PAINT_LOGD("  - [%c] Slot 4", paintGetSlotInUse(index, 3) ? 'X' : ' ');
+    if (paintGetRecentSlot(index) == PAINT_SAVE_SLOTS)
+    {
+        PAINT_LOGD("  Recent Slot: None");
+    }
+    else
+    {
+        PAINT_LOGD("  Recent Slot: %d", paintGetRecentSlot(index) + 1);
+    }
+    PAINT_LOGD("  LEDs: %s", (index & PAINT_ENABLE_LEDS) ? "Yes" : "No");
+    PAINT_LOGD("  Blink: %s", (index & PAINT_ENABLE_BLINK) ? "Yes" : "No");
+    PAINT_LOGD("===========");
+}
 
 void paintLoadIndex(int32_t* index)
 {
@@ -62,6 +95,9 @@ bool paintGetAnySlotInUse(int32_t index)
     return (index & ((1 << PAINT_SAVE_SLOTS) - 1)) != 0;
 }
 
+/**
+ * Returns the most recent save slot used, or PAINT_SAVE_SLOTS if there is none set
+*/
 uint8_t paintGetRecentSlot(int32_t index)
 {
     return (index >> PAINT_SAVE_SLOTS) & 0b111;
@@ -357,6 +393,12 @@ void paintDeleteSlot(int32_t* index, uint8_t slot)
     // NVS blob key name
     char key[16];
 
+    if (slot >= PAINT_SAVE_SLOTS)
+    {
+        PAINT_LOGE("Attempt to delete invalid slto %d", slot);
+        return;
+    }
+
     if (!paintGetSlotInUse(*index, slot))
     {
         PAINT_LOGW("Attempting to delete allegedly unused slot %d", slot);
@@ -384,6 +426,12 @@ void paintDeleteSlot(int32_t* index, uint8_t slot)
 
     PAINT_LOGI("Erased %d chunks of slot %d", i - 1, slot);
     paintClearSlot(index, slot);
+
+    if (paintGetRecentSlot(*index) == slot)
+    {
+        // Unset the most recent slot if we're deleting it
+        paintSetRecentSlot(index, PAINT_SAVE_SLOTS);
+    }
 }
 
 bool paintDeleteIndex(void)

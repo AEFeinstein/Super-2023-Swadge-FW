@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <esp_log.h>
+#include <esp_random.h>
 
 #include "swadge_esp32.h"
 #include "swadgeMode.h"
@@ -18,6 +19,12 @@
 #include "fighter_hr_result.h"
 #include "fighter_mp_result.h"
 #include "fighter_records.h"
+
+//==============================================================================
+// Defines
+//==============================================================================
+
+#define FIGHTER_MENU_IDLE_US (1000000 * 15)
 
 //==============================================================================
 // Enums & Structs
@@ -57,6 +64,7 @@ typedef struct
     wsg_t conlogo;
     int16_t rotDeg;
     uint8_t playerInput;
+    int32_t idleTimer;
 } fighterMenu_t;
 
 typedef struct
@@ -85,6 +93,9 @@ void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
 void setFighterMainMenu(void);
 void fighterMainMenuCb(const char* opt);
 
+void setFighterWireMultiMenu(void);
+void fighterWireMultiMenuCb(const char* opt);
+
 void setFighterHrMenu(void);
 void fighterHrMenuCb(const char* opt);
 
@@ -93,6 +104,13 @@ void fighterMultiplayerCharMenuCb(const char* opt);
 
 void setFighterMultiplayerStageSelMenu(void);
 void fighterMultiplayerStageMenuCb(const char* opt);
+
+void setFighterVsCpuCharHmnSelMenu(void);
+void fighterVsCpuCharHmnMenuCb(const char* opt);
+void setFighterVsCpuCharCpuSelMenu(void);
+void fighterVsCpuCharCpuMenuCb(const char* opt);
+void setFighterVsCpuStageSelMenu(void);
+void fighterVsCpuStageMenuCb(const char* opt);
 
 void fighterEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 void fighterEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
@@ -122,16 +140,20 @@ void fighterCheckGameBegin(void);
 static const char str_swadgeBros[]  = "Swadge Bros";
 const char str_multiplayer[] = "Multiplayer";
 const char str_hrContest[]   = "HR Contest";
+const char str_vsCpu[] = "VS. CPU";
+const char str_vsCpuHmn[] = "Choose Human";
+const char str_vsCpuCpu[] = "Choose CPU";
 
 static const char str_wirelessMulti[] = "Wireless Multi";
-static const char str_wireMultiA[]    = "Wire Multi A";
-static const char str_wireMultiB[]    = "Wire Multi B";
+static const char str_wireMulti[]    = "Wire Multi";
+static const char str_wireMultiA[]    = "Swadge A";
+static const char str_wireMultiB[]    = "Swadge B";
 static const char str_records[]     = "Records";
 static const char str_exit[]        = "Exit";
 
 static const char str_charKD[]      = "King Donut";
-static const char str_charSN[]      = "Sunny";
-static const char str_charBF[]      = "Big Funkus";
+static const char str_charSN[]      = "Sunny McShreds";
+static const char str_charBF[]      = "Bigg Funkus";
 
 const char str_searching_for[] = "Searching For";
 const char str_another_swadge[] = "Another Swadge";
@@ -207,9 +229,6 @@ void fighterEnterMode(display_t* disp)
     // Set the main menu
     setFighterMainMenu();
 
-    // Start on the menu
-    fm->screen = FIGHTER_MENU;
-
     // Clear state
     fm->characters[0] = NO_CHARACTER;
     fm->characters[1] = NO_CHARACTER;
@@ -234,24 +253,43 @@ void fighterExitMode(void)
 }
 
 /**
+ * @brief Display the main fighter menu
+ */
+void fighterReturnToMainMenu(void)
+{
+    setFighterMainMenu();
+    fm->idleTimer = 0;
+}
+
+/**
  * Call the appropriate main loop function for the screen being displayed
  *
  * @param elapsedUs Microseconds since this function was last called
  */
 void fighterMainLoop(int64_t elapsedUs)
 {
-    // Rotate the logo at 120 degrees per second
-    fm->rotDeg += (elapsedUs * 120) / 1000000;
-    if(fm->rotDeg >= 360)
-    {
-        fm->rotDeg -= 360;
-    }
-
     switch(fm->screen)
     {
         case FIGHTER_MENU:
         {
-            drawMeleeMenu(fm->disp, fm->menu);
+            if(fm->menu->title == str_swadgeBros)
+            {
+                fm->idleTimer += elapsedUs;
+            }
+            if(fm->idleTimer >= FIGHTER_MENU_IDLE_US)
+            {
+                // Random valid character and stage
+                fm->characters[0] = esp_random() % SANDBAG;
+                fm->characters[1] = esp_random() % SANDBAG;
+                fm->stage = esp_random() % HR_STADIUM;
+                // CPU Battle!
+                fighterStartGame(fm->disp, &fm->mmFont, CPU_ONLY, fm->characters, fm->stage, true);
+                fm->screen = FIGHTER_GAME;
+            }
+            else
+            {
+                drawMeleeMenu(fm->disp, fm->menu);
+            }
             break;
         }
         case FIGHTER_GAME:
@@ -269,7 +307,12 @@ void fighterMainLoop(int64_t elapsedUs)
             tWidth = textWidth(&fm->mmFont, ftrConnectingStringBottom);
             drawText(fm->disp, &fm->mmFont, c540, ftrConnectingStringBottom, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
 
-            // Spin a wheel
+            // Spin a wheel at 120 degrees per second
+            fm->rotDeg += (elapsedUs * 120) / 1000000;
+            if(fm->rotDeg >= 360)
+            {
+                fm->rotDeg -= 360;
+            }
             drawWsg(fm->disp, &fm->conlogo, (fm->disp->w - fm->conlogo.w) / 2, ((4 * fm->disp->h) / 5) - (fm->conlogo.h / 2), false,
                     false, fm->rotDeg);
             break;
@@ -284,7 +327,12 @@ void fighterMainLoop(int64_t elapsedUs)
             tWidth = textWidth(&fm->mmFont, another_swadge);
             drawText(fm->disp, &fm->mmFont, c540, another_swadge, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
 
-            // Spin a wheel
+            // Spin a wheel at 120 degrees per second
+            fm->rotDeg += (elapsedUs * 120) / 1000000;
+            if(fm->rotDeg >= 360)
+            {
+                fm->rotDeg -= 360;
+            }
             drawWsg(fm->disp, &fm->conlogo, (fm->disp->w - fm->conlogo.w) / 2, ((4 * fm->disp->h) / 5) - (fm->conlogo.h / 2), false,
                     false, fm->rotDeg);
             break;
@@ -333,24 +381,40 @@ void fighterButtonCb(buttonEvt_t* evt)
             // Pass button events from the Swadge mode to the menu
             if(evt->down)
             {
-                meleeMenuButton(fm->menu, evt->button);
+                if (evt->button == BTN_B && fm->menu->title != str_swadgeBros)
+                {
+                    fm->menu->cbFunc(str_back);
+                }
+                else
+                {
+                    meleeMenuButton(fm->menu, evt->button);
+                }
             }
             break;
         }
         case FIGHTER_GAME:
         {
-            // Pass button events from the Swdage mode to the game
-            fighterGameButtonCb(evt);
+            if(fm->idleTimer >= FIGHTER_MENU_IDLE_US)
+            {
+                // Exit the CPU only battle
+                fighterExitGame();
+                setFighterMainMenu();
+                fm->idleTimer = 0;
+            }
+            else
+            {
+                // Pass button events from the Swdage mode to the game
+                fighterGameButtonCb(evt);
+            }
             break;
         }
         case FIGHTER_CONNECTING:
         {
-            // START or SELECT exits the HR Result
-            if(evt->down && ((START == evt->button) || (SELECT == evt->button)))
+            // START, SELECT, or B exits the connecting screen
+            if(evt->down && ((START == evt->button) || (SELECT == evt->button) || (BTN_B == evt->button)))
             {
                 p2pDeinit(&(fm->p2p));
                 setFighterMainMenu();
-                fm->screen = FIGHTER_MENU;
             }
             break;
         }
@@ -366,7 +430,6 @@ void fighterButtonCb(buttonEvt_t* evt)
             {
                 deinitFighterHrResult();
                 setFighterMainMenu();
-                fm->screen = FIGHTER_MENU;
             }
             break;
         }
@@ -377,7 +440,6 @@ void fighterButtonCb(buttonEvt_t* evt)
             {
                 deinitFighterMpResult();
                 setFighterMainMenu();
-                fm->screen = FIGHTER_MENU;
             }
             break;
         }
@@ -464,9 +526,9 @@ void setFighterMainMenu(void)
     addRowToMeleeMenu(fm->menu, str_localVs);
 #endif
     addRowToMeleeMenu(fm->menu, str_wirelessMulti);
-    addRowToMeleeMenu(fm->menu, str_wireMultiA);
-    addRowToMeleeMenu(fm->menu, str_wireMultiB);
+    addRowToMeleeMenu(fm->menu, str_wireMulti);
     addRowToMeleeMenu(fm->menu, str_hrContest);
+    addRowToMeleeMenu(fm->menu, str_vsCpu);
     addRowToMeleeMenu(fm->menu, str_records);
     addRowToMeleeMenu(fm->menu, str_exit);
     fm->screen = FIGHTER_MENU;
@@ -480,27 +542,12 @@ void setFighterMainMenu(void)
 void fighterMainMenuCb(const char* opt)
 {
     // When a row is clicked, print the label for debugging
-    if((opt == str_wirelessMulti) || (opt == str_wireMultiA) || (opt == str_wireMultiB))
+    if(opt == str_wirelessMulti)
     {
-        // Set espnow to wireless or serial
-        if(opt == str_wireMultiB)
-        {
-            espNowUseSerial(true);
-            ftrConnectingStringTop = str_please_connect;
-            ftrConnectingStringBottom = str_wireMultiA;
-        }
-        else if(opt == str_wireMultiA)
-        {
-            espNowUseSerial(false);
-            ftrConnectingStringTop = str_please_connect;
-            ftrConnectingStringBottom = str_wireMultiB;
-        }
-        else if(opt == str_wirelessMulti)
-        {
-            espNowUseWireless();
-            ftrConnectingStringTop = str_searching_for;
-            ftrConnectingStringBottom = str_another_swadge;
-        }
+        // Set espnow to use wireless
+        espNowUseWireless();
+        ftrConnectingStringTop = str_searching_for;
+        ftrConnectingStringBottom = str_another_swadge;
 
         // Clear state
         fm->characters[0] = NO_CHARACTER;
@@ -513,6 +560,10 @@ void fighterMainMenuCb(const char* opt)
         p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
         // Start the connection
         p2pStartConnection(&fm->p2p);
+    }
+    else if (opt == str_wireMulti)
+    {
+        setFighterWireMultiMenu();
     }
 #if defined(EMU)
     // Local VS is for the emulator only!
@@ -527,6 +578,10 @@ void fighterMainMenuCb(const char* opt)
         // Home Run contest selected, display character select menu
         setFighterHrMenu();
     }
+    else if (opt == str_vsCpu)
+    {
+        setFighterVsCpuCharHmnSelMenu();
+    }
     else if (opt == str_records)
     {
         initFighterRecords(fm->disp, &fm->mmFont);
@@ -537,6 +592,66 @@ void fighterMainMenuCb(const char* opt)
         // Exit selected
         switchToSwadgeMode(&modeMainMenu);
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Sets up the Home Run Contest menu for Fighter, including callback
+ */
+void setFighterWireMultiMenu(void)
+{
+    fm->playerInput = 0;
+    resetMeleeMenu(fm->menu, str_wireMulti, fighterWireMultiMenuCb);
+    addRowToMeleeMenu(fm->menu, str_wireMultiA);
+    addRowToMeleeMenu(fm->menu, str_wireMultiB);
+    addRowToMeleeMenu(fm->menu, str_back);
+    fm->screen = FIGHTER_MENU;
+}
+
+/**
+ * This is called when a menu option is selected from the Home Run Contest menu
+ *
+ * @param opt The option that was selected (string pointer)
+ */
+void fighterWireMultiMenuCb(const char* opt)
+{
+    // Check the menu option selected
+    if (opt == str_wireMultiA)
+    {
+        espNowUseSerial(false);
+        ftrConnectingStringTop = str_please_connect;
+        ftrConnectingStringBottom = str_wireMultiB;
+    }
+    else if (opt == str_wireMultiB)
+    {
+        espNowUseSerial(true);
+        ftrConnectingStringTop = str_please_connect;
+        ftrConnectingStringBottom = str_wireMultiA;
+    }
+    else if (opt == str_back)
+    {
+        // Reset to top level melee menu
+        setFighterMainMenu();
+        return;
+    }
+    else
+    {
+        // Shouldn't happen, return to be safe
+        return;
+    }
+
+    // No return, clear state, start connection
+    fm->characters[0] = NO_CHARACTER;
+    fm->characters[1] = NO_CHARACTER;
+    fm->stage = NO_STAGE;
+    // Show the screen for connecting
+    fm->screen = FIGHTER_CONNECTING;
+    // Initialize p2p
+    p2pDeinit(&(fm->p2p));
+    p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
+    // Start the connection
+    p2pStartConnection(&fm->p2p);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -579,8 +694,8 @@ void fighterHrMenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[0] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[0] = BIGG_FUNKUS;
     }
     else if (opt == str_back)
     {
@@ -596,6 +711,157 @@ void fighterHrMenuCb(const char* opt)
 
     // No return, start the game
     fighterStartGame(fm->disp, &fm->mmFont, HR_CONTEST, fm->characters, fm->stage, true);
+    fm->screen = FIGHTER_GAME;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Sets up the vsCpu character select menu for Fighter, including callback
+ */
+void setFighterVsCpuCharHmnSelMenu(void)
+{
+    resetMeleeMenu(fm->menu, str_vsCpuHmn, fighterVsCpuCharHmnMenuCb);
+    addRowToMeleeMenu(fm->menu, str_charKD);
+    addRowToMeleeMenu(fm->menu, str_charSN);
+    addRowToMeleeMenu(fm->menu, str_charBF);
+    addRowToMeleeMenu(fm->menu, str_back);
+    fm->screen = FIGHTER_MENU;
+}
+
+/**
+ * This is called when a menu option is selected from the vsCpu character select menu
+ *
+ * @param opt The option that was selected (string pointer)
+ */
+void fighterVsCpuCharHmnMenuCb(const char* opt)
+{
+    if (opt == str_charKD)
+    {
+        // King Donut Selected
+        fm->characters[0] = KING_DONUT;
+    }
+    else if (opt == str_charSN)
+    {
+        // Sunny Selected
+        fm->characters[0] = SUNNY;
+    }
+    else if (opt == str_charBF)
+    {
+        // Bigg Funkus Selected
+        fm->characters[0] = BIGG_FUNKUS;
+    }
+    else if(opt == str_back)
+    {
+        // Reset to top level melee menu
+        setFighterMainMenu();
+        return;
+    }
+    else
+    {
+        // Shouldn't happen, but return just in case
+        return;
+    }
+
+    // Pick a CPU
+    setFighterVsCpuCharCpuSelMenu();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Sets up the vsCpu character select menu for Fighter, including callback
+ */
+void setFighterVsCpuCharCpuSelMenu(void)
+{
+    resetMeleeMenu(fm->menu, str_vsCpuCpu, fighterVsCpuCharCpuMenuCb);
+    addRowToMeleeMenu(fm->menu, str_charKD);
+    addRowToMeleeMenu(fm->menu, str_charSN);
+    addRowToMeleeMenu(fm->menu, str_charBF);
+    addRowToMeleeMenu(fm->menu, str_back);
+    fm->screen = FIGHTER_MENU;
+}
+
+/**
+ * This is called when a menu option is selected from the vsCpu character select menu
+ *
+ * @param opt The option that was selected (string pointer)
+ */
+void fighterVsCpuCharCpuMenuCb(const char* opt)
+{
+    if (opt == str_charKD)
+    {
+        // King Donut Selected
+        fm->characters[1] = KING_DONUT;
+    }
+    else if (opt == str_charSN)
+    {
+        // Sunny Selected
+        fm->characters[1] = SUNNY;
+    }
+    else if (opt == str_charBF)
+    {
+        // Bigg Funkus Selected
+        fm->characters[1] = BIGG_FUNKUS;
+    }
+    else if(opt == str_back)
+    {
+        // Return to human select
+        setFighterVsCpuCharHmnSelMenu();
+        return;
+    }
+    else
+    {
+        // Shouldn't happen, but return just in case
+        return;
+    }
+
+    // Pick a stage
+    setFighterVsCpuStageSelMenu();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Sets up the vsCpu stage select menu for Fighter, including callback
+ */
+void setFighterVsCpuStageSelMenu(void)
+{
+    resetMeleeMenu(fm->menu, str_vsCpu, fighterVsCpuStageMenuCb);
+    addRowToMeleeMenu(fm->menu, str_stgBF);
+    addRowToMeleeMenu(fm->menu, str_stgFD);
+    addRowToMeleeMenu(fm->menu, str_back);
+    fm->screen = FIGHTER_MENU;
+}
+
+/**
+ * This is called when a menu option is selected from the vsCpu stage select menu
+ *
+ * @param opt The option that was selected (string pointer)
+ */
+void fighterVsCpuStageMenuCb(const char* opt)
+{
+    if(str_stgBF == opt)
+    {
+        fm->stage = BATTLEFIELD;
+    }
+    else if(str_stgFD == opt)
+    {
+        fm->stage = FINAL_DESTINATION;
+    }
+    else if(opt == str_back)
+    {
+        // Return to human select
+        setFighterVsCpuCharCpuSelMenu();
+        return;
+    }
+    else
+    {
+        // Shouldn't happen, but return just in case
+        return;
+    }
+
+    fighterStartGame(fm->disp, &fm->mmFont, VS_CPU, fm->characters, fm->stage, true);
     fm->screen = FIGHTER_GAME;
 }
 
@@ -634,8 +900,8 @@ void fighterMultiplayerCharMenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[charIdx] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[charIdx] = BIGG_FUNKUS;
     }
     else
     {
@@ -753,8 +1019,8 @@ void fighterLocalVsP1MenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[0] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[0] = BIGG_FUNKUS;
     }
     else if (opt == str_back)
     {
@@ -806,8 +1072,8 @@ void fighterLocalVsP2MenuCb(const char* opt)
     }
     else if (opt == str_charBF)
     {
-        // Big Funkus Selected
-        fm->characters[1] = BIG_FUNKUS;
+        // Bigg Funkus Selected
+        fm->characters[1] = BIGG_FUNKUS;
     }
     else if (opt == str_back)
     {

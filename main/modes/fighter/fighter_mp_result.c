@@ -7,6 +7,7 @@
 
 #include "display.h"
 #include "nvs_manager.h"
+#include "musical_buzzer.h"
 
 #include "fighter_mp_result.h"
 #include "fighter_records.h"
@@ -35,6 +36,7 @@ typedef struct
     int8_t otherKOs;
     int16_t otherDmg;
     uint32_t roundTimeMs;
+    bool jingleIsPlaying;
 } hrRes_t;
 
 //==============================================================================
@@ -42,6 +44,69 @@ typedef struct
 //==============================================================================
 
 hrRes_t* mpr;
+
+const song_t fVictoryJingle =
+{
+    .notes =
+    {
+        {.note = D_4, .timeMs = 206},
+        {.note = A_SHARP_2, .timeMs = 103},
+        {.note = E_4, .timeMs = 59},
+        {.note = SILENCE, .timeMs = 43},
+        {.note = F_4, .timeMs = 59},
+        {.note = SILENCE, .timeMs = 147},
+        {.note = A_4, .timeMs = 206},
+        {.note = A_2, .timeMs = 114},
+        {.note = SILENCE, .timeMs = 92},
+        {.note = A_2, .timeMs = 114},
+        {.note = SILENCE, .timeMs = 92},
+        {.note = A_4, .timeMs = 103},
+        {.note = B_4, .timeMs = 103},
+        {.note = C_SHARP_5, .timeMs = 103},
+        {.note = A_4, .timeMs = 103},
+        {.note = D_5, .timeMs = 114},
+        {.note = SILENCE, .timeMs = 92},
+        {.note = D_2, .timeMs = 103},
+        {.note = D_6, .timeMs = 103},
+        {.note = F_SHARP_6, .timeMs = 103},
+        {.note = G_6, .timeMs = 103},
+        {.note = A_6, .timeMs = 103},
+        {.note = D_6, .timeMs = 103},
+        {.note = D_7, .timeMs = 103},
+        {.note = SILENCE, .timeMs = 310},
+        {.note = D_2, .timeMs = 103},
+    },
+    .numNotes = 26,
+    .shouldLoop = false
+};
+
+const song_t fLossJingle =
+{
+    .notes =
+    {
+        {.note = F_5, .timeMs = 209},
+        {.note = D_4, .timeMs = 186},
+        {.note = A_4, .timeMs = 197},
+        {.note = F_5, .timeMs = 209},
+        {.note = E_5, .timeMs = 197},
+        {.note = C_SHARP_4, .timeMs = 197},
+        {.note = A_4, .timeMs = 197},
+        {.note = E_5, .timeMs = 209},
+        {.note = D_5, .timeMs = 197},
+        {.note = A_SHARP_3, .timeMs = 197},
+        {.note = G_4, .timeMs = 197},
+        {.note = D_5, .timeMs = 209},
+        {.note = C_SHARP_5, .timeMs = 244},
+        {.note = A_SHARP_4, .timeMs = 133},
+        {.note = A_4, .timeMs = 331},
+        {.note = G_SHARP_4, .timeMs = 255},
+        {.note = A_4, .timeMs = 81},
+        {.note = G_SHARP_4, .timeMs = 63},
+        {.note = A_4, .timeMs = 959},
+    },
+    .numNotes = 19,
+    .shouldLoop = false
+};
 
 //==============================================================================
 // Functions
@@ -104,6 +169,19 @@ void deinitFighterMpResult(void)
  */
 void fighterMpResultLoop(int64_t elapsedUs)
 {
+    if(!mpr->jingleIsPlaying)
+    {
+        mpr->jingleIsPlaying = true;
+        if(mpr->selfKOs > mpr->otherKOs)
+        {
+            buzzer_play_sfx(&fVictoryJingle);
+        }
+        else
+        {
+            buzzer_play_sfx(&fLossJingle);
+        }
+    }
+
     drawBackgroundGrid(mpr->disp);
 
     // Text colors

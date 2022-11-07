@@ -18,6 +18,7 @@
 
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_random.h"
 
 #include "bresenham.h"
 #include "linked_list.h"
@@ -32,6 +33,8 @@
 //==============================================================================
 // Constants
 //==============================================================================
+
+#define ABS(X) (((X) < 0) ? -(X) : (X))
 
 #define IFRAMES_AFTER_SPAWN ((3 * 1000) / FRAME_TIME_MS) // 3 seconds
 #define IFRAMES_AFTER_LEDGE_JUMP ((2 * 1000) / FRAME_TIME_MS) // 2 seconds
@@ -57,9 +60,25 @@ typedef enum
 #define HUD_COLOR             c444
 #define INVINCIBLE_COLOR      c550
 
+typedef enum
+{
+    CPU_RUN,
+    CPU_RECOVER
+} cpuBehavior_t;
+
 //==============================================================================
 // Structs
 //==============================================================================
+
+typedef struct
+{
+    int behaviorChangeTimer;
+    bool cpuAttractX;
+    bool cpuAttractY;
+    cpuBehavior_t cpuBehavior;
+    int32_t cpuJumpTimerMs;
+    bool cpuBpressed;
+} cpuState_t;
 
 typedef struct
 {
@@ -90,6 +109,8 @@ typedef struct
     led_t lColor;
     led_t rColor;
     int32_t ledTimerUs;
+    cpuState_t cpu0;
+    cpuState_t cpu1;
 } fightingGame_t;
 
 //==============================================================================
@@ -97,11 +118,12 @@ typedef struct
 //==============================================================================
 
 void getHurtbox(fighter_t* ftr, box_t* hurtbox);
-#define setFighterState(f, st, sp, tm, kb) _setFighterState(f, st, sp, tm, kb, __LINE__);
+#define setFighterState(ftr, st, sp, tm, kb) _setFighterState(ftr, st, sp, tm, kb, __LINE__)
 void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* newSprite,
                       int32_t timer, vector_t* knockback, uint32_t line);
-void setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* touchingPlatform,
-                      const platform_t* passingThroughPlatform, bool isInAir);
+#define setFighterRelPos(ftr, rp, tp, ptp, iia) _setFighterRelPos(ftr, rp, tp, ptp, iia, __LINE__)
+void _setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* touchingPlatform,
+                       const platform_t* passingThroughPlatform, bool isInAir, uint32_t line);
 void checkFighterButtonInput(fighter_t* ftr);
 bool updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
 void checkFighterTimer(fighter_t* ftr, bool hitstopActive);
@@ -121,6 +143,9 @@ void drawFighterHud(display_t* d, font_t* font,
                     int16_t f1_dmg, int16_t f1_stock, int16_t f1_stockIconIdx,
                     int16_t f2_dmg, int16_t f2_stock, int16_t f2_stockIconIdx,
                     int32_t gameTimerUs, bool drawGo);
+
+uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t projectiles, const stage_t* stage);
+
 #ifdef DRAW_DEBUG_BOXES
     void drawFighterDebugBox(display_t* d, fighter_t* ftr, int16_t camOffX, int16_t camOffY);
     void drawProjectileDebugBox(display_t* d, list_t* projectiles, int16_t camOffX, int16_t camOffY);
@@ -264,7 +289,7 @@ static const stage_t* stages[] =
 };
 
 // Simple sound effect when fighter 1 is hit
-static const song_t f1hit =
+const song_t f1hit =
 {
     .notes =
     {
@@ -287,7 +312,7 @@ static const song_t f1hit =
 };
 
 // Simple sound effect when fighter 2 is hit
-song_t f2hit =
+const song_t f2hit =
 {
     .notes =
     {
@@ -372,7 +397,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
                 loadJsonFighterData(&f->fighters[i], "sn.json", f->loadedSprites);
                 break;
             }
-            case BIG_FUNKUS:
+            case BIGG_FUNKUS:
             {
                 loadJsonFighterData(&f->fighters[i], "bf.json", f->loadedSprites);
                 break;
@@ -398,7 +423,9 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
         switch(type)
         {
             case MULTIPLAYER:
+            case VS_CPU:
             case LOCAL_VS:
+            case CPU_ONLY:
             {
                 // Start with three stocks
                 f->fighters[i].stocks = NUM_STOCKS;
@@ -439,7 +466,14 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
         fighterSendButtonsToOther(fighterGetButtonState());
     }
 
-    buzzer_play_bgm(&fighter_music);
+    if(&finalDest == stages[f->stageIdx])
+    {
+        buzzer_play_bgm(&final_dest_music);
+    }
+    else
+    {
+        buzzer_play_bgm(&battlefield_music);
+    }
 }
 
 /**
@@ -520,6 +554,11 @@ void getHurtbox(fighter_t* ftr, box_t* hurtbox)
 void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* newSprite,
                       int32_t timer, vector_t* knockback, uint32_t line)
 {
+    // if(ftr == &f->fighters[1])
+    // {
+    //     ESP_LOGD("FTR", "%s:%d %d\n", __func__, line, newState);
+    // }
+
     // Clean up variables when leaving a state
     if((FS_ATTACK == ftr->state) && (FS_ATTACK != newState) && (ftr->cAttack < NUM_ATTACKS))
     {
@@ -615,14 +654,33 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* n
  * @param touchingPlatform The platform the fighter is touching, may be NULL
  * @param passingThroughPlatform The platform the fighter is passing through, may be NULL
  * @param isInAir true if the fighter is in the air, false if it is not
+ * @param line      The line number this was called from, for debugging
  */
-void setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* touchingPlatform,
-                      const platform_t* passingThroughPlatform, bool isInAir)
+void _setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* touchingPlatform,
+                       const platform_t* passingThroughPlatform, bool isInAir, uint32_t line)
 {
+    // if(ftr == &f->fighters[0])
+    // {
+    //     ESP_LOGD("FTR", "%s:%d %d, %s\n", __func__, line, relPos, isInAir ? "in air" : "on ground");
+    // }
+
     ftr->relativePos = relPos;
     ftr->touchingPlatform = touchingPlatform;
     ftr->passingThroughPlatform = passingThroughPlatform;
     ftr->isInAir = isInAir;
+
+    // Adjust the the hitstun sprite based on position
+    if(FS_HITSTUN == ftr->state)
+    {
+        if(isInAir)
+        {
+            ftr->currentSprite = &ftr->hitstunAirSprite;
+        }
+        else
+        {
+            ftr->currentSprite = &ftr->hitstunGroundSprite;
+        }
+    }
 }
 
 /**
@@ -695,6 +753,8 @@ void fighterGameLoop(int64_t elapsedUs)
     bool runProcLoop =
         (f->type == HR_CONTEST) ||
         (f->type == LOCAL_VS) ||
+        (f->type == VS_CPU) ||
+        (f->type == CPU_ONLY) ||
         ((f->type == MULTIPLAYER) && (0 == f->playerIdx));
 
     if(runProcLoop)
@@ -707,7 +767,7 @@ void fighterGameLoop(int64_t elapsedUs)
                 if(f->gameTimerUs <= 0)
                 {
                     // After count-in, transition to the appropriate state
-                    if((MULTIPLAYER == f->type) || (LOCAL_VS == f->type))
+                    if((MULTIPLAYER == f->type) || (LOCAL_VS == f->type) || (VS_CPU == f->type) || (CPU_ONLY == f->type))
                     {
                         f->gameTimerUs = 0; // Count up after this
                         f->gamePhase = MP_GAME;
@@ -791,6 +851,21 @@ void fighterGameLoop(int64_t elapsedUs)
                     // All button input is local
                     f->buttonInputReceived = true;
                     break;
+                }
+                case CPU_ONLY:
+                {
+                    // Figure out CPU actions
+                    f->fighters[0].btnState = cpuButtonAction(&f->cpu1, &f->fighters[1], &f->fighters[0], f->projectiles,
+                                              stages[f->stageIdx]);
+                }
+                // fall through
+                case VS_CPU:
+                {
+                    // Figure out CPU actions
+                    f->fighters[1].btnState = cpuButtonAction(&f->cpu0, &f->fighters[0], &f->fighters[1], f->projectiles,
+                                              stages[f->stageIdx]);
+                    // All button input is local
+                    f->buttonInputReceived = true;
                 }
             }
         }
@@ -1051,8 +1126,9 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
         // If this is an attack, check for velocity changes and projectiles
         if(NULL != atk)
         {
-            // Apply any velocity from this attack to the fighter
-            if(0 != atk->velocity.x)
+            // Apply any X velocity from this attack to the fighter, but not
+            // after ledge jumping to stick on the wall
+            if((false == ftr->ledgeJumped) && (0 != atk->velocity.x))
             {
                 if(FACING_RIGHT == ftr->dir)
                 {
@@ -1063,10 +1139,12 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
                     ftr->velocity.x = -atk->velocity.x;
                 }
             }
+
+            // Apply any Y velocity from this attack to the fighter
             if(0 != atk->velocity.y)
             {
-                // If a fighter ledge jumped, don't let an attack make them fall again
-                if(false == ftr->ledgeJumped)
+                // If a fighter ledge jumped, only more negative velocities can be applied
+                if((false == ftr->ledgeJumped) || (atk->velocity.y < ftr->velocity.y))
                 {
                     ftr->velocity.y = atk->velocity.y;
                 }
@@ -1098,10 +1176,11 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
                     projectile_t* proj = malloc(sizeof(projectile_t));
 
                     // Copy data from the attack frame to the projectile
-                    proj->sprite = hbx->projSprite;
-                    proj->size   = hbx->hitboxSize;
-                    proj->velo   = hbx->projVelo;
-                    proj->accel  = hbx->projAccel;
+                    proj->sprite   = hbx->projSprite;
+                    proj->size     = hbx->hitboxSize;
+                    proj->velo     = hbx->projVelo;
+                    proj->accel    = hbx->projAccel;
+                    proj->passThru = hbx->projPassThru;
                     // Adjust position, velocity, and acceleration depending on direction
                     if(FACING_RIGHT == ftr->dir)
                     {
@@ -1209,6 +1288,8 @@ void checkFighterButtonInput(fighter_t* ftr)
                 {
                     // Fall through a platform
                     setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
+                    // Shift down one pixel to guarantee a collision with the platform
+                    ftr->pos.y += (1 << SF);
                     setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
                     ftr->fallThroughTimer = 0;
                 }
@@ -1378,6 +1459,8 @@ void checkFighterButtonInput(fighter_t* ftr)
                     ftr->fallThroughTimer = 0;
                     // Fall through a platform
                     setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
+                    // Shift down one pixel to guarantee a collision with the platform
+                    ftr->pos.y += (1 << SF);
                     setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
                 }
             }
@@ -1838,9 +1921,11 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                 {
                     ftr->velocity.y = 0;
                     setFighterRelPos(ftr, ABOVE_PLATFORM, &platforms[idx], NULL, false);
+
+                    ftr->numJumpsLeft = ftr->numJumps;
+                    ftr->isInFreefall = false;
                 }
-                ftr->numJumpsLeft = ftr->numJumps;
-                ftr->isInFreefall = false;
+
                 // If the fighter was jumping, land
                 switch(ftr->state)
                 {
@@ -1945,6 +2030,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                         // Give a bonus 'jump' to get back on the platform
                         ftr->ledgeJumped = true;
                         ftr->velocity.y = ftr->jump_velo;
+                        ftr->velocity.x = 0;
                         ftr->iFrameTimer = IFRAMES_AFTER_LEDGE_JUMP;
                     }
                 }
@@ -2015,6 +2101,16 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         {
             // Decrement stocks
             ftr->stocks--;
+        }
+        else if(CPU_ONLY == f->type)
+        {
+            // After a CPU only match, return to the main screen
+            // Deinit the game
+            fighterExitGame();
+            // Show the main menu
+            fighterReturnToMainMenu();
+            // Return after deinit
+            return true;
         }
         else
         {
@@ -2146,9 +2242,10 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         otherFtr->velocity.y = knockback.y;
 
                         // Knock the fighter into the air
-                        if(!otherFtr->isInAir)
+                        if(!otherFtr->isInAir && otherFtr->velocity.y < 0)
                         {
                             setFighterRelPos(otherFtr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
+                            otherFtr->numJumpsLeft = 1;
                         }
 
                         // Apply hitstun, scaled by defendant's percentage
@@ -2239,9 +2336,10 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                         ftr->velocity.y = knockback.y;
 
                         // Knock the fighter into the air
-                        if(!ftr->isInAir)
+                        if(!ftr->isInAir && ftr->velocity.y < 0)
                         {
                             setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
+                            ftr->numJumpsLeft = 1;
                         }
 
                         // Apply hitstun, scaled by defendant's percentage
@@ -2304,23 +2402,27 @@ void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
             proj->pos.x = proj->pos.x + (((proj->velo.x + v0.x) * FRAME_TIME_MS) >> (SF + 1));
             proj->pos.y = proj->pos.y + (((proj->velo.y + v0.y) * FRAME_TIME_MS) >> (SF + 1));
 
-            // Create a hurtbox for this projectile to check for collisions with platforms
-            box_t projHurtbox =
+            // Only check projectile-stage collisions if it's not a passthru projectile
+            if(false == proj->passThru)
             {
-                .x0 = proj->pos.x,
-                .y0 = proj->pos.y,
-                .x1 = proj->pos.x + proj->size.x,
-                .y1 = proj->pos.y + proj->size.y,
-            };
-
-            // Check if this projectile collided with a platform
-            for (uint8_t idx = 0; idx < numPlatforms; idx++)
-            {
-                if(boxesCollide(projHurtbox, platforms[idx].area, SF))
+                // Create a hurtbox for this projectile to check for collisions with platforms
+                box_t projHurtbox =
                 {
-                    // Draw one more frame, then remove the projectile
-                    proj->removeNextFrame = true;
-                    break;
+                    .x0 = proj->pos.x,
+                    .y0 = proj->pos.y,
+                    .x1 = proj->pos.x + proj->size.x,
+                    .y1 = proj->pos.y + proj->size.y,
+                };
+
+                // Check if this projectile collided with a platform
+                for (uint8_t idx = 0; idx < numPlatforms; idx++)
+                {
+                    if(boxesCollide(projHurtbox, platforms[idx].area, SF))
+                    {
+                        // Draw one more frame, then remove the projectile
+                        proj->removeNextFrame = true;
+                        break;
+                    }
                 }
             }
 
@@ -2457,13 +2559,13 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     {
         // Add the sound effect to the scene
         scene->sfx = SFX_FIGHTER_2_HIT;
-        if((MULTIPLAYER == f->type) || (LOCAL_VS == f->type))
+        if(HR_CONTEST == f->type)
         {
-            scene->ledfx |= LEDFX_FIGHTER_2_HIT;
+            scene->ledfx |= LEDFX_SANDBAG_HIT;
         }
         else
         {
-            scene->ledfx |= LEDFX_SANDBAG_HIT;
+            scene->ledfx |= LEDFX_FIGHTER_2_HIT;
         }
         f2->damagedThisFrame = false;
     }
@@ -2503,6 +2605,12 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     {
         int16_t diff = centeredOffset.y - f->cameraOffset.y;
         f->cameraOffset.y += (diff / 4);
+    }
+
+    // Don't pan too far down
+    if(f->cameraOffset.y < -(f->d->h / 2))
+    {
+        f->cameraOffset.y = -(f->d->h / 2);
     }
 
     // Put the camera offset in the packet
@@ -2586,6 +2694,16 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
     int16_t f2_dmg   = scene->f2.damage;
     int16_t f2_stock = scene->f2.stocks;
     int16_t f2_stockIconIdx = scene->f2.stockIconIdx;
+
+    // Draw debug boxes, conditionally
+#ifdef DRAW_DEBUG_BOXES
+    if(f->type != MULTIPLAYER)
+    {
+        drawFighterDebugBox(d, &(f->fighters[0]), scene->cameraOffsetX, scene->cameraOffsetY);
+        drawFighterDebugBox(d, &(f->fighters[1]), scene->cameraOffsetX, scene->cameraOffsetY);
+        drawProjectileDebugBox(d, &(f->projectiles), scene->cameraOffsetX, scene->cameraOffsetY);
+    }
+#endif
 
     // Actually draw fighters
     drawFighter(d, getFighterSprite(f2_sprite, f->loadedSprites), f2_posX, f2_posY, f2_dir, f2_invincible, &f->p1indicH,
@@ -2677,16 +2795,6 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
         f->rColor = f->lColor;
         f->leds[NUM_LEDS - 1] = f->rColor;
     }
-
-    // Draw debug boxes, conditionally
-#ifdef DRAW_DEBUG_BOXES
-    if(f->type != MULTIPLAYER)
-    {
-        drawFighterDebugBox(d, &(f->fighters[0]), scene->cameraOffsetX, scene->cameraOffsetY);
-        drawFighterDebugBox(d, &(f->fighters[1]), scene->cameraOffsetX, scene->cameraOffsetY);
-        drawProjectileDebugBox(d, &(f->projectiles), scene->cameraOffsetX, scene->cameraOffsetY);
-    }
-#endif
 }
 
 /**
@@ -2991,6 +3099,12 @@ void drawProjectileDebugBox(display_t* d, list_t* projectiles, int16_t camOffX, 
  */
 void fighterGameButtonCb(buttonEvt_t* evt)
 {
+    // Don't handle button input when CPU only
+    if(CPU_ONLY == f->type)
+    {
+        return;
+    }
+
 #if defined(EMU)
     if(LOCAL_VS == f->type)
     {
@@ -3065,4 +3179,303 @@ void fighterRxScene(const fighterScene_t* scene, uint8_t len)
         // Save the new length
         f->composedSceneLen = len;
     }
+}
+
+/**
+ * @brief Figure out what the CPU should do
+ * Called every FRAME_TIME_MS
+ *
+ * @param cs The CPU fighter state
+ * @param human All the human fighter data
+ * @param cpu All the CPU fighter data
+ * @param projectiles A list of projectiles (type projectile_t)
+ * @param stage The stage being fought on (platform data)
+ * @return The current button state of the CPU (bitmask of buttonBit_t)
+ */
+uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t projectiles, const stage_t* stage)
+{
+#define CPU_CLOSE_ENOUGH_PX (32)
+#define CPU_CLOSE_ENOUGH (CPU_CLOSE_ENOUGH_PX << SF)
+#define CPU_JUMP_TIMER_MS 600
+
+    // Change behavior every second
+    cs->behaviorChangeTimer += FRAME_TIME_MS;
+    if(cs->behaviorChangeTimer >= 1000)
+    {
+        cs->behaviorChangeTimer -= 1000;
+        // Add some randomness to these transitions
+        cs->behaviorChangeTimer += ((esp_random() % 512) - 256);
+        // Randomly move close or further from the player
+        cs->cpuAttractX = (esp_random() % 10) < 8;
+        cs->cpuAttractY = (esp_random() % 10) < 8;
+    }
+
+    // Decrement this timer to not short hop all the time
+    if(cs->cpuJumpTimerMs > 0)
+    {
+        cs->cpuJumpTimerMs -= FRAME_TIME_MS;
+    }
+
+    // Set up button presses
+    uint8_t btn = 0;
+
+    // Get some data references
+    box_t cpuHurtbox;
+    getHurtbox(cpu, &cpuHurtbox);
+    box_t humanHurtbox;
+    getHurtbox(human, &humanHurtbox);
+    box_t mainPlatform = stage->platforms[0].area;
+
+    // Adjust behavior based on position
+    if(ABOVE_PLATFORM == cpu->relativePos)
+    {
+        // Standing on a platform
+        cs->cpuBehavior = CPU_RUN;
+    }
+    else if((cpuHurtbox.x1 < mainPlatform.x0) || (cpuHurtbox.x0 > mainPlatform.x1))
+    {
+        // Somewhere off the stage
+        cs->cpuBehavior = CPU_RECOVER;
+    }
+
+    switch(cs->cpuBehavior)
+    {
+        case CPU_RUN:
+        {
+            // Handle X axis movement
+            if(cpuHurtbox.x0 < humanHurtbox.x0)
+            {
+                if(cs->cpuAttractX)
+                {
+                    if(ABS(cpuHurtbox.x0 - humanHurtbox.x0) > CPU_CLOSE_ENOUGH)
+                    {
+                        // Run towards player if not too close
+                        btn |= RIGHT;
+                    }
+                }
+                else
+                {
+                    if(cpuHurtbox.x0 > mainPlatform.x0 + CPU_CLOSE_ENOUGH)
+                    {
+                        // Run away from player, but not off the platform
+                        btn |= LEFT;
+                    }
+                }
+            }
+            else
+            {
+                if(cs->cpuAttractX)
+                {
+                    if(ABS(cpuHurtbox.x0 - humanHurtbox.x0) > CPU_CLOSE_ENOUGH)
+                    {
+                        // Run towards player if not too close
+                        btn |= LEFT;
+                    }
+                }
+                else
+                {
+                    if(cpuHurtbox.x1 < mainPlatform.x1 - CPU_CLOSE_ENOUGH)
+                    {
+                        // Run away from player, but not off the platform
+                        btn |= RIGHT;
+                    }
+                }
+            }
+
+            // Handle Y axis movement
+            if(ABS(cpuHurtbox.y1 - humanHurtbox.y1) > CPU_CLOSE_ENOUGH)
+            {
+                if (( cs->cpuAttractY && (cpuHurtbox.y1 > humanHurtbox.y1)) ||
+                        (!cs->cpuAttractY && (cpuHurtbox.y1 < humanHurtbox.y1)))
+                {
+                    // JUMP!
+                    if(cs->cpuJumpTimerMs <= 0)
+                    {
+                        // Jump back towards the stage
+                        cs->cpuJumpTimerMs = CPU_JUMP_TIMER_MS;
+                        // BTN_A is 'released' here
+                    }
+                    else
+                    {
+                        // Keep the button held most of the time to not shorthop
+                        btn |= BTN_A;
+                    }
+                }
+                else if (( cs->cpuAttractY && (cpuHurtbox.y1 < humanHurtbox.y1)) ||
+                         (!cs->cpuAttractY && (cpuHurtbox.y1 > humanHurtbox.y1)))
+                {
+                    // Fall through the platform
+                    if(ABOVE_PLATFORM == cpu->relativePos && cpu->touchingPlatform->canFallThrough)
+                    {
+                        if(FS_DUCKING != cpu->state)
+                        {
+                            btn |= DOWN;
+                        }
+                    }
+                }
+            }
+
+            // Pixel space, not subpixel
+            int32_t cpuMidpointX = ((cpuHurtbox.x0 + cpuHurtbox.x1) / 2) >> SF;
+            int32_t cpuMidpointY = ((cpuHurtbox.y0 + cpuHurtbox.y1) / 2) >> SF;
+            int32_t humanMidpointX = ((humanHurtbox.x0 + humanHurtbox.x1) / 2) >> SF;
+            int32_t humanMidpointY = ((humanHurtbox.y0 + humanHurtbox.y1) / 2) >> SF;
+
+            int32_t pDist = ((cpuMidpointX - humanMidpointX) * (cpuMidpointX - humanMidpointX)) +
+                            ((cpuMidpointY - humanMidpointY) * (cpuMidpointY - humanMidpointY));
+
+            // If the CPU is close enough to the player
+            if(pDist <= (CPU_CLOSE_ENOUGH_PX * CPU_CLOSE_ENOUGH_PX))
+            {
+                // And it's not in an attack state
+                switch(cpu->state)
+                {
+                    case FS_STARTUP:
+                    case FS_ATTACK:
+                    case FS_COOLDOWN:
+                    {
+                        // Attacking
+                        break;
+                    }
+                    case FS_IDLE:
+                    case FS_RUNNING:
+                    case FS_DUCKING:
+                    case FS_JUMPING:
+                    case FS_HITSTUN:
+                    default:
+                    {
+                        if(0 != cpu->numJumpsLeft)
+                        {
+                            // Start an attack
+                            btn |= BTN_B;
+
+                            // Attack in the direction of the human
+                            if(ABS(humanMidpointX - cpuMidpointX) > ABS(humanMidpointY - cpuMidpointY))
+                            {
+                                if(cpuMidpointX < humanMidpointX)
+                                {
+                                    btn |= RIGHT;
+                                }
+                                else
+                                {
+                                    btn |= LEFT;
+                                }
+                            }
+                            else
+                            {
+                                if(cpuMidpointY < humanMidpointY)
+                                {
+                                    // Don't use up-air unless recovering
+                                    if(!cpu->isInAir)
+                                    {
+                                        btn |= UP;
+                                    }
+                                }
+                                else
+                                {
+                                    btn |= DOWN;
+                                }
+                            }
+
+                            // Short hop sometimes
+                            if(!cpu->isInAir)
+                            {
+                                if(0 == esp_random() % 2)
+                                {
+                                    btn |= BTN_A;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // CPU facing human, but out of direct attack distance
+            else if (((cpuHurtbox.x0 > humanHurtbox.x0) && (cpu->dir == FACING_LEFT)) ||
+                     ((cpuHurtbox.x0 < humanHurtbox.x0) && (cpu->dir == FACING_RIGHT)))
+            {
+                // Check if CPU and human are at the same vertical level
+                if((cpuHurtbox.y0) < (humanHurtbox.y1) &&
+                        (cpuHurtbox.y1) > (humanHurtbox.y0))
+                {
+                    // Attack a 8th of the time
+                    switch(esp_random() % 8)
+                    {
+                        case 0:
+                        {
+                            if(ABOVE_PLATFORM == cpu->relativePos)
+                            {
+                                if(cpu->velocity.x > ((3 * cpu->run_max_velo) / 4))
+                                {
+                                    // Dash attack
+                                    btn |= BTN_B;
+                                }
+                                else
+                                {
+                                    // Projectile attack. Make sure not to tilt attack
+                                    btn &= ~(LEFT | RIGHT);
+                                    btn |= BTN_B;
+                                }
+                            }
+                            else
+                            {
+                                // Only neutral air (projectile). Make sure not to tilt attack
+                                btn &= ~(LEFT | RIGHT);
+                                btn |= BTN_B;
+                            }
+                            break;
+                        }
+                        case 1 ... 7:
+                        {
+                            // Do nothing
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+        case CPU_RECOVER:
+        {
+            // Recover towards center of the stage
+            if(cpuHurtbox.x0 > (f->d->w / 2) << SF)
+            {
+                btn |= LEFT;
+            }
+            else
+            {
+                btn |= RIGHT;
+            }
+
+            // Check if above platform
+            if((cpuHurtbox.y1 < mainPlatform.y0) &&
+                    ((cpuHurtbox.x1 > mainPlatform.x0) || (cpuHurtbox.x0 < mainPlatform.x1)))
+            {
+                // Fighter is over the main platform, don't jump
+            }
+            else if(cs->cpuJumpTimerMs <= 0)
+            {
+                // No more jumps and timer expired, UP AIR time
+                if(cpu->numJumpsLeft == 0)
+                {
+                    btn |= UP;
+                    btn |= BTN_B;
+                }
+                else
+                {
+                    // Jump timer expired, so set it
+                    cs->cpuJumpTimerMs = CPU_JUMP_TIMER_MS;
+                    // BTN_A is 'released' here
+                }
+            }
+            else
+            {
+                // Jump timer is nonzero, hold down BTN_A to jump
+                btn |= BTN_A;
+            }
+            break;
+        }
+    }
+
+    // return the button state
+    return btn;
 }

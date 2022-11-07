@@ -123,6 +123,8 @@ typedef struct
     led_t errorALEDBlinkLEDS[NUM_LEDS];
     led_t errorBLEDBlinkLEDS[NUM_LEDS];
     led_t offLEDS[NUM_LEDS];
+    uint8_t ledAnimCount;//victory dance
+    uint32_t animtAccumulated;//victory dance
 
 } picrossGame_t;
 

@@ -21,7 +21,6 @@
 // Defines
 //==============================================================================
 
-#define EXIT_TIME_US 1000000
 #define TEXT_Y 10
 #define TEXT_MARGIN 20
 

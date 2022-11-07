@@ -3,6 +3,19 @@
 
 #include "swadgeMode.h"
 #include "aabb_utils.h"
+#include "musical_buzzer.h"
+
+extern const song_t jumpDeathTune;
+extern const song_t jumpGameOverTune;
+extern const song_t jumpWinTune;
+extern const song_t jumpGameLoop;
+extern const song_t jumpPerfectTune;
+extern const song_t jumpPlayerJump;
+extern const song_t jumperPlayerCollect;
+extern const song_t jumpPlayerBrokeCombo;
+extern const song_t jumpCountdown;
+extern const song_t jumpEvilDonutJump;
+extern const song_t jumpBlumpJump;
 
 typedef enum
 {

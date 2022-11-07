@@ -30,39 +30,39 @@
       "off_y":6
    },
    "jump_spr":{
-      "sprite":"kjm0.wsg",
-      "off_x":0,
-      "off_y":0
+      "sprite":"sjm.wsg",
+      "off_x":-3,
+      "off_y":-1
    },
    "duck_spr":{
-      "sprite":"kdu0.wsg",
-      "off_x":0,
+      "sprite":"sdu.wsg",
+      "off_x":-2,
       "off_y":0
    },
    "land_lag_spr":{
-      "sprite":"kll0.wsg",
-      "off_x":0,
-      "off_y":0
+      "sprite":"sll.wsg",
+      "off_x":-2,
+      "off_y":7
    },
    "hitstun_ground_sprite":{
-      "sprite":"ksg0.wsg",
-      "off_x":0,
-      "off_y":0
+      "sprite":"ssg.wsg",
+      "off_x":-5,
+      "off_y":-1
    },
    "hitstun_air_sprite":{
-      "sprite":"ksa0.wsg",
-      "off_x":0,
+      "sprite":"ssa.wsg",
+      "off_x":-9,
       "off_y":0
    },
-   "stock_icn":"kicon.wsg",
+   "stock_icn":"sicon.wsg",
    "attacks":[
       {
          "type":"up_gnd",
-         "startupLag":100,
+         "startupLag":275,
          "startupLagSpr":{
-            "sprite":"kugw.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"sugw.wsg",
+            "off_x":-2,
+            "off_y":8
          },
          "onlyFirstHit":true,
          "iframe_timer":0,
@@ -70,40 +70,57 @@
             {
                "duration":275,
                "atkSpr":{
-                  "sprite":"kuga1.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"suga.wsg",
+                  "off_x":-1,
+                  "off_y":-22
                },
                "iframe_timer":0,
                "hitboxes":[
                   {
-                     "relativePos_x":-5,
-                     "relativePos_y":-6,
-                     "size_x":11,
-                     "size_y":11,
+                     "relativePos_x":4,
+                     "relativePos_y":-22,
+                     "size_x":13,
+                     "size_y":24,
                      "damage":9,
                      "knockback_x":1000,
                      "knockback_y":-8000,
                      "hitstun":10
                   }
                ]
-            },
+            }
+         ],
+         "endLag":275,
+         "endLagSpr":{
+            "sprite":"sugc.wsg",
+            "off_x":-4,
+            "off_y":7
+         }
+      },
+      {
+         "type":"down_gnd",
+         "startupLag":200,
+         "startupLagSpr":{
+            "sprite":"sdgw.wsg",
+            "off_x":-14,
+            "off_y":11
+         },
+         "attack_frames":[
             {
-               "duration":250,
+               "duration":200,
                "atkSpr":{
-                  "sprite":"kuga2.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"sdga.wsg",
+                  "off_x":-12,
+                  "off_y":6
                },
                "hitboxes":[
                   {
-                     "relativePos_x":25,
-                     "relativePos_y":-7,
-                     "size_x":11,
-                     "size_y":11,
+                     "relativePos_x":-12,
+                     "relativePos_y":18,
+                     "size_x":50,
+                     "size_y":14,
                      "damage":12,
-                     "knockback_x":5000,
-                     "knockback_y":-10000,
+                     "knockback_x":10000,
+                     "knockback_y":3000,
                      "hitstun":10
                   }
                ]
@@ -111,81 +128,34 @@
          ],
          "endLag":200,
          "endLagSpr":{
-            "sprite":"kugc.wsg",
-            "off_x":0,
-            "off_y":0
-         }
-      },
-      {
-         "type":"down_gnd",
-         "startupLag":150,
-         "startupLagSpr":{
-            "sprite":"kdgw.wsg",
-            "off_x":0,
-            "off_y":0
-         },
-         "attack_frames":[
-            {
-               "duration":600,
-               "atkSpr":{
-                  "sprite":"kdga.wsg",
-                  "off_x":0,
-                  "off_y":0
-               },
-               "hitboxes":[
-                  {
-                     "relativePos_x":0,
-                     "relativePos_y":16,
-                     "size_x":20,
-                     "size_y":8,
-                     "damage":12,
-                     "knockback_x":-10000,
-                     "knockback_y":3000,
-                     "hitstun":10
-                  },
-                  {
-                     "relativePos_x":30,
-                     "relativePos_y":16,
-                     "size_x":16,
-                     "size_y":8,
-                     "damage":10,
-                     "knockback_x":8000,
-                     "knockback_y":3000,
-                     "hitstun":10
-                  }
-               ]
-            }
-         ],
-         "endLag":250,
-         "endLagSpr":{
-            "sprite":"kdgc.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"sdgc.wsg",
+            "off_x":-10,
+            "off_y":6
          }
       },
       {
          "type":"dash_gnd",
          "startupLag":50,
          "startupLagSpr":{
-            "sprite":"kfgw.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"sfgw.wsg",
+            "off_x":-1,
+            "off_y":1
          },
          "attack_frames":[
             {
                "duration":375,
                "atkSpr":{
-                  "sprite":"kfga.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"sfga.wsg",
+                  "off_x":-10,
+                  "off_y":7
                },
                "velo_x":30000,
                "hitboxes":[
                   {
-                     "relativePos_x":26,
-                     "relativePos_y":9,
-                     "size_x":21,
-                     "size_y":8,
+                     "relativePos_x":16,
+                     "relativePos_y":19,
+                     "size_x":16,
+                     "size_y":13,
                      "damage":9,
                      "knockback_x":9000,
                      "knockback_y":-3000,
@@ -196,33 +166,33 @@
          ],
          "endLag":300,
          "endLagSpr":{
-            "sprite":"kfgc.wsg",
+            "sprite":"sfgc.wsg",
             "off_x":0,
-            "off_y":0
+            "off_y":2
          }
       },
       {
          "type":"front_gnd",
-         "startupLag":50,
+         "startupLag":250,
          "startupLagSpr":{
-            "sprite":"ktgw.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"stgw.wsg",
+            "off_x":-10,
+            "off_y":-3
          },
          "attack_frames":[
             {
                "duration":375,
                "atkSpr":{
-                  "sprite":"ktga.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"stga.wsg",
+                  "off_x":-19,
+                  "off_y":-1
                },
                "hitboxes":[
                   {
-                     "relativePos_x":28,
-                     "relativePos_y":8,
-                     "size_x":16,
-                     "size_y":8,
+                     "relativePos_x":14,
+                     "relativePos_y":6,
+                     "size_x":20,
+                     "size_y":13,
                      "damage":18,
                      "knockback_x":9000,
                      "knockback_y":-3000,
@@ -233,42 +203,42 @@
          ],
          "endLag":300,
          "endLagSpr":{
-            "sprite":"ktgc.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"stgc.wsg",
+            "off_x":-11,
+            "off_y":-4
          }
       },
       {
          "type":"neutral_gnd",
          "startupLag":225,
          "startupLagSpr":{
-            "sprite":"kngw.wsg",
-            "off_x":0,
+            "sprite":"sngw.wsg",
+            "off_x":-4,
             "off_y":0
          },
          "attack_frames":[
             {
                "duration":300,
                "atkSpr":{
-                  "sprite":"knga.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"snga.wsg",
+                  "off_x":-2,
+                  "off_y":3
                },
                "hitboxes":[
                   {
-                     "relativePos_x":14,
-                     "relativePos_y":7,
-                     "size_x":19,
-                     "size_y":11,
+                     "relativePos_x":9,
+                     "relativePos_y":16,
+                     "size_x":15,
+                     "size_y":9,
                      "damage":9,
                      "knockback_x":4000,
                      "knockback_y":-2000,
                      "hitstun":10,
                      "isProjectile":true,
                      "projectileSprite":{
-                        "sprite":"kngp.wsg"
+                        "sprite":"sngp.wsg"
                      },
-                     "projectileDuration":20,
+                     "projectileDuration":1000,
                      "projectileVelo_x":20480,
                      "projectileVelo_y":0,
                      "projectileAccel_x":0,
@@ -279,8 +249,8 @@
          ],
          "endLag":350,
          "endLagSpr":{
-            "sprite":"kngc.wsg",
-            "off_x":0,
+            "sprite":"sngc.wsg",
+            "off_x":-7,
             "off_y":0
          },
          "landing_lag":14
@@ -289,33 +259,33 @@
          "type":"neutral_air",
          "startupLag":225,
          "startupLagSpr":{
-            "sprite":"kngw.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"snaw.wsg",
+            "off_x":-9,
+            "off_y":-1
          },
          "attack_frames":[
             {
                "duration":300,
                "atkSpr":{
-                  "sprite":"knga.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"snaa.wsg",
+                  "off_x":-9,
+                  "off_y":-1
                },
                "hitboxes":[
                   {
-                     "relativePos_x":14,
-                     "relativePos_y":7,
-                     "size_x":19,
-                     "size_y":11,
+                     "relativePos_x":9,
+                     "relativePos_y":16,
+                     "size_x":15,
+                     "size_y":9,
                      "damage":9,
                      "knockback_x":4000,
                      "knockback_y":-2000,
                      "hitstun":10,
                      "isProjectile":true,
                      "projectileSprite":{
-                        "sprite":"kngp.wsg"
+                        "sprite":"sngp.wsg"
                      },
-                     "projectileDuration":16,
+                     "projectileDuration":1000,
                      "projectileVelo_x":20480,
                      "projectileVelo_y":0,
                      "projectileAccel_x":0,
@@ -326,9 +296,9 @@
          ],
          "endLag":350,
          "endLagSpr":{
-            "sprite":"kngc.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"snac.wsg",
+            "off_x":-8,
+            "off_y":-1
          },
          "landing_lag":14
       },
@@ -336,24 +306,24 @@
          "type":"front_air",
          "startupLag":175,
          "startupLagSpr":{
-            "sprite":"kfaa.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"sfaw.wsg",
+            "off_x":-4,
+            "off_y":-3
          },
          "attack_frames":[
             {
                "duration":350,
                "atkSpr":{
-                  "sprite":"kfaa.wsg",
+                  "sprite":"sfaa.wsg",
                   "off_x":0,
                   "off_y":0
                },
                "hitboxes":[
                   {
-                     "relativePos_x":29,
-                     "relativePos_y":10,
-                     "size_x":10,
-                     "size_y":10,
+                     "relativePos_x":4,
+                     "relativePos_y":4,
+                     "size_x":23,
+                     "size_y":28,
                      "damage":9,
                      "knockback_x":8000,
                      "knockback_y":-4000,
@@ -364,9 +334,9 @@
          ],
          "endLag":300,
          "endLagSpr":{
-            "sprite":"kfaa.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"sfac.wsg",
+            "off_x":-3,
+            "off_y":-1
          },
          "landing_lag":12
       },
@@ -374,24 +344,24 @@
          "type":"back_air",
          "startupLag":300,
          "startupLagSpr":{
-            "sprite":"kbaa.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"sbaw.wsg",
+            "off_x":-8,
+            "off_y":-2
          },
          "attack_frames":[
             {
                "duration":400,
                "atkSpr":{
-                  "sprite":"kbaa.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"sbaa.wsg",
+                  "off_x":-22,
+                  "off_y":-21
                },
                "hitboxes":[
                   {
-                     "relativePos_x":-7,
+                     "relativePos_x":-22,
                      "relativePos_y":9,
-                     "size_x":12,
-                     "size_y":9,
+                     "size_x":22,
+                     "size_y":23,
                      "damage":9,
                      "knockback_x":-9000,
                      "knockback_y":-4000,
@@ -402,81 +372,69 @@
          ],
          "endLag":275,
          "endLagSpr":{
-            "sprite":"kbaa.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"sbac.wsg",
+            "off_x":-22,
+            "off_y":-21
          },
          "landing_lag":11
       },
       {
          "type":"up_air",
-         "startupLag":50,
+         "startupLag":333,
          "startupLagSpr":{
-            "sprite":"kuaw.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"suaw.wsg",
+            "off_x":-2,
+            "off_y":2
          },
          "attack_frames":[
             {
-               "duration":850,
+               "duration":333,
                "atkSpr":{
-                  "sprite":"kuaa1.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"suaa.wsg",
+                  "off_x":-14,
+                  "off_y":-10
                },
                "velo_x":4000,
                "velo_y":-25000,
                "hitboxes":[
                   {
-                     "relativePos_x":-2,
-                     "relativePos_y":-10,
-                     "size_x":10,
-                     "size_y":19,
+                     "relativePos_x":-14,
+                     "relativePos_y":0,
+                     "size_x":14,
+                     "size_y":22,
                      "damage":10,
-                     "knockback_x":0,
-                     "knockback_y":-7000,
-                     "hitstun":10
-                  }
-               ]
-            },
-            {
-               "duration":400,
-               "atkSpr":{
-                  "sprite":"kuaa2.wsg",
-                  "off_x":0,
-                  "off_y":0
-               },
-               "velo_x":10000,
-               "velo_y":25000,
-               "hitboxes":[
-                  {
-                     "relativePos_x":3,
-                     "relativePos_y":20,
-                     "size_x":11,
-                     "size_y":13,
-                     "damage":9,
-                     "knockback_x":500,
-                     "knockback_y":8000,
+                     "knockback_x":-4000,
+                     "knockback_y":0,
                      "hitstun":10
                   },
                   {
-                     "relativePos_x":23,
-                     "relativePos_y":16,
-                     "size_x":16,
-                     "size_y":8,
-                     "damage":9,
-                     "knockback_x":500,
-                     "knockback_y":8000,
+                     "relativePos_x":-9,
+                     "relativePos_y":-10,
+                     "size_x":40,
+                     "size_y":10,
+                     "damage":10,
+                     "knockback_x":0,
+                     "knockback_y":-4000,
+                     "hitstun":10
+                  },
+                  {
+                     "relativePos_x":26,
+                     "relativePos_y":0,
+                     "size_x":11,
+                     "size_y":29,
+                     "damage":10,
+                     "knockback_x":4000,
+                     "knockback_y":0,
                      "hitstun":10
                   }
                ]
             }
          ],
-         "endLag":275,
+         "endLag":333,
          "endLagSpr":{
-            "sprite":"kuac.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"suac.wsg",
+            "off_x":-14,
+            "off_y":-10
          },
          "landing_lag":11
       },
@@ -484,25 +442,25 @@
          "type":"down_air",
          "startupLag":225,
          "startupLagSpr":{
-            "sprite":"kdaw.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"sdaw.wsg",
+            "off_x":2,
+            "off_y":-15
          },
          "attack_frames":[
             {
                "duration":550,
                "atkSpr":{
-                  "sprite":"kdaa.wsg",
-                  "off_x":0,
+                  "sprite":"sdaa.wsg",
+                  "off_x":-1,
                   "off_y":0
                },
                "velo_y":10000,
                "hitboxes":[
                   {
-                     "relativePos_x":9,
-                     "relativePos_y":22,
-                     "size_x":15,
-                     "size_y":14,
+                     "relativePos_x":4,
+                     "relativePos_y":21,
+                     "size_x":13,
+                     "size_y":19,
                      "damage":9,
                      "knockback_x":500,
                      "knockback_y":8000,
@@ -513,9 +471,9 @@
          ],
          "endLag":350,
          "endLagSpr":{
-            "sprite":"kdaa.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"sdac.wsg",
+            "off_x":-2,
+            "off_y":2
          },
          "landing_lag":14
       }

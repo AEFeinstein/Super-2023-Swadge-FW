@@ -29,7 +29,61 @@
 // Constants
 //==============================================================================
 
-static const song_t bgmDemagio =
+const song_t sndGameStart =
+{
+    .notes =
+    {
+        {C_4, 50},{SILENCE, 50},{C_4, 100},{SILENCE, 200},{C_5, 100},
+        {SILENCE, 100},{E_4, 100},{SILENCE, 100},{E_4, 100},{SILENCE, 100},
+        {G_4, 100},{C_5, 100},{SILENCE, 100},{G_4, 100}
+    },
+    .numNotes = 14,
+    .shouldLoop = false
+};
+
+const song_t sndDie =
+{
+    .notes =
+    {
+        {C_SHARP_5, 100},{A_SHARP_4, 100},{G_SHARP_4, 200},{F_SHARP_4, 100},
+        {D_SHARP_4, 100},{SILENCE, 100},{D_4, 100},{SILENCE, 100},
+        {C_SHARP_4, 100}
+    },
+    .numNotes = 9,
+    .shouldLoop = false
+};
+
+const song_t sndMenuSelect =
+{
+    .notes =
+    {
+        {C_5, 50},{C_4, 50}
+    },
+    .numNotes = 2,
+    .shouldLoop = false
+};
+
+const song_t sndMenuConfirm =
+{
+    .notes =
+    {
+        {C_6, 50},{C_5, 50},{C_4, 50}
+    },
+    .numNotes = 2,
+    .shouldLoop = false
+};
+
+const song_t sndMenuDeny =
+{
+    .notes =
+    {
+        {C_3, 50},{SILENCE, 50},{C_3, 50}
+    },
+    .numNotes = 3,
+    .shouldLoop = false
+};
+
+const song_t bgmDemagio =
 {
     .notes =
     {
@@ -328,43 +382,43 @@ static const song_t bgmDemagio =
     .shouldLoop = true
 };
 
-static const song_t bgmIntro =
+const song_t bgmIntro =
 {
     .notes =
     {
-        {C_SHARP_5, 130},
-        {C_SHARP_3, 62},
-        {SILENCE, 67},
-        {A_3, 62},
-        {SILENCE, 67},
-        {E_4, 62},
-        {SILENCE, 67},
-        {A_4, 130},
-        {C_SHARP_5, 130},
-        {D_5, 130},
-        {C_3, 62},
-        {SILENCE, 67},
-        {A_3, 62},
-        {SILENCE, 67},
-        {E_4, 67},
-        {SILENCE, 62},
-        {A_4, 130},
-        {D_5, 130},
-        {E_5, 130},
-        {B_4, 130},
-        {A_4, 130},
-        {E_4, 130},
-        {B_3, 83},
-        {A_3, 78},
-        {E_3, 78},
-        {B_2, 83},
-        {E_2, 317}
+        {.note = C_SHARP_5, .timeMs = 130},
+        {.note = C_SHARP_3, .timeMs = 62},
+        {.note = SILENCE, .timeMs = 67},
+        {.note = A_3, .timeMs = 62},
+        {.note = SILENCE, .timeMs = 67},
+        {.note = E_4, .timeMs = 62},
+        {.note = SILENCE, .timeMs = 67},
+        {.note = A_4, .timeMs = 130},
+        {.note = C_SHARP_5, .timeMs = 130},
+        {.note = D_5, .timeMs = 130},
+        {.note = C_3, .timeMs = 62},
+        {.note = SILENCE, .timeMs = 67},
+        {.note = A_3, .timeMs = 62},
+        {.note = SILENCE, .timeMs = 67},
+        {.note = E_4, .timeMs = 67},
+        {.note = SILENCE, .timeMs = 62},
+        {.note = A_4, .timeMs = 130},
+        {.note = D_5, .timeMs = 130},
+        {.note = E_5, .timeMs = 130},
+        {.note = B_4, .timeMs = 130},
+        {.note = A_4, .timeMs = 130},
+        {.note = E_4, .timeMs = 130},
+        {.note = B_3, .timeMs = 83},
+        {.note = A_3, .timeMs = 78},
+        {.note = E_3, .timeMs = 78},
+        {.note = B_2, .timeMs = 83},
+        {.note = E_2, .timeMs = 317},
     },
     .numNotes = 27,
     .shouldLoop = false
 };
 
-static const song_t bgmSmooth =
+const song_t bgmSmooth =
 {
     .notes =
     {
@@ -797,60 +851,6 @@ static const song_t bgmSmooth =
     },
     .numNotes = 425,
     .shouldLoop = true
-};
-
-/*static const song_t sndGameStart =
-{
-    .notes =
-    {
-        {C_4, 50},{SILENCE, 50},{C_4, 100},{SILENCE, 200},{C_5, 100},
-        {SILENCE, 100},{E_4, 100},{SILENCE, 100},{E_4, 100},{SILENCE, 100},
-        {G_4, 100},{C_5, 100},{SILENCE, 100},{G_4, 100}
-    },
-    .numNotes = 14,
-    .shouldLoop = false
-};*/
-
-static const song_t sndDie =
-{
-    .notes =
-    {
-        {C_SHARP_5, 100},{A_SHARP_4, 100},{G_SHARP_4, 200},{F_SHARP_4, 100},
-        {D_SHARP_4, 100},{SILENCE, 100},{D_4, 100},{SILENCE, 100},
-        {C_SHARP_4, 100}
-    },
-    .numNotes = 9,
-    .shouldLoop = false
-};
-
-static const song_t sndMenuSelect =
-{
-    .notes =
-    {
-        {C_5, 50},{C_4, 50}
-    },
-    .numNotes = 2,
-    .shouldLoop = false
-};
-
-static const song_t sndMenuConfirm =
-{
-    .notes =
-    {
-        {C_6, 50},{C_5, 50},{C_4, 50}
-    },
-    .numNotes = 2,
-    .shouldLoop = false
-};
-
-static const song_t sndMenuDeny =
-{
-    .notes =
-    {
-        {C_3, 50},{SILENCE, 50},{C_3, 50}
-    },
-    .numNotes = 3,
-    .shouldLoop = false
 };
 
 static const paletteColor_t highScoreNewEntryColors[4] = {c050, c055, c005, c055};

@@ -159,6 +159,7 @@ typedef struct
 {
     uint32_t shouldLoop;
     uint32_t numNotes;
+    uint32_t loopStartNote;
     musicalNote_t notes[];
 } song_t;
 

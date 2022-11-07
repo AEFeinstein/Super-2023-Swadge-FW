@@ -58,7 +58,7 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline);
 
 static jumperGame_t* j = NULL;
 
-static const song_t jumpDeathTune =
+const song_t jumpDeathTune =
 {
     .notes =
     {
@@ -75,7 +75,7 @@ static const song_t jumpDeathTune =
     .shouldLoop = false
 };
 
-static const song_t jumpGameOverTune =
+const song_t jumpGameOverTune =
 {
     .notes =
     {
@@ -103,7 +103,7 @@ static const song_t jumpGameOverTune =
     .shouldLoop = false
 };
 
-static const song_t jumpWinTune =
+const song_t jumpWinTune =
 {
     .notes =
     {
@@ -130,7 +130,7 @@ static const song_t jumpWinTune =
     .shouldLoop = false
 };
 
-static const song_t jumpGameLoop = 
+const song_t jumpGameLoop = 
 {
     .notes =
     {
@@ -238,7 +238,7 @@ static const song_t jumpGameLoop =
     .shouldLoop = true
 };
 
-static const song_t jumpPerfectTune = 
+const song_t jumpPerfectTune = 
 {
     .notes =
     {
@@ -307,7 +307,7 @@ static const song_t jumpPerfectTune =
     .shouldLoop = false
 };
 
-static const song_t jumpPlayerJump =
+const song_t jumpPlayerJump =
 {
     .notes =
     {
@@ -322,7 +322,7 @@ static const song_t jumpPlayerJump =
 };
 
 
-static const song_t jumperPlayerCollect =
+const song_t jumperPlayerCollect =
 {
     .notes =
     {
@@ -339,7 +339,7 @@ static const song_t jumperPlayerCollect =
     .shouldLoop = false
 };
 
-static const song_t jumpPlayerBrokeCombo =
+const song_t jumpPlayerBrokeCombo =
 {
     .notes =
     {
@@ -350,7 +350,7 @@ static const song_t jumpPlayerBrokeCombo =
     .shouldLoop = false
 };
 
-static const song_t jumpCountdown = 
+const song_t jumpCountdown = 
 {
     .notes = 
     {
@@ -363,7 +363,7 @@ static const song_t jumpCountdown =
     .shouldLoop = false
 };
 
-static const song_t jumpEvilDonutJump =
+const song_t jumpEvilDonutJump =
 {
     .notes =
     {
@@ -377,7 +377,7 @@ static const song_t jumpEvilDonutJump =
     .shouldLoop = false
 };
 
-static const song_t jumpBlumpJump =
+const song_t jumpBlumpJump =
 {
     .notes =
     {

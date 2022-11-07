@@ -25,7 +25,7 @@
 // #define TO_PIXEL_COORDS(x) ((x) >> SUBPIXEL_RESOLUTION)
 // #define TO_SUBPIXEL_COORDS(x) ((x) << SUBPIXEL_RESOLUTION)
 
-static const song_t sndHit =
+const song_t sndHit =
     {
         .notes =
             {
@@ -34,7 +34,7 @@ static const song_t sndHit =
         .shouldLoop = false
     };
 
-static const song_t sndSquish =
+const song_t sndSquish =
     {
         .notes =
             {
@@ -43,7 +43,7 @@ static const song_t sndSquish =
         .shouldLoop = false
     };
 
-static const song_t sndBreak =
+const song_t sndBreak =
     {
         .notes =
             {
@@ -52,7 +52,7 @@ static const song_t sndBreak =
         .shouldLoop = false
     };
 
-static const song_t sndCoin =
+const song_t sndCoin =
     {
         .notes =
             {
@@ -61,7 +61,7 @@ static const song_t sndCoin =
         .shouldLoop = false
     };
 
-static const song_t sndPowerUp =
+const song_t sndPowerUp =
     {
         .notes =
             { 
@@ -70,7 +70,7 @@ static const song_t sndPowerUp =
         .shouldLoop = false
     };
 
-static const song_t sndJump1 =
+const song_t sndJump1 =
     {
         .notes =
             { 
@@ -79,7 +79,7 @@ static const song_t sndJump1 =
         .shouldLoop = false
     };         
 
-static const song_t sndJump2 =
+const song_t sndJump2 =
     {
         .notes =
             { 
@@ -88,7 +88,7 @@ static const song_t sndJump2 =
         .shouldLoop = false
     };         
 
-static const song_t sndJump3 =
+const song_t sndJump3 =
     {
         .notes =
             { 
@@ -97,7 +97,7 @@ static const song_t sndJump3 =
         .shouldLoop = false
     };
 
-static const song_t sndWarp =
+const song_t sndWarp =
     {
         .notes =
             { 
@@ -107,7 +107,7 @@ static const song_t sndWarp =
         .shouldLoop = false
     };
 
-static const song_t sndHurt =
+const song_t sndHurt =
     {
         .notes =
             { 
@@ -117,7 +117,7 @@ static const song_t sndHurt =
         .shouldLoop = false
     };   
 
-static const song_t sndWaveBall =
+const song_t sndWaveBall =
 {
     .notes =
     {
