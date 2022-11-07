@@ -59,7 +59,7 @@ swadgeMode modeBee =
 };
 
 // Everyone's here
-static const char* creditNames[] =
+static const char* beeTextLines[] =
 {
     "According to all known laws of aviation,\n",
     "there is no way a bee should be able to fly.\n",
@@ -1930,13 +1930,13 @@ void beeMainLoop(int64_t elapsedUs)
                 }
 
                 // Center and draw the text
-                int16_t tWidth = textWidth(&bee->font, creditNames[idx]);
-                drawText(bee->disp, &bee->font, c550, creditNames[idx],
+                int16_t tWidth = textWidth(&bee->font, beeTextLines[idx]);
+                drawText(bee->disp, &bee->font, c550, beeTextLines[idx],
                          (bee->disp->w - tWidth) / 2, (yPos + bee->yOffset));
             }
 
             // Add more space if the bee stuff ends in a newline
-            if('\n' == creditNames[idx][strlen(creditNames[idx]) - 1])
+            if('\n' == beeTextLines[idx][strlen(beeTextLines[idx]) - 1])
             {
                 yPos += bee->font.h + 4;
             }
@@ -1946,7 +1946,7 @@ void beeMainLoop(int64_t elapsedUs)
             }
 
             // Always update the idx and cursor position, even if the text wasn't drawn
-            idx = (idx + 1) % ARRAY_SIZE(creditNames);
+            idx = (idx + 1) % ARRAY_SIZE(beeTextLines);
         }
     }
 }

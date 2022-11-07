@@ -406,6 +406,10 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                     return;
                 }
             }
+            else
+            {
+                mainMenu->menuSelection = 0;
+            }
         }
 
         switch(evt->button)
