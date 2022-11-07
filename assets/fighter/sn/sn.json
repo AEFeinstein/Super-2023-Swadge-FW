@@ -173,26 +173,26 @@
       },
       {
          "type":"front_gnd",
-         "startupLag":50,
+         "startupLag":250,
          "startupLagSpr":{
-            "sprite":"ktgw.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"stgw.wsg",
+            "off_x":-10,
+            "off_y":-3
          },
          "attack_frames":[
             {
                "duration":375,
                "atkSpr":{
-                  "sprite":"ktga.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"stga.wsg",
+                  "off_x":-19,
+                  "off_y":-1
                },
                "hitboxes":[
                   {
-                     "relativePos_x":28,
-                     "relativePos_y":8,
-                     "size_x":16,
-                     "size_y":8,
+                     "relativePos_x":14,
+                     "relativePos_y":6,
+                     "size_x":20,
+                     "size_y":13,
                      "damage":18,
                      "knockback_x":9000,
                      "knockback_y":-3000,
@@ -203,9 +203,9 @@
          ],
          "endLag":300,
          "endLagSpr":{
-            "sprite":"ktgc.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"stgc.wsg",
+            "off_x":-11,
+            "off_y":-4
          }
       },
       {
