@@ -29,6 +29,7 @@
 #include "mode_picross.h"
 #include "mode_platformer.h"
 #include "mode_slide_whistle.h"
+#include "mode_test.h"
 #include "mode_tiltrads.h"
 #include "mode_tunernome.h"
 #include "picross_menu.h"
@@ -904,6 +905,7 @@ void mainMenuSetUpSecretMenu(bool resetPos)
     // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuSecret, mainMenuSecretCb);
     addRowToMeleeMenu(mainMenu->menu, modeBee.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeTest.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
@@ -928,6 +930,11 @@ void mainMenuSecretCb(const char* opt)
     {
         // Start bee stuff
         switchToSwadgeMode(&modeBee);
+    }
+    if(modeTest.modeName == opt)
+    {
+        // Start test mode
+        switchToSwadgeMode(&modeTest);
     }
     else if(mainMenuBack == opt)
     {
