@@ -85,7 +85,7 @@ void gamepadStart(display_t* disp, gamepadType_t type);
 
 static const char str_gamepadTitle[] = "Gamepad Type";
 static const char str_pc[] = "PC";
-static const char str_ns[] = "NS";
+static const char str_ns[] = "Switch";
 static const char str_exit[] = "Exit";
 
 typedef struct
@@ -138,11 +138,11 @@ const hid_gamepad_button_bm_t touchMap[] =
 
 const hid_gamepad_button_bm_t touchMapNs[] =
 {
-    GAMEPAD_BUTTON_TL,
+    GAMEPAD_BUTTON_Y,
     GAMEPAD_BUTTON_TL,
     GAMEPAD_BUTTON_Z,
     GAMEPAD_BUTTON_TR,
-    GAMEPAD_BUTTON_TR,
+    GAMEPAD_BUTTON_X,
 };
 
 //==============================================================================
