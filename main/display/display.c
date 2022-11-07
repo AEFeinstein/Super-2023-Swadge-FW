@@ -884,10 +884,10 @@ uint16_t textWidth(const font_t* font, const char* text)
 /// @param yMax The maximum ycoordinate at which text may be drawn
 /// @return A pointer to the first unprinted character within `text`, or NULL if all text has been written
 const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
-                             int16_t xOff, int16_t yOff, int16_t xMax, int16_t yMax)
+                             int16_t *xOff, int16_t *yOff, int16_t xMax, int16_t yMax)
 {
     const char* textPtr = text;
-    uint16_t textX = xOff, textY = yOff;
+    uint16_t textX = *xOff, textY = *yOff;
     int nextSpace, nextDash, nextNl;
     int nextBreak;
     char buf[64];
@@ -901,13 +901,15 @@ const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t
     // while there is text left to print, and the text would not exceed the Y-bounds...
     while (*textPtr && (textY + font->h <= yMax))
     {
+        *yOff = textY;
+
         // skip leading spaces if we're at the start of the line
-        for (; textX == xOff && *textPtr == ' '; textPtr++);
+        for (; textX == *xOff && *textPtr == ' '; textPtr++);
 
         // handle newlines
         if (*textPtr == '\n')
         {
-            textX = xOff;
+            textX = *xOff;
             textY += font->h + 1;
             textPtr++;
             continue;
@@ -949,7 +951,7 @@ const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t
         buf[nextBreak] = '\0';
 
         // The text is longer than an entire line, so we must shorten it
-        if (xOff + textWidth(font, buf) > xMax)
+        if (*xOff + textWidth(font, buf) > xMax)
         {
             // shorten the text until it fits
             while (textX + textWidth(font, buf) > xMax && nextBreak > 0)
@@ -966,7 +968,7 @@ const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t
         {
             // The line won't fit
             textY += font->h + 1;
-            textX = xOff;
+            textX = *xOff;
             continue;
         }
 
@@ -978,5 +980,6 @@ const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t
 
     // Return NULL if we've printed everything
     // Otherwise, return the remaining text
+    *xOff = textX;
     return *textPtr ? textPtr : NULL;
 }

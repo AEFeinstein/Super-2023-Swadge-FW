@@ -1930,21 +1930,16 @@ void beeMainLoop(int64_t elapsedUs)
                     yPos = 0;
                 }
 
-                // Center and draw the text
-                int16_t tWidth = textWidth(&bee->font, beeTextLines[idx]);
-                drawText(bee->disp, &bee->font, c550, beeTextLines[idx],
-                         (bee->disp->w - tWidth) / 2, (yPos + bee->yOffset));
+                int16_t textX = 13, textY = (yPos + bee->yOffset);
+
+                // Draw the text
+                drawTextWordWrap(bee->disp, &bee->font, c550, beeTextLines[idx],
+                         &textX, &textY, bee->disp->w - 13, bee->disp->h + bee->font.h);
+                yPos = textY - bee->yOffset;
             }
 
             // Add more space if the bee stuff ends in a newline
-            if('\n' == beeTextLines[idx][strlen(beeTextLines[idx]) - 1])
-            {
-                yPos += bee->font.h + 4;
-            }
-            else
-            {
-                yPos += bee->font.h + 1;
-            }
+            yPos += bee->font.h + 1;
 
             // Always update the idx and cursor position, even if the text wasn't drawn
             idx = (idx + 1) % ARRAY_SIZE(beeTextLines);
