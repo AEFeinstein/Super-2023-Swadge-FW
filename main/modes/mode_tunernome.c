@@ -570,6 +570,9 @@ void recalcMetronome(void)
         case 3: tunernome->usPerSubBeat = tunernome->usPerBeat/4; break;
     }
 
+    // Resync the two beat systems
+    tunernome->tAccumulatedUs = 0;
+    tunernome->tSubAcculuatedUs = 0;
 }
 
 // TODO: make this compatible with instruments with an odd number of notes
