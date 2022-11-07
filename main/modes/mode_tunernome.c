@@ -51,7 +51,7 @@
 
 #define METRONOME_CENTER_X    tunernome->disp->w / 2
 #define METRONOME_CENTER_Y    tunernome->disp->h - 16 - CORNER_OFFSET
-#define METRONOME_RADIUS      135
+#define METRONOME_RADIUS      125
 #define TUNER_RADIUS          80
 #define TUNER_TEXT_Y_OFFSET   30
 #define TUNER_ARROW_Y_OFFSET  8
@@ -1139,8 +1139,8 @@ void tunernomeMainLoop(int64_t elapsedUs)
             float intermedX = -1 * cosf(tunernome->tAccumulatedUs * M_PI / tunernome->usPerBeat );
             float intermedY = -1 * sinf(tunernome->tAccumulatedUs * M_PI / tunernome->usPerBeat );
             int x = round(METRONOME_CENTER_X - (intermedX * METRONOME_RADIUS));
-            int y = round(METRONOME_CENTER_Y - (ABS(intermedY) * METRONOME_RADIUS));
-            plotLine(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y, x, y, c555, 0);
+            int y = round(METRONOME_CENTER_Y - 16 - (ABS(intermedY) * METRONOME_RADIUS));
+            plotLine(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y - 16, x, y, c555, 0);
             break;
         } // case TN_METRONOME:
     } // switch(tunernome->mode)
