@@ -55,7 +55,7 @@
 #define TUNER_RADIUS          80
 #define TUNER_TEXT_Y_OFFSET   30
 #define TUNER_ARROW_Y_OFFSET  8
-#define INITIAL_BPM           120
+#define INITIAL_BPM           90
 #define MAX_BPM               400
 #define MAX_BEATS             16 // I mean, realistically, who's going to have more than 16 beats in a measure?
 #define METRONOME_FLASH_MS    35
@@ -129,8 +129,10 @@ typedef struct
     uint8_t beatCtr;
     int bpm;
     int32_t tAccumulatedUs;
+    int32_t tSubAcculuatedUs;
     bool isClockwise;
     int32_t usPerBeat;
+    int32_t usPerSubBeat;
     uint8_t beatLength;
 
     uint32_t semitone_intensity_filt[NUM_SEMITONES];
@@ -287,12 +289,12 @@ const uint16_t twoLedFlashIdxs[] =
     7
 };
 
-const uint16_t fourLedFlashIdxs[] =
+const uint8_t subBeatLedFlashIdxs[][2] =
 {
-    1,
-    3,
-    4,
-    6
+    {1,6},
+    {0,7},
+    {2,5},
+    {3,4}
 };
 
 const char* guitarNoteNames[] =
@@ -355,6 +357,7 @@ static const char playStringsText[] = "Play all open strings";
 static const char listeningText[] = "Listening for a note";
 static const char leftStr[] = ": ";
 static const char rightStrTuner[] = "Start: Tuner";
+static const char rightStrTunerSel[] = "Sel: SubBeat";
 static const char rightStrMetronome[] = "Start: Metronome";
 
 // TODO: these should be const after being assigned
@@ -453,8 +456,8 @@ void switchToSubmode(tnMode newMode)
             tunernome->isClockwise = true;
             tunernome->beatCtr = tunernome->beatLength - 1; // This assures that the first beat is a primary beat/downbeat
             tunernome->subBeatCtr = 0;
-            tunernome->subdividedBeats = 0;
             tunernome->tAccumulatedUs = 0;
+            tunernome->tSubAcculuatedUs = 0;
 
             tunernome->lastBpmButton = 0;
             tunernome->bpmButtonCurChangeUs = 0;
@@ -561,10 +564,10 @@ void recalcMetronome(void)
     tunernome->usPerBeat = (60 * 1000000) / tunernome->bpm;
 
     switch (tunernome->subdividedBeats) {
-        case 0: break;
-        case 1: tunernome->usPerBeat /= 2; break;
-        case 2: tunernome->usPerBeat /= 3; break;
-        case 3: tunernome->usPerBeat /= 4; break;
+        case 0: tunernome->usPerSubBeat = tunernome->usPerBeat; break;
+        case 1: tunernome->usPerSubBeat = tunernome->usPerBeat/2; break;
+        case 2: tunernome->usPerSubBeat = tunernome->usPerBeat/3; break;
+        case 3: tunernome->usPerSubBeat = tunernome->usPerBeat/4; break;
     }
 
 }
@@ -932,22 +935,44 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     false, true, 0);
 
             // Draw the current beat it's on
-            float beatXSpacing = (tunernome->disp->w / tunernome->beatLength);
+            float beatXSpacing = ((float) tunernome->disp->w / (float) tunernome->beatLength);
             uint8_t beatRadius = 12;
-            if (tunernome->beatLength > 11) {
+            if(tunernome->beatLength > 11) {
                 beatRadius = 8;
             }
+            
+            
             for(uint8_t i = 0; i < tunernome->beatLength; i++)
             {
                 // Am aware of the fact that the spacing is off when you add more circles.
                 // Oh well.
                 uint16_t beatX = (beatXSpacing * i) + (beatXSpacing / 2);
-                if (tunernome->beatCtr == i) {
-                    plotCircleFilled(tunernome->disp, beatX, 48, beatRadius, c555);
-                } else {
+                float bRadius = beatRadius;
+                /*
+                if(tunernome->subdividedBeats > 0)
+                {
+                    for(uint8_t j=1; j <= tunernome->subdividedBeats; j++)
+                    {
+                        plotCircle(tunernome->disp, beatX, 48, beatRadius/(j + 1), c555);
+                    }
+                    if(tunernome->beatCtr == i)
+                    {
+                        bRadius /= ((float) tunernome->subdividedBeats + 1) - (float) tunernome->subBeatCtr;
+                    }
+                }
+                */
+
+                if (tunernome->beatCtr == i)
+                {
                     plotCircle(tunernome->disp, beatX, 48, beatRadius, c555);
+                    plotCircleFilled(tunernome->disp, beatX, 48, bRadius, c555);
+                }
+                else
+                {
+                    plotCircle(tunernome->disp, beatX, 48, bRadius, c555);
                 }
             }
+            
 
             // Draw the amount of beats
             char beatStr[16];
@@ -959,6 +984,9 @@ void tunernomeMainLoop(int64_t elapsedUs)
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrTuner,
                      tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrTuner) - CORNER_OFFSET,
                      tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrTunerSel,
+                     tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrTunerSel) - CORNER_OFFSET,
+                     tunernome->disp->h - (tunernome->ibm_vga8.h * 2) - CORNER_OFFSET - 4);
 
             // Other logic things
             if(tunernome->isBlinking)
@@ -980,6 +1008,13 @@ void tunernomeMainLoop(int64_t elapsedUs)
             }
 
             bool shouldBlink = false;
+            // For beat subdivisions
+            tunernome->tSubAcculuatedUs += elapsedUs;
+            if(tunernome->tSubAcculuatedUs >= tunernome->usPerSubBeat)
+            {
+                shouldBlink = true;
+                tunernome->tSubAcculuatedUs = tunernome->tSubAcculuatedUs - tunernome->usPerSubBeat;
+            }
             // If the arm is sweeping clockwise
             if(tunernome->isClockwise)
             {
@@ -993,7 +1028,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     // Start counting down by subtacting the excess time from tAccumulatedUs
                     tunernome->tAccumulatedUs = tunernome->usPerBeat - (tunernome->tAccumulatedUs - tunernome->usPerBeat);
                     // Blink LED Tick color
-                    shouldBlink = true;
+                    //shouldBlink = true;
                 } // if(tAccumulatedUs >= tunernome->usPerBeat)
             } // if(tunernome->isClockwise)
             else
@@ -1008,7 +1043,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     // Start counting up by flipping the excess time from negative to positive
                     tunernome->tAccumulatedUs = -(tunernome->tAccumulatedUs);
                     // Blink LED Tock color
-                    shouldBlink = true;
+                    //shouldBlink = true;
                 } // if(tunernome->tAccumulatedUs <= 0)
             } // if(!tunernome->isClockwise)
 
@@ -1037,12 +1072,13 @@ void tunernomeMainLoop(int64_t elapsedUs)
                 else
                 {
                     song = &metronome_secondary;
-                    for(int i = 0; i < 4; i++)
-                    {
-                        leds[fourLedFlashIdxs[i]].r = 0x40;
-                        leds[fourLedFlashIdxs[i]].g = 0x00;
-                        leds[fourLedFlashIdxs[i]].b = 0xFF;
-                    }
+                    
+                    leds[subBeatLedFlashIdxs[tunernome->subBeatCtr][0]].r = 0x40;
+                    leds[subBeatLedFlashIdxs[tunernome->subBeatCtr][0]].g = 0x00;
+                    leds[subBeatLedFlashIdxs[tunernome->subBeatCtr][0]].b = 0xFF;
+                    leds[subBeatLedFlashIdxs[tunernome->subBeatCtr][1]].r = 0x40;
+                    leds[subBeatLedFlashIdxs[tunernome->subBeatCtr][1]].g = 0x00;
+                    leds[subBeatLedFlashIdxs[tunernome->subBeatCtr][1]].b = 0xFF;
                 }
 
                 buzzer_play_sfx(song);
@@ -1211,6 +1247,9 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                     case SELECT:
                     {
                         tunernome->subdividedBeats = (tunernome->subdividedBeats + 1) % 4;
+                        if (tunernome->subdividedBeats < tunernome->subBeatCtr) {
+                            tunernome->subBeatCtr = tunernome->subdividedBeats; // prevents dividing something by 0 when drawing circles
+                        }
                         recalcMetronome();
                         break;
                     }
