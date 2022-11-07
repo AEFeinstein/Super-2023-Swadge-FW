@@ -9,6 +9,7 @@
 #include "paint_nvs.h"
 #include "paint_util.h"
 #include "mode_paint.h"
+#include "paint_song.h"
 
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -22,46 +23,6 @@ paintHelp_t* paintHelp;
 #define QUARTER (60000 / BPM)
 #define EIGHTH (30000 / BPM)
 #define SIXTEENTH (15000 / BPM)
-
-// TODO Swap placeholder for real music
-const song_t paintBgm =
-{
-    .notes =
-    {
-        {.note = F_SHARP_4, .timeMs = QUARTER},
-        {.note = C_SHARP_5, .timeMs = EIGHTH},
-        {.note = A_SHARP_4, .timeMs = EIGHTH},
-        {.note = A_SHARP_4, .timeMs = QUARTER},
-        {.note = G_SHARP_4, .timeMs = EIGHTH},
-        {.note = F_SHARP_4, .timeMs = EIGHTH},
-        {.note = F_SHARP_4, .timeMs = EIGHTH},
-        {.note = B_4, .timeMs = QUARTER},
-        {.note = A_SHARP_4, .timeMs = EIGHTH},
-        {.note = A_SHARP_4, .timeMs = EIGHTH},
-        {.note = G_SHARP_4, .timeMs = EIGHTH},
-        {.note = G_SHARP_4, .timeMs = SIXTEENTH},
-        {.note = F_SHARP_4, .timeMs = QUARTER},
-
-        {.note = SILENCE, .timeMs = EIGHTH},
-
-        {.note = F_SHARP_4, .timeMs = SIXTEENTH},
-        {.note = C_SHARP_5, .timeMs = EIGHTH},
-        {.note = A_SHARP_4, .timeMs = EIGHTH},
-        {.note = A_SHARP_4, .timeMs = QUARTER},
-        {.note = G_SHARP_4, .timeMs = EIGHTH},
-        {.note = G_SHARP_4, .timeMs = EIGHTH},
-        {.note = F_SHARP_4, .timeMs = EIGHTH},
-        {.note = F_SHARP_4, .timeMs = EIGHTH},
-        {.note = D_SHARP_4, .timeMs = EIGHTH + SIXTEENTH},
-        {.note = C_SHARP_4, .timeMs = QUARTER + EIGHTH},
-        {.note = SILENCE, .timeMs = QUARTER},
-
-        {.note = SILENCE, .timeMs = HALF},
-    },
-
-    .numNotes = 26,
-    .shouldLoop = true,
-};
 
 /*
  * Interactive Help Definitions
