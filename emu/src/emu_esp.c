@@ -68,6 +68,16 @@ void tud_gamepad_report(hid_gamepad_report_t * report UNUSED)
 }
 
 /**
+ * @brief Send a USB HID gamepad report to the USB host
+ *
+ * @param report The report to send to the host
+ */
+void tud_gamepad_ns_report(hid_gamepad_ns_report_t * report UNUSED)
+{
+    WARN_UNIMPLEMENTED();
+}
+
+/**
  * @brief Check if the USB host is ready to receive a report
  *
  * @return true if the USB host is ready, false if it is not
