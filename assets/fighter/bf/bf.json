@@ -223,9 +223,9 @@
          ],
          "endLag":350,
          "endLagSpr":{
-            "sprite":"bid0.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"btgc.wsg",
+            "off_x":-2,
+            "off_y":-1
          },
          "landing_lag":14
       },
