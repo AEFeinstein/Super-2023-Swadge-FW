@@ -17,6 +17,8 @@
 #define MAX_LED_BRIGHTNESS 7
 #define MAX_TFT_BRIGHTNESS 7
 #define MAX_MIC_GAIN       7
+#define MAX_SCREENSAVER    6
+#define DEFAULT_SCREENSAVER 2
 
 /// Helper macro to return an integer clamped within a range (MIN to MAX)
 #define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
@@ -33,6 +35,7 @@ const char KEY_LED_BRIGHT[] = "led";
 const char KEY_CC_MODE[]    = "ccm";
 const char KEY_QJ_HS[]      = "qj";
 const char KEY_TEST[]       = "test";
+const char KEY_SCREENSAVER[]= "scrnsvrtm";
 
 static struct 
 {
@@ -41,6 +44,7 @@ static struct
     int32_t tftBrightness;
     int32_t ledBrightness;
     int32_t micGain;
+    int32_t screensaverTime;
     colorchordMode_t colorchordMode;
 
     bool bgmIsMutedRead;
@@ -48,8 +52,13 @@ static struct
     bool tftBrightnessRead;
     bool ledBrightnessRead;
     bool micGainRead;
+    bool screensaverTimeRead;
     bool colorchordModeRead;
 } settingsRam;
+
+// Static function prototypes
+static bool setScreensaverSetting(int32_t setting);
+static int32_t getScreensaverSetting(void);
 
 //==============================================================================
 // Functions
@@ -425,6 +434,94 @@ uint16_t getMicAmplitude(void)
         362,
     };
     return micVols[getMicGain()];
+}
+
+static bool setScreensaverSetting(int32_t setting)
+{
+    if (setting > MAX_SCREENSAVER)
+    {
+        setting = MAX_SCREENSAVER;
+    }
+    else if (setting < 0)
+    {
+        setting = 0;
+    }
+
+    settingsRam.screensaverTime = setting;
+    settingsRam.screensaverTimeRead = true;
+
+    return writeNvs32(KEY_SCREENSAVER, setting);
+}
+
+static int32_t getScreensaverSetting(void)
+{
+    if (settingsRam.screensaverTimeRead)
+    {
+        return settingsRam.screensaverTime;
+    }
+    else
+    {
+        int32_t screensaverSetting = DEFAULT_SCREENSAVER;
+        if (!readNvs32(KEY_SCREENSAVER, &screensaverSetting))
+        {
+            setScreensaverSetting(screensaverSetting);
+        }
+
+        settingsRam.screensaverTime = screensaverSetting;
+        settingsRam.screensaverTimeRead = true;
+
+        return settingsRam.screensaverTime;
+    }
+}
+
+/**
+ * @return The number of idle seconds before the screensaver activates, or 0 if it's disabled
+*/
+uint16_t getScreensaverTime(void)
+{
+    const uint16_t screensaverTimes[] =
+    {
+        0,
+        10,
+        20,
+        30,
+        60,
+        120,
+        300,
+    };
+
+
+    return screensaverTimes[getScreensaverSetting()];
+}
+
+bool incScreensaverTime(void)
+{
+    int32_t screensaverSetting = getScreensaverSetting();
+    if (screensaverSetting >= MAX_SCREENSAVER)
+    {
+        screensaverSetting = 0;
+    }
+    else
+    {
+        screensaverSetting++;
+    }
+
+    return setScreensaverSetting(screensaverSetting);
+}
+
+bool decScreensaverTime(void)
+{
+    int32_t screensaverSetting = getScreensaverSetting();
+    if (screensaverSetting <= 0)
+    {
+        screensaverSetting = MAX_SCREENSAVER;
+    }
+    else
+    {
+        screensaverSetting--;
+    }
+
+    return setScreensaverSetting(screensaverSetting);
 }
 
 /**

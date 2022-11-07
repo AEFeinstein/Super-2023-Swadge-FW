@@ -8,6 +8,7 @@
 #include "meleeMenu.h"
 #include "led_util.h"
 #include "p2pConnection.h"
+#include "mode_dance.h"
 
 #include "px_stack.h"
 #include "paint_type.h"
@@ -37,7 +38,7 @@
 #define PAINT_ENABLE_BLINK (0x0008 << (PAINT_SAVE_SLOTS * 2))
 
 // Default to LEDs, SFX, and music on, with slot 0 marked as most recent
-#define PAINT_DEFAULTS (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM | PAINT_ENABLE_BLINK)
+#define PAINT_DEFAULTS (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM | PAINT_ENABLE_BLINK | (PAINT_SAVE_SLOTS << PAINT_SAVE_SLOTS))
 
 // Mask for the index that includes everything except the most-recent index
 #define PAINT_MASK_NOT_RECENT (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM | PAINT_ENABLE_BLINK | ((1 << PAINT_SAVE_SLOTS) - 1))
@@ -204,6 +205,9 @@ typedef struct
     // The cursor will not move again until a D-pad button has been held for BUTTON_REPEAT_TIME microseconds
     bool firstMove;
 
+    // So we don't miss a button press that happens between frames
+    uint16_t unhandledButtons;
+
     // The time a D-pad button has been held down for, in microseconds
     int64_t btnHoldTime;
 
@@ -323,6 +327,8 @@ typedef struct
     int32_t index;
 
     font_t infoFont;
+    wsg_t arrow;
+
 
     // TODO rename these to better things now that they're in their own struct
 
@@ -333,12 +339,15 @@ typedef struct
     int64_t gallerySpeed;
     int32_t gallerySpeedIndex;
 
+    portableDance_t* portableDances;
+
     // Reaining time that info text will be shown
     int64_t infoTimeRemaining;
 
     // Current image used in gallery
     uint8_t gallerySlot;
 
+    bool showUi;
     bool galleryLoadNew;
     bool screensaverMode;
     paintScreen_t returnScreen;
@@ -427,7 +436,7 @@ typedef struct
     const paintHelpStep_t* curHelp;
     uint16_t allButtons;
     uint16_t curButtons;
-    buttonBit_t lastButton;
+    uint16_t lastButton;
     bool lastButtonDown;
 
     uint16_t helpH;
@@ -443,6 +452,7 @@ typedef struct
     meleeMenu_t* menu;
 
     uint8_t menuSelection, networkMenuSelection, settingsMenuSelection;
+    uint8_t eraseSlot;
 
     bool eraseDataSelected, eraseDataConfirm;
 

@@ -827,6 +827,13 @@ int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokId
                 tokIdx++;
                 numFieldsParsed++;
             }
+            else if(0 == jsoneq(jsonStr, &toks[tokIdx], "projectilePassThru"))
+            {
+                tokIdx++;
+                hbx->projPassThru = jsonBoolean(jsonStr, toks[tokIdx]);
+                tokIdx++;
+                numFieldsParsed++;
+            }
         }
         else
         {

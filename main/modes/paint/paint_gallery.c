@@ -1,5 +1,8 @@
 #include "paint_gallery.h"
 
+#include "mode_dance.h"
+#include "settingsManager.h"
+
 #include "mode_paint.h"
 #include "paint_common.h"
 #include "paint_nvs.h"
@@ -7,9 +10,11 @@
 
 #include <string.h>
 
-static const char transitionTime[] = "Interval: %g sec";
-static const char transitionOff[] = "Interval: Off";
+static const char transitionTime[] = "Slideshow: %g sec";
+static const char transitionOff[] = "Slideshow: Off";
 static const char transitionTimeNvsKey[] = "paint_gal_time";
+static const char danceIndexKey[] = "paint_dance_idx";
+
 
 // Possible transition times, in ms
 static const uint16_t transitionTimeMap[] = {
@@ -33,8 +38,13 @@ static const uint16_t transitionTimeMap[] = {
 
 // 3s for info text to stay up
 #define GALLERY_INFO_TIME 3000000
+#define GALLERY_INFO_Y_MARGIN 13
+#define GALLERY_INFO_X_MARGIN 13
+#define GALLERY_ARROW_MARGIN 6
 
 paintGallery_t* paintGallery;
+
+static int16_t arrowCharToRot(char dir);
 
 void paintGallerySetup(display_t* disp, bool screensaver)
 {
@@ -44,9 +54,31 @@ void paintGallerySetup(display_t* disp, bool screensaver)
     paintGallery->galleryTime = 0;
     paintGallery->galleryLoadNew = true;
     paintGallery->screensaverMode = screensaver;
+    // Show the UI at the start if we're a screensaver
+    paintGallery->showUi = !screensaver;
     loadFont("radiostars.font", &paintGallery->infoFont);
+    loadWsg("arrow12.wsg", &paintGallery->arrow);
+
+    for (uint16_t i = 0; i < paintGallery->arrow.h * paintGallery->arrow.w; i++)
+    {
+        // Recolor the arrow to black
+        if (paintGallery->arrow.px[i] != cTransparent) {
+            paintGallery->arrow.px[i] = c000;
+        }
+    }
 
     paintLoadIndex(&paintGallery->index);
+
+    if (paintGetAnySlotInUse(paintGallery->index) && paintGetRecentSlot(paintGallery->index) != PAINT_SAVE_SLOTS)
+    {
+        paintGallery->gallerySlot = paintGetRecentSlot(paintGallery->index);
+        PAINT_LOGD("Using the most recent gallery slot: %d", paintGallery->gallerySlot);
+    }
+    else
+    {
+        paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, PAINT_SAVE_SLOTS - 1);
+        PAINT_LOGD("Using the first slot: %d", paintGallery->gallerySlot);
+    }
 
     if (!readNvs32(transitionTimeNvsKey, &paintGallery->gallerySpeedIndex))
     {
@@ -61,6 +93,14 @@ void paintGallerySetup(display_t* disp, bool screensaver)
 
     paintGallery->gallerySpeed = US_PER_MS * transitionTimeMap[paintGallery->gallerySpeedIndex];
 
+    paintGallery->portableDances = initPortableDance(danceIndexKey);
+
+    if (!(paintGallery->index & PAINT_ENABLE_LEDS))
+    {
+        portableDanceSetByName(paintGallery->portableDances, "None");
+    }
+
+
     // clear LEDs, which might still be set by menu
     led_t leds[NUM_LEDS];
     memset(leds, 0, sizeof(led_t) * NUM_LEDS);
@@ -70,22 +110,15 @@ void paintGallerySetup(display_t* disp, bool screensaver)
 void paintGalleryCleanup(void)
 {
     freeFont(&paintGallery->infoFont);
+    freeWsg(&paintGallery->arrow);
+    freePortableDance(paintGallery->portableDances);
     free(paintGallery);
 }
 
 void paintGalleryMainLoop(int64_t elapsedUs)
 {
-    if (paintGallery->gallerySpeed != 0 && paintGallery->galleryTime >= paintGallery->gallerySpeed)
-    {
-        uint8_t prevSlot = paintGallery->gallerySlot;
-        paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, paintGallery->gallerySlot);
-        // Only load the next image if it's actually a different image
-        paintGallery->galleryLoadNew = (paintGallery->gallerySlot != prevSlot);
-        paintGallery->galleryTime -= paintGallery->gallerySpeed;
-
-        // reset info time if we're going to transition and clear the screen
-        paintGallery->infoTimeRemaining = 0;
-    }
+    paintGalleryModePollTouch();
+    portableDanceMainLoop(paintGallery->portableDances, elapsedUs);
 
     if (paintGallery->infoTimeRemaining > 0)
     {
@@ -95,7 +128,24 @@ void paintGalleryMainLoop(int64_t elapsedUs)
         {
             paintGallery->infoTimeRemaining = 0;
             paintGallery->galleryLoadNew = true;
+            paintGallery->showUi = false;
         }
+    }
+    else
+    {
+        if (paintGallery->gallerySpeed != 0 && paintGallery->galleryTime >= paintGallery->gallerySpeed)
+        {
+            uint8_t prevSlot = paintGallery->gallerySlot;
+            paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, paintGallery->gallerySlot);
+            // Only load the next image if it's actually a different image
+            paintGallery->galleryLoadNew = (paintGallery->gallerySlot != prevSlot);
+            paintGallery->galleryTime %= paintGallery->gallerySpeed;
+
+            // reset info time if we're going to transition and clear the screen
+            paintGallery->infoTimeRemaining = 0;
+        }
+
+        paintGallery->galleryTime += elapsedUs;
     }
 
     if (paintGallery->galleryLoadNew)
@@ -107,22 +157,110 @@ void paintGalleryMainLoop(int64_t elapsedUs)
         }
     }
 
-    paintGallery->galleryTime += elapsedUs;
+    if (paintGallery->showUi)
+    {
+        paintGallery->showUi = false;
+        paintGalleryDrawUi();
+    }
 }
 
-void paintGalleryAddInfoText(const char* text)
+static int16_t arrowCharToRot(char dir)
+{
+    switch (dir)
+    {
+        case 'L':
+        case 'l':
+            return 270;
+
+        case 'R':
+        case 'r':
+            return 90;
+
+        case 'D':
+        case 'd':
+            return 180;
+
+        case 'U':
+        case 'u':
+        default:
+            return 0;
+    }
+}
+
+void paintGalleryDrawUi(void)
+{
+    char text[32];
+
+    snprintf(text, sizeof(text), "A: Next Slide      B: Exit");
+    paintGalleryAddInfoText(text, 0, false, 0, 0);
+
+    snprintf(text, sizeof(text), "Select: Scale: %dx", paintGallery->galleryScale);
+    paintGalleryAddInfoText(text, 1, false, 0, 0);
+
+    // Draw the controls
+    snprintf(text, sizeof(text), "X~Y: LED Brightness: %d", getLedBrightness());
+    paintGalleryAddInfoText(text, 2, false, 0, 0);
+
+
+    // Draw speed 2 rows from the bottom
+    if (paintGallery->gallerySpeed == 0)
+    {
+        paintGalleryAddInfoText(transitionOff, -3, true, 'U', 0);
+    }
+    else
+    {
+        snprintf(text, sizeof(text), transitionTime, (1.0 * paintGallery->gallerySpeed / US_PER_SEC));
+        paintGalleryAddInfoText(text, -3, true, (paintGallery->gallerySpeedIndex + 1 < sizeof(transitionTimeMap) / sizeof(*transitionTimeMap)) ? 'U' : 0,'D');
+    }
+
+    // Draw the LED dance at the bottom
+    snprintf(text, sizeof(text), "LEDs: %s", portableDanceGetName(paintGallery->portableDances));
+    paintGalleryAddInfoText(text, -1, true, 'L', 'R');
+}
+
+void paintGalleryAddInfoText(const char* text, int8_t row, bool center, char leftArrow, char rightArrow)
 {
     uint16_t width = textWidth(&paintGallery->infoFont, text);
-    uint16_t yMargin = 6, padding = 3;
+    uint16_t padding = 3;
+    int16_t yOffset;
+    int16_t xOffset = center ? ((paintGallery->disp->w - width) / 2) : GALLERY_INFO_X_MARGIN;
 
-    fillDisplayArea(paintGallery->disp, 0, yMargin, paintGallery->disp->w, yMargin + padding * 2 + paintGallery->infoFont.h, c555);
-    drawText(paintGallery->disp, &paintGallery->infoFont, c000, text, (paintGallery->disp->w - width) / 2, yMargin + padding);
+    if (row < 0)
+    {
+        yOffset = paintGallery->disp->h + ((row) * (paintGallery->infoFont.h + padding * 2)) - GALLERY_INFO_Y_MARGIN;
+    }
+    else
+    {
+        yOffset = GALLERY_INFO_Y_MARGIN + row * (paintGallery->infoFont.h + padding * 2);
+    }
+
+    fillDisplayArea(paintGallery->disp, 0, yOffset, paintGallery->disp->w, yOffset + padding * 2 + paintGallery->infoFont.h, c555);
+
+    if (leftArrow != 0)
+    {
+        // assumes arrows are always square, flip between W and H if that's ever the case
+        drawWsg(paintGallery->disp, &paintGallery->arrow,
+                xOffset - GALLERY_ARROW_MARGIN - paintGallery->arrow.w,
+                yOffset + padding + (paintGallery->infoFont.h - paintGallery->arrow.h) / 2,
+                false, false, arrowCharToRot(leftArrow));
+    }
+
+    if (rightArrow != 0)
+    {
+        // assumes arrows are always square, flip between W and H if that's ever the case
+        drawWsg(paintGallery->disp, &paintGallery->arrow,
+                xOffset + width + GALLERY_ARROW_MARGIN,
+                yOffset + padding + (paintGallery->infoFont.h - paintGallery->arrow.h) / 2,
+                false, false, arrowCharToRot(rightArrow));
+    }
+
+    drawText(paintGallery->disp, &paintGallery->infoFont, c000, text, xOffset, yOffset + padding);
 
     // start the timer to clear the screen
     paintGallery->infoTimeRemaining = GALLERY_INFO_TIME;
 }
 
-void paintGalleryDecreaseSpeed()
+void paintGalleryDecreaseSpeed(void)
 {
     if (paintGallery->gallerySpeedIndex + 1 < sizeof(transitionTimeMap) / sizeof(*transitionTimeMap))
     {
@@ -134,7 +272,7 @@ void paintGalleryDecreaseSpeed()
     }
 }
 
-void paintGalleryIncreaseSpeed()
+void paintGalleryIncreaseSpeed(void)
 {
     if (paintGallery->gallerySpeedIndex > 0)
     {
@@ -148,8 +286,6 @@ void paintGalleryIncreaseSpeed()
 
 void paintGalleryModeButtonCb(buttonEvt_t* evt)
 {
-    bool updateTimeText = false;
-    char text[32];
     uint8_t prevSlot = paintGallery->gallerySlot;
 
     if (evt->down)
@@ -165,58 +301,82 @@ void paintGalleryModeButtonCb(buttonEvt_t* evt)
         {
             case UP:
             {
-                updateTimeText = true;
+                paintGallery->showUi = true;
                 paintGalleryDecreaseSpeed();
                 break;
             }
 
             case DOWN:
             {
-                updateTimeText = true;
+                paintGallery->showUi = true;
                 paintGalleryIncreaseSpeed();
                 break;
             }
 
             case LEFT:
-            paintGallery->gallerySlot = paintGetPrevSlotInUse(paintGallery->index, paintGallery->gallerySlot);
-            paintGallery->galleryLoadNew = (prevSlot != paintGallery->gallerySlot);
-            paintGallery->galleryTime = 0;
-            break;
+            {
+                portableDancePrev(paintGallery->portableDances);
+                paintGallery->showUi = true;
+                break;
+            }
 
             case RIGHT:
-            paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, paintGallery->gallerySlot);
-            paintGallery->galleryLoadNew = (prevSlot != paintGallery->gallerySlot);
-            paintGallery->galleryTime = 0;
-            break;
+            {
+                portableDanceNext(paintGallery->portableDances);
+                paintGallery->showUi = true;
+                break;
+            }
 
+            case START:
             case BTN_B:
-            // Exit
-            paintReturnToMainMenu();
-            return;
-
-            case BTN_A:
-            // Increase size
-            paintGallery->galleryScale++;
-            paintGallery->galleryLoadNew = true;
-            break;
+            {
+                // Exit
+                paintReturnToMainMenu();
+                return;
+            }
 
             case SELECT:
-            case START:
-            // Do nothing
-            break;
+            {
+                // Increase size
+                paintGallery->galleryScale++;
+                paintGallery->galleryLoadNew = true;
+                paintGallery->showUi = true;
+                break;
+            }
+
+            case BTN_A:
+            {
+                paintGallery->gallerySlot = paintGetNextSlotInUse(paintGallery->index, paintGallery->gallerySlot);
+                paintGallery->galleryLoadNew = (prevSlot != paintGallery->gallerySlot);
+                if (paintGallery->galleryLoadNew)
+                {
+                    paintSetRecentSlot(&paintGallery->index, paintGallery->gallerySlot);
+                }
+                paintGallery->galleryTime = 0;
+                break;
+            }
         }
     }
+}
 
-    if (updateTimeText)
+void paintGalleryModeTouchCb(touch_event_t* evt)
+{
+    paintGalleryModePollTouch();
+}
+
+void paintGalleryModePollTouch(void)
+{
+    int32_t centroid, intensity;
+    if (getTouchCentroid(&centroid, &intensity))
     {
-        if (paintGallery->gallerySpeed == 0)
+        // Bar is touched, convert the centroid into 8 segments (0-7)
+        // But also reverse it so up is bright and down is less bright
+        uint8_t curTouchSegment = 7 - ((centroid * 7 + 512) / 1024);
+
+        if (curTouchSegment != getLedBrightness())
         {
-            paintGalleryAddInfoText(transitionOff);
-        }
-        else
-        {
-            snprintf(text, sizeof(text), transitionTime, (1.0 * paintGallery->gallerySpeed / US_PER_SEC));
-            paintGalleryAddInfoText(text);
+            setAndSaveLedBrightness(curTouchSegment);
+            paintGallery->showUi = true;
         }
     }
 }
@@ -227,21 +387,17 @@ bool paintGalleryDoLoad(void)
     {
         uint8_t maxScale = paintGetMaxScale(paintGallery->canvas.disp, paintGallery->canvas.w, paintGallery->canvas.h, 0, 0);
 
-        if (paintGallery->galleryScale >= maxScale)
+        if (paintGallery->galleryScale > maxScale)
         {
-            paintGallery->galleryScale = 0;
+            paintGallery->galleryScale = 1;
+        }
+        else if (paintGallery->galleryScale == 0)
+        {
+            paintGallery->galleryScale = maxScale;
         }
 
-        if (paintGallery->galleryScale == 0)
-        {
-            paintGallery->canvas.xScale = maxScale;
-            paintGallery->canvas.yScale = maxScale;
-        }
-        else
-        {
-            paintGallery->canvas.xScale = paintGallery->galleryScale;
-            paintGallery->canvas.yScale = paintGallery->galleryScale;
-        }
+        paintGallery->canvas.xScale = paintGallery->galleryScale;
+        paintGallery->canvas.yScale = paintGallery->galleryScale;
 
         paintGallery->canvas.x = (paintGallery->disp->w - paintGallery->canvas.w * paintGallery->canvas.xScale) / 2;
         paintGallery->canvas.y = (paintGallery->disp->h - paintGallery->canvas.h * paintGallery->canvas.yScale) / 2;

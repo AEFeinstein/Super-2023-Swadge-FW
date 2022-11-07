@@ -397,7 +397,7 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
                 loadJsonFighterData(&f->fighters[i], "sn.json", f->loadedSprites);
                 break;
             }
-            case BIG_FUNKUS:
+            case BIGG_FUNKUS:
             {
                 loadJsonFighterData(&f->fighters[i], "bf.json", f->loadedSprites);
                 break;
@@ -1169,10 +1169,11 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
                     projectile_t* proj = malloc(sizeof(projectile_t));
 
                     // Copy data from the attack frame to the projectile
-                    proj->sprite = hbx->projSprite;
-                    proj->size   = hbx->hitboxSize;
-                    proj->velo   = hbx->projVelo;
-                    proj->accel  = hbx->projAccel;
+                    proj->sprite   = hbx->projSprite;
+                    proj->size     = hbx->hitboxSize;
+                    proj->velo     = hbx->projVelo;
+                    proj->accel    = hbx->projAccel;
+                    proj->passThru = hbx->projPassThru;
                     // Adjust position, velocity, and acceleration depending on direction
                     if(FACING_RIGHT == ftr->dir)
                     {
@@ -2394,23 +2395,27 @@ void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
             proj->pos.x = proj->pos.x + (((proj->velo.x + v0.x) * FRAME_TIME_MS) >> (SF + 1));
             proj->pos.y = proj->pos.y + (((proj->velo.y + v0.y) * FRAME_TIME_MS) >> (SF + 1));
 
-            // Create a hurtbox for this projectile to check for collisions with platforms
-            box_t projHurtbox =
+            // Only check projectile-stage collisions if it's not a passthru projectile
+            if(false == proj->passThru)
             {
-                .x0 = proj->pos.x,
-                .y0 = proj->pos.y,
-                .x1 = proj->pos.x + proj->size.x,
-                .y1 = proj->pos.y + proj->size.y,
-            };
-
-            // Check if this projectile collided with a platform
-            for (uint8_t idx = 0; idx < numPlatforms; idx++)
-            {
-                if(boxesCollide(projHurtbox, platforms[idx].area, SF))
+                // Create a hurtbox for this projectile to check for collisions with platforms
+                box_t projHurtbox =
                 {
-                    // Draw one more frame, then remove the projectile
-                    proj->removeNextFrame = true;
-                    break;
+                    .x0 = proj->pos.x,
+                    .y0 = proj->pos.y,
+                    .x1 = proj->pos.x + proj->size.x,
+                    .y1 = proj->pos.y + proj->size.y,
+                };
+
+                // Check if this projectile collided with a platform
+                for (uint8_t idx = 0; idx < numPlatforms; idx++)
+                {
+                    if(boxesCollide(projHurtbox, platforms[idx].area, SF))
+                    {
+                        // Draw one more frame, then remove the projectile
+                        proj->removeNextFrame = true;
+                        break;
+                    }
                 }
             }
 

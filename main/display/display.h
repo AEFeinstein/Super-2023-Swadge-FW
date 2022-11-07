@@ -106,20 +106,20 @@ void fillDisplayArea(display_t* disp, int16_t x1, int16_t y1, int16_t x2,
 
 bool loadWsg(char* name, wsg_t* wsg);
 bool loadWsgSpiRam(char* name, wsg_t* wsg, bool spiRam);
-void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
+void drawWsg(display_t* disp, const wsg_t* wsg, int16_t xOff, int16_t yOff,
              bool flipLR, bool flipUD, int16_t rotateDeg);
-void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff);
-void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff);
+void drawWsgSimpleFast(display_t* disp, const wsg_t* wsg, int16_t xOff, int16_t yOff);
+void drawWsgTile(display_t* disp, const wsg_t* wsg, int32_t xOff, int32_t yOff);
 void freeWsg(wsg_t* wsg);
 
 bool loadFont(const char* name, font_t* font);
-void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch,
+void drawChar(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch,
               int16_t xOff, int16_t yOff);
-int16_t drawText(display_t* disp, font_t* font, paletteColor_t color,
+int16_t drawText(display_t* disp, const font_t* font, paletteColor_t color,
                  const char* text, int16_t xOff, int16_t yOff);
-const char* drawTextWordWrap(display_t* disp, font_t* font, paletteColor_t color, const char* text,
+const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
                              int16_t xOff, int16_t yOff, int16_t xMax, int16_t yMax);
-uint16_t textWidth(font_t* font, const char* text);
+uint16_t textWidth(const font_t* font, const char* text);
 void freeFont(font_t* font);
 
 // If you want to do your own thing.

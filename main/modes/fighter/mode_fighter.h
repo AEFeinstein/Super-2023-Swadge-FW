@@ -70,7 +70,7 @@ typedef enum
 {
     KING_DONUT,
     SUNNY,
-    BIG_FUNKUS,
+    BIGG_FUNKUS,
     SANDBAG,
     NO_CHARACTER
 } fightingCharacter_t;
@@ -131,15 +131,16 @@ typedef struct
 {
     vector_t hitboxPos;
     vector_t hitboxSize;
-    uint16_t damage;
     vector_t knockback;
+    uint16_t damage;
     uint16_t hitstun;
 
-    bool isProjectile;
     offsetSprite_t projSprite;
-    uint16_t projDuration;
     vector_t projVelo;
     vector_t projAccel;
+    uint16_t projDuration;
+    bool isProjectile;
+    bool projPassThru;
 } attackHitbox_t;
 
 typedef struct
@@ -266,6 +267,7 @@ typedef struct
     uint16_t damage;
     uint16_t hitstun;
 
+    bool passThru;
     bool removeNextFrame;
     fighterDirection_t dir;
 } projectile_t;
