@@ -71,6 +71,8 @@ void  jukeboxButtonCallback(buttonEvt_t* evt);
 void  jukeboxTouchCallback(touch_event_t* evt);
 void  jukeboxMainLoop(int64_t elapsedUs);
 void  jukeboxMainMenuCb(const char* opt);
+void  jukeboxBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
+                             int16_t w, int16_t h, int16_t up, int16_t upNum );
 
 void setJukeboxMainMenu(void);
 
@@ -85,7 +87,9 @@ typedef struct
     font_t ibm_vga8;
     font_t radiostars;
     font_t mm;
+
     wsg_t arrow;
+    wsg_t background;
 
     // Touch
     bool touchHeld;
@@ -136,6 +140,7 @@ swadgeMode modeJukebox =
     .fnEspNowSendCb = NULL,
     .fnAccelerometerCallback = NULL,
     .fnAudioCallback = NULL,
+    .fnBackgroundDrawCallback = jukeboxBackgroundDrawCb,
     .overrideUsb = false
 };
 
@@ -302,6 +307,9 @@ void  jukeboxEnterMode(display_t* disp)
 
     loadWsg("arrow12.wsg", &jukebox->arrow);
 
+    // Load a background image to SPI RAM
+    loadWsgSpiRam("jukebox.wsg", &jukebox->background, true);
+
     jukebox->menu = initMeleeMenu(str_jukebox, &(jukebox->mm), jukeboxMainMenuCb);
 
     jukebox->portableDances = initPortableDance(NULL);
@@ -336,6 +344,7 @@ void  jukeboxExitMode(void)
     freeFont(&jukebox->mm);
 
     freeWsg(&jukebox->arrow);
+    freeWsg(&jukebox->background);
 
     freePortableDance(jukebox->portableDances);
 
@@ -517,18 +526,18 @@ void  jukeboxMainLoop(int64_t elapsedUs)
         {
             portableDanceMainLoop(jukebox->portableDances, elapsedUs);
 
-            fillDisplayArea(jukebox->disp, 0, 0, jukebox->disp->w, jukebox->disp->h, c010);
+            //fillDisplayArea(jukebox->disp, 0, 0, jukebox->disp->w, jukebox->disp->h, c010);
 
             // Plot the button funcs
             // LEDs
             drawText(
                 jukebox->disp,
-                &jukebox->radiostars, c444,
+                &jukebox->radiostars, c555,
                 str_leds,
                 CORNER_OFFSET,
                 CORNER_OFFSET);
             // Light dance name
-            drawText(jukebox->disp, &(jukebox->radiostars), c555,
+            drawText(jukebox->disp, &(jukebox->radiostars), c111,
                 portableDanceGetName(jukebox->portableDances),
                 jukebox->disp->w - CORNER_OFFSET - textWidth(&jukebox->radiostars, portableDanceGetName(jukebox->portableDances)),
                 CORNER_OFFSET);
@@ -536,7 +545,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             // Back
             drawText(
                 jukebox->disp,
-                &jukebox->radiostars, c444,
+                &jukebox->radiostars, c555,
                 str_back,
                 CORNER_OFFSET,
                 CORNER_OFFSET + LINE_BREAK_Y + jukebox->radiostars.h);
@@ -544,7 +553,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             // LED Brightness
             drawText(
                 jukebox->disp,
-                &jukebox->radiostars, c444,
+                &jukebox->radiostars, c555,
                 str_brightness,
                 CORNER_OFFSET,
                 CORNER_OFFSET + (LINE_BREAK_Y + jukebox->radiostars.h) * 2);
@@ -552,7 +561,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             snprintf(text, sizeof(text), "%d", getLedBrightness());
             drawText(
                 jukebox->disp,
-                &jukebox->radiostars, c555,
+                &jukebox->radiostars, c111,
                 text,
                 jukebox->disp->w - textWidth(&jukebox->radiostars, text) - CORNER_OFFSET,
                 CORNER_OFFSET + (LINE_BREAK_Y + jukebox->radiostars.h) * 2);
@@ -566,7 +575,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                                     jukebox->disp->h - jukebox->radiostars.h - CORNER_OFFSET);
             drawText(
                 jukebox->disp,
-                &jukebox->radiostars, c444,
+                &jukebox->radiostars, c555,
                 str_stop,
                 afterText,
                 jukebox->disp->h - jukebox->radiostars.h - CORNER_OFFSET);
@@ -580,7 +589,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                             jukebox->disp->h - jukebox->radiostars.h - CORNER_OFFSET);
             drawText(
                 jukebox->disp,
-                &jukebox->radiostars, c444,
+                &jukebox->radiostars, c555,
                 str_play,
                 afterText,
                 jukebox->disp->h - jukebox->radiostars.h - CORNER_OFFSET);
@@ -610,7 +619,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             snprintf(text, sizeof(text), "Mode: %s", categoryName);
             int16_t width = textWidth(&(jukebox->radiostars), text);
             int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 0;
-            drawText(jukebox->disp, &(jukebox->radiostars), c525,
+            drawText(jukebox->disp, &(jukebox->radiostars), c313,
                     text,
                     (jukebox->disp->w - width) / 2,
                     yOff);
@@ -624,9 +633,9 @@ void  jukeboxMainLoop(int64_t elapsedUs)
 
             // Draw the song name
             snprintf(text, sizeof(text), "%s: %s", songTypeName, songName);
-            yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 + jukebox->radiostars.h * 3;
+            yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 + jukebox->radiostars.h * 2.5f;
             width = textWidth(&(jukebox->radiostars), text);
-            drawText(jukebox->disp, &(jukebox->radiostars), c225,
+            drawText(jukebox->disp, &(jukebox->radiostars), c113,
                     text,
                     (jukebox->disp->w - width) / 2,
                     yOff);
@@ -712,5 +721,38 @@ void jukeboxMainMenuCb(const char * opt)
         jukebox->categoryIdx = 0;
         jukebox->songIdx = 0;
         jukebox->inMusicSubmode = false;
+    }
+}
+
+/**
+ * @brief Draw a portion of the background when requested
+ *
+ * @param disp The display to draw to
+ * @param x The X offset to draw
+ * @param y The Y offset to draw
+ * @param w The width to draw
+ * @param h The height to draw
+ * @param up The current number of the update call
+ * @param upNum The total number of update calls for this frame
+ */
+void jukeboxBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
+                             int16_t w, int16_t h, int16_t up, int16_t upNum )
+{
+    switch (jukebox->screen)
+    {
+        case JUKEBOX_MENU:
+        {
+            // This draws menu background
+            break;
+        }
+        case JUKEBOX_PLAYER:
+        {
+            // Figure out source and destination pointers
+            paletteColor_t* dst = &disp->pxFb[(y * disp->w) + x];
+            paletteColor_t* src = &jukebox->background.px[(y * disp->w) + x];
+            // Copy the image to the framebuffer
+            memcpy(dst, src, w * h);
+            break;
+        }
     }
 }
