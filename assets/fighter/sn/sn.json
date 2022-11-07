@@ -259,31 +259,31 @@
          "type":"neutral_air",
          "startupLag":225,
          "startupLagSpr":{
-            "sprite":"kngw.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"snaw.wsg",
+            "off_x":-9,
+            "off_y":-1
          },
          "attack_frames":[
             {
                "duration":300,
                "atkSpr":{
-                  "sprite":"knga.wsg",
-                  "off_x":0,
-                  "off_y":0
+                  "sprite":"snaa.wsg",
+                  "off_x":-9,
+                  "off_y":-1
                },
                "hitboxes":[
                   {
-                     "relativePos_x":14,
-                     "relativePos_y":7,
-                     "size_x":19,
-                     "size_y":11,
+                     "relativePos_x":9,
+                     "relativePos_y":16,
+                     "size_x":15,
+                     "size_y":9,
                      "damage":9,
                      "knockback_x":4000,
                      "knockback_y":-2000,
                      "hitstun":10,
                      "isProjectile":true,
                      "projectileSprite":{
-                        "sprite":"kngp.wsg"
+                        "sprite":"sngp.wsg"
                      },
                      "projectileDuration":1000,
                      "projectileVelo_x":20480,
@@ -296,9 +296,9 @@
          ],
          "endLag":350,
          "endLagSpr":{
-            "sprite":"kngc.wsg",
-            "off_x":0,
-            "off_y":0
+            "sprite":"snac.wsg",
+            "off_x":-8,
+            "off_y":-1
          },
          "landing_lag":14
       },
