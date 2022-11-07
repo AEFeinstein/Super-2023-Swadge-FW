@@ -6,6 +6,7 @@
 #include "gameData.h"
 #include "entityManager.h"
 #include "platformer_sounds.h"
+#include "esp_random.h"
 
 //==============================================================================
 // Functions
@@ -55,6 +56,8 @@
     gameData->initialHp = 1;
     gameData->continuesUsed = (gameData->world == 1 && gameData->level == 1) ? false : true;
     gameData->inGameTimer = 0;
+
+    resetGameDataLeds(gameData);
 }
 
 void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData){
@@ -118,3 +121,114 @@ void updateComboTimer(gameData_t * gameData){
         gameData->combo = 0;
     }
 };
+
+void resetGameDataLeds(gameData_t * gameData)
+{
+    for(uint8_t i=0;i<NUM_LEDS; i++){
+        gameData->leds[i].r = 0;
+        gameData->leds[i].g = 0;
+        gameData->leds[i].b = 0;
+    }
+
+    setLeds(gameData->leds, NUM_LEDS);
+}
+
+void updateLedsShowHighScores(gameData_t * gameData){
+    if(( (gameData->frameCount) % 10) == 0){
+        for (int32_t i = 0; i < 8; i++)
+        {
+        
+            if(( (gameData->frameCount >> 4) % NUM_LEDS) == i) {
+                gameData->leds[i].r =  0xF0;
+                gameData->leds[i].g = 0xF0;
+                gameData->leds[i].b = 0x00;
+            }
+
+            if(gameData->leds[i].r > 0){
+                gameData->leds[i].r -= 0x05;
+            }
+            
+            if(gameData->leds[i].g > 0){
+                gameData->leds[i].g -= 0x10;
+            }
+
+            if(gameData->leds[i].b > 0){
+                gameData->leds[i].b = 0x00;
+            }
+            
+        }
+    }
+    setLeds(gameData->leds, NUM_LEDS);
+}
+
+void updateLedsGameOver(gameData_t * gameData){
+    if(( (gameData->frameCount) % 10) == 0){
+        for (int32_t i = 0; i < 8; i++)
+        {
+        
+            if(( (gameData->frameCount >> 4) % NUM_LEDS) == i) {
+                gameData->leds[i].r =  0xF0;
+                gameData->leds[i].g = 0x00;
+                gameData->leds[i].b = 0x00;
+            }
+
+            gameData->leds[i].r -= 0x10;
+            gameData->leds[i].g = 0x00;
+            gameData->leds[i].b = 0x00;
+        }
+    }
+    setLeds(gameData->leds, NUM_LEDS);
+}
+
+void updateLedsLevelClear(gameData_t * gameData){
+    if(( (gameData->frameCount) % 10) == 0){
+        for (int32_t i = 0; i < 8; i++)
+        {
+        
+            if(( (gameData->frameCount >> 4) % NUM_LEDS) == i) {
+                gameData->leds[i].g = (esp_random() % 24) * (10);
+                gameData->leds[i].b = (esp_random() % 24) * (10);
+            }
+
+            if(gameData->leds[i].r > 0){
+                gameData->leds[i].r -= 0x10;
+            }
+            
+            if(gameData->leds[i].g > 0){
+                gameData->leds[i].g -= 0x10;
+            }
+
+            if(gameData->leds[i].b > 0){
+                gameData->leds[i].b -= 0x10;
+            }
+        }
+    }
+    setLeds(gameData->leds, NUM_LEDS);
+}
+
+void updateLedsGameClear(gameData_t * gameData){
+    if(( (gameData->frameCount) % 10) == 0){
+        for (int32_t i = 0; i < 8; i++)
+        {
+        
+            if(( (gameData->frameCount >> 4) % NUM_LEDS) == i) {
+                gameData->leds[i].r = (esp_random() % 24) * (10);
+                gameData->leds[i].g = (esp_random() % 24) * (10);
+                gameData->leds[i].b = (esp_random() % 24) * (10);
+            }
+
+            if(gameData->leds[i].r > 0){
+                gameData->leds[i].r -= 0x10;
+            }
+            
+            if(gameData->leds[i].g > 0){
+                gameData->leds[i].g -= 0x10;
+            }
+
+            if(gameData->leds[i].b > 0){
+                gameData->leds[i].b -= 0x10;
+            }
+        }
+    }
+    setLeds(gameData->leds, NUM_LEDS);
+}

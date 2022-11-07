@@ -378,6 +378,7 @@ void updateTitleScreen(platformer_t *self)
     switch(platformer->menuState){
         case 0:{ 
             if(self->gameData.frameCount > 600){
+                resetGameDataLeds(&(self->gameData));
                 changeStateShowHighScores(self);
             }
             
@@ -633,6 +634,20 @@ void updateTitleScreen(platformer_t *self)
     }
     
     drawPlatformerTitleScreen(self->disp, &(self->radiostars), &(self->gameData));
+
+    if(( (self->gameData.frameCount) % 10) == 0){
+        for (int32_t i = 0; i < 8; i++)
+        {
+        
+            //self->gameData.leds[i].r = (( (self->gameData.frameCount >> 4) % NUM_LEDS) == i) ? 0xFF : 0x00;
+
+            platLeds[i].r += (esp_random() % 1);
+            platLeds[i].g += (esp_random() % 8);
+            platLeds[i].b += (esp_random() % 8);
+        }
+    }
+    setLeds(&(platLeds), NUM_LEDS);
+
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
 }
@@ -717,6 +732,8 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
 void changeStateReadyScreen(platformer_t *self){
     self->gameData.frameCount = 0;
     buzzer_play_bgm(&bgmIntro);
+    resetGameDataLeds(&(self->gameData));
+    
     self->update=&updateReadyScreen;
 }
 
@@ -740,6 +757,7 @@ void drawReadyScreen(display_t *d, font_t *font, gameData_t *gameData){
 void changeStateGame(platformer_t *self){
     self->gameData.frameCount = 0;
     self->gameData.currentBgm = 0;
+    resetGameDataLeds(&(self->gameData));
 
     deactivateAllEntities(&(self->entityManager), false);
 
@@ -898,12 +916,15 @@ void updateGameOver(platformer_t *self){
     }
 
     drawGameOver(self->disp, &(self->radiostars), &(self->gameData));
+    updateLedsGameOver(&(self->gameData));
 }
 
 void changeStateGameOver(platformer_t *self){
     self->gameData.frameCount = 0;
+    resetGameDataLeds(&(self->gameData)); 
     buzzer_play_bgm(&bgmGameOver);
-    self->update=&updateGameOver;    
+    self->update=&updateGameOver;   
+    
 }
 
 void drawGameOver(display_t *d, font_t *font, gameData_t *gameData){
@@ -922,6 +943,7 @@ void changeStateLevelClear(platformer_t *self){
     self->gameData.levelDeaths = 0;
     self->gameData.initialHp = self->entityManager.playerEntity->hp;
     self->gameData.extraLifeCollected = false;
+    resetGameDataLeds(&(self->gameData));
     self->update=&updateLevelClear;
 }
 
@@ -1003,6 +1025,7 @@ void updateLevelClear(platformer_t *self){
     drawEntities(self->disp, &(self->entityManager));
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
     drawLevelClear(self->disp, &(self->radiostars), &(self->gameData));
+    updateLedsLevelClear(&(self->gameData));
 }
 
 void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData){
@@ -1013,6 +1036,7 @@ void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData){
 void changeStateGameClear(platformer_t *self){
     self->gameData.frameCount = 0;
     self->update=&updateGameClear;
+    resetGameDataLeds(&(self->gameData));
     buzzer_play_bgm(&bgmSmooth);
 }
 
@@ -1036,6 +1060,7 @@ void updateGameClear(platformer_t *self){
 
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
     drawGameClear(self->disp, &(self->radiostars), &(self->gameData));
+    updateLedsGameClear(&(self->gameData));
 }
 
 void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
@@ -1172,6 +1197,8 @@ void changeStateNameEntry(platformer_t *self){
     self->gameData.rank = rank;
     self->menuState = 0;
 
+    resetGameDataLeds(&(self->gameData));
+
     if(rank >= NUM_PLATFORMER_HIGH_SCORES || self->gameData.debugMode){
         self->menuSelection = 0;
         self->gameData.rank = NUM_PLATFORMER_HIGH_SCORES;
@@ -1246,6 +1273,7 @@ void updateNameEntry(platformer_t *self){
     }
     
     drawNameEntry(self->disp, &(self->radiostars), &(self->gameData), self->menuState);
+    updateLedsShowHighScores(&(self->gameData));
 
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
@@ -1294,6 +1322,8 @@ void updateShowHighScores(platformer_t *self){
 
     drawShowHighScores(self->disp, &(self->radiostars), self->menuState);
     drawPlatformerHighScores(self->disp, &(self->radiostars), &(self->highScores), &(self->gameData));
+
+    updateLedsShowHighScores(&(self->gameData));
 
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;

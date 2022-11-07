@@ -78,5 +78,10 @@ void updateLedsHpMeter(entityManager_t *entityManager, gameData_t *gameData);
 void scorePoints(gameData_t * gameData, uint16_t points);
 void addCoins(gameData_t * gameData, uint8_t coins);
 void updateComboTimer(gameData_t * gameData);
+void resetGameDataLeds(gameData_t * gameData);
+void updateLedsShowHighScores(gameData_t * gameData);
+void updateLedsLevelClear(gameData_t * gameData);
+void updateLedsGameClear(gameData_t * gameData);
+void updateLedsGameOver(gameData_t * gameData);
 
 #endif
