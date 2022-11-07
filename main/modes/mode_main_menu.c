@@ -17,6 +17,7 @@
 #include "fighter_menu.h"
 #include "jumper_menu.h"
 #include "meleeMenu.h"
+#include "mode_bee.h"
 #include "mode_colorchord.h"
 #include "mode_credits.h"
 #include "mode_dance.h"
@@ -54,6 +55,8 @@ void mainMenuSetUpMusicMenu(bool);
 void mainMenuMusicCb(const char* opt);
 void mainMenuSetUpSettingsMenu(bool);
 void mainMenuSettingsCb(const char* opt);
+void mainMenuSetUpSecretMenu(bool);
+void mainMenuSecretCb(const char* opt);
 
 //==============================================================================
 // Structs
@@ -70,10 +73,15 @@ typedef struct
     uint8_t toolsPos;
     uint8_t musicPos;
     uint8_t settingsPos;
+    uint8_t secretPos;
+    int16_t btnState;
+    int16_t prevBtnState;
+    uint8_t menuSelection;
     uint32_t battVal;
     wsg_t batt[4];
     wsg_t usb;
     int32_t autoLightDanceTimer;
+    bool debugMode;
 } mainMenu_t;
 
 //==============================================================================
@@ -105,6 +113,7 @@ const char mainMenuGames[] = "Games";
 const char mainMenuTools[] = "Tools";
 const char mainMenuMusic[] = "Music";
 const char mainMenuSettings[] = "Settings";
+const char mainMenuSecret[] = "Secrets";
 const char mainMenuBack[] = "Back";
 const char mainMenuSoundBgmOn[] = "Music: On";
 const char mainMenuSoundBgmOff[] = "Music: Off";
@@ -116,6 +125,151 @@ char mainMenuMicGain[] = "Mic Gain: 1";
 char mainMenuScreensaverTimeout[] = "Screensaver: 20s";
 char mainMenuScreensaverOff[] = "Screensaver: Off";
 const char mainMenuCredits[] = "Credits";
+
+static const int16_t cheatCode[11] = {UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, BTN_B, BTN_A, START};
+
+const song_t secretSong =
+{
+    .notes =
+    {
+        {.note = A_SHARP_4, .timeMs = 16},
+        {.note = F_4, .timeMs = 16},
+        {.note = A_SHARP_3, .timeMs = 16},
+        {.note = A_SHARP_5, .timeMs = 16},
+        {.note = A_SHARP_4, .timeMs = 16},
+        {.note = F_4, .timeMs = 16},
+        {.note = A_SHARP_3, .timeMs = 16},
+        {.note = A_SHARP_5, .timeMs = 16},
+        {.note = A_SHARP_4, .timeMs = 16},
+        {.note = F_4, .timeMs = 16},
+        {.note = A_SHARP_3, .timeMs = 33},
+        {.note = A_SHARP_4, .timeMs = 16},
+        {.note = F_4, .timeMs = 16},
+        {.note = A_SHARP_3, .timeMs = 33},
+        {.note = A_SHARP_4, .timeMs = 16},
+        {.note = F_4, .timeMs = 16},
+        {.note = A_SHARP_3, .timeMs = 16},
+        {.note = A_SHARP_5, .timeMs = 33},
+        {.note = F_4, .timeMs = 16},
+        {.note = A_SHARP_3, .timeMs = 50},
+        {.note = F_4, .timeMs = 16},
+        {.note = A_SHARP_3, .timeMs = 50},
+        {.note = F_4, .timeMs = 16},
+        {.note = A_SHARP_3, .timeMs = 33},
+        {.note = B_4, .timeMs = 16},
+        {.note = F_SHARP_4, .timeMs = 16},
+        {.note = B_3, .timeMs = 16},
+        {.note = B_5, .timeMs = 16},
+        {.note = B_4, .timeMs = 16},
+        {.note = F_SHARP_4, .timeMs = 16},
+        {.note = B_3, .timeMs = 16},
+        {.note = B_5, .timeMs = 16},
+        {.note = B_4, .timeMs = 16},
+        {.note = F_SHARP_4, .timeMs = 16},
+        {.note = B_3, .timeMs = 33},
+        {.note = B_4, .timeMs = 16},
+        {.note = F_SHARP_4, .timeMs = 16},
+        {.note = B_3, .timeMs = 33},
+        {.note = B_4, .timeMs = 16},
+        {.note = F_SHARP_4, .timeMs = 16},
+        {.note = B_3, .timeMs = 16},
+        {.note = B_5, .timeMs = 33},
+        {.note = F_SHARP_4, .timeMs = 16},
+        {.note = B_3, .timeMs = 50},
+        {.note = F_SHARP_4, .timeMs = 16},
+        {.note = B_3, .timeMs = 50},
+        {.note = F_SHARP_4, .timeMs = 16},
+        {.note = B_3, .timeMs = 33},
+        {.note = C_5, .timeMs = 16},
+        {.note = G_4, .timeMs = 16},
+        {.note = C_4, .timeMs = 16},
+        {.note = C_6, .timeMs = 16},
+        {.note = C_5, .timeMs = 16},
+        {.note = G_4, .timeMs = 16},
+        {.note = C_4, .timeMs = 16},
+        {.note = C_6, .timeMs = 16},
+        {.note = C_5, .timeMs = 16},
+        {.note = G_4, .timeMs = 16},
+        {.note = C_4, .timeMs = 33},
+        {.note = C_5, .timeMs = 16},
+        {.note = G_4, .timeMs = 16},
+        {.note = C_4, .timeMs = 33},
+        {.note = C_5, .timeMs = 16},
+        {.note = G_4, .timeMs = 16},
+        {.note = C_4, .timeMs = 16},
+        {.note = C_6, .timeMs = 33},
+        {.note = G_4, .timeMs = 16},
+        {.note = C_4, .timeMs = 50},
+        {.note = G_4, .timeMs = 16},
+        {.note = C_4, .timeMs = 50},
+        {.note = G_4, .timeMs = 16},
+        {.note = C_4, .timeMs = 33},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_6, .timeMs = 16},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_6, .timeMs = 16},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_6, .timeMs = 16},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_6, .timeMs = 16},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_6, .timeMs = 16},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_6, .timeMs = 16},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_6, .timeMs = 16},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_6, .timeMs = 16},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_6, .timeMs = 16},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_6, .timeMs = 16},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 33},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 33},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 33},
+        {.note = C_SHARP_5, .timeMs = 16},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 50},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 50},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 50},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 50},
+        {.note = G_SHARP_4, .timeMs = 16},
+        {.note = C_SHARP_4, .timeMs = 33},
+        {.note = C_SHARP_3, .timeMs = 133},
+
+    },
+    .numNotes = 133,
+    .shouldLoop = false
+};
 
 //==============================================================================
 // Functions
@@ -227,8 +381,32 @@ void mainMenuButtonCb(buttonEvt_t* evt)
     // Any button event resets this timer
     mainMenu->autoLightDanceTimer = 0;
 
+    mainMenu->prevBtnState = mainMenu->btnState;
+    mainMenu->btnState = evt->state;
+
     if(evt->down)
     {
+        if(!mainMenu->debugMode)
+        {
+            if  (
+                    (mainMenu->btnState & cheatCode[mainMenu->menuSelection])
+                    &&
+                    !(mainMenu->prevBtnState & cheatCode[mainMenu->menuSelection])
+                )
+            {
+                mainMenu->menuSelection++;
+
+                if(mainMenu->menuSelection > 10)
+                {
+                    mainMenu->menuSelection = 0;
+                    mainMenu->debugMode = true;
+                    //buzzer_play_bgm(&secretSong);
+                    mainMenuSetUpSecretMenu(true);
+                    return;
+                }
+            }
+        }
+
         switch(evt->button)
         {
             case UP:
@@ -711,4 +889,49 @@ void mainMenuSettingsCb(const char* opt)
 
     // Redraw the settings menu with different strings
     mainMenuSetUpSettingsMenu(false);
+}
+
+/**
+ * Set up the secret menu
+ *
+ * @param resetPos true to reset the position to 0, false to leave it where it is
+ */
+void mainMenuSetUpSecretMenu(bool resetPos)
+{
+    // Set up the menu
+    resetMeleeMenu(mainMenu->menu, mainMenuSecret, mainMenuSecretCb);
+    addRowToMeleeMenu(mainMenu->menu, modeBee.modeName);
+    addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
+    // Set the position
+    if(resetPos)
+    {
+        mainMenu->secretPos = 0;
+    }
+    mainMenu->menu->selectedRow = mainMenu->secretPos;
+}
+
+/**
+ * Callback for the secret menu
+ *
+ * @param opt The menu option which was selected
+ */
+void mainMenuSecretCb(const char* opt)
+{
+    // Save the position
+    mainMenu->secretPos = mainMenu->menu->selectedRow;
+
+    // Handle the option
+    if(modeBee.modeName == opt)
+    {
+        // Start bee stuff
+        switchToSwadgeMode(&modeBee);
+    }
+    else if(mainMenuBack == opt)
+    {
+        mainMenu->menuSelection = 0;
+        mainMenu->btnState = 0;
+        mainMenu->prevBtnState = 0;
+        mainMenu->debugMode = false;
+        mainMenuSetUpTopMenu(false);
+    }
 }
