@@ -19,6 +19,7 @@ idf_component_register(
         "modes/fighter/mode_fighter.c"
         "modes/jumper/jumper_menu.c"
         "modes/jumper/mode_jumper.c"
+        "modes/mode_bee.c"
         "modes/mode_colorchord.c"
         "modes/mode_credits.c"
         "modes/mode_dance.c"
