@@ -59,13 +59,8 @@ void paintGallerySetup(display_t* disp, bool screensaver)
     loadFont("radiostars.font", &paintGallery->infoFont);
     loadWsg("arrow12.wsg", &paintGallery->arrow);
 
-    for (uint16_t i = 0; i < paintGallery->arrow.h * paintGallery->arrow.w; i++)
-    {
-        // Recolor the arrow to black
-        if (paintGallery->arrow.px[i] != cTransparent) {
-            paintGallery->arrow.px[i] = c000;
-        }
-    }
+    // Recolor the arrow to black
+    colorReplaceWsg(&paintGallery->arrow, c555, c000);
 
     paintLoadIndex(&paintGallery->index);
 

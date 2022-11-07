@@ -10,6 +10,8 @@
 paletteColor_t getContrastingColor(paletteColor_t col);
 paletteColor_t getContrastingColorBW(paletteColor_t col);
 
+void colorReplaceWsg(wsg_t* wsg, paletteColor_t find, paletteColor_t replace);
+
 // Extra drawing functions
 void paintDrawWsgTemp(display_t* display, const wsg_t* wsg, pxStack_t* saveTo, uint16_t x, uint16_t y, colorMapFn_t colorSwap);
 

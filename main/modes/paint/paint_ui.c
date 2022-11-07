@@ -120,6 +120,17 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
     uint16_t textX = 30, textY = (paintState->canvas.y - 1 - 2 * PAINT_TOOLBAR_TEXT_PADDING_Y) / 2;
     uint16_t maxIconBottom = 0;
 
+    // Arrow logic, for all the options
+    if (paintState->saveMenu != HIDDEN && paintState->saveMenu != COLOR_PICKER)
+    {
+        // Up arrow
+        drawWsg(canvas->disp, &paintState->smallArrowWsg, textX, textY + paintState->saveMenuFont.h / 2 - paintState->smallArrowWsg.h - 1, false, false, 0);
+
+        // Down arrow
+        drawWsg(canvas->disp, &paintState->smallArrowWsg, textX, textY + paintState->saveMenuFont.h / 2 + 1, false, false, 180);
+        textX += paintState->smallArrowWsg.w + 4;
+    }
+
     if (paintState->saveMenu == HIDDEN)
     {
         //////// Tools
@@ -214,7 +225,14 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
         // Draw the slot number
         char text[16];
         snprintf(text, sizeof(text), (saving && paintGetSlotInUse(paintState->index, paintState->selectedSlot)) ? startMenuSlotUsed : startMenuSlot, paintState->selectedSlot + 1);
-        drawText(canvas->disp, &paintState->saveMenuFont, c000, text, 160, textY);
+        uint16_t textW = textWidth(&paintState->saveMenuFont, text);
+
+        // Text goes all the way to the right, minus 13px for the corner, then the arrow, arrow spacing, and the text itself
+        textX = canvas->disp->w - 13 - paintState->bigArrowWsg.w - 4 - textW;
+        drawText(canvas->disp, &paintState->saveMenuFont, c000, text, textX, textY);
+        drawWsg(canvas->disp, &paintState->bigArrowWsg, textX - 4 - paintState->bigArrowWsg.w, textY + (paintState->saveMenuFont.h - paintState->bigArrowWsg.h) / 2, false, false, 270);
+        drawWsg(canvas->disp, &paintState->bigArrowWsg, textX + textW + 4, textY + (paintState->saveMenuFont.h - paintState->bigArrowWsg.h) / 2, false, false, 90);
+
     }
     else if (paintState->saveMenu == CONFIRM_OVERWRITE)
     {

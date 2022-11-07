@@ -218,6 +218,24 @@ void paintDrawScreenSetup(display_t* disp)
         PAINT_LOGE("Loading brush_size.wsg icon failed!!!");
     }
 
+    if (!loadWsg("arrow9.wsg", &paintState->smallArrowWsg))
+    {
+        PAINT_LOGE("Loading arrow5.wsg icon failed!!!");
+    }
+    else
+    {
+        colorReplaceWsg(&paintState->smallArrowWsg, c555, c000);
+    }
+
+    if (!loadWsg("arrow12.wsg", &paintState->bigArrowWsg))
+    {
+        PAINT_LOGE("Loading arrow5.wsg icon failed!!!");
+    }
+    else
+    {
+        colorReplaceWsg(&paintState->bigArrowWsg, c555, c000);
+    }
+
     // Setup the margins
     // Top: Leave room for the tallest of...
     // * The save menu text plus padding above and below it

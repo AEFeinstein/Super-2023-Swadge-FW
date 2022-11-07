@@ -188,6 +188,12 @@ typedef struct
     // The "picks remaining" sprite
     wsg_t picksWsg;
 
+    // The 9x9 arrow
+    wsg_t smallArrowWsg;
+
+    // The 12x12 arrow
+    wsg_t bigArrowWsg;
+
 
     //////// Local-only UI state
 
