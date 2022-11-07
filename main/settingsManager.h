@@ -20,6 +20,7 @@ bool decTftBrightness(void);
 uint8_t getTftIntensity(void);
 
 int32_t getLedBrightness(void);
+bool setAndSaveLedBrightness(uint8_t brightness);
 bool incLedBrightness(void);
 bool decLedBrightness(void);
 
@@ -28,6 +29,10 @@ uint16_t getMicAmplitude(void);
 bool setMicGain(uint8_t newGain);
 bool decMicGain(void);
 bool incMicGain(void);
+
+uint16_t getScreensaverTime(void);
+bool incScreensaverTime(void);
+bool decScreensaverTime(void);
 
 colorchordMode_t getColorchordMode(void);
 bool setColorchordMode(colorchordMode_t);

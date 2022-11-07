@@ -33,12 +33,15 @@
 #define SHARE_LEFT_MARGIN 10
 #define SHARE_RIGHT_MARGIN 10
 #define SHARE_TOP_MARGIN 25
-#define SHARE_BOTTOM_MARGIN 5
+#define SHARE_BOTTOM_MARGIN 25
 
 #define SHARE_PROGRESS_LEFT 30
 #define SHARE_PROGESS_RIGHT 30
 
 #define SHARE_PROGRESS_SPEED 25000
+
+// Reset after 5 seconds without a packet
+#define CONN_LOST_TIMEOUT 5000000
 
 #define SHARE_BG_COLOR c444
 #define SHARE_CANVAS_BORDER c000
@@ -51,7 +54,6 @@ const uint8_t SHARE_PACKET_PIXEL_DATA = 1;
 const uint8_t SHARE_PACKET_PIXEL_REQUEST = 2;
 const uint8_t SHARE_PACKET_RECEIVE_COMPLETE = 3;
 const uint8_t SHARE_PACKET_ABORT = 4;
-const uint8_t SHARE_PACKET_HELLO = 5;
 
 // The canvas data packet has PAINT_MAX_COLORS bytes of palette, plus 2 uint16_ts of width/height. Also 1 for size
 const uint8_t PACKET_LEN_CANVAS_DATA = sizeof(uint8_t) * PAINT_MAX_COLORS + sizeof(uint16_t) * 2;
@@ -59,6 +61,9 @@ const uint8_t PACKET_LEN_CANVAS_DATA = sizeof(uint8_t) * PAINT_MAX_COLORS + size
 static const char strOverwriteSlot[] = "Overwrite Slot %d";
 static const char strEmptySlot[] = "Save in Slot %d";
 static const char strShareSlot[] = "Share Slot %d";
+static const char strControlsShare[] = "A to Share";
+static const char strControlsSave[] = "A to Save";
+static const char strControlsCancel[] = "B to Cancel";
 
 paintShare_t* paintShare;
 
@@ -86,7 +91,6 @@ void paintShareDeinitP2p(void);
 void paintShareMsgSendOk(void);
 void paintShareMsgSendFail(void);
 
-void paintShareSendHello(void);
 void paintShareSendPixelRequest(void);
 void paintShareSendReceiveComplete(void);
 void paintShareSendAbort(void);
@@ -97,12 +101,12 @@ void paintShareHandleCanvas(void);
 void paintShareSendPixels(void);
 void paintShareHandlePixels(void);
 
+void paintShareCheckForTimeout(void);
 void paintShareRetry(void);
 
 void paintShareDoLoad(void);
 void paintShareDoSave(void);
 
-bool paintShareDetectWrongMode(void);
 
 // Use a different swadge mode so the main game doesn't take as much battery
 swadgeMode modePaintShare =
@@ -149,7 +153,8 @@ void paintShareInitP2p(void)
     paintShare->shareNewPacket = false;
 
     p2pDeinit(&paintShare->p2pInfo);
-    p2pInitialize(&paintShare->p2pInfo, 'P', paintShareP2pConnCb, paintShareP2pMsgRecvCb, -15);
+    p2pInitialize(&paintShare->p2pInfo, isSender() ? 'P' : 'Q', paintShareP2pConnCb, paintShareP2pMsgRecvCb, -15);
+    p2pSetAsymmetric(&paintShare->p2pInfo, isSender() ? 'Q' : 'P');
     p2pStartConnection(&paintShare->p2pInfo);
 }
 
@@ -177,6 +182,20 @@ void paintShareCommonSetup(display_t* disp)
         PAINT_LOGE("Unable to load font!");
     }
 
+    if (!loadWsg("arrow12.wsg", &paintShare->arrowWsg))
+    {
+        PAINT_LOGE("Unable to load arrow WSG!");
+    }
+    else
+    {
+        for (uint16_t i = 0; i < paintShare->arrowWsg.h * paintShare->arrowWsg.w; i++)
+        {
+            // Recolor the arrow to black
+            if (paintShare->arrowWsg.px[i] != cTransparent) {
+                paintShare->arrowWsg.px[i] = c000;
+            }
+        }
+    }
 
     // Set the display
     paintShare->canvas.disp = paintShare->disp = disp;
@@ -204,8 +223,21 @@ void paintShareEnterMode(display_t* disp)
     PAINT_LOGD("Sender: Selecting slot");
     paintShare->shareState = SHARE_SEND_SELECT_SLOT;
 
+    if (!paintGetAnySlotInUse(paintShare->index))
+    {
+        PAINT_LOGE("Share mode started without any saved images. Exiting");
+        switchToSwadgeMode(&modePaint);
+        return;
+    }
+
     // Start on the most recently saved slot
     paintShare->shareSaveSlot = paintGetRecentSlot(paintShare->index);
+    if (paintShare->shareSaveSlot == PAINT_SAVE_SLOTS)
+    {
+        // If there was no recently saved slot, find the first slot in use instead
+        paintShare->shareSaveSlot = paintGetNextSlotInUse(paintShare->index, PAINT_SAVE_SLOTS - 1);
+    }
+
     PAINT_LOGD("paintShare->shareSaveSlot = %d", paintShare->shareSaveSlot);
 
     paintShare->clearScreen = true;
@@ -284,7 +316,6 @@ void paintShareRenderProgressBar(int64_t elapsedUs, uint16_t x, uint16_t y, uint
         // (WIDTH / ((totalPacketNum + 1) * 4)) * (currentPacketNum) * 4 + (sent: 2, acked: 3, req'd: 4)
         uint16_t maxProgress = ((paintShare->canvas.h * paintShare->canvas.w + PAINT_SHARE_PX_PER_PACKET - 1) / PAINT_SHARE_PX_PER_PACKET + 1);
 
-        PAINT_LOGD("Progress: %02d / %02d", progress, maxProgress);
         // Now, we just draw a box at (progress * (width) / maxProgress)
         uint16_t size = (progress > maxProgress ? maxProgress : progress) * w / maxProgress;
         plotRectFilled(paintShare->disp, x + 1, y + 1, x + size, y + h, SHARE_PROGRESS_FG);
@@ -348,22 +379,29 @@ void paintRenderShareMode(int64_t elapsedUs)
     }
 
     char text[32];
+    const char *bottomText = NULL;
+    bool arrows = false;
 
     switch (paintShare->shareState)
     {
         case SHARE_RECV_SELECT_SLOT:
         {
+            arrows = true;
+            bottomText = strControlsSave;
             snprintf(text, sizeof(text), paintGetSlotInUse(paintShare->index, paintShare->shareSaveSlot) ? strOverwriteSlot : strEmptySlot, paintShare->shareSaveSlot + 1);
             break;
         }
         case SHARE_SEND_SELECT_SLOT:
         {
+            arrows = true;
+            bottomText = strControlsShare;
             snprintf(text, sizeof(text), strShareSlot, paintShare->shareSaveSlot + 1);
             break;
         }
         case SHARE_SEND_WAIT_FOR_CONN:
         case SHARE_RECV_WAIT_FOR_CONN:
         {
+            bottomText = strControlsCancel;
             snprintf(text, sizeof(text), "Connecting...");
             break;
         }
@@ -400,7 +438,29 @@ void paintRenderShareMode(int64_t elapsedUs)
 
     // Draw the text over the progress bar
     uint16_t w = textWidth(&paintShare->toolbarFont, text);
-    drawText(paintShare->disp, &paintShare->toolbarFont, c000, text, (paintShare->disp->w - w) / 2, 4);
+    uint16_t y = (SHARE_TOP_MARGIN - paintShare->toolbarFont.h) / 2;
+    drawText(paintShare->disp, &paintShare->toolbarFont, c000, text, (paintShare->disp->w - w) / 2, y);
+    if (arrows)
+    {
+        // flip instead of using rotation to prevent 1px offset
+        drawWsg(paintShare->disp, &paintShare->arrowWsg, (paintShare->disp->w - w) / 2 - paintShare->arrowWsg.w - 6, y + (paintShare->toolbarFont.h - paintShare->arrowWsg.h) / 2, false, true, 90);
+        drawWsg(paintShare->disp, &paintShare->arrowWsg, (paintShare->disp->w - w) / 2 + w + 6, y + (paintShare->toolbarFont.h - paintShare->arrowWsg.h) / 2, false, false, 90);
+    }
+
+    if (bottomText != NULL)
+    {
+        if (paintShare->canvas.h > 0 && paintShare->canvas.yScale > 0)
+        {
+            y = paintShare->canvas.y + paintShare->canvas.h * paintShare->canvas.yScale + (paintShare->disp->h - paintShare->canvas.y - paintShare->canvas.h * paintShare->canvas.yScale - paintShare->toolbarFont.h) / 2;
+        }
+        else
+        {
+            y = paintShare->disp->h - paintShare->toolbarFont.h - 8;
+        }
+
+        w = textWidth(&paintShare->toolbarFont, bottomText);
+        drawText(paintShare->disp, &paintShare->toolbarFont, c000, bottomText, (paintShare->disp->w - w) / 2, y);
+    }
 }
 
 void paintShareSendCanvas(void)
@@ -576,15 +636,6 @@ void paintShareSendAbort(void)
     paintShare->shareUpdateScreen = true;
 }
 
-void paintShareSendHello(void)
-{
-    paintShare->sharePacket[0] = SHARE_PACKET_HELLO;
-    paintShare->sharePacket[1] = isSender() ? 1 : 0;
-    paintShare->sharePacketLen = 2;
-    p2pSendMsg(&paintShare->p2pInfo, paintShare->sharePacket, paintShare->sharePacketLen, paintShareP2pSendCb);
-    paintShare->shareUpdateScreen = true;
-}
-
 void paintShareMsgSendOk(void)
 {
     paintShare->shareUpdateScreen = true;
@@ -659,6 +710,7 @@ void paintShareMsgSendFail(void)
 
 void paintBeginShare(void)
 {
+    paintShareInitP2p();
     paintShare->shareState = SHARE_SEND_WAIT_FOR_CONN;
 
     paintShare->shareSeqNum = 0;
@@ -670,7 +722,22 @@ void paintShareExitMode(void)
 {
     p2pDeinit(&paintShare->p2pInfo);
     freeFont(&paintShare->toolbarFont);
+    freeWsg(&paintShare->arrowWsg);
+
     free(paintShare);
+
+    paintShare = NULL;
+}
+
+void paintShareCheckForTimeout(void)
+{
+    if (paintShare->timeSincePacket >= CONN_LOST_TIMEOUT)
+    {
+        paintShare->timeSincePacket = 0;
+        PAINT_LOGD("Conn loss detected, resetting");
+        paintShare->shareState = isSender() ? SHARE_SEND_WAIT_FOR_CONN : SHARE_RECV_WAIT_FOR_CONN;
+        paintShareInitP2p();
+    }
 }
 
 // Go back to the previous state so we retry the last thing
@@ -738,6 +805,14 @@ void paintShareMainLoop(int64_t elapsedUs)
     }
 
     paintShare->shareTime += elapsedUs;
+    if (paintShare->shareNewPacket)
+    {
+        paintShare->timeSincePacket = 0;
+    }
+    else
+    {
+        paintShare->timeSincePacket += elapsedUs;
+    }
 
     switch (paintShare->shareState)
     {
@@ -764,6 +839,7 @@ void paintShareMainLoop(int64_t elapsedUs)
 
         case SHARE_SEND_WAIT_CANVAS_DATA_ACK:
         {
+            paintShareCheckForTimeout();
             break;
         }
 
@@ -784,6 +860,10 @@ void paintShareMainLoop(int64_t elapsedUs)
                     paintShare->shareUpdateScreen = true;
                 }
             }
+            else
+            {
+                paintShareCheckForTimeout();
+            }
             break;
         }
 
@@ -795,6 +875,7 @@ void paintShareMainLoop(int64_t elapsedUs)
 
         case SHARE_SEND_WAIT_PIXEL_DATA_ACK:
         {
+            // Don't need to check for timeout! p2pConnection will handle it for acks
             break;
         }
 
@@ -803,8 +884,6 @@ void paintShareMainLoop(int64_t elapsedUs)
             paintShareDeinitP2p();
             break;
         }
-
-
 
         case SHARE_RECV_WAIT_FOR_CONN:
         {
@@ -823,6 +902,10 @@ void paintShareMainLoop(int64_t elapsedUs)
             {
                 paintShareHandleCanvas();
             }
+            else
+            {
+                paintShareCheckForTimeout();
+            }
             paintShare->shareUpdateScreen = true;
 
             break;
@@ -833,6 +916,10 @@ void paintShareMainLoop(int64_t elapsedUs)
             if (paintShare->shareNewPacket)
             {
                 paintShareHandlePixels();
+            }
+            else
+            {
+                paintShareCheckForTimeout();
             }
             paintShare->shareUpdateScreen = true;
             break;
@@ -984,6 +1071,12 @@ void paintShareButtonCb(buttonEvt_t* evt)
             paintShare->shareState = SHARE_SEND_SELECT_SLOT;
             paintShare->shareUpdateScreen = true;
         }
+    } else if (paintShare->shareState == SHARE_SEND_WAIT_FOR_CONN || paintShare->shareState == SHARE_RECV_WAIT_FOR_CONN)
+    {
+        if (evt->down && evt->button == BTN_B)
+        {
+            switchToSwadgeMode(&modePaint);
+        }
     }
 }
 
@@ -1014,7 +1107,6 @@ void paintShareP2pConnCb(p2pInfo* p2p, connectionEvt_t evt)
     {
         case CON_STARTED:
         PAINT_LOGD("CON_STARTED");
-        //paintShareSendHello();
         break;
 
         case RX_GAME_START_ACK:
@@ -1039,66 +1131,26 @@ void paintShareP2pConnCb(p2pInfo* p2p, connectionEvt_t evt)
                 PAINT_LOGD("state = SHARE_RECV_WAIT_CANVAS_DATA");
                 paintShare->shareState = SHARE_RECV_WAIT_CANVAS_DATA;
             }
+
             break;
         }
 
         case CON_LOST:
-        PAINT_LOGD("CON_LOST");
-        paintShareDeinitP2p();
-        if (isSender())
         {
-            paintShare->shareState = SHARE_SEND_WAIT_FOR_CONN;
-        }
-        else
-        {
-            paintShare->shareState = SHARE_RECV_WAIT_FOR_CONN;
-        }
-        break;
-    }
-}
-
-bool paintShareDetectWrongMode(void)
-{
-    if (isSender())
-    {
-        if (paintShare->sharePacket[0] == SHARE_PACKET_CANVAS_DATA || paintShare->sharePacket[0] == SHARE_PACKET_PIXEL_DATA || paintShare->sharePacket[0] == SHARE_PACKET_ABORT || (paintShare->sharePacket[0] == SHARE_PACKET_HELLO && paintShare->sharePacket[1] == 1))
-        {
-            if (p2pGetPlayOrder(&paintShare->p2pInfo) == GOING_FIRST)
-            {
-                paintShare->shareState = SHARE_SEND_SELECT_SLOT;
-                paintShare->shareUpdateScreen = true;
-            }
-            else
+            PAINT_LOGD("CON_LOST");
+            paintShareInitP2p();
+            if (isSender())
             {
                 paintShare->shareState = SHARE_SEND_WAIT_FOR_CONN;
             }
-
-            if (paintShare->sharePacket[0] != SHARE_PACKET_ABORT)
+            else
             {
-                // if we aren't doing this because of an abort packet, send one to the other side
-                paintShareSendAbort();
+                paintShare->shareState = SHARE_RECV_WAIT_FOR_CONN;
             }
-            paintShareDeinitP2p();
-            return true;
+
+            break;
         }
     }
-    else
-    {
-        if (paintShare->sharePacket[0] == SHARE_PACKET_PIXEL_REQUEST || paintShare->sharePacket[0] == SHARE_PACKET_ABORT || (paintShare->sharePacket[0] == SHARE_PACKET_HELLO && paintShare->sharePacket[1] == 0))
-        {
-            paintShare->shareState = SHARE_RECV_WAIT_FOR_CONN;
-            paintShare->shareUpdateScreen = true;
-
-            if (paintShare->sharePacket[0] != SHARE_PACKET_ABORT)
-            {
-                paintShareSendAbort();
-            }
-            paintShareDeinitP2p();
-            return true;
-        }
-    }
-
-    return false;
 }
 
 void paintShareP2pMsgRecvCb(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
@@ -1107,16 +1159,8 @@ void paintShareP2pMsgRecvCb(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
     PAINT_LOGV("Receiving %d bytes via P2P callback", len);
     memcpy(paintShare->sharePacket, payload, len);
 
-    if (!paintShareDetectWrongMode())
-    {
-        PAINT_LOGV("RECEIVED DATA:");
-        for (uint8_t i = 0; i < len; i+= 4)
-        {
-            PAINT_LOGV("%04d %02x %02x %02x %02x", i, payload[i], payload[i+1], payload[i+2], payload[i+3]);
-        }
-        paintShare->sharePacketLen = len;
-        paintShare->shareNewPacket = true;
-    }
+    paintShare->sharePacketLen = len;
+    paintShare->shareNewPacket = true;
 }
 
 void paintShareDoLoad(void)

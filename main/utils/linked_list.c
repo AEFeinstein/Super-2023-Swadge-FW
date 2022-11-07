@@ -275,22 +275,25 @@ void* removeEntry(list_t* list, node_t* entry)
         while (curr != NULL)
         {
             // Found the node to remove
-            if(entry == curr->next)
+            if(entry == curr)
             {
                 // We need to free the removed node, and adjust the nodes before and after it.
                 // current is set to the node before it.
 
-                node_t* target = curr->next;
-                void* retval = target->val;
+                // Link the previous node to the next node
+                prev->next = curr->next;
+                // Link the next node to the previous node
+                curr->next->prev = prev;
 
-                curr->next = target->next;
-                curr->next->prev = curr;
+                // Save a value to return
+                void* retval = curr->val;
 
-                free(target);
-                target = NULL;
-
+                // Free the unlinked node, decrement the list
+                free(curr);
                 list->length--;
                 dbgList(list);
+
+                // Return the removed value
                 return retval;
             }
 

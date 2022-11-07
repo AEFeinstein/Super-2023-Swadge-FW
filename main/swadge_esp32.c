@@ -428,6 +428,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     // Same for CONFIG_SWADGE_DEVKIT and CONFIG_SWADGE_PROTOTYPE
     initLeds(GPIO_NUM_39, GPIO_NUM_18, RMT_CHANNEL_0, NUM_LEDS, getLedBrightness());
 
+    bool adcInit = false;
     if(NULL != cSwadgeMode->fnAudioCallback
 #if defined(EMU)
             || true // Always init audio for the emulator
@@ -450,12 +451,14 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 #endif
         continuous_adc_init(adc1_chan_mask, adc2_chan_mask, channel, sizeof(channel) / sizeof(adc_channel_t));
         continuous_adc_start();
+        adcInit = true;
     }
     else if (NULL != cSwadgeMode->fnBatteryCallback)
     {
 #if defined(CONFIG_SWADGE_PROTOTYPE)
         // If the continuous ADC isn't set up, set up the one-shot one
         oneshot_adc_init(ADC_UNIT_1, ADC1_CHANNEL_5); /*!< ADC1 channel 5 is GPIO6  */
+        adcInit = true;
 #endif
     }
 
@@ -517,6 +520,7 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     setTFTBacklight(getTftIntensity());
 
     /* Initialize Wifi peripheral */
+    bool wifiInit = false;
 #if defined(EMU)
     // Always init on emu b/c it will never be called again
     if(true)
@@ -533,14 +537,17 @@ void mainSwadgeTask(void* arg __attribute((unused)))
         }
         else
         {
-            // This can communicate over wifi or UART
+            // This can communicate over wifi only
             espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb,
                 GPIO_NUM_NC, GPIO_NUM_NC, UART_NUM_MAX);
         }
+        wifiInit = true;
     }
-    else
+
+    // If both wifi and ADC aren't used
+    if(false == adcInit && false == wifiInit)
     {
-        // If wifi is not initialzed, enable this entropy source
+        // enable this entropy source
         bootloader_random_enable();
     }
 
@@ -634,9 +641,6 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             buttonEvt_t bEvt = {0};
             while(checkButtonQueue(&bEvt))
             {
-                // Keep track of the last known button state
-                lastBtnState = bEvt.state;
-
                 // Don't ignore events by default
                 bool ignoreEvent = false;
 
@@ -649,7 +653,15 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                         // Nothing currently pressed, check for either start or select
                         if(bEvt.down)
                         {
-                            if (START == bEvt.button)
+                            if ((START | SELECT) == bEvt.button)
+                            {
+                                // Start and select pressed at the exact same time
+                                sst = START_SELECT_PRESSED;
+                                time_exit_pressed = esp_timer_get_time();
+                                dblBtnTmr = -1;
+                                ignoreEvent = true;
+                            }
+                            else if (START == bEvt.button)
                             {
                                 sst = START_PRESSED;
                                 dblBtnTmr = 100000; // 100ms to wait for the other
@@ -732,8 +744,49 @@ void mainSwadgeTask(void* arg __attribute((unused)))
 
                 if(!ignoreEvent && NULL != cSwadgeMode->fnButtonCallback)
                 {
-                    cSwadgeMode->fnButtonCallback(&bEvt);
+                    if ((bEvt.button & (bEvt.button - 1)) != 0)
+                    {
+                        // Multiple buttons were changed at the same exact time
+                        uint16_t allButtons = bEvt.button;
+
+                        // Start with the previous button state
+                        bEvt.state = lastBtnState;
+
+                        // Call the callback separately for each one, simulating the state as though it was sequential
+                        while (allButtons)
+                        {
+                            // Extract the first set button, by shifting 1 left by the number of trailing zeroes
+                            // __builtin_ctz returns the number of trailing zeroes in constant time
+                            bEvt.button = 1 << __builtin_ctz(allButtons);
+
+                            // If the button was already set in the previous state, this is a release, otherwise it's a press
+                            bEvt.down = !(lastBtnState & bEvt.button);
+
+                            // Add or remove the button to the simulated state
+                            if (bEvt.down)
+                            {
+                                // Button down, add it to the state
+                                bEvt.state |= bEvt.button;
+                            }
+                            else
+                            {
+                                // Button up, remove it from the state
+                                bEvt.state &= ~bEvt.button;
+                            }
+
+                            // Unset the button bit from the pressed buttons
+                            allButtons &= ~bEvt.button;
+                            cSwadgeMode->fnButtonCallback(&bEvt);
+                        }
+                    }
+                    else
+                    {
+                        cSwadgeMode->fnButtonCallback(&bEvt);
+                    }
                 }
+
+                // Keep track of the last known button state
+                lastBtnState = bEvt.state;
             }
 
             // Process touch events

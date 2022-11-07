@@ -119,6 +119,7 @@ void p2pInitialize(p2pInfo* p2p, uint8_t modeId, p2pConCbFn conCbFn,
 
     // Set the three character message ID
     p2p->modeId = modeId;
+    p2p->incomingModeId = modeId;
 
     // Get and save the string form of our MAC address
     esp_wifi_get_mac(WIFI_IF_STA, p2p->cnc.myMac);
@@ -185,6 +186,16 @@ void p2pInitialize(p2pInfo* p2p, uint8_t modeId, p2pConCbFn conCbFn,
         .skip_unhandled_events = false,
     };
     esp_timer_create(&p2pConnectionTimeoutArgs, &p2p->tmr.Connection);
+}
+
+/**
+ * @brief Set the p2p connection protocol to listen for a different mode ID from its own
+ *
+ * @param incomingModeId The unique mode ID used by the other end of this connection
+ */
+void p2pSetAsymmetric(p2pInfo* p2p, uint8_t incomingModeId)
+{
+    p2p->incomingModeId = incomingModeId;
 }
 
 /**
@@ -472,7 +483,7 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
     // Check if this message matches our message ID
     if(len < sizeof(p2pConMsg_t) ||
             ((const p2pConMsg_t*)data)->startByte != P2P_START_BYTE ||
-            ((const p2pConMsg_t*)data)->modeId != p2p->modeId)
+            ((const p2pConMsg_t*)data)->modeId != p2p->incomingModeId)
     {
         // This message is too short, or does not match our message ID
         //ESP_LOGD("P2P", "DISCARD: Not a message for '%c'", p2p->modeId);
@@ -584,7 +595,9 @@ void p2pRecvCb(p2pInfo* p2p, const uint8_t* mac_addr, const uint8_t* data, uint8
         if(!p2p->cnc.broadcastReceived &&
                 rssi > p2p->connectionRssi &&
                 sizeof(p2pConMsg_t) == len &&
-                0 == memcmp(data, &p2p->conMsg, len))
+                ((const p2pConMsg_t*)data)->messageType == p2p->conMsg.messageType &&
+                ((const p2pConMsg_t*)data)->modeId == p2p->incomingModeId &&
+                ((const p2pConMsg_t*)data)->startByte == p2p->conMsg.startByte)
         {
 
             // We received a broadcast, don't allow another
@@ -818,8 +831,14 @@ void p2pRestart(p2pInfo* p2p)
     }
 
     uint8_t modeId = p2p->modeId;
+    uint8_t incomingModeId = p2p->incomingModeId;
     p2pDeinit(p2p);
     p2pInitialize(p2p, modeId, p2p->conCbFn, p2p->msgRxCbFn, p2p->connectionRssi);
+
+    if (incomingModeId != modeId)
+    {
+        p2pSetAsymmetric(p2p, incomingModeId);
+    }
 }
 
 /**

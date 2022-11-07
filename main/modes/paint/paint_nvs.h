@@ -10,6 +10,7 @@
 #include "paint_common.h"
 #include "paint_type.h"
 
+void paintDebugIndex(int32_t index);
 void paintLoadIndex(int32_t* dest);
 void paintSaveIndex(int32_t index);
 void paintResetStorage(int32_t* index);

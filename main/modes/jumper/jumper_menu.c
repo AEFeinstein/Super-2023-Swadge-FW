@@ -52,8 +52,8 @@ static const char str_jumpTitle[] = "Donut Jump";
 static const char str_jump[] = "Jump";
 static const char str_exit[] = "Exit";
 
-static const char str_LEDOn[] = "LED [X]";
-static const char str_LEDOff[] = "LED [ ]";
+static const char str_LEDOn[] = "LEDs: On";
+static const char str_LEDOff[] = "LEDs: Off";
 
 swadgeMode modeJumper =
 {
@@ -98,9 +98,6 @@ void jumperEnterMode(display_t* disp)
     jm->menu = initMeleeMenu(str_jumpTitle, &(jm->mmFont), jumperMainMenuCb);
 
     setJumperMainMenu();
-
-    jm->screen = JUMPER_MENU;
-
 }
 
 void jumperExitMode(void)

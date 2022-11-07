@@ -8,6 +8,7 @@
 #include "meleeMenu.h"
 #include "led_util.h"
 #include "p2pConnection.h"
+#include "mode_dance.h"
 
 #include "px_stack.h"
 #include "paint_type.h"
@@ -37,7 +38,7 @@
 #define PAINT_ENABLE_BLINK (0x0008 << (PAINT_SAVE_SLOTS * 2))
 
 // Default to LEDs, SFX, and music on, with slot 0 marked as most recent
-#define PAINT_DEFAULTS (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM | PAINT_ENABLE_BLINK)
+#define PAINT_DEFAULTS (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM | PAINT_ENABLE_BLINK | (PAINT_SAVE_SLOTS << PAINT_SAVE_SLOTS))
 
 // Mask for the index that includes everything except the most-recent index
 #define PAINT_MASK_NOT_RECENT (PAINT_ENABLE_LEDS | PAINT_ENABLE_SFX | PAINT_ENABLE_BGM | PAINT_ENABLE_BLINK | ((1 << PAINT_SAVE_SLOTS) - 1))
@@ -100,8 +101,13 @@
 
 //////// Various Constants
 
+#define PAINT_MAX_BRUSH_SWIPE 16
+
 // hold button for .3s to begin repeating
 #define BUTTON_REPEAT_TIME 300000
+
+// 10 seconds to go to gallery screensaver
+#define PAINT_SCREENSAVER_TIMEOUT 10000000
 
 #define BLINK_TIME_ON 500000
 #define BLINK_TIME_OFF 200000
@@ -188,13 +194,19 @@ typedef struct
     // Which mode will be used to interpret button presses
     paintButtonMode_t buttonMode;
 
-    // Whether or not A is currently pressed
+    // Whether or not A is currently held
     bool aHeld;
+
+    // flag so that an a press shorter than 1 frame always gets handled
+    bool aPress;
 
     // When true, this is the initial D-pad button down.
     // If set, the cursor will move by one pixel and then it will be cleared.
     // The cursor will not move again until a D-pad button has been held for BUTTON_REPEAT_TIME microseconds
     bool firstMove;
+
+    // So we don't miss a button press that happens between frames
+    uint16_t unhandledButtons;
 
     // The time a D-pad button has been held down for, in microseconds
     int64_t btnHoldTime;
@@ -219,8 +231,11 @@ typedef struct
     bool blinkOn;
 
     bool touchDown;
-    uint8_t firstTouch;
-    uint8_t lastTouch;
+    int32_t firstTouch;
+    int32_t lastTouch;
+
+    // The brush width
+    uint8_t startBrushWidth;
 
 
     //////// Save data flags
@@ -267,6 +282,7 @@ typedef struct
     int32_t index;
 
     font_t toolbarFont;
+    wsg_t arrowWsg;
 
     // The save slot being displayed / shared
     uint8_t shareSaveSlot;
@@ -295,6 +311,7 @@ typedef struct
 
     // Time for the progress bar timer
     int64_t shareTime;
+    int64_t timeSincePacket;
 
     // True if we are the sender, false if not
     bool isSender;
@@ -310,6 +327,8 @@ typedef struct
     int32_t index;
 
     font_t infoFont;
+    wsg_t arrow;
+
 
     // TODO rename these to better things now that they're in their own struct
 
@@ -318,6 +337,9 @@ typedef struct
 
     // Amount of time between each transition, or 0 for disabled
     int64_t gallerySpeed;
+    int32_t gallerySpeedIndex;
+
+    portableDance_t* portableDances;
 
     // Reaining time that info text will be shown
     int64_t infoTimeRemaining;
@@ -325,22 +347,58 @@ typedef struct
     // Current image used in gallery
     uint8_t gallerySlot;
 
+    bool showUi;
     bool galleryLoadNew;
+    bool screensaverMode;
+    paintScreen_t returnScreen;
 
     uint8_t galleryScale;
 } paintGallery_t;
 
+typedef enum
+{
+    TOUCH_ANY   = 0x0100,
+    TOUCH_X     = 0x0200,
+    TOUCH_Y     = 0x0400,
+    SWIPE_LEFT  = 0x0800,
+    SWIPE_RIGHT = 0x1000,
+} virtualButton_t;
+
 // Triggers for advancing the tutorial step
 typedef enum
 {
+    NO_TRIGGER,
+
+    // Press all of the given buttons at least once, in any order
     PRESS_ALL,
+
+    // Press any one of the give buttons
     PRESS_ANY,
+
+    // Press all of the given buttons at once
     PRESS,
+
+    // Release the given button
     RELEASE,
     CHANGE_BRUSH,
-    CHANGE_COLOR,
     SELECT_MENU_ITEM,
-    NO_TRIGGER,
+    CHANGE_MODE,
+
+    // Inverse of CHANGE_BRUSH
+    BRUSH_NOT,
+
+    // Inverse of SELECT_MENU_ITEM
+    MENU_ITEM_NOT,
+
+    // Inverse of CHANGE_MODE
+    MODE_NOT,
+} paintHelpTriggerType_t;
+
+typedef struct
+{
+    paintHelpTriggerType_t type;
+    void* dataPtr;
+    int64_t data;
 } paintHelpTrigger_t;
 
 typedef enum
@@ -363,9 +421,12 @@ typedef struct
 typedef struct
 {
     paintHelpTrigger_t trigger;
-    void* triggerDataPtr;
-    int64_t triggerData;
-    paintHelpIndicator_t indicators[4];
+
+    // If this trigger is met, go back to a previous step
+    paintHelpTrigger_t backtrack;
+
+    // The number of steps to go back if the backtrack trigger is met
+    uint8_t backtrackSteps;
 
     const char* prompt;
 } paintHelpStep_t;
@@ -375,7 +436,7 @@ typedef struct
     const paintHelpStep_t* curHelp;
     uint16_t allButtons;
     uint16_t curButtons;
-    buttonBit_t lastButton;
+    uint16_t lastButton;
     bool lastButtonDown;
 
     uint16_t helpH;
@@ -391,8 +452,12 @@ typedef struct
     meleeMenu_t* menu;
 
     uint8_t menuSelection, networkMenuSelection, settingsMenuSelection;
+    uint8_t eraseSlot;
 
     bool eraseDataSelected, eraseDataConfirm;
+
+    int64_t idleTimer;
+    bool enableScreensaver;
 
     display_t* disp;
 

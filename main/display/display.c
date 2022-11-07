@@ -290,9 +290,12 @@ static void rotatePixel(int16_t* x, int16_t* y, int16_t rotateDeg, int16_t width
     // See http://datagenetics.com/blog/august32013/index.html
     // See https://graphicsinterface.org/wp-content/uploads/gi1986-15.pdf
 
+    int32_t tx = -(width / 2);
+    int32_t ty = -(height / 2);
+
     // Center around (0, 0)
-    wx -= (width / 2);
-    wy -= (height / 2);
+    wx += tx;
+    wy += ty;
 
     // First rotate to the nearest 90 degree boundary, which is trivial
     if(rotateDeg >= 270)
@@ -300,21 +303,21 @@ static void rotatePixel(int16_t* x, int16_t* y, int16_t rotateDeg, int16_t width
         // (x, y) -> (y, -x)
         int16_t tmp = wx;
         wx = wy;
-        wy = -tmp;
+        wy = 2 * tx - tmp + width - 1;
         rotateDeg -= 270;
     }
     else if(rotateDeg >= 180)
     {
         // (x, y) -> (-x, -y)
-        wx = -wx;
-        wy = -wy;
+        wx = 2 * tx - wx + width - 1;
+        wy = 2 * ty - wy + height - 1;
         rotateDeg -= 180;
     }
     else if(rotateDeg >= 90)
     {
         // (x, y) -> (-y, x)
         int16_t tmp = wx;
-        wx = -wy;
+        wx = 2 * ty - wy + height - 1;
         wy = tmp;
         rotateDeg -= 90;
     }
@@ -335,8 +338,8 @@ static void rotatePixel(int16_t* x, int16_t* y, int16_t rotateDeg, int16_t width
     }
 
     // Return pixel to original position
-    wx += (width / 2);
-    wy += (height / 2);
+    wx -= tx;
+    wy -= ty;
 
     *x = wx;
     *y = wy;
@@ -354,7 +357,7 @@ static void rotatePixel(int16_t* x, int16_t* y, int16_t rotateDeg, int16_t width
  * @param flipUD true to flip the image across the X axis
  * @param rotateDeg The number of degrees to rotate clockwise, must be 0-359
  */
-void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
+void drawWsg(display_t* disp, const wsg_t* wsg, int16_t xOff, int16_t yOff,
              bool flipLR, bool flipUD, int16_t rotateDeg)
 {
     //  This function has been micro optimized by cnlohr on 2022-09-08, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
@@ -389,7 +392,7 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
                 usey = wsg->h - 1 - usey;
             }
 
-            paletteColor_t* linein = &wsg->px[usey * wsgw];
+            const paletteColor_t* linein = &wsg->px[usey * wsgw];
 
             // Reflect over Y axis?
             uint32_t readX = 0;
@@ -494,7 +497,7 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
                 usey = wsgh - 1 - usey;
             }
 
-            paletteColor_t* linein = &wsg->px[usey * wsgw];
+            const paletteColor_t* linein = &wsg->px[usey * wsgw];
 
             // Transform this pixel's draw location as necessary
             uint32_t dstY = srcY + yOff;
@@ -531,7 +534,7 @@ void drawWsg(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff,
  * @param xOff The x offset to draw the WSG at
  * @param yOff The y offset to draw the WSG at
  */
-void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
+void drawWsgSimpleFast(display_t* disp, const wsg_t* wsg, int16_t xOff, int16_t yOff)
 {
     //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
 
@@ -552,7 +555,7 @@ void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
     int wsgY = (yMin - yOff);
     int wsgX = (xMin - xOff);
     paletteColor_t* lineout = &px[(yMin * dWidth) + xMin];
-    paletteColor_t* linein = &wsg->px[wsgY * wWidth + wsgX];
+    const paletteColor_t* linein = &wsg->px[wsgY * wWidth + wsgX];
 
     // Draw each pixel
     for (int y = yMin; y < yMax; y++)
@@ -579,7 +582,7 @@ void drawWsgSimpleFast(display_t* disp, wsg_t* wsg, int16_t xOff, int16_t yOff)
  * @param xOff The x offset to draw the WSG at
  * @param yOff The y offset to draw the WSG at
  */
-void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
+void drawWsgTile(display_t* disp, const wsg_t* wsg, int32_t xOff, int32_t yOff)
 {
     // Check if there is framebuffer access
     {
@@ -594,7 +597,7 @@ void drawWsgTile(display_t* disp, wsg_t* wsg, int32_t xOff, int32_t yOff)
 
         int wWidth = wsg->w;
         int dWidth = disp->w;
-        paletteColor_t* pxWsg = &wsg->px[(wsg->h - (yEnd - yStart)) * wWidth];
+        const paletteColor_t* pxWsg = &wsg->px[(wsg->h - (yEnd - yStart)) * wWidth];
         paletteColor_t* pxDisp = &disp->pxFb[yStart * dWidth + xOff];
 
         // Bound in the X direction
@@ -641,6 +644,7 @@ bool loadFont(const char* name, font_t* font)
     // Read font from file
     uint8_t* buf = NULL;
     size_t bufIdx = 0;
+    uint8_t chIdx = 0;
     size_t sz;
     if(!spiffsReadFile(name, &buf, &sz, true))
     {
@@ -652,10 +656,10 @@ bool loadFont(const char* name, font_t* font)
     font->h = buf[bufIdx++];
 
     // Read each char
-    for(char ch = ' '; ch <= '~'; ch++)
+    while(bufIdx < sz)
     {
         // Get an easy refence to this character
-        font_ch_t* this = &font->chars[ch - ' '];
+        font_ch_t* this = &font->chars[chIdx++];
 
         // Read the width
         this->w = buf[bufIdx++];
@@ -668,6 +672,13 @@ bool loadFont(const char* name, font_t* font)
         this->bitmap = (uint8_t*) malloc(sizeof(uint8_t) * bytes);
         memcpy(this->bitmap, &buf[bufIdx], bytes);
         bufIdx += bytes;
+    }
+
+    // Zero out any unused chars
+    while (chIdx <= '~' - ' ' + 1)
+    {
+        font->chars[chIdx].bitmap = NULL;
+        font->chars[chIdx++].w = 0;
     }
 
     // Free the SPIFFS data
@@ -683,9 +694,13 @@ bool loadFont(const char* name, font_t* font)
  */
 void freeFont(font_t* font)
 {
-    for(char ch = ' '; ch <= '~'; ch++)
+    // using uint8_t instead of char because a char will overflow to -128 after the last char is freed (\x7f)
+    for(uint8_t idx = 0; idx <= '~' - ' ' + 1; idx++)
     {
-        free(font->chars[ch - ' '].bitmap);
+        if (font->chars[idx].bitmap != NULL)
+        {
+            free(font->chars[idx].bitmap);
+        }
     }
 }
 
@@ -700,15 +715,15 @@ void freeFont(font_t* font)
  * @param xOff  The x offset to draw the char at
  * @param yOff  The y offset to draw the char at
  */
-void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16_t xOff, int16_t yOff)
+void drawChar(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch, int16_t xOff, int16_t yOff)
 {
     //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
     int bitIdx = 0;
-    uint8_t* bitmap = ch->bitmap;
+    const uint8_t* bitmap = ch->bitmap;
     int wch = ch->w;
 
     // Get a pointer to the end of the bitmap
-    uint8_t* endOfBitmap = &bitmap[((wch * h) + 7) >> 3] - 1;
+    const uint8_t* endOfBitmap = &bitmap[((wch * h) + 7) >> 3] - 1;
 
     // Don't draw off the bottom of the screen.
     if( yOff + h > disp->h )
@@ -801,7 +816,7 @@ void drawChar(display_t* disp, paletteColor_t color, int h, font_ch_t* ch, int16
  * @param yOff  The y offset to draw the text at
  * @return The x offset at the end of the drawn string
  */
-int16_t drawText(display_t* disp, font_t* font, paletteColor_t color, const char* text, int16_t xOff, int16_t yOff)
+int16_t drawText(display_t* disp, const font_t* font, paletteColor_t color, const char* text, int16_t xOff, int16_t yOff)
 {
     while(*text >= ' ')
     {
@@ -832,7 +847,7 @@ int16_t drawText(display_t* disp, font_t* font, paletteColor_t color, const char
  * @param text The text to measure
  * @return The width of the text rendered in the font
  */
-uint16_t textWidth(font_t* font, const char* text)
+uint16_t textWidth(const font_t* font, const char* text)
 {
     uint16_t width = 0;
     while(*text != 0)
@@ -868,7 +883,7 @@ uint16_t textWidth(font_t* font, const char* text)
 /// @param xMax The maximum x-coordinate at which any text may be drawn
 /// @param yMax The maximum ycoordinate at which text may be drawn
 /// @return A pointer to the first unprinted character within `text`, or NULL if all text has been written
-const char* drawTextWordWrap(display_t* disp, font_t* font, paletteColor_t color, const char* text,
+const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
                              int16_t xOff, int16_t yOff, int16_t xMax, int16_t yMax)
 {
     const char* textPtr = text;
