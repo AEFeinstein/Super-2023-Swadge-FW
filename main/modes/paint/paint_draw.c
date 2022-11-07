@@ -98,7 +98,7 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = { .type = CHANGE_BRUSH, .dataPtr = (void*)"Polygon", }, .prompt = "Nice! Let's try out the POLYGON brush next." },
 
     { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Polygon" }, .backtrackSteps = 1, .prompt = "Press A to select the first point of the polygon..." },
-    { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Polygon" }, .backtrackSteps = 2, .prompt = "Pick at least one more point for the polygon..." },
+    { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Polygon" }, .backtrackSteps = 2, .prompt = "Pick at least one more point for the polygon. Note that the first point will change color!" },
     { .trigger = { .type = DRAW_COMPLETE, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Polygon" }, .backtrackSteps = 3, .prompt = "To finish the polygon, connect it back to the original point, or use up all the remaining picks." },
 
     { .trigger = { .type = PRESS, .data = START, }, .prompt = "Good job! Now you know how to use all the brush types.\nNext, let's press START to toggle the menu" },
@@ -1900,11 +1900,13 @@ void paintUpdateLeds(void)
 void paintDrawPickPoints(void)
 {
     pxVal_t point;
+    bool invert = false;
     for (size_t i = 0; i < pxStackSize(&getArtist()->pickPoints); i++)
     {
         if (getPx(&getArtist()->pickPoints, i, &point))
         {
-            plotRectFilled(paintState->disp, point.x, point.y, point.x + paintState->canvas.xScale + 1, point.y + paintState->canvas.yScale + 1, getArtist()->fgColor);
+            invert = (i == 0 && getArtist()->brushDef->mode == PICK_POINT_LOOP) && pxStackSize(&getArtist()->pickPoints) > 1;
+            plotRectFilled(paintState->disp, point.x, point.y, point.x + paintState->canvas.xScale + 1, point.y + paintState->canvas.yScale + 1, invert ? getContrastingColor(point.col) : getArtist()->fgColor);
         }
     }
 }
