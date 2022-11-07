@@ -138,7 +138,7 @@ class Song:
 
     def to_struct(self, name='song'):
         return \
-"""static const song_t {} =
+"""const song_t {} =
 {{
     .notes =
     {{
