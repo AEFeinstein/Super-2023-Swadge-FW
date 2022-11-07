@@ -311,7 +311,7 @@ static bool IRAM_ATTR buzzer_track_check_next_note(buzzerTrack_t* track, bool is
             // Loop if we should
             if(track->song->shouldLoop && (track->note_index == track->song->numNotes))
             {
-                track->note_index = 0;
+                track->note_index = track->song->loopStartNote;
             }
 
             // If there is a note
