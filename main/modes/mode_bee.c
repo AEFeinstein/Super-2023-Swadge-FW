@@ -1881,6 +1881,7 @@ void beeEnterMode(display_t* disp)
     bee->tElapsedUs = 0;
     bee->scrollMod = 1;
 
+    buzzer_stop();
     buzzer_play_bgm(&hereComesTheSun);
 }
 
