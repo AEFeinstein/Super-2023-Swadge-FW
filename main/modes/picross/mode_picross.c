@@ -148,6 +148,11 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
         }
     }
 
+
+    //BG music
+    buzzer_stop();
+    buzzer_play_bgm(&picross_music_bg);
+
     //Setup level
     picrossSetupPuzzle(cont);
 }
@@ -407,9 +412,13 @@ void picrossGameLoop(int64_t elapsedUs)
     //You won! Only called once, since you cant go from win->solving without resetting everything (ie: menu and back)
     if(p->previousPhase == PICROSS_SOLVING && p->currentPhase == PICROSS_YOUAREWIN)
     {
+        buzzer_stop();
         if(p->selectedLevel.index == 29){
             buzzer_play_bgm(&picross_music_rick);
+        }else{
+            buzzer_play_bgm(&picross_music_win);
         }
+
         //Unsave progress. Hides "current" in the main menu. we dont need to zero-out the actual data that will just happen when we load a new level.
         writeNvs32(picrossCurrentPuzzleIndexKey, -1);
 
