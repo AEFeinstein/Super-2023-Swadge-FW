@@ -17,13 +17,6 @@
 paintDraw_t* paintState;
 paintHelp_t* paintHelp;
 
-#define BPM 104
-#define WHOLE (240000 / BPM)
-#define HALF (120000 / BPM)
-#define QUARTER (60000 / BPM)
-#define EIGHTH (30000 / BPM)
-#define SIXTEENTH (15000 / BPM)
-
 /*
  * Interactive Help Definitions
  *
