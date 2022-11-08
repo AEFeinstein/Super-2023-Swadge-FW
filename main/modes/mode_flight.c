@@ -170,7 +170,7 @@ int renderlinecolor = CNDRAW_WHITE;
  * Prototypes
  *==========================================================================*/
 
-static void flightRender();
+static void flightRender(int64_t elapsedUs);
 static void flightBackground(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum );
 static void flightEnterMode(display_t * disp);
 static void flightExitMode(void);
@@ -898,7 +898,7 @@ int mdlctcmp( const void * va, const void * vb )
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static void flightRender()
+static void flightRender(int64_t elapsedUs __attribute__((unused)))
 {
 
 #ifndef EMU
@@ -916,7 +916,7 @@ static void flightRender()
     SetupMatrix();
 
 
-    static uint32_t fps;
+    // static uint32_t fps;
     static uint32_t nowframes;
     static uint32_t lasttimeframe;
     if( nowframes == 0 )
@@ -926,24 +926,22 @@ static void flightRender()
     }
     if( ((uint32_t)esp_timer_get_time()) - lasttimeframe > 1000000 )
     {
-        fps = nowframes;
+        // fps = nowframes;
         nowframes = 1;
         lasttimeframe+=1000000;
     }
     nowframes++;
 
-#ifndef EMU
-    uint32_t start = getCycleCount();
-//  if( flight->mode == FLIGHT_PERFTEST )
-//        portDISABLE_INTERRUPTS();
-#ifndef EMU
-    if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('1');
-#endif
+// #ifndef EMU
+//     uint32_t start = getCycleCount();
+// //  if( flight->mode == FLIGHT_PERFTEST )
+// //        portDISABLE_INTERRUPTS();
+//     if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('1');
 
-#else
-    cndrawPerfcounter = 0;
-    uint32_t start = cndrawPerfcounter;
-#endif
+// #else
+//     cndrawPerfcounter = 0;
+//     uint32_t start = cndrawPerfcounter;
+// #endif
 
 
     tdRotateEA( ProjectionMatrix, tflight->hpr[1]/11, tflight->hpr[0]/11, 0 );
@@ -1013,22 +1011,22 @@ static void flightRender()
         mdlct++;
     }
 
-#ifndef EMU
-    if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('2');
-    uint32_t mid1 = getCycleCount();
-#else
-    uint32_t mid1 = cndrawPerfcounter;
-#endif
+// #ifndef EMU
+//     if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('2');
+//     uint32_t mid1 = getCycleCount();
+// #else
+//     uint32_t mid1 = cndrawPerfcounter;
+// #endif
 
     //Painter's algorithm
     qsort( mrp, mdlct, sizeof( struct ModelRangePair ), mdlctcmp );
 
-#ifndef EMU
-    if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('3');
-    uint32_t mid2 = getCycleCount();
-#else
-    uint32_t mid2 = cndrawPerfcounter;
-#endif
+// #ifndef EMU
+//     if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('3');
+//     uint32_t mid2 = getCycleCount();
+// #else
+//     uint32_t mid2 = cndrawPerfcounter;
+// #endif
 
     for( i = 0; i < mdlct; i++ )
     {
@@ -1082,18 +1080,16 @@ static void flightRender()
     }
 
 
-#ifndef EMU
-        //OVERCLOCK_SECTION_DISABLE();
-        //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 1 );
-#endif
-#ifndef EMU
-    if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('4');
-    uint32_t stop = getCycleCount();
-//    if( flight->mode == FLIGHT_PERFTEST )
-//        portENABLE_INTERRUPTS();
-#else
-    uint32_t stop = cndrawPerfcounter;
-#endif
+// #ifndef EMU
+//         //OVERCLOCK_SECTION_DISABLE();
+//         //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 1 );
+//     if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('4');
+//     uint32_t stop = getCycleCount();
+// //    if( flight->mode == FLIGHT_PERFTEST )
+// //        portENABLE_INTERRUPTS();
+// #else
+//     uint32_t stop = cndrawPerfcounter;
+// #endif
 
 
     if( flight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_PERFTEST )
