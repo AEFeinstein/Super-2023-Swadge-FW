@@ -17,22 +17,12 @@
 paintDraw_t* paintState;
 paintHelp_t* paintHelp;
 
-// #define BPM 104
-// #define WHOLE (240000 / BPM)
-// #define HALF (120000 / BPM)
-// #define QUARTER (60000 / BPM)
-// #define EIGHTH (30000 / BPM)
-// #define SIXTEENTH (15000 / BPM)
-
 /*
  * Interactive Help Definitions
  *
  * Each step here defines a tutorial step with a help message that will
  * be displayed below the canvas, and a trigger that will cause the tutorial
  * step to be considered "completed" and move on to the next step.
- *
- * TODO: Add steps for Polygon brush
- * TODO: Add an "Explain" for each brush after the tutorial
  */
 const paintHelpStep_t helpSteps[] =
 {
