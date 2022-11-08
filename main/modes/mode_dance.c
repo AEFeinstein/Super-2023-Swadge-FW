@@ -133,10 +133,6 @@ typedef struct
     uint8_t danceIdx;
     uint8_t danceSpeed;
 
-    bool touchDown;
-    int32_t firstTouch;
-    uint8_t swipeStartSpeed;
-
     bool resetDance;
     bool blankScreen;
 
@@ -467,37 +463,11 @@ void dancePollTouch(void)
     int32_t centroid, intensity;
     if (getTouchCentroid(&centroid, &intensity))
     {
-        if (!danceState->touchDown)
-        {
-            danceState->touchDown = true;
-            danceState->buttonPressedTimer = 0;
-            danceState->firstTouch = centroid;
-            danceState->swipeStartSpeed = danceState->danceSpeed;
-        }
-        else
-        {
-            int32_t swipeMagnitude = ((centroid - danceState->firstTouch) * (sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1)) / 1024;
-            int32_t newSpeed = danceState->swipeStartSpeed - swipeMagnitude;
+        uint8_t index = ((centroid * (sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1) + 512) / 1024);
 
-            if (newSpeed >= sizeof(danceSpeeds) / sizeof(*danceSpeeds))
-            {
-                newSpeed = sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1;
-            }
-            else if (newSpeed < 0)
-            {
-                newSpeed = 0;
-            }
-
-            danceState->danceSpeed = (uint8_t)newSpeed;
-            danceState->buttonPressedTimer = 0;
-        }
-    }
-    else
-    {
-        if (danceState->touchDown)
-        {
-            danceState->touchDown = false;
-        }
+        // Flip it so fast is up and slow is down
+        danceState->danceSpeed = sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1 - index;
+        danceState->buttonPressedTimer = 0;
     }
 }
 
