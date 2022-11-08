@@ -17,12 +17,12 @@
 paintDraw_t* paintState;
 paintHelp_t* paintHelp;
 
-#define BPM 104
+// #define BPM 104
 // #define WHOLE (240000 / BPM)
-#define HALF (120000 / BPM)
-#define QUARTER (60000 / BPM)
-#define EIGHTH (30000 / BPM)
-#define SIXTEENTH (15000 / BPM)
+// #define HALF (120000 / BPM)
+// #define QUARTER (60000 / BPM)
+// #define EIGHTH (30000 / BPM)
+// #define SIXTEENTH (15000 / BPM)
 
 /*
  * Interactive Help Definitions
@@ -1645,7 +1645,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
     {
         // Allocate an array of point_t for the canvas pick points
         size_t pickCount = pxStackSize(&getArtist()->pickPoints);
-        point_t* canvasPickPoints[sizeof(point_t) * pickCount];
+        point_t canvasPickPoints[sizeof(point_t) * pickCount];
 
         // Convert the pick points into an array of canvas-coordinates
         paintConvertPickPointsScaled(&getArtist()->pickPoints, &paintState->canvas, canvasPickPoints);
