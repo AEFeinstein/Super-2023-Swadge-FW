@@ -35,6 +35,7 @@
 #include "mode_tunernome.h"
 #include "mode_credits.h"
 #include "mode_test.h"
+#include "paint_song.h"
 
 #include "mode_jukebox.h"
 #include "meleeMenu.h"
@@ -189,6 +190,11 @@ static const jukeboxSong jumperMusic[] =
     {.name = "Perfect", .song = &jumpPerfectTune},
 };
 
+static const jukeboxSong paintMusic[] =
+{
+    {.name = "Dice", .song = &paintBgm},
+};
+
 static const jukeboxSong creditsMusic[] =
 {
     {.name = "Credits", .song = &creditsSong},
@@ -205,6 +211,7 @@ static const jukeboxCategory musicCategories[] =
     {.categoryName = "Tiltrads", .numSongs = lengthof(tiltradsMusic), .songs = tiltradsMusic},
     {.categoryName = "Swadge Land", .numSongs = lengthof(platformerMusic), .songs = platformerMusic},
     {.categoryName = "Donut Jump", .numSongs = lengthof(jumperMusic), .songs = jumperMusic},
+    {.categoryName = "MFPaint", .numSongs = lengthof(paintMusic), .songs = paintMusic},
     {.categoryName = "Credits", .numSongs = lengthof(creditsMusic), .songs = creditsMusic},
     {.categoryName = "Test Mode", .numSongs = lengthof(testMusic), .songs = testMusic},
 };

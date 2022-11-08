@@ -9,6 +9,7 @@
 #include "paint_nvs.h"
 #include "paint_util.h"
 #include "mode_paint.h"
+#include "paint_song.h"
 
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -22,46 +23,6 @@ paintHelp_t* paintHelp;
 #define QUARTER (60000 / BPM)
 #define EIGHTH (30000 / BPM)
 #define SIXTEENTH (15000 / BPM)
-
-// TODO Swap placeholder for real music
-const song_t paintBgm =
-{
-    .notes =
-    {
-        {.note = F_SHARP_4, .timeMs = QUARTER},
-        {.note = C_SHARP_5, .timeMs = EIGHTH},
-        {.note = A_SHARP_4, .timeMs = EIGHTH},
-        {.note = A_SHARP_4, .timeMs = QUARTER},
-        {.note = G_SHARP_4, .timeMs = EIGHTH},
-        {.note = F_SHARP_4, .timeMs = EIGHTH},
-        {.note = F_SHARP_4, .timeMs = EIGHTH},
-        {.note = B_4, .timeMs = QUARTER},
-        {.note = A_SHARP_4, .timeMs = EIGHTH},
-        {.note = A_SHARP_4, .timeMs = EIGHTH},
-        {.note = G_SHARP_4, .timeMs = EIGHTH},
-        {.note = G_SHARP_4, .timeMs = SIXTEENTH},
-        {.note = F_SHARP_4, .timeMs = QUARTER},
-
-        {.note = SILENCE, .timeMs = EIGHTH},
-
-        {.note = F_SHARP_4, .timeMs = SIXTEENTH},
-        {.note = C_SHARP_5, .timeMs = EIGHTH},
-        {.note = A_SHARP_4, .timeMs = EIGHTH},
-        {.note = A_SHARP_4, .timeMs = QUARTER},
-        {.note = G_SHARP_4, .timeMs = EIGHTH},
-        {.note = G_SHARP_4, .timeMs = EIGHTH},
-        {.note = F_SHARP_4, .timeMs = EIGHTH},
-        {.note = F_SHARP_4, .timeMs = EIGHTH},
-        {.note = D_SHARP_4, .timeMs = EIGHTH + SIXTEENTH},
-        {.note = C_SHARP_4, .timeMs = QUARTER + EIGHTH},
-        {.note = SILENCE, .timeMs = QUARTER},
-
-        {.note = SILENCE, .timeMs = HALF},
-    },
-
-    .numNotes = 26,
-    .shouldLoop = true,
-};
 
 /*
  * Interactive Help Definitions
@@ -95,7 +56,13 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 1, .prompt = "Now, press A to select the first corner of the rectangle..." },
     { .trigger = { .type = PRESS_ANY, .data = (UP | DOWN | LEFT | RIGHT), }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 2, .prompt = "Then move somewhere else..." },
     { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 3, .prompt = "Press A again to pick the other coner of the rectangle. Note that the first point you picked will blink!" },
-    { .trigger = { .type = PRESS, .data = START, }, .prompt = "Good job! Now you know how to use all the brushes.\nNext, let's press START to toggle the menu" },
+    { .trigger = { .type = CHANGE_BRUSH, .dataPtr = (void*)"Polygon", }, .prompt = "Nice! Let's try out the POLYGON brush next." },
+
+    { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Polygon" }, .backtrackSteps = 1, .prompt = "Press A to select the first point of the polygon..." },
+    { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Polygon" }, .backtrackSteps = 2, .prompt = "Pick at least one more point for the polygon. Note that the first point will change color!" },
+    { .trigger = { .type = DRAW_COMPLETE, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Polygon" }, .backtrackSteps = 3, .prompt = "To finish the polygon, connect it back to the original point, or use up all the remaining picks." },
+
+    { .trigger = { .type = PRESS, .data = START, }, .prompt = "Good job! Now you know how to use all the brush types.\nNext, let's press START to toggle the menu" },
     { .trigger = { .type = PRESS_ANY, .data = UP | DOWN | SELECT, }, .backtrack = { .type = SELECT_MENU_ITEM, .data = HIDDEN }, .backtrackSteps = 1, .prompt = "Press UP, DOWN, or SELECT to go through the menu items" },
     { .trigger = { .type = SELECT_MENU_ITEM, .data = PICK_SLOT_SAVE, }, .backtrack = { .type = SELECT_MENU_ITEM, .data = HIDDEN }, .backtrackSteps = 2, .prompt = "Great! Now, navigate to the SAVE option" },
     { .trigger = { .type = PRESS_ANY, .data = LEFT | RIGHT, }, .backtrack = { .type = MENU_ITEM_NOT, .data = PICK_SLOT_SAVE }, .backtrackSteps = 1, .prompt = "Use D-Pad LEFT and RIGHT to switch between save slots here, or any other menu options" },
@@ -212,6 +179,34 @@ void paintDrawScreenSetup(display_t* disp)
         PAINT_LOGE("Loading brush_size.wsg icon failed!!!");
     }
 
+    if (!loadWsg("arrow9.wsg", &paintState->smallArrowWsg))
+    {
+        PAINT_LOGE("Loading arrow5.wsg icon failed!!!");
+    }
+    else
+    {
+        colorReplaceWsg(&paintState->smallArrowWsg, c555, c000);
+    }
+
+    if (!loadWsg("arrow12.wsg", &paintState->bigArrowWsg))
+    {
+        PAINT_LOGE("Loading arrow5.wsg icon failed!!!");
+    }
+    else
+    {
+        colorReplaceWsg(&paintState->bigArrowWsg, c555, c000);
+    }
+
+    if (!loadWsg("newfile.wsg", &paintState->newfileWsg))
+    {
+        PAINT_LOGE("Loading newfile.wsg icon failed!!!");
+    }
+
+    if (!loadWsg("overwrite.wsg", &paintState->overwriteWsg))
+    {
+        PAINT_LOGE("Loading overwrite.wsg icon failed!!!");
+    }
+
     // Setup the margins
     // Top: Leave room for the tallest of...
     // * The save menu text plus padding above and below it
@@ -307,6 +302,10 @@ void paintDrawScreenCleanup(void)
 
     freeWsg(&paintState->brushSizeWsg);
     freeWsg(&paintState->picksWsg);
+    freeWsg(&paintState->bigArrowWsg);
+    freeWsg(&paintState->smallArrowWsg);
+    freeWsg(&paintState->newfileWsg);
+    freeWsg(&paintState->overwriteWsg);
 
     for (uint8_t i = 0; i < sizeof(paintState->artist) / sizeof(paintState->artist[0]) ;i++)
     {
@@ -351,6 +350,7 @@ void paintTutorialOnEvent(void)
             paintHelp->allButtons = 0;
             paintHelp->lastButton = 0;
             paintHelp->lastButtonDown = false;
+            paintHelp->drawComplete = false;
         }
     }
     else if (paintTutorialCheckTrigger(&paintHelp->curHelp->backtrack))
@@ -370,6 +370,7 @@ void paintTutorialOnEvent(void)
         paintHelp->allButtons = 0;
         paintHelp->lastButton = 0;
         paintHelp->lastButtonDown = false;
+            paintHelp->drawComplete = false;
     }
 }
 
@@ -388,6 +389,9 @@ bool paintTutorialCheckTrigger(const paintHelpTrigger_t* trigger)
 
     case RELEASE:
         return paintHelp->lastButtonDown == false && (paintHelp->lastButton & trigger->data) == paintHelp->lastButton;
+
+    case DRAW_COMPLETE:
+        return paintHelp->drawComplete;
 
     case CHANGE_BRUSH:
         return !strcmp(getArtist()->brushDef->name, trigger->dataPtr) && paintHelp->curButtons == 0;
@@ -1641,7 +1645,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
     {
         // Allocate an array of point_t for the canvas pick points
         size_t pickCount = pxStackSize(&getArtist()->pickPoints);
-        point_t* canvasPickPoints = malloc(sizeof(point_t) * pickCount);
+        point_t* canvasPickPoints[sizeof(point_t) * pickCount];
 
         // Convert the pick points into an array of canvas-coordinates
         paintConvertPickPointsScaled(&getArtist()->pickPoints, &paintState->canvas, canvasPickPoints);
@@ -1651,7 +1655,10 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         paintState->unsaved = true;
         getArtist()->brushDef->fnDraw(&paintState->canvas, canvasPickPoints, pickCount, getArtist()->brushWidth, col);
 
-        free(canvasPickPoints);
+        if (paintHelp != NULL)
+        {
+            paintHelp->drawComplete = true;
+        }
     }
     else
     {
@@ -1886,11 +1893,13 @@ void paintUpdateLeds(void)
 void paintDrawPickPoints(void)
 {
     pxVal_t point;
+    bool invert = false;
     for (size_t i = 0; i < pxStackSize(&getArtist()->pickPoints); i++)
     {
         if (getPx(&getArtist()->pickPoints, i, &point))
         {
-            plotRectFilled(paintState->disp, point.x, point.y, point.x + paintState->canvas.xScale + 1, point.y + paintState->canvas.yScale + 1, getArtist()->fgColor);
+            invert = (i == 0 && getArtist()->brushDef->mode == PICK_POINT_LOOP) && pxStackSize(&getArtist()->pickPoints) > 1;
+            plotRectFilled(paintState->disp, point.x, point.y, point.x + paintState->canvas.xScale + 1, point.y + paintState->canvas.yScale + 1, invert ? getContrastingColor(point.col) : getArtist()->fgColor);
         }
     }
 }
