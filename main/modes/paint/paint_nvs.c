@@ -293,7 +293,7 @@ bool paintLoad(int32_t* index, paintCanvas_t* canvas, uint8_t slot)
     size_t lastChunkSize;
     uint16_t x0, y0, x1, y1;
     // Read all the chunks
-    for (uint32_t i = 0; i < chunkCount; i++)
+    for (uint16_t i = 0; i < chunkCount; i++)
     {
         snprintf(key, 16, "paint_%02dc%05u", slot, i);
 
