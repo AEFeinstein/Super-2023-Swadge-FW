@@ -23,9 +23,6 @@ paintHelp_t* paintHelp;
  * Each step here defines a tutorial step with a help message that will
  * be displayed below the canvas, and a trigger that will cause the tutorial
  * step to be considered "completed" and move on to the next step.
- *
- * TODO: Add steps for Polygon brush
- * TODO: Add an "Explain" for each brush after the tutorial
  */
 const paintHelpStep_t helpSteps[] =
 {
