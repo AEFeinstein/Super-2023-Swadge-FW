@@ -76,11 +76,11 @@ uint32_t EHSVtoHEXhelper( uint8_t hue, uint8_t sat, uint8_t val, bool applyGamma
         ob = 255 - (hue - SIXTH5) * 255 / SIXTH1;
     }
 
-    uint16_t rv = val;
-    if( rv > 128 )
-    {
-        rv++;
-    }
+    // uint16_t rv = val;
+    // if( rv > 128 )
+    // {
+    //     rv++;
+    // }
     uint16_t rs = sat;
     if( rs > 128 )
     {

@@ -253,7 +253,7 @@ void updatePlayer(entity_t *self)
     {
         // Cut jump short if player lets go of jump button
         self->jumpPower = 0;
-        self->yspeed = self->yspeed >> 2; // technically shouldn't do this with a signed int
+        self->yspeed = self->yspeed / 4;
     }
 
     if(self->invincibilityFrames > 0){
@@ -687,7 +687,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                 updateLedsHpMeter(self->entityManager, self->gameData);
                 self->gameData->comboTimer = 0;
                 
-                if(self->hp <= 0){
+                if(self->hp == 0){
                     self->updateFunction = &updateEntityDead;
                     self->type = ENTITY_DEAD;
                     self->xspeed = 0;
@@ -1153,7 +1153,7 @@ void updateDustBunny(entity_t *self)
             
             switch(self->xDamping){
                 case 0: {
-                    self->yspeed = (2 + esp_random() % 3) * -24;
+                    self->yspeed = (int32_t)(2 + esp_random() % 3) * -24;
                     self->falling = true;
                     self->xDamping = 1;
                     self->yDamping = (1 + esp_random() % 3) * 9;
@@ -1189,7 +1189,7 @@ void updateDustBunnyL2(entity_t *self)
             switch(self->xDamping){
                 case 0: {
                     self->xspeed = (1 + esp_random() % 4) * 6 * ((self->spriteFlipHorizontal)?-1:1);
-                    self->yspeed = (1 + esp_random() % 4) * -24;
+                    self->yspeed = (int32_t)(1 + esp_random() % 4) * -24;
                     self->xDamping = 1;
                     self->yDamping = (esp_random() % 3) * 6;
                     self->spriteIndex = SP_DUSTBUNNY_L2_JUMP;
@@ -1223,8 +1223,8 @@ void updateDustBunnyL3(entity_t *self)
             
             switch(self->xDamping){
                 case 0: {
-                    self->xspeed = (1 + esp_random() % 4) * 6 * ((directionToPlayer)?-1:1);
-                    self->yspeed = (1 + esp_random() % 4) * -24;
+                    self->xspeed = (int32_t)(1 + esp_random() % 4) * 6 * ((directionToPlayer)?-1:1);
+                    self->yspeed = (int32_t)(1 + esp_random() % 4) * -24;
                     self->xDamping = 1;
                     self->yDamping = (esp_random() % 3) * 30;
                     self->spriteIndex = SP_DUSTBUNNY_L3_JUMP;
@@ -1845,12 +1845,12 @@ void updateWaveBall(entity_t* self){
     despawnWhenOffscreen(self);
 }
 
-bool waveBallTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
-    if(self->yspeed == 0){
-        destroyEntity(self, false);
-    }
-    return false;
-}
+// bool waveBallTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction){
+//     if(self->yspeed == 0){
+//         destroyEntity(self, false);
+//     }
+//     return false;
+// }
 
 void waveBallOverlapTileHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty){
     if(isSolid(tileId) || tileId == TILE_BOUNCE_BLOCK){

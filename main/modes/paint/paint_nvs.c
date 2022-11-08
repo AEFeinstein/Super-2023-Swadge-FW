@@ -8,36 +8,36 @@
 #include "paint_util.h"
 
 
-void paintDebugIndex(int32_t index)
-{
-    char bintext[33];
+// void paintDebugIndex(int32_t index)
+// {
+//     char bintext[33];
 
-    for (uint8_t i = 0; i < 32; i++)
-    {
-        bintext[31 - i] = (index & (1 << i)) ? '1' : '0';
-    }
+//     for (uint8_t i = 0; i < 32; i++)
+//     {
+//         bintext[31 - i] = (index & (1 << i)) ? '1' : '0';
+//     }
 
-    bintext[32] = '\0';
+//     bintext[32] = '\0';
 
-    PAINT_LOGD("PAINT INDEX:");
-    PAINT_LOGD("  Raw: %s", bintext);
-    PAINT_LOGD("  Slots:");
-    PAINT_LOGD("  - [%c] Slot 1", paintGetSlotInUse(index, 0) ? 'X' : ' ');
-    PAINT_LOGD("  - [%c] Slot 2", paintGetSlotInUse(index, 1) ? 'X' : ' ');
-    PAINT_LOGD("  - [%c] Slot 3", paintGetSlotInUse(index, 2) ? 'X' : ' ');
-    PAINT_LOGD("  - [%c] Slot 4", paintGetSlotInUse(index, 3) ? 'X' : ' ');
-    if (paintGetRecentSlot(index) == PAINT_SAVE_SLOTS)
-    {
-        PAINT_LOGD("  Recent Slot: None");
-    }
-    else
-    {
-        PAINT_LOGD("  Recent Slot: %d", paintGetRecentSlot(index) + 1);
-    }
-    PAINT_LOGD("  LEDs: %s", (index & PAINT_ENABLE_LEDS) ? "Yes" : "No");
-    PAINT_LOGD("  Blink: %s", (index & PAINT_ENABLE_BLINK) ? "Yes" : "No");
-    PAINT_LOGD("===========");
-}
+//     PAINT_LOGD("PAINT INDEX:");
+//     PAINT_LOGD("  Raw: %s", bintext);
+//     PAINT_LOGD("  Slots:");
+//     PAINT_LOGD("  - [%c] Slot 1", paintGetSlotInUse(index, 0) ? 'X' : ' ');
+//     PAINT_LOGD("  - [%c] Slot 2", paintGetSlotInUse(index, 1) ? 'X' : ' ');
+//     PAINT_LOGD("  - [%c] Slot 3", paintGetSlotInUse(index, 2) ? 'X' : ' ');
+//     PAINT_LOGD("  - [%c] Slot 4", paintGetSlotInUse(index, 3) ? 'X' : ' ');
+//     if (paintGetRecentSlot(index) == PAINT_SAVE_SLOTS)
+//     {
+//         PAINT_LOGD("  Recent Slot: None");
+//     }
+//     else
+//     {
+//         PAINT_LOGD("  Recent Slot: %d", paintGetRecentSlot(index) + 1);
+//     }
+//     PAINT_LOGD("  LEDs: %s", (index & PAINT_ENABLE_LEDS) ? "Yes" : "No");
+//     PAINT_LOGD("  Blink: %s", (index & PAINT_ENABLE_BLINK) ? "Yes" : "No");
+//     PAINT_LOGD("===========");
+// }
 
 void paintLoadIndex(int32_t* index)
 {
@@ -67,11 +67,11 @@ void paintSaveIndex(int32_t index)
     }
 }
 
-void paintResetStorage(int32_t* index)
-{
-    *index = PAINT_DEFAULTS;
-    paintSaveIndex(*index);
-}
+// void paintResetStorage(int32_t* index)
+// {
+//     *index = PAINT_DEFAULTS;
+//     paintSaveIndex(*index);
+// }
 
 bool paintGetSlotInUse(int32_t index, uint8_t slot)
 {
@@ -178,8 +178,8 @@ bool paintSave(int32_t* index, const paintCanvas_t* canvas, uint8_t slot)
         return false;
     }
 
-    PAINT_LOGD("We will use %d chunks of size %dB (%d), plus one of %dB == %dB to save the image", chunkCount - 1, PAINT_SAVE_CHUNK_SIZE, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE, finalChunkSize, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE + finalChunkSize);
-    PAINT_LOGD("The image is %d x %d px == %dpx, at 2px/B that's %dB", canvas->w, canvas->h, totalPx, totalPx / 2);
+    PAINT_LOGD("We will use %d chunks of size %dB (%d), plus one of %uB == %dB to save the image", chunkCount - 1, PAINT_SAVE_CHUNK_SIZE, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE, finalChunkSize, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE + finalChunkSize);
+    PAINT_LOGD("The image is %d x %d px == %upx, at 2px/B that's %uB", canvas->w, canvas->h, totalPx, totalPx / 2);
 
     uint16_t x0, y0, x1, y1;
     // Write all the chunks
@@ -207,14 +207,14 @@ bool paintSave(int32_t* index, const paintCanvas_t* canvas, uint8_t slot)
         }
 
         // save the chunk
-        snprintf(key, 16, "paint_%02dc%05d", slot, i);
+        snprintf(key, 16, "paint_%02dc%05u", slot, i);
         if (writeNvsBlob(key, imgChunk, (i + 1 < chunkCount) ? PAINT_SAVE_CHUNK_SIZE : finalChunkSize))
         {
-            PAINT_LOGD("Saved blob %d of %d", i+1, chunkCount);
+            PAINT_LOGD("Saved blob %u of %d", i+1, chunkCount);
         }
         else
         {
-            PAINT_LOGE("Unable to save blob %d of %d", i+1, chunkCount);
+            PAINT_LOGE("Unable to save blob %u of %d", i+1, chunkCount);
             free(imgChunk);
             return false;
         }
@@ -295,23 +295,23 @@ bool paintLoad(int32_t* index, paintCanvas_t* canvas, uint8_t slot)
     // Read all the chunks
     for (uint32_t i = 0; i < chunkCount; i++)
     {
-        snprintf(key, 16, "paint_%02dc%05d", slot, i);
+        snprintf(key, 16, "paint_%02dc%05u", slot, i);
 
         // get the chunk size
         if (!readNvsBlob(key, NULL, &lastChunkSize))
         {
-            PAINT_LOGE("Unable to read size of blob %d in slot %s", i, key);
+            PAINT_LOGE("Unable to read size of blob %u in slot %s", i, key);
             continue;
         }
 
         // read the chunk
         if (readNvsBlob(key, imgChunk, &lastChunkSize))
         {
-            PAINT_LOGD("Read blob %d of %d (%zu bytes)", i+1, chunkCount, lastChunkSize);
+            PAINT_LOGD("Read blob %u of %d (%zu bytes)", i+1, chunkCount, lastChunkSize);
         }
         else
         {
-            PAINT_LOGE("Unable to read blob %d of %d", i+1, chunkCount);
+            PAINT_LOGE("Unable to read blob %u of %d", i+1, chunkCount);
             // don't panic if we miss one chunk, maybe it's ok...
             continue;
         }

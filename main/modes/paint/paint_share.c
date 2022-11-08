@@ -93,7 +93,7 @@ void paintShareMsgSendFail(void);
 
 void paintShareSendPixelRequest(void);
 void paintShareSendReceiveComplete(void);
-void paintShareSendAbort(void);
+// void paintShareSendAbort(void);
 
 void paintShareSendCanvas(void);
 void paintShareHandleCanvas(void);
@@ -532,7 +532,6 @@ void paintShareSendPixels(void)
     paintShare->sharePacket[1] = (uint8_t)((paintShare->shareSeqNum >> 8) & 0xFF);
     paintShare->sharePacket[2] = (uint8_t)((paintShare->shareSeqNum >> 0) & 0xFF);
 
-    uint16_t x0, y0, x1, y1;
     for (uint8_t i = 0; i < PAINT_SHARE_PX_PACKET_LEN; i++)
     {
         if (PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum + i * 2 >= (paintShare->canvas.w * paintShare->canvas.h))
@@ -542,10 +541,10 @@ void paintShareSendPixels(void)
             break;
         }
         // TODO dedupe this and the nvs functions into a paintSerialize() or something
-        x0 = paintShare->canvas.x + ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2)) % paintShare->canvas.w * paintShare->canvas.xScale;
-        y0 = paintShare->canvas.y + ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2)) / paintShare->canvas.w * paintShare->canvas.yScale;
-        x1 = paintShare->canvas.x + ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2 + 1)) % paintShare->canvas.w * paintShare->canvas.xScale;
-        y1 = paintShare->canvas.y + ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2 + 1)) / paintShare->canvas.w * paintShare->canvas.yScale;
+        uint16_t x0 = paintShare->canvas.x + ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2)) % paintShare->canvas.w * paintShare->canvas.xScale;
+        uint16_t y0 = paintShare->canvas.y + ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2)) / paintShare->canvas.w * paintShare->canvas.yScale;
+        uint16_t x1 = paintShare->canvas.x + ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2 + 1)) % paintShare->canvas.w * paintShare->canvas.xScale;
+        uint16_t y1 = paintShare->canvas.y + ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2 + 1)) / paintShare->canvas.w * paintShare->canvas.yScale;
 
         //PAINT_LOGD("Mapping px(%d, %d) (%d) --> %x", x0, y0, paintShare->disp->getPx(x0, y0), paintShare->sharePaletteMap[(uint8_t)(paintShare->disp->getPx(x0, y0))]);
         paintShare->sharePacket[i + 3] = paintShare->sharePaletteMap[(uint8_t)paintShare->disp->getPx(x0, y0)] << 4 | paintShare->sharePaletteMap[(uint8_t)paintShare->disp->getPx(x1, y1)];
@@ -578,13 +577,12 @@ void paintShareHandlePixels(void)
 
     PAINT_LOGD("Packet seqnum is %d (%x << 8 | %x)", paintShare->shareSeqNum, paintShare->sharePacket[1], paintShare->sharePacket[2]);
 
-    uint16_t x0, y0, x1, y1;
     for (uint8_t i = 0; i < paintShare->sharePacketLen - 3; i++)
     {
-        x0 = ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2)) % paintShare->canvas.w;
-        y0 = ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2)) / paintShare->canvas.w;
-        x1 = ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2 + 1)) % paintShare->canvas.w;
-        y1 = ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2 + 1)) / paintShare->canvas.w;
+        uint16_t x0 = ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2)) % paintShare->canvas.w;
+        uint16_t y0 = ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2)) / paintShare->canvas.w;
+        uint16_t x1 = ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2 + 1)) % paintShare->canvas.w;
+        uint16_t y1 = ((PAINT_SHARE_PX_PER_PACKET * paintShare->shareSeqNum) + (i * 2 + 1)) / paintShare->canvas.w;
 
         setPxScaled(paintShare->disp, x0, y0, paintShare->canvas.palette[paintShare->sharePacket[i + 3] >> 4], paintShare->canvas.x, paintShare->canvas.y, paintShare->canvas.xScale, paintShare->canvas.yScale);
         setPxScaled(paintShare->disp, x1, y1, paintShare->canvas.palette[paintShare->sharePacket[i + 3] & 0xF], paintShare->canvas.x, paintShare->canvas.y, paintShare->canvas.xScale, paintShare->canvas.yScale);
@@ -623,13 +621,13 @@ void paintShareSendReceiveComplete(void)
     paintShare->shareUpdateScreen = true;
 }
 
-void paintShareSendAbort(void)
-{
-    paintShare->sharePacket[0] = SHARE_PACKET_ABORT;
-    paintShare->sharePacketLen = 1;
-    p2pSendMsg(&paintShare->p2pInfo, paintShare->sharePacket, paintShare->sharePacketLen, paintShareP2pSendCb);
-    paintShare->shareUpdateScreen = true;
-}
+// void paintShareSendAbort(void)
+// {
+//     paintShare->sharePacket[0] = SHARE_PACKET_ABORT;
+//     paintShare->sharePacketLen = 1;
+//     p2pSendMsg(&paintShare->p2pInfo, paintShare->sharePacket, paintShare->sharePacketLen, paintShareP2pSendCb);
+//     paintShare->shareUpdateScreen = true;
+// }
 
 void paintShareMsgSendOk(void)
 {

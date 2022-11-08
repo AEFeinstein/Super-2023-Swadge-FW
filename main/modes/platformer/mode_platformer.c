@@ -863,7 +863,7 @@ void platformerEnterMode(display_t *disp);
 void platformerExitMode(void);
 void platformerMainLoop(int64_t elapsedUs);
 void platformerButtonCb(buttonEvt_t *evt);
-void platformerCb(const char *opt);
+// void platformerCb(const char *opt);
 
 //==============================================================================
 // Structs
@@ -1077,10 +1077,10 @@ void platformerButtonCb(buttonEvt_t *evt)
  *
  * @param opt
  */
-void platformerCb(const char *opt)
-{
-    ESP_LOGI("MNU", "%s", opt);
-}
+// void platformerCb(const char *opt)
+// {
+//     ESP_LOGI("MNU", "%s", opt);
+// }
 
 void updateGame(platformer_t *self)
 {
@@ -1113,7 +1113,7 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
     snprintf(coinStr, sizeof(coinStr) - 1, "C:%02d", gameData->coins);
 
     char scoreStr[32];
-    snprintf(scoreStr, sizeof(scoreStr) - 1, "%06d", gameData->score);
+    snprintf(scoreStr, sizeof(scoreStr) - 1, "%06u", gameData->score);
 
     char levelStr[15];
     snprintf(levelStr, sizeof(levelStr) - 1, "Level %d-%d", gameData->world, gameData->level);
@@ -1620,7 +1620,7 @@ void drawPlatformerHighScores(display_t *d, font_t *font, platformerHighScores_t
     drawText(d, font, c555, "RANK  SCORE  NAME", 48, 96);
     for(uint8_t i=0; i<NUM_PLATFORMER_HIGH_SCORES; i++){
         char rowStr[32];
-        snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06d   %c%c%c", i+1, highScores->scores[i], highScores->initials[i][0], highScores->initials[i][1], highScores->initials[i][2]);
+        snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06u   %c%c%c", i+1, highScores->scores[i], highScores->initials[i][0], highScores->initials[i][1], highScores->initials[i][2]);
         drawText(d, font, (gameData->rank == i) ? highScoreNewEntryColors[(gameData->frameCount >> 3) % 4] : c555, rowStr, 60, 128 + i*16);
     }
 }
@@ -1744,7 +1744,7 @@ void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData, uint8_t cur
     drawText(d, font, c555, "Enter your initials!", 48, 64);
 
     char rowStr[32];
-    snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06d", gameData->rank+1, gameData->score);
+    snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06u", gameData->rank+1, gameData->score);
     drawText(d, font, c555, rowStr, 64, 128);
 
     for(uint8_t i=0; i<3; i++){

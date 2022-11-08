@@ -535,10 +535,10 @@ int LocalToScreenspace( const int16_t * coords_3v, int16_t * o1, int16_t * o2 );
 void SetupMatrix( void );
 void tdMultiply( int16_t * fin1, int16_t * fin2, int16_t * fout );
 void tdRotateEA( int16_t * f, int16_t x, int16_t y, int16_t z );
-void tdScale( int16_t * f, int16_t x, int16_t y, int16_t z );
+// void tdScale( int16_t * f, int16_t x, int16_t y, int16_t z );
 void td4Transform( int16_t * pin, int16_t * f, int16_t * pout );
 void tdTranslate( int16_t * f, int16_t x, int16_t y, int16_t z );
-void Draw3DSegment( display_t * disp, const int16_t * c1, const int16_t * c2 );
+// void Draw3DSegment( display_t * disp, const int16_t * c1, const int16_t * c2 );
 uint16_t tdSQRT( uint32_t inval );
 int16_t tdDist( const int16_t * a, const int16_t * b );
 
@@ -719,23 +719,23 @@ void tdRotateEA( int16_t * f, int16_t x, int16_t y, int16_t z )
     tdMultiply( f, ftmp, f );
 }
 
-void tdScale( int16_t * f, int16_t x, int16_t y, int16_t z )
-{
-    f[m00] = (f[m00] * x)>>8;
-    f[m01] = (f[m01] * x)>>8;
-    f[m02] = (f[m02] * x)>>8;
-//    f[m03] = (f[m03] * x)>>8;
+// void tdScale( int16_t * f, int16_t x, int16_t y, int16_t z )
+// {
+//     f[m00] = (f[m00] * x)>>8;
+//     f[m01] = (f[m01] * x)>>8;
+//     f[m02] = (f[m02] * x)>>8;
+// //    f[m03] = (f[m03] * x)>>8;
 
-    f[m10] = (f[m10] * y)>>8;
-    f[m11] = (f[m11] * y)>>8;
-    f[m12] = (f[m12] * y)>>8;
-//    f[m13] = (f[m13] * y)>>8;
+//     f[m10] = (f[m10] * y)>>8;
+//     f[m11] = (f[m11] * y)>>8;
+//     f[m12] = (f[m12] * y)>>8;
+// //    f[m13] = (f[m13] * y)>>8;
 
-    f[m20] = (f[m20] * z)>>8;
-    f[m21] = (f[m21] * z)>>8;
-    f[m22] = (f[m22] * z)>>8;
-//    f[m23] = (f[m23] * z)>>8;
-}
+//     f[m20] = (f[m20] * z)>>8;
+//     f[m21] = (f[m21] * z)>>8;
+//     f[m22] = (f[m22] * z)>>8;
+// //    f[m23] = (f[m23] * z)>>8;
+// }
 
 void td4Transform( int16_t * pin, int16_t * f, int16_t * pout )
 {
@@ -765,18 +765,18 @@ int LocalToScreenspace( const int16_t * coords_3v, int16_t * o1, int16_t * o2 )
 }
 
 // Note: Function unused.  For illustration purposes.
-void Draw3DSegment( display_t * disp, const int16_t * c1, const int16_t * c2 )
-{
-    int16_t sx0, sy0, sx1, sy1;
-    if( LocalToScreenspace( c1, &sx0, &sy0 ) ||
-        LocalToScreenspace( c2, &sx1, &sy1 ) ) return;
+// void Draw3DSegment( display_t * disp, const int16_t * c1, const int16_t * c2 )
+// {
+//     int16_t sx0, sy0, sx1, sy1;
+//     if( LocalToScreenspace( c1, &sx0, &sy0 ) ||
+//         LocalToScreenspace( c2, &sx1, &sy1 ) ) return;
 
-    //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 0 );
-    speedyLine( disp, sx0, sy0, sx1, sy1, CNDRAW_WHITE );
-    //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 1 );
+//     //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 0 );
+//     speedyLine( disp, sx0, sy0, sx1, sy1, CNDRAW_WHITE );
+//     //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 1 );
 
-    //plotLine( sx0, sy0, sx1, sy1, CNDRAW_WHITE );
-}
+//     //plotLine( sx0, sy0, sx1, sy1, CNDRAW_WHITE );
+// }
 
 int tdModelVisibilitycheck( const tdModel * m )
 {
@@ -1105,11 +1105,11 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
             int elapsed = ((uint32_t)esp_timer_get_time()-tflight->timeOfStart)/10000;
 
             snprintf(framesStr, sizeof(framesStr), "%d/%d, %d", tflight->ondonut, MAX_DONUTS, tflight->beans );
-            width = textWidth(&flight->radiostars, framesStr);
+            // width = textWidth(&flight->radiostars, framesStr);
             drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 50, 0 );
 
             snprintf(framesStr, sizeof(framesStr), "%d.%02d", elapsed/100, elapsed%100 );
-            width = textWidth(&flight->radiostars, framesStr);
+            // width = textWidth(&flight->radiostars, framesStr);
             drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, 0 );
         }
         
@@ -1176,9 +1176,6 @@ static void flightGameUpdate( flight_t * tflight )
 {
     uint8_t bs = tflight->buttonState;
 
-    int dpitch = 0;
-    int dyaw = 0;
-
     const int flight_min_speed = (flight->mode==FLIGHT_PERFTEST)?0:FLIGHT_MIN_SPEED;
 
     //If we're at the ending screen and the user presses a button end game.
@@ -1189,6 +1186,9 @@ static void flightGameUpdate( flight_t * tflight )
 
     if( tflight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_PERFTEST )
     {
+        int dpitch = 0;
+        int dyaw = 0;
+
         if( bs & 4 ) dpitch += THRUSTER_ACCEL;
         if( bs & 8 ) dpitch -= THRUSTER_ACCEL;
         if( bs & 1 ) dyaw += THRUSTER_ACCEL;

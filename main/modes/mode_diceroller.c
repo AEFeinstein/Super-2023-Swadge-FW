@@ -54,7 +54,7 @@ void doRoll(int count, int sides, int index);
 void doStateMachine(int64_t elapsedUs);
 
 void drawSelectionText(int w,int h,char* rollStr, int bfrSize);
-void drawSelectionPointer(int w,int h,char* rollStr,int bfrSize);
+// void drawSelectionPointer(int w,int h,char* rollStr,int bfrSize);
 void drawSelectionPointerSprite(int w,int h,char* rollStr,int bfrSize);
 void drawDiceBackground(int* xGridOffsets,int* yGridOffsets);
 void drawDiceText(int* xGridOffsets,int* yGridOffsets);
@@ -66,7 +66,7 @@ void drawCurrentTotal(int w, int h );
 
 void printHistory(void);
 void addTotalToHistory(void);
-void dbgPrintHist(void);
+// void dbgPrintHist(void);
 
 void drawPanel(int x0, int y0, int x1, int y1);
 void drawHistoryPanel(void);
@@ -546,19 +546,19 @@ void addTotalToHistory(void)
 
 }
 
-void dbgPrintHist(void)
-{
-    ESP_LOGD("DICEROLLER","History:");
-    for(int i = 0; i < diceRoller->histSize; i++)
-    {
-        ESP_LOGD("DICEROLLER","%dd%d:%d",diceRoller->histCounts[i],diceRoller->histSides[i],diceRoller->histTotals[i]);
-        if(i < diceRoller->histSize-1)
-        {
-            ESP_LOGD("DICEROLLER",", ");
-        }
-    }
-    ESP_LOGD("DICEROLLER","\n");
-}
+// void dbgPrintHist(void)
+// {
+//     ESP_LOGD("DICEROLLER","History:");
+//     for(int i = 0; i < diceRoller->histSize; i++)
+//     {
+//         ESP_LOGD("DICEROLLER","%dd%d:%d",diceRoller->histCounts[i],diceRoller->histSides[i],diceRoller->histTotals[i]);
+//         if(i < diceRoller->histSize-1)
+//         {
+//             ESP_LOGD("DICEROLLER",", ");
+//         }
+//     }
+//     ESP_LOGD("DICEROLLER","\n");
+// }
 
 void drawCurrentTotal(int w, int h )
 {
@@ -684,33 +684,33 @@ void drawSelectionText(int w,int h,char* rollStr, int bfrSize)
     );
 }
 
-void drawSelectionPointer(int w,int h,char* rollStr,int bfrSize)
-{
+// void drawSelectionPointer(int w,int h,char* rollStr,int bfrSize)
+// {
     
     
-    // int xPointerOffset = 40;
-    // int xPointerSelectionOffset = 16; 
-    int yPointerOffset = 17;
-    //printf("rollStrSize: %d\n",(int)sizeof(rollStr));
-    snprintf(rollStr,bfrSize,"Next roll is %dd%d",diceRoller->requestCount,diceRoller->requestSides);
-    int centerToEndPix = textWidth(&diceRoller->ibm_vga8,rollStr)/2;
-    snprintf(rollStr,bfrSize,"%dd%d",diceRoller->requestCount,diceRoller->requestSides);
-    int endToNumStartPix = textWidth(&diceRoller->ibm_vga8,rollStr);
-    snprintf(rollStr,bfrSize,"%d",diceRoller->requestCount);
-    int firstNumPix = textWidth(&diceRoller->ibm_vga8,rollStr);
-    // int dWidth = textWidth(&diceRoller->ibm_vga8,"d");
-    snprintf(rollStr,bfrSize,"%d",diceRoller->requestSides);
-    int lastNumPix = textWidth(&diceRoller->ibm_vga8,rollStr);
+//     // int xPointerOffset = 40;
+//     // int xPointerSelectionOffset = 16; 
+//     int yPointerOffset = 17;
+//     //printf("rollStrSize: %d\n",(int)sizeof(rollStr));
+//     snprintf(rollStr,bfrSize,"Next roll is %dd%d",diceRoller->requestCount,diceRoller->requestSides);
+//     int centerToEndPix = textWidth(&diceRoller->ibm_vga8,rollStr)/2;
+//     snprintf(rollStr,bfrSize,"%dd%d",diceRoller->requestCount,diceRoller->requestSides);
+//     int endToNumStartPix = textWidth(&diceRoller->ibm_vga8,rollStr);
+//     snprintf(rollStr,bfrSize,"%d",diceRoller->requestCount);
+//     int firstNumPix = textWidth(&diceRoller->ibm_vga8,rollStr);
+//     // int dWidth = textWidth(&diceRoller->ibm_vga8,"d");
+//     snprintf(rollStr,bfrSize,"%d",diceRoller->requestSides);
+//     int lastNumPix = textWidth(&diceRoller->ibm_vga8,rollStr);
 
-    //printf("%s\n", rollStr);
+//     //printf("%s\n", rollStr);
    
 
-    int countSelX = w/2 + centerToEndPix - endToNumStartPix + firstNumPix/2;
-    int sideSelX = w/2 + centerToEndPix - lastNumPix/2;
-    drawRegularPolygon(diceRoller->activeSelection ? sideSelX : countSelX,
-        h/8+yPointerOffset, 3, -90, 5, selectionArrowColor, 0
-    );
-}
+//     int countSelX = w/2 + centerToEndPix - endToNumStartPix + firstNumPix/2;
+//     int sideSelX = w/2 + centerToEndPix - lastNumPix/2;
+//     drawRegularPolygon(diceRoller->activeSelection ? sideSelX : countSelX,
+//         h/8+yPointerOffset, 3, -90, 5, selectionArrowColor, 0
+//     );
+// }
 
 void drawSelectionPointerSprite(int w,int h,char* rollStr,int bfrSize)
 {

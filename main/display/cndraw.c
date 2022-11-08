@@ -600,7 +600,6 @@ void outlineTriangle( display_t * disp, int16_t v0x, int16_t v0y, int16_t v1x, i
         //We've come to the end of section 1.  Now, we need to figure
 
         //Now, yend is the highest possible hit on the triangle.
-        yend = (v1y < v2y) ? v2y : v1y;
 
         //v1 is LEFT OF v2
         // A is LEFT OF B

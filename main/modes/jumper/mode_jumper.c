@@ -1816,11 +1816,11 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
     }
 
     drawText(d, prompt, c555, "SCORE", 28, 10);
-    snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", j->scene->score);
+    snprintf(textBuffer, sizeof(textBuffer) - 1, "%u", j->scene->score);
     drawText(d, prompt, c555, textBuffer, 28, 30);
 
     drawText(d, prompt, c555, "HI SCORE", 168, 10);
-    snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", j->highScore);
+    snprintf(textBuffer, sizeof(textBuffer) - 1, "%u", j->highScore);
     drawText(d, prompt, c555, textBuffer, 204, 30);
 
     for (int i = 0; i < j->scene->lives; i++)

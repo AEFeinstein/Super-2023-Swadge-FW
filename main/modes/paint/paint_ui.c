@@ -117,7 +117,6 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
 
 
     uint16_t textX = 30, textY = (paintState->canvas.y - 1 - 2 * PAINT_TOOLBAR_TEXT_PADDING_Y) / 2;
-    uint16_t maxIconBottom = 0;
 
     // Up/down arrow logic, for all the options that have text at the top
     if (paintState->saveMenu != HIDDEN && paintState->saveMenu != COLOR_PICKER)
@@ -144,6 +143,7 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
             const wsg_t* brushIcon = (curBrush == artist->brushDef) ? &curBrush->iconActive : &curBrush->iconInactive;
             uint16_t iconY = (paintState->canvas.y - 1 - brushIcon->h) / 2;
 
+            uint16_t maxIconBottom = 0;
             if (iconY + brushIcon->h > maxIconBottom)
             {
                 maxIconBottom = iconY + brushIcon->h;
@@ -195,7 +195,7 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
             textX += 4;
             drawWsg(canvas->disp, &paintState->picksWsg, textX, textY + paintState->toolbarFont.h - paintState->picksWsg.h, false, false, 0);
             textX += paintState->picksWsg.w + 1;
-            textX = drawText(paintState->disp, &paintState->toolbarFont, c000, text, textX, textY);
+            drawText(paintState->disp, &paintState->toolbarFont, c000, text, textX, textY);
         }
         else if (artist->brushDef->mode == PICK_POINT_LOOP && artist->brushDef->maxPoints > 1)
         {

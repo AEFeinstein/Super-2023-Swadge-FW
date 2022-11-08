@@ -171,7 +171,6 @@ bool textEntryDraw(void)
         }
         else
         {
-            char sts[] = {c, 0};
             int posx = x * 14 + 44 + y*4;
             int posy = y * 14 + 49;
             int width = 9;
@@ -223,6 +222,7 @@ bool textEntryDraw(void)
                 default:
                 {
                     // Just draw the char
+                    char sts[] = {c, 0};
                     drawText(textEntryDisplay, &textEntryIBM, WHITE, sts, posx, posy );
                 }
             }
