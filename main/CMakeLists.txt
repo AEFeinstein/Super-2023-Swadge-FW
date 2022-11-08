@@ -38,6 +38,7 @@ idf_component_register(
         "modes/paint/paint_gallery.c"
         "modes/paint/paint_nvs.c"
         "modes/paint/paint_share.c"
+        "modes/paint/paint_song.c"
         "modes/paint/paint_ui.c"
         "modes/paint/paint_util.c"
         "modes/paint/px_stack.c"
