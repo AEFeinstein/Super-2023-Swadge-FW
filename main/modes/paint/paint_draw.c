@@ -1645,7 +1645,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
     {
         // Allocate an array of point_t for the canvas pick points
         size_t pickCount = pxStackSize(&getArtist()->pickPoints);
-        point_t* canvasPickPoints[sizeof(point_t) * pickCount];
+        point_t canvasPickPoints[sizeof(point_t) * pickCount];
 
         // Convert the pick points into an array of canvas-coordinates
         paintConvertPickPointsScaled(&getArtist()->pickPoints, &paintState->canvas, canvasPickPoints);
