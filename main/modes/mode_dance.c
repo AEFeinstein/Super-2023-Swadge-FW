@@ -75,7 +75,6 @@ static const uint8_t danceSpeeds[] =
     6, // 1.5x
     4, // 2x
     2, // 4x
-    1, // 8x
 };
 
 static const ledDanceArg ledDances[] =
