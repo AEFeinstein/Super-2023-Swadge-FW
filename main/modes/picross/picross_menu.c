@@ -381,7 +381,35 @@ void picrossButtonCb(buttonEvt_t* evt)
                 }
                 else
                 {
-                    meleeMenuButton(pm->menu, evt->button);
+                    switch(evt->button)
+                    {
+                        case UP:
+                        case DOWN:
+                        case BTN_A:
+                        case BTN_B:
+                        case START:
+                        case SELECT:
+                        {
+                            meleeMenuButton(pm->menu, evt->button);
+                            break;
+                        }
+                        case LEFT:
+                        case RIGHT:
+                        {
+                            if( (str_HintsOn == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_HintsOff == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_GuidesOn == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_GuidesOff == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_MarkX == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_MarkSolid == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_AnimateBGOn == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_AnimateBGOff == pm->menu->rows[pm->menu->selectedRow]))
+                            {
+                                picrossMainMenuCb(pm->menu->rows[pm->menu->selectedRow]);
+                            }
+                            break;
+                        }
+                    }
                 }
             }
             break;
