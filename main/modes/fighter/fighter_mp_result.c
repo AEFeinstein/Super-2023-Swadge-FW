@@ -124,10 +124,12 @@ const song_t fLossJingle =
  * @param other The other swadge's character
  * @param otherKOs The other swadge's number of KOs
  * @param otherDmg The amount of damage the other swadge did
+ * @param type The type of game played
  */
 void initFighterMpResult(display_t* disp, font_t* font, uint32_t roundTimeMs,
                          fightingCharacter_t self,  int8_t selfKOs, int16_t selfDmg,
-                         fightingCharacter_t other, int8_t otherKOs, int16_t otherDmg)
+                         fightingCharacter_t other, int8_t otherKOs, int16_t otherDmg,
+                         fightingGameType_t type)
 {
     mpr = calloc(1, sizeof(hrRes_t));
 
@@ -146,8 +148,11 @@ void initFighterMpResult(display_t* disp, font_t* font, uint32_t roundTimeMs,
     mpr->otherDmg = otherDmg;
     mpr->otherKOs = otherKOs;
 
-    // Save the result
-    saveMpResult(self, selfKOs > otherKOs);
+    if(MULTIPLAYER == type)
+    {
+        // Save the result, only for multiplayer matches
+        saveMpResult(self, selfKOs > otherKOs);        
+    }
 }
 
 /**
