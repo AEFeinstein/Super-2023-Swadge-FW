@@ -307,11 +307,11 @@ bool paintLoad(int32_t* index, paintCanvas_t* canvas, uint8_t slot)
         // read the chunk
         if (readNvsBlob(key, imgChunk, &lastChunkSize))
         {
-            PAINT_LOGD("Read blob %u of %d (%zu bytes)", i+1, chunkCount, lastChunkSize);
+            PAINT_LOGD("Read blob %d of %u (%zu bytes)", i+1, chunkCount, lastChunkSize);
         }
         else
         {
-            PAINT_LOGE("Unable to read blob %u of %d", i+1, chunkCount);
+            PAINT_LOGE("Unable to read blob %d of %u", i+1, chunkCount);
             // don't panic if we miss one chunk, maybe it's ok...
             continue;
         }

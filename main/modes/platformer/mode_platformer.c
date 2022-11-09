@@ -445,7 +445,7 @@ void updateTitleScreen(platformer_t *self)
                         if(
                             (levelIndex >= NUM_LEVELS)
                             ||
-                            (!self->gameData.debugMode && !self->gameData.debugMode && levelIndex > self->unlockables.maxLevelIndexUnlocked)
+                            (!self->gameData.debugMode && levelIndex > self->unlockables.maxLevelIndexUnlocked)
                         ){
                             buzzer_play_sfx(&sndMenuDeny);
                             break;
@@ -646,7 +646,7 @@ void updateTitleScreen(platformer_t *self)
             platLeds[i].b += (esp_random() % 8);
         }
     }
-    setLeds(&(platLeds), NUM_LEDS);
+    setLeds(platLeds, NUM_LEDS);
 
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
