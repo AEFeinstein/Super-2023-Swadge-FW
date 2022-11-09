@@ -171,14 +171,7 @@ void paintButtonCb(buttonEvt_t* evt)
         {
             if (evt->down)
             {
-                if (evt->button == BTN_B)
-                {
-                    switchToSwadgeMode(&modeMainMenu);
-                }
-                else
-                {
-                    meleeMenuButton(paintMenu->menu, evt->button);
-                }
+                meleeMenuButton(paintMenu->menu, evt->button);
             }
             break;
         }
