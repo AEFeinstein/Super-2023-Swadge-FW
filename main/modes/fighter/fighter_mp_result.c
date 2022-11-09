@@ -45,29 +45,42 @@ typedef struct
 
 hrRes_t* mpr;
 
-static const song_t fVictoryJingle =
+const song_t fVictoryJingle =
 {
     .notes =
     {
-        {.note = F_5, .timeMs = 110},
-        {.note = SILENCE, .timeMs = 15},
-        {.note = F_5, .timeMs = 110},
-        {.note = SILENCE, .timeMs = 15},
-        {.note = F_5, .timeMs = 110},
-        {.note = SILENCE, .timeMs = 15},
-        {.note = F_5, .timeMs = 125},
-        {.note = SILENCE, .timeMs = 125},
-        {.note = D_SHARP_5, .timeMs = 125},
-        {.note = SILENCE, .timeMs = 125},
-        {.note = G_5, .timeMs = 125},
-        {.note = SILENCE, .timeMs = 125},
-        {.note = F_5, .timeMs = 875},
+        {.note = D_4, .timeMs = 206},
+        {.note = A_SHARP_2, .timeMs = 103},
+        {.note = E_4, .timeMs = 59},
+        {.note = SILENCE, .timeMs = 43},
+        {.note = F_4, .timeMs = 59},
+        {.note = SILENCE, .timeMs = 147},
+        {.note = A_4, .timeMs = 206},
+        {.note = A_2, .timeMs = 114},
+        {.note = SILENCE, .timeMs = 92},
+        {.note = A_2, .timeMs = 114},
+        {.note = SILENCE, .timeMs = 92},
+        {.note = A_4, .timeMs = 103},
+        {.note = B_4, .timeMs = 103},
+        {.note = C_SHARP_5, .timeMs = 103},
+        {.note = A_4, .timeMs = 103},
+        {.note = D_5, .timeMs = 114},
+        {.note = SILENCE, .timeMs = 92},
+        {.note = D_2, .timeMs = 103},
+        {.note = D_6, .timeMs = 103},
+        {.note = F_SHARP_6, .timeMs = 103},
+        {.note = G_6, .timeMs = 103},
+        {.note = A_6, .timeMs = 103},
+        {.note = D_6, .timeMs = 103},
+        {.note = D_7, .timeMs = 103},
+        {.note = SILENCE, .timeMs = 310},
+        {.note = D_2, .timeMs = 103},
     },
-    .numNotes = 13,
+    .numNotes = 26,
     .shouldLoop = false
 };
 
-static const song_t fLossJingle =
+const song_t fLossJingle =
 {
     .notes =
     {

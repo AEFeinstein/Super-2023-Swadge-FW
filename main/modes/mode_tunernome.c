@@ -38,7 +38,7 @@
     #define M_PI 3.14159265358979323846
 #endif
 
-#define CORNER_OFFSET 12
+#define CORNER_OFFSET 13
 
 #define NUM_GUITAR_STRINGS    lengthof(guitarNoteNames)
 #define NUM_VIOLIN_STRINGS    lengthof(violinNoteNames)
@@ -360,7 +360,7 @@ static int TUNER_FLAT_THRES_X;
 static int TUNER_SHARP_THRES_X;
 static int TUNER_THRES_Y;
 
-static const song_t metronome_primary =
+const song_t metronome_primary =
 {
     .notes =
     {
@@ -370,7 +370,7 @@ static const song_t metronome_primary =
     .shouldLoop = false
 };
 
-static const song_t metronome_secondary =
+const song_t metronome_secondary =
 {
     .notes =
     {

@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 #define TU_BIT(n)             (1UL << (n))
+#define TU_ATTR_PACKED                __attribute__ ((packed))
 
 /// HID Request Report Type
 typedef enum
@@ -79,6 +80,22 @@ typedef enum
 #define GAMEPAD_BUTTON_THUMBL  GAMEPAD_BUTTON_13
 #define GAMEPAD_BUTTON_THUMBR  GAMEPAD_BUTTON_14
 
+#define GAMEPAD_NS_BUTTON_Y       0x01
+#define GAMEPAD_NS_BUTTON_B       0x02
+#define GAMEPAD_NS_BUTTON_A       0x04
+#define GAMEPAD_NS_BUTTON_X       0x08
+#define GAMEPAD_NS_BUTTON_TL      0x10
+#define GAMEPAD_NS_BUTTON_TR      0x20
+#define GAMEPAD_NS_BUTTON_TL2     0x40
+#define GAMEPAD_NS_BUTTON_TR2     0x80
+#define GAMEPAD_NS_BUTTON_SELECT  0x100
+#define GAMEPAD_NS_BUTTON_START   0x200
+#define GAMEPAD_NS_BUTTON_THUMBL  0x400
+#define GAMEPAD_NS_BUTTON_THUMBR  0x800
+#define GAMEPAD_NS_BUTTON_MODE    0x1000
+#define GAMEPAD_NS_BUTTON_C       0x2000
+#define GAMEPAD_NS_BUTTON_Z       0x4000
+
 /// Standard Gamepad HAT/DPAD Buttons (from Linux input event codes)
 typedef enum
 {
@@ -93,6 +110,20 @@ typedef enum
   GAMEPAD_HAT_UP_LEFT    = 8,  ///< DPAD_UP_LEFT
 }hid_gamepad_hat_t;
 
+/// Switch Gamepad HAT/DPAD Buttons (from Linux input event codes)
+typedef enum
+{
+  GAMEPAD_NS_HAT_CENTERED   = 8,  ///< DPAD_CENTERED
+  GAMEPAD_NS_HAT_UP         = 0,  ///< DPAD_UP
+  GAMEPAD_NS_HAT_UP_RIGHT   = 1,  ///< DPAD_UP_RIGHT
+  GAMEPAD_NS_HAT_RIGHT      = 2,  ///< DPAD_RIGHT
+  GAMEPAD_NS_HAT_DOWN_RIGHT = 3,  ///< DPAD_DOWN_RIGHT
+  GAMEPAD_NS_HAT_DOWN       = 4,  ///< DPAD_DOWN
+  GAMEPAD_NS_HAT_DOWN_LEFT  = 5,  ///< DPAD_DOWN_LEFT
+  GAMEPAD_NS_HAT_LEFT       = 6,  ///< DPAD_LEFT
+  GAMEPAD_NS_HAT_UP_LEFT    = 7,  ///< DPAD_UP_LEFT
+}hid_gamepad_ns_hat_t;
+
 /// HID Gamepad Protocol Report.
 typedef struct TU_ATTR_PACKED
 {
@@ -106,7 +137,21 @@ typedef struct TU_ATTR_PACKED
   uint32_t buttons;  ///< Buttons mask for currently pressed buttons
 }hid_gamepad_report_t;
 
+/// HID Switch Gamepad Protocol Report.
+typedef struct TU_ATTR_PACKED
+{
+  uint16_t buttons;  ///< Buttons mask for currently pressed buttons
+  uint8_t hat;       ///< Buttons mask for currently pressed buttons in the DPad/hat
+  int8_t  x;         ///< Delta x  movement of left analog-stick
+  int8_t  y;         ///< Delta y  movement of left analog-stick
+  int8_t  rx;        ///< Delta Rx movement of analog left trigger
+  int8_t  ry;        ///< Delta Ry movement of analog right trigger
+  int8_t  z;         ///< Delta z  movement of right analog-joystick
+  int8_t  rz;        ///< Delta Rz movement of right analog-joystick
+}hid_gamepad_ns_report_t;
+
 void tud_gamepad_report(hid_gamepad_report_t * report);
+void tud_gamepad_ns_report(hid_gamepad_ns_report_t * report);
 bool tud_ready(void);
 
 uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id,

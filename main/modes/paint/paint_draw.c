@@ -2,11 +2,14 @@
 
 #include <string.h>
 
+#include "musical_buzzer.h"
+
 #include "paint_ui.h"
 #include "paint_brush.h"
 #include "paint_nvs.h"
 #include "paint_util.h"
 #include "mode_paint.h"
+#include "paint_song.h"
 
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -20,10 +23,6 @@ paintHelp_t* paintHelp;
  * Each step here defines a tutorial step with a help message that will
  * be displayed below the canvas, and a trigger that will cause the tutorial
  * step to be considered "completed" and move on to the next step.
- *
- * TODO: Add steps for Polygon brush
- * TODO: Add an "Explain" for each brush after the tutorial
- * TODO: Disallow certain actions at certain steps to prevent confusion/desyncing
  */
 const paintHelpStep_t helpSteps[] =
 {
@@ -47,7 +46,13 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 1, .prompt = "Now, press A to select the first corner of the rectangle..." },
     { .trigger = { .type = PRESS_ANY, .data = (UP | DOWN | LEFT | RIGHT), }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 2, .prompt = "Then move somewhere else..." },
     { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Rectangle" }, .backtrackSteps = 3, .prompt = "Press A again to pick the other coner of the rectangle. Note that the first point you picked will blink!" },
-    { .trigger = { .type = PRESS, .data = START, }, .prompt = "Good job! Now you know how to use all the brushes.\nNext, let's press START to toggle the menu" },
+    { .trigger = { .type = CHANGE_BRUSH, .dataPtr = (void*)"Polygon", }, .prompt = "Nice! Let's try out the POLYGON brush next." },
+
+    { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Polygon" }, .backtrackSteps = 1, .prompt = "Press A to select the first point of the polygon..." },
+    { .trigger = { .type = RELEASE, .data = BTN_A, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Polygon" }, .backtrackSteps = 2, .prompt = "Pick at least one more point for the polygon. Note that the first point will change color!" },
+    { .trigger = { .type = DRAW_COMPLETE, }, .backtrack = { .type = BRUSH_NOT, .dataPtr = (void*)"Polygon" }, .backtrackSteps = 3, .prompt = "To finish the polygon, connect it back to the original point, or use up all the remaining picks." },
+
+    { .trigger = { .type = PRESS, .data = START, }, .prompt = "Good job! Now you know how to use all the brush types.\nNext, let's press START to toggle the menu" },
     { .trigger = { .type = PRESS_ANY, .data = UP | DOWN | SELECT, }, .backtrack = { .type = SELECT_MENU_ITEM, .data = HIDDEN }, .backtrackSteps = 1, .prompt = "Press UP, DOWN, or SELECT to go through the menu items" },
     { .trigger = { .type = SELECT_MENU_ITEM, .data = PICK_SLOT_SAVE, }, .backtrack = { .type = SELECT_MENU_ITEM, .data = HIDDEN }, .backtrackSteps = 2, .prompt = "Great! Now, navigate to the SAVE option" },
     { .trigger = { .type = PRESS_ANY, .data = LEFT | RIGHT, }, .backtrack = { .type = MENU_ITEM_NOT, .data = PICK_SLOT_SAVE }, .backtrackSteps = 1, .prompt = "Use D-Pad LEFT and RIGHT to switch between save slots here, or any other menu options" },
@@ -164,6 +169,34 @@ void paintDrawScreenSetup(display_t* disp)
         PAINT_LOGE("Loading brush_size.wsg icon failed!!!");
     }
 
+    if (!loadWsg("arrow9.wsg", &paintState->smallArrowWsg))
+    {
+        PAINT_LOGE("Loading arrow5.wsg icon failed!!!");
+    }
+    else
+    {
+        colorReplaceWsg(&paintState->smallArrowWsg, c555, c000);
+    }
+
+    if (!loadWsg("arrow12.wsg", &paintState->bigArrowWsg))
+    {
+        PAINT_LOGE("Loading arrow5.wsg icon failed!!!");
+    }
+    else
+    {
+        colorReplaceWsg(&paintState->bigArrowWsg, c555, c000);
+    }
+
+    if (!loadWsg("newfile.wsg", &paintState->newfileWsg))
+    {
+        PAINT_LOGE("Loading newfile.wsg icon failed!!!");
+    }
+
+    if (!loadWsg("overwrite.wsg", &paintState->overwriteWsg))
+    {
+        PAINT_LOGE("Loading overwrite.wsg icon failed!!!");
+    }
+
     // Setup the margins
     // Top: Leave room for the tallest of...
     // * The save menu text plus padding above and below it
@@ -198,7 +231,7 @@ void paintDrawScreenSetup(display_t* disp)
 
     paintLoadIndex(&paintState->index);
 
-    if (paintHelp == NULL && paintGetAnySlotInUse(paintState->index))
+    if (paintHelp == NULL && paintGetAnySlotInUse(paintState->index) && paintGetRecentSlot(paintState->index) != PAINT_SAVE_SLOTS)
     {
         // If there's a saved image, load that (but not in the tutorial)
         paintState->selectedSlot = paintGetRecentSlot(paintState->index);
@@ -241,11 +274,16 @@ void paintDrawScreenSetup(display_t* disp)
     // Might not be necessary here
     paintUpdateLeds();
 
+    buzzer_stop();
+    buzzer_play_bgm(&paintBgm);
+
     PAINT_LOGI("It's paintin' time! Canvas is %d x %d pixels!", paintState->canvas.w, paintState->canvas.h);
 }
 
 void paintDrawScreenCleanup(void)
 {
+    buzzer_stop();
+
     for (brush_t* brush = brushes; brush <= lastBrush; brush++)
     {
         freeWsg(&brush->iconActive);
@@ -254,6 +292,10 @@ void paintDrawScreenCleanup(void)
 
     freeWsg(&paintState->brushSizeWsg);
     freeWsg(&paintState->picksWsg);
+    freeWsg(&paintState->bigArrowWsg);
+    freeWsg(&paintState->smallArrowWsg);
+    freeWsg(&paintState->newfileWsg);
+    freeWsg(&paintState->overwriteWsg);
 
     for (uint8_t i = 0; i < sizeof(paintState->artist) / sizeof(paintState->artist[0]) ;i++)
     {
@@ -298,6 +340,7 @@ void paintTutorialOnEvent(void)
             paintHelp->allButtons = 0;
             paintHelp->lastButton = 0;
             paintHelp->lastButtonDown = false;
+            paintHelp->drawComplete = false;
         }
     }
     else if (paintTutorialCheckTrigger(&paintHelp->curHelp->backtrack))
@@ -317,6 +360,7 @@ void paintTutorialOnEvent(void)
         paintHelp->allButtons = 0;
         paintHelp->lastButton = 0;
         paintHelp->lastButtonDown = false;
+            paintHelp->drawComplete = false;
     }
 }
 
@@ -335,6 +379,9 @@ bool paintTutorialCheckTrigger(const paintHelpTrigger_t* trigger)
 
     case RELEASE:
         return paintHelp->lastButtonDown == false && (paintHelp->lastButton & trigger->data) == paintHelp->lastButton;
+
+    case DRAW_COMPLETE:
+        return paintHelp->drawComplete;
 
     case CHANGE_BRUSH:
         return !strcmp(getArtist()->brushDef->name, trigger->dataPtr) && paintHelp->curButtons == 0;
@@ -483,8 +530,16 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
             paintState->aPress = false;
         }
 
-        if (paintState->moveX || paintState->moveY)
+        if (paintState->moveX || paintState->moveY || paintState->unhandledButtons)
         {
+            bool clearMovement = false;
+
+            if (!paintState->moveX && !paintState->moveY)
+            {
+                paintHandleDpad(paintState->unhandledButtons);
+                clearMovement = true;
+            }
+
             paintState->btnHoldTime += elapsedUs;
             if (paintState->firstMove || paintState->btnHoldTime >= BUTTON_REPEAT_TIME)
             {
@@ -492,6 +547,13 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                 paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
 
                 paintState->firstMove = false;
+            }
+
+            paintState->unhandledButtons = 0;
+            if (clearMovement)
+            {
+                paintState->moveX = 0;
+                paintState->moveY = 0;
             }
         }
     }
@@ -1414,30 +1476,12 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
             }
 
             case UP:
-            {
-                paintState->firstMove = true;
-                paintState->moveY = -1;
-                break;
-            }
-
             case DOWN:
-            {
-                paintState->firstMove = true;
-                paintState->moveY = 1;
-                break;
-            }
-
             case LEFT:
-            {
-                paintState->firstMove = true;
-                paintState->moveX = -1;
-                break;
-            }
-
             case RIGHT:
             {
+                paintHandleDpad(evt->state & (UP | DOWN | LEFT | RIGHT));
                 paintState->firstMove = true;
-                paintState->moveX = 1;
                 break;
             }
 
@@ -1482,29 +1526,10 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
 
             case UP:
             case DOWN:
-            {
-                // Stop moving vertically
-                paintState->moveY = 0;
-
-                // Reset the button hold time, but only if we're not holding another direction
-                // This lets you make turns quickly instead of waiting for the repeat timeout in the middle
-                if (!paintState->moveX)
-                {
-                    paintState->btnHoldTime = 0;
-                }
-                break;
-            }
-
             case LEFT:
             case RIGHT:
             {
-                // Stop moving horizontally
-                paintState->moveX = 0;
-
-                if (!paintState->moveY)
-                {
-                    paintState->btnHoldTime = 0;
-                }
+                paintHandleDpad(evt->state & (UP | DOWN | LEFT | RIGHT));
                 break;
             }
 
@@ -1512,6 +1537,38 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
             // This is handled in BTN_MODE_SELECT already
             break;
         }
+    }
+}
+
+void paintHandleDpad(uint16_t state)
+{
+    paintState->unhandledButtons |= state;
+
+    if (!(state & UP) != !(state & DOWN))
+    {
+        // Up or down, but not both, are pressed
+        paintState->moveY = (state & DOWN) ? 1 : -1;
+    }
+    else
+    {
+        paintState->moveY = 0;
+    }
+
+    if (!(state & LEFT) != !(state & RIGHT))
+    {
+        // Left or right, but not both, are pressed
+        paintState->moveX = (state & RIGHT) ? 1 : -1;
+    }
+    else
+    {
+        paintState->moveX = 0;
+    }
+
+    if (!state)
+    {
+        // Reset the button hold time if all D-pad buttons are released
+        // This lets you make turns quickly instead of waiting for the repeat timeout in the middle
+        paintState->btnHoldTime = 0;
     }
 }
 
@@ -1578,7 +1635,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
     {
         // Allocate an array of point_t for the canvas pick points
         size_t pickCount = pxStackSize(&getArtist()->pickPoints);
-        point_t* canvasPickPoints = malloc(sizeof(point_t) * pickCount);
+        point_t canvasPickPoints[sizeof(point_t) * pickCount];
 
         // Convert the pick points into an array of canvas-coordinates
         paintConvertPickPointsScaled(&getArtist()->pickPoints, &paintState->canvas, canvasPickPoints);
@@ -1588,7 +1645,10 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         paintState->unsaved = true;
         getArtist()->brushDef->fnDraw(&paintState->canvas, canvasPickPoints, pickCount, getArtist()->brushWidth, col);
 
-        free(canvasPickPoints);
+        if (paintHelp != NULL)
+        {
+            paintHelp->drawComplete = true;
+        }
     }
     else
     {
@@ -1823,11 +1883,13 @@ void paintUpdateLeds(void)
 void paintDrawPickPoints(void)
 {
     pxVal_t point;
+    bool invert = false;
     for (size_t i = 0; i < pxStackSize(&getArtist()->pickPoints); i++)
     {
         if (getPx(&getArtist()->pickPoints, i, &point))
         {
-            plotRectFilled(paintState->disp, point.x, point.y, point.x + paintState->canvas.xScale + 1, point.y + paintState->canvas.yScale + 1, getArtist()->fgColor);
+            invert = (i == 0 && getArtist()->brushDef->mode == PICK_POINT_LOOP) && pxStackSize(&getArtist()->pickPoints) > 1;
+            plotRectFilled(paintState->disp, point.x, point.y, point.x + paintState->canvas.xScale + 1, point.y + paintState->canvas.yScale + 1, invert ? getContrastingColor(point.col) : getArtist()->fgColor);
         }
     }
 }

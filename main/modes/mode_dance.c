@@ -22,6 +22,8 @@
 #include "bresenham.h"
 #include "swadge_util.h"
 #include "settingsManager.h"
+#include "linked_list.h"
+#include "nvs_manager.h"
 
 /*============================================================================
  * Typedefs
@@ -41,6 +43,9 @@ typedef struct
 #define ARG_G(arg) (((arg) >>  8)&0xFF)
 #define ARG_B(arg) (((arg) >>  0)&0xFF)
 
+#define DANCE_SPEED_MULT 8
+#define DANCE_NORMAL_SPEED_INDEX 5
+
 // Sleep the TFT after 5s
 #define TFT_TIMEOUT_US 5000000
 
@@ -54,24 +59,23 @@ void selectNextDance(void);
 void selectPrevDance(void);
 void danceBatteryCb(uint32_t vBatt);
 
-void danceComet(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void dancePulse(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceSharpRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceRainbowSolid(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceBinaryCounter(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceFire(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void dancePoliceSiren(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void dancePureRandom(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceRandomDance(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceChristmas(uint32_t tElapsedUs, uint32_t arg, bool reset);
-void danceNone(uint32_t tElapsedUs, uint32_t arg, bool reset);
-
 /*============================================================================
  * Variables
  *==========================================================================*/
 const char ledDancesExitText[] = "Exit: Start + Select";
+
+static const uint8_t danceSpeeds[] =
+{
+    64, // 1/8x
+    48, // 1/6x
+    32, // 1/4x
+    24, // 1/3x
+    16, // 1/2x
+    8, // 1x
+    6, // 1.5x
+    4, // 2x
+    2, // 4x
+};
 
 static const ledDanceArg ledDances[] =
 {
@@ -103,11 +107,30 @@ static const ledDanceArg ledDances[] =
     {.func = danceRandomDance,   .arg = 0, .name = "Shuffle All"},
 };
 
+typedef struct {
+    const ledDanceArg* dance;
+    bool enable;
+} ledDanceOpt_t;
+
+typedef struct portableDance_t {
+    // List of dances to loop through
+    ledDanceOpt_t dances[sizeof(ledDances) / sizeof(ledDanceArg)];
+
+    // Set when dance needs to be reset
+    bool resetDance;
+
+    uint8_t danceIndex;
+
+    // If non-NULL, the ddance index will be saved/loaded from this nvs key
+    const char* nvsKey;
+} portableDance_t;
+
 typedef struct
 {
     display_t* disp;
 
     uint8_t danceIdx;
+    uint8_t danceSpeed;
 
     bool resetDance;
     bool blankScreen;
@@ -126,7 +149,7 @@ swadgeMode modeDance =
     .fnExitMode = danceExitMode,
     .fnMainLoop = danceMainLoop,
     .fnButtonCallback = danceButtonCb,
-    .fnTouchCallback = NULL,
+    .fnTouchCallback = danceTouchCb,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
@@ -137,11 +160,156 @@ swadgeMode modeDance =
     .overrideUsb = false
 };
 
+void portableDanceLoadSetting(portableDance_t* dance);
+
 danceMode_t* danceState;
 
 /*============================================================================
  * Functions
  *==========================================================================*/
+
+/*
+ * Portable Dance Functionality
+ */
+portableDance_t* initPortableDance(const char* nvsKey)
+{
+    portableDance_t* dance = calloc(1 ,sizeof(portableDance_t));
+    for (uint8_t i = 0; i < sizeof(dance->dances) / sizeof(dance->dances[0]); i++)
+    {
+        dance->dances[i].dance = ledDances + i;
+        dance->dances[i].enable = true;
+    }
+
+    dance->resetDance = true;
+
+    if (nvsKey != NULL)
+    {
+        dance->nvsKey = nvsKey;
+        portableDanceLoadSetting(dance);
+    }
+
+    return dance;
+}
+
+void freePortableDance(portableDance_t* dance)
+{
+    if (dance != NULL)
+    {
+        free(dance);
+    }
+}
+
+void portableDanceMainLoop(portableDance_t* dance, int64_t elapsedUs)
+{
+    dance->dances[dance->danceIndex].dance->func((int32_t)elapsedUs, dance->dances[dance->danceIndex].dance->arg, dance->resetDance);
+    dance->resetDance = false;
+}
+
+void portableDanceLoadSetting(portableDance_t* dance)
+{
+    int32_t danceIndex = 0;
+    if (!readNvs32(dance->nvsKey, &danceIndex))
+    {
+        writeNvs32(dance->nvsKey, danceIndex);
+    }
+
+    if (danceIndex < 0)
+    {
+        danceIndex = 0;
+    }
+    else if (danceIndex >= getNumDances())
+    {
+        danceIndex = getNumDances() - 1;
+    }
+
+    dance->danceIndex = (uint8_t)danceIndex;
+}
+
+bool portableDanceSetByName(portableDance_t* dance, const char* danceName)
+{
+    for (uint8_t i = 0; i < getNumDances(); i++)
+    {
+        if (!strcmp(dance->dances[i].dance->name, danceName))
+        {
+            dance->danceIndex = i;
+            dance->resetDance = true;
+
+            if (dance->nvsKey != NULL)
+            {
+                writeNvs32(dance->nvsKey, dance->danceIndex);
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+void portableDanceNext(portableDance_t* dance)
+{
+    uint8_t originalIndex = dance->danceIndex;
+
+    do
+    {
+        if (dance->danceIndex + 1 >= getNumDances())
+        {
+            dance->danceIndex = 0;
+        }
+        else
+        {
+            dance->danceIndex++;
+        }
+    } while (!dance->dances[dance->danceIndex].enable && dance->danceIndex != originalIndex);
+
+    dance->resetDance = true;
+
+    if (dance->nvsKey != NULL)
+    {
+        writeNvs32(dance->nvsKey, dance->danceIndex);
+    }
+}
+
+void portableDancePrev(portableDance_t* dance)
+{
+    uint8_t originalIndex = dance->danceIndex;
+    do
+    {
+        if (dance->danceIndex == 0)
+        {
+            dance->danceIndex = getNumDances() - 1;
+        }
+        else
+        {
+            dance->danceIndex--;
+        }
+    } while (!dance->dances[dance->danceIndex].enable && dance->danceIndex != originalIndex);
+
+    dance->resetDance = true;
+
+    if (dance->nvsKey != NULL)
+    {
+        writeNvs32(dance->nvsKey, dance->danceIndex);
+    }
+}
+
+bool portableDanceDisableDance(portableDance_t* dance, const char* danceName)
+{
+    for (uint8_t i = 0; i < getNumDances(); i++)
+    {
+        if (!strcmp(dance->dances[i].dance->name, danceName))
+        {
+            dance->dances[i].enable = false;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+const char* portableDanceGetName(portableDance_t* dance)
+{
+    return dance->dances[dance->danceIndex].dance->name;
+}
+
 
 void danceEnterMode(display_t* disp)
 {
@@ -150,6 +318,7 @@ void danceEnterMode(display_t* disp)
     danceState->disp = disp;
 
     danceState->danceIdx = 0;
+    danceState->danceSpeed = DANCE_NORMAL_SPEED_INDEX;
 
     danceState->resetDance = true;
     danceState->blankScreen = false;
@@ -176,7 +345,9 @@ void danceExitMode(void)
 
 void danceMainLoop(int64_t elapsedUs)
 {
-    ledDances[danceState->danceIdx].func(elapsedUs, ledDances[danceState->danceIdx].arg, danceState->resetDance);
+    ledDances[danceState->danceIdx].func(elapsedUs * DANCE_SPEED_MULT / danceSpeeds[danceState->danceSpeed], ledDances[danceState->danceIdx].arg, danceState->resetDance);
+
+    dancePollTouch();
 
     // If the screen is blank
     if(danceState->blankScreen)
@@ -281,6 +452,24 @@ void danceButtonCb(buttonEvt_t* evt)
     }
 }
 
+void danceTouchCb(touch_event_t* evt)
+{
+    dancePollTouch();
+}
+
+void dancePollTouch(void)
+{
+    int32_t centroid, intensity;
+    if (getTouchCentroid(&centroid, &intensity))
+    {
+        uint8_t index = ((centroid * (sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1) + 512) / 1024);
+
+        // Flip it so fast is up and slow is down
+        danceState->danceSpeed = sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1 - index;
+        danceState->buttonPressedTimer = 0;
+    }
+}
+
 /**
  * @brief Blanks and redraws the entire screen
  */
@@ -305,13 +494,15 @@ void danceRedrawScreen(void)
                 ((danceState->disp->w - width) / 2) + width + 8, yOff,
                 false, false, 90);
 
+
+
         // Draw the brightness at the top
-        char brightnessText[14];
-        snprintf(brightnessText, sizeof(brightnessText), "Brightness: %d", getLedBrightness());
-        width = textWidth(&(danceState->infoFont), brightnessText);
+        char text[18];
+        snprintf(text, sizeof(text), "Brightness: %d", getLedBrightness());
+        width = textWidth(&(danceState->infoFont), text);
         yOff = 16;
         drawText(danceState->disp, &(danceState->infoFont), c555,
-                 brightnessText,
+                 text,
                  (danceState->disp->w - width) / 2,
                  yOff);
         // Draw some arrows
@@ -321,6 +512,23 @@ void danceRedrawScreen(void)
         drawWsg(danceState->disp, &danceState->arrow,
                 ((danceState->disp->w - width) / 2) + width + 8, yOff,
                 false, false, 180);
+
+        // Draw the speed below the brightness
+        yOff += danceState->infoFont.h + 16;
+        if (danceSpeeds[danceState->danceSpeed] > DANCE_SPEED_MULT)
+        {
+            snprintf(text, sizeof(text), "X~Y: Speed: 1/%dx", danceSpeeds[danceState->danceSpeed] / DANCE_SPEED_MULT);
+        }
+        else
+        {
+            snprintf(text, sizeof(text), "X~Y: Speed: %dx",  DANCE_SPEED_MULT / danceSpeeds[danceState->danceSpeed]);
+        }
+        width = textWidth(&(danceState->infoFont), text);
+        drawText(danceState->disp, &(danceState->infoFont), c555,
+                text,
+                (danceState->disp->w - width) / 2,
+                yOff);
+
         // Draw text to show how to exit at the bottom
         width = textWidth(&(danceState->infoFont), ledDancesExitText);
         yOff = danceState->disp->h - danceState->infoFont.h - 16;

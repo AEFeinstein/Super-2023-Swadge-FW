@@ -101,6 +101,7 @@ void paintShareHandleCanvas(void);
 void paintShareSendPixels(void);
 void paintShareHandlePixels(void);
 
+void paintShareCheckForTimeout(void);
 void paintShareRetry(void);
 
 void paintShareDoLoad(void);
@@ -187,13 +188,8 @@ void paintShareCommonSetup(display_t* disp)
     }
     else
     {
-        for (uint16_t i = 0; i < paintShare->arrowWsg.h * paintShare->arrowWsg.w; i++)
-        {
-            // Recolor the arrow to black
-            if (paintShare->arrowWsg.px[i] != cTransparent) {
-                paintShare->arrowWsg.px[i] = c000;
-            }
-        }
+        // Recolor the arrow to black
+        colorReplaceWsg(&paintShare->arrowWsg, c555, c000);
     }
 
     // Set the display
@@ -222,8 +218,21 @@ void paintShareEnterMode(display_t* disp)
     PAINT_LOGD("Sender: Selecting slot");
     paintShare->shareState = SHARE_SEND_SELECT_SLOT;
 
+    if (!paintGetAnySlotInUse(paintShare->index))
+    {
+        PAINT_LOGE("Share mode started without any saved images. Exiting");
+        switchToSwadgeMode(&modePaint);
+        return;
+    }
+
     // Start on the most recently saved slot
     paintShare->shareSaveSlot = paintGetRecentSlot(paintShare->index);
+    if (paintShare->shareSaveSlot == PAINT_SAVE_SLOTS)
+    {
+        // If there was no recently saved slot, find the first slot in use instead
+        paintShare->shareSaveSlot = paintGetNextSlotInUse(paintShare->index, PAINT_SAVE_SLOTS - 1);
+    }
+
     PAINT_LOGD("paintShare->shareSaveSlot = %d", paintShare->shareSaveSlot);
 
     paintShare->clearScreen = true;

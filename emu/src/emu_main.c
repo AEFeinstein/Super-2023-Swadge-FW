@@ -45,6 +45,8 @@
 #include "paint_share.h"
 #include "picross_menu.h"
 #include "mode_platformer.h"
+#include "mode_jukebox.h"
+#include "mode_diceroller.h"
 
 //Make it so we don't need to include any other C files in our build.
 #define CNFG_IMPLEMENTATION
@@ -243,7 +245,9 @@ void emu_loop(void)
         &modePaintShare,
         &modePaintReceive,
         &modePicross,
-        &modePlatformer
+        &modePlatformer,
+        &modeDiceRoller,
+        &modeJukebox,
     };
 
     // A list of all keys to randomly press or release, and their states
@@ -271,12 +275,13 @@ void emu_loop(void)
     }
 
     // Change the swadge mode two minutes
-    static int64_t resetToMenuTimer = 0;
+#define MODE_TEST_TIME_US (1000000 * 120)
+    static int64_t resetToMenuTimer = MODE_TEST_TIME_US;
     resetToMenuTimer += tElapsed;
-    while(resetToMenuTimer >= (1000000 * 120))
+    while(resetToMenuTimer >= MODE_TEST_TIME_US)
     {
-        resetToMenuTimer -= (1000000 * 120);
-        static int modeIdx = 0;
+        resetToMenuTimer -= MODE_TEST_TIME_US;
+        static int modeIdx = (sizeof(allModes) / sizeof(allModes[0])) - 1;
         modeIdx = (modeIdx + 1) % (sizeof(allModes) / sizeof(allModes[0]));
         switchToSwadgeModeFuzzer(allModes[modeIdx]);
     }
