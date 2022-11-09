@@ -2592,7 +2592,7 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     wsg_t* f1sprite = getFighterSprite(f1->currentSprite->spriteIdx, f->loadedSprites);
     wsg_t* f2sprite = getFighterSprite(f2->currentSprite->spriteIdx, f->loadedSprites);
     vector_t centeredSpritePos;
-    wsg_t * centeredSprite; 
+    wsg_t* centeredSprite;
     if(f1DistToCenter < f2DistToCenter)
     {
         // f1 more centered, make sure it's on screen

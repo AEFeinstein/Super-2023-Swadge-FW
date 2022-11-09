@@ -151,7 +151,7 @@ void initFighterMpResult(display_t* disp, font_t* font, uint32_t roundTimeMs,
     if(MULTIPLAYER == type)
     {
         // Save the result, only for multiplayer matches
-        saveMpResult(self, selfKOs > otherKOs);        
+        saveMpResult(self, selfKOs > otherKOs);
     }
 }
 
