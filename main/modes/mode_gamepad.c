@@ -94,8 +94,9 @@ typedef struct
     meleeMenu_t* menu;
     display_t* disp;
     gamepadScreen_t screen;
-    uint8_t selectedGamepadType
+    uint8_t selectedGamepadType;
 } gamepadMenu_t;
+
 typedef struct
 {
     display_t* disp;

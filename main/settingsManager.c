@@ -21,7 +21,7 @@
 #define DEFAULT_SCREENSAVER 2
 
 /// Helper macro to return an integer clamped within a range (MIN to MAX)
-#define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
+// #define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
 
 //==============================================================================
 // Variables

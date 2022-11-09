@@ -188,13 +188,8 @@ void paintShareCommonSetup(display_t* disp)
     }
     else
     {
-        for (uint16_t i = 0; i < paintShare->arrowWsg.h * paintShare->arrowWsg.w; i++)
-        {
-            // Recolor the arrow to black
-            if (paintShare->arrowWsg.px[i] != cTransparent) {
-                paintShare->arrowWsg.px[i] = c000;
-            }
-        }
+        // Recolor the arrow to black
+        colorReplaceWsg(&paintShare->arrowWsg, c555, c000);
     }
 
     // Set the display

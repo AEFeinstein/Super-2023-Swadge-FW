@@ -15,6 +15,7 @@
 #include "mode_main_menu.h"
 #include "picross_tutorial.h"
 #include "picross_consts.h"
+#include "picross_music.h"
 //==============================================================================
 // Enums & Structs
 //==============================================================================
@@ -130,7 +131,7 @@ void picrossEnterMode(display_t* disp)
     //set default options
     if(false == readNvs32(picrossSavedOptionsKey, &pm->options))
     {
-        writeNvs32(picrossSavedOptionsKey, 12);//1100 = x's on, bg on, guide on, hintwarning off. On the fence on guides on or off.
+        writeNvs32(picrossSavedOptionsKey, 14);//1110 = x's on, bg on, guide on, hintwarning off. On the fence on guides on or off.
     }
 }
 
@@ -255,9 +256,9 @@ void loadLevels()
     loadWsg("Strawberry_PZL.wsg", &pm->levels[14].levelWSG);//10x10
     loadWsg("Strawberry_SLV.wsg", &pm->levels[14].completedWSG);
 
-    pm->levels[15].title = "Coffee Bean";
-    loadWsg("CoffeeBean_PZL.wsg", &pm->levels[15].levelWSG);//coffeBean is pretty hard for a 10x10
-    loadWsg("CoffeeBean_SLV.wsg", &pm->levels[15].completedWSG);
+    pm->levels[15].title = "Frog";
+    loadWsg("Frog_PZL.wsg", &pm->levels[15].levelWSG);
+    loadWsg("Frog_SLV.wsg", &pm->levels[15].completedWSG);
 
     pm->levels[16].title = "Galaga Bug";
     loadWsg("Galaga_PZL.wsg", &pm->levels[16].levelWSG);//10x10
@@ -271,21 +272,21 @@ void loadLevels()
     loadWsg("Link_PZL.wsg", &pm->levels[18].levelWSG);//10x10
     loadWsg("Link_SLV.wsg", &pm->levels[18].completedWSG);
 
-    pm->levels[19].title = "Goomba";
-    loadWsg("Goomba_PZL.wsg", &pm->levels[19].levelWSG);//15x15
-    loadWsg("Goomba_SLV.wsg", &pm->levels[19].completedWSG);
+    pm->levels[19].title = "Lil' B";
+    loadWsg("LilB_PZL.wsg", &pm->levels[19].levelWSG);//15x15
+    loadWsg("LilB_SLV.wsg", &pm->levels[19].completedWSG);
 
-    pm->levels[20].title = "Mouse";
-    loadWsg("Mouse_PZL.wsg", &pm->levels[20].levelWSG);//15x15
-    loadWsg("Mouse_SLV.wsg", &pm->levels[20].completedWSG);
+    pm->levels[20].title = "Goomba";
+    loadWsg("Goomba_PZL.wsg", &pm->levels[20].levelWSG);//15x15
+    loadWsg("Goomba_SLV.wsg", &pm->levels[20].completedWSG);
 
-    pm->levels[21].title = "Note";
-    loadWsg("Note_PZL.wsg", &pm->levels[21].levelWSG);//15x15
-    loadWsg("Note_SLV.wsg", &pm->levels[21].completedWSG);
+    pm->levels[21].title = "Mouse";
+    loadWsg("Mouse_PZL.wsg", &pm->levels[21].levelWSG);//15x15
+    loadWsg("Mouse_SLV.wsg", &pm->levels[21].completedWSG);
 
-    pm->levels[22].title = "Banana";
-    loadWsg("Banana_PZL.wsg", &pm->levels[22].levelWSG);//15x15
-    loadWsg("Banana_SLV.wsg", &pm->levels[22].completedWSG);
+    pm->levels[22].title = "Note";
+    loadWsg("Note_PZL.wsg", &pm->levels[22].levelWSG);//15x15
+    loadWsg("Note_SLV.wsg", &pm->levels[22].completedWSG);
 
     pm->levels[23].title = "Big Mouth Billy";
     loadWsg("bass_PZL.wsg", &pm->levels[23].levelWSG);//15x15

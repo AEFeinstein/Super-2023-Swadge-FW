@@ -1090,7 +1090,7 @@ void plotCubicBezierInner(display_t* disp, int x0, int y0, int x1, int y1, int x
     /* sub-divide curve at gradient sign changes */
     if (xa == 0)   /* horizontal */
     {
-        if (abs(xc) < 2 * abs(xb))
+        if (labs(xc) < 2 * labs(xb))
         {
             t[n++] = xc / (2.0 * xb);    /* one change */
         }
@@ -1112,7 +1112,7 @@ void plotCubicBezierInner(display_t* disp, int x0, int y0, int x1, int y1, int x
     t1 = yb * yb - ya * yc;
     if (ya == 0)   /* vertical */
     {
-        if (abs(yc) < 2 * abs(yb))
+        if (labs(yc) < 2 * labs(yb))
         {
             t[n++] = yc / (2.0 * yb);    /* one change */
         }
