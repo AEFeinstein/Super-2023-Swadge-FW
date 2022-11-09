@@ -233,7 +233,7 @@ void platformerEnterMode(display_t *disp)
 
     loadPlatformerHighScores(platformer);
     loadPlatformerUnlockables(platformer);
-    if(platformer->highScores.initials[0][0] == 'E' && platformer->highScores.initials[0][1] == 'F' && platformer->highScores.initials[0][2]){
+    if(platformer->highScores.initials[0][0] == 'E' && platformer->highScores.initials[0][1] == 'F' && platformer->highScores.initials[0][2] == 'V'){
         platformer->easterEgg = true;
     }
 
