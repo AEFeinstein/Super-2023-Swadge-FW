@@ -60,6 +60,12 @@ CFLAGS = \
 	-static-libstdc++ \
 	-ggdb
 
+ifeq ($(HOST_OS),Linux)
+CFLAGS += \
+	-fsanitize=address \
+	-fno-omit-frame-pointer
+endif
+
 # These are warning flags that the IDF uses
 CFLAGS_WARNINGS = \
 	-Wall \
@@ -173,6 +179,13 @@ LIBRARY_FLAGS = $(patsubst %, -L%, $(LIB_DIRS)) $(patsubst %, -l%, $(LIBS)) \
 	-static-libgcc \
 	-static-libstdc++ \
 	-ggdb
+
+ifeq ($(HOST_OS),Linux)
+LIBRARY_FLAGS += \
+	-fsanitize=address \
+	-fno-omit-frame-pointer \
+	-static-libasan
+endif
 
 ################################################################################
 # Build Filenames
