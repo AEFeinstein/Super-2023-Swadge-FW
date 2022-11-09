@@ -212,11 +212,6 @@ static const jukeboxSong creditsMusic[] =
     {.name = "Credits", .song = &creditsSong},
 };
 
-static const jukeboxSong testMusic[] =
-{
-    {.name = "Black Dog", .song = &BlackDog}
-};
-
 static const jukeboxCategory musicCategories[] =
 {
     {.categoryName = "Swadge Bros", .numSongs = lengthof(fighterMusic), .songs = fighterMusic},
@@ -226,7 +221,6 @@ static const jukeboxCategory musicCategories[] =
     {.categoryName = "\x7f-cross", .numSongs = lengthof(picrossMusic), .songs = picrossMusic},
     {.categoryName = "MFPaint", .numSongs = lengthof(paintMusic), .songs = paintMusic},
     {.categoryName = "Credits", .numSongs = lengthof(creditsMusic), .songs = creditsMusic},
-    {.categoryName = "Test Mode", .numSongs = lengthof(testMusic), .songs = testMusic},
 };
 
 static const jukeboxSong fighterSfx[] =
