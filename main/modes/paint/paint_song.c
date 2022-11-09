@@ -448,9 +448,9 @@ const song_t paintBgm =
         {.note = A_3, .timeMs = 62},
         {.note = SILENCE, .timeMs = 500},
         {.note = E_4, .timeMs = 62},
-
+        {.note = SILENCE, .timeMs = 125},
     },
-    .numNotes = 441,
+    .numNotes = 442,
     .shouldLoop = true
 };
 
