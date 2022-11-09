@@ -51,6 +51,7 @@ idf_component_register(
         "modes/platformer/entityManager.c"
         "modes/platformer/gameData.c"
         "modes/platformer/mode_platformer.c"
+        "modes/platformer/platformer_sounds.c"
         "modes/platformer/tilemap.c"
         "p2pConnection.c"
         "settingsManager.c"
