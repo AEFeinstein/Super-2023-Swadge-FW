@@ -247,7 +247,7 @@ void paintDrawScreenSetup(display_t* disp)
         paintPositionDrawCanvas();
 
         // load the default palette
-        memcpy(paintState->canvas.palette, defaultPalette, sizeof(defaultPalette) / sizeof(paletteColor_t));
+        memcpy(paintState->canvas.palette, defaultPalette, PAINT_MAX_COLORS * sizeof(paletteColor_t));
         getArtist()->fgColor = paintState->canvas.palette[0];
         getArtist()->bgColor = paintState->canvas.palette[1];
     }
@@ -773,11 +773,11 @@ void paintEditPaletteSetChannelValue(uint8_t val)
     paintEditPaletteUpdate();
 }
 
-void paintEditPaletteDecChannel(void)
-{
-    *(paintState->editPaletteCur) = PREV_WRAP(*(paintState->editPaletteCur), 6);
-    paintEditPaletteUpdate();
-}
+// void paintEditPaletteDecChannel(void)
+// {
+//     *(paintState->editPaletteCur) = PREV_WRAP(*(paintState->editPaletteCur), 6);
+//     paintEditPaletteUpdate();
+// }
 
 void paintEditPaletteIncChannel(void)
 {
@@ -1883,12 +1883,11 @@ void paintUpdateLeds(void)
 void paintDrawPickPoints(void)
 {
     pxVal_t point;
-    bool invert = false;
     for (size_t i = 0; i < pxStackSize(&getArtist()->pickPoints); i++)
     {
         if (getPx(&getArtist()->pickPoints, i, &point))
         {
-            invert = (i == 0 && getArtist()->brushDef->mode == PICK_POINT_LOOP) && pxStackSize(&getArtist()->pickPoints) > 1;
+            bool invert = (i == 0 && getArtist()->brushDef->mode == PICK_POINT_LOOP) && pxStackSize(&getArtist()->pickPoints) > 1;
             plotRectFilled(paintState->disp, point.x, point.y, point.x + paintState->canvas.xScale + 1, point.y + paintState->canvas.yScale + 1, invert ? getContrastingColor(point.col) : getArtist()->fgColor);
         }
     }

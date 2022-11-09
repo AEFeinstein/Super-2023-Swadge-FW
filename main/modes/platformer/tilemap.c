@@ -16,7 +16,7 @@
 // Function Prototypes
 //==============================================================================
 
-bool isInteractive(uint8_t tileId);
+// bool isInteractive(uint8_t tileId);
 
 //==============================================================================
 // Functions
@@ -323,10 +323,10 @@ bool isSolid(uint8_t tileId)
     }
 }
 
-bool isInteractive(uint8_t tileId)
-{
-    return tileId > TILE_INVISIBLE_BLOCK && tileId < TILE_BG_GOAL_ZONE;
-}
+// bool isInteractive(uint8_t tileId)
+// {
+//     return tileId > TILE_INVISIBLE_BLOCK && tileId < TILE_BG_GOAL_ZONE;
+// }
 
 void unlockScrolling(tilemap_t *tilemap){
     tilemap->minMapOffsetX = 0;

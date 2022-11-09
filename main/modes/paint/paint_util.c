@@ -187,14 +187,14 @@ uint8_t paintGetMaxScale(display_t* disp, uint16_t imgW, uint16_t imgH, uint16_t
 /// @brief Writes the points of a pxStack_t into the given point_t array.
 /// @param pxStack The pxStack_t to be converted
 /// @param dest A pointer to an array of point_t. Must have room for at least pxStack->index entries.
-void paintConvertPickPoints(const pxStack_t* pxStack, point_t* dest)
-{
-    for (size_t i = 0; i < pxStack->index; i++)
-    {
-        dest[i].x = pxStack->data[i].x;
-        dest[i].y = pxStack->data[i].y;
-    }
-}
+// void paintConvertPickPoints(const pxStack_t* pxStack, point_t* dest)
+// {
+//     for (size_t i = 0; i < pxStack->index; i++)
+//     {
+//         dest[i].x = pxStack->data[i].x;
+//         dest[i].y = pxStack->data[i].y;
+//     }
+// }
 
 /// @brief Writes the points of a pxStack_t into the given point_t array, converting them to canvas coordinates
 /// @param pxStack The pxStack_t to be converted

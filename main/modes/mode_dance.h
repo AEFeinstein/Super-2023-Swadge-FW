@@ -78,7 +78,7 @@ void danceTouchCb(touch_event_t* evt);
 void dancePollTouch(void);
 
 uint8_t getNumDances(void);
-void danceClearVars(uint8_t idx);
-char* getDanceName(uint8_t idx);
+// void danceClearVars(uint8_t idx);
+// char* getDanceName(uint8_t idx);
 
 #endif /* MODE_DANCE_H_ */

@@ -552,18 +552,18 @@ uint8_t getNumDances(void)
  * @param idx  The index of the dance
  * @return the dance name
  */
-char* getDanceName(uint8_t idx)
-{
-    return ledDances[idx].name;
-}
+// char* getDanceName(uint8_t idx)
+// {
+//     return ledDances[idx].name;
+// }
 
 /** This is called to clear specific dance variables
  */
-void danceClearVars(uint8_t idx)
-{
-    // Reset the specific dance
-    ledDances[idx].func(0, ledDances[idx].arg, true);
-}
+// void danceClearVars(uint8_t idx)
+// {
+//     // Reset the specific dance
+//     ledDances[idx].func(0, ledDances[idx].arg, true);
+// }
 
 /** Get a random number from a range.
  *

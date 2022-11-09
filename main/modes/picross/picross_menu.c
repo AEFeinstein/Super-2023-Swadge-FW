@@ -637,13 +637,13 @@ void selectPicrossLevel(picrossLevelDef_t* selectedLevel)
     picrossStartGame(pm->disp, &pm->mmFont, selectedLevel, false);
 }
 
-void returnToLevelSelect()//todo: rename
-{
-    //todo: abstract this to function
-    pm->screen = PICROSS_LEVELSELECT;
-    //todo: fix below warning
-    picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels);      
-}
+// void returnToLevelSelect()//todo: rename
+// {
+//     //todo: abstract this to function
+//     pm->screen = PICROSS_LEVELSELECT;
+//     //todo: fix below warning
+//     picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels);      
+// }
 
 /**
  * @brief Save data is stored in a single integer, using the register as 32 flags. 

@@ -218,7 +218,7 @@ docs:
 	doxygen swadge2019.doxyfile
 
 cppcheck:
-	cppcheck --std=c99 --platform=unix32 --suppress=missingIncludeSystem --enable=all $(DEFINES) $(INC) user/ > /dev/null
+	cppcheck --std=c99 --platform=unix32 --suppress=missingIncludeSystem --enable=all $(DEFINES) $(INC) main > /dev/null
 
 ################################################################################
 # Makefile Debugging
