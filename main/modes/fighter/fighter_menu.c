@@ -153,6 +153,7 @@ static const char str_exit[]        = "Exit";
 
 static const char str_charKD[]      = "King Donut";
 static const char str_charSN[]      = "Sunny McShreds";
+static const char str_charSN_short[] = "Sunny McS";
 static const char str_charBF[]      = "Bigg Funkus";
 
 const char str_searching_for[] = "Searching For";
@@ -168,6 +169,14 @@ const char* charNames[3] =
 {
     str_charKD,
     str_charSN,
+    str_charBF
+};
+
+// Must match order of fightingCharacter_t
+const char* charNamesShort[3] =
+{
+    str_charKD,
+    str_charSN_short,
     str_charBF
 };
 

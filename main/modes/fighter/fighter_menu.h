@@ -6,6 +6,7 @@
 extern swadgeMode modeFighter;
 
 extern const char* charNames[3];
+extern const char* charNamesShort[3];
 extern const char str_multiplayer[];
 extern const char str_hrContest[];
 
