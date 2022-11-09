@@ -532,18 +532,33 @@ void picrossMainMenuCb(const char* opt)
     if (opt == str_continue)
     {
         continueGame();
+
+        // Turn off LEDs
+        led_t leds[NUM_LEDS] = {0};
+        setLeds(leds, NUM_LEDS);
+
         return;
     }
     if (opt == str_howtoplay)
     {
         pm->screen = PICROSS_TUTORIAL;
         picrossStartTutorial(pm->disp,&pm->mmFont);
+
+        // Turn off LEDs
+        led_t leds[NUM_LEDS] = {0};
+        setLeds(leds, NUM_LEDS);
+
         return;
     }
     if (opt == str_levelSelect)
     {
         pm->screen = PICROSS_LEVELSELECT;
         picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels);
+
+        // Turn off LEDs
+        led_t leds[NUM_LEDS] = {0};
+        setLeds(leds, NUM_LEDS);
+
         return;
     }
     if (opt == str_exit)

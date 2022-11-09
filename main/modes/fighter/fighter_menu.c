@@ -569,6 +569,10 @@ void fighterMainMenuCb(const char* opt)
         p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
         // Start the connection
         p2pStartConnection(&fm->p2p);
+
+        // Turn off LEDs
+        led_t leds[NUM_LEDS] = {0};
+        setLeds(leds, NUM_LEDS);
     }
     else if (opt == str_wireMulti)
     {
@@ -661,6 +665,10 @@ void fighterWireMultiMenuCb(const char* opt)
     p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
     // Start the connection
     p2pStartConnection(&fm->p2p);
+
+    // Turn off LEDs
+    led_t leds[NUM_LEDS] = {0};
+    setLeds(leds, NUM_LEDS);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

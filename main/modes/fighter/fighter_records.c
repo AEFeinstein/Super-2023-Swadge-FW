@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "led_util.h"
 #include "fighter_menu.h"
 #include "fighter_records.h"
 #include "nvs_manager.h"
@@ -69,6 +70,10 @@ void initFighterRecords(display_t* disp, font_t* font)
     {
         writeNvsBlob(fighterRecKey, &fr->records, sizeof(fighterNvs_t));
     }
+
+    // Turn LEDs off
+    led_t leds[NUM_LEDS] = {0};
+    setLeds(leds, NUM_LEDS);
 }
 
 /**
