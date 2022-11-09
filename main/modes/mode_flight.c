@@ -1223,9 +1223,9 @@ static void flightGameUpdate( flight_t * tflight )
         tflight->hpr[0] += tflight->pitchmoment;
         tflight->hpr[1] += tflight->yawmoment;
         
-        if( tflight->hpr[0] > 3960 ) tflight->hpr[0] -= 3960;
+        if( tflight->hpr[0] >= 3960 ) tflight->hpr[0] -= 3960;
         if( tflight->hpr[0] < 0 ) tflight->hpr[0] += 3960;
-        if( tflight->hpr[1] > 3960 ) tflight->hpr[1] -= 3960;
+        if( tflight->hpr[1] >= 3960 ) tflight->hpr[1] -= 3960;
         if( tflight->hpr[1] < 0 ) tflight->hpr[1] += 3960;
 
         if( bs & 16 ) tflight->speed++;
