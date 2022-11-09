@@ -1370,6 +1370,7 @@ typedef struct
     accel_t ttLastTestAccel;
 
     uint16_t ttButtonState;
+    uint16_t ttButtonsPressedSinceLast;
     uint16_t ttLastButtonState;
 
     int64_t modeStartTime; // Time mode started in microseconds.
@@ -1581,6 +1582,7 @@ void ttInit(display_t* disp)
     tiltrads->ttLastTestAccel.z = 0;
 
     tiltrads->ttButtonState = 0;
+    tiltrads->ttButtonsPressedSinceLast = 0;
     tiltrads->ttLastButtonState = 0;
 
     // Reset mode time tracking.
@@ -1621,6 +1623,12 @@ void ttDeInit(void)
 void ttButtonCallback(buttonEvt_t* evt)
 {
     tiltrads->ttButtonState = evt->state;  // Set the state of all buttons.
+    // If this was a press
+    if(evt->down)
+    {
+        // Save this press so a quick press/release isn't ignored
+        tiltrads->ttButtonsPressedSinceLast |= evt->button;
+    }
 }
 
 void ttAccelerometerCallback(accel_t* accel)
@@ -1674,6 +1682,8 @@ static void ttUpdate(int64_t elapsedUs __attribute__((unused)))
 
     // Mark what our inputs were the last time we acted on them.
     tiltrads->ttLastButtonState = tiltrads->ttButtonState;
+    // Clear the buttons pressed since last check
+    tiltrads->ttButtonsPressedSinceLast = 0;
     tiltrads->ttLastAccel = tiltrads->ttAccel;
 
     // Handle game logic. (based on the state)
@@ -2683,22 +2693,22 @@ void ttChangeState(tiltradsState_t newState)
 
 bool ttIsButtonPressed(uint8_t button)
 {
-    return (tiltrads->ttButtonState & button) && !(tiltrads->ttLastButtonState & button);
+    return ((tiltrads->ttButtonState | tiltrads->ttButtonsPressedSinceLast) & button) && !(tiltrads->ttLastButtonState & button);
 }
 
 // bool ttIsButtonReleased(uint8_t button)
 // {
-//     return !(tiltrads->ttButtonState & button) && (tiltrads->ttLastButtonState & button);
+//     return !((tiltrads->ttButtonState | tiltrads->ttButtonsPressedSinceLast) & button) && (tiltrads->ttLastButtonState & button);
 // }
 
 bool ttIsButtonDown(uint8_t button)
 {
-    return tiltrads->ttButtonState & button;
+    return (tiltrads->ttButtonState | tiltrads->ttButtonsPressedSinceLast) & button;
 }
 
 bool ttIsButtonUp(uint8_t button)
 {
-    return !(tiltrads->ttButtonState & button);
+    return !((tiltrads->ttButtonState | tiltrads->ttButtonsPressedSinceLast) & button);
 }
 
 void copyGrid(coord_t srcOffset, uint8_t srcCols, uint8_t srcRows, const uint32_t src[][srcCols],

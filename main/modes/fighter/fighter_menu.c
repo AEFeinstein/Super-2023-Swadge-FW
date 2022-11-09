@@ -153,6 +153,7 @@ static const char str_exit[]        = "Exit";
 
 static const char str_charKD[]      = "King Donut";
 static const char str_charSN[]      = "Sunny McShreds";
+static const char str_charSN_short[] = "Sunny McS";
 static const char str_charBF[]      = "Bigg Funkus";
 
 const char str_searching_for[] = "Searching For";
@@ -168,6 +169,14 @@ const char* charNames[3] =
 {
     str_charKD,
     str_charSN,
+    str_charBF
+};
+
+// Must match order of fightingCharacter_t
+const char* charNamesShort[3] =
+{
+    str_charKD,
+    str_charSN_short,
     str_charBF
 };
 
@@ -560,6 +569,10 @@ void fighterMainMenuCb(const char* opt)
         p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
         // Start the connection
         p2pStartConnection(&fm->p2p);
+
+        // Turn off LEDs
+        led_t leds[NUM_LEDS] = {0};
+        setLeds(leds, NUM_LEDS);
     }
     else if (opt == str_wireMulti)
     {
@@ -652,6 +665,10 @@ void fighterWireMultiMenuCb(const char* opt)
     p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
     // Start the connection
     p2pStartConnection(&fm->p2p);
+
+    // Turn off LEDs
+    led_t leds[NUM_LEDS] = {0};
+    setLeds(leds, NUM_LEDS);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1291,7 +1308,7 @@ void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t* da
                         const fighterMpGameResult_t* res = (const fighterMpGameResult_t*)data;
                         initFighterMpResult(fm->disp, &fm->mmFont, res->roundTimeMs,
                                             res->other, res->otherKOs, res->otherDmg,
-                                            res->self, res->selfKOs, res->selfDmg);
+                                            res->self, res->selfKOs, res->selfDmg, MULTIPLAYER);
                         fm->screen = FIGHTER_MP_RESULT;
 
                         // Deinit the game
@@ -1393,28 +1410,34 @@ void fighterShowHrResult(fightingCharacter_t character, vector_t position,
  * @param other The other swadge's character
  * @param otherKOs The other swadge's number of KOs
  * @param otherDmg The amount of damage the other swadge did
+ * @param type The type of game played
  */
 void fighterShowMpResult(uint32_t roundTimeMs,
                          fightingCharacter_t self,  int8_t selfKOs, int16_t selfDmg,
-                         fightingCharacter_t other, int8_t otherKOs, int16_t otherDmg)
+                         fightingCharacter_t other, int8_t otherKOs, int16_t otherDmg,
+                         fightingGameType_t type)
 {
     // Show the result on this swadge
     initFighterMpResult(fm->disp, &fm->mmFont, roundTimeMs,
                         self, selfKOs, selfDmg,
-                        other, otherKOs, otherDmg);
+                        other, otherKOs, otherDmg,
+                        type);
     fm->screen = FIGHTER_MP_RESULT;
 
-    // Queue up this data to be sent in an ACK to the other swadge
-    const fighterMpGameResult_t res =
+    if(MULTIPLAYER == type)
     {
-        .msgType = MP_GAME_OVER_MSG,
-        .roundTimeMs = roundTimeMs,
-        .self = self,
-        .selfKOs = selfKOs,
-        .selfDmg = selfDmg,
-        .other = other,
-        .otherKOs = otherKOs,
-        .otherDmg = otherDmg,
-    };
-    p2pSetDataInAck(&fm->p2p, (const uint8_t*)&res, sizeof(fighterMpGameResult_t));
+        // Queue up this data to be sent in an ACK to the other swadge
+        const fighterMpGameResult_t res =
+        {
+            .msgType = MP_GAME_OVER_MSG,
+            .roundTimeMs = roundTimeMs,
+            .self = self,
+            .selfKOs = selfKOs,
+            .selfDmg = selfDmg,
+            .other = other,
+            .otherKOs = otherKOs,
+            .otherDmg = otherDmg,
+        };
+        p2pSetDataInAck(&fm->p2p, (const uint8_t*)&res, sizeof(fighterMpGameResult_t));
+    }
 }

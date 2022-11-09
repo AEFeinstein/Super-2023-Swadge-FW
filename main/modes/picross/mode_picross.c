@@ -1512,6 +1512,7 @@ void picrossGameButtonCb(buttonEvt_t* evt)
  */
 void picrossExitGame(void)
 {
+    buzzer_stop();
     if (NULL != p)
     {
         //set LED's to off.

@@ -381,7 +381,35 @@ void picrossButtonCb(buttonEvt_t* evt)
                 }
                 else
                 {
-                    meleeMenuButton(pm->menu, evt->button);
+                    switch(evt->button)
+                    {
+                        case UP:
+                        case DOWN:
+                        case BTN_A:
+                        case BTN_B:
+                        case START:
+                        case SELECT:
+                        {
+                            meleeMenuButton(pm->menu, evt->button);
+                            break;
+                        }
+                        case LEFT:
+                        case RIGHT:
+                        {
+                            if( (str_HintsOn == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_HintsOff == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_GuidesOn == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_GuidesOff == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_MarkX == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_MarkSolid == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_AnimateBGOn == pm->menu->rows[pm->menu->selectedRow]) ||
+                                (str_AnimateBGOff == pm->menu->rows[pm->menu->selectedRow]))
+                            {
+                                picrossMainMenuCb(pm->menu->rows[pm->menu->selectedRow]);
+                            }
+                            break;
+                        }
+                    }
                 }
             }
             break;
@@ -532,18 +560,33 @@ void picrossMainMenuCb(const char* opt)
     if (opt == str_continue)
     {
         continueGame();
+
+        // Turn off LEDs
+        led_t leds[NUM_LEDS] = {0};
+        setLeds(leds, NUM_LEDS);
+
         return;
     }
     if (opt == str_howtoplay)
     {
         pm->screen = PICROSS_TUTORIAL;
         picrossStartTutorial(pm->disp,&pm->mmFont);
+
+        // Turn off LEDs
+        led_t leds[NUM_LEDS] = {0};
+        setLeds(leds, NUM_LEDS);
+
         return;
     }
     if (opt == str_levelSelect)
     {
         pm->screen = PICROSS_LEVELSELECT;
         picrossStartLevelSelect(pm->disp,&pm->mmFont,pm->levels);
+
+        // Turn off LEDs
+        led_t leds[NUM_LEDS] = {0};
+        setLeds(leds, NUM_LEDS);
+
         return;
     }
     if (opt == str_exit)

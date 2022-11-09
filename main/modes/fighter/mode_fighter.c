@@ -2120,7 +2120,8 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             // End game and show result
             fighterShowMpResult(f->gameTimerUs / 1000,
                                 f->fighters[0].character, NUM_STOCKS - f->fighters[1].stocks, f->fighters[0].damageGiven,
-                                f->fighters[1].character, NUM_STOCKS - f->fighters[0].stocks, f->fighters[1].damageGiven);
+                                f->fighters[1].character, NUM_STOCKS - f->fighters[0].stocks, f->fighters[1].damageGiven,
+                                f->type);
             // Deinit the game
             fighterExitGame();
             // Return after deinit
@@ -2591,7 +2592,7 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     wsg_t* f1sprite = getFighterSprite(f1->currentSprite->spriteIdx, f->loadedSprites);
     wsg_t* f2sprite = getFighterSprite(f2->currentSprite->spriteIdx, f->loadedSprites);
     vector_t centeredSpritePos;
-    wsg_t * centeredSprite; 
+    wsg_t* centeredSprite;
     if(f1DistToCenter < f2DistToCenter)
     {
         // f1 more centered, make sure it's on screen
