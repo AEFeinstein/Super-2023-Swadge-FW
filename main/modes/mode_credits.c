@@ -1788,7 +1788,8 @@ void creditsMainLoop(int64_t elapsedUs)
             }
 
             // Add more space if the credits end in a newline
-            if('\n' == creditNames[idx][strlen(creditNames[idx]) - 1])
+            size_t nameLen = strlen(creditNames[idx]);
+            if((nameLen > 0) && ('\n' == creditNames[idx][nameLen - 1]))
             {
                 yPos += credits->font.h + 8;
             }
