@@ -17,7 +17,8 @@ typedef enum {
     ST_GAME_CLEAR,
     ST_GAME_OVER,
     ST_HIGH_SCORE_ENTRY,
-    ST_HIGH_SCORE_TABLE
+    ST_HIGH_SCORE_TABLE,
+    ST_PAUSE
 } gameStateEnum_t;
 
 typedef enum {

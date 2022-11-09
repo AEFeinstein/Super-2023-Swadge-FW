@@ -10,6 +10,7 @@
 #include "musical_buzzer.h"
 #include "btn.h"
 #include "esp_random.h"
+#include "platformer_sounds.h"
 
 //==============================================================================
 // Constants
@@ -24,108 +25,6 @@
 #define TO_TILE_COORDS(x) ((x) >> TILE_SIZE_IN_POWERS_OF_2)
 // #define TO_PIXEL_COORDS(x) ((x) >> SUBPIXEL_RESOLUTION)
 // #define TO_SUBPIXEL_COORDS(x) ((x) << SUBPIXEL_RESOLUTION)
-
-const song_t sndHit =
-    {
-        .notes =
-            {
-                {C_4, 25}, {C_5, 25}},
-        .numNotes = 2,
-        .shouldLoop = false
-    };
-
-const song_t sndSquish =
-    {
-        .notes =
-            {
-                {740, 10}, {840, 10}, {940, 10}},
-        .numNotes = 3,
-        .shouldLoop = false
-    };
-
-const song_t sndBreak =
-    {
-        .notes =
-            {
-                {C_5, 25}, {C_4, 25}, {A_4, 25}, {A_SHARP_3, 25}, {A_3, 25}},
-        .numNotes = 5,
-        .shouldLoop = false
-    };
-
-const song_t sndCoin =
-    {
-        .notes =
-            {
-                {1000, 50}, {1200, 100}},
-        .numNotes = 2,
-        .shouldLoop = false
-    };
-
-const song_t sndPowerUp =
-    {
-        .notes =
-            { 
-                {C_4, 100}, {G_4, 100}, {E_4, 100}, {C_5, 100}, {G_4, 100}, {D_5, 100}, {C_5, 100}},
-        .numNotes = 7,
-        .shouldLoop = false
-    };
-
-const song_t sndJump1 =
-    {
-        .notes =
-            { 
-                {C_5, 50}, {E_5, 50}, {C_5, 50}},
-        .numNotes = 2,
-        .shouldLoop = false
-    };         
-
-const song_t sndJump2 =
-    {
-        .notes =
-            { 
-                {E_5, 50}, {G_5, 50}, {E_5, 50}},
-        .numNotes = 2,
-        .shouldLoop = false
-    };         
-
-const song_t sndJump3 =
-    {
-        .notes =
-            { 
-                {G_5, 50}, {C_6, 50}, {G_5, 50}},
-        .numNotes = 2,
-        .shouldLoop = false
-    };
-
-const song_t sndWarp =
-    {
-        .notes =
-            { 
-                {D_5, 50}, {A_4, 50}, {E_4, 50},{D_5, 50}, {A_4, 50}, {E_4, 50},{D_5, 50}, {A_4, 50}, {E_4, 50}
-            },
-        .numNotes = 9,
-        .shouldLoop = false
-    };
-
-const song_t sndHurt =
-    {
-        .notes =
-            { 
-                {E_4, 50}, {D_SHARP_4, 50}, {D_4, 50},{C_SHARP_4, 50}, {C_4, 50}, {C_5, 50}, {C_4, 50}
-            },
-        .numNotes = 6,
-        .shouldLoop = false
-    };   
-
-const song_t sndWaveBall =
-{
-    .notes =
-    {
-        {D_4, 50},{D_5, 50},{A_6, 50},{A_5, 50}
-    },
-    .numNotes = 4,
-    .shouldLoop = false
-};              
 
 //==============================================================================
 // Functions
@@ -283,6 +182,15 @@ void updatePlayer(entity_t *self)
         self->animationTimer = 30;
     }
 
+    if(
+        (
+            (self->gameData->btnState & START)
+            &&
+            !(self->gameData->prevBtnState & START)
+        )
+    ){
+        self->gameData->changeState = ST_PAUSE;
+    }
 
     moveEntityWithTileCollisions(self);
     dieWhenFallingOffScreen(self);
@@ -326,7 +234,7 @@ void updateHitBlock(entity_t *self)
         {
             case TILE_CTNR_COIN:
             {
-                self->gameData->coins++;
+                addCoins(self->gameData, 1);
                 scorePoints(self->gameData, 10);
                 buzzer_play_sfx(&sndCoin);
                 self->jumpPower = TILE_CONTAINER_2;
@@ -359,7 +267,7 @@ void updateHitBlock(entity_t *self)
                     scorePoints(self->gameData, 10);
                     buzzer_play_sfx(&sndCoin);
                 } else {
-                    createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, (self->homeTileY - 1) * TILE_SIZE + HALF_TILE_SIZE);
+                    createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) && belowTile != TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
                     createdEntity->homeTileX = 0;
                     createdEntity->homeTileY = 0;
                     self->gameData->extraLifeCollected = true;
@@ -502,7 +410,7 @@ void defaultFallOffTileHandler(entity_t *self){
 
 void applyDamping(entity_t *self)
 {
-    if (!self->falling)
+    if (!self->falling || !self->gravityEnabled)
     {
         if (self->xspeed > 0)
         {
@@ -568,9 +476,20 @@ void despawnWhenOffscreen(entity_t *self)
 {
     if (
         (self->x >> SUBPIXEL_RESOLUTION) < (self->tilemap->mapOffsetX - DESPAWN_THRESHOLD) ||
-        (self->x >> SUBPIXEL_RESOLUTION) > (self->tilemap->mapOffsetX + TILEMAP_DISPLAY_WIDTH_PIXELS + DESPAWN_THRESHOLD) ||
-        (self->y >> SUBPIXEL_RESOLUTION) < (self->tilemap->mapOffsetY - DESPAWN_THRESHOLD) ||
-        (self->y >> SUBPIXEL_RESOLUTION) > (self->tilemap->mapOffsetY + TILEMAP_DISPLAY_HEIGHT_PIXELS + DESPAWN_THRESHOLD))
+        (self->x >> SUBPIXEL_RESOLUTION) > (self->tilemap->mapOffsetX + TILEMAP_DISPLAY_WIDTH_PIXELS + DESPAWN_THRESHOLD)
+    )
+    {
+        destroyEntity(self, true);
+    }
+
+    if (self->y > 63616){
+        return;
+    }
+
+    if (
+        (self->y >> SUBPIXEL_RESOLUTION) < (self->tilemap->mapOffsetY - (DESPAWN_THRESHOLD << 2)) ||
+        (self->y >> SUBPIXEL_RESOLUTION) > (self->tilemap->mapOffsetY + TILEMAP_DISPLAY_HEIGHT_PIXELS + DESPAWN_THRESHOLD)
+    )
     {
         destroyEntity(self, true);
     }
@@ -687,7 +606,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                 updateLedsHpMeter(self->entityManager, self->gameData);
                 self->gameData->comboTimer = 0;
                 
-                if(self->hp <= 0){
+                if(!self->gameData->debugMode && self->hp <= 0){
                     self->updateFunction = &updateEntityDead;
                     self->type = ENTITY_DEAD;
                     self->xspeed = 0;
@@ -733,7 +652,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
         case ENTITY_1UP:{
             self->gameData->lives++;
             scorePoints(self->gameData, 0);
-            buzzer_play_sfx(&sndPowerUp);
+            buzzer_play_sfx(&snd1up);
             destroyEntity(other, false);
             break;
         }
@@ -745,8 +664,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                 if(aboveTile >= TILE_WARP_0 && aboveTile <= TILE_WARP_F) {
                     self->gameData->checkpoint = aboveTile - TILE_WARP_0;
                     other->xDamping = 1;
-                    buzzer_play_sfx(&sndSquish);
-                    //play checkpoint sound
+                    buzzer_play_sfx(&sndCheckpoint);
                 }
             }
             break;
@@ -771,6 +689,8 @@ void enemyCollisionHandler(entity_t *self, entity_t *other)
         case ENTITY_DUST_BUNNY_3:
         case ENTITY_WASP_2:
         case ENTITY_WASP_3:
+        case ENTITY_POWERUP:
+        case ENTITY_1UP:
             if((self->xspeed > 0 && self->x < other->x) || (self->xspeed < 0 && self->x > other->x)){
                 self->xspeed = -self->xspeed;
                 self->spriteFlipHorizontal = -self->spriteFlipHorizontal;
@@ -874,6 +794,8 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     {
         if(direction == 4) {
             scorePoints(self->gameData, 100);
+            buzzer_stop();
+            buzzer_play_sfx(&sndLevelClearD);
             self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
             self->gameData->changeState = ST_LEVEL_CLEAR;
@@ -884,6 +806,8 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     {
         if(direction == 4) {
             scorePoints(self->gameData, 500);
+            buzzer_stop();
+            buzzer_play_sfx(&sndLevelClearC);
             self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
             self->gameData->changeState = ST_LEVEL_CLEAR;
@@ -894,6 +818,8 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     {
         if(direction == 4) {
             scorePoints(self->gameData, 1000);
+            buzzer_stop();
+            buzzer_play_sfx(&sndLevelClearB);
             self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
             self->gameData->changeState = ST_LEVEL_CLEAR;
@@ -904,6 +830,8 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     {
         if(direction == 4) {
             scorePoints(self->gameData, 2000);
+            buzzer_stop();
+            buzzer_play_sfx(&sndLevelClearA);
             self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
             self->gameData->changeState = ST_LEVEL_CLEAR;
@@ -914,6 +842,8 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
     {
         if(direction == 4) {
             scorePoints(self->gameData, 5000);
+            buzzer_stop();
+            buzzer_play_sfx(&sndLevelClearS);
             self->spriteIndex = SP_PLAYER_WIN;
             self->updateFunction = &updateDummy;
             self->gameData->changeState = ST_LEVEL_CLEAR;
@@ -1121,6 +1051,8 @@ void update1up(entity_t *self)
         self->spriteIndex = SP_1UP_1 + ((self->spriteIndex + 1) % 3);
     }
 
+    moveEntityWithTileCollisions(self);
+    applyGravity(self);
     despawnWhenOffscreen(self);
 }
 
@@ -1872,6 +1804,8 @@ void powerUpCollisionHandler(entity_t *self, entity_t *other)
         case ENTITY_DUST_BUNNY_3:
         case ENTITY_WASP_2:
         case ENTITY_WASP_3:
+        case ENTITY_POWERUP:
+        case ENTITY_1UP:
             if((self->xspeed > 0 && self->x < other->x) || (self->xspeed < 0 && self->x > other->x)){
                 self->xspeed = -self->xspeed;
             }
@@ -1885,4 +1819,18 @@ void powerUpCollisionHandler(entity_t *self, entity_t *other)
             break;
         }
     }
+}
+
+void killPlayer(entity_t *self)
+{
+    self->hp = 0;
+    updateLedsHpMeter(self->entityManager, self->gameData);
+    
+    self->updateFunction = &updateEntityDead;
+    self->type = ENTITY_DEAD;
+    self->xspeed = 0;
+    self->yspeed = -60;
+    self->spriteIndex = SP_PLAYER_HURT;
+    self->gameData->changeState = ST_DEAD;
+    self->falling = true;
 }

@@ -24,836 +24,27 @@
 #include "led_util.h"
 #include "palette.h"
 #include "nvs_manager.h"
+#include "platformer_sounds.h"
+#include "inttypes.h"
+#include "mode_main_menu.h"
 
 //==============================================================================
 // Constants
 //==============================================================================
-
-const song_t sndGameStart =
-{
-    .notes =
-    {
-        {C_4, 50},{SILENCE, 50},{C_4, 100},{SILENCE, 200},{C_5, 100},
-        {SILENCE, 100},{E_4, 100},{SILENCE, 100},{E_4, 100},{SILENCE, 100},
-        {G_4, 100},{C_5, 100},{SILENCE, 100},{G_4, 100}
-    },
-    .numNotes = 14,
-    .shouldLoop = false
-};
-
-const song_t sndDie =
-{
-    .notes =
-    {
-        {C_SHARP_5, 100},{A_SHARP_4, 100},{G_SHARP_4, 200},{F_SHARP_4, 100},
-        {D_SHARP_4, 100},{SILENCE, 100},{D_4, 100},{SILENCE, 100},
-        {C_SHARP_4, 100}
-    },
-    .numNotes = 9,
-    .shouldLoop = false
-};
-
-const song_t sndMenuSelect =
-{
-    .notes =
-    {
-        {C_5, 50},{C_4, 50}
-    },
-    .numNotes = 2,
-    .shouldLoop = false
-};
-
-const song_t sndMenuConfirm =
-{
-    .notes =
-    {
-        {C_6, 50},{C_5, 50},{C_4, 50}
-    },
-    .numNotes = 2,
-    .shouldLoop = false
-};
-
-const song_t sndMenuDeny =
-{
-    .notes =
-    {
-        {C_3, 50},{SILENCE, 50},{C_3, 50}
-    },
-    .numNotes = 3,
-    .shouldLoop = false
-};
-
-const song_t bgmDemagio =
-{
-    .notes =
-    {
-        {.note = A_2, .timeMs = 187},
-        {.note = C_SHARP_5, .timeMs = 187},
-        {.note = E_5, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = D_3, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = D_SHARP_4, .timeMs = 187},
-        {.note = C_3, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = D_4, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = E_5, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = C_SHARP_5, .timeMs = 187},
-        {.note = E_3, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = B_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = G_4, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = A_2, .timeMs = 187},
-        {.note = C_SHARP_5, .timeMs = 187},
-        {.note = E_5, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = D_3, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = D_SHARP_3, .timeMs = 187},
-        {.note = B_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = E_3, .timeMs = 187},
-        {.note = C_SHARP_5, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = E_5, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = A_2, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = A_2, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_2, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = C_3, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = D_3, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = D_3, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = D_3, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = D_3, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = C_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = D_4, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = F_SHARP_3, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = E_3, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = C_SHARP_4, .timeMs = 187},
-        {.note = A_2, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = E_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = D_3, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = D_3, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = D_3, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = D_3, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = C_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = D_SHARP_4, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = C_SHARP_5, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = B_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = E_3, .timeMs = 187},
-        {.note = F_SHARP_3, .timeMs = 187},
-        {.note = G_3, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = C_SHARP_5, .timeMs = 187},
-        {.note = E_5, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = D_3, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = D_SHARP_3, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = D_SHARP_3, .timeMs = 187},
-        {.note = E_3, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = E_5, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = C_SHARP_5, .timeMs = 187},
-        {.note = B_4, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = E_3, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = E_3, .timeMs = 187},
-        {.note = A_2, .timeMs = 187},
-        {.note = D_2, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = F_2, .timeMs = 187},
-        {.note = F_SHARP_2, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = F_SHARP_2, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = D_SHARP_4, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = D_SHARP_4, .timeMs = 187},
-        {.note = F_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = F_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_SHARP_2, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = F_SHARP_2, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = D_SHARP_4, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = D_SHARP_4, .timeMs = 187},
-        {.note = F_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = B_3, .timeMs = 187},
-        {.note = D_SHARP_4, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = D_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = D_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = A_2, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = D_4, .timeMs = 187},
-        {.note = C_SHARP_4, .timeMs = 187},
-        {.note = A_2, .timeMs = 187},
-        {.note = G_3, .timeMs = 187},
-        {.note = C_SHARP_4, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = D_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = D_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = A_2, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = C_SHARP_4, .timeMs = 187},
-        {.note = G_SHARP_2, .timeMs = 187},
-        {.note = D_SHARP_4, .timeMs = 187},
-        {.note = C_4, .timeMs = 187},
-        {.note = G_2, .timeMs = 187},
-        {.note = D_4, .timeMs = 187},
-        {.note = F_SHARP_2, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = F_SHARP_2, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = D_SHARP_4, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = D_SHARP_4, .timeMs = 187},
-        {.note = F_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = F_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_SHARP_2, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = F_SHARP_2, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = B_4, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = B_4, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = B_2, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = D_SHARP_4, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = B_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = B_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = A_2, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = D_4, .timeMs = 187},
-        {.note = C_SHARP_4, .timeMs = 187},
-        {.note = A_2, .timeMs = 187},
-        {.note = G_3, .timeMs = 187},
-        {.note = C_SHARP_4, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = B_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = F_SHARP_4, .timeMs = 187},
-        {.note = B_4, .timeMs = 187},
-        {.note = E_2, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = A_2, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = C_SHARP_4, .timeMs = 187},
-        {.note = E_4, .timeMs = 187},
-        {.note = A_4, .timeMs = 187},
-        {.note = A_SHARP_4, .timeMs = 187},
-        {.note = B_4, .timeMs = 187},
-        {.note = C_5, .timeMs = 179},
-
-    },
-    .numNotes = 289,
-    .shouldLoop = true
-};
-
-const song_t bgmIntro =
-{
-    .notes =
-    {
-        {.note = C_SHARP_5, .timeMs = 130},
-        {.note = C_SHARP_3, .timeMs = 62},
-        {.note = SILENCE, .timeMs = 67},
-        {.note = A_3, .timeMs = 62},
-        {.note = SILENCE, .timeMs = 67},
-        {.note = E_4, .timeMs = 62},
-        {.note = SILENCE, .timeMs = 67},
-        {.note = A_4, .timeMs = 130},
-        {.note = C_SHARP_5, .timeMs = 130},
-        {.note = D_5, .timeMs = 130},
-        {.note = C_3, .timeMs = 62},
-        {.note = SILENCE, .timeMs = 67},
-        {.note = A_3, .timeMs = 62},
-        {.note = SILENCE, .timeMs = 67},
-        {.note = E_4, .timeMs = 67},
-        {.note = SILENCE, .timeMs = 62},
-        {.note = A_4, .timeMs = 130},
-        {.note = D_5, .timeMs = 130},
-        {.note = E_5, .timeMs = 130},
-        {.note = B_4, .timeMs = 130},
-        {.note = A_4, .timeMs = 130},
-        {.note = E_4, .timeMs = 130},
-        {.note = B_3, .timeMs = 83},
-        {.note = A_3, .timeMs = 78},
-        {.note = E_3, .timeMs = 78},
-        {.note = B_2, .timeMs = 83},
-        {.note = E_2, .timeMs = 317},
-    },
-    .numNotes = 27,
-    .shouldLoop = false
-};
-
-const song_t bgmSmooth =
-{
-    .notes =
-    {
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = A_SHARP_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = A_SHARP_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 93},
-        {.note = A_SHARP_3, .timeMs = 93},
-        {.note = C_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = A_SHARP_4, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = D_6, .timeMs = 46},
-        {.note = D_SHARP_6, .timeMs = 140},
-        {.note = A_SHARP_5, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 187},
-        {.note = A_SHARP_5, .timeMs = 187},
-        {.note = G_5, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 187},
-        {.note = G_5, .timeMs = 187},
-        {.note = D_SHARP_5, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = F_5, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_5, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 187},
-        {.note = G_5, .timeMs = 187},
-        {.note = D_SHARP_3, .timeMs = 187},
-        {.note = C_6, .timeMs = 187},
-        {.note = G_3, .timeMs = 187},
-        {.note = D_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_5, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 187},
-        {.note = G_3, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 187},
-        {.note = F_5, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = B_3, .timeMs = 46},
-        {.note = C_4, .timeMs = 140},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = F_5, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_5, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 187},
-        {.note = G_5, .timeMs = 187},
-        {.note = D_SHARP_3, .timeMs = 187},
-        {.note = C_6, .timeMs = 187},
-        {.note = G_3, .timeMs = 187},
-        {.note = D_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_5, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = C_6, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_5, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = B_3, .timeMs = 46},
-        {.note = C_4, .timeMs = 140},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_4, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = F_5, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_5, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 187},
-        {.note = G_5, .timeMs = 187},
-        {.note = D_SHARP_3, .timeMs = 187},
-        {.note = C_6, .timeMs = 187},
-        {.note = G_3, .timeMs = 187},
-        {.note = D_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_5, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 187},
-        {.note = G_3, .timeMs = 187},
-        {.note = A_SHARP_5, .timeMs = 187},
-        {.note = F_5, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = B_3, .timeMs = 46},
-        {.note = C_4, .timeMs = 140},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = C_3, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = F_5, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = C_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_5, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 187},
-        {.note = G_5, .timeMs = 187},
-        {.note = D_SHARP_3, .timeMs = 187},
-        {.note = C_6, .timeMs = 187},
-        {.note = G_3, .timeMs = 187},
-        {.note = D_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_5, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = C_6, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_5, .timeMs = 187},
-        {.note = A_SHARP_2, .timeMs = 187},
-        {.note = D_3, .timeMs = 187},
-        {.note = A_SHARP_2, .timeMs = 187},
-        {.note = SILENCE, .timeMs = 187},
-        {.note = A_SHARP_2, .timeMs = 187},
-        {.note = D_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = D_SHARP_6, .timeMs = 187},
-        {.note = D_SHARP_4, .timeMs = 187},
-        {.note = C_4, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = B_3, .timeMs = 46},
-        {.note = C_4, .timeMs = 140},
-        {.note = B_3, .timeMs = 46},
-        {.note = C_4, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 46},
-        {.note = C_4, .timeMs = 46},
-        {.note = SILENCE, .timeMs = 46},
-        {.note = C_4, .timeMs = 46},
-        {.note = SILENCE, .timeMs = 46},
-        {.note = F_3, .timeMs = 140},
-        {.note = SILENCE, .timeMs = 46},
-        {.note = F_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = F_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 140},
-        {.note = SILENCE, .timeMs = 46},
-        {.note = F_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = G_SHARP_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_4, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = A_SHARP_4, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = A_SHARP_4, .timeMs = 117},
-        {.note = SILENCE, .timeMs = 70},
-        {.note = A_SHARP_4, .timeMs = 117},
-        {.note = SILENCE, .timeMs = 70},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 140},
-        {.note = SILENCE, .timeMs = 46},
-        {.note = F_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = F_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 140},
-        {.note = SILENCE, .timeMs = 46},
-        {.note = F_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = G_SHARP_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_4, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = A_SHARP_4, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = A_SHARP_4, .timeMs = 117},
-        {.note = SILENCE, .timeMs = 70},
-        {.note = A_SHARP_4, .timeMs = 117},
-        {.note = SILENCE, .timeMs = 70},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 93},
-        {.note = A_SHARP_3, .timeMs = 93},
-        {.note = C_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 140},
-        {.note = SILENCE, .timeMs = 46},
-        {.note = F_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = F_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 140},
-        {.note = SILENCE, .timeMs = 46},
-        {.note = F_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = G_SHARP_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_4, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = A_SHARP_4, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = A_SHARP_4, .timeMs = 117},
-        {.note = SILENCE, .timeMs = 70},
-        {.note = A_SHARP_4, .timeMs = 117},
-        {.note = SILENCE, .timeMs = 70},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 140},
-        {.note = SILENCE, .timeMs = 46},
-        {.note = F_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = F_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 140},
-        {.note = SILENCE, .timeMs = 46},
-        {.note = F_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = G_SHARP_3, .timeMs = 39},
-        {.note = SILENCE, .timeMs = 54},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_3, .timeMs = 187},
-        {.note = C_SHARP_4, .timeMs = 93},
-        {.note = F_4, .timeMs = 93},
-        {.note = A_SHARP_4, .timeMs = 93},
-        {.note = C_SHARP_5, .timeMs = 93},
-        {.note = C_4, .timeMs = 93},
-        {.note = D_SHARP_4, .timeMs = 93},
-        {.note = G_SHARP_4, .timeMs = 93},
-        {.note = C_5, .timeMs = 93},
-        {.note = A_SHARP_3, .timeMs = 93},
-        {.note = D_SHARP_4, .timeMs = 93},
-        {.note = G_4, .timeMs = 93},
-        {.note = A_SHARP_4, .timeMs = 93},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = G_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = F_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = A_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_4, .timeMs = 187},
-        {.note = F_6, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = F_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = A_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_4, .timeMs = 187},
-        {.note = F_6, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = G_5, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 187},
-        {.note = G_5, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = F_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = A_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_4, .timeMs = 187},
-        {.note = F_6, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = G_SHARP_3, .timeMs = 187},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = F_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = F_4, .timeMs = 187},
-        {.note = F_3, .timeMs = 187},
-        {.note = G_SHARP_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = G_SHARP_4, .timeMs = 187},
-        {.note = A_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_3, .timeMs = 187},
-        {.note = F_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = A_SHARP_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = F_5, .timeMs = 93},
-        {.note = SILENCE, .timeMs = 93},
-        {.note = C_6, .timeMs = 187},
-        {.note = D_SHARP_6, .timeMs = 187},
-        {.note = F_6, .timeMs = 46},
-        {.note = E_6, .timeMs = 23},
-        {.note = D_SHARP_6, .timeMs = 23},
-        {.note = C_SHARP_6, .timeMs = 23},
-        {.note = C_6, .timeMs = 23},
-        {.note = A_5, .timeMs = 23},
-        {.note = G_5, .timeMs = 23},
-        {.note = F_SHARP_5, .timeMs = 23},
-        {.note = E_5, .timeMs = 23},
-        {.note = D_SHARP_5, .timeMs = 23},
-        {.note = C_SHARP_5, .timeMs = 23},
-        {.note = C_5, .timeMs = 23},
-        {.note = A_4, .timeMs = 23},
-        {.note = G_4, .timeMs = 23},
-        {.note = F_SHARP_4, .timeMs = 19},
-
-    },
-    .numNotes = 425,
-    .shouldLoop = true
-};
+#define BIG_SCORE 2000000UL
+#define BIGGER_SCORE 5000000UL
+#define FAST_TIME 1800 //30 minutes
 
 static const paletteColor_t highScoreNewEntryColors[4] = {c050, c055, c005, c055};
+
+static const paletteColor_t redColors[4] = {c501, c540, c550, c540};
+static const paletteColor_t yellowColors[4] = {c550, c331, c550, c555};
+static const paletteColor_t greenColors[4] = {c555, c051, c030, c051};
+static const paletteColor_t cyanColors[4] = {c055, c455, c055, c033};
+static const paletteColor_t purpleColors[4] = {c213, c535, c555, c535};
+static const paletteColor_t rgbColors[4] = {c500, c050, c005, c050};
+
+static const int16_t cheatCode[11] = {UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, BTN_B, BTN_A, START};
 
 //==============================================================================
 // Functions Prototypes
@@ -889,6 +80,8 @@ struct platformer_t
     int32_t frameTimer;
 
     platformerHighScores_t highScores;
+    platformerUnlockables_t unlockables;
+    bool easterEgg;
 
     gameUpdateFuncton_t update;
 };
@@ -916,8 +109,12 @@ void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData);
 void changeStateGameClear(platformer_t *self);
 void updateGameClear(platformer_t *self);
 void drawGameClear(display_t *d, font_t *font, gameData_t *gameData);
+void initializePlatformerHighScores(platformer_t* self);
 void loadPlatformerHighScores(platformer_t* self);
 void savePlatformerHighScores(platformer_t* self);
+void initializePlatformerUnlockables(platformer_t* self);
+void loadPlatformerUnlockables(platformer_t* self);
+void savePlatformerUnlockables(platformer_t* self);
 void drawPlatformerHighScores(display_t *d, font_t *font, platformerHighScores_t *highScores, gameData_t *gameData);
 uint8_t getHighScoreRank(platformerHighScores_t *highScores, uint32_t newScore);
 void insertScoreIntoHighScores(platformerHighScores_t *highScores, uint32_t newScore, char newInitials[], uint8_t rank);
@@ -927,6 +124,10 @@ void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData, uint8_t cur
 void changeStateShowHighScores(platformer_t *self);
 void updateShowHighScores(platformer_t *self);
 void drawShowHighScores(display_t *d, font_t *font, uint8_t menuState);
+void changeStatePause(platformer_t *self);
+void updatePause(platformer_t *self);
+void drawPause(display_t *d, font_t *font);
+uint16_t getLevelIndex(uint8_t world, uint8_t level);
 
 //==============================================================================
 // Variables
@@ -951,9 +152,9 @@ swadgeMode modePlatformer =
         .overrideUsb = false
 };
 
-#define NUM_LEVELS 13
+#define NUM_LEVELS 16
 
-static leveldef_t leveldef[NUM_LEVELS] = {
+static leveldef_t leveldef[17] = {
     {.filename = "level1-1.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
@@ -990,6 +191,18 @@ static leveldef_t leveldef[NUM_LEVELS] = {
     {.filename = "level3-4.bin",
      .timeLimit = 220,
      .checkpointTimeLimit = 110},
+    {.filename = "level4-1.bin",
+     .timeLimit = 240,
+     .checkpointTimeLimit = 90},
+    {.filename = "level4-2.bin",
+     .timeLimit = 240,
+     .checkpointTimeLimit = 90},
+    {.filename = "level4-3.bin",
+     .timeLimit = 240,
+     .checkpointTimeLimit = 90},
+    {.filename = "level4-4.bin",
+     .timeLimit = 240,
+     .checkpointTimeLimit = 90},
     {.filename = "debug.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90}};
@@ -1019,7 +232,10 @@ void platformerEnterMode(display_t *disp)
     platformer->prevBtnState = 0;
 
     loadPlatformerHighScores(platformer);
-    //insertScoreIntoHighScores(&(platformer->highScores), 1000000, "EFV", getHighScoreRank(&(platformer->highScores), 1000000));
+    loadPlatformerUnlockables(platformer);
+    if(platformer->highScores.initials[0][0] == 'E' && platformer->highScores.initials[0][1] == 'F' && platformer->highScores.initials[0][2] == 'V'){
+        platformer->easterEgg = true;
+    }
 
     loadFont("radiostars.font", &platformer->radiostars);
 
@@ -1044,7 +260,6 @@ void platformerEnterMode(display_t *disp)
  */
 void platformerExitMode(void)
 {
-    savePlatformerHighScores(platformer);
     freeFont(&platformer->radiostars);
     freeTilemap(&(platformer->tilemap));
     freeEntityManager(&(platformer->entityManager));
@@ -1099,6 +314,15 @@ void updateGame(platformer_t *self)
     if(self->gameData.frameCount > 59){
         self->gameData.frameCount = 0;
         self->gameData.countdown--;
+        self->gameData.inGameTimer++;
+
+        if(self->gameData.countdown < 10){
+            buzzer_play_bgm(&sndOuttaTime);
+        }
+
+        if(self->gameData.countdown < 0){
+            killPlayer(self->entityManager.playerEntity);
+        }
     }
 
     updateComboTimer(&(self->gameData));
@@ -1113,7 +337,7 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
     snprintf(coinStr, sizeof(coinStr) - 1, "C:%02d", gameData->coins);
 
     char scoreStr[32];
-    snprintf(scoreStr, sizeof(scoreStr) - 1, "%06d", gameData->score);
+    snprintf(scoreStr, sizeof(scoreStr) - 1, "%06" PRIu32, gameData->score);
 
     char levelStr[15];
     snprintf(levelStr, sizeof(levelStr) - 1, "Level %d-%d", gameData->world, gameData->level);
@@ -1132,14 +356,14 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
     drawText(d, font, c555, coinStr, 160, 16);
     drawText(d, font, c555, scoreStr, 8, 16);
     drawText(d, font, c555, levelStr, 152, 2);
-    drawText(d, font, c555, timeStr, 220, 16);
+    drawText(d, font, (gameData->countdown > 30) ? c555 : redColors[(gameData->frameCount >> 3) % 4], timeStr, 220, 16);
 
     if(gameData->comboTimer == 0){
         return;
     }
 
-    snprintf(scoreStr, sizeof(scoreStr) - 1, "+%d (x%d)", gameData->comboScore, gameData->combo);
-    drawText(d, font, c050, scoreStr, 8, 30);
+    snprintf(scoreStr, sizeof(scoreStr) - 1, "+%" PRIu32 " (x%d)", gameData->comboScore, gameData->combo);
+    drawText(d, font, (gameData->comboTimer < 60) ? c030: greenColors[(platformer->gameData.frameCount >> 3) % 4], scoreStr, 8, 30);
 }
 
 void updateTitleScreen(platformer_t *self)
@@ -1154,9 +378,32 @@ void updateTitleScreen(platformer_t *self)
     switch(platformer->menuState){
         case 0:{ 
             if(self->gameData.frameCount > 600){
+                resetGameDataLeds(&(self->gameData));
                 changeStateShowHighScores(self);
             }
-            else if (
+            
+            if(
+                (
+                    (self->gameData.btnState & cheatCode[platformer->menuSelection])
+                    &&
+                    !(self->gameData.prevBtnState & cheatCode[platformer->menuSelection])
+                )
+            ) {
+                platformer->menuSelection++;
+
+                if(self->menuSelection > 10){
+                    platformer->menuSelection = 0;
+                    platformer->menuState = 1;
+                    platformer->gameData.debugMode = true;
+                    buzzer_play_sfx(&sndLevelClearS);
+                } else {
+                    buzzer_play_sfx(&sndMenuSelect);
+                }
+
+                break;
+            } 
+
+            if (
                 (
                     (self->gameData.btnState & START)
                     &&
@@ -1172,6 +419,7 @@ void updateTitleScreen(platformer_t *self)
             {
                 buzzer_play_sfx(&sndMenuConfirm);
                 platformer->menuState = 1;
+                platformer->menuSelection = 0;
             }
 
             break;
@@ -1191,14 +439,73 @@ void updateTitleScreen(platformer_t *self)
                 )
             )
             {
-                uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
-                if(levelIndex >= NUM_LEVELS){
-                    buzzer_play_sfx(&sndMenuDeny);
-                    break;
-                }
+                switch(self->menuSelection){
+                    case 0 ... 1: {
+                        uint16_t levelIndex = getLevelIndex(self->gameData.world, self->gameData.level);
+                        if(
+                            (levelIndex >= NUM_LEVELS)
+                            ||
+                            (!self->gameData.debugMode && !self->gameData.debugMode && levelIndex > self->unlockables.maxLevelIndexUnlocked)
+                        ){
+                            buzzer_play_sfx(&sndMenuDeny);
+                            break;
+                        }
 
-                initializeGameDataFromTitleScreen(&(self->gameData));
-                changeStateReadyScreen(self);
+                        if(self->menuSelection == 0){
+                            self->gameData.world = 1;
+                            self->gameData.level = 1;
+                        }
+
+                        initializeGameDataFromTitleScreen(&(self->gameData));
+                        changeStateReadyScreen(self);
+                        break;
+                    }
+                    case 2: {
+                        if(self->gameData.debugMode){
+                            //Reset Progress
+                            initializePlatformerUnlockables(self);
+                            buzzer_play_sfx(&sndBreak);
+                        } else {
+                            //Show High Scores
+                            self->menuSelection = 0;
+                            self->menuState = 0;
+
+                            changeStateShowHighScores(self);
+                            buzzer_play_sfx(&sndMenuConfirm);
+                        }
+                        break;
+                    }
+                    case 3: {
+                        if(self->gameData.debugMode){
+                            //Reset High Scores
+                            initializePlatformerHighScores(self);
+                            buzzer_play_sfx(&sndBreak);
+                        } else {
+                            //Show Achievements
+                            self->menuSelection = 0;
+                            self->menuState = 2;
+                            buzzer_play_sfx(&sndMenuConfirm);
+                        }
+                        break;
+                    }
+                    case 4: {
+                        if(self->gameData.debugMode){
+                            //Save & Quit
+                            savePlatformerHighScores(self);
+                            savePlatformerUnlockables(self);
+                            buzzer_play_sfx(&sndMenuConfirm);
+                            switchToSwadgeMode(&modeMainMenu);
+                        } else {
+                            buzzer_play_sfx(&sndMenuConfirm);
+                            switchToSwadgeMode(&modeMainMenu);
+                        }
+                        break;
+                    }
+                    default: {
+                        buzzer_play_sfx(&sndMenuDeny);
+                        self->menuSelection = 0;
+                    }
+                }
             } else if (
                     (
                     self->gameData.btnState & UP
@@ -1209,6 +516,11 @@ void updateTitleScreen(platformer_t *self)
             {
                 if(platformer->menuSelection > 0){
                     platformer->menuSelection--;
+
+                    if(!self->gameData.debugMode && platformer->menuSelection == 1 && self->unlockables.maxLevelIndexUnlocked == 0){
+                        platformer->menuSelection--;
+                    }
+
                     buzzer_play_sfx(&sndMenuSelect);
                 }
             } else if (
@@ -1219,9 +531,16 @@ void updateTitleScreen(platformer_t *self)
                 )
             )
             {
-                if(platformer->menuSelection < 1){
+                if(platformer->menuSelection < 4){
                     platformer->menuSelection++;
+
+                    if(platformer->menuSelection == 1 && self->unlockables.maxLevelIndexUnlocked == 0){
+                        platformer->menuSelection++;
+                    }
+
                     buzzer_play_sfx(&sndMenuSelect);
+                } else {
+                    buzzer_play_sfx(&sndMenuDeny);
                 }
             } else if (
                 (
@@ -1254,7 +573,12 @@ void updateTitleScreen(platformer_t *self)
             )
             {
                 if(platformer->menuSelection == 1){
-                    if(platformer->gameData.level == 4 && platformer->gameData.world == 8){
+                    if( 
+                        (platformer->gameData.level == 4 && platformer->gameData.world == 4) 
+                        || 
+                        (!platformer->gameData.debugMode && getLevelIndex(platformer->gameData.world, platformer->gameData.level + 1) > platformer->unlockables.maxLevelIndexUnlocked )
+                    )
+                    {
                         buzzer_play_sfx(&sndMenuDeny);
                     } else {
                         platformer->gameData.level++;
@@ -1282,8 +606,24 @@ void updateTitleScreen(platformer_t *self)
             }
             break;
         }
+        case 2:{
+            if (
+                    (
+                    self->gameData.btnState & BTN_B
+                    &&
+                    !(self->gameData.prevBtnState & BTN_B)
+                )
+            )
+            {
+                self->gameData.frameCount = 0;
+                platformer->menuState = 1;
+                buzzer_play_sfx(&sndMenuConfirm);
+            }
+            break;
+        }
         default:
             platformer->menuState = 0;
+            buzzer_play_sfx(&sndMenuDeny);
             break;
     }
 
@@ -1294,6 +634,20 @@ void updateTitleScreen(platformer_t *self)
     }
     
     drawPlatformerTitleScreen(self->disp, &(self->radiostars), &(self->gameData));
+
+    if(( (self->gameData.frameCount) % 10) == 0){
+        for (int32_t i = 0; i < 8; i++)
+        {
+        
+            //self->gameData.leds[i].r = (( (self->gameData.frameCount >> 4) % NUM_LEDS) == i) ? 0xFF : 0x00;
+
+            platLeds[i].r += (esp_random() % 1);
+            platLeds[i].g += (esp_random() % 8);
+            platLeds[i].b += (esp_random() % 8);
+        }
+    }
+    setLeds(&(platLeds), NUM_LEDS);
+
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
 }
@@ -1303,6 +657,10 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
     drawTileMap(d,&(platformer->tilemap));
 
     drawText(d, font, c555, "Super Swadge Land", 40, 32);
+
+    if(platformer->gameData.debugMode){
+        drawText(d, font, c555, "Debug Mode", 80, 48);
+    } 
 
     switch(platformer->menuState){
         case 0: {
@@ -1316,12 +674,53 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
         case 1: {
             drawText(d, font, c555, "Start Game", 48, 128);
 
-            char levelStr[24];
-            snprintf(levelStr, sizeof(levelStr) - 1, "Level Select: %d-%d", gameData->world, gameData->level);
-            drawText(d, font, c555, levelStr, 48, 144);
+            if(platformer->gameData.debugMode || platformer->unlockables.maxLevelIndexUnlocked > 0){
+                char levelStr[24];
+                snprintf(levelStr, sizeof(levelStr) - 1, "Level Select: %d-%d", gameData->world, gameData->level);
+                drawText(d, font, c555, levelStr, 48, 144);
+            }
+
+            if(platformer->gameData.debugMode){
+                drawText(d, font, c555, "Reset Progress", 48, 160);
+                drawText(d, font, c555, "Reset High Scores", 48, 176);
+                drawText(d, font, c555, "Save & Exit to Menu", 48, 192);
+            } else {
+                drawText(d, font, c555, "High Scores", 48, 160);
+                drawText(d, font, c555, "Achievements", 48, 176);
+                drawText(d, font, c555, "Exit to Menu", 48, 192);
+            }
 
             drawText(d, font, c555, "->", 32, 128 + platformer->menuSelection * 16);
 
+            break;
+        }
+
+        case 2: {
+            if(platformer->unlockables.gameCleared){
+                drawText(d, font, redColors[(gameData->frameCount >> 3) % 4], "Beat the game!", 48, 80);
+            }
+
+            if(platformer->unlockables.oneCreditCleared){
+                drawText(d, font, yellowColors[(gameData->frameCount >> 3) % 4], "1 Credit Clear!", 48, 96);
+            }
+
+            if(platformer->unlockables.bigScore){
+                drawText(d, font, greenColors[(gameData->frameCount >> 3) % 4], "Got 2 million points!", 48, 112);
+            }
+
+            if(platformer->unlockables.biggerScore){
+                drawText(d, font, cyanColors[(gameData->frameCount >> 3) % 4], "Got 5 million points!", 48, 128);
+            }
+
+            if(platformer->unlockables.fastTime){
+                drawText(d, font, purpleColors[(gameData->frameCount >> 3) % 4], "Beat within 30 min!", 48, 144);
+            }
+
+            if(platformer->unlockables.gameCleared && platformer->unlockables.oneCreditCleared && platformer->unlockables.bigScore && platformer->unlockables.biggerScore && platformer->unlockables.fastTime){
+                drawText(d, font, rgbColors[(gameData->frameCount >> 3) % 4], "100% 100% 100%", 48, 160);
+            }
+
+            drawText(d, font, c555, "Press B to Return", 48, 192);
             break;
         }
         
@@ -1333,6 +732,8 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
 void changeStateReadyScreen(platformer_t *self){
     self->gameData.frameCount = 0;
     buzzer_play_bgm(&bgmIntro);
+    resetGameDataLeds(&(self->gameData));
+    
     self->update=&updateReadyScreen;
 }
 
@@ -1356,10 +757,11 @@ void drawReadyScreen(display_t *d, font_t *font, gameData_t *gameData){
 void changeStateGame(platformer_t *self){
     self->gameData.frameCount = 0;
     self->gameData.currentBgm = 0;
+    resetGameDataLeds(&(self->gameData));
 
     deactivateAllEntities(&(self->entityManager), false);
 
-    uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
+    uint16_t levelIndex = getLevelIndex(self->gameData.world, self->gameData.level);
     loadMapFromFile(&(platformer->tilemap), leveldef[levelIndex].filename);
     self->gameData.countdown = leveldef[levelIndex].timeLimit;
 
@@ -1396,6 +798,10 @@ void detectGameStateChange(platformer_t *self){
             changeStateLevelClear(self);
             break;
 
+        case ST_PAUSE:
+            changeStatePause(self);
+            break;
+
         default:
             break;
     }
@@ -1425,6 +831,18 @@ void detectBgmChange(platformer_t *self){
         case BGM_ATHLETIC:
             if(self->gameData.currentBgm != BGM_ATHLETIC){
                 buzzer_play_bgm(&bgmSmooth);
+            }
+            break;
+
+        case BGM_UNDERGROUND:
+            if(self->gameData.currentBgm != BGM_UNDERGROUND){
+                buzzer_play_bgm(&bgmUnderground);
+            }
+            break;
+
+        case BGM_FORTRESS:
+            if(self->gameData.currentBgm != BGM_FORTRESS){
+                buzzer_play_bgm(&bgmCastle);
             }
             break;
 
@@ -1467,6 +885,10 @@ void updateDead(platformer_t *self){
     drawTileMap(self->disp, &(self->tilemap));
     drawEntities(self->disp, &(self->entityManager));
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
+
+    if(self->gameData.countdown < 0){
+        drawText(self->disp, &(self->radiostars), c555, "-Time Up!-", 80, 128);
+    }
 }
 
 
@@ -1476,15 +898,33 @@ void updateGameOver(platformer_t *self){
     
     self->gameData.frameCount++;
     if(self->gameData.frameCount > 179){
+        //Handle unlockables
+
+        if(self->gameData.score >= BIG_SCORE) {
+            self->unlockables.bigScore = true;
+        }
+
+        if(self->gameData.score >= BIGGER_SCORE) {
+            self->unlockables.biggerScore = true;
+        }
+
+        if(!self->gameData.debugMode){
+            savePlatformerUnlockables(self);
+        }
+
         changeStateNameEntry(self);
     }
 
     drawGameOver(self->disp, &(self->radiostars), &(self->gameData));
+    updateLedsGameOver(&(self->gameData));
 }
 
 void changeStateGameOver(platformer_t *self){
     self->gameData.frameCount = 0;
-    self->update=&updateGameOver;    
+    resetGameDataLeds(&(self->gameData)); 
+    buzzer_play_bgm(&bgmGameOver);
+    self->update=&updateGameOver;   
+    
 }
 
 void drawGameOver(display_t *d, font_t *font, gameData_t *gameData){
@@ -1503,7 +943,7 @@ void changeStateLevelClear(platformer_t *self){
     self->gameData.levelDeaths = 0;
     self->gameData.initialHp = self->entityManager.playerEntity->hp;
     self->gameData.extraLifeCollected = false;
-    buzzer_stop();
+    resetGameDataLeds(&(self->gameData));
     self->update=&updateLevelClear;
 }
 
@@ -1517,6 +957,10 @@ void updateLevelClear(platformer_t *self){
         if(self->gameData.countdown > 0){
             self->gameData.countdown--;
             
+            if(self->gameData.countdown % 2){
+                buzzer_play_bgm(&sndTally);
+            }
+
             uint16_t comboPoints = 50 * self->gameData.combo;
 
             self->gameData.score += comboPoints;
@@ -1528,18 +972,50 @@ void updateLevelClear(platformer_t *self){
         } else if(self->gameData.frameCount % 60 == 0) {
             //Hey look, it's a frame rule!
             
-            //Advance to the next level
-            self->gameData.level += 1;
-            if(self->gameData.level > 4){
-                self->gameData.world++;
-                self->gameData.level = 1;
-            }
+            uint16_t levelIndex = getLevelIndex(self->gameData.world, self->gameData.level);
+            
+            if(levelIndex >= NUM_LEVELS - 1){
+                //Game Cleared!
 
-            uint16_t levelIndex = (self->gameData.world-1) * 4 + (self->gameData.level-1);
-            if(levelIndex >= NUM_LEVELS){
+                //Determine achievements
+                self->unlockables.gameCleared = true;
+                
+                if(!self->gameData.continuesUsed){
+                    self->unlockables.oneCreditCleared = true;
+
+                    if(self->gameData.inGameTimer < FAST_TIME) {
+                        self->unlockables.fastTime = true;
+                    }
+                }
+
+                if(self->gameData.score >= BIG_SCORE) {
+                    self->unlockables.bigScore = true;
+                }
+
+                if(self->gameData.score >= BIGGER_SCORE) {
+                    self->unlockables.biggerScore = true;
+                }
+
                 changeStateGameClear(self);
             } else {
+                 //Advance to the next level
+                self->gameData.level++;
+                if(self->gameData.level > 4){
+                    self->gameData.world++;
+                    self->gameData.level = 1;
+                }
+
+                //Unlock the next level
+                levelIndex++;
+                if(levelIndex > self->unlockables.maxLevelIndexUnlocked){
+                    self->unlockables.maxLevelIndexUnlocked = levelIndex;
+                }
+
                 changeStateReadyScreen(self);
+            }
+
+            if(!self->gameData.debugMode){
+                savePlatformerUnlockables(self);
             }
         }
     }
@@ -1549,6 +1025,7 @@ void updateLevelClear(platformer_t *self){
     drawEntities(self->disp, &(self->entityManager));
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
     drawLevelClear(self->disp, &(self->radiostars), &(self->gameData));
+    updateLedsLevelClear(&(self->gameData));
 }
 
 void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData){
@@ -1559,6 +1036,8 @@ void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData){
 void changeStateGameClear(platformer_t *self){
     self->gameData.frameCount = 0;
     self->update=&updateGameClear;
+    resetGameDataLeds(&(self->gameData));
+    buzzer_play_bgm(&bgmSmooth);
 }
 
 void updateGameClear(platformer_t *self){
@@ -1567,27 +1046,69 @@ void updateGameClear(platformer_t *self){
     
     self->gameData.frameCount++;
 
-    if(self->gameData.frameCount > 120){
+    if(self->gameData.frameCount > 450){
         if(self->gameData.lives > 0){
             if(self->gameData.frameCount % 60 == 0){
                 self->gameData.lives--;
                 self->gameData.score += 100000;
+                buzzer_play_sfx(&snd1up);
             }
-        } else if(self->gameData.frameCount % 240 == 0) {
+        } else if(self->gameData.frameCount % 960 == 0) {
             changeStateGameOver(self);
         }
     }
 
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
     drawGameClear(self->disp, &(self->radiostars), &(self->gameData));
+    updateLedsGameClear(&(self->gameData));
 }
 
 void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     drawPlatformerHud(d, font, gameData);
+
+    char timeStr[32];
+    snprintf(timeStr, sizeof(timeStr) - 1, "in %06" PRIu32 " seconds!", gameData->inGameTimer);
+
+    drawText(d, font, yellowColors[(gameData->frameCount >> 3) % 4], "Congratulations!", 48, 48);
+
+    if(gameData->frameCount > 120){
+        drawText(d, font, c555, "You've completed your", 8, 80);
+        drawText(d, font, c555, "trip across Swadge Land", 8, 96);
+    }
+    
+    if(gameData->frameCount > 180){
+        drawText(d, font, (gameData->inGameTimer < FAST_TIME) ? cyanColors[(gameData->frameCount >> 3) % 4] : c555, timeStr, 48, 112);
+    }
+
+    if(gameData->frameCount > 300){
+        drawText(d, font, c555, "The Swadge staff", 8, 144);
+        drawText(d, font, c555, "thanks you for playing!", 8, 160);
+    }
+
+    if(gameData->frameCount > 420){
+        drawText(d, font, highScoreNewEntryColors[(gameData->frameCount >> 3) % 4], "Bonus 100000pts per life!", 8, 192);
+    }
+
+    /*
     drawText(d, font, c555, "Thanks for playing.", 24, 48);
     drawText(d, font, c555, "Many more battle scenes", 8, 96);
     drawText(d, font, c555, "will soon be available!", 8, 112);
     drawText(d, font, c555, "Bonus 100000pts per life!", 8, 160);
+    */
+}
+
+void initializePlatformerHighScores(platformer_t* self){
+    self->highScores.scores[0] = 100000;
+    self->highScores.scores[1] = 80000;
+    self->highScores.scores[2] = 40000;
+    self->highScores.scores[3] = 20000;
+    self->highScores.scores[4] = 10000;
+
+    for(uint8_t i=0; i<NUM_PLATFORMER_HIGH_SCORES; i++){
+        self->highScores.initials[i][0] = 'J' + i;
+        self->highScores.initials[i][1] = 'P' - i;
+        self->highScores.initials[i][2] = 'V' + i;
+    }
 }
 
 void loadPlatformerHighScores(platformer_t* self)
@@ -1597,17 +1118,7 @@ void loadPlatformerHighScores(platformer_t* self)
     if(false == readNvsBlob("pf_scores", &(self->highScores), &(size)))
     {
         // Value didn't exist, so write the default
-        self->highScores.scores[0] = 100000;
-        self->highScores.scores[1] = 80000;
-        self->highScores.scores[2] = 40000;
-        self->highScores.scores[3] = 20000;
-        self->highScores.scores[4] = 10000;
-
-        for(uint8_t i=0; i<NUM_PLATFORMER_HIGH_SCORES; i++){
-            self->highScores.initials[i][0] = 'J' + i;
-            self->highScores.initials[i][1] = 'P' - i;
-            self->highScores.initials[i][2] = 'V' + i;
-        }
+        initializePlatformerHighScores(self);
     }
 }
 
@@ -1615,6 +1126,30 @@ void savePlatformerHighScores(platformer_t* self){
     size_t size = sizeof(platformerHighScores_t);
     writeNvsBlob( "pf_scores", &(self->highScores), size);
 }
+
+void initializePlatformerUnlockables(platformer_t* self){
+    self->unlockables.maxLevelIndexUnlocked = 0;
+    self->unlockables.gameCleared = false;
+    self->unlockables.oneCreditCleared = false;
+    self->unlockables.bigScore = false;
+    self->unlockables.fastTime = false;
+    self->unlockables.biggerScore = false;
+}
+
+void loadPlatformerUnlockables(platformer_t* self){
+    size_t size = sizeof(platformerUnlockables_t);
+    // Try reading the value
+    if(false == readNvsBlob("pf_unlocks", &(self->unlockables), &(size)))
+    {
+        // Value didn't exist, so write the default
+        initializePlatformerUnlockables(self);
+    }
+};
+
+void savePlatformerUnlockables(platformer_t* self){
+    size_t size = sizeof(platformerUnlockables_t);
+    writeNvsBlob( "pf_unlocks", &(self->unlockables), size);
+};
 
 void drawPlatformerHighScores(display_t *d, font_t *font, platformerHighScores_t *highScores, gameData_t *gameData){
     drawText(d, font, c555, "RANK  SCORE  NAME", 48, 96);
@@ -1662,13 +1197,16 @@ void changeStateNameEntry(platformer_t *self){
     self->gameData.rank = rank;
     self->menuState = 0;
 
-    if(rank >= NUM_PLATFORMER_HIGH_SCORES){
+    resetGameDataLeds(&(self->gameData));
+
+    if(rank >= NUM_PLATFORMER_HIGH_SCORES || self->gameData.debugMode){
         self->menuSelection = 0;
+        self->gameData.rank = NUM_PLATFORMER_HIGH_SCORES;
         changeStateShowHighScores(self);
         return;
     }
 
-    
+    buzzer_play_bgm(&bgmNameEntry);
     self->menuSelection = self->gameData.initials[0];
     self->update=&updateNameEntry;
 }
@@ -1727,7 +1265,7 @@ void updateNameEntry(platformer_t *self){
             insertScoreIntoHighScores(&(self->highScores), self->gameData.score, self->gameData.initials, self->gameData.rank);
             savePlatformerHighScores(self);
             changeStateShowHighScores(self);
-            buzzer_play_sfx(&sndMenuConfirm);
+            buzzer_play_sfx(&sndPowerUp);
         } else {
             self->menuSelection = self->gameData.initials[self->menuState];
             buzzer_play_sfx(&sndMenuSelect);
@@ -1735,13 +1273,14 @@ void updateNameEntry(platformer_t *self){
     }
     
     drawNameEntry(self->disp, &(self->radiostars), &(self->gameData), self->menuState);
+    updateLedsShowHighScores(&(self->gameData));
 
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
 }
 
 void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData, uint8_t currentInitial){
-    drawText(d, font, c555, "Enter your initials!", 48, 64);
+    drawText(d, font, greenColors[(platformer->gameData.frameCount >> 3) % 4], "Enter your initials!", 48, 64);
 
     char rowStr[32];
     snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06d", gameData->rank+1, gameData->score);
@@ -1777,20 +1316,59 @@ void updateShowHighScores(platformer_t *self){
     )){
         self->menuState = 0;
         self->menuSelection = 0;
+        buzzer_stop();
         changeStateTitleScreen(self);
     }
 
     drawShowHighScores(self->disp, &(self->radiostars), self->menuState);
     drawPlatformerHighScores(self->disp, &(self->radiostars), &(self->highScores), &(self->gameData));
 
+    updateLedsShowHighScores(&(self->gameData));
+
     self->prevBtnState = self->btnState;
     self->gameData.prevBtnState = self->prevBtnState;
 }
 
 void drawShowHighScores(display_t *d, font_t *font, uint8_t menuState){
-    if(menuState == 3){
-        drawText(d, font, c555, "Your name registrated.", 24, 32);
+    if(platformer->easterEgg){
+        drawText(d, font, highScoreNewEntryColors[(platformer->gameData.frameCount >> 3) % 4], "Happy Birthday, Evelyn!", 20, 32);
+    } else if(menuState == 3){
+        drawText(d, font, redColors[(platformer->gameData.frameCount >> 3) % 4], "Your name registrated.", 24, 32);
     } else {
         drawText(d, font, c555, "Do your best!", 72, 32);
     }
+}
+
+void changeStatePause(platformer_t *self){
+    buzzer_play_bgm(&sndPause);
+    self->update=&updatePause;
+}
+
+void updatePause(platformer_t *self){
+    if((
+        (self->gameData.btnState & START)
+        &&
+        !(self->gameData.prevBtnState & START)
+    )){
+        buzzer_play_sfx(&sndPause);
+        self->gameData.changeBgm = self->gameData.currentBgm;
+        self->gameData.currentBgm = BGM_NULL;
+        self->update=&updateGame;
+    }
+
+    drawTileMap(self->disp, &(self->tilemap));
+    drawEntities(self->disp, &(self->entityManager));
+    drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
+    drawPause(self->disp, &(self->radiostars));
+
+    self->prevBtnState = self->btnState;
+    self->gameData.prevBtnState = self->prevBtnState;
+}
+
+void drawPause(display_t *d, font_t *font){
+    drawText(d, font, c555, "-Pause-", 108, 128);
+}
+
+uint16_t getLevelIndex(uint8_t world, uint8_t level){
+    return (world-1) * 4 + (level-1);
 }

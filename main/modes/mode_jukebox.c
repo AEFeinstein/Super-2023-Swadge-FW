@@ -30,7 +30,7 @@
 #include "fighter_mp_result.h"
 #include "mode_fighter.h"
 #include "mode_tiltrads.h"
-#include "mode_platformer.h"
+#include "platformer_sounds.h"
 #include "mode_jumper.h"
 #include "mode_tunernome.h"
 #include "mode_credits.h"
@@ -180,6 +180,10 @@ static const jukeboxSong platformerMusic[] =
     {.name = "Intro", .song = &bgmIntro},
     {.name = "Demagio", .song = &bgmDemagio},
     {.name = "Smooth", .song = &bgmSmooth},
+    {.name = "Underground", .song = &bgmUnderground},
+    {.name = "Castle", .song = &bgmCastle},
+    {.name = "Name Entry", .song = &bgmNameEntry},
+    {.name = "Game Over", .song = &bgmGameOver},
 };
 
 static const jukeboxSong jumperMusic[] =
@@ -264,7 +268,7 @@ static const jukeboxSong platformerSfx[] =
     {.name = "Menu Select", .song = &sndMenuSelect},
     {.name = "Menu Confirm", .song = &sndMenuConfirm},
     {.name = "Menu Deny", .song = &sndMenuDeny},
-    {.name = "Start (Unused)", .song = &sndGameStart},
+    // {.name = "Start (Unused)", .song = &sndGameStart},
     {.name = "Jump 1", .song = &sndJump1},
     {.name = "Jump 2", .song = &sndJump2},
     {.name = "Jump 3", .song = &sndJump3},
@@ -277,6 +281,16 @@ static const jukeboxSong platformerSfx[] =
     {.name = "Warp", .song = &sndWarp},
     {.name = "Wave Ball", .song = &sndWaveBall},
     {.name = "Death", .song = &sndDie},
+    {.name = "Pause", .song = &sndPause},
+    {.name = "1up", .song = &snd1up},
+    {.name = "Checkpoint", .song = &sndCheckpoint},
+    {.name = "Level Clear D", .song = &sndLevelClearD},
+    {.name = "Level Clear C", .song = &sndLevelClearC},
+    {.name = "Level Clear B", .song = &sndLevelClearB},
+    {.name = "Level Clear A", .song = &sndLevelClearA},
+    {.name = "Level Clear S", .song = &sndLevelClearS},
+    {.name = "Tally", .song = &sndTally},
+    {.name = "OuttaTime", .song = &sndOuttaTime},
 };
 
 static const jukeboxSong jumperSfx[] =
