@@ -26,6 +26,7 @@
 //==============================================================================
 
 void beeEnterMode(display_t* disp);
+void beeSetRandomText(void);
 void beeExitMode(void);
 void beeMainLoop(int64_t elapsedUs);
 void beeButtonCb(buttonEvt_t* evt);
@@ -83,8 +84,13 @@ void beeEnterMode(display_t* disp)
     // Load some fonts
     loadFont("ibm_vga8.font", &bee->font);
 
+    beeSetRandomText();
+}
+
+void beeSetRandomText(void)
+{
     // Set initial variables
-    bee->yOffset = disp->h;
+    bee->yOffset = bee->disp->h;
     bee->tElapsedUs = 0;
     bee->scrollMod = 1;
 
@@ -191,8 +197,12 @@ void beeButtonCb(buttonEvt_t* evt)
             case LEFT:
             case RIGHT:
             case START:
+            {
+                break;
+            }
             case SELECT:
             {
+                beeSetRandomText();
                 break;
             }
         }

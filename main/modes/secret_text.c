@@ -2140,6 +2140,8 @@ const char* giggles[] =
     "\n",
     "\n",
     "\n",
+    "\n",
+    "\n",
 };
 
 // Option #6
@@ -2341,8 +2343,7 @@ const char* homegoblin[] =
 
     "I don\'t know why but I just enjoy doing this.\n",
     "Maybe it\'s my way of dealing with stress or something but I just do it about once every week.\n",
-    "Generally I\'ll carry around a sack and creep around in a sort of crouch-walking position making goblin noises,\n",
-    "then I\'ll walk around my house and pick up various different trinkets and put them in my bag while saying stuff like\n",
+    "Generally I\'ll carry around a sack and creep around in a sort of crouch-walking position making goblin noises, then I\'ll walk around my house and pick up various different trinkets and put them in my bag while saying stuff like\n",
     "\"I\'ll be having that\" and laughing maniacally in my goblin voice (\"trinkets\" can include anything from stuff I find on the ground to cutlery or other utensils).\n",
     "The other day I was talking with my neighbours and they mentioned hearing weird noises like what I wrote about and I was just internally screaming the entire conversation.\n",
     "I\'m 99 percent sure they don\'t know it\'s me but god that 1 percent chance is seriously weighing on my mind.\n",
@@ -2356,16 +2357,12 @@ const char* homegoblin[] =
 //Option #12
 const char* flareon[] =
 {
-    "Hey guys, did you know that in terms of human companionship,\n",
-    "Flareon is objectively the most huggable Pokemon?\n",
-    "While their maximum temperature is likely too much for most, they are capable of controlling it,\n",
-    "so they can set themselves to the perfect temperature for you.\n",
+    "Hey guys, did you know that in terms of human companionship, Flareon is objectively the most huggable Pokemon?\n",
+    "While their maximum temperature is likely too much for most, they are capable of controlling it, so they can set themselves to the perfect temperature for you.\n",
     "Along with that, they have a lot of fluff, making them undeniably incredibly soft to touch.\n",
-    "But that's not all, they have a very respectable special defense stat of 110,\n",
-    "which means that they are likely very calm and resistant to emotional damage.\n",
+    "But that's not all, they have a very respectable special defense stat of 110, which means that they are likely very calm and resistant to emotional damage.\n",
     "Because of this, if you have a bad day, you can vent to it while hugging it, and it won't mind.\n",
-    "It can make itself even more endearing with moves like Charm and Baby Doll Eyes,\n",
-    "ensuring that you never have a prolonged bout of depression ever again.\n",
+    "It can make itself even more endearing with moves like Charm and Baby Doll Eyes, ensuring that you never have a prolonged bout of depression ever again.\n",
     "\n",
     "\n",
     "\n",
@@ -2376,13 +2373,13 @@ const char* flareon[] =
 //Option #13
 const char* whoasked[] =
 {
-    "According to world population studies, \n",
-    "approximately 108 billion people have lived on this planet.\n", 
-    "Assuming that the average lifespan of all these people was 25, \n",
-    "there has been around 2.7 trillion years of life, \n",
-    "if we multiply this by the number of days in a year (365), \n",
-    "there is a total of 985,500,000,000,000 days of life (985.5 trillion days). \n",
+    "According to world population studies, approximately 108 billion people have lived on this planet.\n", 
+    "Assuming that the average lifespan of all these people was 25, there has been around 2.7 trillion years of life, if we multiply this by the number of days in a year (365), there is a total of 985,500,000,000,000 days of life (985.5 trillion days). \n",
     "Not once in any of those days did anybody ask.\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
     "\n",
     "\n",
     "\n",
@@ -2404,19 +2401,23 @@ const char* banned[] =
     "\n",
     "\n",
     "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
 };
 
 const textOption texts[] =
 {
     {.text = findthemall, .lines = ARRAY_SIZE(findthemall), .color = c505},
-    {.text = alice, .lines = ARRAY_SIZE(alice), .color = c415},
+    {.text = alice, .lines = ARRAY_SIZE(alice), .color = c425},
     {.text = festival, .lines = ARRAY_SIZE(festival), .color = c550},
     {.text = fitness, .lines = ARRAY_SIZE(fitness), .color = c035},
-    {.text = giggles, .lines = ARRAY_SIZE(giggles), color = c555},
-    {.text = blueeee, .lines = ARRAY_SIZE(blueeee), color = c115},
+    {.text = giggles, .lines = ARRAY_SIZE(giggles), .color = c555},
+    {.text = blueeee, .lines = ARRAY_SIZE(blueeee), .color = c115},
     {.text = hypothetical, .lines = ARRAY_SIZE(hypothetical), .color = c522},
     {.text = tolerancetest, .lines = ARRAY_SIZE(tolerancetest), .color = c415},
-    {.text = tips, .lines = ARRAY_SIZE(tips), color = c530},
+    {.text = tips, .lines = ARRAY_SIZE(tips), .color = c530},
     {.text = godihategaminglaptops, .lines = ARRAY_SIZE(godihategaminglaptops), .color = c151},
     {.text = homegoblin, .lines = ARRAY_SIZE(homegoblin), .color = c150},
     {.text = flareon, .lines = ARRAY_SIZE(flareon), .color = c510},
