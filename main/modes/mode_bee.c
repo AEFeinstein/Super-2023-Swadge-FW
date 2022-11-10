@@ -2295,7 +2295,7 @@ const char* tolerancetest[] =
     "NYA\n",
     "Ara Ara\n",
     "Congrats You Made It! You Are Adorable! Drink Some Water UwU!"
-}
+};
 
 const char* tips[] =
 {
