@@ -887,7 +887,7 @@ const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t
                              int16_t *xOff, int16_t *yOff, int16_t xMax, int16_t yMax)
 {
     const char* textPtr = text;
-    uint16_t textX = *xOff, textY = *yOff;
+    int16_t textX = *xOff, textY = *yOff;
     int nextSpace, nextDash, nextNl;
     int nextBreak;
     char buf[64];
