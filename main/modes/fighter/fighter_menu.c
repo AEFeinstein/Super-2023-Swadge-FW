@@ -65,6 +65,22 @@ typedef struct
     int16_t rotDeg;
     uint8_t playerInput;
     int32_t idleTimer;
+
+    const char* ftrConnectingStringTop;
+    const char* ftrConnectingStringBottom;
+
+    // Menu positions
+    uint8_t mainMenuPos;
+    uint8_t wireMultiMenuPos;
+    uint8_t hrMenuPos;
+    uint8_t vsCpuCharHmnSelPos;
+    uint8_t vsCpuCharCpuSelPos;
+    uint8_t vsCpuStageSelPos;
+    uint8_t multiplayerCharSelPos;
+    uint8_t multiplayerStageSelPos;
+    uint8_t localVsP1Pos;
+    uint8_t localVsP2Pos;
+    uint8_t localVsStagePos;
 } fighterMenu_t;
 
 typedef struct
@@ -90,26 +106,26 @@ void fighterButtonCb(buttonEvt_t* evt);
 void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
                              int16_t w, int16_t h, int16_t up, int16_t upNum );
 
-void setFighterMainMenu(void);
+void setFighterMainMenu(bool resetPos);
 void fighterMainMenuCb(const char* opt);
 
-void setFighterWireMultiMenu(void);
+void setFighterWireMultiMenu(bool resetPos);
 void fighterWireMultiMenuCb(const char* opt);
 
-void setFighterHrMenu(void);
+void setFighterHrMenu(bool resetPos);
 void fighterHrMenuCb(const char* opt);
 
-void setFighterMultiplayerCharSelMenu(void);
+void setFighterMultiplayerCharSelMenu(bool resetPos);
 void fighterMultiplayerCharMenuCb(const char* opt);
 
-void setFighterMultiplayerStageSelMenu(void);
+void setFighterMultiplayerStageSelMenu(bool resetPos);
 void fighterMultiplayerStageMenuCb(const char* opt);
 
-void setFighterVsCpuCharHmnSelMenu(void);
+void setFighterVsCpuCharHmnSelMenu(bool resetPos);
 void fighterVsCpuCharHmnMenuCb(const char* opt);
-void setFighterVsCpuCharCpuSelMenu(void);
+void setFighterVsCpuCharCpuSelMenu(bool resetPos);
 void fighterVsCpuCharCpuMenuCb(const char* opt);
-void setFighterVsCpuStageSelMenu(void);
+void setFighterVsCpuStageSelMenu(bool resetPos);
 void fighterVsCpuStageMenuCb(const char* opt);
 
 void fighterEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
@@ -129,11 +145,11 @@ void fighterCheckGameBegin(void);
     static const char str_localVsP1[] = "Player 1";
     static const char str_localVsP2[] = "Player 2";
 
-    void setFighterLocalVsP1Menu(void);
+    void setFighterLocalVsP1Menu(bool resetPos);
     void fighterLocalVsP1MenuCb(const char* opt);
-    void setFighterLocalVsP2Menu(void);
+    void setFighterLocalVsP2Menu(bool resetPos);
     void fighterLocalVsP2MenuCb(const char* opt);
-    void setFighterLocalVsStageMenu(void);
+    void setFighterLocalVsStageMenu(bool resetPos);
     void fighterLocalVsStageMenuCb(const char* opt);
 #endif
 
@@ -160,9 +176,6 @@ const char str_searching_for[] = "Searching For";
 const char str_another_swadge[] = "Another Swadge";
 
 const char str_please_connect[] = "Please Connect";
-
-const char* ftrConnectingStringTop;
-const char* ftrConnectingStringBottom;
 
 // Must match order of fightingCharacter_t
 const char* charNames[3] =
@@ -236,7 +249,7 @@ void fighterEnterMode(display_t* disp)
     loadWsgSpiRam("conlogo.wsg", &fm->conlogo, true);
 
     // Set the main menu
-    setFighterMainMenu();
+    setFighterMainMenu(true);
 
     // Clear state
     fm->characters[0] = NO_CHARACTER;
@@ -266,7 +279,7 @@ void fighterExitMode(void)
  */
 void fighterReturnToMainMenu(void)
 {
-    setFighterMainMenu();
+    setFighterMainMenu(false);
     fm->idleTimer = 0;
 }
 
@@ -310,11 +323,11 @@ void fighterMainLoop(int64_t elapsedUs)
         case FIGHTER_CONNECTING:
         {
             drawBackgroundGrid(fm->disp);
-            int16_t tWidth = textWidth(&fm->mmFont, ftrConnectingStringTop);
-            drawText(fm->disp, &fm->mmFont, c540, ftrConnectingStringTop, (fm->disp->w - tWidth) / 2,
+            int16_t tWidth = textWidth(&fm->mmFont, fm->ftrConnectingStringTop);
+            drawText(fm->disp, &fm->mmFont, c540, fm->ftrConnectingStringTop, (fm->disp->w - tWidth) / 2,
                      (fm->disp->h / 2) - fm->mmFont.h - 4);
-            tWidth = textWidth(&fm->mmFont, ftrConnectingStringBottom);
-            drawText(fm->disp, &fm->mmFont, c540, ftrConnectingStringBottom, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
+            tWidth = textWidth(&fm->mmFont, fm->ftrConnectingStringBottom);
+            drawText(fm->disp, &fm->mmFont, c540, fm->ftrConnectingStringBottom, (fm->disp->w - tWidth) / 2, (fm->disp->h / 2) + 4);
 
             // Spin a wheel at 120 degrees per second
             fm->rotDeg += (elapsedUs * 120) / 1000000;
@@ -407,7 +420,7 @@ void fighterButtonCb(buttonEvt_t* evt)
             {
                 // Exit the CPU only battle
                 fighterExitGame();
-                setFighterMainMenu();
+                setFighterMainMenu(false);
                 fm->idleTimer = 0;
             }
             else
@@ -423,7 +436,16 @@ void fighterButtonCb(buttonEvt_t* evt)
             if(evt->down && ((START == evt->button) || (SELECT == evt->button) || (BTN_B == evt->button)))
             {
                 p2pDeinit(&(fm->p2p));
-                setFighterMainMenu();
+                if(str_another_swadge == fm->ftrConnectingStringBottom)
+                {
+                    // Wireless multi
+                    setFighterMainMenu(false);
+                }
+                else
+                {
+                    // Wired multi
+                    setFighterWireMultiMenu(false);
+                }
             }
             break;
         }
@@ -438,7 +460,7 @@ void fighterButtonCb(buttonEvt_t* evt)
             if(evt->down && ((START == evt->button) || (SELECT == evt->button)))
             {
                 deinitFighterHrResult();
-                setFighterMainMenu();
+                setFighterMainMenu(false);
             }
             break;
         }
@@ -448,7 +470,7 @@ void fighterButtonCb(buttonEvt_t* evt)
             if(evt->down && ((START == evt->button) || (SELECT == evt->button)))
             {
                 deinitFighterMpResult();
-                setFighterMainMenu();
+                setFighterMainMenu(false);
             }
             break;
         }
@@ -525,8 +547,10 @@ void fighterBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
 
 /**
  * @brief Sets up the top level menu for Fighter, including callback
+ *
+ * @param resetPos true to reset this menu's position, false to ues the last pos
  */
-void setFighterMainMenu(void)
+void setFighterMainMenu(bool resetPos)
 {
     fm->playerInput = 0;
     resetMeleeMenu(fm->menu, str_swadgeBros, fighterMainMenuCb);
@@ -540,6 +564,12 @@ void setFighterMainMenu(void)
     addRowToMeleeMenu(fm->menu, str_vsCpu);
     addRowToMeleeMenu(fm->menu, str_records);
     addRowToMeleeMenu(fm->menu, str_exit);
+    // Set the position
+    if(resetPos)
+    {
+        fm->mainMenuPos = 0;
+    }
+    fm->menu->selectedRow = fm->mainMenuPos;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -550,13 +580,16 @@ void setFighterMainMenu(void)
  */
 void fighterMainMenuCb(const char* opt)
 {
+    // Save the position
+    fm->mainMenuPos = fm->menu->selectedRow;
+
     // When a row is clicked, print the label for debugging
     if(opt == str_wirelessMulti)
     {
         // Set espnow to use wireless
         espNowUseWireless();
-        ftrConnectingStringTop = str_searching_for;
-        ftrConnectingStringBottom = str_another_swadge;
+        fm->ftrConnectingStringTop = str_searching_for;
+        fm->ftrConnectingStringBottom = str_another_swadge;
 
         // Clear state
         fm->characters[0] = NO_CHARACTER;
@@ -576,24 +609,24 @@ void fighterMainMenuCb(const char* opt)
     }
     else if (opt == str_wireMulti)
     {
-        setFighterWireMultiMenu();
+        setFighterWireMultiMenu(true);
     }
 #if defined(EMU)
     // Local VS is for the emulator only!
     else if (opt == str_localVs)
     {
         // Go to character select
-        setFighterLocalVsP1Menu();
+        setFighterLocalVsP1Menu(true);
     }
 #endif
     else if (opt == str_hrContest)
     {
         // Home Run contest selected, display character select menu
-        setFighterHrMenu();
+        setFighterHrMenu(true);
     }
     else if (opt == str_vsCpu)
     {
-        setFighterVsCpuCharHmnSelMenu();
+        setFighterVsCpuCharHmnSelMenu(true);
     }
     else if (opt == str_records)
     {
@@ -611,14 +644,22 @@ void fighterMainMenuCb(const char* opt)
 
 /**
  * @brief Sets up the Home Run Contest menu for Fighter, including callback
+ *
+ * @param resetPos true to reset this menu's position, false to ues the last pos
  */
-void setFighterWireMultiMenu(void)
+void setFighterWireMultiMenu(bool resetPos)
 {
     fm->playerInput = 0;
     resetMeleeMenu(fm->menu, str_wireMulti, fighterWireMultiMenuCb);
     addRowToMeleeMenu(fm->menu, str_wireMultiA);
     addRowToMeleeMenu(fm->menu, str_wireMultiB);
     addRowToMeleeMenu(fm->menu, str_back);
+    // Set the position
+    if(resetPos)
+    {
+        fm->wireMultiMenuPos = 0;
+    }
+    fm->menu->selectedRow = fm->wireMultiMenuPos;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -629,23 +670,26 @@ void setFighterWireMultiMenu(void)
  */
 void fighterWireMultiMenuCb(const char* opt)
 {
+	// Save the position
+	fm->wireMultiMenuPos = fm->menu->selectedRow;
+    
     // Check the menu option selected
     if (opt == str_wireMultiA)
     {
         espNowUseSerial(false);
-        ftrConnectingStringTop = str_please_connect;
-        ftrConnectingStringBottom = str_wireMultiB;
+        fm->ftrConnectingStringTop = str_please_connect;
+        fm->ftrConnectingStringBottom = str_wireMultiB;
     }
     else if (opt == str_wireMultiB)
     {
         espNowUseSerial(true);
-        ftrConnectingStringTop = str_please_connect;
-        ftrConnectingStringBottom = str_wireMultiA;
+        fm->ftrConnectingStringTop = str_please_connect;
+        fm->ftrConnectingStringBottom = str_wireMultiA;
     }
     else if (opt == str_back)
     {
         // Reset to top level melee menu
-        setFighterMainMenu();
+        setFighterMainMenu(false);
         return;
     }
     else
@@ -675,8 +719,10 @@ void fighterWireMultiMenuCb(const char* opt)
 
 /**
  * @brief Sets up the Home Run Contest menu for Fighter, including callback
+ *
+ * @param resetPos true to reset this menu's position, false to ues the last pos
  */
-void setFighterHrMenu(void)
+void setFighterHrMenu(bool resetPos)
 {
     fm->playerInput = 0;
     resetMeleeMenu(fm->menu, str_hrContest, fighterHrMenuCb);
@@ -684,6 +730,12 @@ void setFighterHrMenu(void)
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
     addRowToMeleeMenu(fm->menu, str_back);
+    // Set the position
+    if(resetPos)
+    {
+        fm->hrMenuPos = 0;
+    }
+    fm->menu->selectedRow = fm->hrMenuPos;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -694,6 +746,9 @@ void setFighterHrMenu(void)
  */
 void fighterHrMenuCb(const char* opt)
 {
+	// Save the position
+	fm->hrMenuPos = fm->menu->selectedRow;
+
     // These are the same for HR COntest
     fm->stage = HR_STADIUM;
     fm->characters[1] = SANDBAG;
@@ -717,7 +772,7 @@ void fighterHrMenuCb(const char* opt)
     else if (opt == str_back)
     {
         // Reset to top level melee menu
-        setFighterMainMenu();
+        setFighterMainMenu(false);
         return;
     }
     else
@@ -735,14 +790,22 @@ void fighterHrMenuCb(const char* opt)
 
 /**
  * @brief Sets up the vsCpu character select menu for Fighter, including callback
+ *
+ * @param resetPos true to reset this menu's position, false to ues the last pos
  */
-void setFighterVsCpuCharHmnSelMenu(void)
+void setFighterVsCpuCharHmnSelMenu(bool resetPos)
 {
     resetMeleeMenu(fm->menu, str_vsCpuHmn, fighterVsCpuCharHmnMenuCb);
     addRowToMeleeMenu(fm->menu, str_charKD);
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
     addRowToMeleeMenu(fm->menu, str_back);
+    // Set the position
+    if(resetPos)
+    {
+        fm->vsCpuCharHmnSelPos = 0;
+    }
+    fm->menu->selectedRow = fm->vsCpuCharHmnSelPos;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -753,6 +816,9 @@ void setFighterVsCpuCharHmnSelMenu(void)
  */
 void fighterVsCpuCharHmnMenuCb(const char* opt)
 {
+	// Save the position
+	fm->vsCpuCharHmnSelPos = fm->menu->selectedRow;
+
     if (opt == str_charKD)
     {
         // King Donut Selected
@@ -771,7 +837,7 @@ void fighterVsCpuCharHmnMenuCb(const char* opt)
     else if(opt == str_back)
     {
         // Reset to top level melee menu
-        setFighterMainMenu();
+        setFighterMainMenu(false);
         return;
     }
     else
@@ -781,21 +847,29 @@ void fighterVsCpuCharHmnMenuCb(const char* opt)
     }
 
     // Pick a CPU
-    setFighterVsCpuCharCpuSelMenu();
+    setFighterVsCpuCharCpuSelMenu(true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Sets up the vsCpu character select menu for Fighter, including callback
+ *
+ * @param resetPos true to reset this menu's position, false to ues the last pos
  */
-void setFighterVsCpuCharCpuSelMenu(void)
+void setFighterVsCpuCharCpuSelMenu(bool resetPos)
 {
     resetMeleeMenu(fm->menu, str_vsCpuCpu, fighterVsCpuCharCpuMenuCb);
     addRowToMeleeMenu(fm->menu, str_charKD);
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
     addRowToMeleeMenu(fm->menu, str_back);
+    // Set the position
+    if(resetPos)
+    {
+        fm->vsCpuCharCpuSelPos = 0;
+    }
+    fm->menu->selectedRow = fm->vsCpuCharCpuSelPos;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -806,6 +880,9 @@ void setFighterVsCpuCharCpuSelMenu(void)
  */
 void fighterVsCpuCharCpuMenuCb(const char* opt)
 {
+	// Save the position
+	fm->vsCpuCharCpuSelPos = fm->menu->selectedRow;
+
     if (opt == str_charKD)
     {
         // King Donut Selected
@@ -824,7 +901,7 @@ void fighterVsCpuCharCpuMenuCb(const char* opt)
     else if(opt == str_back)
     {
         // Return to human select
-        setFighterVsCpuCharHmnSelMenu();
+        setFighterVsCpuCharHmnSelMenu(false);
         return;
     }
     else
@@ -834,20 +911,28 @@ void fighterVsCpuCharCpuMenuCb(const char* opt)
     }
 
     // Pick a stage
-    setFighterVsCpuStageSelMenu();
+    setFighterVsCpuStageSelMenu(true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Sets up the vsCpu stage select menu for Fighter, including callback
+ *
+ * @param resetPos true to reset this menu's position, false to ues the last pos
  */
-void setFighterVsCpuStageSelMenu(void)
+void setFighterVsCpuStageSelMenu(bool resetPos)
 {
     resetMeleeMenu(fm->menu, str_vsCpu, fighterVsCpuStageMenuCb);
     addRowToMeleeMenu(fm->menu, str_stgBF);
     addRowToMeleeMenu(fm->menu, str_stgFD);
     addRowToMeleeMenu(fm->menu, str_back);
+    // Set the position
+    if(resetPos)
+    {
+        fm->vsCpuStageSelPos = 0;
+    }
+    fm->menu->selectedRow = fm->vsCpuStageSelPos;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -858,6 +943,9 @@ void setFighterVsCpuStageSelMenu(void)
  */
 void fighterVsCpuStageMenuCb(const char* opt)
 {
+	// Save the position
+	fm->vsCpuStageSelPos = fm->menu->selectedRow;
+
     if(str_stgBF == opt)
     {
         fm->stage = BATTLEFIELD;
@@ -869,7 +957,7 @@ void fighterVsCpuStageMenuCb(const char* opt)
     else if(opt == str_back)
     {
         // Return to human select
-        setFighterVsCpuCharCpuSelMenu();
+        setFighterVsCpuCharCpuSelMenu(false);
         return;
     }
     else
@@ -886,14 +974,22 @@ void fighterVsCpuStageMenuCb(const char* opt)
 
 /**
  * @brief Sets up the multiplayer character select menu for Fighter, including callback
+ *
+ * @param resetPos true to reset this menu's position, false to ues the last pos
  */
-void setFighterMultiplayerCharSelMenu(void)
+void setFighterMultiplayerCharSelMenu(bool resetPos)
 {
     fm->playerInput = 0;
     resetMeleeMenu(fm->menu, str_multiplayer, fighterMultiplayerCharMenuCb);
     addRowToMeleeMenu(fm->menu, str_charKD);
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
+    // Set the position
+    if(resetPos)
+    {
+        fm->multiplayerCharSelPos = 0;
+    }
+    fm->menu->selectedRow = fm->multiplayerCharSelPos;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -904,6 +1000,9 @@ void setFighterMultiplayerCharSelMenu(void)
  */
 void fighterMultiplayerCharMenuCb(const char* opt)
 {
+	// Save the position
+	fm->multiplayerCharSelPos = fm->menu->selectedRow;
+
     uint8_t charIdx = (GOING_FIRST == fm->p2p.cnc.playOrder) ? 0 : 1;
     if (opt == str_charKD)
     {
@@ -939,7 +1038,7 @@ void fighterMultiplayerCharMenuCb(const char* opt)
     if(GOING_FIRST == fm->p2p.cnc.playOrder)
     {
         // Player going first picks the stage
-        setFighterMultiplayerStageSelMenu();
+        setFighterMultiplayerStageSelMenu(true);
     }
     else
     {
@@ -952,13 +1051,21 @@ void fighterMultiplayerCharMenuCb(const char* opt)
 
 /**
  * @brief Sets up the multiplayer stage select menu for Fighter, including callback
+ *
+ * @param resetPos true to reset this menu's position, false to ues the last pos
  */
-void setFighterMultiplayerStageSelMenu(void)
+void setFighterMultiplayerStageSelMenu(bool resetPos)
 {
     fm->playerInput = 0;
     resetMeleeMenu(fm->menu, str_multiplayer, fighterMultiplayerStageMenuCb);
     addRowToMeleeMenu(fm->menu, str_stgBF);
     addRowToMeleeMenu(fm->menu, str_stgFD);
+    // Set the position
+    if(resetPos)
+    {
+        fm->multiplayerStageSelPos = 0;
+    }
+    fm->menu->selectedRow = fm->multiplayerStageSelPos;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -969,6 +1076,9 @@ void setFighterMultiplayerStageSelMenu(void)
  */
 void fighterMultiplayerStageMenuCb(const char* opt)
 {
+	// Save the position
+	fm->multiplayerStageSelPos = fm->menu->selectedRow;
+
     if(str_stgBF == opt)
     {
         fm->stage = BATTLEFIELD;
@@ -1004,8 +1114,10 @@ void fighterMultiplayerStageMenuCb(const char* opt)
 
 /**
  * @brief Sets up the Home Run Contest menu for Fighter, including callback
+ *
+ * @param resetPos true to reset this menu's position, false to ues the last pos
  */
-void setFighterLocalVsP1Menu(void)
+void setFighterLocalVsP1Menu(bool resetPos)
 {
     fm->playerInput = 0;
     resetMeleeMenu(fm->menu, str_localVsP1, fighterLocalVsP1MenuCb);
@@ -1013,6 +1125,12 @@ void setFighterLocalVsP1Menu(void)
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
     addRowToMeleeMenu(fm->menu, str_back);
+    // Set the position
+    if(resetPos)
+    {
+        fm->localVsP1Pos = 0;
+    }
+    fm->menu->selectedRow = fm->localVsP1Pos;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -1023,6 +1141,9 @@ void setFighterLocalVsP1Menu(void)
  */
 void fighterLocalVsP1MenuCb(const char* opt)
 {
+	// Save the position
+	fm->localVsP1Pos = fm->menu->selectedRow;
+
     // Check the menu option selected
     if (opt == str_charKD)
     {
@@ -1042,7 +1163,7 @@ void fighterLocalVsP1MenuCb(const char* opt)
     else if (opt == str_back)
     {
         // Reset to top level melee menu
-        setFighterMainMenu();
+        setFighterMainMenu(false);
         return;
     }
     else
@@ -1052,13 +1173,15 @@ void fighterLocalVsP1MenuCb(const char* opt)
     }
 
     // Go to P2 character select
-    setFighterLocalVsP2Menu();
+    setFighterLocalVsP2Menu(true);
 }
 
 /**
  * @brief Sets up the Home Run Contest menu for Fighter, including callback
+ *
+ * @param resetPos true to reset this menu's position, false to ues the last pos
  */
-void setFighterLocalVsP2Menu(void)
+void setFighterLocalVsP2Menu(bool resetPos)
 {
     fm->playerInput = 1;
     resetMeleeMenu(fm->menu, str_localVsP2, fighterLocalVsP2MenuCb);
@@ -1066,6 +1189,12 @@ void setFighterLocalVsP2Menu(void)
     addRowToMeleeMenu(fm->menu, str_charSN);
     addRowToMeleeMenu(fm->menu, str_charBF);
     addRowToMeleeMenu(fm->menu, str_back);
+    // Set the position
+    if(resetPos)
+    {
+        fm->localVsP2Pos = 0;
+    }
+    fm->menu->selectedRow = fm->localVsP2Pos;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -1076,6 +1205,9 @@ void setFighterLocalVsP2Menu(void)
  */
 void fighterLocalVsP2MenuCb(const char* opt)
 {
+	// Save the position
+	fm->localVsP2Pos = fm->menu->selectedRow;
+
     // Check the menu option selected
     if (opt == str_charKD)
     {
@@ -1095,7 +1227,7 @@ void fighterLocalVsP2MenuCb(const char* opt)
     else if (opt == str_back)
     {
         // Reset to top level melee menu
-        setFighterLocalVsP1Menu();
+        setFighterLocalVsP1Menu(false);
         return;
     }
     else
@@ -1105,19 +1237,27 @@ void fighterLocalVsP2MenuCb(const char* opt)
     }
 
     // Go to P2 character select
-    setFighterLocalVsStageMenu();
+    setFighterLocalVsStageMenu(true);
 }
 
 /**
  * @brief Sets up the multiplayer stage select menu for Fighter, including callback
+ *
+ * @param resetPos true to reset this menu's position, false to ues the last pos
  */
-void setFighterLocalVsStageMenu(void)
+void setFighterLocalVsStageMenu(bool resetPos)
 {
     fm->playerInput = 0;
     resetMeleeMenu(fm->menu, str_multiplayer, fighterLocalVsStageMenuCb);
     addRowToMeleeMenu(fm->menu, str_stgBF);
     addRowToMeleeMenu(fm->menu, str_stgFD);
     addRowToMeleeMenu(fm->menu, str_back);
+    // Set the position
+    if(resetPos)
+    {
+        fm->localVsStagePos = 0;
+    }
+    fm->menu->selectedRow = fm->localVsStagePos;
     fm->screen = FIGHTER_MENU;
 }
 
@@ -1128,6 +1268,9 @@ void setFighterLocalVsStageMenu(void)
  */
 void fighterLocalVsStageMenuCb(const char* opt)
 {
+	// Save the position
+	fm->localVsStagePos = fm->menu->selectedRow;
+
     if(str_stgBF == opt)
     {
         fm->stage = BATTLEFIELD;
@@ -1139,7 +1282,7 @@ void fighterLocalVsStageMenuCb(const char* opt)
     else if(str_back == opt)
     {
         // Go back
-        setFighterLocalVsP2Menu();
+        setFighterLocalVsP2Menu(false);
         return;
     }
     else
@@ -1204,14 +1347,14 @@ void fighterP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt)
         case CON_ESTABLISHED:
         {
             // Connection established, show character select screen
-            setFighterMultiplayerCharSelMenu();
+            setFighterMultiplayerCharSelMenu(true);
             break;
         }
         case CON_LOST:
         {
             // Reset to top level melee menu
             fighterExitGame();
-            setFighterMainMenu();
+            setFighterMainMenu(false);
             break;
         }
     }
@@ -1326,7 +1469,7 @@ void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t* da
         }
         case MSG_FAILED:
         {
-            setFighterMainMenu();
+            setFighterMainMenu(false);
             break;
         }
     }
