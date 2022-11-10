@@ -670,9 +670,9 @@ void setFighterWireMultiMenu(bool resetPos)
  */
 void fighterWireMultiMenuCb(const char* opt)
 {
-	// Save the position
-	fm->wireMultiMenuPos = fm->menu->selectedRow;
-    
+    // Save the position
+    fm->wireMultiMenuPos = fm->menu->selectedRow;
+
     // Check the menu option selected
     if (opt == str_wireMultiA)
     {
@@ -746,8 +746,8 @@ void setFighterHrMenu(bool resetPos)
  */
 void fighterHrMenuCb(const char* opt)
 {
-	// Save the position
-	fm->hrMenuPos = fm->menu->selectedRow;
+    // Save the position
+    fm->hrMenuPos = fm->menu->selectedRow;
 
     // These are the same for HR COntest
     fm->stage = HR_STADIUM;
@@ -816,8 +816,8 @@ void setFighterVsCpuCharHmnSelMenu(bool resetPos)
  */
 void fighterVsCpuCharHmnMenuCb(const char* opt)
 {
-	// Save the position
-	fm->vsCpuCharHmnSelPos = fm->menu->selectedRow;
+    // Save the position
+    fm->vsCpuCharHmnSelPos = fm->menu->selectedRow;
 
     if (opt == str_charKD)
     {
@@ -880,8 +880,8 @@ void setFighterVsCpuCharCpuSelMenu(bool resetPos)
  */
 void fighterVsCpuCharCpuMenuCb(const char* opt)
 {
-	// Save the position
-	fm->vsCpuCharCpuSelPos = fm->menu->selectedRow;
+    // Save the position
+    fm->vsCpuCharCpuSelPos = fm->menu->selectedRow;
 
     if (opt == str_charKD)
     {
@@ -943,8 +943,8 @@ void setFighterVsCpuStageSelMenu(bool resetPos)
  */
 void fighterVsCpuStageMenuCb(const char* opt)
 {
-	// Save the position
-	fm->vsCpuStageSelPos = fm->menu->selectedRow;
+    // Save the position
+    fm->vsCpuStageSelPos = fm->menu->selectedRow;
 
     if(str_stgBF == opt)
     {
@@ -1000,8 +1000,8 @@ void setFighterMultiplayerCharSelMenu(bool resetPos)
  */
 void fighterMultiplayerCharMenuCb(const char* opt)
 {
-	// Save the position
-	fm->multiplayerCharSelPos = fm->menu->selectedRow;
+    // Save the position
+    fm->multiplayerCharSelPos = fm->menu->selectedRow;
 
     uint8_t charIdx = (GOING_FIRST == fm->p2p.cnc.playOrder) ? 0 : 1;
     if (opt == str_charKD)
@@ -1076,8 +1076,8 @@ void setFighterMultiplayerStageSelMenu(bool resetPos)
  */
 void fighterMultiplayerStageMenuCb(const char* opt)
 {
-	// Save the position
-	fm->multiplayerStageSelPos = fm->menu->selectedRow;
+    // Save the position
+    fm->multiplayerStageSelPos = fm->menu->selectedRow;
 
     if(str_stgBF == opt)
     {
@@ -1141,8 +1141,8 @@ void setFighterLocalVsP1Menu(bool resetPos)
  */
 void fighterLocalVsP1MenuCb(const char* opt)
 {
-	// Save the position
-	fm->localVsP1Pos = fm->menu->selectedRow;
+    // Save the position
+    fm->localVsP1Pos = fm->menu->selectedRow;
 
     // Check the menu option selected
     if (opt == str_charKD)
@@ -1205,8 +1205,8 @@ void setFighterLocalVsP2Menu(bool resetPos)
  */
 void fighterLocalVsP2MenuCb(const char* opt)
 {
-	// Save the position
-	fm->localVsP2Pos = fm->menu->selectedRow;
+    // Save the position
+    fm->localVsP2Pos = fm->menu->selectedRow;
 
     // Check the menu option selected
     if (opt == str_charKD)
@@ -1268,8 +1268,8 @@ void setFighterLocalVsStageMenu(bool resetPos)
  */
 void fighterLocalVsStageMenuCb(const char* opt)
 {
-	// Save the position
-	fm->localVsStagePos = fm->menu->selectedRow;
+    // Save the position
+    fm->localVsStagePos = fm->menu->selectedRow;
 
     if(str_stgBF == opt)
     {
