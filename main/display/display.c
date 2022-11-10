@@ -963,7 +963,9 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
         }
         else
         {
-            textX += textWidth(font, buf);
+            // drawText returns the next text position, which is 1px past the last char
+            // textWidth returns, well, the text width, so add 1 to account for the last pixel
+            textX += textWidth(font, buf) + 1;
         }
         textPtr += nextBreak;
     }
