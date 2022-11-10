@@ -63,6 +63,7 @@ swadgeMode modeBee =
     .overrideUsb = false
 };
 
+// Option #1
 static const char* alice[] =
 {
     "Alice\'s Adventures in Wonderland\n",
@@ -1841,6 +1842,7 @@ static const char* alice[] =
     "\n",
 };
 
+// Option 2
 const char* festival[] = 
 {
     "Here's the thing. You said a \"festival is a con.\"\n",
@@ -1863,6 +1865,7 @@ const char* festival[] =
     "\n",
 };
 
+// Option 3
 const char* fitness[] = 
 {
     "The FitnessGram Pacer Test is a multistage aerobic capacity test that progressively gets more difficult as it continues.\n\n",
@@ -2178,6 +2181,7 @@ const char* fitness[] =
     "\n",
 };
 
+// Option #4
 const char* thejam[] = 
 {
     "Never gonna give you up\n",
@@ -2193,6 +2197,7 @@ const char* thejam[] =
     "\n",
 };
 
+// Option #5
 const char* giggles[] =
 {
     "If you ask Rick Astley for a copy of the movie “UP”, he cannot give you it as he can never give you up.\n", 
@@ -2204,6 +2209,7 @@ const char* giggles[] =
     "\n",
 };
 
+// Option #6
 const char* blueeee[] =
 {
     "I’m Blue – da ba dee da ba dye, da ba dee da ba dye Da ba dee da ba dye,\n" 
@@ -2215,6 +2221,7 @@ const char* blueeee[] =
     "\n",
 };
 
+// Option #7
 const char* hypothetical[] =
 {
     "Let’s say, hypothetically, I am a barbie girl. Okay let’s even say I’m in a barbie world. Right so, in this scenario,\n",
@@ -2228,6 +2235,7 @@ const char* hypothetical[] =
     "\n",
 };
 
+// Option #8
 const char* tolerancetest[] =
 {
     "AYAYA\n",
@@ -2303,6 +2311,7 @@ const char* tolerancetest[] =
     "\n",
 };
 
+// Option #9
 const char* tips[] =
 {
     "\n TIP NO. 1	Don't die.\n",
@@ -2378,6 +2387,7 @@ static const textOption texts[] = {
     {.text = giggles, .lines = ARRAY_SIZE(giggles)},
     {.text = blueeee, .lines = ARRAY_SIZE(blueeee)},
     {.text = hypothetical, .lines = ARRAY_SIZE(hypothetical)},
+    {.text = tolerancetest, .lines = ARRAY_SIZE(tolerancetest)},
     {.text = tips, .lines = ARRAY_SIZE(tips)},
 };
 
