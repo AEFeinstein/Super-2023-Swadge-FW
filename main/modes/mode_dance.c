@@ -43,6 +43,9 @@ typedef struct
 #define ARG_G(arg) (((arg) >>  8)&0xFF)
 #define ARG_B(arg) (((arg) >>  0)&0xFF)
 
+#define DANCE_SPEED_MULT 8
+#define DANCE_NORMAL_SPEED_INDEX 5
+
 // Sleep the TFT after 5s
 #define TFT_TIMEOUT_US 5000000
 
@@ -60,6 +63,19 @@ void danceBatteryCb(uint32_t vBatt);
  * Variables
  *==========================================================================*/
 const char ledDancesExitText[] = "Exit: Start + Select";
+
+static const uint8_t danceSpeeds[] =
+{
+    64, // 1/8x
+    48, // 1/6x
+    32, // 1/4x
+    24, // 1/3x
+    16, // 1/2x
+    8, // 1x
+    6, // 1.5x
+    4, // 2x
+    2, // 4x
+};
 
 static const ledDanceArg ledDances[] =
 {
@@ -114,6 +130,7 @@ typedef struct
     display_t* disp;
 
     uint8_t danceIdx;
+    uint8_t danceSpeed;
 
     bool resetDance;
     bool blankScreen;
@@ -132,7 +149,7 @@ swadgeMode modeDance =
     .fnExitMode = danceExitMode,
     .fnMainLoop = danceMainLoop,
     .fnButtonCallback = danceButtonCb,
-    .fnTouchCallback = NULL,
+    .fnTouchCallback = danceTouchCb,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
@@ -301,6 +318,7 @@ void danceEnterMode(display_t* disp)
     danceState->disp = disp;
 
     danceState->danceIdx = 0;
+    danceState->danceSpeed = DANCE_NORMAL_SPEED_INDEX;
 
     danceState->resetDance = true;
     danceState->blankScreen = false;
@@ -327,7 +345,9 @@ void danceExitMode(void)
 
 void danceMainLoop(int64_t elapsedUs)
 {
-    ledDances[danceState->danceIdx].func(elapsedUs, ledDances[danceState->danceIdx].arg, danceState->resetDance);
+    ledDances[danceState->danceIdx].func(elapsedUs * DANCE_SPEED_MULT / danceSpeeds[danceState->danceSpeed], ledDances[danceState->danceIdx].arg, danceState->resetDance);
+
+    dancePollTouch();
 
     // If the screen is blank
     if(danceState->blankScreen)
@@ -432,6 +452,24 @@ void danceButtonCb(buttonEvt_t* evt)
     }
 }
 
+void danceTouchCb(touch_event_t* evt)
+{
+    dancePollTouch();
+}
+
+void dancePollTouch(void)
+{
+    int32_t centroid, intensity;
+    if (getTouchCentroid(&centroid, &intensity))
+    {
+        uint8_t index = ((centroid * (sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1) + 512) / 1024);
+
+        // Flip it so fast is up and slow is down
+        danceState->danceSpeed = sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1 - index;
+        danceState->buttonPressedTimer = 0;
+    }
+}
+
 /**
  * @brief Blanks and redraws the entire screen
  */
@@ -456,13 +494,15 @@ void danceRedrawScreen(void)
                 ((danceState->disp->w - width) / 2) + width + 8, yOff,
                 false, false, 90);
 
+
+
         // Draw the brightness at the top
-        char brightnessText[14];
-        snprintf(brightnessText, sizeof(brightnessText), "Brightness: %d", getLedBrightness());
-        width = textWidth(&(danceState->infoFont), brightnessText);
+        char text[18];
+        snprintf(text, sizeof(text), "Brightness: %d", getLedBrightness());
+        width = textWidth(&(danceState->infoFont), text);
         yOff = 16;
         drawText(danceState->disp, &(danceState->infoFont), c555,
-                 brightnessText,
+                 text,
                  (danceState->disp->w - width) / 2,
                  yOff);
         // Draw some arrows
@@ -472,6 +512,23 @@ void danceRedrawScreen(void)
         drawWsg(danceState->disp, &danceState->arrow,
                 ((danceState->disp->w - width) / 2) + width + 8, yOff,
                 false, false, 180);
+
+        // Draw the speed below the brightness
+        yOff += danceState->infoFont.h + 16;
+        if (danceSpeeds[danceState->danceSpeed] > DANCE_SPEED_MULT)
+        {
+            snprintf(text, sizeof(text), "X~Y: Speed: 1/%dx", danceSpeeds[danceState->danceSpeed] / DANCE_SPEED_MULT);
+        }
+        else
+        {
+            snprintf(text, sizeof(text), "X~Y: Speed: %dx",  DANCE_SPEED_MULT / danceSpeeds[danceState->danceSpeed]);
+        }
+        width = textWidth(&(danceState->infoFont), text);
+        drawText(danceState->disp, &(danceState->infoFont), c555,
+                text,
+                (danceState->disp->w - width) / 2,
+                yOff);
+
         // Draw text to show how to exit at the bottom
         width = textWidth(&(danceState->infoFont), ledDancesExitText);
         yOff = danceState->disp->h - danceState->infoFont.h - 16;
@@ -495,18 +552,18 @@ uint8_t getNumDances(void)
  * @param idx  The index of the dance
  * @return the dance name
  */
-char* getDanceName(uint8_t idx)
-{
-    return ledDances[idx].name;
-}
+// char* getDanceName(uint8_t idx)
+// {
+//     return ledDances[idx].name;
+// }
 
 /** This is called to clear specific dance variables
  */
-void danceClearVars(uint8_t idx)
-{
-    // Reset the specific dance
-    ledDances[idx].func(0, ledDances[idx].arg, true);
-}
+// void danceClearVars(uint8_t idx)
+// {
+//     // Reset the specific dance
+//     ledDances[idx].func(0, ledDances[idx].arg, true);
+// }
 
 /** Get a random number from a range.
  *

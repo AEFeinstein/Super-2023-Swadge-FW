@@ -147,7 +147,29 @@ void jumperButtonCb(buttonEvt_t* evt)
             //Pass button events from the Swadge mode to the menu
             if (evt->down)
             {
-                meleeMenuButton(jm->menu, evt->button);
+                switch(evt->button)
+                {
+                    case UP:
+                    case DOWN:
+                    case BTN_A:
+                    case BTN_B:
+                    case START:
+                    case SELECT:
+                    {
+                        meleeMenuButton(jm->menu, evt->button);
+                        break;
+                    }
+                    case LEFT:
+                    case RIGHT:
+                    {
+                        if( (str_LEDOn == jm->menu->rows[jm->menu->selectedRow]) ||
+                            (str_LEDOff == jm->menu->rows[jm->menu->selectedRow]))
+                        {
+                            jumperMainMenuCb(jm->menu->rows[jm->menu->selectedRow]);
+                        }
+                        break;
+                    }
+                }
             }
             break;
         }

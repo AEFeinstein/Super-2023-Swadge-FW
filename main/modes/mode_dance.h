@@ -74,9 +74,11 @@ void danceEnterMode(display_t* display);
 void danceExitMode(void);
 void danceMainLoop(int64_t elapsedUs);
 void danceButtonCb(buttonEvt_t* evt);
+void danceTouchCb(touch_event_t* evt);
+void dancePollTouch(void);
 
 uint8_t getNumDances(void);
-void danceClearVars(uint8_t idx);
-char* getDanceName(uint8_t idx);
+// void danceClearVars(uint8_t idx);
+// char* getDanceName(uint8_t idx);
 
 #endif /* MODE_DANCE_H_ */

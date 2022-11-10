@@ -74,6 +74,7 @@ static const char* creditNames[] =
     "FuryfulFawful\n",
     "Greg Lord (@gplord)\n",
     "Grocery Man\n",
+    "Haloflooder\n",
     "Hunter Dyar\n",
     "J.Vega (@JVeg199X)\n",
     "Joe Newman\n",
@@ -104,6 +105,7 @@ static const paletteColor_t creditColors[] =
     c452,
     c035,
     c505,
+    c500,
     c445,
     c250,
     c255,
@@ -1786,7 +1788,8 @@ void creditsMainLoop(int64_t elapsedUs)
             }
 
             // Add more space if the credits end in a newline
-            if('\n' == creditNames[idx][strlen(creditNames[idx]) - 1])
+            size_t nameLen = strlen(creditNames[idx]);
+            if((nameLen > 0) && ('\n' == creditNames[idx][nameLen - 1]))
             {
                 yPos += credits->font.h + 8;
             }

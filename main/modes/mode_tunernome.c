@@ -145,11 +145,11 @@ typedef struct
     bool isBlinking;
 } tunernome_t;
 
-typedef struct
-{
-    uint8_t top;
-    uint8_t bottom;
-} timeSignature;
+// typedef struct
+// {
+//     uint8_t top;
+//     uint8_t bottom;
+// } timeSignature;
 
 /*============================================================================
  * Prototypes

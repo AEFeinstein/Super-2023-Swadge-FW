@@ -10,10 +10,10 @@
 #include "paint_common.h"
 #include "paint_type.h"
 
-void paintDebugIndex(int32_t index);
+// void paintDebugIndex(int32_t index);
 void paintLoadIndex(int32_t* dest);
 void paintSaveIndex(int32_t index);
-void paintResetStorage(int32_t* index);
+// void paintResetStorage(int32_t* index);
 bool paintGetSlotInUse(int32_t index, uint8_t slot);
 void paintClearSlot(int32_t* index, uint8_t slot);
 void paintSetSlotInUse(int32_t* index, uint8_t slot);

@@ -1370,6 +1370,7 @@ typedef struct
     accel_t ttLastTestAccel;
 
     uint16_t ttButtonState;
+    uint16_t ttButtonsPressedSinceLast;
     uint16_t ttLastButtonState;
 
     int64_t modeStartTime; // Time mode started in microseconds.
@@ -1433,7 +1434,7 @@ void ttChangeState(tiltradsState_t newState);
 
 // Input checking
 bool ttIsButtonPressed(uint8_t button);
-bool ttIsButtonReleased(uint8_t button);
+// bool ttIsButtonReleased(uint8_t button);
 bool ttIsButtonDown(uint8_t button);
 bool ttIsButtonUp(uint8_t button);
 
@@ -1447,7 +1448,7 @@ void refreshTetradsGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][
                         list_t* fieldTetrads, tetrad_t* movingTetrad, bool includeMovingTetrad);
 int16_t xFromGridCol(int16_t x0, int16_t gridCol, uint8_t unitSize);
 int16_t yFromGridRow(int16_t y0, int16_t gridRow, uint8_t unitSize);
-void debugPrintGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]);
+// void debugPrintGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]);
 
 
 // Tetrad operations
@@ -1462,7 +1463,7 @@ tetrad_t spawnTetrad(tetradType_t type, uint32_t gridValue, coord_t gridCoord, i
 void spawnNextTetrad(tetrad_t* newTetrad, tetradRandomizer_t randomType, uint32_t gridValue,
                      uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]);
 int32_t getLowestActiveRow(tetrad_t* tetrad);
-int32_t getHighestActiveRow(tetrad_t* tetrad);
+// int32_t getHighestActiveRow(tetrad_t* tetrad);
 int32_t getFallDistance(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
                         const uint32_t gridData[][gridCols]);
 
@@ -1581,6 +1582,7 @@ void ttInit(display_t* disp)
     tiltrads->ttLastTestAccel.z = 0;
 
     tiltrads->ttButtonState = 0;
+    tiltrads->ttButtonsPressedSinceLast = 0;
     tiltrads->ttLastButtonState = 0;
 
     // Reset mode time tracking.
@@ -1621,6 +1623,12 @@ void ttDeInit(void)
 void ttButtonCallback(buttonEvt_t* evt)
 {
     tiltrads->ttButtonState = evt->state;  // Set the state of all buttons.
+    // If this was a press
+    if(evt->down)
+    {
+        // Save this press so a quick press/release isn't ignored
+        tiltrads->ttButtonsPressedSinceLast |= evt->button;
+    }
 }
 
 void ttAccelerometerCallback(accel_t* accel)
@@ -1674,6 +1682,8 @@ static void ttUpdate(int64_t elapsedUs __attribute__((unused)))
 
     // Mark what our inputs were the last time we acted on them.
     tiltrads->ttLastButtonState = tiltrads->ttButtonState;
+    // Clear the buttons pressed since last check
+    tiltrads->ttButtonsPressedSinceLast = 0;
     tiltrads->ttLastAccel = tiltrads->ttAccel;
 
     // Handle game logic. (based on the state)
@@ -2368,7 +2378,7 @@ void ttGameDisplay(void)
 
     // 999
     currY += (tiltrads->ibm_vga8.h + 1);
-    snprintf(uiStr, sizeof(uiStr), "%d", tiltrads->linesClearedTotal);
+    snprintf(uiStr, sizeof(uiStr), "%u", tiltrads->linesClearedTotal);
     getNumCentering(&(tiltrads->ibm_vga8), uiStr, 0, GRID_X, &numFieldStart, &numFieldEnd);
     drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, uiStr, numFieldStart, currY);
 
@@ -2447,12 +2457,12 @@ void ttScoresDisplay(void)
     }
 
     // Draw the clear score text and bar.
-    int16_t clearScoresTextX = 29;
     // int16_t clearScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h + 1);
 
     // fill the clear scores area depending on how long the button's held down.
     if (tiltrads->clearScoreTimer != 0)
     {
+        int16_t clearScoresTextX = 29;
         double holdProgress = ((double)(tiltrads->clearScoreTimer) / (double)CLEAR_SCORES_HOLD_TIME);
         int16_t holdAreaX0 = clearScoresTextX - 1;
         int16_t holdAreaY0 = (tiltrads->disp->h - (tiltrads->ibm_vga8.h + 1)) - 1;
@@ -2683,22 +2693,22 @@ void ttChangeState(tiltradsState_t newState)
 
 bool ttIsButtonPressed(uint8_t button)
 {
-    return (tiltrads->ttButtonState & button) && !(tiltrads->ttLastButtonState & button);
+    return ((tiltrads->ttButtonState | tiltrads->ttButtonsPressedSinceLast) & button) && !(tiltrads->ttLastButtonState & button);
 }
 
-bool ttIsButtonReleased(uint8_t button)
-{
-    return !(tiltrads->ttButtonState & button) && (tiltrads->ttLastButtonState & button);
-}
+// bool ttIsButtonReleased(uint8_t button)
+// {
+//     return !((tiltrads->ttButtonState | tiltrads->ttButtonsPressedSinceLast) & button) && (tiltrads->ttLastButtonState & button);
+// }
 
 bool ttIsButtonDown(uint8_t button)
 {
-    return tiltrads->ttButtonState & button;
+    return (tiltrads->ttButtonState | tiltrads->ttButtonsPressedSinceLast) & button;
 }
 
 bool ttIsButtonUp(uint8_t button)
 {
-    return !(tiltrads->ttButtonState & button);
+    return !((tiltrads->ttButtonState | tiltrads->ttButtonsPressedSinceLast) & button);
 }
 
 void copyGrid(coord_t srcOffset, uint8_t srcCols, uint8_t srcRows, const uint32_t src[][srcCols],
@@ -2781,18 +2791,18 @@ int16_t yFromGridRow(int16_t y0, int16_t gridRow, uint8_t unitSize)
     return (y0 + 1) + (gridRow * unitSize);
 }
 
-void debugPrintGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols])
-{
-    ESP_LOGW("EMU", "Grid Dimensions: c%d x r%d", gridCols, gridRows);
-    for (int32_t y = 0; y < gridRows; y++)
-    {
-        for (int32_t x = 0; x < gridCols; x++)
-        {
-            printf(" %2d ", gridData[y][x]);
-        }
-        printf("\n");
-    }
-}
+// void debugPrintGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols])
+// {
+//     ESP_LOGW("EMU", "Grid Dimensions: c%d x r%d", gridCols, gridRows);
+//     for (int32_t y = 0; y < gridRows; y++)
+//     {
+//         for (int32_t x = 0; x < gridCols; x++)
+//         {
+//             printf(" %2d ", gridData[y][x]);
+//         }
+//         printf("\n");
+//     }
+// }
 
 // This assumes only complete tetrads can be rotated.
 bool rotateTetrad(tetrad_t* tetrad, int32_t newRotation, uint8_t gridCols, uint8_t gridRows,
@@ -3137,23 +3147,23 @@ int32_t getLowestActiveRow(tetrad_t* tetrad)
 }
 
 // Highest row on screen. (greatest value of r)
-int32_t getHighestActiveRow(tetrad_t* tetrad)
-{
-    int32_t highestRow = tetrad->topLeft.r;
+// int32_t getHighestActiveRow(tetrad_t* tetrad)
+// {
+//     int32_t highestRow = tetrad->topLeft.r;
 
-    for (int32_t r = TETRAD_GRID_SIZE - 1; r <= 0; r--)
-    {
-        for (int32_t c = 0; c < TETRAD_GRID_SIZE; c++)
-        {
-            if (tetrad->shape[r][c] != EMPTY)
-            {
-                highestRow = tetrad->topLeft.r + r;
-            }
-        }
-    }
+//     for (int32_t r = TETRAD_GRID_SIZE - 1; r <= 0; r--)
+//     {
+//         for (int32_t c = 0; c < TETRAD_GRID_SIZE; c++)
+//         {
+//             if (tetrad->shape[r][c] != EMPTY)
+//             {
+//                 highestRow = tetrad->topLeft.r + r;
+//             }
+//         }
+//     }
 
-    return highestRow;
-}
+//     return highestRow;
+// }
 
 int32_t getFallDistance(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
                         const uint32_t gridData[][gridCols])
@@ -3161,13 +3171,12 @@ int32_t getFallDistance(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
     int32_t fallDistance = gridRows;
     int32_t currFallDistance;
     int32_t searchCol;
-    int32_t lowestActiveRowInCol;
 
     // Search through every column the tetrad can occupy space in.
     for (int32_t c = 0; c < TETRAD_GRID_SIZE; c++)
     {
         // Find the lowest (closest to the floor of the playfield) occupied row in this column for the tetrad.
-        lowestActiveRowInCol = -1;
+        int32_t lowestActiveRowInCol = -1;
         for (int32_t r = 0; r < TETRAD_GRID_SIZE; r++)
         {
             if (tetrad->shape[r][c] != EMPTY)
@@ -3915,15 +3924,15 @@ double getDropFXTimeFactor(int64_t level)
 bool isLineCleared(int32_t line, uint8_t gridCols, uint8_t gridRows __attribute__((unused)),
                    uint32_t gridData[][gridCols])
 {
-    bool clear = true;
+    bool lineClear = true;
     for (int32_t c = 0; c < gridCols; c++)
     {
         if (gridData[line][c] == EMPTY)
         {
-            clear = false;
+            lineClear = false;
         }
     }
-    return clear;
+    return lineClear;
 }
 
 int32_t checkLineClears(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols],
@@ -4110,11 +4119,9 @@ void alternatingPulseLEDS(uint8_t numLEDs, led_t fxColor, uint32_t time)
     double fallingG = fallingProgress * (double)fxColor.g;
     double fallingB = fallingProgress * (double)fxColor.b;
 
-    bool risingLED;
-
     for (int32_t i = 0; i < numLEDs; i++)
     {
-        risingLED = i % 2 == 0;
+        bool risingLED = i % 2 == 0;
         tiltrads->leds[i].r = risingLED ? (uint8_t)risingR : (uint8_t)fallingR;
         tiltrads->leds[i].g = risingLED ? (uint8_t)risingG : (uint8_t)fallingG;
         tiltrads->leds[i].b = risingLED ? (uint8_t)risingB : (uint8_t)fallingB;

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "led_util.h"
 #include "fighter_menu.h"
 #include "fighter_records.h"
 #include "nvs_manager.h"
@@ -69,6 +70,10 @@ void initFighterRecords(display_t* disp, font_t* font)
     {
         writeNvsBlob(fighterRecKey, &fr->records, sizeof(fighterNvs_t));
     }
+
+    // Turn LEDs off
+    led_t leds[NUM_LEDS] = {0};
+    setLeds(leds, NUM_LEDS);
 }
 
 /**
@@ -109,10 +114,10 @@ void fighterRecordsLoop(int64_t elapsedUs __attribute__((unused)))
     yOff += (fr->font->h + Y_MARGIN);
 
     // Multiplayer entries
-    for(fightingCharacter_t idx = 0; idx < (sizeof(charNames) / sizeof(charNames[0])); idx++)
+    for(fightingCharacter_t idx = 0; idx < (sizeof(charNamesShort) / sizeof(charNamesShort[0])); idx++)
     {
         // Draw name
-        drawText(fr->disp, fr->font, entryColor, charNames[idx], X_MARGIN, yOff);
+        drawText(fr->disp, fr->font, entryColor, charNamesShort[idx], X_MARGIN, yOff);
         // Compose, measure, and draw record
         sprintf(recordStr, "%d-%d", fr->records.multiplayerRecords[idx][0], fr->records.multiplayerRecords[idx][1]);
         tWidth = textWidth(fr->font, recordStr);
@@ -133,10 +138,10 @@ void fighterRecordsLoop(int64_t elapsedUs __attribute__((unused)))
     yOff += (fr->font->h + Y_MARGIN);
 
     // Homerun Contest entries
-    for(fightingCharacter_t idx = 0; idx < (sizeof(charNames) / sizeof(charNames[0])); idx++)
+    for(fightingCharacter_t idx = 0; idx < (sizeof(charNamesShort) / sizeof(charNamesShort[0])); idx++)
     {
         // Draw name
-        drawText(fr->disp, fr->font, entryColor, charNames[idx], X_MARGIN, yOff);
+        drawText(fr->disp, fr->font, entryColor, charNamesShort[idx], X_MARGIN, yOff);
         // Compose, measure, and draw record
         sprintf(recordStr, "%dm", fr->records.homerunRecords[idx]);
         tWidth = textWidth(fr->font, recordStr);

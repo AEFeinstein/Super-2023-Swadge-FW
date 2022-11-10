@@ -18,6 +18,8 @@
 #include "picross_menu.h"
 #include "picross_select.h"
 #include "bresenham.h"
+
+#include "picross_music.h"
 // #include "picross_consts.h"
 
 //==============================================================================
@@ -29,7 +31,7 @@ void picrossSetupPuzzle(bool cont);
 void picrossCalculateHoverHint(void);
 void setCompleteLevelFromWSG(wsg_t* puzz);
 void drawSinglePixelFromWSG(display_t* d,int x, int y, wsg_t* image);
-bool hintsMatch(picrossHint_t a, picrossHint_t b);
+// bool hintsMatch(picrossHint_t a, picrossHint_t b);
 bool hintIsFilledIn(picrossHint_t* hint);
 box_t boxFromCoord(int8_t x, int8_t y);
 picrossHint_t newHintFromPuzzle(uint8_t index, bool isRow, picrossSpaceType_t source[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE]);
@@ -145,6 +147,11 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
             p->errorBLEDBlinkLEDS[i].b = 0x00;
         }
     }
+
+
+    //BG music
+    buzzer_stop();
+    buzzer_play_bgm(&picross_music_bg);
 
     //Setup level
     picrossSetupPuzzle(cont);
@@ -405,6 +412,13 @@ void picrossGameLoop(int64_t elapsedUs)
     //You won! Only called once, since you cant go from win->solving without resetting everything (ie: menu and back)
     if(p->previousPhase == PICROSS_SOLVING && p->currentPhase == PICROSS_YOUAREWIN)
     {
+        buzzer_stop();
+        if(p->selectedLevel.index == 29){
+            buzzer_play_bgm(&picross_music_rick);
+        }else{
+            buzzer_play_bgm(&picross_music_win);
+        }
+
         //Unsave progress. Hides "current" in the main menu. we dont need to zero-out the actual data that will just happen when we load a new level.
         writeNvs32(picrossCurrentPuzzleIndexKey, -1);
 
@@ -424,20 +438,15 @@ void picrossGameLoop(int64_t elapsedUs)
 
 void picrossCheckLevel()
 {
-    bool allFilledIn = false;
-    bool f = false;
-
     //Update if the puzzle is filled in, which we use to grey-out hints when drawing them.
     //if performance is bad, lets just cut this feature.
     for(int i = 0;i<p->puzzle->height;i++)
     {
-        f = hintIsFilledIn(&p->puzzle->rowHints[i]);
-        allFilledIn = allFilledIn | f;
+        hintIsFilledIn(&p->puzzle->rowHints[i]);
     }
     for(int i = 0;i<p->puzzle->width;i++)
     {
-        f = hintIsFilledIn(&p->puzzle->colHints[i]);
-        allFilledIn = allFilledIn | f;
+        hintIsFilledIn(&p->puzzle->colHints[i]);
     }
 
     //we only need to do this if the puzzle is completely filled in, and we already checked that above. 
@@ -493,17 +502,17 @@ void picrossCheckLevel()
     
 }
 
-bool hintsMatch(picrossHint_t a, picrossHint_t b)
-{
-    for(int i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
-    {
-        if(a.hints[i] != b.hints[i])
-        {
-            return false;
-        }
-    }
-    return true;
-}
+// bool hintsMatch(picrossHint_t a, picrossHint_t b)
+// {
+//     for(int i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
+//     {
+//         if(a.hints[i] != b.hints[i])
+//         {
+//             return false;
+//         }
+//     }
+//     return true;
+// }
 bool hintIsFilledIn(picrossHint_t* hint)
 {
     uint8_t segmentIndex = 0;
@@ -988,7 +997,6 @@ void drawPicrossScene(display_t* d)
 
     box_t box;
     box_t xBox;
-    uint16_t xThick = 0;
     
     //todo: move color selection to constants somewhere
     paletteColor_t emptySpaceCol = c555;
@@ -1038,10 +1046,9 @@ void drawPicrossScene(display_t* d)
                         }else
                         {
                             
-                            xThick = p->drawScale/5;
-                            uint16_t shrink = p->drawScale/6;
+                            uint16_t xThick = p->drawScale/5;
                             xThick = xThick < 3 ? 3 : xThick;//min 2
-                             shrink = xThick < 3 ? 3 : xThick;//min 3
+                            uint16_t shrink = xThick < 3 ? 3 : xThick;//min 3
                             xBox = box;
                             xBox.x0 = xBox.x0 + shrink;
                             xBox.x1 = xBox.x1 - shrink;
@@ -1269,7 +1276,6 @@ void drawPicrossHud(display_t* d,font_t* font)
 void drawHint(display_t* d,font_t* font, picrossHint_t hint)
 {
     uint8_t h;
-    box_t hintbox = boxFromCoord(-1,hint.index);
     paletteColor_t hintShadeColor = c001;//todo: move to struct if we decide to keep this.
     paletteColor_t hintColor = c555;//white/
     if(p->fadeHints)
@@ -1289,7 +1295,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
         //if current row, draw background squares.
         if(p->input->showGuides && hint.index == p->input->y)
         {
-            hintbox = boxFromCoord(-1,hint.index);
+            box_t hintbox = boxFromCoord(-1,hint.index);
             hintbox.x0 = 0;
             drawBox(d,hintbox,hintShadeColor,true,0);
         }
@@ -1310,7 +1316,7 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
          //if current col, draw background square
         if(p->input->showGuides && hint.index == p->input->x)
         {
-            hintbox = boxFromCoord(hint.index,-1);
+            box_t hintbox = boxFromCoord(hint.index,-1);
             hintbox.y0 = 0;
             drawBox(d,hintbox,hintShadeColor,true,0);
         }
@@ -1506,11 +1512,12 @@ void picrossGameButtonCb(buttonEvt_t* evt)
  */
 void picrossExitGame(void)
 {
-    //set LED's to off.
-    setLeds(p->offLEDS, NUM_LEDS);
-
+    buzzer_stop();
     if (NULL != p)
     {
+        //set LED's to off.
+        setLeds(p->offLEDS, NUM_LEDS);
+
         freeFont(&(p->hintFont));
         freeFont(&(p->UIFont));
         free(p->input);
