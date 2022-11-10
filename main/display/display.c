@@ -866,24 +866,7 @@ uint16_t textWidth(const font_t* font, const char* text)
     return width;
 }
 
-/// @brief Draws text, breaking on word boundaries, until the given bounds are filled or all text is drawn.
-///
-/// Text will be drawn, starting at `(xOff, yOff)`, wrapping to the next line at ' ' or '-' when the next
-/// word would exceed `xMax`, or immediately when a newline ('\n') is encountered. Carriage returns and
-/// tabs ('\r', '\t') are not supported. When the bottom of the next character would exceed `yMax`, no more
-/// text is drawn and a pointer to the next undrawn character within `text` is returned. If all text has
-/// been written, NULL is returned.
-///
-/// @param disp The display on which to draw the text
-/// @param font The font to use when drawing the text
-/// @param color The color of the text to be drawn
-/// @param text The text to be pointed, as a null-terminated string
-/// @param xOff The X-coordinate to begin drawing the text at
-/// @param yOff The Y-coordinate to begin drawing the text at
-/// @param xMax The maximum x-coordinate at which any text may be drawn
-/// @param yMax The maximum ycoordinate at which text may be drawn
-/// @return A pointer to the first unprinted character within `text`, or NULL if all text has been written
-const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
+static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
                              int16_t *xOff, int16_t *yOff, int16_t xMax, int16_t yMax)
 {
     const char* textPtr = text;
@@ -974,7 +957,14 @@ const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t
 
         // the line must have enough space for the rest of the buffer
         // print the line, and advance the text pointer and offset
-        textX = drawText(disp, font, color, buf, textX, textY);
+        if (disp != NULL)
+        {
+            textX = drawText(disp, font, color, buf, textX, textY);
+        }
+        else
+        {
+            textX += textWidth(font, buf);
+        }
         textPtr += nextBreak;
     }
 
@@ -982,4 +972,36 @@ const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t
     // Otherwise, return the remaining text
     *xOff = textX;
     return *textPtr ? textPtr : NULL;
+}
+
+
+/// @brief Draws text, breaking on word boundaries, until the given bounds are filled or all text is drawn.
+///
+/// Text will be drawn, starting at `(xOff, yOff)`, wrapping to the next line at ' ' or '-' when the next
+/// word would exceed `xMax`, or immediately when a newline ('\n') is encountered. Carriage returns and
+/// tabs ('\r', '\t') are not supported. When the bottom of the next character would exceed `yMax`, no more
+/// text is drawn and a pointer to the next undrawn character within `text` is returned. If all text has
+/// been written, NULL is returned.
+///
+/// @param disp The display on which to draw the text
+/// @param font The font to use when drawing the text
+/// @param color The color of the text to be drawn
+/// @param text The text to be pointed, as a null-terminated string
+/// @param xOff The X-coordinate to begin drawing the text at
+/// @param yOff The Y-coordinate to begin drawing the text at
+/// @param xMax The maximum x-coordinate at which any text may be drawn
+/// @param yMax The maximum ycoordinate at which text may be drawn
+/// @return A pointer to the first unprinted character within `text`, or NULL if all text has been written
+const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
+                             int16_t *xOff, int16_t *yOff, int16_t xMax, int16_t yMax)
+{
+    return drawTextWordWrapInner(disp, font, color, text, xOff, yOff, xMax, yMax);
+}
+
+uint16_t textHeight(const font_t* font, const char* text, int16_t width, int16_t maxHeight)
+{
+    int16_t xEnd = 0;
+    int16_t yEnd = 0;
+    drawTextWordWrapInner(NULL, font, cTransparent, text, &xEnd, &yEnd, width, maxHeight);
+    return yEnd + font->h + 1;
 }
