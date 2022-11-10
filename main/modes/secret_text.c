@@ -2131,7 +2131,7 @@ const char* fitness[] =
 };
 
 // Option #5
-const char* giggles[] =
+const char* astleyparadox[] =
 {
     "If you ask Rick Astley for a copy of the movie \"UP\", he cannot give you it as he can never give you up.\n", 
     "But, by doing that, he is letting you down, and thus, is creating something known as the Astley Paradox.\n",
@@ -2413,13 +2413,13 @@ const textOption texts[] =
     {.text = alice, .lines = ARRAY_SIZE(alice), .color = c425},
     {.text = festival, .lines = ARRAY_SIZE(festival), .color = c550},
     {.text = fitness, .lines = ARRAY_SIZE(fitness), .color = c035},
-    {.text = giggles, .lines = ARRAY_SIZE(giggles), .color = c555},
+    {.text = astleyparadox, .lines = ARRAY_SIZE(astleyparadox), .color = c555},
     {.text = blueeee, .lines = ARRAY_SIZE(blueeee), .color = c115},
     {.text = hypothetical, .lines = ARRAY_SIZE(hypothetical), .color = c522},
     {.text = tolerancetest, .lines = ARRAY_SIZE(tolerancetest), .color = c415},
     {.text = tips, .lines = ARRAY_SIZE(tips), .color = c530},
     {.text = godihategaminglaptops, .lines = ARRAY_SIZE(godihategaminglaptops), .color = c151},
-    {.text = homegoblin, .lines = ARRAY_SIZE(homegoblin), .color = c150},
+    {.text = homegoblin, .lines = ARRAY_SIZE(homegoblin), .color = c330},
     {.text = flareon, .lines = ARRAY_SIZE(flareon), .color = c510},
     {.text = whoasked, .lines = ARRAY_SIZE(whoasked), .color = c454},
     {.text = banned, .lines = ARRAY_SIZE(banned), .color = c500},
