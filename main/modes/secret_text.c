@@ -2316,6 +2316,11 @@ const char* godihategaminglaptops[] =
     "earth-shattering void where my body is getting torn apart by the 150mph gale force winds and the 500-decibel groan of the cooling fans.\n", 
     "As my body finally surrenders, I weep, as my school and my city go under. \n",
     "I hate gaming laptops.\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
 };
 
 //Option #10
@@ -2330,6 +2335,11 @@ const char* homegoblin[] =
     "\"I\'ll be having\" that and laughing maniacally in my goblin voice (\"trinkets\" can include anything from stuff I find on the ground to cutlery or other utensils).\n",
     "The other day I was talking with my neighbours and they mentioned hearing weird noises like what I wrote about and I was just internally screaming the entire conversation. \n",
     "I\'m 99 percent sure they don\'t know it\'s me but god that 1 percent chance is seriously weighing on my mind.\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
 };
 
 //Option #11
@@ -2345,6 +2355,11 @@ const char* flareon[] =
     "Because of this, if you have a bad day, you can vent to it while hugging it, and it won't mind. \n",
     "It can make itself even more endearing with moves like Charm and Baby Doll Eyes,\n",
     "ensuring that you never have a prolonged bout of depression ever again.\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
 };
 
 //Option 12
@@ -2357,6 +2372,11 @@ const char* whoasked[] =
     "if we multiply this by the number of days in a year (365), \n",
     "there is a total of 985,500,000,000,000 days of life (985.5 trillion days). \n",
     "Not once in any of those days did anybody ask.\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
 };
 
 const textOption texts[] = {
