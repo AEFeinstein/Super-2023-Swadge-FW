@@ -1632,6 +1632,6 @@ void picrossVictoryLEDs(uint32_t tElapsedUs, uint32_t arg, bool reset)
     // Output the LED data, actually turning them on
     if(ledsUpdated)
     {
-        setLeds(leds, sizeof(leds));
+        setLeds(leds, NUM_LEDS);
     }
 }
