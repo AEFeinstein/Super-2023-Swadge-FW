@@ -2120,22 +2120,6 @@ const char* fitness[] =
 };
 
 // Option #4
-// const char* thejam[] = 
-// {
-//     "Never gonna give you up\n",
-//     "Never gonna let you down\n",
-//     "Never gonna run around and desert you\n",
-//     "Never gonna make you cry\n",
-//     "Never gonna say goodbye\n",
-//     "Never gonna tell a lie and hurt you\n",
-//     "\n",
-//     "\n",
-//     "\n",
-//     "\n",
-//     "\n",
-// };
-
-// Option #5
 const char* giggles[] =
 {
     "If you ask Rick Astley for a copy of the movie \"UP\", he cannot give you it as he can never give you up.\n", 
@@ -2147,7 +2131,7 @@ const char* giggles[] =
     "\n",
 };
 
-// Option #6
+// Option #5
 const char* blueeee[] =
 {
     "I\'m Blue - da ba dee da ba dye, da ba dee da ba dye Da ba dee da ba dye,\n" 
@@ -2159,7 +2143,7 @@ const char* blueeee[] =
     "\n",
 };
 
-// Option #7
+// Option #6
 const char* hypothetical[] =
 {
     "Let\'s say, hypothetically, I am a barbie girl. Okay let\'s even say I\'m in a barbie world. Right so, in this scenario,\n",
@@ -2173,7 +2157,7 @@ const char* hypothetical[] =
     "\n",
 };
 
-// Option #8
+// Option #7
 const char* tolerancetest[] =
 {
     "AYAYA\n",
@@ -2249,7 +2233,7 @@ const char* tolerancetest[] =
     "\n",
 };
 
-// Option #9
+// Option #8
 const char* tips[] =
 {
     "\n TIP NO. 1 Don't die.\n",
@@ -2312,16 +2296,82 @@ const char* tips[] =
     "\n",
 };
 
+//Option #9
+const char* godihategaminglaptops[] =
+{
+    "Today when I walked into my economics class I saw something I dread every time I close my eyes.\n",
+    "Someone had brought their new gaming laptop to class.\n", 
+    "The Forklift he used to bring it was still running idle at the back.\n", 
+    "I started sweating as I sat down and gazed over at the 700lb beast that was his laptop.\n", 
+    "He had already reinforced his desk with steel support beams and was in the process of finding an outlet for a power cable thicker than Amy Schumer\'s thigh.\n", 
+    "I start shaking.\n", 
+    "I keep telling myself I\'m going to be alright and that there\'s nothing to worry about.\n", 
+    "He somehow finds a friggin outlet. \n",
+    "Tears are running down my cheeks as I send my last texts to my family saying I love them. \n",
+    "The teacher starts the lecture, and the student turns his laptop on. \n",
+    "The colored lights on his RGB Backlit keyboard flare to life like a nuclear flash, and a deep humming fills my ears and shakes my very soul. \n",
+    "The entire city power grid goes dark. \n",
+    "The classroom begins to shake as the massive fans begin to spin. \n",
+    "In mere seconds my world has gone from vibrant life to a dark, \n",
+    "earth-shattering void where my body is getting torn apart by the 150mph gale force winds and the 500-decibel groan of the cooling fans.\n", 
+    "As my body finally surrenders, I weep, as my school and my city go under. \n",
+    "I hate gaming laptops.\n",
+};
+
+//Option #10
+const char* homegoblin[] =
+{
+    "I like to creep around my home and act like a goblin\n",
+
+    "I don\'t know why but I just enjoy doing this. \n",
+    "Maybe it\'s my way of dealing with stress or something but I just do it about once every week. \n",
+    "Generally I\'ll carry around a sack and creep around in a sort of crouch-walking position making goblin noises, \n",
+    "then I\'ll walk around my house and pick up various different trinkets and put them in my bag while saying stuff like \n",
+    "\"I\'ll be having\" that and laughing maniacally in my goblin voice (\"trinkets\" can include anything from stuff I find on the ground to cutlery or other utensils).\n",
+    "The other day I was talking with my neighbours and they mentioned hearing weird noises like what I wrote about and I was just internally screaming the entire conversation. \n",
+    "I\'m 99 percent sure they don\'t know it\'s me but god that 1 percent chance is seriously weighing on my mind.\n",
+};
+
+//Option #11
+const char* flareon[] =
+{
+    "Hey guys, did you know that in terms of human companionship, \n",
+    "Flareon is objectively the most huggable Pokemon? \n",
+    "While their maximum temperature is likely too much for most, they are capable of controlling it,\n",
+    "so they can set themselves to the perfect temperature for you. \n",
+    "Along with that, they have a lot of fluff, making them undeniably incredibly soft to touch. \n",
+    "But that's not all, they have a very respectable special defense stat of 110, \n",
+    "which means that they are likely very calm and resistant to emotional damage. \n",
+    "Because of this, if you have a bad day, you can vent to it while hugging it, and it won't mind. \n",
+    "It can make itself even more endearing with moves like Charm and Baby Doll Eyes,\n",
+    "ensuring that you never have a prolonged bout of depression ever again.\n",
+};
+
+//Option 12
+const char* whoasked[] =
+{
+    "According to world population studies, \n",
+    "approximately 108 billion people have lived on this planet.\n", 
+    "Assuming that the average lifespan of all these people was 25, \n",
+    "there has been around 2.7 trillion years of life, \n",
+    "if we multiply this by the number of days in a year (365), \n",
+    "there is a total of 985,500,000,000,000 days of life (985.5 trillion days). \n",
+    "Not once in any of those days did anybody ask.\n",
+};
+
 const textOption texts[] = {
     {.text = alice, .lines = ARRAY_SIZE(alice)},
     {.text = festival, .lines = ARRAY_SIZE(festival)},
     {.text = fitness, .lines = ARRAY_SIZE(fitness)},
-    // {.text = thejam, .lines = ARRAY_SIZE(thejam)},
     {.text = giggles, .lines = ARRAY_SIZE(giggles)},
     {.text = blueeee, .lines = ARRAY_SIZE(blueeee)},
     {.text = hypothetical, .lines = ARRAY_SIZE(hypothetical)},
     {.text = tolerancetest, .lines = ARRAY_SIZE(tolerancetest)},
     {.text = tips, .lines = ARRAY_SIZE(tips)},
+    {.text = godihategaminglaptops, .lines = ARRAY_SIZE(godihategaminglaptops)},
+    {.text = homegoblin, .lines = ARRAY_SIZE(homegoblin)},
+    {.text = flareon, .lines = ARRAY_SIZE(flareon)},
+    {.text = whoasked, .lines = ARRAY_SIZE(whoasked)},
 };
 
 const textOption* getTextOpts(uint8_t * numTexts)
