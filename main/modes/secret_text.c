@@ -2412,7 +2412,7 @@ const char* morbiustime[] =
 {
     "Someone for the hecking life of me help my brother he won\'t stop saying \"ITS MORBING TIME!\"",
     "He found these words on fb or something and said its stuck in his mind and",
-    "everytime he wakes up, shits, sleeps, pisses, EVERYTHING he says \"It\'s Morbing Time!\"",
+    "everytime he wakes up, eats, sleeps, games, EVERYTHING he says \"It\'s Morbing Time!\"",
     "I\'m losing my sanity, heck you morbius. That was very un-morb",
 };
 
@@ -2446,18 +2446,18 @@ const textOption texts[] =
     {.text = festival, .lines = ARRAY_SIZE(festival), .color = c550},
     {.text = fitness, .lines = ARRAY_SIZE(fitness), .color = c035},
     {.text = astleyparadox, .lines = ARRAY_SIZE(astleyparadox), .color = c555},
-    {.text = blueeee, .lines = ARRAY_SIZE(blueeee), .color = c115},
+    {.text = blueeee, .lines = ARRAY_SIZE(blueeee), .color = c225},
     {.text = hypothetical, .lines = ARRAY_SIZE(hypothetical), .color = c522},
     {.text = tolerancetest, .lines = ARRAY_SIZE(tolerancetest), .color = c415},
     {.text = tips, .lines = ARRAY_SIZE(tips), .color = c530},
-    {.text = godihategaminglaptops, .lines = ARRAY_SIZE(godihategaminglaptops), .color = c151},
+    {.text = godihategaminglaptops, .lines = ARRAY_SIZE(godihategaminglaptops), .color = c152},
     {.text = homegoblin, .lines = ARRAY_SIZE(homegoblin), .color = c330},
     {.text = flareon, .lines = ARRAY_SIZE(flareon), .color = c510},
     {.text = whoasked, .lines = ARRAY_SIZE(whoasked), .color = c454},
     {.text = banned, .lines = ARRAY_SIZE(banned), .color = c500},
-    {.text = morbiustime, .lines = ARRAY_SIZE(morbiustime)},
-    {.text = mikuoop, .lines = ARRAY_SIZE(mikuoop)},
-}
+    {.text = morbiustime, .lines = ARRAY_SIZE(morbiustime), .color = c150},
+    {.text = mikuoop, .lines = ARRAY_SIZE(mikuoop), .color = c115},
+};
 
 const textOption* getTextOpts(uint8_t * numTexts)
 {
