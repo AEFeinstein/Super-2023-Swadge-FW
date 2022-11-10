@@ -2187,7 +2187,7 @@ void beeEnterMode(display_t* disp)
     bee->disp = disp;
 
     // Load some fonts
-    loadFont("tom_thumb.font", &bee->font);
+    loadFont("radiostars.font", &bee->font);
 
     // Set initial variables
     bee->yOffset = disp->h;
