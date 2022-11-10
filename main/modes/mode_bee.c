@@ -37,9 +37,6 @@ typedef struct
     int64_t tElapsedUs;
     int8_t scrollMod;
     int16_t yOffset;
-    int16_t topHeight;
-    uint16_t lastFirstLine;
-    int16_t firstLineHeight;
 } bee_t;
 
 bee_t* bee;
@@ -1854,9 +1851,6 @@ void beeEnterMode(display_t* disp)
     bee->yOffset = disp->h;
     bee->tElapsedUs = 0;
     bee->scrollMod = 1;
-    bee->lastFirstLine = 0;
-    bee->topHeight = 0;
-    bee->firstLineHeight = bee->font.h + 1;
 }
 
 /**
@@ -1889,50 +1883,32 @@ void beeMainLoop(int64_t elapsedUs)
         // Clear first
         bee->disp->clearPx();
 
-        int16_t yPos = bee->topHeight;
-        int16_t idx = bee->lastFirstLine;
-        uint16_t lineHeight = bee->firstLineHeight;
-        bool firstVisibleLine  = true;
-
-        // Draw lines until the cursor is off the screen
+        // Draw names until the cursor is off the screen
+        int16_t yPos = 0;
+        int16_t idx = 0;
         while((yPos + bee->yOffset) < bee->disp->h)
         {
-            // Only draw lines with negative offsets if they're a little on screen
-            // We need to keep track of the total height of the first line
-            if((yPos + bee->yOffset) >= -bee->firstLineHeight)
+            // Only draw names with negative offsets if they're a little on screen
+            if((yPos + bee->yOffset) >= -textHeight(&bee->font, beeTextLines[idx], bee->disp->w - 26, bee->disp->h) - 1)
             {
                 // If the names have scrolled back to the start, reset the scroll vars
                 if(0 == (yPos + bee->yOffset) && 0 == idx)
                 {
                     bee->yOffset = 0;
                     yPos = 0;
-                    bee->topHeight = 0;
-                    bee->lastFirstLine = 0;
                 }
 
                 int16_t textX = 13, textY = (yPos + bee->yOffset);
 
                 // Draw the text
-                char* unprinted = drawTextWordWrap(bee->disp, &bee->font, c550, beeTextLines[idx],
-                    &textX, &textY, bee->disp->w - 13, bee->disp->h + bee->font.h);
-
-                lineHeight = textY - yPos - bee->yOffset + bee->font.h + 1;
-
-                // Check if this is the first line we have printed when rendering this frame
-                if (firstVisibleLine)
-                {
-                    firstVisibleLine = false;
-                    if (bee->lastFirstLine < idx)
-                    {
-                        bee->topHeight += bee->firstLineHeight;
-                        bee->firstLineHeight = lineHeight;
-                        bee->lastFirstLine = idx;
-                    }
-                }
+                drawTextWordWrap(bee->disp, &bee->font, c550, beeTextLines[idx],
+                         &textX, &textY, bee->disp->w - 13, bee->disp->h + bee->font.h);
+                yPos = textY - bee->yOffset + bee->font.h + 1;
             }
-
-            // Add more space if the bee stuff ends in a newline
-            yPos += lineHeight;
+            else
+            {
+                yPos += textHeight(&bee->font, beeTextLines[idx], bee->disp->w - 26, bee->disp->h);
+            }
 
             // Always update the idx and cursor position, even if the text wasn't drawn
             idx = (idx + 1) % ARRAY_SIZE(beeTextLines);
