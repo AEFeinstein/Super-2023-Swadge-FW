@@ -1,7 +1,7 @@
 #include "swadge_util.h"
 #include "secret_text.h"
 
-//Option 1
+//Option #1
 const char* findthemall[] =
 {
     "There are 14 of these copy-pastas, can you find them all?\n",
@@ -1791,7 +1791,7 @@ const char* alice[] =
     "\n",
 };
 
-// Option 3
+// Option #3
 const char* festival[] = 
 {
     "Here's the thing. You said a \"festival is a con.\"\n",
@@ -1814,7 +1814,7 @@ const char* festival[] =
     "\n",
 };
 
-// Option 4
+// Option #4
 const char* fitness[] = 
 {
     "The FitnessGram Pacer Test is a multistage aerobic capacity test that progressively gets more difficult as it continues.\n\n",
