@@ -2332,7 +2332,7 @@ const char* homegoblin[] =
     "Maybe it\'s my way of dealing with stress or something but I just do it about once every week.\n",
     "Generally I\'ll carry around a sack and creep around in a sort of crouch-walking position making goblin noises,\n",
     "then I\'ll walk around my house and pick up various different trinkets and put them in my bag while saying stuff like\n",
-    "\"I\'ll be having\" that and laughing maniacally in my goblin voice (\"trinkets\" can include anything from stuff I find on the ground to cutlery or other utensils).\n",
+    "\"I\'ll be having that\" and laughing maniacally in my goblin voice (\"trinkets\" can include anything from stuff I find on the ground to cutlery or other utensils).\n",
     "The other day I was talking with my neighbours and they mentioned hearing weird noises like what I wrote about and I was just internally screaming the entire conversation.\n",
     "I\'m 99 percent sure they don\'t know it\'s me but god that 1 percent chance is seriously weighing on my mind.\n",
     "\n",
@@ -2379,6 +2379,17 @@ const char* whoasked[] =
     "\n",
 };
 
+//Option 13
+const char* findthemall[] =
+{
+    "There are 13 of these copy-pastas, can you find them all?\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+};
+
 const textOption texts[] = {
     {.text = alice, .lines = ARRAY_SIZE(alice)},
     {.text = festival, .lines = ARRAY_SIZE(festival)},
@@ -2392,6 +2403,7 @@ const textOption texts[] = {
     {.text = homegoblin, .lines = ARRAY_SIZE(homegoblin)},
     {.text = flareon, .lines = ARRAY_SIZE(flareon)},
     {.text = whoasked, .lines = ARRAY_SIZE(whoasked)},
+    {.text = findthemall, .lines = ARRAY_SIZE(findthemall)},
 };
 
 const textOption* getTextOpts(uint8_t * numTexts)
