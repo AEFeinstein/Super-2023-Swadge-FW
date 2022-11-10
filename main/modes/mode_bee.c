@@ -1832,7 +1832,8 @@ static const char* alice[] =
     "THE END \n",
 };
 
-const char* festival[] = {
+const char* festival[] = 
+{
     "Here's the thing. You said a \"festival is a con.\"\n",
     "\n",
     "Is it in the same family? Yes. No one's arguing that.\n",
