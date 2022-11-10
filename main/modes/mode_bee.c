@@ -2294,7 +2294,13 @@ const char* tolerancetest[] =
     "UwU\n",
     "NYA\n",
     "Ara Ara\n",
-    "Congrats You Made It! You Are Adorable! Drink Some Water UwU!"
+    "Congrats You Made It! You Are Adorable! Drink Some Water UwU!\n",
+    "Not What You Though It Would Be Is It? Well Oh Well.... HYDRATE\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
 };
 
 const char* tips[] =
@@ -2339,7 +2345,7 @@ const char* tips[] =
     "\n TIP NO. 38	GG EZ\n",
     "\n TIP NO. 39	Catch phrase!\n",
     "\n TIP NO. 40	Rude\n",
-    "\nTIP NO. 41	Come here often?\n",
+    "\n TIP NO. 41	Come here often?\n",
     "\n TIP NO. 42	Hello? Anyone there?\n",
     "\n TIP NO. 43	Life + Universe + Everything\n",
     "\n TIP NO. 44	Abort.\n",
@@ -2352,6 +2358,11 @@ const char* tips[] =
     "\n TIP NO. 51  Consume Food You Fool!\n",
     "\n TIP NO. 52  Energy Drinks Are Not Food! :bonk:\n",
     "\n TIP NO. 53  When Life Gets You Down, Stay Down And Take A Nap! Sleep Is AMAZING!\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
 };
 
 typedef struct {
