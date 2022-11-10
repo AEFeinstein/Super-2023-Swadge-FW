@@ -37,6 +37,7 @@ typedef struct
     picrossLevelDef_t levels[PICROSS_LEVEL_COUNT];
     picrossScreen_t screen;
     int32_t savedIndex;
+    uint8_t mainMenuPos;
     uint8_t settingsPos;
     int32_t options;//bit 0: hints
 } picrossMenu_t;
@@ -440,20 +441,12 @@ void picrossButtonCb(buttonEvt_t* evt)
  */
 void setPicrossMainMenu(bool resetPos)
 {
-    uint8_t rowPos = pm->menu->selectedRow;
-    // Set the position of the hovered row
-    if(resetPos)
-    {
-        rowPos = 0;
-    }
-
     //override the main menu with the options menu instead.
-    
+
     if(pm->screen == PICROSS_OPTIONS)
     {
         //Draw the options menu
         resetMeleeMenu(pm->menu, str_options, picrossMainMenuCb);
-        pm->menu->selectedRow = rowPos;//reset sets this to 0, so lets ... set it back.
 
         if(picrossGetSaveFlag(1))//are guides on? (getHints loaded from perma, we can skip doing that again and just read local)
         {
@@ -485,33 +478,47 @@ void setPicrossMainMenu(bool resetPos)
 
         addRowToMeleeMenu(pm->menu, str_eraseProgress);
         addRowToMeleeMenu(pm->menu, str_back);
-        return;
+
+        // Set the position
+        if(resetPos)
+        {
+            pm->settingsPos = 0;
+        }
+        pm->menu->selectedRow = pm->settingsPos;
     }
-    
-    //otherwise, if we are in ANY game state, this should default (and set) to picross_menu
-    resetMeleeMenu(pm->menu, str_picrossTitle, picrossMainMenuCb);
-    pm->menu->selectedRow = rowPos;
-
-    //only display continue button if we have a game in progress.
-
-    //attempt to read the saved index. If it doesnt exist, set it to -1.
-    if((false == readNvs32(picrossCurrentPuzzleIndexKey, &pm->savedIndex)))
+    else
     {
-        writeNvs32(picrossCurrentPuzzleIndexKey, -1);//if we enter this screen and instantly exist, also set it to -1 and we can just load that.
-        pm->savedIndex = -1;//there is no current index.
-    }
+        //otherwise, if we are in ANY game state, this should default (and set) to picross_menu
+        resetMeleeMenu(pm->menu, str_picrossTitle, picrossMainMenuCb);
 
-    //only show continue button if we have saved data.
-    if(pm->savedIndex >= 0)
-    {
-        addRowToMeleeMenu(pm->menu, str_continue);
-    }
+        //only display continue button if we have a game in progress.
 
-    addRowToMeleeMenu(pm->menu, str_levelSelect);
-    addRowToMeleeMenu(pm->menu, str_howtoplay);
-    addRowToMeleeMenu(pm->menu, str_options);
-    addRowToMeleeMenu(pm->menu, str_exit);
-    pm->screen = PICROSS_MENU;
+        //attempt to read the saved index. If it doesnt exist, set it to -1.
+        if((false == readNvs32(picrossCurrentPuzzleIndexKey, &pm->savedIndex)))
+        {
+            writeNvs32(picrossCurrentPuzzleIndexKey, -1);//if we enter this screen and instantly exist, also set it to -1 and we can just load that.
+            pm->savedIndex = -1;//there is no current index.
+        }
+
+        //only show continue button if we have saved data.
+        if(pm->savedIndex >= 0)
+        {
+            addRowToMeleeMenu(pm->menu, str_continue);
+        }
+
+        addRowToMeleeMenu(pm->menu, str_levelSelect);
+        addRowToMeleeMenu(pm->menu, str_howtoplay);
+        addRowToMeleeMenu(pm->menu, str_options);
+        addRowToMeleeMenu(pm->menu, str_exit);
+        pm->screen = PICROSS_MENU;
+
+        // Set the position
+        if(resetPos)
+        {
+            pm->mainMenuPos = 0;
+        }
+        pm->menu->selectedRow = pm->mainMenuPos;        
+    }
 }
 
 /**
@@ -521,7 +528,7 @@ void setPicrossMainMenu(bool resetPos)
 void returnToPicrossMenu(void)
 {
     picrossExitLevelSelect();//free data
-    setPicrossMainMenu(true);
+    setPicrossMainMenu(false);
 }
 /**
  * @brief Frees level select menu and returns to the picross menu, except skipping past the level select menu.
@@ -529,7 +536,7 @@ void returnToPicrossMenu(void)
  */
 void returnToPicrossMenuFromGame(void)
 {
-    setPicrossMainMenu(true);
+    setPicrossMainMenu(false);
 }
 
 /**
@@ -557,6 +564,15 @@ void continueGame()
 //menu button & options menu callbacks. Set the screen and call the appropriate start functions
 void picrossMainMenuCb(const char* opt)
 {
+    if(str_picrossTitle == pm->menu->title)
+    {
+        pm->mainMenuPos = pm->menu->selectedRow;
+    }
+    else if(str_options == pm->menu->title)
+    {
+        pm->settingsPos = pm->menu->selectedRow;
+    }
+
     if (opt == str_continue)
     {
         continueGame();
@@ -597,7 +613,7 @@ void picrossMainMenuCb(const char* opt)
     }else if(opt == str_back)
     {
         pm->screen = PICROSS_MENU;
-        setPicrossMainMenu(true);
+        setPicrossMainMenu(false);
     }else if(opt == str_options)
     {
         pm->screen = PICROSS_OPTIONS;
