@@ -1,7 +1,18 @@
 #include "swadge_util.h"
 #include "secret_text.h"
 
-// Option #1
+//Option 1
+const char* findthemall[] =
+{
+    "There are 14 of these copy-pastas, can you find them all?\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+};
+
+// Option #2
 const char* alice[] =
 {
     "Alice\'s Adventures in Wonderland\n",
@@ -1780,7 +1791,7 @@ const char* alice[] =
     "\n",
 };
 
-// Option 2
+// Option 3
 const char* festival[] = 
 {
     "Here's the thing. You said a \"festival is a con.\"\n",
@@ -1803,7 +1814,7 @@ const char* festival[] =
     "\n",
 };
 
-// Option 3
+// Option 4
 const char* fitness[] = 
 {
     "The FitnessGram Pacer Test is a multistage aerobic capacity test that progressively gets more difficult as it continues.\n\n",
@@ -2119,7 +2130,7 @@ const char* fitness[] =
     "\n",
 };
 
-// Option #4
+// Option #5
 const char* giggles[] =
 {
     "If you ask Rick Astley for a copy of the movie \"UP\", he cannot give you it as he can never give you up.\n", 
@@ -2131,7 +2142,7 @@ const char* giggles[] =
     "\n",
 };
 
-// Option #5
+// Option #6
 const char* blueeee[] =
 {
     "I\'m Blue - da ba dee da ba dye, da ba dee da ba dye Da ba dee da ba dye,\n" 
@@ -2143,7 +2154,7 @@ const char* blueeee[] =
     "\n",
 };
 
-// Option #6
+// Option #7
 const char* hypothetical[] =
 {
     "Let\'s say, hypothetically, I am a barbie girl. Okay let\'s even say I\'m in a barbie world. Right so, in this scenario,\n",
@@ -2157,7 +2168,7 @@ const char* hypothetical[] =
     "\n",
 };
 
-// Option #7
+// Option #8
 const char* tolerancetest[] =
 {
     "AYAYA\n",
@@ -2233,7 +2244,7 @@ const char* tolerancetest[] =
     "\n",
 };
 
-// Option #8
+// Option #9
 const char* tips[] =
 {
     "\n TIP NO. 1 Don't die.\n",
@@ -2296,7 +2307,7 @@ const char* tips[] =
     "\n",
 };
 
-//Option #9
+//Option #10
 const char* godihategaminglaptops[] =
 {
     "Today when I walked into my economics class I saw something I dread every time I close my eyes.\n",
@@ -2323,7 +2334,7 @@ const char* godihategaminglaptops[] =
     "\n",
 };
 
-//Option #10
+//Option #11
 const char* homegoblin[] =
 {
     "I like to creep around my home and act like a goblin\n",
@@ -2342,7 +2353,7 @@ const char* homegoblin[] =
     "\n",
 };
 
-//Option #11
+//Option #12
 const char* flareon[] =
 {
     "Hey guys, did you know that in terms of human companionship,\n",
@@ -2362,7 +2373,7 @@ const char* flareon[] =
     "\n",
 };
 
-//Option 12
+//Option #13
 const char* whoasked[] =
 {
     "According to world population studies, \n",
@@ -2379,18 +2390,20 @@ const char* whoasked[] =
     "\n",
 };
 
-//Option 13
-const char* findthemall[] =
+//Option #14
+const char* banned[] =
 {
-    "There are 13 of these copy-pastas, can you find them all?\n",
-    "\n",
-    "\n",
-    "\n",
-    "\n",
-    "\n",
+    "Fun fact among us got banned at the daycare where I work at\n",
+    "Turns out, you know how youtube has the autoplay thing?\n",
+    "Well one day the kids were watching among us songs on YT when\n",
+    "autoplay changed it to the among us twerking video, 10 hour version to be exact,\n",
+    "and ALL the kids tried twerking\n",
+    "So thats how among us got banned\n",
 };
 
-const textOption texts[] = {
+const textOption texts[] = 
+{
+    {.text = findthemall, .lines = ARRAY_SIZE(findthemall)},
     {.text = alice, .lines = ARRAY_SIZE(alice)},
     {.text = festival, .lines = ARRAY_SIZE(festival)},
     {.text = fitness, .lines = ARRAY_SIZE(fitness)},
@@ -2403,7 +2416,7 @@ const textOption texts[] = {
     {.text = homegoblin, .lines = ARRAY_SIZE(homegoblin)},
     {.text = flareon, .lines = ARRAY_SIZE(flareon)},
     {.text = whoasked, .lines = ARRAY_SIZE(whoasked)},
-    {.text = findthemall, .lines = ARRAY_SIZE(findthemall)},
+    {.text = banned, .lines = ARRAY_SIZE(banned)},
 };
 
 const textOption* getTextOpts(uint8_t * numTexts)
