@@ -1889,7 +1889,7 @@ void beeMainLoop(int64_t elapsedUs)
         while((yPos + bee->yOffset) < bee->disp->h)
         {
             // Only draw names with negative offsets if they're a little on screen
-            if((yPos + bee->yOffset) >= -textHeight(&bee->font, beeTextLines[idx], bee->disp->w - 26, bee->disp->h) - 1)
+            if((yPos + bee->yOffset) >= -textHeight(&bee->font, beeTextLines[idx], bee->disp->w - 26, INT16_MAX))
             {
                 // If the names have scrolled back to the start, reset the scroll vars
                 if(0 == (yPos + bee->yOffset) && 0 == idx)
@@ -1903,11 +1903,14 @@ void beeMainLoop(int64_t elapsedUs)
                 // Draw the text
                 drawTextWordWrap(bee->disp, &bee->font, c550, beeTextLines[idx],
                          &textX, &textY, bee->disp->w - 13, bee->disp->h + bee->font.h);
+
+                // Add the height of the drawn text plus one line to yPos
                 yPos = textY - bee->yOffset + bee->font.h + 1;
             }
             else
             {
-                yPos += textHeight(&bee->font, beeTextLines[idx], bee->disp->w - 26, bee->disp->h);
+                // Add the entire height of the text to yPos, to simulate drawing it above the screen
+                yPos += textHeight(&bee->font, beeTextLines[idx], bee->disp->w - 26, INT16_MAX);
             }
 
             // Always update the idx and cursor position, even if the text wasn't drawn
