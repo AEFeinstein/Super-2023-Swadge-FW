@@ -251,7 +251,8 @@ void emu_loop(void)
     };
 
     // A list of all keys to randomly press or release, and their states
-    const char randKeys[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i'};
+    const char randKeys[] =  {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i', '1', '2', '3', '4', '5'};
+    const char randKeys2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
     static bool keyState[sizeof(randKeys) / sizeof(randKeys[0])] = {false};
 
     // Time keeping
@@ -272,6 +273,12 @@ void emu_loop(void)
         int keyIdx = esp_random() % (sizeof(randKeys) / sizeof(randKeys[0]));
         keyState[keyIdx] = !keyState[keyIdx];
         emuSensorHandleKey(randKeys[keyIdx], keyState[keyIdx]);
+
+        // Only handle non-touchpads for p2
+        if(keyIdx < sizeof(randKeys2) / sizeof(randKeys2[0]))
+        {
+            emuSensorHandleKey(randKeys2[keyIdx], keyState[keyIdx]);
+        }
     }
 
     // Change the swadge mode two minutes
