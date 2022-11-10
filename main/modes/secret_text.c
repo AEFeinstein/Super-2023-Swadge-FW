@@ -4,7 +4,7 @@
 //Option #1
 const char* findthemall[] =
 {
-    "There are 16 of these copy-pastas, can you find them all?\n",
+    "There are 17 of these copy-pastas, can you find them all?\n",
     "\n",
     "\n",
     "\n",
