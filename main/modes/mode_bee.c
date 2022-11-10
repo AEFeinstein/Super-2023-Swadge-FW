@@ -10,6 +10,7 @@
 #include "mode_bee.h"
 #include "mode_main_menu.h"
 #include "musical_buzzer.h"
+#include "esp_random.h"
 
 //==============================================================================
 // Defines
@@ -37,6 +38,8 @@ typedef struct
     int64_t tElapsedUs;
     int8_t scrollMod;
     int16_t yOffset;
+    const char** text;
+    uint16_t textLines;
 } bee_t;
 
 bee_t* bee;
@@ -58,7 +61,7 @@ swadgeMode modeBee =
     .overrideUsb = false
 };
 
-static const char* beeTextLines[] =
+static const char* alice[] =
 {
     "Alice\'s Adventures in Wonderland\n",
     "\n",
@@ -1829,6 +1832,344 @@ static const char* beeTextLines[] =
     "THE END \n",
 };
 
+const char* festival[] = {
+    "Here's the thing. You said a \"festival is a con.\"\n",
+    "\n",
+    "Is it in the same family? Yes. No one's arguing that.\n",
+    "\n",
+    "As someone who is a staffer who studies cons, I am telling you, specifically, in MAGFest, no one calls festivals cons. If you want to be \"specific\" like you said, then you shouldn't either. They're not the same thing.\n",
+    "\n",
+    "If you're saying \"con family\" you're referring to the taxonomic grouping of Conventidae, which includes things from art shows to job fairs to trade expos.\n",
+    "\n",
+    "So your reasoning for calling a festival a con is because random people \"call big events cons?\" Let's get barbecues and swap meets in there, then, too.\n",
+    "\n",
+    "Also, calling someone a human or an ape? It's not one or the other, that's not how taxonomy works. They're both. A festival is a festival and a member of the con family. But that's not what you said. You said a festival is a con, which is not true unless you're okay with calling all members of the con family cons, which means you'd call carnivals, raves, and other parties cons, too. Which you said you don't.\n",
+    "\n",
+    "It's okay to just admit you're wrong, you know?\n",
+};
+
+const char* fitness[] = {
+    "The FitnessGram Pacer Test is a multistage aerobic capacity test that progressively gets more difficult as it continues.\n\n",
+"The 20-meter pacer test will begin in 30 seconds. Line up at the start.\n",
+"The running speed starts slowly but gets faster each minute after you hear this signal.\n",
+"A single lap should be completed each time you hear this sound.\n",
+"Remember to run in a straight line, and run as long as possible.\n",
+"The second time you fail to complete a lap before the sound, your test is over.\n",
+"The test will begin on the word start.\n",
+"On your mark, get ready, start.\n",
+"\n",
+"Level 1\n\n",
+"Feel it\n",
+"One\n",
+"Two\n",
+"Three\n",
+"Four\n",
+"Five\n",
+"Six\n",
+"Seven; end of level one\n",
+"\n",
+"Level 2\n\n",
+"Eight\n",
+"Feel it\n",
+"Nine\n",
+"Ten\n",
+"Eleven\n",
+"Twelve\n",
+"Thirteen\n",
+"Fourteen\n",
+"Fifteen; end of level two\n",
+"\n",
+"Level 3\n\n",
+"High rollers\n",
+"Sixteen\n",
+"High rollers\n",
+"Seventeen\n",
+"High rollers\n",
+"Eighteen\n",
+"Nineteen\n",
+"Twenty\n",
+"Twenty-one\n",
+"High rollers\n",
+"Twenty-two\n",
+"High rollers\n",
+"Twenty-three; end of level three\n",
+"\n",
+"Level 4\n\n",
+"High rollers\n",
+"Twenty-four\n",
+"Twenty-five\n",
+"Twenty-six\n",
+"Twenty-seven\n",
+"High rollers\n",
+"Twenty-eight\n",
+"Twenty-nine\n",
+"High rollers\n",
+"Thirty\n",
+"High rollers\n",
+"Thirty-one\n",
+"Thirty-two; end of level four\n",
+"\n",
+"Level 5\n\n",
+"Thirty-three\n",
+"Thirty-four\n",
+"Thirty-five\n",
+"Thirty-six\n",
+"Thirty-seven\n",
+"Thirty-eight\n",
+"Thirty-nine\n",
+"Forty\n",
+"Forty-one; end of level five\n",
+"\n",
+"Level 6\n\n",
+"Forty-two\n",
+"Forty-three\n",
+"Forty-four\n",
+"Forty-five\n",
+"Forty-six\n",
+"Forty-seven\n",
+"Forty-eight\n",
+"Forty-nine\n",
+"Fifty\n",
+"Fifty-one; end of level six\n",
+"\n",
+"Level 7\n\n",
+"Fifty-two\n",
+"Fifty-three\n",
+"Fifty-four\n",
+"Fifty-five\n",
+"Fifty-six\n",
+"Fifty-seven\n",
+"Fifty-eight\n",
+"Fifty-nine\n",
+"Sixty\n",
+"Sixty-one; end of level seven\n",
+"\n",
+"Level 8\n\n",
+"Sixty-two\n",
+"Sixty-three\n",
+"Sixty-four\n",
+"Sixty-five\n",
+"Sixty-six\n",
+"Sixty-seven\n",
+"Sixty-eight\n",
+"Sixty-nine\n",
+"Seventy\n",
+"Seventy-one\n",
+"Seventy-two; end of level eight\n",
+"\n",
+"Level 9\n\n",
+"Seventy-three\n",
+"Seventy-four\n",
+"Seventy-five\n",
+"Seventy-six\n",
+"Seventy-seven\n",
+"Seventy-eight\n",
+"Seventy-nine\n",
+"Eighty\n",
+"Eighty-one\n",
+"Eighty-two\n",
+"Eighty-three; end of level nine\n",
+"\n",
+"Level 10\n\n",
+"Eighty-four\n",
+"Eighty-five\n",
+"Eighty-six\n",
+"Eighty-seven\n",
+"Eighty-eight\n",
+"Eighty-nine\n",
+"Ninety\n",
+"Ninety-one\n",
+"Ninety-two\n",
+"Ninety-three\n",
+"Ninety-four; end of level ten\n",
+"\n",
+"Level 11\n\n",
+"Ninety-five\n",
+"Ninety-six\n",
+"Ninety-seven\n",
+"Ninety-eight\n",
+"Ninety-nine\n",
+"One hundred\n",
+"One hundred one\n",
+"One hundred two\n",
+"One hundred three\n",
+"One hundred four\n",
+"One hundred five\n",
+"One hundred six; end of level eleven\n",
+"\n",
+"Level 12\n\n",
+"One hundred seven\n",
+"One hundred eight\n",
+"One hundred nine\n",
+"One hundred ten\n",
+"One hundred eleven\n",
+"One hundred twelve\n",
+"One hundred thirteen\n",
+"One hundred fourteen\n",
+"One hundred fifteen\n",
+"One hundred sixteen\n",
+"One hundred seventeen\n",
+"One hundred eighteen; end of level twelve\n",
+"\n",
+"Level 13\n\n",
+"One hundred nineteen\n",
+"One hundred twenty\n",
+"One hundred twenty-one\n",
+"One hundred twenty-two\n",
+"One hundred twenty-three\n",
+"One hundred twenty-four\n",
+"One hundred twenty-five\n",
+"One hundred twenty-six\n",
+"One hundred twenty-seven\n",
+"One hundred twenty-eight\n",
+"One hundred twenty-nine\n",
+"One hundred thirty\n",
+"One hundred thirty-one; end of level thirteen\n",
+"\n",
+"Level 14\n\n",
+"One hundred thirty-two\n",
+"One hundred thirty-three\n",
+"One hundred thirty-four\n",
+"One hundred thirty-five\n",
+"One hundred thirty-six\n",
+"One hundred thirty-seven\n",
+"One hundred thirty-eight\n",
+"One hundred thirty-nine\n",
+"One hundred forty\n",
+"One hundred forty-one\n",
+"One hundred forty-two\n",
+"One hundred forty-three\n",
+"One hundred forty-four; end of level fourteen\n",
+"\n",
+"Level 15\n\n",
+"One hundred forty-five\n",
+"One hundred forty-six\n",
+"One hundred forty-seven\n",
+"One hundred forty-eight\n",
+"One hundred forty-nine\n",
+"One hundred fifty\n",
+"One hundred fifty-one\n",
+"One hundred fifty-two\n",
+"One hundred fifty-three\n",
+"One hundred fifty-four\n",
+"One hundred fifty-five\n",
+"One hundred fifty-six\n",
+"One hundred fifty-seven; end of level fifteen\n",
+"\n",
+"Level 16\n\n",
+"One hundred fifty-eight\n",
+"One hundred fifty-nine\n",
+"One hundred sixty\n",
+"One hundred sixty-one\n",
+"One hundred sixty-two\n",
+"One hundred sixty-three\n",
+"One hundred sixty-four\n",
+"One hundred sixty-five\n",
+"One hundred sixty-six\n",
+"One hundred sixty-seven\n",
+"One hundred sixty-eight\n",
+"One hundred sixty-nine\n",
+"One hundred seventy\n",
+"One hundred seventy-one; end of level sixteen\n",
+"\n",
+"Level 17\n\n",
+"One hundred seventy-two\n",
+"One hundred seventy-three\n",
+"One hundred seventy-four\n",
+"One hundred seventy-five\n",
+"One hundred seventy-six\n",
+"One hundred seventy-seven\n",
+"One hundred seventy-eight\n",
+"One hundred seventy-nine\n",
+"One hundred eighty\n",
+"One hundred eighty-one\n",
+"One hundred eighty-two\n",
+"One hundred eighty-three\n",
+"One hundred eighty-four\n",
+"One hundred eighty-five; end of level seventeen\n",
+"\n",
+"Level 18\n\n",
+"One hundred eighty-six\n",
+"One hundred eighty-seven\n",
+"One hundred eighty-eight\n",
+"One hundred eighty-nine\n",
+"One hundred ninety\n",
+"One hundred ninety-one\n",
+"One hundred ninety-two\n",
+"One hundred ninety-three\n",
+"One hundred ninety-four\n",
+"One hundred ninety-five\n",
+"One hundred ninety-six\n",
+"One hundred ninety-seven\n",
+"One hundred ninety-eight\n",
+"One hundred ninety-nine\n",
+"Two hundred; end of level eighteen\n",
+"\n",
+"Level 19\n\n",
+"Two hundred one\n",
+"Two hundred two\n",
+"Two hundred three\n",
+"Two hundred four\n",
+"Two hundred five\n",
+"Two hundred six\n",
+"Two hundred seven\n",
+"Two hundred eight\n",
+"Two hundred nine\n",
+"Two hundred ten\n",
+"Two hundred eleven\n",
+"Two hundred twelve\n",
+"Two hundred thirteen\n",
+"Two hundred fourteen\n",
+"Two hundred fifteen; end of level nineteen\n",
+"\n",
+"Level 20\n\n",
+"Two hundred sixteen\n",
+"Two hundred seventeen\n",
+"Two hundred eighteen\n",
+"Two hundred nineteen\n",
+"Two hundred twenty\n",
+"Two hundred twenty-one\n",
+"Two hundred twenty-two\n",
+"Two hundred twenty-three\n",
+"Two hundred twenty-four\n",
+"Two hundred twenty-five\n",
+"Two hundred twenty-six\n",
+"Two hundred twenty-seven\n",
+"Two hundred twenty-eight\n",
+"Two hundred twenty-nine\n",
+"Two hundred thirty\n",
+"Two hundred thirty-one; end of level twenty\n",
+"\n",
+"Level 21\n\n",
+"Two hundred thirty-two\n",
+"Two hundred thirty-three\n",
+"Two hundred thirty-four\n",
+"Two hundred thirty-five\n",
+"Two hundred thirty-six\n",
+"Two hundred thirty-nine\n",
+"Two hundred forty\n",
+"Two hundred forty-one\n",
+"Two hundred forty-two\n",
+"Two hundred forty-three\n",
+"Two hundred forty-four\n",
+"Two hundred forty-five\n",
+"Two hundred forty-six\n",
+"Two hundred forty-seven; end of level twenty-one, end of the test\n",
+};
+
+
+
+typedef struct {
+    const char** text;
+    uint16_t lines;
+} textOption;
+
+static const textOption texts[] = {
+    {.text = alice, .lines = ARRAY_SIZE(alice)},
+    {.text = festival, .lines = ARRAY_SIZE(festival)},
+    {.text = fitness, .lines = ARRAY_SIZE(fitness)},
+};
+
 //==============================================================================
 // Functions
 //==============================================================================
@@ -1851,6 +2192,10 @@ void beeEnterMode(display_t* disp)
     bee->yOffset = disp->h;
     bee->tElapsedUs = 0;
     bee->scrollMod = 1;
+
+    uint8_t textNum = esp_random() % ARRAY_SIZE(texts);
+    bee->text = texts[textNum].text;
+    bee->textLines = texts[textNum].lines;
 }
 
 /**
@@ -1889,7 +2234,7 @@ void beeMainLoop(int64_t elapsedUs)
         while((yPos + bee->yOffset) < bee->disp->h)
         {
             // Only draw names with negative offsets if they're a little on screen
-            if((yPos + bee->yOffset) >= -textHeight(&bee->font, beeTextLines[idx], bee->disp->w - 26, INT16_MAX))
+            if((yPos + bee->yOffset) >= -textHeight(&bee->font, bee->text[idx], bee->disp->w - 26, INT16_MAX))
             {
                 // If the names have scrolled back to the start, reset the scroll vars
                 if(0 == (yPos + bee->yOffset) && 0 == idx)
@@ -1901,7 +2246,7 @@ void beeMainLoop(int64_t elapsedUs)
                 int16_t textX = 13, textY = (yPos + bee->yOffset);
 
                 // Draw the text
-                drawTextWordWrap(bee->disp, &bee->font, c550, beeTextLines[idx],
+                drawTextWordWrap(bee->disp, &bee->font, c550, bee->text[idx],
                          &textX, &textY, bee->disp->w - 13, bee->disp->h + bee->font.h);
 
                 // Add the height of the drawn text plus one line to yPos
@@ -1910,11 +2255,11 @@ void beeMainLoop(int64_t elapsedUs)
             else
             {
                 // Add the entire height of the text to yPos, to simulate drawing it above the screen
-                yPos += textHeight(&bee->font, beeTextLines[idx], bee->disp->w - 26, INT16_MAX);
+                yPos += textHeight(&bee->font, bee->text[idx], bee->disp->w - 26, INT16_MAX);
             }
 
             // Always update the idx and cursor position, even if the text wasn't drawn
-            idx = (idx + 1) % ARRAY_SIZE(beeTextLines);
+            idx = (idx + 1) % bee->textLines;
         }
     }
 }
