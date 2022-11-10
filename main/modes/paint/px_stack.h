@@ -33,7 +33,7 @@ typedef struct
 void initPxStack(pxStack_t* pxStack);
 void freePxStack(pxStack_t* pxStack);
 void maybeGrowPxStack(pxStack_t* pxStack);
-void maybeShrinkPxStack(pxStack_t* pxStack);
+// void maybeShrinkPxStack(pxStack_t* pxStack);
 void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y);
 bool popPx(pxStack_t* pxStack, display_t* disp);
 bool peekPx(const pxStack_t* pxStack, pxVal_t* dest);

@@ -63,7 +63,25 @@ void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButt
  */
 void deinitButtons(void)
 {
+
+	// Check the queue
+	list_node_t * node;
+
+	// No events
+	while (NULL != (node = list_lpop(buttonQueue)))
+	{
+		// Free everything
+		free(node->val);
+		free(node);
+	}
 	free(buttonQueue);
+
+	while (NULL != (node = list_lpop(touchQueue)))
+	{
+		// Free everything
+		free(node->val);
+		free(node);
+	}
 	free(touchQueue);
 }
 

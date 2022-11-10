@@ -188,6 +188,18 @@ typedef struct
     // The "picks remaining" sprite
     wsg_t picksWsg;
 
+    // The 9x9 arrow
+    wsg_t smallArrowWsg;
+
+    // The 12x12 arrow
+    wsg_t bigArrowWsg;
+
+    // Icon to indicate free slot
+    wsg_t newfileWsg;
+
+    // Icon to indicate used slot
+    wsg_t overwriteWsg;
+
 
     //////// Local-only UI state
 
@@ -380,6 +392,10 @@ typedef enum
 
     // Release the given button
     RELEASE,
+
+    // A tool has drawn (not just picked a point)
+    DRAW_COMPLETE,
+
     CHANGE_BRUSH,
     SELECT_MENU_ITEM,
     CHANGE_MODE,
@@ -438,6 +454,8 @@ typedef struct
     uint16_t curButtons;
     uint16_t lastButton;
     bool lastButtonDown;
+
+    bool drawComplete;
 
     uint16_t helpH;
 } paintHelp_t;

@@ -10,6 +10,8 @@
 paletteColor_t getContrastingColor(paletteColor_t col);
 paletteColor_t getContrastingColorBW(paletteColor_t col);
 
+void colorReplaceWsg(wsg_t* wsg, paletteColor_t find, paletteColor_t replace);
+
 // Extra drawing functions
 void paintDrawWsgTemp(display_t* display, const wsg_t* wsg, pxStack_t* saveTo, uint16_t x, uint16_t y, colorMapFn_t colorSwap);
 
@@ -22,7 +24,7 @@ void setPxScaled(display_t* disp, int x, int y, paletteColor_t col, int xTr, int
 
 uint8_t paintGetMaxScale(display_t* disp, uint16_t imgW, uint16_t imgH, uint16_t xMargin, uint16_t yMargin);
 
-void paintConvertPickPoints(const pxStack_t* pxStack, point_t* dest);
+// void paintConvertPickPoints(const pxStack_t* pxStack, point_t* dest);
 void paintConvertPickPointsScaled(const pxStack_t* pxStack, paintCanvas_t* canvas, point_t* dest);
 
 uint16_t canvasToDispX(const paintCanvas_t* canvas, uint16_t x);

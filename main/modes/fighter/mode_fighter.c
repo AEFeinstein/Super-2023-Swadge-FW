@@ -35,6 +35,8 @@
 //==============================================================================
 
 #define ABS(X) (((X) < 0) ? -(X) : (X))
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 #define IFRAMES_AFTER_SPAWN ((3 * 1000) / FRAME_TIME_MS) // 3 seconds
 #define IFRAMES_AFTER_LEDGE_JUMP ((2 * 1000) / FRAME_TIME_MS) // 2 seconds
@@ -2118,7 +2120,8 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             // End game and show result
             fighterShowMpResult(f->gameTimerUs / 1000,
                                 f->fighters[0].character, NUM_STOCKS - f->fighters[1].stocks, f->fighters[0].damageGiven,
-                                f->fighters[1].character, NUM_STOCKS - f->fighters[0].stocks, f->fighters[1].damageGiven);
+                                f->fighters[1].character, NUM_STOCKS - f->fighters[0].stocks, f->fighters[1].damageGiven,
+                                f->type);
             // Deinit the game
             fighterExitGame();
             // Return after deinit
@@ -2571,46 +2574,123 @@ fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* 
     }
 
     // Adjust camera
-    // Check if either fighter is offscreen at all
+    // Figure out which character is more centered
+    int32_t f1DistToCenterX = (f->d->w / 2) - (f1->pos.x >> SF);
+    f1DistToCenterX *= f1DistToCenterX;
+    int32_t f1DistToCenterY = (f->d->h / 2) - (f1->pos.y >> SF);
+    f1DistToCenterY *= f1DistToCenterY;
+    int32_t f1DistToCenter = f1DistToCenterX + f1DistToCenterY;
+
+    int32_t f2DistToCenterX = (f->d->w / 2) - (f2->pos.x >> SF);
+    f2DistToCenterX *= f2DistToCenterX;
+    int32_t f2DistToCenterY = (f->d->h / 2) - (f2->pos.y >> SF);
+    f2DistToCenterY *= f2DistToCenterY;
+    int32_t f2DistToCenter = f2DistToCenterX + f2DistToCenterY;
+
+#define CAMERA_MARGIN 32
+
     wsg_t* f1sprite = getFighterSprite(f1->currentSprite->spriteIdx, f->loadedSprites);
-    bool f1offscreenX = (f1spritePos.x < 0) || (f1spritePos.x + f1sprite->w >= f->d->w);
-    bool f1offscreenY = (f1spritePos.y < 0) || (f1spritePos.y + f1sprite->h >= f->d->h);
     wsg_t* f2sprite = getFighterSprite(f2->currentSprite->spriteIdx, f->loadedSprites);
-    bool f2offscreenX = (f2spritePos.x < 0) || (f2spritePos.x + f2sprite->w >= f->d->w);
-    bool f2offscreenY = (f2spritePos.y < 0) || (f2spritePos.y + f2sprite->h >= f->d->h);
-
-    // Assume no camera offset
-    vector_t centeredOffset = {.x = 0, .y = 0};
-    // If a fighter is offscreen
-    if(f1offscreenX || f2offscreenX)
+    vector_t centeredSpritePos;
+    wsg_t* centeredSprite;
+    if(f1DistToCenter < f2DistToCenter)
     {
-        int16_t f1midX = f1spritePos.x + (f1sprite->w / 2);
-        int16_t f2midX = f2spritePos.x + (f2sprite->w / 2);
-        centeredOffset.x = (f->d->w - (f1midX + f2midX)) / 2;
+        // f1 more centered, make sure it's on screen
+        centeredSpritePos = f1spritePos;
+        centeredSprite = f1sprite;
     }
-    if(f1offscreenY || f2offscreenY)
+    else
     {
-        int16_t f1midY = f1spritePos.y + (f1sprite->w / 2);
-        int16_t f2midY = f2spritePos.y + (f2sprite->w / 2);
-        centeredOffset.y = (f->d->w - (f1midY + f2midY)) / 2;
+        // f2 more centered, make sure it's on screen
+        centeredSpritePos = f2spritePos;
+        centeredSprite = f2sprite;
     }
 
-    // Pan the camera a quarter of the way to the midpoint
-    if(centeredOffset.x != f->cameraOffset.x)
+    // Start with the old offset
+    vector_t targetOffset =
     {
-        int16_t diff = centeredOffset.x - f->cameraOffset.x;
+        .x = f->cameraOffset.x,
+        .y = f->cameraOffset.y
+    };
+
+    // Pan horizontally for f1
+    if(f1spritePos.x < (CAMERA_MARGIN - targetOffset.x))
+    {
+        int32_t newPan = (CAMERA_MARGIN - f1spritePos.x);
+        targetOffset.x = MAX(targetOffset.x, newPan);
+    }
+    else if((f1spritePos.x + f1sprite->w) > (f->d->w - CAMERA_MARGIN - targetOffset.x))
+    {
+        int32_t newPan = (f->d->w - CAMERA_MARGIN) - (f1spritePos.x + f1sprite->w);
+        targetOffset.x = MIN(targetOffset.x, newPan);
+    }
+
+    // Pan vertically for f1
+    if(f1spritePos.y < (CAMERA_MARGIN - targetOffset.y))
+    {
+        int32_t newPan = (CAMERA_MARGIN - f1spritePos.y);
+        targetOffset.y = MAX(targetOffset.y, newPan);
+    }
+    else if((f1spritePos.y + f1sprite->h) > (f->d->h - CAMERA_MARGIN - targetOffset.y))
+    {
+        int32_t newPan = (f->d->h - CAMERA_MARGIN) - (f1spritePos.y + f1sprite->h);
+        targetOffset.y = MIN(targetOffset.y, newPan);
+    }
+
+    // Pan horizontally for f2
+    if(f2spritePos.x < (CAMERA_MARGIN - targetOffset.x))
+    {
+        int32_t newPan = (CAMERA_MARGIN - f2spritePos.x);
+        targetOffset.x = MAX(targetOffset.x, newPan);
+    }
+    else if((f2spritePos.x + f2sprite->w) > (f->d->w - CAMERA_MARGIN - targetOffset.x))
+    {
+        int32_t newPan = (f->d->w - CAMERA_MARGIN) - (f2spritePos.x + f2sprite->w);
+        targetOffset.x = MIN(targetOffset.x, newPan);
+    }
+
+    // Pan vertically for f2
+    if(f2spritePos.y < (CAMERA_MARGIN - targetOffset.y))
+    {
+        int32_t newPan = (CAMERA_MARGIN - f2spritePos.y);
+        targetOffset.y = MAX(targetOffset.y, newPan);
+    }
+    else if((f2spritePos.y + f2sprite->h) > (f->d->h - CAMERA_MARGIN - targetOffset.y))
+    {
+        int32_t newPan = (f->d->h - CAMERA_MARGIN) - (f2spritePos.y + f2sprite->h);
+        targetOffset.y = MIN(targetOffset.y, newPan);
+    }
+
+    // Pan back horizontally for centered fighter
+    if(centeredSpritePos.x < (CAMERA_MARGIN - targetOffset.x))
+    {
+        targetOffset.x = (CAMERA_MARGIN - centeredSpritePos.x);
+    }
+    else if((centeredSpritePos.x + centeredSprite->w) > (f->d->w - CAMERA_MARGIN - targetOffset.x))
+    {
+        targetOffset.x = (f->d->w - CAMERA_MARGIN) - (centeredSpritePos.x + centeredSprite->w);
+    }
+
+    // Pan back vertically for centered fighter
+    if(centeredSpritePos.y < (CAMERA_MARGIN - targetOffset.y))
+    {
+        targetOffset.y = (CAMERA_MARGIN - centeredSpritePos.y);
+    }
+    else if((centeredSpritePos.y + centeredSprite->h) > (f->d->h - CAMERA_MARGIN - targetOffset.y))
+    {
+        targetOffset.y = (f->d->h - CAMERA_MARGIN) - (centeredSpritePos.y + centeredSprite->h);
+    }
+
+    // Pan the camera a quarter of the way to the target
+    if(targetOffset.x != f->cameraOffset.x)
+    {
+        int16_t diff = targetOffset.x - f->cameraOffset.x;
         f->cameraOffset.x += (diff / 4);
     }
-    if(centeredOffset.y != f->cameraOffset.y)
+    if(targetOffset.y != f->cameraOffset.y)
     {
-        int16_t diff = centeredOffset.y - f->cameraOffset.y;
+        int16_t diff = targetOffset.y - f->cameraOffset.y;
         f->cameraOffset.y += (diff / 4);
-    }
-
-    // Don't pan too far down
-    if(f->cameraOffset.y < -(f->d->h / 2))
-    {
-        f->cameraOffset.y = -(f->d->h / 2);
     }
 
     // Put the camera offset in the packet

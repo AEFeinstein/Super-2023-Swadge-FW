@@ -45,6 +45,8 @@
 #include "paint_share.h"
 #include "picross_menu.h"
 #include "mode_platformer.h"
+#include "mode_jukebox.h"
+#include "mode_diceroller.h"
 
 //Make it so we don't need to include any other C files in our build.
 #define CNFG_IMPLEMENTATION
@@ -243,11 +245,14 @@ void emu_loop(void)
         &modePaintShare,
         &modePaintReceive,
         &modePicross,
-        &modePlatformer
+        &modePlatformer,
+        &modeDiceRoller,
+        &modeJukebox,
     };
 
     // A list of all keys to randomly press or release, and their states
-    const char randKeys[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i'};
+    const char randKeys[] =  {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i', '1', '2', '3', '4', '5'};
+    const char randKeys2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
     static bool keyState[sizeof(randKeys) / sizeof(randKeys[0])] = {false};
 
     // Time keeping
@@ -268,15 +273,22 @@ void emu_loop(void)
         int keyIdx = esp_random() % (sizeof(randKeys) / sizeof(randKeys[0]));
         keyState[keyIdx] = !keyState[keyIdx];
         emuSensorHandleKey(randKeys[keyIdx], keyState[keyIdx]);
+
+        // Only handle non-touchpads for p2
+        if(keyIdx < sizeof(randKeys2) / sizeof(randKeys2[0]))
+        {
+            emuSensorHandleKey(randKeys2[keyIdx], keyState[keyIdx]);
+        }
     }
 
     // Change the swadge mode two minutes
-    static int64_t resetToMenuTimer = 0;
+#define MODE_TEST_TIME_US (1000000 * 120)
+    static int64_t resetToMenuTimer = MODE_TEST_TIME_US;
     resetToMenuTimer += tElapsed;
-    while(resetToMenuTimer >= (1000000 * 120))
+    while(resetToMenuTimer >= MODE_TEST_TIME_US)
     {
-        resetToMenuTimer -= (1000000 * 120);
-        static int modeIdx = 0;
+        resetToMenuTimer -= MODE_TEST_TIME_US;
+        static int modeIdx = (sizeof(allModes) / sizeof(allModes[0])) - 1;
         modeIdx = (modeIdx + 1) % (sizeof(allModes) / sizeof(allModes[0]));
         switchToSwadgeModeFuzzer(allModes[modeIdx]);
     }

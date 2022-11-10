@@ -16,7 +16,7 @@
 // Function Prototypes
 //==============================================================================
 
-bool isInteractive(uint8_t tileId);
+// bool isInteractive(uint8_t tileId);
 
 //==============================================================================
 // Functions
@@ -187,9 +187,7 @@ bool loadTiles(tilemap_t *tilemap)
     loadWsg("tile037.wsg", &tilemap->tiles[5]);
     loadWsg("tile038.wsg", &tilemap->tiles[6]);
     loadWsg("tile039.wsg", &tilemap->tiles[7]);
-
-    tilemap->tiles[8] = tilemap->tiles[0];
-
+    loadWsg("tile040.wsg", &tilemap->tiles[8]);
     loadWsg("tile041.wsg", &tilemap->tiles[9]);
 
     tilemap->tiles[10] = tilemap->tiles[0];
@@ -280,7 +278,8 @@ uint8_t getTile(tilemap_t *tilemap, uint8_t tx, uint8_t ty)
 
     if (/*ty < 0 ||*/ ty >= tilemap->mapHeight)
     {
-        return 0;
+        ty = 0;
+        //return 0;
     }
 
     if (/*tx < 0 ||*/ tx >= tilemap->mapWidth)
@@ -324,10 +323,10 @@ bool isSolid(uint8_t tileId)
     }
 }
 
-bool isInteractive(uint8_t tileId)
-{
-    return tileId > TILE_INVISIBLE_BLOCK && tileId < TILE_BG_GOAL_ZONE;
-}
+// bool isInteractive(uint8_t tileId)
+// {
+//     return tileId > TILE_INVISIBLE_BLOCK && tileId < TILE_BG_GOAL_ZONE;
+// }
 
 void unlockScrolling(tilemap_t *tilemap){
     tilemap->minMapOffsetX = 0;
@@ -367,7 +366,6 @@ void freeTilemap(tilemap_t *tilemap){
         switch(i){
             //Skip all placeholder tiles, since they reuse other tiles
             //(see loadTiles)
-            case 8:
             case 10 ... 26:
             case 39 ... 47:
             {

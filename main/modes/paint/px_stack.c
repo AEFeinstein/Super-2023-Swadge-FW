@@ -34,18 +34,18 @@ void maybeGrowPxStack(pxStack_t* pxStack)
     }
 }
 
-void maybeShrinkPxStack(pxStack_t* pxStack)
-{
-    // If the stack is at least 4 times bigger than it needs to be, shrink it by half
-    // (but only if the stack is bigger than the minimum)
-    if (pxStack->index >= 0 && pxStack->index * 4 <= pxStack->size && pxStack->size > PIXEL_STACK_MIN_SIZE)
-    {
-        pxStack->size /= 2;
-        PAINT_LOGD("Shrinking pixel stack to %zu", pxStack->size);
-        pxStack->data = realloc(pxStack->data, sizeof(pxVal_t) * pxStack->size);
-        PAINT_LOGD("Done shrinking pixel stack");
-    }
-}
+// void maybeShrinkPxStack(pxStack_t* pxStack)
+// {
+//     // If the stack is at least 4 times bigger than it needs to be, shrink it by half
+//     // (but only if the stack is bigger than the minimum)
+//     if (pxStack->index >= 0 && pxStack->index * 4 <= pxStack->size && pxStack->size > PIXEL_STACK_MIN_SIZE)
+//     {
+//         pxStack->size /= 2;
+//         PAINT_LOGD("Shrinking pixel stack to %zu", pxStack->size);
+//         pxStack->data = realloc(pxStack->data, sizeof(pxVal_t) * pxStack->size);
+//         PAINT_LOGD("Done shrinking pixel stack");
+//     }
+// }
 
 /**
  * The color at the given pixel coordinates is pushed onto the pixel stack,

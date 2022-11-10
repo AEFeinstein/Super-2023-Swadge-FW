@@ -342,7 +342,7 @@ void mainMenuMainLoop(int64_t elapsedUs)
     // Draw the battery indicator depending on the last read value
     wsg_t * toDraw = NULL;
     // 872 is full
-    if (mainMenu->battVal > 741)
+    if (mainMenu->battVal == 0 || mainMenu->battVal > 741)
     {
         toDraw = &mainMenu->batt[3];        
     }
@@ -584,11 +584,11 @@ void mainMenuSetUpGamesMenu(bool resetPos)
     // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuGames, mainMenuGamesCb);
     addRowToMeleeMenu(mainMenu->menu, modeFighter.modeName);
-    addRowToMeleeMenu(mainMenu->menu, modeTiltrads.modeName);
     addRowToMeleeMenu(mainMenu->menu, modePlatformer.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeJumper.modeName);
     addRowToMeleeMenu(mainMenu->menu, modePicross.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeFlight.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeTiltrads.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)

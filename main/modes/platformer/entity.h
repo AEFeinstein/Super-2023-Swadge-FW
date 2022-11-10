@@ -194,8 +194,9 @@ void updateBgmChange(entity_t* self);
 
 void updateWaveBall(entity_t* self);
 
-bool waveBallTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
+// bool waveBallTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty, uint8_t direction);
 void waveBallOverlapTileHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint8_t ty);
 void powerUpCollisionHandler(entity_t *self, entity_t *other);
+void killPlayer(entity_t *self);
 
 #endif

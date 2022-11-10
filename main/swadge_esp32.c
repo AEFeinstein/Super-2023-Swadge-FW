@@ -867,8 +867,17 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     // If it has been held for more than the exit time
                     if(tHeldUs > EXIT_TIME_US)
                     {
-                        // exit
-                        switchToSwadgeMode(&modeMainMenu);
+                        if(&modeTest != cSwadgeMode)
+                        {
+                            // exit
+                            switchToSwadgeMode(&modeMainMenu);
+                        }
+                        else
+                        {
+                            // In test mode, reset the process but don't exit
+                            sst = NONE_PRESSED;
+                            time_exit_pressed = 0;
+                        }
                     }
                     else
                     {

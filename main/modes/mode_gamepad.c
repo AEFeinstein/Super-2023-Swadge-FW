@@ -94,8 +94,9 @@ typedef struct
     meleeMenu_t* menu;
     display_t* disp;
     gamepadScreen_t screen;
-    uint8_t selectedGamepadType
+    uint8_t selectedGamepadType;
 } gamepadMenu_t;
+
 typedef struct
 {
     display_t* disp;
@@ -518,7 +519,7 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
         // Plot Z accel
         barWidth = ((gamepad->gpState.rz + 128) * MAX_ACCEL_BAR_W) / 256;
         fillDisplayArea(gamepad->disp, gamepad->disp->w - barWidth, barY, gamepad->disp->w, barY + ACCEL_BAR_H, c005);
-        barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
+        // barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
     }
     else
     {

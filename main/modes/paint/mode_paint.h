@@ -6,9 +6,6 @@
 
 extern swadgeMode modePaint;
 
-extern const song_t paintBgm;
-
-
 void paintReturnToMainMenu(void);
 
 #endif

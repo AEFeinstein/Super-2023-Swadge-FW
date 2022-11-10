@@ -11,7 +11,8 @@ extern const song_t fLossJingle;
 
 void initFighterMpResult(display_t* disp, font_t* font, uint32_t roundTimeMs,
                          fightingCharacter_t self,  int8_t selfKOs, int16_t selfDmg,
-                         fightingCharacter_t other, int8_t otherKOs, int16_t otherDmg);
+                         fightingCharacter_t other, int8_t otherKOs, int16_t otherDmg,
+                         fightingGameType_t type);
 void deinitFighterMpResult(void);
 void fighterMpResultLoop(int64_t elapsedUs);
 

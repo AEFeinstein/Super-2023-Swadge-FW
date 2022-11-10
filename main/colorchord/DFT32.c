@@ -200,9 +200,6 @@ void UpdateOutputBins32(dft32_data* dd)
 static void HandleInt( dft32_data* dd, int16_t sample )
 {
     int i;
-    uint16_t adv;
-    uint8_t localipl;
-    int16_t filteredsample;
 
     uint8_t oct = dd->Sdo_this_octave[dd->Swhichoctaveplace];
     dd->Swhichoctaveplace ++;
@@ -237,23 +234,25 @@ static void HandleInt( dft32_data* dd, int16_t sample )
         return;
     }
 
-    // process a filtered sample for one of the octaves
-    uint16_t* dsA = &dd->Sdatspace32A[oct * FIXBPERO * 2];
-    int32_t* dsB = &dd->Sdatspace32B[oct * FIXBPERO * 2];
-
-    filteredsample = dd->Saccum_octavebins[oct] >> (OCTAVES - oct);
-    dd->Saccum_octavebins[oct] = 0;
-
-    for( i = 0; i < FIXBPERO; i++ )
+    if ((oct * FIXBPERO * 2) < (FIXBINS * 2) && (oct <= OCTAVES))
     {
-        adv = *(dsA++);
-        localipl = *(dsA) >> 8;
-        *(dsA++) += adv;
+        // process a filtered sample for one of the octaves
+        uint16_t* dsA = &dd->Sdatspace32A[oct * FIXBPERO * 2];
+        int32_t* dsB = &dd->Sdatspace32B[oct * FIXBPERO * 2];
+        int16_t filteredsample = dd->Saccum_octavebins[oct] >> (OCTAVES - oct);
+        dd->Saccum_octavebins[oct] = 0;
 
-        *(dsB++) += (Ssinonlytable[localipl] * filteredsample);
-        //Get the cosine (1/4 wavelength out-of-phase with sin)
-        localipl += 64;
-        *(dsB++) += (Ssinonlytable[localipl] * filteredsample);
+        for( i = 0; i < FIXBPERO; i++ )
+        {
+            uint16_t adv = *(dsA++);
+            uint8_t localipl = *(dsA) >> 8;
+            *(dsA++) += adv;
+
+            *(dsB++) += (Ssinonlytable[localipl] * filteredsample);
+            //Get the cosine (1/4 wavelength out-of-phase with sin)
+            localipl += 64;
+            *(dsB++) += (Ssinonlytable[localipl] * filteredsample);
+        }
     }
 }
 
