@@ -4,7 +4,7 @@
 //Option 1
 const char* findthemall[] =
 {
-    "There are 14 of these copy-pastas, can you find them all?\n",
+    "There are 16 of these copy-pastas, can you find them all?\n",
     "\n",
     "\n",
     "\n",
@@ -2401,6 +2401,38 @@ const char* banned[] =
     "So thats how among us got banned\n",
 };
 
+//Option #15
+const char* morbiustime[] =
+{
+    "Someone for the hecking life of me help my brother he won\'t stop saying \"ITS MORBING TIME!\"",
+    "He found these words on fb or something and said its stuck in his mind and",
+    "everytime he wakes up, shits, sleeps, pisses, EVERYTHING he says \"It\'s Morbing Time!\"",
+    "I\'m losing my sanity, heck you morbius. That was very un-morb",
+};
+
+//Option #16
+const char* mikuoop[] =
+{
+    "Hello everyone. I'm Scott, President of Domino's Pizza. Have you heard of Hatsune Miku? Today I'd like to announce a new collaborative project featuring Hatsune Miku: Domino's App, featuring Hatsune Miku. Hatsune Miku exists in a software called Vocaloid. Vocaloid enables you to produce songs. A character called Hatsune Miku sings the songs you create. A great feature is you can create songs as you like. I knew our talented Domino's Pizza crew could work together and create great Vocaloid songs. Bokuro P, Eshi, Chiyo Kiyoshi, Furitsu Keshi, everyone! Amazing Vocaloid songs have been created with the fantastic imagination of the crews all over Japan. The challenge was successfully carried out and this new collaborative app was produced.\n",
+    "\n",
+    "\n",
+    "D O M I N O S P I Z Z A\n",
+    "\n",
+    "\n",
+    "Based on Miku's image, the Domino's App changes its appearance. A lot of music and illustrations produced by Domino's crew are here. From the menu to the order, it looks very cute, just like Miku. Once your pizza's delivered, have some fun with Miku! It comes with a social camera function and you can take various poses, pictures of Miku, very cool. And last, but not least, the live performance! Start the pizza stage live and point the camera towards the pizza box, and the pizza box will turn into a live dancing venue. A live performance of Luv4Night produced by Domino's crew! Here we go!\n",
+    "\n",
+    "\n",
+    "D O M I N O S P I Z Z A\n",
+    "\n",
+    "\n",
+    "Let's enjoy the rest of the performance with the app!\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+};
+
 const textOption texts[] = 
 {
     {.text = findthemall, .lines = ARRAY_SIZE(findthemall)},
@@ -2417,6 +2449,8 @@ const textOption texts[] =
     {.text = flareon, .lines = ARRAY_SIZE(flareon)},
     {.text = whoasked, .lines = ARRAY_SIZE(whoasked)},
     {.text = banned, .lines = ARRAY_SIZE(banned)},
+    {.text = morbiustime, .lines = ARRAY_SIZE(morbiustime)},
+    {.text = mikuoop, .lines = ARRAY_SIZE(mikuoop)},
 };
 
 const textOption* getTextOpts(uint8_t * numTexts)
