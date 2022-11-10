@@ -43,6 +43,7 @@ typedef struct
     int16_t yOffset;
     const char** text;
     uint16_t textLines;
+    paletteColor_t textColor;
 } bee_t;
 
 bee_t* bee;
@@ -93,6 +94,7 @@ void beeEnterMode(display_t* disp)
     uint8_t textNum = esp_random() % numTexts;
     bee->text = texts[textNum].text;
     bee->textLines = texts[textNum].lines;
+    bee->textColor = texts[textNum].color;
 }
 
 /**
@@ -143,7 +145,7 @@ void beeMainLoop(int64_t elapsedUs)
                 int16_t textX = 13, textY = (yPos + bee->yOffset);
 
                 // Draw the text
-                drawTextWordWrap(bee->disp, &bee->font, c550, bee->text[idx],
+                drawTextWordWrap(bee->disp, &bee->font, bee->textColor, bee->text[idx],
                          &textX, &textY, bee->disp->w - 13, bee->disp->h + bee->font.h);
 
                 // Add the height of the drawn text plus one line to yPos
@@ -186,11 +188,6 @@ void beeButtonCb(buttonEvt_t* evt)
             }
             case BTN_A:
             case BTN_B:
-            {
-                // Exit
-                switchToSwadgeMode(&modeMainMenu);
-                break;
-            }
             case LEFT:
             case RIGHT:
             case START:

@@ -2393,30 +2393,35 @@ const char* whoasked[] =
 //Option #14
 const char* banned[] =
 {
-    "Fun fact among us got banned at the daycare where I work at\n",
-    "Turns out, you know how youtube has the autoplay thing?\n",
-    "Well one day the kids were watching among us songs on YT when\n",
-    "autoplay changed it to the among us twerking video, 10 hour version to be exact,\n",
+    "Fun fact Among Us got banned at the daycare where I work at\n",
+    "Turns out, you know how YouTube has the autoplay thing?\n",
+    "Well one day the kids were watching Among Us songs on YT when\n",
+    "autoplay changed it to the Among Us twerking video, 10 hour version to be exact,\n",
     "and ALL the kids tried twerking...\n",
-    "So thats how among us got banned\n",
+    "So thats how Among Us got banned\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
 };
 
-const textOption texts[] = 
+const textOption texts[] =
 {
-    {.text = findthemall, .lines = ARRAY_SIZE(findthemall)},
-    {.text = alice, .lines = ARRAY_SIZE(alice)},
-    {.text = festival, .lines = ARRAY_SIZE(festival)},
-    {.text = fitness, .lines = ARRAY_SIZE(fitness)},
-    {.text = giggles, .lines = ARRAY_SIZE(giggles)},
-    {.text = blueeee, .lines = ARRAY_SIZE(blueeee)},
-    {.text = hypothetical, .lines = ARRAY_SIZE(hypothetical)},
-    {.text = tolerancetest, .lines = ARRAY_SIZE(tolerancetest)},
-    {.text = tips, .lines = ARRAY_SIZE(tips)},
-    {.text = godihategaminglaptops, .lines = ARRAY_SIZE(godihategaminglaptops)},
-    {.text = homegoblin, .lines = ARRAY_SIZE(homegoblin)},
-    {.text = flareon, .lines = ARRAY_SIZE(flareon)},
-    {.text = whoasked, .lines = ARRAY_SIZE(whoasked)},
-    {.text = banned, .lines = ARRAY_SIZE(banned)},
+    {.text = findthemall, .lines = ARRAY_SIZE(findthemall), .color = c505},
+    {.text = alice, .lines = ARRAY_SIZE(alice), .color = c415},
+    {.text = festival, .lines = ARRAY_SIZE(festival), .color = c550},
+    {.text = fitness, .lines = ARRAY_SIZE(fitness), .color = c035},
+    {.text = giggles, .lines = ARRAY_SIZE(giggles), color = c555},
+    {.text = blueeee, .lines = ARRAY_SIZE(blueeee), color = c115},
+    {.text = hypothetical, .lines = ARRAY_SIZE(hypothetical), .color = c522},
+    {.text = tolerancetest, .lines = ARRAY_SIZE(tolerancetest), .color = c415},
+    {.text = tips, .lines = ARRAY_SIZE(tips), color = c530},
+    {.text = godihategaminglaptops, .lines = ARRAY_SIZE(godihategaminglaptops), .color = c151},
+    {.text = homegoblin, .lines = ARRAY_SIZE(homegoblin), .color = c150},
+    {.text = flareon, .lines = ARRAY_SIZE(flareon), .color = c510},
+    {.text = whoasked, .lines = ARRAY_SIZE(whoasked), .color = c454},
+    {.text = banned, .lines = ARRAY_SIZE(banned), .color = c500},
 };
 
 const textOption* getTextOpts(uint8_t * numTexts)

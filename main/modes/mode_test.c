@@ -108,7 +108,7 @@ test_t* test;
 
 swadgeMode modeTest =
 {
-    .modeName = "Test",
+    .modeName = "Test Mode",
     .fnEnterMode = testEnterMode,
     .fnExitMode = testExitMode,
     .fnMainLoop = testMainLoop,
