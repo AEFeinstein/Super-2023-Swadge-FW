@@ -1856,7 +1856,7 @@ void beeEnterMode(display_t* disp)
     bee->scrollMod = 1;
     bee->lastFirstLine = 0;
     bee->topHeight = 0;
-    bee->firstLineHeight = 0;
+    bee->firstLineHeight = bee->font.h + 1;
 }
 
 /**
@@ -1891,7 +1891,7 @@ void beeMainLoop(int64_t elapsedUs)
 
         int16_t yPos = bee->topHeight;
         int16_t idx = bee->lastFirstLine;
-        uint16_t lineHeight = bee->font.h + 1;
+        uint16_t lineHeight = bee->firstLineHeight;
         bool firstVisibleLine  = true;
 
         // Draw lines until the cursor is off the screen
