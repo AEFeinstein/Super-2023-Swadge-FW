@@ -2397,7 +2397,7 @@ const char* banned[] =
     "Turns out, you know how youtube has the autoplay thing?\n",
     "Well one day the kids were watching among us songs on YT when\n",
     "autoplay changed it to the among us twerking video, 10 hour version to be exact,\n",
-    "and ALL the kids tried twerking\n",
+    "and ALL the kids tried twerking...\n",
     "So thats how among us got banned\n",
 };
 
