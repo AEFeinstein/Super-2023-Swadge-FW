@@ -76,7 +76,7 @@ void  jukeboxMainMenuCb(const char* opt);
 void  jukeboxBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
                              int16_t w, int16_t h, int16_t up, int16_t upNum );
 
-void setJukeboxMainMenu(void);
+void setJukeboxMainMenu(bool resetPos);
 
 /*==============================================================================
  * Structs
@@ -107,6 +107,7 @@ typedef struct
     bool inMusicSubmode;
 
     meleeMenu_t* menu;
+    uint8_t mainMenuPos;
     jukeboxScreen_t screen;
 } jukebox_t;
 
@@ -352,7 +353,7 @@ void  jukeboxEnterMode(display_t* disp)
     portableDanceDisableDance(jukebox->portableDances, "Fire G");
     portableDanceDisableDance(jukebox->portableDances, "Fire B");
 
-    setJukeboxMainMenu();
+    setJukeboxMainMenu(true);
 
     stopNote();
 }
@@ -425,7 +426,7 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                     }
                     case START:
                     {
-                        setJukeboxMainMenu();
+                        setJukeboxMainMenu(false);
                         break;
                     }
                     case UP:
@@ -625,59 +626,10 @@ void  jukeboxMainLoop(int64_t elapsedUs)
             char* songName;
             char* songTypeName;
             uint8_t numSongs;
+            bool drawNames = false;
             if(jukebox->inMusicSubmode)
             {
-                categoryName = musicCategories[jukebox->categoryIdx].categoryName;
-                songName = musicCategories[jukebox->categoryIdx].songs[jukebox->songIdx].name;
-                songTypeName = "Music";
-                numSongs = musicCategories[jukebox->categoryIdx].numSongs;
-            }
-            else
-            {
-                categoryName = sfxCategories[jukebox->categoryIdx].categoryName;
-                songName = sfxCategories[jukebox->categoryIdx].songs[jukebox->songIdx].name;
-                songTypeName = "SFX";
-                numSongs = sfxCategories[jukebox->categoryIdx].numSongs;
-            }
-
-            // Draw the mode name
-            snprintf(text, sizeof(text), "Mode: %s", categoryName);
-            int16_t width = textWidth(&(jukebox->radiostars), text);
-            int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 0;
-            drawText(jukebox->disp, &(jukebox->radiostars), c313,
-                    text,
-                    (jukebox->disp->w - width) / 2,
-                    yOff);
-            // Draw some arrows
-            drawWsg(jukebox->disp, &jukebox->arrow,
-                    ((jukebox->disp->w - width) / 2) - 8 - jukebox->arrow.w, yOff,
-                    false, false, 0);
-            drawWsg(jukebox->disp, &jukebox->arrow,
-                    ((jukebox->disp->w - width) / 2) + width + 8, yOff,
-                    false, false, 180);
-
-            // Draw the song name
-            snprintf(text, sizeof(text), "%s: %s", songTypeName, songName);
-            yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 + jukebox->radiostars.h * 2.5f;
-            width = textWidth(&(jukebox->radiostars), text);
-            drawText(jukebox->disp, &(jukebox->radiostars), c113,
-                    text,
-                    (jukebox->disp->w - width) / 2,
-                    yOff);
-            // Draw some arrows if this category has more than 1 song
-            if(numSongs > 1)
-            {
-                drawWsg(jukebox->disp, &jukebox->arrow,
-                        ((jukebox->disp->w - width) / 2) - 8 - jukebox->arrow.w, yOff,
-                        false, false, 270);
-                drawWsg(jukebox->disp, &jukebox->arrow,
-                        ((jukebox->disp->w - width) / 2) + width + 8, yOff,
-                        false, false, 90);
-            }
-
-            // Warn the user that the swadge is muted, if that's the case
-            if(jukebox->inMusicSubmode)
-            {
+                // Warn the user that the swadge is muted, if that's the case
                 if(getBgmIsMuted())
                 {
                     drawText(
@@ -687,9 +639,18 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                         (jukebox->disp->w - textWidth(&jukebox->radiostars, str_bgm_muted)) / 2,
                         jukebox->disp->h / 2);
                 }
+                else
+                {
+                    categoryName = musicCategories[jukebox->categoryIdx].categoryName;
+                    songName = musicCategories[jukebox->categoryIdx].songs[jukebox->songIdx].name;
+                    songTypeName = "Music";
+                    numSongs = musicCategories[jukebox->categoryIdx].numSongs;
+                    drawNames = true;
+                }
             }
             else
             {
+                // Warn the user that the swadge is muted, if that's the case
                 if(getSfxIsMuted())
                 {
                     drawText(
@@ -698,6 +659,52 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                         str_sfx_muted,
                         (jukebox->disp->w - textWidth(&jukebox->radiostars, str_sfx_muted)) / 2,
                         jukebox->disp->h / 2);
+                }
+                else
+                {
+                    categoryName = sfxCategories[jukebox->categoryIdx].categoryName;
+                    songName = sfxCategories[jukebox->categoryIdx].songs[jukebox->songIdx].name;
+                    songTypeName = "SFX";
+                    numSongs = sfxCategories[jukebox->categoryIdx].numSongs;
+                    drawNames = true;
+                }
+            }
+
+            if(drawNames)
+            {
+                // Draw the mode name
+                snprintf(text, sizeof(text), "Mode: %s", categoryName);
+                int16_t width = textWidth(&(jukebox->radiostars), text);
+                int16_t yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 - jukebox->radiostars.h * 0;
+                drawText(jukebox->disp, &(jukebox->radiostars), c313,
+                        text,
+                        (jukebox->disp->w - width) / 2,
+                        yOff);
+                // Draw some arrows
+                drawWsg(jukebox->disp, &jukebox->arrow,
+                        ((jukebox->disp->w - width) / 2) - 8 - jukebox->arrow.w, yOff,
+                        false, false, 0);
+                drawWsg(jukebox->disp, &jukebox->arrow,
+                        ((jukebox->disp->w - width) / 2) + width + 8, yOff,
+                        false, false, 180);
+
+                // Draw the song name
+                snprintf(text, sizeof(text), "%s: %s", songTypeName, songName);
+                yOff = (jukebox->disp->h - jukebox->radiostars.h) / 2 + jukebox->radiostars.h * 2.5f;
+                width = textWidth(&(jukebox->radiostars), text);
+                drawText(jukebox->disp, &(jukebox->radiostars), c113,
+                        text,
+                        (jukebox->disp->w - width) / 2,
+                        yOff);
+                // Draw some arrows if this category has more than 1 song
+                if(numSongs > 1)
+                {
+                    drawWsg(jukebox->disp, &jukebox->arrow,
+                            ((jukebox->disp->w - width) / 2) - 8 - jukebox->arrow.w, yOff,
+                            false, false, 270);
+                    drawWsg(jukebox->disp, &jukebox->arrow,
+                            ((jukebox->disp->w - width) / 2) + width + 8, yOff,
+                            false, false, 90);
                 }
             }
             break;
@@ -714,7 +721,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
     }
 }
 
-void setJukeboxMainMenu(void)
+void setJukeboxMainMenu(bool resetPos)
 {
     buzzer_stop();
 
@@ -722,12 +729,20 @@ void setJukeboxMainMenu(void)
     addRowToMeleeMenu(jukebox->menu, str_bgm);
     addRowToMeleeMenu(jukebox->menu, str_sfx);
     addRowToMeleeMenu(jukebox->menu, str_exit);
-
+    // Set the position
+    if(resetPos)
+    {
+        jukebox->mainMenuPos = 0;
+    }
+    jukebox->menu->selectedRow = jukebox->mainMenuPos;
     jukebox->screen = JUKEBOX_MENU;
 }
 
 void jukeboxMainMenuCb(const char * opt)
 {
+    // Save the position
+    jukebox->mainMenuPos = jukebox->menu->selectedRow;
+
     if (opt == str_exit)
     {
         switchToSwadgeMode(&modeMainMenu);
