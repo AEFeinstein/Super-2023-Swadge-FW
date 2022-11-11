@@ -753,30 +753,26 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                         bEvt.state = lastBtnState;
 
                         // Call the callback separately for each one, simulating the state as though it was sequential
-                        while (allButtons)
+                        for (uint16_t btn = UP; allButtons && btn <= SELECT; btn <<= 1)
                         {
-                            // Extract the first set button, by shifting 1 left by the number of trailing zeroes
-                            // __builtin_ctz returns the number of trailing zeroes in constant time
-                            bEvt.button = 1 << __builtin_ctz(allButtons);
-
-                            // If the button was already set in the previous state, this is a release, otherwise it's a press
-                            bEvt.down = !(lastBtnState & bEvt.button);
-
-                            // Add or remove the button to the simulated state
-                            if (bEvt.down)
+                            if (allButtons & btn)
                             {
-                                // Button down, add it to the state
-                                bEvt.state |= bEvt.button;
+                                bEvt.button = btn;
+                                bEvt.down = !(lastBtnState & btn);
+                                if (bEvt.down)
+                                {
+                                    // Button down, add it to the state
+                                    bEvt.state |= btn;
+                                }
+                                else
+                                {
+                                    // Button up, remove it from the state
+                                    bEvt.state &= ~btn;
+                                }
+                                // clear this button from the remaining ones so we can exit earlier
+                                allButtons &= ~btn;
+                                cSwadgeMode->fnButtonCallback(&bEvt);
                             }
-                            else
-                            {
-                                // Button up, remove it from the state
-                                bEvt.state &= ~bEvt.button;
-                            }
-
-                            // Unset the button bit from the pressed buttons
-                            allButtons &= ~bEvt.button;
-                            cSwadgeMode->fnButtonCallback(&bEvt);
                         }
                     }
                     else
