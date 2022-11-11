@@ -192,14 +192,18 @@ void beeButtonCb(buttonEvt_t* evt)
                 bee->scrollMod = -4;
                 break;
             }
-            case BTN_A:
-            case BTN_B:
             case LEFT:
             case RIGHT:
-            case START:
             {
                 break;
             }
+            case START:
+            {
+                switchToSwadgeMode(&modeMainMenu);
+                break;
+            }
+            case BTN_A:
+            case BTN_B:
             case SELECT:
             {
                 beeSetRandomText();
