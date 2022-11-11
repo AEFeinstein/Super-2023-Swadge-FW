@@ -50,7 +50,7 @@
 #define TONAL_DIFF_IN_TUNE_DEVIATION 10
 
 #define METRONOME_CENTER_X    tunernome->disp->w / 2
-#define METRONOME_CENTER_Y    tunernome->disp->h - 16 - CORNER_OFFSET
+#define METRONOME_CENTER_Y    tunernome->disp->h - 24 - CORNER_OFFSET
 #define METRONOME_RADIUS      135
 #define TUNER_RADIUS          80
 #define TUNER_TEXT_Y_OFFSET   30
@@ -143,6 +143,7 @@ typedef struct
     uint32_t blinkStartUs;
     uint32_t blinkAccumulatedUs;
     bool isBlinking;
+    bool isSilent;
 } tunernome_t;
 
 typedef struct
@@ -352,7 +353,8 @@ static const char theWordBanjo[] = "Banjo";
 static const char playStringsText[] = "Play all open strings";
 static const char listeningText[] = "Listening for a note";
 static const char leftStr[] = ": ";
-static const char rightStrTuner[] = "Start: Tuner";
+static const char rightStrTuner1[] = "Select: Beep";
+static const char rightStrTuner2[] = "Start: Tuner";
 static const char rightStrMetronome[] = "Start: Metronome";
 
 // TODO: these should be const after being assigned
@@ -420,6 +422,7 @@ void tunernomeEnterMode(display_t* disp)
     tunernome->blinkStartUs = 0;
     tunernome->blinkAccumulatedUs = 0;
     tunernome->isBlinking = false;
+    tunernome->isSilent = false;
 }
 
 /**
@@ -944,8 +947,12 @@ void tunernomeMainLoop(int64_t elapsedUs)
                      CORNER_OFFSET, tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
             
             // Draw text to switch to tuner mode
-            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrTuner,
-                     tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrTuner) - CORNER_OFFSET,
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrTuner1,
+                     tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrTuner1) - CORNER_OFFSET,
+                     tunernome->disp->h - (2 * tunernome->ibm_vga8.h) - 2 - CORNER_OFFSET);
+
+            drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrTuner2,
+                     tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrTuner2) - CORNER_OFFSET,
                      tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
             // Other logic things
@@ -1029,7 +1036,10 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     }
                 }
 
-                buzzer_play_sfx(song);
+                if(!tunernome->isSilent)
+                {
+                    buzzer_play_sfx(song);
+                }
                 setLeds(leds, NUM_LEDS);
                 tunernome->isBlinking = true;
                 tunernome->blinkStartUs = esp_timer_get_time();
@@ -1195,6 +1205,11 @@ void tunernomeButtonCallback(buttonEvt_t* evt)
                     case START:
                     {
                         switchToSubmode(TN_TUNER);
+                        break;
+                    }
+                    case SELECT:
+                    {
+                        tunernome->isSilent = !tunernome->isSilent;
                         break;
                     }
                     default:
