@@ -919,9 +919,10 @@ void tunernomeMainLoop(int64_t elapsedUs)
                     false, true, 0);
 
             // Draw the current beat it's on
-            float beatXSpacing = (tunernome->disp->w / tunernome->beatLength);
+            float beatXSpacing = ((float) tunernome->disp->w / (float) tunernome->beatLength);
             uint8_t beatRadius = 12;
-            if (tunernome->beatLength > 11) {
+            if (tunernome->beatLength > 11)
+            {
                 beatRadius = 8;
             }
             for(uint8_t i = 0; i < tunernome->beatLength; i++)
