@@ -1704,9 +1704,9 @@ const song_t creditsSong =
         {.note = F_SHARP_6, .timeMs = 57},
         {.note = SILENCE, .timeMs = 57},
         {.note = C_SHARP_4, .timeMs = 57},
-
+        {.note = SILENCE, .timeMs = 57},
     },
-    .numNotes = 1580,
+    .numNotes = 1581,
     .shouldLoop = true
 };
 
