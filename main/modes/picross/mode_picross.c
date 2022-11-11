@@ -1592,7 +1592,7 @@ void saveCompletedOnSelectedLevel(bool completed)
     picrossVictoryData_t* victData = calloc(1,size);//zero out. if data doesnt exist, then its been correctly initialized to all 0s. 
     readNvsBlob(picrossCompletedLevelData,victData,&size);
     victData->victories[(int)*&p->selectedLevel.index] = completed;
-    writeNvsBlob(picrossCompletedLevelData,victData,size);
+    writeNvsBlob(picrossCompletedLevelData, victData, sizeof(picrossVictoryData_t));
     free(victData);
 }
 
