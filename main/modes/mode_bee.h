@@ -5,6 +5,4 @@
 
 extern swadgeMode modeBee;
 
-extern const song_t hereComesTheSun;
-
 #endif
