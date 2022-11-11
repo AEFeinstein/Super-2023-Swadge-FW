@@ -147,6 +147,26 @@ void buzzer_init(gpio_num_t bzrGpio,
 }
 
 /**
+ * @brief Set the buzzer's bgm mute status
+ * 
+ * @param isBgmMuted True if background music is muted, false otherwise
+ */
+void buzzer_set_bgm_is_muted(bool isBgmMuted)
+{
+    bzr.isBgmMuted = isBgmMuted;
+}
+
+/**
+ * @brief Set the buzzer's sfx mute status
+ * 
+ * @param isSfxMuted True if sound effects are muted, false otherwise
+ */
+void buzzer_set_sfx_is_muted(bool isSfxMuted)
+{
+    bzr.isSfxMuted = isSfxMuted;
+}
+
+/**
  * @brief Start playing a background music on the buzzer. This has lower priority
  * than sound effects
  * 
