@@ -957,7 +957,7 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
 
         // the line must have enough space for the rest of the buffer
         // print the line, and advance the text pointer and offset
-        if (disp != NULL)
+        if (disp != NULL && textY + font->h >= 0 && textY <= disp->h)
         {
             textX = drawText(disp, font, color, buf, textX, textY);
         }
