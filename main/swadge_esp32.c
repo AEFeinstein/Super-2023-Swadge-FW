@@ -641,6 +641,9 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             buttonEvt_t bEvt = {0};
             while(checkButtonQueue(&bEvt))
             {
+                // Keep track of the last known button state
+                lastBtnState = bEvt.state;
+
                 // Don't ignore events by default
                 bool ignoreEvent = false;
 
@@ -746,29 +749,15 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                 {
                     if ((bEvt.button & (bEvt.button - 1)) != 0)
                     {
-                        // Multiple buttons were changed at the same exact time
+                        // Multiple buttons were pressed at the same exact time
                         uint16_t allButtons = bEvt.button;
 
-                        // Start with the previous button state
-                        bEvt.state = lastBtnState;
-
-                        // Call the callback separately for each one, simulating the state as though it was sequential
+                        // Call the callback separately for each one
                         for (uint16_t btn = UP; allButtons && btn <= SELECT; btn <<= 1)
                         {
                             if (allButtons & btn)
                             {
                                 bEvt.button = btn;
-                                bEvt.down = !(lastBtnState & btn);
-                                if (bEvt.down)
-                                {
-                                    // Button down, add it to the state
-                                    bEvt.state |= btn;
-                                }
-                                else
-                                {
-                                    // Button up, remove it from the state
-                                    bEvt.state &= ~btn;
-                                }
                                 // clear this button from the remaining ones so we can exit earlier
                                 allButtons &= ~btn;
                                 cSwadgeMode->fnButtonCallback(&bEvt);
@@ -780,9 +769,6 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                         cSwadgeMode->fnButtonCallback(&bEvt);
                     }
                 }
-
-                // Keep track of the last known button state
-                lastBtnState = bEvt.state;
             }
 
             // Process touch events
