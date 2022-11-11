@@ -76,7 +76,7 @@ void  jukeboxMainMenuCb(const char* opt);
 void  jukeboxBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
                              int16_t w, int16_t h, int16_t up, int16_t upNum );
 
-void setJukeboxMainMenu(void);
+void setJukeboxMainMenu(bool resetPos);
 
 /*==============================================================================
  * Structs
@@ -107,6 +107,7 @@ typedef struct
     bool inMusicSubmode;
 
     meleeMenu_t* menu;
+    uint8_t mainMenuPos;
     jukeboxScreen_t screen;
 } jukebox_t;
 
@@ -352,7 +353,7 @@ void  jukeboxEnterMode(display_t* disp)
     portableDanceDisableDance(jukebox->portableDances, "Fire G");
     portableDanceDisableDance(jukebox->portableDances, "Fire B");
 
-    setJukeboxMainMenu();
+    setJukeboxMainMenu(true);
 
     stopNote();
 }
@@ -425,7 +426,7 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                     }
                     case START:
                     {
-                        setJukeboxMainMenu();
+                        setJukeboxMainMenu(false);
                         break;
                     }
                     case UP:
@@ -720,7 +721,7 @@ void  jukeboxMainLoop(int64_t elapsedUs)
     }
 }
 
-void setJukeboxMainMenu(void)
+void setJukeboxMainMenu(bool resetPos)
 {
     buzzer_stop();
 
@@ -728,12 +729,20 @@ void setJukeboxMainMenu(void)
     addRowToMeleeMenu(jukebox->menu, str_bgm);
     addRowToMeleeMenu(jukebox->menu, str_sfx);
     addRowToMeleeMenu(jukebox->menu, str_exit);
-
+    // Set the position
+    if(resetPos)
+    {
+        jukebox->mainMenuPos = 0;
+    }
+    jukebox->menu->selectedRow = jukebox->mainMenuPos;
     jukebox->screen = JUKEBOX_MENU;
 }
 
 void jukeboxMainMenuCb(const char * opt)
 {
+    // Save the position
+    jukebox->mainMenuPos = jukebox->menu->selectedRow;
+
     if (opt == str_exit)
     {
         switchToSwadgeMode(&modeMainMenu);
