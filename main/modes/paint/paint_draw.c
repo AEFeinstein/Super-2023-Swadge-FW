@@ -587,9 +587,10 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
 
     if (paintHelp != NULL)
     {
-        uint16_t pastColorBoxX = PAINT_COLORBOX_MARGIN_X + (paintState->canvas.x - 1 - PAINT_COLORBOX_W - PAINT_COLORBOX_MARGIN_X * 2 - 2) / 2 + PAINT_COLORBOX_W + 2 + 6;
+        int16_t pastColorBoxX = PAINT_COLORBOX_MARGIN_X + (paintState->canvas.x - 1 - PAINT_COLORBOX_W - PAINT_COLORBOX_MARGIN_X * 2 - 2) / 2 + PAINT_COLORBOX_W + 2 + 6;
+        int16_t wrapY = paintState->canvas.y + paintState->canvas.h * paintState->canvas.yScale + 3;
         const char* rest = drawTextWordWrap(paintState->disp, &paintState->toolbarFont, c000, paintHelp->curHelp->prompt,
-                 pastColorBoxX, paintState->canvas.y + paintState->canvas.h * paintState->canvas.yScale + 3,
+                 &pastColorBoxX, &wrapY,
                  paintState->disp->w, paintState->disp->h - paintState->marginBottom + paintHelp->helpH);
         if (rest)
         {
