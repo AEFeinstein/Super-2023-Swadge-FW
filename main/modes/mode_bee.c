@@ -41,7 +41,7 @@ typedef struct
     font_t font;
     int64_t tElapsedUs;
     int8_t scrollMod;
-    int16_t yOffset;
+    int32_t yOffset;
     const char** text;
     uint16_t textLines;
     paletteColor_t textColor;
@@ -134,7 +134,7 @@ void beeMainLoop(int64_t elapsedUs)
         bee->disp->clearPx();
 
         // Draw names until the cursor is off the screen
-        int16_t yPos = 0;
+        int32_t yPos = 0;
         int16_t idx = 0;
         while((yPos + bee->yOffset) < bee->disp->h)
         {
