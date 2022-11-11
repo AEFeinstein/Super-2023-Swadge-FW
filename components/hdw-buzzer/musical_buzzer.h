@@ -167,6 +167,8 @@ void buzzer_init(gpio_num_t bzrGpio,
     ledc_timer_t ledcTimer, ledc_channel_t ledcChannel,
     timer_group_t noteCheckGrpNum, timer_idx_t noteChkTmrNum,
     bool isBgmMuted, bool isSfxMuted);
+void buzzer_set_bgm_is_muted(bool isBgmMuted);
+void buzzer_set_sfx_is_muted(bool isSfxMuted);
 void buzzer_play_bgm(const song_t* song);
 void buzzer_play_sfx(const song_t* song);
 void buzzer_stop(void);

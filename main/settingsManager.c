@@ -9,6 +9,7 @@
 #include "settingsManager.h"
 #include "led_util.h"
 #include "hdw-tft.h"
+#include "musical_buzzer.h"
 
 //==============================================================================
 // Defines
@@ -102,6 +103,7 @@ bool setBgmIsMuted(bool isMuted)
     // Write the value
     settingsRam.bgmIsMuted = isMuted;
     settingsRam.bgmIsMutedRead = true;
+    buzzer_set_bgm_is_muted(isMuted);
     return writeNvs32(KEY_MUTE_BGM, isMuted);
 }
 
@@ -143,6 +145,7 @@ bool setSfxIsMuted(bool isMuted)
     // Write the value
     settingsRam.sfxIsMuted = isMuted;
     settingsRam.sfxIsMutedRead = true;
+    buzzer_set_sfx_is_muted(isMuted);
     return writeNvs32(KEY_MUTE_SFX, isMuted);
 }
 
