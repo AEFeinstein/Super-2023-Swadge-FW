@@ -41,10 +41,12 @@ typedef struct
     font_t font;
     int64_t tElapsedUs;
     int8_t scrollMod;
-    int16_t yOffset;
+    int32_t yOffset;
     const char** text;
     uint16_t textLines;
     paletteColor_t textColor;
+    int32_t cachedPos;
+    int16_t cachedIdx, cachedHeight;
 } bee_t;
 
 bee_t* bee;
@@ -94,6 +96,10 @@ void beeSetRandomText(void)
     bee->tElapsedUs = 0;
     bee->scrollMod = 1;
 
+    bee->cachedIdx = 0;
+    bee->cachedPos = 0;
+    bee->cachedHeight = 0;
+
     uint8_t numTexts;
     const textOption* texts = getTextOpts(&numTexts);
 
@@ -130,20 +136,32 @@ void beeMainLoop(int64_t elapsedUs)
         // This static var tracks the vertical scrolling offset
         bee->yOffset -= (bee->scrollMod > 0) ? 1 : -1;
 
+        if (bee->scrollMod < 0)
+        {
+            if (bee->cachedIdx > 0)
+            {
+                bee->cachedIdx--;
+                bee->cachedHeight = textHeight(&bee->font, bee->text[bee->cachedIdx], bee->disp->w - 26, INT16_MAX);
+                bee->cachedPos -= bee->cachedHeight;
+            }
+        }
+
         // Clear first
         bee->disp->clearPx();
 
         // Draw names until the cursor is off the screen
-        int16_t yPos = 0;
-        int16_t idx = 0;
+        int32_t yPos = bee->cachedPos;
+        int16_t idx = bee->cachedIdx;
         while((yPos + bee->yOffset) < bee->disp->h)
         {
-            // Only draw names with negative offsets if they're a little on screen
-            if((yPos + bee->yOffset) >= -textHeight(&bee->font, bee->text[idx], bee->disp->w - 26, INT16_MAX))
+            if((yPos + bee->yOffset) >= -((idx == bee->cachedIdx && bee->cachedHeight != 0) ? (bee->cachedHeight) : (textHeight(&bee->font, bee->text[idx], bee->disp->w - 26, INT16_MAX))))
             {
                 // If the names have scrolled back to the start, reset the scroll vars
                 if(0 == (yPos + bee->yOffset) && 0 == idx)
                 {
+                    bee->cachedIdx = 0;
+                    bee->cachedPos = 0;
+                    bee->cachedHeight = 0;
                     bee->yOffset = 0;
                     yPos = 0;
                 }
@@ -159,8 +177,16 @@ void beeMainLoop(int64_t elapsedUs)
             }
             else
             {
+                // make things go a wee bit faster next loop
+                if (idx != bee->cachedIdx || bee->cachedHeight == 0)
+                {
+                    bee->cachedHeight = textHeight(&bee->font, bee->text[idx], bee->disp->w - 26, INT16_MAX);
+                }
+                bee->cachedIdx = idx;
+                bee->cachedPos = yPos;
+
                 // Add the entire height of the text to yPos, to simulate drawing it above the screen
-                yPos += textHeight(&bee->font, bee->text[idx], bee->disp->w - 26, INT16_MAX);
+                yPos += bee->cachedHeight;
             }
 
             // Always update the idx and cursor position, even if the text wasn't drawn
