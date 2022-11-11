@@ -4,7 +4,7 @@
 //Option #1
 const char* findthemall[] =
 {
-    "There are 18 of these copy-pastas, can you find them all?\n",
+    "There are 19 of these copy-pastas, can you find them all?\n",
     "\n",
     "\n",
     "\n",
@@ -2439,6 +2439,7 @@ const char* mikuoop[] =
     "\n",
 };
 
+//Option #17
 const char* halfApress[] =
 {
     "In this video, I will be explaining exactly what I do to collect Watch for Rolling Rocks in 0.5x A Presses.\n",
@@ -2734,6 +2735,7 @@ const char* halfApress[] =
     "And there you have it, Watch For Rolling Rocks done in 0.5x A presses. Man, I did not expect this video to become 25 minutes long when I started commentating but I guess there was just that much to explain. Hopefully, you were able to follow along with my explanations and visuals, learn something new, and had an enjoyable experience. So, thanks for watching.\n",
 };
 
+//Option #18
 const char* codeOfConduct[] =
 {
     "Code of Conduct\n",
@@ -2831,6 +2833,28 @@ const char* codeOfConduct[] =
     "\n",
 };
 
+//Option #19
+const char* hunter2[] =
+{
+    "<Cthon98> hey, if you type in your pw, it will show as stars\n",
+    "<Cthon98> ********* see!\n",
+    "<AzureDiamond> hunter2\n",
+    "<AzureDiamond> doesnt look like stars to me\n",
+    "<Cthon98> <AzureDiamond> *******\n",
+    "<Cthon98> thats what I see\n",
+    "<AzureDiamond> oh, really?\n",
+    "<Cthon98> Absolutely\n",
+    "<AzureDiamond> you can go hunter2 my hunter2-ing hunter2\n",
+    "<AzureDiamond> haha, does that look funny to you?\n",
+    "<Cthon98> lol, yes. See, when YOU type hunter2, it shows to us as *******\n",
+    "<AzureDiamond> thats neat, I didnt know IRC did that\n",
+    "<Cthon98> yep, no matter how many times you type hunter2, it will show to us as *******\n",
+    "<AzureDiamond> awesome!\n",
+    "<AzureDiamond> wait, how do you know my pw?\n",
+    "<Cthon98> er, I just copy pasted YOUR ******'s and it appears to YOU as hunter2 cause its your pw\n",
+    "<AzureDiamond> oh, ok.\n\n\n\n\n\n\n\n",
+};
+
 const textOption texts[] =
 {
     {.text = findthemall, .lines = ARRAY_SIZE(findthemall), .color = c505},
@@ -2851,6 +2875,7 @@ const textOption texts[] =
     {.text = mikuoop, .lines = ARRAY_SIZE(mikuoop), .color = c115},
     {.text = halfApress, .lines = ARRAY_SIZE(halfApress), .color = c035},
     {.text = codeOfConduct, .lines = ARRAY_SIZE(codeOfConduct), .color = c555},
+    {.text = hunter2, .lines = ARRAY_SIZE(hunter2), .color = c050},
 };
 
 const textOption* getTextOpts(uint8_t * numTexts)
