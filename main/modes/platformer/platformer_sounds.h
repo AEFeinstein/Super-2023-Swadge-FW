@@ -16,7 +16,7 @@ extern const song_t bgmIntro;
 extern const song_t bgmSmooth;    
 extern const song_t bgmUnderground;
 extern const song_t bgmCastle;    
-/*extern const song_t sndGameStart;*/
+extern const song_t sndGameStart;
 extern const song_t sndDie;       
 extern const song_t sndMenuSelect;
 extern const song_t sndMenuConfirm;

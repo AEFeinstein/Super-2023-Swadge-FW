@@ -2019,7 +2019,7 @@ const song_t bgmCastle =
     .shouldLoop = true
 };
 
-/*const song_t sndGameStart =
+const song_t sndGameStart =
 {
     .notes =
     {
@@ -2029,7 +2029,7 @@ const song_t bgmCastle =
     },
     .numNotes = 14,
     .shouldLoop = false
-};*/
+};
 
 const song_t sndDie =
 {

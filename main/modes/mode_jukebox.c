@@ -263,7 +263,7 @@ static const jukeboxSong platformerSfx[] =
     {.name = "Menu Select", .song = &sndMenuSelect},
     {.name = "Menu Confirm", .song = &sndMenuConfirm},
     {.name = "Menu Deny", .song = &sndMenuDeny},
-    // {.name = "Start (Unused)", .song = &sndGameStart},
+    {.name = "Start (Unused)", .song = &sndGameStart},
     {.name = "Jump 1", .song = &sndJump1},
     {.name = "Jump 2", .song = &sndJump2},
     {.name = "Jump 3", .song = &sndJump3},
