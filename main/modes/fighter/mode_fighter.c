@@ -2228,6 +2228,9 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         otherFtr->damage += hbx->damage;
                         ftr->damageGiven += hbx->damage;
 
+                        // After receiving damage, clear freefall to enable up+b
+                        otherFtr->isInFreefall = false;
+
                         // Note the fighter was hit for SFX & LEDs
                         otherFtr->damagedThisFrame = true;
 
@@ -2345,6 +2348,9 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                         ftr->damage += proj->damage;
                         proj->owner->damageGiven += proj->damage;
 
+                        // After receiving damage, clear freefall to enable up+b
+                        ftr->isInFreefall = false;
+                        
                         // Note the fighter was hit for SFX & LEDs
                         ftr->damagedThisFrame = true;
 
