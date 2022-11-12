@@ -24,6 +24,9 @@
 // Defines
 //==============================================================================
 
+#define VER_LEN 7
+#define FTR_VERSION "221112a" // must be seven chars! yymmddl
+
 #define FIGHTER_MENU_IDLE_US (1000000 * 15)
 
 //==============================================================================
@@ -1388,7 +1391,7 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
             // Check what was received
             if(payload[0] == VERSION_MSG)
             {
-                if(0 == memcmp(&payload[1], GIT_SHA1, 7))
+                if(0 == memcmp(&payload[1], FTR_VERSION, VER_LEN))
                 {
                     // Connection established, show character select screen
                     setFighterMultiplayerCharSelMenu(true);
@@ -1529,8 +1532,8 @@ void fighterCheckGameBegin(void)
  */
 void fighterSendVersionToOther(void)
 {
-    uint8_t payload[8] = {VERSION_MSG};
-    memcpy(&payload[1], GIT_SHA1, 7);
+    uint8_t payload[1 + VER_LEN] = {VERSION_MSG};
+    memcpy(&payload[1], FTR_VERSION, VER_LEN);
     // Send button state to the other swawdge
     p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
     fm->lastSentMsg = VERSION_MSG;
