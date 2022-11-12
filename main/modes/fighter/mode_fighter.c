@@ -557,9 +557,9 @@ void getHurtbox(fighter_t* ftr, box_t* hurtbox)
 void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* newSprite,
                       int32_t timer, vector_t* knockback, uint32_t line)
 {
-    // if(ftr == &f->fighters[1])
+    // if(ftr == &f->fighters[0])
     // {
-    //     ESP_LOGD("FTR", "%s:%d %d\n", __func__, line, newState);
+    //     ESP_LOGD("FTR", "%s:%d %d", __func__, line, newState);
     // }
 
     // Clean up variables when leaving a state
@@ -664,7 +664,7 @@ void _setFighterRelPos(fighter_t* ftr, platformPos_t relPos, const platform_t* t
 {
     // if(ftr == &f->fighters[0])
     // {
-    //     ESP_LOGD("FTR", "%s:%d %d, %s\n", __func__, line, relPos, isInAir ? "in air" : "on ground");
+    //     ESP_LOGD("FTR", "%s:%d %d, %s", __func__, line, relPos, isInAir ? "in air" : "on ground");
     // }
 
     ftr->relativePos = relPos;
@@ -2032,8 +2032,11 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                         setFighterRelPos(ftr, platformPos, &platforms[idx], NULL, true);
                     }
 
-                    // Moving downward
-                    if((false == ftr->ledgeJumped) && (ftr->isInFreefall) && (ftr->velocity.y > 0))
+                    // Check if the fighter is hasn't ledge-jumped, is in freefall downwards,
+                    // and is not in the startup state. A ledge jump in FS_STARTUP may get
+                    // overwritten by a boost in FS_ATTACK
+                    if((false == ftr->ledgeJumped) && (ftr->isInFreefall) &&
+                            (ftr->velocity.y > 0) && (ftr->state != FS_STARTUP) )
                     {
                         // Give a bonus 'jump' to get back on the platform
                         ftr->ledgeJumped = true;
