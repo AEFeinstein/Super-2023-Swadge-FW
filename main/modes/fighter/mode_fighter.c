@@ -58,7 +58,7 @@ typedef enum
 
 #define BARRIER_COLOR         c435
 #define BOTTOM_PLATFORM_COLOR c111
-#define TOP_PLATFORM_COLOR    c333
+#define TOP_PLATFORM_COLOR    c232
 #define HUD_COLOR             c444
 #define INVINCIBLE_COLOR      c550
 
