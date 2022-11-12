@@ -25,6 +25,7 @@
 #include "swadgeMode.h"
 #include "swadge_util.h"
 #include "touch_sensor.h"
+#include "nvs_manager.h"
 
 #include "fighter_music.h"
 #include "fighter_mp_result.h"
@@ -35,6 +36,8 @@
 #include "mode_tunernome.h"
 #include "mode_credits.h"
 #include "mode_test.h"
+#include "mode_picross.h"
+#include "picross_menu.h"
 #include "picross_music.h"
 #include "paint_song.h"
 
@@ -77,6 +80,7 @@ void  jukeboxBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
                              int16_t w, int16_t h, int16_t up, int16_t upNum );
 
 void setJukeboxMainMenu(bool resetPos);
+static bool beatenRickLevel(void);
 
 /*==============================================================================
  * Structs
@@ -200,7 +204,7 @@ static const jukeboxSong picrossMusic[] =
 {
     {.name = "Picross BGM", .song = &picross_music_bg},
     {.name = "Picross Win", .song = &picross_music_win},
-    // {.name = "Rick", .song = &picross_music_rick}, lol no
+    {.name = "Rick", .song = &picross_music_rick} // This must be last
 };
 
 static const jukeboxSong paintMusic[] =
@@ -476,6 +480,12 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                         if(jukebox->inMusicSubmode)
                         {
                             length = musicCategories[jukebox->categoryIdx].numSongs;
+                            // Hide the last picross song if not unlocked
+                            if(picrossMusic == musicCategories[jukebox->categoryIdx].songs &&
+                                !beatenRickLevel())
+                            {
+                                length--;
+                            }
                         }
                         else
                         {
@@ -496,6 +506,12 @@ void  jukeboxButtonCallback(buttonEvt_t* evt)
                         if(jukebox->inMusicSubmode)
                         {
                             length = musicCategories[jukebox->categoryIdx].numSongs;
+                            // Hide the last picross song if not unlocked
+                            if(picrossMusic == musicCategories[jukebox->categoryIdx].songs &&
+                                !beatenRickLevel())
+                            {
+                                length--;
+                            }
                         }
                         else
                         {
@@ -645,6 +661,12 @@ void  jukeboxMainLoop(int64_t elapsedUs)
                     songName = musicCategories[jukebox->categoryIdx].songs[jukebox->songIdx].name;
                     songTypeName = "Music";
                     numSongs = musicCategories[jukebox->categoryIdx].numSongs;
+                    // Hide the last picross song if not unlocked
+                    if(picrossMusic == musicCategories[jukebox->categoryIdx].songs &&
+                        !beatenRickLevel())
+                    {
+                        numSongs--;
+                    }
                     drawNames = true;
                 }
             }
@@ -795,4 +817,18 @@ void jukeboxBackgroundDrawCb(display_t* disp, int16_t x, int16_t y,
             break;
         }
     }
+}
+
+/**
+ * @return true if Rick was unlocked, false if it was not
+ */
+static bool beatenRickLevel(void)
+{
+    picrossVictoryData_t vict = {0};
+    size_t victSize = sizeof(picrossVictoryData_t);
+    if(readNvsBlob(picrossCompletedLevelData, &vict, &victSize) && victSize >= sizeof(picrossVictoryData_t))
+    {
+        return vict.victories[29] ? true : false;
+    }
+    return false;
 }
