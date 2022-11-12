@@ -2250,6 +2250,9 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         }
                         otherFtr->deferredKnockback.y = ((hbx->knockback.y * knockbackScalar) / 64);
 
+                        otherFtr->deferredKnockback.x = (otherFtr->deferredKnockback.x * otherFtr->weight) / 1024;
+                        otherFtr->deferredKnockback.y = (otherFtr->deferredKnockback.y * otherFtr->weight) / 1024;
+
                         // Apply hitstun, scaled by defendant's percentage
                         otherFtr->deferredHitsun = hbx->hitstun * (1 + (otherFtr->damage / 32));
 
@@ -2372,6 +2375,9 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                             knockback.x = -((proj->knockback.x * knockbackScalar) / 64);
                         }
                         knockback.y = ((proj->knockback.y * knockbackScalar) / 64);
+
+                        knockback.x = (knockback.x * ftr->weight) / 1024;
+                        knockback.y = (knockback.y * ftr->weight) / 1024;
 
                         // Only apply knockback if nonzero (i.e. don't stop fighter)
                         if(knockback.x || knockback.y)

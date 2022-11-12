@@ -1,6 +1,7 @@
 {
    "name":"Bigg Funkus",
    "gravity":8192,
+   "weight":1536,
    "jump_velo":-15360,
    "run_accel":13000,
    "run_decel":13000,

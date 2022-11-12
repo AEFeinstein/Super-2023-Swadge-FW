@@ -1,6 +1,7 @@
 {
    "name":"King Donut",
    "gravity":8192,
+   "weight":1024,
    "jump_velo":-15360,
    "run_accel":13000,
    "run_decel":13000,

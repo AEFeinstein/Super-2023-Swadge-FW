@@ -203,6 +203,8 @@ typedef struct
     uint16_t landingLag;
     /* how floaty a jump is */
     int32_t gravity;
+    /* weight is a scalar for knockback */
+    int32_t weight;
     /* A negative velocity applied when jumping.
      * The more negative, the higher the jump
      */
