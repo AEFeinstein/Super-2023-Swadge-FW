@@ -2270,7 +2270,8 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
  */
 void checkFigherDeferredHitstun(fighter_t* ftr)
 {
-    if(ftr->deferredHitsun)
+    // Apply knockback, if any
+    if(ftr->deferredKnockback.x || ftr->deferredKnockback.y)
     {
         ftr->velocity.x = ftr->deferredKnockback.x;
         ftr->velocity.y = ftr->deferredKnockback.y;
@@ -2281,18 +2282,22 @@ void checkFigherDeferredHitstun(fighter_t* ftr)
             setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
             ftr->numJumpsLeft = 1;
         }
+    }
 
-        // Apply hitstun, scaled by defendant's percentage
+    // Apply hitstun, scaled by defendant's percentage
+    if(ftr->deferredHitsun)
+    {
         setFighterState(ftr, FS_HITSTUN,
                         ftr->isInAir ? (&ftr->hitstunAirSprite) : (&ftr->hitstunGroundSprite),
                         ftr->deferredHitsun,
                         &ftr->deferredKnockback);
-
         // Reset these to not do it twice
         ftr->deferredHitsun = 0;
-        ftr->deferredKnockback.x = 0;
-        ftr->deferredKnockback.y = 0;
     }
+
+    // Reset these to not do it twice
+    ftr->deferredKnockback.x = 0;
+    ftr->deferredKnockback.y = 0;
 }
 
 /**
@@ -2367,21 +2372,29 @@ void checkFighterProjectileCollisions(list_t* projectiles)
                             knockback.x = -((proj->knockback.x * knockbackScalar) / 64);
                         }
                         knockback.y = ((proj->knockback.y * knockbackScalar) / 64);
-                        ftr->velocity.x = knockback.x;
-                        ftr->velocity.y = knockback.y;
 
-                        // Knock the fighter into the air
-                        if(!ftr->isInAir && ftr->velocity.y < 0)
+                        // Only apply knockback if nonzero (i.e. don't stop fighter)
+                        if(knockback.x || knockback.y)
                         {
-                            setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
-                            ftr->numJumpsLeft = 1;
+                            ftr->velocity.x = knockback.x;
+                            ftr->velocity.y = knockback.y;
+
+                            // Knock the fighter into the air
+                            if(!ftr->isInAir && ftr->velocity.y < 0)
+                            {
+                                setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
+                                ftr->numJumpsLeft = 1;
+                            }
                         }
 
                         // Apply hitstun, scaled by defendant's percentage
-                        setFighterState(ftr, FS_HITSTUN,
-                                        ftr->isInAir ? (&ftr->hitstunAirSprite) : (&ftr->hitstunGroundSprite),
-                                        proj->hitstun * (1 + (ftr->damage / 32)),
-                                        &knockback);
+                        if(proj->hitstun)
+                        {
+                            setFighterState(ftr, FS_HITSTUN,
+                                            ftr->isInAir ? (&ftr->hitstunAirSprite) : (&ftr->hitstunGroundSprite),
+                                            proj->hitstun * (1 + (ftr->damage / 32)),
+                                            &knockback);
+                        }
 
                         // Mark this projectile for removal
                         proj->removeNextFrame = true;

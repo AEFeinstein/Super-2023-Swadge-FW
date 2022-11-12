@@ -765,10 +765,7 @@ int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokId
                 tokIdx++;
                 // Convert ms to frames
                 hbx->hitstun = jsonInteger(jsonStr, toks[tokIdx]) / FRAME_TIME_MS;
-                if(0 == hbx->hitstun)
-                {
-                    hbx->hitstun = 1;
-                }
+                // Allow 0 frames hitstun
                 tokIdx++;
                 numFieldsParsed++;
             }
