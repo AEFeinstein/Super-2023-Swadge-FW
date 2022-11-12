@@ -250,6 +250,8 @@ typedef struct
     offsetSprite_t* currentSprite;
     uint32_t hitstopTimer;
     uint8_t hitstopShake;
+    vector_t deferredKnockback;
+    int32_t deferredHitsun;
 } fighter_t;
 
 typedef struct

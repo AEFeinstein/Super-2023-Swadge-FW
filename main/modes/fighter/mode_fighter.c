@@ -130,6 +130,7 @@ void checkFighterButtonInput(fighter_t* ftr);
 bool updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t numPlatforms);
 void checkFighterTimer(fighter_t* ftr, bool hitstopActive);
 void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr);
+void checkFigherDeferredHitstun(fighter_t* ftr);
 void checkFighterProjectileCollisions(list_t* projectiles);
 
 void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
@@ -921,6 +922,11 @@ void fighterGameLoop(int64_t elapsedUs)
                 // Check for collisions between hitboxes and hurtboxes
                 checkFighterHitboxCollisions(&f->fighters[0], &f->fighters[1]);
                 checkFighterHitboxCollisions(&f->fighters[1], &f->fighters[0]);
+
+                // After hitboxes are checked, enter hitstun states
+                checkFigherDeferredHitstun(&f->fighters[0]);
+                checkFigherDeferredHitstun(&f->fighters[1]);
+
                 // Check for collisions between projectiles and hurtboxes
                 checkFighterProjectileCollisions(&f->projectiles);
             }
@@ -2231,31 +2237,18 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                         // Apply the knockback, scaled by damage
                         // roughly (1 + (0.02 * dmg))
                         int32_t knockbackScalar = 64 + (otherFtr->damage);
-                        vector_t knockback;
                         if(FACING_RIGHT == ftr->dir)
                         {
-                            knockback.x = ((hbx->knockback.x * knockbackScalar) / 64);
+                            otherFtr->deferredKnockback.x = ((hbx->knockback.x * knockbackScalar) / 64);
                         }
                         else
                         {
-                            knockback.x = -((hbx->knockback.x * knockbackScalar) / 64);
+                            otherFtr->deferredKnockback.x = -((hbx->knockback.x * knockbackScalar) / 64);
                         }
-                        knockback.y = ((hbx->knockback.y * knockbackScalar) / 64);
-                        otherFtr->velocity.x = knockback.x;
-                        otherFtr->velocity.y = knockback.y;
-
-                        // Knock the fighter into the air
-                        if(!otherFtr->isInAir && otherFtr->velocity.y < 0)
-                        {
-                            setFighterRelPos(otherFtr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
-                            otherFtr->numJumpsLeft = 1;
-                        }
+                        otherFtr->deferredKnockback.y = ((hbx->knockback.y * knockbackScalar) / 64);
 
                         // Apply hitstun, scaled by defendant's percentage
-                        setFighterState(otherFtr, FS_HITSTUN,
-                                        otherFtr->isInAir ? (&otherFtr->hitstunAirSprite) : (&otherFtr->hitstunGroundSprite),
-                                        hbx->hitstun * (1 + (otherFtr->damage / 32)),
-                                        &knockback);
+                        otherFtr->deferredHitsun = hbx->hitstun * (1 + (otherFtr->damage / 32));
 
                         // Break out of the for loop so that only one hitbox hits
                         break;
@@ -2263,6 +2256,39 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
                 }
             }
         }
+    }
+}
+
+/**
+ * Apply deferred hitstun and knockback after both fighter's hitboxes were
+ * checked this frame
+ * 
+ * @param ftr The fighter to check
+ */
+void checkFigherDeferredHitstun(fighter_t* ftr)
+{
+    if(ftr->deferredHitsun)
+    {
+        ftr->velocity.x = ftr->deferredKnockback.x;
+        ftr->velocity.y = ftr->deferredKnockback.y;
+
+        // Knock the fighter into the air
+        if(!ftr->isInAir && ftr->velocity.y < 0)
+        {
+            setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
+            ftr->numJumpsLeft = 1;
+        }
+
+        // Apply hitstun, scaled by defendant's percentage
+        setFighterState(ftr, FS_HITSTUN,
+                        ftr->isInAir ? (&ftr->hitstunAirSprite) : (&ftr->hitstunGroundSprite),
+                        ftr->deferredHitsun,
+                        &ftr->deferredKnockback);
+
+        // Reset these to not do it twice
+        ftr->deferredHitsun = 0;
+        ftr->deferredKnockback.x = 0;
+        ftr->deferredKnockback.y = 0;
     }
 }
 
