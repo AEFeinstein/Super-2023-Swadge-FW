@@ -230,8 +230,9 @@ typedef struct
     uint8_t stockIconIdx;
     /* Input Tracking */
     int32_t prevBtnState;
-    int32_t btnState;
-    int32_t btnPressesSinceLast;
+    int32_t btnStateBuf[10];
+    int16_t bsBufHead;
+    int16_t bsBufTail;
     /* Current state tracking */
     fighterState_t state;
     bool isAerialAttack;

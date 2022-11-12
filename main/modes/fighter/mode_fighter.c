@@ -154,6 +154,9 @@ uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t
     void drawProjectileDebugBox(display_t* d, list_t* projectiles, int16_t camOffX, int16_t camOffY);
 #endif
 
+void fighterEnqueueButtonInput(fighter_t* ftr, uint32_t btn);
+bool fighterDequeueButtonInput(fighter_t* ftr, uint32_t* btn);
+
 // void fighterAccelerometerCb(accel_t* accel);
 // void fighterAudioCb(uint16_t * samples, uint32_t sampleCnt);
 // void fighterTemperatureCb(float tmp_c);
@@ -858,15 +861,15 @@ void fighterGameLoop(int64_t elapsedUs)
                 case CPU_ONLY:
                 {
                     // Figure out CPU actions
-                    f->fighters[0].btnState = cpuButtonAction(&f->cpu1, &f->fighters[1], &f->fighters[0], f->projectiles,
-                                              stages[f->stageIdx]);
+                    fighterEnqueueButtonInput(&f->fighters[0], cpuButtonAction(
+                                                  &f->cpu1, &f->fighters[1], &f->fighters[0], f->projectiles, stages[f->stageIdx]));
                 }
                 // fall through
                 case VS_CPU:
                 {
                     // Figure out CPU actions
-                    f->fighters[1].btnState = cpuButtonAction(&f->cpu0, &f->fighters[0], &f->fighters[1], f->projectiles,
-                                              stages[f->stageIdx]);
+                    fighterEnqueueButtonInput(&f->fighters[1], cpuButtonAction(
+                                                  &f->cpu0, &f->fighters[0], &f->fighters[1], f->projectiles, stages[f->stageIdx]));
                     // All button input is local
                     f->buttonInputReceived = true;
                 }
@@ -884,10 +887,10 @@ void fighterGameLoop(int64_t elapsedUs)
                 // When counting in, ignore button inputs
                 if(COUNTING_IN == f->gamePhase)
                 {
-                    f->fighters[0].btnState = 0;
-                    f->fighters[0].btnPressesSinceLast = 0;
-                    f->fighters[1].btnState = 0;
-                    f->fighters[1].btnPressesSinceLast = 0;
+                    f->fighters[0].bsBufHead = 0;
+                    f->fighters[0].bsBufTail = 0;
+                    f->fighters[1].bsBufHead = 0;
+                    f->fighters[1].bsBufTail = 0;
                 }
                 // Check fighter button inputs
                 checkFighterButtonInput(&f->fighters[0]);
@@ -1232,163 +1235,52 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
  */
 void checkFighterButtonInput(fighter_t* ftr)
 {
-    // Button state is the known state and any inter-frame
-    uint32_t btnState = ftr->btnState | ftr->btnPressesSinceLast;
-
-    // Manage ducking, only happens on the ground
-    if(!ftr->isInAir)
+    uint32_t btnState;
+    if(fighterDequeueButtonInput(ftr, &btnState))
     {
-        if ((FS_IDLE == ftr->state) && (btnState & DOWN))
+        // Manage ducking, only happens on the ground
+        if(!ftr->isInAir)
         {
-            setFighterState(ftr, FS_DUCKING, &(ftr->duckSprite), 0, NULL);
-        }
-        else if((FS_DUCKING == ftr->state) && !(btnState & DOWN))
-        {
-            setFighterState(ftr, FS_IDLE, &(ftr->idleSprite0), 0, NULL);
-        }
-    }
-
-    // Manage the A button
-    if (!(ftr->prevBtnState & BTN_A) && (btnState & BTN_A))
-    {
-        switch(ftr->state)
-        {
-            case FS_IDLE:
-            case FS_RUNNING:
-            case FS_JUMPING:
+            if ((FS_IDLE == ftr->state) && (btnState & DOWN))
             {
-                // Pressing A in these states means jump
-                if(ftr->numJumpsLeft > 0)
-                {
-                    // Only set short hop timer on the first jump
-                    if(ftr->numJumps == ftr->numJumpsLeft)
-                    {
-                        ftr->shortHopTimer = 125 / FRAME_TIME_MS;
-                        ftr->isShortHop = false;
-                    }
-                    ftr->numJumpsLeft--;
-                    ftr->velocity.y = ftr->jump_velo;
-                    // Only update relative pos if not already passing through a platform
-                    if(PASSING_THROUGH_PLATFORM != ftr->relativePos)
-                    {
-                        setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
-                    }
-                    setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
-
-                    // Change direction mid-air when jumping
-                    // Up Air attack can also change direction, otherwise
-                    // direction is not changed while mid-air
-                    if(btnState & LEFT)
-                    {
-                        ftr->dir = FACING_LEFT;
-                    }
-                    else if (btnState & RIGHT)
-                    {
-                        ftr->dir = FACING_RIGHT;
-                    }
-                }
-                break;
+                setFighterState(ftr, FS_DUCKING, &(ftr->duckSprite), 0, NULL);
             }
-            case FS_DUCKING:
+            else if((FS_DUCKING == ftr->state) && !(btnState & DOWN))
             {
-                // Pressing A in this state means fall through platform
-                if((!ftr->isInAir) && ftr->touchingPlatform->canFallThrough)
-                {
-                    // Fall through a platform
-                    setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
-                    // Shift down one pixel to guarantee a collision with the platform
-                    ftr->pos.y += (1 << SF);
-                    setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
-                    ftr->fallThroughTimer = 0;
-                }
-                break;
-            }
-            case FS_STARTUP:
-            case FS_ATTACK:
-            case FS_COOLDOWN:
-            case FS_HITSTUN:
-            {
-                // Do nothing in these states
-                break;
+                setFighterState(ftr, FS_IDLE, &(ftr->idleSprite0), 0, NULL);
             }
         }
-    }
 
-    // Releasing A when the short hop timer is active will do a short hop
-    if((ftr->shortHopTimer > 0) &&
-            (ftr->prevBtnState & BTN_A) && !(btnState & BTN_A))
-    {
-        // Set this boolean, but don't stop the timer! The short hop will peak
-        // when the timer expires, at a nice consistent height
-        ftr->isShortHop = true;
-    }
-
-    // Pressing B means attack, when not in the freefall state
-    if (!ftr->isInFreefall && !(ftr->prevBtnState & BTN_B) && (btnState & BTN_B))
-    {
-        switch(ftr->state)
+        // Manage the A button
+        if (!(ftr->prevBtnState & BTN_A) && (btnState & BTN_A))
         {
-            case FS_IDLE:
-            case FS_RUNNING:
-            case FS_DUCKING:
-            case FS_JUMPING:
+            switch(ftr->state)
             {
-                // Save last state
-                attackOrder_t prevAttack = ftr->cAttack;
-
-                // Check if it's a ground or air attack
-                if(!ftr->isInAir)
+                case FS_IDLE:
+                case FS_RUNNING:
+                case FS_JUMPING:
                 {
-                    // Attack on ground
-                    ftr->isAerialAttack = false;
+                    // Pressing A in these states means jump
+                    if(ftr->numJumpsLeft > 0)
+                    {
+                        // Only set short hop timer on the first jump
+                        if(ftr->numJumps == ftr->numJumpsLeft)
+                        {
+                            ftr->shortHopTimer = 125 / FRAME_TIME_MS;
+                            ftr->isShortHop = false;
+                        }
+                        ftr->numJumpsLeft--;
+                        ftr->velocity.y = ftr->jump_velo;
+                        // Only update relative pos if not already passing through a platform
+                        if(PASSING_THROUGH_PLATFORM != ftr->relativePos)
+                        {
+                            setFighterRelPos(ftr, NOT_TOUCHING_PLATFORM, NULL, NULL, true);
+                        }
+                        setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
 
-                    if(btnState & UP)
-                    {
-                        // Up tilt attack
-                        ftr->cAttack = UP_GROUND;
-                    }
-                    else if(btnState & DOWN)
-                    {
-                        // Down tilt attack
-                        ftr->cAttack = DOWN_GROUND;
-                    }
-                    else if (ftr->velocity.x > ((3 * ftr->run_max_velo) / 4))
-                    {
-                        // Running to the right
-                        ftr->cAttack = DASH_GROUND;
-                    }
-                    else if (ftr->velocity.x < -((3 * ftr->run_max_velo) / 4))
-                    {
-                        // Running to the left
-                        ftr->cAttack = DASH_GROUND;
-                    }
-                    else if((btnState & LEFT) || (btnState & RIGHT))
-                    {
-                        // Side button pressed, but not running
-                        ftr->cAttack = FRONT_GROUND;
-                    }
-                    else
-                    {
-                        // Neutral attack
-                        ftr->cAttack = NEUTRAL_GROUND;
-                    }
-                }
-                else
-                {
-                    // Attack in air
-                    ftr->isAerialAttack = true;
-
-                    if(btnState & UP)
-                    {
-                        // Up air attack
-                        ftr->cAttack = UP_AIR;
-                        // No more jumps after up air!
-                        ftr->numJumpsLeft = 0;
-                        ftr->isInFreefall = true;
-
-                        // Change direction mid-air when performing an up air attack.
-                        // Jumping can also change direction, otherwise direction
-                        // is not changed while mid-air
+                        // Change direction mid-air when jumping
+                        // Up Air attack can also change direction, otherwise
+                        // direction is not changed while mid-air
                         if(btnState & LEFT)
                         {
                             ftr->dir = FACING_LEFT;
@@ -1398,103 +1290,213 @@ void checkFighterButtonInput(fighter_t* ftr)
                             ftr->dir = FACING_RIGHT;
                         }
                     }
-                    else if(btnState & DOWN)
+                    break;
+                }
+                case FS_DUCKING:
+                {
+                    // Pressing A in this state means fall through platform
+                    if((!ftr->isInAir) && ftr->touchingPlatform->canFallThrough)
                     {
-                        // Down air
-                        ftr->cAttack = DOWN_AIR;
+                        // Fall through a platform
+                        setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
+                        // Shift down one pixel to guarantee a collision with the platform
+                        ftr->pos.y += (1 << SF);
+                        setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
+                        ftr->fallThroughTimer = 0;
                     }
-                    else if(((btnState & LEFT ) && (FACING_RIGHT == ftr->dir)) ||
-                            ((btnState & RIGHT) && (FACING_LEFT  == ftr->dir)))
+                    break;
+                }
+                case FS_STARTUP:
+                case FS_ATTACK:
+                case FS_COOLDOWN:
+                case FS_HITSTUN:
+                {
+                    // Do nothing in these states
+                    break;
+                }
+            }
+        }
+
+        // Releasing A when the short hop timer is active will do a short hop
+        if((ftr->shortHopTimer > 0) &&
+                (ftr->prevBtnState & BTN_A) && !(btnState & BTN_A))
+        {
+            // Set this boolean, but don't stop the timer! The short hop will peak
+            // when the timer expires, at a nice consistent height
+            ftr->isShortHop = true;
+        }
+
+        // Pressing B means attack, when not in the freefall state
+        if (!ftr->isInFreefall && !(ftr->prevBtnState & BTN_B) && (btnState & BTN_B))
+        {
+            switch(ftr->state)
+            {
+                case FS_IDLE:
+                case FS_RUNNING:
+                case FS_DUCKING:
+                case FS_JUMPING:
+                {
+                    // Save last state
+                    attackOrder_t prevAttack = ftr->cAttack;
+
+                    // Check if it's a ground or air attack
+                    if(!ftr->isInAir)
                     {
-                        // Back air
-                        ftr->cAttack = BACK_AIR;
-                    }
-                    else if(((btnState & RIGHT) && (FACING_RIGHT == ftr->dir)) ||
-                            ((btnState & LEFT ) && (FACING_LEFT  == ftr->dir)))
-                    {
-                        // Front air
-                        ftr->cAttack = FRONT_AIR;
+                        // Attack on ground
+                        ftr->isAerialAttack = false;
+
+                        if(btnState & UP)
+                        {
+                            // Up tilt attack
+                            ftr->cAttack = UP_GROUND;
+                        }
+                        else if(btnState & DOWN)
+                        {
+                            // Down tilt attack
+                            ftr->cAttack = DOWN_GROUND;
+                        }
+                        else if (ftr->velocity.x > ((3 * ftr->run_max_velo) / 4))
+                        {
+                            // Running to the right
+                            ftr->cAttack = DASH_GROUND;
+                        }
+                        else if (ftr->velocity.x < -((3 * ftr->run_max_velo) / 4))
+                        {
+                            // Running to the left
+                            ftr->cAttack = DASH_GROUND;
+                        }
+                        else if((btnState & LEFT) || (btnState & RIGHT))
+                        {
+                            // Side button pressed, but not running
+                            ftr->cAttack = FRONT_GROUND;
+                        }
+                        else
+                        {
+                            // Neutral attack
+                            ftr->cAttack = NEUTRAL_GROUND;
+                        }
                     }
                     else
                     {
-                        // Neutral air
-                        ftr->cAttack = NEUTRAL_AIR;
+                        // Attack in air
+                        ftr->isAerialAttack = true;
+
+                        if(btnState & UP)
+                        {
+                            // Up air attack
+                            ftr->cAttack = UP_AIR;
+                            // No more jumps after up air!
+                            ftr->numJumpsLeft = 0;
+                            ftr->isInFreefall = true;
+
+                            // Change direction mid-air when performing an up air attack.
+                            // Jumping can also change direction, otherwise direction
+                            // is not changed while mid-air
+                            if(btnState & LEFT)
+                            {
+                                ftr->dir = FACING_LEFT;
+                            }
+                            else if (btnState & RIGHT)
+                            {
+                                ftr->dir = FACING_RIGHT;
+                            }
+                        }
+                        else if(btnState & DOWN)
+                        {
+                            // Down air
+                            ftr->cAttack = DOWN_AIR;
+                        }
+                        else if(((btnState & LEFT ) && (FACING_RIGHT == ftr->dir)) ||
+                                ((btnState & RIGHT) && (FACING_LEFT  == ftr->dir)))
+                        {
+                            // Back air
+                            ftr->cAttack = BACK_AIR;
+                        }
+                        else if(((btnState & RIGHT) && (FACING_RIGHT == ftr->dir)) ||
+                                ((btnState & LEFT ) && (FACING_LEFT  == ftr->dir)))
+                        {
+                            // Front air
+                            ftr->cAttack = FRONT_AIR;
+                        }
+                        else
+                        {
+                            // Neutral air
+                            ftr->cAttack = NEUTRAL_AIR;
+                        }
+                    }
+
+                    // If an attack is starting up
+                    if(prevAttack != ftr->cAttack)
+                    {
+                        // Set the state, sprite, and timer
+                        setFighterState(ftr, FS_STARTUP, &(ftr->attacks[ftr->cAttack].startupLagSprite), ftr->attacks[ftr->cAttack].startupLag,
+                                        NULL);
+
+                        // Always copy the iframe value, may be 0
+                        ftr->iFrameTimer = ftr->attacks[ftr->cAttack].iFrames;
+                    }
+                    break;
+                }
+                case FS_STARTUP:
+                case FS_ATTACK:
+                case FS_COOLDOWN:
+                case FS_HITSTUN:
+                {
+                    // Don't allow attacks in these states
+                    break;
+                }
+            }
+        }
+
+        switch(ftr->state)
+        {
+            case FS_IDLE:
+            case FS_RUNNING:
+            case FS_DUCKING:
+            {
+                // Double tapping down will fall through platforms, if the platform allows it
+                if((!ftr->isInAir) && ftr->touchingPlatform->canFallThrough)
+                {
+                    // Check if down button was released
+                    if ((ftr->prevBtnState & DOWN) && !(btnState & DOWN))
+                    {
+                        // Start timer to check for second press
+                        ftr->fallThroughTimer = 250 / FRAME_TIME_MS; // 250ms
+                    }
+                    // Check if a second down press was detected while the timer is active
+                    else if (ftr->fallThroughTimer > 0 && !(ftr->prevBtnState & DOWN) && (btnState & DOWN))
+                    {
+                        // Second press detected fast enough
+                        ftr->fallThroughTimer = 0;
+                        // Fall through a platform
+                        setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
+                        // Shift down one pixel to guarantee a collision with the platform
+                        ftr->pos.y += (1 << SF);
+                        setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
                     }
                 }
-
-                // If an attack is starting up
-                if(prevAttack != ftr->cAttack)
+                else
                 {
-                    // Set the state, sprite, and timer
-                    setFighterState(ftr, FS_STARTUP, &(ftr->attacks[ftr->cAttack].startupLagSprite), ftr->attacks[ftr->cAttack].startupLag,
-                                    NULL);
-
-                    // Always copy the iframe value, may be 0
-                    ftr->iFrameTimer = ftr->attacks[ftr->cAttack].iFrames;
+                    // Not on a platform, kill the timer
+                    ftr->fallThroughTimer = 0;
                 }
                 break;
             }
+            case FS_JUMPING:
             case FS_STARTUP:
             case FS_ATTACK:
             case FS_COOLDOWN:
             case FS_HITSTUN:
             {
-                // Don't allow attacks in these states
+                // Falling through platforms not allowed in these states
+                ftr->fallThroughTimer = 0;
                 break;
             }
         }
-    }
 
-    switch(ftr->state)
-    {
-        case FS_IDLE:
-        case FS_RUNNING:
-        case FS_DUCKING:
-        {
-            // Double tapping down will fall through platforms, if the platform allows it
-            if((!ftr->isInAir) && ftr->touchingPlatform->canFallThrough)
-            {
-                // Check if down button was released
-                if ((ftr->prevBtnState & DOWN) && !(btnState & DOWN))
-                {
-                    // Start timer to check for second press
-                    ftr->fallThroughTimer = 250 / FRAME_TIME_MS; // 250ms
-                }
-                // Check if a second down press was detected while the timer is active
-                else if (ftr->fallThroughTimer > 0 && !(ftr->prevBtnState & DOWN) && (btnState & DOWN))
-                {
-                    // Second press detected fast enough
-                    ftr->fallThroughTimer = 0;
-                    // Fall through a platform
-                    setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
-                    // Shift down one pixel to guarantee a collision with the platform
-                    ftr->pos.y += (1 << SF);
-                    setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
-                }
-            }
-            else
-            {
-                // Not on a platform, kill the timer
-                ftr->fallThroughTimer = 0;
-            }
-            break;
-        }
-        case FS_JUMPING:
-        case FS_STARTUP:
-        case FS_ATTACK:
-        case FS_COOLDOWN:
-        case FS_HITSTUN:
-        {
-            // Falling through platforms not allowed in these states
-            ftr->fallThroughTimer = 0;
-            break;
-        }
+        // Save the button state for the next frame comparison
+        ftr->prevBtnState = btnState;
     }
-
-    // Save the button state for the next frame comparison
-    ftr->prevBtnState = ftr->btnState;
-    // Clear inter-frame events
-    ftr->btnPressesSinceLast = 0;
 }
 
 /**
@@ -1532,7 +1534,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         case FS_RUNNING:
         {
             // Update X kinematics based on button state and fighter position
-            if(ftr->btnState & LEFT)
+            if(ftr->prevBtnState & LEFT)
             {
                 movementInput = true;
                 // Left button is currently held
@@ -1570,7 +1572,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     ftr->velocity.x = 0;
                 }
             }
-            else if(ftr->btnState & RIGHT)
+            else if(ftr->prevBtnState & RIGHT)
             {
                 movementInput = true;
                 // Right button is currently held
@@ -1619,7 +1621,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             // DI in the air in these states
             if(ftr->isInAir)
             {
-                if(ftr->btnState & LEFT)
+                if(ftr->prevBtnState & LEFT)
                 {
                     movementInput = true;
 
@@ -1640,7 +1642,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                         ftr->velocity.x = 0;
                     }
                 }
-                else if (ftr->btnState & RIGHT)
+                else if (ftr->prevBtnState & RIGHT)
                 {
                     movementInput = true;
 
@@ -3245,39 +3247,71 @@ void fighterGameButtonCb(buttonEvt_t* evt)
         if(evt->button >= EMU_P2_UP)
         {
             // Save the state to check synchronously
-            f->fighters[1].btnState = (evt->state >> 8);
-            // Save an OR'd list of presses separately
-            f->fighters[1].btnPressesSinceLast |= (evt->state >> 8);
+            fighterEnqueueButtonInput(&f->fighters[1], (evt->state >> 8));
         }
         else
         {
             // Save the state to check synchronously
-            f->fighters[0].btnState = evt->state;
-            // Save an OR'd list of presses separately
-            f->fighters[0].btnPressesSinceLast |= evt->state;
+            fighterEnqueueButtonInput(&f->fighters[0], evt->state);
         }
     }
     else
 #endif
     {
         // Save the state to check synchronously
-        f->fighters[f->playerIdx].btnState = evt->state;
-        // Save an OR'd list of presses separately
-        f->fighters[f->playerIdx].btnPressesSinceLast |= evt->state;
+        fighterEnqueueButtonInput(&f->fighters[f->playerIdx], evt->state);
     }
 }
 
 /**
+ * @brief Enqueue a button input for this fighter
+ *
+ * @param ftr The fighter to enqueue a button input for
+ * @param btn The button state to enqueue
+ */
+void fighterEnqueueButtonInput(fighter_t* ftr, uint32_t btn)
+{
+    // Queue the button at the tail
+    ftr->btnStateBuf[ftr->bsBufTail] = btn;
+    ftr->bsBufTail = (ftr->bsBufTail + 1) % (sizeof(ftr->btnStateBuf) / sizeof(ftr->btnStateBuf[0]));
+}
+
+/**
+ * @brief Dequeue a button input for this fighter
+ *
+ * @param ftr The fighter to dequeue a button input for
+ * @param btn If there is a button to dequeue, it is written here
+ * @return true if a button was dequeued, false if there wasn't one
+ */
+bool fighterDequeueButtonInput(fighter_t* ftr, uint32_t* btn)
+{
+    // If the queue is not empty
+    if(ftr->bsBufHead != ftr->bsBufTail)
+    {
+        // Grab the button at the head
+        *btn = ftr->btnStateBuf[ftr->bsBufHead];
+        ftr->bsBufHead = (ftr->bsBufHead + 1) % (sizeof(ftr->btnStateBuf) / sizeof(ftr->btnStateBuf[0]));
+        return true;
+    }
+    // Nothing to return
+    return false;
+}
+
+/**
+ * @brief Get the button state to send to another swadge
+ * This will dequeue a button state if it exists, or return the last state
+ *
  * @return This fighter's current button state
  */
 int32_t fighterGetButtonState(void)
 {
-    // Button state is the known state and any inter-frame
-    int32_t state = f->fighters[f->playerIdx].btnState |
-                    f->fighters[f->playerIdx].btnPressesSinceLast;
-    // Clear inter-frame presses after consumption
-    f->fighters[f->playerIdx].btnPressesSinceLast = 0;
-    return state;
+    uint32_t btn;
+    if(fighterDequeueButtonInput(&f->fighters[f->playerIdx], &btn))
+    {
+        f->fighters[f->playerIdx].prevBtnState = btn;
+        return btn;
+    }
+    return f->fighters[f->playerIdx].prevBtnState;
 }
 
 /**
@@ -3287,7 +3321,7 @@ int32_t fighterGetButtonState(void)
  */
 void fighterRxButtonInput(int32_t btnState)
 {
-    f->fighters[1].btnState = btnState;
+    fighterEnqueueButtonInput(&f->fighters[1], btnState);
     // Set to true to run main loop with input
     f->buttonInputReceived = true;
 }
