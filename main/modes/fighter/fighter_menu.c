@@ -24,6 +24,9 @@
 // Defines
 //==============================================================================
 
+#define VER_LEN 7
+#define FTR_VERSION "221112a" // must be seven chars! yymmddl
+
 #define FIGHTER_MENU_IDLE_US (1000000 * 15)
 
 //==============================================================================
@@ -43,6 +46,7 @@ typedef enum
 
 typedef enum
 {
+    VERSION_MSG,
     CHAR_SEL_MSG,
     STAGE_SEL_MSG,
     BUTTON_INPUT_MSG,
@@ -135,6 +139,8 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len);
 void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t* data, uint8_t dataLen);
 void fighterCheckGameBegin(void);
 
+void fighterSendVersionToOther(void);
+
 //==============================================================================
 // Variables
 //==============================================================================
@@ -176,6 +182,9 @@ const char str_searching_for[] = "Searching For";
 const char str_another_swadge[] = "Another Swadge";
 
 const char str_please_connect[] = "Please Connect";
+
+const char str_version_mismatch[] = "Version Mismatch";
+const char str_visit_swadge_com[] = "Visit swadge.com";
 
 // Must match order of fightingCharacter_t
 const char* charNames[3] =
@@ -436,9 +445,10 @@ void fighterButtonCb(buttonEvt_t* evt)
             if(evt->down && ((START == evt->button) || (SELECT == evt->button) || (BTN_B == evt->button)))
             {
                 p2pDeinit(&(fm->p2p));
-                if(str_another_swadge == fm->ftrConnectingStringBottom)
+                if( (str_another_swadge == fm->ftrConnectingStringBottom) ||
+                        (str_visit_swadge_com == fm->ftrConnectingStringBottom))
                 {
-                    // Wireless multi
+                    // Wireless multi or mismatch
                     setFighterMainMenu(false);
                 }
                 else
@@ -1346,8 +1356,11 @@ void fighterP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt)
         }
         case CON_ESTABLISHED:
         {
-            // Connection established, show character select screen
-            setFighterMultiplayerCharSelMenu(true);
+            // Connection established, check version
+            if(GOING_FIRST == p2pGetPlayOrder(p2p))
+            {
+                fighterSendVersionToOther();
+            }
             break;
         }
         case CON_LOST:
@@ -1376,7 +1389,27 @@ void fighterP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
         case FIGHTER_WAITING:
         {
             // Check what was received
-            if(payload[0] == CHAR_SEL_MSG)
+            if(payload[0] == VERSION_MSG)
+            {
+                if(0 == memcmp(&payload[1], FTR_VERSION, VER_LEN))
+                {
+                    // Connection established, show character select screen
+                    setFighterMultiplayerCharSelMenu(true);
+                }
+                else
+                {
+                    // Version mismatch, show warning
+                    fm->ftrConnectingStringTop = str_version_mismatch;
+                    fm->ftrConnectingStringBottom = str_visit_swadge_com;
+                }
+
+                // Reply with version
+                if(GOING_SECOND == p2pGetPlayOrder(p2p))
+                {
+                    fighterSendVersionToOther();
+                }
+            }
+            else if(payload[0] == CHAR_SEL_MSG)
             {
                 // Receive a character selection, so save it
                 uint8_t charIdx = (GOING_FIRST == fm->p2p.cnc.playOrder) ? 1 : 0;
@@ -1492,6 +1525,18 @@ void fighterCheckGameBegin(void)
                          fm->stage, GOING_FIRST == fm->p2p.cnc.playOrder);
         fm->screen = FIGHTER_GAME;
     }
+}
+
+/**
+ * @brief Send a packet to the other swadge with this's player's version
+ */
+void fighterSendVersionToOther(void)
+{
+    uint8_t payload[1 + VER_LEN] = {VERSION_MSG};
+    memcpy(&payload[1], FTR_VERSION, VER_LEN);
+    // Send button state to the other swawdge
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), fighterP2pMsgTxCbFn);
+    fm->lastSentMsg = VERSION_MSG;
 }
 
 /**

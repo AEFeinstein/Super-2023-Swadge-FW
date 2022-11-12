@@ -1,6 +1,7 @@
 {
    "name":"Sunny McShreds",
    "gravity":8192,
+   "weight":512,
    "jump_velo":-15360,
    "run_accel":13000,
    "run_decel":13000,
@@ -84,7 +85,7 @@
                      "damage":9,
                      "knockback_x":1000,
                      "knockback_y":-8000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -121,7 +122,7 @@
                      "damage":12,
                      "knockback_x":10000,
                      "knockback_y":3000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -159,7 +160,7 @@
                      "damage":9,
                      "knockback_x":9000,
                      "knockback_y":-3000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -196,7 +197,7 @@
                      "damage":18,
                      "knockback_x":9000,
                      "knockback_y":-3000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -233,7 +234,7 @@
                      "damage":9,
                      "knockback_x":4000,
                      "knockback_y":-2000,
-                     "hitstun":10,
+                     "hitstun":33,
                      "isProjectile":true,
                      "projectileSprite":{
                         "sprite":"sngp.wsg"
@@ -280,7 +281,7 @@
                      "damage":9,
                      "knockback_x":4000,
                      "knockback_y":-2000,
-                     "hitstun":10,
+                     "hitstun":33,
                      "isProjectile":true,
                      "projectileSprite":{
                         "sprite":"sngp.wsg"
@@ -327,7 +328,7 @@
                      "damage":9,
                      "knockback_x":8000,
                      "knockback_y":-4000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -365,7 +366,7 @@
                      "damage":9,
                      "knockback_x":-9000,
                      "knockback_y":-4000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -405,7 +406,7 @@
                      "damage":10,
                      "knockback_x":-4000,
                      "knockback_y":0,
-                     "hitstun":10
+                     "hitstun":33
                   },
                   {
                      "relativePos_x":-9,
@@ -415,7 +416,7 @@
                      "damage":10,
                      "knockback_x":0,
                      "knockback_y":-4000,
-                     "hitstun":10
+                     "hitstun":33
                   },
                   {
                      "relativePos_x":26,
@@ -425,7 +426,7 @@
                      "damage":10,
                      "knockback_x":4000,
                      "knockback_y":0,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -464,7 +465,7 @@
                      "damage":9,
                      "knockback_x":500,
                      "knockback_y":8000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }

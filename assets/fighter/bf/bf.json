@@ -1,6 +1,7 @@
 {
    "name":"Bigg Funkus",
    "gravity":8192,
+   "weight":1536,
    "jump_velo":-15360,
    "run_accel":13000,
    "run_decel":13000,
@@ -84,7 +85,7 @@
                      "damage":9,
                      "knockback_x":1000,
                      "knockback_y":-8000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -121,7 +122,7 @@
                      "damage":12,
                      "knockback_x":20000,
                      "knockback_y":-10000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             },
@@ -141,7 +142,7 @@
                      "damage":12,
                      "knockback_x":-20000,
                      "knockback_y":-10000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -179,7 +180,7 @@
                      "damage":9,
                      "knockback_x":9000,
                      "knockback_y":-3000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -216,7 +217,7 @@
                      "damage":9,
                      "knockback_x":4000,
                      "knockback_y":-2000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -254,7 +255,7 @@
                      "damage":9,
                      "knockback_x":4000,
                      "knockback_y":-2000,
-                     "hitstun":10,
+                     "hitstun":33,
                      "isProjectile":true,
                      "projectileSprite":{
                         "sprite":"bnap.wsg"
@@ -302,7 +303,7 @@
                      "damage":9,
                      "knockback_x":4000,
                      "knockback_y":-2000,
-                     "hitstun":10,
+                     "hitstun":33,
                      "isProjectile":true,
                      "projectileSprite":{
                         "sprite":"bnap.wsg"
@@ -350,7 +351,7 @@
                      "damage":9,
                      "knockback_x":8000,
                      "knockback_y":-4000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -388,7 +389,7 @@
                      "damage":9,
                      "knockback_x":-9000,
                      "knockback_y":-4000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -429,7 +430,7 @@
                      "damage":10,
                      "knockback_x":-4000,
                      "knockback_y":-2000,
-                     "hitstun":10
+                     "hitstun":33
                   },
                   {
                      "relativePos_x":14,
@@ -439,7 +440,7 @@
                      "damage":10,
                      "knockback_x":4000,
                      "knockback_y":-2000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             },
@@ -461,7 +462,7 @@
                      "damage":10,
                      "knockback_x":-4000,
                      "knockback_y":-2000,
-                     "hitstun":10
+                     "hitstun":33
                   },
                   {
                      "relativePos_x":14,
@@ -471,7 +472,7 @@
                      "damage":10,
                      "knockback_x":4000,
                      "knockback_y":-2000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             },
@@ -493,7 +494,7 @@
                      "damage":10,
                      "knockback_x":-4000,
                      "knockback_y":-2000,
-                     "hitstun":10
+                     "hitstun":33
                   },
                   {
                      "relativePos_x":14,
@@ -503,7 +504,7 @@
                      "damage":10,
                      "knockback_x":4000,
                      "knockback_y":-2000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             },
@@ -525,7 +526,7 @@
                      "damage":10,
                      "knockback_x":-4000,
                      "knockback_y":-2000,
-                     "hitstun":10
+                     "hitstun":33
                   },
                   {
                      "relativePos_x":14,
@@ -535,7 +536,7 @@
                      "damage":10,
                      "knockback_x":4000,
                      "knockback_y":-2000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }
@@ -574,7 +575,7 @@
                      "damage":9,
                      "knockback_x":500,
                      "knockback_y":8000,
-                     "hitstun":10
+                     "hitstun":33
                   }
                ]
             }

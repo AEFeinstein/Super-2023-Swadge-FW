@@ -83,6 +83,7 @@ typedef struct
     wsg_t usb;
     int32_t autoLightDanceTimer;
     bool debugMode;
+    char gitStr[32];
 } mainMenu_t;
 
 //==============================================================================
@@ -172,6 +173,8 @@ void mainMenuEnterMode(display_t* disp)
     loadWsg("batt3.wsg", &mainMenu->batt[2]);
     loadWsg("batt4.wsg", &mainMenu->batt[3]);
     loadWsg("usb.wsg", &mainMenu->usb);
+
+    sprintf(mainMenu->gitStr, "Git: %s", GIT_SHA1);
 
     // Initialize the menu
     mainMenu->menu = initMeleeMenu(mainMenuTitle, &mainMenu->meleeMenuFont, mainMenuTopLevelCb);
@@ -782,6 +785,7 @@ void mainMenuSetUpSecretMenu(bool resetPos)
     resetMeleeMenu(mainMenu->menu, mainMenuSecret, mainMenuSecretCb);
     addRowToMeleeMenu(mainMenu->menu, modeBee.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeTest.modeName);
+    addRowToMeleeMenu(mainMenu->menu, mainMenu->gitStr);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)

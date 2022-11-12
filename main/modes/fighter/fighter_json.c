@@ -259,6 +259,20 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSp
                 tokIdx++;
                 numFieldsParsed++;
             }
+            else if(0 == jsoneq(jsonStr, &toks[tokIdx], "weight"))
+            {
+                tokIdx++;
+                if(0 < ftr->weight && ftr->weight < 2048)
+                {
+                    ftr->weight = 2048 - jsonInteger(jsonStr, toks[tokIdx]);
+                }
+                else
+                {
+                    ftr->weight = 1024;
+                }
+                tokIdx++;
+                numFieldsParsed++;
+            }
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "jump_velo"))
             {
                 tokIdx++;
@@ -765,10 +779,7 @@ int32_t parseJsonAttackFrameHitbox(char* jsonStr, jsmntok_t* toks, int32_t tokId
                 tokIdx++;
                 // Convert ms to frames
                 hbx->hitstun = jsonInteger(jsonStr, toks[tokIdx]) / FRAME_TIME_MS;
-                if(0 == hbx->hitstun)
-                {
-                    hbx->hitstun = 1;
-                }
+                // Allow 0 frames hitstun
                 tokIdx++;
                 numFieldsParsed++;
             }
