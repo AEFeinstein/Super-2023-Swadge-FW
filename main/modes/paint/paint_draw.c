@@ -59,7 +59,7 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = { .type = PRESS_ANY, .data = BTN_A | BTN_B, }, .backtrack = { .type = MENU_ITEM_NOT, .data = PICK_SLOT_SAVE }, .backtrackSteps = 2, .prompt = "Use the A BUTTON to confirm, or the B BUTTON to cancel and go back. You'll have to confirm again before deleting any art!" },
     { .trigger = { .type = SELECT_MENU_ITEM, .data = HIDDEN, }, .prompt = "Press START or the B BUTTON to exit the menu" },
     { .trigger = { .type = PRESS, .data = START, }, .prompt = "Let's try editing the palette! Press START to open the menu one more time" },
-    { .trigger = { .type = SELECT_MENU_ITEM, .data = EDIT_PALETTE, }, .backtrack = { .type = SELECT_MENU_ITEM, .data = HIDDEN }, .backtrackSteps = 1, .prompt = "Use UP, DOWN, and SELECT to select EDIT PALETTE" },
+    { .trigger = { .type = SELECT_MENU_ITEM, .data = EDIT_PALETTE, }, .backtrack = { .type = SELECT_MENU_ITEM, .data = HIDDEN }, .backtrackSteps = 1, .prompt = "Use UP, DOWN, and SELECT to select the EDIT PALETTE menu item" },
     { .trigger = { .type = PRESS, .data = BTN_A, }, .backtrack = { .type = MENU_ITEM_NOT, .data = EDIT_PALETTE }, .backtrackSteps = 1, .prompt = "Press the A BUTTON to begin editing the palette" },
     { .trigger = { .type = PRESS_ANY, .data = UP | DOWN, }, .backtrack = { .type = MODE_NOT, .data = BTN_MODE_PALETTE }, .backtrackSteps = 2, .prompt = "Use D-Pad UP and DOWN to select a color to edit" },
     { .trigger = { .type = PRESS_ANY, .data = LEFT | RIGHT, }, .backtrack = { .type = MODE_NOT, .data = BTN_MODE_PALETTE }, .backtrackSteps = 3, .prompt = "Use D-Pad LEFT and RIGHT to switch between the RED, GREEN, and BLUE color sliders" },

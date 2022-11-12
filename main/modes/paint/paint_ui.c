@@ -131,6 +131,8 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
         textX += paintState->smallArrowWsg.w + 4;
     }
 
+    bool drawYesNo = false;
+
     if (paintState->saveMenu == HIDDEN)
     {
         //////// Tools
@@ -255,8 +257,7 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
         // Draw "Overwrite?"
         drawText(canvas->disp, &paintState->saveMenuFont, c000, startMenuOverwrite, textX, textY);
 
-        // Draw "Yes" / "No"
-        drawText(canvas->disp, &paintState->saveMenuFont, c000, paintState->saveMenuBoolOption ? startMenuYes : startMenuNo, 160, textY);
+        drawYesNo = true;
     }
     else if (paintState->saveMenu == CLEAR)
     {
@@ -267,8 +268,7 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
         // Draw "Unsaved! OK?"
         drawText(canvas->disp, &paintState->saveMenuFont, c000, startMenuConfirmUnsaved, textX, textY);
 
-        // Draw "Yes" / "No"
-        drawText(canvas->disp, &paintState->saveMenuFont, c000, paintState->saveMenuBoolOption ? startMenuYes : startMenuNo, 180, textY);
+        drawYesNo = true;
     }
     else if (paintState->saveMenu == EXIT)
     {
@@ -281,6 +281,21 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
     else if (paintState->saveMenu == COLOR_PICKER)
     {
         paintRenderColorPicker(artist, canvas, paintState);
+    }
+
+    if (drawYesNo)
+    {
+        // Draw "Yes" / "No"
+        const char* optionText =  (paintState->saveMenuBoolOption ? startMenuYes : startMenuNo);
+        uint16_t textW = textWidth(&paintState->saveMenuFont, optionText);
+        textX = canvas->disp->w - 13 - paintState->bigArrowWsg.w - 4 - textW;
+
+        drawText(canvas->disp, &paintState->saveMenuFont, c000, optionText, textX, textY);
+
+        // Left arrow
+        drawWsg(canvas->disp, &paintState->bigArrowWsg, textX - 4 - paintState->bigArrowWsg.w, textY + (paintState->saveMenuFont.h - paintState->bigArrowWsg.h) / 2, false, false, 270);
+        // Right arrow
+        drawWsg(canvas->disp, &paintState->bigArrowWsg, textX + textW + 4, textY + (paintState->saveMenuFont.h - paintState->bigArrowWsg.h) / 2, false, false, 90);
     }
 }
 
