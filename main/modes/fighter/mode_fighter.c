@@ -2265,7 +2265,7 @@ void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr)
 /**
  * Apply deferred hitstun and knockback after both fighter's hitboxes were
  * checked this frame
- * 
+ *
  * @param ftr The fighter to check
  */
 void checkFigherDeferredHitstun(fighter_t* ftr)
@@ -2350,7 +2350,7 @@ void checkFighterProjectileCollisions(list_t* projectiles)
 
                         // After receiving damage, clear freefall to enable up+b
                         ftr->isInFreefall = false;
-                        
+
                         // Note the fighter was hit for SFX & LEDs
                         ftr->damagedThisFrame = true;
 

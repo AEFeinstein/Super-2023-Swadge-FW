@@ -100,3 +100,13 @@ endfunction()
 # the target with 'idf.py -p PORT flash'.
 spiffs_file_preprocessor()
 spiffs_create_partition_image(storage ../spiffs_image FLASH_IN_PROJECT)
+
+
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE VERSION_SHA1 )
+
+string(STRIP ${VERSION_SHA1} VERSION_SHA1)
+
+add_definitions( -DGIT_SHA1="${VERSION_SHA1}" )
