@@ -466,10 +466,8 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                     getArtist()->fgColor = paintState->canvas.palette[0];
                     getArtist()->bgColor = paintState->canvas.palette[1];
 
-                    paintFreeCursorSprite(&paintState->cursorWsg);
-                    paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
-                    setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
-                    setCursorOffset(getCursor(), (paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
+                    // Do the tool setup, which will also setup the cursor
+                    paintSetupTool();
 
                     // Put the cursor in the middle of the screen
                     moveCursorAbsolute(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
@@ -1681,10 +1679,18 @@ void paintSetupTool(void)
     switch (getArtist()->brushDef->mode)
     {
         case HOLD_DRAW:
+        {
+            // Regenerate the cursor if it's not been set yet or if the brush's size is different from the cursor's size
+            if (paintState->cursorWsg.px == NULL || paintState->cursorWsg.w != (paintState->canvas.xScale + 2) || paintState->cursorWsg.h != (paintState->canvas.yScale + 2))
+            {
+                paintFreeCursorSprite(&paintState->cursorWsg);
+                paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
+            }
+
             setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
             setCursorOffset(getCursor(), (paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
-
-        break;
+            break;
+        }
 
         case PICK_POINT:
         case PICK_POINT_LOOP:
