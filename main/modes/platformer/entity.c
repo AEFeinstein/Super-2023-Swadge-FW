@@ -226,8 +226,8 @@ void updateHitBlock(entity_t *self)
     }
     if (self->animationTimer > 12)
     {
-        uint8_t aboveTile = self->tilemap->map[(self->homeTileY - 1) * self->tilemap->mapWidth + self->homeTileX];
-        uint8_t belowTile = self->tilemap->map[(self->homeTileY + 1) * self->tilemap->mapWidth + self->homeTileX];
+        uint8_t aboveTile = (self->homeTileY == 0) ? 0 : self->tilemap->map[(self->homeTileY - 1) * self->tilemap->mapWidth + self->homeTileX];
+        uint8_t belowTile = (self->homeTileY == (self->tilemap->mapHeight - 1))? 0 : self->tilemap->map[(self->homeTileY + 1) * self->tilemap->mapWidth + self->homeTileX];
         entity_t *createdEntity = NULL;
 
         switch (aboveTile)
