@@ -432,6 +432,9 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
     if (paintState->clearScreen)
     {
         hideCursor(getCursor(), &paintState->canvas);
+        memcpy(paintState->canvas.palette, defaultPalette, PAINT_MAX_COLORS * sizeof(paletteColor_t));
+        getArtist()->fgColor = paintState->canvas.palette[0];
+        getArtist()->bgColor = paintState->canvas.palette[1];
         paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
         paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
         paintUpdateLeds();
