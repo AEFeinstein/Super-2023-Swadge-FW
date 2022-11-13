@@ -10,7 +10,7 @@
 
 void paintDrawSquarePen(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
 {
-    plotRectFilledScaled(canvas->disp, points[0].x, points[0].y, points[0].x + (size), points[0].y + (size), col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+    plotRectFilledScaled(canvas->disp, points[0].x - (size / 2), points[0].y - (size / 2), points[0].x + ((size + 1) / 2), points[0].y + ((size + 1) / 2), col, canvas->x, canvas->y, canvas->xScale, canvas->yScale);
 }
 
 void paintDrawCirclePen(paintCanvas_t* canvas, point_t* points, uint8_t numPoints, uint16_t size, paletteColor_t col)
