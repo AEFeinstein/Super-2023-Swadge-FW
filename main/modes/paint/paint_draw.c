@@ -1694,9 +1694,12 @@ void paintSetupTool(void)
 
         case PICK_POINT:
         case PICK_POINT_LOOP:
+        {
             setCursorSprite(getCursor(), &paintState->canvas, &paintState->picksWsg);
-            setCursorOffset(getCursor(), -paintState->picksWsg.w, paintState->canvas.yScale);
-        break;
+            // Place the top-right pixel of the pointer 1px inside the target pixel
+            setCursorOffset(getCursor(), -paintState->picksWsg.w + 1, paintState->canvas.yScale - 1);
+            break;
+        }
     }
     showCursor(getCursor(), &paintState->canvas);
 
