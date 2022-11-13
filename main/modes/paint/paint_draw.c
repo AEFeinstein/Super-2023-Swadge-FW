@@ -252,7 +252,8 @@ void paintDrawScreenSetup(display_t* disp)
         getArtist()->bgColor = paintState->canvas.palette[1];
     }
 
-    paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
+    // This assumes the first brush is a pen brush, which it always will be unless we rearrange the brush array
+    paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas, firstBrush->minSize);
 
     // Init the cursors for each artist
     // TODO only do one for singleplayer?
@@ -1681,14 +1682,14 @@ void paintSetupTool(void)
         case HOLD_DRAW:
         {
             // Regenerate the cursor if it's not been set yet or if the brush's size is different from the cursor's size
-            if (paintState->cursorWsg.px == NULL || paintState->cursorWsg.w != (paintState->canvas.xScale + 2) || paintState->cursorWsg.h != (paintState->canvas.yScale + 2))
+            if (paintState->cursorWsg.px == NULL || paintState->cursorWsg.w != (getArtist()->brushWidth * paintState->canvas.xScale + 2) || paintState->cursorWsg.h != (getArtist()->brushWidth * paintState->canvas.yScale + 2))
             {
                 paintFreeCursorSprite(&paintState->cursorWsg);
-                paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
+                paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas, getArtist()->brushWidth);
             }
 
             setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
-            setCursorOffset(getCursor(), (paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
+            setCursorOffset(getCursor(), (getArtist()->brushWidth * paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (getArtist()->brushWidth * paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
             break;
         }
 
@@ -1749,6 +1750,8 @@ void paintSetBrushWidth(uint8_t width)
     {
         getArtist()->brushWidth = width;
     }
+
+    paintSetupTool();
     paintState->redrawToolbar = true;
 }
 
@@ -1762,6 +1765,8 @@ void paintDecBrushWidth(uint8_t dec)
     {
         getArtist()->brushWidth -= dec;
     }
+
+    paintSetupTool();
     paintState->redrawToolbar = true;
 }
 
@@ -1773,6 +1778,8 @@ void paintIncBrushWidth(uint8_t inc)
     {
         getArtist()->brushWidth = getArtist()->brushDef->maxSize;
     }
+
+    paintSetupTool();
     paintState->redrawToolbar = true;
 }
 

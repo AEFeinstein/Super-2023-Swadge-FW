@@ -408,10 +408,10 @@ void paintClearCanvas(const paintCanvas_t* canvas, paletteColor_t bgColor)
 }
 
 // Generates a cursor sprite that's a box
-void paintGenerateCursorSprite(wsg_t* cursorWsg, const paintCanvas_t* canvas)
+void paintGenerateCursorSprite(wsg_t* cursorWsg, const paintCanvas_t* canvas, uint8_t size)
 {
-    cursorWsg->w = canvas->xScale + 2;
-    cursorWsg->h = canvas->yScale + 2;
+    cursorWsg->w = size * canvas->xScale + 2;
+    cursorWsg->h = size * canvas->yScale + 2;
     cursorWsg->px = malloc(sizeof(paletteColor_t) * cursorWsg->w * cursorWsg->h);
 
     paletteColor_t pxVal;
