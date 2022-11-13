@@ -262,9 +262,10 @@ int32_t parseJsonFighter(char* jsonStr, jsmntok_t* toks, int32_t tokIdx, namedSp
             else if(0 == jsoneq(jsonStr, &toks[tokIdx], "weight"))
             {
                 tokIdx++;
+                ftr->weight = jsonInteger(jsonStr, toks[tokIdx]);
                 if(0 < ftr->weight && ftr->weight < 2048)
                 {
-                    ftr->weight = 2048 - jsonInteger(jsonStr, toks[tokIdx]);
+                    ftr->weight = 2048 - ftr->weight;
                 }
                 else
                 {
