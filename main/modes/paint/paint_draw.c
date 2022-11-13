@@ -95,8 +95,8 @@ static paletteColor_t defaultPalette[] =
 
 brush_t brushes[] =
 {
-    { .name = "Square Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawSquarePen, .iconName = "square_pen" },
-    { .name = "Circle Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawCirclePen, .iconName = "circle_pen" },
+    { .name = "Square Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 16, .fnDraw = paintDrawSquarePen, .iconName = "square_pen" },
+    { .name = "Circle Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 16, .fnDraw = paintDrawCirclePen, .iconName = "circle_pen" },
     { .name = "Line",       .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawLine, .iconName = "line" },
     { .name = "Bezier Curve", .mode = PICK_POINT, .maxPoints = 4, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawCurve, .iconName = "curve" },
     { .name = "Rectangle",  .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawRectangle, .iconName = "rect" },
