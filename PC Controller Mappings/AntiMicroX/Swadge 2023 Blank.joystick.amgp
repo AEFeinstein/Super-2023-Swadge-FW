@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<joystick configversion="19" appversion="3.3.1">
+    <!--The SDL name for a joystick is included for informational purposes only.-->
+    <sdlname>Swadge Controller</sdlname>
+    <!--The Unique ID for a joystick is included for informational purposes only.-->
+    <uniqueID>030000003a3000000440000000000000</uniqueID>
+    <names>
+        <buttonname index="3">Y</buttonname>
+        <buttonname index="4">Y|__X</buttonname>
+        <buttonname index="1">A</buttonname>
+        <buttonname index="2">B</buttonname>
+        <buttonname index="7">X</buttonname>
+        <buttonname index="5">Y_|_X</buttonname>
+        <buttonname index="6">Y__|X</buttonname>
+        <buttonname index="11">Select</buttonname>
+        <buttonname index="12">Start</buttonname>
+        <axisname index="3">Y~X Analog</axisname>
+        <axisname index="4">Pitch forward/back H</axisname>
+        <axisname index="5">Tilt left/right V,H</axisname>
+        <axisname index="6">Tilt forward/back V</axisname>
+    </names>
+    <sets/>
+</joystick>
