@@ -1689,7 +1689,8 @@ void paintSetupTool(void)
             }
 
             setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
-            setCursorOffset(getCursor(), (getArtist()->brushWidth * paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (getArtist()->brushWidth * paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
+            // Center the cursor, accounting for even and odd cursor sizes
+            setCursorOffset(getCursor(), -(paintState->cursorWsg.w / 2) + getArtist()->brushWidth % 2, -(paintState->cursorWsg.h / 2) + getArtist()->brushWidth % 2);
             break;
         }
 
