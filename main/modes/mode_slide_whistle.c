@@ -1505,9 +1505,9 @@ void  slideWhistleMainLoop(int64_t elapsedUs)
     afterText = drawText(
                     slideWhistle->disp,
                     &slideWhistle->radiostars, c444,
-                    "X~Y/",
+                    "Y~X/",
                     slideWhistle->disp->w - textWidth(&slideWhistle->radiostars, playText) - textWidth(&slideWhistle->radiostars,
-                            "X~Y/A") - CORNER_OFFSET,
+                            "Y~X/A") - CORNER_OFFSET,
                     slideWhistle->disp->h - slideWhistle->radiostars.h - CORNER_OFFSET);
     afterText = drawText(
                     slideWhistle->disp,

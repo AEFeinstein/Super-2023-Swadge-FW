@@ -164,7 +164,7 @@ static const char str_sfx[] = "SFX";
 static const char str_exit[] = "Exit";
 static const char str_leds[] = "Sel: LEDs:";
 static const char str_back[] = "Start: Back";
-static const char str_brightness[] = "X~Y: LED Brightness:";
+static const char str_brightness[] = "Y~X: LED Brightness:";
 static const char str_stop[] = ": Stop";
 static const char str_play[] = ": Play";
 

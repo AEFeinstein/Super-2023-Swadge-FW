@@ -193,7 +193,7 @@ void paintGalleryDrawUi(void)
     paintGalleryAddInfoText(text, 1, false, 0, 0);
 
     // Draw the controls
-    snprintf(text, sizeof(text), "X~Y: LED Brightness: %d", getLedBrightness());
+    snprintf(text, sizeof(text), "Y~X: LED Brightness: %d", getLedBrightness());
     paintGalleryAddInfoText(text, 2, false, 0, 0);
 
 
