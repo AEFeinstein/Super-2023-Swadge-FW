@@ -1278,7 +1278,7 @@ void paintDrawScreenPollTouch()
                 else
                 {
                     // We're mid-swipe
-                    int32_t swipeMagnitude = ((centroid - paintState->firstTouch) * PAINT_MAX_BRUSH_SWIPE) / 1024;
+                    int32_t swipeMagnitude = ((paintState->firstTouch - centroid) * PAINT_MAX_BRUSH_SWIPE) / 1024;
                     int32_t newWidth = paintState->startBrushWidth - swipeMagnitude;
 
                     if (newWidth < 0)
@@ -1323,7 +1323,7 @@ void paintDrawScreenPollTouch()
                 case BTN_MODE_DRAW:
                 case BTN_MODE_SELECT:
                 {
-                    int32_t swipeMagnitude = ((paintState->lastTouch - paintState->firstTouch) * PAINT_MAX_BRUSH_SWIPE) / 1024;
+                    int32_t swipeMagnitude = ((paintState->firstTouch - paintState->lastTouch) * PAINT_MAX_BRUSH_SWIPE) / 1024;
                     PAINT_LOGD("End swipe: %d", swipeMagnitude);
                     if (swipeMagnitude == 0)
                     {

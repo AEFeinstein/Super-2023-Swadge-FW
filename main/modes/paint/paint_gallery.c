@@ -366,7 +366,7 @@ void paintGalleryModePollTouch(void)
     {
         // Bar is touched, convert the centroid into 8 segments (0-7)
         // But also reverse it so up is bright and down is less bright
-        uint8_t curTouchSegment = 7 - ((centroid * 7 + 512) / 1024);
+        uint8_t curTouchSegment = ((centroid * 7 + 512) / 1024);
 
         if (curTouchSegment != getLedBrightness())
         {

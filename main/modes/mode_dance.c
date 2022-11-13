@@ -464,8 +464,7 @@ void dancePollTouch(void)
     {
         uint8_t index = ((centroid * (sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1) + 512) / 1024);
 
-        // Flip it so fast is up and slow is down
-        danceState->danceSpeed = sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1 - index;
+        danceState->danceSpeed = index;
         danceState->buttonPressedTimer = 0;
     }
 }
