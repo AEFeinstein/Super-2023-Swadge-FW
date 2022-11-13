@@ -271,6 +271,8 @@ void paintDrawScreenSetup(display_t* disp)
 
     paintState->disp->clearPx();
 
+    paintSetupTool();
+
     // Clear the LEDs
     // Might not be necessary here
     paintUpdateLeds();
