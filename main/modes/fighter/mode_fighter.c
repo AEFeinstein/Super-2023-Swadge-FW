@@ -1098,7 +1098,10 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
                                     NULL);
 
                     // Always copy the iframe value, may be 0
-                    ftr->iFrameTimer = atk->iFrames;
+                    if(atk->iFrames)
+                    {
+                        ftr->iFrameTimer = atk->iFrames;
+                    }
                 }
                 else
                 {
