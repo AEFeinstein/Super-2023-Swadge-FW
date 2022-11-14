@@ -47,6 +47,7 @@
 #include "mode_platformer.h"
 #include "mode_jukebox.h"
 #include "mode_diceroller.h"
+#include "mode_bee.h"
 
 //Make it so we don't need to include any other C files in our build.
 #define CNFG_IMPLEMENTATION
@@ -62,6 +63,31 @@
 
 #define BG_COLOR  0x191919FF // This color isn't part of the palette
 #define DIV_COLOR 0x808080FF
+
+// A list of all modes
+swadgeMode * allModes[] =
+{
+    &modeFighter,
+    &modeJumper,
+    &modeColorchord,
+    &modeCredits,
+    &modeDance,
+    &modeFlight,
+    &modeGamepad,
+    &modeMainMenu,
+    &modeSlideWhistle,
+    &modeTest,
+    &modeTiltrads,
+    &modeTunernome,
+    &modePaint,
+    &modePaintShare,
+    &modePaintReceive,
+    &modePicross,
+    &modePlatformer,
+    &modeDiceRoller,
+    &modeJukebox,
+    &modeBee,
+};
 
 //==============================================================================
 // Function prototypes
@@ -192,6 +218,88 @@ void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t c
     } while (x < 0);
 }
 
+void handleArgs(int argc, char** argv)
+{
+    // skip the program name arg
+    char** end = argv + argc;
+
+    char* executableName = *argv;
+
+    char* startMode = NULL;
+
+    // Process the command-line arguments
+    // This also skips the first arg, which is the executable name
+    while (++argv < end)
+    {
+        if (!strcmp("--start-mode", *argv) || !strcmp("-m", *argv))
+        {
+            if (++argv >= end)
+            {
+                fprintf(stderr, "ERROR: Missing required argument to parameter %s\n", *(argv - 1));
+                exit(1);
+                return;
+            }
+
+            startMode = *argv;
+        }
+        else if (!strcmp("--lock", *argv) || !strcmp("-l", *argv))
+        {
+            lockMode = true;
+        }
+        else if (!strcmp("--help", *argv) || !strcmp("-h", *argv))
+        {
+            printf("Usage: %s [--start-mode|-m MODE] [--lock|-l] [--help]\n", executableName);
+            printf("\n");
+            printf("\t--start-mode MODE\tStarts the emulator in the mode named MODE, instead of the main menu\n");
+            printf("\t--lock\t\tLocks the emulator in the start mode. Start + Select will do nothing, and if --start-mode is used, it will replace the main menu.\n");
+            printf("\n");
+            exit(0);
+            return;
+        }
+        else
+        {
+            fprintf(stderr, "ERROR: Unknown argument '%s'\n", *argv);
+            exit(1);
+            return;
+        }
+    }
+
+
+    if (startMode != NULL)
+    {
+        bool found = false;
+        for (uint8_t i = 0; i < sizeof(allModes) / sizeof(*allModes); i++)
+        {
+            swadgeMode* mode = allModes[i];
+            if (!strcmp(mode->modeName, startMode) || (!strcmp(startMode, "Pi-cross") && mode == &modePicross))
+            {
+                found = true;
+                // Set the initial mode to this one
+                switchToSwadgeMode(mode);
+
+                // If --lock was passed, also replace the main menu with the initial mode
+                if (lockMode)
+                {
+                    memcpy(&modeMainMenu, mode, sizeof(swadgeMode));
+                }
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            fprintf(stderr, "ERROR: No mode named '%s'\n", startMode);
+            fprintf(stderr, "Possible modes:\n");
+            for (uint8_t i = 0; i < sizeof(allModes) / sizeof(*allModes); i++)
+            {
+                fprintf(stderr, "  - %s\n", (&modePicross == allModes[i]) ? "Pi-cross" : allModes[i]->modeName);
+            }
+            exit(1);
+            return;
+        }
+    }
+}
+
 /**
  * @brief The main emulator function. This initializes rawdraw and calls
  * app_main(), then spins in a loop updating the rawdraw UI
@@ -200,11 +308,13 @@ void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t c
  * @param argv unused
  * @return 0 on success, a nonzero value for any errors
  */
-int main(int argc UNUSED, char** argv UNUSED)
+int main(int argc, char** argv)
 {
 #ifdef __linux__
     init_crashSignals();
 #endif
+
+    handleArgs(argc, argv);
 
     // First initialize rawdraw
     // Screen-specific configurations
@@ -226,30 +336,6 @@ void emu_loop(void)
     static int16_t led_w = MIN_LED_WIDTH;
 
 #ifdef MONKEY_AROUND
-    // A list of all modes to randomly jump to
-    swadgeMode * allModes[] = 
-    {
-        &modeFighter,
-        &modeJumper,
-        &modeColorchord,
-        &modeCredits,
-        &modeDance,
-        &modeFlight,
-        &modeGamepad,
-        &modeMainMenu,
-        &modeSlideWhistle,
-        &modeTest,
-        &modeTiltrads,
-        &modeTunernome,
-        &modePaint,
-        &modePaintShare,
-        &modePaintReceive,
-        &modePicross,
-        &modePlatformer,
-        &modeDiceRoller,
-        &modeJukebox,
-    };
-
     // A list of all keys to randomly press or release, and their states
     const char randKeys[] =  {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i', '1', '2', '3', '4', '5'};
     const char randKeys2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};

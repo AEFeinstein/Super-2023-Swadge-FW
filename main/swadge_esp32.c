@@ -115,6 +115,11 @@ void simulateBtn(void (*fnButtonCallback)(buttonEvt_t* evt), buttonBit_t btn, ui
 // Variables
 //==============================================================================
 
+#if defined(EMU)
+// Keep the emu in a single mode
+bool lockMode = false;
+#endif
+
 static RTC_DATA_ATTR swadgeMode* pendingSwadgeMode = NULL;
 static swadgeMode* cSwadgeMode = &modeMainMenu;
 static bool isSandboxMode = false;
@@ -859,8 +864,12 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     tLastMainLoopCall = tNowUs;
                 }
 
+#if defined(EMU)
+                if (!lockMode && 0 != time_exit_pressed)
+#else
                 // If start & select are being held
                 if(0 != time_exit_pressed)
+#endif
                 {
                     // Figure out for how long
                     int64_t tHeldUs = tNowUs - time_exit_pressed;
