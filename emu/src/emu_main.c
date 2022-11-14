@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <stdlib.h>
+#include <getopt.h>
 
 #ifdef __linux__
 #include <execinfo.h>
@@ -219,6 +220,16 @@ void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t c
     } while (x < 0);
 }
 
+static const struct option opts[] = {
+    {"start-mode", required_argument, NULL, 'm'},
+    {"lock", no_argument, &lockMode, true},
+    {"fuzz", no_argument, &monkeyAround, true},
+    {"fuzz-mode-timer", required_argument, NULL, 't'},
+    {"help", no_argument, NULL, 'h'},
+
+    {NULL, 0, NULL, 0},
+};
+
 void handleArgs(int argc, char** argv)
 {
     // skip the program name arg
@@ -230,59 +241,65 @@ void handleArgs(int argc, char** argv)
 
     // Process the command-line arguments
     // This also skips the first arg, which is the executable name
-    while (++argv < end)
+
+    int optVal, optIndex;
+
+    while (true)
     {
-        if (!strcmp("--start-mode", *argv) || !strcmp("-m", *argv))
+        optVal = getopt_long(argc, argv, "m:lt:h", opts, &optIndex);
+
+        if (optVal < 0)
         {
-            if (++argv >= end)
+            // No more options
+            break;
+        }
+
+        switch (optVal)
+        {
+            case 0:
+            // No opts without a short arg yet, so nothing to do
+            break;
+
+            case 'm':
             {
-                goto err_noarg;
+                startMode = optarg;
+                break;
             }
 
-            startMode = *argv;
-        }
-        else if (!strcmp("--lock", *argv) || !strcmp("-l", *argv))
-        {
-            lockMode = true;
-        }
-        else if (!strcmp("--fuzz", *argv))
-        {
-            monkeyAround = true;
-        }
-        else if (!strcmp("--fuzz-mode-timer", *argv))
-        {
-            if (++argv >= end)
+            case 't':
             {
-                goto err_noarg;
+                fuzzerModeTestTime = atoi(optarg) * 1000000;
+                resetToMenuTimer = fuzzerModeTestTime;
+
+                if (fuzzerModeTestTime == 0)
+                {
+                    fprintf(stderr, "ERROR: Invalid numeric argument for option '--fuzz-mode-timer': '%s'\n", optarg);
+                    exit(1);
+                    return;
+                }
+                break;
             }
 
-            fuzzerModeTestTime = atoi(*argv) * 1000000;
-            resetToMenuTimer = fuzzerModeTestTime;
-
-            if (fuzzerModeTestTime == 0)
+            case 'h':
             {
-                fprintf(stderr, "ERROR: Invalid numeric argument for parameter %s: '%s'\n", *(argv - 1), *argv);
+                printf("Usage: %s [--start-mode|-m MODE] [--lock|-l] [--help] [--fuzz [--fuzz-mode-timer SECONDS]]\n", executableName);
+                printf("\n");
+                printf("\t--start-mode MODE\tStarts the emulator in the mode named MODE, instead of the main menu\n");
+                printf("\t--lock\t\t\tLocks the emulator in the start mode. Start + Select will do nothing, and if --start-mode is used, it will replace the main menu.\n");
+                printf("\t--fuzz\t\t\tEnables fuzzing mode, which will trigger rapid random button presses and randomly switch modes, unless --lock is passed.\n");
+                printf("\t--fuzz-mode-timer SECONDS\tSets the number of seconds before the fuzzer will switch to a different random mode.\n");
+                printf("\n");
+                exit(0);
+                return;
+            }
+
+            case '?':
+            default:
+            {
+                // getopt already printed error message
                 exit(1);
                 return;
             }
-        }
-        else if (!strcmp("--help", *argv) || !strcmp("-h", *argv))
-        {
-            printf("Usage: %s [--start-mode|-m MODE] [--lock|-l] [--help] [--fuzz [--fuzz-mode-timer SECONDS]]\n", executableName);
-            printf("\n");
-            printf("\t--start-mode MODE\tStarts the emulator in the mode named MODE, instead of the main menu\n");
-            printf("\t--lock\t\t\tLocks the emulator in the start mode. Start + Select will do nothing, and if --start-mode is used, it will replace the main menu.\n");
-            printf("\t--fuzz\t\t\tEnables fuzzing mode, which will trigger rapid random button presses and randomly switch modes, unless --lock is passed.\n");
-            printf("\t--fuzz-mode-timer SECONDS\tSets the number of seconds before the fuzzer will switch to a different random mode.\n");
-            printf("\n");
-            exit(0);
-            return;
-        }
-        else
-        {
-            fprintf(stderr, "ERROR: Unknown argument '%s'\n", *argv);
-            exit(1);
-            return;
         }
     }
 
@@ -323,12 +340,6 @@ void handleArgs(int argc, char** argv)
 
     return;
 
-    err_noarg:
-    {
-        fprintf(stderr, "ERROR: Missing required argument to parameter %s\n", *(argv - 1));
-        exit(1);
-        return;
-    }
 }
 
 /**
