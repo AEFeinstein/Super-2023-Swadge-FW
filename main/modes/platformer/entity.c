@@ -233,6 +233,7 @@ void updateHitBlock(entity_t *self)
         switch (aboveTile)
         {
             case TILE_CTNR_COIN:
+            case TILE_CTNR_10COIN:
             {
                 addCoins(self->gameData, 1);
                 scorePoints(self->gameData, 10);
