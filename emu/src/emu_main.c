@@ -66,6 +66,8 @@
 #define BG_COLOR  0x191919FF // This color isn't part of the palette
 #define DIV_COLOR 0x808080FF
 
+extern char* emuNvsFilename;
+
 // A list of all modes
 swadgeMode * allModes[] =
 {
@@ -225,6 +227,7 @@ static const struct option opts[] = {
     {"lock", no_argument, &lockMode, true},
     {"fuzz", no_argument, &monkeyAround, true},
     {"fuzz-mode-timer", required_argument, NULL, 't'},
+    {"nvs-file", required_argument, NULL, 'f'},
     {"help", no_argument, NULL, 'h'},
 
     {NULL, 0, NULL, 0},
@@ -243,7 +246,7 @@ void handleArgs(int argc, char** argv)
 
     while (true)
     {
-        optVal = getopt_long(argc, argv, "m:lt:h", opts, &optIndex);
+        optVal = getopt_long(argc, argv, "m:lt:f:h", opts, &optIndex);
 
         if (optVal < 0)
         {
@@ -277,14 +280,21 @@ void handleArgs(int argc, char** argv)
                 break;
             }
 
+            case 'f':
+            {
+                emuNvsFilename = optarg;
+                break;
+            }
+
             case 'h':
             {
-                printf("Usage: %s [--start-mode|-m MODE] [--lock|-l] [--help] [--fuzz [--fuzz-mode-timer SECONDS]]\n", executableName);
+                printf("Usage: %s [--start-mode|-m MODE] [--lock|-l] [--help] [--fuzz [--fuzz-mode-timer SECONDS]] [--nvs-file|-f FILE]\n", executableName);
                 printf("\n");
                 printf("\t--start-mode MODE\tStarts the emulator in the mode named MODE, instead of the main menu\n");
                 printf("\t--lock\t\t\tLocks the emulator in the start mode. Start + Select will do nothing, and if --start-mode is used, it will replace the main menu.\n");
                 printf("\t--fuzz\t\t\tEnables fuzzing mode, which will trigger rapid random button presses and randomly switch modes, unless --lock is passed.\n");
                 printf("\t--fuzz-mode-timer SECONDS\tSets the number of seconds before the fuzzer will switch to a different random mode.\n");
+                printf("\t--nvs-file FILE\tSets the name of the JSON file used to store NVS data. Defaults to 'nvs.json' in the current directory.\n");
                 printf("\n");
                 exit(0);
                 return;
