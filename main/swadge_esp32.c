@@ -1010,8 +1010,6 @@ void switchToSwadgeMode(swadgeMode* mode)
 {
 #if defined(EMU)
     if (!monkeyAround || lockMode)
-#else
-    if (true)
 #endif
     {
         pendingSwadgeMode = mode;
@@ -1028,8 +1026,6 @@ void switchToSwadgeModeFuzzer(swadgeMode* mode)
 {
 #if defined(EMU)
     if (monkeyAround && !lockMode)
-#else
-    if (true)
 #endif
     {
         pendingSwadgeMode = mode;
