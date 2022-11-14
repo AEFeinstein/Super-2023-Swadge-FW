@@ -608,16 +608,16 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* n
             int32_t absVelY = (knockback->y) > 0 ? (knockback->y) : -(knockback->y);
             if(absVelX > absVelY)
             {
-                if(knockback->x > 0)
-                {
-                    // Traveling right, bounce to the left
-                    ftr->bounceNextCollision = BOUNCE_LEFT;
-                }
-                else
-                {
-                    // Traveling left, bounce to the right
-                    ftr->bounceNextCollision = BOUNCE_RIGHT;
-                }
+                // if(knockback->x > 0)
+                // {
+                //     // Traveling right, bounce to the left
+                //     ftr->bounceNextCollision = BOUNCE_LEFT;
+                // }
+                // else
+                // {
+                //     // Traveling left, bounce to the right
+                //     ftr->bounceNextCollision = BOUNCE_RIGHT;
+                // }
             }
             else
             {
