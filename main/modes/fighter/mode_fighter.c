@@ -41,7 +41,7 @@
 #define IFRAMES_AFTER_SPAWN ((3 * 1000) / FRAME_TIME_MS) // 3 seconds
 #define IFRAMES_AFTER_LEDGE_JUMP ((1000) / FRAME_TIME_MS) // 1 second
 
-#define DRAW_DEBUG_BOXES
+// #define DRAW_DEBUG_BOXES
 
 #define NUM_FIGHTERS 2
 #define NUM_STOCKS 3
