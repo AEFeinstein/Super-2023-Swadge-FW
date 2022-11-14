@@ -1,11 +1,11 @@
 {
    "name":"Bigg Funkus",
-   "gravity":8192,
-   "weight":1536,
-   "jump_velo":-15360,
-   "run_accel":13000,
-   "run_decel":13000,
-   "run_max_velo":15360,
+   "gravity":8200,
+   "weight":1000,
+   "jump_velo":-18000,
+   "run_accel":9000,
+   "run_decel":15000,
+   "run_max_velo":12000,
    "size_x":29,
    "size_y":29,
    "nJumps":2,
@@ -59,15 +59,46 @@
    "attacks":[
       {
          "type":"up_gnd",
-         "startupLag":250,
+         "startupLag":230,
          "startupLagSpr":{
             "sprite":"bugw.wsg",
             "off_x":-14,
             "off_y":-1
          },
-         "onlyFirstHit":true,
+         "onlyFirstHit":false,
          "iframe_timer":0,
          "attack_frames":[
+            {
+               "duration":80,
+               "atkSpr":{
+                  "sprite":"bugw.wsg",
+                  "off_x":-14,
+                  "off_y":-1
+               },
+               "iframe_timer":0,
+               "hitboxes":[
+                  {
+                     "relativePos_x":-16,
+                     "relativePos_y":20,
+                     "size_x":20,
+                     "size_y":18,
+                     "damage":6,
+                     "knockback_x":2000,
+                     "knockback_y":-4000,
+                     "hitstun":80
+                  },
+                  {
+                     "relativePos_x":24,
+                     "relativePos_y":20,
+                     "size_x":20,
+                     "size_y":18,
+                     "damage":6,
+                     "knockback_x":-2000,
+                     "knockback_y":-4000,
+                     "hitstun":80
+                  }
+               ]
+            },
             {
                "duration":350,
                "atkSpr":{
@@ -79,13 +110,13 @@
                "hitboxes":[
                   {
                      "relativePos_x":2,
-                     "relativePos_y":-19,
+                     "relativePos_y":-21,
                      "size_x":24,
                      "size_y":25,
-                     "damage":9,
+                     "damage":13,
                      "knockback_x":1000,
                      "knockback_y":-8000,
-                     "hitstun":33
+                     "hitstun":200
                   }
                ]
             }
@@ -107,7 +138,7 @@
          },
          "attack_frames":[
             {
-               "duration":400,
+               "duration":350,
                "atkSpr":{
                   "sprite":"bdga1.wsg",
                   "off_x":-3,
@@ -117,17 +148,17 @@
                   {
                      "relativePos_x":15,
                      "relativePos_y":16,
-                     "size_x":18,
+                     "size_x":24,
                      "size_y":13,
                      "damage":12,
-                     "knockback_x":20000,
-                     "knockback_y":-10000,
-                     "hitstun":33
+                     "knockback_x":7000,
+                     "knockback_y":-4000,
+                     "hitstun":180
                   }
                ]
             },
             {
-               "duration":400,
+               "duration":250,
                "atkSpr":{
                   "sprite":"bdga2.wsg",
                   "off_x":-3,
@@ -135,14 +166,14 @@
                },
                "hitboxes":[
                   {
-                     "relativePos_x":-3,
+                     "relativePos_x":-7,
                      "relativePos_y":16,
-                     "size_x":18,
+                     "size_x":24,
                      "size_y":13,
                      "damage":12,
-                     "knockback_x":-20000,
-                     "knockback_y":-10000,
-                     "hitstun":33
+                     "knockback_x":-9000,
+                     "knockback_y":-2000,
+                     "hitstun":180
                   }
                ]
             }
@@ -173,14 +204,14 @@
                "velo_x":25000,
                "hitboxes":[
                   {
-                     "relativePos_x":3,
+                     "relativePos_x":0,
                      "relativePos_y":6,
-                     "size_x":23,
+                     "size_x":33,
                      "size_y":23,
                      "damage":9,
                      "knockback_x":9000,
                      "knockback_y":-3000,
-                     "hitstun":33
+                     "hitstun":100
                   }
                ]
             }
@@ -214,10 +245,10 @@
                      "relativePos_y":9,
                      "size_x":20,
                      "size_y":17,
-                     "damage":9,
-                     "knockback_x":4000,
-                     "knockback_y":-2000,
-                     "hitstun":33
+                     "damage":12,
+                     "knockback_x":6500,
+                     "knockback_y":-5000,
+                     "hitstun":180
                   }
                ]
             }
@@ -228,7 +259,7 @@
             "off_x":-2,
             "off_y":-1
          },
-         "landing_lag":14
+         "landing_lag":100
       },
       {
          "type":"neutral_gnd",
@@ -253,14 +284,14 @@
                      "size_x":7,
                      "size_y":12,
                      "damage":9,
-                     "knockback_x":4000,
+                     "knockback_x":2500,
                      "knockback_y":-2000,
-                     "hitstun":33,
+                     "hitstun":100,
                      "isProjectile":true,
                      "projectileSprite":{
                         "sprite":"bnap.wsg"
                      },
-                     "projectileDuration":3000,
+                     "projectileDuration":700,
                      "projectileVelo_x":10000,
                      "projectileVelo_y":-10000,
                      "projectileAccel_x":0,
@@ -276,7 +307,7 @@
             "off_x":-5,
             "off_y":-7
          },
-         "landing_lag":14
+         "landing_lag":100
       },
       {
          "type":"neutral_air",
@@ -301,14 +332,14 @@
                      "size_x":7,
                      "size_y":12,
                      "damage":9,
-                     "knockback_x":4000,
+                     "knockback_x":2500,
                      "knockback_y":-2000,
-                     "hitstun":33,
+                     "hitstun":100,
                      "isProjectile":true,
                      "projectileSprite":{
                         "sprite":"bnap.wsg"
                      },
-                     "projectileDuration":3000,
+                     "projectileDuration":900,
                      "projectileVelo_x":10000,
                      "projectileVelo_y":-10000,
                      "projectileAccel_x":0,
@@ -318,13 +349,13 @@
                ]
             }
          ],
-         "endLag":175,
+         "endLag":200,
          "endLagSpr":{
             "sprite":"bnac.wsg",
             "off_x":-5,
             "off_y":-10
          },
-         "landing_lag":14
+         "landing_lag":100
       },
       {
          "type":"front_air",
@@ -348,10 +379,10 @@
                      "relativePos_y":4,
                      "size_x":27,
                      "size_y":19,
-                     "damage":9,
-                     "knockback_x":8000,
+                     "damage":13,
+                     "knockback_x":6900,
                      "knockback_y":-4000,
-                     "hitstun":33
+                     "hitstun":150
                   }
                ]
             }
@@ -362,7 +393,7 @@
             "off_x":-5,
             "off_y":-7
          },
-         "landing_lag":12
+         "landing_lag":160
       },
       {
          "type":"back_air",
@@ -386,10 +417,10 @@
                      "relativePos_y":4,
                      "size_x":33,
                      "size_y":22,
-                     "damage":9,
-                     "knockback_x":-9000,
+                     "damage":15,
+                     "knockback_x":-8300,
                      "knockback_y":-4000,
-                     "hitstun":33
+                     "hitstun":200
                   }
                ]
             }
@@ -400,7 +431,7 @@
             "off_x":-3,
             "off_y":-7
          },
-         "landing_lag":11
+         "landing_lag":150
       },
       {
          "type":"up_air",
@@ -423,24 +454,24 @@
                "velo_y":-25000,
                "hitboxes":[
                   {
-                     "relativePos_x":-15,
-                     "relativePos_y":11,
-                     "size_x":29,
-                     "size_y":14,
-                     "damage":10,
-                     "knockback_x":-4000,
-                     "knockback_y":-2000,
-                     "hitstun":33
-                  },
-                  {
                      "relativePos_x":14,
                      "relativePos_y":11,
                      "size_x":29,
                      "size_y":14,
-                     "damage":10,
-                     "knockback_x":4000,
-                     "knockback_y":-2000,
-                     "hitstun":33
+                     "damage":12,
+                     "knockback_x":6000,
+                     "knockback_y":-1000,
+                     "hitstun":130
+                  },
+                  {
+                     "relativePos_x":-15,
+                     "relativePos_y":11,
+                     "size_x":29,
+                     "size_y":14,
+                     "damage":12,
+                     "knockback_x":-6000,
+                     "knockback_y":-1000,
+                     "hitstun":130
                   }
                ]
             },
@@ -455,24 +486,24 @@
                "velo_y":0,
                "hitboxes":[
                   {
-                     "relativePos_x":-15,
-                     "relativePos_y":11,
-                     "size_x":29,
-                     "size_y":14,
-                     "damage":10,
-                     "knockback_x":-4000,
-                     "knockback_y":-2000,
-                     "hitstun":33
-                  },
-                  {
                      "relativePos_x":14,
                      "relativePos_y":11,
                      "size_x":29,
                      "size_y":14,
-                     "damage":10,
-                     "knockback_x":4000,
+                     "damage":11,
+                     "knockback_x":5000,
                      "knockback_y":-2000,
-                     "hitstun":33
+                     "hitstun":130
+                  },
+                  {
+                     "relativePos_x":-15,
+                     "relativePos_y":11,
+                     "size_x":29,
+                     "size_y":14,
+                     "damage":11,
+                     "knockback_x":-5000,
+                     "knockback_y":-2000,
+                     "hitstun":130
                   }
                ]
             },
@@ -487,24 +518,24 @@
                "velo_y":0,
                "hitboxes":[
                   {
-                     "relativePos_x":-15,
-                     "relativePos_y":11,
-                     "size_x":29,
-                     "size_y":14,
-                     "damage":10,
-                     "knockback_x":-4000,
-                     "knockback_y":-2000,
-                     "hitstun":33
-                  },
-                  {
                      "relativePos_x":14,
                      "relativePos_y":11,
                      "size_x":29,
                      "size_y":14,
-                     "damage":10,
+                     "damage":9,
                      "knockback_x":4000,
                      "knockback_y":-2000,
-                     "hitstun":33
+                     "hitstun":100
+                  },
+                  {
+                     "relativePos_x":-15,
+                     "relativePos_y":11,
+                     "size_x":29,
+                     "size_y":14,
+                     "damage":9,
+                     "knockback_x":-4000,
+                     "knockback_y":-2000,
+                     "hitstun":100
                   }
                ]
             },
@@ -523,20 +554,20 @@
                      "relativePos_y":11,
                      "size_x":29,
                      "size_y":14,
-                     "damage":10,
-                     "knockback_x":-4000,
-                     "knockback_y":-2000,
-                     "hitstun":33
+                     "damage":8,
+                     "knockback_x":-3500,
+                     "knockback_y":-3000,
+                     "hitstun":100
                   },
                   {
                      "relativePos_x":14,
                      "relativePos_y":11,
                      "size_x":29,
                      "size_y":14,
-                     "damage":10,
-                     "knockback_x":4000,
-                     "knockback_y":-2000,
-                     "hitstun":33
+                     "damage":8,
+                     "knockback_x":3500,
+                     "knockback_y":-3000,
+                     "hitstun":100
                   }
                ]
             }
@@ -547,7 +578,7 @@
             "off_x":-19,
             "off_y":-6
          },
-         "landing_lag":11
+         "landing_lag":350
       },
       {
          "type":"down_air",
@@ -572,10 +603,10 @@
                      "relativePos_y":12,
                      "size_x":25,
                      "size_y":39,
-                     "damage":9,
+                     "damage":11,
                      "knockback_x":500,
                      "knockback_y":8000,
-                     "hitstun":33
+                     "hitstun":220
                   }
                ]
             }
@@ -586,7 +617,7 @@
             "off_x":-5,
             "off_y":-3
          },
-         "landing_lag":14
+         "landing_lag":180
       }
    ]
 }
