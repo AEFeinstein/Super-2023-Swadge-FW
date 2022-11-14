@@ -1259,6 +1259,20 @@ void checkFighterButtonInput(fighter_t* ftr)
         {
             switch(ftr->state)
             {
+                case FS_DUCKING:
+                {
+                    // Pressing A in this state means fall through platform
+                    if((!ftr->isInAir) && ftr->touchingPlatform->canFallThrough)
+                    {
+                        // Fall through a platform
+                        setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
+                        // Shift down one pixel to guarantee a collision with the platform
+                        ftr->pos.y += (1 << SF);
+                        setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
+                        ftr->fallThroughTimer = 0;
+                        break;
+                    }
+                }
                 case FS_IDLE:
                 case FS_RUNNING:
                 case FS_JUMPING:
@@ -1292,20 +1306,6 @@ void checkFighterButtonInput(fighter_t* ftr)
                         {
                             ftr->dir = FACING_RIGHT;
                         }
-                    }
-                    break;
-                }
-                case FS_DUCKING:
-                {
-                    // Pressing A in this state means fall through platform
-                    if((!ftr->isInAir) && ftr->touchingPlatform->canFallThrough)
-                    {
-                        // Fall through a platform
-                        setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
-                        // Shift down one pixel to guarantee a collision with the platform
-                        ftr->pos.y += (1 << SF);
-                        setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
-                        ftr->fallThroughTimer = 0;
                     }
                     break;
                 }
