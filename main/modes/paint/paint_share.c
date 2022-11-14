@@ -111,7 +111,7 @@ void paintShareDoSave(void);
 // Use a different swadge mode so the main game doesn't take as much battery
 swadgeMode modePaintShare =
 {
-    .modeName = "MFPaint.net",
+    .modeName = "MFPaint.net Send",
     .fnEnterMode = paintShareEnterMode,
     .fnExitMode = paintShareExitMode,
     .fnMainLoop = paintShareMainLoop,
@@ -127,7 +127,7 @@ swadgeMode modePaintShare =
 
 swadgeMode modePaintReceive =
 {
-    .modeName = "MFPaint.net",
+    .modeName = "MFPaint.net Recv",
     .fnEnterMode = paintReceiveEnterMode,
     .fnExitMode = paintShareExitMode,
     .fnMainLoop = paintShareMainLoop,
