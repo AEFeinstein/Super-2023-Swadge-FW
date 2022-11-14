@@ -1097,7 +1097,7 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
                     setFighterState(ftr, FS_ATTACK, &(ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite), atk->duration,
                                     NULL);
 
-                    // Always copy the iframe value, may be 0
+                    // Only copy non-zero iFrames to the timer to not overwrite existing counts
                     if(atk->iFrames)
                     {
                         ftr->iFrameTimer = atk->iFrames;
