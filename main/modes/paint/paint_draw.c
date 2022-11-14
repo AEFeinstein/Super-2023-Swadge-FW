@@ -34,11 +34,11 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = { .type = PRESS, .data = TOUCH_ANY | DOWN, }, .backtrack = { .type = RELEASE, .data = TOUCH_ANY | SWIPE_LEFT | SWIPE_RIGHT | TOUCH_X | TOUCH_Y }, .backtrackSteps = 1, .prompt = "Then, press D-Pad DOWN to change the color selection..." },
     { .trigger = { .type = RELEASE, .data = TOUCH_ANY | TOUCH_X | TOUCH_Y | SWIPE_LEFT | SWIPE_RIGHT }, .prompt = "And release the TOUCH PAD to confirm!" },
     { .trigger = { .type = RELEASE, .data = BTN_B, }, .prompt = "Great choice! You can also quickly swap the foreground and background colors with the B BUTTON" },
-    { .trigger = { .type = RELEASE, .data = TOUCH_Y, }, .prompt = "Now, let's change the brush size. Just tap Y on the TOUCH PAD to increase the brush size by 1" },
+    { .trigger = { .type = RELEASE, .data = TOUCH_X, }, .prompt = "Now, let's change the brush size. Just tap X on the TOUCH PAD to increase the brush size by 1" },
     { .trigger = { .type = RELEASE, .data = BTN_A, }, .prompt = "Press A to draw again with the larger brush!" },
-    { .trigger = { .type = RELEASE, .data = TOUCH_X, }, .prompt = "Wow! Now, to decrease the brush size, just tap X on the TOUCH PAD!" },
-    { .trigger = { .type = RELEASE, .data = SWIPE_LEFT, }, .prompt = "You can also increase the brush size smoothly by swiping UP (from X to Y) on the TOUCH PAD"},
-    { .trigger = { .type = RELEASE, .data = SWIPE_RIGHT, }, .prompt = "And you can decrease it smoothly by swiping DOWN (from Y to X) on the TOUCH PAD" },
+    { .trigger = { .type = RELEASE, .data = TOUCH_Y, }, .prompt = "Wow! Now, to decrease the brush size, just tap Y on the TOUCH PAD!" },
+    { .trigger = { .type = RELEASE, .data = SWIPE_LEFT, }, .prompt = "You can also increase the brush size smoothly by swiping RIGHT (from Y to X) on the TOUCH PAD"},
+    { .trigger = { .type = RELEASE, .data = SWIPE_RIGHT, }, .prompt = "And you can decrease it smoothly by swiping LEFT (from X to Y) on the TOUCH PAD" },
     { .trigger = { .type = PRESS, .data = TOUCH_ANY, }, .prompt = "You're ready to use the Pen brushes!\nNow, let's try a different brush. Press and hold the TOUCH PAD again..." },
     { .trigger = { .type = PRESS, .data = TOUCH_ANY | RIGHT, }, .backtrack = { .type = RELEASE, .data = TOUCH_ANY | SWIPE_LEFT | SWIPE_RIGHT | TOUCH_X | TOUCH_Y }, .backtrackSteps = 1, .prompt = "Then, press D-Pad RIGHT to change the brush..." },
     { .trigger = { .type = RELEASE, .data = TOUCH_ANY | TOUCH_X | TOUCH_Y | SWIPE_LEFT | SWIPE_RIGHT, }, .prompt = "And release the TOUCH PAD to confirm!" },
@@ -432,6 +432,9 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
     if (paintState->clearScreen)
     {
         hideCursor(getCursor(), &paintState->canvas);
+        memcpy(paintState->canvas.palette, defaultPalette, PAINT_MAX_COLORS * sizeof(paletteColor_t));
+        getArtist()->fgColor = paintState->canvas.palette[0];
+        getArtist()->bgColor = paintState->canvas.palette[1];
         paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
         paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
         paintUpdateLeds();
@@ -1331,11 +1334,11 @@ void paintDrawScreenPollTouch()
                         // Tap! But only if we started on X or Y
                         if (paintState->firstTouch < (1024 / 5))
                         {
-                            paintIncBrushWidth(1);
+                            paintDecBrushWidth(1);
                         }
                         else if (paintState->firstTouch > (1024 * 4 / 5))
                         {
-                            paintDecBrushWidth(1);
+                            paintIncBrushWidth(1);
                         }
                     }
 
