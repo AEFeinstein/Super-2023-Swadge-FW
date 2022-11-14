@@ -271,9 +271,9 @@ void handleArgs(int argc, char** argv)
                 fuzzerModeTestTime = atoi(optarg) * 1000000;
                 resetToMenuTimer = fuzzerModeTestTime;
 
-                if (fuzzerModeTestTime == 0)
+                if (fuzzerModeTestTime <= 0)
                 {
-                    fprintf(stderr, "ERROR: Invalid numeric argument for option '--fuzz-mode-timer': '%s'\n", optarg);
+                    fprintf(stderr, "ERROR: Invalid numeric argument for option %s: '%s'\n", argv[optind - 2], optarg);
                     exit(1);
                     return;
                 }
