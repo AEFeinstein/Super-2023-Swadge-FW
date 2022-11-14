@@ -237,7 +237,6 @@ void updateHitBlock(entity_t *self)
             {
                 addCoins(self->gameData, 1);
                 scorePoints(self->gameData, 10);
-                buzzer_play_sfx(&sndCoin);
                 self->jumpPower = TILE_CONTAINER_2;
                 break;
             }
@@ -266,7 +265,6 @@ void updateHitBlock(entity_t *self)
                 if(self->gameData->extraLifeCollected){
                     addCoins(self->gameData, 1);
                     scorePoints(self->gameData, 10);
-                    buzzer_play_sfx(&sndCoin);
                 } else {
                     createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) && belowTile != TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
                     createdEntity->homeTileX = 0;
@@ -856,7 +854,6 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
         setTile(self->tilemap, tx, ty, TILE_EMPTY);
         addCoins(self->gameData, 1);
         scorePoints(self->gameData, 50);
-        buzzer_play_sfx(&sndCoin);
         break;
     }
     case TILE_LADDER:
@@ -1704,7 +1701,6 @@ void playerOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8_
             setTile(self->tilemap, tx, ty, TILE_EMPTY);
             addCoins(self->gameData, 1);
             scorePoints(self->gameData, 50);
-            buzzer_play_sfx(&sndCoin);
             break;
         }
         case TILE_LADDER:{
