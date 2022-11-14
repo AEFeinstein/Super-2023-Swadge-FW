@@ -377,9 +377,8 @@ void emu_loop(void)
     static short lastWindow_h = 0;
     static int16_t led_w = MIN_LED_WIDTH;
 
-#if defined(EMU)
-        if (monkeyAround)
-        {
+    if (monkeyAround)
+    {
         // A list of all keys to randomly press or release, and their states
         const char randKeys[] =  {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i', '1', '2', '3', '4', '5'};
         const char randKeys2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
@@ -424,7 +423,6 @@ void emu_loop(void)
         // Timekeeping
         tLastCall = tNow;
     }
-#endif // EMU
 
     // Always handle inputs
     CNFGHandleInput();
