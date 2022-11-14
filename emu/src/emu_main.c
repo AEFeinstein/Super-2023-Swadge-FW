@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <math.h>
+#include <stdlib.h>
 
 #ifdef __linux__
 #include <execinfo.h>
@@ -235,9 +236,7 @@ void handleArgs(int argc, char** argv)
         {
             if (++argv >= end)
             {
-                fprintf(stderr, "ERROR: Missing required argument to parameter %s\n", *(argv - 1));
-                exit(1);
-                return;
+                goto err_noarg;
             }
 
             startMode = *argv;
@@ -246,12 +245,35 @@ void handleArgs(int argc, char** argv)
         {
             lockMode = true;
         }
+        else if (!strcmp("--fuzz", *argv))
+        {
+            monkeyAround = true;
+        }
+        else if (!strcmp("--fuzz-mode-timer", *argv))
+        {
+            if (++argv >= end)
+            {
+                goto err_noarg;
+            }
+
+            fuzzerModeTestTime = atoi(*argv) * 1000000;
+            resetToMenuTimer = fuzzerModeTestTime;
+
+            if (fuzzerModeTestTime == 0)
+            {
+                fprintf(stderr, "ERROR: Invalid numeric argument for parameter %s: '%s'\n", *(argv - 1), *argv);
+                exit(1);
+                return;
+            }
+        }
         else if (!strcmp("--help", *argv) || !strcmp("-h", *argv))
         {
-            printf("Usage: %s [--start-mode|-m MODE] [--lock|-l] [--help]\n", executableName);
+            printf("Usage: %s [--start-mode|-m MODE] [--lock|-l] [--help] [--fuzz [--fuzz-mode-timer SECONDS]]\n", executableName);
             printf("\n");
             printf("\t--start-mode MODE\tStarts the emulator in the mode named MODE, instead of the main menu\n");
-            printf("\t--lock\t\tLocks the emulator in the start mode. Start + Select will do nothing, and if --start-mode is used, it will replace the main menu.\n");
+            printf("\t--lock\t\t\tLocks the emulator in the start mode. Start + Select will do nothing, and if --start-mode is used, it will replace the main menu.\n");
+            printf("\t--fuzz\t\t\tEnables fuzzing mode, which will trigger rapid random button presses and randomly switch modes, unless --lock is passed.\n");
+            printf("\t--fuzz-mode-timer SECONDS\tSets the number of seconds before the fuzzer will switch to a different random mode.\n");
             printf("\n");
             exit(0);
             return;
@@ -298,6 +320,15 @@ void handleArgs(int argc, char** argv)
             return;
         }
     }
+
+    return;
+
+    err_noarg:
+    {
+        fprintf(stderr, "ERROR: Missing required argument to parameter %s\n", *(argv - 1));
+        exit(1);
+        return;
+    }
 }
 
 /**
@@ -335,53 +366,54 @@ void emu_loop(void)
     static short lastWindow_h = 0;
     static int16_t led_w = MIN_LED_WIDTH;
 
-#ifdef MONKEY_AROUND
-    // A list of all keys to randomly press or release, and their states
-    const char randKeys[] =  {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i', '1', '2', '3', '4', '5'};
-    const char randKeys2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
-    static bool keyState[sizeof(randKeys) / sizeof(randKeys[0])] = {false};
-
-    // Time keeping
-    static int64_t tLastCall = 0;
-    if(0 == tLastCall)
-    {
-        tLastCall = esp_timer_get_time();
-    }
-    int64_t tNow = esp_timer_get_time();
-    int64_t tElapsed = (tNow - tLastCall);
-
-    // Randomly press or release keys every 100ms
-    static int64_t keyTimer = 0;
-    keyTimer += tElapsed;
-    while(keyTimer >= 100000)
-    {
-        keyTimer -= 100000;
-        int keyIdx = esp_random() % (sizeof(randKeys) / sizeof(randKeys[0]));
-        keyState[keyIdx] = !keyState[keyIdx];
-        emuSensorHandleKey(randKeys[keyIdx], keyState[keyIdx]);
-
-        // Only handle non-touchpads for p2
-        if(keyIdx < sizeof(randKeys2) / sizeof(randKeys2[0]))
+#if defined(EMU)
+        if (monkeyAround)
         {
-            emuSensorHandleKey(randKeys2[keyIdx], keyState[keyIdx]);
+        // A list of all keys to randomly press or release, and their states
+        const char randKeys[] =  {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i', '1', '2', '3', '4', '5'};
+        const char randKeys2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
+        static bool keyState[sizeof(randKeys) / sizeof(randKeys[0])] = {false};
+
+        // Time keeping
+        static int64_t tLastCall = 0;
+        if(0 == tLastCall)
+        {
+            tLastCall = esp_timer_get_time();
         }
-    }
+        int64_t tNow = esp_timer_get_time();
+        int64_t tElapsed = (tNow - tLastCall);
 
-    // Change the swadge mode two minutes
-#define MODE_TEST_TIME_US (1000000 * 120)
-    static int64_t resetToMenuTimer = MODE_TEST_TIME_US;
-    resetToMenuTimer += tElapsed;
-    while(resetToMenuTimer >= MODE_TEST_TIME_US)
-    {
-        resetToMenuTimer -= MODE_TEST_TIME_US;
-        static int modeIdx = (sizeof(allModes) / sizeof(allModes[0])) - 1;
-        modeIdx = (modeIdx + 1) % (sizeof(allModes) / sizeof(allModes[0]));
-        switchToSwadgeModeFuzzer(allModes[modeIdx]);
-    }
+        // Randomly press or release keys every 100ms
+        static int64_t keyTimer = 0;
+        keyTimer += tElapsed;
+        while(keyTimer >= 100000)
+        {
+            keyTimer -= 100000;
+            int keyIdx = esp_random() % (sizeof(randKeys) / sizeof(randKeys[0]));
+            keyState[keyIdx] = !keyState[keyIdx];
+            emuSensorHandleKey(randKeys[keyIdx], keyState[keyIdx]);
 
-    // Timekeeping
-    tLastCall = tNow;
-#endif // MONKEY_AROUND
+            // Only handle non-touchpads for p2
+            if(keyIdx < sizeof(randKeys2) / sizeof(randKeys2[0]))
+            {
+                emuSensorHandleKey(randKeys2[keyIdx], keyState[keyIdx]);
+            }
+        }
+
+        // Change the swadge mode two minutes
+        resetToMenuTimer += tElapsed;
+        while(resetToMenuTimer >= fuzzerModeTestTime)
+        {
+            resetToMenuTimer -= fuzzerModeTestTime;
+            static int modeIdx = (sizeof(allModes) / sizeof(allModes[0])) - 1;
+            modeIdx = (modeIdx + 1) % (sizeof(allModes) / sizeof(allModes[0]));
+            switchToSwadgeModeFuzzer(allModes[modeIdx]);
+        }
+
+        // Timekeeping
+        tLastCall = tNow;
+    }
+#endif // EMU
 
     // Always handle inputs
     CNFGHandleInput();

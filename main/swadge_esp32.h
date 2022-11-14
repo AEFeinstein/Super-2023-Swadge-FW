@@ -6,6 +6,9 @@
 
 #if defined(EMU)
 extern bool lockMode;
+extern bool monkeyAround;
+extern int64_t fuzzerModeTestTime;
+extern int64_t resetToMenuTimer;
 #endif
 
 void app_main(void);
