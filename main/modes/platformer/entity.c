@@ -612,6 +612,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                     self->yspeed = -60;
                     self->spriteIndex = SP_PLAYER_HURT;
                     self->gameData->changeState = ST_DEAD;
+                    self->gravityEnabled = true;
                     self->falling = true;
                 } else {
                     self->xspeed = 0;
