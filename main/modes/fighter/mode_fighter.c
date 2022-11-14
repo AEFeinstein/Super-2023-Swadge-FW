@@ -1273,6 +1273,7 @@ void checkFighterButtonInput(fighter_t* ftr)
                         break;
                     }
                 }
+                // Fall through
                 case FS_IDLE:
                 case FS_RUNNING:
                 case FS_JUMPING:
@@ -2085,11 +2086,30 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     // Revert position if dashing and dashed off a platform
     if((DASH_GROUND == ftr->cAttack) && (ftr->relativePos != ABOVE_PLATFORM))
     {
-        // Dead stop
-        ftr->velocity.x = 0;
-        // Revert position
-        ftr->pos = origPos;
-        setFighterRelPos(ftr, origRelPos, origTouchingPlatform, origPassingThroughPlatform, origIsInair);
+        switch(ftr->state)
+        {
+            case FS_STARTUP:
+            case FS_ATTACK:
+            case FS_COOLDOWN:
+            {
+                // Dead stop
+                ftr->velocity.x = 0;
+                // Revert position
+                ftr->pos = origPos;
+                setFighterRelPos(ftr, origRelPos, origTouchingPlatform, origPassingThroughPlatform, origIsInair);
+                break;
+            }
+            default:
+            case FS_IDLE:
+            case FS_RUNNING:
+            case FS_DUCKING:
+            case FS_JUMPING:
+            case FS_HITSTUN:
+            {
+                // Do not revert position in these states
+                break;
+            }
+        }
     }
 
     // Check if the sandbag has landed
