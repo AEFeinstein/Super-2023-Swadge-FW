@@ -1682,6 +1682,7 @@ void paintSetupTool(void)
     }
 
     hideCursor(getCursor(), &paintState->canvas);
+    paintHidePickPoints();
     switch (getArtist()->brushDef->mode)
     {
         case HOLD_DRAW:
@@ -1708,10 +1709,10 @@ void paintSetupTool(void)
             break;
         }
     }
-    showCursor(getCursor(), &paintState->canvas);
 
     // Undraw and hide any stored temporary pixels
     while (popPxScaled(&getArtist()->pickPoints, paintState->disp, paintState->canvas.xScale, paintState->canvas.yScale));
+    showCursor(getCursor(), &paintState->canvas);
 }
 
 void paintPrevTool(void)
