@@ -39,7 +39,7 @@
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 #define IFRAMES_AFTER_SPAWN ((3 * 1000) / FRAME_TIME_MS) // 3 seconds
-#define IFRAMES_AFTER_LEDGE_JUMP ((2 * 1000) / FRAME_TIME_MS) // 2 seconds
+#define IFRAMES_AFTER_LEDGE_JUMP ((1000) / FRAME_TIME_MS) // 1 second
 
 #define DRAW_DEBUG_BOXES
 
@@ -1283,7 +1283,7 @@ void checkFighterButtonInput(fighter_t* ftr)
                         // Only set short hop timer on the first jump
                         if(ftr->numJumps == ftr->numJumpsLeft)
                         {
-                            ftr->shortHopTimer = 125 / FRAME_TIME_MS;
+                            ftr->shortHopTimer = 170 / FRAME_TIME_MS;
                             ftr->isShortHop = false;
                         }
                         ftr->numJumpsLeft--;
@@ -1697,7 +1697,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             }
             else
             {
-                decel >>= 1;
+                decel /= 5;
             }
         }
 
@@ -1752,9 +1752,9 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         // Fighter is in the air, so there will be a new Y
         ftr->velocity.y = v0.y + ((ftr->gravity * FRAME_TIME_MS) >> SF);
         // Terminal velocity, arbitrarily chosen. Maybe make this a character attribute?
-        if(ftr->velocity.y > 60 << SF)
+        if(ftr->velocity.y > 62 << SF)
         {
-            ftr->velocity.y = 60 << SF;
+            ftr->velocity.y = 62 << SF;
         }
         // Now that we have Y velocity, find the new Y position
         int32_t deltaY = (((ftr->velocity.y + v0.y) * FRAME_TIME_MS) >> (SF + 1));
@@ -2045,7 +2045,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     {
                         // Give a bonus 'jump' to get back on the platform
                         ftr->ledgeJumped = true;
-                        ftr->velocity.y = ftr->jump_velo;
+                        ftr->velocity.y = (ftr->jump_velo * 7) / 6;
                         ftr->velocity.x = 0;
                         ftr->iFrameTimer = IFRAMES_AFTER_LEDGE_JUMP;
                     }
