@@ -2938,9 +2938,9 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
 
     if(scene->ledfx & LEDFX_FIGHTER_2_HIT)
     {
-        f->rColor.r = 0;
+        f->rColor.r = 0xFF;
         f->rColor.g = 0;
-        f->rColor.b = 0xFF;
+        f->rColor.b = 0;
         f->leds[NUM_LEDS - 1] = f->rColor;
     }
 
