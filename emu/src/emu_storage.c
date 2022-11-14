@@ -21,7 +21,9 @@
 // Defines
 //==============================================================================
 
-#define NVS_JSON_FILE "nvs.json"
+#define NVS_JSON_FILE emuNvsFilename
+
+char* emuNvsFilename = "nvs.json";
 
 //==============================================================================
 // Function Prototypes

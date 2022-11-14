@@ -115,6 +115,14 @@ void simulateBtn(void (*fnButtonCallback)(buttonEvt_t* evt), buttonBit_t btn, ui
 // Variables
 //==============================================================================
 
+#if defined(EMU)
+// Keep the emu in a single mode
+bool lockMode = false;
+bool monkeyAround = false;
+int64_t fuzzerModeTestTime = 120 * 100000;
+int64_t resetToMenuTimer = 120 * 1000000;
+#endif
+
 static RTC_DATA_ATTR swadgeMode* pendingSwadgeMode = NULL;
 static swadgeMode* cSwadgeMode = &modeMainMenu;
 static bool isSandboxMode = false;
@@ -859,8 +867,12 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     tLastMainLoopCall = tNowUs;
                 }
 
+#if defined(EMU)
+                if (!lockMode && 0 != time_exit_pressed)
+#else
                 // If start & select are being held
                 if(0 != time_exit_pressed)
+#endif
                 {
                     // Figure out for how long
                     int64_t tHeldUs = tNowUs - time_exit_pressed;
@@ -996,10 +1008,13 @@ void cleanupOnExit(void)
  */
 void switchToSwadgeMode(swadgeMode* mode)
 {
-#if !defined(MONKEY_AROUND)
-    pendingSwadgeMode = mode;
-    isSandboxMode = false;
+#if defined(EMU)
+    if (!monkeyAround || lockMode)
 #endif
+    {
+        pendingSwadgeMode = mode;
+        isSandboxMode = false;
+    }
 }
 
 /**
@@ -1009,10 +1024,13 @@ void switchToSwadgeMode(swadgeMode* mode)
  */
 void switchToSwadgeModeFuzzer(swadgeMode* mode)
 {
-#if defined(MONKEY_AROUND)
-    pendingSwadgeMode = mode;
-    isSandboxMode = false;
+#if defined(EMU)
+    if (monkeyAround && !lockMode)
 #endif
+    {
+        pendingSwadgeMode = mode;
+        isSandboxMode = false;
+    }
 }
 
 /**

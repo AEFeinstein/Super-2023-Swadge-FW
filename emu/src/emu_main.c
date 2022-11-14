@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <math.h>
+#include <stdlib.h>
+#include <getopt.h>
 
 #ifdef __linux__
 #include <execinfo.h>
@@ -47,6 +49,7 @@
 #include "mode_platformer.h"
 #include "mode_jukebox.h"
 #include "mode_diceroller.h"
+#include "mode_bee.h"
 
 //Make it so we don't need to include any other C files in our build.
 #define CNFG_IMPLEMENTATION
@@ -62,6 +65,33 @@
 
 #define BG_COLOR  0x191919FF // This color isn't part of the palette
 #define DIV_COLOR 0x808080FF
+
+extern char* emuNvsFilename;
+
+// A list of all modes
+swadgeMode * allModes[] =
+{
+    &modeFighter,
+    &modeJumper,
+    &modeColorchord,
+    &modeCredits,
+    &modeDance,
+    &modeFlight,
+    &modeGamepad,
+    &modeMainMenu,
+    &modeSlideWhistle,
+    &modeTest,
+    &modeTiltrads,
+    &modeTunernome,
+    &modePaint,
+    &modePaintShare,
+    &modePaintReceive,
+    &modePicross,
+    &modePlatformer,
+    &modeDiceRoller,
+    &modeJukebox,
+    &modeBee,
+};
 
 //==============================================================================
 // Function prototypes
@@ -192,6 +222,130 @@ void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t c
     } while (x < 0);
 }
 
+static const struct option opts[] = {
+    {"start-mode", required_argument, NULL, 'm'},
+    {"lock", no_argument, &lockMode, true},
+    {"fuzz", no_argument, &monkeyAround, true},
+    {"fuzz-mode-timer", required_argument, NULL, 't'},
+    {"nvs-file", required_argument, NULL, 'f'},
+    {"help", no_argument, NULL, 'h'},
+
+    {NULL, 0, NULL, 0},
+};
+
+void handleArgs(int argc, char** argv)
+{
+    char* executableName = *argv;
+
+    char* startMode = NULL;
+
+    // Process the command-line arguments
+    // This also skips the first arg, which is the executable name
+
+    int optVal, optIndex;
+
+    while (true)
+    {
+        optVal = getopt_long(argc, argv, "m:lt:f:h", opts, &optIndex);
+
+        if (optVal < 0)
+        {
+            // No more options
+            break;
+        }
+
+        switch (optVal)
+        {
+            case 0:
+            // No opts without a short arg yet, so nothing to do
+            break;
+
+            case 'm':
+            {
+                startMode = optarg;
+                break;
+            }
+
+            case 't':
+            {
+                fuzzerModeTestTime = atoi(optarg) * 1000000;
+                resetToMenuTimer = fuzzerModeTestTime;
+
+                if (fuzzerModeTestTime <= 0)
+                {
+                    fprintf(stderr, "ERROR: Invalid numeric argument for option %s: '%s'\n", argv[optind - 2], optarg);
+                    exit(1);
+                    return;
+                }
+                break;
+            }
+
+            case 'f':
+            {
+                emuNvsFilename = optarg;
+                break;
+            }
+
+            case 'h':
+            {
+                printf("Usage: %s [--start-mode|-m MODE] [--lock|-l] [--help] [--fuzz [--fuzz-mode-timer SECONDS]] [--nvs-file|-f FILE]\n", executableName);
+                printf("\n");
+                printf("\t--start-mode MODE\tStarts the emulator in the mode named MODE, instead of the main menu\n");
+                printf("\t--lock\t\t\tLocks the emulator in the start mode. Start + Select will do nothing, and if --start-mode is used, it will replace the main menu.\n");
+                printf("\t--fuzz\t\t\tEnables fuzzing mode, which will trigger rapid random button presses and randomly switch modes, unless --lock is passed.\n");
+                printf("\t--fuzz-mode-timer SECONDS\tSets the number of seconds before the fuzzer will switch to a different random mode.\n");
+                printf("\t--nvs-file FILE\tSets the name of the JSON file used to store NVS data. Defaults to 'nvs.json' in the current directory.\n");
+                printf("\n");
+                exit(0);
+                return;
+            }
+
+            case '?':
+            default:
+            {
+                // getopt already printed error message
+                exit(1);
+                return;
+            }
+        }
+    }
+
+
+    if (startMode != NULL)
+    {
+        bool found = false;
+        for (uint8_t i = 0; i < sizeof(allModes) / sizeof(*allModes); i++)
+        {
+            swadgeMode* mode = allModes[i];
+            if (!strcmp(mode->modeName, startMode) || (!strcmp(startMode, "Pi-cross") && mode == &modePicross))
+            {
+                found = true;
+                // Set the initial mode to this one
+                switchToSwadgeMode(mode);
+
+                // If --lock was passed, also replace the main menu with the initial mode
+                if (lockMode)
+                {
+                    memcpy(&modeMainMenu, mode, sizeof(swadgeMode));
+                }
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            fprintf(stderr, "ERROR: No mode named '%s'\n", startMode);
+            fprintf(stderr, "Possible modes:\n");
+            for (uint8_t i = 0; i < sizeof(allModes) / sizeof(*allModes); i++)
+            {
+                fprintf(stderr, "  - %s\n", (&modePicross == allModes[i]) ? "Pi-cross" : allModes[i]->modeName);
+            }
+            exit(1);
+            return;
+        }
+    }
+}
+
 /**
  * @brief The main emulator function. This initializes rawdraw and calls
  * app_main(), then spins in a loop updating the rawdraw UI
@@ -200,11 +354,13 @@ void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t c
  * @param argv unused
  * @return 0 on success, a nonzero value for any errors
  */
-int main(int argc UNUSED, char** argv UNUSED)
+int main(int argc, char** argv)
 {
 #ifdef __linux__
     init_crashSignals();
 #endif
+
+    handleArgs(argc, argv);
 
     // First initialize rawdraw
     // Screen-specific configurations
@@ -225,77 +381,52 @@ void emu_loop(void)
     static short lastWindow_h = 0;
     static int16_t led_w = MIN_LED_WIDTH;
 
-#ifdef MONKEY_AROUND
-    // A list of all modes to randomly jump to
-    swadgeMode * allModes[] = 
+    if (monkeyAround)
     {
-        &modeFighter,
-        &modeJumper,
-        &modeColorchord,
-        &modeCredits,
-        &modeDance,
-        &modeFlight,
-        &modeGamepad,
-        &modeMainMenu,
-        &modeSlideWhistle,
-        &modeTest,
-        &modeTiltrads,
-        &modeTunernome,
-        &modePaint,
-        &modePaintShare,
-        &modePaintReceive,
-        &modePicross,
-        &modePlatformer,
-        &modeDiceRoller,
-        &modeJukebox,
-    };
+        // A list of all keys to randomly press or release, and their states
+        const char randKeys[] =  {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i', '1', '2', '3', '4', '5'};
+        const char randKeys2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
+        static bool keyState[sizeof(randKeys) / sizeof(randKeys[0])] = {false};
 
-    // A list of all keys to randomly press or release, and their states
-    const char randKeys[] =  {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i', '1', '2', '3', '4', '5'};
-    const char randKeys2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
-    static bool keyState[sizeof(randKeys) / sizeof(randKeys[0])] = {false};
-
-    // Time keeping
-    static int64_t tLastCall = 0;
-    if(0 == tLastCall)
-    {
-        tLastCall = esp_timer_get_time();
-    }
-    int64_t tNow = esp_timer_get_time();
-    int64_t tElapsed = (tNow - tLastCall);
-
-    // Randomly press or release keys every 100ms
-    static int64_t keyTimer = 0;
-    keyTimer += tElapsed;
-    while(keyTimer >= 100000)
-    {
-        keyTimer -= 100000;
-        int keyIdx = esp_random() % (sizeof(randKeys) / sizeof(randKeys[0]));
-        keyState[keyIdx] = !keyState[keyIdx];
-        emuSensorHandleKey(randKeys[keyIdx], keyState[keyIdx]);
-
-        // Only handle non-touchpads for p2
-        if(keyIdx < sizeof(randKeys2) / sizeof(randKeys2[0]))
+        // Time keeping
+        static int64_t tLastCall = 0;
+        if(0 == tLastCall)
         {
-            emuSensorHandleKey(randKeys2[keyIdx], keyState[keyIdx]);
+            tLastCall = esp_timer_get_time();
         }
-    }
+        int64_t tNow = esp_timer_get_time();
+        int64_t tElapsed = (tNow - tLastCall);
 
-    // Change the swadge mode two minutes
-#define MODE_TEST_TIME_US (1000000 * 120)
-    static int64_t resetToMenuTimer = MODE_TEST_TIME_US;
-    resetToMenuTimer += tElapsed;
-    while(resetToMenuTimer >= MODE_TEST_TIME_US)
-    {
-        resetToMenuTimer -= MODE_TEST_TIME_US;
-        static int modeIdx = (sizeof(allModes) / sizeof(allModes[0])) - 1;
-        modeIdx = (modeIdx + 1) % (sizeof(allModes) / sizeof(allModes[0]));
-        switchToSwadgeModeFuzzer(allModes[modeIdx]);
-    }
+        // Randomly press or release keys every 100ms
+        static int64_t keyTimer = 0;
+        keyTimer += tElapsed;
+        while(keyTimer >= 100000)
+        {
+            keyTimer -= 100000;
+            int keyIdx = esp_random() % (sizeof(randKeys) / sizeof(randKeys[0]));
+            keyState[keyIdx] = !keyState[keyIdx];
+            emuSensorHandleKey(randKeys[keyIdx], keyState[keyIdx]);
 
-    // Timekeeping
-    tLastCall = tNow;
-#endif // MONKEY_AROUND
+            // Only handle non-touchpads for p2
+            if(keyIdx < sizeof(randKeys2) / sizeof(randKeys2[0]))
+            {
+                emuSensorHandleKey(randKeys2[keyIdx], keyState[keyIdx]);
+            }
+        }
+
+        // Change the swadge mode two minutes
+        resetToMenuTimer += tElapsed;
+        while(resetToMenuTimer >= fuzzerModeTestTime)
+        {
+            resetToMenuTimer -= fuzzerModeTestTime;
+            static int modeIdx = (sizeof(allModes) / sizeof(allModes[0])) - 1;
+            modeIdx = (modeIdx + 1) % (sizeof(allModes) / sizeof(allModes[0]));
+            switchToSwadgeModeFuzzer(allModes[modeIdx]);
+        }
+
+        // Timekeeping
+        tLastCall = tNow;
+    }
 
     // Always handle inputs
     CNFGHandleInput();
