@@ -232,9 +232,6 @@ static const struct option opts[] = {
 
 void handleArgs(int argc, char** argv)
 {
-    // skip the program name arg
-    char** end = argv + argc;
-
     char* executableName = *argv;
 
     char* startMode = NULL;
@@ -337,9 +334,6 @@ void handleArgs(int argc, char** argv)
             return;
         }
     }
-
-    return;
-
 }
 
 /**
