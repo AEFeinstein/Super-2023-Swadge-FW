@@ -1360,14 +1360,14 @@ void danceRandomDance(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)),
 
     if(-1 == random_choice)
     {
-        random_choice = danceRand(getNumDances() - 2); // exclude the random mode, excluding random & none
+        random_choice = danceRand(getNumDances() - 3); // exclude the random mode, excluding random & none
     }
 
     tAccumulated += tElapsedUs;
     while(tAccumulated >= 4500000)
     {
         tAccumulated -= 4500000;
-        random_choice = danceRand(getNumDances() - 2); // exclude the random & none mode
+        random_choice = danceRand(getNumDances() - 3); // exclude the random & none mode
         ledDances[random_choice].func(0, ledDances[random_choice].arg, true);
     }
 
