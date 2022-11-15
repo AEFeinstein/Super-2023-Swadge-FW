@@ -254,8 +254,7 @@
             "sprite":"sngc.wsg",
             "off_x":-7,
             "off_y":0
-         },
-         "landing_lag":80
+         }
       },
       {
          "type":"neutral_air",

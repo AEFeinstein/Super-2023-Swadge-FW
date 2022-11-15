@@ -284,8 +284,7 @@
             "sprite":"kngc.wsg",
             "off_x":0,
             "off_y":-6
-         },
-         "landing_lag":180
+         }
       },
       {
          "type":"neutral_air",

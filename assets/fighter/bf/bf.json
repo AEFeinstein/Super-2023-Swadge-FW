@@ -258,8 +258,7 @@
             "sprite":"btgc.wsg",
             "off_x":-2,
             "off_y":-1
-         },
-         "landing_lag":100
+         }
       },
       {
          "type":"neutral_gnd",
@@ -306,8 +305,7 @@
             "sprite":"bngc.wsg",
             "off_x":-5,
             "off_y":-7
-         },
-         "landing_lag":100
+         }
       },
       {
          "type":"neutral_air",
