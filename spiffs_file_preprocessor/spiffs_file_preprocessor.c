@@ -14,6 +14,7 @@
 #include "font_processor.h"
 #include "json_processor.h"
 #include "bin_processor.h"
+#include "txt_processor.h"
 
 const char * outDirName = NULL;
 
@@ -71,6 +72,10 @@ static int processFile(const char * fpath, const struct stat * st __attribute__(
             else if(endsWith(fpath, ".bin"))
             {
                 process_bin(fpath, outDirName);
+            }
+            else if(endsWith(fpath, ".txt"))
+            {
+                process_txt(fpath, outDirName);
             }
             break;
         }

@@ -41,7 +41,7 @@ SRC_DIRS_RECURSIVE = emu/src main/display main/modes main/colorchord main/utils
 # This is a list of directories to scan for c files not recursively
 SRC_DIRS_FLAT = main
 # This is a list of files to compile directly. There's no scanning here
-SRC_FILES = components/hdw-spiffs/heatshrink_decoder.c components/hdw-spiffs/spiffs_json.c
+SRC_FILES = components/hdw-spiffs/heatshrink_decoder.c components/hdw-spiffs/spiffs_json.c components/hdw-spiffs/spiffs_txt.c
 # This is all the source directories combined
 SRC_DIRS = $(shell $(FIND) $(SRC_DIRS_RECURSIVE) -type d) $(SRC_DIRS_FLAT)
 # This is all the source files combined

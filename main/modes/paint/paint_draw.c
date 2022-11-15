@@ -34,11 +34,11 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = { .type = PRESS, .data = TOUCH_ANY | DOWN, }, .backtrack = { .type = RELEASE, .data = TOUCH_ANY | SWIPE_LEFT | SWIPE_RIGHT | TOUCH_X | TOUCH_Y }, .backtrackSteps = 1, .prompt = "Then, press D-Pad DOWN to change the color selection..." },
     { .trigger = { .type = RELEASE, .data = TOUCH_ANY | TOUCH_X | TOUCH_Y | SWIPE_LEFT | SWIPE_RIGHT }, .prompt = "And release the TOUCH PAD to confirm!" },
     { .trigger = { .type = RELEASE, .data = BTN_B, }, .prompt = "Great choice! You can also quickly swap the foreground and background colors with the B BUTTON" },
-    { .trigger = { .type = RELEASE, .data = TOUCH_Y, }, .prompt = "Now, let's change the brush size. Just tap Y on the TOUCH PAD to increase the brush size by 1" },
+    { .trigger = { .type = RELEASE, .data = TOUCH_X, }, .prompt = "Now, let's change the brush size. Just tap X on the TOUCH PAD to increase the brush size by 1" },
     { .trigger = { .type = RELEASE, .data = BTN_A, }, .prompt = "Press A to draw again with the larger brush!" },
-    { .trigger = { .type = RELEASE, .data = TOUCH_X, }, .prompt = "Wow! Now, to decrease the brush size, just tap X on the TOUCH PAD!" },
-    { .trigger = { .type = RELEASE, .data = SWIPE_LEFT, }, .prompt = "You can also increase the brush size smoothly by swiping UP (from X to Y) on the TOUCH PAD"},
-    { .trigger = { .type = RELEASE, .data = SWIPE_RIGHT, }, .prompt = "And you can decrease it smoothly by swiping DOWN (from Y to X) on the TOUCH PAD" },
+    { .trigger = { .type = RELEASE, .data = TOUCH_Y, }, .prompt = "Wow! Now, to decrease the brush size, just tap Y on the TOUCH PAD!" },
+    { .trigger = { .type = RELEASE, .data = SWIPE_LEFT, }, .prompt = "You can also increase the brush size smoothly by swiping RIGHT (from Y to X) on the TOUCH PAD"},
+    { .trigger = { .type = RELEASE, .data = SWIPE_RIGHT, }, .prompt = "And you can decrease it smoothly by swiping LEFT (from X to Y) on the TOUCH PAD" },
     { .trigger = { .type = PRESS, .data = TOUCH_ANY, }, .prompt = "You're ready to use the Pen brushes!\nNow, let's try a different brush. Press and hold the TOUCH PAD again..." },
     { .trigger = { .type = PRESS, .data = TOUCH_ANY | RIGHT, }, .backtrack = { .type = RELEASE, .data = TOUCH_ANY | SWIPE_LEFT | SWIPE_RIGHT | TOUCH_X | TOUCH_Y }, .backtrackSteps = 1, .prompt = "Then, press D-Pad RIGHT to change the brush..." },
     { .trigger = { .type = RELEASE, .data = TOUCH_ANY | TOUCH_X | TOUCH_Y | SWIPE_LEFT | SWIPE_RIGHT, }, .prompt = "And release the TOUCH PAD to confirm!" },
@@ -95,8 +95,8 @@ static paletteColor_t defaultPalette[] =
 
 brush_t brushes[] =
 {
-    { .name = "Square Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawSquarePen, .iconName = "square_pen" },
-    { .name = "Circle Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 32, .fnDraw = paintDrawCirclePen, .iconName = "circle_pen" },
+    { .name = "Square Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 16, .fnDraw = paintDrawSquarePen, .iconName = "square_pen" },
+    { .name = "Circle Pen", .mode = HOLD_DRAW,  .maxPoints = 1, .minSize = 1, .maxSize = 16, .fnDraw = paintDrawCirclePen, .iconName = "circle_pen" },
     { .name = "Line",       .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawLine, .iconName = "line" },
     { .name = "Bezier Curve", .mode = PICK_POINT, .maxPoints = 4, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawCurve, .iconName = "curve" },
     { .name = "Rectangle",  .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawRectangle, .iconName = "rect" },
@@ -105,7 +105,7 @@ brush_t brushes[] =
     { .name = "Filled Circle", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawFilledCircle, .iconName = "circle_filled" },
     { .name = "Ellipse",    .mode = PICK_POINT, .maxPoints = 2, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawEllipse, .iconName = "ellipse" },
     { .name = "Polygon",    .mode = PICK_POINT_LOOP, .maxPoints = 16, .minSize = 1, .maxSize = 8, .fnDraw = paintDrawPolygon, .iconName = "polygon" },
-    { .name = "Squarewave", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 32, .fnDraw = paintDrawSquareWave, .iconName = "squarewave" },
+    { .name = "Squarewave", .mode = PICK_POINT, .maxPoints = 2, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawSquareWave, .iconName = "squarewave" },
     { .name = "Paint Bucket", .mode = PICK_POINT, .maxPoints = 1, .minSize = 0, .maxSize = 0, .fnDraw = paintDrawPaintBucket, .iconName = "paint_bucket" },
 };
 
@@ -252,7 +252,8 @@ void paintDrawScreenSetup(display_t* disp)
         getArtist()->bgColor = paintState->canvas.palette[1];
     }
 
-    paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
+    // This assumes the first brush is a pen brush, which it always will be unless we rearrange the brush array
+    paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas, firstBrush->minSize);
 
     // Init the cursors for each artist
     // TODO only do one for singleplayer?
@@ -269,6 +270,8 @@ void paintDrawScreenSetup(display_t* disp)
     }
 
     paintState->disp->clearPx();
+
+    paintSetupTool();
 
     // Clear the LEDs
     // Might not be necessary here
@@ -429,6 +432,9 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
     if (paintState->clearScreen)
     {
         hideCursor(getCursor(), &paintState->canvas);
+        memcpy(paintState->canvas.palette, defaultPalette, PAINT_MAX_COLORS * sizeof(paletteColor_t));
+        getArtist()->fgColor = paintState->canvas.palette[0];
+        getArtist()->bgColor = paintState->canvas.palette[1];
         paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
         paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
         paintUpdateLeds();
@@ -466,10 +472,8 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                     getArtist()->fgColor = paintState->canvas.palette[0];
                     getArtist()->bgColor = paintState->canvas.palette[1];
 
-                    paintFreeCursorSprite(&paintState->cursorWsg);
-                    paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas);
-                    setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
-                    setCursorOffset(getCursor(), (paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
+                    // Do the tool setup, which will also setup the cursor
+                    paintSetupTool();
 
                     // Put the cursor in the middle of the screen
                     moveCursorAbsolute(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
@@ -1278,7 +1282,7 @@ void paintDrawScreenPollTouch()
                 else
                 {
                     // We're mid-swipe
-                    int32_t swipeMagnitude = ((centroid - paintState->firstTouch) * PAINT_MAX_BRUSH_SWIPE) / 1024;
+                    int32_t swipeMagnitude = ((paintState->firstTouch - centroid) * PAINT_MAX_BRUSH_SWIPE) / 1024;
                     int32_t newWidth = paintState->startBrushWidth - swipeMagnitude;
 
                     if (newWidth < 0)
@@ -1323,18 +1327,18 @@ void paintDrawScreenPollTouch()
                 case BTN_MODE_DRAW:
                 case BTN_MODE_SELECT:
                 {
-                    int32_t swipeMagnitude = ((paintState->lastTouch - paintState->firstTouch) * PAINT_MAX_BRUSH_SWIPE) / 1024;
+                    int32_t swipeMagnitude = ((paintState->firstTouch - paintState->lastTouch) * PAINT_MAX_BRUSH_SWIPE) / 1024;
                     PAINT_LOGD("End swipe: %d", swipeMagnitude);
                     if (swipeMagnitude == 0)
                     {
                         // Tap! But only if we started on X or Y
                         if (paintState->firstTouch < (1024 / 5))
                         {
-                            paintIncBrushWidth(1);
+                            paintDecBrushWidth(1);
                         }
                         else if (paintState->firstTouch > (1024 * 4 / 5))
                         {
-                            paintDecBrushWidth(1);
+                            paintIncBrushWidth(1);
                         }
                     }
 
@@ -1678,24 +1682,37 @@ void paintSetupTool(void)
     }
 
     hideCursor(getCursor(), &paintState->canvas);
+    paintHidePickPoints();
     switch (getArtist()->brushDef->mode)
     {
         case HOLD_DRAW:
-            setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
-            setCursorOffset(getCursor(), (paintState->canvas.xScale - paintState->cursorWsg.w) / 2, (paintState->canvas.yScale - paintState->cursorWsg.h) / 2);
+        {
+            // Regenerate the cursor if it's not been set yet or if the brush's size is different from the cursor's size
+            if (paintState->cursorWsg.px == NULL || paintState->cursorWsg.w != (getArtist()->brushWidth * paintState->canvas.xScale + 2) || paintState->cursorWsg.h != (getArtist()->brushWidth * paintState->canvas.yScale + 2))
+            {
+                paintFreeCursorSprite(&paintState->cursorWsg);
+                paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas, getArtist()->brushWidth);
+            }
 
-        break;
+            setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
+            // Center the cursor, accounting for even and odd cursor sizes
+            setCursorOffset(getCursor(), -(paintState->cursorWsg.w / 2) + getArtist()->brushWidth % 2, -(paintState->cursorWsg.h / 2) + getArtist()->brushWidth % 2);
+            break;
+        }
 
         case PICK_POINT:
         case PICK_POINT_LOOP:
+        {
             setCursorSprite(getCursor(), &paintState->canvas, &paintState->picksWsg);
-            setCursorOffset(getCursor(), -paintState->picksWsg.w, paintState->canvas.yScale);
-        break;
+            // Place the top-right pixel of the pointer 1px inside the target pixel
+            setCursorOffset(getCursor(), -paintState->picksWsg.w + 1, paintState->canvas.yScale - 1);
+            break;
+        }
     }
-    showCursor(getCursor(), &paintState->canvas);
 
     // Undraw and hide any stored temporary pixels
     while (popPxScaled(&getArtist()->pickPoints, paintState->disp, paintState->canvas.xScale, paintState->canvas.yScale));
+    showCursor(getCursor(), &paintState->canvas);
 }
 
 void paintPrevTool(void)
@@ -1740,6 +1757,8 @@ void paintSetBrushWidth(uint8_t width)
     {
         getArtist()->brushWidth = width;
     }
+
+    paintSetupTool();
     paintState->redrawToolbar = true;
 }
 
@@ -1753,6 +1772,8 @@ void paintDecBrushWidth(uint8_t dec)
     {
         getArtist()->brushWidth -= dec;
     }
+
+    paintSetupTool();
     paintState->redrawToolbar = true;
 }
 
@@ -1764,6 +1785,8 @@ void paintIncBrushWidth(uint8_t inc)
     {
         getArtist()->brushWidth = getArtist()->brushDef->maxSize;
     }
+
+    paintSetupTool();
     paintState->redrawToolbar = true;
 }
 

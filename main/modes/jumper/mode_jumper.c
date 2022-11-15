@@ -1634,7 +1634,7 @@ void jumperPlayerInput(void)
     }
 
 
-    if (player->jumpReady && player->jumping == false)
+    if (player->jumpReady && player->jumping == false && player->state != CHARACTER_DYING && player->state != CHARACTER_DEAD)
     {
         player->sx = player->x;
         player->sy = player->y;

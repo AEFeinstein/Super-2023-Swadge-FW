@@ -66,4 +66,7 @@ void* removeEntry(list_t* list, node_t* entry);
 // NOTE: This frees nodes but does not free anything pointed to by the vals of nodes.
 void clear(list_t* list);
 
+// Exercise the linked list functions
+void listTester(void);
+
 #endif

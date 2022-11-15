@@ -464,8 +464,7 @@ void dancePollTouch(void)
     {
         uint8_t index = ((centroid * (sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1) + 512) / 1024);
 
-        // Flip it so fast is up and slow is down
-        danceState->danceSpeed = sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1 - index;
+        danceState->danceSpeed = index;
         danceState->buttonPressedTimer = 0;
     }
 }
@@ -517,11 +516,11 @@ void danceRedrawScreen(void)
         yOff += danceState->infoFont.h + 16;
         if (danceSpeeds[danceState->danceSpeed] > DANCE_SPEED_MULT)
         {
-            snprintf(text, sizeof(text), "X~Y: Speed: 1/%dx", danceSpeeds[danceState->danceSpeed] / DANCE_SPEED_MULT);
+            snprintf(text, sizeof(text), "Y~X: Speed: 1/%dx", danceSpeeds[danceState->danceSpeed] / DANCE_SPEED_MULT);
         }
         else
         {
-            snprintf(text, sizeof(text), "X~Y: Speed: %dx",  DANCE_SPEED_MULT / danceSpeeds[danceState->danceSpeed]);
+            snprintf(text, sizeof(text), "Y~X: Speed: %dx",  DANCE_SPEED_MULT / danceSpeeds[danceState->danceSpeed]);
         }
         width = textWidth(&(danceState->infoFont), text);
         drawText(danceState->disp, &(danceState->infoFont), c555,

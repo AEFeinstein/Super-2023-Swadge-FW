@@ -23,7 +23,7 @@ void paintRenderAll(void);
 
 void paintClearCanvas(const paintCanvas_t* canvas, paletteColor_t bgColor);
 
-void paintGenerateCursorSprite(wsg_t* sprite, const paintCanvas_t* canvas);
+void paintGenerateCursorSprite(wsg_t* sprite, const paintCanvas_t* canvas, uint8_t size);
 void paintFreeCursorSprite(wsg_t* sprite);
 
 void initCursor(paintCursor_t* cursor, paintCanvas_t* canvas, const wsg_t* sprite);

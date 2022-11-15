@@ -39,9 +39,9 @@
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 #define IFRAMES_AFTER_SPAWN ((3 * 1000) / FRAME_TIME_MS) // 3 seconds
-#define IFRAMES_AFTER_LEDGE_JUMP ((2 * 1000) / FRAME_TIME_MS) // 2 seconds
+#define IFRAMES_AFTER_LEDGE_JUMP ((1000) / FRAME_TIME_MS) // 1 second
 
-#define DRAW_DEBUG_BOXES
+// #define DRAW_DEBUG_BOXES
 
 #define NUM_FIGHTERS 2
 #define NUM_STOCKS 3
@@ -608,16 +608,16 @@ void _setFighterState(fighter_t* ftr, fighterState_t newState, offsetSprite_t* n
             int32_t absVelY = (knockback->y) > 0 ? (knockback->y) : -(knockback->y);
             if(absVelX > absVelY)
             {
-                if(knockback->x > 0)
-                {
-                    // Traveling right, bounce to the left
-                    ftr->bounceNextCollision = BOUNCE_LEFT;
-                }
-                else
-                {
-                    // Traveling left, bounce to the right
-                    ftr->bounceNextCollision = BOUNCE_RIGHT;
-                }
+                // if(knockback->x > 0)
+                // {
+                //     // Traveling right, bounce to the left
+                //     ftr->bounceNextCollision = BOUNCE_LEFT;
+                // }
+                // else
+                // {
+                //     // Traveling left, bounce to the right
+                //     ftr->bounceNextCollision = BOUNCE_RIGHT;
+                // }
             }
             else
             {
@@ -1097,8 +1097,11 @@ void checkFighterTimer(fighter_t* ftr, bool hitstopActive)
                     setFighterState(ftr, FS_ATTACK, &(ftr->attacks[ftr->cAttack].attackFrames[ftr->attackFrame].sprite), atk->duration,
                                     NULL);
 
-                    // Always copy the iframe value, may be 0
-                    ftr->iFrameTimer = atk->iFrames;
+                    // Only copy non-zero iFrames to the timer to not overwrite existing counts
+                    if(atk->iFrames)
+                    {
+                        ftr->iFrameTimer = atk->iFrames;
+                    }
                 }
                 else
                 {
@@ -1256,6 +1259,21 @@ void checkFighterButtonInput(fighter_t* ftr)
         {
             switch(ftr->state)
             {
+                case FS_DUCKING:
+                {
+                    // Pressing A in this state means fall through platform
+                    if((!ftr->isInAir) && ftr->touchingPlatform->canFallThrough)
+                    {
+                        // Fall through a platform
+                        setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
+                        // Shift down one pixel to guarantee a collision with the platform
+                        ftr->pos.y += (1 << SF);
+                        setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
+                        ftr->fallThroughTimer = 0;
+                        break;
+                    }
+                }
+                // Fall through
                 case FS_IDLE:
                 case FS_RUNNING:
                 case FS_JUMPING:
@@ -1266,7 +1284,7 @@ void checkFighterButtonInput(fighter_t* ftr)
                         // Only set short hop timer on the first jump
                         if(ftr->numJumps == ftr->numJumpsLeft)
                         {
-                            ftr->shortHopTimer = 125 / FRAME_TIME_MS;
+                            ftr->shortHopTimer = 170 / FRAME_TIME_MS;
                             ftr->isShortHop = false;
                         }
                         ftr->numJumpsLeft--;
@@ -1289,20 +1307,6 @@ void checkFighterButtonInput(fighter_t* ftr)
                         {
                             ftr->dir = FACING_RIGHT;
                         }
-                    }
-                    break;
-                }
-                case FS_DUCKING:
-                {
-                    // Pressing A in this state means fall through platform
-                    if((!ftr->isInAir) && ftr->touchingPlatform->canFallThrough)
-                    {
-                        // Fall through a platform
-                        setFighterRelPos(ftr, PASSING_THROUGH_PLATFORM, NULL, ftr->touchingPlatform, true);
-                        // Shift down one pixel to guarantee a collision with the platform
-                        ftr->pos.y += (1 << SF);
-                        setFighterState(ftr, FS_JUMPING, &(ftr->jumpSprite), 0, NULL);
-                        ftr->fallThroughTimer = 0;
                     }
                     break;
                 }
@@ -1694,7 +1698,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
             }
             else
             {
-                decel >>= 1;
+                decel /= 5;
             }
         }
 
@@ -1749,9 +1753,9 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
         // Fighter is in the air, so there will be a new Y
         ftr->velocity.y = v0.y + ((ftr->gravity * FRAME_TIME_MS) >> SF);
         // Terminal velocity, arbitrarily chosen. Maybe make this a character attribute?
-        if(ftr->velocity.y > 60 << SF)
+        if(ftr->velocity.y > 62 << SF)
         {
-            ftr->velocity.y = 60 << SF;
+            ftr->velocity.y = 62 << SF;
         }
         // Now that we have Y velocity, find the new Y position
         int32_t deltaY = (((ftr->velocity.y + v0.y) * FRAME_TIME_MS) >> (SF + 1));
@@ -2042,7 +2046,7 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
                     {
                         // Give a bonus 'jump' to get back on the platform
                         ftr->ledgeJumped = true;
-                        ftr->velocity.y = ftr->jump_velo;
+                        ftr->velocity.y = (ftr->jump_velo * 7) / 6;
                         ftr->velocity.x = 0;
                         ftr->iFrameTimer = IFRAMES_AFTER_LEDGE_JUMP;
                     }
@@ -2082,11 +2086,30 @@ bool updateFighterPosition(fighter_t* ftr, const platform_t* platforms,
     // Revert position if dashing and dashed off a platform
     if((DASH_GROUND == ftr->cAttack) && (ftr->relativePos != ABOVE_PLATFORM))
     {
-        // Dead stop
-        ftr->velocity.x = 0;
-        // Revert position
-        ftr->pos = origPos;
-        setFighterRelPos(ftr, origRelPos, origTouchingPlatform, origPassingThroughPlatform, origIsInair);
+        switch(ftr->state)
+        {
+            case FS_STARTUP:
+            case FS_ATTACK:
+            case FS_COOLDOWN:
+            {
+                // Dead stop
+                ftr->velocity.x = 0;
+                // Revert position
+                ftr->pos = origPos;
+                setFighterRelPos(ftr, origRelPos, origTouchingPlatform, origPassingThroughPlatform, origIsInair);
+                break;
+            }
+            default:
+            case FS_IDLE:
+            case FS_RUNNING:
+            case FS_DUCKING:
+            case FS_JUMPING:
+            case FS_HITSTUN:
+            {
+                // Do not revert position in these states
+                break;
+            }
+        }
     }
 
     // Check if the sandbag has landed
@@ -2915,9 +2938,9 @@ void drawFighterScene(display_t* d, const fighterScene_t* scene)
 
     if(scene->ledfx & LEDFX_FIGHTER_2_HIT)
     {
-        f->rColor.r = 0;
+        f->rColor.r = 0xFF;
         f->rColor.g = 0;
-        f->rColor.b = 0xFF;
+        f->rColor.b = 0;
         f->leds[NUM_LEDS - 1] = f->rColor;
     }
 

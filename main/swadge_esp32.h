@@ -4,6 +4,13 @@
 #include <stdint.h>
 #include "swadge_util.h"
 
+#if defined(EMU)
+extern int lockMode;
+extern int monkeyAround;
+extern int64_t fuzzerModeTestTime;
+extern int64_t resetToMenuTimer;
+#endif
+
 void app_main(void);
 void setFrameRateUs(uint32_t frameRate);
 void cleanupOnExit(void);
