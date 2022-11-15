@@ -5,13 +5,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "esp_heap_caps.h"
+#include "spiffs_txt.h"
 #include "swadge_esp32.h"
 #include "swadgeMode.h"
 #include "mode_bee.h"
 #include "mode_main_menu.h"
 #include "musical_buzzer.h"
 #include "esp_random.h"
-#include "secret_text.h"
 
 //==============================================================================
 // Defines
@@ -30,9 +31,10 @@ void beeSetRandomText(void);
 void beeExitMode(void);
 void beeMainLoop(int64_t elapsedUs);
 void beeButtonCb(buttonEvt_t* evt);
+void beeFreeRandomText(void);
 
 //==============================================================================
-// Variables
+// Structs
 //==============================================================================
 
 typedef struct
@@ -42,12 +44,22 @@ typedef struct
     int64_t tElapsedUs;
     int8_t scrollMod;
     int32_t yOffset;
-    const char** text;
+    char** text;
     uint16_t textLines;
     paletteColor_t textColor;
     int32_t cachedPos;
     int16_t cachedIdx, cachedHeight;
 } bee_t;
+
+typedef struct 
+{
+    const char * fname;
+    paletteColor_t color;
+} copypasta_t;
+
+//==============================================================================
+// Variables
+//==============================================================================
 
 bee_t* bee;
 
@@ -66,6 +78,29 @@ swadgeMode modeBee =
     .fnAudioCallback = NULL,
     .fnTemperatureCallback = NULL,
     .overrideUsb = false
+};
+
+const copypasta_t texts[] = 
+{
+    {.fname = "findthemall.txt",           .color = c505},
+    {.fname = "alice.txt",                 .color = c425},
+    {.fname = "festival.txt",              .color = c550},
+    {.fname = "fitness.txt",               .color = c035},
+    {.fname = "astleyparadox.txt",         .color = c555},
+    {.fname = "blueeee.txt",               .color = c225},
+    {.fname = "hypothetical.txt",          .color = c522},
+    {.fname = "tolerancetest.txt",         .color = c415},
+    {.fname = "tips.txt",                  .color = c530},
+    {.fname = "godihategaminglaptops.txt", .color = c152},
+    {.fname = "homegoblin.txt",            .color = c330},
+    {.fname = "flareon.txt",               .color = c510},
+    {.fname = "whoasked.txt",              .color = c454},
+    {.fname = "banned.txt",                .color = c500},
+    {.fname = "morbiustime.txt",           .color = c150},
+    {.fname = "mikuoop.txt",               .color = c115},
+    {.fname = "halfApress.txt",            .color = c035},
+    {.fname = "codeOfConduct.txt",         .color = c555},
+    {.fname = "hunter2.txt",               .color = c050},
 };
 
 //==============================================================================
@@ -91,6 +126,9 @@ void beeEnterMode(display_t* disp)
 
 void beeSetRandomText(void)
 {
+    // Free any text first, just in case
+    beeFreeRandomText();
+
     // Set initial variables
     bee->yOffset = bee->disp->h;
     bee->tElapsedUs = 0;
@@ -100,13 +138,68 @@ void beeSetRandomText(void)
     bee->cachedPos = 0;
     bee->cachedHeight = 0;
 
-    uint8_t numTexts;
-    const textOption* texts = getTextOpts(&numTexts);
+    // Pick random text
+    uint8_t textIdx = esp_random() % ARRAY_SIZE(texts);
 
-    uint8_t textNum = esp_random() % numTexts;
-    bee->text = texts[textNum].text;
-    bee->textLines = texts[textNum].lines;
-    bee->textColor = texts[textNum].color;
+    // Load the text in one big string
+    char * lText = loadTxt(texts[textIdx].fname);
+
+    // Save the color
+    bee->textColor = texts[textIdx].color;
+
+    // Count the lines
+    bee->textLines = 0;
+    char * tmp = lText;
+    do
+    {
+        if(*tmp == '\n')
+        {
+            bee->textLines++;
+        }
+    } while('\0' != *tmp++);
+
+    // Allocate pointers for all the lines
+    bee->text = (char **)heap_caps_calloc(bee->textLines, sizeof(char *), MALLOC_CAP_SPIRAM);
+
+    // Split the text into lines
+    tmp = lText;
+    for(uint32_t i = 0; i < bee->textLines; i++)
+    {
+        // Find the end of the line
+        char * newlineLoc = strchr(tmp, '\n');
+        // Find the line length
+        int32_t lineLen = ((intptr_t)newlineLoc - (intptr_t)tmp) + 1;
+        // Allocate space for this line and copy it
+        bee->text[i] = heap_caps_calloc(1, lineLen + 1, MALLOC_CAP_SPIRAM);
+        memcpy(bee->text[i], tmp, lineLen);
+        // Move to the next line
+        tmp = newlineLoc + 1;
+    }
+
+    // Free the loaded text
+    free(lText);
+}
+
+/**
+ * @brief Free all currently allocated text
+ * 
+ */
+void beeFreeRandomText(void)
+{
+    // If there is text to free
+    if(NULL != bee->text)
+    {
+        // Free each line
+        for(uint32_t i = 0; i < bee->textLines; i++)
+        {
+            free(bee->text[i]);
+        }
+        // Free pointers to the lines
+        free(bee->text);
+
+        // Null this for safety
+        bee->text = NULL;
+    }
 }
 
 /**
@@ -114,6 +207,7 @@ void beeSetRandomText(void)
  */
 void beeExitMode(void)
 {
+    beeFreeRandomText();
     freeFont(&bee->font);
     free(bee);
 }
