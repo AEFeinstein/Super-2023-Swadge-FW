@@ -932,13 +932,13 @@ const rhythm_t rhythms[] =
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 4 // 139
     },
-    {
-        .name = "J-Dawg",
-        .rhythm = j_dawg,
-        .rhythmLen = lengthof(j_dawg),
-        .interNotePauseMs = DEFAULT_PAUSE,
-        .defaultBpm = 1 // 227
-    },
+    // {
+    //     .name = "J-Dawg",
+    //     .rhythm = j_dawg,
+    //     .rhythmLen = lengthof(j_dawg),
+    //     .interNotePauseMs = DEFAULT_PAUSE,
+    //     .defaultBpm = 1 // 227
+    // },
     {
         .name = "8BMT",
         .rhythm = eightBMT,
@@ -946,20 +946,20 @@ const rhythm_t rhythms[] =
         .interNotePauseMs = DEFAULT_PAUSE,
         .defaultBpm = 3 // 167
     },
-    {
-        .name = "Goat",
-        .rhythm = the_goat,
-        .rhythmLen = lengthof(the_goat),
-        .interNotePauseMs = DEFAULT_PAUSE,
-        .defaultBpm = 5 // 114
-    },
-    {
-        .name = "Sgp",
-        .rhythm = sgp,
-        .rhythmLen = lengthof(sgp),
-        .interNotePauseMs = DEFAULT_PAUSE,
-        .defaultBpm = 3 // 167
-    },
+    // {
+    //     .name = "Goat",
+    //     .rhythm = the_goat,
+    //     .rhythmLen = lengthof(the_goat),
+    //     .interNotePauseMs = DEFAULT_PAUSE,
+    //     .defaultBpm = 5 // 114
+    // },
+    // {
+    //     .name = "Sgp",
+    //     .rhythm = sgp,
+    //     .rhythmLen = lengthof(sgp),
+    //     .interNotePauseMs = DEFAULT_PAUSE,
+    //     .defaultBpm = 3 // 167
+    // },
     {
         .name = "Mars",
         .rhythm = fourth_rock,
@@ -968,7 +968,7 @@ const rhythm_t rhythms[] =
         .defaultBpm = 4 // 139
     },
     {
-        .name = "dub",
+        .name = "Dub",
         .rhythm = dub,
         .rhythmLen = lengthof(dub),
         .interNotePauseMs = DEFAULT_PAUSE,
