@@ -5,8 +5,8 @@
 #include "swadge_util.h"
 
 #if defined(EMU)
-extern bool lockMode;
-extern bool monkeyAround;
+extern int lockMode;
+extern int monkeyAround;
 extern int64_t fuzzerModeTestTime;
 extern int64_t resetToMenuTimer;
 #endif
