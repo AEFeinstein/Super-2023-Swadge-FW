@@ -215,6 +215,11 @@ void updateTestObject(entity_t *self)
 
 void updateHitBlock(entity_t *self)
 {
+    if(self->homeTileY > self->tilemap->mapHeight){
+        destroyEntity(self, false);
+        return;
+    }
+   
     self->x += self->xspeed;
     self->y += self->yspeed;
 
