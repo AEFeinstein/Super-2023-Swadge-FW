@@ -103,6 +103,7 @@ static const ledDanceArg ledDances[] =
     {.func = dancePureRandom,    .arg = 0, .name = "Random LEDs"},
     {.func = danceChristmas,     .arg = 1, .name = "Holiday 1"},
     {.func = danceChristmas,     .arg = 0, .name = "Holiday 2"},
+    {.func = danceFlashlight,    .arg = 0, .name = "Flashlight"},
     {.func = danceNone,          .arg = 0, .name = "None"},
     {.func = danceRandomDance,   .arg = 0, .name = "Shuffle All"},
 };
@@ -1288,6 +1289,47 @@ void danceRainbowSolid(uint32_t tElapsedUs, uint32_t arg __attribute__((unused))
             leds[i].r = (color_save >>  0) & 0xFF;
             leds[i].g = (color_save >>  8) & 0xFF;
             leds[i].b = (color_save >> 16) & 0xFF;
+        }
+    }
+    // Output the LED data, actually turning them on
+    if(ledsUpdated)
+    {
+        setLeds(leds, NUM_LEDS);
+    }
+}
+
+/**
+ * Turn on all LEDs and Make Purely White
+ *
+ * @param tElapsedUs The time elapsed since last call, in microseconds
+ * @param reset      true to reset this dance's variables
+ */
+void danceFlashlight(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)), bool reset)
+{
+    static uint32_t tAccumulated = 0;
+
+    if(reset)
+    {
+        tAccumulated = 70000;
+        return;
+    }
+
+    // Declare some LEDs, all off
+    led_t leds[NUM_LEDS] = {{0}};
+    bool ledsUpdated = false;
+
+    tAccumulated += tElapsedUs;
+    while(tAccumulated >= 70000)
+    {
+        tAccumulated -= 70000;
+        ledsUpdated = true;
+
+        uint8_t i;
+        for(i = 0; i < NUM_LEDS; i++)
+        {
+            leds[i].r = 0xFF;
+            leds[i].g = 0xFF;
+            leds[i].b = 0xFF;
         }
     }
     // Output the LED data, actually turning them on
