@@ -250,6 +250,12 @@ const noteFrequency_t scl_m_Penta[] =
     C_5, D_SHARP_5, F_5, G_5, A_SHARP_5, C_6,
     C_6, D_SHARP_6, F_6, G_6, A_SHARP_6, C_7,
 };
+const noteFrequency_t scl_Chromatic[] =
+{
+    C_4, C_SHARP_4, D_4, D_SHARP_4, E_4, F_4, F_SHARP_4, G_4, G_SHARP_4, A_4, A_SHARP_4, B_4, C_5,
+    C_5, C_SHARP_5, D_5, D_SHARP_5, E_5, F_5, F_SHARP_5, G_5, G_SHARP_5, A_5, A_SHARP_5, B_5, C_6,
+    C_6, C_SHARP_6, D_6, D_SHARP_6, E_6, F_6, F_SHARP_6, G_6, G_SHARP_6, A_6, A_SHARP_6, B_6, C_7,
+};
 const noteFrequency_t scl_m_Blues[] =
 {
     C_4, D_SHARP_4, F_4, F_SHARP_4, G_4, A_SHARP_4, C_5,
@@ -330,15 +336,9 @@ const noteFrequency_t scl_Whole_Tone[] =
 };
 const noteFrequency_t scl_Dacs[] =
 {
-    C_4, D_SHARP_4, F_4, F_SHARP_4, G_4, A_4,
-    C_5, D_SHARP_5, F_5, F_SHARP_5, G_5, A_5,
-    C_6, D_SHARP_6, F_6, F_SHARP_6, G_6, A_6,
-};
-const noteFrequency_t scl_Chromatic[] =
-{
-    C_4, C_SHARP_4, D_4, D_SHARP_4, E_4, F_4, F_SHARP_4, G_4, G_SHARP_4, A_4, A_SHARP_4, B_4, C_5,
-    C_5, C_SHARP_5, D_5, D_SHARP_5, E_5, F_5, F_SHARP_5, G_5, G_SHARP_5, A_5, A_SHARP_5, B_5, C_6,
-    C_6, C_SHARP_6, D_6, D_SHARP_6, E_6, F_6, F_SHARP_6, G_6, G_SHARP_6, A_6, A_SHARP_6, B_6, C_7,
+    C_4, D_SHARP_4, F_4, F_SHARP_4, G_4, A_4, C_5,
+    C_5, D_SHARP_5, F_5, F_SHARP_5, G_5, A_5, C_6,
+    C_6, D_SHARP_6, F_6, F_SHARP_6, G_6, A_6, C_7,
 };
 #else
 const noteFrequency_t scl_M_Penta[] =
@@ -352,6 +352,12 @@ const noteFrequency_t scl_m_Penta[] =
     C_5, D_SHARP_5, F_5, G_5, A_SHARP_5, C_6,
     C_6, D_SHARP_6, F_6, G_6, A_SHARP_6, C_7,
     C_7, D_SHARP_7, F_7, G_7, A_SHARP_7, C_8,
+};
+const noteFrequency_t scl_Chromatic[] =
+{
+    C_5, C_SHARP_5, D_5, D_SHARP_5, E_5, F_5, F_SHARP_5, G_5, G_SHARP_5, A_5, A_SHARP_5, B_5, C_6,
+    C_6, C_SHARP_6, D_6, D_SHARP_6, E_6, F_6, F_SHARP_6, G_6, G_SHARP_6, A_6, A_SHARP_6, B_6, C_7,
+    C_7, C_SHARP_7, D_7, D_SHARP_7, E_7, F_7, F_SHARP_7, G_7, G_SHARP_7, A_7, A_SHARP_7, B_7, C_8,
 };
 const noteFrequency_t scl_m_Blues[] =
 {
@@ -433,15 +439,9 @@ const noteFrequency_t scl_Whole_Tone[] =
 };
 const noteFrequency_t scl_Dacs[] =
 {
-    C_5, D_SHARP_5, F_5, F_SHARP_5, G_5, A_5,
-    C_6, D_SHARP_6, F_6, F_SHARP_6, G_6, A_6,
-    C_7, D_SHARP_7, F_7, F_SHARP_7, G_7, A_7,
-};
-const noteFrequency_t scl_Chromatic[] =
-{
-    C_5, C_SHARP_5, D_5, D_SHARP_5, E_5, F_5, F_SHARP_5, G_5, G_SHARP_5, A_5, A_SHARP_5, B_5, C_6,
-    C_6, C_SHARP_6, D_6, D_SHARP_6, E_6, F_6, F_SHARP_6, G_6, G_SHARP_6, A_6, A_SHARP_6, B_6, C_7,
-    C_7, C_SHARP_7, D_7, D_SHARP_7, E_7, F_7, F_SHARP_7, G_7, G_SHARP_7, A_7, A_SHARP_7, B_7, C_8,
+    C_5, D_SHARP_5, F_5, F_SHARP_5, G_5, A_5, C_6,
+    C_6, D_SHARP_6, F_6, F_SHARP_6, G_6, A_6, C_7,
+    C_7, D_SHARP_7, F_7, F_SHARP_7, G_7, A_7, C_8,
 };
 #endif
 
@@ -456,6 +456,11 @@ const scale_t scales[] =
         .name = "mi Pent",
         .notes = scl_m_Penta,
         .notesLen = lengthof(scl_m_Penta)
+    },
+    {
+        .name = "Chroma",
+        .notes = scl_Chromatic,
+        .notesLen = lengthof(scl_Chromatic)
     },
     {
         .name = "Ma Blu",
@@ -526,11 +531,6 @@ const scale_t scales[] =
         .name = "DACs",
         .notes = scl_Dacs,
         .notesLen = lengthof(scl_Dacs)
-    },
-    {
-        .name = "Chroma",
-        .notes = scl_Chromatic,
-        .notesLen = lengthof(scl_Chromatic)
     },
 };
 
@@ -610,7 +610,7 @@ const rhythmArp_t dom_7[] =
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 11},
     {.note = TRIPLET_EIGHTH_NOTE, .arp = 8},
-    {.note = TRIPLET_EIGHTH_NOTE, .arp = 4},
+    {.note = TRIPLET_EIGHTH_NOTE, .arp = 5},
 };
 
 const rhythmArp_t swing[] =
@@ -1234,6 +1234,8 @@ void  slideWhistleExitMode(void)
  */
 void  slideWhistleTouchCallback(touch_event_t* evt)
 {
+    slideWhistle->rhythmNoteIdx = 0;
+    slideWhistle->lastCallTimeUs = 0;
     slideWhistle->touchHeld = evt->state != 0;
     slideWhistle->shouldPlay = evt->state != 0 || slideWhistle->aHeld;
     //slideWhistle->touchPosition = roundf((evt->position * BAR_X_WIDTH) / 255);
