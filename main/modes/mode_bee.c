@@ -101,6 +101,7 @@ const copypasta_t texts[] =
     {.fname = "halfApress.txt",            .color = c035},
     {.fname = "codeOfConduct.txt",         .color = c555},
     {.fname = "hunter2.txt",               .color = c050},
+    {.fname = "touchgrass.txt",            .color = c020}
 };
 
 //==============================================================================
