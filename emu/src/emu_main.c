@@ -583,10 +583,8 @@ void emu_loop(void)
 
     if (monkeyAround)
     {
-        // A list of all keys to randomly press or release, and their states
-        const char randKeys[] =  {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i', '1', '2', '3', '4', '5'};
-        const char randKeys2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
-        static bool keyState[sizeof(randKeys) / sizeof(randKeys[0])] = {false};
+        // A list of all keys to randomly press or release, and their stat
+        static bool keyState[sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0]) + sizeof(keyTouchP1) / sizeof(keyTouchP1[0])] = {false};
 
         // Time keeping
         static int64_t tLastCall = 0;
@@ -603,14 +601,21 @@ void emu_loop(void)
         while(keyTimer >= 100000)
         {
             keyTimer -= 100000;
-            int keyIdx = esp_random() % (sizeof(randKeys) / sizeof(randKeys[0]));
+            int keyIdx = esp_random() % (sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0]) + sizeof(keyTouchP1) / sizeof(keyTouchP1[0]));
             keyState[keyIdx] = !keyState[keyIdx];
-            emuSensorHandleKey(randKeys[keyIdx], keyState[keyIdx]);
+            if (keyIdx < sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0]))
+            {
+                emuSensorHandleKey(keyButtonsP1[keyIdx], keyState[keyIdx]);
+            }
+            else
+            {
+                emuSensorHandleKey(keyTouchP1[keyIdx - sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0])], keyState[keyIdx]);
+            }
 
             // Only handle non-touchpads for p2
-            if(keyIdx < sizeof(randKeys2) / sizeof(randKeys2[0]))
+            if(keyIdx < sizeof(keyButtonsP2) / sizeof(keyButtonsP2[0]))
             {
-                emuSensorHandleKey(randKeys2[keyIdx], keyState[keyIdx]);
+                emuSensorHandleKey(keyButtonsP2[keyIdx], keyState[keyIdx]);
             }
         }
 
