@@ -390,7 +390,7 @@ void listTester(void)
     {
         if(0 == i % 10000)
         {
-            printf("link tester %lld\n", i);
+            printf("link tester %ld\n", i);
         }
         switch(esp_random() % 8)
         {
