@@ -240,7 +240,7 @@ int strCommonPrefixLen(const char* a, const char* b)
     return i;
 }
 
-bool parseKeyConfig(const char* config, char* outKeys, char* outTouch)
+int getButtonIndex(const char* text, char** end)
 {
     const char* const keyMap[] =
     {
@@ -254,6 +254,26 @@ bool parseKeyConfig(const char* config, char* outKeys, char* outTouch)
         "select",
     };
 
+    for (uint8_t i = 0; i < sizeof(keyMap) / sizeof(keyMap[0]); i++)
+    {
+        // Check if the name of the current key matches the one in the map
+        int prefix = strCommonPrefixLen(keyMap[i], text);
+        if (prefix == strlen(keyMap[i]))
+        {
+            printf("%s - %s - %d\n", text, keyMap[i], prefix);
+            if (end)
+            {
+                *end = text + prefix;
+            }
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+int getTouchIndex(const char* text, char** end)
+{
     // doubled up so we can do either 1 or Y, and X or 5
     // we'll just modulo it
     const char* const touchMap[] =
@@ -271,6 +291,87 @@ bool parseKeyConfig(const char* config, char* outKeys, char* outTouch)
         "x",
     };
 
+    for (uint8_t i = 0; i < sizeof(touchMap) / sizeof(*touchMap); i++)
+    {
+        int prefix = strCommonPrefixLen(touchMap[i], text);
+        if (prefix > 0)
+        {
+            if (end)
+            {
+                *end = text + prefix;
+            }
+            return i % 5;
+        }
+    }
+
+    return -1;
+}
+
+bool handleFuzzButtons(const char* buttons)
+{
+    const char* cur = buttons;
+    bool found = false;
+    int buttonIndex, touchIndex;
+
+    fuzzKeyCount = 0;
+    fuzzTouchCount = 0;
+
+    while (*cur)
+    {
+        found = false;
+        buttonIndex = getButtonIndex(cur, &cur);
+
+        if (buttonIndex >= 0)
+        {
+            fuzzKeysP1[fuzzKeyCount] = keyButtonsP1[buttonIndex];
+            fuzzKeysP2[fuzzKeyCount++] = keyButtonsP2[buttonIndex];
+            found = true;
+        }
+
+        if (!found)
+        {
+            touchIndex = getTouchIndex(cur, &cur);
+            if (touchIndex >= 0)
+            {
+                fuzzTouchP1[fuzzTouchCount] = keyTouchP1[touchIndex];
+                fuzzTouchP2[fuzzTouchCount++] = keyTouchP2[touchIndex];
+                found = true;
+            }
+        }
+
+        if (!found)
+        {
+            fprintf(stderr, "ERROR: Unknown key in fuzz buttons list at %s\n", cur);
+            return false;
+        }
+
+        while (*cur == ',' || *cur == ' ') cur++;
+    }
+
+    printf("Will fuzz with these keys:\n");
+    if (fuzzKeyCount > 0)
+    {
+        printf(" BUTTONS:\n");
+        for (uint8_t i = 0; i < fuzzKeyCount; i++)
+        {
+            printf("   - %c\n", fuzzKeysP1[i]);
+        }
+    }
+
+    if (fuzzTouchCount > 0)
+    {
+        printf(" TOUCH:\n");
+        for (uint8_t i = 0; i < fuzzTouchCount; i++)
+        {
+            printf("   - %c\n", fuzzTouchP1[i]);
+        }
+    }
+
+    return true;
+}
+
+bool parseKeyConfig(const char* config, char* outKeys, char* outTouch)
+{
     const char* cur = config;
     const char* colon;
     const char* comma;
@@ -326,36 +427,24 @@ bool parseKeyConfig(const char* config, char* outKeys, char* outTouch)
             }
 
             bool found = false;
-
-            for (uint8_t i = 0; outKeys && i < sizeof(keyMap) / sizeof(*keyMap); i++)
+            if (outKeys)
             {
-                // Check if the name of the current key matches the one in the map
-                int prefix = strCommonPrefixLen(keyMap[i], cur);
-                if (prefix > 0)
-                {
-                    outKeys[i] = key;
-                    found = true;
+                int buttonIndex = getButtonIndex(cur, &cur);
 
-                    cur += prefix;
-                    break;
+                if (buttonIndex >= 0)
+                {
+                    outKeys[buttonIndex] = key;
+                    found = true;
                 }
             }
 
-            if (!found)
+            if (!found && outTouch)
             {
-                for (uint8_t i = 0; outTouch && i < sizeof(touchMap) / sizeof(*touchMap); i++)
+                int keyIndex = getTouchIndex(cur, &cur);
+                if (keyIndex >= 0)
                 {
-                    int prefix = strCommonPrefixLen(touchMap[i], cur);
-                    if (prefix > 0)
-                    {
-                        printf("Found %s at index %d\n", cur, i);
-                        // Just using keyTouchP1 for its size here
-                        outTouch[i % (sizeof(keyTouchP1) / sizeof(*keyTouchP1))] = key;
-                        found = true;
-
-                        cur += prefix;
-                        break;
-                    }
+                    outTouch[keyIndex] = key;
+                    found = true;
                 }
             }
 
@@ -387,11 +476,17 @@ bool parseKeyConfig(const char* config, char* outKeys, char* outTouch)
     return true;
 }
 
+
+
 static const struct option opts[] = {
     {"start-mode", required_argument, NULL, 'm'},
     {"lock", no_argument, &lockMode, true},
     {"fuzz", no_argument, &monkeyAround, true},
     {"fuzz-mode-timer", required_argument, NULL, 't'},
+    {"fuzz-buttons", required_argument, NULL, 0},
+    {"fuzz-buttons-p2", required_argument, NULL, 0},
+    {"fuzz-button-delay", required_argument, NULL, 0},
+    {"fuzz-button-prob", required_argument, NULL, 0},
     {"nvs-file", required_argument, NULL, 'f'},
     {"keys", required_argument, NULL, 'k'},
     {"keys-p2", required_argument, NULL, 'p'},
@@ -406,9 +501,10 @@ void handleArgs(int argc, char** argv)
     char* executableName = *argv;
 
     char* startMode = NULL;
-
-    // Process the command-line arguments
-    // This also skips the first arg, which is the executable name
+    char* fuzzButtons = NULL;
+    bool fuzzP2 = true;
+    char* p1Keys = NULL;
+    char* p2Keys = NULL;
 
     int optVal, optIndex;
 
@@ -426,11 +522,38 @@ void handleArgs(int argc, char** argv)
         {
             case 0:
             {
-                if (optIndex == 7)
+                // Handle options without a short opt
+                switch (optIndex)
                 {
                     // Dvorak
-                    memcpy(keyButtonsP1, dvorakKeysP1, sizeof(dvorakKeysP1) / sizeof(*dvorakKeysP1));
-                    memcpy(keyButtonsP2, dvorakKeysP2, sizeof(dvorakKeysP2) / sizeof(*dvorakKeysP2));
+                    case 11:
+                        memcpy(keyButtonsP1, dvorakKeysP1, sizeof(dvorakKeysP1) / sizeof(*dvorakKeysP1));
+                        memcpy(keyButtonsP2, dvorakKeysP2, sizeof(dvorakKeysP2) / sizeof(*dvorakKeysP2));
+                    break;
+
+                    // Fuzz Buttons
+                    case 4:
+                        // Handle it later
+                        fuzzButtons = optarg;
+                    break;
+
+                    // Fuzz Buttons P2
+                    case 5:
+                        // Lazily handle yes/no
+                        if (optarg && (optarg[0] == 'N' || optarg[0] == 'n'))
+                        {
+                            fuzzP2 = false;
+                        }
+                    break;
+
+                    // Fuzz Button Delay
+                    case 6:
+
+                    break;
+
+                    // Fuzz Button Probability
+                    case 7:
+                    break;
                 }
                 break;
             }
@@ -463,21 +586,13 @@ void handleArgs(int argc, char** argv)
 
             case 'k':
             {
-                if (!parseKeyConfig(optarg, keyButtonsP1, keyTouchP1))
-                {
-                    exit(1);
-                    return;
-                }
+                p1Keys = optarg;
                 break;
             }
 
             case 'p':
             {
-                if (!parseKeyConfig(optarg, keyButtonsP2, keyTouchP2))
-                {
-                    exit(1);
-                    return;
-                }
+                p2Keys = optarg;
                 break;
             }
 
@@ -489,6 +604,12 @@ void handleArgs(int argc, char** argv)
                 printf("\t--lock\t\t\tLocks the emulator in the start mode. Start + Select will do nothing, and if --start-mode is used, it will replace the main menu.\n");
                 printf("\t--fuzz\t\t\tEnables fuzzing mode, which will trigger rapid random button presses and randomly switch modes, unless --lock is passed.\n");
                 printf("\t--fuzz-mode-timer SECONDS\tSets the number of seconds before the fuzzer will switch to a different random mode.\n");
+
+                printf("\t--fuzz-buttons BUTTONS\tSets the list of buttons the fuzzer can press. Defaults to all buttons.\n");
+                printf("\t--fuzz-buttons-p2 YES|NO\tSets whether the P2 buttons will be fuzzed also. Defaults to YES.\n");
+                printf("\t--fuzz-button-delay MILLIS\tSets the number of milliseconds between each possible fuzzer keypress. Defaults to 100.\n");
+                printf("\t--fuzz-button-prob NUM\tSets the probability that a keypress will happen, from 0 to 100. Defaults to 100.\n");
+
                 printf("\t--nvs-file FILE\tSets the name of the JSON file used to store NVS data. Defaults to 'nvs.json' in the current directory.\n");
                 printf("\t--keys KEYBINDINGS\tSets one or more keybindings, in the format of `<key>:<button>,<key>:<button>,...`, where <key> is a single character,\n"
                             "\t\t\tand <button> is one of UP, DOWN, LEFT, RIGHT, A, B, START, SELECT, X, Y, 1, 2, 3, 4, or 5, with X, Y, and 1-5 being the touchpad segments.\n"
@@ -510,6 +631,49 @@ void handleArgs(int argc, char** argv)
         }
     }
 
+    // Handle keybindings
+    // P1
+    if (p1Keys != NULL)
+    {
+        if (!parseKeyConfig(p1Keys, keyButtonsP1, keyTouchP1))
+        {
+            // parseKeyConfig already printed error message
+            exit(1);
+            return;
+        }
+    }
+
+    // P2
+    if (p2Keys != NULL)
+    {
+        if (!parseKeyConfig(p2Keys, keyButtonsP2, keyTouchP2))
+        {
+            // parseKeyConfig already printed error message
+            exit(1);
+            return;
+        }
+    }
+
+    // Handle fuzzer keys
+    if (fuzzButtons)
+    {
+        if (!handleFuzzButtons(fuzzButtons))
+        {
+            exit(1);
+            return;
+        }
+    }
+    else
+    {
+        // Set defaults
+        memcpy(fuzzKeysP1, keyButtonsP1, sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0]));
+        memcpy(fuzzKeysP2, keyButtonsP2, sizeof(keyButtonsP2) / sizeof(keyButtonsP2[0]));
+        fuzzKeyCount = sizeof(keyButtonsP1) / sizeof(keyButtonsP1);
+
+        memcpy(fuzzTouchP1, keyTouchP1, sizeof(keyTouchP1) / sizeof(keyTouchP1[0]));
+        memcpy(fuzzTouchP2, keyTouchP2, sizeof(keyTouchP2) / sizeof(keyTouchP2[0]));
+        fuzzTouchCount = sizeof(keyTouchP1) / sizeof(keyTouchP1[0]);
+    }
 
     if (startMode != NULL)
     {
@@ -595,27 +759,35 @@ void emu_loop(void)
         int64_t tNow = esp_timer_get_time();
         int64_t tElapsed = (tNow - tLastCall);
 
-        // Randomly press or release keys every 100ms
-        static int64_t keyTimer = 0;
-        keyTimer += tElapsed;
-        while(keyTimer >= 100000)
+        if (fuzzKeyCount + fuzzTouchCount > 0)
         {
-            keyTimer -= 100000;
-            int keyIdx = esp_random() % (sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0]) + sizeof(keyTouchP1) / sizeof(keyTouchP1[0]));
-            keyState[keyIdx] = !keyState[keyIdx];
-            if (keyIdx < sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0]))
+            // Randomly press or release keys every 100ms
+            static int64_t keyTimer = 0;
+            keyTimer += tElapsed;
+            while(keyTimer >= fuzzButtonDelay)
             {
-                emuSensorHandleKey(keyButtonsP1[keyIdx], keyState[keyIdx]);
-            }
-            else
-            {
-                emuSensorHandleKey(keyTouchP1[keyIdx - sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0])], keyState[keyIdx]);
-            }
+                keyTimer -= fuzzButtonDelay;
+                if ((esp_random() % 100) > fuzzButtonProbability)
+                {
+                    continue;
+                }
 
-            // Only handle non-touchpads for p2
-            if(keyIdx < sizeof(keyButtonsP2) / sizeof(keyButtonsP2[0]))
-            {
-                emuSensorHandleKey(keyButtonsP2[keyIdx], keyState[keyIdx]);
+                int keyIdx = esp_random() % (fuzzKeyCount + fuzzTouchCount);
+                keyState[keyIdx] = !keyState[keyIdx];
+                if (keyIdx < fuzzKeyCount)
+                {
+                    emuSensorHandleKey(fuzzKeysP1[keyIdx], keyState[keyIdx]);
+                }
+                else
+                {
+                    emuSensorHandleKey(fuzzTouchP1[keyIdx - fuzzKeyCount], keyState[keyIdx]);
+                }
+
+                // Only handle non-touchpads for p2
+                if(keyIdx < fuzzKeyCount)
+                {
+                    emuSensorHandleKey(fuzzKeysP2[keyIdx], keyState[keyIdx]);
+                }
             }
         }
 

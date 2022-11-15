@@ -121,6 +121,8 @@ int lockMode = false;
 int monkeyAround = false;
 int64_t fuzzerModeTestTime = 120 * 1000000;
 int64_t resetToMenuTimer = 120 * 1000000;
+int64_t fuzzButtonDelay = 100 * 1000; // 100ms
+int8_t fuzzButtonProbability = 100; // 100 percent
 // Up, Down, Left, Right, A, B, Start, Select
 char keyButtonsP1[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i'};
 char keyButtonsP2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
@@ -128,6 +130,12 @@ char keyTouchP1[] = {'1', '2', '3', '4', '5'};
 // allocated for symmetry but unused
 char keyTouchP2[] = {'6', '7', '8', '9', '0'};
 
+char fuzzKeysP1[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i'};
+char fuzzKeysP2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
+char fuzzTouchP1[] = {'1', '2', '3', '4', '5'};
+char fuzzTouchP2[] = {'6', '7', '8', '9', '0'};
+uint8_t fuzzKeyCount = 8;
+uint8_t fuzzTouchCount = 5;
 #endif
 
 static RTC_DATA_ATTR swadgeMode* pendingSwadgeMode = NULL;
