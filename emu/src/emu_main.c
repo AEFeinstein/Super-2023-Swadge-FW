@@ -7,6 +7,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <ctype.h>
 
 #ifdef __linux__
 #include <execinfo.h>
@@ -67,6 +68,10 @@
 #define DIV_COLOR 0x808080FF
 
 extern char* emuNvsFilename;
+
+
+static const char dvorakKeysP1[] = {',', 'o', 'a', 'e', 'n', 't', 'r', 'c'};
+static const char dvorakKeysP2[] = {'y', 'i', 'u', 'd', 'm', 'b', 'p', 'f'};
 
 // A list of all modes
 swadgeMode * allModes[] =
@@ -222,12 +227,175 @@ void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t c
     } while (x < 0);
 }
 
+int strCommonPrefixLen(const char* a, const char* b)
+{
+    if (a == NULL || b == NULL)
+    {
+        return 0;
+    }
+
+    int i = 0;
+
+    for (; *a && *b && tolower(*a) == tolower(*b); a++, b++, i++);
+    return i;
+}
+
+bool parseKeyConfig(const char* config, char* outKeys, char* outTouch)
+{
+    const char* const keyMap[] =
+    {
+        "up",
+        "down",
+        "left",
+        "right",
+        "a",
+        "b",
+        "start",
+        "select",
+    };
+
+    // doubled up so we can do either 1 or Y, and X or 5
+    // we'll just modulo it
+    const char* const touchMap[] =
+    {
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+
+        "y",
+        "2",
+        "3",
+        "4",
+        "x",
+    };
+
+    const char* cur = config;
+    const char* colon;
+    const char* comma;
+    const char* escape;
+
+    // Each loop will process one key -> button/touchpad mapping
+    while (*cur)
+    {
+        colon = strchr(cur, ':');
+        comma = strchr(cur, ',');
+        escape = strchr(cur, '\\');
+
+        while (escape && escape == colon - 1)
+        {
+            // escape char is immediately before a colon, so skip that colon
+            colon = strchr(colon + 1, ':');
+        }
+
+        while (escape && escape == comma - 1)
+        {
+            // escape char is immediately before a comma, so skip that comma
+            comma = strchr(comma + 1, ',');
+        }
+
+        if (cur == escape)
+        {
+            cur++;
+
+            if (!*cur)
+            {
+                fprintf(stderr, "ERROR: Trailing '\\' at end of keybind string\n");
+            }
+        }
+
+        // Expect the comma to be immediately after the key bind character
+        if (colon && colon - cur > 1)
+        {
+            fprintf(stderr, "ERROR: Key binding must only be one character, was %zu at '%s'\n", colon - cur, cur);
+            return false;
+        }
+
+        if (colon && (!comma || colon < comma))
+        {
+            // colon is right after the key
+            char key = *cur;
+
+            cur = colon + 1;
+
+            if (!*cur)
+            {
+                fprintf(stderr, "ERROR: Unexpected end of keybind string, expecting ':' after %c\n", key);
+                return false;
+            }
+
+            bool found = false;
+
+            for (uint8_t i = 0; outKeys && i < sizeof(keyMap) / sizeof(*keyMap); i++)
+            {
+                // Check if the name of the current key matches the one in the map
+                int prefix = strCommonPrefixLen(keyMap[i], cur);
+                if (prefix > 0)
+                {
+                    outKeys[i] = key;
+                    found = true;
+
+                    cur += prefix;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                for (uint8_t i = 0; outTouch && i < sizeof(touchMap) / sizeof(*touchMap); i++)
+                {
+                    int prefix = strCommonPrefixLen(touchMap[i], cur);
+                    if (prefix > 0)
+                    {
+                        printf("Found %s at index %d\n", cur, i);
+                        // Just using keyTouchP1 for its size here
+                        outTouch[i % (sizeof(keyTouchP1) / sizeof(*keyTouchP1))] = key;
+                        found = true;
+
+                        cur += prefix;
+                        break;
+                    }
+                }
+            }
+
+            if (!found)
+            {
+                fprintf(stderr, "ERROR: Unknown button name in keybinding string at %s\n", cur);
+                return false;
+            }
+
+            // Move to past the comma
+            if (comma)
+            {
+                cur = comma + 1;
+            }
+
+            // Skip trailing spaces
+            while (*cur && *cur == ' ')
+            {
+                cur++;
+            }
+        }
+        else
+        {
+            fprintf(stderr, "ERROR: Expecting `:` and button name after %s\n", cur);
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static const struct option opts[] = {
     {"start-mode", required_argument, NULL, 'm'},
     {"lock", no_argument, &lockMode, true},
     {"fuzz", no_argument, &monkeyAround, true},
     {"fuzz-mode-timer", required_argument, NULL, 't'},
     {"nvs-file", required_argument, NULL, 'f'},
+    {"keys", required_argument, NULL, 'k'},
+    {"keys-p2", required_argument, NULL, 'p'},
+    {"dvorak", no_argument, NULL, 0},
     {"help", no_argument, NULL, 'h'},
 
     {NULL, 0, NULL, 0},
@@ -246,7 +414,7 @@ void handleArgs(int argc, char** argv)
 
     while (true)
     {
-        optVal = getopt_long(argc, argv, "m:lt:f:h", opts, &optIndex);
+        optVal = getopt_long(argc, argv, "m:lt:f:k:p:h", opts, &optIndex);
 
         if (optVal < 0)
         {
@@ -257,8 +425,15 @@ void handleArgs(int argc, char** argv)
         switch (optVal)
         {
             case 0:
-            // No opts without a short arg yet, so nothing to do
-            break;
+            {
+                if (optIndex == 7)
+                {
+                    // Dvorak
+                    memcpy(keyButtonsP1, dvorakKeysP1, sizeof(dvorakKeysP1) / sizeof(*dvorakKeysP1));
+                    memcpy(keyButtonsP2, dvorakKeysP2, sizeof(dvorakKeysP2) / sizeof(*dvorakKeysP2));
+                }
+                break;
+            }
 
             case 'm':
             {
@@ -286,6 +461,26 @@ void handleArgs(int argc, char** argv)
                 break;
             }
 
+            case 'k':
+            {
+                if (!parseKeyConfig(optarg, keyButtonsP1, keyTouchP1))
+                {
+                    exit(1);
+                    return;
+                }
+                break;
+            }
+
+            case 'p':
+            {
+                if (!parseKeyConfig(optarg, keyButtonsP2, keyTouchP2))
+                {
+                    exit(1);
+                    return;
+                }
+                break;
+            }
+
             case 'h':
             {
                 printf("Usage: %s [--start-mode|-m MODE] [--lock|-l] [--help] [--fuzz [--fuzz-mode-timer SECONDS]] [--nvs-file|-f FILE]\n", executableName);
@@ -295,6 +490,11 @@ void handleArgs(int argc, char** argv)
                 printf("\t--fuzz\t\t\tEnables fuzzing mode, which will trigger rapid random button presses and randomly switch modes, unless --lock is passed.\n");
                 printf("\t--fuzz-mode-timer SECONDS\tSets the number of seconds before the fuzzer will switch to a different random mode.\n");
                 printf("\t--nvs-file FILE\tSets the name of the JSON file used to store NVS data. Defaults to 'nvs.json' in the current directory.\n");
+                printf("\t--keys KEYBINDINGS\tSets one or more keybindings, in the format of `<key>:<button>,<key>:<button>,...`, where <key> is a single character,\n"
+                            "\t\t\tand <button> is one of UP, DOWN, LEFT, RIGHT, A, B, START, SELECT, X, Y, 1, 2, 3, 4, or 5, with X, Y, and 1-5 being the touchpad segments.\n"
+                            "\t\tWhitespace is ignored. To use ',', ':', ' ', or '\\' as the keybinding, prefix them with a backslash, e.g. `--keys '\ :A, \\:B, \,:UP, \::DOWN`\n");
+                printf("\t--keys-p2 KEYBINDINGS\tSets keybindings for player 2. Requires the same format as in --keys.\n");
+                printf("\t--dvorak\t\tSets keybindings for the Dvorak layout which are equivalent to the default QWERTY keybinings.\n");
                 printf("\n");
                 exit(0);
                 return;
