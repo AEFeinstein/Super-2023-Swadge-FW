@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include "inttypes.h"
 
 #include <esp_log.h>
 #include <esp_random.h>
@@ -390,7 +391,7 @@ void listTester(void)
     {
         if(0 == i % 10000)
         {
-            printf("link tester %ld\n", i);
+            printf("link tester %" PRIu64 "\n", i);
         }
         switch(esp_random() % 8)
         {
