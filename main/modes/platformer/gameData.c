@@ -110,6 +110,8 @@ void addCoins(gameData_t * gameData, uint8_t coins){
         gameData->lives++;
         buzzer_play_sfx(&snd1up);
         gameData->coins = 0;
+    } else {
+        buzzer_play_sfx(&sndCoin);
     }
 }
 

@@ -192,7 +192,7 @@ static leveldef_t leveldef[17] = {
      .timeLimit = 220,
      .checkpointTimeLimit = 110},
     {.filename = "level4-1.bin",
-     .timeLimit = 240,
+     .timeLimit = 270,
      .checkpointTimeLimit = 90},
     {.filename = "level4-2.bin",
      .timeLimit = 240,
@@ -977,23 +977,25 @@ void updateLevelClear(platformer_t *self){
             if(levelIndex >= NUM_LEVELS - 1){
                 //Game Cleared!
 
-                //Determine achievements
-                self->unlockables.gameCleared = true;
-                
-                if(!self->gameData.continuesUsed){
-                    self->unlockables.oneCreditCleared = true;
+                if(!self->gameData.debugMode){
+                    //Determine achievements
+                    self->unlockables.gameCleared = true;
+                    
+                    if(!self->gameData.continuesUsed){
+                        self->unlockables.oneCreditCleared = true;
 
-                    if(self->gameData.inGameTimer < FAST_TIME) {
-                        self->unlockables.fastTime = true;
+                        if(self->gameData.inGameTimer < FAST_TIME) {
+                            self->unlockables.fastTime = true;
+                        }
                     }
-                }
 
-                if(self->gameData.score >= BIG_SCORE) {
-                    self->unlockables.bigScore = true;
-                }
+                    if(self->gameData.score >= BIG_SCORE) {
+                        self->unlockables.bigScore = true;
+                    }
 
-                if(self->gameData.score >= BIGGER_SCORE) {
-                    self->unlockables.biggerScore = true;
+                    if(self->gameData.score >= BIGGER_SCORE) {
+                        self->unlockables.biggerScore = true;
+                    }
                 }
 
                 changeStateGameClear(self);
@@ -1054,6 +1056,17 @@ void updateGameClear(platformer_t *self){
                 buzzer_play_sfx(&snd1up);
             }
         } else if(self->gameData.frameCount % 960 == 0) {
+            
+            if(!self->gameData.debugMode) {
+                if(self->gameData.score >= BIG_SCORE) {
+                    self->unlockables.bigScore = true;
+                }
+
+                if(self->gameData.score >= BIGGER_SCORE) {
+                    self->unlockables.biggerScore = true;
+                }
+            }
+
             changeStateGameOver(self);
         }
     }
