@@ -260,7 +260,6 @@ int getButtonIndex(const char* text, char** end)
         int prefix = strCommonPrefixLen(keyMap[i], text);
         if (prefix == strlen(keyMap[i]))
         {
-            printf("%s - %s - %d\n", text, keyMap[i], prefix);
             if (end)
             {
                 *end = text + prefix;
@@ -346,25 +345,6 @@ bool handleFuzzButtons(const char* buttons)
         }
 
         while (*cur == ',' || *cur == ' ') cur++;
-    }
-
-    printf("Will fuzz with these keys:\n");
-    if (fuzzKeyCount > 0)
-    {
-        printf(" BUTTONS:\n");
-        for (uint8_t i = 0; i < fuzzKeyCount; i++)
-        {
-            printf("   - %c\n", fuzzKeysP1[i]);
-        }
-    }
-
-    if (fuzzTouchCount > 0)
-    {
-        printf(" TOUCH:\n");
-        for (uint8_t i = 0; i < fuzzTouchCount; i++)
-        {
-            printf("   - %c\n", fuzzTouchP1[i]);
-        }
     }
 
     return true;
