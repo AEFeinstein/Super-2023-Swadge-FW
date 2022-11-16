@@ -578,7 +578,7 @@ void jumperSetupState(uint8_t stageIndex)
             j->scene->blocks[22] = BLOCK_EVILSTANDARD;
             j->scene->perfect = 24;
             break;
-        case 10:
+        case 0: // Level 10
             j->scene->blocks[7] = BLOCK_EVILSTANDARD;
             j->scene->blocks[8] = BLOCK_EVILSTANDARD;
             j->scene->blocks[6] = BLOCK_WARBLESTANDARD;
