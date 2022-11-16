@@ -79,6 +79,29 @@ bool initNvs(bool firstTry)
 }
 
 /**
+ * @brief Erase and re-initialize the nonvolatile storage
+ *
+ * @return true if NVS was erased and re-initialized and can be used, false if it failed
+ */
+bool eraseNvs(void)
+{
+    switch(nvs_flash_erase())
+    {
+        case ESP_OK:
+        {
+            // NVS erased successfully, need to re-initialize
+            return initNvs(true);
+        }
+        default:
+        case ESP_ERR_NOT_FOUND:
+        {
+            // Couldn't erase flash
+            return false;
+        }
+    }
+}
+
+/**
  * @brief Write a 32 bit value to NVS with a given string key
  *
  * @param key The key for the value to write

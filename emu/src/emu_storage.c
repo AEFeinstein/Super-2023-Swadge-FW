@@ -78,6 +78,34 @@ bool initNvs(bool firstTry UNUSED)
 }
 
 /**
+ * @brief Erase and re-initialize the NVS file
+ *
+ * @return true if the file was erased and re-initialized and can be used, false if it failed
+ */
+bool eraseNvs(void)
+{
+    // Check if the json file exists
+    if( access( NVS_JSON_FILE, F_OK ) != 0 )
+    {
+        // File does not exist, ready to initialize
+        return initNvs(true);
+    }
+    else
+    {
+        if(remove(NVS_JSON_FILE) == 0)
+        {
+            // File deleted, ready to re-initialize
+            return initNvs(true);
+        }
+        else
+        {
+            // Couldn't delete file
+            return false;
+        }
+    }
+}
+
+/**
  * @brief Write a 32 bit value to NVS with a given string key
  *
  * @param key The key for the value to write

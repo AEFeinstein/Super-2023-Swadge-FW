@@ -7,6 +7,7 @@
 
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "nvs_manager.h"
 
 #include "swadgeMode.h"
 #include "swadge_esp32.h"
@@ -83,6 +84,7 @@ typedef struct
     wsg_t usb;
     int32_t autoLightDanceTimer;
     bool debugMode;
+    bool confirmReset;
     char gitStr[32];
 } mainMenu_t;
 
@@ -127,6 +129,8 @@ char mainMenuMicGain[] = "Mic Gain: 1";
 char mainMenuScreensaverTimeout[] = "Screensaver: 20s";
 char mainMenuScreensaverOff[] = "Screensaver: Off";
 const char mainMenuCredits[] = "Credits";
+const char mainMenuFactoryReset[] = "Factory Reset";
+const char mainMenuConfirmFactoryReset[] = "! Confirm Reset !";
 
 static const int16_t cheatCode[11] = {UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, BTN_B, BTN_A, START};
 
@@ -786,11 +790,17 @@ void mainMenuSetUpSecretMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, modeBee.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeTest.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenu->gitStr);
+    addRowToMeleeMenu(mainMenu->menu, mainMenuFactoryReset);
+    if(mainMenu->confirmReset)
+    {
+        addRowToMeleeMenu(mainMenu->menu, mainMenuConfirmFactoryReset);
+    }
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
     {
         mainMenu->secretPos = 0;
+        mainMenu->confirmReset = false;
     }
     mainMenu->menu->selectedRow = mainMenu->secretPos;
 }
@@ -811,10 +821,34 @@ void mainMenuSecretCb(const char* opt)
         // Start bee stuff
         switchToSwadgeMode(&modeBee);
     }
-    if(modeTest.modeName == opt)
+    else if(modeTest.modeName == opt)
     {
         // Start test mode
         switchToSwadgeMode(&modeTest);
+    }
+    else if(mainMenuFactoryReset == opt)
+    {
+        mainMenu->confirmReset = true;
+        mainMenuSetUpSecretMenu(false);
+    }
+    else if(mainMenuConfirmFactoryReset == opt)
+    {
+        if(eraseNvs())
+        {
+#ifdef EMU
+            exit(0);
+#else
+            switchToSwadgeMode(&modeTest);
+#endif
+        }
+        else
+        {
+#ifdef EMU
+            exit(1);
+#else
+            switchToSwadgeMode(&modeMainMenu);
+#endif
+        }
     }
     else if(mainMenuBack == opt)
     {
