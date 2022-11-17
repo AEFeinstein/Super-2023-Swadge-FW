@@ -136,7 +136,7 @@ bool textEntryDraw(void)
             int16_t width = textWidth(&textEntryIBM, "Typing: Upper");
             int16_t typingWidth = textWidth(&textEntryIBM, "Typing: ");
             drawText( textEntryDisplay, &textEntryIBM, WHITE, "Typing: Upper", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM.h - 2);
-            plotLine( textEntryDisplay, (textEntryDisplay->w - width)/2 + typingWidth, textEntryDisplay->h - 1, textEntryDisplay->w - 1, textEntryDisplay->h - 1, WHITE, 0);
+            plotLine( textEntryDisplay, (textEntryDisplay->w - width)/2 + typingWidth, textEntryDisplay->h - 1, (textEntryDisplay->w - width)/2 + width, textEntryDisplay->h - 1, WHITE, 0);
             break;
         }
         case NO_SHIFT:
@@ -150,7 +150,7 @@ bool textEntryDraw(void)
             int16_t width = textWidth(&textEntryIBM, "Typing: CAPS LOCK");
             int16_t typingWidth = textWidth(&textEntryIBM, "Typing: ");
             drawText(textEntryDisplay, &textEntryIBM, WHITE, "Typing: CAPS LOCK", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM.h - 2 );
-            plotLine(textEntryDisplay, (textEntryDisplay->w - width)/2 + typingWidth, textEntryDisplay->h - 1, textEntryDisplay->w - 1, textEntryDisplay->h - 1, WHITE, 0);
+            plotLine(textEntryDisplay, (textEntryDisplay->w - width)/2 + typingWidth, textEntryDisplay->h - 1, (textEntryDisplay->w - width)/2 + width, textEntryDisplay->h - 1, WHITE, 0);
             break;
         }
         default:
