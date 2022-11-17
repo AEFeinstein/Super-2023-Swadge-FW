@@ -264,7 +264,7 @@ const uint16_t fourNoteStringIdxToLedIdx[] =
 
 const uint16_t fiveNoteStringIdxToLedIdx[] =
 {
-    1,
+    0,
     2,
     3,
     4,
@@ -273,12 +273,12 @@ const uint16_t fiveNoteStringIdxToLedIdx[] =
 
 const uint16_t sixNoteStringIdxToLedIdx[] =
 {
-    1,
+    0,
     2,
     3,
     4,
     5,
-    6
+    7
 };
 
 const uint16_t twoLedFlashIdxs[] =
