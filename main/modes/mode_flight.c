@@ -1133,7 +1133,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
         if(flight->oob)
         {
             width = textWidth(&flight->ibm, "TURN AROUND");
-            drawText(disp, &flight->ibm, PROMPT_COLOR, "TURN AROUND", (TFT_WIDTH - width) / 2, (TFT_HEIGHT - flight->ibm.h) / 2);
+            drawText(disp, &flight->ibm, PROMPT_COLOR, "TURN AROUND", (TFT_WIDTH - width) / 2, (TFT_HEIGHT - 4 * flight->ibm.h) / 2);
         }
 
         // Draw crosshairs.
@@ -1146,11 +1146,11 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
     {
         char framesStr[32] = {0};
         //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
-        snprintf(framesStr, sizeof(framesStr), "YOU  WIN:" );
+        snprintf(framesStr, sizeof(framesStr), "YOU   WIN!" );
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+75, 50);
-        snprintf(framesStr, sizeof(framesStr), "TIME:%d.%02d", tflight->wintime/100,tflight->wintime%100 );
+        snprintf(framesStr, sizeof(framesStr), "TIME: %d.%02d", tflight->wintime/100,tflight->wintime%100 );
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, ((tflight->wintime>10000)?14:20)+75, 18+50);
-        snprintf(framesStr, sizeof(framesStr), "BEANS:%2d",tflight->beans );
+        snprintf(framesStr, sizeof(framesStr), "BEANS: %2d",tflight->beans );
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+75, 36+50);
     }
 
