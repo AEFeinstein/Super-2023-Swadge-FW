@@ -185,34 +185,34 @@ bool textEntryDraw(void)
                 case KEY_CAPSLOCK:
                 {
                     // Draw shift/capslock
-                    plotLine( textEntryDisplay, posx, posy + 4, posx + 2, posy + 4, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 1, posy + 4, posx + 1, posy, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 1, posy, posx + 3, posy + 2, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 1, posy, posx - 1, posy + 2, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 1, posy + 4, posx + 3, posy + 4, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 2, posy + 4, posx + 2, posy + 0, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 2, posy + 0, posx + 4, posy + 2, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 2, posy + 0, posx + 0, posy + 2, WHITE, 0 );
                     break;
                 }
                 case KEY_BACKSPACE:
                 {
                     // Draw backspace
-                    plotLine( textEntryDisplay, posx - 1, posy + 2, posx + 3, posy + 2, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx - 1, posy + 2, posx + 1, posy + 0, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx - 1, posy + 2, posx + 1, posy + 4, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 0, posy + 2, posx + 4, posy + 2, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 0, posy + 2, posx + 2, posy + 0, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 0, posy + 2, posx + 2, posy + 4, WHITE, 0 );
                     break;
                 }
                 case KEY_SPACE:
                 {
                     // Draw spacebar
                     plotRect( textEntryDisplay, posx + 1, posy + 1, posx + 160, posy + 3, WHITE);
-                    width = 161;
+                    width = 163;
                     break;
                 }
                 case KEY_TAB:
                 {
                     // Draw tab
-                    plotLine( textEntryDisplay, posx - 1, posy + 2, posx + 3, posy + 2, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 3, posy + 2, posx + 1, posy + 0, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 3, posy + 2, posx + 1, posy + 4, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx - 1, posy + 0, posx - 1, posy + 4, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 0, posy + 2, posx + 4, posy + 2, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 4, posy + 2, posx + 2, posy + 0, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 4, posy + 2, posx + 2, posy + 4, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 0, posy + 0, posx + 0, posy + 4, WHITE, 0 );
                     break;
                 }
                 case KEY_ENTER:
@@ -220,7 +220,7 @@ bool textEntryDraw(void)
                     // Draw an OK for enter
 
                     drawText( textEntryDisplay, &textEntryIBM, WHITE, "OK", posx, posy );
-                    width = textWidth(& textEntryIBM, "OK");
+                    width = textWidth(& textEntryIBM, "OK") + 2;
                     break;
                 }
                 default:
