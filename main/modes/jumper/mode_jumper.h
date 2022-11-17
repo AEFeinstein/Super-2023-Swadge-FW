@@ -112,7 +112,7 @@ typedef struct
     float ledTimer;
     uint8_t numTiles;
     uint8_t lives;
-    int32_t level;
+    uint16_t level;
     int32_t time;
     int32_t previousSecond;
     int32_t freezeTimer;

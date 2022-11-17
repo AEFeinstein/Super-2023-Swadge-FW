@@ -48,7 +48,7 @@ void jumperKillPlayer(void);
 void jumperDoLEDs(int64_t elapsedUs);
 void jumperDoEvilDonut(int64_t elapsedUs);
 void jumperDoBlump(int64_t elapsedUs);
-void jumperSetupState(uint8_t stageIndex);
+void jumperSetupState(uint16_t stageIndex);
 bool jumperDoEnemyLand(uint8_t blockIndex);
 void jumperClearBlock(uint8_t blockIndex);
 void jumperDrawScene(display_t* d);
@@ -494,7 +494,7 @@ void jumperStartGame(display_t* disp, font_t* mmFont, bool ledEnabled)
 }
 
 
-void jumperSetupState(uint8_t stageIndex)
+void jumperSetupState(uint16_t stageIndex)
 {
     j->currentPhase = JUMPER_COUNTDOWN;
     j->scene->time = 5000000;
@@ -1813,16 +1813,14 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline, 
 {
     char textBuffer[12];
     char textBuffer2[12];
-    snprintf(textBuffer, sizeof(textBuffer) - 1, "LVL %d", j->scene->level);
+    snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", j->scene->level);
 
-    if (j->scene->level < 10)
-    {
-        drawText(d, font, c555, textBuffer, 190, 220);
-    }
-    else
-    {
-        drawText(d, font, c555, textBuffer, 174, 220);
-    }
+    drawText(d, font, c555, "LVL ",
+        d->w - (textWidth(font, "LVL ") + textWidth(font, "2") * floor(log10(j->scene->level) + 1)) - 25,
+        220);
+    drawText(d, font, c555, textBuffer,
+        d->w - textWidth(font, textBuffer) - 25,
+        220);
 
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%u", j->scene->score);
     snprintf(textBuffer2, sizeof(textBuffer2) - 1, "%u", j->highScore);
