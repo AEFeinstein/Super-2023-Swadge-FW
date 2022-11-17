@@ -47,6 +47,8 @@ static display_t * textEntryDisplay;
 #define WHITE 215
 
 #define KB_LINES 5
+#define ENTER_X 12
+#define ENTER_Y 2
 
 // See controlChar_t
 static const char keyboard_upper[] = "\
@@ -81,6 +83,8 @@ void textEntryStart( display_t * usedisp, int max_len, char* buffer )
     textEntryDisplay = usedisp;
     texLen = max_len;
     texString = buffer;
+    selx = 1;
+    sely = 1;
     keyMod = NO_SHIFT;
     texString[0] = 0;
     cursorTimer = 0;
@@ -265,7 +269,6 @@ bool textEntryInput( uint8_t down, uint8_t button )
     switch( button )
     {
         case BTN_A:
-        case BTN_B:
         {
             // User selected this key
             int stringLen = strlen(texString);
@@ -323,6 +326,16 @@ bool textEntryInput( uint8_t down, uint8_t button )
             }
             break;
         }
+        case BTN_B:
+        {
+            int stringLen = strlen(texString);
+            // If there is any text, delete the last char
+            if(stringLen > 0)
+            {
+                texString[stringLen - 1] = 0;
+            }
+            break;
+        }
         case LEFT:
         {
             // Move cursor
@@ -346,6 +359,29 @@ bool textEntryInput( uint8_t down, uint8_t button )
             // Move cursor
             sely--;
             break;
+        }
+        case SELECT:
+        {
+            // Rotate the keyMod from NO_SHIFT -> SHIFT -> CAPS LOCK, and back
+            if(NO_SHIFT == keyMod)
+            {
+                keyMod = SHIFT;
+            }
+            else if(SHIFT == keyMod)
+            {
+                keyMod = CAPS_LOCK;
+            }
+            else
+            {
+                keyMod = NO_SHIFT;
+            }
+            break;
+        }
+        case START:
+        {
+            // Move cursor to enter
+            selx = ENTER_X;
+            sely = ENTER_Y;
         }
         default:
         {
