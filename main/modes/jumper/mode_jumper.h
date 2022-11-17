@@ -123,6 +123,7 @@ typedef struct
     uint8_t combo;
     uint8_t perfect;
     bool pauseRelease;
+    bool smallerScoreFont;
 
     jumperPowerup_t* currentPowerup;
 
@@ -148,6 +149,7 @@ typedef struct
     jumperGamePhase_t currentPhase;
     int64_t frameElapsed;
     display_t* d;
+    font_t smaller_game_font;
     font_t game_font;
     font_t outline_font;
     font_t fill_font;
