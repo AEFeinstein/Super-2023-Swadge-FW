@@ -101,6 +101,7 @@ void updatePlayer(entity_t *self)
         if (self->gameData->btnState & UP)
         {
             self->yspeed -= 8;
+            self->falling = true;
 
             if (self->yspeed < -16)
             {
@@ -110,6 +111,7 @@ void updatePlayer(entity_t *self)
         else if (self->gameData->btnState & DOWN)
         {
             self->yspeed += 8;
+            self->falling = true;
 
             if (self->yspeed > 32)
             {
