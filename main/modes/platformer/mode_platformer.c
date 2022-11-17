@@ -887,7 +887,7 @@ void updateDead(platformer_t *self){
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
 
     if(self->gameData.countdown < 0){
-        drawText(self->disp, &(self->radiostars), c555, "-Time Up!-", 80, 128);
+        drawText(self->disp, &(self->radiostars), c555, "-Time Up!-", 96, 128);
     }
 }
 
