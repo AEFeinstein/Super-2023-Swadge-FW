@@ -534,7 +534,7 @@ void updateTitleScreen(platformer_t *self)
                 if(platformer->menuSelection < 4){
                     platformer->menuSelection++;
 
-                    if(platformer->menuSelection == 1 && self->unlockables.maxLevelIndexUnlocked == 0){
+                    if(!self->gameData.debugMode && platformer->menuSelection == 1 && self->unlockables.maxLevelIndexUnlocked == 0){
                         platformer->menuSelection++;
                     }
 
