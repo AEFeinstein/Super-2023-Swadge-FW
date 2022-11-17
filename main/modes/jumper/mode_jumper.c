@@ -1602,6 +1602,7 @@ void jumperPlayerInput(void)
         {
             j->currentPhase = JUMPER_GAMING;
             j->scene->pauseRelease = false;
+            buzzer_play_bgm(&jumpGameLoop);
         }
         return;
     }
@@ -1619,6 +1620,7 @@ void jumperPlayerInput(void)
     {
         j->currentPhase = JUMPER_PAUSE;
         j->scene->pauseRelease = false;
+        buzzer_stop();
         return;
     }
 
@@ -1793,11 +1795,11 @@ void jumperDrawEffects(display_t* d)
     
     }
 
-    if (j->blump->respawnBlock != 255) drawWsg(d, &j->target,12 +  j->scene->blockOffset_x + ((j->blump->respawnBlock % 6) * 38),
+    if (j->blump->respawnBlock != 255 && (j->blump->respawnTime/100000 % 3) != 0) drawWsg(d, &j->target,6 +  j->scene->blockOffset_x + ((j->blump->respawnBlock % 6) * 38),
                 20 + j->scene->blockOffset_y, false, false, 0);
                 
 
-    if (j->evilDonut->respawnBlock != 255) drawWsg(d, &j->target,12 +  j->scene->blockOffset_x + ((j->evilDonut->respawnBlock % 6) * 38),
+    if (j->evilDonut->respawnBlock != 255 && (j->evilDonut->respawnTime/100000 % 3) != 0) drawWsg(d, &j->target,6 +  j->scene->blockOffset_x + ((j->evilDonut->respawnBlock % 6) * 38),
                 20 + j->scene->blockOffset_y, false, false, 0);
 }
 
