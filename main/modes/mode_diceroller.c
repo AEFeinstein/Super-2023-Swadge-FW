@@ -79,7 +79,7 @@ double sinDeg(double degrees);
 #define DR_MAXHIST 6
 
 const int MAXDICE = 6;
-const int COUNTCOUNT = 7;
+const int COUNTCOUNT = 8;
 const int8_t validSides[] = {2, 4, 6, 8, 10, 12, 20, 100};
 //const int8_t polygonSides[] = {3, 4, 3, 4, 5, 3, 6};
 const int8_t polygonSides[] = {10, 3, 4, 6, 4, 10, 6, 6};
