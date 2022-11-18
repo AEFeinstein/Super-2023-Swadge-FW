@@ -1197,6 +1197,9 @@ static void flightGameUpdate( flight_t * tflight )
 
         if( tflight->inverty ) dyaw *= -1;
 
+        // If flying upside down, invert left/right. (Optional see flip note below)
+        if( tflight->hpr[1] >= 990 && tflight->hpr[1] < 2970 ) dpitch *= -1;
+
         if( dpitch )
         {
             tflight->pitchmoment += dpitch;
@@ -1229,6 +1232,10 @@ static void flightGameUpdate( flight_t * tflight )
         if( tflight->hpr[1] >= 3960 ) tflight->hpr[1] -= 3960;
         if( tflight->hpr[1] < 0 ) tflight->hpr[1] += 3960;
 
+        // Optional: Prevent us from doing a flip.
+        // if( tflight->hpr[1] > 1040 && tflight->hpr[1] < 1980 ) tflight->hpr[1] = 1040;
+        // if( tflight->hpr[1] < 2990 && tflight->hpr[1] > 1980 ) tflight->hpr[1] = 2990;
+
         if( bs & 16 ) tflight->speed++;
         else tflight->speed--;
         if( tflight->speed < flight_min_speed ) tflight->speed = flight_min_speed;
@@ -1237,8 +1244,9 @@ static void flightGameUpdate( flight_t * tflight )
 
     //If game over, just keep status quo.
 
-    flight->planeloc_fine[0] += (tflight->speed * getSin1024( tflight->hpr[0]/11 ) );
-    flight->planeloc_fine[2] += (tflight->speed * getCos1024( tflight->hpr[0]/11 ) );
+    int yawDivisor = getCos1024( tflight->hpr[1]/11 );
+    flight->planeloc_fine[0] += (tflight->speed * getSin1024( tflight->hpr[0]/11 ) * yawDivisor ) >> 10;
+    flight->planeloc_fine[2] += (tflight->speed * getCos1024( tflight->hpr[0]/11 ) * yawDivisor ) >> 10;
     flight->planeloc_fine[1] -= (tflight->speed * getSin1024( tflight->hpr[1]/11 ) );
 
     tflight->planeloc[0] = flight->planeloc_fine[0]>>FLIGHT_SPEED_DEC;
@@ -1249,34 +1257,34 @@ static void flightGameUpdate( flight_t * tflight )
     tflight->oob = false;
     if(tflight->planeloc[0] < -1900)
     {
-        tflight->planeloc[0] = -1900;
+        flight->planeloc_fine[0] = -(1900<<FLIGHT_SPEED_DEC);
         tflight->oob = true;
     }
     else if(tflight->planeloc[0] > 1900)
     {
-        tflight->planeloc[0] = 1900;
+        flight->planeloc_fine[0] = 1900<<FLIGHT_SPEED_DEC;
         tflight->oob = true;
     }
 
     if(tflight->planeloc[1] < -800)
     {
-        tflight->planeloc[1] = -800;
+        flight->planeloc_fine[1] = -(800<<FLIGHT_SPEED_DEC);
         tflight->oob = true;
     }
     else if(tflight->planeloc[1] > 3500)
     {
-        tflight->planeloc[1] = 3500;
+        flight->planeloc_fine[1] = 3500<<FLIGHT_SPEED_DEC;
         tflight->oob = true;
     }
 
     if(tflight->planeloc[2] < -1300)
     {
-        tflight->planeloc[2] = -1300;
+        flight->planeloc_fine[2] = -(1300<<FLIGHT_SPEED_DEC);
         tflight->oob = true;
     }
     else if(tflight->planeloc[2] > 3700)
     {
-        tflight->planeloc[2] = 3700;
+        flight->planeloc_fine[2] = 3700<<FLIGHT_SPEED_DEC;
         tflight->oob = true;
     }
 }
