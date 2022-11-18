@@ -25,7 +25,7 @@ typedef enum
     KEY_SHIFT     = 0x01,
     KEY_CAPSLOCK  = 0x02,
     KEY_BACKSPACE = 0x03,
-    KEY_SPACE     = 0x04,
+    KEY_SPACE     = 0x20,
     KEY_EOL       = 0x05,
     KEY_TAB       = 0x09,
     KEY_ENTER     = 0x0A,
@@ -56,7 +56,7 @@ static const char keyboard_upper[] = "\
 \x09QWERTYUIOP{}|\x05\
 \002ASDFGHJKL:\"\x0a\x05\
 \x01ZXCVBNM<>?\x01\x05\
-\x04";
+\x20";
 
 // See controlChar_t
 static const char keyboard_lower[] = "\
@@ -64,7 +64,7 @@ static const char keyboard_lower[] = "\
 \x09qwertyuiop[]\\\x05\
 \002asdfghjkl;\'\x0a\x05\
 \x01zxcvbnm,./\x01\x05\
-\x04";
+\x20";
 
 static const uint8_t lengthperline[] = { 14, 14, 13, 12, 1 };
 
