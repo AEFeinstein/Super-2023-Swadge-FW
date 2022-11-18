@@ -2539,12 +2539,6 @@ static const jukeboxSong fighterMusic[] =
     {.name = "Final Destination", .song = &final_dest_music},
 };
 
-static const jukeboxSong tiltradsMusic[] =
-{
-    {.name = "Title", .song = &titleMusic},
-    {.name = "Game", .song = &gameMusic},
-};
-
 static const jukeboxSong platformerMusic[] =
 {
     {.name = "Intro", .song = &bgmIntro},
@@ -2570,6 +2564,12 @@ static const jukeboxSong picrossMusic[] =
     {.name = "Game", .song = &picross_music_bg},
     {.name = "Win", .song = &picross_music_win},
     {.name = "Rick", .song = &picross_music_rick} // This must be last
+};
+
+static const jukeboxSong tiltradsMusic[] =
+{
+    {.name = "Title", .song = &titleMusic},
+    {.name = "Game (Unused)", .song = &gameMusic},
 };
 
 static const jukeboxSong paintMusic[] =
@@ -2599,10 +2599,10 @@ static const jukeboxSong testMusic[] =
 static const jukeboxCategory musicCategories[] =
 {
     {.categoryName = "Swadge Bros", .numSongs = lengthof(fighterMusic), .songs = fighterMusic},
-    {.categoryName = "Tiltrads", .numSongs = lengthof(tiltradsMusic), .songs = tiltradsMusic},
     {.categoryName = "Swadge Land", .numSongs = lengthof(platformerMusic), .songs = platformerMusic},
     {.categoryName = "Donut Jump", .numSongs = lengthof(jumperMusic), .songs = jumperMusic},
     {.categoryName = "\x7f-cross", .numSongs = lengthof(picrossMusic), .songs = picrossMusic},
+    {.categoryName = "Tiltrads", .numSongs = lengthof(tiltradsMusic), .songs = tiltradsMusic},
     {.categoryName = "MFPaint", .numSongs = lengthof(paintMusic), .songs = paintMusic},
     {.categoryName = "Jukebox", .numSongs = lengthof(jukeboxMusic), .songs = jukeboxMusic},
     {.categoryName = "Credits", .numSongs = lengthof(creditsMusic), .songs = creditsMusic},
