@@ -751,7 +751,7 @@ void updateReadyScreen(platformer_t *self){
 
 void drawReadyScreen(display_t *d, font_t *font, gameData_t *gameData){
     drawPlatformerHud(d, font, gameData);
-    drawText(d, font, c555, "Get Ready!", 80, 128);
+    drawText(d, font, c555, "Get Ready!", (d->w - textWidth(font, "Get Ready!")) / 2, 128);
 }
 
 void changeStateGame(platformer_t *self){
@@ -887,7 +887,7 @@ void updateDead(platformer_t *self){
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
 
     if(self->gameData.countdown < 0){
-        drawText(self->disp, &(self->radiostars), c555, "-Time Up!-", 80, 128);
+        drawText(self->disp, &(self->radiostars), c555, "-Time Up!-", (self->disp->w - textWidth(&(self->radiostars), "-Time Up!-")) / 2, 128);
     }
 }
 
@@ -929,7 +929,7 @@ void changeStateGameOver(platformer_t *self){
 
 void drawGameOver(display_t *d, font_t *font, gameData_t *gameData){
     drawPlatformerHud(d, font, gameData);
-    drawText(d, font, c555, "Game Over", 80, 128);
+    drawText(d, font, c555, "Game Over", (d->w - textWidth(font, "Game Over")) / 2, 128);
 }
 
 void changeStateTitleScreen(platformer_t *self){
@@ -1032,7 +1032,7 @@ void updateLevelClear(platformer_t *self){
 
 void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData){
     drawPlatformerHud(d, font, gameData);
-    drawText(d, font, c555, "Well done!", 80, 128);
+    drawText(d, font, c555, "Well done!", (d->w - textWidth(font, "Well done!")) / 2, 128);
 }
 
 void changeStateGameClear(platformer_t *self){
@@ -1082,7 +1082,7 @@ void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     char timeStr[32];
     snprintf(timeStr, sizeof(timeStr) - 1, "in %06" PRIu32 " seconds!", gameData->inGameTimer);
 
-    drawText(d, font, yellowColors[(gameData->frameCount >> 3) % 4], "Congratulations!", 48, 48);
+    drawText(d, font, yellowColors[(gameData->frameCount >> 3) % 4], "Congratulations!", (d->w - textWidth(font, "Congratulations!")) / 2, 48);
 
     if(gameData->frameCount > 120){
         drawText(d, font, c555, "You've completed your", 8, 80);
@@ -1090,7 +1090,7 @@ void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     }
     
     if(gameData->frameCount > 180){
-        drawText(d, font, (gameData->inGameTimer < FAST_TIME) ? cyanColors[(gameData->frameCount >> 3) % 4] : c555, timeStr, 48, 112);
+        drawText(d, font, (gameData->inGameTimer < FAST_TIME) ? cyanColors[(gameData->frameCount >> 3) % 4] : c555, timeStr, (d->w - textWidth(font, timeStr)) / 2, 112);
     }
 
     if(gameData->frameCount > 300){
@@ -1099,7 +1099,7 @@ void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     }
 
     if(gameData->frameCount > 420){
-        drawText(d, font, highScoreNewEntryColors[(gameData->frameCount >> 3) % 4], "Bonus 100000pts per life!", 8, 192);
+        drawText(d, font, highScoreNewEntryColors[(gameData->frameCount >> 3) % 4], "Bonus 100000pts per life!", (d->w - textWidth(font, "Bonus 100000pts per life!")) / 2, 192);
     }
 
     /*
@@ -1293,7 +1293,7 @@ void updateNameEntry(platformer_t *self){
 }
 
 void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData, uint8_t currentInitial){
-    drawText(d, font, greenColors[(platformer->gameData.frameCount >> 3) % 4], "Enter your initials!", 48, 64);
+    drawText(d, font, greenColors[(platformer->gameData.frameCount >> 3) % 4], "Enter your initials!", (d->w - textWidth(font, "Enter your initials!")) / 2, 64);
 
     char rowStr[32];
     snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06u", gameData->rank+1, gameData->score);
@@ -1344,11 +1344,11 @@ void updateShowHighScores(platformer_t *self){
 
 void drawShowHighScores(display_t *d, font_t *font, uint8_t menuState){
     if(platformer->easterEgg){
-        drawText(d, font, highScoreNewEntryColors[(platformer->gameData.frameCount >> 3) % 4], "Happy Birthday, Evelyn!", 20, 32);
+        drawText(d, font, highScoreNewEntryColors[(platformer->gameData.frameCount >> 3) % 4], "Happy Birthday, Evelyn!", (d->w - textWidth(font, "Happy Birthday, Evelyn!")) / 2, 32);
     } else if(menuState == 3){
-        drawText(d, font, redColors[(platformer->gameData.frameCount >> 3) % 4], "Your name registrated.", 24, 32);
+        drawText(d, font, redColors[(platformer->gameData.frameCount >> 3) % 4], "Your name registrated.", (d->w - textWidth(font, "Your name registrated.")) / 2, 32);
     } else {
-        drawText(d, font, c555, "Do your best!", 72, 32);
+        drawText(d, font, c555, "Do your best!", (d->w - textWidth(font, "Do your best!")) / 2, 32);
     }
 }
 
@@ -1379,7 +1379,7 @@ void updatePause(platformer_t *self){
 }
 
 void drawPause(display_t *d, font_t *font){
-    drawText(d, font, c555, "-Pause-", 108, 128);
+    drawText(d, font, c555, "-Pause-", (d->w - textWidth(font, "-Pause-")) / 2, 128);
 }
 
 uint16_t getLevelIndex(uint8_t world, uint8_t level){
