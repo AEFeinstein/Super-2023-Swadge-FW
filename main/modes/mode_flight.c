@@ -87,6 +87,7 @@ void setFlightSaveData( flightSimSaveData_t * sd )
 #define CNDRAW_BLACK 0
 #define CNDRAW_WHITE 18 // actually greenish
 #define PROMPT_COLOR 92
+#define MAX_COLOR cTransparent
 
 
 #define TFT_WIDTH 280
@@ -1160,7 +1161,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
             tflight->timeGot100Percent = ((uint32_t)esp_timer_get_time() - tflight->timeOfStart);
 
         int crazy = (((uint32_t)esp_timer_get_time() - tflight->timeOfStart)-tflight->timeGot100Percent) < 3000000;
-        drawText( disp, &flight->ibm, crazy?( tflight->tframes * 9 ):PROMPT_COLOR, "100% 100% 100%", 10+75, 52+50 );
+        drawText( disp, &flight->ibm, crazy?( tflight->tframes * 9 % MAX_COLOR ):PROMPT_COLOR, "100% 100% 100%", 10+75, 52+50 );
     }
 
     //If perf test, force full frame refresh
