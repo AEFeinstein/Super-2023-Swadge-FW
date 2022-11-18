@@ -1311,6 +1311,11 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 j++;
             }
         }
+
+        if(j == 0)
+        {
+            drawNumberAtCoord(d,font,hintColor,0,-1,hint.index,0,0);
+        }
     }else{
         uint8_t j = 0;
          //if current col, draw background square
@@ -1324,11 +1329,16 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
         //draw the line of hints
         for(uint8_t i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
         {
-            h = hint.hints[PICROSS_MAX_HINTCOUNT-1-i];      
+            h = hint.hints[PICROSS_MAX_HINTCOUNT-1-i];
             if(h != 0){
                 drawNumberAtCoord(d,font,hintColor,h,hint.index,-j-1,0,0);
                 j++;
             }
+        }
+
+        if(j == 0)
+        {
+            drawNumberAtCoord(d,font,hintColor,0,hint.index,-1,0,0);
         }
     }
 }
@@ -1370,7 +1380,7 @@ int8_t getHintShift(uint8_t hint)
     switch(hint)
     {
         case 0:
-            return 0;
+            return p->vFontPad + 2;
         case 1:
             return p->vFontPad + 2;
         case 2:
