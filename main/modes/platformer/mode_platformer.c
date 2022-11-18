@@ -73,6 +73,7 @@ struct platformer_t
 
     uint8_t menuState;
     uint8_t menuSelection;
+    uint8_t cheatCodeIdx;
 
     int16_t btnState;
     int16_t prevBtnState;
@@ -283,6 +284,36 @@ void platformerMainLoop(int64_t elapsedUs)
  */
 void platformerButtonCb(buttonEvt_t *evt)
 {
+    if(evt->down)
+        {
+        if(platformer->menuState == 0 &&
+            (
+                (evt->state & cheatCode[platformer->cheatCodeIdx])
+            )
+        ) {
+            platformer->cheatCodeIdx++;
+
+            if(platformer->cheatCodeIdx > 10){
+                platformer->cheatCodeIdx = 0;
+                platformer->menuState = 1;
+                platformer->gameData.debugMode = true;
+                buzzer_play_sfx(&sndLevelClearS);
+            } else {
+                buzzer_play_sfx(&sndMenuSelect);
+            }
+
+            // Do not forward the A or START in the cheat code to the rest of the mode
+            if(evt->button == BTN_A || evt->button == START)
+            {
+                return;
+            }
+        }
+        else
+        {
+            platformer->cheatCodeIdx = 0;
+        }
+    }
+
     platformer->btnState = evt->state;
     platformer->gameData.btnState = evt->state;
 }
@@ -300,7 +331,7 @@ void platformerButtonCb(buttonEvt_t *evt)
 void updateGame(platformer_t *self)
 {
     // Clear the display
-    fillDisplayArea( self->disp, 0, 0, 280, 240, self->gameData.bgColor);
+    fillDisplayArea( self->disp, 0, 0, self->disp->w, self->disp->h, self->gameData.bgColor);
 
     updateEntities(&(self->entityManager));
 
@@ -369,7 +400,7 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
 void updateTitleScreen(platformer_t *self)
 {
     // Clear the display
-    fillDisplayArea( self->disp, 0, 0, 280, 240, self->gameData.bgColor);
+    fillDisplayArea( self->disp, 0, 0, self->disp->w, self->disp->h, self->gameData.bgColor);
 
     self->gameData.frameCount++;
    
@@ -381,27 +412,6 @@ void updateTitleScreen(platformer_t *self)
                 resetGameDataLeds(&(self->gameData));
                 changeStateShowHighScores(self);
             }
-            
-            if(
-                (
-                    (self->gameData.btnState & cheatCode[platformer->menuSelection])
-                    &&
-                    !(self->gameData.prevBtnState & cheatCode[platformer->menuSelection])
-                )
-            ) {
-                platformer->menuSelection++;
-
-                if(self->menuSelection > 10){
-                    platformer->menuSelection = 0;
-                    platformer->menuState = 1;
-                    platformer->gameData.debugMode = true;
-                    buzzer_play_sfx(&sndLevelClearS);
-                } else {
-                    buzzer_play_sfx(&sndMenuSelect);
-                }
-
-                break;
-            } 
 
             if (
                 (
@@ -870,7 +880,7 @@ void changeStateDead(platformer_t *self){
 
 void updateDead(platformer_t *self){
     // Clear the display
-    fillDisplayArea( self->disp, 0, 0, 280, 240, self->gameData.bgColor);
+    fillDisplayArea( self->disp, 0, 0, self->disp->w, self->disp->h, self->gameData.bgColor);
     
     self->gameData.frameCount++;
     if(self->gameData.frameCount > 179){
@@ -949,7 +959,7 @@ void changeStateLevelClear(platformer_t *self){
 
 void updateLevelClear(platformer_t *self){
     // Clear the display
-    fillDisplayArea( self->disp, 0, 0, 280, 240, self->gameData.bgColor);
+    fillDisplayArea( self->disp, 0, 0, self->disp->w, self->disp->h, self->gameData.bgColor);
     
     self->gameData.frameCount++;
 
