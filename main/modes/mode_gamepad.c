@@ -179,6 +179,7 @@ void gamepadExitMode(void)
     if(gamepad != NULL){
         freeFont(&(gamepad->ibmFont));
         free(gamepad);
+        gamepad = NULL;
     }
 }
 
