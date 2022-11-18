@@ -1800,6 +1800,15 @@ void ttGameInput(void)
     if (ttIsButtonPressed(BTN_GAME_PAUSE))
     {
         tiltrads->isPaused = !tiltrads->isPaused;
+
+        if(tiltrads->isPaused)
+        {
+            buzzer_stop();
+        }
+        else
+        {
+            //buzzer_play_bgm(&gameMusic);
+        }
     }
 
     // Reset the check for if the active tetrad moved, dropped, or landed.
