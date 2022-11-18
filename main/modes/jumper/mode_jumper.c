@@ -1815,6 +1815,8 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline, 
     char textBuffer2[12];
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", j->scene->level);
 
+    // Use floor(log10(...) + 1) to calculate number of digits in the level number
+    // This is used to properly space "LVL" from the digits
     drawText(d, font, c555, "LVL ",
         d->w - (textWidth(font, "LVL ") + textWidth(font, "2") * floor(log10(j->scene->level) + 1)) - 25,
         220);
@@ -1844,7 +1846,7 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline, 
         scoreFont = smaller_prompt;
         scoreWidth = textWidth(smaller_prompt, textBuffer);
         hiScoreWidth = textWidth(smaller_prompt, textBuffer2);
-        maxScoreWidth = textWidth(smaller_prompt, "2122222222");
+        maxScoreWidth = textWidth(smaller_prompt, "2022222222");
     }
 
 #if RIGHT_JUSTIFY_DONUT_SCORES != 0

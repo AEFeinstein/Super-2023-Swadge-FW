@@ -119,7 +119,7 @@ typedef struct
     int32_t seconds;
     int8_t blockOffset_x;
     int8_t blockOffset_y;
-    uint32_t score;
+    int32_t score;
     uint8_t combo;
     uint8_t perfect;
     bool pauseRelease;
@@ -160,7 +160,7 @@ typedef struct
     uint8_t respawnBlock;
 
     uint64_t jumperJumpTime;
-    uint32_t highScore;
+    int32_t highScore;
 
     jumperCharacter_t* player;
     jumperCharacter_t* evilDonut;
