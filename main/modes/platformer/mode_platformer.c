@@ -1368,7 +1368,7 @@ void updatePause(platformer_t *self){
 }
 
 void drawPause(display_t *d, font_t *font){
-    drawText(d, font, c555, "-Pause-", 108, 128);
+    drawText(d, font, c555, "-Pause-", 100, 128);
 }
 
 uint16_t getLevelIndex(uint8_t world, uint8_t level){
