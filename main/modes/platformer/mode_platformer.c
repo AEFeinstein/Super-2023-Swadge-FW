@@ -31,8 +31,8 @@
 //==============================================================================
 // Constants
 //==============================================================================
-#define BIG_SCORE 3000000UL
-#define BIGGER_SCORE 8000000UL
+#define BIG_SCORE 4000000UL
+#define BIGGER_SCORE 10000000UL
 #define FAST_TIME 1500 //25 minutes
 
 static const paletteColor_t highScoreNewEntryColors[4] = {c050, c055, c005, c055};
@@ -715,11 +715,11 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
             }
 
             if(platformer->unlockables.bigScore){
-                drawText(d, font, greenColors[(gameData->frameCount >> 3) % 4], "Got 3 million points!", 48, 112);
+                drawText(d, font, greenColors[(gameData->frameCount >> 3) % 4], "Got 4 million points!", 48, 112);
             }
 
             if(platformer->unlockables.biggerScore){
-                drawText(d, font, cyanColors[(gameData->frameCount >> 3) % 4], "Got 8 million points!", 48, 128);
+                drawText(d, font, cyanColors[(gameData->frameCount >> 3) % 4], "Got 10 million points!", 48, 128);
             }
 
             if(platformer->unlockables.fastTime){
