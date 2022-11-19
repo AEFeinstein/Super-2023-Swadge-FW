@@ -451,10 +451,10 @@ void updateTitleScreen(platformer_t *self)
                             break;
                         }
 
-                        if(self->menuSelection == 0){
+                        /*if(self->menuSelection == 0){
                             self->gameData.world = 1;
                             self->gameData.level = 1;
-                        }
+                        }*/
 
                         initializeGameDataFromTitleScreen(&(self->gameData));
                         changeStateReadyScreen(self);
