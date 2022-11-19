@@ -28,7 +28,8 @@
 uint32_t * advanced_usb_scratch_buffer_data;
 uint32_t   advanced_usb_scratch_buffer_data_size;
 uint32_t   advanced_usb_scratch_immediate[SCRATCH_IMMEDIATE_DWORDS];
-uint8_t  advanced_usb_printf_buffer[2048];
+#define AUPB_SIZE 2048
+uint8_t* advanced_usb_printf_buffer = NULL;
 int      advanced_usb_printf_head, advanced_usb_printf_tail;
 
 uint32_t * advanced_usb_read_offset;
@@ -77,7 +78,12 @@ int handle_advanced_usb_control_get( int reqlen, uint8_t * data )
  */
 static int advanced_usb_write_log( void* cookie, const char* data, int size )
 {
-    int next = ( advanced_usb_printf_head + 1 ) % sizeof( advanced_usb_printf_buffer );
+    if(NULL == advanced_usb_printf_buffer)
+    {
+        advanced_usb_printf_buffer = calloc(AUPB_SIZE, sizeof(uint8_t));
+    }
+
+    int next = ( advanced_usb_printf_head + 1 ) % AUPB_SIZE;
     int idx = 0;
     cookie = cookie; // unused
     // Drop extra characters on the floor.
@@ -85,7 +91,7 @@ static int advanced_usb_write_log( void* cookie, const char* data, int size )
     {
         advanced_usb_printf_buffer[next] = data[idx++];
         advanced_usb_printf_head = next;
-        next = ( advanced_usb_printf_head + 1 ) % sizeof( advanced_usb_printf_buffer );
+        next = ( advanced_usb_printf_head + 1 ) % AUPB_SIZE;
     }
     return size;
 }
@@ -115,6 +121,11 @@ int advanced_usb_write_log_printf(const char *fmt, va_list args)
  */
 int handle_advanced_usb_terminal_get( int reqlen, uint8_t * data )
 {
+    if(NULL == advanced_usb_printf_buffer)
+    {
+        advanced_usb_printf_buffer = calloc(AUPB_SIZE, sizeof(uint8_t));
+    }
+
     if( !terminal_redirected )
     {
         ULOG("redirecting stdout");
@@ -123,7 +134,7 @@ int handle_advanced_usb_terminal_get( int reqlen, uint8_t * data )
         terminal_redirected = 1;
     }
     int togo = ( advanced_usb_printf_head - advanced_usb_printf_tail +
-        sizeof( advanced_usb_printf_buffer ) ) % sizeof( advanced_usb_printf_buffer );
+        sizeof( advanced_usb_printf_buffer ) ) % AUPB_SIZE;
 
     data[0] = 171;
 
@@ -134,7 +145,7 @@ int handle_advanced_usb_terminal_get( int reqlen, uint8_t * data )
         while( mark++ != togo )
         {
             data[mark] = advanced_usb_printf_buffer[advanced_usb_printf_tail++];
-            if( advanced_usb_printf_tail == sizeof( advanced_usb_printf_buffer ) )
+            if( advanced_usb_printf_tail == AUPB_SIZE )
                 advanced_usb_printf_tail = 0;
         }
     }
