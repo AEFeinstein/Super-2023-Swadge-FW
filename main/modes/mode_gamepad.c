@@ -529,7 +529,18 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
     else
     {
         // If it's not plugged in, give a hint
-        const char plugInText[] = "Plug USB-C into computer please!";
+        const char* plugInText;
+        switch(gamepad->gamepadType){
+            case GAMEPAD_NS:{
+                plugInText = "Plug USB-C into Switch please!";
+                break;
+            }
+            case GAMEPAD_GENERIC:
+            default: {
+                plugInText = "Plug USB-C into computer please!";
+                break;
+            }
+        }
         tWidth = textWidth(&gamepad->ibmFont, plugInText);
         drawText(gamepad->disp, &gamepad->ibmFont, c555, plugInText,
                  (gamepad->disp->w - tWidth) / 2,
