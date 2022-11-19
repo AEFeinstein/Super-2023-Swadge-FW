@@ -1052,7 +1052,7 @@ void updateGameClear(platformer_t *self){
         if(self->gameData.lives > 0){
             if(self->gameData.frameCount % 60 == 0){
                 self->gameData.lives--;
-                self->gameData.score += 100000;
+                self->gameData.score += 200000;
                 buzzer_play_sfx(&snd1up);
             }
         } else if(self->gameData.frameCount % 960 == 0) {
@@ -1088,7 +1088,7 @@ void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     }
 
     if(gameData->frameCount > 420){
-        drawText(d, font, (gameData->lives > 0) ? highScoreNewEntryColors[(gameData->frameCount >> 3) % 4] : c555, "Bonus 100000pts per life!", 8, 192);
+        drawText(d, font, (gameData->lives > 0) ? highScoreNewEntryColors[(gameData->frameCount >> 3) % 4] : c555, "Bonus 200000pts per life!", 8, 192);
     }
 
     /*
