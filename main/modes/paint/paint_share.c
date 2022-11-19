@@ -49,6 +49,9 @@
 #define SHARE_PROGRESS_BG c555
 #define SHARE_PROGRESS_FG c350
 
+// Uncomment to display extra connection debugging info on screen
+// #define SHARE_NET_DEBUG
+
 const uint8_t SHARE_PACKET_CANVAS_DATA = 0;
 const uint8_t SHARE_PACKET_PIXEL_DATA = 1;
 const uint8_t SHARE_PACKET_PIXEL_REQUEST = 2;
@@ -107,6 +110,73 @@ void paintShareRetry(void);
 void paintShareDoLoad(void);
 void paintShareDoSave(void);
 
+#ifdef SHARE_NET_DEBUG
+
+const char* paintShareStateToStr(paintShareState_t state);
+
+const char* paintShareStateToStr(paintShareState_t state)
+{
+    switch (state)
+    {
+        case SHARE_SEND_SELECT_SLOT:
+        return "SEL_SLOT";
+
+        case SHARE_SEND_WAIT_FOR_CONN:
+        return "S_W_CON";
+
+        case SHARE_RECV_WAIT_FOR_CONN:
+        return "R_W_CON";
+
+        case SHARE_RECV_WAIT_CANVAS_DATA:
+        return "R_W_CNV";
+
+        case SHARE_SEND_CANVAS_DATA:
+        return "S_S_CNV";
+
+        case SHARE_SEND_WAIT_CANVAS_DATA_ACK:
+        return "S_W_CNV_ACK";
+
+        case SHARE_SEND_WAIT_FOR_PIXEL_REQUEST:
+        return "S_W_PXRQ";
+
+        case SHARE_SEND_PIXEL_DATA:
+        return "S_S_PX";
+
+        case SHARE_RECV_PIXEL_DATA:
+        return "R_R_PX";
+
+        case SHARE_SEND_WAIT_PIXEL_DATA_ACK:
+        return "S_W_PX_ACK";
+
+        case SHARE_RECV_SELECT_SLOT:
+        return "SEL_SLOT";
+
+        case SHARE_SEND_COMPLETE:
+        return "DONE";
+
+        default:
+        return "?????";
+    }
+}
+
+bool paintShareLogState(char* dest, size_t size);
+
+bool paintShareLogState(char* dest, size_t size)
+{
+    //initialize to invalid value
+    static paintShareState_t _lastState = 12;
+    if (_lastState == paintShare->shareState)
+    {
+        return false;
+    }
+
+    snprintf(dest, size, "%s->%s", paintShareStateToStr(_lastState), paintShareStateToStr(paintShare->shareState));
+
+    _lastState = paintShare->shareState;
+
+    return true;
+}
+#endif
 
 // Use a different swadge mode so the main game doesn't take as much battery
 swadgeMode modePaintShare =
@@ -424,6 +494,12 @@ void paintRenderShareMode(int64_t elapsedUs)
             break;
         }
     }
+
+#ifdef SHARE_NET_DEBUG
+    static char debugText[32] = {{0}};
+    paintShareLogState(debugText, sizeof(debugText));
+    bottomText = debugText;
+#endif
 
     // debug lines
     //plotLine(paintShare->disp, 0, SHARE_TOP_MARGIN, paintShare->disp->w, SHARE_TOP_MARGIN, c000, 2);
