@@ -244,6 +244,9 @@ void picrossSetupPuzzle(bool cont)
     p->vFontPad = (p->drawScale - p->hintFont.h)/2;
     //Calculate the shift to move the font square to the center of the level square.
     //fontShiftLeft = p->hont_font->w
+
+    //Check the level immediately, in case there are any empty rows or columns whose hints we need to gray out at the start
+    picrossCheckLevel();
 }
 
 //Scans the levelWSG and creates the finished version of the puzzle in the proper data format (2D array of enum).
