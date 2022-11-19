@@ -31,9 +31,9 @@
 //==============================================================================
 // Constants
 //==============================================================================
-#define BIG_SCORE 2000000UL
-#define BIGGER_SCORE 5000000UL
-#define FAST_TIME 1800 //30 minutes
+#define BIG_SCORE 3000000UL
+#define BIGGER_SCORE 8000000UL
+#define FAST_TIME 1500 //25 minutes
 
 static const paletteColor_t highScoreNewEntryColors[4] = {c050, c055, c005, c055};
 
@@ -705,15 +705,15 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
             }
 
             if(platformer->unlockables.bigScore){
-                drawText(d, font, greenColors[(gameData->frameCount >> 3) % 4], "Got 2 million points!", 48, 112);
+                drawText(d, font, greenColors[(gameData->frameCount >> 3) % 4], "Got 3 million points!", 48, 112);
             }
 
             if(platformer->unlockables.biggerScore){
-                drawText(d, font, cyanColors[(gameData->frameCount >> 3) % 4], "Got 5 million points!", 48, 128);
+                drawText(d, font, cyanColors[(gameData->frameCount >> 3) % 4], "Got 8 million points!", 48, 128);
             }
 
             if(platformer->unlockables.fastTime){
-                drawText(d, font, purpleColors[(gameData->frameCount >> 3) % 4], "Beat within 30 min!", 48, 144);
+                drawText(d, font, purpleColors[(gameData->frameCount >> 3) % 4], "Beat within 25 min!", 48, 144);
             }
 
             if(platformer->unlockables.gameCleared && platformer->unlockables.oneCreditCleared && platformer->unlockables.bigScore && platformer->unlockables.biggerScore && platformer->unlockables.fastTime){
@@ -1088,7 +1088,7 @@ void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     }
 
     if(gameData->frameCount > 420){
-        drawText(d, font, highScoreNewEntryColors[(gameData->frameCount >> 3) % 4], "Bonus 100000pts per life!", 8, 192);
+        drawText(d, font, (gameData->lives > 0) ? highScoreNewEntryColors[(gameData->frameCount >> 3) % 4] : c555, "Bonus 100000pts per life!", 8, 192);
     }
 
     /*
