@@ -465,13 +465,6 @@ void fighterStartGame(display_t* disp, font_t* mmFont, fightingGameType_t type,
         f->printGoTimerUs = -1;
     }
 
-    // Player 1 starts by sending buttons to player 0
-    // After this, buttons will be sent after buttons are ACKed
-    if((type == MULTIPLAYER) && (1 == f->playerIdx))
-    {
-        fighterSendButtonsToOther(fighterGetButtonState());
-    }
-
     if(&finalDest == stages[f->stageIdx])
     {
         buzzer_play_bgm(&final_dest_music);
@@ -762,6 +755,18 @@ void fighterGameLoop(int64_t elapsedUs)
         (f->type == VS_CPU) ||
         (f->type == CPU_ONLY) ||
         ((f->type == MULTIPLAYER) && (0 == f->playerIdx));
+
+    // Send buttons once per frame
+    if((f->type == MULTIPLAYER) && (1 == f->playerIdx))
+    {
+        // Keep track of time and only calculate frames every FRAME_TIME_MS
+        f->frameElapsed += elapsedUs;
+        if (f->frameElapsed > (FRAME_TIME_MS * 1000))
+        {
+            f->frameElapsed -= (FRAME_TIME_MS * 1000);
+            fighterSendButtonsToOther(fighterGetButtonState());
+        }
+    }
 
     if(runProcLoop)
     {

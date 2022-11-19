@@ -1474,8 +1474,6 @@ void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t* da
                     {
                         // Pull composed scene out of the ack, setup for render
                         fighterRxScene((const fighterScene_t*) data, dataLen);
-                        // Then send buttons again
-                        fighterSendButtonsToOther(fighterGetButtonState());
                     }
                     // Or if this is a game over
                     else if(MP_GAME_OVER_MSG == data[0])
@@ -1490,12 +1488,6 @@ void fighterP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t* da
                         // Deinit the game
                         fighterExitGame();
                     }
-                }
-                else
-                {
-                    // There was no data in the ACK, but keep the loop
-                    // alive by sending button state again
-                    fighterSendButtonsToOther(fighterGetButtonState());
                 }
             }
             break;

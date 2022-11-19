@@ -873,8 +873,8 @@ void p2pSendCb(p2pInfo* p2p, const uint8_t* mac_addr __attribute__((unused)),
                     transmissionTimeUs = 1000;
                 }
 
-                // Use a fixed retry of 5ms
-                uint32_t waitTimeUs = 5000;
+                // Use a fixed retry of 6.6ms (five retries in a 33ms frame)
+                uint32_t waitTimeUs = 6600;
 
                 // Round it to the nearest Ms, add 69ms (the measured worst case)
                 // then add some randomness [0ms to 15ms random]
