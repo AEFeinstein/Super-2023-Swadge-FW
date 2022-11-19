@@ -2344,7 +2344,7 @@ const song_t bgmGameOver =
     {
         {A_SHARP_6, 80},
         {B_6, 80},
-        {B_7, 80},
+        {C_7, 80},
         {SILENCE, 80},
         {F_6, 80},
         {F_SHARP_6, 80},
