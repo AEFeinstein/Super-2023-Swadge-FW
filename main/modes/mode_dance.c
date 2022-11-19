@@ -1299,44 +1299,26 @@ void danceRainbowSolid(uint32_t tElapsedUs, uint32_t arg __attribute__((unused))
 }
 
 /**
- * Turn on all LEDs and Make Purely White
+ * Turn on all LEDs to pure white
  *
  * @param tElapsedUs The time elapsed since last call, in microseconds
  * @param reset      true to reset this dance's variables
  */
 void danceFlashlight(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)), bool reset)
 {
-    static uint32_t tAccumulated = 0;
-
-    if(reset)
-    {
-        tAccumulated = 70000;
-        return;
-    }
-
     // Declare some LEDs, all off
     led_t leds[NUM_LEDS] = {{0}};
-    bool ledsUpdated = false;
 
-    tAccumulated += tElapsedUs;
-    while(tAccumulated >= 70000)
+    uint8_t i;
+    for(i = 0; i < NUM_LEDS; i++)
     {
-        tAccumulated -= 70000;
-        ledsUpdated = true;
-
-        uint8_t i;
-        for(i = 0; i < NUM_LEDS; i++)
-        {
-            leds[i].r = 0xFF;
-            leds[i].g = 0xFF;
-            leds[i].b = 0xFF;
-        }
+        leds[i].r = 0xFF;
+        leds[i].g = 0xFF;
+        leds[i].b = 0xFF;
     }
+    
     // Output the LED data, actually turning them on
-    if(ledsUpdated)
-    {
-        setLeds(leds, NUM_LEDS);
-    }
+    setLeds(leds, NUM_LEDS);
 }
 
 /**
