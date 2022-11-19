@@ -1056,17 +1056,6 @@ void updateGameClear(platformer_t *self){
                 buzzer_play_sfx(&snd1up);
             }
         } else if(self->gameData.frameCount % 960 == 0) {
-            
-            if(!self->gameData.debugMode) {
-                if(self->gameData.score >= BIG_SCORE) {
-                    self->unlockables.bigScore = true;
-                }
-
-                if(self->gameData.score >= BIGGER_SCORE) {
-                    self->unlockables.biggerScore = true;
-                }
-            }
-
             changeStateGameOver(self);
         }
     }
