@@ -38,7 +38,7 @@
     #define M_PI 3.14159265358979323846
 #endif
 
-#define CORNER_OFFSET 13
+#define CORNER_OFFSET 15
 
 #define NUM_GUITAR_STRINGS    lengthof(guitarNoteNames)
 #define NUM_VIOLIN_STRINGS    lengthof(violinNoteNames)
@@ -50,8 +50,9 @@
 #define TONAL_DIFF_IN_TUNE_DEVIATION 10
 
 #define METRONOME_CENTER_X    tunernome->disp->w / 2
-#define METRONOME_CENTER_Y    tunernome->disp->h - 24 - CORNER_OFFSET
-#define METRONOME_RADIUS      135
+#define METRONOME_CENTER_Y    tunernome->disp->h - (2 * tunernome->ibm_vga8.h) - 10 - CORNER_OFFSET
+#define TUNER_CENTER_Y        tunernome->disp->h - tunernome->ibm_vga8.h - 8 - CORNER_OFFSET
+#define METRONOME_RADIUS      125
 #define TUNER_RADIUS          80
 #define TUNER_TEXT_Y_OFFSET   30
 #define TUNER_ARROW_Y_OFFSET  8
@@ -69,7 +70,7 @@
 /// Helper macro to return the absolute value of an integer
 #define ABS(X) (((X) < 0) ? -(X) : (X))
 /// Helper macro to return the highest of two integers
-// #define MAX(X, Y) ( ((X) > (Y)) ? (X) : (Y) )
+#define MAX(X, Y) ( ((X) > (Y)) ? (X) : (Y) )
 #define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
 #define NUM_SEMITONES 12
@@ -263,7 +264,7 @@ const uint16_t fourNoteStringIdxToLedIdx[] =
 
 const uint16_t fiveNoteStringIdxToLedIdx[] =
 {
-    1,
+    0,
     2,
     3,
     4,
@@ -272,12 +273,12 @@ const uint16_t fiveNoteStringIdxToLedIdx[] =
 
 const uint16_t sixNoteStringIdxToLedIdx[] =
 {
-    1,
+    0,
     2,
     3,
     4,
     5,
-    6
+    7
 };
 
 const uint16_t twoLedFlashIdxs[] =
@@ -404,7 +405,7 @@ void tunernomeEnterMode(display_t* disp)
     float intermedY = sinf(TONAL_DIFF_IN_TUNE_DEVIATION * M_PI / 17 );
     TUNER_SHARP_THRES_X = round(METRONOME_CENTER_X - (intermedX * TUNER_RADIUS));
     TUNER_FLAT_THRES_X = round(METRONOME_CENTER_X + (intermedX * TUNER_RADIUS));
-    TUNER_THRES_Y = round(METRONOME_CENTER_Y - (ABS(intermedY) * TUNER_RADIUS));
+    TUNER_THRES_Y = round(TUNER_CENTER_Y - (ABS(intermedY) * TUNER_RADIUS));
 
     loadWsg("arrow12.wsg", &(tunernome->radiostarsArrowWsg));
     loadWsg("arrow21.wsg", &(tunernome->mmArrowWsg));
@@ -626,7 +627,7 @@ void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrum
 
     drawText(tunernome->disp, &tunernome->radiostars, c555, playStringsText,
              (tunernome->disp->w - textWidth(&tunernome->radiostars, playStringsText)) / 2,
-             METRONOME_CENTER_Y - (TUNER_RADIUS + tunernome->radiostars.h) / 2);
+             TUNER_CENTER_Y - (TUNER_RADIUS + tunernome->radiostars.h) / 2);
 }
 
 /**
@@ -792,7 +793,7 @@ void tunernomeMainLoop(int64_t elapsedUs)
 
                     drawText(tunernome->disp, &tunernome->radiostars, c555, listeningText,
                              (tunernome->disp->w - textWidth(&tunernome->radiostars, listeningText)) / 2,
-                             METRONOME_CENTER_Y - (TUNER_RADIUS + tunernome->radiostars.h) / 2);
+                             TUNER_CENTER_Y - (TUNER_RADIUS + tunernome->radiostars.h) / 2);
 
                     led_t leds[NUM_LEDS] = {{0}};
 
@@ -866,15 +867,15 @@ void tunernomeMainLoop(int64_t elapsedUs)
 
                     // Find the actual end point of the full-length needle
                     int x = round(METRONOME_CENTER_X + (intermedX * TUNER_RADIUS));
-                    int y = round(METRONOME_CENTER_Y - (intermedY * TUNER_RADIUS));
+                    int y = round(TUNER_CENTER_Y - (intermedY * TUNER_RADIUS));
 
                     // Plot the needle
-                    plotLine(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y, x, y, c555, 0);
+                    plotLine(tunernome->disp, METRONOME_CENTER_X, TUNER_CENTER_Y, x, y, c555, 0);
                     // Plot dashed lines indicating the 'in tune' range
-                    plotLine(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y, TUNER_FLAT_THRES_X, TUNER_THRES_Y, c555, 2);
-                    plotLine(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y, TUNER_SHARP_THRES_X, TUNER_THRES_Y, c555, 2);
+                    plotLine(tunernome->disp, METRONOME_CENTER_X, TUNER_CENTER_Y, TUNER_FLAT_THRES_X, TUNER_THRES_Y, c555, 2);
+                    plotLine(tunernome->disp, METRONOME_CENTER_X, TUNER_CENTER_Y, TUNER_SHARP_THRES_X, TUNER_THRES_Y, c555, 2);
                     // Plot a semicircle around it all
-                    plotCircleQuadrants(tunernome->disp, METRONOME_CENTER_X, METRONOME_CENTER_Y, TUNER_RADIUS, false, false, true, true,
+                    plotCircleQuadrants(tunernome->disp, METRONOME_CENTER_X, TUNER_CENTER_Y, TUNER_RADIUS, false, false, true, true,
                                         c555);
 
                     // Plot text on top of everything else
@@ -946,13 +947,16 @@ void tunernomeMainLoop(int64_t elapsedUs)
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, beatStr, 
                      CORNER_OFFSET, tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
             
-            // Draw text to switch to tuner mode
+            uint16_t widestRightStrTunerWidth = MAX(textWidth(&tunernome->ibm_vga8, rightStrTuner1), textWidth(&tunernome->ibm_vga8, rightStrTuner2));
+
+            // Draw text to toggle beeps
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrTuner1,
-                     tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrTuner1) - CORNER_OFFSET,
+                     tunernome->disp->w - widestRightStrTunerWidth - CORNER_OFFSET,
                      tunernome->disp->h - (2 * tunernome->ibm_vga8.h) - 2 - CORNER_OFFSET);
 
+            // Draw text to switch to tuner mode
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrTuner2,
-                     tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrTuner2) - CORNER_OFFSET,
+                     tunernome->disp->w - widestRightStrTunerWidth - CORNER_OFFSET,
                      tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
             // Other logic things
