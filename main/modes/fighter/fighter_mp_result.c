@@ -37,6 +37,7 @@ typedef struct
     int16_t otherDmg;
     uint32_t roundTimeMs;
     bool jingleIsPlaying;
+    fightingGameType_t type;
 } hrRes_t;
 
 //==============================================================================
@@ -148,7 +149,9 @@ void initFighterMpResult(display_t* disp, font_t* font, uint32_t roundTimeMs,
     mpr->otherDmg = otherDmg;
     mpr->otherKOs = otherKOs;
 
-    if(MULTIPLAYER == type)
+    mpr->type = type;
+
+   if(MULTIPLAYER == type)
     {
         // Save the result, only for multiplayer matches
         saveMpResult(self, selfKOs > otherKOs);
@@ -200,15 +203,31 @@ void fighterMpResultLoop(int64_t elapsedUs)
     const char dmgStr[] = "Dmg Dealt";
     const char koStr[] = "KOs";
 
-    // Title
-    if(mpr->selfKOs > mpr->otherKOs)
+    if(LOCAL_VS == mpr->type)
     {
-        sprintf(text, "You Win!");
+        // Title
+        if(mpr->selfKOs > mpr->otherKOs)
+        {
+            sprintf(text, "Player 1 Wins!");
+        }
+        else
+        {
+            sprintf(text, "Player 2 Wins!");
+        }
     }
     else
     {
-        sprintf(text, "Sorry Bud");
+        // Title
+        if(mpr->selfKOs > mpr->otherKOs)
+        {
+            sprintf(text, "You Win!");
+        }
+        else
+        {
+            sprintf(text, "Sorry Bud");
+        }
     }
+
     tWidth = textWidth(mpr->font, text);
     drawText(mpr->disp, mpr->font, headerColor, text, (mpr->disp->w - tWidth) / 2, yOff);
     yOff += mpr->font->h + Y_MARGIN;
