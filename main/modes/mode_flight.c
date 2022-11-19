@@ -87,6 +87,7 @@ void setFlightSaveData( flightSimSaveData_t * sd )
 #define CNDRAW_BLACK 0
 #define CNDRAW_WHITE 18 // actually greenish
 #define PROMPT_COLOR 92
+#define MAX_COLOR cTransparent
 
 
 #define TFT_WIDTH 280
@@ -1133,7 +1134,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
         if(flight->oob)
         {
             width = textWidth(&flight->ibm, "TURN AROUND");
-            drawText(disp, &flight->ibm, PROMPT_COLOR, "TURN AROUND", (TFT_WIDTH - width) / 2, (TFT_HEIGHT - flight->ibm.h) / 2);
+            drawText(disp, &flight->ibm, PROMPT_COLOR, "TURN AROUND", (TFT_WIDTH - width) / 2, (TFT_HEIGHT - 4 * flight->ibm.h) / 2);
         }
 
         // Draw crosshairs.
@@ -1146,11 +1147,11 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
     {
         char framesStr[32] = {0};
         //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
-        snprintf(framesStr, sizeof(framesStr), "YOU  WIN:" );
+        snprintf(framesStr, sizeof(framesStr), "YOU   WIN!" );
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+75, 50);
-        snprintf(framesStr, sizeof(framesStr), "TIME:%d.%02d", tflight->wintime/100,tflight->wintime%100 );
+        snprintf(framesStr, sizeof(framesStr), "TIME: %d.%02d", tflight->wintime/100,tflight->wintime%100 );
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, ((tflight->wintime>10000)?14:20)+75, 18+50);
-        snprintf(framesStr, sizeof(framesStr), "BEANS:%2d",tflight->beans );
+        snprintf(framesStr, sizeof(framesStr), "BEANS: %2d",tflight->beans );
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+75, 36+50);
     }
 
@@ -1160,7 +1161,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
             tflight->timeGot100Percent = ((uint32_t)esp_timer_get_time() - tflight->timeOfStart);
 
         int crazy = (((uint32_t)esp_timer_get_time() - tflight->timeOfStart)-tflight->timeGot100Percent) < 3000000;
-        drawText( disp, &flight->ibm, crazy?( tflight->tframes * 9 ):PROMPT_COLOR, "100% 100% 100%", 10+75, 52+50 );
+        drawText( disp, &flight->ibm, crazy?( tflight->tframes * 9 % MAX_COLOR ):PROMPT_COLOR, "100% 100% 100%", 10+75, 52+50 );
     }
 
     //If perf test, force full frame refresh
@@ -1196,6 +1197,9 @@ static void flightGameUpdate( flight_t * tflight )
 
         if( tflight->inverty ) dyaw *= -1;
 
+        // If flying upside down, invert left/right. (Optional see flip note below)
+        if( tflight->hpr[1] >= 990 && tflight->hpr[1] < 2970 ) dpitch *= -1;
+
         if( dpitch )
         {
             tflight->pitchmoment += dpitch;
@@ -1228,6 +1232,10 @@ static void flightGameUpdate( flight_t * tflight )
         if( tflight->hpr[1] >= 3960 ) tflight->hpr[1] -= 3960;
         if( tflight->hpr[1] < 0 ) tflight->hpr[1] += 3960;
 
+        // Optional: Prevent us from doing a flip.
+        // if( tflight->hpr[1] > 1040 && tflight->hpr[1] < 1980 ) tflight->hpr[1] = 1040;
+        // if( tflight->hpr[1] < 2990 && tflight->hpr[1] > 1980 ) tflight->hpr[1] = 2990;
+
         if( bs & 16 ) tflight->speed++;
         else tflight->speed--;
         if( tflight->speed < flight_min_speed ) tflight->speed = flight_min_speed;
@@ -1236,8 +1244,9 @@ static void flightGameUpdate( flight_t * tflight )
 
     //If game over, just keep status quo.
 
-    flight->planeloc_fine[0] += (tflight->speed * getSin1024( tflight->hpr[0]/11 ) );
-    flight->planeloc_fine[2] += (tflight->speed * getCos1024( tflight->hpr[0]/11 ) );
+    int yawDivisor = getCos1024( tflight->hpr[1]/11 );
+    flight->planeloc_fine[0] += (tflight->speed * getSin1024( tflight->hpr[0]/11 ) * yawDivisor ) >> 10;
+    flight->planeloc_fine[2] += (tflight->speed * getCos1024( tflight->hpr[0]/11 ) * yawDivisor ) >> 10;
     flight->planeloc_fine[1] -= (tflight->speed * getSin1024( tflight->hpr[1]/11 ) );
 
     tflight->planeloc[0] = flight->planeloc_fine[0]>>FLIGHT_SPEED_DEC;
@@ -1248,34 +1257,34 @@ static void flightGameUpdate( flight_t * tflight )
     tflight->oob = false;
     if(tflight->planeloc[0] < -1900)
     {
-        tflight->planeloc[0] = -1900;
+        flight->planeloc_fine[0] = -(1900<<FLIGHT_SPEED_DEC);
         tflight->oob = true;
     }
     else if(tflight->planeloc[0] > 1900)
     {
-        tflight->planeloc[0] = 1900;
+        flight->planeloc_fine[0] = 1900<<FLIGHT_SPEED_DEC;
         tflight->oob = true;
     }
 
     if(tflight->planeloc[1] < -800)
     {
-        tflight->planeloc[1] = -800;
+        flight->planeloc_fine[1] = -(800<<FLIGHT_SPEED_DEC);
         tflight->oob = true;
     }
     else if(tflight->planeloc[1] > 3500)
     {
-        tflight->planeloc[1] = 3500;
+        flight->planeloc_fine[1] = 3500<<FLIGHT_SPEED_DEC;
         tflight->oob = true;
     }
 
     if(tflight->planeloc[2] < -1300)
     {
-        tflight->planeloc[2] = -1300;
+        flight->planeloc_fine[2] = -(1300<<FLIGHT_SPEED_DEC);
         tflight->oob = true;
     }
     else if(tflight->planeloc[2] > 3700)
     {
-        tflight->planeloc[2] = 3700;
+        flight->planeloc_fine[2] = 3700<<FLIGHT_SPEED_DEC;
         tflight->oob = true;
     }
 }

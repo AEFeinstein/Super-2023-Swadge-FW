@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "esp_timer.h"
 #include "esp_log.h"
@@ -179,6 +180,7 @@ void gamepadExitMode(void)
     if(gamepad != NULL){
         freeFont(&(gamepad->ibmFont));
         free(gamepad);
+        gamepad = NULL;
     }
 }
 
@@ -256,6 +258,9 @@ void gamepadStart(display_t* disp, gamepadType_t type){
     gamepad->gpNsState.rx = 128;
     gamepad->gpNsState.ry = 128;
 
+    led_t leds[NUM_LEDS];
+    memset(leds, 0, sizeof(leds));
+    setLeds(leds, NUM_LEDS);
 
     // Load the font
     loadFont("ibm_vga8.font", &(gamepad->ibmFont));

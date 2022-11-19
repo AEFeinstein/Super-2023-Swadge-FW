@@ -70,7 +70,7 @@
 /// Helper macro to return the absolute value of an integer
 #define ABS(X) (((X) < 0) ? -(X) : (X))
 /// Helper macro to return the highest of two integers
-// #define MAX(X, Y) ( ((X) > (Y)) ? (X) : (Y) )
+#define MAX(X, Y) ( ((X) > (Y)) ? (X) : (Y) )
 #define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
 #define NUM_SEMITONES 12
@@ -264,7 +264,7 @@ const uint16_t fourNoteStringIdxToLedIdx[] =
 
 const uint16_t fiveNoteStringIdxToLedIdx[] =
 {
-    1,
+    0,
     2,
     3,
     4,
@@ -273,12 +273,12 @@ const uint16_t fiveNoteStringIdxToLedIdx[] =
 
 const uint16_t sixNoteStringIdxToLedIdx[] =
 {
-    1,
+    0,
     2,
     3,
     4,
     5,
-    6
+    7
 };
 
 const uint16_t twoLedFlashIdxs[] =
@@ -947,13 +947,16 @@ void tunernomeMainLoop(int64_t elapsedUs)
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, beatStr, 
                      CORNER_OFFSET, tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
             
-            // Draw text to switch to tuner mode
+            uint16_t widestRightStrTunerWidth = MAX(textWidth(&tunernome->ibm_vga8, rightStrTuner1), textWidth(&tunernome->ibm_vga8, rightStrTuner2));
+
+            // Draw text to toggle beeps
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrTuner1,
-                     tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrTuner1) - CORNER_OFFSET,
+                     tunernome->disp->w - widestRightStrTunerWidth - CORNER_OFFSET,
                      tunernome->disp->h - (2 * tunernome->ibm_vga8.h) - 2 - CORNER_OFFSET);
 
+            // Draw text to switch to tuner mode
             drawText(tunernome->disp, &tunernome->ibm_vga8, c555, rightStrTuner2,
-                     tunernome->disp->w - textWidth(&tunernome->ibm_vga8, rightStrTuner2) - CORNER_OFFSET,
+                     tunernome->disp->w - widestRightStrTunerWidth - CORNER_OFFSET,
                      tunernome->disp->h - tunernome->ibm_vga8.h - CORNER_OFFSET);
 
             // Other logic things
