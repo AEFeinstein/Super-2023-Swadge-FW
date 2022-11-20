@@ -878,7 +878,10 @@ void paintShareMainLoop(int64_t elapsedUs)
     {
         paintShare->timeSincePacket = 0;
     }
-    else
+    else if (paintShare->shareState != SHARE_SEND_SELECT_SLOT &&
+             paintShare->shareState != SHARE_RECV_SELECT_SLOT &&
+             paintShare->shareState != SHARE_SEND_WAIT_FOR_CONN &&
+             paintShare->shareState != SHARE_RECV_WAIT_FOR_CONN)
     {
         paintShare->timeSincePacket += elapsedUs;
     }
@@ -1208,6 +1211,9 @@ void paintShareP2pConnCb(p2pInfo* p2p, connectionEvt_t evt)
         {
             PAINT_LOGD("CON_LOST");
             paintShareInitP2p();
+
+            // We don't want to time out while waiting for a connection
+            paintShare->timeSincePacket = 0;
             if (isSender())
             {
                 paintShare->shareState = SHARE_SEND_WAIT_FOR_CONN;
