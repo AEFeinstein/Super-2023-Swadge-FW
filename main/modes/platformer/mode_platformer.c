@@ -155,7 +155,7 @@ swadgeMode modePlatformer =
 
 #define NUM_LEVELS 16
 
-static leveldef_t leveldef[17] = {
+static const leveldef_t leveldef[17] = {
     {.filename = "level1-1.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},

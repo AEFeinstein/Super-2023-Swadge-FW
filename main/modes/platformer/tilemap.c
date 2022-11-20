@@ -136,7 +136,7 @@ void scrollTileMap(tilemap_t *tilemap, int16_t x, int16_t y)
     }
 }
 
-bool loadMapFromFile(tilemap_t *tilemap, char *name)
+bool loadMapFromFile(tilemap_t *tilemap, const char *name)
 {
     if (tilemap->map != NULL)
     {
