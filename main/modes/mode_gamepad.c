@@ -87,6 +87,12 @@ void gamepadStart(display_t* disp, gamepadType_t type);
 static const char str_gamepadTitle[] = "Gamepad Type";
 static const char str_pc[] = "PC";
 static const char str_ns[] = "Switch";
+// static const char str_y[] = "Y";
+// static const char str_x[] = "X";
+// static const char str_L[] = "L";
+// static const char str_r[] = "R";
+// static const char str_zL[] = "ZL";
+// static const char str_zr[] = "ZR";
 static const char str_exit[] = "Exit";
 
 typedef struct
@@ -486,20 +492,25 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
         int16_t tBarX = gamepad->disp->w - TOUCHBAR_WIDTH;
         uint8_t numTouchElem = (sizeof(touchMap) / sizeof(touchMap[0]));
         for(uint8_t touchIdx = 0; touchIdx < numTouchElem; touchIdx++)
-        {            
+        {
+            int16_t x1 = tBarX - 1;
+            int16_t x2 = tBarX + (TOUCHBAR_WIDTH / numTouchElem);
+
             if((gamepad->gamepadType == GAMEPAD_GENERIC) ? gamepad->gpState.buttons & touchMap[touchIdx]:gamepad->gpNsState.buttons & touchMapNs[touchIdx])
             {
                 fillDisplayArea(gamepad->disp,
-                                tBarX - 1, TOUCHBAR_Y_OFF,
-                                tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                                x1, TOUCHBAR_Y_OFF,
+                                x2, TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
                                 c111);
             }
             else
             {
                 plotRect(gamepad->disp,
-                         tBarX - 1, TOUCHBAR_Y_OFF,
-                         tBarX + (TOUCHBAR_WIDTH / numTouchElem), TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                         x1, TOUCHBAR_Y_OFF,
+                         x2, TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
                          c111);
+
+                drawText(gamepad->disp, &gamepad->ibmFont, c555, "?", x1 + (x2 - x1 - textWidth(&gamepad->ibmFont, "?")) / 2, TOUCHBAR_Y_OFF + (TOUCHBAR_HEIGHT - gamepad->ibmFont.h) / 2);
             }
             tBarX += (TOUCHBAR_WIDTH / numTouchElem);
         }
