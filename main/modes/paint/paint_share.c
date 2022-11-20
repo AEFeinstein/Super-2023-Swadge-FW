@@ -153,7 +153,7 @@ void paintShareInitP2p(void)
     paintShare->shareNewPacket = false;
 
     p2pDeinit(&paintShare->p2pInfo);
-    p2pInitialize(&paintShare->p2pInfo, isSender() ? 'P' : 'Q', paintShareP2pConnCb, paintShareP2pMsgRecvCb, -15);
+    p2pInitialize(&paintShare->p2pInfo, isSender() ? 'P' : 'Q', paintShareP2pConnCb, paintShareP2pMsgRecvCb, -35);
     p2pSetAsymmetric(&paintShare->p2pInfo, isSender() ? 'Q' : 'P');
     p2pStartConnection(&paintShare->p2pInfo);
 }

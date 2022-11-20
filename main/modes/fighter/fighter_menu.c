@@ -609,7 +609,7 @@ void fighterMainMenuCb(const char* opt)
         fm->screen = FIGHTER_CONNECTING;
         // Initialize p2p
         p2pDeinit(&(fm->p2p));
-        p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
+        p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -35);
         // Start the connection
         p2pStartConnection(&fm->p2p);
 
@@ -716,7 +716,7 @@ void fighterWireMultiMenuCb(const char* opt)
     fm->screen = FIGHTER_CONNECTING;
     // Initialize p2p
     p2pDeinit(&(fm->p2p));
-    p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
+    p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -35);
     // Start the connection
     p2pStartConnection(&fm->p2p);
 
