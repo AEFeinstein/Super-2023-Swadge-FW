@@ -15,7 +15,7 @@
 #include "soc/dport_access.h"
 #include "soc/rtc_wdt.h"
 #include "soc/soc.h"  // for WRITE_PERI_REG
-
+#include <esp_heap_caps.h>
 #include "swadgeMode.h"
 
 #include "esp_flash.h"
@@ -80,7 +80,7 @@ static int advanced_usb_write_log( void* cookie, const char* data, int size )
 {
     if(NULL == advanced_usb_printf_buffer)
     {
-        advanced_usb_printf_buffer = calloc(AUPB_SIZE, sizeof(uint8_t));
+        advanced_usb_printf_buffer = heap_caps_calloc(AUPB_SIZE, sizeof(uint8_t), MALLOC_CAP_SPIRAM);
     }
 
     int next = ( advanced_usb_printf_head + 1 ) % AUPB_SIZE;
@@ -123,7 +123,7 @@ int handle_advanced_usb_terminal_get( int reqlen, uint8_t * data )
 {
     if(NULL == advanced_usb_printf_buffer)
     {
-        advanced_usb_printf_buffer = calloc(AUPB_SIZE, sizeof(uint8_t));
+        advanced_usb_printf_buffer = heap_caps_calloc(AUPB_SIZE, sizeof(uint8_t), MALLOC_CAP_SPIRAM);
     }
 
     if( !terminal_redirected )
