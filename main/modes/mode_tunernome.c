@@ -164,7 +164,7 @@ void tunernomeButtonCallback(buttonEvt_t* evt);
 void modifyBpm(int16_t bpmMod);
 void tunernomeSampleHandler(uint16_t* samples, uint32_t sampleCnt);
 void recalcMetronome(void);
-void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrumentNotes,
+void plotInstrumentNameAndNotes(const char* instrumentName, const char* const* instrumentNotes,
                                 uint16_t numNotes);
 void plotTopSemiCircle(int xm, int ym, int r, paletteColor_t col);
 void instrumentTunerMagic(const uint16_t freqBinIdxs[], uint16_t numStrings, led_t colors[],
@@ -295,7 +295,7 @@ const uint16_t fourLedFlashIdxs[] =
     6
 };
 
-const char* guitarNoteNames[] =
+const char * const guitarNoteNames[] =
 {
     "E2",
     "A2",
@@ -305,7 +305,7 @@ const char* guitarNoteNames[] =
     "E4"
 };
 
-const char* violinNoteNames[] =
+const char * const violinNoteNames[] =
 {
     "G3",
     "D4",
@@ -313,7 +313,7 @@ const char* violinNoteNames[] =
     "E5"
 };
 
-const char* ukuleleNoteNames[] =
+const char * const ukuleleNoteNames[] =
 {
     "G4",
     "C4",
@@ -321,7 +321,7 @@ const char* ukuleleNoteNames[] =
     "A4"
 };
 
-const char* banjoNoteNames[] =
+const char * const banjoNoteNames[] =
 {
     "G4",
     "D3",
@@ -331,7 +331,7 @@ const char* banjoNoteNames[] =
 };
 
 // End a string ending with "\1" to draw the flat symbol
-const char* semitoneNoteNames[] =
+const char * const semitoneNoteNames[] =
 {
     "C",
     "C#/D\1",
@@ -567,7 +567,7 @@ void recalcMetronome(void)
  * @param instrumentNotes The note names of the strings of the instrument to plot to the display
  * @param numNotes The number of notes in instrumentsNotes
  */
-void plotInstrumentNameAndNotes(const char* instrumentName, const char** instrumentNotes,
+void plotInstrumentNameAndNotes(const char* instrumentName, const char* const* instrumentNotes,
                                 uint16_t numNotes)
 {
     // Mode name

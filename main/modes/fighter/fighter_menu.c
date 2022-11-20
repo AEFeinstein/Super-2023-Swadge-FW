@@ -187,7 +187,7 @@ const char str_version_mismatch[] = "Version Mismatch";
 const char str_visit_swadge_com[] = "Visit swadge.com";
 
 // Must match order of fightingCharacter_t
-const char* charNames[3] =
+const char* const charNames[3] =
 {
     str_charKD,
     str_charSN,
@@ -195,7 +195,7 @@ const char* charNames[3] =
 };
 
 // Must match order of fightingCharacter_t
-const char* charNamesShort[3] =
+const char* const charNamesShort[3] =
 {
     str_charKD,
     str_charSN_short,
