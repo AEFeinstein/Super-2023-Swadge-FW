@@ -35,7 +35,7 @@ typedef enum
  * Variables
  *==========================================================================*/
 
-static font_t textEntryIBM;
+static font_t * textEntryIBM;
 static int texLen;
 static char* texString;
 static keyModifier_t keyMod;
@@ -74,11 +74,13 @@ static const uint8_t lengthperline[] = { 14, 14, 13, 12, 1 };
 
 /**
  * Initialize the text entry
- *
+ * 
+ * @param usedisp The display to draw to
+ * @param usefont The font to use, should be ibm_vga8
  * @param max_len The length of buffer
  * @param buffer  A char* to store the entered text in
  */
-void textEntryStart( display_t * usedisp, int max_len, char* buffer )
+void textEntryStart( display_t * usedisp, font_t * usefont, int max_len, char* buffer )
 {
     textEntryDisplay = usedisp;
     texLen = max_len;
@@ -88,10 +90,7 @@ void textEntryStart( display_t * usedisp, int max_len, char* buffer )
     keyMod = NO_SHIFT;
     texString[0] = 0;
     cursorTimer = 0;
-    if( !textEntryIBM.h )
-    {
-        loadFont("ibm_vga8.font", &textEntryIBM);
-    }
+    textEntryIBM = usefont;
 }
 
 /**
@@ -118,13 +117,13 @@ bool textEntryDraw(void)
     // Draw the text entered so far
     {
         const int16_t text_h = 32;
-        int16_t textLen = textWidth(&textEntryIBM, texString) + textEntryIBM.chars[0].w;
-        int16_t endPos = drawText( textEntryDisplay, &textEntryIBM, WHITE, texString, (textEntryDisplay->w - textLen)/2, text_h);
+        int16_t textLen = textWidth(textEntryIBM, texString) + textEntryIBM->chars[0].w;
+        int16_t endPos = drawText( textEntryDisplay, textEntryIBM, WHITE, texString, (textEntryDisplay->w - textLen)/2, text_h);
     
         // If the blinky cursor should be shown, draw it
         if( (cursorTimer++) & 0x10 )
         {
-            plotLine( textEntryDisplay, endPos + 1, text_h-2, endPos + 1, text_h + textEntryIBM.h + 1, WHITE, 0 );
+            plotLine( textEntryDisplay, endPos + 1, text_h-2, endPos + 1, text_h + textEntryIBM->h + 1, WHITE, 0 );
         }
     }
 
@@ -133,23 +132,23 @@ bool textEntryDraw(void)
     {
         case SHIFT:
         {
-            int16_t width = textWidth(&textEntryIBM, "Typing: Upper");
-            int16_t typingWidth = textWidth(&textEntryIBM, "Typing: ");
-            drawText( textEntryDisplay, &textEntryIBM, WHITE, "Typing: Upper", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM.h - 2);
+            int16_t width = textWidth(textEntryIBM, "Typing: Upper");
+            int16_t typingWidth = textWidth(textEntryIBM, "Typing: ");
+            drawText( textEntryDisplay, textEntryIBM, WHITE, "Typing: Upper", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM->h - 2);
             plotLine( textEntryDisplay, (textEntryDisplay->w - width)/2 + typingWidth, textEntryDisplay->h - 1, (textEntryDisplay->w - width)/2 + width, textEntryDisplay->h - 1, WHITE, 0);
             break;
         }
         case NO_SHIFT:
         {
-            int16_t width = textWidth(&textEntryIBM, "Typing: Lower");
-            drawText(textEntryDisplay, &textEntryIBM, WHITE,  "Typing: Lower", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM.h - 2);
+            int16_t width = textWidth(textEntryIBM, "Typing: Lower");
+            drawText(textEntryDisplay, textEntryIBM, WHITE,  "Typing: Lower", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM->h - 2);
             break;
         }
         case CAPS_LOCK:
         {
-            int16_t width = textWidth(&textEntryIBM, "Typing: CAPS LOCK");
-            int16_t typingWidth = textWidth(&textEntryIBM, "Typing: ");
-            drawText(textEntryDisplay, &textEntryIBM, WHITE, "Typing: CAPS LOCK", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM.h - 2 );
+            int16_t width = textWidth(textEntryIBM, "Typing: CAPS LOCK");
+            int16_t typingWidth = textWidth(textEntryIBM, "Typing: ");
+            drawText(textEntryDisplay, textEntryIBM, WHITE, "Typing: CAPS LOCK", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM->h - 2 );
             plotLine(textEntryDisplay, (textEntryDisplay->w - width)/2 + typingWidth, textEntryDisplay->h - 1, (textEntryDisplay->w - width)/2 + width, textEntryDisplay->h - 1, WHITE, 0);
             break;
         }
@@ -219,15 +218,15 @@ bool textEntryDraw(void)
                 {
                     // Draw an OK for enter
 
-                    drawText( textEntryDisplay, &textEntryIBM, WHITE, "OK", posx, posy );
-                    width = textWidth(& textEntryIBM, "OK") + 2;
+                    drawText( textEntryDisplay, textEntryIBM, WHITE, "OK", posx, posy );
+                    width = textWidth(textEntryIBM, "OK") + 2;
                     break;
                 }
                 default:
                 {
                     // Just draw the char
                     char sts[] = {c, 0};
-                    drawText(textEntryDisplay, &textEntryIBM, WHITE, sts, posx, posy );
+                    drawText(textEntryDisplay, textEntryIBM, WHITE, sts, posx, posy );
                 }
             }
             if( x == selx && y == sely )
