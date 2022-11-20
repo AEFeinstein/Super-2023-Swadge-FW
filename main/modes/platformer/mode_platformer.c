@@ -31,9 +31,9 @@
 //==============================================================================
 // Constants
 //==============================================================================
-#define BIG_SCORE 2000000UL
-#define BIGGER_SCORE 5000000UL
-#define FAST_TIME 1800 //30 minutes
+#define BIG_SCORE 4000000UL
+#define BIGGER_SCORE 10000000UL
+#define FAST_TIME 1500 //25 minutes
 
 static const paletteColor_t highScoreNewEntryColors[4] = {c050, c055, c005, c055};
 
@@ -461,10 +461,10 @@ void updateTitleScreen(platformer_t *self)
                             break;
                         }
 
-                        if(self->menuSelection == 0){
+                        /*if(self->menuSelection == 0){
                             self->gameData.world = 1;
                             self->gameData.level = 1;
-                        }
+                        }*/
 
                         initializeGameDataFromTitleScreen(&(self->gameData));
                         changeStateReadyScreen(self);
@@ -715,15 +715,15 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
             }
 
             if(platformer->unlockables.bigScore){
-                drawText(d, font, greenColors[(gameData->frameCount >> 3) % 4], "Got 2 million points!", 48, 112);
+                drawText(d, font, greenColors[(gameData->frameCount >> 3) % 4], "Got 4 million points!", 48, 112);
             }
 
             if(platformer->unlockables.biggerScore){
-                drawText(d, font, cyanColors[(gameData->frameCount >> 3) % 4], "Got 5 million points!", 48, 128);
+                drawText(d, font, cyanColors[(gameData->frameCount >> 3) % 4], "Got 10 million points!", 48, 128);
             }
 
             if(platformer->unlockables.fastTime){
-                drawText(d, font, purpleColors[(gameData->frameCount >> 3) % 4], "Beat within 30 min!", 48, 144);
+                drawText(d, font, purpleColors[(gameData->frameCount >> 3) % 4], "Beat within 25 min!", 48, 144);
             }
 
             if(platformer->unlockables.gameCleared && platformer->unlockables.oneCreditCleared && platformer->unlockables.bigScore && platformer->unlockables.biggerScore && platformer->unlockables.fastTime){
@@ -1062,21 +1062,10 @@ void updateGameClear(platformer_t *self){
         if(self->gameData.lives > 0){
             if(self->gameData.frameCount % 60 == 0){
                 self->gameData.lives--;
-                self->gameData.score += 100000;
+                self->gameData.score += 200000;
                 buzzer_play_sfx(&snd1up);
             }
         } else if(self->gameData.frameCount % 960 == 0) {
-            
-            if(!self->gameData.debugMode) {
-                if(self->gameData.score >= BIG_SCORE) {
-                    self->unlockables.bigScore = true;
-                }
-
-                if(self->gameData.score >= BIGGER_SCORE) {
-                    self->unlockables.biggerScore = true;
-                }
-            }
-
             changeStateGameOver(self);
         }
     }
@@ -1109,7 +1098,7 @@ void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     }
 
     if(gameData->frameCount > 420){
-        drawText(d, font, highScoreNewEntryColors[(gameData->frameCount >> 3) % 4], "Bonus 100000pts per life!", (d->w - textWidth(font, "Bonus 100000pts per life!")) / 2, 192);
+        drawText(d, font, (gameData->lives > 0) ? highScoreNewEntryColors[(gameData->frameCount >> 3) % 4] : c555, "Bonus 200000pts per life!", (d->w - textWidth(font, "Bonus 100000pts per life!")) / 2, 192);
     }
 
     /*
