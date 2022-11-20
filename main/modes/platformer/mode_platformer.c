@@ -870,7 +870,7 @@ void changeStateDead(platformer_t *self){
     self->gameData.levelDeaths++;
     self->gameData.combo = 0;
     self->gameData.comboTimer = 0;
-    self->gameData.initialHp = 1;
+    self->gameData.initialHp = 255;
 
     buzzer_stop();
     buzzer_play_bgm(&sndDie);

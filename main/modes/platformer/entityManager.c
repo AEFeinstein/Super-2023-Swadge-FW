@@ -336,7 +336,7 @@ entity_t* createPlayer(entityManager_t * entityManager, uint16_t x, uint16_t y)
     entity->falling = true;
     entity->jumpPower = 0;
     entity->spriteFlipVertical = false;
-    entity->hp = 1;
+    entity->hp = 255;
     entity->animationTimer = 0; //Used as a cooldown for shooting square wave balls
 
     entity->type = ENTITY_PLAYER;

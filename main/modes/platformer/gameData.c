@@ -15,7 +15,7 @@
     gameData->gameState = 0;
     gameData->btnState = 0;
     gameData->score = 0;
-    gameData->lives = 3;
+    gameData->lives = 255;
     gameData->countdown = 000;
     gameData->world = 1;
     gameData->level = 1;
@@ -31,7 +31,7 @@
     gameData->extraLifeCollected = false;
     gameData->checkpoint = 0;
     gameData->levelDeaths = 0;
-    gameData->initialHp = 1;
+    gameData->initialHp = 255;
     gameData->debugMode = false;
     gameData->continuesUsed = false;
     gameData->inGameTimer = 0;
@@ -41,7 +41,7 @@
     gameData->gameState = 0;
     gameData->btnState = 0;
     gameData->score = 0;
-    gameData->lives = 3;
+    gameData->lives = 255;
     gameData->countdown = 000;
     gameData->frameCount = 0;
     gameData->coins = 0;
@@ -53,7 +53,7 @@
     gameData->levelDeaths = 0;
     gameData->currentBgm = 0;
     gameData->changeBgm = 0;
-    gameData->initialHp = 1;
+    gameData->initialHp = 255;
     gameData->continuesUsed = (gameData->world == 1 && gameData->level == 1) ? false : true;
     gameData->inGameTimer = 0;
 

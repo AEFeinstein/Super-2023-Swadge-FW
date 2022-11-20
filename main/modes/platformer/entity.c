@@ -646,10 +646,10 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
             break;
         }
         case ENTITY_POWERUP:{
-            self->hp++;
-            if(self->hp > 3){
-                self->hp = 3;
-            }
+            // self->hp++;
+            // if(self->hp > 3){
+            //     self->hp = 3;
+            // }
             scorePoints(self->gameData, 1000);
             buzzer_play_sfx(&sndPowerUp);
             updateLedsHpMeter(self->entityManager, self->gameData);
