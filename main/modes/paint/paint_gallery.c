@@ -89,6 +89,7 @@ void paintGallerySetup(display_t* disp, bool screensaver)
     paintGallery->gallerySpeed = US_PER_MS * transitionTimeMap[paintGallery->gallerySpeedIndex];
 
     paintGallery->portableDances = initPortableDance(danceIndexKey);
+    portableDanceDisableDance(paintGallery->portableDances, "Flashlight");
 
     if (!(paintGallery->index & PAINT_ENABLE_LEDS))
     {
