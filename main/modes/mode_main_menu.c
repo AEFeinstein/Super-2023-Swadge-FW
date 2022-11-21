@@ -36,6 +36,19 @@
 // #include "picross_select.h"
 
 //==============================================================================
+// Defines
+//==============================================================================
+
+#define GIT_SHA1_SHORT_LENGTH 7
+
+// In case we want to use the full git SHA1 somewhere (change to 0 in CMakeLists.txt)
+#if GIT_SHA1_IS_SHORT
+#define GIT_SHA1_LENGTH 7
+#else
+#define GIT_SHA1_LENGTH 40
+#endif
+
+//==============================================================================
 // Functions Prototypes
 //==============================================================================
 
@@ -83,7 +96,7 @@ typedef struct
     wsg_t usb;
     int32_t autoLightDanceTimer;
     bool debugMode;
-    char gitStr[32];
+    char gitStr[6 + GIT_SHA1_SHORT_LENGTH];
 } mainMenu_t;
 
 //==============================================================================
@@ -174,7 +187,7 @@ void mainMenuEnterMode(display_t* disp)
     loadWsg("batt4.wsg", &mainMenu->batt[3]);
     loadWsg("usb.wsg", &mainMenu->usb);
 
-    sprintf(mainMenu->gitStr, "Git: %s", GIT_SHA1);
+    snprintf(mainMenu->gitStr, sizeof(mainMenu->gitStr), "Git: %s", GIT_SHA1);
 
     // Initialize the menu
     mainMenu->menu = initMeleeMenu(mainMenuTitle, &mainMenu->meleeMenuFont, mainMenuTopLevelCb);

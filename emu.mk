@@ -115,6 +115,7 @@ CFLAGS_WARNINGS_EXTRA = \
 
 # Create a variable with the git hash and branch name
 GIT_HASH  = \"$(shell git rev-parse --short HEAD)\"
+GIT_HASH_IS_SHORT = 1
 
 # Used by the ESP SDK
 DEFINES_LIST = \
@@ -137,7 +138,8 @@ DEFINES_LIST = \
 	CONFIG_TFT_MIN_BRIGHTNESS=10 \
 	SOC_TIMER_GROUP_TIMERS_PER_GROUP=2 \
 	SOC_TIMER_GROUPS=2 \
-	GIT_SHA1=${GIT_HASH}
+	GIT_SHA1=${GIT_HASH} \
+	GIT_SHA1_IS_SHORT=${GIT_HASH_IS_SHORT}
 
 DEFINES = $(patsubst %, -D%, $(DEFINES_LIST))
 
