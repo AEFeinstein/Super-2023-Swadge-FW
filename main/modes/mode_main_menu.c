@@ -296,6 +296,12 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                     mainMenuSetUpSecretMenu(true);
                     return;
                 }
+
+                // Do not forward the A or START in the cheat code to the rest of the mode
+                if(evt->button == BTN_A || evt->button == START)
+                {
+                    return;
+                }
             }
             else
             {
