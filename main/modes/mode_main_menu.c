@@ -93,7 +93,7 @@ typedef struct
     uint8_t menuSelection;
     uint32_t battVal;
     wsg_t batt[4];
-    wsg_t usb;
+    // wsg_t usb;
     int32_t autoLightDanceTimer;
     bool debugMode;
     char gitStr[6 + GIT_SHA1_SHORT_LENGTH];
@@ -185,7 +185,7 @@ void mainMenuEnterMode(display_t* disp)
     loadWsg("batt2.wsg", &mainMenu->batt[1]);
     loadWsg("batt3.wsg", &mainMenu->batt[2]);
     loadWsg("batt4.wsg", &mainMenu->batt[3]);
-    loadWsg("usb.wsg", &mainMenu->usb);
+    // loadWsg("usb.wsg", &mainMenu->usb);
 
     snprintf(mainMenu->gitStr, sizeof(mainMenu->gitStr), "Git: %s", GIT_SHA1);
 
@@ -203,7 +203,7 @@ void mainMenuExitMode(void)
     freeWsg(&mainMenu->batt[1]);
     freeWsg(&mainMenu->batt[2]);
     freeWsg(&mainMenu->batt[3]);
-    freeWsg(&mainMenu->usb);
+    // freeWsg(&mainMenu->usb);
     deinitMeleeMenu(mainMenu->menu);
     freeFont(&mainMenu->meleeMenuFont);
     freeFont(&mainMenu->ibmFont);
