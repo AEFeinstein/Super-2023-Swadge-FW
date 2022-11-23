@@ -106,10 +106,12 @@ void scorePoints(gameData_t * gameData, uint16_t points){
 
 void addCoins(gameData_t * gameData, uint8_t coins){
     gameData->coins+=coins;
-    if(gameData->coins > 100){
+    if(gameData->coins > 99){
         gameData->lives++;
         buzzer_play_sfx(&snd1up);
         gameData->coins = 0;
+    } else {
+        buzzer_play_sfx(&sndCoin);
     }
 }
 

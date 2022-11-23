@@ -31,9 +31,9 @@
 //==============================================================================
 // Constants
 //==============================================================================
-#define BIG_SCORE 2000000UL
-#define BIGGER_SCORE 5000000UL
-#define FAST_TIME 1800 //30 minutes
+#define BIG_SCORE 4000000UL
+#define BIGGER_SCORE 10000000UL
+#define FAST_TIME 1500 //25 minutes
 
 static const paletteColor_t highScoreNewEntryColors[4] = {c050, c055, c005, c055};
 
@@ -73,6 +73,7 @@ struct platformer_t
 
     uint8_t menuState;
     uint8_t menuSelection;
+    uint8_t cheatCodeIdx;
 
     int16_t btnState;
     int16_t prevBtnState;
@@ -154,7 +155,7 @@ swadgeMode modePlatformer =
 
 #define NUM_LEVELS 16
 
-static leveldef_t leveldef[17] = {
+static const leveldef_t leveldef[17] = {
     {.filename = "level1-1.bin",
      .timeLimit = 180,
      .checkpointTimeLimit = 90},
@@ -192,7 +193,7 @@ static leveldef_t leveldef[17] = {
      .timeLimit = 220,
      .checkpointTimeLimit = 110},
     {.filename = "level4-1.bin",
-     .timeLimit = 240,
+     .timeLimit = 270,
      .checkpointTimeLimit = 90},
     {.filename = "level4-2.bin",
      .timeLimit = 240,
@@ -283,6 +284,36 @@ void platformerMainLoop(int64_t elapsedUs)
  */
 void platformerButtonCb(buttonEvt_t *evt)
 {
+    if(evt->down)
+        {
+        if(platformer->menuState == 0 &&
+            (
+                (evt->state & cheatCode[platformer->cheatCodeIdx])
+            )
+        ) {
+            platformer->cheatCodeIdx++;
+
+            if(platformer->cheatCodeIdx > 10){
+                platformer->cheatCodeIdx = 0;
+                platformer->menuState = 1;
+                platformer->gameData.debugMode = true;
+                buzzer_play_sfx(&sndLevelClearS);
+            } else {
+                buzzer_play_sfx(&sndMenuSelect);
+            }
+
+            // Do not forward the A or START in the cheat code to the rest of the mode
+            if(evt->button == BTN_A || evt->button == START)
+            {
+                return;
+            }
+        }
+        else
+        {
+            platformer->cheatCodeIdx = 0;
+        }
+    }
+
     platformer->btnState = evt->state;
     platformer->gameData.btnState = evt->state;
 }
@@ -300,7 +331,7 @@ void platformerButtonCb(buttonEvt_t *evt)
 void updateGame(platformer_t *self)
 {
     // Clear the display
-    fillDisplayArea( self->disp, 0, 0, 280, 240, self->gameData.bgColor);
+    fillDisplayArea( self->disp, 0, 0, self->disp->w, self->disp->h, self->gameData.bgColor);
 
     updateEntities(&(self->entityManager));
 
@@ -369,7 +400,7 @@ void drawPlatformerHud(display_t *d, font_t *font, gameData_t *gameData)
 void updateTitleScreen(platformer_t *self)
 {
     // Clear the display
-    fillDisplayArea( self->disp, 0, 0, 280, 240, self->gameData.bgColor);
+    fillDisplayArea( self->disp, 0, 0, self->disp->w, self->disp->h, self->gameData.bgColor);
 
     self->gameData.frameCount++;
    
@@ -381,27 +412,6 @@ void updateTitleScreen(platformer_t *self)
                 resetGameDataLeds(&(self->gameData));
                 changeStateShowHighScores(self);
             }
-            
-            if(
-                (
-                    (self->gameData.btnState & cheatCode[platformer->menuSelection])
-                    &&
-                    !(self->gameData.prevBtnState & cheatCode[platformer->menuSelection])
-                )
-            ) {
-                platformer->menuSelection++;
-
-                if(self->menuSelection > 10){
-                    platformer->menuSelection = 0;
-                    platformer->menuState = 1;
-                    platformer->gameData.debugMode = true;
-                    buzzer_play_sfx(&sndLevelClearS);
-                } else {
-                    buzzer_play_sfx(&sndMenuSelect);
-                }
-
-                break;
-            } 
 
             if (
                 (
@@ -451,10 +461,10 @@ void updateTitleScreen(platformer_t *self)
                             break;
                         }
 
-                        if(self->menuSelection == 0){
+                        /*if(self->menuSelection == 0){
                             self->gameData.world = 1;
                             self->gameData.level = 1;
-                        }
+                        }*/
 
                         initializeGameDataFromTitleScreen(&(self->gameData));
                         changeStateReadyScreen(self);
@@ -534,7 +544,7 @@ void updateTitleScreen(platformer_t *self)
                 if(platformer->menuSelection < 4){
                     platformer->menuSelection++;
 
-                    if(platformer->menuSelection == 1 && self->unlockables.maxLevelIndexUnlocked == 0){
+                    if(!self->gameData.debugMode && platformer->menuSelection == 1 && self->unlockables.maxLevelIndexUnlocked == 0){
                         platformer->menuSelection++;
                     }
 
@@ -705,15 +715,15 @@ void drawPlatformerTitleScreen(display_t *d, font_t *font, gameData_t *gameData)
             }
 
             if(platformer->unlockables.bigScore){
-                drawText(d, font, greenColors[(gameData->frameCount >> 3) % 4], "Got 2 million points!", 48, 112);
+                drawText(d, font, greenColors[(gameData->frameCount >> 3) % 4], "Got 4 million points!", 48, 112);
             }
 
             if(platformer->unlockables.biggerScore){
-                drawText(d, font, cyanColors[(gameData->frameCount >> 3) % 4], "Got 5 million points!", 48, 128);
+                drawText(d, font, cyanColors[(gameData->frameCount >> 3) % 4], "Got 10 million points!", 48, 128);
             }
 
             if(platformer->unlockables.fastTime){
-                drawText(d, font, purpleColors[(gameData->frameCount >> 3) % 4], "Beat within 30 min!", 48, 144);
+                drawText(d, font, purpleColors[(gameData->frameCount >> 3) % 4], "Beat within 25 min!", 48, 144);
             }
 
             if(platformer->unlockables.gameCleared && platformer->unlockables.oneCreditCleared && platformer->unlockables.bigScore && platformer->unlockables.biggerScore && platformer->unlockables.fastTime){
@@ -751,7 +761,7 @@ void updateReadyScreen(platformer_t *self){
 
 void drawReadyScreen(display_t *d, font_t *font, gameData_t *gameData){
     drawPlatformerHud(d, font, gameData);
-    drawText(d, font, c555, "Get Ready!", 80, 128);
+    drawText(d, font, c555, "Get Ready!", (d->w - textWidth(font, "Get Ready!")) / 2, 128);
 }
 
 void changeStateGame(platformer_t *self){
@@ -870,7 +880,7 @@ void changeStateDead(platformer_t *self){
 
 void updateDead(platformer_t *self){
     // Clear the display
-    fillDisplayArea( self->disp, 0, 0, 280, 240, self->gameData.bgColor);
+    fillDisplayArea( self->disp, 0, 0, self->disp->w, self->disp->h, self->gameData.bgColor);
     
     self->gameData.frameCount++;
     if(self->gameData.frameCount > 179){
@@ -887,7 +897,7 @@ void updateDead(platformer_t *self){
     drawPlatformerHud(self->disp, &(self->radiostars), &(self->gameData));
 
     if(self->gameData.countdown < 0){
-        drawText(self->disp, &(self->radiostars), c555, "-Time Up!-", 80, 128);
+        drawText(self->disp, &(self->radiostars), c555, "-Time Up!-", (self->disp->w - textWidth(&(self->radiostars), "-Time Up!-")) / 2, 128);
     }
 }
 
@@ -929,7 +939,7 @@ void changeStateGameOver(platformer_t *self){
 
 void drawGameOver(display_t *d, font_t *font, gameData_t *gameData){
     drawPlatformerHud(d, font, gameData);
-    drawText(d, font, c555, "Game Over", 80, 128);
+    drawText(d, font, c555, "Game Over", (d->w - textWidth(font, "Game Over")) / 2, 128);
 }
 
 void changeStateTitleScreen(platformer_t *self){
@@ -949,7 +959,7 @@ void changeStateLevelClear(platformer_t *self){
 
 void updateLevelClear(platformer_t *self){
     // Clear the display
-    fillDisplayArea( self->disp, 0, 0, 280, 240, self->gameData.bgColor);
+    fillDisplayArea( self->disp, 0, 0, self->disp->w, self->disp->h, self->gameData.bgColor);
     
     self->gameData.frameCount++;
 
@@ -977,23 +987,25 @@ void updateLevelClear(platformer_t *self){
             if(levelIndex >= NUM_LEVELS - 1){
                 //Game Cleared!
 
-                //Determine achievements
-                self->unlockables.gameCleared = true;
-                
-                if(!self->gameData.continuesUsed){
-                    self->unlockables.oneCreditCleared = true;
+                if(!self->gameData.debugMode){
+                    //Determine achievements
+                    self->unlockables.gameCleared = true;
+                    
+                    if(!self->gameData.continuesUsed){
+                        self->unlockables.oneCreditCleared = true;
 
-                    if(self->gameData.inGameTimer < FAST_TIME) {
-                        self->unlockables.fastTime = true;
+                        if(self->gameData.inGameTimer < FAST_TIME) {
+                            self->unlockables.fastTime = true;
+                        }
                     }
-                }
 
-                if(self->gameData.score >= BIG_SCORE) {
-                    self->unlockables.bigScore = true;
-                }
+                    if(self->gameData.score >= BIG_SCORE) {
+                        self->unlockables.bigScore = true;
+                    }
 
-                if(self->gameData.score >= BIGGER_SCORE) {
-                    self->unlockables.biggerScore = true;
+                    if(self->gameData.score >= BIGGER_SCORE) {
+                        self->unlockables.biggerScore = true;
+                    }
                 }
 
                 changeStateGameClear(self);
@@ -1030,7 +1042,7 @@ void updateLevelClear(platformer_t *self){
 
 void drawLevelClear(display_t *d, font_t *font, gameData_t *gameData){
     drawPlatformerHud(d, font, gameData);
-    drawText(d, font, c555, "Well done!", 80, 128);
+    drawText(d, font, c555, "Well done!", (d->w - textWidth(font, "Well done!")) / 2, 128);
 }
 
 void changeStateGameClear(platformer_t *self){
@@ -1050,7 +1062,7 @@ void updateGameClear(platformer_t *self){
         if(self->gameData.lives > 0){
             if(self->gameData.frameCount % 60 == 0){
                 self->gameData.lives--;
-                self->gameData.score += 100000;
+                self->gameData.score += 200000;
                 buzzer_play_sfx(&snd1up);
             }
         } else if(self->gameData.frameCount % 960 == 0) {
@@ -1069,7 +1081,7 @@ void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     char timeStr[32];
     snprintf(timeStr, sizeof(timeStr) - 1, "in %06" PRIu32 " seconds!", gameData->inGameTimer);
 
-    drawText(d, font, yellowColors[(gameData->frameCount >> 3) % 4], "Congratulations!", 48, 48);
+    drawText(d, font, yellowColors[(gameData->frameCount >> 3) % 4], "Congratulations!", (d->w - textWidth(font, "Congratulations!")) / 2, 48);
 
     if(gameData->frameCount > 120){
         drawText(d, font, c555, "You've completed your", 8, 80);
@@ -1077,7 +1089,7 @@ void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     }
     
     if(gameData->frameCount > 180){
-        drawText(d, font, (gameData->inGameTimer < FAST_TIME) ? cyanColors[(gameData->frameCount >> 3) % 4] : c555, timeStr, 48, 112);
+        drawText(d, font, (gameData->inGameTimer < FAST_TIME) ? cyanColors[(gameData->frameCount >> 3) % 4] : c555, timeStr, (d->w - textWidth(font, timeStr)) / 2, 112);
     }
 
     if(gameData->frameCount > 300){
@@ -1086,7 +1098,7 @@ void drawGameClear(display_t *d, font_t *font, gameData_t *gameData){
     }
 
     if(gameData->frameCount > 420){
-        drawText(d, font, highScoreNewEntryColors[(gameData->frameCount >> 3) % 4], "Bonus 100000pts per life!", 8, 192);
+        drawText(d, font, (gameData->lives > 0) ? highScoreNewEntryColors[(gameData->frameCount >> 3) % 4] : c555, "Bonus 200000pts per life!", (d->w - textWidth(font, "Bonus 100000pts per life!")) / 2, 192);
     }
 
     /*
@@ -1280,7 +1292,7 @@ void updateNameEntry(platformer_t *self){
 }
 
 void drawNameEntry(display_t *d, font_t *font, gameData_t *gameData, uint8_t currentInitial){
-    drawText(d, font, greenColors[(platformer->gameData.frameCount >> 3) % 4], "Enter your initials!", 48, 64);
+    drawText(d, font, greenColors[(platformer->gameData.frameCount >> 3) % 4], "Enter your initials!", (d->w - textWidth(font, "Enter your initials!")) / 2, 64);
 
     char rowStr[32];
     snprintf(rowStr, sizeof(rowStr) - 1, "%d   %06u", gameData->rank+1, gameData->score);
@@ -1331,11 +1343,11 @@ void updateShowHighScores(platformer_t *self){
 
 void drawShowHighScores(display_t *d, font_t *font, uint8_t menuState){
     if(platformer->easterEgg){
-        drawText(d, font, highScoreNewEntryColors[(platformer->gameData.frameCount >> 3) % 4], "Happy Birthday, Evelyn!", 20, 32);
+        drawText(d, font, highScoreNewEntryColors[(platformer->gameData.frameCount >> 3) % 4], "Happy Birthday, Evelyn!", (d->w - textWidth(font, "Happy Birthday, Evelyn!")) / 2, 32);
     } else if(menuState == 3){
-        drawText(d, font, redColors[(platformer->gameData.frameCount >> 3) % 4], "Your name registrated.", 24, 32);
+        drawText(d, font, redColors[(platformer->gameData.frameCount >> 3) % 4], "Your name registrated.", (d->w - textWidth(font, "Your name registrated.")) / 2, 32);
     } else {
-        drawText(d, font, c555, "Do your best!", 72, 32);
+        drawText(d, font, c555, "Do your best!", (d->w - textWidth(font, "Do your best!")) / 2, 32);
     }
 }
 
@@ -1366,7 +1378,7 @@ void updatePause(platformer_t *self){
 }
 
 void drawPause(display_t *d, font_t *font){
-    drawText(d, font, c555, "-Pause-", 108, 128);
+    drawText(d, font, c555, "-Pause-", (d->w - textWidth(font, "-Pause-")) / 2, 128);
 }
 
 uint16_t getLevelIndex(uint8_t world, uint8_t level){

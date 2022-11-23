@@ -187,7 +187,7 @@ const char str_version_mismatch[] = "Version Mismatch";
 const char str_visit_swadge_com[] = "Visit swadge.com";
 
 // Must match order of fightingCharacter_t
-const char* charNames[3] =
+const char* const charNames[3] =
 {
     str_charKD,
     str_charSN,
@@ -195,7 +195,7 @@ const char* charNames[3] =
 };
 
 // Must match order of fightingCharacter_t
-const char* charNamesShort[3] =
+const char* const charNamesShort[3] =
 {
     str_charKD,
     str_charSN_short,
@@ -609,7 +609,7 @@ void fighterMainMenuCb(const char* opt)
         fm->screen = FIGHTER_CONNECTING;
         // Initialize p2p
         p2pDeinit(&(fm->p2p));
-        p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
+        p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -35);
         // Start the connection
         p2pStartConnection(&fm->p2p);
 
@@ -716,7 +716,7 @@ void fighterWireMultiMenuCb(const char* opt)
     fm->screen = FIGHTER_CONNECTING;
     // Initialize p2p
     p2pDeinit(&(fm->p2p));
-    p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -20);
+    p2pInitialize(&(fm->p2p), 'F', fighterP2pConCbFn, fighterP2pMsgRxCbFn, -35);
     // Start the connection
     p2pStartConnection(&fm->p2p);
 

@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "esp_timer.h"
 #include "esp_log.h"
@@ -139,11 +140,11 @@ const hid_gamepad_button_bm_t touchMap[] =
 
 const hid_gamepad_button_bm_t touchMapNs[] =
 {
-    GAMEPAD_BUTTON_Y,
-    GAMEPAD_BUTTON_TL,
-    GAMEPAD_BUTTON_Z,
-    GAMEPAD_BUTTON_TR,
-    GAMEPAD_BUTTON_X,
+    GAMEPAD_NS_BUTTON_Y,
+    GAMEPAD_NS_BUTTON_TL,
+    GAMEPAD_NS_BUTTON_Z,
+    GAMEPAD_NS_BUTTON_TR,
+    GAMEPAD_NS_BUTTON_X,
 };
 
 //==============================================================================
@@ -179,6 +180,7 @@ void gamepadExitMode(void)
     if(gamepad != NULL){
         freeFont(&(gamepad->ibmFont));
         free(gamepad);
+        gamepad = NULL;
     }
 }
 
@@ -256,6 +258,9 @@ void gamepadStart(display_t* disp, gamepadType_t type){
     gamepad->gpNsState.rx = 128;
     gamepad->gpNsState.ry = 128;
 
+    led_t leds[NUM_LEDS];
+    memset(leds, 0, sizeof(leds));
+    setLeds(leds, NUM_LEDS);
 
     // Load the font
     loadFont("ibm_vga8.font", &(gamepad->ibmFont));
@@ -524,7 +529,18 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
     else
     {
         // If it's not plugged in, give a hint
-        const char plugInText[] = "Plug USB-C into computer please!";
+        const char* plugInText;
+        switch(gamepad->gamepadType){
+            case GAMEPAD_NS:{
+                plugInText = "Plug USB-C into Switch please!";
+                break;
+            }
+            case GAMEPAD_GENERIC:
+            default: {
+                plugInText = "Plug USB-C into computer please!";
+                break;
+            }
+        }
         tWidth = textWidth(&gamepad->ibmFont, plugInText);
         drawText(gamepad->disp, &gamepad->ibmFont, c555, plugInText,
                  (gamepad->disp->w - tWidth) / 2,

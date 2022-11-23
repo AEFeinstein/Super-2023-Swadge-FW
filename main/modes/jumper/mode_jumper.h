@@ -112,17 +112,18 @@ typedef struct
     float ledTimer;
     uint8_t numTiles;
     uint8_t lives;
-    int32_t level;
+    uint16_t level;
     int32_t time;
     int32_t previousSecond;
     int32_t freezeTimer;
     int32_t seconds;
     int8_t blockOffset_x;
     int8_t blockOffset_y;
-    uint32_t score;
+    int32_t score;
     uint8_t combo;
     uint8_t perfect;
     bool pauseRelease;
+    bool smallerScoreFont;
 
     jumperPowerup_t* currentPowerup;
 
@@ -148,6 +149,7 @@ typedef struct
     jumperGamePhase_t currentPhase;
     int64_t frameElapsed;
     display_t* d;
+    font_t smaller_game_font;
     font_t game_font;
     font_t outline_font;
     font_t fill_font;
@@ -158,7 +160,7 @@ typedef struct
     uint8_t respawnBlock;
 
     uint64_t jumperJumpTime;
-    uint32_t highScore;
+    int32_t highScore;
 
     jumperCharacter_t* player;
     jumperCharacter_t* evilDonut;

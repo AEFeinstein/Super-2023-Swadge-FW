@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <esp_log.h>
 #include <string.h>
+#include <esp_heap_caps.h>
 
 #include "tilemap.h"
 #include "leveldef.h"
@@ -135,7 +136,7 @@ void scrollTileMap(tilemap_t *tilemap, int16_t x, int16_t y)
     }
 }
 
-bool loadMapFromFile(tilemap_t *tilemap, char *name)
+bool loadMapFromFile(tilemap_t *tilemap, const char *name)
 {
     if (tilemap->map != NULL)
     {
@@ -153,7 +154,7 @@ bool loadMapFromFile(tilemap_t *tilemap, char *name)
     uint8_t width = buf[0];
     uint8_t height = buf[1];
 
-    tilemap->map = (uint8_t *)calloc(width * height, sizeof(uint8_t));
+    tilemap->map = (uint8_t *)heap_caps_calloc(width * height, sizeof(uint8_t), MALLOC_CAP_SPIRAM);
     memcpy(tilemap->map, &buf[2], width * height);
 
     tilemap->mapWidth = width;

@@ -25,7 +25,7 @@ typedef enum
     KEY_SHIFT     = 0x01,
     KEY_CAPSLOCK  = 0x02,
     KEY_BACKSPACE = 0x03,
-    KEY_SPACE     = 0x04,
+    KEY_SPACE     = 0x20,
     KEY_EOL       = 0x05,
     KEY_TAB       = 0x09,
     KEY_ENTER     = 0x0A,
@@ -35,7 +35,7 @@ typedef enum
  * Variables
  *==========================================================================*/
 
-static font_t textEntryIBM;
+static font_t * textEntryIBM;
 static int texLen;
 static char* texString;
 static keyModifier_t keyMod;
@@ -47,6 +47,8 @@ static display_t * textEntryDisplay;
 #define WHITE 215
 
 #define KB_LINES 5
+#define ENTER_X 12
+#define ENTER_Y 2
 
 // See controlChar_t
 static const char keyboard_upper[] = "\
@@ -54,7 +56,7 @@ static const char keyboard_upper[] = "\
 \x09QWERTYUIOP{}|\x05\
 \002ASDFGHJKL:\"\x0a\x05\
 \x01ZXCVBNM<>?\x01\x05\
-\x04";
+\x20";
 
 // See controlChar_t
 static const char keyboard_lower[] = "\
@@ -62,7 +64,7 @@ static const char keyboard_lower[] = "\
 \x09qwertyuiop[]\\\x05\
 \002asdfghjkl;\'\x0a\x05\
 \x01zxcvbnm,./\x01\x05\
-\x04";
+\x20";
 
 static const uint8_t lengthperline[] = { 14, 14, 13, 12, 1 };
 
@@ -72,22 +74,23 @@ static const uint8_t lengthperline[] = { 14, 14, 13, 12, 1 };
 
 /**
  * Initialize the text entry
- *
+ * 
+ * @param usedisp The display to draw to
+ * @param usefont The font to use, should be ibm_vga8
  * @param max_len The length of buffer
  * @param buffer  A char* to store the entered text in
  */
-void textEntryStart( display_t * usedisp, int max_len, char* buffer )
+void textEntryStart( display_t * usedisp, font_t * usefont, int max_len, char* buffer )
 {
     textEntryDisplay = usedisp;
     texLen = max_len;
     texString = buffer;
+    selx = 1;
+    sely = 1;
     keyMod = NO_SHIFT;
     texString[0] = 0;
     cursorTimer = 0;
-    if( !textEntryIBM.h )
-    {
-        loadFont("ibm_vga8.font", &textEntryIBM);
-    }
+    textEntryIBM = usefont;
 }
 
 /**
@@ -114,13 +117,13 @@ bool textEntryDraw(void)
     // Draw the text entered so far
     {
         const int16_t text_h = 32;
-        int16_t textLen = textWidth(&textEntryIBM, texString) + textEntryIBM.chars[0].w;
-        int16_t endPos = drawText( textEntryDisplay, &textEntryIBM, WHITE, texString, (textEntryDisplay->w - textLen)/2, text_h);
+        int16_t textLen = textWidth(textEntryIBM, texString) + textEntryIBM->chars[0].w;
+        int16_t endPos = drawText( textEntryDisplay, textEntryIBM, WHITE, texString, (textEntryDisplay->w - textLen)/2, text_h);
     
         // If the blinky cursor should be shown, draw it
         if( (cursorTimer++) & 0x10 )
         {
-            plotLine( textEntryDisplay, endPos + 1, text_h-2, endPos + 1, text_h + textEntryIBM.h + 1, WHITE, 0 );
+            plotLine( textEntryDisplay, endPos + 1, text_h-2, endPos + 1, text_h + textEntryIBM->h + 1, WHITE, 0 );
         }
     }
 
@@ -129,24 +132,24 @@ bool textEntryDraw(void)
     {
         case SHIFT:
         {
-            int16_t width = textWidth(&textEntryIBM, "Typing: Upper");
-            int16_t typingWidth = textWidth(&textEntryIBM, "Typing: ");
-            drawText( textEntryDisplay, &textEntryIBM, WHITE, "Typing: Upper", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM.h - 2);
-            plotLine( textEntryDisplay, (textEntryDisplay->w - width)/2 + typingWidth, textEntryDisplay->h - 1, textEntryDisplay->w - 1, textEntryDisplay->h - 1, WHITE, 0);
+            int16_t width = textWidth(textEntryIBM, "Typing: Upper");
+            int16_t typingWidth = textWidth(textEntryIBM, "Typing: ");
+            drawText( textEntryDisplay, textEntryIBM, WHITE, "Typing: Upper", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM->h - 2);
+            plotLine( textEntryDisplay, (textEntryDisplay->w - width)/2 + typingWidth, textEntryDisplay->h - 1, (textEntryDisplay->w - width)/2 + width, textEntryDisplay->h - 1, WHITE, 0);
             break;
         }
         case NO_SHIFT:
         {
-            int16_t width = textWidth(&textEntryIBM, "Typing: Lower");
-            drawText(textEntryDisplay, &textEntryIBM, WHITE,  "Typing: Lower", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM.h - 2);
+            int16_t width = textWidth(textEntryIBM, "Typing: Lower");
+            drawText(textEntryDisplay, textEntryIBM, WHITE,  "Typing: Lower", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM->h - 2);
             break;
         }
         case CAPS_LOCK:
         {
-            int16_t width = textWidth(&textEntryIBM, "Typing: CAPS LOCK");
-            int16_t typingWidth = textWidth(&textEntryIBM, "Typing: ");
-            drawText(textEntryDisplay, &textEntryIBM, WHITE, "Typing: CAPS LOCK", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM.h - 2 );
-            plotLine(textEntryDisplay, (textEntryDisplay->w - width)/2 + typingWidth, textEntryDisplay->h - 1, textEntryDisplay->w - 1, textEntryDisplay->h - 1, WHITE, 0);
+            int16_t width = textWidth(textEntryIBM, "Typing: CAPS LOCK");
+            int16_t typingWidth = textWidth(textEntryIBM, "Typing: ");
+            drawText(textEntryDisplay, textEntryIBM, WHITE, "Typing: CAPS LOCK", (textEntryDisplay->w - width)/2, textEntryDisplay->h - textEntryIBM->h - 2 );
+            plotLine(textEntryDisplay, (textEntryDisplay->w - width)/2 + typingWidth, textEntryDisplay->h - 1, (textEntryDisplay->w - width)/2 + width, textEntryDisplay->h - 1, WHITE, 0);
             break;
         }
         default:
@@ -181,49 +184,49 @@ bool textEntryDraw(void)
                 case KEY_CAPSLOCK:
                 {
                     // Draw shift/capslock
-                    plotLine( textEntryDisplay, posx, posy + 4, posx + 2, posy + 4, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 1, posy + 4, posx + 1, posy, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 1, posy, posx + 3, posy + 2, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 1, posy, posx - 1, posy + 2, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 1, posy + 4, posx + 3, posy + 4, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 2, posy + 4, posx + 2, posy + 0, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 2, posy + 0, posx + 4, posy + 2, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 2, posy + 0, posx + 0, posy + 2, WHITE, 0 );
                     break;
                 }
                 case KEY_BACKSPACE:
                 {
                     // Draw backspace
-                    plotLine( textEntryDisplay, posx - 1, posy + 2, posx + 3, posy + 2, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx - 1, posy + 2, posx + 1, posy + 0, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx - 1, posy + 2, posx + 1, posy + 4, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 0, posy + 2, posx + 4, posy + 2, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 0, posy + 2, posx + 2, posy + 0, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 0, posy + 2, posx + 2, posy + 4, WHITE, 0 );
                     break;
                 }
                 case KEY_SPACE:
                 {
                     // Draw spacebar
                     plotRect( textEntryDisplay, posx + 1, posy + 1, posx + 160, posy + 3, WHITE);
-                    width = 161;
+                    width = 163;
                     break;
                 }
                 case KEY_TAB:
                 {
                     // Draw tab
-                    plotLine( textEntryDisplay, posx - 1, posy + 2, posx + 3, posy + 2, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 3, posy + 2, posx + 1, posy + 0, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 3, posy + 2, posx + 1, posy + 4, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx - 1, posy + 0, posx - 1, posy + 4, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 0, posy + 2, posx + 4, posy + 2, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 4, posy + 2, posx + 2, posy + 0, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 4, posy + 2, posx + 2, posy + 4, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 0, posy + 0, posx + 0, posy + 4, WHITE, 0 );
                     break;
                 }
                 case KEY_ENTER:
                 {
                     // Draw an OK for enter
 
-                    drawText( textEntryDisplay, &textEntryIBM, WHITE, "OK", posx, posy );
-                    width = textWidth(& textEntryIBM, "OK");
+                    drawText( textEntryDisplay, textEntryIBM, WHITE, "OK", posx, posy );
+                    width = textWidth(textEntryIBM, "OK") + 2;
                     break;
                 }
                 default:
                 {
                     // Just draw the char
                     char sts[] = {c, 0};
-                    drawText(textEntryDisplay, &textEntryIBM, WHITE, sts, posx, posy );
+                    drawText(textEntryDisplay, textEntryIBM, WHITE, sts, posx, posy );
                 }
             }
             if( x == selx && y == sely )
@@ -265,7 +268,6 @@ bool textEntryInput( uint8_t down, uint8_t button )
     switch( button )
     {
         case BTN_A:
-        case BTN_B:
         {
             // User selected this key
             int stringLen = strlen(texString);
@@ -323,6 +325,16 @@ bool textEntryInput( uint8_t down, uint8_t button )
             }
             break;
         }
+        case BTN_B:
+        {
+            int stringLen = strlen(texString);
+            // If there is any text, delete the last char
+            if(stringLen > 0)
+            {
+                texString[stringLen - 1] = 0;
+            }
+            break;
+        }
         case LEFT:
         {
             // Move cursor
@@ -346,6 +358,29 @@ bool textEntryInput( uint8_t down, uint8_t button )
             // Move cursor
             sely--;
             break;
+        }
+        case SELECT:
+        {
+            // Rotate the keyMod from NO_SHIFT -> SHIFT -> CAPS LOCK, and back
+            if(NO_SHIFT == keyMod)
+            {
+                keyMod = SHIFT;
+            }
+            else if(SHIFT == keyMod)
+            {
+                keyMod = CAPS_LOCK;
+            }
+            else
+            {
+                keyMod = NO_SHIFT;
+            }
+            break;
+        }
+        case START:
+        {
+            // Move cursor to enter
+            selx = ENTER_X;
+            sely = ENTER_Y;
         }
         default:
         {

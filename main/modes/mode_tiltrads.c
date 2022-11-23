@@ -1186,9 +1186,11 @@ const song_t gameMusic = {
         {.note = A_5, .timeMs = 188},
         {.note = F_5, .timeMs = 188},
         {.note = A_5, .timeMs = 188},
+        {.note = SILENCE, .timeMs = 188},
+        {.note = SILENCE, .timeMs = 188},
     },
-    .numNotes = 266,
-    .shouldLoop = false
+    .numNotes = 268,
+    .shouldLoop = true
 };
 
 const song_t gameStartSting  =
