@@ -39,14 +39,7 @@
 // Defines
 //==============================================================================
 
-#define GIT_SHA1_SHORT_LENGTH 7
-
-// In case we want to use the full git SHA1 somewhere (change to 0 in CMakeLists.txt)
-#if GIT_SHA1_IS_SHORT
 #define GIT_SHA1_LENGTH 7
-#else
-#define GIT_SHA1_LENGTH 40
-#endif
 
 //==============================================================================
 // Functions Prototypes
@@ -96,7 +89,7 @@ typedef struct
     // wsg_t usb;
     int32_t autoLightDanceTimer;
     bool debugMode;
-    char gitStr[6 + GIT_SHA1_SHORT_LENGTH];
+    char gitStr[6 + GIT_SHA1_LENGTH];
 } mainMenu_t;
 
 //==============================================================================

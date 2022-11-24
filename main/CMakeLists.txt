@@ -109,4 +109,3 @@ execute_process(
 string(STRIP ${VERSION_SHA1} VERSION_SHA1)
 
 add_definitions( -DGIT_SHA1="${VERSION_SHA1}" )
-add_definitions( -DGIT_SHA1_IS_SHORT=1 )
