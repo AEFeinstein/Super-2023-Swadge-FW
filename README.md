@@ -63,9 +63,13 @@ This project uses CircleCI to build the firmware each time code is committed to 
 
 ## Windows (Powershell)
 
+### Git
+
 Did you already install `git` from [Configuring Your Environment](#configuring-your-environment)? If not, do that now.
 
-Then, you'll need to install [Python **3.10** for Windows](https://www.python.org/downloads/release/python-3108/).
+### Python
+
+Install [Python **3.10** for Windows](https://www.python.org/downloads/release/python-3108/).
 
 > **Warning**
 > 
@@ -74,6 +78,8 @@ Then, you'll need to install [Python **3.10** for Windows](https://www.python.or
 When installing Python, make sure to check off "Add Python to environment variables":
 
 ![The Python installer with the "Add Python to environment variables" option checked.](https://user-images.githubusercontent.com/231180/190054131-fa0d2d12-a520-41c1-88fc-6eb45e23654d.png)
+
+### Preparation to run PowerShell scripts
 
 Before you can run any PowerShell scripts from this repository, run this command in a PowerShell prompt to enable execution of downloaded scripts:
 
@@ -90,17 +96,19 @@ cd Super-2023-Swadge-FW
 git submodule update --init --recursive
 ```
 
+### MSYS2
+
 Next, you'll want to run the following PowerShell from the repository script to download, install, and update msys2 in one shot. Feel free to replace `C:\` with a different path if you want. Note that there may be a more up-to-date installer than the one used in this script.
 
 ```powershell
 .\setup-msys2.ps1
 ```
 
-Alternatively, install msys2 with [their installer](https://www.msys2.org/). Once you have an msys2 shell, the command to install required packages for building from an msys2 terminal after installing msys2 is:
-
-```bash
-pacman -S base-devel mingw-w64-x86_64-toolchain make zip mingw-w64-x86_64-python-pip
-```
+> Alternatively, install msys2 with [their installer](https://www.msys2.org/). Once you have an msys2 shell, the command to install required packages for building from an msys2 terminal after installing msys2 is:
+> 
+> ```bash
+> pacman -S base-devel mingw-w64-x86_64-toolchain make zip mingw-w64-x86_64-python-pip
+> ```
 
 After installing msys2, you'll need to add it to Windows's path variable. [Here are some instructions on how to do that](https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/). You must add `C:\msys64\mingw64\bin` and `C:\msys64\usr\bin` to the path, in that order, and **before** `C:\Windows\System32`. That's because two different `find.exe` programs exist, one in msys2 and one in System32, and the makefile expects the msys2 one.
 
@@ -109,6 +117,8 @@ The msys2 path variables must come **after** the Python path variables. You may 
 When it's all set up, it should look something like this:
 
 ![image](https://user-images.githubusercontent.com/231180/190054544-dc26830a-28e7-4f2f-8f7f-84550ff9d3a8.png)
+
+### ESP-IDF
 
 To set up the ESP32 toolchain, you can run the following powershell script from the repository. It will install the IDF in `~/esp/esp-idf` and the tools in `~/.espressif`. I don't recommend changing those paths.
 
