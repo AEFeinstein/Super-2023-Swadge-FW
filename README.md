@@ -161,14 +161,14 @@ git submodule update --init --recursive
 To set up the emulator build environment, you'll need to install the following packages. If your system uses the `apt` package manager, use this command:
 
 ```bash
-sudo apt install build-essential xorg-dev libx11-dev libxinerama-dev libxext-dev mesa-common-dev libglu1-mesa-dev libasound2-dev libpulse-dev
+sudo apt install build-essential xorg-dev libx11-dev libxinerama-dev libxext-dev mesa-common-dev libglu1-mesa-dev libasound2-dev libpulse-dev libasan
 ```
 
 Or if your system uses the `dnf` package manager, use these commands:
 
 ```bash
 sudo dnf group install "C Development Tools and Libraries" "Development Tools"
-sudo dnf install libX11-devel libXinerama-devel libXext-devel mesa-libGLU-devel alsa-lib-devel pulseaudio-libs-devel libudev-devel cmake
+sudo dnf install libX11-devel libXinerama-devel libXext-devel mesa-libGLU-devel alsa-lib-devel pulseaudio-libs-devel libudev-devel cmake libasan
 ```
 
 ## macOS
