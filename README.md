@@ -67,7 +67,9 @@ Did you already install `git` from [Configuring Your Environment](#configuring-y
 
 Then, you'll need to install [Python **3.10** for Windows](https://www.python.org/downloads/release/python-3108/).
 
-**IMPORTANT: Do not install Python 3.11 or any newer version!** You may install a newer update of Python 3.10 from the [releases page](https://www.python.org/downloads/windows/).
+> **Warning**
+> 
+> Do not install Python 3.11 or any newer version! You may install a newer update of Python 3.10 from the [releases page](https://www.python.org/downloads/windows/).
 
 When installing Python, make sure to check off "Add Python to environment variables":
 
