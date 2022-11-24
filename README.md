@@ -63,7 +63,11 @@ This project uses CircleCI to build the firmware each time code is committed to 
 
 ## Windows (Powershell)
 
-To set up the build environment, the first thing you'll need to install is the latest [Python for Windows](https://www.python.org/downloads/windows/). When installing Python, make sure to check off "Add Python to environment variables":
+Did you already install `git` from [Configuring Your Environment](#configuring-your-environment]? If not, do that now.
+
+To set up the build environment, the first thing you'll need to install is [Build Tools for Visual Studio](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022). When prompted what you want to install by the installer, click on the `Individual Components` tab, then search `msvc x64/x86 latest` and select the option that says `build tools` in the name, not the one that says `Spectre-mitigated libs`.
+
+Then, you'll need to install the latest [Python for Windows](https://www.python.org/downloads/windows/). When installing Python, make sure to check off "Add Python to environment variables":
 
 ![image](https://user-images.githubusercontent.com/231180/190054131-fa0d2d12-a520-41c1-88fc-6eb45e23654d.png)
 
