@@ -63,7 +63,7 @@ This project uses CircleCI to build the firmware each time code is committed to 
 
 ## Windows (Powershell)
 
-Did you already install `git` from [Configuring Your Environment](#configuring-your-environment]? If not, do that now.
+Did you already install `git` from [Configuring Your Environment](#configuring-your-environment)? If not, do that now.
 
 Then, you'll need to install [Python **3.10** for Windows](https://www.python.org/downloads/release/python-3108/).
 
