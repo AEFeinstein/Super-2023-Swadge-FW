@@ -67,9 +67,13 @@ Did you already install `git` from [Configuring Your Environment](#configuring-y
 
 To set up the build environment, the first thing you'll need to install is [Build Tools for Visual Studio](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022). When prompted what you want to install by the installer, click on the `Individual Components` tab, then search `msvc x64/x86 latest` and select the option that says `build tools` in the name, not the one that says `Spectre-mitigated libs`.
 
-Then, you'll need to install the latest [Python for Windows](https://www.python.org/downloads/windows/). When installing Python, make sure to check off "Add Python to environment variables":
+Then, you'll need to install [Python **3.10** for Windows]([https://www.python.org/downloads/windows/](https://www.python.org/downloads/release/python-3108/)).
 
-![image](https://user-images.githubusercontent.com/231180/190054131-fa0d2d12-a520-41c1-88fc-6eb45e23654d.png)
+**IMPORTANT: Do not install Python 3.11 or any newer version!** You may install a newer update of Python 3.10 from the [releases page](https://www.python.org/downloads/windows/).
+
+When installing Python, make sure to check off "Add Python to environment variables":
+
+![The Python installer with the "Add Python to environment variables" option checked.](https://user-images.githubusercontent.com/231180/190054131-fa0d2d12-a520-41c1-88fc-6eb45e23654d.png)
 
 Next, you'll need to install [msys2](https://www.msys2.org/). You can do that with their installer. Once you have an msys2 shell, the command to install required packages for building from an msys2 terminal after installing msys2 is:
 
