@@ -308,6 +308,14 @@ void paintDrawScreenCleanup(void)
 
     paintFreeCursorSprite(&paintState->cursorWsg);
 
+    for (node_t* undo = paintState->undoList.first; undo != NULL; undo = undo->next)
+    {
+        paintUndo_t* val = undo->val;
+        free(val->px);
+        free(val);
+    }
+    clear(&paintState->undoList);
+
     freeFont(&paintState->smallFont);
     freeFont(&paintState->saveMenuFont);
     freeFont(&paintState->toolbarFont);
@@ -438,7 +446,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
         paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
         paintUpdateLeds();
-        showCursor(getCursor(), &paintState->canvas);
+        while (!showCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
         paintState->unsaved = false;
         paintState->clearScreen = false;
     }
@@ -454,7 +462,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
             paintHidePickPoints();
             paintSave(&paintState->index, &paintState->canvas, paintState->selectedSlot);
             paintDrawPickPoints();
-            showCursor(getCursor(), &paintState->canvas);
+            while (!showCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
         }
         else
         {
@@ -477,7 +485,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
 
                     // Put the cursor in the middle of the screen
                     moveCursorAbsolute(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
-                    showCursor(getCursor(), &paintState->canvas);
+                    while (!showCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
                     paintUpdateLeds();
                 }
                 else
@@ -587,7 +595,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         paintDrawPickPoints();
     }
 
-    drawCursor(getCursor(), &paintState->canvas);
+    while (!drawCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
 
     if (paintHelp != NULL)
     {
@@ -610,9 +618,17 @@ void paintSaveModePrevItem(void)
         case HIDDEN:
         break;
 
+        case UNDO:
+            paintState->saveMenu = EXIT;
+        break;
+
+        case REDO:
+            paintState->saveMenu = UNDO;
+        break;
+
         case PICK_SLOT_SAVE:
         case CONFIRM_OVERWRITE:
-            paintState->saveMenu = EXIT;
+            paintState->saveMenu = REDO;
         break;
 
         case PICK_SLOT_LOAD:
@@ -637,6 +653,19 @@ void paintSaveModePrevItem(void)
     }
 
     paintState->saveMenuBoolOption = false;
+
+    // Check to make sure we can actually redo
+    if (paintState->saveMenu == REDO && !paintCanRedo())
+    {
+        // Nothing to redo, go to next
+        paintState->saveMenu = UNDO;
+    }
+
+    // Check to make sure we can actually undo
+    if (paintState->saveMenu == UNDO && !paintCanUndo())
+    {
+        paintState->saveMenu = EXIT;
+    }
 
     // If we're selecting "Load", then make sure we can actually load a slot
     if (paintState->saveMenu == PICK_SLOT_LOAD)
@@ -661,6 +690,14 @@ void paintSaveModeNextItem(void)
         case HIDDEN:
         break;
 
+        case UNDO:
+            paintState->saveMenu = REDO;
+        break;
+
+        case REDO:
+            paintState->saveMenu = PICK_SLOT_SAVE;
+        break;
+
         case PICK_SLOT_SAVE:
         case CONFIRM_OVERWRITE:
             paintState->saveMenu = PICK_SLOT_LOAD;
@@ -683,11 +720,24 @@ void paintSaveModeNextItem(void)
 
         case EXIT:
         case CONFIRM_EXIT:
-            paintState->saveMenu = PICK_SLOT_SAVE;
+            paintState->saveMenu = UNDO;
         break;
     }
 
     paintState->saveMenuBoolOption = false;
+
+    // Check to make sure we can actually undo
+    if (paintState->saveMenu == UNDO && !paintCanUndo())
+    {
+        paintState->saveMenu = REDO;
+    }
+
+    // Check to make sure we can actually redo
+    if (paintState->saveMenu == REDO && !paintCanRedo())
+    {
+        // Nothing to redo, go to next
+        paintState->saveMenu = PICK_SLOT_SAVE;
+    }
 
     // If we're selecting "Load", then make sure we can actually load a slot
     if (paintState->saveMenu == PICK_SLOT_LOAD)
@@ -726,6 +776,8 @@ void paintSaveModePrevOption(void)
         break;
 
         case HIDDEN:
+        case UNDO:
+        case REDO:
         case EDIT_PALETTE:
         case COLOR_PICKER:
         case CLEAR:
@@ -756,6 +808,8 @@ void paintSaveModeNextOption(void)
         break;
 
         case HIDDEN:
+        case UNDO:
+        case REDO:
         case EDIT_PALETTE:
         case COLOR_PICKER:
         case CLEAR:
@@ -847,6 +901,8 @@ void paintEditPaletteNextColor(void)
 
 void paintEditPaletteConfirm(void)
 {
+    paintStoreUndo(&paintState->canvas);
+
     // Save the old color, and update the palette with the new color
     paletteColor_t old = paintState->canvas.palette[paintState->paletteSelect];
     paletteColor_t new = paintState->newColor;
@@ -885,7 +941,7 @@ void paintEditPaletteConfirm(void)
         paintState->unsaved = true;
 
         paintDrawPickPoints();
-        showCursor(getCursor(), &paintState->canvas);
+        while (!showCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
     }
 }
 
@@ -987,6 +1043,26 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
             {
                 switch (paintState->saveMenu)
                 {
+                    case UNDO:
+                    {
+                        paintUndo(&paintState->canvas);
+                        if (paintState->undoHead != NULL && paintState->undoHead->prev == NULL)
+                        {
+                            paintState->saveMenu = REDO;
+                        }
+                        break;
+                    }
+
+                    case REDO:
+                    {
+                        paintRedo(&paintState->canvas);
+                        if (paintState->undoHead != NULL && paintState->undoHead->next == NULL)
+                        {
+                            paintState->saveMenu = UNDO;
+                        }
+                        break;
+                    }
+
                     case PICK_SLOT_SAVE:
                     {
                         if (paintGetSlotInUse(paintState->index, paintState->selectedSlot))
@@ -1577,6 +1653,174 @@ void paintHandleDpad(uint16_t state)
     }
 }
 
+void paintStoreUndo(paintCanvas_t* canvas)
+{
+    // If paintState->undoHead is set, we need to clear all the previous undos to delete the alternate timeline
+    uint8_t deleted = 0;
+    while (paintState->undoHead != NULL)
+    {
+        // Save the next pointer before the node gets freed
+        node_t* next = paintState->undoHead->next;
+
+        paintUndo_t* delUndo = removeEntry(&paintState->undoList, paintState->undoHead);
+
+        // Free the undo data pixels and then the struct itself
+        free(delUndo->px);
+        free(delUndo);
+
+        paintState->undoHead = next;
+        deleted++;
+    }
+    if (deleted > 0)
+    {
+        PAINT_LOGD("Deleted %d dangling undos after changing history", deleted);
+    }
+    // paintState->undoHead should now be NULL
+
+    // Allocate a new paintUndo_t to store the canvas
+    paintUndo_t* undoData = malloc(sizeof(paintUndo_t));
+    size_t pxCount = canvas->w * canvas->h;
+
+    undoData->px = calloc(pxCount, sizeof(paletteColor_t));
+    if (!undoData->px)
+    {
+        // Allocation failed! Reuse the first undo data, if there is one
+        PAINT_LOGD("Failed to allocate undo data of size %zu! Removing first...", pxCount);
+        undoData = shift(&paintState->undoList);
+
+        if (!undoData)
+        {
+            PAINT_LOGD("No first undo data! Canceling undo");
+            // There's no undo data at all! We're completely out of space!
+            return;
+        }
+    }
+
+    // Save the palette
+    memcpy(undoData->palette, canvas->palette, sizeof(paletteColor_t) * PAINT_MAX_COLORS);
+
+    hideCursor(getCursor(), canvas);
+    // Save the pixel data
+    for (size_t n = 0; n < pxCount; n++)
+    {
+        uint16_t x = n % canvas->w;
+        uint16_t y = n / canvas->w;
+
+        undoData->px[n] = canvas->disp->getPx(canvas->x + x * canvas->xScale, canvas->y + y * canvas->yScale);
+    }
+    while (!showCursor(getCursor(), canvas) && paintMaybeSacrificeUndoForHeap());
+
+    push(&paintState->undoList, undoData);
+}
+
+// Delete the oldest undo entry, if one exists. Returns true if some space was made available, false otherwise.
+bool paintMaybeSacrificeUndoForHeap(void)
+{
+    if (paintState->undoList.first != NULL)
+    {
+        // Don't leave a bad pointer in undoHead
+        // This has to be done *before* calling shift()
+        if (paintState->undoHead != NULL && paintState->undoHead == paintState->undoList.first)
+        {
+            paintState->undoHead = paintState->undoHead->next;
+        }
+
+        paintUndo_t* delUndo = shift(&paintState->undoList);
+
+        free(delUndo->px);
+        free(delUndo);
+
+        return true;
+    }
+
+    return false;
+}
+
+bool paintCanUndo()
+{
+    // We can undo as long as one of these is true:
+    //  - The undoHead is NULL and undoList.last is NOT NULL
+    //  - The undoHead is NOT NULL and undoHead->prev is NOT NULL
+    return (paintState->undoHead == NULL && paintState->undoList.last != NULL) || (paintState->undoHead != NULL && paintState->undoHead->prev != NULL);
+}
+
+bool paintCanRedo()
+{
+    // We can redo as long as one of these is true:
+    //  - The undoHead is NOT NULL
+    //  - The undoHead IS NULL and the undoList.first is NOT NULL
+    bool result = paintState->undoHead != NULL && paintState->undoHead->next != NULL && paintState->undoList.first != NULL;
+    PAINT_LOGD("canRedo() returning %d because undoHead=%p, undoHead->next=%p, undoList.first=%p", result, paintState->undoHead, (paintState->undoHead != NULL) ? paintState->undoHead->next : 0, paintState->undoList.first);
+    return result;
+}
+
+void paintApplyUndo(paintCanvas_t* canvas)
+{
+    if (paintState->undoHead == NULL)
+    {
+        // If we've undone everything, or there's nothing to undo, exit early
+        PAINT_LOGD("Not undoing because undoHead is NULL");
+        return;
+    }
+
+    hideCursor(getCursor(), canvas);
+
+    paintUndo_t* undo = paintState->undoHead->val;
+    size_t pxCount = canvas->w * canvas->h;
+    for (size_t n = 0; n < pxCount; n++)
+    {
+        uint16_t x = n % canvas->w;
+        uint16_t y = n / canvas->w;
+
+        setPxScaled(canvas->disp, x, y, undo->px[n], canvas->x, canvas->y, canvas->xScale, canvas->yScale);
+    }
+
+    PAINT_LOGD("Undid %zu pixels!", pxCount);
+
+    memcpy(canvas->palette, undo->palette, sizeof(paletteColor_t) * PAINT_MAX_COLORS);
+    getArtist()->fgColor = canvas->palette[0];
+    getArtist()->bgColor = canvas->palette[1];
+
+    // feels weird to do this inside the undo functions... but it's probably ok? we've already undone anyway
+    while (!showCursor(getCursor(), canvas) && paintMaybeSacrificeUndoForHeap());
+}
+
+void paintUndo(paintCanvas_t* canvas)
+{
+    if (paintState->undoHead == NULL)
+    {
+        // We have not undone anything else yet -- use the last element in the undo list
+        node_t* head = paintState->undoList.last;
+
+        // Also, save the current state so that we can redo to it, if we actually can
+        paintStoreUndo(canvas);
+
+        paintState->undoHead = head;
+    }
+    else
+    {
+        // We have already undone something! Undo the previous action.
+        paintState->undoHead = paintState->undoHead->prev;
+    }
+
+    paintApplyUndo(canvas);
+}
+
+void paintRedo(paintCanvas_t* canvas)
+{
+    if (paintState->undoHead == NULL)
+    {
+        // We have not undone anything else -- so there's nothing to redo?
+    }
+    else
+    {
+        // We have already undone something, so there's something to redo
+        paintState->undoHead = paintState->undoHead->next;
+    }
+
+    paintApplyUndo(canvas);
+}
+
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 {
     hideCursor(getCursor(), &paintState->canvas);
@@ -1602,7 +1846,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         break;
     }
 
-    pushPxScaled(&getArtist()->pickPoints, paintState->disp, getCursor()->x, getCursor()->y, paintState->canvas.x, paintState->canvas.y, paintState->canvas.xScale, paintState->canvas.yScale);
+    while (!pushPxScaled(&getArtist()->pickPoints, paintState->disp, getCursor()->x, getCursor()->y, paintState->canvas.x, paintState->canvas.y, paintState->canvas.xScale, paintState->canvas.yScale) && paintMaybeSacrificeUndoForHeap());
 
     if (getArtist()->brushDef->mode == HOLD_DRAW)
     {
@@ -1624,7 +1868,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
             else if (isLastPick)
             {
                 // Special case: If we're on the next-to-last possible point, we have to add the start again as the last point
-                pushPx(&getArtist()->pickPoints, paintState->disp, firstPick.x, firstPick.y);
+                while (!pushPx(&getArtist()->pickPoints, paintState->disp, firstPick.x, firstPick.y) && paintMaybeSacrificeUndoForHeap());
 
                 drawNow = true;
             }
@@ -1647,6 +1891,12 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 
         while (popPxScaled(&getArtist()->pickPoints, paintState->disp, paintState->canvas.xScale, paintState->canvas.yScale));
 
+        // Save the current state before we draw, but only do it on the first press if we're using a HOLD_DRAW pen
+        if (getArtist()->brushDef->mode != HOLD_DRAW || paintState->aPress)
+        {
+            paintStoreUndo(&paintState->canvas);
+        }
+
         paintState->unsaved = true;
         getArtist()->brushDef->fnDraw(&paintState->canvas, canvasPickPoints, pickCount, getArtist()->brushWidth, col);
 
@@ -1662,7 +1912,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         paintState->blinkOn = false;
     }
 
-    showCursor(getCursor(), &paintState->canvas);
+    while (!showCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
     paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
 }
 
@@ -1691,7 +1941,7 @@ void paintSetupTool(void)
             if (paintState->cursorWsg.px == NULL || paintState->cursorWsg.w != (getArtist()->brushWidth * paintState->canvas.xScale + 2) || paintState->cursorWsg.h != (getArtist()->brushWidth * paintState->canvas.yScale + 2))
             {
                 paintFreeCursorSprite(&paintState->cursorWsg);
-                paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas, getArtist()->brushWidth);
+                while (!paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas, getArtist()->brushWidth) && paintMaybeSacrificeUndoForHeap());
             }
 
             setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
@@ -1712,7 +1962,7 @@ void paintSetupTool(void)
 
     // Undraw and hide any stored temporary pixels
     while (popPxScaled(&getArtist()->pickPoints, paintState->disp, paintState->canvas.xScale, paintState->canvas.yScale));
-    showCursor(getCursor(), &paintState->canvas);
+    while (!showCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
 }
 
 void paintPrevTool(void)

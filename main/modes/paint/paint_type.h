@@ -57,6 +57,8 @@ typedef enum
 typedef enum
 {
     HIDDEN,
+    UNDO,
+    REDO,
     PICK_SLOT_SAVE,
     PICK_SLOT_LOAD,
     CONFIRM_OVERWRITE,
@@ -131,5 +133,11 @@ typedef struct
 
     paletteColor_t palette[PAINT_MAX_COLORS];
 } paintCanvas_t;
+
+typedef struct
+{
+    paletteColor_t palette[PAINT_MAX_COLORS];
+    paletteColor_t* px;
+} paintUndo_t;
 
 #endif

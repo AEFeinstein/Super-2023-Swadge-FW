@@ -5,12 +5,14 @@
 #include "paint_common.h"
 #include "paint_util.h"
 
-void initPxStack(pxStack_t* pxStack)
+bool initPxStack(pxStack_t* pxStack)
 {
     pxStack->size = PIXEL_STACK_MIN_SIZE;
     PAINT_LOGD("Allocating pixel stack with size %zu", pxStack->size);
     pxStack->data = malloc(sizeof(pxVal_t) * pxStack->size);
     pxStack->index = -1;
+
+    return (pxStack->data != NULL);
 }
 
 void freePxStack(pxStack_t* pxStack)
@@ -24,14 +26,27 @@ void freePxStack(pxStack_t* pxStack)
     }
 }
 
-void maybeGrowPxStack(pxStack_t* pxStack)
+/**
+ * If the the pixel stack's index has grown past its max size, doubles the allocated space for the stack.
+ * Returns false if reallocation failed. Returns true if reallocation succeeded or was not necessary.
+*/
+bool maybeGrowPxStack(pxStack_t* pxStack, size_t count)
 {
-    if (pxStack->index >= pxStack->size)
+    if (pxStack->index + count >= pxStack->size)
     {
-        pxStack->size *= 2;
-        PAINT_LOGD("Expanding pixel stack to size %zu", pxStack->size);
-        pxStack->data = realloc(pxStack->data, sizeof(pxVal_t) * pxStack->size);
+        size_t newSize = pxStack->size * 2;
+        PAINT_LOGD("Expanding pixel stack to size %zu", newSize);
+        void* newPtr = realloc(pxStack->data, sizeof(pxVal_t) * newSize);
+        if (newPtr == NULL)
+        {
+            return false;
+        }
+
+        pxStack->size = newSize;
+        pxStack->data = newPtr;
     }
+
+    return true;
 }
 
 // void maybeShrinkPxStack(pxStack_t* pxStack)
@@ -57,15 +72,19 @@ void maybeGrowPxStack(pxStack_t* pxStack)
  * @param y The screen Y coordinate of the pixel to save
  *
  */
-void pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y)
+bool pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y)
 {
+    if (!maybeGrowPxStack(pxStack, 1))
+    {
+        return false;
+    }
+
     pxStack->index++;
-
-    maybeGrowPxStack(pxStack);
-
     pxStack->data[pxStack->index].x = x;
     pxStack->data[pxStack->index].y = y;
     pxStack->data[pxStack->index].col = disp->getPx(x, y);
+
+    return true;
 }
 
 /**
@@ -133,9 +152,9 @@ size_t pxStackSize(const pxStack_t* pxStack)
     return pxStack->index + 1;
 }
 
-void pushPxScaled(pxStack_t* pxStack, display_t* disp, int x, int y, int xTr, int yTr, int xScale, int yScale)
+bool pushPxScaled(pxStack_t* pxStack, display_t* disp, int x, int y, int xTr, int yTr, int xScale, int yScale)
 {
-    pushPx(pxStack, disp, xTr + x * xScale, yTr + y * yScale);
+    return pushPx(pxStack, disp, xTr + x * xScale, yTr + y * yScale);
 }
 
 bool popPxScaled(pxStack_t* pxStack, display_t* disp, int xScale, int yScale)
