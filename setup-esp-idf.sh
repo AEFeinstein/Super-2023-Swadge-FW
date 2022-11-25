@@ -1,6 +1,6 @@
 #!/bin/sh
 # Make an esp folder and move into it
-mkdir ~/esp
+mkdir -p ~/esp
 cd ~/esp
 
 # Clone the IDF and move into it
