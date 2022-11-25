@@ -459,7 +459,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         {
             hideCursor(getCursor(), &paintState->canvas);
             paintHidePickPoints();
-            paintSave(&paintState->index, &paintState->canvas, paintState->selectedSlot);
+            while (!paintSave(&paintState->index, &paintState->canvas, paintState->selectedSlot) && paintMaybeSacrificeUndoForHeap());
             paintDrawPickPoints();
             while (!showCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
         }
@@ -473,7 +473,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                 if(paintLoadDimensions(&paintState->canvas, paintState->selectedSlot))
                 {
                     paintPositionDrawCanvas();
-                    paintLoad(&paintState->index, &paintState->canvas, paintState->selectedSlot);
+                    while (!paintLoad(&paintState->index, &paintState->canvas, paintState->selectedSlot) && paintMaybeSacrificeUndoForHeap());
                     paintSetRecentSlot(&paintState->index, paintState->selectedSlot);
 
                     getArtist()->fgColor = paintState->canvas.palette[0];
