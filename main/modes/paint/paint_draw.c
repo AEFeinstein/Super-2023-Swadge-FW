@@ -311,7 +311,6 @@ void paintDrawScreenCleanup(void)
     for (node_t* undo = paintState->undoList.first; undo != NULL; undo = undo->next)
     {
         paintUndo_t* val = undo->val;
-        free(val->px);
         free(val);
     }
     clear(&paintState->undoList);
@@ -1665,7 +1664,6 @@ void paintStoreUndo(paintCanvas_t* canvas)
         paintUndo_t* delUndo = removeEntry(&paintState->undoList, paintState->undoHead);
 
         // Free the undo data pixels and then the struct itself
-        free(delUndo->px);
         free(delUndo);
 
         paintState->undoHead = next;
@@ -1678,22 +1676,29 @@ void paintStoreUndo(paintCanvas_t* canvas)
     // paintState->undoHead should now be NULL
 
     // Allocate a new paintUndo_t to store the canvas
-    paintUndo_t* undoData = malloc(sizeof(paintUndo_t));
+    paintUndo_t* undoData;
+    // Calculate the amount of space we wolud need to store the canvas pixels
     size_t pxSize = paintGetStoredSize(canvas);
 
-    undoData->px = malloc(pxSize);
-    if (!undoData->px)
+    // Allocate memory for the undo data struct and its pixel data in one go
+    void* undoMem = malloc(sizeof(paintUndo_t) + pxSize);
+    if (undoMem != NULL)
     {
-        // Allocation failed! Reuse the first undo data, if there is one
-        PAINT_LOGD("Failed to allocate undo data of size %zu! Removing first...", pxSize);
+        // Alloc succeeded, use the data
+        undoData = undoMem;
+        undoData->px = undoMem + sizeof(paintUndo_t);
+    }
+    else
+    {
+        // Alloc failed, reuse the first undo data
         undoData = shift(&paintState->undoList);
+    }
 
-        if (!undoData)
-        {
-            PAINT_LOGD("No first undo data! Canceling undo");
-            // There's no undo data at all! We're completely out of space!
-            return;
-        }
+    if (!undoData)
+    {
+        PAINT_LOGD("Failed to allocate or reuse undo data! Canceling undo");
+        // There's no undo data at all! We're completely out of space!
+        return;
     }
 
     // Save the palette
@@ -1721,7 +1726,6 @@ bool paintMaybeSacrificeUndoForHeap(void)
 
         paintUndo_t* delUndo = shift(&paintState->undoList);
 
-        free(delUndo->px);
         free(delUndo);
 
         return true;
