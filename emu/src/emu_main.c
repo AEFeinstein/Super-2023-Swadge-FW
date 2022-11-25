@@ -44,7 +44,6 @@
 #include "mode_tunernome.h"
 #include "mode_paint.h"
 #include "paint_share.h"
-#include "paint_share.h"
 #include "picross_menu.h"
 #include "mode_platformer.h"
 #include "mode_jukebox.h"
