@@ -1319,7 +1319,7 @@ typedef struct
     // POOL
     int32_t typePool[35];
     int32_t typeHistory[4];
-    list_t* typeOrder;
+    llist_t* typeOrder;
 
     // Title screen vars
     tetrad_t tutorialTetrad;
@@ -1340,7 +1340,7 @@ typedef struct
     uint32_t nextTetradGrid[NEXT_GRID_ROWS][NEXT_GRID_COLS];
     tetrad_t activeTetrad;
     tetradType_t nextTetradType;
-    list_t* landedTetrads;
+    llist_t* landedTetrads;
     bool landTetradFX; // If a tiltrad landed flash it to indicate it has locked in-place.
     bool activeTetradChange; // Tracks if the active tetrad changed in some way between frames, useful for redraw logic.
     uint32_t tetradCounter; // Used for distinguishing tetrads on the full grid, and for counting how many total tetrads have landed.
@@ -1447,7 +1447,7 @@ void transferGrid(coord_t srcOffset, uint8_t srcCols, uint8_t srcRows,
                   const uint32_t src[][srcCols], uint8_t dstCols, uint8_t dstRows, uint32_t dst[][dstCols], uint32_t transferVal);
 void clearGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]);
 void refreshTetradsGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols],
-                        list_t* fieldTetrads, tetrad_t* movingTetrad, bool includeMovingTetrad);
+                        llist_t* fieldTetrads, tetrad_t* movingTetrad, bool includeMovingTetrad);
 int16_t xFromGridCol(int16_t x0, int16_t gridCol, uint8_t unitSize);
 int16_t yFromGridRow(int16_t y0, int16_t gridRow, uint8_t unitSize);
 // void debugPrintGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]);
@@ -1513,9 +1513,9 @@ double getDropFXTimeFactor(int64_t level);
 
 bool isLineCleared(int32_t line, uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]);
 int32_t checkLineClears(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols],
-                        list_t* fieldTetrads);
+                        llist_t* fieldTetrads);
 int32_t clearLines(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols],
-                   list_t* fieldTetrads);
+                   llist_t* fieldTetrads);
 
 bool checkCollision(coord_t newPos, uint8_t tetradCols, uint8_t tetradRows,
                     const uint32_t shape[][tetradCols], uint8_t gridCols, uint8_t gridRows, const uint32_t gridData[][gridCols],
@@ -2763,7 +2763,7 @@ void clearGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]
 
 // NOTE: the grid value of every tetrad is reassigned on refresh to fix a bug that occurs where every 3 tetrads seems to ignore collision, cause unknown.
 void refreshTetradsGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols],
-                        list_t* fieldTetrads, tetrad_t* movingTetrad, bool includeMovingTetrad)
+                        llist_t* fieldTetrads, tetrad_t* movingTetrad, bool includeMovingTetrad)
 {
     clearGrid(gridCols, gridRows, gridData);
 
@@ -3491,7 +3491,7 @@ void getNumCentering(font_t* font, const char* text, int16_t achorX0, int16_t an
 
 void initTypeOrder()
 {
-    tiltrads->typeOrder = malloc(sizeof(list_t));
+    tiltrads->typeOrder = malloc(sizeof(llist_t));
     tiltrads->typeOrder->first = NULL;
     tiltrads->typeOrder->last = NULL;
     tiltrads->typeOrder->length = 0;
@@ -3728,7 +3728,7 @@ void ttSetHighScores(void)
 
 void initLandedTetrads()
 {
-    tiltrads->landedTetrads = malloc(sizeof(list_t));
+    tiltrads->landedTetrads = malloc(sizeof(llist_t));
     tiltrads->landedTetrads->first = NULL;
     tiltrads->landedTetrads->last = NULL;
     tiltrads->landedTetrads->length = 0;
@@ -3938,7 +3938,7 @@ bool isLineCleared(int32_t line, uint8_t gridCols, uint8_t gridRows __attribute_
 }
 
 int32_t checkLineClears(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols],
-                        list_t* fieldTetrads)
+                        llist_t* fieldTetrads)
 {
     // Refresh the tetrads grid before checking for any clears.
     refreshTetradsGrid(gridCols, gridRows, gridData, fieldTetrads, NULL, false);
@@ -3961,7 +3961,7 @@ int32_t checkLineClears(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][
 }
 
 int32_t clearLines(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols],
-                   list_t* fieldTetrads)
+                   llist_t* fieldTetrads)
 {
     // Refresh the tetrads grid before checking for any clears.
     refreshTetradsGrid(gridCols, gridRows, gridData, fieldTetrads, NULL, false);
