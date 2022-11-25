@@ -676,6 +676,36 @@ void demoExitMode(void)
 }
 ```
 
+# Updating your environment
+
+## Windows (Powershell)
+
+### Preparation to run PowerShell scripts
+
+If you have not yet run any PowerShell scripts from this repository, run this command in a PowerShell prompt to enable execution of downloaded scripts:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser Unrestricted
+```
+
+### ESP-IDF
+
+To update the ESP32 toolchain, you can run the following powershell script from the repository. It will only work if you have installed the IDF in `~/esp/esp-idf` and the tools in `~/.espressif`.
+
+```powershell
+.\update-esp-idf.ps1
+```
+
+## Linux
+
+### ESP-IDF
+
+To update the ESP32 build environment, you can run the following bash script from the repository. It will only work if you have installed the IDF in `~/esp/esp-idf` and the tools in `~/.espressif`.
+
+```bash
+./update-esp-idf.sh
+```
+
 # Troubleshooting
 
 Reread the [Get Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/get-started/index.html), then google your issue, then ask me about it either in a Github issue or the Slack channel. All troubleshooting issues should be written down here for posterity.
