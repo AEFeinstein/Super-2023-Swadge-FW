@@ -137,7 +137,7 @@ typedef struct
 typedef struct
 {
     paletteColor_t palette[PAINT_MAX_COLORS];
-    paletteColor_t* px;
+    uint8_t* px;
 } paintUndo_t;
 
 #endif

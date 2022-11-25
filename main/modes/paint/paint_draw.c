@@ -1679,13 +1679,13 @@ void paintStoreUndo(paintCanvas_t* canvas)
 
     // Allocate a new paintUndo_t to store the canvas
     paintUndo_t* undoData = malloc(sizeof(paintUndo_t));
-    size_t pxCount = canvas->w * canvas->h;
+    size_t pxSize = paintGetStoredSize(canvas);
 
-    undoData->px = calloc(pxCount, sizeof(paletteColor_t));
+    undoData->px = malloc(pxSize);
     if (!undoData->px)
     {
         // Allocation failed! Reuse the first undo data, if there is one
-        PAINT_LOGD("Failed to allocate undo data of size %zu! Removing first...", pxCount);
+        PAINT_LOGD("Failed to allocate undo data of size %zu! Removing first...", pxSize);
         undoData = shift(&paintState->undoList);
 
         if (!undoData)
@@ -1701,13 +1701,7 @@ void paintStoreUndo(paintCanvas_t* canvas)
 
     hideCursor(getCursor(), canvas);
     // Save the pixel data
-    for (size_t n = 0; n < pxCount; n++)
-    {
-        uint16_t x = n % canvas->w;
-        uint16_t y = n / canvas->w;
-
-        undoData->px[n] = canvas->disp->getPx(canvas->x + x * canvas->xScale, canvas->y + y * canvas->yScale);
-    }
+    paintSerialize(undoData->px, canvas, 0, pxSize);
     while (!showCursor(getCursor(), canvas) && paintMaybeSacrificeUndoForHeap());
 
     push(&paintState->undoList, undoData);
@@ -1766,16 +1760,10 @@ void paintApplyUndo(paintCanvas_t* canvas)
     hideCursor(getCursor(), canvas);
 
     paintUndo_t* undo = paintState->undoHead->val;
-    size_t pxCount = canvas->w * canvas->h;
-    for (size_t n = 0; n < pxCount; n++)
-    {
-        uint16_t x = n % canvas->w;
-        uint16_t y = n / canvas->w;
+    size_t pxSize = paintGetStoredSize(canvas);
+    paintDeserialize(canvas, undo->px, 0, pxSize);
 
-        setPxScaled(canvas->disp, x, y, undo->px[n], canvas->x, canvas->y, canvas->xScale, canvas->yScale);
-    }
-
-    PAINT_LOGD("Undid %zu pixels!", pxCount);
+    PAINT_LOGD("Undid %zu bytes!", pxSize);
 
     memcpy(canvas->palette, undo->palette, sizeof(paletteColor_t) * PAINT_MAX_COLORS);
     getArtist()->fgColor = canvas->palette[0];

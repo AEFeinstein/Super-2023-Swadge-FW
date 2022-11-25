@@ -111,6 +111,14 @@ void paintSetRecentSlot(int32_t* index, uint8_t slot)
     paintSaveIndex(*index);
 }
 
+/**
+ * Returns the number of bytes needed to store the image pixel data
+ */
+size_t paintGetStoredSize(const paintCanvas_t* canvas)
+{
+    return (canvas->w * canvas->h + 1) / 2;
+}
+
 bool paintDeserialize(paintCanvas_t* dest, const uint8_t* data, size_t offset, size_t count)
 {
     uint8_t paletteIndex[cTransparent + 1];
@@ -234,9 +242,6 @@ bool paintSave(int32_t* index, const paintCanvas_t* canvas, uint8_t slot)
     {
         paletteIndex[((uint8_t)canvas->palette[i])] = i;
     }
-
-    //PAINT_LOGD("We will use %d chunks of size %dB (%d), plus one of %uB == %dB to save the image", chunkCount - 1, PAINT_SAVE_CHUNK_SIZE, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE, finalChunkSize, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE + finalChunkSize);
-    //PAINT_LOGD("The image is %d x %d px == %upx, at 2px/B that's %uB", canvas->w, canvas->h, totalPx, totalPx / 2);
 
     size_t offset = 0;
     size_t written = 0;
