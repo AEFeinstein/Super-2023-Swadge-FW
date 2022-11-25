@@ -2737,6 +2737,7 @@ void  jukeboxEnterMode(display_t* disp)
     portableDanceDisableDance(jukebox->portableDances, "Pulse B");
     portableDanceDisableDance(jukebox->portableDances, "Fire G");
     portableDanceDisableDance(jukebox->portableDances, "Fire B");
+    portableDanceDisableDance(jukebox->portableDances, "Flashlight");
 
     setJukeboxMainMenu(true);
 

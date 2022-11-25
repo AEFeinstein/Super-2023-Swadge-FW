@@ -333,7 +333,7 @@ static void flightEndGame()
     if( flightTimeHighScorePlace( flight->wintime, flight->beans == MAX_BEANS ) < NUM_FLIGHTSIM_TOP_SCORES )
     {
         flight->mode = FLIGHT_HIGH_SCORE_ENTRY;
-        textEntryStart( flight->disp, FLIGHT_HIGH_SCORE_NAME_LEN+1, flight->highScoreNameBuffer );
+        textEntryStart( flight->disp, &flight->ibm, FLIGHT_HIGH_SCORE_NAME_LEN+1, flight->highScoreNameBuffer );
     }
     else
     {
@@ -454,7 +454,7 @@ static void flightStartGame( flightModeScreen mode )
 static void flightUpdate(void* arg __attribute__((unused)))
 {
     display_t * disp = flight->disp;
-    static const char * EnglishNumberSuffix[] = { "st", "nd", "rd", "th" };
+    static const char* const EnglishNumberSuffix[] = { "st", "nd", "rd", "th" };
     switch(flight->mode)
     {
         default:

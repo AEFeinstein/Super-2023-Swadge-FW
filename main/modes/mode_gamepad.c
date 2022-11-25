@@ -146,11 +146,11 @@ const hid_gamepad_button_bm_t touchMap[] =
 
 const hid_gamepad_button_bm_t touchMapNs[] =
 {
-    GAMEPAD_BUTTON_Y,
-    GAMEPAD_BUTTON_TL,
-    GAMEPAD_BUTTON_Z,
-    GAMEPAD_BUTTON_TR,
-    GAMEPAD_BUTTON_X,
+    GAMEPAD_NS_BUTTON_Y,
+    GAMEPAD_NS_BUTTON_TL,
+    GAMEPAD_NS_BUTTON_Z,
+    GAMEPAD_NS_BUTTON_TR,
+    GAMEPAD_NS_BUTTON_X,
 };
 
 //==============================================================================

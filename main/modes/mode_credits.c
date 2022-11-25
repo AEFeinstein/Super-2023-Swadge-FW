@@ -59,7 +59,7 @@ swadgeMode modeCredits =
 };
 
 // Everyone's here
-static const char* creditNames[] =
+static const char* const creditNames[] =
 {
     "Adam Feinstein\n",
     "Agnew\n",
