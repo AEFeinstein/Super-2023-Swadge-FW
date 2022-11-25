@@ -76,10 +76,6 @@ void paintSetBrushWidth(uint8_t width);
 void paintDecBrushWidth(uint8_t dec);
 void paintIncBrushWidth(uint8_t inc);
 
-// Cursor helper functions
-void enableCursor(void);
-void disableCursor(void);
-
 // Artist helpers
 paintArtist_t* getArtist(void);
 paintCursor_t* getCursor(void);
