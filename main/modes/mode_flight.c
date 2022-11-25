@@ -89,6 +89,7 @@ void setFlightSaveData( flightSimSaveData_t * sd )
 #define PROMPT_COLOR 92
 #define MAX_COLOR cTransparent
 
+#define flightGetCourseTimeUs() ( flight->paused ? (flight->timeOfPause - flight->timeOfStart) : ((uint32_t)esp_timer_get_time() - flight->timeOfStart) )
 
 #define TFT_WIDTH 280
 #define TFT_HEIGHT 240
@@ -131,6 +132,7 @@ typedef struct
     display_t * disp;
     int frames, tframes;
     uint8_t buttonState;
+    bool paused;
 
     int16_t planeloc[3];
     int32_t planeloc_fine[3];
@@ -153,6 +155,8 @@ typedef struct
     int ondonut;
     uint32_t timeOfStart;
     uint32_t timeGot100Percent;
+    uint32_t timeAccumulatedAtPause;
+    uint32_t timeOfPause;
     int wintime;
     bool inverty;
     uint8_t menuEntryForInvertY;
@@ -203,6 +207,9 @@ static const char fl_flight_env[] = "Atrium Course";
 static const char fl_flight_invertY0_env[] = "Y Invert: Off";
 static const char fl_flight_invertY1_env[] = "Y Invert: On";
 static const char fl_flight_perf[] = "Free Flight";
+static const char fl_100_percent[] = "100% 100% 100%";
+static const char fl_turn_around[] = "TURN AROUND";
+static const char fl_paused[] = "PAUSED";
 static const char str_quit[] = "Exit";
 static const char str_high_scores[] = "High Scores";
 
@@ -410,6 +417,8 @@ static void flightStartGame( flightModeScreen mode )
     flight->mode = mode;
     flight->frames = 0;
 
+    flight->paused = false;
+
 	if( mode == FLIGHT_PERFTEST )
 	{
 		setFrameRateUs( 0 );
@@ -423,6 +432,7 @@ static void flightStartGame( flightModeScreen mode )
     flight->beans = 0; //Set to MAX_BEANS for 100% instant.
     flight->timeOfStart = (uint32_t)esp_timer_get_time();//-1000000*190; (Do this to force extra coursetime)
     flight->timeGot100Percent = 0;
+    flight->timeOfPause = 0;
     flight->wintime = 0;
     flight->speed = 0;
 
@@ -460,7 +470,7 @@ static void flightUpdate(void* arg __attribute__((unused)))
         default:
         case FLIGHT_MENU:
         {
-               drawMeleeMenu(flight->disp, flight->menu);
+            drawMeleeMenu(flight->disp, flight->menu);
             break;
         }
         case FLIGHT_PERFTEST:
@@ -997,7 +1007,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
                 {
                     flightLEDAnimate( FLIGHT_LED_ENDING );
                     tflight->frames = 0;
-                    tflight->wintime = ((uint32_t)esp_timer_get_time() - tflight->timeOfStart)/10000;
+                    tflight->wintime = flightGetCourseTimeUs() / 10000;
                     tflight->mode = FLIGHT_GAME_OVER;
                 }
             }
@@ -1103,7 +1113,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
             fillDisplayArea(disp, 0, 0, TFT_WIDTH, flight->radiostars.h + 1, CNDRAW_BLACK);
 
             //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
-            int elapsed = ((uint32_t)esp_timer_get_time()-tflight->timeOfStart)/10000;
+            int elapsed = flightGetCourseTimeUs() / 10000;
 
             snprintf(framesStr, sizeof(framesStr), "%d/%d, %d", tflight->ondonut, MAX_DONUTS, tflight->beans );
             // width = textWidth(&flight->radiostars, framesStr);
@@ -1131,10 +1141,17 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
         fillDisplayArea(disp, TFT_WIDTH - width-50, TFT_HEIGHT - flight->radiostars.h - 1, TFT_WIDTH, TFT_HEIGHT, CNDRAW_BLACK);
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - width + 1-50, TFT_HEIGHT - flight->radiostars.h );
 
+        if(flight->paused)
+        {
+            width = textWidth(&flight->ibm, fl_paused);
+            fillDisplayArea(disp, (TFT_WIDTH - width) / 2 - 2, TFT_HEIGHT / 4 - 2, (TFT_WIDTH + width) / 2 + 2, TFT_HEIGHT / 4 + flight->ibm.h + 2, CNDRAW_BLACK);
+            drawText(disp, &flight->ibm, PROMPT_COLOR, fl_paused, (TFT_WIDTH - width) / 2, TFT_HEIGHT / 4);
+        }
+
         if(flight->oob)
         {
-            width = textWidth(&flight->ibm, "TURN AROUND");
-            drawText(disp, &flight->ibm, PROMPT_COLOR, "TURN AROUND", (TFT_WIDTH - width) / 2, (TFT_HEIGHT - 4 * flight->ibm.h) / 2);
+            width = textWidth(&flight->ibm, fl_turn_around);
+            drawText(disp, &flight->ibm, PROMPT_COLOR, fl_turn_around, (TFT_WIDTH - width) / 2, (TFT_HEIGHT - 6 * flight->ibm.h) / 2);
         }
 
         // Draw crosshairs.
@@ -1158,10 +1175,10 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
     if( tflight->beans >= MAX_BEANS )
     {
         if( tflight->timeGot100Percent == 0 )
-            tflight->timeGot100Percent = ((uint32_t)esp_timer_get_time() - tflight->timeOfStart);
+            tflight->timeGot100Percent = flightGetCourseTimeUs();
 
-        int crazy = (((uint32_t)esp_timer_get_time() - tflight->timeOfStart)-tflight->timeGot100Percent) < 3000000;
-        drawText( disp, &flight->ibm, crazy?( tflight->tframes * 9 % MAX_COLOR ):PROMPT_COLOR, "100% 100% 100%", 10+75, 52+50 );
+        int crazy = (flightGetCourseTimeUs() - tflight->timeGot100Percent) < 3000000;
+        drawText( disp, &flight->ibm, crazy?( tflight->tframes * 9 % MAX_COLOR ):PROMPT_COLOR, fl_100_percent, (TFT_WIDTH - textWidth(&flight->ibm, fl_100_percent)) / 2, (TFT_HEIGHT - 4 * flight->ibm.h) / 2 + 2);
     }
 
     //If perf test, force full frame refresh
@@ -1183,6 +1200,11 @@ static void flightGameUpdate( flight_t * tflight )
     if( tflight->mode == FLIGHT_GAME_OVER && ( bs & 16 ) && flight->frames > 199 )
     {
         flightEndGame();
+    }
+
+    if( flight->paused )
+    {
+        return;
     }
 
     if( tflight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_PERFTEST )
@@ -1351,11 +1373,31 @@ void flightButtonCallback( buttonEvt_t* evt )
             }
             break;
         }
-        case FLIGHT_GAME_OVER:
         case FLIGHT_PERFTEST:
         case FLIGHT_GAME:
         {
+            if(evt->down && evt->button == START)
+            {
+                // If we're about to pause, save current course time
+                if(!flight->paused)
+                {
+                    flight->timeOfPause = (uint32_t)esp_timer_get_time();
+                }
+                // If we're about to resume, subtract time spent paused from start time
+                else
+                {
+                    flight->timeOfStart += ((uint32_t)esp_timer_get_time() - flight->timeOfPause);
+                }
+
+                flight->paused = !flight->paused;
+            }
+
+            // Intentional fallthrough
+        }
+        case FLIGHT_GAME_OVER:
+        {
             flight->buttonState = state;
+
             break;
         }
     }
@@ -1418,4 +1460,3 @@ static void flightTimeHighScoreInsert( int insertplace, bool is100percent, char 
     sd->timeCentiseconds[insertplace+is100percent*NUM_FLIGHTSIM_TOP_SCORES] = timeCentiseconds;
     setFlightSaveData( sd );
 }
-
