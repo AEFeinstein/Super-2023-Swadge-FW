@@ -1772,14 +1772,15 @@ void paintApplyUndo(paintCanvas_t* canvas)
     hideCursor(getCursor(), canvas);
 
     paintUndo_t* undo = paintState->undoHead->val;
-    size_t pxSize = paintGetStoredSize(canvas);
-    paintDeserialize(canvas, undo->px, 0, pxSize);
-
-    PAINT_LOGD("Undid %zu bytes!", pxSize);
 
     memcpy(canvas->palette, undo->palette, sizeof(paletteColor_t) * PAINT_MAX_COLORS);
     getArtist()->fgColor = canvas->palette[0];
     getArtist()->bgColor = canvas->palette[1];
+
+    size_t pxSize = paintGetStoredSize(canvas);
+    paintDeserialize(canvas, undo->px, 0, pxSize);
+
+    PAINT_LOGD("Undid %zu bytes!", pxSize);
 
     // feels weird to do this inside the undo functions... but it's probably ok? we've already undone anyway
     while (!showCursor(getCursor(), canvas) && paintMaybeSacrificeUndoForHeap());
