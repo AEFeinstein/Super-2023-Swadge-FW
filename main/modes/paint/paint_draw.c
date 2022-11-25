@@ -1704,10 +1704,18 @@ void paintStoreUndo(paintCanvas_t* canvas)
     // Save the palette
     memcpy(undoData->palette, canvas->palette, sizeof(paletteColor_t) * PAINT_MAX_COLORS);
 
-    hideCursor(getCursor(), canvas);
+    bool cursorVisible = getCursor()->show;
+    if (cursorVisible)
+    {
+        hideCursor(getCursor(), canvas);
+    }
     // Save the pixel data
     paintSerialize(undoData->px, canvas, 0, pxSize);
-    while (!showCursor(getCursor(), canvas) && paintMaybeSacrificeUndoForHeap());
+
+    if (cursorVisible)
+    {
+        while (!showCursor(getCursor(), canvas) && paintMaybeSacrificeUndoForHeap());
+    }
 
     push(&paintState->undoList, undoData);
 }
