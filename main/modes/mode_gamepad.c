@@ -79,6 +79,8 @@ void gamepadMenuTouchCb(touch_event_t* evt);
 void gamepadMenuAccelCb(accel_t* accel);
 void gamepadStart(display_t* disp, gamepadType_t type);
 
+static const char* getButtonName(hid_gamepad_button_bm_t button);
+
 //==============================================================================
 // Variables
 //==============================================================================
@@ -87,12 +89,6 @@ void gamepadStart(display_t* disp, gamepadType_t type);
 static const char str_gamepadTitle[] = "Gamepad Type";
 static const char str_pc[] = "PC";
 static const char str_ns[] = "Switch";
-// static const char str_y[] = "Y";
-// static const char str_x[] = "X";
-// static const char str_L[] = "L";
-// static const char str_r[] = "R";
-// static const char str_zL[] = "ZL";
-// static const char str_zr[] = "ZR";
 static const char str_exit[] = "Exit";
 
 typedef struct
@@ -169,7 +165,7 @@ void gamepadEnterMode(display_t* disp)
     
     loadFont("mm.font", &(gm->mmFont));
 
-    gm->menu = initMeleeMenu("Gamepad", &(gm->mmFont), gamepadMainMenuCb);
+    gm->menu = initMeleeMenu(modeGamepad.modeName, &(gm->mmFont), gamepadMainMenuCb);
 
     setGamepadMainMenu();
 }
@@ -510,8 +506,14 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
                          x2, TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
                          c111);
 
-                drawText(gamepad->disp, &gamepad->ibmFont, c555, "?", x1 + (x2 - x1 - textWidth(&gamepad->ibmFont, "?")) / 2, TOUCHBAR_Y_OFF + (TOUCHBAR_HEIGHT - gamepad->ibmFont.h) / 2);
             }
+
+            if(gamepad->gamepadType == GAMEPAD_NS)
+            {
+                const char* buttonName = getButtonName(touchMapNs[touchIdx]);
+                drawText(gamepad->disp, &gamepad->ibmFont, c444, buttonName, x1 + (x2 - x1 - textWidth(&gamepad->ibmFont, buttonName)) / 2, TOUCHBAR_Y_OFF + (TOUCHBAR_HEIGHT - gamepad->ibmFont.h) / 2);
+            }
+
             tBarX += (TOUCHBAR_WIDTH / numTouchElem);
         }
 
@@ -814,4 +816,60 @@ void gamepadReportStateToHost(void)
         
         
     }    
+}
+
+static const char* getButtonName(hid_gamepad_button_bm_t button)
+{
+    switch(button)
+    {
+        case GAMEPAD_NS_BUTTON_Y:
+        {
+            return "Y";
+        }
+        case GAMEPAD_NS_BUTTON_B:
+        {
+            return "B";
+        }
+        case GAMEPAD_NS_BUTTON_A:
+        {
+            return "A";
+        }
+        case GAMEPAD_NS_BUTTON_X:
+        {
+            return "X";
+        }
+        case GAMEPAD_NS_BUTTON_TL:
+        {
+            return "L";
+        }
+        case GAMEPAD_NS_BUTTON_TR:
+        {
+            return "R";
+        }
+        case GAMEPAD_NS_BUTTON_TL2:
+        {
+            return "ZL";
+        }
+        case GAMEPAD_NS_BUTTON_TR2:
+        {
+            return "ZR";
+        }
+        case GAMEPAD_NS_BUTTON_SELECT:
+        {
+            return "Select";
+        }
+        case GAMEPAD_NS_BUTTON_START:
+        {
+            return "Start";
+        }
+        case GAMEPAD_NS_BUTTON_THUMBL:
+        case GAMEPAD_NS_BUTTON_THUMBR:
+        case GAMEPAD_NS_BUTTON_MODE:
+        case GAMEPAD_NS_BUTTON_C:
+        case GAMEPAD_NS_BUTTON_Z:
+        default:
+        {
+            return "";
+        }
+    }
 }
