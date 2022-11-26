@@ -464,7 +464,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         {
             hideCursor(getCursor(), &paintState->canvas);
             paintHidePickPoints();
-
+            paintSave(&paintState->index, &paintState->canvas, paintState->selectedSlot);
             paintDrawPickPoints();
             showCursor(getCursor(), &paintState->canvas);
         }
