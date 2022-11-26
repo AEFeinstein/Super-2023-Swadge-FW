@@ -21,11 +21,11 @@ typedef struct
     node_t* first;
     node_t* last;
     int length;
-} llist_t;
+} list_t;
 
 // Creating an empty list example.
 /*
-    llist_t * myList = malloc(sizeof(llist_t));
+    list_t * myList = malloc(sizeof(list_t));
     myList->first = NULL;
     myList->last = NULL;
     myList->length = 0;
@@ -42,29 +42,29 @@ typedef struct
 */
 
 // Add to the end of the list.
-void push(llist_t* list, void* val);
+void push(list_t* list, void* val);
 
 // Remove from the end of the list.
-void* pop(llist_t* list);
+void* pop(list_t* list);
 
 // Add to the front of the list.
-void unshift(llist_t* list, void* val);
+void unshift(list_t* list, void* val);
 
 // Remove from the front of the list.
-void* shift(llist_t* list);
+void* shift(list_t* list);
 
 // Add at an index in the list.
-void add(llist_t* list, void* val, int index);
+void add(list_t* list, void* val, int index);
 
 // Remove at an index in the list.
-void* removeIdx(llist_t* list, int index);
+void* removeIdx(list_t* list, int index);
 
 // Remove a given entry from the list.
-void* removeEntry(llist_t* list, node_t* entry);
+void* removeEntry(list_t* list, node_t* entry);
 
 // Remove all items from the list.
 // NOTE: This frees nodes but does not free anything pointed to by the vals of nodes.
-void clear(llist_t* list);
+void clear(list_t* list);
 
 // Exercise the linked list functions
 void listTester(void);

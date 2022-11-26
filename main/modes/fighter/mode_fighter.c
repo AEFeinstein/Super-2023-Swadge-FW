@@ -86,7 +86,7 @@ typedef struct
 {
     int64_t frameElapsed;
     fighter_t fighters[NUM_FIGHTERS];
-    llist_t projectiles;
+    list_t projectiles;
     namedSprite_t* loadedSprites;
     display_t* d;
     font_t* mm_font;
@@ -131,14 +131,14 @@ bool updateFighterPosition(fighter_t* f, const platform_t* platforms, uint8_t nu
 void checkFighterTimer(fighter_t* ftr, bool hitstopActive);
 void checkFighterHitboxCollisions(fighter_t* ftr, fighter_t* otherFtr);
 void checkFigherDeferredHitstun(fighter_t* ftr);
-void checkFighterProjectileCollisions(llist_t* projectiles);
+void checkFighterProjectileCollisions(list_t* projectiles);
 
-void checkProjectileTimer(llist_t* projectiles, const platform_t* platforms,
+void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
                           uint8_t numPlatforms);
 uint32_t getHitstop(uint16_t damage);
 
 void getSpritePos(fighter_t* ftr, vector_t* spritePos);
-fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, llist_t* projectiles,
+fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, list_t* projectiles,
                                     uint8_t* outLen);
 void drawFighter(display_t* d, wsg_t* sprite, int16_t x, int16_t y, fighterDirection_t dir, bool isInvincible,
                  wsg_t* indicH, wsg_t* indicV);
@@ -147,11 +147,11 @@ void drawFighterHud(display_t* d, font_t* font,
                     int16_t f2_dmg, int16_t f2_stock, int16_t f2_stockIconIdx,
                     int32_t gameTimerUs, bool drawGo);
 
-uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, llist_t projectiles, const stage_t* stage);
+uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t projectiles, const stage_t* stage);
 
 #ifdef DRAW_DEBUG_BOXES
     void drawFighterDebugBox(display_t* d, fighter_t* ftr, int16_t camOffX, int16_t camOffY);
-    void drawProjectileDebugBox(display_t* d, llist_t* projectiles, int16_t camOffX, int16_t camOffY);
+    void drawProjectileDebugBox(display_t* d, list_t* projectiles, int16_t camOffX, int16_t camOffY);
 #endif
 
 void fighterEnqueueButtonInput(fighter_t* ftr, uint32_t btn);
@@ -2340,7 +2340,7 @@ void checkFigherDeferredHitstun(fighter_t* ftr)
  *
  * @param projectiles A list of projectiles to check
  */
-void checkFighterProjectileCollisions(llist_t* projectiles)
+void checkFighterProjectileCollisions(list_t* projectiles)
 {
     // Check projectile collisions. Iterate through all projectiles
     node_t* currentNode = projectiles->first;
@@ -2450,7 +2450,7 @@ void checkFighterProjectileCollisions(llist_t* projectiles)
  * @param platforms    A pointer to platforms to check for collisions
  * @param numPlatforms The number of platforms
  */
-void checkProjectileTimer(llist_t* projectiles, const platform_t* platforms,
+void checkProjectileTimer(list_t* projectiles, const platform_t* platforms,
                           uint8_t numPlatforms)
 {
     // Iterate through all projectiles
@@ -2557,7 +2557,7 @@ void getSpritePos(fighter_t* ftr, vector_t* spritePos)
  * @param outLen The length of the composed scene (output)
  * @return int16_t* An array with the composed scene. This memory is allocated and must be freed
  */
-fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, llist_t* projectiles,
+fighterScene_t* composeFighterScene(uint8_t stageIdx, fighter_t* f1, fighter_t* f2, list_t* projectiles,
                                     uint8_t* outLen)
 {
     // Count number of projectiles
@@ -3227,7 +3227,7 @@ void drawFighterDebugBox(display_t* d, fighter_t* ftr, int16_t camOffX, int16_t 
  * @param camOffX The X camera offset
  * @param camOffY The Y camera offset
  */
-void drawProjectileDebugBox(display_t* d, llist_t* projectiles, int16_t camOffX, int16_t camOffY)
+void drawProjectileDebugBox(display_t* d, list_t* projectiles, int16_t camOffX, int16_t camOffY)
 {
     // Iterate through all the projectiles
     node_t* currentNode = projectiles->first;
@@ -3383,7 +3383,7 @@ void fighterRxScene(const fighterScene_t* scene, uint8_t len)
  * @param stage The stage being fought on (platform data)
  * @return The current button state of the CPU (bitmask of buttonBit_t)
  */
-uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, llist_t projectiles, const stage_t* stage)
+uint8_t cpuButtonAction(cpuState_t* cs, fighter_t* human, fighter_t* cpu, list_t projectiles, const stage_t* stage)
 {
 #define CPU_CLOSE_ENOUGH_PX (32)
 #define CPU_CLOSE_ENOUGH (CPU_CLOSE_ENOUGH_PX << SF)

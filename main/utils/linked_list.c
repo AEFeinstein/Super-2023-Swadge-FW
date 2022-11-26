@@ -19,18 +19,18 @@
 // #define VALIDATE_LIST(func, line, nl, list, target) validateList(func, line, nl, list, target)
 #define VALIDATE_LIST(func, line, nl, list, target)
 
-void validateList(const char * func, int line, bool nl, llist_t * list, node_t * target);
+void validateList(const char * func, int line, bool nl, list_t * list, node_t * target);
 
 /**
  * @brief Debug print and validate the list
- *
+ * 
  * @param func The calling function
  * @param line The calling line
  * @param nl true to print a newline before the list, false to not
  * @param list The list to validate
  * @param target The target for the operation, may be NULL
  */
-void validateList(const char * func, int line, bool nl, llist_t * list, node_t * target)
+void validateList(const char * func, int line, bool nl, list_t * list, node_t * target)
 {
     if(nl)
     {
@@ -74,7 +74,7 @@ void validateList(const char * func, int line, bool nl, llist_t * list, node_t *
 }
 
 // Add to the end of the list.
-void push(llist_t* list, void* val)
+void push(list_t* list, void* val)
 {
     VALIDATE_LIST(__func__, __LINE__, true, list, val);
     node_t* newLast = malloc(sizeof(node_t));
@@ -97,7 +97,7 @@ void push(llist_t* list, void* val)
 }
 
 // Remove from the end of the list.
-void* pop(llist_t* list)
+void* pop(list_t* list)
 {
     VALIDATE_LIST(__func__, __LINE__, true, list, NULL);
     void* retval = NULL;
@@ -133,7 +133,7 @@ void* pop(llist_t* list)
 }
 
 // Add to the front of the list.
-void unshift(llist_t* list, void* val)
+void unshift(list_t* list, void* val)
 {
     VALIDATE_LIST(__func__, __LINE__, true, list, val);
     node_t* newFirst = malloc(sizeof(node_t));
@@ -156,7 +156,7 @@ void unshift(llist_t* list, void* val)
 }
 
 // Remove from the front of the list.
-void* shift(llist_t* list)
+void* shift(list_t* list)
 {
     VALIDATE_LIST(__func__, __LINE__, true, list, NULL);
     void* retval = NULL;
@@ -193,7 +193,7 @@ void* shift(llist_t* list)
 
 //TODO: bool return to check if index is valid?
 // Add at an index in the list.
-void add(llist_t* list, void* val, int index)
+void add(list_t* list, void* val, int index)
 {
     VALIDATE_LIST(__func__, __LINE__, true, list, val);
     // If the index we're trying to add to the start of the list.
@@ -235,7 +235,7 @@ void add(llist_t* list, void* val, int index)
 }
 
 // Remove at an index in the list.
-void* removeIdx(llist_t* list, int index)
+void* removeIdx(list_t* list, int index)
 {
     VALIDATE_LIST(__func__, __LINE__, true, list, (void*)((intptr_t)index));
     // If the list is null or empty, dont touch it
@@ -294,7 +294,7 @@ void* removeIdx(llist_t* list, int index)
  * @param entry The entry to remove
  * @return The void* val associated with the removed entry
  */
-void* removeEntry(llist_t* list, node_t* entry)
+void* removeEntry(list_t* list, node_t* entry)
 {
     VALIDATE_LIST(__func__, __LINE__, true, list, entry);
     // If the list is null or empty, dont touch it
@@ -358,7 +358,7 @@ void* removeEntry(llist_t* list, node_t* entry)
 }
 
 // Remove all items from the list.
-void clear(llist_t* list)
+void clear(list_t* list)
 {
     VALIDATE_LIST(__func__, __LINE__, true, list, NULL);
     while (list->first != NULL)
@@ -373,13 +373,13 @@ void clear(llist_t* list)
  */
 void listTester(void)
 {
-    llist_t testList =
+    list_t testList = 
     {
         .first = NULL,
         .last = NULL,
         .length = 0
     };
-    llist_t * l = &testList;
+    list_t * l = &testList;
 
     // Seed the list
     for(int i = 0; i < 25; i++)
