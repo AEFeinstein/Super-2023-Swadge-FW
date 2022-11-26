@@ -75,3 +75,13 @@ cp ./build/bootloader/bootloader.bin ./build/swadge-esp32.bin ./build/partition_
 1. Wait for the GUI to flash green, then you're done.
 
 TODO: Make instructional video (flash & test)
+
+# Kiosk Instructions
+
+1. Switch the Swadge's power switch to USB (right position)
+1. Press and hold the directional-pad up button (Should say "PGM" directly above it)
+1. Plug the Swadge into the computer with the USB-C cable
+1. Release the up button
+1. Wait for the window on the computer screen to turn green
+1. Unplug the Swadge
+1. You're done! Switch the Swadge back to BAT (left position) to turn it on and check out the cool new features!
