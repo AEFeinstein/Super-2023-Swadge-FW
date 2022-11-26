@@ -1255,7 +1255,19 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
         {
             case SELECT:
             {
-                paintExitSelectMode();
+                if (paintCanUndo())
+                {
+                    paintUndo(&paintState->canvas);
+                }
+                break;
+            }
+
+            case START:
+            {
+                if (paintCanRedo())
+                {
+                    paintRedo(&paintState->canvas);
+                }
                 break;
             }
 
@@ -1309,10 +1321,6 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
                 paintState->redrawToolbar = true;
                 break;
             }
-
-            case START:
-            // Start does nothing in select-mode, plus it's used for exit
-            break;
         }
     }
 }
@@ -1532,10 +1540,8 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
         switch (evt->button)
         {
             case SELECT:
-            {
-                paintEnterSelectMode();
-                break;
-            }
+            // SELECT no longer does anything
+            break;
 
             case BTN_A:
             {
