@@ -1136,6 +1136,7 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                     {
                         if (paintState->saveMenuBoolOption)
                         {
+                            paintStoreUndo(&paintState->canvas);
                             paintState->clearScreen = true;
                             paintState->saveMenu = HIDDEN;
                             paintState->buttonMode = BTN_MODE_DRAW;
@@ -1169,6 +1170,7 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                         }
                         else
                         {
+                            paintStoreUndo(&paintState->canvas);
                             paintState->clearScreen = true;
                             paintState->saveMenu = HIDDEN;
                             paintState->buttonMode = BTN_MODE_DRAW;
