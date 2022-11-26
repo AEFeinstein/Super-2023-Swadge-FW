@@ -311,12 +311,20 @@ static void flightMenuCb(const char* menuItem)
         // XXX TODO SAVE DEFAULT FOR FLIGHT DATA
         flight->inverty = 1;
         flight->menu->rows[flight->menuEntryForInvertY] = fl_flight_invertY1_env;
+
+        flightSimSaveData_t * sd = getFlightSaveData();
+        sd->flightInvertY = flight->inverty;
+        setFlightSaveData( sd );
     }
     else if ( fl_flight_invertY1_env == menuItem )
     {
         // XXX TODO SAVE DEFAULT FOR FLIGHT DATA
         flight->inverty = 0;
         flight->menu->rows[flight->menuEntryForInvertY] = fl_flight_invertY0_env;
+
+        flightSimSaveData_t * sd = getFlightSaveData();
+        sd->flightInvertY = flight->inverty;
+        setFlightSaveData( sd );
     }
     else if ( str_high_scores == menuItem )
     {
