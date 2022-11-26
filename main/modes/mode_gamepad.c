@@ -37,13 +37,14 @@
 #define AB_BTN_Y_OFF   8
 #define AB_BTN_SEP     2
 
-#define ACCEL_BAR_H       8
+#define ACCEL_BAR_HEIGHT  8
 #define ACCEL_BAR_SEP     1
 #define MAX_ACCEL_BAR_W 100
 
-#define TOUCHBAR_WIDTH  100
-#define TOUCHBAR_HEIGHT  20
-#define TOUCHBAR_Y_OFF   55
+#define TOUCHBAR_WIDTH       100
+#define TOUCHBAR_HEIGHT       20
+#define TOUCHBAR_Y_OFF        55
+#define TOUCHBAR_ANALOG_HEIGHT 8
 
 //==============================================================================
 // Enums
@@ -484,6 +485,21 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
 
         // Draw touch strip
         int16_t tBarX = gamepad->disp->w - TOUCHBAR_WIDTH;
+
+        int32_t center, intensity;
+        getTouchCentroid(&center, &intensity);
+        // Subtract 2 from TOUCHBAR_WIDTH while scaling so we can draw a 3px-wide cursor centered on center, without covering the box borders
+        center = (TOUCHBAR_WIDTH - 2) * center / 1024 + 1;
+
+        plotRect(gamepad->disp,
+                 tBarX - 1       , TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT                          - 1,
+                 gamepad->disp->w, TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT + TOUCHBAR_ANALOG_HEIGHT + 1,
+                 c111);
+        fillDisplayArea(gamepad->disp,
+                        tBarX + center - 1, TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT,
+                        tBarX + center + 1, TOUCHBAR_Y_OFF + TOUCHBAR_HEIGHT + TOUCHBAR_ANALOG_HEIGHT,
+                        c444);
+
         uint8_t numTouchElem = (sizeof(touchMap) / sizeof(touchMap[0]));
         for(uint8_t touchIdx = 0; touchIdx < numTouchElem; touchIdx++)
         {            
@@ -513,18 +529,18 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
 
         // Plot X accel
         int16_t barWidth = ((gamepad->gpState.rx + 128) * MAX_ACCEL_BAR_W) / 256;
-        fillDisplayArea(gamepad->disp, gamepad->disp->w - barWidth, barY, gamepad->disp->w, barY + ACCEL_BAR_H, c500);
-        barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
+        fillDisplayArea(gamepad->disp, gamepad->disp->w - barWidth, barY, gamepad->disp->w, barY + ACCEL_BAR_HEIGHT, c500);
+        barY += (ACCEL_BAR_HEIGHT + ACCEL_BAR_SEP);
 
         // Plot Y accel
         barWidth = ((gamepad->gpState.ry + 128) * MAX_ACCEL_BAR_W) / 256;
-        fillDisplayArea(gamepad->disp, gamepad->disp->w - barWidth, barY, gamepad->disp->w, barY + ACCEL_BAR_H, c050);
-        barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
+        fillDisplayArea(gamepad->disp, gamepad->disp->w - barWidth, barY, gamepad->disp->w, barY + ACCEL_BAR_HEIGHT, c050);
+        barY += (ACCEL_BAR_HEIGHT + ACCEL_BAR_SEP);
 
         // Plot Z accel
         barWidth = ((gamepad->gpState.rz + 128) * MAX_ACCEL_BAR_W) / 256;
-        fillDisplayArea(gamepad->disp, gamepad->disp->w - barWidth, barY, gamepad->disp->w, barY + ACCEL_BAR_H, c005);
-        // barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
+        fillDisplayArea(gamepad->disp, gamepad->disp->w - barWidth, barY, gamepad->disp->w, barY + ACCEL_BAR_HEIGHT, c005);
+        // barY += (ACCEL_BAR_HEIGHT + ACCEL_BAR_SEP);
     }
     else
     {
