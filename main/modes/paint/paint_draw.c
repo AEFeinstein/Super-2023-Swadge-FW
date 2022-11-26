@@ -1,6 +1,7 @@
 #include "paint_draw.h"
 
 #include <string.h>
+#include "esp_heap_caps.h"
 
 #include "musical_buzzer.h"
 
@@ -1691,7 +1692,7 @@ void paintStoreUndo(paintCanvas_t* canvas)
     size_t pxSize = paintGetStoredSize(canvas);
 
     // Allocate memory for the undo data struct and its pixel data in one go
-    void* undoMem = malloc(sizeof(paintUndo_t) + pxSize);
+    void* undoMem = heap_caps_malloc(sizeof(paintUndo_t) + pxSize, MALLOC_CAP_SPIRAM);
     if (undoMem != NULL)
     {
         // Alloc succeeded, use the data
