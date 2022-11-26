@@ -450,7 +450,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         paintClearCanvas(&paintState->canvas, getArtist()->bgColor);
         paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
         paintUpdateLeds();
-        while (!showCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
+        showCursor(getCursor(), &paintState->canvas);
         paintState->unsaved = false;
         paintState->clearScreen = false;
     }
@@ -464,9 +464,9 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         {
             hideCursor(getCursor(), &paintState->canvas);
             paintHidePickPoints();
-            while (!paintSave(&paintState->index, &paintState->canvas, paintState->selectedSlot) && paintMaybeSacrificeUndoForHeap());
+
             paintDrawPickPoints();
-            while (!showCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
+            showCursor(getCursor(), &paintState->canvas);
         }
         else
         {
@@ -478,7 +478,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                 if(paintLoadDimensions(&paintState->canvas, paintState->selectedSlot))
                 {
                     paintPositionDrawCanvas();
-                    while (!paintLoad(&paintState->index, &paintState->canvas, paintState->selectedSlot) && paintMaybeSacrificeUndoForHeap());
+                    paintLoad(&paintState->index, &paintState->canvas, paintState->selectedSlot);
                     paintSetRecentSlot(&paintState->index, paintState->selectedSlot);
 
                     getArtist()->fgColor = paintState->canvas.palette[0];
@@ -489,7 +489,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
 
                     // Put the cursor in the middle of the screen
                     moveCursorAbsolute(getCursor(), &paintState->canvas, paintState->canvas.w / 2, paintState->canvas.h / 2);
-                    while (!showCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
+                    showCursor(getCursor(), &paintState->canvas);
                     paintUpdateLeds();
                 }
                 else
@@ -599,7 +599,7 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
         paintDrawPickPoints();
     }
 
-    while (!drawCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
+    drawCursor(getCursor(), &paintState->canvas);
 
     if (paintHelp != NULL)
     {
@@ -945,7 +945,7 @@ void paintEditPaletteConfirm(void)
         paintState->unsaved = true;
 
         paintDrawPickPoints();
-        while (!showCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
+        showCursor(getCursor(), &paintState->canvas);
     }
 }
 
@@ -1725,7 +1725,7 @@ void paintStoreUndo(paintCanvas_t* canvas)
 
     if (cursorVisible)
     {
-        while (!showCursor(getCursor(), canvas) && paintMaybeSacrificeUndoForHeap());
+        showCursor(getCursor(), canvas);
     }
 
     push(&paintState->undoList, undoData);
@@ -1794,7 +1794,7 @@ void paintApplyUndo(paintCanvas_t* canvas)
     PAINT_LOGD("Undid %zu bytes!", pxSize);
 
     // feels weird to do this inside the undo functions... but it's probably ok? we've already undone anyway
-    while (!showCursor(getCursor(), canvas) && paintMaybeSacrificeUndoForHeap());
+    showCursor(getCursor(), canvas);
 }
 
 void paintUndo(paintCanvas_t* canvas)
@@ -1858,7 +1858,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         break;
     }
 
-    while (!pushPxScaled(&getArtist()->pickPoints, paintState->disp, getCursor()->x, getCursor()->y, paintState->canvas.x, paintState->canvas.y, paintState->canvas.xScale, paintState->canvas.yScale) && paintMaybeSacrificeUndoForHeap());
+    pushPxScaled(&getArtist()->pickPoints, paintState->disp, getCursor()->x, getCursor()->y, paintState->canvas.x, paintState->canvas.y, paintState->canvas.xScale, paintState->canvas.yScale);
 
     if (getArtist()->brushDef->mode == HOLD_DRAW)
     {
@@ -1880,7 +1880,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
             else if (isLastPick)
             {
                 // Special case: If we're on the next-to-last possible point, we have to add the start again as the last point
-                while (!pushPx(&getArtist()->pickPoints, paintState->disp, firstPick.x, firstPick.y) && paintMaybeSacrificeUndoForHeap());
+                pushPx(&getArtist()->pickPoints, paintState->disp, firstPick.x, firstPick.y);
 
                 drawNow = true;
             }
@@ -1924,7 +1924,7 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         paintState->blinkOn = false;
     }
 
-    while (!showCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
+    showCursor(getCursor(), &paintState->canvas);
     paintRenderToolbar(getArtist(), &paintState->canvas, paintState, firstBrush, lastBrush);
 }
 
@@ -1953,7 +1953,7 @@ void paintSetupTool(void)
             if (paintState->cursorWsg.px == NULL || paintState->cursorWsg.w != (getArtist()->brushWidth * paintState->canvas.xScale + 2) || paintState->cursorWsg.h != (getArtist()->brushWidth * paintState->canvas.yScale + 2))
             {
                 paintFreeCursorSprite(&paintState->cursorWsg);
-                while (!paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas, getArtist()->brushWidth) && paintMaybeSacrificeUndoForHeap());
+                paintGenerateCursorSprite(&paintState->cursorWsg, &paintState->canvas, getArtist()->brushWidth);
             }
 
             setCursorSprite(getCursor(), &paintState->canvas, &paintState->cursorWsg);
@@ -1974,7 +1974,7 @@ void paintSetupTool(void)
 
     // Undraw and hide any stored temporary pixels
     while (popPxScaled(&getArtist()->pickPoints, paintState->disp, paintState->canvas.xScale, paintState->canvas.yScale));
-    while (!showCursor(getCursor(), &paintState->canvas) && paintMaybeSacrificeUndoForHeap());
+    showCursor(getCursor(), &paintState->canvas);
 }
 
 void paintPrevTool(void)
