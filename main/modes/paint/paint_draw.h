@@ -52,6 +52,7 @@ bool paintTutorialCheckTrigger(const paintHelpTrigger_t* trigger);
 void paintPositionDrawCanvas(void);
 
 void paintHandleDpad(uint16_t state);
+void paintFreeUndos(void);
 void paintStoreUndo(paintCanvas_t* canvas);
 bool paintMaybeSacrificeUndoForHeap(void);
 bool paintCanUndo(void);

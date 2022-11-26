@@ -312,13 +312,7 @@ void paintDrawScreenCleanup(void)
     }
 
     paintFreeCursorSprite(&paintState->cursorWsg);
-
-    for (node_t* undo = paintState->undoList.first; undo != NULL; undo = undo->next)
-    {
-        paintUndo_t* val = undo->val;
-        free(val);
-    }
-    clear(&paintState->undoList);
+    paintFreeUndos();
 
     freeFont(&paintState->smallFont);
     freeFont(&paintState->saveMenuFont);
@@ -480,6 +474,8 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                     paintPositionDrawCanvas();
                     paintLoad(&paintState->index, &paintState->canvas, paintState->selectedSlot);
                     paintSetRecentSlot(&paintState->index, paintState->selectedSlot);
+
+                    paintFreeUndos();
 
                     getArtist()->fgColor = paintState->canvas.palette[0];
                     getArtist()->bgColor = paintState->canvas.palette[1];
@@ -1663,6 +1659,16 @@ void paintHandleDpad(uint16_t state)
         // This lets you make turns quickly instead of waiting for the repeat timeout in the middle
         paintState->btnHoldTime = 0;
     }
+}
+
+void paintFreeUndos(void)
+{
+    for (node_t* undo = paintState->undoList.first; undo != NULL; undo = undo->next)
+    {
+        paintUndo_t* val = undo->val;
+        free(val);
+    }
+    clear(&paintState->undoList);
 }
 
 void paintStoreUndo(paintCanvas_t* canvas)
