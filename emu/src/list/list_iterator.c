@@ -13,7 +13,7 @@
  */
 
 list_iterator_t *
-list_iterator_new(list_t *list, list_direction_t direction) {
+list_iterator_new(linked_list_t *list, list_direction_t direction) {
   list_node_t *node = direction == LIST_HEAD
     ? list->head
     : list->tail;

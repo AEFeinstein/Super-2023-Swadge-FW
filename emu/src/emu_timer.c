@@ -17,7 +17,7 @@
 // Variables
 //==============================================================================
 
-list_t * timerList = NULL;
+linked_list_t * timerList = NULL;
 static unsigned long boot_time_in_micros = 0;
 
 //==============================================================================

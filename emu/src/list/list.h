@@ -36,7 +36,7 @@ extern "C" {
 #endif
 
 /*
- * list_t iterator direction.
+ * linked_list_t iterator direction.
  */
 
 typedef enum {
@@ -45,7 +45,7 @@ typedef enum {
 } list_direction_t;
 
 /*
- * list_t node struct.
+ * linked_list_t node struct.
  */
 
 typedef struct list_node {
@@ -55,7 +55,7 @@ typedef struct list_node {
 } list_node_t;
 
 /*
- * list_t struct.
+ * linked_list_t struct.
  */
 
 typedef struct {
@@ -64,10 +64,10 @@ typedef struct {
   unsigned int len;
   void (*free)(void *val);
   int (*match)(void *a, void *b);
-} list_t;
+} linked_list_t;
 
 /*
- * list_t iterator struct.
+ * linked_list_t iterator struct.
  */
 
 typedef struct {
@@ -80,39 +80,39 @@ typedef struct {
 list_node_t *
 list_node_new(void *val);
 
-// list_t prototypes.
+// linked_list_t prototypes.
 
-list_t *
+linked_list_t *
 list_new(void);
 
 list_node_t *
-list_rpush(list_t *self, list_node_t *node);
+list_rpush(linked_list_t *self, list_node_t *node);
 
 list_node_t *
-list_lpush(list_t *self, list_node_t *node);
+list_lpush(linked_list_t *self, list_node_t *node);
 
 list_node_t *
-list_find(list_t *self, void *val);
+list_find(linked_list_t *self, void *val);
 
 list_node_t *
-list_at(list_t *self, int index);
+list_at(linked_list_t *self, int index);
 
 list_node_t *
-list_rpop(list_t *self);
+list_rpop(linked_list_t *self);
 
 list_node_t *
-list_lpop(list_t *self);
+list_lpop(linked_list_t *self);
 
 void
-list_remove(list_t *self, list_node_t *node);
+list_remove(linked_list_t *self, list_node_t *node);
 
 void
-list_destroy(list_t *self);
+list_destroy(linked_list_t *self);
 
-// list_t iterator prototypes.
+// linked_list_t iterator prototypes.
 
 list_iterator_t *
-list_iterator_new(list_t *list, list_direction_t direction);
+list_iterator_new(linked_list_t *list, list_direction_t direction);
 
 list_iterator_t *
 list_iterator_new_from_node(list_node_t *node, list_direction_t direction);

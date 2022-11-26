@@ -291,7 +291,7 @@ typedef struct
     //////// Undo Data
 
     // The linked list of undo data
-    llist_t undoList;
+    list_t undoList;
 
     // After an undo is performed, this points to the action that was undone.
     // This allows redo to work. If the image is edited, this and all following items are removed.

@@ -28,11 +28,11 @@
 // Input queues for buttons
 char inputKeys[32];
 uint32_t buttonState = 0;
-list_t * buttonQueue;
+linked_list_t * buttonQueue;
 
 char touchKeys[32];
 uint32_t touchState = 0;
-list_t * touchQueue;
+linked_list_t * touchQueue;
 int32_t lastTouchLoc = 0;
 
 //==============================================================================

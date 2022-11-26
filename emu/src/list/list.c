@@ -8,13 +8,13 @@
 #include "list.h"
 
 /*
- * Allocate a new list_t. NULL on failure.
+ * Allocate a new linked_list_t. NULL on failure.
  */
 
-list_t *
+linked_list_t *
 list_new(void) {
-  list_t *self;
-  if (!(self = LIST_MALLOC(sizeof(list_t))))
+  linked_list_t *self;
+  if (!(self = LIST_MALLOC(sizeof(linked_list_t))))
     return NULL;
   self->head = NULL;
   self->tail = NULL;
@@ -29,7 +29,7 @@ list_new(void) {
  */
 
 void
-list_destroy(list_t *self) {
+list_destroy(linked_list_t *self) {
   unsigned int len = self->len;
   list_node_t *next;
   list_node_t *curr = self->head;
@@ -50,7 +50,7 @@ list_destroy(list_t *self) {
  */
 
 list_node_t *
-list_rpush(list_t *self, list_node_t *node) {
+list_rpush(linked_list_t *self, list_node_t *node) {
   if (!node) return NULL;
 
   if (self->len) {
@@ -72,7 +72,7 @@ list_rpush(list_t *self, list_node_t *node) {
  */
 
 list_node_t *
-list_rpop(list_t *self) {
+list_rpop(linked_list_t *self) {
   if (!self->len) return NULL;
 
   list_node_t *node = self->tail;
@@ -92,7 +92,7 @@ list_rpop(list_t *self) {
  */
 
 list_node_t *
-list_lpop(list_t *self) {
+list_lpop(linked_list_t *self) {
   if (!self->len) return NULL;
 
   list_node_t *node = self->head;
@@ -113,7 +113,7 @@ list_lpop(list_t *self) {
  */
 
 list_node_t *
-list_lpush(list_t *self, list_node_t *node) {
+list_lpush(linked_list_t *self, list_node_t *node) {
   if (!node) return NULL;
 
   if (self->len) {
@@ -135,7 +135,7 @@ list_lpush(list_t *self, list_node_t *node) {
  */
 
 list_node_t *
-list_find(list_t *self, void *val) {
+list_find(linked_list_t *self, void *val) {
   list_iterator_t *it = list_iterator_new(self, LIST_HEAD);
   list_node_t *node;
 
@@ -162,7 +162,7 @@ list_find(list_t *self, void *val) {
  */
 
 list_node_t *
-list_at(list_t *self, int index) {
+list_at(linked_list_t *self, int index) {
   list_direction_t direction = LIST_HEAD;
 
   if (index < 0) {
@@ -186,7 +186,7 @@ list_at(list_t *self, int index) {
  */
 
 void
-list_remove(list_t *self, list_node_t *node) {
+list_remove(linked_list_t *self, list_node_t *node) {
   node->prev
     ? (node->prev->next = node->next)
     : (self->head = node->next);
