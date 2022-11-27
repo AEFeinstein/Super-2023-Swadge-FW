@@ -50,10 +50,10 @@ int32_t lastTouchLoc = 0;
 void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButtons, ...)
 {
     // The order in which keys are initialized
-    // Note that the actuall number of buttons initialized may be less than this
-    char keyOrder[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i',
-	                   't', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
-    memcpy(inputKeys, keyOrder, (sizeof(keyOrder) / sizeof(keyOrder[0])));
+    // Note that the actual number of buttons initialized may be less than this
+    //
+    memcpy(inputKeys, keyButtonsP1, sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0]));
+    memcpy(inputKeys + sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0]), keyButtonsP2, sizeof(keyButtonsP2) / sizeof(keyButtonsP2[0]));
 	buttonState = 0;
 	buttonQueue = list_new();
 }
@@ -280,8 +280,7 @@ void initTouchSensor(float touchPadSensitivity UNUSED, bool denoiseEnable UNUSED
 {
     // The order in which keys are initialized
     // Note that the actuall number of buttons initialized may be less than this
-    char touchOrder[] = {'1', '2', '3', '4', '5'};
-    memcpy(touchKeys, touchOrder, (sizeof(touchOrder) / sizeof(touchOrder[0])));
+    memcpy(touchKeys, keyTouchP1, (sizeof(keyTouchP1) / sizeof(keyTouchP1[0])));
 	touchState= 0;
 	touchQueue = list_new();
 }
