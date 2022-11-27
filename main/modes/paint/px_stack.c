@@ -36,6 +36,13 @@ bool maybeGrowPxStack(pxStack_t* pxStack, size_t count)
     if (pxStack->index + count >= pxStack->size)
     {
         size_t newSize = pxStack->size * 2;
+
+        // Ensure the new size can actually accomodate the added count
+        while (pxStack->index + count >= newSize)
+        {
+            newSize *= 2;
+        }
+
         PAINT_LOGD("Expanding pixel stack to size %zu", newSize);
         void* newPtr = realloc(pxStack->data, sizeof(pxVal_t) * newSize);
         if (newPtr == NULL)
