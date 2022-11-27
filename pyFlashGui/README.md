@@ -10,7 +10,9 @@ The UI will be green when a Swadge is successfully flashed. It will be red if th
 
 # Driver Dependencies
 
-Flashing an ESP32-S2 over USB on Windows requires a specific driver to be installed. This driver only needs to be installed once. Instructions can be found in the [ESP-IDF Programming Guide](https://docs.espressif.com/projects/esp-idf/en/v4.4.2/esp32s2/api-guides/dfu.html#usb-drivers-windows-only) and are copied below:
+## Windows
+
+Flashing an ESP32-S2 over USB on Windows requires a specific driver to be installed. This driver only needs to be installed once. Instructions can be found in the [ESP-IDF Programming Guide](https://docs.espressif.com/projects/esp-idf/en/v4.4.3/esp32s2/api-guides/dfu.html#usb-drivers-windows-only) and are copied below:
 
 > `dfu-util` uses _libusb_ to access the device. You have to register on Windows the device with the WinUSB driver. Please see the [libusb wiki](https://github.com/libusb/libusb/wiki/Windows#How_to_use_libusb_on_Windows) for more details.
 >
@@ -19,7 +21,9 @@ Flashing an ESP32-S2 over USB on Windows requires a specific driver to be instal
 > **Warning**
 > The manual installation of the driver in Device Manager of Windows is not recommended because the flashing might not work properly.
 
-The ESP-IDF Programming Guide also [specifies a udev rule for Linux](https://docs.espressif.com/projects/esp-idf/en/v4.4.2/esp32s2/api-guides/dfu.html#udev-rule-linux-only):
+## Linux
+
+The ESP-IDF Programming Guide also [specifies a udev rule for Linux](https://docs.espressif.com/projects/esp-idf/en/v4.4.3/esp32s2/api-guides/dfu.html#udev-rule-linux-only):
 
 > udev is a device manager for the Linux kernel. It allows us to run `dfu-util` (and `idf.py dfu-flash`) without `sudo` for gaining access to the chip.
 > 
@@ -71,3 +75,13 @@ cp ./build/bootloader/bootloader.bin ./build/swadge-esp32.bin ./build/partition_
 1. Wait for the GUI to flash green, then you're done.
 
 TODO: Make instructional video (flash & test)
+
+# Kiosk Instructions
+
+1. Switch the Swadge's power switch to USB (right position)
+1. Press and hold the directional-pad up button (Should say "PGM" directly above it)
+1. Plug the Swadge into the computer with the USB-C cable
+1. Release the up button
+1. Wait for the window on the computer screen to turn green
+1. Unplug the Swadge
+1. You're done! Switch the Swadge back to BAT (left position) to turn it on and check out the cool new features!
