@@ -457,9 +457,18 @@ bool parseKeyConfig(const char* config, char* outKeys, char* outTouch)
 }
 
 
+void printModeList(FILE* stream)
+{
+    for (uint8_t i = 0; i < sizeof(allModes) / sizeof(*allModes); i++)
+    {
+        fprintf(stream, "  - %s\n", (&modePicross == allModes[i]) ? "Pi-cross" : allModes[i]->modeName);
+    }
+}
+
 
 static const struct option opts[] = {
     {"start-mode", required_argument, NULL, 'm'},
+    {"list-modes", no_argument, NULL, 0},
     {"lock", no_argument, &lockMode, true},
     {"fuzz", no_argument, &monkeyAround, true},
     {"fuzz-mode-timer", required_argument, NULL, 't'},
@@ -505,20 +514,26 @@ void handleArgs(int argc, char** argv)
                 // Handle options without a short opt
                 switch (optIndex)
                 {
+                    // List modes
+                    case 1:
+                        printModeList(stdout);
+                        exit(0);
+                        return;
+
                     // Dvorak
-                    case 11:
+                    case 12:
                         memcpy(keyButtonsP1, dvorakKeysP1, sizeof(dvorakKeysP1) / sizeof(*dvorakKeysP1));
                         memcpy(keyButtonsP2, dvorakKeysP2, sizeof(dvorakKeysP2) / sizeof(*dvorakKeysP2));
                     break;
 
                     // Fuzz Buttons
-                    case 4:
+                    case 5:
                         // Handle it later
                         fuzzButtons = optarg;
                     break;
 
                     // Fuzz Buttons P2
-                    case 5:
+                    case 6:
                         // Lazily handle yes/no
                         if (optarg && (optarg[0] == 'N' || optarg[0] == 'n'))
                         {
@@ -578,9 +593,10 @@ void handleArgs(int argc, char** argv)
 
             case 'h':
             {
-                printf("Usage: %s [--start-mode|-m MODE] [--lock|-l] [--help] [--fuzz [--fuzz-mode-timer SECONDS]] [--nvs-file|-f FILE]\n", executableName);
+                printf("Usage: %s [--start-mode|-m MODE] [--list-modes] [--lock|-l] [--help] [--fuzz [--fuzz-mode-timer SECONDS]] [--nvs-file|-f FILE]\n", executableName);
                 printf("\n");
                 printf("\t--start-mode MODE\tStarts the emulator in the mode named MODE, instead of the main menu\n");
+                printf("\t--list-modes\tPrints out a list of all possible mode names that can be used as an argument to --start-mode\n");
                 printf("\t--lock\t\t\tLocks the emulator in the start mode. Start + Select will do nothing, and if --start-mode is used, it will replace the main menu.\n");
                 printf("\t--fuzz\t\t\tEnables fuzzing mode, which will trigger rapid random button presses and randomly switch modes, unless --lock is passed.\n");
                 printf("\t--fuzz-mode-timer SECONDS\tSets the number of seconds before the fuzzer will switch to a different random mode.\n");
@@ -680,10 +696,7 @@ void handleArgs(int argc, char** argv)
         {
             fprintf(stderr, "ERROR: No mode named '%s'\n", startMode);
             fprintf(stderr, "Possible modes:\n");
-            for (uint8_t i = 0; i < sizeof(allModes) / sizeof(*allModes); i++)
-            {
-                fprintf(stderr, "  - %s\n", (&modePicross == allModes[i]) ? "Pi-cross" : allModes[i]->modeName);
-            }
+            printModeList(stderr);
             exit(1);
             return;
         }
