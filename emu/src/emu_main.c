@@ -21,8 +21,6 @@
 #include "mode_main_menu.h"
 #include "btn.h"
 
-#include "list.h"
-
 #include "emu_esp.h"
 #include "sound.h"
 #include "emu_display.h"

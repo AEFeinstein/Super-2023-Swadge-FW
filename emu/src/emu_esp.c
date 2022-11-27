@@ -7,7 +7,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "list.h"
 #include "emu_esp.h"
 #include "emu_main.h"
 
