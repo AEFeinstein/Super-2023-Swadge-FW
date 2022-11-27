@@ -714,8 +714,9 @@ void freeFont(font_t* font)
  * @param ch    The character bitmap to draw (includes the width of the char)
  * @param xOff  The x offset to draw the char at
  * @param yOff  The y offset to draw the char at
+ * @param slant The slope of the slant, with 1 being 45 degrees and `h` or 0 being 90 degrees (normal)
  */
-void drawChar(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch, int16_t xOff, int16_t yOff)
+void drawCharItalic(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch, int16_t xOff, int16_t yOff, int8_t slant)
 {
     //  This function has been micro optimized by cnlohr on 2022-09-07, using gcc version 8.4.0 (crosstool-NG esp-2021r2-patch3)
     int bitIdx = 0;
@@ -724,6 +725,7 @@ void drawChar(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch,
 
     // Get a pointer to the end of the bitmap
     const uint8_t* endOfBitmap = &bitmap[((wch * h) + 7) >> 3] - 1;
+    int origH = h;
 
     // Don't draw off the bottom of the screen.
     if( yOff + h > disp->h )
@@ -739,6 +741,7 @@ void drawChar(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch,
         bitmap += bitIdx >> 3;
         bitIdx &= 7;
         h += yOff;
+        origH += yOff;
         yOff = 0;
     }
 
@@ -748,8 +751,10 @@ void drawChar(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch,
     {
         // Figure out where to draw
         int truncate = 0;
+        // for every (slant) lines we draw, we shift by one less
+        int xSlant = slant ? (origH - y) / slant : 0;
 
-        int startX = xOff;
+        int startX = xOff + xSlant;
         if( xOff < 0 )
         {
             // Track how many groups of pixels we are skipping over
@@ -759,7 +764,7 @@ void drawChar(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch,
             bitmap += bitIdx >> 3;
             bitIdx &= 7;
         }
-        int endX = xOff + wch;
+        int endX = xOff + wch + xSlant;
         if( endX > disp->w )
         {
             // Track how many groups of pixels we are skipping over,
@@ -804,6 +809,10 @@ void drawChar(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch,
     }
 }
 
+void drawChar(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch, int16_t xOff, int16_t yOff)
+{
+    drawCharItalic(disp, color, h, ch, xOff, yOff, 0);
+}
 
 /**
  * @brief Draw text to a display with the given color and font
@@ -816,7 +825,7 @@ void drawChar(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch,
  * @param yOff  The y offset to draw the text at
  * @return The x offset at the end of the drawn string
  */
-int16_t drawText(display_t* disp, const font_t* font, paletteColor_t color, const char* text, int16_t xOff, int16_t yOff)
+int16_t drawTextItalic(display_t* disp, const font_t* font, paletteColor_t color, const char* text, int16_t xOff, int16_t yOff, int8_t slant)
 {
     while(*text >= ' ')
     {
@@ -824,7 +833,7 @@ int16_t drawText(display_t* disp, const font_t* font, paletteColor_t color, cons
         if (xOff + font->chars[(*text) - ' '].w >= 0)
         {
             // Draw char
-            drawChar(disp, color, font->h, &font->chars[(*text) - ' '], xOff, yOff);
+            drawCharItalic(disp, color, font->h, &font->chars[(*text) - ' '], xOff, yOff, slant);
         }
 
         // Move to the next char
@@ -838,6 +847,11 @@ int16_t drawText(display_t* disp, const font_t* font, paletteColor_t color, cons
         }
     }
     return xOff;
+}
+
+int16_t drawText(display_t* disp, const font_t* font, paletteColor_t color, const char* text, int16_t xOff, int16_t yOff)
+{
+    return drawTextItalic(disp, font, color, text, xOff, yOff, 2);
 }
 
 /**
@@ -864,6 +878,11 @@ uint16_t textWidth(const font_t* font, const char* text)
         width--;
     }
     return width;
+}
+
+uint16_t textWidthItalic(const font_t* font, const char* text, int8_t slant)
+{
+    return textWidth(font, text) + font->h / abs(slant);
 }
 
 static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, paletteColor_t color, const char* text,

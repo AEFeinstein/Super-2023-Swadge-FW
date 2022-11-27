@@ -115,12 +115,17 @@ void freeWsg(wsg_t* wsg);
 bool loadFont(const char* name, font_t* font);
 void drawChar(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch,
               int16_t xOff, int16_t yOff);
+void drawCharItalic(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch,
+              int16_t xOff, int16_t yOff, int8_t slant);
 int16_t drawText(display_t* disp, const font_t* font, paletteColor_t color,
                  const char* text, int16_t xOff, int16_t yOff);
+int16_t drawTextItalic(display_t* disp, const font_t* font, paletteColor_t color,
+                 const char* text, int16_t xOff, int16_t yOff, int8_t slant);
 const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
                              int16_t *xOff, int16_t *yOff, int16_t xMax, int16_t yMax);
 uint16_t textWidth(const font_t* font, const char* text);
 uint16_t textHeight(const font_t* font, const char* text, int16_t width, int16_t maxHeight);
+uint16_t textWidthItalic(const font_t* font, const char* text, int8_t slant);
 void freeFont(font_t* font);
 
 // If you want to do your own thing.
