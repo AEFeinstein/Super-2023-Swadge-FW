@@ -1663,6 +1663,7 @@ void paintHandleDpad(uint16_t state)
 
 void paintFreeUndos(void)
 {
+    paintState->undoHead = NULL;
     for (node_t* undo = paintState->undoList.first; undo != NULL; undo = undo->next)
     {
         paintUndo_t* val = undo->val;
@@ -1771,12 +1772,10 @@ bool paintCanUndo()
 
 bool paintCanRedo()
 {
-    // We can redo as long as one of these is true:
+    // We can redo as long as all of these are true:
     //  - The undoHead is NOT NULL
-    //  - The undoHead IS NULL and the undoList.first is NOT NULL
-    bool result = paintState->undoHead != NULL && paintState->undoHead->next != NULL && paintState->undoList.first != NULL;
-    PAINT_LOGD("canRedo() returning %d because undoHead=%p, undoHead->next=%p, undoList.first=%p", result, paintState->undoHead, (paintState->undoHead != NULL) ? paintState->undoHead->next : 0, paintState->undoList.first);
-    return result;
+    //  - There is another undo after undoHead (that's what contains the state we want to return to)
+    return paintState->undoHead != NULL && paintState->undoHead->next != NULL;
 }
 
 void paintApplyUndo(paintCanvas_t* canvas)
@@ -1812,7 +1811,7 @@ void paintUndo(paintCanvas_t* canvas)
         // We have not undone anything else yet -- use the last element in the undo list
         node_t* head = paintState->undoList.last;
 
-        // Also, save the current state so that we can redo to it, if we actually can
+        // Also, since this is the first undo, save the current state so that we can return to it with redo
         paintStoreUndo(canvas);
 
         paintState->undoHead = head;
