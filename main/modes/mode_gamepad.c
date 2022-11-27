@@ -643,7 +643,7 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
             }
             else
             {
-                center = 1;
+                center = TOUCHBAR_WIDTH / 2;
                 // Intensity is unused, so no need to set right now. Uncomment if it gets used
                 //intensity = 0;
             }
