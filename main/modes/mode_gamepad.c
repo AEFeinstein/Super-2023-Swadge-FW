@@ -68,15 +68,6 @@ typedef enum {
 
 typedef struct
 {
-    font_t mmFont;
-    meleeMenu_t* menu;
-    display_t* disp;
-    gamepadScreen_t screen;
-    uint8_t settingsPos;
-} gamepadMenu_t;
-
-typedef struct
-{
     bool touchAnalogOn;
     bool accelOn;
 } gamepadToggleSettings_t;
@@ -84,11 +75,20 @@ typedef struct
 typedef struct
 {
     display_t* disp;
+    font_t ibmFont;
+    font_t mmFont;
+
+    meleeMenu_t* menu;
+    gamepadScreen_t screen;
+    uint8_t settingsPos;
+
     hid_gamepad_report_t gpState;
     hid_gamepad_ns_report_t gpNsState;
-    font_t ibmFont;
+
     uint8_t gamepadType;
     bool isPluggedIn;
+
+    gamepadToggleSettings_t gamepadToggleSettings;
 } gamepad_t;
 
 //==============================================================================
@@ -128,8 +128,6 @@ static const char str_accel_off[] = "Accel: Off";
 static const char str_exit[] = "Exit";
 static const char KEY_GAMEPAD_TOGGLES[] = "gpts";
 
-gamepadMenu_t* gm;
-gamepadToggleSettings_t* gamepadToggleSettings;
 gamepad_t* gamepad;
 
 swadgeMode modeGamepad =
@@ -176,18 +174,19 @@ const hid_gamepad_button_bm_t touchMapNs[] =
  */
 void gamepadEnterMode(display_t* disp)
 {
-     // Allocate and zero memory
-    gm = calloc(1, sizeof(gamepadMenu_t));
+    // Allocate and zero memory
+    gamepad = (gamepad_t*)calloc(1, sizeof(gamepad_t));
 
-    gm->disp = disp;
+    // Save a pointer to the display
+    gamepad->disp = disp;
     
-    loadFont("mm.font", &(gm->mmFont));
+    // Load the fonts
+    loadFont("mm.font", &(gamepad->mmFont));
+    loadFont("ibm_vga8.font", &(gamepad->ibmFont));
 
-    gm->menu = initMeleeMenu("Gamepad", &(gm->mmFont), gamepadMainMenuCb);
+    gamepad->menu = initMeleeMenu("Gamepad", &(gamepad->mmFont), gamepadMainMenuCb);
 
-    gamepadToggleSettings = calloc(1, sizeof(gamepadToggleSettings_t));
-
-    loadGamepadToggleSettings(gamepadToggleSettings);
+    loadGamepadToggleSettings(&gamepad->gamepadToggleSettings);
 
     setGamepadMainMenu(true);
 }
@@ -197,51 +196,45 @@ void gamepadEnterMode(display_t* disp)
  */
 void gamepadExitMode(void)
 {
-    deinitMeleeMenu(gm->menu);
-    freeFont(&(gm->mmFont));
-    free(gm);
+    deinitMeleeMenu(gamepad->menu);
+    freeFont(&(gamepad->mmFont));
+    freeFont(&(gamepad->ibmFont));
 
-    free(gamepadToggleSettings);
-
-    if(gamepad != NULL){
-        freeFont(&(gamepad->ibmFont));
-        free(gamepad);
-        gamepad = NULL;
-    }
+    free(gamepad);
 }
 
 void setGamepadMainMenu(bool resetPos)
 {
-    resetMeleeMenu(gm->menu, str_gamepadTitle, gamepadMainMenuCb);
-    addRowToMeleeMenu(gm->menu, str_pc);
-    addRowToMeleeMenu(gm->menu, str_ns);
-    addRowToMeleeMenu(gm->menu, gamepadToggleSettings->touchAnalogOn ? str_touch_analog_on : str_touch_analog_off);
-    addRowToMeleeMenu(gm->menu, gamepadToggleSettings->accelOn ? str_accel_on : str_accel_off);
-    addRowToMeleeMenu(gm->menu, str_exit);
+    resetMeleeMenu(gamepad->menu, str_gamepadTitle, gamepadMainMenuCb);
+    addRowToMeleeMenu(gamepad->menu, str_pc);
+    addRowToMeleeMenu(gamepad->menu, str_ns);
+    addRowToMeleeMenu(gamepad->menu, gamepad->gamepadToggleSettings.touchAnalogOn ? str_touch_analog_on : str_touch_analog_off);
+    addRowToMeleeMenu(gamepad->menu, gamepad->gamepadToggleSettings.accelOn ? str_accel_on : str_accel_off);
+    addRowToMeleeMenu(gamepad->menu, str_exit);
 
-    gm->screen = GAMEPAD_MENU;
+    gamepad->screen = GAMEPAD_MENU;
 
     // Set the position
     if(resetPos)
     {
-        gm->settingsPos = 0;
+        gamepad->settingsPos = 0;
     }
-    gm->menu->selectedRow = gm->settingsPos;
+    gamepad->menu->selectedRow = gamepad->settingsPos;
 }
 
 void gamepadMainMenuCb(const char* opt)
 {
     if (opt == str_pc)
     {
-        gamepadStart(gm->disp, GAMEPAD_GENERIC);
-        gm->screen = GAMEPAD_MAIN;
+        gamepadStart(gamepad->disp, GAMEPAD_GENERIC);
+        gamepad->screen = GAMEPAD_MAIN;
         return;
     }
 
     if (opt == str_ns)
     {
-        gamepadStart(gm->disp, GAMEPAD_NS);
-        gm->screen = GAMEPAD_MAIN;
+        gamepadStart(gamepad->disp, GAMEPAD_NS);
+        gamepad->screen = GAMEPAD_MAIN;
         return;
     }
 
@@ -253,39 +246,39 @@ void gamepadMainMenuCb(const char* opt)
     }
 
     // Save the position
-    gm->settingsPos = gm->menu->selectedRow;
+    gamepad->settingsPos = gamepad->menu->selectedRow;
 
     bool needRedraw = false;
 
     if(opt == str_touch_analog_on)
     {
         // Touch analog is on, turn it off
-        gamepadToggleSettings->touchAnalogOn = false;
-        saveGamepadToggleSettings(gamepadToggleSettings);
+        gamepad->gamepadToggleSettings.touchAnalogOn = false;
+        saveGamepadToggleSettings(&gamepad->gamepadToggleSettings);
 
         needRedraw = true;
     }
     else if(opt == str_touch_analog_off)
     {
         // Touch analog is off, turn it on
-        gamepadToggleSettings->touchAnalogOn = true;
-        saveGamepadToggleSettings(gamepadToggleSettings);
+        gamepad->gamepadToggleSettings.touchAnalogOn = true;
+        saveGamepadToggleSettings(&gamepad->gamepadToggleSettings);
 
         needRedraw = true;
     }
     else if(opt == str_accel_on)
     {
         // Accel is on, turn it off
-        gamepadToggleSettings->accelOn = false;
-        saveGamepadToggleSettings(gamepadToggleSettings);
+        gamepad->gamepadToggleSettings.accelOn = false;
+        saveGamepadToggleSettings(&gamepad->gamepadToggleSettings);
 
         needRedraw = true;
     }
     else if(opt == str_accel_off)
     {
         // Accel is off, turn it on
-        gamepadToggleSettings->accelOn = true;
-        saveGamepadToggleSettings(gamepadToggleSettings);
+        gamepad->gamepadToggleSettings.accelOn = true;
+        saveGamepadToggleSettings(&gamepad->gamepadToggleSettings);
 
         needRedraw = true;
     }
@@ -297,12 +290,6 @@ void gamepadMainMenuCb(const char* opt)
 }
 
 void gamepadStart(display_t* disp, gamepadType_t type){
-    // Allocate memory for this mode
-    gamepad = (gamepad_t*)calloc(1, sizeof(gamepad_t));
-
-    // Save a pointer to the display
-    gamepad->disp = disp;
-
     gamepad->gamepadType = type;
 
     tusb_desc_device_t nsDescriptor = {
@@ -339,9 +326,6 @@ void gamepadStart(display_t* disp, gamepadType_t type){
     led_t leds[NUM_LEDS];
     memset(leds, 0, sizeof(leds));
     setLeds(leds, NUM_LEDS);
-
-    // Load the font
-    loadFont("ibm_vga8.font", &(gamepad->ibmFont));
 }
 
 /**
@@ -351,11 +335,11 @@ void gamepadStart(display_t* disp, gamepadType_t type){
  */
 void gamepadMenuLoop(int64_t elapsedUs)
 {
-    switch(gm->screen)
+    switch(gamepad->screen)
     {
         case GAMEPAD_MENU:
         {
-            drawMeleeMenu(gm->disp, gm->menu);
+            drawMeleeMenu(gamepad->disp, gamepad->menu);
             break;
         }
         case GAMEPAD_MAIN:
@@ -374,7 +358,7 @@ void gamepadMenuLoop(int64_t elapsedUs)
  */
 void gamepadMenuButtonCb(buttonEvt_t* evt)
 {
-    switch(gm->screen)
+    switch(gamepad->screen)
     {
         case GAMEPAD_MENU:
         {
@@ -392,47 +376,47 @@ void gamepadMenuButtonCb(buttonEvt_t* evt)
                 case SELECT:
                 {
                     //Pass button events from the Swadge mode to the menu
-                    meleeMenuButton(gm->menu, evt->button);
+                    meleeMenuButton(gamepad->menu, evt->button);
                     break;
                 }
                 case LEFT:
                 case RIGHT:
                 {
                     // Save the position
-                    gm->settingsPos = gm->menu->selectedRow;
+                    gamepad->settingsPos = gamepad->menu->selectedRow;
 
                     bool needRedraw = false;
 
                     // Adjust the selected option
-                    if(str_touch_analog_on == gm->menu->rows[gm->menu->selectedRow])
+                    if(str_touch_analog_on == gamepad->menu->rows[gamepad->menu->selectedRow])
                     {
                         // Touch analog is on, turn it off
-                        gamepadToggleSettings->touchAnalogOn = false;
-                        saveGamepadToggleSettings(gamepadToggleSettings);
+                        gamepad->gamepadToggleSettings.touchAnalogOn = false;
+                        saveGamepadToggleSettings(&gamepad->gamepadToggleSettings);
 
                         needRedraw = true;
                     }
-                    else if(str_touch_analog_off == gm->menu->rows[gm->menu->selectedRow])
+                    else if(str_touch_analog_off == gamepad->menu->rows[gamepad->menu->selectedRow])
                     {
                         // Touch analog is off, turn it on
-                        gamepadToggleSettings->touchAnalogOn = true;
-                        saveGamepadToggleSettings(gamepadToggleSettings);
+                        gamepad->gamepadToggleSettings.touchAnalogOn = true;
+                        saveGamepadToggleSettings(&gamepad->gamepadToggleSettings);
 
                         needRedraw = true;
                     }
-                    else if(str_accel_on == gm->menu->rows[gm->menu->selectedRow])
+                    else if(str_accel_on == gamepad->menu->rows[gamepad->menu->selectedRow])
                     {
                         // Accel is on, turn it off
-                        gamepadToggleSettings->accelOn = false;
-                        saveGamepadToggleSettings(gamepadToggleSettings);
+                        gamepad->gamepadToggleSettings.accelOn = false;
+                        saveGamepadToggleSettings(&gamepad->gamepadToggleSettings);
 
                         needRedraw = true;
                     }
-                    else if(str_accel_off == gm->menu->rows[gm->menu->selectedRow])
+                    else if(str_accel_off == gamepad->menu->rows[gamepad->menu->selectedRow])
                     {
                         // Accel is off, turn it on
-                        gamepadToggleSettings->accelOn = true;
-                        saveGamepadToggleSettings(gamepadToggleSettings);
+                        gamepad->gamepadToggleSettings.accelOn = true;
+                        saveGamepadToggleSettings(&gamepad->gamepadToggleSettings);
 
                         needRedraw = true;
                     }
@@ -463,7 +447,7 @@ void gamepadMenuButtonCb(buttonEvt_t* evt)
 }
 
 void gamepadMenuTouchCb(touch_event_t* evt){
-    switch(gm->screen)
+    switch(gamepad->screen)
     {
         case GAMEPAD_MENU:
         {
@@ -478,7 +462,7 @@ void gamepadMenuTouchCb(touch_event_t* evt){
 };
 
 void gamepadMenuAccelCb(accel_t* accel){
-    switch(gm->screen)
+    switch(gamepad->screen)
     {
         case GAMEPAD_MENU:
         {
@@ -632,7 +616,7 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
         int16_t tBarX = gamepad->disp->w - TOUCHBAR_WIDTH;
 
         // If we're on the generic gamepad and touch analog is enabled, plot the extra indicator on the screen
-        if(gamepad->gamepadType == GAMEPAD_GENERIC && gamepadToggleSettings->touchAnalogOn)
+        if(gamepad->gamepadType == GAMEPAD_GENERIC && gamepad->gamepadToggleSettings.touchAnalogOn)
         {
             int32_t center, intensity;
             if(gamepad->gpState.buttons & ((touchMap[0] | touchMap[1] | touchMap[2] | touchMap[3] | touchMap[4])))
@@ -678,7 +662,7 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
             tBarX += (TOUCHBAR_WIDTH / numTouchElem);
         }
 
-        if(gamepadToggleSettings->accelOn && gamepad->gamepadType == GAMEPAD_GENERIC)
+        if(gamepad->gamepadToggleSettings.accelOn && gamepad->gamepadType == GAMEPAD_GENERIC)
         {
             // Set up drawing accel bars
             int16_t barY = (gamepad->disp->h * 3) / 4;
@@ -915,7 +899,7 @@ void gamepadTouchCb(touch_event_t* evt)
  */
 void gamepadAccelCb(accel_t* accel)
 {
-    if(!gamepadToggleSettings->accelOn)
+    if(!gamepad->gamepadToggleSettings.accelOn)
     {
         return;
     }
@@ -947,7 +931,7 @@ void gamepadReportStateToHost(void)
     {
         switch(gamepad->gamepadType){
             case GAMEPAD_GENERIC: {
-                if(gamepadToggleSettings->touchAnalogOn && gamepad->gpState.buttons & ((touchMap[0] | touchMap[1] | touchMap[2] | touchMap[3] | touchMap[4])))
+                if(gamepad->gamepadToggleSettings.touchAnalogOn && gamepad->gpState.buttons & ((touchMap[0] | touchMap[1] | touchMap[2] | touchMap[3] | touchMap[4])))
                 {
                     int32_t center, intensity;
                     getTouchCentroid(&center, &intensity);
