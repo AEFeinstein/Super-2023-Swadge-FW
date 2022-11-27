@@ -27,8 +27,9 @@ void freePxStack(pxStack_t* pxStack)
 }
 
 /**
- * If the the pixel stack's index has grown past its max size, doubles the allocated space for the stack.
- * Returns false if reallocation failed. Returns true if reallocation succeeded or was not necessary.
+ * Ensures that the pixel stack has enough space for `count` additional elements, growing the stack
+ * if necessary. Retuns true if there is sufficient space, or false if sufficient space could not be
+ * allocated.
 */
 bool maybeGrowPxStack(pxStack_t* pxStack, size_t count)
 {
@@ -65,11 +66,14 @@ bool maybeGrowPxStack(pxStack_t* pxStack, size_t count)
 /**
  * The color at the given pixel coordinates is pushed onto the pixel stack,
  * along with its coordinates. If the pixel stack is uninitialized, it will
- * be allocated. If the pixel stack is full, its size will be doubled.
+ * be allocated. If the pixel stack is full, its size will be doubled. Returns
+ * true if the pixel was successfully pushed to the stack, or false if adding
+ * the pixel to the stack failed due to memory constraints.
  *
  * @brief Pushes a pixel onto the pixel stack so that it can be restored later
  * @param x The screen X coordinate of the pixel to save
  * @param y The screen Y coordinate of the pixel to save
+ * @return True if the pixel was pushed successfully, false otherwise
  *
  */
 bool pushPx(pxStack_t* pxStack, display_t* disp, uint16_t x, uint16_t y)

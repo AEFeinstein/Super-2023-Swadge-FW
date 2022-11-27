@@ -527,6 +527,7 @@ void hideCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
 /// @brief Shows the cursor without saving the pixels under it
 /// @param cursor The cursor to show
 /// @param canvas The canvas to draw the cursor on
+/// @return true if the cursor was shown, or false if it could not due to memory constraints
 bool showCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
 {
     if (!cursor->show)
@@ -542,6 +543,7 @@ bool showCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
 /// @brief If not hidden, draws the cursor on the canvas and saves the pixels for later. If hidden, does nothing.
 /// @param cursor The cursor to draw
 /// @param canvas The canvas to draw it on and save the pixels from
+/// @return true if the cursor was drawn, or false if it could not be due to memory constraints
 bool drawCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
 {
     bool cursorIsNearEdge = (canvasToDispX(canvas, cursor->x) + cursor->spriteOffsetX < canvas->x || canvasToDispX(canvas, cursor->x) + cursor->spriteOffsetX + cursor->sprite->w > canvas->x + canvas->w * canvas->xScale || canvasToDispY(canvas, cursor->y) + cursor->spriteOffsetY < canvas->y || canvasToDispY(canvas, cursor->y) + cursor->spriteOffsetY + cursor->sprite->h > canvas->y + canvas->h * canvas->yScale);
