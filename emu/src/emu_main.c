@@ -542,12 +542,25 @@ void handleArgs(int argc, char** argv)
                     break;
 
                     // Fuzz Button Delay
-                    case 6:
-
+                    case 7:
+                        fuzzButtonDelay = atoi(optarg) * 1000;
+                        if (fuzzButtonDelay <= 0)
+                        {
+                            fprintf(stderr, "ERROR: Invalid numeric argument for option %s: '%s'\n", argv[optind - 2], optarg);
+                            exit(1);
+                            return;
+                        }
                     break;
 
                     // Fuzz Button Probability
-                    case 7:
+                    case 8:
+                        fuzzButtonProbability = atoi(optarg);
+                        if (fuzzButtonProbability <= 0 || fuzzButtonProbability > 100)
+                        {
+                            fprintf(stderr, "ERROR: Invalid numeric argument for option %s: '%s'\n", argv[optind - 2], optarg);
+                            exit(1);
+                            return;
+                        }
                     break;
                 }
                 break;
