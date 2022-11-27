@@ -22,8 +22,6 @@
 #include "mode_main_menu.h"
 #include "btn.h"
 
-#include "list.h"
-
 #include "emu_esp.h"
 #include "sound.h"
 #include "emu_display.h"
@@ -44,7 +42,6 @@
 #include "mode_tiltrads.h"
 #include "mode_tunernome.h"
 #include "mode_paint.h"
-#include "paint_share.h"
 #include "paint_share.h"
 #include "picross_menu.h"
 #include "mode_platformer.h"

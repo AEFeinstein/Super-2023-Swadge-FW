@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "list.h"
+#include "linked_list.h"
 
 #include "esp_timer.h"
 #include "esp_log.h"
@@ -17,7 +17,7 @@
 // Variables
 //==============================================================================
 
-list_t * timerList = NULL;
+list_t* timerList = NULL;
 static unsigned long boot_time_in_micros = 0;
 
 //==============================================================================
@@ -41,7 +41,7 @@ esp_err_t esp_timer_init(void)
     boot_time_in_micros = (ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
 
     // Create an empty list of timers
-    timerList = list_new();
+    timerList = calloc(1, sizeof(list_t));
 
     return ESP_OK;
 }
@@ -59,17 +59,14 @@ esp_err_t esp_timer_deinit(void)
 {
     if(timerList)
     {
-        list_iterator_t * iter = list_iterator_new(timerList, LIST_HEAD);
-
-        list_node_t *node;
-        while ((node = list_iterator_next(iter)))
+        void* val;
+        while (NULL != (val = shift(timerList)))
         {
-            free(node->val);
+            free(val);
         }
 
-        list_iterator_destroy(iter);
-
-        list_destroy(timerList);
+        clear(timerList);
+        free(timerList);
         return ESP_OK;
     }
     return ESP_ERR_INVALID_STATE;
@@ -138,8 +135,7 @@ esp_err_t esp_timer_create(const esp_timer_create_args_t* create_args,
 #endif
 
     // Link the node
-    list_node_t * node = list_node_new(*out_handle);
-    list_rpush(timerList, node);
+    push(timerList, *out_handle);
 
     return ESP_OK;
 }
@@ -157,20 +153,16 @@ esp_err_t esp_timer_create(const esp_timer_create_args_t* create_args,
  */
 esp_err_t esp_timer_delete(esp_timer_handle_t timer)
 {
-    list_iterator_t * iter = list_iterator_new(timerList, LIST_HEAD);
-
-    list_node_t *node;
-    while ((node = list_iterator_next(iter)))
+    for (node_t* node = timerList->first; NULL != node; node = node->next)
     {
         if(node->val == timer)
         {
             free(node->val);
+            removeEntry(timerList, node);
             break;
         }
     }
-    list_iterator_destroy(iter);
 
-    list_remove(timerList, node);
     return ESP_OK;
 }
 
@@ -233,21 +225,18 @@ esp_err_t esp_timer_start_periodic(esp_timer_handle_t timer, uint64_t period)
 
 /**
  * @brief Check running timers and call any that expire
- * 
+ *
  * @param elapsed_us The elapsed time in microseconds since this was last called
  */
 void check_esp_timer(uint64_t elapsed_us)
 {
-    if(0 == timerList->len)
+    if(0 == timerList->length)
     {
         // Nothing linked, so return
         return;
     }
 
-    list_iterator_t * iter = list_iterator_new(timerList, LIST_HEAD);
-
-    list_node_t *node;
-    while ((node = list_iterator_next(iter)))
+    for (node_t* node = timerList->first; NULL != node; node = node->next)
     {
         bool timerExpired = false;
         esp_timer_handle_t tmr = node->val;
@@ -278,6 +267,4 @@ void check_esp_timer(uint64_t elapsed_us)
             }
         }
     }
-
-    list_iterator_destroy(iter);
 }
