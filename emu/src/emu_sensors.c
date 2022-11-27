@@ -82,7 +82,7 @@ void deinitButtons(void)
 		// Free everything
 		free(val);
 	}
-	clear(buttonQueue);
+	clear(touchQueue);
 	free(touchQueue);
 }
 
