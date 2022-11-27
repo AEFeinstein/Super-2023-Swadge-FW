@@ -209,6 +209,7 @@ static const char fl_flight_invertY1_env[] = "Y Invert: On";
 static const char fl_flight_perf[] = "Free Flight";
 static const char fl_100_percent[] = "100% 100% 100%";
 static const char fl_turn_around[] = "TURN AROUND";
+static const char fl_you_win[] = "YOU   WIN!";
 static const char fl_paused[] = "PAUSED";
 static const char str_quit[] = "Exit";
 static const char str_high_scores[] = "High Scores";
@@ -1164,12 +1165,11 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
     {
         char framesStr[32] = {0};
         //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
-        snprintf(framesStr, sizeof(framesStr), "YOU   WIN!" );
-        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+75, 50);
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, fl_you_win, (disp->w - textWidth(&flight->radiostars, fl_you_win)) / 2, 50);
         snprintf(framesStr, sizeof(framesStr), "TIME: %d.%02d", tflight->wintime/100,tflight->wintime%100 );
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, ((tflight->wintime>10000)?14:20)+75, 18+50);
         snprintf(framesStr, sizeof(framesStr), "BEANS: %2d",tflight->beans );
-        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+75, 36+50);
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, (disp->w - textWidth(&flight->radiostars, framesStr)) / 2, 36+50);
     }
 
     if( tflight->beans >= MAX_BEANS )
