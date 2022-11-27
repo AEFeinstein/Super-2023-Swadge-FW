@@ -622,7 +622,7 @@ void handleArgs(int argc, char** argv)
                 printf("\t--nvs-file FILE\tSets the name of the JSON file used to store NVS data. Defaults to 'nvs.json' in the current directory.\n");
                 printf("\t--keys KEYBINDINGS\tSets one or more keybindings, in the format of `<key>:<button>,<key>:<button>,...`, where <key> is a single character,\n"
                             "\t\t\tand <button> is one of UP, DOWN, LEFT, RIGHT, A, B, START, SELECT, X, Y, 1, 2, 3, 4, or 5, with X, Y, and 1-5 being the touchpad segments.\n"
-                            "\t\tWhitespace is ignored. To use ',', ':', ' ', or '\\' as the keybinding, prefix them with a backslash, e.g. `--keys '\ :A, \\:B, \,:UP, \::DOWN`\n");
+                            "\t\tWhitespace is ignored. To use ',', ':', ' ', or '\\' as the keybinding, prefix them with a backslash, e.g. `--keys '\\ :A, \\\\:B, \\,:UP, \\::DOWN'`\n");
                 printf("\t--keys-p2 KEYBINDINGS\tSets keybindings for player 2. Requires the same format as in --keys.\n");
                 printf("\t--dvorak\t\tSets keybindings for the Dvorak layout which are equivalent to the default QWERTY keybinings.\n");
                 printf("\n");
