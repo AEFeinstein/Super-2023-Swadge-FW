@@ -6,6 +6,7 @@
 #include <time.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "emu_esp.h"
 #include "emu_main.h"
