@@ -132,6 +132,46 @@
 // Music and SFX
 #define NUM_LAND_FX 16
 
+
+// Any const strings go here.
+
+static const char str_select_for[] = "SELECT FOR";
+static const char str_scores[] = "SCORES";
+static const char str_start_to[] = "START TO";
+static const char str_play[] = "PLAY";
+static const char str_tiltrads[] = "TILTRADS";
+static const char str_color[] = "COLOR";
+//static const char str_exit[] = "B TO EXIT";
+static const char str_start[] = "START";
+static const char str_restart[] = "RESTART";
+static const char str_next[] = "NEXT";
+static const char str_high_new[] = "HIGH (NEW)";
+static const char str_high[] = "HIGH";
+static const char str_d_format[] = "%d";
+static const char str_score[] = "SCORE";
+static const char str_lines[] = "LINES";
+static const char str_level[] = "LEVEL";
+static const char str_rotate[] = "ROTATE";
+static const char str_b_a[] = "B/A";
+static const char str_drop[] = "DROP";
+static const char str_up_down[] = "UP/DOWN";
+static const char str_high_scores[] = "HIGH SCORES";
+static const char str_clear[] = "CLEAR";
+static const char str_select_to[] = "SELECT TO";
+static const char str_start_for[] = "START FOR";
+static const char str_title[] = "TITLE";
+static const char str_select[] = "SELECT";
+static const char str_game_over[] = "GAME OVER";
+static const char str_high_score[] = "HIGH SCORE!";
+static const char str_your_score[] = "YOUR SCORE:";
+
+static const char KEY_HIGH_SCORE_FORMAT[] = "tt_high_score_%d";
+
+#if defined(EMU) && defined(DEBUG)
+static const char str_emu[] = "EMU";
+#endif
+
+
 // Any typedefs go here.
 
 // Mode state
@@ -2202,24 +2242,24 @@ void ttTitleDisplay(void)
                           tiltrads->stateTime, c112);
 
     // SELECT FOR
-    int16_t scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "SELECT FOR", 0, GRID_X);
+    int16_t scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_select_for, 0, GRID_X);
     int16_t scoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 7 + 1);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "SELECT FOR", scoresTextX, scoresTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_select_for, scoresTextX, scoresTextY);
 
     // SCORES
-    scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "SCORES", 0, GRID_X);
+    scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_scores, 0, GRID_X);
     scoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 6);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "SCORES", scoresTextX, scoresTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_scores, scoresTextX, scoresTextY);
 
     // START TO
-    int16_t playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "START TO", xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
+    int16_t playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_start_to, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
     int16_t playTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 7 + 1);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "START TO", playTextX, playTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_start_to, playTextX, playTextY);
 
     // PLAY
-    playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "PLAY", xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
+    playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_play, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
     playTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 6);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "PLAY", playTextX, playTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_play, playTextX, playTextY);
 
     // Clear the grid data. (may not want to do this every frame)
     refreshTetradsGrid(TUTORIAL_GRID_COLS, TUTORIAL_GRID_ROWS, tiltrads->tutorialTetradsGrid, tiltrads->landedTetrads, &(tiltrads->tutorialTetrad),
@@ -2234,18 +2274,18 @@ void ttTitleDisplay(void)
     plotGrid(tiltrads->disp, GRID_X, GRID_Y, GRID_UNIT_SIZE, TUTORIAL_GRID_COLS, TUTORIAL_GRID_ROWS, tiltrads->tutorialTetradsGrid, false, c224);
 
     // TILTRADS
-    int16_t titleTextX = getCenteredTextX(&(tiltrads->radiostars), "TILTRADS", 0, tiltrads->disp->w);
+    int16_t titleTextX = getCenteredTextX(&(tiltrads->radiostars), str_tiltrads, 0, tiltrads->disp->w);
     int16_t titleTextY = DISPLAY_HALF_HEIGHT - tiltrads->radiostars.h - 2;
-    drawText(tiltrads->disp, &(tiltrads->radiostars), c540, "TILTRADS", titleTextX, titleTextY);
+    drawText(tiltrads->disp, &(tiltrads->radiostars), c540, str_tiltrads, titleTextX, titleTextY);
 
     // COLOR (rotating color fx)
-    titleTextX = getCenteredTextX(&(tiltrads->radiostars), "COLOR", 0, tiltrads->disp->w);
+    titleTextX = getCenteredTextX(&(tiltrads->radiostars), str_color, 0, tiltrads->disp->w);
     titleTextY += tiltrads->radiostars.h + 2;
-    drawText(tiltrads->disp, &(tiltrads->radiostars), tiltrads->stateFrames % c555, "COLOR", titleTextX, titleTextY);
+    drawText(tiltrads->disp, &(tiltrads->radiostars), tiltrads->stateFrames % c555, str_color, titleTextX, titleTextY);
 
     /*
     // SELECT TO EXIT
-    int16_t exitX = getCenteredTextX(&(tiltrads->ibm_vga8), "B TO EXIT", 0, tiltrads->disp->w);
+    int16_t exitX = getCenteredTextX(&(tiltrads->ibm_vga8), str_exit, 0, tiltrads->disp->w);
     int16_t exitY = tiltrads->disp->h - tiltrads->ibm_vga8.h - 2;
     // Fill the SELECT TO EXIT area depending on how long the button's held down.
     if (tiltrads->exitTimer != 0)
@@ -2258,7 +2298,7 @@ void ttTitleDisplay(void)
         int16_t holdAreaY1 = tiltrads->disp->h - 1;
         fillDisplayArea(tiltrads->disp, holdAreaX0, holdAreaY0, holdAreaX1, holdAreaY1, c321);
     }
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "B TO EXIT", exitX, exitY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_exit, exitX, exitY);
     */
 
     // Fill in the floor of the grid on-screen for visual consistency.
@@ -2318,8 +2358,8 @@ void ttGameDisplay(void)
 
     // NEXT
     currY = NEXT_GRID_Y - 2 - tiltrads->ibm_vga8.h;
-    int16_t nextHeaderTextStart = getCenteredTextX(&(tiltrads->ibm_vga8), "NEXT", NEXT_GRID_X, xFromGridCol(NEXT_GRID_X, NEXT_GRID_COLS, GRID_UNIT_SIZE));
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "NEXT", nextHeaderTextStart, currY);
+    int16_t nextHeaderTextStart = getCenteredTextX(&(tiltrads->ibm_vga8), str_next, NEXT_GRID_X, xFromGridCol(NEXT_GRID_X, NEXT_GRID_COLS, GRID_UNIT_SIZE));
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_next, nextHeaderTextStart, currY);
 
     // Fill area of grid background.
     fillDisplayArea(tiltrads->disp, NEXT_GRID_X, NEXT_GRID_Y, xFromGridCol(NEXT_GRID_X, NEXT_GRID_COLS, GRID_UNIT_SIZE),
@@ -2347,30 +2387,30 @@ void ttGameDisplay(void)
     int16_t numFieldEnd = 0;
 
     // HIGH
-    int16_t highScoreHeaderTextStart = getCenteredTextX(&(tiltrads->ibm_vga8), tiltrads->newHighScore ? "HIGH (NEW)" : "HIGH", 0, GRID_X);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, tiltrads->newHighScore ? "HIGH (NEW)" : "HIGH", highScoreHeaderTextStart, currY);
+    int16_t highScoreHeaderTextStart = getCenteredTextX(&(tiltrads->ibm_vga8), tiltrads->newHighScore ? str_high_new : str_high, 0, GRID_X);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, tiltrads->newHighScore ? str_high_new : str_high, highScoreHeaderTextStart, currY);
 
     // 99999
     currY += (tiltrads->ibm_vga8.h + 1);
-    snprintf(uiStr, sizeof(uiStr), "%d", tiltrads->newHighScore ? tiltrads->score : tiltrads->highScores[0]);
+    snprintf(uiStr, sizeof(uiStr), str_d_format, tiltrads->newHighScore ? tiltrads->score : tiltrads->highScores[0]);
     getNumCentering(&(tiltrads->ibm_vga8), uiStr, 0, GRID_X, &numFieldStart, &numFieldEnd);
     drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, uiStr, numFieldStart, currY);
 
     // SCORE
     currY += tiltrads->ibm_vga8.h + (tiltrads->ibm_vga8.h + 1);
-    int16_t scoreHeaderTextStart = getCenteredTextX(&(tiltrads->ibm_vga8), "SCORE", 0, GRID_X);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "SCORE", scoreHeaderTextStart, currY);
+    int16_t scoreHeaderTextStart = getCenteredTextX(&(tiltrads->ibm_vga8), str_score, 0, GRID_X);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_score, scoreHeaderTextStart, currY);
 
     // 99999
     currY += (tiltrads->ibm_vga8.h + 1);
-    snprintf(uiStr, sizeof(uiStr), "%d", tiltrads->score);
+    snprintf(uiStr, sizeof(uiStr), str_d_format, tiltrads->score);
     getNumCentering(&(tiltrads->ibm_vga8), uiStr, 0, GRID_X, &numFieldStart, &numFieldEnd);
     drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, uiStr, numFieldStart, currY);
 
     // LINES
     currY += tiltrads->ibm_vga8.h + (tiltrads->ibm_vga8.h + 1) + 1;
-    int16_t linesHeaderTextStart = getCenteredTextX(&(tiltrads->ibm_vga8), "LINES", 0, GRID_X);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "LINES", linesHeaderTextStart, currY);
+    int16_t linesHeaderTextStart = getCenteredTextX(&(tiltrads->ibm_vga8), str_lines, 0, GRID_X);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_lines, linesHeaderTextStart, currY);
 
     // 999
     currY += (tiltrads->ibm_vga8.h + 1);
@@ -2380,12 +2420,12 @@ void ttGameDisplay(void)
 
     // LEVEL
     currY = yFromGridRow(NEXT_GRID_Y, NEXT_GRID_ROWS, GRID_UNIT_SIZE) + 3;
-    int16_t levelHeaderTextStart = getCenteredTextX(&(tiltrads->ibm_vga8), "LEVEL", NEXT_GRID_X, xFromGridCol(NEXT_GRID_X, NEXT_GRID_COLS, GRID_UNIT_SIZE));
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "LEVEL", levelHeaderTextStart, currY);
+    int16_t levelHeaderTextStart = getCenteredTextX(&(tiltrads->ibm_vga8), str_level, NEXT_GRID_X, xFromGridCol(NEXT_GRID_X, NEXT_GRID_COLS, GRID_UNIT_SIZE));
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_level, levelHeaderTextStart, currY);
 
     // 99
     currY += (tiltrads->ibm_vga8.h + 1);
-    snprintf(uiStr, sizeof(uiStr), "%d", (int)(tiltrads->currentLevel + 1)); // Levels are displayed with 1 as the base level.
+    snprintf(uiStr, sizeof(uiStr), str_d_format, (int)(tiltrads->currentLevel + 1)); // Levels are displayed with 1 as the base level.
     getNumCentering(&(tiltrads->ibm_vga8), uiStr, NEXT_GRID_X, xFromGridCol(NEXT_GRID_X, NEXT_GRID_COLS, GRID_UNIT_SIZE), &numFieldStart,
                     &numFieldEnd);
     drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, uiStr, numFieldStart, currY);
@@ -2394,24 +2434,24 @@ void ttGameDisplay(void)
     int botIncrement = 7;
 
     // ROTATE
-    int16_t scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "ROTATE", 0, GRID_X);
+    int16_t scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_rotate, 0, GRID_X);
     int16_t scoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * topIncrement + 1);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "ROTATE", scoresTextX, scoresTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_rotate, scoresTextX, scoresTextY);
 
     // B/A
-    scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "B/A", 0, GRID_X);
+    scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_b_a, 0, GRID_X);
     scoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * botIncrement);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "B/A", scoresTextX, scoresTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_b_a, scoresTextX, scoresTextY);
 
     // DROP
-    int16_t playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "DROP", xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
+    int16_t playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_drop, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
     int16_t playTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * topIncrement + 1);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "DROP", playTextX, playTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_drop, playTextX, playTextY);
 
     // UP/DOWN
-    playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "UP/DOWN", xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
+    playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_up_down, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
     playTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * botIncrement);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "UP/DOWN", playTextX, playTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_up_down, playTextX, playTextY);
 }
 
 void ttScoresDisplay(void)
@@ -2436,9 +2476,9 @@ void ttScoresDisplay(void)
 
 
     // HIGH SCORES
-    int16_t headerTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "HIGH SCORES", 0, tiltrads->disp->w);
+    int16_t headerTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_high_scores, 0, tiltrads->disp->w);
     int16_t headerTextY = SCORE_SCREEN_TITLE_Y;
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "HIGH SCORES", headerTextX, headerTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_high_scores, headerTextX, headerTextY);
 
     char uiStr[32] = {0};
 
@@ -2462,7 +2502,7 @@ void ttScoresDisplay(void)
         double holdProgress = ((double)(tiltrads->clearScoreTimer) / (double)CLEAR_SCORES_HOLD_TIME);
         int16_t holdAreaX0 = clearScoresTextX - 1;
         int16_t holdAreaY0 = (tiltrads->disp->h - (tiltrads->ibm_vga8.h + 1)) - 1;
-        double holdAreaWidth = textWidth(&(tiltrads->ibm_vga8), "CLEAR") + 3;
+        double holdAreaWidth = textWidth(&(tiltrads->ibm_vga8), str_clear) + 3;
         int16_t holdAreaX1 = holdAreaX0 + (int16_t)(holdProgress * holdAreaWidth);
         int16_t holdAreaY1 = tiltrads->disp->h - 1;
         plotRect(tiltrads->disp, holdAreaX0, holdAreaY0, holdAreaX0 + holdAreaWidth, holdAreaY1, c321);
@@ -2470,24 +2510,24 @@ void ttScoresDisplay(void)
     }
 
     // SELECT TO
-    int16_t scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "SELECT TO", 0, GRID_X);
+    int16_t scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_select_to, 0, GRID_X);
     int16_t scoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 7 + 1);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "SELECT TO", scoresTextX, scoresTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_select_to, scoresTextX, scoresTextY);
 
     // CLEAR
-    scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "CLEAR", 0, GRID_X);
+    scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_clear, 0, GRID_X);
     scoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 6);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "CLEAR", scoresTextX, scoresTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_clear, scoresTextX, scoresTextY);
 
     // START FOR
-    int16_t playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "START FOR", xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
+    int16_t playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_start_for, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
     int16_t playTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 7 + 1);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "START FOR", playTextX, playTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_start_for, playTextX, playTextY);
 
     // TITLE
-    playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "TITLE", xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
+    playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_title, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
     playTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 6);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "TITLE", playTextX, playTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_title, playTextX, playTextY);
 }
 
 void ttGameoverDisplay(void)
@@ -2523,33 +2563,33 @@ void ttGameoverDisplay(void)
         plotRect(tiltrads->disp, leftWindowXMargin, windowYMarginTop, tiltrads->disp->w - rightWindowXMargin, tiltrads->disp->h - windowYMarginBot, c540);
 
         // GAME OVER
-        int16_t headerTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "GAME OVER", 0, tiltrads->disp->w);
-        drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "GAME OVER", headerTextX, windowYMarginTop + titleTextYOffset);
+        int16_t headerTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_game_over, 0, tiltrads->disp->w);
+        drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_game_over, headerTextX, windowYMarginTop + titleTextYOffset);
 
         // HIGH SCORE! or YOUR SCORE:
         if (tiltrads->newHighScore)
         {
-            headerTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "HIGH SCORE!", 0, tiltrads->disp->w);
-            drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "HIGH SCORE!", headerTextX, windowYMarginTop + highScoreTextYOffset);
+            headerTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_high_score, 0, tiltrads->disp->w);
+            drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_high_score, headerTextX, windowYMarginTop + highScoreTextYOffset);
         }
         else
         {
-            headerTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "YOUR SCORE:", 0, tiltrads->disp->w);
-            drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "YOUR SCORE:", headerTextX, windowYMarginTop + highScoreTextYOffset);
+            headerTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_your_score, 0, tiltrads->disp->w);
+            drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_your_score, headerTextX, windowYMarginTop + highScoreTextYOffset);
         }
 
         // 1230495
         char scoreStr[32] = {0};
-        snprintf(scoreStr, sizeof(scoreStr), "%d", tiltrads->score);
+        snprintf(scoreStr, sizeof(scoreStr), str_d_format, tiltrads->score);
         drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, scoreStr, tiltrads->gameoverScoreX, windowYMarginTop + scoreTextYOffset);
 
-        // SELECT FOR   START TO
-        // TITLE         RESTART
-        drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "SELECT", leftWindowXMargin + controlTextXPadding, controlTextYOffset - tiltrads->ibm_vga8.h - 1);
-        drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "TITLE", leftWindowXMargin + controlTextXPadding, controlTextYOffset);
+        // SELECT   START
+        // TITLE  RESTART
+        drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_select, leftWindowXMargin + controlTextXPadding, controlTextYOffset - tiltrads->ibm_vga8.h - 1);
+        drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_title, leftWindowXMargin + controlTextXPadding, controlTextYOffset);
 
-        drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "START", tiltrads->disp->w - rightWindowXMargin - textWidth(&(tiltrads->ibm_vga8), "START") - controlTextXPadding, controlTextYOffset - tiltrads->ibm_vga8.h - 1);
-        drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "RESTART", tiltrads->disp->w - rightWindowXMargin - textWidth(&(tiltrads->ibm_vga8), "RESTART") - controlTextXPadding, controlTextYOffset);
+        drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_start, tiltrads->disp->w - rightWindowXMargin - textWidth(&(tiltrads->ibm_vga8), str_start) - controlTextXPadding, controlTextYOffset - tiltrads->ibm_vga8.h - 1);
+        drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_restart, tiltrads->disp->w - rightWindowXMargin - textWidth(&(tiltrads->ibm_vga8), str_restart) - controlTextXPadding, controlTextYOffset);
     }
 
     tiltrads->gameoverLEDAnimCycle = ((double)tiltrads->stateTime * US_TO_MS_FACTOR) / DISPLAY_REFRESH_MS;
@@ -2670,7 +2710,7 @@ void ttChangeState(tiltradsState_t newState)
             // Get the correct offset for the high score.
             x0 = 18;
             x1 = tiltrads->disp->w - x0;
-            snprintf(uiStr, sizeof(uiStr), "%d", tiltrads->score);
+            snprintf(uiStr, sizeof(uiStr), str_d_format, tiltrads->score);
             tiltrads->gameoverScoreX = getCenteredTextX(&(tiltrads->ibm_vga8), uiStr, x0, x1);
             tiltrads->gameoverLEDAnimCycle = ((double)tiltrads->stateTime * US_TO_MS_FACTOR) / DISPLAY_REFRESH_MS;
 
@@ -2790,7 +2830,7 @@ int16_t yFromGridRow(int16_t y0, int16_t gridRow, uint8_t unitSize)
 #ifdef DEBUG
 void debugPrintGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols])
 {
-    ESP_LOGW("EMU", "Grid Dimensions: c%d x r%d", gridCols, gridRows);
+    ESP_LOGW(str_emu, "Grid Dimensions: c%d x r%d", gridCols, gridRows);
     for (int32_t y = 0; y < gridRows; y++)
     {
         for (int32_t x = 0; x < gridCols; x++)
@@ -2984,10 +3024,12 @@ bool moveTetrad(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
 
     bool moved = false;
 
-    //ESP_LOGW("EMU", "ttAccel.y: %d", tiltrads->ttAccel.y);
     int32_t yMod = tiltrads->ttAccel.y / ACCEL_SEG_SIZE;
-    //ESP_LOGW("EMU", "yMod: %d", yMod);
-    //ESP_LOGW("EMU", "ttAccel.delta: %d", abs(tiltrads->ttAccel.y - tiltrads->ttLastTestAccel.y));
+#if defined(EMU) && defined(DEBUG)
+    ESP_LOGW(str_emu, "ttAccel.y: %d", tiltrads->ttAccel.y);
+    ESP_LOGW(str_emu, "yMod: %d", yMod);
+    ESP_LOGW(str_emu, "ttAccel.delta: %d", abs(tiltrads->ttAccel.y - tiltrads->ttLastTestAccel.y));
+#endif
 
     coord_t targetPos;
     targetPos.r = tetrad->topLeft.r;
@@ -3009,7 +3051,9 @@ bool moveTetrad(tetrad_t* tetrad, uint8_t gridCols, uint8_t gridRows,
     // Emulator only (control with d pad)
 #ifdef EMU
     targetPos.c = tetrad->topLeft.c;
-    //ESP_LOGW("EMU", "%d modeFrames", modeFrames);
+#ifdef DEBUG
+    ESP_LOGW(str_emu, "%d modeFrames", modeFrames);
+#endif
     if (ttIsButtonPressed(LEFT))
     {
         targetPos.c -= 1;
@@ -3704,7 +3748,7 @@ void ttGetHighScores(void)
     char keyStr[32] = {0};
     for (int32_t i = 0; i < NUM_TT_HIGH_SCORES; i++)
     {
-        snprintf(keyStr, sizeof(keyStr), "tt_high_score_%d", i);
+        snprintf(keyStr, sizeof(keyStr), KEY_HIGH_SCORE_FORMAT, i);
         if (!readNvs32(keyStr, &(tiltrads->highScores[i])))
         {
             tiltrads->highScores[i] = 0;
@@ -3717,7 +3761,7 @@ void ttSetHighScores(void)
     char keyStr[32] = {0};
     for (int32_t i = 0; i < NUM_TT_HIGH_SCORES; i++)
     {
-        snprintf(keyStr, sizeof(keyStr), "tt_high_score_%d", i);
+        snprintf(keyStr, sizeof(keyStr), KEY_HIGH_SCORE_FORMAT, i);
         writeNvs32(keyStr, tiltrads->highScores[i]);
     }
 }
