@@ -8,6 +8,8 @@
 #include "paint_util.h"
 #include "paint_nvs.h"
 
+static const char startMenuUndo[] = "Undo";
+static const char startMenuRedo[] = "Redo";
 static const char startMenuSave[] = "Save";
 static const char startMenuLoad[] = "Load";
 static const char startMenuSlot[] = "Slot %d";
@@ -219,6 +221,14 @@ void paintRenderToolbar(paintArtist_t* artist, paintCanvas_t* canvas, paintDraw_
             drawText(canvas->disp, &paintState->toolbarFont, c000, text, textX, textY);
         }
     }
+    else if (paintState->saveMenu == UNDO)
+    {
+        drawText(canvas->disp, &paintState->saveMenuFont, c000, startMenuUndo, textX, textY);
+    }
+    else if (paintState->saveMenu == REDO)
+    {
+        drawText(canvas->disp, &paintState->saveMenuFont, c000, startMenuRedo, textX, textY);
+    }
     else if (paintState->saveMenu == PICK_SLOT_SAVE || paintState->saveMenu == PICK_SLOT_LOAD)
     {
         bool saving = paintState->saveMenu == PICK_SLOT_SAVE;
@@ -408,11 +418,21 @@ void paintClearCanvas(const paintCanvas_t* canvas, paletteColor_t bgColor)
 }
 
 // Generates a cursor sprite that's a box
-void paintGenerateCursorSprite(wsg_t* cursorWsg, const paintCanvas_t* canvas, uint8_t size)
+bool paintGenerateCursorSprite(wsg_t* cursorWsg, const paintCanvas_t* canvas, uint8_t size)
 {
-    cursorWsg->w = size * canvas->xScale + 2;
-    cursorWsg->h = size * canvas->yScale + 2;
-    cursorWsg->px = malloc(sizeof(paletteColor_t) * cursorWsg->w * cursorWsg->h);
+    uint16_t newW = size * canvas->xScale + 2;
+    uint16_t newH = size * canvas->yScale + 2;
+
+    void* newData = malloc(sizeof(paletteColor_t) * newW * newH);
+    if (newData == NULL)
+    {
+        // Don't continue if allocation failed
+        return false;
+    }
+
+    cursorWsg->w = newW;
+    cursorWsg->h = newH;
+    cursorWsg->px = newData;
 
     paletteColor_t pxVal;
     for (uint16_t x = 0; x < cursorWsg->w; x++)
@@ -430,6 +450,8 @@ void paintGenerateCursorSprite(wsg_t* cursorWsg, const paintCanvas_t* canvas, ui
             cursorWsg->px[y * cursorWsg->w + x] = pxVal;
         }
     }
+
+    return true;
 }
 
 void paintFreeCursorSprite(wsg_t* cursorWsg)
@@ -505,29 +527,39 @@ void hideCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
 /// @brief Shows the cursor without saving the pixels under it
 /// @param cursor The cursor to show
 /// @param canvas The canvas to draw the cursor on
-void showCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
+/// @return true if the cursor was shown, or false if it could not due to memory constraints
+bool showCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
 {
     if (!cursor->show)
     {
         cursor->show = true;
         cursor->redraw = true;
-        drawCursor(cursor, canvas);
+        return drawCursor(cursor, canvas);
     }
+
+    return true;
 }
 
 /// @brief If not hidden, draws the cursor on the canvas and saves the pixels for later. If hidden, does nothing.
 /// @param cursor The cursor to draw
 /// @param canvas The canvas to draw it on and save the pixels from
-void drawCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
+/// @return true if the cursor was drawn, or false if it could not be due to memory constraints
+bool drawCursor(paintCursor_t* cursor, paintCanvas_t* canvas)
 {
     bool cursorIsNearEdge = (canvasToDispX(canvas, cursor->x) + cursor->spriteOffsetX < canvas->x || canvasToDispX(canvas, cursor->x) + cursor->spriteOffsetX + cursor->sprite->w > canvas->x + canvas->w * canvas->xScale || canvasToDispY(canvas, cursor->y) + cursor->spriteOffsetY < canvas->y || canvasToDispY(canvas, cursor->y) + cursor->spriteOffsetY + cursor->sprite->h > canvas->y + canvas->h * canvas->yScale);
     if (cursor->show && (cursor->redraw || cursorIsNearEdge))
     {
         // Undraw the previous cursor pixels, if there are any
         undrawCursor(cursor, canvas);
-        paintDrawWsgTemp(canvas->disp, cursor->sprite, &cursor->underPxs, canvasToDispX(canvas, cursor->x) + cursor->spriteOffsetX, canvasToDispY(canvas, cursor->y) + cursor->spriteOffsetY, getContrastingColor);
+        if (!paintDrawWsgTemp(canvas->disp, cursor->sprite, &cursor->underPxs, canvasToDispX(canvas, cursor->x) + cursor->spriteOffsetX, canvasToDispY(canvas, cursor->y) + cursor->spriteOffsetY, getContrastingColor))
+        {
+            // Return false if we couldn't draw/save the cursor
+            return false;
+        }
         cursor->redraw = false;
     }
+
+    return true;
 }
 
 /// @brief Moves the cursor by the given relative x and y offsets, staying within the canvas bounds. Does not draw.

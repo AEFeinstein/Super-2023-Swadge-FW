@@ -63,38 +63,52 @@ This project uses CircleCI to build the firmware each time code is committed to 
 
 ## Windows (Powershell)
 
-To set up the build environment, the first thing you'll need to install is the latest [Python for Windows](https://www.python.org/downloads/windows/). When installing Python, make sure to check off "Add Python to environment variables":
+### Git
 
-![image](https://user-images.githubusercontent.com/231180/190054131-fa0d2d12-a520-41c1-88fc-6eb45e23654d.png)
+Did you already install `git` from [Configuring Your Environment](#configuring-your-environment)? If not, do that now.
 
-Next, you'll need to install [msys2](https://www.msys2.org/). You can do that with their installer. Once you have an msys2 shell, the command to install required packages for building from an msys2 terminal after installing msys2 is:
+### Python
 
-```bash
-pacman -S base-devel mingw-w64-x86_64-toolchain make zip mingw-w64-x86_64-python-pip
-```
+Install [Python **3.10** for Windows](https://www.python.org/downloads/release/python-3108/).
 
-Alternatively, you can run this powershell script to download, install, and update msys2 in one shot. Feel free to replace `C:\` with a different path if you want. Note that there may be an updated installer than the one used in this script.
+> **Warning**
+> 
+> Do not install Python 3.11 or any newer version! You may install a newer update of Python 3.10 from the [releases page](https://www.python.org/downloads/windows/).
+
+When installing Python, make sure to check off "Add Python to environment variables":
+
+![The Python installer with the "Add Python to environment variables" option checked.](https://user-images.githubusercontent.com/231180/190054131-fa0d2d12-a520-41c1-88fc-6eb45e23654d.png)
+
+### Preparation to run PowerShell scripts
+
+Before you can run any PowerShell scripts from this repository, run this command in a PowerShell prompt to enable execution of downloaded scripts:
 
 ```powershell
-# Download installer
-Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2022-01-28/msys2-base-x86_64-20220128.sfx.exe -Outfile msys2.exe
-
-# Extract to C:\msys64
-.\msys2.exe -y -oC:\
-
-# Delete the installer
-Remove-Item .\msys2.exe
-
-# Run for the first time
-C:\msys64\usr\bin\bash -lc ' '
-
-# Update MSYS2, first a core update then a normal update
-C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'
-C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'
-
-# Install packages
-C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -S base-devel mingw-w64-x86_64-toolchain git make zip mingw-w64-x86_64-python-pip python-pip'
+Set-ExecutionPolicy -Scope CurrentUser Unrestricted
 ```
+
+After that, clone this repository to the location of your choice. The script below puts it in `~\esp\Super-2023-Swadge-FW`, but you can modify it to wherever you want.
+
+```powershell
+cd ~\esp\
+git clone https://github.com/AEFeinstein/Super-2023-Swadge-FW.git
+cd Super-2023-Swadge-FW
+git submodule update --init --recursive
+```
+
+### MSYS2
+
+Next, you'll want to run the following PowerShell from the repository script to download, install, and update msys2 in one shot. Feel free to replace `C:\` with a different path if you want. Note that there may be a more up-to-date installer than the one used in this script.
+
+```powershell
+.\setup-msys2.ps1
+```
+
+> Alternatively, install msys2 with [their installer](https://www.msys2.org/). Once you have an msys2 shell, the command to install required packages for building from an msys2 terminal after installing msys2 is:
+> 
+> ```bash
+> pacman -S base-devel mingw-w64-x86_64-toolchain make zip mingw-w64-x86_64-python-pip
+> ```
 
 After installing msys2, you'll need to add it to Windows's path variable. [Here are some instructions on how to do that](https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/). You must add `C:\msys64\mingw64\bin` and `C:\msys64\usr\bin` to the path, in that order, and **before** `C:\Windows\System32`. That's because two different `find.exe` programs exist, one in msys2 and one in System32, and the makefile expects the msys2 one.
 
@@ -104,32 +118,19 @@ When it's all set up, it should look something like this:
 
 ![image](https://user-images.githubusercontent.com/231180/190054544-dc26830a-28e7-4f2f-8f7f-84550ff9d3a8.png)
 
-To set up the ESP32 toolchain, you can run this powershell script. It will install the IDF in `~/esp/esp-idf` and the tools in `~/.espressif`. I don't recommend changing those paths.
+### ESP-IDF
+
+To set up the ESP32 toolchain, you can run the following powershell script from the repository. It will install the IDF in `~/esp/esp-idf` and the tools in `~/.espressif`. I don't recommend changing those paths.
 
 ```powershell
-# Make an esp folder and move into it
-mkdir ~/esp
-cd ~/esp
-
-# Clone the IDF and move into it
-git clone -b v4.4.3 --recursive https://github.com/espressif/esp-idf.git esp-idf
-cd ~/esp/esp-idf
-
-# Initialize submodules
-git submodule update --init --recursive
-
-# Install tools
-./install.ps1
-
-# Export paths and variables
-./export.ps1
+.\setup-esp-idf.ps1
 ```
 
-Note that `./export.ps1` does not make any permanent changes and it must be run each time you open a new terminal for a build.
+Note that `export.ps1`, which is called in that script, does not make any permanent changes and it must be run each time you open a new terminal for a build.
 
 > **Warning**
 > 
-> Sometimes `install.ps1` can be a bit finicky and not install everything it's supposed to. If it doesn't create a `~/.espressif/python_env` folder, try running it again. And again. And again. As a last resort you can try editing `install.ps1` and swap the `"Setting up Python environment"` and `"Installing ESP-IDF tools"` sections to set up the Python environment first.
+> Sometimes `install.ps1`, which is also called in that script, can be a bit finicky and not install everything it's supposed to. If it doesn't create a `~/.espressif/python_env` folder, try running it again. And again. And again. As a last resort you can try editing `install.ps1` and swap the `"Setting up Python environment"` and `"Installing ESP-IDF tools"` sections to set up the Python environment first.
 
 ## Linux
 
@@ -157,14 +158,14 @@ git submodule update --init --recursive
 To set up the emulator build environment, you'll need to install the following packages. If your system uses the `apt` package manager, use this command:
 
 ```bash
-sudo apt install build-essential xorg-dev libx11-dev libxinerama-dev libxext-dev mesa-common-dev libglu1-mesa-dev libasound2-dev libpulse-dev
+sudo apt install build-essential xorg-dev libx11-dev libxinerama-dev libxext-dev mesa-common-dev libglu1-mesa-dev libasound2-dev libpulse-dev libasan
 ```
 
 Or if your system uses the `dnf` package manager, use these commands:
 
 ```bash
 sudo dnf group install "C Development Tools and Libraries" "Development Tools"
-sudo dnf install libX11-devel libXinerama-devel libXext-devel mesa-libGLU-devel alsa-lib-devel pulseaudio-libs-devel libudev-devel cmake
+sudo dnf install libX11-devel libXinerama-devel libXext-devel mesa-libGLU-devel alsa-lib-devel pulseaudio-libs-devel libudev-devel cmake libasan
 ```
 
 ## macOS
@@ -673,6 +674,36 @@ void demoExitMode(void)
 {
     free(demo);
 }
+```
+
+# Updating your environment
+
+## Windows (Powershell)
+
+### Preparation to run PowerShell scripts
+
+If you have not yet run any PowerShell scripts from this repository, run this command in a PowerShell prompt to enable execution of downloaded scripts:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser Unrestricted
+```
+
+### ESP-IDF
+
+To update the ESP32 toolchain, you can run the following powershell script from the repository. It will only work if you have installed the IDF in `~/esp/esp-idf` and the tools in `~/.espressif`.
+
+```powershell
+.\update-esp-idf.ps1
+```
+
+## Linux
+
+### ESP-IDF
+
+To update the ESP32 build environment, you can run the following bash script from the repository. It will only work if you have installed the IDF in `~/esp/esp-idf` and the tools in `~/.espressif`.
+
+```bash
+./update-esp-idf.sh
 ```
 
 # Troubleshooting

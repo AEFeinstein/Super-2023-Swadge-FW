@@ -7,6 +7,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <ctype.h>
 
 #ifdef __linux__
 #include <execinfo.h>
@@ -20,8 +21,6 @@
 #include "swadgeMode.h"
 #include "mode_main_menu.h"
 #include "btn.h"
-
-#include "list.h"
 
 #include "emu_esp.h"
 #include "sound.h"
@@ -43,7 +42,6 @@
 #include "mode_tiltrads.h"
 #include "mode_tunernome.h"
 #include "mode_paint.h"
-#include "paint_share.h"
 #include "paint_share.h"
 #include "picross_menu.h"
 #include "mode_platformer.h"
@@ -67,6 +65,10 @@
 #define DIV_COLOR 0x808080FF
 
 extern char* emuNvsFilename;
+
+
+static const char dvorakKeysP1[] = {',', 'o', 'a', 'e', 'n', 't', 'r', 'c'};
+static const char dvorakKeysP2[] = {'y', 'i', 'u', 'd', 'm', 'b', 'p', 'f'};
 
 // A list of all modes
 swadgeMode * allModes[] =
@@ -222,12 +224,259 @@ void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t c
     } while (x < 0);
 }
 
+int strCommonPrefixLen(const char* a, const char* b)
+{
+    if (a == NULL || b == NULL)
+    {
+        return 0;
+    }
+
+    int i = 0;
+
+    for (; *a && *b && tolower(*a) == tolower(*b); a++, b++, i++);
+    return i;
+}
+
+int getButtonIndex(const char* text, char** end)
+{
+    const char* const keyMap[] =
+    {
+        "up",
+        "down",
+        "left",
+        "right",
+        "a",
+        "b",
+        "start",
+        "select",
+    };
+
+    for (uint8_t i = 0; i < sizeof(keyMap) / sizeof(keyMap[0]); i++)
+    {
+        // Check if the name of the current key matches the one in the map
+        int prefix = strCommonPrefixLen(keyMap[i], text);
+        if (prefix == strlen(keyMap[i]))
+        {
+            if (end)
+            {
+                *end = text + prefix;
+            }
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+int getTouchIndex(const char* text, char** end)
+{
+    // doubled up so we can do either 1 or Y, and X or 5
+    // we'll just modulo it
+    const char* const touchMap[] =
+    {
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+
+        "y",
+        "2",
+        "3",
+        "4",
+        "x",
+    };
+
+    for (uint8_t i = 0; i < sizeof(touchMap) / sizeof(*touchMap); i++)
+    {
+        int prefix = strCommonPrefixLen(touchMap[i], text);
+        if (prefix > 0)
+        {
+            if (end)
+            {
+                *end = text + prefix;
+            }
+            return i % 5;
+        }
+    }
+
+    return -1;
+}
+
+bool handleFuzzButtons(const char* buttons)
+{
+    const char* cur = buttons;
+    bool found = false;
+    int buttonIndex, touchIndex;
+
+    fuzzKeyCount = 0;
+    fuzzTouchCount = 0;
+
+    while (*cur)
+    {
+        found = false;
+        buttonIndex = getButtonIndex(cur, &cur);
+
+        if (buttonIndex >= 0)
+        {
+            fuzzKeysP1[fuzzKeyCount] = keyButtonsP1[buttonIndex];
+            fuzzKeysP2[fuzzKeyCount++] = keyButtonsP2[buttonIndex];
+            found = true;
+        }
+
+        if (!found)
+        {
+            touchIndex = getTouchIndex(cur, &cur);
+            if (touchIndex >= 0)
+            {
+                fuzzTouchP1[fuzzTouchCount] = keyTouchP1[touchIndex];
+                fuzzTouchP2[fuzzTouchCount++] = keyTouchP2[touchIndex];
+                found = true;
+            }
+        }
+
+        if (!found)
+        {
+            fprintf(stderr, "ERROR: Unknown key in fuzz buttons list at %s\n", cur);
+            return false;
+        }
+
+        while (*cur == ',' || *cur == ' ') cur++;
+    }
+
+    return true;
+}
+
+bool parseKeyConfig(const char* config, char* outKeys, char* outTouch)
+{
+    const char* cur = config;
+    const char* colon;
+    const char* comma;
+    const char* escape;
+
+    // Each loop will process one key -> button/touchpad mapping
+    while (*cur)
+    {
+        colon = strchr(cur, ':');
+        comma = strchr(cur, ',');
+        escape = strchr(cur, '\\');
+
+        while (escape && escape == colon - 1)
+        {
+            // escape char is immediately before a colon, so skip that colon
+            colon = strchr(colon + 1, ':');
+        }
+
+        while (escape && escape == comma - 1)
+        {
+            // escape char is immediately before a comma, so skip that comma
+            comma = strchr(comma + 1, ',');
+        }
+
+        if (cur == escape)
+        {
+            cur++;
+
+            if (!*cur)
+            {
+                fprintf(stderr, "ERROR: Trailing '\\' at end of keybind string\n");
+            }
+        }
+
+        // Expect the comma to be immediately after the key bind character
+        if (colon && colon - cur > 1)
+        {
+            fprintf(stderr, "ERROR: Key binding must only be one character, was %zu at '%s'\n", colon - cur, cur);
+            return false;
+        }
+
+        if (colon && (!comma || colon < comma))
+        {
+            // colon is right after the key
+            char key = *cur;
+
+            cur = colon + 1;
+
+            if (!*cur)
+            {
+                fprintf(stderr, "ERROR: Unexpected end of keybind string, expecting ':' after %c\n", key);
+                return false;
+            }
+
+            bool found = false;
+            if (outKeys)
+            {
+                int buttonIndex = getButtonIndex(cur, &cur);
+
+                if (buttonIndex >= 0)
+                {
+                    outKeys[buttonIndex] = key;
+                    found = true;
+                }
+            }
+
+            if (!found && outTouch)
+            {
+                int keyIndex = getTouchIndex(cur, &cur);
+                if (keyIndex >= 0)
+                {
+                    outTouch[keyIndex] = key;
+                    found = true;
+                }
+            }
+
+            if (!found)
+            {
+                fprintf(stderr, "ERROR: Unknown button name in keybinding string at %s\n", cur);
+                return false;
+            }
+
+            // Move to past the comma
+            if (comma)
+            {
+                cur = comma + 1;
+            }
+
+            // Skip trailing spaces
+            while (*cur && *cur == ' ')
+            {
+                cur++;
+            }
+        }
+        else
+        {
+            fprintf(stderr, "ERROR: Expecting `:` and button name after %s\n", cur);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+void printModeList(FILE* stream)
+{
+    for (uint8_t i = 0; i < sizeof(allModes) / sizeof(*allModes); i++)
+    {
+        fprintf(stream, "  - %s\n", (&modePicross == allModes[i]) ? "Pi-cross" : allModes[i]->modeName);
+    }
+}
+
+
 static const struct option opts[] = {
     {"start-mode", required_argument, NULL, 'm'},
+    {"list-modes", no_argument, NULL, 0},
     {"lock", no_argument, &lockMode, true},
     {"fuzz", no_argument, &monkeyAround, true},
     {"fuzz-mode-timer", required_argument, NULL, 't'},
+    {"fuzz-buttons", required_argument, NULL, 0},
+    {"fuzz-buttons-p2", required_argument, NULL, 0},
+    {"fuzz-button-delay", required_argument, NULL, 0},
+    {"fuzz-button-prob", required_argument, NULL, 0},
     {"nvs-file", required_argument, NULL, 'f'},
+    {"keys", required_argument, NULL, 'k'},
+    {"keys-p2", required_argument, NULL, 'p'},
+    {"dvorak", no_argument, NULL, 0},
     {"help", no_argument, NULL, 'h'},
 
     {NULL, 0, NULL, 0},
@@ -238,15 +487,16 @@ void handleArgs(int argc, char** argv)
     char* executableName = *argv;
 
     char* startMode = NULL;
-
-    // Process the command-line arguments
-    // This also skips the first arg, which is the executable name
+    char* fuzzButtons = NULL;
+    bool fuzzP2 = true;
+    char* p1Keys = NULL;
+    char* p2Keys = NULL;
 
     int optVal, optIndex;
 
     while (true)
     {
-        optVal = getopt_long(argc, argv, "m:lt:f:h", opts, &optIndex);
+        optVal = getopt_long(argc, argv, "m:lt:f:k:p:h", opts, &optIndex);
 
         if (optVal < 0)
         {
@@ -257,8 +507,61 @@ void handleArgs(int argc, char** argv)
         switch (optVal)
         {
             case 0:
-            // No opts without a short arg yet, so nothing to do
-            break;
+            {
+                // Handle options without a short opt
+                switch (optIndex)
+                {
+                    // List modes
+                    case 1:
+                        printModeList(stdout);
+                        exit(0);
+                        return;
+
+                    // Dvorak
+                    case 12:
+                        memcpy(keyButtonsP1, dvorakKeysP1, sizeof(dvorakKeysP1) / sizeof(*dvorakKeysP1));
+                        memcpy(keyButtonsP2, dvorakKeysP2, sizeof(dvorakKeysP2) / sizeof(*dvorakKeysP2));
+                    break;
+
+                    // Fuzz Buttons
+                    case 5:
+                        // Handle it later
+                        fuzzButtons = optarg;
+                    break;
+
+                    // Fuzz Buttons P2
+                    case 6:
+                        // Lazily handle yes/no
+                        if (optarg && (optarg[0] == 'N' || optarg[0] == 'n'))
+                        {
+                            fuzzP2 = false;
+                        }
+                    break;
+
+                    // Fuzz Button Delay
+                    case 7:
+                        fuzzButtonDelay = atoi(optarg) * 1000;
+                        if (fuzzButtonDelay <= 0)
+                        {
+                            fprintf(stderr, "ERROR: Invalid numeric argument for option %s: '%s'\n", argv[optind - 2], optarg);
+                            exit(1);
+                            return;
+                        }
+                    break;
+
+                    // Fuzz Button Probability
+                    case 8:
+                        fuzzButtonProbability = atoi(optarg);
+                        if (fuzzButtonProbability <= 0 || fuzzButtonProbability > 100)
+                        {
+                            fprintf(stderr, "ERROR: Invalid numeric argument for option %s: '%s'\n", argv[optind - 2], optarg);
+                            exit(1);
+                            return;
+                        }
+                    break;
+                }
+                break;
+            }
 
             case 'm':
             {
@@ -286,15 +589,39 @@ void handleArgs(int argc, char** argv)
                 break;
             }
 
+            case 'k':
+            {
+                p1Keys = optarg;
+                break;
+            }
+
+            case 'p':
+            {
+                p2Keys = optarg;
+                break;
+            }
+
             case 'h':
             {
-                printf("Usage: %s [--start-mode|-m MODE] [--lock|-l] [--help] [--fuzz [--fuzz-mode-timer SECONDS]] [--nvs-file|-f FILE]\n", executableName);
+                printf("Usage: %s [--start-mode|-m MODE] [--list-modes] [--lock|-l] [--help] [--fuzz [--fuzz-mode-timer SECONDS]] [--nvs-file|-f FILE]\n", executableName);
                 printf("\n");
                 printf("\t--start-mode MODE\tStarts the emulator in the mode named MODE, instead of the main menu\n");
+                printf("\t--list-modes\tPrints out a list of all possible mode names that can be used as an argument to --start-mode\n");
                 printf("\t--lock\t\t\tLocks the emulator in the start mode. Start + Select will do nothing, and if --start-mode is used, it will replace the main menu.\n");
                 printf("\t--fuzz\t\t\tEnables fuzzing mode, which will trigger rapid random button presses and randomly switch modes, unless --lock is passed.\n");
                 printf("\t--fuzz-mode-timer SECONDS\tSets the number of seconds before the fuzzer will switch to a different random mode.\n");
+
+                printf("\t--fuzz-buttons BUTTONS\tSets the list of buttons the fuzzer can press. Defaults to all buttons.\n");
+                printf("\t--fuzz-buttons-p2 YES|NO\tSets whether the P2 buttons will be fuzzed also. Defaults to YES.\n");
+                printf("\t--fuzz-button-delay MILLIS\tSets the number of milliseconds between each possible fuzzer keypress. Defaults to 100.\n");
+                printf("\t--fuzz-button-prob NUM\tSets the probability that a keypress will happen, from 0 to 100. Defaults to 100.\n");
+
                 printf("\t--nvs-file FILE\tSets the name of the JSON file used to store NVS data. Defaults to 'nvs.json' in the current directory.\n");
+                printf("\t--keys KEYBINDINGS\tSets one or more keybindings, in the format of `<key>:<button>,<key>:<button>,...`, where <key> is a single character,\n"
+                            "\t\t\tand <button> is one of UP, DOWN, LEFT, RIGHT, A, B, START, SELECT, X, Y, 1, 2, 3, 4, or 5, with X, Y, and 1-5 being the touchpad segments.\n"
+                            "\t\tWhitespace is ignored. To use ',', ':', ' ', or '\\' as the keybinding, prefix them with a backslash, e.g. `--keys '\\ :A, \\\\:B, \\,:UP, \\::DOWN'`\n");
+                printf("\t--keys-p2 KEYBINDINGS\tSets keybindings for player 2. Requires the same format as in --keys.\n");
+                printf("\t--dvorak\t\tSets keybindings for the Dvorak layout which are equivalent to the default QWERTY keybinings.\n");
                 printf("\n");
                 exit(0);
                 return;
@@ -310,6 +637,49 @@ void handleArgs(int argc, char** argv)
         }
     }
 
+    // Handle keybindings
+    // P1
+    if (p1Keys != NULL)
+    {
+        if (!parseKeyConfig(p1Keys, keyButtonsP1, keyTouchP1))
+        {
+            // parseKeyConfig already printed error message
+            exit(1);
+            return;
+        }
+    }
+
+    // P2
+    if (p2Keys != NULL)
+    {
+        if (!parseKeyConfig(p2Keys, keyButtonsP2, keyTouchP2))
+        {
+            // parseKeyConfig already printed error message
+            exit(1);
+            return;
+        }
+    }
+
+    // Handle fuzzer keys
+    if (fuzzButtons)
+    {
+        if (!handleFuzzButtons(fuzzButtons))
+        {
+            exit(1);
+            return;
+        }
+    }
+    else
+    {
+        // Set defaults
+        memcpy(fuzzKeysP1, keyButtonsP1, sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0]));
+        memcpy(fuzzKeysP2, keyButtonsP2, sizeof(keyButtonsP2) / sizeof(keyButtonsP2[0]));
+        fuzzKeyCount = sizeof(keyButtonsP1) / sizeof(keyButtonsP1);
+
+        memcpy(fuzzTouchP1, keyTouchP1, sizeof(keyTouchP1) / sizeof(keyTouchP1[0]));
+        memcpy(fuzzTouchP2, keyTouchP2, sizeof(keyTouchP2) / sizeof(keyTouchP2[0]));
+        fuzzTouchCount = sizeof(keyTouchP1) / sizeof(keyTouchP1[0]);
+    }
 
     if (startMode != NULL)
     {
@@ -336,10 +706,7 @@ void handleArgs(int argc, char** argv)
         {
             fprintf(stderr, "ERROR: No mode named '%s'\n", startMode);
             fprintf(stderr, "Possible modes:\n");
-            for (uint8_t i = 0; i < sizeof(allModes) / sizeof(*allModes); i++)
-            {
-                fprintf(stderr, "  - %s\n", (&modePicross == allModes[i]) ? "Pi-cross" : allModes[i]->modeName);
-            }
+            printModeList(stderr);
             exit(1);
             return;
         }
@@ -383,10 +750,8 @@ void emu_loop(void)
 
     if (monkeyAround)
     {
-        // A list of all keys to randomly press or release, and their states
-        const char randKeys[] =  {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i', '1', '2', '3', '4', '5'};
-        const char randKeys2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
-        static bool keyState[sizeof(randKeys) / sizeof(randKeys[0])] = {false};
+        // A list of all keys to randomly press or release, and their stat
+        static bool keyState[sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0]) + sizeof(keyTouchP1) / sizeof(keyTouchP1[0])] = {false};
 
         // Time keeping
         static int64_t tLastCall = 0;
@@ -397,20 +762,35 @@ void emu_loop(void)
         int64_t tNow = esp_timer_get_time();
         int64_t tElapsed = (tNow - tLastCall);
 
-        // Randomly press or release keys every 100ms
-        static int64_t keyTimer = 0;
-        keyTimer += tElapsed;
-        while(keyTimer >= 100000)
+        if (fuzzKeyCount + fuzzTouchCount > 0)
         {
-            keyTimer -= 100000;
-            int keyIdx = esp_random() % (sizeof(randKeys) / sizeof(randKeys[0]));
-            keyState[keyIdx] = !keyState[keyIdx];
-            emuSensorHandleKey(randKeys[keyIdx], keyState[keyIdx]);
-
-            // Only handle non-touchpads for p2
-            if(keyIdx < sizeof(randKeys2) / sizeof(randKeys2[0]))
+            // Randomly press or release keys every 100ms
+            static int64_t keyTimer = 0;
+            keyTimer += tElapsed;
+            while(keyTimer >= fuzzButtonDelay)
             {
-                emuSensorHandleKey(randKeys2[keyIdx], keyState[keyIdx]);
+                keyTimer -= fuzzButtonDelay;
+                if ((esp_random() % 100) > fuzzButtonProbability)
+                {
+                    continue;
+                }
+
+                int keyIdx = esp_random() % (fuzzKeyCount + fuzzTouchCount);
+                keyState[keyIdx] = !keyState[keyIdx];
+                if (keyIdx < fuzzKeyCount)
+                {
+                    emuSensorHandleKey(fuzzKeysP1[keyIdx], keyState[keyIdx]);
+                }
+                else
+                {
+                    emuSensorHandleKey(fuzzTouchP1[keyIdx - fuzzKeyCount], keyState[keyIdx]);
+                }
+
+                // Only handle non-touchpads for p2
+                if(keyIdx < fuzzKeyCount)
+                {
+                    emuSensorHandleKey(fuzzKeysP2[keyIdx], keyState[keyIdx]);
+                }
             }
         }
 

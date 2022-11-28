@@ -4,8 +4,9 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 
-#include "list.h"
+#include "linked_list.h"
 
 #include "esp_log.h"
 #include "esp_err.h"
@@ -50,12 +51,12 @@ int32_t lastTouchLoc = 0;
 void initButtons(timer_group_t group_num, timer_idx_t timer_num, uint8_t numButtons, ...)
 {
     // The order in which keys are initialized
-    // Note that the actuall number of buttons initialized may be less than this
-    char keyOrder[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i',
-	                   't', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
-    memcpy(inputKeys, keyOrder, (sizeof(keyOrder) / sizeof(keyOrder[0])));
+    // Note that the actual number of buttons initialized may be less than this
+    //
+    memcpy(inputKeys, keyButtonsP1, sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0]));
+    memcpy(inputKeys + sizeof(keyButtonsP1) / sizeof(keyButtonsP1[0]), keyButtonsP2, sizeof(keyButtonsP2) / sizeof(keyButtonsP2[0]));
 	buttonState = 0;
-	buttonQueue = list_new();
+	buttonQueue = calloc(1, sizeof(list_t));
 }
 
 /**
@@ -65,23 +66,23 @@ void deinitButtons(void)
 {
 
 	// Check the queue
-	list_node_t * node;
+	void * val;
 
 	// No events
-	while (NULL != (node = list_lpop(buttonQueue)))
+	while (NULL != (val = shift(buttonQueue)))
 	{
 		// Free everything
-		free(node->val);
-		free(node);
+		free(val);
 	}
+	clear(buttonQueue);
 	free(buttonQueue);
 
-	while (NULL != (node = list_lpop(touchQueue)))
+	while (NULL != (val = shift(touchQueue)))
 	{
 		// Free everything
-		free(node->val);
-		free(node);
+		free(val);
 	}
+	clear(touchQueue);
 	free(touchQueue);
 }
 
@@ -93,10 +94,10 @@ void deinitButtons(void)
 bool checkButtonQueue(buttonEvt_t* evt)
 {
 	// Check the queue
-	list_node_t * node = list_lpop(buttonQueue);
+	buttonEvt_t* val = shift(buttonQueue);
 
 	// No events
-	if(NULL == node)
+	if(NULL == val)
 	{
 		memset(evt, 0, sizeof(buttonEvt_t));
 		return false;
@@ -104,10 +105,9 @@ bool checkButtonQueue(buttonEvt_t* evt)
 	else
 	{
 		// Copy the event to the arg
-		memcpy(evt, node->val, sizeof(buttonEvt_t));
+		memcpy(evt, val, sizeof(buttonEvt_t));
 		// Free everything
-		free(node->val);
-		free(node);
+		free(val);
 		// Return that an event occurred
 		return true;
 	}
@@ -164,8 +164,7 @@ void emuSensorHandleKey( int keycode, int bDown )
 			evt->state = buttonState;
 
 			// Add the event to the list
-			list_node_t * buttonNode = list_node_new(evt);
-			list_rpush(buttonQueue, buttonNode);
+			push(buttonQueue, evt);
 			break;
 		}
 	}
@@ -256,8 +255,7 @@ void emuSensorHandleKey( int keycode, int bDown )
 			lastTouchLoc = touchLoc[touchState];
 
 			// Add the event to the list
-			list_node_t * touchNode = list_node_new(evt);
-			list_rpush(touchQueue, touchNode);
+			push(touchQueue, evt);
 			break;
 		}
 	}
@@ -280,10 +278,9 @@ void initTouchSensor(float touchPadSensitivity UNUSED, bool denoiseEnable UNUSED
 {
     // The order in which keys are initialized
     // Note that the actuall number of buttons initialized may be less than this
-    char touchOrder[] = {'1', '2', '3', '4', '5'};
-    memcpy(touchKeys, touchOrder, (sizeof(touchOrder) / sizeof(touchOrder[0])));
+    memcpy(touchKeys, keyTouchP1, (sizeof(keyTouchP1) / sizeof(keyTouchP1[0])));
 	touchState= 0;
-	touchQueue = list_new();
+	touchQueue = calloc(1, sizeof(list_t));
 }
 
 /**
@@ -295,10 +292,10 @@ void initTouchSensor(float touchPadSensitivity UNUSED, bool denoiseEnable UNUSED
 bool checkTouchSensor(touch_event_t * evt UNUSED)
 {
 	// Check the queue
-	list_node_t * node = list_lpop(touchQueue);
+	touch_event_t* val = shift(touchQueue);
 
 	// No events
-	if(NULL == node)
+	if(NULL == val)
 	{
 		memset(evt, 0, sizeof(touch_event_t));
 		return false;
@@ -306,10 +303,9 @@ bool checkTouchSensor(touch_event_t * evt UNUSED)
 	else
 	{
 		// Copy the event to the arg
-		memcpy(evt, node->val, sizeof(touch_event_t));
+		memcpy(evt, val, sizeof(touch_event_t));
 		// Free everything
-		free(node->val);
-		free(node);
+		free(val);
 		// Return that an event occurred
 		return true;
 	}
