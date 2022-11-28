@@ -35,6 +35,8 @@
 #define BTN_TITLE_START_SCORES SELECT
 #define BTN_TITLE_START_GAME START
 #define BTN_TITLE_START_GAME_ALT BTN_A
+#define BTN_TITLE_START_NO_STRESS_TRIS_SCORES 0 // Y
+#define BTN_TITLE_START_NO_STRESS_TRIS_GAME 4 // X
 //#define BTN_TITLE_EXIT_MODE BTN_B
 
 // Controls (game)
@@ -1420,6 +1422,10 @@ typedef struct
     uint16_t ttButtonsPressedSinceLast;
     uint16_t ttLastButtonState;
 
+    uint16_t ttTouchState;
+    uint16_t ttTouchPressedSinceLast;
+    uint16_t ttLastTouchState;
+
     int64_t modeStartTime; // Time mode started in microseconds.
     int64_t stateStartTime; // Time the most recent state started in microseconds.
     int64_t deltaTime; // Time elapsed since last update in microseconds.
@@ -1451,6 +1457,7 @@ tiltrads_t* tiltrads;
 void ttInit(display_t* disp);
 void ttDeInit(void);
 void ttButtonCallback(buttonEvt_t* evt);
+void ttTouchCallback(touch_event_t* evt);
 void ttAccelerometerCallback(accel_t* accel);
 
 // Game loop functions
@@ -1484,6 +1491,7 @@ bool ttIsButtonPressed(uint8_t button);
 // bool ttIsButtonReleased(uint8_t button);
 bool ttIsButtonDown(uint8_t button);
 bool ttIsButtonUp(uint8_t button);
+bool ttIsTouchPressed(uint8_t touchSegment);
 
 // Grid management
 void copyGrid(coord_t srcOffset, uint8_t srcCols, uint8_t srcRows, const uint32_t src[][srcCols],
@@ -1585,7 +1593,7 @@ swadgeMode modeTiltrads =
     .fnExitMode = ttDeInit,
     .fnMainLoop = ttUpdate,
     .fnButtonCallback = ttButtonCallback,
-    .fnTouchCallback = NULL,
+    .fnTouchCallback = ttTouchCallback,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
@@ -1634,6 +1642,10 @@ void ttInit(display_t* disp)
     tiltrads->ttButtonsPressedSinceLast = 0;
     tiltrads->ttLastButtonState = 0;
 
+    tiltrads->ttTouchState = 0;
+    tiltrads->ttTouchPressedSinceLast = 0;
+    tiltrads->ttLastTouchState = 0;
+
     // Reset mode time tracking.
     tiltrads->modeStartTime = esp_timer_get_time();
     tiltrads->stateStartTime = 0;
@@ -1678,6 +1690,17 @@ void ttButtonCallback(buttonEvt_t* evt)
     {
         // Save this press so a quick press/release isn't ignored
         tiltrads->ttButtonsPressedSinceLast |= evt->button;
+    }
+}
+
+void ttTouchCallback(touch_event_t* evt)
+{
+    tiltrads->ttTouchState = evt->state;  // Set the state of all touchpad segments.
+    // If this was a press
+    if(evt->down)
+    {
+        // Save this press so a quick press/release isn't ignored
+        tiltrads->ttTouchPressedSinceLast |= (1 << evt->pad);
     }
 }
 
@@ -1732,8 +1755,10 @@ static void ttUpdate(int64_t elapsedUs __attribute__((unused)))
 
     // Mark what our inputs were the last time we acted on them.
     tiltrads->ttLastButtonState = tiltrads->ttButtonState;
+    tiltrads->ttLastTouchState = tiltrads->ttTouchState;
     // Clear the buttons pressed since last check
     tiltrads->ttButtonsPressedSinceLast = 0;
+    tiltrads->ttTouchPressedSinceLast = 0;
     tiltrads->ttLastAccel = tiltrads->ttAccel;
 
     // Handle game logic. (based on the state)
@@ -1813,12 +1838,24 @@ void ttTitleInput(void)
     // Start game.
     if(ttIsButtonPressed(BTN_TITLE_START_GAME) || ttIsButtonPressed(BTN_TITLE_START_GAME_ALT))
     {
+        tiltrads->noStressTris = false;
         ttChangeState(TT_GAME);
     }
     // Go to score screen.
     else if(ttIsButtonPressed(BTN_TITLE_START_SCORES))
     {
+        tiltrads->noStressTris = false;
         ttChangeState(TT_SCORES);
+    }
+    else if(ttIsTouchPressed(BTN_TITLE_START_NO_STRESS_TRIS_SCORES))
+    {
+        tiltrads->noStressTris = true;
+        ttChangeState(TT_SCORES);
+    }
+    else if(ttIsTouchPressed(BTN_TITLE_START_NO_STRESS_TRIS_GAME))
+    {
+        tiltrads->noStressTris = true;
+        ttChangeState(TT_GAME);
     }
 
     /*
@@ -2784,6 +2821,11 @@ bool ttIsButtonDown(uint8_t button)
 bool ttIsButtonUp(uint8_t button)
 {
     return !((tiltrads->ttButtonState | tiltrads->ttButtonsPressedSinceLast) & button);
+}
+
+bool ttIsTouchPressed(uint8_t touchSegment)
+{
+    return ((tiltrads->ttTouchState | tiltrads->ttTouchPressedSinceLast) & (1 << touchSegment)) && !(tiltrads->ttLastTouchState & (1 << touchSegment));
 }
 
 void copyGrid(coord_t srcOffset, uint8_t srcCols, uint8_t srcRows, const uint32_t src[][srcCols],
