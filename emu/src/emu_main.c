@@ -478,6 +478,7 @@ static const struct option opts[] = {
     {"keys-p2", required_argument, NULL, 'p'},
     {"dvorak", no_argument, NULL, 0},
     {"help", no_argument, NULL, 'h'},
+    {"fullscreen", no_argument, &fullscreen, true},
 
     {NULL, 0, NULL, 0},
 };
@@ -622,6 +623,7 @@ void handleArgs(int argc, char** argv)
                             "\t\tWhitespace is ignored. To use ',', ':', ' ', or '\\' as the keybinding, prefix them with a backslash, e.g. `--keys '\\ :A, \\\\:B, \\,:UP, \\::DOWN'`\n");
                 printf("\t--keys-p2 KEYBINDINGS\tSets keybindings for player 2. Requires the same format as in --keys.\n");
                 printf("\t--dvorak\t\tSets keybindings for the Dvorak layout which are equivalent to the default QWERTY keybinings.\n");
+                printf("\t--fullscreen\tStarts the window in fullscreen mode.\n");
                 printf("\n");
                 exit(0);
                 return;
@@ -732,8 +734,14 @@ int main(int argc, char** argv)
     // First initialize rawdraw
     // Screen-specific configurations
     // Save window dimensions from the last loop
-    // CNFGSetup( "SQUAREWAVEBIRD Simulator", (TFT_WIDTH * 2) + (MIN_LED_WIDTH * 4) + 2, (TFT_HEIGHT * 2));
-    CNFGSetupFullscreen("SQUAREWAVEBIRD Simulator", 0);
+    if (fullscreen)
+    {
+        CNFGSetupFullscreen("SQUAREWAVEBIRD Simulator", 0);
+    }
+    else
+    {
+        CNFGSetup( "SQUAREWAVEBIRD Simulator", (TFT_WIDTH * 2) + (MIN_LED_WIDTH * 4) + 2, (TFT_HEIGHT * 2));
+    }
 
     // This is the 'main' that gets called when the ESP boots. It does not return
     app_main();
