@@ -29,7 +29,7 @@
 
 // Any defines go here.
 
-//#define NO_STRESS_TRIS // Debug mode that when enabled, stops tetrads from dropping automatically, they will only drop when the drop button is pressed. Useful for testing line clears.
+//#define DEBUG
 
 // Controls (title)
 #define BTN_TITLE_START_SCORES SELECT
@@ -1336,6 +1336,7 @@ typedef struct
     bool holdingClearScore;
     
     // Game state vars
+    bool noStressTris; // When enabled, stops tetrads from dropping automatically, they will only drop when the drop button is pressed. Useful for testing line clears. Used to be a debug mode.
     uint32_t tetradsGrid[GRID_ROWS][GRID_COLS];
     uint32_t nextTetradGrid[NEXT_GRID_ROWS][NEXT_GRID_COLS];
     tetrad_t activeTetrad;
@@ -1450,8 +1451,10 @@ void refreshTetradsGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][
                         list_t* fieldTetrads, tetrad_t* movingTetrad, bool includeMovingTetrad);
 int16_t xFromGridCol(int16_t x0, int16_t gridCol, uint8_t unitSize);
 int16_t yFromGridRow(int16_t y0, int16_t gridRow, uint8_t unitSize);
-// void debugPrintGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]);
 
+#ifdef DEBUG
+void debugPrintGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols]);
+#endif
 
 // Tetrad operations
 bool rotateTetrad(tetrad_t* tetrad, int32_t newRotation, uint8_t gridCols, uint8_t gridRows,
@@ -1598,6 +1601,7 @@ void ttInit(display_t* disp)
 
     // Game state
     tiltrads->currState = TT_TITLE;
+    tiltrads->noStressTris = false;
 
     tiltrads->landTetradFX = false;
 
@@ -1748,11 +1752,13 @@ static void ttUpdate(int64_t elapsedUs __attribute__((unused)))
     //plotLine(tiltrads->disp, 280, 0, 280, 240, c200, 5);
     //plotLine(tiltrads->disp, 0, 120, 280, 120, c200, 5);
 
+#ifdef DEBUG
     // Draw debug FPS counter.
-    /*double seconds = ((double)stateTime * (double)US_TO_MS_FACTOR * (double)MS_TO_S_FACTOR);
+    double seconds = ((double)stateTime * (double)US_TO_MS_FACTOR * (double)MS_TO_S_FACTOR);
     int32_t fps = (int)((double)stateFrames / seconds);
     snprintf(uiStr, sizeof(uiStr), "FPS: %d", fps);
-    drawText(tiltrads->disp->w - getTextWidth(uiStr, TOM_THUMB) - 1, tiltrads->disp->h - (1 * (ibm_vga8.h + 1)), uiStr, TOM_THUMB, c555);*/
+    drawText(tiltrads->disp->w - getTextWidth(uiStr, TOM_THUMB) - 1, tiltrads->disp->h - (1 * (ibm_vga8.h + 1)), uiStr, TOM_THUMB, c555);
+#endif
 }
 
 void ttTitleInput(void)
@@ -1818,30 +1824,14 @@ void ttGameInput(void)
                                               tiltrads->tetradsGrid);
         }
 
-#ifdef NO_STRESS_TRIS
-        if(ttIsButtonPressed(BTN_GAME_SOFT_DROP))
-        {
-            tiltrads->dropTimer = tiltrads->dropTime;
-        }
-        else if (ttIsButtonPressed(BTN_GAME_HARD_DROP)) 
-        {
-            // Drop piece as far as it will go before landing.
-            int32_t dropDistance = 0;
-            while (dropTetrad(&(tiltrads->activeTetrad), GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid))
-            {
-                dropDistance++;
-            }
-
-            tiltrads->score += dropDistance * SCORE_HARD_DROP;
-            // Set the drop timer so it will land on update.
-            tiltrads->dropTimer = tiltrads->dropTime;
-            debugPrintGrid(GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid);
-        }
-#else
         // Button down = soft drop piece.
-        if(ttIsButtonDown(BTN_GAME_SOFT_DROP))
+        if(!tiltrads->noStressTris && ttIsButtonDown(BTN_GAME_SOFT_DROP))
         {
             softDropTetrad();
+        }
+        else if(tiltrads->noStressTris && ttIsButtonPressed(BTN_GAME_SOFT_DROP))
+        {
+            tiltrads->dropTimer = tiltrads->dropTime;
         }
         // Button up = hard drop piece.
         else if (ttIsButtonPressed(BTN_GAME_HARD_DROP)) 
@@ -1855,8 +1845,11 @@ void ttGameInput(void)
             tiltrads->score += dropDistance * SCORE_HARD_DROP;
             // Set the drop timer so it will land on update.
             tiltrads->dropTimer = tiltrads->dropTime;
-        }
+
+#ifdef DEBUG
+            debugPrintGrid(GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid);
 #endif
+        }
 
         // Only move tetrads left and right when the fast drop button isn't being held down.
         if(ttIsButtonUp(BTN_GAME_SOFT_DROP) && ttIsButtonUp(BTN_GAME_HARD_DROP))
@@ -1978,9 +1971,10 @@ void ttGameUpdate(void)
     }
     else
     {
-#ifndef NO_STRESS_TRIS
-        tiltrads->dropTimer += tiltrads->deltaTime;
-#endif
+        if(!tiltrads->noStressTris)
+        {
+            tiltrads->dropTimer += tiltrads->deltaTime;
+        }
 
         // Update the LED FX.
         // Progress is the drop time for this row. (Too fast)
@@ -2207,7 +2201,7 @@ void ttTitleDisplay(void)
                           2.0,
                           tiltrads->stateTime, c112);
 
-    // LEFT FOR
+    // SELECT FOR
     int16_t scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "SELECT FOR", 0, GRID_X);
     int16_t scoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 7 + 1);
     drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "SELECT FOR", scoresTextX, scoresTextY);
@@ -2793,18 +2787,20 @@ int16_t yFromGridRow(int16_t y0, int16_t gridRow, uint8_t unitSize)
     return (y0 + 1) + (gridRow * unitSize);
 }
 
-// void debugPrintGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols])
-// {
-//     ESP_LOGW("EMU", "Grid Dimensions: c%d x r%d", gridCols, gridRows);
-//     for (int32_t y = 0; y < gridRows; y++)
-//     {
-//         for (int32_t x = 0; x < gridCols; x++)
-//         {
-//             printf(" %2d ", gridData[y][x]);
-//         }
-//         printf("\n");
-//     }
-// }
+#ifdef DEBUG
+void debugPrintGrid(uint8_t gridCols, uint8_t gridRows, uint32_t gridData[][gridCols])
+{
+    ESP_LOGW("EMU", "Grid Dimensions: c%d x r%d", gridCols, gridRows);
+    for (int32_t y = 0; y < gridRows; y++)
+    {
+        for (int32_t x = 0; x < gridCols; x++)
+        {
+            printf(" %2d ", gridData[y][x]);
+        }
+        printf("\n");
+    }
+}
+#endif
 
 // This assumes only complete tetrads can be rotated.
 bool rotateTetrad(tetrad_t* tetrad, int32_t newRotation, uint8_t gridCols, uint8_t gridRows,
