@@ -172,6 +172,7 @@ static const char str_high_score[] = "HIGH SCORE!";
 static const char str_your_score[] = "YOUR SCORE:";
 
 static const char KEY_HIGH_SCORE_FORMAT[] = "tt_high_score_%d";
+static const char KEY_NO_STRESS_TRIS_HIGH_SCORE_FORMAT[] = "ttns%d";
 
 #if defined(EMU) && defined(DEBUG)
 static const char str_emu[] = "EMU";
@@ -1847,15 +1848,17 @@ void ttTitleInput(void)
         tiltrads->noStressTris = false;
         ttChangeState(TT_SCORES);
     }
-    else if(ttIsTouchPressed(BTN_TITLE_START_NO_STRESS_TRIS_SCORES))
-    {
-        tiltrads->noStressTris = true;
-        ttChangeState(TT_SCORES);
-    }
+    // Start game of no-stress-tris.
     else if(ttIsTouchPressed(BTN_TITLE_START_NO_STRESS_TRIS_GAME))
     {
         tiltrads->noStressTris = true;
         ttChangeState(TT_GAME);
+    }
+    // Go to no-stress-tris score screen.
+    else if(ttIsTouchPressed(BTN_TITLE_START_NO_STRESS_TRIS_SCORES))
+    {
+        tiltrads->noStressTris = true;
+        ttChangeState(TT_SCORES);
     }
 
     /*
@@ -3829,7 +3832,7 @@ void ttGetHighScores(void)
     char keyStr[32] = {0};
     for (int32_t i = 0; i < NUM_TT_HIGH_SCORES; i++)
     {
-        snprintf(keyStr, sizeof(keyStr), KEY_HIGH_SCORE_FORMAT, i);
+        snprintf(keyStr, sizeof(keyStr), tiltrads->noStressTris ? KEY_NO_STRESS_TRIS_HIGH_SCORE_FORMAT : KEY_HIGH_SCORE_FORMAT, i);
         if (!readNvs32(keyStr, &(tiltrads->highScores[i])))
         {
             tiltrads->highScores[i] = 0;
@@ -3842,7 +3845,7 @@ void ttSetHighScores(void)
     char keyStr[32] = {0};
     for (int32_t i = 0; i < NUM_TT_HIGH_SCORES; i++)
     {
-        snprintf(keyStr, sizeof(keyStr), KEY_HIGH_SCORE_FORMAT, i);
+        snprintf(keyStr, sizeof(keyStr), tiltrads->noStressTris ? KEY_NO_STRESS_TRIS_HIGH_SCORE_FORMAT : KEY_HIGH_SCORE_FORMAT, i);
         writeNvs32(keyStr, tiltrads->highScores[i]);
     }
 }
