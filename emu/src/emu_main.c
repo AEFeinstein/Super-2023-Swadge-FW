@@ -47,7 +47,7 @@
 #include "mode_platformer.h"
 #include "mode_jukebox.h"
 #include "mode_diceroller.h"
-#include "mode_bee.h"
+#include "mode_copypasta.h"
 
 //Make it so we don't need to include any other C files in our build.
 #define CNFG_IMPLEMENTATION
@@ -92,7 +92,7 @@ swadgeMode * allModes[] =
     &modePlatformer,
     &modeDiceRoller,
     &modeJukebox,
-    &modeBee,
+    &modeCopyPasta,
 };
 
 //==============================================================================
