@@ -186,7 +186,7 @@ bool textEntryDraw(void)
                 case KEY_CAPSLOCK:
                 {
 #if CAPS_NEW_STYLE
-                    plotRect( textEntryDisplay, posx + 2, posy + 8, posx + 5, posy + 10, WHITE    ); // box
+                    plotRect( textEntryDisplay, posx + 2, posy + 8, posx + 5, posy + 10, WHITE   ); // box
                     plotLine( textEntryDisplay, posx + 3, posy + 0, posx + 3, posy + 6, WHITE, 0 ); // |
                     plotLine( textEntryDisplay, posx + 2, posy + 2, posx + 2, posy + 6, WHITE, 0 ); // | (extra thickness left)
                     plotLine( textEntryDisplay, posx + 4, posy + 2, posx + 4, posy + 6, WHITE, 0 ); // | (extra thickness right)
