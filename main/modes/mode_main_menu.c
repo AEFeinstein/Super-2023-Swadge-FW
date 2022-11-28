@@ -17,7 +17,7 @@
 #include "fighter_menu.h"
 #include "jumper_menu.h"
 #include "meleeMenu.h"
-#include "mode_bee.h"
+#include "mode_copypasta.h"
 #include "mode_colorchord.h"
 #include "mode_credits.h"
 #include "mode_dance.h"
@@ -795,7 +795,7 @@ void mainMenuSetUpSecretMenu(bool resetPos)
 {
     // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuSecret, mainMenuSecretCb);
-    addRowToMeleeMenu(mainMenu->menu, modeBee.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeCopyPasta.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeTest.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenu->gitStr);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
@@ -818,10 +818,10 @@ void mainMenuSecretCb(const char* opt)
     mainMenu->secretPos = mainMenu->menu->selectedRow;
 
     // Handle the option
-    if(modeBee.modeName == opt)
+    if(modeCopyPasta.modeName == opt)
     {
-        // Start bee stuff
-        switchToSwadgeMode(&modeBee);
+        // Start copyPastas
+        switchToSwadgeMode(&modeCopyPasta);
     }
     if(modeTest.modeName == opt)
     {
