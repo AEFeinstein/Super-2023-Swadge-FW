@@ -431,7 +431,7 @@ static void flightStartGame( flightModeScreen mode )
 
     flight->ondonut = 0; //Set to 14 to b-line it to the end for testing.
     flight->beans = 0; //Set to MAX_BEANS for 100% instant.
-    flight->timeOfStart = (uint32_t)esp_timer_get_time();//-1000000*190; (Do this to force extra coursetime)
+    flight->timeOfStart = (uint32_t)esp_timer_get_time();//-1000000*190; // (Do this to force extra coursetime)
     flight->timeGot100Percent = 0;
     flight->timeOfPause = 0;
     flight->wintime = 0;
@@ -1167,7 +1167,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
         //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
         drawText(disp, &flight->radiostars, PROMPT_COLOR, fl_you_win, (disp->w - textWidth(&flight->radiostars, fl_you_win)) / 2, 50);
         snprintf(framesStr, sizeof(framesStr), "TIME: %d.%02d", tflight->wintime/100,tflight->wintime%100 );
-        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, ((tflight->wintime>10000)?14:20)+75, 18+50);
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, (disp->w - textWidth(&flight->radiostars, framesStr)) / 2/*((tflight->wintime>10000)?14:20)+75*/, 18+50);
         snprintf(framesStr, sizeof(framesStr), "BEANS: %2d",tflight->beans );
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, (disp->w - textWidth(&flight->radiostars, framesStr)) / 2, 36+50);
     }
