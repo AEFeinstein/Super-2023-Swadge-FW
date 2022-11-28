@@ -125,7 +125,7 @@ static bool isRunning = true;
  */
 void HandleKey( int keycode, int bDown )
 {
-    emuSensorHandleKey(keycode, bDown);
+    emuSensorHandleKey(tolower(keycode), bDown);
 }
 
 /**
@@ -732,7 +732,8 @@ int main(int argc, char** argv)
     // First initialize rawdraw
     // Screen-specific configurations
     // Save window dimensions from the last loop
-    CNFGSetup( "SQUAREWAVEBIRD Simulator", (TFT_WIDTH * 2) + (MIN_LED_WIDTH * 4) + 2, (TFT_HEIGHT * 2));
+    // CNFGSetup( "SQUAREWAVEBIRD Simulator", (TFT_WIDTH * 2) + (MIN_LED_WIDTH * 4) + 2, (TFT_HEIGHT * 2));
+    CNFGSetupFullscreen("SQUAREWAVEBIRD Simulator", 0);
 
     // This is the 'main' that gets called when the ESP boots. It does not return
     app_main();
