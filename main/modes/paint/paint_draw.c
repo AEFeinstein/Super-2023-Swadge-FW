@@ -1,6 +1,7 @@
 #include "paint_draw.h"
 
 #include <string.h>
+#include "esp_heap_caps.h"
 
 #include "musical_buzzer.h"
 
@@ -30,7 +31,11 @@ const paintHelpStep_t helpSteps[] =
     { .trigger = { .type = RELEASE, .data = BTN_A, }, .prompt = "Excellent!\nNow, press A to draw something!" },
     { .trigger = { .type = PRESS, .data = (BTN_A | DOWN), }, .prompt = "Cool! You can also hold A to draw while moving with the D-Pad. Let's try it! Hold A and press D-Pad DOWN"},
     { .trigger = { .type = RELEASE, .data = DOWN, }, .prompt = "Cool! You can also hold A to draw while moving with the D-Pad. Let's try it! Hold A and press D-Pad DOWN"},
-    { .trigger = { .type = PRESS, .data = TOUCH_ANY, }, .prompt = "Now, let's change the color. Press and hold the TOUCH PAD between X and Y" },
+    { .trigger = { .type = PRESS, .data = TOUCH_ANY, }, .prompt = "Magnificent! But what if you make a mistake? Worry not, you can UNDO! Press and hold the TOUCH PAD between Y and X..."},
+    { .trigger = { .type = PRESS, .data = TOUCH_ANY | SELECT, }, .backtrack = { .type = RELEASE, .data = TOUCH_ANY | SWIPE_LEFT | SWIPE_RIGHT | TOUCH_X | TOUCH_Y | SELECT }, .backtrackSteps = 1, .prompt = "And then press SELECT to UNDO the last action"},
+    { .trigger = { .type = PRESS, .data = TOUCH_ANY, }, .prompt = "Phew! You can also REDO by holding the TOUCH PAD again..."},
+    { .trigger = { .type = PRESS, .data = TOUCH_ANY | START, }, .backtrack = { .type = RELEASE, .data = TOUCH_ANY | SWIPE_LEFT | SWIPE_RIGHT | TOUCH_X | TOUCH_Y | START }, .backtrackSteps = 1, .prompt = "And then pressing START to REDO what was undone"},
+    { .trigger = { .type = PRESS, .data = TOUCH_ANY, }, .prompt = "Now, let's change the color. Press and hold the TOUCH PAD again..." },
     { .trigger = { .type = PRESS, .data = TOUCH_ANY | DOWN, }, .backtrack = { .type = RELEASE, .data = TOUCH_ANY | SWIPE_LEFT | SWIPE_RIGHT | TOUCH_X | TOUCH_Y }, .backtrackSteps = 1, .prompt = "Then, press D-Pad DOWN to change the color selection..." },
     { .trigger = { .type = RELEASE, .data = TOUCH_ANY | TOUCH_X | TOUCH_Y | SWIPE_LEFT | SWIPE_RIGHT }, .prompt = "And release the TOUCH PAD to confirm!" },
     { .trigger = { .type = RELEASE, .data = BTN_B, }, .prompt = "Great choice! You can also quickly swap the foreground and background colors with the B BUTTON" },
@@ -307,6 +312,7 @@ void paintDrawScreenCleanup(void)
     }
 
     paintFreeCursorSprite(&paintState->cursorWsg);
+    paintFreeUndos();
 
     freeFont(&paintState->smallFont);
     freeFont(&paintState->saveMenuFont);
@@ -469,6 +475,8 @@ void paintDrawScreenMainLoop(int64_t elapsedUs)
                     paintLoad(&paintState->index, &paintState->canvas, paintState->selectedSlot);
                     paintSetRecentSlot(&paintState->index, paintState->selectedSlot);
 
+                    paintFreeUndos();
+
                     getArtist()->fgColor = paintState->canvas.palette[0];
                     getArtist()->bgColor = paintState->canvas.palette[1];
 
@@ -610,9 +618,17 @@ void paintSaveModePrevItem(void)
         case HIDDEN:
         break;
 
+        case UNDO:
+            paintState->saveMenu = EXIT;
+        break;
+
+        case REDO:
+            paintState->saveMenu = UNDO;
+        break;
+
         case PICK_SLOT_SAVE:
         case CONFIRM_OVERWRITE:
-            paintState->saveMenu = EXIT;
+            paintState->saveMenu = REDO;
         break;
 
         case PICK_SLOT_LOAD:
@@ -637,6 +653,19 @@ void paintSaveModePrevItem(void)
     }
 
     paintState->saveMenuBoolOption = false;
+
+    // Check to make sure we can actually redo
+    if (paintState->saveMenu == REDO && !paintCanRedo())
+    {
+        // Nothing to redo, go to next
+        paintState->saveMenu = UNDO;
+    }
+
+    // Check to make sure we can actually undo
+    if (paintState->saveMenu == UNDO && !paintCanUndo())
+    {
+        paintState->saveMenu = EXIT;
+    }
 
     // If we're selecting "Load", then make sure we can actually load a slot
     if (paintState->saveMenu == PICK_SLOT_LOAD)
@@ -661,6 +690,14 @@ void paintSaveModeNextItem(void)
         case HIDDEN:
         break;
 
+        case UNDO:
+            paintState->saveMenu = REDO;
+        break;
+
+        case REDO:
+            paintState->saveMenu = PICK_SLOT_SAVE;
+        break;
+
         case PICK_SLOT_SAVE:
         case CONFIRM_OVERWRITE:
             paintState->saveMenu = PICK_SLOT_LOAD;
@@ -683,11 +720,24 @@ void paintSaveModeNextItem(void)
 
         case EXIT:
         case CONFIRM_EXIT:
-            paintState->saveMenu = PICK_SLOT_SAVE;
+            paintState->saveMenu = UNDO;
         break;
     }
 
     paintState->saveMenuBoolOption = false;
+
+    // Check to make sure we can actually undo
+    if (paintState->saveMenu == UNDO && !paintCanUndo())
+    {
+        paintState->saveMenu = REDO;
+    }
+
+    // Check to make sure we can actually redo
+    if (paintState->saveMenu == REDO && !paintCanRedo())
+    {
+        // Nothing to redo, go to next
+        paintState->saveMenu = PICK_SLOT_SAVE;
+    }
 
     // If we're selecting "Load", then make sure we can actually load a slot
     if (paintState->saveMenu == PICK_SLOT_LOAD)
@@ -726,6 +776,8 @@ void paintSaveModePrevOption(void)
         break;
 
         case HIDDEN:
+        case UNDO:
+        case REDO:
         case EDIT_PALETTE:
         case COLOR_PICKER:
         case CLEAR:
@@ -756,6 +808,8 @@ void paintSaveModeNextOption(void)
         break;
 
         case HIDDEN:
+        case UNDO:
+        case REDO:
         case EDIT_PALETTE:
         case COLOR_PICKER:
         case CLEAR:
@@ -847,6 +901,8 @@ void paintEditPaletteNextColor(void)
 
 void paintEditPaletteConfirm(void)
 {
+    paintStoreUndo(&paintState->canvas);
+
     // Save the old color, and update the palette with the new color
     paletteColor_t old = paintState->canvas.palette[paintState->paletteSelect];
     paletteColor_t new = paintState->newColor;
@@ -987,6 +1043,26 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
             {
                 switch (paintState->saveMenu)
                 {
+                    case UNDO:
+                    {
+                        paintUndo(&paintState->canvas);
+                        if (paintState->undoHead != NULL && paintState->undoHead->prev == NULL)
+                        {
+                            paintState->saveMenu = REDO;
+                        }
+                        break;
+                    }
+
+                    case REDO:
+                    {
+                        paintRedo(&paintState->canvas);
+                        if (paintState->undoHead != NULL && paintState->undoHead->next == NULL)
+                        {
+                            paintState->saveMenu = UNDO;
+                        }
+                        break;
+                    }
+
                     case PICK_SLOT_SAVE:
                     {
                         if (paintGetSlotInUse(paintState->index, paintState->selectedSlot))
@@ -1056,6 +1132,7 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                     {
                         if (paintState->saveMenuBoolOption)
                         {
+                            paintStoreUndo(&paintState->canvas);
                             paintState->clearScreen = true;
                             paintState->saveMenu = HIDDEN;
                             paintState->buttonMode = BTN_MODE_DRAW;
@@ -1089,6 +1166,7 @@ void paintSaveModeButtonCb(const buttonEvt_t* evt)
                         }
                         else
                         {
+                            paintStoreUndo(&paintState->canvas);
                             paintState->clearScreen = true;
                             paintState->saveMenu = HIDDEN;
                             paintState->buttonMode = BTN_MODE_DRAW;
@@ -1180,7 +1258,19 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
         {
             case SELECT:
             {
-                paintExitSelectMode();
+                if (paintCanUndo())
+                {
+                    paintUndo(&paintState->canvas);
+                }
+                break;
+            }
+
+            case START:
+            {
+                if (paintCanRedo())
+                {
+                    paintRedo(&paintState->canvas);
+                }
                 break;
             }
 
@@ -1234,10 +1324,6 @@ void paintSelectModeButtonCb(const buttonEvt_t* evt)
                 paintState->redrawToolbar = true;
                 break;
             }
-
-            case START:
-            // Start does nothing in select-mode, plus it's used for exit
-            break;
         }
     }
 }
@@ -1457,10 +1543,8 @@ void paintDrawModeButtonCb(const buttonEvt_t* evt)
         switch (evt->button)
         {
             case SELECT:
-            {
-                paintEnterSelectMode();
-                break;
-            }
+            // SELECT no longer does anything
+            break;
 
             case BTN_A:
             {
@@ -1577,6 +1661,185 @@ void paintHandleDpad(uint16_t state)
     }
 }
 
+void paintFreeUndos(void)
+{
+    paintState->undoHead = NULL;
+    for (node_t* undo = paintState->undoList.first; undo != NULL; undo = undo->next)
+    {
+        paintUndo_t* val = undo->val;
+        free(val);
+    }
+    clear(&paintState->undoList);
+}
+
+void paintStoreUndo(paintCanvas_t* canvas)
+{
+    // If paintState->undoHead is set, we need to clear all the previous undos to delete the alternate timeline
+    uint8_t deleted = 0;
+    while (paintState->undoHead != NULL)
+    {
+        // Save the next pointer before the node gets freed
+        node_t* next = paintState->undoHead->next;
+
+        paintUndo_t* delUndo = removeEntry(&paintState->undoList, paintState->undoHead);
+
+        // Free the undo data pixels and then the struct itself
+        free(delUndo);
+
+        paintState->undoHead = next;
+        deleted++;
+    }
+    if (deleted > 0)
+    {
+        PAINT_LOGD("Deleted %d dangling undos after changing history", deleted);
+    }
+    // paintState->undoHead should now be NULL
+
+    // Allocate a new paintUndo_t to store the canvas
+    paintUndo_t* undoData;
+    // Calculate the amount of space we wolud need to store the canvas pixels
+    size_t pxSize = paintGetStoredSize(canvas);
+
+    // Allocate memory for the undo data struct and its pixel data in one go
+    void* undoMem = heap_caps_malloc(sizeof(paintUndo_t) + pxSize, MALLOC_CAP_SPIRAM);
+    if (undoMem != NULL)
+    {
+        // Alloc succeeded, use the data
+        undoData = undoMem;
+        undoData->px = undoMem + sizeof(paintUndo_t);
+    }
+    else
+    {
+        // Alloc failed, reuse the first undo data
+        undoData = shift(&paintState->undoList);
+    }
+
+    if (!undoData)
+    {
+        PAINT_LOGD("Failed to allocate or reuse undo data! Canceling undo");
+        // There's no undo data at all! We're completely out of space!
+        return;
+    }
+
+    // Save the palette
+    memcpy(undoData->palette, canvas->palette, sizeof(paletteColor_t) * PAINT_MAX_COLORS);
+
+    bool cursorVisible = getCursor()->show;
+    if (cursorVisible)
+    {
+        hideCursor(getCursor(), canvas);
+    }
+    // Save the pixel data
+    paintSerialize(undoData->px, canvas, 0, pxSize);
+
+    if (cursorVisible)
+    {
+        showCursor(getCursor(), canvas);
+    }
+
+    push(&paintState->undoList, undoData);
+}
+
+// Delete the oldest undo entry, if one exists. Returns true if some space was made available, false otherwise.
+bool paintMaybeSacrificeUndoForHeap(void)
+{
+    if (paintState->undoList.first != NULL)
+    {
+        // Don't leave a bad pointer in undoHead
+        // This has to be done *before* calling shift()
+        if (paintState->undoHead != NULL && paintState->undoHead == paintState->undoList.first)
+        {
+            paintState->undoHead = paintState->undoHead->next;
+        }
+
+        paintUndo_t* delUndo = shift(&paintState->undoList);
+
+        free(delUndo);
+
+        return true;
+    }
+
+    return false;
+}
+
+bool paintCanUndo()
+{
+    // We can undo as long as one of these is true:
+    //  - The undoHead is NULL and undoList.last is NOT NULL
+    //  - The undoHead is NOT NULL and undoHead->prev is NOT NULL
+    return (paintState->undoHead == NULL && paintState->undoList.last != NULL) || (paintState->undoHead != NULL && paintState->undoHead->prev != NULL);
+}
+
+bool paintCanRedo()
+{
+    // We can redo as long as all of these are true:
+    //  - The undoHead is NOT NULL
+    //  - There is another undo after undoHead (that's what contains the state we want to return to)
+    return paintState->undoHead != NULL && paintState->undoHead->next != NULL;
+}
+
+void paintApplyUndo(paintCanvas_t* canvas)
+{
+    if (paintState->undoHead == NULL)
+    {
+        // If we've undone everything, or there's nothing to undo, exit early
+        PAINT_LOGD("Not undoing because undoHead is NULL");
+        return;
+    }
+
+    hideCursor(getCursor(), canvas);
+
+    paintUndo_t* undo = paintState->undoHead->val;
+
+    memcpy(canvas->palette, undo->palette, sizeof(paletteColor_t) * PAINT_MAX_COLORS);
+    getArtist()->fgColor = canvas->palette[0];
+    getArtist()->bgColor = canvas->palette[1];
+
+    size_t pxSize = paintGetStoredSize(canvas);
+    paintDeserialize(canvas, undo->px, 0, pxSize);
+
+    PAINT_LOGD("Undid %zu bytes!", pxSize);
+
+    // feels weird to do this inside the undo functions... but it's probably ok? we've already undone anyway
+    showCursor(getCursor(), canvas);
+}
+
+void paintUndo(paintCanvas_t* canvas)
+{
+    if (paintState->undoHead == NULL)
+    {
+        // We have not undone anything else yet -- use the last element in the undo list
+        node_t* head = paintState->undoList.last;
+
+        // Also, since this is the first undo, save the current state so that we can return to it with redo
+        paintStoreUndo(canvas);
+
+        paintState->undoHead = head;
+    }
+    else
+    {
+        // We have already undone something! Undo the previous action.
+        paintState->undoHead = paintState->undoHead->prev;
+    }
+
+    paintApplyUndo(canvas);
+}
+
+void paintRedo(paintCanvas_t* canvas)
+{
+    if (paintState->undoHead == NULL)
+    {
+        // We have not undone anything else -- so there's nothing to redo?
+    }
+    else
+    {
+        // We have already undone something, so there's something to redo
+        paintState->undoHead = paintState->undoHead->next;
+    }
+
+    paintApplyUndo(canvas);
+}
+
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
 {
     hideCursor(getCursor(), &paintState->canvas);
@@ -1646,6 +1909,12 @@ void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col)
         paintConvertPickPointsScaled(&getArtist()->pickPoints, &paintState->canvas, canvasPickPoints);
 
         while (popPxScaled(&getArtist()->pickPoints, paintState->disp, paintState->canvas.xScale, paintState->canvas.yScale));
+
+        // Save the current state before we draw, but only do it on the first press if we're using a HOLD_DRAW pen
+        if (getArtist()->brushDef->mode != HOLD_DRAW || paintState->aPress)
+        {
+            paintStoreUndo(&paintState->canvas);
+        }
 
         paintState->unsaved = true;
         getArtist()->brushDef->fnDraw(&paintState->canvas, canvasPickPoints, pickCount, getArtist()->brushWidth, col);

@@ -9,6 +9,7 @@
 #include "led_util.h"
 #include "p2pConnection.h"
 #include "mode_dance.h"
+#include "linked_list.h"
 
 #include "px_stack.h"
 #include "paint_type.h"
@@ -285,6 +286,16 @@ typedef struct
     // Whether all pick points should be redrawn with the current fgColor, for when the color changes while we're picking
     // TODO: This might not be necessary any more since we redraw those constantly.
     bool recolorPickPoints;
+
+
+    //////// Undo Data
+
+    // The linked list of undo data
+    list_t undoList;
+
+    // After an undo is performed, this points to the action that was undone.
+    // This allows redo to work. If the image is edited, this and all following items are removed.
+    node_t* undoHead;
 } paintDraw_t;
 
 typedef struct
