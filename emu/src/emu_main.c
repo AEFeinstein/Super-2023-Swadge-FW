@@ -979,10 +979,11 @@ void signalHandler_crash(int signum, siginfo_t* si, void* vcontext)
         for(int i = 0; i < __SI_PAD_SIZE; i++)
         {
             char tmp[8];
-            sprintf(tmp, "%02X", si->_sifields._pad[i]);
-            strcat(msg, tmp);
+            snprintf(tmp, sizeof(tmp), "%02X", si->_sifields._pad[i]);
+            tmp[sizeof(tmp)-1] = '\0';
+            strncat(msg, tmp, sizeof(msg) - strlen(msg) - 1);
         }
-        strcat(msg, "\n");
+        strncat(msg, "\n", sizeof(msg) - strlen(msg) - 1);
 		result = write(dumpFileDescriptor, msg, strnlen(msg, sizeof(msg)));
 		(void)result;
         
