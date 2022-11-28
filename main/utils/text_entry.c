@@ -50,6 +50,9 @@ static display_t * textEntryDisplay;
 #define ENTER_X 12
 #define ENTER_Y 2
 
+// 0 = Thicker Shift, 1 = Thick arrow with box below
+#define CAPS_NEW_STYLE 1
+
 // See controlChar_t
 static const char keyboard_upper[] = "\
 ~!@#$%^&*()_+\x03\x05\
@@ -180,22 +183,44 @@ bool textEntryDraw(void)
             // Draw the character, may be a control char
             switch( c )
             {
-                case KEY_SHIFT:
                 case KEY_CAPSLOCK:
                 {
+#if CAPS_NEW_STYLE
+                    plotRect( textEntryDisplay, posx + 2, posy + 8, posx + 5, posy + 10, WHITE    ); // box
+                    plotLine( textEntryDisplay, posx + 3, posy + 0, posx + 3, posy + 6, WHITE, 0 ); // |
+                    plotLine( textEntryDisplay, posx + 2, posy + 2, posx + 2, posy + 6, WHITE, 0 ); // | (extra thickness left)
+                    plotLine( textEntryDisplay, posx + 4, posy + 2, posx + 4, posy + 6, WHITE, 0 ); // | (extra thickness right)
+                    plotLine( textEntryDisplay, posx + 0, posy + 3, posx + 2, posy + 1, WHITE, 0 ); // /
+                    plotLine( textEntryDisplay, posx + 0, posy + 4, posx + 2, posy + 2, WHITE, 0 ); // / (extra thickness)
+                    plotLine( textEntryDisplay, posx + 4, posy + 1, posx + 6, posy + 3, WHITE, 0 ); /* \ */
+                    plotLine( textEntryDisplay, posx + 4, posy + 2, posx + 6, posy + 4, WHITE, 0 ); // \ (extra thickness)
+                    break;
+#else
+                    // Draw capslock extra arrow body thickness
+                    plotLine( textEntryDisplay, posx + 2, posy + 4, posx + 2, posy + 9, WHITE, 0 ); // | (extra thickness left)
+                    plotLine( textEntryDisplay, posx + 4, posy + 4, posx + 4, posy + 9, WHITE, 0 ); // | (extra thickness right)
+                    // Intentional fallthrough
+#endif
+                }
+                case KEY_SHIFT:
+                {
                     // Draw shift/capslock
-                    plotLine( textEntryDisplay, posx + 1, posy + 4, posx + 3, posy + 4, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 2, posy + 4, posx + 2, posy + 0, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 2, posy + 0, posx + 4, posy + 2, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 2, posy + 0, posx + 0, posy + 2, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 1, posy + 9, posx + 5, posy + 9, WHITE, 0 ); // -
+                    plotLine( textEntryDisplay, posx + 3, posy + 2, posx + 3, posy + 9, WHITE, 0 ); // |
+                    plotLine( textEntryDisplay, posx + 0, posy + 5, posx + 2, posy + 3, WHITE, 0 ); // /
+                    plotLine( textEntryDisplay, posx + 0, posy + 6, posx + 2, posy + 4, WHITE, 0 ); // / (extra thickness)
+                    plotLine( textEntryDisplay, posx + 4, posy + 3, posx + 6, posy + 5, WHITE, 0 ); /* \ */
+                    plotLine( textEntryDisplay, posx + 4, posy + 4, posx + 6, posy + 6, WHITE, 0 ); // \ (extra thickness)
                     break;
                 }
                 case KEY_BACKSPACE:
                 {
                     // Draw backspace
-                    plotLine( textEntryDisplay, posx + 0, posy + 2, posx + 4, posy + 2, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 0, posy + 2, posx + 2, posy + 0, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 0, posy + 2, posx + 2, posy + 4, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 0, posy + 5, posx + 6, posy + 5, WHITE, 0 ); // -
+                    plotLine( textEntryDisplay, posx + 1, posy + 4, posx + 3, posy + 2, WHITE, 0 ); // /
+                    plotLine( textEntryDisplay, posx + 2, posy + 4, posx + 4, posy + 2, WHITE, 0 ); // / (extra thickness)
+                    plotLine( textEntryDisplay, posx + 1, posy + 6, posx + 3, posy + 8, WHITE, 0 ); /* \ */
+                    plotLine( textEntryDisplay, posx + 2, posy + 6, posx + 4, posy + 8, WHITE, 0 ); // \ (extra thickness)
                     break;
                 }
                 case KEY_SPACE:
@@ -208,10 +233,12 @@ bool textEntryDraw(void)
                 case KEY_TAB:
                 {
                     // Draw tab
-                    plotLine( textEntryDisplay, posx + 0, posy + 2, posx + 4, posy + 2, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 4, posy + 2, posx + 2, posy + 0, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 4, posy + 2, posx + 2, posy + 4, WHITE, 0 );
-                    plotLine( textEntryDisplay, posx + 0, posy + 0, posx + 0, posy + 4, WHITE, 0 );
+                    plotLine( textEntryDisplay, posx + 0, posy + 2, posx + 0, posy + 8, WHITE, 0 ); // |
+                    plotLine( textEntryDisplay, posx + 0, posy + 5, posx + 6, posy + 5, WHITE, 0 ); // -
+                    plotLine( textEntryDisplay, posx + 3, posy + 2, posx + 5, posy + 4, WHITE, 0 ); // \ (not a multiline comment)
+                    plotLine( textEntryDisplay, posx + 2, posy + 2, posx + 4, posy + 4, WHITE, 0 ); // \ (extra thickness)
+                    plotLine( textEntryDisplay, posx + 3, posy + 8, posx + 5, posy + 6, WHITE, 0 ); // /
+                    plotLine( textEntryDisplay, posx + 2, posy + 8, posx + 4, posy + 6, WHITE, 0 ); // / (extra thickness)
                     break;
                 }
                 case KEY_ENTER:
@@ -280,20 +307,26 @@ bool textEntryInput( uint8_t down, uint8_t button )
                     return false;
                 }
                 case KEY_SHIFT:
-                case KEY_CAPSLOCK:
                 {
-                    // Rotate the keyMod from NO_SHIFT -> SHIFT -> CAPS LOCK, and back
-                    if(NO_SHIFT == keyMod)
+                    if(SHIFT == keyMod)
                     {
-                        keyMod = SHIFT;
-                    }
-                    else if(SHIFT == keyMod)
-                    {
-                        keyMod = CAPS_LOCK;
+                        keyMod = NO_SHIFT;
                     }
                     else
                     {
+                        keyMod = SHIFT;
+                    }
+                    break;
+                }
+                case KEY_CAPSLOCK:
+                {
+                    if(CAPS_LOCK == keyMod)
+                    {
                         keyMod = NO_SHIFT;
+                    }
+                    else
+                    {
+                        keyMod = CAPS_LOCK;
                     }
                     break;
                 }
