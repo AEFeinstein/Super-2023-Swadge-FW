@@ -810,7 +810,10 @@ void emu_loop(void)
     }
 
     // Always handle inputs
-    CNFGHandleInput();
+    if (!CNFGHandleInput())
+    {
+        isRunning = false;
+    }
 
     // If not running anymore, don't handle graphics
     // Must be checked after handling input, before graphics
