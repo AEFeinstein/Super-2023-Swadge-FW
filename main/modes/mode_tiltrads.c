@@ -135,6 +135,10 @@
 
 // Any const strings go here.
 
+static const char str_y_for[] ="Y FOR";
+static const char str_no_stress[] = "NO-STRESS-";
+static const char str_tris[] = "TRIS";
+static const char str_x_to_play[] = "X TO PLAY";
 static const char str_select_for[] = "SELECT FOR";
 static const char str_scores[] = "SCORES";
 static const char str_start_to[] = "START TO";
@@ -2240,6 +2244,41 @@ void ttTitleDisplay(void)
     plotPerspectiveEffect(tiltrads->disp, GRID_X, 0, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w - 1, 0, tiltrads->disp->h, 3, 3,
                           2.0,
                           tiltrads->stateTime, c112);
+
+    // Y FOR
+    int16_t noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_y_for, 0, GRID_X);
+    int16_t noStressScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 15 + 3);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_y_for, noStressScoresTextX, noStressScoresTextY);
+
+    // NO-STRESS-
+    noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_no_stress, 0, GRID_X);
+    noStressScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 14 + 2);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_no_stress, noStressScoresTextX, noStressScoresTextY);
+
+    // TRIS
+    noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_tris, 0, GRID_X);
+    noStressScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 13 + 1);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_tris, noStressScoresTextX, noStressScoresTextY);
+
+    // SCORES
+    noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_scores, 0, GRID_X);
+    noStressScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 12);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_scores, noStressScoresTextX, noStressScoresTextY);
+
+    // X TO PLAY
+    int16_t noStressPlayTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_x_to_play, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
+    int16_t noStressPlayTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 15 + 3);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_x_to_play, noStressPlayTextX, noStressPlayTextY);
+
+    // NO-STRESS-
+    noStressPlayTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_no_stress, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
+    noStressPlayTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 14 + 2);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_no_stress, noStressPlayTextX, noStressPlayTextY);
+
+    // TRIS
+    noStressPlayTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_tris, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
+    noStressPlayTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 13 + 1);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_tris, noStressPlayTextX, noStressPlayTextY);
 
     // SELECT FOR
     int16_t scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_select_for, 0, GRID_X);
