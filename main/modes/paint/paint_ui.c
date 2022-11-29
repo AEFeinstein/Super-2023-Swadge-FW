@@ -20,6 +20,9 @@ static const char startMenuClearCanvas[] = "New";
 static const char startMenuConfirmUnsaved[] = "Unsaved! OK?";
 static const char startMenuExit[] = "Exit";
 static const char startMenuEditPalette[] = "Edit Palette";
+static const char str_red[] = "Red";
+static const char str_green[] = "Green";
+static const char str_blue[] = "Blue";
 
 void drawColorBox(display_t* disp, uint16_t xOffset, uint16_t yOffset, uint16_t w, uint16_t h, paletteColor_t col, bool selected, paletteColor_t topBorder, paletteColor_t bottomBorder)
 {
@@ -378,19 +381,19 @@ void paintRenderColorPicker(paintArtist_t* artist, paintCanvas_t* canvas, paintD
     uint16_t barY = paintState->smallFont.h + 2 + 2;
     uint16_t barH = canvas->y - barY - 2 - 2 - 1;
 
-    uint16_t textW = textWidth(&paintState->smallFont, "Red");
+    uint16_t textW = textWidth(&paintState->smallFont, str_red);
     uint16_t barWidth = paintRenderGradientBox(canvas, 'r', paintState->newColor, barOffset, barY, PAINT_COLOR_PICKER_BAR_W, barH, rCur);
-    drawText(canvas->disp, &paintState->smallFont, c000, "Red", barOffset + (barWidth - textW) / 2, 1);
+    drawText(canvas->disp, &paintState->smallFont, c000, str_red, barOffset + (barWidth - textW) / 2, 1);
     barOffset += barWidth + barMargin;
 
-    textW = textWidth(&paintState->smallFont, "Green");
+    textW = textWidth(&paintState->smallFont, str_green);
     barWidth = paintRenderGradientBox(canvas, 'g', paintState->newColor, barOffset, barY, PAINT_COLOR_PICKER_BAR_W, barH, gCur);
-    drawText(canvas->disp, &paintState->smallFont, c000, "Green", barOffset + (barWidth - textW) / 2, 1);
+    drawText(canvas->disp, &paintState->smallFont, c000, str_green, barOffset + (barWidth - textW) / 2, 1);
     barOffset += barWidth + barMargin;
 
-    textW = textWidth(&paintState->smallFont, "Blue");
+    textW = textWidth(&paintState->smallFont, str_blue);
     barWidth = paintRenderGradientBox(canvas, 'b', paintState->newColor, barOffset, barY, PAINT_COLOR_PICKER_BAR_W, barH, bCur);
-    drawText(canvas->disp, &paintState->smallFont, c000, "Blue", barOffset + (barWidth - textW) / 2, 1);
+    drawText(canvas->disp, &paintState->smallFont, c000, str_blue, barOffset + (barWidth - textW) / 2, 1);
     barOffset += barWidth + barMargin;
 
     char hexCode[16];

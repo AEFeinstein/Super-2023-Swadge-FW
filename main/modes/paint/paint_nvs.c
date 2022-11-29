@@ -7,6 +7,7 @@
 #include "paint_ui.h"
 #include "paint_util.h"
 
+static const char KEY_PAINT_IDX[] = "pnt_idx";
 
 // void paintDebugIndex(int32_t index)
 // {
@@ -47,7 +48,7 @@ void paintLoadIndex(int32_t* index)
     // |xxxxxvvv  |Recent?|  |Inuse? |
     // 0000 0000  0000 0000  0000 0000
 
-    if (!readNvs32("pnt_idx", index))
+    if (!readNvs32(KEY_PAINT_IDX, index))
     {
         PAINT_LOGW("No metadata! Setting defaults");
         *index = PAINT_DEFAULTS;
@@ -57,7 +58,7 @@ void paintLoadIndex(int32_t* index)
 
 void paintSaveIndex(int32_t index)
 {
-    if (writeNvs32("pnt_idx", index))
+    if (writeNvs32(KEY_PAINT_IDX, index))
     {
         PAINT_LOGD("Saved index: %04x", index);
     }
@@ -477,7 +478,7 @@ void paintDeleteSlot(int32_t* index, uint8_t slot)
 
 bool paintDeleteIndex(void)
 {
-    if (eraseNvsKey("pnt_idx"))
+    if (eraseNvsKey(KEY_PAINT_IDX))
     {
         PAINT_LOGI("Erased index!");
         return true;
