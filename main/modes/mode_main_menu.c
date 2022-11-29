@@ -34,6 +34,9 @@
 #include "mode_tunernome.h"
 #include "picross_menu.h"
 // #include "picross_select.h"
+#if defined(EMU)
+#include "emu_main.h"
+#endif
 
 //==============================================================================
 // Defines
@@ -471,7 +474,7 @@ void mainMenuTopLevelCb(const char* opt)
 #if defined(EMU)
     else if (mainMenuExit == opt)
     {
-        exit(0);
+        emu_quit();
     }
 #endif
 }
