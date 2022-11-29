@@ -133,6 +133,9 @@ char mainMenuMicGain[] = "Mic Gain: 1";
 char mainMenuScreensaverTimeout[] = "Screensaver: 20s";
 char mainMenuScreensaverOff[] = "Screensaver: Off";
 const char mainMenuCredits[] = "Credits";
+#if defined(EMU)
+const char mainMenuExit[] = "Exit";
+#endif
 
 static const int16_t cheatCode[11] = {UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, BTN_B, BTN_A, START};
 
@@ -422,6 +425,9 @@ void mainMenuSetUpTopMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, mainMenuMusic);
     addRowToMeleeMenu(mainMenu->menu, mainMenuSettings);
     addRowToMeleeMenu(mainMenu->menu, mainMenuCredits);
+#if defined(EMU)
+    addRowToMeleeMenu(mainMenu->menu, mainMenuExit);
+#endif
 
     // Set the position
     if(resetPos)
@@ -462,6 +468,12 @@ void mainMenuTopLevelCb(const char* opt)
     {
         switchToSwadgeMode(&modeCredits);
     }
+#if defined(EMU)
+    else if (mainMenuExit == opt)
+    {
+        exit(0);
+    }
+#endif
 }
 
 /**
