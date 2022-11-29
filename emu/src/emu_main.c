@@ -117,6 +117,11 @@ static bool isRunning = true;
 // Functions
 //==============================================================================
 
+void emu_quit(void)
+{
+    isRunning = false;
+}
+
 /**
  * This function must be provided for rawdraw. Key events are received here
  *
