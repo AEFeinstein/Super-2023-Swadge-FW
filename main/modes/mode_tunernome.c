@@ -357,6 +357,8 @@ static const char leftStr[] = ": ";
 static const char rightStrTuner1[] = "Select: Beep";
 static const char rightStrTuner2[] = "Start: Tuner";
 static const char rightStrMetronome[] = "Start: Metronome";
+static const char inTuneStr[] = "In-Tune";
+static const char sharpStr[] = "Sharp";
 
 // TODO: these should be const after being assigned
 static int TUNER_FLAT_THRES_X;
@@ -720,10 +722,10 @@ void tunernomeMainLoop(int64_t elapsedUs)
         {
             // Instructions at top of display
             drawText(tunernome->disp, &tunernome->radiostars, c115, "Flat", CORNER_OFFSET, CORNER_OFFSET);
-            drawText(tunernome->disp, &tunernome->radiostars, c555, "In-Tune", (tunernome->disp->w - textWidth(&tunernome->radiostars,
-                     "In-Tune")) / 2, CORNER_OFFSET);
-            drawText(tunernome->disp, &tunernome->radiostars, c500, "Sharp", tunernome->disp->w - textWidth(&tunernome->radiostars,
-                     "Sharp") - CORNER_OFFSET, CORNER_OFFSET);
+            drawText(tunernome->disp, &tunernome->radiostars, c555, inTuneStr, (tunernome->disp->w - textWidth(&tunernome->radiostars,
+                     inTuneStr)) / 2, CORNER_OFFSET);
+            drawText(tunernome->disp, &tunernome->radiostars, c500, sharpStr, tunernome->disp->w - textWidth(&tunernome->radiostars,
+                     sharpStr) - CORNER_OFFSET, CORNER_OFFSET);
 
             // A/B/Start button functions at bottom of display
             int16_t afterText = drawText(tunernome->disp, &tunernome->ibm_vga8, c151, "A", CORNER_OFFSET,
