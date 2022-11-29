@@ -219,7 +219,7 @@ bool getFlightSaveData(flight_t* flightPtr)
             memset( &flightPtr->savedata, 0, sizeof( flightPtr->savedata ) );
 
             // Set defaults here!
-            flightPtr->savedata.flightInvertY = 1;
+            flightPtr->savedata.flightInvertY = 0;
         }
         flightPtr->didFlightsimDataLoad = 1;
     }
@@ -1198,7 +1198,7 @@ static void flightGameUpdate( flight_t * tflight )
         if( bs & 1 ) dyaw += THRUSTER_ACCEL;
         if( bs & 2 ) dyaw -= THRUSTER_ACCEL;
 
-        if( !tflight->savedata.flightInvertY ) dyaw *= -1;
+        if( tflight->savedata.flightInvertY ) dyaw *= -1;
 
         // If flying upside down, invert left/right. (Optional see flip note below)
         if( tflight->hpr[1] >= 990 && tflight->hpr[1] < 2970 ) dpitch *= -1;
