@@ -339,6 +339,11 @@ bool textEntryInput( uint8_t down, uint8_t button )
                     }
                     break;
                 }
+                case KEY_TAB:
+                {
+                    selChar = KEY_SPACE;
+                    // Intentional fallthrough
+                }
                 default:
                 {
                     // If there is still space, add the selected char
