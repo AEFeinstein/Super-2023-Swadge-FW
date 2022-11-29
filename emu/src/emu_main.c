@@ -117,6 +117,11 @@ static bool isRunning = true;
 // Functions
 //==============================================================================
 
+void emu_quit(void)
+{
+    isRunning = false;
+}
+
 /**
  * This function must be provided for rawdraw. Key events are received here
  *
@@ -125,7 +130,7 @@ static bool isRunning = true;
  */
 void HandleKey( int keycode, int bDown )
 {
-    emuSensorHandleKey(keycode, bDown);
+    emuSensorHandleKey(tolower(keycode), bDown);
 }
 
 /**
@@ -478,6 +483,7 @@ static const struct option opts[] = {
     {"keys-p2", required_argument, NULL, 'p'},
     {"dvorak", no_argument, NULL, 0},
     {"help", no_argument, NULL, 'h'},
+    {"fullscreen", no_argument, &fullscreen, true},
 
     {NULL, 0, NULL, 0},
 };
@@ -622,6 +628,7 @@ void handleArgs(int argc, char** argv)
                             "\t\tWhitespace is ignored. To use ',', ':', ' ', or '\\' as the keybinding, prefix them with a backslash, e.g. `--keys '\\ :A, \\\\:B, \\,:UP, \\::DOWN'`\n");
                 printf("\t--keys-p2 KEYBINDINGS\tSets keybindings for player 2. Requires the same format as in --keys.\n");
                 printf("\t--dvorak\t\tSets keybindings for the Dvorak layout which are equivalent to the default QWERTY keybinings.\n");
+                printf("\t--fullscreen\tStarts the window in fullscreen mode.\n");
                 printf("\n");
                 exit(0);
                 return;
@@ -732,7 +739,14 @@ int main(int argc, char** argv)
     // First initialize rawdraw
     // Screen-specific configurations
     // Save window dimensions from the last loop
-    CNFGSetup( "SQUAREWAVEBIRD Simulator", (TFT_WIDTH * 2) + (MIN_LED_WIDTH * 4) + 2, (TFT_HEIGHT * 2));
+    if (fullscreen)
+    {
+        CNFGSetupFullscreen("SQUAREWAVEBIRD Simulator", 0);
+    }
+    else
+    {
+        CNFGSetup( "SQUAREWAVEBIRD Simulator", (TFT_WIDTH * 2) + (MIN_LED_WIDTH * 4) + 2, (TFT_HEIGHT * 2));
+    }
 
     // This is the 'main' that gets called when the ESP boots. It does not return
     app_main();
@@ -809,7 +823,10 @@ void emu_loop(void)
     }
 
     // Always handle inputs
-    CNFGHandleInput();
+    if (!CNFGHandleInput())
+    {
+        isRunning = false;
+    }
 
     // If not running anymore, don't handle graphics
     // Must be checked after handling input, before graphics
@@ -967,10 +984,11 @@ void signalHandler_crash(int signum, siginfo_t* si, void* vcontext)
         for(int i = 0; i < __SI_PAD_SIZE; i++)
         {
             char tmp[8];
-            sprintf(tmp, "%02X", si->_sifields._pad[i]);
-            strcat(msg, tmp);
+            snprintf(tmp, sizeof(tmp), "%02X", si->_sifields._pad[i]);
+            tmp[sizeof(tmp)-1] = '\0';
+            strncat(msg, tmp, sizeof(msg) - strlen(msg) - 1);
         }
-        strcat(msg, "\n");
+        strncat(msg, "\n", sizeof(msg) - strlen(msg) - 1);
 		result = write(dumpFileDescriptor, msg, strnlen(msg, sizeof(msg)));
 		(void)result;
         
