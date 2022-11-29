@@ -120,7 +120,6 @@ static const char* getButtonName(hid_gamepad_button_bm_t button);
 // Variables
 //==============================================================================
 
-static const char str_gamepadTitle[] = "Gamepad Type";
 static const char str_pc[] = "PC";
 static const char str_ns[] = "Switch";
 static const char str_touch_analog_on[] = "Touch: Digi+Analog";
@@ -207,7 +206,7 @@ void gamepadExitMode(void)
 
 void setGamepadMainMenu(bool resetPos)
 {
-    resetMeleeMenu(gamepad->menu, str_gamepadTitle, gamepadMainMenuCb);
+    resetMeleeMenu(gamepad->menu, modeGamepad.modeName, gamepadMainMenuCb);
     addRowToMeleeMenu(gamepad->menu, str_pc);
     addRowToMeleeMenu(gamepad->menu, str_ns);
     addRowToMeleeMenu(gamepad->menu, gamepad->gamepadToggleSettings.touchAnalogOn ? str_touch_analog_on : str_touch_analog_off);
