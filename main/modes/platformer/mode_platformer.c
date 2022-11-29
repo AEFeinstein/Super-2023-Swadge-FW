@@ -775,7 +775,14 @@ void updateReadyScreen(platformer_t *self){
 
 void drawReadyScreen(display_t *d, font_t *font, gameData_t *gameData){
     drawPlatformerHud(d, font, gameData);
-    drawText(d, font, c555, str_get_ready, (d->w - textWidth(font, str_get_ready)) / 2, 128);
+    int16_t xOff = (d->w - textWidth(font, str_get_ready)) / 2;
+    drawText(d, font, c555, str_get_ready, xOff, 128);
+
+    if(getLevelIndex(gameData->world, gameData->level) == 0)
+    {
+        drawText(d, font, c555, "A: Jump", xOff, 128 + (font->h + 3) * 3);
+        drawText(d, font, c555, "B: Run / Fire", xOff, 128 + (font->h + 3) * 4);
+    }
 }
 
 void changeStateGame(platformer_t *self){
