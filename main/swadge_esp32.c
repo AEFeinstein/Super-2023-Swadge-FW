@@ -120,6 +120,7 @@ void simulateBtn(void (*fnButtonCallback)(buttonEvt_t* evt), buttonBit_t btn, ui
 int lockMode = false;
 int monkeyAround = false;
 int fullscreen = false;
+int hideLeds = false;
 int64_t fuzzerModeTestTime = 120 * 1000000;
 int64_t resetToMenuTimer = 0;
 int64_t fuzzButtonDelay = 100 * 1000; // 100ms

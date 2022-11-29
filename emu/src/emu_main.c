@@ -484,6 +484,7 @@ static const struct option opts[] = {
     {"dvorak", no_argument, NULL, 0},
     {"help", no_argument, NULL, 'h'},
     {"fullscreen", no_argument, &fullscreen, true},
+    {"hide-leds", no_argument, &hideLeds, true},
 
     {NULL, 0, NULL, 0},
 };
@@ -629,6 +630,7 @@ void handleArgs(int argc, char** argv)
                 printf("\t--keys-p2 KEYBINDINGS\tSets keybindings for player 2. Requires the same format as in --keys.\n");
                 printf("\t--dvorak\t\tSets keybindings for the Dvorak layout which are equivalent to the default QWERTY keybinings.\n");
                 printf("\t--fullscreen\tStarts the window in fullscreen mode.\n");
+                printf("\t--hide-leds\tHides the emulated LED display\n");
                 printf("\n");
                 exit(0);
                 return;
@@ -745,7 +747,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        CNFGSetup( "SQUAREWAVEBIRD Simulator", (TFT_WIDTH * 2) + (MIN_LED_WIDTH * 4) + 2, (TFT_HEIGHT * 2));
+        CNFGSetup( "SQUAREWAVEBIRD Simulator", (TFT_WIDTH * 2) + (hideLeds ? 0 : ((MIN_LED_WIDTH * 4) + 2)), (TFT_HEIGHT * 2));
     }
 
     // This is the 'main' that gets called when the ESP boots. It does not return
@@ -848,7 +850,7 @@ void emu_loop(void)
     if((lastWindow_h != window_h) || (lastWindow_w != window_w))
     {
         // Figure out how much the TFT should be scaled by
-        uint8_t widthMult = (window_w - (4 * MIN_LED_WIDTH) - 2) / TFT_WIDTH;
+        uint8_t widthMult = (window_w - (hideLeds ? 0 : ((4 * MIN_LED_WIDTH) - 2))) / TFT_WIDTH;
         if(0 == widthMult)
         {
             widthMult = 1;
@@ -861,7 +863,7 @@ void emu_loop(void)
         uint8_t screenMult = MIN(widthMult, heightMult);
 
         // LEDs take up the rest of the horizontal space
-        led_w = (window_w - 2 - (screenMult * TFT_WIDTH)) / 4;
+        led_w = hideLeds ? 0 : (window_w - 2 - (screenMult * TFT_WIDTH)) / 4;
 
         // Set the multiplier
         setDisplayBitmapMultiplier(screenMult);
@@ -889,7 +891,7 @@ void emu_loop(void)
     };
 
     // Draw simulated LEDs
-    if (numLeds > 0 && NULL != leds)
+    if (numLeds > 0 && NULL != leds && !hideLeds)
     {
         short led_h = window_h / (numLeds / 2);
         for(int i = 0; i < numLeds; i++)
@@ -916,9 +918,12 @@ void emu_loop(void)
     }
 
     // Draw dividing lines
-    CNFGColor( DIV_COLOR );
-    CNFGTackSegment(led_w * 2, 0, led_w * 2, window_h);
-    CNFGTackSegment(window_w - (led_w * 2), 0, window_w - (led_w * 2), window_h);
+    if (!hideLeds)
+    {
+        CNFGColor( DIV_COLOR );
+        CNFGTackSegment(led_w * 2, 0, led_w * 2, window_h);
+        CNFGTackSegment(window_w - (led_w * 2), 0, window_w - (led_w * 2), window_h);
+    }
 
     // Get the display memory
     uint16_t bitmapWidth, bitmapHeight;
@@ -931,7 +936,7 @@ void emu_loop(void)
 #endif
         // Update the display, centered
         CNFGBlitImage(bitmapDisplay,
-                        (led_w * 2) + 1, (window_h - bitmapHeight) / 2,
+                        hideLeds ? ((window_w - bitmapWidth) / 2) : ((led_w * 2) + 1), (window_h - bitmapHeight) / 2,
                         bitmapWidth, bitmapHeight);
     }
 
