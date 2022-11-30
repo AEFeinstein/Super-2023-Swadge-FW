@@ -7,6 +7,7 @@
 
 #include "paint_common.h"
 #include "paint_brush.h"
+#include "paint_help.h"
 
 extern paintDraw_t* paintState;
 

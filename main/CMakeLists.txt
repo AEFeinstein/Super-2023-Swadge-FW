@@ -37,6 +37,7 @@ idf_component_register(
         "modes/paint/paint_common.c"
         "modes/paint/paint_draw.c"
         "modes/paint/paint_gallery.c"
+        "modes/paint/paint_help.c"
         "modes/paint/paint_nvs.c"
         "modes/paint/paint_share.c"
         "modes/paint/paint_song.c"
