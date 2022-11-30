@@ -300,7 +300,14 @@ static bool IRAM_ATTR buzzer_check_next_note_isr(void * ptr)
     // Try playing SFX first
     bool sfxIsActive = buzzer_track_check_next_note(&bzr.sfx, true, cTime);
     // Then play BGM if SFX isn't active
-    buzzer_track_check_next_note(&bzr.bgm, !sfxIsActive, cTime);
+    bool bgmIsActive = buzzer_track_check_next_note(&bzr.bgm, !sfxIsActive, cTime);
+
+    // If nothing is playing, but there is BGM (i.e. SFX finished)
+    if((false == sfxIsActive) && (false == bgmIsActive) && (NULL != bzr.bgm.song))
+    {
+        // Immediately start playing BGM to get back on track faster
+        playNote(bzr.bgm.song->notes[bzr.bgm.note_index].note);
+    }
     return false;
 }
 
