@@ -53,7 +53,7 @@ typedef enum
 typedef struct
 {
     paintHelpTriggerType_t type;
-    void* dataPtr;
+    const void* dataPtr;
     int64_t data;
 } paintHelpTrigger_t;
 
