@@ -242,7 +242,7 @@ int strCommonPrefixLen(const char* a, const char* b)
     return i;
 }
 
-int getButtonIndex(const char* text, char** end)
+int getButtonIndex(const char* text, const char** end)
 {
     const char* const keyMap[] =
     {
@@ -273,7 +273,7 @@ int getButtonIndex(const char* text, char** end)
     return -1;
 }
 
-int getTouchIndex(const char* text, char** end)
+int getTouchIndex(const char* text, const char** end)
 {
     // doubled up so we can do either 1 or Y, and X or 5
     // we'll just modulo it
