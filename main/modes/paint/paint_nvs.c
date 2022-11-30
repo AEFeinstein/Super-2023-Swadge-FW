@@ -7,7 +7,10 @@
 #include "paint_ui.h"
 #include "paint_util.h"
 
-static const char KEY_PAINT_IDX[] = "pnt_idx";
+static const char KEY_PAINT_INDEX[] = "pnt_idx";
+static const char KEY_PAINT_SLOT_PALETTE[] = "paint_%02d_pal";
+static const char KEY_PAINT_SLOT_DIM[] = "paint_%02d_dim";
+static const char KEY_PAINT_SLOT_CHUNK[] = "paint_%02dc%05u";
 
 // void paintDebugIndex(int32_t index)
 // {
@@ -48,7 +51,7 @@ void paintLoadIndex(int32_t* index)
     // |xxxxxvvv  |Recent?|  |Inuse? |
     // 0000 0000  0000 0000  0000 0000
 
-    if (!readNvs32(KEY_PAINT_IDX, index))
+    if (!readNvs32(KEY_PAINT_INDEX, index))
     {
         PAINT_LOGW("No metadata! Setting defaults");
         *index = PAINT_DEFAULTS;
@@ -58,7 +61,7 @@ void paintLoadIndex(int32_t* index)
 
 void paintSaveIndex(int32_t index)
 {
-    if (writeNvs32(KEY_PAINT_IDX, index))
+    if (writeNvs32(KEY_PAINT_INDEX, index))
     {
         PAINT_LOGD("Saved index: %04x", index);
     }
@@ -199,7 +202,7 @@ bool paintSave(int32_t* index, const paintCanvas_t* canvas, uint8_t slot)
     }
 
     // Save the palette map, this lets us compact the image by 50%
-    snprintf(key, 16, "paint_%02d_pal", slot);
+    snprintf(key, 16, KEY_PAINT_SLOT_PALETTE, slot);
     PAINT_LOGD("paletteColor_t size: %zu, max colors: %d", sizeof(paletteColor_t), PAINT_MAX_COLORS);
     PAINT_LOGD("Palette will take up %zu bytes", sizeof(canvas->palette));
     if (writeNvsBlob(key, canvas->palette, sizeof(canvas->palette)))
@@ -215,7 +218,7 @@ bool paintSave(int32_t* index, const paintCanvas_t* canvas, uint8_t slot)
 
     // Save the canvas dimensions
     uint32_t packedSize = canvas->w << 16 | canvas->h;
-    snprintf(key, 16, "paint_%02d_dim", slot);
+    snprintf(key, 16, KEY_PAINT_SLOT_DIM, slot);
     if (writeNvs32(key, packedSize))
     {
         PAINT_LOGD("Saved dimensions to slot %s", key);
@@ -235,7 +238,7 @@ bool paintSave(int32_t* index, const paintCanvas_t* canvas, uint8_t slot)
     while (0 != (written = paintSerialize(imgChunk, canvas, offset, PAINT_SAVE_CHUNK_SIZE)))
     {
         // save the chunk
-        snprintf(key, 16, "paint_%02dc%05u", slot, chunkNumber);
+        snprintf(key, 16, KEY_PAINT_SLOT_CHUNK, slot, chunkNumber);
         if (writeNvsBlob(key, imgChunk, written))
         {
             PAINT_LOGD("Saved blob %u with %zu bytes", chunkNumber, written);
@@ -294,7 +297,7 @@ bool paintLoad(int32_t* index, paintCanvas_t* canvas, uint8_t slot)
     }
 
     // Load the palette map
-    snprintf(key, 16, "paint_%02d_pal", slot);
+    snprintf(key, 16, KEY_PAINT_SLOT_PALETTE, slot);
 
     if (!readNvsBlob(key, NULL, &paletteSize))
     {
@@ -331,7 +334,7 @@ bool paintLoad(int32_t* index, paintCanvas_t* canvas, uint8_t slot)
     do
     {
         offset += lastChunkSize;
-        snprintf(key, 16, "paint_%02dc%05u", slot, chunkNumber);
+        snprintf(key, 16, KEY_PAINT_SLOT_CHUNK, slot, chunkNumber);
         // panic
         if (!readNvsBlob(key, NULL, &lastChunkSize) || lastChunkSize > PAINT_SAVE_CHUNK_SIZE)
         {
@@ -369,7 +372,7 @@ bool paintLoadDimensions(paintCanvas_t* canvas, uint8_t slot)
     // Read the canvas dimensions
     PAINT_LOGD("Reading dimensions");
     int32_t packedSize;
-    snprintf(key, 16, "paint_%02d_dim", slot);
+    snprintf(key, 16, KEY_PAINT_SLOT_DIM, slot);
     if (readNvs32(key, &packedSize))
     {
         canvas->h = (uint32_t)packedSize & 0xFFFF;
@@ -430,13 +433,13 @@ void paintDeleteSlot(int32_t* index, uint8_t slot)
     }
 
     // Delete the palette
-    snprintf(key, 16, "paint_%02d_pal", slot);
+    snprintf(key, 16, KEY_PAINT_SLOT_PALETTE, slot);
     if (!eraseNvsKey(key))
     {
         PAINT_LOGE("Couldn't delete palette of slot %d", slot);
     }
 
-    snprintf(key, 16, "paint_%02d_dim", slot);
+    snprintf(key, 16, KEY_PAINT_SLOT_DIM, slot);
     if (!eraseNvsKey(key))
     {
         PAINT_LOGE("Couldn't delete dimensions of slot %d", slot);
@@ -446,7 +449,7 @@ void paintDeleteSlot(int32_t* index, uint8_t slot)
     uint8_t i = 0;
     do
     {
-        snprintf(key, 16, "paint_%02dc%05d", slot, i++);
+        snprintf(key, 16, KEY_PAINT_SLOT_CHUNK, slot, i++);
     } while (eraseNvsKey(key));
 
     PAINT_LOGI("Erased %d chunks of slot %d", i - 1, slot);
@@ -461,7 +464,7 @@ void paintDeleteSlot(int32_t* index, uint8_t slot)
 
 bool paintDeleteIndex(void)
 {
-    if (eraseNvsKey(KEY_PAINT_IDX))
+    if (eraseNvsKey(KEY_PAINT_INDEX))
     {
         PAINT_LOGI("Erased index!");
         return true;
