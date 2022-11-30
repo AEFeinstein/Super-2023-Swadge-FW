@@ -122,14 +122,6 @@ size_t paintGetStoredSize(const paintCanvas_t* canvas)
 
 bool paintDeserialize(paintCanvas_t* dest, const uint8_t* data, size_t offset, size_t count)
 {
-    uint8_t paletteIndex[cTransparent + 1];
-
-    // Build the reverse-palette map
-    for (uint16_t i = 0; i < PAINT_MAX_COLORS; i++)
-    {
-        paletteIndex[((uint8_t)dest->palette[i])] = i;
-    }
-
     uint16_t x0, y0, x1, y1;
     for (uint16_t n = 0; n < count; n++)
     {
@@ -190,9 +182,6 @@ size_t paintSerialize(uint8_t* dest, const paintCanvas_t* canvas, size_t offset,
 
 bool paintSave(int32_t* index, const paintCanvas_t* canvas, uint8_t slot)
 {
-    // palette in reverse for quick transformation
-    uint8_t paletteIndex[256];
-
     // NVS blob key name
     char key[16];
 
@@ -236,12 +225,6 @@ bool paintSave(int32_t* index, const paintCanvas_t* canvas, uint8_t slot)
         PAINT_LOGE("Couldn't save dimensions to slot %s",key);
         free(imgChunk);
         return false;
-    }
-
-    // Build the reverse-palette map
-    for (uint16_t i = 0; i < PAINT_MAX_COLORS; i++)
-    {
-        paletteIndex[((uint8_t)canvas->palette[i])] = i;
     }
 
     size_t offset = 0;

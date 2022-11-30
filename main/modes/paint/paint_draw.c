@@ -1706,7 +1706,7 @@ void paintStoreUndo(paintCanvas_t* canvas)
     {
         // Alloc succeeded, use the data
         undoData = undoMem;
-        undoData->px = undoMem + sizeof(paintUndo_t);
+        undoData->px = (uint8_t*)undoMem + sizeof(paintUndo_t);
     }
     else
     {

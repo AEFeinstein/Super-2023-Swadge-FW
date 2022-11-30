@@ -101,6 +101,14 @@ swadgeMode * allModes[] =
 
 void drawBitmapPixel(uint32_t* bitmapDisplay, int w, int h, int x, int y, uint32_t col);
 void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t col);
+int strCommonPrefixLen(const char* a, const char* b);
+int getButtonIndex(const char* text, const char** end);
+int getTouchIndex(const char* text, const char** end);
+bool handleFuzzButtons(const char* buttons);
+bool parseKeyConfig(const char* config, char* outKeys, char* outTouch);
+void printModeList(FILE* stream);
+void handleArgs(int argc, char** argv);
+
 
 #ifdef __linux__
 void init_crashSignals(void);
@@ -242,7 +250,7 @@ int strCommonPrefixLen(const char* a, const char* b)
     return i;
 }
 
-int getButtonIndex(const char* text, char** end)
+int getButtonIndex(const char* text, const char** end)
 {
     const char* const keyMap[] =
     {
@@ -273,7 +281,7 @@ int getButtonIndex(const char* text, char** end)
     return -1;
 }
 
-int getTouchIndex(const char* text, char** end)
+int getTouchIndex(const char* text, const char** end)
 {
     // doubled up so we can do either 1 or Y, and X or 5
     // we'll just modulo it
