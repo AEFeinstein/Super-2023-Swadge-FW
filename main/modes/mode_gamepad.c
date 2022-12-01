@@ -715,7 +715,7 @@ void gamepadButtonCb(buttonEvt_t* evt)
     switch(gamepad->gamepadType){
         case GAMEPAD_GENERIC: {
             // Build a list of all independent buttons held down
-            gamepad->gpState.buttons = 0;
+            gamepad->gpState.buttons &= ~(GAMEPAD_BUTTON_A | GAMEPAD_BUTTON_B | GAMEPAD_BUTTON_START | GAMEPAD_BUTTON_SELECT);
             if(evt->state & BTN_A)
             {
                 gamepad->gpState.buttons |= GAMEPAD_BUTTON_A;
