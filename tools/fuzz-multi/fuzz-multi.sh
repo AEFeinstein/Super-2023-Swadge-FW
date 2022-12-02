@@ -108,7 +108,7 @@ while [ "$#" -gt "0" ]; do
 	    ;;
 
 	--help|-help)
-	    echo "Usage: ${0} [--gdb] [--valgrind] [--clean-nvs] [--clean-logs] [--arrange [-w WIDTH] [-h HEIGHT] [--tx TILE_X] [--ty TILE_Y] [--ox OFFSET_X] [--oy OFFSET_Y]] [--out OUT_DIR] [MODE_CSV] [ -- EMU_ARG ... ]"
+	    echo "Usage: ${0} [--gdb] [--valgrind] [--clean-nvs] [--clean-logs] [--arrange [-w WIDTH] [-h HEIGHT] [--tx TILE_X] [--ty TILE_Y] [--ox OFFSET_X] [--oy OFFSET_Y] [--cols COLUMNS]] [--out OUT_DIR] [MODE_CSV] [ -- EMU_ARG ... ]"
 	    exit 0
 	    ;;
 
