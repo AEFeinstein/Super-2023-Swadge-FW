@@ -33,6 +33,7 @@
 #include "mode_tiltrads.h"
 #include "mode_tunernome.h"
 #include "picross_menu.h"
+#include "mode_manual.h"
 // #include "picross_select.h"
 #if defined(EMU)
 #include "emu_main.h"
@@ -124,6 +125,7 @@ const char mainMenuGames[] = "Games";
 const char mainMenuTools[] = "Tools";
 const char mainMenuMusic[] = "Music";
 const char mainMenuSettings[] = "Settings";
+const char mainMenuManual[] = "Manual";
 const char mainMenuSecret[] = "Secrets";
 const char mainMenuBack[] = "Back";
 const char mainMenuSoundBgmOn[] = "Music: On";
@@ -427,6 +429,7 @@ void mainMenuSetUpTopMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, mainMenuTools);
     addRowToMeleeMenu(mainMenu->menu, mainMenuMusic);
     addRowToMeleeMenu(mainMenu->menu, mainMenuSettings);
+    addRowToMeleeMenu(mainMenu->menu, mainMenuManual);
     addRowToMeleeMenu(mainMenu->menu, mainMenuCredits);
 #if defined(EMU)
     addRowToMeleeMenu(mainMenu->menu, mainMenuExit);
@@ -466,6 +469,10 @@ void mainMenuTopLevelCb(const char* opt)
     else if(mainMenuSettings == opt)
     {
         mainMenuSetUpSettingsMenu(true);
+    }
+    else if (mainMenuManual == opt)
+    {
+        switchToSwadgeMode(&modeManual);
     }
     else if (mainMenuCredits == opt)
     {

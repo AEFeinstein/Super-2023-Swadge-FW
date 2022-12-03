@@ -1,0 +1,8 @@
+# Swadge 1.1 Manual
+---
+Now in Swadge Format!
+
+Welcome to the _new and improved_ MAGFest 2023 Swadge!
+
+This is placeholder text because I don't know what the manual is going to say.
+Lorem ipsum dolor sit amet consectetur adipscing elit. I'm gonna add enough text here so that it overflows to another page to see if pagination works properly. That would be super neat actually. Let's see what happens. I hope it works.
