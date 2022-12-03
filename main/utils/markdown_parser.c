@@ -112,11 +112,6 @@ typedef struct
 
 static void parseMarkdownInner(const char* text, _markdownText_t* out);
 
-// Returns a pointer to a new node, allocating more space if necessary, and sets up pointers to the parent and from
-
-///
-///
-
 /// @brief Returns a pointer to the next node, allocating more space if necessary, and sets up the pointers
 /// If `parent` is not NULL, it will be set as the returned node's `parent` pointer.
 /// And, if `parent->child` is NULL, `parent->child` will be set to the returned node.
@@ -462,6 +457,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                     case '~':
                     case '#':
                     case '-':
+                    case '!':
                     {
                         // regular escape
                         // create a text node for the single character after the escape
@@ -699,7 +695,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                 {
                     curNode->type = DECORATION;
                     curNode->decoration = HEADER;
-                    text++;
+                    ++text;
 
                     action = ADD_CHILD;
                 }
@@ -819,15 +815,15 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                     if (*text == ']')
                     {
                         // that was the alt text
-                        if (*(++text) == '[')
+                        if (*(++text) == '(')
                         {
                             curNode->image.start  = text + 1;
 
                             do {
                                 ++text;
-                            } while ((*text != ']' || *(text - 1) == '\\') && *text != '\0' && *text != '\n');
+                            } while ((*text != ')' || *(text - 1) == '\\') && *text != '\0' && *text != '\n');
 
-                            if (*text == ']')
+                            if (*text == ')')
                             {
                                 valid = true;
                                 curNode->image.end = text;
@@ -887,7 +883,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                     && curNode->parent->type == DECORATION
                     && curNode->parent->decoration == HEADER)
                 {
-                    // if last node was a header, break out of the header and
+                    // if last node was a header, break out of the header and also add the newline
                     action = GO_TO_PARENT | ADD_SIBLING;
                 }
 
