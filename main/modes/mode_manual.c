@@ -70,6 +70,7 @@ typedef struct
     paletteColor_t bgColor, fgColor;
 
     richText_t richText;
+    markdownText_t* markdown;
 
     chapter_t* chapter;
 
@@ -104,9 +105,7 @@ void manualLoadText(void)
         manual->curPage = manual->pages.last;
     }
 
-    markdownText_t* result = parseMarkdown(manual->text);
-    drawMarkdown(result, NULL);
-    freeMarkdown(result);
+    manual->markdown = parseMarkdown(manual->text);
 }
 
 void manualEnterMode(display_t* disp)
@@ -168,19 +167,32 @@ void manualMainLoop(int64_t elapsedUs)
         richTextSkip(&manual->richText, manual->text, manual->text + curPage->offset);
     }
 
-    const char* remainingText = richTextDraw(&manual->richText, manual->text + curPage->offset);
+    markdownContinue_t markdownPos;
+    markdownParams_t mdParams =
+    {
+        .xMin = 13, .yMin = 13,
+        .xMax = manual->disp->w - 13, .yMax = manual->disp->h - MANUAL_BOTTOM_MARGIN,
+        .bodyFont = &manual->bodyFont,
+        .headerFont = &manual->headerFont,
+        .color = manual->fgColor,
+    };
+
+    //richTextSetBounds(&manual->richText, 13, 13, manual->disp->w - 13, manual->disp->h - MANUAL_BOTTOM_MARGIN);
+    bool hasMore = drawMarkdown(manual->disp, manual->markdown, &mdParams, &markdownPos);
+
+    //const char* remainingText = richTextDraw(&manual->richText, manual->text + curPage->offset);
 
     plotLine(manual->disp, 0, manual->disp->h - MANUAL_BOTTOM_MARGIN + 1, manual->disp->w, manual->disp->h - MANUAL_BOTTOM_MARGIN + 1, manual->fgColor, 0);
 
     //  || manual->curPage->next != NULL || curPage->chapter < lastChapter
-    if (remainingText != NULL)
+    if (hasMore)
     {
         // Store the page for later if we haven't already done that
         if (manual->curPage->next == NULL)
         {
             page_t* newPage = malloc(sizeof(page_t));
             newPage->chapter = curPage->chapter;
-            newPage->offset = remainingText - manual->text;
+            //newPage->offset = remainingText - manual->text;
             push(&manual->pages, newPage);
         }
 
