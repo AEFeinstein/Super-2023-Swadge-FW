@@ -127,7 +127,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out);
 /// @return
 static mdNode_t* newNode(_markdownText_t* data, mdNode_t* parent, mdNode_t* prev);
 static void freeTree(mdNode_t*);
-static void drawMarkdownNode(const mdNode_t* cur, const mdNode_t* last, mdPrintState_t* state);
+static bool drawMarkdownNode(const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state);
 
 
 static mdNode_t* newNode(_markdownText_t* data, mdNode_t* parent, mdNode_t* prev)
@@ -353,7 +353,7 @@ static void _printNode(const mdNode_t* node, int indent, bool detailed)
 
             case IMAGE:
             {
-                PRINT_INDENT("Image... (0x%08x)\n", (int)node);
+                PRINT_INDENT("Image: '%s' (0x%08x)\n", strndebug(node->image.start, node->image.end), (int)node);
                 break;
             }
 
@@ -628,7 +628,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                         {
                             do {
                                 ++text;
-                            } while (*text != ')' && *text != '\0');
+                            } while (*text != ')' && *text != '\0' && *text != '\n');
 
                             if (*text == ')')
                             {
@@ -806,6 +806,52 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                 break;
             }
 
+            case '!':
+            {
+                bool valid = false;
+
+                if (*(++text) == '[')
+                {
+                    do {
+                        ++text;
+                    } while ((*text != ']' || *(text - 1) == '\\') && *text != '\0' && *text != '\n');
+
+                    if (*text == ']')
+                    {
+                        // that was the alt text
+                        if (*(++text) == '[')
+                        {
+                            curNode->image.start  = text + 1;
+
+                            do {
+                                ++text;
+                            } while ((*text != ']' || *(text - 1) == '\\') && *text != '\0' && *text != '\n');
+
+                            if (*text == ']')
+                            {
+                                valid = true;
+                                curNode->image.end = text;
+                                text++;
+                            }
+                        }
+                    }
+                }
+
+                if (valid)
+                {
+                    curNode->type = IMAGE;
+                }
+                if (!valid)
+                {
+                    curNode->type = TEXT;
+                    curNode->text.start = textStart;
+                    curNode->text.end = textStart + 1;
+                    text = textStart + 1;
+                }
+
+                break;
+            }
+
             case '\n':
             {
                 // If there's one newline, pretend it's a space
@@ -856,7 +902,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                 curNode->text.start = text;
 
                 // Advance to the next char we need to handle
-                text = strpbrk(text + 1, "\\_*~#-\n");
+                text = strpbrk(text + 1, "\\_*~#-\n!");
 
                 if (text == NULL)
                 {
@@ -1064,18 +1110,50 @@ void freeMarkdown(markdownText_t* markdown)
     }
 }
 
-static void drawMarkdownNode(const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state)
+static const mdText_t* findPreviousFont(const mdNode_t* node)
 {
+    while (node->parent != NULL)
+    {
+        node = node->parent;
 
+        if (node->type == OPTION && node->option.type == FONT)
+        {
+            return &(node->option.font);
+        }
+    }
+
+    return NULL;
+}
+
+static void leavingNode(const mdNode_t* node, mdPrintState_t* state)
+{
+    // handle any actions we need to take when leaving the current node
+    // i.e. if we're leaving an option node, search up the tree to find the previous value for whatever option
+}
+
+static bool drawMarkdownNode(const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state)
+{
+    switch (node->type)
+    {
+        case TEXT:
+        {
+            //drawTextWordWrap();
+            break;
+        }
+
+        default:
+        break;
+    }
+
+    return true;
 }
 
 
 bool drawMarkdown(const markdownText_t* markdown, const markdownParams_t* params, markdownContinue_t* pos)
 {
-
     const mdNode_t* node = &(((const _markdownText_t*)markdown)->tree);
     const mdNode_t* prev = NULL;
-    char buf[64];
+
     uint8_t indent = 0;
 
     mdPrintState_t state =
@@ -1092,11 +1170,20 @@ bool drawMarkdown(const markdownText_t* markdown, const markdownParams_t* params
         state.params.align = ALIGN_LEFT | VALIGN_TOP;
     }
 
+    if (pos != NULL)
+    {
+        // TODO: Take the position in the tree and use it to reparse
+    }
+
     MDLOG("Printing Markdown\n-----------\n\n");
     while (node != NULL)
     {
         printNode(node, indent);
-        drawMarkdownNode(node, prev, &state);
+        if (!drawMarkdownNode(node, prev, &state))
+        {
+            // We drew as much as we could draw! Don't update the node!
+            break;
+        }
 
         if (node->child != NULL)
         {
@@ -1113,6 +1200,7 @@ bool drawMarkdown(const markdownText_t* markdown, const markdownParams_t* params
             // move up the parent tree until one of them has a next
             while (node != NULL)
             {
+                leavingNode(node, &state);
                 indent--;
                 node = node->parent;
                 if (node != NULL && node->next != NULL)
