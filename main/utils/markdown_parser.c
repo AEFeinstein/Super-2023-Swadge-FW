@@ -8,10 +8,14 @@
 #include "palette.h"
 #include "display.h"
 #include "rich_text.h"
+#include "bresenham.h"
 
 #define MDLOG(...) printf(__VA_ARGS__)
 //ESP_LOGD("Markdown", __VA_ARGS__)
 #define MIN(x,y) ((x)<(y)?(x):(y))
+
+//#define MD_MALLOC(size) heap_caps_alloc(size, MALLOC_CAP_SPIRAM)
+#define MD_MALLOC(size) malloc(size)
 
 typedef enum
 {
@@ -122,7 +126,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out);
 /// @return
 static mdNode_t* newNode(_markdownText_t* data, mdNode_t* parent, mdNode_t* prev);
 static void freeTree(mdNode_t*);
-static bool drawMarkdownNode(const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state);
+static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state);
 
 
 static mdNode_t* newNode(_markdownText_t* data, mdNode_t* parent, mdNode_t* prev)
@@ -133,7 +137,7 @@ static mdNode_t* newNode(_markdownText_t* data, mdNode_t* parent, mdNode_t* prev
         return NULL;
     }
 
-    mdNode_t* result = malloc(sizeof(mdNode_t));
+    mdNode_t* result = MD_MALLOC(sizeof(mdNode_t));
     result->type = EMPTY;
     result->child = NULL;
     result->next = NULL;
@@ -420,7 +424,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
 
     #define NEXT_SIBLING curNode = newNode(out, curNode->parent, lastNode = curNode)
     #define NEXT_CHILD curNode = newNode(out, curNode, lastNode = NULL)
-    #define START_OF_LINE() (lastNode == NULL || (lastNode->type == DECORATION && lastNode->decoration != BULLET && lastNode->decoration != HEADER && lastNode->decoration != WORD_BREAK))
+    #define START_OF_LINE() (lastNode == NULL || (lastNode->type == DECORATION && lastNode->decoration != BULLET && lastNode->decoration != HEADER && (lastNode->decoration != WORD_BREAK || lastNode->parent == NULL)))
     #define PARENT_IS_SAME_OPTION(valtype) (curNode->parent != NULL && curNode->parent->type == curNode->type && curNode->parent->option.type == curNode->option.type && curNode->parent->option.valtype == curNode->option.valtype)
 
     // Temporary pointer to the text at the start of the loop so we can backtrack a tiny bit if needed
@@ -693,6 +697,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
             {
                 if (START_OF_LINE())
                 {
+                    MDLOG("Start of line, using header");
                     curNode->type = DECORATION;
                     curNode->decoration = HEADER;
                     ++text;
@@ -701,6 +706,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                 }
                 else
                 {
+                    MDLOG("Not at start of line, marking as text");
                     curNode->type = TEXT;
                     curNode->text.start = text;
                     curNode->text.end = ++text;
@@ -1125,16 +1131,104 @@ static void leavingNode(const mdNode_t* node, mdPrintState_t* state)
 {
     // handle any actions we need to take when leaving the current node
     // i.e. if we're leaving an option node, search up the tree to find the previous value for whatever option
+    switch (node->type)
+    {
+        case DECORATION:
+        {
+            switch (node->decoration)
+            {
+                case HEADER:
+                state->font = findPreviousFont(node);
+                if (state->font == NULL)
+                {
+                    state->font = state->params.bodyFont;
+                }
+                break;
+            }
+            break;
+        }
+    }
 }
 
-static bool drawMarkdownNode(const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state)
+static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state)
 {
+    char buf[64];
     switch (node->type)
     {
         case TEXT:
         {
-            //drawTextWordWrap();
+            const char* start = node->text.start;
+
+            while (start < node->text.end)
+            {
+                strncpy(buf, start, sizeof(buf));
+                buf[sizeof(buf) - 1] = '\0';
+
+                if (node->text.end - start < sizeof(buf))
+                {
+                    buf[node->text.end - start] = '\0';
+                }
+                start += strlen(buf);
+
+                // TODO: this doesn't really work if we don't pass it the start and end separately
+                // Either add some more parameters (we have to revert the rich text stuff anyway) or... do the rest of it ourselves? gross
+                if (drawTextWordWrap(disp, state->font, state->params.color, buf, &state->x, &state->y, state->params.xMax, state->params.yMax))
+                {
+                    // not everything fit on the screen
+                    // reset the position and exit
+                    state->x = state->params.xMin;
+                    state->y = state->params.yMin;
+
+                    return false;
+                }
+            }
+
             break;
+        }
+
+        case DECORATION:
+        {
+            switch (node->decoration)
+            {
+                case HORIZONTAL_RULE:
+                plotLine(disp, state->params.xMin, state->y, state->params.xMax, state->y, state->params.color, 0);
+                break;
+
+                case WORD_BREAK:
+                if (state->x != state->params.xMin)
+                {
+                    // TODO: Check if last node was italics and increase spacing accordingly if so
+                    state->x += state->font->chars[0].w + 1;
+                    if (state->x >= state->params.xMax)
+                    {
+                        state->x = state->params.xMin;
+                        state->y += state->font->h + 1;
+                    }
+                }
+                break;
+
+                case LINE_BREAK:
+                state->x = state->params.xMin;
+                state->y += state->font->h + 1;
+                break;
+
+                case PARAGRAPH_BREAK:
+                state->x = state->params.xMin;
+                state->y += (state->font->h + 1) * 2;
+                break;
+
+                case PAGE_BREAK:
+                state->x = state->params.xMin;
+                state->y = state->params.yMin;
+                break;
+
+                case BULLET:
+                break;
+
+                case HEADER:
+                state->font = state->params.headerFont;
+                break;
+            }
         }
 
         default:
@@ -1145,7 +1239,7 @@ static bool drawMarkdownNode(const mdNode_t* node, const mdNode_t* prev, mdPrint
 }
 
 
-bool drawMarkdown(const markdownText_t* markdown, const markdownParams_t* params, markdownContinue_t* pos)
+bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdownParams_t* params, markdownContinue_t* pos)
 {
     const mdNode_t* node = &(((const _markdownText_t*)markdown)->tree);
     const mdNode_t* prev = NULL;
@@ -1154,8 +1248,8 @@ bool drawMarkdown(const markdownText_t* markdown, const markdownParams_t* params
 
     mdPrintState_t state =
     {
-        .x = 0,
-        .y = 0,
+        .x = params->xMin,
+        .y = params->yMin,
         .font = NULL,
         .data = { NULL },
     };
@@ -1166,6 +1260,8 @@ bool drawMarkdown(const markdownText_t* markdown, const markdownParams_t* params
         state.params.align = ALIGN_LEFT | VALIGN_TOP;
     }
 
+    state.font = params->bodyFont;
+
     if (pos != NULL)
     {
         // TODO: Take the position in the tree and use it to reparse
@@ -1175,11 +1271,11 @@ bool drawMarkdown(const markdownText_t* markdown, const markdownParams_t* params
     while (node != NULL)
     {
         printNode(node, indent);
-        if (!drawMarkdownNode(node, prev, &state))
+        /*if (!drawMarkdownNode(disp, node, prev, &state))
         {
             // We drew as much as we could draw! Don't update the node!
             break;
-        }
+        }*/
 
         if (node->child != NULL)
         {

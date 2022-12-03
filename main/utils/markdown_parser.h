@@ -60,7 +60,7 @@ typedef struct
 
 markdownText_t* parseMarkdown(const char* text);
 void freeMarkdown(markdownText_t* markdown);
-bool drawMarkdown(const markdownText_t* markdown, const markdownParams_t* params, markdownContinue_t* pos);
+bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdownParams_t* params, markdownContinue_t* pos);
 
 
 #endif
