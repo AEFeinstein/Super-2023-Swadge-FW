@@ -61,6 +61,7 @@ idf_component_register(
         "swadge_esp32.c"
         "swadge_util.c"
         "utils/linked_list.c"
+        "utils/markdown_parser.c"
         "utils/text_entry.c"
     INCLUDE_DIRS
         "."

@@ -10,6 +10,8 @@
 #include "bresenham.h"
 #include "linked_list.h"
 
+#include "markdown_parser.h"
+
 #define MANUAL_FONT_UI "ibm_vga8.font"
 #define MANUAL_FONT_HEADER "mm.font"
 #define MANUAL_BOTTOM_MARGIN 24
@@ -102,7 +104,9 @@ void manualLoadText(void)
         manual->curPage = manual->pages.last;
     }
 
-
+    markdownText_t* result = parseMarkdown(manual->text);
+    drawMarkdown(result, NULL);
+    freeMarkdown(result);
 }
 
 void manualEnterMode(display_t* disp)
