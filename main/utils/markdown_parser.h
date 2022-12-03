@@ -1,6 +1,14 @@
 #ifndef _MARKDOWN_PARSER_H_
 #define _MARKDOWN_PARSER_H_
 
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "display.h"
+#include "palette.h"
+// TODO delete this and move decls here
+#include "rich_text.h"
+
 /*typedef enum
 {
     STYLE_NORMAL = 0,
@@ -39,9 +47,20 @@ typedef enum
 typedef struct _markdownText_t *markdownText_t;
 typedef struct _markdownContinue_t *markdownContinue_t;
 
+typedef struct
+{
+    int16_t xMin, yMin, xMax, yMax;
+    textStyle_t style;
+    textAlign_t align;
+    textBreak_t breakMode;
+    paletteColor_t color;
+    font_t* bodyFont;
+    font_t* headerFont;
+} markdownParams_t;
+
 markdownText_t* parseMarkdown(const char* text);
 void freeMarkdown(markdownText_t* markdown);
-void drawMarkdown(const markdownText_t* markdown, markdownContinue_t* pos);
+bool drawMarkdown(const markdownText_t* markdown, const markdownParams_t* params, markdownContinue_t* pos);
 
 
 #endif

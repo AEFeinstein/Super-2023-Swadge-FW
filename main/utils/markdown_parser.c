@@ -43,7 +43,7 @@ typedef struct
         textAlign_t align;
         textBreak_t breakMode;
         paletteColor_t color;
-        font_t* font;
+        mdText_t font;
     };
 } mdOpt_t;
 
@@ -55,12 +55,8 @@ typedef enum
     PARAGRAPH_BREAK,
     PAGE_BREAK,
     BULLET,
+    HEADER,
 } mdDec_t;
-
-typedef struct
-{
-    wsg_t wsg;
-} mdImg_t;
 
 typedef enum
 {
@@ -74,7 +70,6 @@ typedef enum
 
 typedef struct mdNode
 {
-    // Is parent necessary?
     struct mdNode* parent;
     struct mdNode* child;
     struct mdNode* next;
@@ -85,7 +80,7 @@ typedef struct mdNode
         mdText_t text;
         mdOpt_t option;
         mdDec_t decoration;
-        mdImg_t image;
+        mdText_t image;
         void* custom;
     };
 } mdNode_t;
@@ -104,14 +99,15 @@ typedef struct _markdownContinue_t
 
 typedef struct
 {
+    markdownParams_t params;
+
     int16_t x, y;
-    textStyle_t style;
-    textAlign_t align;
-    textBreak_t breakMode;
-    paletteColor_t color;
     font_t* font;
 
+    // for storing pointers to arbitrary data
+    // in case we need to load a new font or something
     void* data[16];
+    uint8_t next;
 } mdPrintState_t;
 
 static void parseMarkdownInner(const char* text, _markdownText_t* out);
@@ -169,6 +165,15 @@ static mdNode_t* newNode(_markdownText_t* data, mdNode_t* parent, mdNode_t* prev
 static const char* strndebug(const char* start, const char* end) {
     static char buffer[64];
 
+    if (start == NULL || end == NULL || end < start)
+    {
+        sprintf(buffer, "start=0x%08x, end=0x%08x", (int)start, (int)end);
+        return buffer;
+    }
+
+    // if the start is: "hi there\0"
+    // and end is:          "here\0" (so the actual string should be "hi t", strlen=4)
+    // then end - start is going to be 4, which is correct
     size_t len = (end - start);
 
     if (len >= sizeof(buffer)) {
@@ -177,7 +182,7 @@ static const char* strndebug(const char* start, const char* end) {
         buffer[len] = '.';
         buffer[len+1] = '.';
         buffer[len+2] = '.';
-        strncpy(buffer + len + 3, end - len, sizeof(buffer) - len - 3);
+        strncpy(buffer + len + 3, end - (sizeof(buffer) - len - 3 - 1), sizeof(buffer) - len - 3);
     }
     else
     {
@@ -247,7 +252,36 @@ static void _printNode(const mdNode_t* node, int indent, bool detailed)
 
                     case ALIGN:
                     {
-                        PRINT_INDENT("ALign... (0x%08x)\n", (int)node);
+                        PRINT_INDENT("Align:  ");
+
+                        if ((node->option.align & VALIGN_CENTER) == VALIGN_CENTER)
+                        {
+                            printf("Middle ");
+                        }
+                        else if (node->option.align & VALIGN_TOP)
+                        {
+                            printf("Top ");
+                        }
+                        else if (node->option.align & VALIGN_BOTTOM)
+                        {
+                            printf("Right ");
+                        }
+
+
+                        if ((node->option.align & ALIGN_CENTER) == ALIGN_CENTER)
+                        {
+                            printf("Center ");
+                        }
+                        else if (node->option.align & ALIGN_LEFT)
+                        {
+                            printf("Left ");
+                        }
+                        else if (node->option.align & ALIGN_RIGHT)
+                        {
+                            printf("Right ");
+                        }
+
+                        printf("(0x%08x)\n", (int)node);
                         break;
                     }
 
@@ -259,13 +293,13 @@ static void _printNode(const mdNode_t* node, int indent, bool detailed)
 
                     case COLOR:
                     {
-                        PRINT_INDENT("Color: c%d%d%d (0x%08x)\n", node->option.color / 36, node->option.color / 6 % 6, node->option.color % 6, (int)node);
+                        PRINT_INDENT("Color: c%d%d%d (%d) (0x%08x)\n", node->option.color / 36, node->option.color / 6 % 6, node->option.color % 6, node->option.color, (int)node);
                         break;
                     }
 
                     case FONT:
                     {
-                        PRINT_INDENT("Font... (0x%08x)\n", (int)node);
+                        PRINT_INDENT("Font: '%s' (0x%08x)\n", strndebug(node->option.font.start, node->option.font.end), (int)node);
                         break;
                     }
 
@@ -304,6 +338,10 @@ static void _printNode(const mdNode_t* node, int indent, bool detailed)
 
                     case BULLET:
                     PRINT_INDENT("Bullet (0x%08x)\n", (int)node);
+                    break;
+
+                    case HEADER:
+                    PRINT_INDENT("Header (0x%08x)\n", (int)node);
                     break;
 
                     default:
@@ -360,9 +398,18 @@ static void printNodeDetailed(const mdNode_t* node, int indent)
 // after curNode is set up, checks if you can just merge it with lastNode instead
 static bool mergeTextNodes(mdNode_t** curNode, mdNode_t** lastNode)
 {
+    char buf1[64];
+    char buf2[64];
+    char buf3[64];
     if ((*curNode)->type == TEXT && *lastNode != NULL && (*lastNode)->type == TEXT && (*lastNode)->text.end == (*curNode)->text.start)
     {
-        MDLOG("Merging text nodes '%s' and '%s' into '%s'", strndebug((*lastNode)->text.start, (*lastNode)->text.end), strndebug((*curNode)->text.start, (*curNode)->text.end), strndebug((*lastNode)->text.start, (*curNode)->text.end));
+        strncpy(buf1, strndebug((*lastNode)->text.start, (*lastNode)->text.end), sizeof(buf1));
+        strncpy(buf2, strndebug((*curNode)->text.start, (*curNode)->text.end), sizeof(buf2));
+        strncpy(buf3, strndebug((*lastNode)->text.start, (*curNode)->text.end), sizeof(buf3));
+        buf1[63] = '\0';
+        buf2[63] = '\0';
+        buf3[63] = '\0';
+        MDLOG("Merging text nodes '%s' and '%s' into '%s'\n", buf1, buf2, buf3);
         // these nodes are contiguous, so just add onto them
         (*lastNode)->text.end = (*curNode)->text.end;
         return true;
@@ -378,6 +425,8 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
 
     #define NEXT_SIBLING curNode = newNode(out, curNode->parent, lastNode = curNode)
     #define NEXT_CHILD curNode = newNode(out, curNode, lastNode = NULL)
+    #define START_OF_LINE() (lastNode == NULL || (lastNode->type == DECORATION && lastNode->decoration != BULLET && lastNode->decoration != HEADER && lastNode->decoration != WORD_BREAK))
+    #define PARENT_IS_SAME_OPTION(valtype) (curNode->parent != NULL && curNode->parent->type == curNode->type && curNode->parent->option.type == curNode->option.type && curNode->parent->option.valtype == curNode->option.valtype)
 
     // Temporary pointer to the text at the start of the loop so we can backtrack a tiny bit if needed
     const char* textStart;
@@ -423,17 +472,26 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                         break;
                     }
 
+                    case 'f':
+                    {
+                        curNode->type = DECORATION;
+                        curNode->decoration = PAGE_BREAK;
+                        ++text;
+
+                        break;
+                    }
+
                     case 'c':
                     {
                         bool colorOk = true;
                         int colorVal = 0;
                         for (uint8_t i = 0; i < 3; i++)
                         {
-                            text++;
+                            ++text;
                             if (*text >= '0' && *text <= '5')
                             {
                                 colorVal *= 6;
-                                colorVal += (*text - '0');
+                                colorVal += ((*text) - '0');
                             }
                             else
                             {
@@ -446,6 +504,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                             curNode->type = OPTION;
                             curNode->option.type = COLOR;
                             curNode->option.color = (paletteColor_t)colorVal;
+                            ++text;
 
                             // continue with the next node as a child
                             action = ADD_CHILD;
@@ -466,8 +525,12 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
 
                     case 'C':
                     {
-                        if (curNode->parent != NULL && curNode->parent->type == OPTION && curNode->parent->option.type == COLOR)
+                        curNode->type = OPTION;
+                        curNode->option.type = COLOR;
+                        // pass type so we don't actually check the value
+                        if (PARENT_IS_SAME_OPTION(type))
                         {
+                            ++text;
                             // this is correct, there is a color to be reverted
                             // we don't need a new node, but we do need to move the current node from being a child of the color node
                             //    to being a sibling
@@ -482,19 +545,149 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                             curNode->type = TEXT;
                             curNode->text.start = textStart;
                             curNode->text.end = textStart + 1;
-                            text = textStart + 1;
                         }
                         break;
                     }
 
+                    // alignment (LCR TMB)
+                    // alignment (<|> ^-v)
                     case 'l':
-                    break;
+                    {
+                        curNode->type = OPTION;
+                        curNode->option.type = ALIGN;
+                        action = ADD_CHILD;
+
+                        switch (*(++text))
+                        {
+                            case 'L':
+                            case '<':
+                            curNode->option.align = ALIGN_LEFT;
+                            break;
+
+                            case 'C':
+                            case '|':
+                            curNode->option.align = ALIGN_CENTER;
+                            break;
+
+                            case 'R':
+                            case '>':
+                            curNode->option.align = ALIGN_RIGHT;
+
+                            case 'T':
+                            case '^':
+                            curNode->option.align = VALIGN_TOP;
+                            break;
+
+                            case 'M':
+                            case '-':
+                            curNode->option.align = VALIGN_CENTER;
+                            break;
+
+                            case 'B':
+                            case 'v':
+                            curNode->option.align = VALIGN_BOTTOM;
+                            break;
+
+                            default:
+                            {
+                                curNode->type = TEXT;
+                                curNode->text.start = textStart;
+                                curNode->text.end = text + 1;
+                                action = ADD_SIBLING;
+                                break;
+                            }
+                        }
+
+                        ++text;
+                        break;
+                    }
 
                     case 'L':
-                    break;
+                    {
+                        curNode->type = OPTION;
+                        curNode->option.type = ALIGN;
+                        if (PARENT_IS_SAME_OPTION(type))
+                        {
+                            ++text;
+                            action = GO_TO_PARENT;
+                        }
+                        else
+                        {
+                            curNode->type = TEXT;
+                            curNode->text.start = textStart;
+                            curNode->text.end = ++text;
+                            action = ADD_SIBLING;
+                        }
+                        break;
+                    }
 
                     case 'd':
-                    break;
+                    {
+                        bool valid = false;
+                        if (*(++text) == '(')
+                        {
+                            do {
+                                ++text;
+                            } while (*text != ')' && *text != '\0');
+
+                            if (*text == ')')
+                            {
+                                valid = true;
+                            }
+                        }
+
+                        if (valid)
+                        {
+                            // found matching paren
+                            curNode->type = OPTION;
+                            curNode->option.type = FONT;
+                            // textStart is '\', textStart+1 is 'd', textStart+2 is '(', so textStart+3 is our font name
+                            curNode->option.font.start = textStart + 3;
+
+                            curNode->option.font.end = text;
+
+                            ++text;
+                            action = ADD_CHILD;
+                        }
+                        else
+                        {
+                            curNode->type = TEXT;
+                            curNode->text.start = textStart;
+                            curNode->text.end = ++text;
+                            action = ADD_SIBLING;
+                        }
+                        break;
+                    }
+
+                    case 'D':
+                    {
+                        curNode->type = OPTION;
+                        curNode->option.type = FONT;
+                        if (PARENT_IS_SAME_OPTION(type))
+                        {
+                            // be responsible and clean up this mess
+                            curNode->type = EMPTY;
+                            ++text;
+                            action = GO_TO_PARENT;
+                        }
+                        else
+                        {
+                            curNode->type = TEXT;
+                            curNode->text.start = textStart;
+                            curNode->text.end = ++text;
+                        }
+                        break;
+                    }
+
+                    // not sure what they're trying to escape
+                    // so, just treat it as regular text
+                    default:
+                    {
+                        curNode->type = TEXT;
+                        curNode->text.start = textStart;
+                        curNode->text.end = ++text;
+                        break;
+                    }
                 }
 
                 break;
@@ -502,12 +695,10 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
 
             case '#':
             {
-                if (lastNode == NULL || (lastNode->type == DECORATION && lastNode->decoration != BULLET))
+                if (START_OF_LINE())
                 {
-                    curNode->type = OPTION;
-                    curNode->option.type = FONT;
-                    // TODO use a font!!!
-                    curNode->option.font = NULL;
+                    curNode->type = DECORATION;
+                    curNode->decoration = HEADER;
                     text++;
 
                     action = ADD_CHILD;
@@ -523,35 +714,94 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
 
             case '_':
             case '*':
+            case '~':
             {
                 while (*(++text) == *textStart);
 
                 curNode->type = OPTION;
                 curNode->option.type = STYLE;
 
+                // (check if *text == '\n' and lastNode is LINE_BREAK or PARAGRAPH_BREAK)
+                if (text - textStart > 2 && *textStart == '~')
+                {
+                    text = textStart + 2;
+                }
+
+                // ONE CHAR
+                //  - Underscore, Asterisk: Italics
+                //  - Tilde: Underline (*** Not Standard ***)
+                // TWO CHAR
+                //  - Underscore, Asterisk: Bold
+                //  - Tilde: Strikethrough
+                // THREE CHAR
+                //  - Underscore, Asterisk: Bold & Italics
+
                 if (text - textStart == 1)
                 {
-                    curNode->option.style = STYLE_ITALIC;
+                    if (*textStart == '~')
+                    {
+                        curNode->option.style = STYLE_UNDERLINE;
+                    }
+                    else
+                    {
+                        curNode->option.style = STYLE_ITALIC;
+                    }
                 }
                 else if (text - textStart == 2)
                 {
-                    curNode->option.style = STYLE_BOLD;
+                    if (*textStart == '~')
+                    {
+                        curNode->option.style = STYLE_STRIKE;
+                    }
+                    else
+                    {
+                        curNode->option.style = STYLE_BOLD;
+                    }
                 }
                 else if (text - textStart == 3)
                 {
-                    curNode->option.style = STYLE_ITALIC | STYLE_BOLD;
+                    // if we're here, *textStart cannot be '~'
+                    if (*text == '\n' && START_OF_LINE())
+                    {
+                        curNode->type = DECORATION;
+                        curNode->decoration = HORIZONTAL_RULE;
+                    }
+                    else
+                    {
+                        curNode->option.style = STYLE_ITALIC | STYLE_BOLD;
+                    }
                 }
 
-                if (curNode->parent != NULL
-                    && curNode->parent->type == OPTION
-                    && curNode->parent->option.type == STYLE
-                    && curNode->parent->option.style == curNode->option.style)
+                if (curNode->type == OPTION && PARENT_IS_SAME_OPTION(style))
                 {
                     action = GO_TO_PARENT;
+                }
+                else if (curNode->type == DECORATION)
+                {
+                    action = ADD_SIBLING;
                 }
                 else
                 {
                     action = ADD_CHILD;
+                }
+                break;
+            }
+
+            case '-':
+            {
+                while (*(++text) == *textStart);
+
+                if (text - textStart >= 3 && *text == '\n' && START_OF_LINE())
+                {
+                    curNode->type = DECORATION;
+                    curNode->decoration = HORIZONTAL_RULE;
+                }
+                else
+                {
+                    // TODO: Support underlined headers
+                    curNode->type = TEXT;
+                    curNode->text.start = textStart;
+                    curNode->text.end = text;
                 }
                 break;
             }
@@ -566,16 +816,33 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                     nls++;
                 }
 
-
+                curNode->type = DECORATION;
                 if (nls > 1)
                 {
-                    curNode->type = DECORATION;
                     curNode->decoration = PARAGRAPH_BREAK;
                 }
                 else
                 {
-                    curNode->type = DECORATION;
-                    curNode->decoration = WORD_BREAK;
+                    // check if the last line ended with two spaces
+                    if (lastNode != NULL && lastNode->type == TEXT && (lastNode->text.end - lastNode->text.start) >= 2
+                        && !strncmp(lastNode->text.end - 2, "  ", 2))
+                    {
+                        curNode->decoration = LINE_BREAK;
+                    }
+                    else
+                    {
+                        curNode->decoration = WORD_BREAK;
+                    }
+                }
+
+                // TODO: Check if the last token was actually a newline
+
+                if (curNode->parent != NULL
+                    && curNode->parent->type == DECORATION
+                    && curNode->parent->decoration == HEADER)
+                {
+                    // if last node was a header, break out of the header and
+                    action = GO_TO_PARENT | ADD_SIBLING;
                 }
 
                 break;
@@ -650,17 +917,25 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
             lastNode->next = curNode;
 
             // finally, set our parent to our new parent's parent
-            curNode->parent = curNode->parent->parent;
-            // TODO is this correct
+            if (curNode->parent != NULL)
+            {
+                curNode->parent = curNode->parent->parent;
+            }
 
             MDLOG("New parent:\n");
             printNode(curNode->parent, 2);
 
-            MDLOG("New parent next:\n");
-            printNode(curNode->parent->next, 4);
+            if (curNode->parent != NULL)
+            {
+                MDLOG("New parent next:\n");
+                printNode(curNode->parent->next, 4);
+            }
 
-            MDLOG("Old parent next:\n");
-            printNode(lastNode->next, 2);
+            if (lastNode != NULL)
+            {
+                MDLOG("Old parent next:\n");
+                printNode(lastNode->next, 2);
+            }
         }
 
         if (action & ADD_SIBLING)
@@ -794,7 +1069,8 @@ static void drawMarkdownNode(const mdNode_t* node, const mdNode_t* prev, mdPrint
 
 }
 
-void drawMarkdown(const markdownText_t* markdown, markdownContinue_t* pos)
+
+bool drawMarkdown(const markdownText_t* markdown, const markdownParams_t* params, markdownContinue_t* pos)
 {
 
     const mdNode_t* node = &(((const _markdownText_t*)markdown)->tree);
@@ -806,14 +1082,15 @@ void drawMarkdown(const markdownText_t* markdown, markdownContinue_t* pos)
     {
         .x = 0,
         .y = 0,
-        .style = STYLE_NORMAL,
-        .align = ALIGN_LEFT | VALIGN_TOP,
-        .breakMode = BREAK_WORD,
-        .color = c555,
         .font = NULL,
-
         .data = { NULL },
     };
+
+    memcpy(&state.params, params, sizeof(markdownParams_t));
+    if (state.params.align == 0)
+    {
+        state.params.align = ALIGN_LEFT | VALIGN_TOP;
+    }
 
     MDLOG("Printing Markdown\n-----------\n\n");
     while (node != NULL)
@@ -847,4 +1124,6 @@ void drawMarkdown(const markdownText_t* markdown, markdownContinue_t* pos)
             }
         }
     }
+
+    return false;
 }
