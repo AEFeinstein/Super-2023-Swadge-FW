@@ -28,6 +28,7 @@ idf_component_register(
         "modes/mode_gamepad.c"
         "modes/mode_jukebox.c"
         "modes/mode_main_menu.c"
+        "modes/mode_nvs_manager.c"
         "modes/mode_slide_whistle.c"
         "modes/mode_test.c"
         "modes/mode_tiltrads.c"
