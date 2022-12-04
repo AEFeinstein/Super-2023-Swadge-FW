@@ -29,6 +29,9 @@
 #include "nvs_manager.h"
 #include "settingsManager.h"
 #include "touch_sensor.h"
+#if defined(EMU)
+#include "emu_main.h"
+#endif
 
 #include "mode_nvs_manager.h"
 
@@ -333,7 +336,7 @@ void nvsManagerTopLevelCb(const char* opt)
         if(eraseNvs())
         {
 #ifdef EMU
-            exit(0);
+            emu_quit();
 #else
             switchToSwadgeMode(&modeTest);
 #endif
