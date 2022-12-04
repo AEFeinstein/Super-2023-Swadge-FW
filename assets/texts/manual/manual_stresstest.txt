@@ -1,8 +1,11 @@
-Hello this is some _rich_ text! So **bold** and \\**escapey\\** all.
+Hello this is some _rich_ text! So **bold** and \*\*escapey\*\* and all, or \\**not*\\*.
 I really ~~wasted a lot of time~~ ~worked hard~ on this!
 DOES THIS INTERFERE WITH THE UNDERLINE ~let's underline a lot of things eh i WANNA see what happens when we get to the top of it~
+
 ---
+
 #Important Thing
+
 Something less --- important
 
 *heywhathappensififillupanentirelinedoesthatstillworkbecauseididdeletesomethingthathandlesthatwellseeohwellmaybeanotherfiftyorsocharactersshouldbegoodtomakesurethateverything'sok* how's that

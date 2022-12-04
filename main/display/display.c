@@ -955,12 +955,12 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
         *yOff = textY;
 
         // skip leading spaces if we're at the start of the line
-        for (; textX == *xOff && *textPtr == ' '; textPtr++);
+        for (; textX == xMin && *textPtr == ' '; textPtr++);
 
         // handle newlines
         if (*textPtr == '\n')
         {
-            textX = *xOff;
+            textX = xMin;
             textY += textLineHeight(font, textAttrs);
             textPtr++;
             continue;
@@ -1002,7 +1002,7 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
         buf[nextBreak] = '\0';
 
         // The text is longer than an entire line, so we must shorten it
-        if (*xOff + textWidthAttrs(font, buf, textAttrs) > xMax)
+        if (xMin + textWidthAttrs(font, buf, textAttrs) > xMax)
         {
             // shorten the text until it fits
             while (textX + textWidthAttrs(font, buf, textAttrs) > xMax && nextBreak > 0)
@@ -1019,7 +1019,7 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
         {
             // The line won't fit
             textY += textLineHeight(font, textAttrs);
-            textX = *xOff;
+            textX = xMin;
             continue;
         }
 
@@ -1081,7 +1081,7 @@ const char* drawTextWordWrapExtra(display_t* disp, const font_t* font, paletteCo
 
 uint16_t textLineHeight(const font_t* font, uint8_t textAttrs)
 {
-    return font->h + ((textAttrs & TEXT_BOLD) ? 1 : 0) + ((textAttrs & TEXT_UNDERLINE) ? 1 : 0) + 1;
+    return font->h + ((textAttrs & TEXT_BOLD) ? 1 : 0) + ((textAttrs & TEXT_UNDERLINE) ? 2 : 0) + 1;
 }
 
 uint16_t textHeightAttrs(const font_t* font, const char* text, int16_t startX, int16_t startY, int16_t width, int16_t maxHeight, uint8_t textAttrs)

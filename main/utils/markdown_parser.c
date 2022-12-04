@@ -2,8 +2,10 @@
 
 #include <stddef.h>
 #include <malloc.h>
+#include <esp_heap_caps.h>
 #include <esp_log.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "palette.h"
 #include "display.h"
@@ -13,8 +15,8 @@
 //ESP_LOGD("Markdown", __VA_ARGS__)
 #define MIN(x,y) ((x)<(y)?(x):(y))
 
-//#define MD_MALLOC(size) heap_caps_alloc(size, MALLOC_CAP_SPIRAM)
-#define MD_MALLOC(size) malloc(size)
+#define MD_MALLOC(size) heap_caps_malloc(size, MALLOC_CAP_SPIRAM)
+//#define MD_MALLOC(size) malloc(size)
 
 typedef enum
 {
@@ -76,6 +78,7 @@ typedef struct mdNode
     struct mdNode* parent;
     struct mdNode* child;
     struct mdNode* next;
+    int index;
 
     mdNodeType_t type;
 
@@ -91,7 +94,7 @@ typedef struct mdNode
 typedef struct
 {
     const char* text;
-    mdNode_t tree;
+    mdNode_t* tree;
 } _markdownText_t;
 
 typedef struct _markdownContinue_t
@@ -102,8 +105,11 @@ typedef struct _markdownContinue_t
 
 typedef struct
 {
+    markdownParams_t defaults;
     markdownParams_t params;
 
+    int16_t curLineHeight;
+    int16_t lineY;
     int16_t x, y;
     font_t* font;
 
@@ -134,8 +140,7 @@ static mdNode_t* newNode(_markdownText_t* data, mdNode_t* parent, mdNode_t* prev
 {
     if (parent == NULL && prev == NULL)
     {
-        ESP_LOGE("Markdown", "ERR - Attempt to add unreachable node");
-        return NULL;
+        ESP_LOGE("Markdown", "Allocating root node");
     }
 
     mdNode_t* result = MD_MALLOC(sizeof(mdNode_t));
@@ -403,9 +408,9 @@ static bool mergeTextNodes(mdNode_t** curNode, mdNode_t** lastNode)
     char buf3[64];
     if ((*curNode)->type == TEXT && *lastNode != NULL && (*lastNode)->type == TEXT && (*lastNode)->text.end == (*curNode)->text.start)
     {
-        strncpy(buf1, strndebug((*lastNode)->text.start, (*lastNode)->text.end), sizeof(buf1));
-        strncpy(buf2, strndebug((*curNode)->text.start, (*curNode)->text.end), sizeof(buf2));
-        strncpy(buf3, strndebug((*lastNode)->text.start, (*curNode)->text.end), sizeof(buf3));
+        strncpy(buf1, strndebug((*lastNode)->text.start, (*lastNode)->text.end), sizeof(buf1)-1);
+        strncpy(buf2, strndebug((*curNode)->text.start, (*curNode)->text.end), sizeof(buf2)-1);
+        strncpy(buf3, strndebug((*lastNode)->text.start, (*curNode)->text.end), sizeof(buf3)-1);
         buf1[63] = '\0';
         buf2[63] = '\0';
         buf3[63] = '\0';
@@ -423,11 +428,11 @@ static bool mergeTextNodes(mdNode_t** curNode, mdNode_t** lastNode)
 
 static void parseMarkdownInner(const char* text, _markdownText_t* out)
 {
-    mdNode_t* curNode = &(out->tree);
+    int index = 0;
+    mdNode_t* curNode = out->tree = newNode(out, NULL, NULL);
+    curNode->index = index++;
     mdNode_t* lastNode = NULL;
 
-    #define NEXT_SIBLING curNode = newNode(out, curNode->parent, lastNode = curNode)
-    #define NEXT_CHILD curNode = newNode(out, curNode, lastNode = NULL)
     #define START_OF_LINE() (lastNode == NULL || (lastNode->type == DECORATION && lastNode->decoration != BULLET && lastNode->decoration != HEADER && (lastNode->decoration != WORD_BREAK || lastNode->parent == NULL)))
     #define PARENT_IS_SAME_OPTION(valtype) (curNode->parent != NULL && curNode->parent->type == curNode->type && curNode->parent->option.type == curNode->option.type && curNode->parent->option.valtype == curNode->option.valtype)
 
@@ -817,6 +822,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
             {
                 bool valid = false;
 
+                // TODO replace this with something that's not incredibly slow
                 if (*(++text) == '[')
                 {
                     do {
@@ -997,11 +1003,13 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
             if (!mergeTextNodes(&curNode, &lastNode))
             {
                 curNode = newNode(out, curNode->parent, lastNode = curNode);
+                curNode->index = ++index;
             }
         }
         else if (action & ADD_CHILD)
         {
             curNode = newNode(out, curNode, lastNode = NULL);
+            curNode->index = ++index;
         }
     }
 
@@ -1041,7 +1049,6 @@ markdownText_t* parseMarkdown(const char* text)
     _markdownText_t* result = calloc(1, sizeof(_markdownText_t));
 
     result->text = text;
-    result->tree.parent = NULL;
 
     MDLOG("Allocated stuff\n");
     parseMarkdownInner(text, result);
@@ -1049,59 +1056,59 @@ markdownText_t* parseMarkdown(const char* text)
     return result;
 }
 
+static int stackFrames = 0;
+
+static void freeSiblings(mdNode_t* tree)
+{
+    stackFrames++;
+
+    MDLOG("Stack level: %d\n", stackFrames);
+
+    mdNode_t* tmp;
+    while (tree != NULL)
+    {
+        if (tree->child != NULL)
+        {
+            freeTree(tree->child);
+        }
+
+        tmp = tree->next;
+        free(tree);
+        tree = tmp;
+    }
+    stackFrames--;
+}
+
 static void freeTree(mdNode_t* tree)
 {
-    static int indent = 0;
+    stackFrames++;
+
+    MDLOG("Stack level: %d\n", stackFrames);
+
     // don't use any local variables to hopefully prevent stack overflow
     // otherwise this function would be a pain to implement
 
-    printNode(tree, indent);
+    //printNode(tree, indent);
 
     // first, recursively delete all this node's children
     if (tree->child != NULL)
     {
-        indent++;
-        //PRINT_INDENT("Freeing children...\n");
         freeTree(tree->child);
-        // TODO uncomment this after we fix the actual problem
-        tree->child = NULL;
 
-        indent--;
     }
 
     // then, iteratively delete this node's next node
     // but only if this is the first child of the parent
-    if (tree->parent == NULL || tree->parent->child == tree)
+
+    if (tree->next != NULL)
     {
-        mdNode_t* tmp;
-        mdNode_t* sibling = tree->next;
-        while (sibling != NULL)
-        {
-            tmp = sibling->next;
-
-            //PRINT_INDENT("Freeing siblings...\n");
-            freeTree(sibling);
-
-            sibling = tmp;
-        }
-        // just for logging making sense
-        tree->next = NULL;
+        freeSiblings(tree->next);
     }
 
     // finally, if the node isn't the root node, delete itself
-    if (tree->parent != NULL)
-    {
-        if (tree->parent->child == tree)
-        {
-            tree->parent->child = NULL;
-        }
+    free(tree);
 
-        free(tree);
-    }
-    else
-    {
-        MDLOG("Reached root node. Done!\n");
-    }
+    stackFrames--;
 }
 
 void freeMarkdown(markdownText_t* markdown)
@@ -1112,24 +1119,61 @@ void freeMarkdown(markdownText_t* markdown)
 
     if (ptr != NULL)
     {
-        freeTree(&ptr->tree);
+        freeTree(ptr->tree);
         free(ptr);
     }
 }
 
-static const mdText_t* findPreviousFont(const mdNode_t* node)
+static const mdOpt_t* findPreviousOption(const mdNode_t* node, mdOptType_t type)
 {
+    while (node->parent != NULL)
+    {
+        node = node->parent;
+        if (node->type == OPTION && node->option.type == type)
+        {
+            return &(node->option);
+        }
+    }
+
+    return NULL;
+}
+
+static const textStyle_t findPreviousStyles(const mdNode_t* node, mdPrintState_t* state)
+{
+    textStyle_t style = state->defaults.style;
+    while (node->parent != NULL)
+    {
+        node = node->parent;
+        if (node->type == OPTION && node->option.type == STYLE)
+        {
+            style |= node->option.style;
+        }
+    }
+
+    return style;
+}
+
+static const font_t* findPreviousFont(const mdNode_t* node, mdPrintState_t* state)
+{
+    mdText_t* font = NULL;
     while (node->parent != NULL)
     {
         node = node->parent;
 
         if (node->type == OPTION && node->option.type == FONT)
         {
-            return &(node->option.font);
+            font = &(node->option.font);
+            break;
         }
     }
 
-    return NULL;
+    if (font != NULL)
+    {
+        MDLOG("I don't know what font to return!!!\n");
+        // TODO
+    }
+
+    return state->defaults.bodyFont;
 }
 
 static void leavingNode(const mdNode_t* node, mdPrintState_t* state)
@@ -1143,15 +1187,74 @@ static void leavingNode(const mdNode_t* node, mdPrintState_t* state)
             switch (node->decoration)
             {
                 case HEADER:
-                state->font = findPreviousFont(node);
-                if (state->font == NULL)
                 {
-                    state->font = state->params.bodyFont;
+                    MDLOG("Finding previous font!!!!\n");
+                    state->y += textLineHeight(state->font, state->params.style);
+                    state->x = state->params.xMin;
+                    state->font = findPreviousFont(node, state);
+                    break;
                 }
+
+                default:
                 break;
             }
             break;
         }
+
+        case OPTION:
+        {
+            if (node->option.type == FONT)
+            {
+                state->font = findPreviousFont(node, state);
+            }
+            else if (node->option.type == STYLE)
+            {
+
+                textStyle_t newStyle = findPreviousStyles(node, state);
+                // Check if the current style is italic, and the new style is not
+                if (node->option.style & STYLE_ITALIC && !(newStyle & STYLE_ITALIC))
+                {
+                    // If that's the case, we need to account for the extra width of italics!
+                    state->x += textWidthAttrs(state->font, "", state->params.style);
+
+                    // Check if we need to wrap
+                    if (state->x > state->params.xMax)
+                    {
+                        state->x = state->params.xMin;
+                        state->y += textLineHeight(state->font, state->params.style);
+                    }
+                }
+
+                // Actually set the new style
+                state->params.style = newStyle;
+            }
+            else
+            {
+                mdOpt_t* option = findPreviousOption(node, node->option.type);
+                switch (node->option.type)
+                {
+                    case ALIGN:
+                    state->params.align = option ? option->align : state->defaults.align;
+                    break;
+
+                    case BREAK:
+                    state->params.breakMode = option ? option->breakMode : state->defaults.breakMode;
+                    break;
+
+                    case COLOR:
+                    state->params.color = option ? option->color : state->defaults.color;
+                    break;
+
+                    case STYLE:
+                    case FONT:
+                    // already handled
+                    break;
+                }
+            }
+        }
+
+        default:
+        break;
     }
 }
 
@@ -1160,32 +1263,22 @@ static void navigateToNode(const mdNode_t* tree, size_t index, const mdNode_t** 
     *prevOut = NULL;
     *nodeOut = tree;
 
-    while (index > 0)
+    while ((*nodeOut) != NULL && (*nodeOut)->index != index)
     {
-        --index;
-
-        if ((*nodeOut)->child != NULL)
-        {
-            *prevOut = NULL;
-            *nodeOut = (*nodeOut)->child;
-        }
-        else if ((*nodeOut)->next != NULL)
+        if ((*nodeOut)->next != NULL && (*nodeOut)->next->index <= index)
         {
             *prevOut = *nodeOut;
             *nodeOut = (*nodeOut)->next;
         }
-        else {
-            // move up the parent tree until one of them has a next
-            while ((*nodeOut)->parent != NULL)
-            {
-                *nodeOut = (*nodeOut)->parent;
-                if ((*nodeOut)->next != NULL)
-                {
-                    *prevOut = *nodeOut;
-                    *nodeOut = (*nodeOut)->next;
-                    break;
-                }
-            }
+        else if ((*nodeOut)->child != NULL)
+        {
+            *prevOut = NULL;
+            *nodeOut = (*nodeOut)->child;
+        }
+        else
+        {
+            *nodeOut = NULL;
+            *prevOut = NULL;
         }
     }
 
@@ -1209,6 +1302,18 @@ static int drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_
                 if (node->text.end - start < sizeof(buf))
                 {
                     buf[node->text.end - start] = '\0';
+                }
+
+                int16_t lineHeight = textLineHeight(state->font, state->params.style);
+                if (state->lineY != state->y)
+                {
+                    state->lineY = state->y;
+                    state->curLineHeight = lineHeight;
+                }
+                else if (state->curLineHeight < lineHeight)
+                {
+                    // same line, but we have a higher line, so increase the line height
+                    state->curLineHeight = lineHeight;
                 }
 
                 // TODO: this doesn't really work if we don't pass it the start and end separately
@@ -1235,6 +1340,43 @@ static int drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_
             break;
         }
 
+        case OPTION:
+        {
+            switch (node->option.type)
+            {
+                case STYLE:
+                {
+                    state->params.style |= node->option.style;
+                    break;
+                }
+
+                case ALIGN:
+                {
+                    state->params.align = node->option.align;
+                    break;
+                }
+
+                case BREAK:
+                {
+                    state->params.breakMode = node->option.breakMode;
+                    break;
+                }
+
+                case COLOR:
+                {
+                    state->params.color = node->option.color;
+                    break;
+                }
+
+                case FONT:
+                {
+                    // TODO
+                    break;
+                }
+            }
+            break;
+        }
+
         case DECORATION:
         {
             switch (node->decoration)
@@ -1252,6 +1394,7 @@ static int drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_
                 if (state->x != state->params.xMin)
                 {
                     // TODO: Check if last node was italics and increase spacing accordingly if so
+                    // textWidthAttrs(state->font, "", state->params.style)
                     state->x += state->font->chars[0].w + 1;
                     if (state->x >= state->params.xMax)
                     {
@@ -1263,12 +1406,12 @@ static int drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_
 
                 case LINE_BREAK:
                 state->x = state->params.xMin;
-                state->y += state->font->h + 1;
+                state->y += (state->lineY == state->y && state->curLineHeight > 0) ? state->curLineHeight : textLineHeight(state->font, state->params.style);
                 break;
 
                 case PARAGRAPH_BREAK:
                 state->x = state->params.xMin;
-                state->y += (state->font->h + 1) * 2;
+                state->y += (state->lineY == state->y && state->curLineHeight > 0 ? state->curLineHeight : textLineHeight(state->font, state->params.style)) * 2;
                 break;
 
                 case PAGE_BREAK:
@@ -1280,6 +1423,12 @@ static int drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_
                 break;
 
                 case HEADER:
+                if (state->x != state->params.xMin)
+                {
+                    // Add a line break but only if we're not at the beginning of a line
+                    state->x = state->params.xMin;
+                    state->y += textLineHeight(state->font, state->params.style);
+                }
                 state->font = state->params.headerFont;
                 break;
             }
@@ -1295,7 +1444,7 @@ static int drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_
 
 bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdownParams_t* params, markdownContinue_t** pos, bool savePos)
 {
-    const mdNode_t* node = &(((const _markdownText_t*)markdown)->tree);
+    const mdNode_t* node = ((const _markdownText_t*)markdown)->tree;
     const mdNode_t* prev = NULL;
 
     uint8_t indent = 0;
@@ -1308,6 +1457,8 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
         .font = NULL,
         .data = { NULL },
         .textPos = 0,
+        .curLineHeight = 0,
+        .lineY = INT16_MIN,
     };
 
     memcpy(&state.params, params, sizeof(markdownParams_t));
@@ -1315,6 +1466,8 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
     {
         state.params.align = ALIGN_LEFT | VALIGN_TOP;
     }
+
+    memcpy(&state.defaults, &state.params, sizeof(markdownParams_t));
 
     state.font = params->bodyFont;
 
@@ -1367,6 +1520,7 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
         }
         else if (node->next != NULL)
         {
+            leavingNode(node, &state);
             prev = node;
             node = node->next;
         }
@@ -1379,6 +1533,7 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
                 node = node->parent;
                 if (node != NULL && node->next != NULL)
                 {
+                    leavingNode(node, &state);
                     prev = node;
                     node = node->next;
                     break;
@@ -1387,7 +1542,7 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
         }
     }
 
-    if (pos != NULL && savePos)
+    if (savePos && pos != NULL)
     {
         if (*pos != NULL)
         {

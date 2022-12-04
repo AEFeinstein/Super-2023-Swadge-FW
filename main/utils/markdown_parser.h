@@ -11,9 +11,9 @@ typedef enum
 {
     STYLE_NORMAL = 0,
     STYLE_ITALIC = 1,
-    STYLE_UNDERLINE = 2,
-    STYLE_STRIKE = 4,
-    STYLE_BOLD = 8,
+    STYLE_BOLD = 2,
+    STYLE_UNDERLINE = 4,
+    STYLE_STRIKE = 8,
 } textStyle_t;
 
 typedef enum

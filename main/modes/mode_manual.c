@@ -38,7 +38,7 @@ const chapter_t chapters[] =
 {
     {.file = "manual_intro.txt", .title = "Introduction"},
     {.file = "manual_stresstest.txt", .title = "Test page please ignore"},
-    {.file = "alice.txt", .title = "Alice"},
+    {.file = "halfApress.txt", .title = "Half A-Press"},
 };
 
 const chapter_t* lastChapter = chapters + sizeof(chapters) / sizeof(chapters[0]) - 1;
@@ -104,6 +104,11 @@ node_t* paginateText(markdownText_t* markdown, list_t* container)
     }
     while (drawMarkdown(NULL, markdown, &manual->mdParams, &nextPos, true));
 
+    if (nextPos != NULL)
+    {
+        free(nextPos);
+    }
+
     return firstPage;
 }
 
@@ -118,8 +123,8 @@ void manualLoadText(bool reverse)
 
     if (manual->text != NULL)
     {
-        manual->text = NULL;
         free(manual->text);
+        manual->text = NULL;
     }
 
     manual->text = loadTxt(manual->chapter->file);
@@ -130,7 +135,8 @@ void manualLoadText(bool reverse)
 
     manual->markdown = parseMarkdown(manual->text);
 
-    if (manual->curPage == NULL || ((page_t*)manual->curPage->val)->chapter != manual->chapter)
+    // if the page we're trying to use hasn't been created yet, we need to create it
+    if (manual->curPage == NULL)// || ((page_t*)manual->curPage->val)->chapter != manual->chapter)
     {
         manual->curPage = paginateText(manual->markdown, &manual->pages);
 
@@ -181,6 +187,7 @@ void manualExitMode(void)
     page_t* page;
     while (NULL != (page = pop(&manual->pages)))
     {
+        free(page->mdPos);
         free(page);
     }
     // maybe redundant but oh well
