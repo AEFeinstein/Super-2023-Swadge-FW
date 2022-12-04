@@ -124,7 +124,7 @@ void deinitMeleeMenu(meleeMenu_t* menu)
 int addRowToMeleeMenu(meleeMenu_t* menu, const char* label)
 {
     // Make sure there's space for this row
-    if(menu->numRows < MAX_ROWS)
+    if(menu->numRows < MAX_ROWS - 1)
     {
         // Add the row
         menu->rows[menu->numRows] = label;
