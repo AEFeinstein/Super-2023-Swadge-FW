@@ -162,7 +162,7 @@ void  nvsManagerEnterMode(display_t* disp)
  */
 void  nvsManagerExitMode(void)
 {
-    stopNote();
+    deinitMeleeMenu(mainMenu->menu);
 
     freeFont(&nvsManager->ibm_vga8);
     freeFont(&nvsManager->radiostars);
