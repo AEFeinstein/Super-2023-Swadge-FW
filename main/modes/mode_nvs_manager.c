@@ -26,6 +26,7 @@
 #include "meleeMenu.h"
 #include "mode_main_menu.h"
 #include "mode_test.h"
+#include "nvs.h"
 #include "nvs_manager.h"
 #include "settingsManager.h"
 #include "touch_sensor.h"
@@ -41,7 +42,8 @@
 
 #define CORNER_OFFSET 14
 #define TOP_TEXT_X_MARGIN CORNER_OFFSET / 2
-#define LINE_BREAK_Y 8
+#define LINE_BREAK_Y 5
+#define ENTRIES_BUF_SIZE 14
 
 /// Helper macro to return an integer clamped within a range (MIN to MAX)
 //#define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
@@ -57,15 +59,17 @@
  * Prototypes
  *============================================================================*/
 
-void  nvsManagerEnterMode(display_t* disp);
-void  nvsManagerExitMode(void);
-void  nvsManagerButtonCallback(buttonEvt_t* evt);
-void  nvsManagerTouchCallback(touch_event_t* evt);
-void  nvsManagerMainLoop(int64_t elapsedUs);
+void nvsManagerEnterMode(display_t* disp);
+void nvsManagerExitMode(void);
+void nvsManagerButtonCallback(buttonEvt_t* evt);
+void nvsManagerTouchCallback(touch_event_t* evt);
+void nvsManagerMainLoop(int64_t elapsedUs);
 void nvsManagerSetUpTopMenu(bool resetPos);
 void nvsManagerTopLevelCb(const char* opt);
 void nvsManagerSetUpManageDataMenu(bool resetPos);
 void nvsManagerManageDataCb(const char* opt);
+esp_err_t loadNvsStats(void);
+esp_err_t loadAllNvsKeys(void);
 
 /*==============================================================================
  * Structs
@@ -76,6 +80,8 @@ typedef enum
 {
     // Top menu
     NVS_MENU,
+    // Summary of used, free, and total entries in NVS
+    NVS_SUMMARY,
     // Manage individual key/value pairs in NVS
     NVS_MANAGE_DATA,
 } nvsScreen_t;
@@ -122,6 +128,10 @@ typedef struct
     bool touchHeld;
     int32_t touchPosition;
     int32_t touchIntensity;
+
+    // NVS
+    nvs_stats_t nvsStats;
+    nvs_entry_info_t* nvsKeys;
 } nvsManager_t;
 
 nvsManager_t* nvsManager;
@@ -130,12 +140,27 @@ nvsManager_t* nvsManager;
  * Const Variables
  *============================================================================*/
 
+const char str_summary[] = "Summary";
 const char str_manage_data[] = "Manage Data";
-const char str_back[] = "Back";
-const char str_exit[] = "Exit";
 const char str_factory_reset[] = "Factory Reset";
 const char str_confirm_no[] = "Confirm: No!";
 const char str_confirm_yes[] = "Confirm: Yes";
+const char str_back[] = "Back";
+const char str_exit[] = "Exit";
+
+const paletteColor_t color_summary_text = c555;
+const paletteColor_t color_summary_h_rule = c222;
+const paletteColor_t color_summary_used = c134;
+const paletteColor_t color_summary_free = c333;
+const char str_non_volatile_storage[] = "Non-Volatile Storage";
+const char str_nvs[] = "NVS";
+const char str_type[] = "Type:";
+const char str_local_flash_part[] = "Local Flash Partition";
+const char str_file_system[] = "File system:";
+const char str_used_space[] = "Used space:";
+const char str_free_space[] = "Free space:";
+const char str_capacity[] = "Capacity:";
+const char str_entries_format[] = "%d entries";
 
 /*============================================================================
  * Functions
@@ -155,6 +180,9 @@ void  nvsManagerEnterMode(display_t* disp)
     loadFont("radiostars.font", &nvsManager->radiostars);
     loadFont("mm.font", &nvsManager->mm);
 
+    // TODO: handle errors
+    loadAllNvsKeys();
+
     // Initialize the menu
     nvsManager->menu = initMeleeMenu(modeNvsManager.modeName, &nvsManager->mm, nvsManagerTopLevelCb);
     nvsManagerSetUpTopMenu(true);
@@ -170,6 +198,11 @@ void  nvsManagerExitMode(void)
     freeFont(&nvsManager->ibm_vga8);
     freeFont(&nvsManager->radiostars);
     freeFont(&nvsManager->mm);
+
+    if(nvsManager->nvsKeys != NULL)
+    {
+        free(nvsManager->nvsKeys);
+    }
 
     free(nvsManager);
 }
@@ -251,10 +284,17 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
 
             break;
         }
+        case NVS_SUMMARY:
         case NVS_MANAGE_DATA:
         {
             if(evt->down)
             {
+                if(evt->button == BTN_B)
+                {
+                    nvsManagerSetUpTopMenu(false);
+                    break;
+                }
+
                 meleeMenuButton(nvsManager->menu, evt->button);
             }
             
@@ -272,8 +312,77 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
  */
 void  nvsManagerMainLoop(int64_t elapsedUs)
 {
-    // Draw the menu
-    drawMeleeMenu(nvsManager->disp, nvsManager->menu);
+    switch(nvsManager->screen)
+    {
+        case NVS_MENU:
+        case NVS_MANAGE_DATA:
+        {
+            // Draw the menu
+            drawMeleeMenu(nvsManager->disp, nvsManager->menu);
+            break;
+        }
+        case NVS_SUMMARY:
+        {
+            nvsManager->disp->clearPx();
+
+            led_t leds[NUM_LEDS];
+            memset(leds, 0, NUM_LEDS * sizeof(led_t));
+            setLeds(leds, NUM_LEDS);
+
+            char buf[ENTRIES_BUF_SIZE];
+
+            // Partition name
+            int16_t yOff = CORNER_OFFSET;
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_non_volatile_storage, CORNER_OFFSET, yOff);
+
+            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y + 1;
+            plotLine(nvsManager->disp, CORNER_OFFSET, yOff, nvsManager->disp->w - CORNER_OFFSET, yOff, color_summary_h_rule, 0);
+
+            // Partition type
+            yOff += LINE_BREAK_Y + 1;
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_type, CORNER_OFFSET, yOff);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_local_flash_part, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, str_local_flash_part) - CORNER_OFFSET, yOff);
+
+            // Partition file system
+            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_file_system, CORNER_OFFSET, yOff);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_nvs, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, str_nvs) - CORNER_OFFSET, yOff);
+
+            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y + 1;
+            plotLine(nvsManager->disp, CORNER_OFFSET, yOff, nvsManager->disp->w - CORNER_OFFSET, yOff, color_summary_h_rule, 0);
+
+            // Used space
+            yOff += LINE_BREAK_Y + 1;
+            fillDisplayArea(nvsManager->disp, CORNER_OFFSET, yOff, CORNER_OFFSET + nvsManager->ibm_vga8.h, yOff + nvsManager->ibm_vga8.h, color_summary_used);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_used_space, CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y, yOff);
+            snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->nvsStats.used_entries);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, buf, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf) - CORNER_OFFSET, yOff);
+
+            // Free space
+            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+            fillDisplayArea(nvsManager->disp, CORNER_OFFSET, yOff, CORNER_OFFSET + nvsManager->ibm_vga8.h, yOff + nvsManager->ibm_vga8.h, color_summary_free);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_free_space, CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y, yOff);
+            snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->nvsStats.free_entries);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, buf, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf) - CORNER_OFFSET, yOff);
+
+            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y + 1;
+            plotLine(nvsManager->disp, CORNER_OFFSET, yOff, nvsManager->disp->w - CORNER_OFFSET, yOff, color_summary_h_rule, 0);
+
+            // Capacity
+            yOff += LINE_BREAK_Y + 1;
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_capacity, CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y, yOff);
+            snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->nvsStats.total_entries);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, buf, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf) - CORNER_OFFSET, yOff);
+
+            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+            int16_t xStart = CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+            int16_t xEnd = nvsManager->disp->w - CORNER_OFFSET - nvsManager->ibm_vga8.h - LINE_BREAK_Y;
+            fillDisplayArea(nvsManager->disp, xStart, yOff, xStart + roundf((float_t)nvsManager->nvsStats.used_entries / nvsManager->nvsStats.total_entries * (xEnd - xStart)), yOff + nvsManager->ibm_vga8.h, color_summary_used);
+            fillDisplayArea(nvsManager->disp, xEnd - roundf((float_t)nvsManager->nvsStats.free_entries / nvsManager->nvsStats.total_entries * (xEnd - xStart)), yOff, xEnd, yOff + nvsManager->ibm_vga8.h, color_summary_free);
+
+            break;
+        }
+    }
 }
 
 /**
@@ -285,6 +394,7 @@ void nvsManagerSetUpTopMenu(bool resetPos)
 {
     // Set up the menu
     resetMeleeMenu(nvsManager->menu, modeNvsManager.modeName, nvsManagerTopLevelCb);
+    addRowToMeleeMenu(nvsManager->menu, str_summary);
     addRowToMeleeMenu(nvsManager->menu, str_manage_data);
 
     // Add the row for factory resetting the Swadge
@@ -312,6 +422,7 @@ void nvsManagerSetUpTopMenu(bool resetPos)
         nvsManager->topLevelPos = 0;
     }
     nvsManager->menu->selectedRow = nvsManager->topLevelPos;
+    nvsManager->menu->usePerRowXOffsets = true;
 
     nvsManager->screen = NVS_MENU;
 }
@@ -327,7 +438,11 @@ void nvsManagerTopLevelCb(const char* opt)
     nvsManager->topLevelPos = nvsManager->menu->selectedRow;
 
     // Handle the option
-    if(str_manage_data == opt)
+    if(str_summary == opt)
+    {
+        nvsManager->screen = NVS_SUMMARY;
+    }
+    else if(str_manage_data == opt)
     {
         nvsManagerSetUpManageDataMenu(true);
     }
@@ -378,6 +493,15 @@ void nvsManagerSetUpManageDataMenu(bool resetPos)
 {
     // Set up the menu
     resetMeleeMenu(nvsManager->menu, modeNvsManager.modeName, nvsManagerManageDataCb);
+
+    for(size_t i = 0; i < nvsManager->nvsStats.used_entries; i++)
+    {
+        if(nvsManager->nvsKeys[i].key[0] != '\0')
+        {
+            addRowToMeleeMenu(nvsManager->menu, nvsManager->nvsKeys[i].key);
+        }
+    }
+
     addRowToMeleeMenu(nvsManager->menu, str_back);
 
     // Set the position
@@ -386,6 +510,7 @@ void nvsManagerSetUpManageDataMenu(bool resetPos)
         nvsManager->manageDataPos = 0;
     }
     nvsManager->menu->selectedRow = nvsManager->manageDataPos;
+    nvsManager->menu->usePerRowXOffsets = false;
 
     nvsManager->screen = NVS_MANAGE_DATA;
 }
@@ -409,4 +534,38 @@ void nvsManagerManageDataCb(const char* opt)
     {
         nvsManagerSetUpTopMenu(false);
     }
+}
+
+esp_err_t loadNvsStats(void)
+{
+    return nvs_get_stats(NULL, &nvsManager->nvsStats);
+}
+
+esp_err_t loadAllNvsKeys(void)
+{
+    esp_err_t err = loadNvsStats();
+    if(err != ESP_OK)
+    {
+        return err;
+    }
+
+    if(nvsManager->nvsKeys != NULL)
+    {
+        free(nvsManager->nvsKeys);
+    }
+    nvsManager->nvsKeys = calloc(nvsManager->nvsStats.used_entries, sizeof(nvs_entry_info_t));
+
+    // Example of listing all the key-value pairs of any type under specified partition and namespace
+    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, NULL, NVS_TYPE_ANY);
+    size_t i = 0;
+    while (it != NULL) {
+            nvs_entry_info(it, &nvsManager->nvsKeys[i]);
+            it = nvs_entry_next(it);
+            i++;
+    };
+    // Note: no need to release iterator obtained from nvs_entry_find function when
+    //       nvs_entry_find or nvs_entry_next function return NULL, indicating no other
+    //       element for specified criteria was found.
+
+    return ESP_OK;
 }
