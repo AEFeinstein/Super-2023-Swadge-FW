@@ -7,7 +7,6 @@
 
 #include "esp_log.h"
 #include "esp_timer.h"
-#include "nvs_manager.h"
 
 #include "swadgeMode.h"
 #include "swadge_esp32.h"
@@ -26,6 +25,7 @@
 #include "mode_flight.h"
 #include "mode_gamepad.h"
 #include "mode_jukebox.h"
+#include "mode_nvs_manager.h"
 #include "mode_paint.h"
 #include "mode_picross.h"
 #include "mode_platformer.h"
@@ -93,7 +93,6 @@ typedef struct
     // wsg_t usb;
     int32_t autoLightDanceTimer;
     bool debugMode;
-    bool confirmReset;
     char gitStr[6 + GIT_SHA1_LENGTH];
 } mainMenu_t;
 
@@ -141,8 +140,6 @@ const char mainMenuCredits[] = "Credits";
 #if defined(EMU)
 const char mainMenuExit[] = "Exit";
 #endif
-const char mainMenuFactoryReset[] = "Factory Reset";
-const char mainMenuConfirmFactoryReset[] = "! Confirm Reset !";
 
 static const int16_t cheatCode[11] = {UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, BTN_B, BTN_A, START};
 
@@ -816,18 +813,13 @@ void mainMenuSetUpSecretMenu(bool resetPos)
     resetMeleeMenu(mainMenu->menu, mainMenuSecret, mainMenuSecretCb);
     addRowToMeleeMenu(mainMenu->menu, modeCopyPasta.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeTest.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeNvsManager.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenu->gitStr);
-    addRowToMeleeMenu(mainMenu->menu, mainMenuFactoryReset);
-    if(mainMenu->confirmReset)
-    {
-        addRowToMeleeMenu(mainMenu->menu, mainMenuConfirmFactoryReset);
-    }
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
     if(resetPos)
     {
         mainMenu->secretPos = 0;
-        mainMenu->confirmReset = false;
     }
     mainMenu->menu->selectedRow = mainMenu->secretPos;
 }
@@ -853,29 +845,10 @@ void mainMenuSecretCb(const char* opt)
         // Start test mode
         switchToSwadgeMode(&modeTest);
     }
-    else if(mainMenuFactoryReset == opt)
+    else if(modeNvsManager.modeName == opt)
     {
-        mainMenu->confirmReset = true;
-        mainMenuSetUpSecretMenu(false);
-    }
-    else if(mainMenuConfirmFactoryReset == opt)
-    {
-        if(eraseNvs())
-        {
-#ifdef EMU
-            exit(0);
-#else
-            switchToSwadgeMode(&modeTest);
-#endif
-        }
-        else
-        {
-#ifdef EMU
-            exit(1);
-#else
-            switchToSwadgeMode(&modeMainMenu);
-#endif
-        }
+        // Start NVS manager
+        switchToSwadgeMode(&modeNvsManager);
     }
     else if(mainMenuBack == opt)
     {
