@@ -9,6 +9,7 @@
 #include <esp_heap_caps.h>
 
 #include "display.h"
+#include "bresenham.h"
 #include "heatshrink_decoder.h"
 
 #include "../../components/hdw-spiffs/spiffs_manager.h"
@@ -18,6 +19,7 @@
 //==============================================================================
 
 #define CLAMP(x,l,u) ((x) < l ? l : ((x) > u ? u : (x)))
+#define SLANT(font) ((font->h + 3) / 4)
 
 //==============================================================================
 // Constant data
@@ -823,35 +825,82 @@ void drawChar(display_t* disp, paletteColor_t color, int h, const font_ch_t* ch,
  * @param text  The text to draw to the display
  * @param xOff  The x offset to draw the text at
  * @param yOff  The y offset to draw the text at
+ * @param textAttrs A bitfield of textAttr_t indicating which options
  * @return The x offset at the end of the drawn string
  */
-int16_t drawTextItalic(display_t* disp, const font_t* font, paletteColor_t color, const char* text, int16_t xOff, int16_t yOff, int8_t slant)
+int16_t drawTextAttrs(display_t* disp, const font_t* font, paletteColor_t color, const char* text, int16_t xOff, int16_t yOff, uint8_t textAttrs)
 {
+    // this is the extra space needed to account for the end of where the text will be drawn!
+    // this is not the extra space we need to add between each character, because that should
+    // not include any extra space for italics
+    uint8_t extraW = textWidthAttrs(font, "", textAttrs);
+    int16_t xStart = xOff;
+
     while(*text >= ' ')
     {
         // Only draw if the char is on the screen
-        if (xOff + font->chars[(*text) - ' '].w >= 0)
+        if (xOff + font->chars[(*text) - ' '].w + extraW >= 0)
         {
-            // Draw char
-            drawCharItalic(disp, color, font->h, &font->chars[(*text) - ' '], xOff, yOff, slant);
+            if (textAttrs & TEXT_BOLD)
+            {
+                for (uint8_t n = 0; n < 4; n++)
+                {
+                    if (textAttrs & TEXT_ITALIC)
+                    {
+                        drawCharItalic(disp, color, font->h, &font->chars[(*text) - ' '], xOff + (n & 1), yOff + (n >> 1), SLANT(font));
+                    }
+                    else
+                    {
+                        drawChar(disp, color, font->h, &font->chars[(*text) - ' '], xOff + (n & 1), yOff + (n >> 1));
+                    }
+                }
+
+                // Account for the extra space
+                xOff++;
+            }
+            else if (textAttrs & TEXT_ITALIC)
+            {
+                // Draw char
+                drawCharItalic(disp, color, font->h, &font->chars[(*text) - ' '], xOff, yOff, SLANT(font));
+            }
+            else
+            {
+                drawChar(disp, color, font->h, &font->chars[(*text) - ' '], xOff, yOff);
+            }
         }
 
         // Move to the next char
         xOff += (font->chars[(*text) - ' '].w + 1);
-        text++;
 
         // If this char is offscreen, finish drawing
         if(xOff >= disp->w)
         {
-            return xOff;
+            break;
         }
+
+        // Increment the text after we break so it's easier to check what the last char drawn was
+        text++;
     }
+
+    // TODO: Do we need to do something to make sure we don't draw the line farther than makes sense?
+    // Like, if we reached the end of the line (so *text != '\0')
+
+    if (textAttrs & TEXT_STRIKE)
+    {
+        plotLine(disp, xStart, yOff + font->h / 2, xOff, yOff + font->h / 2, color, 0);
+    }
+
+    if (textAttrs & TEXT_UNDERLINE)
+    {
+        plotLine(disp, xStart, yOff + font->h + 1, xOff, yOff + font->h + 1, color, 0);
+    }
+
     return xOff;
 }
 
 int16_t drawText(display_t* disp, const font_t* font, paletteColor_t color, const char* text, int16_t xOff, int16_t yOff)
 {
-    return drawTextItalic(disp, font, color, text, xOff, yOff, 2);
+    return drawTextAttrs(disp, font, color, text, xOff, yOff, TEXT_NORMAL);
 }
 
 /**
@@ -880,13 +929,13 @@ uint16_t textWidth(const font_t* font, const char* text)
     return width;
 }
 
-uint16_t textWidthItalic(const font_t* font, const char* text, int8_t slant)
+uint16_t textWidthAttrs(const font_t* font, const char* text, uint8_t textAttrs)
 {
-    return textWidth(font, text) + font->h / abs(slant);
+    return textWidth(font, text) + ((textAttrs & TEXT_ITALIC) ? font->h / abs(SLANT(font)) : 0) + ((textAttrs & TEXT_BOLD) ? 1 : 0);
 }
 
 static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
-                             int16_t *xOff, int16_t *yOff, int16_t xMax, int16_t yMax)
+                             int16_t *xOff, int16_t *yOff, int16_t xMin, int16_t yMin, int16_t xMax, int16_t yMax, uint8_t textAttrs)
 {
     const char* textPtr = text;
     int16_t textX = *xOff, textY = *yOff;
@@ -912,7 +961,7 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
         if (*textPtr == '\n')
         {
             textX = *xOff;
-            textY += font->h + 1;
+            textY += textLineHeight(font, textAttrs);
             textPtr++;
             continue;
         }
@@ -953,10 +1002,10 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
         buf[nextBreak] = '\0';
 
         // The text is longer than an entire line, so we must shorten it
-        if (*xOff + textWidth(font, buf) > xMax)
+        if (*xOff + textWidthAttrs(font, buf, textAttrs) > xMax)
         {
             // shorten the text until it fits
-            while (textX + textWidth(font, buf) > xMax && nextBreak > 0)
+            while (textX + textWidthAttrs(font, buf, textAttrs) > xMax && nextBreak > 0)
             {
                 buf[--nextBreak] = '\0';
             }
@@ -966,10 +1015,10 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
         // Or we shortened it down to nothing. Either way, move to next line.
         // Also, go back to the start of the loop so we don't
         // accidentally overrun the yMax
-        if (textX + textWidth(font, buf) > xMax || nextBreak == 0)
+        if (textX + textWidthAttrs(font, buf, textAttrs) > xMax || nextBreak == 0)
         {
             // The line won't fit
-            textY += font->h + 1;
+            textY += textLineHeight(font, textAttrs);
             textX = *xOff;
             continue;
         }
@@ -978,12 +1027,16 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
         // print the line, and advance the text pointer and offset
         if (disp != NULL && textY + font->h >= 0 && textY <= disp->h)
         {
-            textX = drawText(disp, font, color, buf, textX, textY);
+            textX = drawTextAttrs(disp, font, color, buf, textX, textY, textAttrs);
         }
         else
         {
             // drawText returns the next text position, which is 1px past the last char
             // textWidth returns, well, the text width, so add 1 to account for the last pixel
+
+            // We can't use textWidthAttrs() here! That will include the extra width from
+            // italic text, and put way too much space between words and characters.
+            // Instead, manually add another 1px if the text is bold
             textX += textWidth(font, buf) + 1;
         }
         textPtr += nextBreak;
@@ -1016,13 +1069,30 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
 const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
                              int16_t *xOff, int16_t *yOff, int16_t xMax, int16_t yMax)
 {
-    return drawTextWordWrapInner(disp, font, color, text, xOff, yOff, xMax, yMax);
+    return drawTextWordWrapInner(disp, font, color, text, xOff, yOff, *xOff, *yOff, xMax, yMax, TEXT_NORMAL);
+}
+
+const char* drawTextWordWrapExtra(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
+                                  int16_t *xOff, int16_t *yOff, int16_t xMin, int16_t yMin,int16_t xMax, int16_t yMax,
+                                  uint8_t textAttrs)
+{
+    return drawTextWordWrapInner(disp, font, color, text, xOff, yOff, xMin, yMin, xMax, yMax, textAttrs);
+}
+
+uint16_t textLineHeight(const font_t* font, uint8_t textAttrs)
+{
+    return font->h + ((textAttrs & TEXT_BOLD) ? 1 : 0) + ((textAttrs & TEXT_UNDERLINE) ? 1 : 0) + 1;
+}
+
+uint16_t textHeightAttrs(const font_t* font, const char* text, int16_t startX, int16_t startY, int16_t width, int16_t maxHeight, uint8_t textAttrs)
+{
+    int16_t xEnd = startX;
+    int16_t yEnd = startY;
+    drawTextWordWrapInner(NULL, font, cTransparent, text, &xEnd, &yEnd, 0, 0, width, maxHeight, TEXT_NORMAL);
+    return yEnd + textLineHeight(font, textAttrs);
 }
 
 uint16_t textHeight(const font_t* font, const char* text, int16_t width, int16_t maxHeight)
 {
-    int16_t xEnd = 0;
-    int16_t yEnd = 0;
-    drawTextWordWrapInner(NULL, font, cTransparent, text, &xEnd, &yEnd, width, maxHeight);
-    return yEnd + font->h + 1;
+    return textHeightAttrs(font, text, 0, 0, width, maxHeight, TEXT_NORMAL);
 }
