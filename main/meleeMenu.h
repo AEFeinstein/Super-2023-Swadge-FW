@@ -12,7 +12,8 @@
 // Defines
 //==============================================================================
 
-#define MAX_ROWS 6
+#define MAX_ROWS 256
+#define MAX_ROWS_ON_SCREEN 6
 
 //==============================================================================
 // Typedefs
@@ -27,8 +28,10 @@ typedef struct
     font_t* font;
     meleeMenuCb cbFunc;
     uint8_t numRows;
+    uint8_t firstRowOnScreen;
     uint8_t selectedRow;
     uint8_t allowLEDControl;
+    uint8_t usePerRowXOffsets;
 } meleeMenu_t;
 
 //==============================================================================
