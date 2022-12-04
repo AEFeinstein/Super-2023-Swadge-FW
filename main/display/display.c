@@ -939,8 +939,8 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
 {
     const char* textPtr = text;
     int16_t textX = *xOff, textY = *yOff;
-    int nextSpace, nextDash, nextNl;
-    int nextBreak;
+    const char* breakPtr = NULL;
+    size_t bufStrlen;
     char buf[64];
 
     // don't dereference that null pointer
@@ -949,8 +949,11 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
         return NULL;
     }
 
+    const int16_t lineHeight = textLineHeight(font, textAttrs);
+
     // while there is text left to print, and the text would not exceed the Y-bounds...
-    while (*textPtr && (textY + font->h <= yMax))
+    // Subtract 1 from the line height to account for the space we don't care about
+    while (*textPtr && (textY + lineHeight - 1 <= yMax))
     {
         *yOff = textY;
 
@@ -961,16 +964,10 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
         if (*textPtr == '\n')
         {
             textX = xMin;
-            textY += textLineHeight(font, textAttrs);
+            textY += lineHeight;
             textPtr++;
             continue;
         }
-
-        // if strchr() returns NULL, this will be negative...
-        // otherwise, nextSpace will be the index of the next space of textPtr
-        nextSpace = strchr(textPtr, ' ') - textPtr;
-        nextDash = strchr(textPtr, '-') - textPtr;
-        nextNl = strchr(textPtr, '\n') - textPtr;
 
         // copy as much text as will fit into the buffer
         // leaving room for a null-terminator in case the string is longer
@@ -979,35 +976,42 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
         // ensure there is always a null-terminator even if
         buf[sizeof(buf) - 1] = '\0';
 
-        // worst case, there are no breaks remaining
-        // I think this strlen call is necessary?
-        nextBreak = strlen(buf);
+        breakPtr = strpbrk(textPtr, " -\n");
 
-        if (nextSpace >= 0 && nextSpace < nextBreak)
+        // if strpbrk() returns NULL, we didn't find a char
+        // otherwise, breakPtr will point to the first breakable char in textPtr
+        bufStrlen = strlen(buf);
+        if (breakPtr == NULL)
         {
-            nextBreak = nextSpace + 1;
+            breakPtr = textPtr + bufStrlen;
+        }
+        else if (breakPtr - textPtr > bufStrlen)
+        {
+            breakPtr = textPtr + bufStrlen;
         }
 
-        if (nextDash >= 0 && nextDash < nextBreak)
+        switch (*breakPtr)
         {
-            nextBreak = nextDash + 1;
-        }
+            case ' ':
+            case '-':
+            breakPtr++;
+            break;
 
-        if (nextNl >= 0 && nextNl < nextBreak)
-        {
-            nextBreak = nextNl;
+            case '\n':
+            default:
+            break;
         }
 
         // end the string at the break
-        buf[nextBreak] = '\0';
+        buf[(breakPtr - textPtr)] = '\0';
 
         // The text is longer than an entire line, so we must shorten it
         if (xMin + textWidthAttrs(font, buf, textAttrs) > xMax)
         {
             // shorten the text until it fits
-            while (textX + textWidthAttrs(font, buf, textAttrs) > xMax && nextBreak > 0)
+            while (textX + textWidthAttrs(font, buf, textAttrs) > xMax && breakPtr > textPtr)
             {
-                buf[--nextBreak] = '\0';
+                buf[(--breakPtr - textPtr)] = '\0';
             }
         }
 
@@ -1015,17 +1019,17 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
         // Or we shortened it down to nothing. Either way, move to next line.
         // Also, go back to the start of the loop so we don't
         // accidentally overrun the yMax
-        if (textX + textWidthAttrs(font, buf, textAttrs) > xMax || nextBreak == 0)
+        if (textX + textWidthAttrs(font, buf, textAttrs) > xMax || breakPtr == textPtr)
         {
             // The line won't fit
-            textY += textLineHeight(font, textAttrs);
+            textY += lineHeight;
             textX = xMin;
             continue;
         }
 
         // the line must have enough space for the rest of the buffer
         // print the line, and advance the text pointer and offset
-        if (disp != NULL && textY + font->h >= 0 && textY <= disp->h)
+        if (disp != NULL && textY + lineHeight - 1 >= 0 && textY <= disp->h)
         {
             textX = drawTextAttrs(disp, font, color, buf, textX, textY, textAttrs);
         }
@@ -1039,7 +1043,7 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
             // Instead, manually add another 1px if the text is bold
             textX += textWidth(font, buf) + 1;
         }
-        textPtr += nextBreak;
+        textPtr = breakPtr;
     }
 
     // Return NULL if we've printed everything
