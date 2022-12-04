@@ -2,11 +2,11 @@
 
 #include <stdlib.h>
 #include <esp_log.h>
+#include <string.h>
 
 #include "swadgeMode.h"
 #include "mode_main_menu.h"
 #include "spiffs_txt.h"
-#include "rich_text.h"
 #include "bresenham.h"
 #include "linked_list.h"
 
@@ -30,8 +30,8 @@ typedef struct
 
 typedef struct
 {
-    chapter_t* chapter;
-    size_t offset;
+    const chapter_t* chapter;
+    markdownContinue_t* mdPos;
 } page_t;
 
 const chapter_t chapters[] =
@@ -69,8 +69,9 @@ typedef struct
 
     paletteColor_t bgColor, fgColor;
 
-    richText_t richText;
     markdownText_t* markdown;
+    markdownContinue_t* mdPosition;
+    markdownParams_t mdParams;
 
     chapter_t* chapter;
 
@@ -81,11 +82,43 @@ typedef struct
 
 manual_t* manual;
 
-void manualLoadText(void)
+node_t* paginateText(markdownText_t* markdown, list_t* container)
+{
+    node_t* firstPage = NULL;
+    page_t* newPage = NULL;
+    markdownContinue_t* nextPos = NULL;
+
+    do
+    {
+        newPage = malloc(sizeof(page_t));
+        newPage->chapter = manual->chapter;
+
+        // copyContinue will return a NULL if passed a NULL
+        newPage->mdPos = copyContinue(nextPos);
+        push(&manual->pages, newPage);
+
+        if (firstPage == NULL)
+        {
+            firstPage = manual->pages.last;
+        }
+    }
+    while (drawMarkdown(NULL, markdown, &manual->mdParams, &nextPos, true));
+
+    return firstPage;
+}
+
+void manualLoadText(bool reverse)
 {
     ESP_LOGD("Manual", "Loading text");
+    if (manual->markdown != NULL)
+    {
+        freeMarkdown(manual->markdown);
+        manual->markdown = NULL;
+    }
+
     if (manual->text != NULL)
     {
+        manual->text = NULL;
         free(manual->text);
     }
 
@@ -95,17 +128,17 @@ void manualLoadText(void)
         manual->text = "# Could not load text :(";
     }
 
+    manual->markdown = parseMarkdown(manual->text);
+
     if (manual->curPage == NULL || ((page_t*)manual->curPage->val)->chapter != manual->chapter)
     {
-        page_t* newPage = malloc(sizeof(page_t));
-        newPage->chapter = manual->chapter;
-        newPage->offset = 0;
+        manual->curPage = paginateText(manual->markdown, &manual->pages);
 
-        push(&manual->pages, newPage);
-        manual->curPage = manual->pages.last;
+        if (reverse)
+        {
+            manual->curPage = manual->pages.last;
+        }
     }
-
-    manual->markdown = parseMarkdown(manual->text);
 }
 
 void manualEnterMode(display_t* disp)
@@ -123,12 +156,19 @@ void manualEnterMode(display_t* disp)
 
     loadWsg("arrow12.wsg", &manual->arrowWsg);
 
-    manual->chapter = chapters;
-    manualLoadText();
+    markdownParams_t params =
+    {
+        .xMin = 13, .yMin = 13,
+        .xMax = manual->disp->w - 13, .yMax = manual->disp->h - MANUAL_BOTTOM_MARGIN,
+        .bodyFont = &manual->bodyFont,
+        .headerFont = &manual->headerFont,
+        .color = manual->fgColor,
+    };
 
-    richTextInit(&manual->richText, manual->disp, &manual->bodyFont, manual->fgColor, ALIGN_LEFT, BREAK_WORD, STYLE_NORMAL);
-    richTextSetBounds(&manual->richText, 13, 13, manual->disp->w - 13, manual->disp->h - MANUAL_BOTTOM_MARGIN);
-    manual->richText.headerFont = &manual->headerFont;
+    memcpy(&manual->mdParams, &params, sizeof(markdownParams_t));
+
+    manual->chapter = chapters;
+    manualLoadText(false);
 }
 
 void manualExitMode(void)
@@ -138,8 +178,6 @@ void manualExitMode(void)
 
     freeWsg(&manual->arrowWsg);
 
-    richTextFree(&manual->richText);
-
     page_t* page;
     while (NULL != (page = pop(&manual->pages)))
     {
@@ -147,6 +185,11 @@ void manualExitMode(void)
     }
     // maybe redundant but oh well
     clear(&manual->pages);
+
+    if (manual->markdown != NULL)
+    {
+        freeMarkdown(manual->markdown);
+    }
 
     if (manual->text != NULL)
     {
@@ -160,41 +203,24 @@ void manualMainLoop(int64_t elapsedUs)
     fillDisplayArea(manual->disp, 0, 0, manual->disp->w, manual->disp->h, manual->bgColor);
 
     page_t* curPage = manual->curPage->val;
-    richTextReset(&manual->richText);
 
-    if (curPage->offset > 0)
-    {
-        richTextSkip(&manual->richText, manual->text, manual->text + curPage->offset);
-    }
-
-    markdownContinue_t markdownPos;
-    markdownParams_t mdParams =
-    {
-        .xMin = 13, .yMin = 13,
-        .xMax = manual->disp->w - 13, .yMax = manual->disp->h - MANUAL_BOTTOM_MARGIN,
-        .bodyFont = &manual->bodyFont,
-        .headerFont = &manual->headerFont,
-        .color = manual->fgColor,
-    };
-
-    //richTextSetBounds(&manual->richText, 13, 13, manual->disp->w - 13, manual->disp->h - MANUAL_BOTTOM_MARGIN);
-    bool hasMore = drawMarkdown(manual->disp, manual->markdown, &mdParams, &markdownPos);
+    bool hasMore = drawMarkdown(manual->disp, manual->markdown, &manual->mdParams, &curPage->mdPos, false);
 
     //const char* remainingText = richTextDraw(&manual->richText, manual->text + curPage->offset);
 
     plotLine(manual->disp, 0, manual->disp->h - MANUAL_BOTTOM_MARGIN + 1, manual->disp->w, manual->disp->h - MANUAL_BOTTOM_MARGIN + 1, manual->fgColor, 0);
 
     //  || manual->curPage->next != NULL || curPage->chapter < lastChapter
-    if (hasMore)
+    if (manual->curPage->next != NULL || manual->chapter < lastChapter)
     {
         // Store the page for later if we haven't already done that
-        if (manual->curPage->next == NULL)
+        /*if (manual->curPage->next == NULL)
         {
             page_t* newPage = malloc(sizeof(page_t));
             newPage->chapter = curPage->chapter;
             //newPage->offset = remainingText - manual->text;
             push(&manual->pages, newPage);
-        }
+        }*/
 
         // Draw a "next page" arrow
         drawWsg(manual->disp, &manual->arrowWsg, manual->disp->w - 40 - manual->arrowWsg.w, manual->disp->h - (MANUAL_BOTTOM_MARGIN - manual->arrowWsg.h) / 2 - manual->arrowWsg.h, false, false, 90);
@@ -213,7 +239,7 @@ void manualNextChapter(void)
     {
         manual->chapter++;
         manual->curPage = manual->curPage->next;
-        manualLoadText();
+        manualLoadText(false);
     }
 }
 
@@ -223,7 +249,7 @@ void manualPrevChapter(void)
     {
         manual->chapter--;
         manual->curPage = manual->curPage->prev;
-        manualLoadText();
+        manualLoadText(true);
     }
 }
 

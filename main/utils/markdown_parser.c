@@ -7,7 +7,6 @@
 
 #include "palette.h"
 #include "display.h"
-#include "rich_text.h"
 #include "bresenham.h"
 
 #define MDLOG(...) printf(__VA_ARGS__)
@@ -97,8 +96,8 @@ typedef struct
 
 typedef struct _markdownContinue_t
 {
-    const char* textPos;
-    mdNode_t* treePos;
+    size_t textPos;
+    size_t treeIndex;
 } _markdownContinue_t;
 
 typedef struct
@@ -107,6 +106,8 @@ typedef struct
 
     int16_t x, y;
     font_t* font;
+
+    size_t textPos;
 
     // for storing pointers to arbitrary data
     // in case we need to load a new font or something
@@ -126,7 +127,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out);
 /// @return
 static mdNode_t* newNode(_markdownText_t* data, mdNode_t* parent, mdNode_t* prev);
 static void freeTree(mdNode_t*);
-static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state);
+static int drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state);
 
 
 static mdNode_t* newNode(_markdownText_t* data, mdNode_t* parent, mdNode_t* prev)
@@ -411,6 +412,9 @@ static bool mergeTextNodes(mdNode_t** curNode, mdNode_t** lastNode)
         MDLOG("Merging text nodes '%s' and '%s' into '%s'\n", buf1, buf2, buf3);
         // these nodes are contiguous, so just add onto them
         (*lastNode)->text.end = (*curNode)->text.end;
+
+        // mark the current node as empty
+        (*curNode)->type = EMPTY;
         return true;
     }
 
@@ -776,6 +780,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
 
                 if (curNode->type == OPTION && PARENT_IS_SAME_OPTION(style))
                 {
+                    curNode->type = EMPTY;
                     action = GO_TO_PARENT;
                 }
                 else if (curNode->type == DECORATION)
@@ -1095,7 +1100,7 @@ static void freeTree(mdNode_t* tree)
     }
     else
     {
-        MDLOG("Reached node. Done!\n");
+        MDLOG("Reached root node. Done!\n");
     }
 }
 
@@ -1150,14 +1155,51 @@ static void leavingNode(const mdNode_t* node, mdPrintState_t* state)
     }
 }
 
-static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state)
+static void navigateToNode(const mdNode_t* tree, size_t index, const mdNode_t** nodeOut, const mdNode_t** prevOut)
+{
+    *prevOut = NULL;
+    *nodeOut = tree;
+
+    while (index > 0)
+    {
+        --index;
+
+        if ((*nodeOut)->child != NULL)
+        {
+            *prevOut = NULL;
+            *nodeOut = (*nodeOut)->child;
+        }
+        else if ((*nodeOut)->next != NULL)
+        {
+            *prevOut = *nodeOut;
+            *nodeOut = (*nodeOut)->next;
+        }
+        else {
+            // move up the parent tree until one of them has a next
+            while ((*nodeOut)->parent != NULL)
+            {
+                *nodeOut = (*nodeOut)->parent;
+                if ((*nodeOut)->next != NULL)
+                {
+                    *prevOut = *nodeOut;
+                    *nodeOut = (*nodeOut)->next;
+                    break;
+                }
+            }
+        }
+    }
+
+    return;
+}
+
+static int drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state)
 {
     char buf[64];
     switch (node->type)
     {
         case TEXT:
         {
-            const char* start = node->text.start;
+            const char* start = node->text.start + state->textPos;
 
             while (start < node->text.end)
             {
@@ -1168,19 +1210,26 @@ static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode
                 {
                     buf[node->text.end - start] = '\0';
                 }
-                start += strlen(buf);
 
                 // TODO: this doesn't really work if we don't pass it the start and end separately
                 // Either add some more parameters (we have to revert the rich text stuff anyway) or... do the rest of it ourselves? gross
-                if (drawTextWordWrap(disp, state->font, state->params.color, buf, &state->x, &state->y, state->params.xMax, state->params.yMax))
+                const char* remain = drawTextWordWrapExtra(disp, state->font, state->params.color, buf, &state->x, &state->y, state->params.xMin, state->params.yMin, state->params.xMax, state->params.yMax, state->params.style);
+
+                if (remain != NULL)
                 {
                     // not everything fit on the screen
                     // reset the position and exit
                     state->x = state->params.xMin;
                     state->y = state->params.yMin;
 
-                    return false;
+                    // return the number of chars we could actually draw
+                    // so, that's the remaining text minus where we started (remain - buf)
+                    // plus whatever text we printed (start - node->text.start)
+                    return (remain - buf) + (start - node->text.start);
                 }
+
+                // increment start after the remain check so we can use the original value there
+                start += strlen(buf);
             }
 
             break;
@@ -1191,7 +1240,12 @@ static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode
             switch (node->decoration)
             {
                 case HORIZONTAL_RULE:
-                plotLine(disp, state->params.xMin, state->y, state->params.xMax, state->y, state->params.color, 0);
+                {
+                    if (disp != NULL)
+                    {
+                        plotLine(disp, state->params.xMin, state->y, state->params.xMax, state->y, state->params.color, 0);
+                    }
+                }
                 break;
 
                 case WORD_BREAK:
@@ -1235,16 +1289,17 @@ static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode
         break;
     }
 
-    return true;
+    return -1;
 }
 
 
-bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdownParams_t* params, markdownContinue_t* pos)
+bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdownParams_t* params, markdownContinue_t** pos, bool savePos)
 {
     const mdNode_t* node = &(((const _markdownText_t*)markdown)->tree);
     const mdNode_t* prev = NULL;
 
     uint8_t indent = 0;
+    size_t index = 0;
 
     mdPrintState_t state =
     {
@@ -1252,6 +1307,7 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
         .y = params->yMin,
         .font = NULL,
         .data = { NULL },
+        .textPos = 0,
     };
 
     memcpy(&state.params, params, sizeof(markdownParams_t));
@@ -1262,20 +1318,46 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
 
     state.font = params->bodyFont;
 
-    if (pos != NULL)
+    if (pos != NULL && *pos != NULL)
     {
-        // TODO: Take the position in the tree and use it to reparse
+        index = ((_markdownContinue_t*)*pos)->treeIndex;
+        state.textPos = ((_markdownContinue_t*)*pos)->textPos;
+
+        navigateToNode(node, index, &node, &prev);
     }
 
     MDLOG("Printing Markdown\n-----------\n\n");
     while (node != NULL)
     {
         printNode(node, indent);
-        /*if (!drawMarkdownNode(disp, node, prev, &state))
+
+        int res = drawMarkdownNode(disp, node, prev, &state);
+        if (res >= 0)
         {
+            if (savePos && pos != NULL)
+            {
+                if (*pos == NULL)
+                {
+                    *pos = malloc(sizeof(_markdownContinue_t));
+                }
+
+                ((_markdownContinue_t*)*pos)->treeIndex = index;
+
+                if (node->type == TEXT)
+                {
+                    ((_markdownContinue_t*)*pos)->textPos = res;
+                }
+                else
+                {
+                    ((_markdownContinue_t*)*pos)->textPos = 0;
+                }
+            }
             // We drew as much as we could draw! Don't update the node!
-            break;
-        }*/
+
+            return true;
+        }
+
+        ++index;
 
         if (node->child != NULL)
         {
@@ -1305,5 +1387,27 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
         }
     }
 
+    if (pos != NULL && savePos)
+    {
+        if (*pos != NULL)
+        {
+            free(*pos);
+            *pos = NULL;
+        }
+    }
+
     return false;
+}
+
+markdownContinue_t* copyContinue(const markdownContinue_t* pos)
+{
+    if (pos == NULL)
+    {
+        return NULL;
+    }
+
+    markdownContinue_t* result = malloc(sizeof(_markdownContinue_t));
+    memcpy(result, pos, sizeof(_markdownContinue_t));
+
+    return result;
 }

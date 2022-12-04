@@ -6,10 +6,8 @@
 
 #include "display.h"
 #include "palette.h"
-// TODO delete this and move decls here
-#include "rich_text.h"
 
-/*typedef enum
+typedef enum
 {
     STYLE_NORMAL = 0,
     STYLE_ITALIC = 1,
@@ -42,7 +40,7 @@ typedef enum
     BREAK_TRUNCATE_WORD,
     /// @brief Text will not be drawn unless it fits completely on a single line
     BREAK_NONE,
-} textBreak_t;*/
+} textBreak_t;
 
 typedef struct _markdownText_t *markdownText_t;
 typedef struct _markdownContinue_t *markdownContinue_t;
@@ -60,7 +58,7 @@ typedef struct
 
 markdownText_t* parseMarkdown(const char* text);
 void freeMarkdown(markdownText_t* markdown);
-bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdownParams_t* params, markdownContinue_t* pos);
-
+bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdownParams_t* params, markdownContinue_t** pos, bool savePos);
+markdownContinue_t* copyContinue(const markdownContinue_t* pos);
 
 #endif
