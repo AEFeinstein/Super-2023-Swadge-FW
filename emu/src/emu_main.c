@@ -99,6 +99,7 @@ swadgeMode * allModes[] =
 // Function prototypes
 //==============================================================================
 
+void HandleDestroy(void)
 void drawBitmapPixel(uint32_t* bitmapDisplay, int w, int h, int x, int y, uint32_t col);
 void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t col);
 int strCommonPrefixLen(const char* a, const char* b);
@@ -169,7 +170,7 @@ void HandleMotion( int x UNUSED, int y UNUSED, int mask UNUSED)
 /**
  * @brief Free memory on exit
  */
-void HandleDestroy()
+void HandleDestroy(void)
 {
     // Stop the main loop
     isRunning = false;
