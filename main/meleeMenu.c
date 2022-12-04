@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "led_util.h"
 #include "swadgeMode.h"
@@ -16,12 +17,12 @@
 //==============================================================================
 
 // Colors for the border when each row is selected
-static const paletteColor_t borderColors[MAX_ROWS] =
+static const paletteColor_t borderColors[MAX_ROWS_ON_SCREEN] =
 {
     c112, c211, c021, c221, c102, c210
 };
 
-static const led_t borderLedColors[MAX_ROWS] =
+static const led_t borderLedColors[MAX_ROWS_ON_SCREEN] =
 {
     {.r = 0x10, .g = 0x10, .b = 0x20},
     {.r = 0x20, .g = 0x10, .b = 0x10},
@@ -31,11 +32,19 @@ static const led_t borderLedColors[MAX_ROWS] =
     {.r = 0x20, .g = 0x10, .b = 0x00}
 };
 
+#define MIN_ROW_OFFSET 20
+#define MAX_ROW_OFFSET 70
+
 // X axis offset for each row
-static const uint8_t rowOffsets[MAX_ROWS] =
+static const uint8_t rowOffsets[MAX_ROWS_ON_SCREEN] =
 {
-    70, 45, 20, 36, 29, 52
+    MAX_ROW_OFFSET, 45, MIN_ROW_OFFSET, 36, 29, 52
 };
+
+// Boundary color is the same for all entries
+static const paletteColor_t boundaryColor = c321;
+// Fill color for unselected menu label shapes
+static const paletteColor_t unselectedFillColor = c000;
 
 //==============================================================================
 // Function Prototypes
@@ -71,6 +80,7 @@ meleeMenu_t* initMeleeMenu(const char* title, font_t* font, meleeMenuCb cbFunc)
     newMenu->cbFunc = cbFunc;
     newMenu->font = font;
     newMenu->allowLEDControl = 1;
+    newMenu->usePerRowXOffsets = 1;
     // Return the menu
     return newMenu;
 }
@@ -87,6 +97,7 @@ void resetMeleeMenu(meleeMenu_t* menu, const char* title, meleeMenuCb cbFunc)
 {
     menu->title = title;
     menu->numRows = 0;
+    menu->firstRowOnScreen = 0;
     menu->selectedRow = 0;
     menu->cbFunc = cbFunc;
     memset(&menu->rows, 0, MAX_ROWS * sizeof(const char*));
@@ -143,6 +154,16 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
             {
                 menu->selectedRow--;
             }
+
+            if(menu->selectedRow < menu->firstRowOnScreen)
+            {
+                menu->firstRowOnScreen--;
+            }
+            else if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
+            {
+                menu->firstRowOnScreen = menu->numRows - MAX_ROWS_ON_SCREEN;
+            }
+
             break;
         }
         case SELECT:
@@ -157,6 +178,16 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
             {
                 menu->selectedRow++;
             }
+
+            if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
+            {
+                menu->firstRowOnScreen++;
+            }
+            else if(menu->selectedRow < menu->firstRowOnScreen)
+            {
+                menu->firstRowOnScreen = 0;
+            }
+
             break;
         }
         case START:
@@ -210,54 +241,113 @@ void drawBackgroundGrid(display_t * d)
 void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
 {
     drawBackgroundGrid(d);
-    
-    // Draw the title and note where it ends
-    int16_t textEnd = drawText(d, menu->font, c222, menu->title, 33, 25);
-    textEnd += 8;
 
     // The width of the border
 #define BORDER_WIDTH 7
     // The gap between display edge and border
 #define BORDER_GAP  24
+    // The X gap between title and border
+#define TITLE_X_GAP BORDER_WIDTH + 1
+    // The Y gap between title and border, and between menu item texts and their borders
+#define TEXT_Y_GAP  2
+
+    // Draw the title and note where it ends
+    int16_t textEnd = drawText(d, menu->font, c222, menu->title, BORDER_GAP + 1 + TITLE_X_GAP, BORDER_GAP + 1);
+    textEnd += TITLE_X_GAP;
+
+    paletteColor_t borderColor = borderColors[menu->selectedRow % MAX_ROWS_ON_SCREEN];
 
     // Draw a border, on the right
     fillDisplayArea(d,
-                    BORDER_GAP,                BORDER_GAP + menu->font->h + 3,
+                    BORDER_GAP,                BORDER_GAP + menu->font->h + TEXT_Y_GAP + 1,
                     BORDER_GAP + BORDER_WIDTH, d->h - BORDER_GAP,
-                    borderColors[menu->selectedRow]);
+                    borderColor);
     // Then the left
     fillDisplayArea(d,
                     d->w - BORDER_GAP - BORDER_WIDTH, BORDER_GAP,
                     d->w - BORDER_GAP,                d->h - BORDER_GAP,
-                    borderColors[menu->selectedRow]);
+                    borderColor);
     // At the bottom
     fillDisplayArea(d,
                     BORDER_GAP,        d->h - BORDER_GAP - BORDER_WIDTH,
                     d->w - BORDER_GAP, d->h - BORDER_GAP,
-                    borderColors[menu->selectedRow]);
+                    borderColor);
     // Right of title
     fillDisplayArea(d,
                     textEnd,                BORDER_GAP,
-                    textEnd + BORDER_WIDTH, BORDER_GAP + menu->font->h + 3,
-                    borderColors[menu->selectedRow]);
+                    textEnd + BORDER_WIDTH, BORDER_GAP + menu->font->h + TEXT_Y_GAP + 1,
+                    borderColor);
     // Below title
     fillDisplayArea(d,
-                    BORDER_GAP,                 BORDER_GAP + menu->font->h + 3,
-                    textEnd + BORDER_WIDTH, BORDER_GAP + menu->font->h + 3 + BORDER_WIDTH,
-                    borderColors[menu->selectedRow]);
+                    BORDER_GAP,             BORDER_GAP + menu->font->h + TEXT_Y_GAP + 1,
+                    textEnd + BORDER_WIDTH, BORDER_GAP + menu->font->h + TEXT_Y_GAP + 1 + BORDER_WIDTH,
+                    borderColor);
     // Top right of the title
     fillDisplayArea(d,
-                    textEnd,       BORDER_GAP,
+                    textEnd,           BORDER_GAP,
                     d->w - BORDER_GAP, BORDER_GAP + BORDER_WIDTH,
-                    borderColors[menu->selectedRow]);
+                    borderColor);
+
+    // Adjust entries displayed on screen to include the selected row
+    if(menu->selectedRow < menu->firstRowOnScreen)
+    {
+        // Equivalent to shifting the view up until the selected row is on-screen
+        menu->firstRowOnScreen = menu->selectedRow;
+    }
+    else if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
+    {
+        // Equivalent to shifting the view down until the selected row is on-screen
+        menu->firstRowOnScreen = menu->selectedRow - MAX_ROWS_ON_SCREEN + 1;
+    }
+
+#define ARROW_WIDTH  15 // Must be odd
+#define ARROW_HEIGHT 9
+    int16_t arrowFlatSideX1 = MAX_ROW_OFFSET;
+    int16_t arrowFlatSideX2 = arrowFlatSideX1 + ARROW_WIDTH - 1;
+    int16_t arrowPointX = (arrowFlatSideX1 + arrowFlatSideX2) / 2;
+
+    int16_t yIdx = BORDER_GAP + 1 + menu->font->h + 2 * TEXT_Y_GAP + 2 * BORDER_WIDTH + 1;
+
+    // Draw up arrow
+    if(menu->firstRowOnScreen > 0)
+    {
+        int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 3;
+        int16_t arrowPointY = arrowFlatSideY - ARROW_HEIGHT + 1; //= round(arrowFlatSideY - (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
+        plotLine(d, arrowFlatSideX1, arrowFlatSideY, arrowFlatSideX2, arrowFlatSideY, boundaryColor, 0);
+        plotLine(d, arrowFlatSideX1, arrowFlatSideY - 1, arrowPointX, arrowPointY, boundaryColor, 0);
+        plotLine(d, arrowFlatSideX2, arrowFlatSideY - 1, arrowPointX, arrowPointY, boundaryColor, 0);
+
+        // Fill the arrow shape
+        oddEvenFill(d,
+                    arrowFlatSideX1, arrowPointY,
+                    arrowFlatSideX2 + 1, arrowFlatSideY,
+                    boundaryColor, unselectedFillColor);
+    }
 
     // Draw the entries
-    int16_t yIdx = 37;
-    for(uint8_t row = 0; row < menu->numRows; row++)
+    for(uint8_t row = menu->firstRowOnScreen; row < menu->numRows && row < (menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN); row++)
     {
         drawMeleeMenuText(d, menu->font, menu->rows[row],
-                          rowOffsets[row], (yIdx += (menu->font->h + 7)),
+                          menu->usePerRowXOffsets ? rowOffsets[row % MAX_ROWS_ON_SCREEN] : MIN_ROW_OFFSET, yIdx,
                           (row == menu->selectedRow));
+
+        yIdx += (menu->font->h + 2 * TEXT_Y_GAP + 3);
+    }
+
+    // Draw down arrow
+    if(menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN)
+    {
+        int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 1;
+        int16_t arrowPointY = arrowFlatSideY + ARROW_HEIGHT - 1; //round(arrowFlatSideY + (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
+        plotLine(d, arrowFlatSideX1, arrowFlatSideY, arrowFlatSideX2, arrowFlatSideY, boundaryColor, 0);
+        plotLine(d, arrowFlatSideX1, arrowFlatSideY + 1, arrowPointX, arrowPointY, boundaryColor, 0);
+        plotLine(d, arrowFlatSideX2, arrowFlatSideY + 1, arrowPointX, arrowPointY, boundaryColor, 0);
+
+        // Fill the arrow shape
+        oddEvenFill(d,
+                    arrowFlatSideX1, arrowFlatSideY + 1,
+                    arrowFlatSideX2 + 1, arrowPointY,
+                    boundaryColor, unselectedFillColor);
     }
 
     if( menu->allowLEDControl )
@@ -265,7 +355,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
         led_t leds[NUM_LEDS] = {0};
         for(uint8_t i = 0; i < NUM_LEDS; i++)
         {
-            leds[i] = borderLedColors[menu->selectedRow];
+            leds[i] = borderLedColors[menu->selectedRow % MAX_ROWS_ON_SCREEN];
         }
         setLeds(leds, NUM_LEDS);
     }
@@ -287,27 +377,25 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
 static void drawMeleeMenuText(display_t* d, font_t* font, const char* text,
                               int16_t xPos, int16_t yPos, bool isSelected)
 {
-    // Boundary color is the same for all entries
-    paletteColor_t boundaryColor = c321;
-
     // Figure out the text width to draw around it
     int16_t tWidth = textWidth(font, text);
 
     // Top line
     plotLine(d,
-             xPos - 3,          yPos - 3,
-             xPos + tWidth + 1, yPos - 3,
+             xPos - TEXT_Y_GAP - 1, yPos - TEXT_Y_GAP - 1,
+             xPos + tWidth + 1,     yPos - TEXT_Y_GAP - 1,
              boundaryColor, 0);
     // Bottom line
     plotLine(d,
-             xPos - 8,          yPos + font->h + 2,
-             xPos + tWidth + 1, yPos + font->h + 2,
+             xPos - 8,          yPos + font->h + TEXT_Y_GAP,
+             xPos + tWidth + 1, yPos + font->h + TEXT_Y_GAP,
              boundaryColor, 0);
-    // Left side doodad
+    // Left side doodad, x -3 to -13, y -3 to 14
     plotLine(d,
-             xPos -  3, yPos -  3,
+             xPos - TEXT_Y_GAP - 1, yPos - TEXT_Y_GAP - 1,
              xPos - 13, yPos + 14,
              boundaryColor, 0);
+    // x -13 to -8, y 15 to 23
     plotLine(d,
              xPos - 13, yPos + 15,
              xPos -  8, yPos + font->h + 2,
@@ -321,7 +409,7 @@ static void drawMeleeMenuText(display_t* d, font_t* font, const char* text,
 
     // Text and fill colors are different if selected
     paletteColor_t textColor = c431;
-    paletteColor_t fillColor = c000;
+    paletteColor_t fillColor = unselectedFillColor;
     if(isSelected)
     {
         textColor = c000;
