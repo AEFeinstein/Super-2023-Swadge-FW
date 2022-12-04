@@ -133,7 +133,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out);
 /// @return
 static mdNode_t* newNode(_markdownText_t* data, mdNode_t* parent, mdNode_t* prev);
 static void freeTree(mdNode_t*);
-static int drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state);
+static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state);
 
 
 static mdNode_t* newNode(_markdownText_t* data, mdNode_t* parent, mdNode_t* prev)
@@ -1285,57 +1285,40 @@ static void navigateToNode(const mdNode_t* tree, size_t index, const mdNode_t** 
     return;
 }
 
-static int drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state)
+static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_t* prev, mdPrintState_t* state)
 {
-    char buf[64];
     switch (node->type)
     {
         case TEXT:
         {
-            const char* start = node->text.start + state->textPos;
-
-            while (start < node->text.end)
+            int16_t lineHeight = textLineHeight(state->font, state->params.style);
+            if (state->lineY != state->y)
             {
-                strncpy(buf, start, sizeof(buf));
-                buf[sizeof(buf) - 1] = '\0';
-
-                if (node->text.end - start < sizeof(buf))
-                {
-                    buf[node->text.end - start] = '\0';
-                }
-
-                int16_t lineHeight = textLineHeight(state->font, state->params.style);
-                if (state->lineY != state->y)
-                {
-                    state->lineY = state->y;
-                    state->curLineHeight = lineHeight;
-                }
-                else if (state->curLineHeight < lineHeight)
-                {
-                    // same line, but we have a higher line, so increase the line height
-                    state->curLineHeight = lineHeight;
-                }
-
-                // TODO: this doesn't really work if we don't pass it the start and end separately
-                // Either add some more parameters (we have to revert the rich text stuff anyway) or... do the rest of it ourselves? gross
-                const char* remain = drawTextWordWrapExtra(disp, state->font, state->params.color, buf, &state->x, &state->y, state->params.xMin, state->params.yMin, state->params.xMax, state->params.yMax, state->params.style);
-
-                if (remain != NULL)
-                {
-                    // not everything fit on the screen
-                    // reset the position and exit
-                    state->x = state->params.xMin;
-                    state->y = state->params.yMin;
-
-                    // return the number of chars we could actually draw
-                    // so, that's the remaining text minus where we started (remain - buf)
-                    // plus whatever text we printed (start - node->text.start)
-                    return (remain - buf) + (start - node->text.start);
-                }
-
-                // increment start after the remain check so we can use the original value there
-                start += strlen(buf);
+                state->lineY = state->y;
+                state->curLineHeight = lineHeight;
             }
+            else if (state->curLineHeight < lineHeight)
+            {
+                // same line, but we have a higher line, so increase the line height
+                state->curLineHeight = lineHeight;
+            }
+
+            const char* remain = drawTextWordWrapExtra(disp, state->font, state->params.color, node->text.start + state->textPos, &state->x, &state->y, state->params.xMin, state->params.yMin, state->params.xMax, state->params.yMax, state->params.style, node->text.end);
+
+            if (remain != NULL)
+            {
+                // not everything fit on the screen
+                // reset the position and exit
+                state->x = state->params.xMin;
+                state->y = state->params.yMin;
+                // also save our position
+                state->textPos = remain - node->text.start;
+
+                // return the number of chars we could actually draw, relative to the actual text start
+                return true;
+            }
+
+            state->textPos = 0;
 
             break;
         }
@@ -1438,7 +1421,7 @@ static int drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode_
         break;
     }
 
-    return -1;
+    return false;
 }
 
 
@@ -1484,8 +1467,8 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
     {
         printNode(node, indent);
 
-        int res = drawMarkdownNode(disp, node, prev, &state);
-        if (res >= 0)
+        // drawMarkdownNode() returns true if it has more to draw
+        if (drawMarkdownNode(disp, node, prev, &state))
         {
             if (savePos && pos != NULL)
             {
@@ -1496,14 +1479,8 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
 
                 ((_markdownContinue_t*)*pos)->treeIndex = index;
 
-                if (node->type == TEXT)
-                {
-                    ((_markdownContinue_t*)*pos)->textPos = res;
-                }
-                else
-                {
-                    ((_markdownContinue_t*)*pos)->textPos = 0;
-                }
+                // drawMarkdownNode() also writes its partial position to `state.textPos`
+                ((_markdownContinue_t*)*pos)->textPos = state.textPos;
             }
             // We drew as much as we could draw! Don't update the node!
 
