@@ -248,11 +248,16 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                     nvsManagerSetUpTopMenu(false);
                 }
             }
+
             break;
         }
         case NVS_MANAGE_DATA:
         {
-            meleeMenuButton(nvsManager->menu, evt->button);
+            if(evt->down)
+            {
+                meleeMenuButton(nvsManager->menu, evt->button);
+            }
+            
             break;
         }
         default:
