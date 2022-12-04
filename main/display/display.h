@@ -134,7 +134,7 @@ const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t
                              int16_t *xOff, int16_t *yOff, int16_t xMax, int16_t yMax);
 const char* drawTextWordWrapExtra(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
                                   int16_t *xOff, int16_t *yOff, int16_t xMin, int16_t yMin,int16_t xMax, int16_t yMax,
-                                  uint8_t textAttrs);
+                                  uint8_t textAttrs, const char* textEnd);
 uint16_t textWidth(const font_t* font, const char* text);
 uint16_t textLineHeight(const font_t* font, uint8_t textAttrs);
 uint16_t textHeight(const font_t* font, const char* text, int16_t width, int16_t maxHeight);

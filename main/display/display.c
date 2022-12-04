@@ -935,7 +935,8 @@ uint16_t textWidthAttrs(const font_t* font, const char* text, uint8_t textAttrs)
 }
 
 static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
-                             int16_t *xOff, int16_t *yOff, int16_t xMin, int16_t yMin, int16_t xMax, int16_t yMax, uint8_t textAttrs)
+                             int16_t *xOff, int16_t *yOff, int16_t xMin, int16_t yMin, int16_t xMax, int16_t yMax,
+                             uint8_t textAttrs, const char* textEnd)
 {
     const char* textPtr = text;
     int16_t textX = *xOff, textY = *yOff;
@@ -951,17 +952,22 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
 
     const int16_t lineHeight = textLineHeight(font, textAttrs);
 
+    if (textEnd == NULL)
+    {
+        textEnd = text + strlen(text);
+    }
+
     // while there is text left to print, and the text would not exceed the Y-bounds...
     // Subtract 1 from the line height to account for the space we don't care about
-    while (*textPtr && (textY + lineHeight - 1 <= yMax))
+    while (textPtr < textEnd && (textY + lineHeight - 1 <= yMax))
     {
         *yOff = textY;
 
         // skip leading spaces if we're at the start of the line
-        for (; textX == xMin && *textPtr == ' '; textPtr++);
+        for (; textX == xMin && *textPtr == ' ' && textPtr < textEnd; textPtr++);
 
         // handle newlines
-        if (*textPtr == '\n')
+        if (textPtr < textEnd && *textPtr == '\n')
         {
             textX = xMin;
             textY += lineHeight;
@@ -981,11 +987,13 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
         // if strpbrk() returns NULL, we didn't find a char
         // otherwise, breakPtr will point to the first breakable char in textPtr
         bufStrlen = strlen(buf);
-        if (breakPtr == NULL)
+
+        if (breakPtr == NULL || breakPtr > textEnd)
         {
-            breakPtr = textPtr + bufStrlen;
+            breakPtr = textEnd;
         }
-        else if (breakPtr - textPtr > bufStrlen)
+
+        if (breakPtr - textPtr > bufStrlen)
         {
             breakPtr = textPtr + bufStrlen;
         }
@@ -1049,7 +1057,7 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
     // Return NULL if we've printed everything
     // Otherwise, return the remaining text
     *xOff = textX;
-    return *textPtr ? textPtr : NULL;
+    return (textPtr == textEnd) ? NULL : textPtr;
 }
 
 
@@ -1073,14 +1081,14 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
 const char* drawTextWordWrap(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
                              int16_t *xOff, int16_t *yOff, int16_t xMax, int16_t yMax)
 {
-    return drawTextWordWrapInner(disp, font, color, text, xOff, yOff, *xOff, *yOff, xMax, yMax, TEXT_NORMAL);
+    return drawTextWordWrapInner(disp, font, color, text, xOff, yOff, *xOff, *yOff, xMax, yMax, TEXT_NORMAL, NULL);
 }
 
 const char* drawTextWordWrapExtra(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
                                   int16_t *xOff, int16_t *yOff, int16_t xMin, int16_t yMin,int16_t xMax, int16_t yMax,
-                                  uint8_t textAttrs)
+                                  uint8_t textAttrs, const char* textEnd)
 {
-    return drawTextWordWrapInner(disp, font, color, text, xOff, yOff, xMin, yMin, xMax, yMax, textAttrs);
+    return drawTextWordWrapInner(disp, font, color, text, xOff, yOff, xMin, yMin, xMax, yMax, textAttrs, textEnd);
 }
 
 uint16_t textLineHeight(const font_t* font, uint8_t textAttrs)
@@ -1092,7 +1100,7 @@ uint16_t textHeightAttrs(const font_t* font, const char* text, int16_t startX, i
 {
     int16_t xEnd = startX;
     int16_t yEnd = startY;
-    drawTextWordWrapInner(NULL, font, cTransparent, text, &xEnd, &yEnd, 0, 0, width, maxHeight, TEXT_NORMAL);
+    drawTextWordWrapInner(NULL, font, cTransparent, text, &xEnd, &yEnd, 0, 0, width, maxHeight, TEXT_NORMAL, NULL);
     return yEnd + textLineHeight(font, textAttrs);
 }
 
