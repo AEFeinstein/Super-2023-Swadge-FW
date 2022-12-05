@@ -407,6 +407,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
 
     uint8_t startRow = menu->firstRowOnScreen;
     uint8_t endRow = menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN;
+    int16_t bottomArrowBump = 0;
 
     if (menu->animating)
     {
@@ -471,6 +472,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
             {
                 endRow--;
                 bottomOffset -= rowGap * 2;
+                bottomArrowBump = rowGap;
             }
 
             if (endRow < menu->numRows)
@@ -514,7 +516,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
 #endif
 #endif
     {
-        int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 1;
+        int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 1 + bottomArrowBump;
         int16_t arrowPointY = arrowFlatSideY + ARROW_HEIGHT - 1; //round(arrowFlatSideY + (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
         plotLine(d, arrowFlatSideX1, arrowFlatSideY, arrowFlatSideX2, arrowFlatSideY, boundaryColor, 0);
         plotLine(d, arrowFlatSideX1, arrowFlatSideY + 1, arrowPointX, arrowPointY, boundaryColor, 0);
