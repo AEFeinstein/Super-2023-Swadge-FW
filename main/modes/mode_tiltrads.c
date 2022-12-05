@@ -2177,14 +2177,14 @@ void ttGameUpdate(void)
                 }*/
             }
         }
+
+        // Drop FX time advances by the normal amount.
+        tiltrads->dropFXTime += tiltrads->deltaTime;
+        // Drop FX time advances by deltaTime * SOFT_DROP_FX_FACTOR(2) when the soft drop button is being held down. (Happens in softDropTetrad)
+
+        // Drop FX time advances a little bit more according to the currentLevel.
+        tiltrads->dropFXTime += (tiltrads->deltaTime * getDropFXTimeFactor(tiltrads->currentLevel));
     }
-
-    // Drop FX time advances by the normal amount.
-    tiltrads->dropFXTime += tiltrads->deltaTime;
-    // Drop FX time advances by deltaTime * SOFT_DROP_FX_FACTOR(2) when the soft drop button is being held down. (Happens in softDropTetrad)
-
-    // Drop FX time advances a little bit more according to the currentLevel.
-    tiltrads->dropFXTime += (tiltrads->deltaTime * getDropFXTimeFactor(tiltrads->currentLevel));
 
     // Check if we have a new high score.
     tiltrads->newHighScore = tiltrads->score > tiltrads->highScores[0];
@@ -2300,8 +2300,8 @@ void ttGameDisplay(void)
     // Draw the BG FX.
     // Goal: noticeable speed-ups when level increases and when soft drop is being held or released.
     plotPerspectiveEffect(tiltrads->disp, GRID_X, 0, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w - 1, 0, tiltrads->disp->h, 3, 3,
-                          5.0,
-                          tiltrads->dropFXTime, c112);
+                        5.0,
+                        tiltrads->dropFXTime, c112);
 
     // Draw the active tetrad.
     plotTetrad(tiltrads->disp, xFromGridCol(GRID_X, tiltrads->activeTetrad.topLeft.c, GRID_UNIT_SIZE),
