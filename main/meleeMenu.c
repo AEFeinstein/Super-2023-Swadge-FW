@@ -16,6 +16,15 @@
 // Constant Data
 //==============================================================================
 
+/* If defined, display the top arrow when a menu with more rows than fit on the screen is scrolled to the top,
+ * and display the bottom arrow when such a menu is scrolled to the bottom.
+ * These are used to indicate that the user can wrap-around to the other end of the menu.
+ */
+#define SHOW_TOP_AND_BOTTOM_ARROWS
+
+// If defined, override other arrow defines, and always display arrows
+//#define ALWAYS_SHOW_ARROWS
+
 // Colors for the border when each row is selected
 static const paletteColor_t borderColors[MAX_ROWS_ON_SCREEN] =
 {
@@ -324,7 +333,13 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     int16_t yIdx = BORDER_GAP + 1 + menu->font->h + 2 * TEXT_Y_GAP + 2 * BORDER_WIDTH + 1;
 
     // Draw up arrow
-    if(menu->firstRowOnScreen > 0)
+#ifndef ALWAYS_SHOW_ARROWS
+    if(menu->firstRowOnScreen > 0
+#ifdef SHOW_TOP_AND_BOTTOM_ARROWS
+       || menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN
+#endif
+      )
+#endif
     {
         int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 3;
         int16_t arrowPointY = arrowFlatSideY - ARROW_HEIGHT + 1; //= round(arrowFlatSideY - (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
@@ -350,7 +365,13 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     }
 
     // Draw down arrow
-    if(menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN)
+#ifndef ALWAYS_SHOW_ARROWS
+    if(menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN
+#ifdef SHOW_TOP_AND_BOTTOM_ARROWS
+       || menu->firstRowOnScreen > 0
+#endif
+      )
+#endif
     {
         int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 1;
         int16_t arrowPointY = arrowFlatSideY + ARROW_HEIGHT - 1; //round(arrowFlatSideY + (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
