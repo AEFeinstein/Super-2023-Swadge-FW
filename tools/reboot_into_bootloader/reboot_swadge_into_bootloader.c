@@ -46,10 +46,13 @@ int main()
 
 	hid_close( hd );
 #ifdef WIN32
+	fprintf( stdout, "Sleeping for 2000 ms\n" );
 	Sleep( 2000 );
 #else
+	fprintf( stdout, "Sleeping for 200 ms\n" );
 	usleep(200000);
 #endif
+	fprintf( stderr, "Sleep complete\n" );
 	return 0;
 }
 
