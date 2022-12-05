@@ -47,7 +47,7 @@ static const led_t borderLedColors[NUM_ROW_COLORS_AND_OFFSETS] =
 // X axis offset for each row
 static const uint8_t rowOffsets[NUM_ROW_COLORS_AND_OFFSETS] =
 {
-    
+
     MAX_ROW_OFFSET, 45, MIN_ROW_OFFSET, 36, 29, 52,
 };
 
@@ -111,6 +111,7 @@ void resetMeleeMenu(meleeMenu_t* menu, const char* title, meleeMenuCb cbFunc)
     menu->title = title;
     menu->numRows = 0;
     menu->firstRowOnScreen = 0;
+    menu->animateStartRow = 0;
     menu->selectedRow = 0;
     menu->cbFunc = cbFunc;
     memset(menu->rows, 0,  menu->numRowsAllocated * sizeof(const char*));
@@ -251,8 +252,8 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
 
 /**
  * @brief Draw a background grid for the menu
- * 
- * @param d 
+ *
+ * @param d
  */
 void drawBackgroundGrid(display_t * d)
 {
@@ -291,6 +292,8 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
 #define TITLE_X_GAP BORDER_WIDTH + 1
     // The Y gap between title and border, and between menu item texts and their borders
 #define TEXT_Y_GAP  2
+    // The Y offset of the first menu item
+#define FIRST_ITEM_Y (BORDER_GAP + 1 + menu->font->h + 2 * TEXT_Y_GAP + 2 * BORDER_WIDTH + 1)
 
     // Draw the title and note where it ends
     int16_t textEnd = drawText(d, menu->font, c222, menu->title, BORDER_GAP + 1 + TITLE_X_GAP, BORDER_GAP + 1);
@@ -355,12 +358,12 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     int16_t arrowFlatSideX2 = arrowFlatSideX1 + ARROW_WIDTH - 1;
     int16_t arrowPointX = (arrowFlatSideX1 + arrowFlatSideX2) / 2;
 
-    int16_t yIdx = BORDER_GAP + 1 + menu->font->h + 2 * TEXT_Y_GAP + 2 * BORDER_WIDTH + 1;
+    int16_t yIdx = FIRST_ITEM_Y;
     int16_t rowGap = menu->font->h + 2 * TEXT_Y_GAP + 3;
 
 
-#define ANIM_ACCEL 1
-#define ANIM_MAXSPEED 16
+#define ANIM_ACCEL 2
+#define ANIM_MAXSPEED 12
 
     // Start animating
     if (!menu->animating && menu->animateStartRow != menu->firstRowOnScreen)
@@ -394,26 +397,13 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
 
     uint8_t startRow = menu->firstRowOnScreen;
     uint8_t endRow = menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN;
-    // Draw the entries
+
     if (menu->animating)
     {
         // By "going down" I mean increasing Y
         bool goingDown = menu->animateStartRow < menu->firstRowOnScreen;
 
-        if (!goingDown) {
-            if (startRow > 0)
-            {
-                startRow--;
-            }
-            yIdx -= rowGap;
-        }
-        else if (goingDown)
-        {
-            endRow++;
-            yIdx += rowGap;
-        }
-
-        menu->animateSpeed += ANIM_ACCEL * (goingDown ? 1 : -1);
+        menu->animateSpeed += ANIM_ACCEL * (goingDown ? -1 : 1);
 
         if (menu->animateSpeed > ANIM_MAXSPEED)
         {
@@ -425,7 +415,27 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
         }
 
         menu->animateOffset += menu->animateSpeed;
-        if ((goingDown && menu->animateOffset > rowGap) || (!goingDown && menu->animateOffset < -rowGap))
+
+        if ((goingDown && menu->animateOffset <= -rowGap) || (!goingDown && menu->animateOffset >= rowGap))
+        {
+            if (goingDown) {
+                if (menu->animateStartRow < menu->numRows)
+                {
+                    menu->animateStartRow++;
+                    menu->animateOffset += rowGap;
+                }
+            }
+            else
+            {
+                if (menu->animateStartRow > 0)
+                {
+                    menu->animateOffset -= rowGap;
+                    menu->animateStartRow--;
+                }
+            }
+        }
+
+        if (menu->animateStartRow == menu->firstRowOnScreen)
         {
             // We have reached our destination (or gone past it)
             menu->animateStartRow = menu->firstRowOnScreen;
@@ -433,17 +443,54 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
             menu->animateSpeed = 0;
             menu->animating = false;
 
-            startRow = menu->firstRowOnScreen;
-            endRow = menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN;
-            yIdx = BORDER_GAP + 1 + menu->font->h + 2 * TEXT_Y_GAP + 2 * BORDER_WIDTH + 1;
+            //yIdx = FIRST_ITEM_Y;
+        }
+        else
+        {
+            startRow = menu->animateStartRow;
+            endRow = startRow + MAX_ROWS_ON_SCREEN;
+            int16_t topOffset = yIdx;
+            int16_t bottomOffset = yIdx + rowGap * (endRow - startRow);
+
+            if (goingDown)
+            {
+                startRow++;
+                yIdx += rowGap;
+                topOffset += 3 * rowGap;
+            }
+            else
+            {
+                endRow--;
+                bottomOffset -= rowGap * 2;
+            }
+
+            if (endRow < menu->numRows)
+            {
+                // draw an extra menu item at the bottom of the screen (at endRow)
+                drawMeleeMenuText(d, menu->font, menu->rows[endRow],
+                                  menu->usePerRowXOffsets ? rowOffsets[(endRow) % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
+                                  bottomOffset + rowGap + menu->animateOffset * 2,
+                                  //yIdx + (rowGap) * (endRow - startRow),// + (rowGap + menu->animateOffset) * 2,
+                                  (endRow == menu->selectedRow));
+            }
+
+            if (startRow > 0)
+            {
+                // draw an extra menu item at the top of the screen (before startRow)
+                drawMeleeMenuText(d, menu->font, menu->rows[startRow - 1],
+                                  menu->usePerRowXOffsets ? rowOffsets[(startRow - 1) % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
+                                  topOffset + 3 * (menu->animateOffset - rowGap),
+                                  (startRow - 1 == menu->selectedRow));
+            }
         }
     }
 
+    // Draw the entries
     for(uint8_t row = startRow; row < menu->numRows && row < endRow; row++)
     {
         drawMeleeMenuText(d, menu->font, menu->rows[row],
                           menu->usePerRowXOffsets ? rowOffsets[row % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
-                          yIdx - menu->animateOffset,
+                          yIdx + menu->animateOffset,
                           (row == menu->selectedRow));
 
         yIdx += rowGap;
