@@ -16,29 +16,39 @@
 // Constant Data
 //==============================================================================
 
+/* If defined, display the top arrow when a menu with more rows than fit on the screen is scrolled to the top,
+ * and display the bottom arrow when such a menu is scrolled to the bottom.
+ * These are used to indicate that the user can wrap-around to the other end of the menu.
+ */
+#define SHOW_TOP_AND_BOTTOM_ARROWS
+
+// If defined, override other arrow defines, and always display arrows
+//#define ALWAYS_SHOW_ARROWS
+
 // Colors for the border when each row is selected
-static const paletteColor_t borderColors[MAX_ROWS_ON_SCREEN] =
+static const paletteColor_t borderColors[NUM_ROW_COLORS_AND_OFFSETS] =
 {
-    c112, c211, c021, c221, c102, c210
+    c112, c211, c021, c221, c102, c210,
 };
 
-static const led_t borderLedColors[MAX_ROWS_ON_SCREEN] =
+static const led_t borderLedColors[NUM_ROW_COLORS_AND_OFFSETS] =
 {
     {.r = 0x10, .g = 0x10, .b = 0x20},
     {.r = 0x20, .g = 0x10, .b = 0x10},
     {.r = 0x00, .g = 0x20, .b = 0x10},
-    {.r = 0x20, .g = 0x20, .b = 0x10},
+    {.r = 0x20, .g = 0x20, .b = 0x00},
     {.r = 0x10, .g = 0x00, .b = 0x20},
-    {.r = 0x20, .g = 0x10, .b = 0x00}
+    {.r = 0x20, .g = 0x10, .b = 0x00},
 };
 
 #define MIN_ROW_OFFSET 20
 #define MAX_ROW_OFFSET 70
 
 // X axis offset for each row
-static const uint8_t rowOffsets[MAX_ROWS_ON_SCREEN] =
+static const uint8_t rowOffsets[NUM_ROW_COLORS_AND_OFFSETS] =
 {
-    MAX_ROW_OFFSET, 45, MIN_ROW_OFFSET, 36, 29, 52
+    
+    MAX_ROW_OFFSET, 45, MIN_ROW_OFFSET, 36, 29, 52,
 };
 
 // Boundary color is the same for all entries
@@ -52,6 +62,8 @@ static const paletteColor_t unselectedFillColor = c000;
 
 static void drawMeleeMenuText(display_t* d, font_t* font, const char* text,
                               int16_t xPos, int16_t yPos, bool isSelected);
+
+uint8_t maybeGrowRowsArray(meleeMenu_t* menu, size_t originalCount, size_t additionalCount);
 
 //==============================================================================
 // Functions
@@ -71,16 +83,17 @@ static void drawMeleeMenuText(display_t* d, font_t* font, const char* text,
  */
 meleeMenu_t* initMeleeMenu(const char* title, font_t* font, meleeMenuCb cbFunc)
 {
-    // Allocate a menu
-    meleeMenu_t* newMenu = malloc(sizeof(meleeMenu_t));
-    // Clear the memory
-    memset(newMenu, 0, sizeof(meleeMenu_t));
+    // Allocate a menu and clear the memory
+    meleeMenu_t* newMenu = calloc(1, sizeof(meleeMenu_t));
+    // Allocate a screen's worth of rows and clear the memory
+    newMenu->rows = calloc(MAX_ROWS_ON_SCREEN, sizeof(const char*));
+    newMenu->numRowsAllocated = MAX_ROWS_ON_SCREEN;
     // Save the arguments
     newMenu->title = title;
     newMenu->cbFunc = cbFunc;
     newMenu->font = font;
-    newMenu->allowLEDControl = 1;
-    newMenu->usePerRowXOffsets = 1;
+    newMenu->allowLEDControl = true;
+    newMenu->usePerRowXOffsets = true;
     // Return the menu
     return newMenu;
 }
@@ -100,7 +113,7 @@ void resetMeleeMenu(meleeMenu_t* menu, const char* title, meleeMenuCb cbFunc)
     menu->firstRowOnScreen = 0;
     menu->selectedRow = 0;
     menu->cbFunc = cbFunc;
-    memset(&menu->rows, 0, MAX_ROWS * sizeof(const char*));
+    memset(menu->rows, 0,  menu->numRowsAllocated * sizeof(const char*));
 }
 
 /**
@@ -110,6 +123,7 @@ void resetMeleeMenu(meleeMenu_t* menu, const char* title, meleeMenuCb cbFunc)
  */
 void deinitMeleeMenu(meleeMenu_t* menu)
 {
+    free(menu->rows);
     free(menu);
 }
 
@@ -124,8 +138,19 @@ void deinitMeleeMenu(meleeMenu_t* menu)
 int addRowToMeleeMenu(meleeMenu_t* menu, const char* label)
 {
     // Make sure there's space for this row
-    if(menu->numRows < MAX_ROWS - 1)
+    if(menu->numRows < MAX_ROWS)
     {
+        // Try to allocate more rows if we need to
+        if(menu->numRowsAllocated < menu->numRows + 1)
+        {
+            uint8_t rowsAdded = maybeGrowRowsArray(menu, menu->numRowsAllocated, MAX_ROWS_ON_SCREEN);
+            if(rowsAdded == 0)
+            {
+                return -1;
+            }
+            menu->numRowsAllocated += rowsAdded;
+        }
+
         // Add the row
         menu->rows[menu->numRows] = label;
         return menu->numRows++;
@@ -255,7 +280,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     int16_t textEnd = drawText(d, menu->font, c222, menu->title, BORDER_GAP + 1 + TITLE_X_GAP, BORDER_GAP + 1);
     textEnd += TITLE_X_GAP;
 
-    paletteColor_t borderColor = borderColors[menu->selectedRow % MAX_ROWS_ON_SCREEN];
+    paletteColor_t borderColor = borderColors[menu->selectedRow % NUM_ROW_COLORS_AND_OFFSETS];
 
     // Draw a border, on the right
     fillDisplayArea(d,
@@ -309,7 +334,13 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     int16_t yIdx = BORDER_GAP + 1 + menu->font->h + 2 * TEXT_Y_GAP + 2 * BORDER_WIDTH + 1;
 
     // Draw up arrow
+#ifndef ALWAYS_SHOW_ARROWS
+#ifdef SHOW_TOP_AND_BOTTOM_ARROWS
+    if(menu->numRows > MAX_ROWS_ON_SCREEN)
+#else
     if(menu->firstRowOnScreen > 0)
+#endif
+#endif
     {
         int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 3;
         int16_t arrowPointY = arrowFlatSideY - ARROW_HEIGHT + 1; //= round(arrowFlatSideY - (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
@@ -328,14 +359,20 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     for(uint8_t row = menu->firstRowOnScreen; row < menu->numRows && row < (menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN); row++)
     {
         drawMeleeMenuText(d, menu->font, menu->rows[row],
-                          menu->usePerRowXOffsets ? rowOffsets[row % MAX_ROWS_ON_SCREEN] : MIN_ROW_OFFSET, yIdx,
+                          menu->usePerRowXOffsets ? rowOffsets[row % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET, yIdx,
                           (row == menu->selectedRow));
 
         yIdx += (menu->font->h + 2 * TEXT_Y_GAP + 3);
     }
 
     // Draw down arrow
+#ifndef ALWAYS_SHOW_ARROWS
+#ifdef SHOW_TOP_AND_BOTTOM_ARROWS
+    if(menu->numRows > MAX_ROWS_ON_SCREEN)
+#else
     if(menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN)
+#endif
+#endif
     {
         int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 1;
         int16_t arrowPointY = arrowFlatSideY + ARROW_HEIGHT - 1; //round(arrowFlatSideY + (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
@@ -355,7 +392,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
         led_t leds[NUM_LEDS] = {0};
         for(uint8_t i = 0; i < NUM_LEDS; i++)
         {
-            leds[i] = borderLedColors[menu->selectedRow % MAX_ROWS_ON_SCREEN];
+            leds[i] = borderLedColors[menu->selectedRow % NUM_ROW_COLORS_AND_OFFSETS];
         }
         setLeds(leds, NUM_LEDS);
     }
@@ -424,4 +461,24 @@ static void drawMeleeMenuText(display_t* d, font_t* font, const char* text,
 
     // Draw the text
     drawText(d, font, textColor, text, xPos, yPos);
+}
+
+/**
+ * Ensures that the rows array has enough space for `additionalCount` additional elements,
+ * growing the array if necessary. Retuns the number of elements added if there is sufficient
+ * space, or 0 if sufficient space could not be allocated.
+*/
+uint8_t maybeGrowRowsArray(meleeMenu_t* menu, size_t originalCount, size_t additionalCount)
+{
+    size_t newCount = originalCount + additionalCount;
+
+    void* newPtr = realloc(menu->rows, sizeof(const char*) * newCount);
+    if (newPtr == NULL)
+    {
+        return 0;
+    }
+
+    menu->rows = newPtr;
+
+    return additionalCount;
 }
