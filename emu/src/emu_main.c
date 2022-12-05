@@ -99,7 +99,6 @@ swadgeMode * allModes[] =
 // Function prototypes
 //==============================================================================
 
-void HandleDestroy(void)
 void drawBitmapPixel(uint32_t* bitmapDisplay, int w, int h, int x, int y, uint32_t col);
 void plotRoundedCorners(uint32_t* bitmapDisplay, int w, int h, int r, uint32_t col);
 int strCommonPrefixLen(const char* a, const char* b);
