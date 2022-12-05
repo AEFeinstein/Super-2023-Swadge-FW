@@ -53,6 +53,8 @@ static const paletteColor_t unselectedFillColor = c000;
 static void drawMeleeMenuText(display_t* d, font_t* font, const char* text,
                               int16_t xPos, int16_t yPos, bool isSelected);
 
+uint8_t maybeGrowRowsArray(meleeMenu_t* menu, size_t originalCount, size_t additionalCount);
+
 //==============================================================================
 // Functions
 //==============================================================================
@@ -71,10 +73,11 @@ static void drawMeleeMenuText(display_t* d, font_t* font, const char* text,
  */
 meleeMenu_t* initMeleeMenu(const char* title, font_t* font, meleeMenuCb cbFunc)
 {
-    // Allocate a menu
-    meleeMenu_t* newMenu = malloc(sizeof(meleeMenu_t));
-    // Clear the memory
-    memset(newMenu, 0, sizeof(meleeMenu_t));
+    // Allocate a menu and clear the memory
+    meleeMenu_t* newMenu = calloc(1, sizeof(meleeMenu_t));
+    // Allocate a screen's worth of rows and clear the memory
+    newMenu->rows = calloc(MAX_ROWS_ON_SCREEN, sizeof(const char*));
+    newMenu->numRowsAllocated = MAX_ROWS_ON_SCREEN;
     // Save the arguments
     newMenu->title = title;
     newMenu->cbFunc = cbFunc;
@@ -100,7 +103,7 @@ void resetMeleeMenu(meleeMenu_t* menu, const char* title, meleeMenuCb cbFunc)
     menu->firstRowOnScreen = 0;
     menu->selectedRow = 0;
     menu->cbFunc = cbFunc;
-    memset(&menu->rows, 0, MAX_ROWS * sizeof(const char*));
+    memset(menu->rows, 0,  menu->numRowsAllocated * sizeof(const char*));
 }
 
 /**
@@ -110,6 +113,7 @@ void resetMeleeMenu(meleeMenu_t* menu, const char* title, meleeMenuCb cbFunc)
  */
 void deinitMeleeMenu(meleeMenu_t* menu)
 {
+    free(menu->rows);
     free(menu);
 }
 
@@ -126,6 +130,17 @@ int addRowToMeleeMenu(meleeMenu_t* menu, const char* label)
     // Make sure there's space for this row
     if(menu->numRows < MAX_ROWS)
     {
+        // Try to allocate more rows if we need to
+        if(menu->numRowsAllocated < menu->numRows + 1)
+        {
+            uint8_t rowsAdded = maybeGrowRowsArray(menu, menu->numRowsAllocated, MAX_ROWS_ON_SCREEN);
+            if(rowsAdded == 0)
+            {
+                return -1;
+            }
+            menu->numRowsAllocated += rowsAdded;
+        }
+
         // Add the row
         menu->rows[menu->numRows] = label;
         return menu->numRows++;
@@ -424,4 +439,24 @@ static void drawMeleeMenuText(display_t* d, font_t* font, const char* text,
 
     // Draw the text
     drawText(d, font, textColor, text, xPos, yPos);
+}
+
+/**
+ * Ensures that the rows array has enough space for `additionalCount` additional elements,
+ * growing the array if necessary. Retuns the number of elements added if there is sufficient
+ * space, or 0 if sufficient space could not be allocated.
+*/
+uint8_t maybeGrowRowsArray(meleeMenu_t* menu, size_t originalCount, size_t additionalCount)
+{
+    size_t newCount = originalCount + additionalCount;
+
+    void* newPtr = realloc(menu->rows, sizeof(const char*) * newCount);
+    if (newPtr == NULL)
+    {
+        return 0;
+    }
+
+    menu->rows = newPtr;
+
+    return additionalCount;
 }
