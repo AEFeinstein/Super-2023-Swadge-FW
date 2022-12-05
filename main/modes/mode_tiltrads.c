@@ -172,7 +172,7 @@ static const char str_high_score[] = "HIGH SCORE!";
 static const char str_your_score[] = "YOUR SCORE:";
 
 static const char KEY_HIGH_SCORE_FORMAT[] = "tt_high_score_%d";
-static const char KEY_NO_STRESS_TRIS_HIGH_SCORE_FORMAT[] = "ttns%d";
+static const char KEY_NO_STRESS_TRIS_HIGH_SCORE_FORMAT[] = "tt_no_stress_%d";
 
 #if defined(EMU) && defined(DEBUG)
 static const char str_emu[] = "EMU";
