@@ -20,10 +20,10 @@
  * and display the bottom arrow when such a menu is scrolled to the bottom.
  * These are used to indicate that the user can wrap-around to the other end of the menu.
  */
-#define SHOW_TOP_AND_BOTTOM_ARROWS
+//#define SHOW_TOP_AND_BOTTOM_ARROWS
 
 // If defined, override other arrow defines, and always display arrows
-//#define ALWAYS_SHOW_ARROWS
+#define ALWAYS_SHOW_ARROWS
 
 // Colors for the border when each row is selected
 static const paletteColor_t borderColors[NUM_ROW_COLORS_AND_OFFSETS] =
