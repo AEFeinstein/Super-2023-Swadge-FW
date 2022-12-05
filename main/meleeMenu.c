@@ -183,18 +183,10 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
 
             if(menu->selectedRow < menu->firstRowOnScreen)
             {
-                if (!menu->animating)
-                {
-                    menu->animateStartRow = menu->firstRowOnScreen;
-                }
                 menu->firstRowOnScreen--;
             }
             else if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
             {
-                if (!menu->animating)
-                {
-                    menu->animateStartRow = menu->firstRowOnScreen;
-                }
                 menu->firstRowOnScreen = menu->numRows - MAX_ROWS_ON_SCREEN;
             }
 
@@ -215,18 +207,10 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
 
             if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
             {
-                if (!menu->animating)
-                {
-                    menu->animateStartRow = menu->firstRowOnScreen;
-                }
                 menu->firstRowOnScreen++;
             }
             else if(menu->selectedRow < menu->firstRowOnScreen)
             {
-                if (!menu->animating)
-                {
-                    menu->animateStartRow = menu->firstRowOnScreen;
-                }
                 menu->firstRowOnScreen = 0;
             }
 
@@ -335,19 +319,11 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     // Adjust entries displayed on screen to include the selected row
     if(menu->selectedRow < menu->firstRowOnScreen)
     {
-        if (!menu->animating)
-        {
-            menu->animateStartRow = menu->firstRowOnScreen;
-        }
         // Equivalent to shifting the view up until the selected row is on-screen
         menu->firstRowOnScreen = menu->selectedRow;
     }
     else if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
     {
-        if (!menu->animating)
-        {
-            menu->animateStartRow = menu->firstRowOnScreen;
-        }
         // Equivalent to shifting the view down until the selected row is on-screen
         menu->firstRowOnScreen = menu->selectedRow - MAX_ROWS_ON_SCREEN + 1;
     }
@@ -438,7 +414,6 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
         if (menu->animateStartRow == menu->firstRowOnScreen)
         {
             // We have reached our destination (or gone past it)
-            menu->animateStartRow = menu->firstRowOnScreen;
             menu->animateOffset = 0;
             menu->animateSpeed = 0;
             menu->animating = false;
