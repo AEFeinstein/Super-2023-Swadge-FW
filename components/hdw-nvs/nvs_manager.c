@@ -10,12 +10,6 @@
 #include "nvs_manager.h"
 
 //==============================================================================
-// Defines
-//==============================================================================
-
-#define PARTITION_NAME "storage"
-
-//==============================================================================
 // Functions
 //==============================================================================
 
@@ -111,7 +105,7 @@ bool eraseNvs(void)
 bool writeNvs32(const char* key, int32_t val)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(PARTITION_NAME, NVS_READWRITE, &handle);
+    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READWRITE, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -168,7 +162,7 @@ bool writeNvs32(const char* key, int32_t val)
 bool readNvs32(const char* key, int32_t* outVal)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(PARTITION_NAME, NVS_READONLY, &handle);
+    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READONLY, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -223,7 +217,7 @@ bool readNvs32(const char* key, int32_t* outVal)
 bool writeNvsBlob(const char* key, const void* value, size_t length)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(PARTITION_NAME, NVS_READWRITE, &handle);
+    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READWRITE, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -281,7 +275,7 @@ bool writeNvsBlob(const char* key, const void* value, size_t length)
 bool readNvsBlob(const char* key, void* out_value, size_t* length)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(PARTITION_NAME, NVS_READONLY, &handle);
+    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READONLY, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -334,7 +328,7 @@ bool readNvsBlob(const char* key, void* out_value, size_t* length)
 bool eraseNvsKey(const char* key)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(PARTITION_NAME, NVS_READWRITE, &handle);
+    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READWRITE, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -379,4 +373,80 @@ bool eraseNvsKey(const char* key)
             return false;
         }
     }
+}
+
+/**
+ * @brief Read info about used memory in NVS
+ *
+ * @param outStats The NVS stats struct will be written to this memory. It must be allocated before calling readNvsStats()
+ * @return true if the stats were read, false if it was not
+ */
+bool readNvsStats(nvs_stats_t* outStats)
+{
+    esp_err_t readErr = nvs_get_stats(NULL, outStats);
+
+    switch(readErr)
+    {
+        case ESP_OK:
+        {
+            return true;
+        }
+        default:
+        case ESP_ERR_INVALID_ARG:
+        {
+            ESP_LOGE("NVS", "%s err %s", __func__, esp_err_to_name(readErr));
+            return false;
+        }
+    }
+}
+
+/**
+ * @brief Read info about each used entry in NVS
+ *
+ * @param outStats If non-NULL, the NVS stats struct will be written to this memory. It must be allocated before calling readAllNvsEntryInfos()
+ * @param outEntries A pointer to an array of NVS entry info structs will be written to this memory. If there is already an allocated array, it will be freed and reallocated.
+ * @return true if the entry infos were read, false if they were not
+ */
+bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntries)
+{
+    // If the user doesn't want to receive the stats, only use them internally
+    bool freeOutStats = false;
+    if(outStats == NULL)
+    {
+        outStats = calloc(1, sizeof(nvs_stats_t));
+        freeOutStats = true;
+    }
+
+    if(!readNvsStats(outStats))
+    {
+        if(freeOutStats)
+        {
+            free(outStats);
+        }
+        return false;
+    }
+
+    if(*outEntries != NULL)
+    {
+        free(*outEntries);
+    }
+    *outEntries = calloc(outStats->used_entries, sizeof(nvs_entry_info_t));
+
+    // Example of listing all the key-value pairs of any type under specified partition and namespace
+    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, NULL, NVS_TYPE_ANY);
+    size_t i = 0;
+    while (it != NULL) {
+            nvs_entry_info(it, &((*outEntries)[i]));
+            it = nvs_entry_next(it);
+            i++;
+    };
+    // Note: no need to release iterator obtained from nvs_entry_find function when
+    //       nvs_entry_find or nvs_entry_next function return NULL, indicating no other
+    //       element for specified criteria was found.
+
+    if(freeOutStats)
+    {
+        free(outStats);
+    }
+    return true;
 }

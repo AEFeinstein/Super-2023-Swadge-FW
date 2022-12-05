@@ -26,7 +26,6 @@
 #include "meleeMenu.h"
 #include "mode_main_menu.h"
 #include "mode_test.h"
-#include "nvs.h"
 #include "nvs_manager.h"
 #include "settingsManager.h"
 #include "touch_sensor.h"
@@ -41,7 +40,7 @@
  *============================================================================*/
 
 #define CORNER_OFFSET 14
-#define TOP_TEXT_X_MARGIN CORNER_OFFSET / 2
+//#define TOP_TEXT_X_MARGIN CORNER_OFFSET / 2
 #define LINE_BREAK_Y 5
 #define ENTRIES_BUF_SIZE 14
 
@@ -68,8 +67,6 @@ void nvsManagerSetUpTopMenu(bool resetPos);
 void nvsManagerTopLevelCb(const char* opt);
 void nvsManagerSetUpManageDataMenu(bool resetPos);
 void nvsManagerManageDataCb(const char* opt);
-esp_err_t loadNvsStats(void);
-esp_err_t loadAllNvsKeys(void);
 
 /*==============================================================================
  * Structs
@@ -82,7 +79,7 @@ typedef enum
     NVS_MENU,
     // Summary of used, free, and total entries in NVS
     NVS_SUMMARY,
-    // Manage individual key/value pairs in NVS
+    // Manage key/value pairs in NVS
     NVS_MANAGE_DATA,
 } nvsScreen_t;
 
@@ -152,15 +149,16 @@ const paletteColor_t color_summary_text = c555;
 const paletteColor_t color_summary_h_rule = c222;
 const paletteColor_t color_summary_used = c134;
 const paletteColor_t color_summary_free = c333;
-const char str_non_volatile_storage[] = "Non-Volatile Storage";
+const char str_non_volatile_storage[] = "Non-Volatile Storage (nvs:)";
 const char str_nvs[] = "NVS";
 const char str_type[] = "Type:";
 const char str_local_flash_part[] = "Local Flash Partition";
 const char str_file_system[] = "File system:";
 const char str_used_space[] = "Used space:";
+const char str_namespaces[] = "Namespaces:";
 const char str_free_space[] = "Free space:";
 const char str_capacity[] = "Capacity:";
-const char str_entries_format[] = "%d entries";
+const char str_entries_format[] = "%zu entries";
 
 /*============================================================================
  * Functions
@@ -181,7 +179,7 @@ void  nvsManagerEnterMode(display_t* disp)
     loadFont("mm.font", &nvsManager->mm);
 
     // TODO: handle errors
-    loadAllNvsKeys();
+    readAllNvsEntryInfos(&nvsManager->nvsStats, &nvsManager->nvsKeys);
 
     // Initialize the menu
     nvsManager->menu = initMeleeMenu(modeNvsManager.modeName, &nvsManager->mm, nvsManagerTopLevelCb);
@@ -285,6 +283,14 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
             break;
         }
         case NVS_SUMMARY:
+        {
+            if(evt->down && evt->button == BTN_B)
+            {
+                nvsManagerSetUpTopMenu(false);
+            }
+
+            break;
+        }
         case NVS_MANAGE_DATA:
         {
             if(evt->down)
@@ -357,6 +363,14 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_used_space, CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y, yOff);
             snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->nvsStats.used_entries);
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, buf, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf) - CORNER_OFFSET, yOff);
+            
+            // Namespaces
+            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_namespaces, CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y, yOff);
+            snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->nvsStats.namespace_count);
+            int16_t tWidth = textWidth(&nvsManager->ibm_vga8, buf);
+            snprintf(buf, ENTRIES_BUF_SIZE, "%zu", nvsManager->nvsStats.namespace_count);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, buf, nvsManager->disp->w - tWidth - CORNER_OFFSET, yOff);
 
             // Free space
             yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
@@ -534,38 +548,4 @@ void nvsManagerManageDataCb(const char* opt)
     {
         nvsManagerSetUpTopMenu(false);
     }
-}
-
-esp_err_t loadNvsStats(void)
-{
-    return nvs_get_stats(NULL, &nvsManager->nvsStats);
-}
-
-esp_err_t loadAllNvsKeys(void)
-{
-    esp_err_t err = loadNvsStats();
-    if(err != ESP_OK)
-    {
-        return err;
-    }
-
-    if(nvsManager->nvsKeys != NULL)
-    {
-        free(nvsManager->nvsKeys);
-    }
-    nvsManager->nvsKeys = calloc(nvsManager->nvsStats.used_entries, sizeof(nvs_entry_info_t));
-
-    // Example of listing all the key-value pairs of any type under specified partition and namespace
-    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, NULL, NVS_TYPE_ANY);
-    size_t i = 0;
-    while (it != NULL) {
-            nvs_entry_info(it, &nvsManager->nvsKeys[i]);
-            it = nvs_entry_next(it);
-            i++;
-    };
-    // Note: no need to release iterator obtained from nvs_entry_find function when
-    //       nvs_entry_find or nvs_entry_next function return NULL, indicating no other
-    //       element for specified criteria was found.
-
-    return ESP_OK;
 }
