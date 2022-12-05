@@ -32,8 +32,8 @@ typedef struct
     uint8_t numRowsAllocated;
     uint8_t firstRowOnScreen;
     uint8_t selectedRow;
-    uint8_t allowLEDControl;
-    uint8_t usePerRowXOffsets;
+    bool allowLEDControl;
+    bool usePerRowXOffsets;
 } meleeMenu_t;
 
 //==============================================================================

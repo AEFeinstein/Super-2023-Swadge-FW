@@ -276,7 +276,7 @@ static void flightEnterMode(display_t * disp)
     loadFont("mm.font", &flight->meleeMenuFont);
 
     flight->menu = initMeleeMenu(fl_title, &flight->meleeMenuFont, flightMenuCb);
-    flight->menu->allowLEDControl = 0; // we manage the LEDs
+    flight->menu->allowLEDControl = false; // we manage the LEDs
 
     getFlightSaveData(flight);
 

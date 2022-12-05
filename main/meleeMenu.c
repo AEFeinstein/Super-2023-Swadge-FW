@@ -92,8 +92,8 @@ meleeMenu_t* initMeleeMenu(const char* title, font_t* font, meleeMenuCb cbFunc)
     newMenu->title = title;
     newMenu->cbFunc = cbFunc;
     newMenu->font = font;
-    newMenu->allowLEDControl = 1;
-    newMenu->usePerRowXOffsets = 1;
+    newMenu->allowLEDControl = true;
+    newMenu->usePerRowXOffsets = true;
     // Return the menu
     return newMenu;
 }
