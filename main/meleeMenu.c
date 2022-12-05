@@ -111,8 +111,10 @@ void resetMeleeMenu(meleeMenu_t* menu, const char* title, meleeMenuCb cbFunc)
     menu->title = title;
     menu->numRows = 0;
     menu->firstRowOnScreen = 0;
-    menu->animateStartRow = 0;
+    // I'm just as unhappy about this as you are
+    menu->animateStartRow = UINT8_MAX;
     menu->selectedRow = 0;
+    menu->lastSelectedRow = 0;
     menu->cbFunc = cbFunc;
     memset(menu->rows, 0,  menu->numRowsAllocated * sizeof(const char*));
 }
@@ -232,6 +234,9 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
             break;
         }
     }
+
+    menu->lastSelectedRow = menu->selectedRow;
+    menu->lastFirstRow = menu->firstRowOnScreen;
 }
 
 /**
@@ -340,6 +345,35 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
 
 #define ANIM_ACCEL 2
 #define ANIM_MAXSPEED 12
+
+    if (menu->selectedRow != menu->lastSelectedRow)
+    {
+        // SOMEBODY TOUCHED MY STUFF
+
+        menu->firstRowOnScreen = menu->lastFirstRow;
+        if (menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN > menu->numRows)
+        {
+            if (menu->numRows > MAX_ROWS_ON_SCREEN)
+            {
+                // firstRowOnScreen was set in a way that would create an impossible
+                // scroll situation, so reset it to a reasonable value
+                menu->firstRowOnScreen = menu->numRows - MAX_ROWS_ON_SCREEN;
+            }
+            else
+            {
+                // there just aren't enough rows, so this should always be 0 anyway
+                menu->firstRowOnScreen = 0;
+            }
+        }
+
+        menu->animateStartRow = menu->firstRowOnScreen;
+        menu->lastSelectedRow = menu->selectedRow;
+    }
+
+    if (menu->animateStartRow == UINT8_MAX)
+    {
+        menu->animateStartRow = menu->firstRowOnScreen;
+    }
 
     // Start animating
     if (!menu->animating && menu->animateStartRow != menu->firstRowOnScreen)

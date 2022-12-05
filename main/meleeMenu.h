@@ -39,6 +39,10 @@ typedef struct
     int16_t animateSpeed;
     int16_t animateOffset;
     uint8_t animateStartRow;
+
+    // these are dumb and should not exist please put them out of all our misery
+    uint8_t lastFirstRow;
+    uint8_t lastSelectedRow;
 } meleeMenu_t;
 
 //==============================================================================
