@@ -334,11 +334,11 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
 
     // Draw up arrow
 #ifndef ALWAYS_SHOW_ARROWS
-    if(menu->firstRowOnScreen > 0
 #ifdef SHOW_TOP_AND_BOTTOM_ARROWS
-       || menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN
+    if(menu->numRows > MAX_ROWS_ON_SCREEN)
+#else
+    if(menu->firstRowOnScreen > 0)
 #endif
-      )
 #endif
     {
         int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 3;
@@ -366,11 +366,11 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
 
     // Draw down arrow
 #ifndef ALWAYS_SHOW_ARROWS
-    if(menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN
 #ifdef SHOW_TOP_AND_BOTTOM_ARROWS
-       || menu->firstRowOnScreen > 0
+    if(menu->numRows > MAX_ROWS_ON_SCREEN)
+#else
+    if(menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN)
 #endif
-      )
 #endif
     {
         int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 1;
