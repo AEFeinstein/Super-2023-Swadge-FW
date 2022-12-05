@@ -34,6 +34,11 @@ typedef struct
     uint8_t selectedRow;
     bool allowLEDControl;
     bool usePerRowXOffsets;
+
+    bool animating;
+    int16_t animateSpeed;
+    int16_t animateOffset;
+    uint8_t animateStartRow;
 } meleeMenu_t;
 
 //==============================================================================
