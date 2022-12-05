@@ -26,28 +26,29 @@
 //#define ALWAYS_SHOW_ARROWS
 
 // Colors for the border when each row is selected
-static const paletteColor_t borderColors[MAX_ROWS_ON_SCREEN] =
+static const paletteColor_t borderColors[NUM_ROW_COLORS_AND_OFFSETS] =
 {
-    c112, c211, c021, c221, c102, c210
+    c112, c211, c021, c221, c102, c210,
 };
 
-static const led_t borderLedColors[MAX_ROWS_ON_SCREEN] =
+static const led_t borderLedColors[NUM_ROW_COLORS_AND_OFFSETS] =
 {
     {.r = 0x10, .g = 0x10, .b = 0x20},
     {.r = 0x20, .g = 0x10, .b = 0x10},
     {.r = 0x00, .g = 0x20, .b = 0x10},
-    {.r = 0x20, .g = 0x20, .b = 0x10},
+    {.r = 0x20, .g = 0x20, .b = 0x00},
     {.r = 0x10, .g = 0x00, .b = 0x20},
-    {.r = 0x20, .g = 0x10, .b = 0x00}
+    {.r = 0x20, .g = 0x10, .b = 0x00},
 };
 
 #define MIN_ROW_OFFSET 20
 #define MAX_ROW_OFFSET 70
 
 // X axis offset for each row
-static const uint8_t rowOffsets[MAX_ROWS_ON_SCREEN] =
+static const uint8_t rowOffsets[NUM_ROW_COLORS_AND_OFFSETS] =
 {
-    MAX_ROW_OFFSET, 45, MIN_ROW_OFFSET, 36, 29, 52
+    
+    MAX_ROW_OFFSET, 45, MIN_ROW_OFFSET, 36, 29, 52,
 };
 
 // Boundary color is the same for all entries
@@ -279,7 +280,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     int16_t textEnd = drawText(d, menu->font, c222, menu->title, BORDER_GAP + 1 + TITLE_X_GAP, BORDER_GAP + 1);
     textEnd += TITLE_X_GAP;
 
-    paletteColor_t borderColor = borderColors[menu->selectedRow % MAX_ROWS_ON_SCREEN];
+    paletteColor_t borderColor = borderColors[menu->selectedRow % NUM_ROW_COLORS_AND_OFFSETS];
 
     // Draw a border, on the right
     fillDisplayArea(d,
@@ -358,7 +359,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     for(uint8_t row = menu->firstRowOnScreen; row < menu->numRows && row < (menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN); row++)
     {
         drawMeleeMenuText(d, menu->font, menu->rows[row],
-                          menu->usePerRowXOffsets ? rowOffsets[row % MAX_ROWS_ON_SCREEN] : MIN_ROW_OFFSET, yIdx,
+                          menu->usePerRowXOffsets ? rowOffsets[row % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET, yIdx,
                           (row == menu->selectedRow));
 
         yIdx += (menu->font->h + 2 * TEXT_Y_GAP + 3);
@@ -391,7 +392,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
         led_t leds[NUM_LEDS] = {0};
         for(uint8_t i = 0; i < NUM_LEDS; i++)
         {
-            leds[i] = borderLedColors[menu->selectedRow % MAX_ROWS_ON_SCREEN];
+            leds[i] = borderLedColors[menu->selectedRow % NUM_ROW_COLORS_AND_OFFSETS];
         }
         setLeds(leds, NUM_LEDS);
     }

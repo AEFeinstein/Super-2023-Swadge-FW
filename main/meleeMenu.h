@@ -13,7 +13,8 @@
 //==============================================================================
 
 #define MAX_ROWS 255
-#define MAX_ROWS_ON_SCREEN 6
+#define MAX_ROWS_ON_SCREEN 5
+#define NUM_ROW_COLORS_AND_OFFSETS 6
 
 //==============================================================================
 // Typedefs
