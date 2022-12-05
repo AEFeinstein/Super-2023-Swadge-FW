@@ -126,7 +126,7 @@ static const char str_touch_analog_off[] = "Touch: Digital Only";
 static const char str_accel_on[] = "Accel: On";
 static const char str_accel_off[] = "Accel: Off";
 static const char str_exit[] = "Exit";
-static const char KEY_GAMEPAD_TOGGLES[] = "gpts";
+static const char KEY_GAMEPAD_SETTINGS[] = "gp_settings";
 
 gamepad_t* gamepad;
 
@@ -969,14 +969,15 @@ void gamepadReportStateToHost(void)
 
 static bool saveGamepadToggleSettings(gamepadToggleSettings_t* toggleSettings)
 {
-    return writeNvsBlob(KEY_GAMEPAD_TOGGLES, toggleSettings, sizeof(gamepadToggleSettings_t));
+    int32_t val = ((toggleSettings->accelOn & 1) << 1) | ((toggleSettings->touchAnalogOn & 1) << 0);
+    return writeNvs32(KEY_GAMEPAD_SETTINGS, val);
 }
 
 static bool loadGamepadToggleSettings(gamepadToggleSettings_t* toggleSettings)
 {
-    size_t size = sizeof(gamepadToggleSettings_t);
-    bool r = readNvsBlob(KEY_GAMEPAD_TOGGLES, toggleSettings, &size);
-    if (!r || size != sizeof(gamepadToggleSettings_t))
+    int32_t val;
+    bool r = readNvs32(KEY_GAMEPAD_SETTINGS, &val);
+    if (!r)
     {
         memset(toggleSettings, 0, sizeof(gamepadToggleSettings_t));
         toggleSettings->accelOn = true;
@@ -984,5 +985,7 @@ static bool loadGamepadToggleSettings(gamepadToggleSettings_t* toggleSettings)
         return saveGamepadToggleSettings(toggleSettings);
     }
 
+    toggleSettings->accelOn = (val >> 1) & 1;
+    toggleSettings->touchAnalogOn = (val >> 0) & 1;
     return true;
 }
