@@ -111,7 +111,7 @@ typedef struct
     bool inMusicSubmode;
 
     meleeMenu_t* menu;
-    uint8_t mainMenuPos;
+    uint16_t mainMenuPos;
     jukeboxScreen_t screen;
 } jukebox_t;
 
