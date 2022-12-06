@@ -42,10 +42,13 @@
 #define CORNER_OFFSET 14
 //#define TOP_TEXT_X_MARGIN CORNER_OFFSET / 2
 #define LINE_BREAK_Y 5
-#define ENTRIES_BUF_SIZE 14
+#define MAX_INT_STRING_LENGTH 21
+#define ENTRIES_BUF_SIZE MAX_INT_STRING_LENGTH + 8
 
 /// Helper macro to return an integer clamped within a range (MIN to MAX)
 //#define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
+/// Helper macro to return the highest of two integers
+//#define MAX(X, Y) ( ((X) > (Y)) ? (X) : (Y) )
 //#define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
 /*==============================================================================
@@ -67,6 +70,8 @@ void nvsManagerSetUpTopMenu(bool resetPos);
 void nvsManagerTopLevelCb(const char* opt);
 void nvsManagerSetUpManageDataMenu(bool resetPos);
 void nvsManagerManageDataCb(const char* opt);
+char* blobToStrWithPrefix(const void * value, size_t length);
+const char* getNvsTypeName(nvs_type_t type);
 
 /*==============================================================================
  * Structs
@@ -81,6 +86,8 @@ typedef enum
     NVS_SUMMARY,
     // Manage key/value pairs in NVS
     NVS_MANAGE_DATA,
+    // Manage a specific key/value pair
+    NVS_MANAGE_KEY,
 } nvsScreen_t;
 
 /*==============================================================================
@@ -137,6 +144,7 @@ nvsManager_t* nvsManager;
  * Const Variables
  *============================================================================*/
 
+// Top menu
 const char str_summary[] = "Summary";
 const char str_manage_data[] = "Manage Data";
 const char str_factory_reset[] = "Factory Reset";
@@ -145,6 +153,7 @@ const char str_confirm_yes[] = "Confirm: Yes";
 const char str_back[] = "Back";
 const char str_exit[] = "Exit";
 
+// Summary
 const paletteColor_t color_summary_text = c555;
 const paletteColor_t color_summary_h_rule = c222;
 const paletteColor_t color_summary_used = c134;
@@ -159,6 +168,23 @@ const char str_namespaces[] = "Namespaces:";
 const char str_free_space[] = "Free space:";
 const char str_capacity[] = "Capacity:";
 const char str_entries_format[] = "%zu entries";
+
+// Manage key
+// Menu border colors: c112, c211, c021, c221, c102, c210,
+const paletteColor_t color_key = c335;
+const paletteColor_t color_namespace = c533;
+const paletteColor_t color_type = c354;
+const paletteColor_t color_used_entries = c553;
+const paletteColor_t color_value = c435;
+//c543
+const paletteColor_t color_error = c511;
+const char str_key[] = "Key: ";
+const char str_namespace[] = "Namespace: ";
+const char str_unknown[] = "Unknown";
+const char str_read_failed[] = "Error: Failed to read data";
+const char str_unknown_type[] = "Error: Unknown type";
+const char str_hex_format[] = "0x%x";
+const char str_i_dec_format[] = "%d";
 
 /*============================================================================
  * Functions
@@ -306,6 +332,15 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
             
             break;
         }
+        case NVS_MANAGE_KEY:
+        {
+            if(evt->down && evt->button == BTN_B)
+            {
+                nvsManagerSetUpManageDataMenu(false);
+            }
+
+            break;
+        }
         default:
         {
             break;
@@ -394,6 +429,181 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             fillDisplayArea(nvsManager->disp, xStart, yOff, xStart + roundf((float_t)nvsManager->nvsStats.used_entries / nvsManager->nvsStats.total_entries * (xEnd - xStart)), yOff + nvsManager->ibm_vga8.h, color_summary_used);
             fillDisplayArea(nvsManager->disp, xEnd - roundf((float_t)nvsManager->nvsStats.free_entries / nvsManager->nvsStats.total_entries * (xEnd - xStart)), yOff, xEnd, yOff + nvsManager->ibm_vga8.h, color_summary_free);
 
+            break;
+        }
+        case NVS_MANAGE_KEY:
+        {
+            nvsManager->disp->clearPx();
+
+            led_t leds[NUM_LEDS];
+            memset(leds, 0, NUM_LEDS * sizeof(led_t));
+            setLeds(leds, NUM_LEDS);
+
+            nvs_entry_info_t entryInfo = nvsManager->nvsKeys[nvsManager->menu->selectedRow];
+
+            // Key
+            int16_t yOff = CORNER_OFFSET;
+            const int16_t afterLongestLabel = CORNER_OFFSET + textWidth(&nvsManager->ibm_vga8, str_used_space) + textWidth(&nvsManager->ibm_vga8, " ") + 1;
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_key, CORNER_OFFSET, yOff);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_key, entryInfo.key, afterLongestLabel, yOff);
+
+            // Namespace
+            yOff +=  nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_namespace, CORNER_OFFSET, yOff);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_namespace, entryInfo.namespace_name, afterLongestLabel, yOff);
+
+            // Type
+            yOff +=  nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_type, CORNER_OFFSET, yOff);
+            const char* typeName = getNvsTypeName(entryInfo.type);
+            char typeAsHex[5];
+            if(typeName[0] == '\0')
+            {
+                snprintf(typeAsHex, 5, str_hex_format, entryInfo.type);
+            }
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_type, typeName[0] == '\0' ? typeAsHex : typeName, afterLongestLabel, yOff);
+
+            // Get the value
+            char num[MAX_INT_STRING_LENGTH];
+            char* blobAsHex = NULL;
+            size_t usedEntries = 0;
+            bool readSuccess;
+            bool foundType = true;
+            switch(entryInfo.type)
+            {
+                case NVS_TYPE_I32:
+                {
+                    int32_t val;
+                    readSuccess = readNvs32(entryInfo.key, &val);
+                    if(readSuccess)
+                    {
+                        snprintf(num, MAX_INT_STRING_LENGTH, str_i_dec_format, val);
+                        usedEntries = 1;
+                    }
+                    break;
+                }
+                case NVS_TYPE_BLOB:
+                {
+                    size_t length;
+                    readSuccess = readNvsBlob(entryInfo.key, NULL, &length);
+                    if(readSuccess)
+                    {
+                        char* blob = calloc(1, length);
+                        readSuccess = readNvsBlob(entryInfo.key, blob, &length);
+                        if(readSuccess)
+                        {
+                            blobAsHex = blobToStrWithPrefix(blob, length);
+                            /**
+                             * When the ESP32 is storing blobs, it uses 1 entry to index chunks,
+                             * 1 entry per chunk, then 1 entry for every 32 bytes of data, rounding up.
+                             * 
+                             * I don't know how to find out how many chunks the ESP32 would split
+                             * certain length blobs into, so for now I'm assuming 1 chunk per blob.
+                             * 
+                             * TODO: find a way to get number of entries or chunks in the blob
+                             */
+                            usedEntries = 2 + ceil((float) length / NVS_ENTRY_BYTES);
+                        }
+                        free(blob);
+                    }
+                    break;
+                }
+                case NVS_TYPE_U8:
+                case NVS_TYPE_I8:
+                case NVS_TYPE_U16:
+                case NVS_TYPE_I16:
+                case NVS_TYPE_U32:
+                case NVS_TYPE_U64:
+                case NVS_TYPE_I64:
+                case NVS_TYPE_STR:
+                case NVS_TYPE_ANY:
+                default:
+                {
+                    foundType = false;
+                    break;
+                }
+            }
+
+            // Used space
+            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_used_space, CORNER_OFFSET, yOff);
+            if(usedEntries > 0)
+            {
+                char buf[ENTRIES_BUF_SIZE];
+                snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, usedEntries);
+                drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_used_entries, buf, afterLongestLabel, yOff);
+            }
+            else
+            {
+                drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_error, str_unknown, afterLongestLabel, yOff);
+            }
+
+            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y + 1;
+            plotLine(nvsManager->disp, 0, yOff, nvsManager->disp->w, yOff, color_summary_h_rule, 0);
+
+            // Value
+            yOff += LINE_BREAK_Y + 1;
+            int16_t xOff = CORNER_OFFSET;
+            int16_t newYOff = nvsManager->disp->h - CORNER_OFFSET - nvsManager->ibm_vga8.h - LINE_BREAK_Y * 2 - 2;
+            const char* valueStr;
+            if(foundType)
+            {
+                if(readSuccess)
+                {
+                    switch(entryInfo.type)
+                    {
+                        case NVS_TYPE_U8:
+                        case NVS_TYPE_I8:
+                        case NVS_TYPE_U16:
+                        case NVS_TYPE_I16:
+                        case NVS_TYPE_U32:
+                        case NVS_TYPE_I32:
+                        case NVS_TYPE_U64:
+                        case NVS_TYPE_I64:
+                        {
+                            valueStr = num;
+                            break;
+                        }
+                        case NVS_TYPE_BLOB:
+                        {
+                            valueStr = blobAsHex;
+                            break;
+                        }
+                        case NVS_TYPE_STR:
+                        case NVS_TYPE_ANY:
+                        default:
+                        {
+                           valueStr = str_unknown_type;
+                           break;
+                        }
+                    }
+                }
+                else
+                {
+                    valueStr = str_read_failed;
+                }
+            }
+            else
+            {
+                valueStr = str_unknown_type;
+            }
+            const char* nextText = drawTextWordWrap(nvsManager->disp, &nvsManager->ibm_vga8, color_value, valueStr,
+                                                    &xOff, &yOff, nvsManager->disp->w - CORNER_OFFSET, newYOff);
+            if(nextText != NULL)
+            {
+                drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_value, "...", nvsManager->disp->w - CORNER_OFFSET, yOff);
+            }
+
+            yOff = newYOff + LINE_BREAK_Y + 1;
+            plotLine(nvsManager->disp, 0, yOff, nvsManager->disp->w, yOff, color_summary_h_rule, 0);
+
+            // Controls
+
+
+            if(blobAsHex != NULL)
+            {
+                free(blobAsHex);
+            }
             break;
         }
     }
@@ -540,12 +750,88 @@ void nvsManagerManageDataCb(const char* opt)
     nvsManager->manageDataPos = nvsManager->menu->selectedRow;
 
     // Handle the option
-    if(str_manage_data == opt)
-    {
-        nvsManagerSetUpManageDataMenu(true);
-    }
-    else if(str_back == opt)
+    if(str_back == opt)
     {
         nvsManagerSetUpTopMenu(false);
+    }
+    else
+    {
+        nvsManager->screen = NVS_MANAGE_KEY;
+    }
+}
+
+/**
+ * @brief Convert a blob to a hex string, with "0x" prefix
+ * 
+ * @param value The blob
+ * @param length The length of the blob
+ * @return char* An allocated hex string, must be free()'d when done
+ */
+char* blobToStrWithPrefix(const void * value, size_t length)
+{
+    const uint8_t * value8 = (const uint8_t *)value;
+    char * blobStr = malloc((length * 2) + 3);
+    size_t i = 0;
+    sprintf(&blobStr[i*2], "%s", "0x");
+    for(i++; i < length; i++)
+    {
+        sprintf(&blobStr[i*2], "%02X", value8[i]);
+    }
+    return blobStr;
+}
+
+const char* getNvsTypeName(nvs_type_t type)
+{
+    switch(type)
+    {
+#ifdef USING_MORE_THAN_I32_AND_BLOB
+        case NVS_TYPE_U8:
+        {
+            return "8-bit unsigned integer";
+        }
+        case NVS_TYPE_I8:
+        {
+            return "8-bit signed integer";
+        }
+        case NVS_TYPE_U16:
+        {
+            return "16-bit unsigned integer";
+        }
+        case NVS_TYPE_I16:
+        {
+            return "16-bit signed integer";
+        }
+        case NVS_TYPE_U32:
+        {
+            return "32-bit unsigned integer";
+        }
+#endif
+        case NVS_TYPE_I32:
+        {
+            return "32-bit signed integer";
+        }
+#ifdef USING_MORE_THAN_I32_AND_BLOB
+        case NVS_TYPE_U64:
+        {
+            return "64-bit unsigned integer";
+        }
+        case NVS_TYPE_I64:
+        {
+            return "64-bit signed integer";
+        }
+        case NVS_TYPE_STR:
+        {
+            return "String";
+        }
+#endif
+        case NVS_TYPE_BLOB:
+        {
+            return "Blob";
+        }
+        case NVS_TYPE_ANY:
+        default:
+        {
+            return "";
+        }
     }
 }

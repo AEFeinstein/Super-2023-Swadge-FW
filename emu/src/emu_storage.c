@@ -8,7 +8,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h> 
+#include <dirent.h>
+#include <math.h> 
 
 #include "esp_log.h"
 #include "cJSON.h"
@@ -23,7 +24,6 @@
 
 #define NVS_JSON_FILE emuNvsFilename
 
-#define NVS_ENTRY_BYTES        32
 // This comes from partitions.csv, and must be changed in both places simultaneously
 #define NVS_PARTITION_SIZE 0x6000
 #define NVS_OVERHEAD_ENTRIES   12
@@ -555,7 +555,7 @@ bool readNvsStats(nvs_stats_t* outStats)
                              * Blobs in the JSON are encoded as hexadecimal, so every 2 characters are
                              * 1 byte of data. Then, every 32 bytes of data is an entry.
                              */
-                            outStats->used_entries += 2 + strlen(strBlob) / 2 / NVS_ENTRY_BYTES;
+                            outStats->used_entries += 2 + ceil(strlen(strBlob) / 2.0f / NVS_ENTRY_BYTES);
                             break;
                         }
                         default:

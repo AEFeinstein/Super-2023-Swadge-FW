@@ -13,6 +13,7 @@
 //==============================================================================
 
 #define NVS_NAMESPACE_NAME "storage"
+#define NVS_ENTRY_BYTES                     32
 
 #define NVS_PART_NAME_MAX_SIZE              16   /*!< maximum length of partition name (excluding null terminator) */
 #define NVS_KEY_NAME_MAX_SIZE               16   /*!< Maximal length of NVS key name (including null terminator) */
