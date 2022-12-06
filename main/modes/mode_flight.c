@@ -132,7 +132,7 @@ typedef struct
     uint32_t timeAccumulatedAtPause;
     uint32_t timeOfPause;
     int wintime;
-    uint8_t menuEntryForInvertY;
+    uint16_t menuEntryForInvertY;
 
     flLEDAnimation ledAnimation;
     uint8_t        ledAnimationTime;

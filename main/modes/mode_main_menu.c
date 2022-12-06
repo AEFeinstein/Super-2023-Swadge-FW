@@ -78,12 +78,12 @@ typedef struct
     font_t meleeMenuFont;
     font_t ibmFont;
     meleeMenu_t* menu;
-    uint8_t topLevelPos;
-    uint8_t gamesPos;
-    uint8_t toolsPos;
-    uint8_t musicPos;
-    uint8_t settingsPos;
-    uint8_t secretPos;
+    uint16_t topLevelPos;
+    uint16_t gamesPos;
+    uint16_t toolsPos;
+    uint16_t musicPos;
+    uint16_t settingsPos;
+    uint16_t secretPos;
     int16_t btnState;
     int16_t prevBtnState;
     uint8_t menuSelection;
