@@ -66,5 +66,5 @@ spiffs_image/*.bin
 spiffs_image/*.txt
 spiffs_file_preprocessor/spiffs_file_preprocessor
 swadge_emulator
-nvs.json
+nvs*.json
 spiffs_image/fitness.txt
