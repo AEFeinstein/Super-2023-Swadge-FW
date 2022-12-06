@@ -63,6 +63,8 @@ typedef struct {
 
 bool initNvs(bool firstTry);
 bool eraseNvs(void);
+bool readNvsU32(const char* key, uint32_t* outVal);
+bool writeNvsU32(const char* key, uint32_t val);
 bool readNvs32(const char* key, int32_t* outVal);
 bool writeNvs32(const char* key, int32_t val);
 bool readNvsBlob(const char* key, void* out_value, size_t* length);
