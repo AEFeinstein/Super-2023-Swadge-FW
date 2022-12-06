@@ -337,7 +337,14 @@ void buzzer_check_next_note(void)
 	}
 
 	bool sfxIsActive = buzzer_track_check_next_note(&emuBzrSfx, true);
-	buzzer_track_check_next_note(&emuBzrBgm, !sfxIsActive);
+	bool bgmIsActive = buzzer_track_check_next_note(&emuBzrBgm, !sfxIsActive);
+
+    // If nothing is playing, but there is BGM (i.e. SFX finished)
+    if((false == sfxIsActive) && (false == bgmIsActive) && (NULL != emuBzrBgm.song))
+    {
+        // Immediately start playing BGM to get back on track faster
+        playNote(emuBzrBgm.song->notes[emuBzrBgm.note_index].note);
+    }
 }
 
 /**

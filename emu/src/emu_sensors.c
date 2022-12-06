@@ -19,6 +19,8 @@
 #include "esp_temperature_sensor.h"
 #include "touch_sensor.h"
 #include "btn.h"
+#include "rawdraw_sf.h"
+#include "emu_main.h"
 
 #include "emu_sensors.h"
 
@@ -121,6 +123,12 @@ bool checkButtonQueue(buttonEvt_t* evt)
  */
 void emuSensorHandleKey( int keycode, int bDown )
 {
+	if (keycode == CNFG_KEY_ESCAPE)
+	{
+		emu_quit();
+		return;
+	}
+
     // Check keycode against initialized keys
 	for(uint8_t idx = 0; idx < ARRAY_SIZE(inputKeys); idx++)
 	{

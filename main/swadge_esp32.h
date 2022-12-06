@@ -8,6 +8,8 @@
 // TODO probably time for a struct...
 extern int lockMode;
 extern int monkeyAround;
+extern int fullscreen;
+extern int hideLeds;
 extern int64_t fuzzerModeTestTime;
 extern int64_t resetToMenuTimer;
 extern int64_t fuzzButtonDelay;
