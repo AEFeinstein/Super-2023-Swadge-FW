@@ -498,6 +498,22 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
     int16_t tWidth = textWidth(&gamepad->ibmFont, reminderText);
     drawText(gamepad->disp, &gamepad->ibmFont, c555, reminderText, (gamepad->disp->w - tWidth) / 2, 10);
 
+    if(gamepad->gamepadType == GAMEPAD_NS)
+    {
+        // Draw button combo text, centered
+        const char captureText[] = "Down + Select:  Capture";
+        tWidth = textWidth(&gamepad->ibmFont, captureText);
+        int16_t textX = (gamepad->disp->w - tWidth) / 2;
+        int16_t afterText = drawText(gamepad->disp, &gamepad->ibmFont, c555, captureText, textX, gamepad->disp->h - gamepad->ibmFont.h * 2 - 12);
+
+        const char homeText1[] = "Down + Start:";
+        drawText(gamepad->disp, &gamepad->ibmFont, c555, homeText1, textX, gamepad->disp->h - gamepad->ibmFont.h - 10);
+
+        const char* homeText2 = getButtonName(GAMEPAD_NS_BUTTON_HOME);
+        tWidth = textWidth(&gamepad->ibmFont, homeText2);
+        drawText(gamepad->disp, &gamepad->ibmFont, c555, homeText2, afterText - tWidth - 1, gamepad->disp->h - gamepad->ibmFont.h - 10);
+    }
+
     // If it's plugged in, draw buttons
     if(gamepad->isPluggedIn)
     {
@@ -548,7 +564,7 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
         // Select button
         switch(gamepad->gamepadType){
             case GAMEPAD_NS:{
-                drawFunc = (gamepad->gpNsState.buttons & GAMEPAD_NS_BUTTON_SELECT) ? &plotCircleFilled : &plotCircle;
+                drawFunc = (gamepad->gpNsState.buttons & GAMEPAD_NS_BUTTON_MINUS) ? &plotCircleFilled : &plotCircle;
                 break;
             }
             case GAMEPAD_GENERIC:
@@ -557,15 +573,23 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
                 break;
             }
         }
+        int16_t x = (gamepad->disp->w / 2) - START_BTN_RADIUS - START_BTN_SEP;
+        int16_t y = (gamepad->disp->h / 4) + Y_OFF;
         drawFunc(gamepad->disp,
-                 (gamepad->disp->w / 2) - START_BTN_RADIUS - START_BTN_SEP,
-                 (gamepad->disp->h / 4) + Y_OFF,
+                 x,
+                 y,
                  START_BTN_RADIUS, c333);
+
+        if(gamepad->gamepadType == GAMEPAD_NS)
+        {
+            const char* buttonName = getButtonName(GAMEPAD_NS_BUTTON_MINUS);
+            drawText(gamepad->disp, &gamepad->ibmFont, c444, buttonName, x - textWidth(&gamepad->ibmFont, buttonName) / 2, y - gamepad->ibmFont.h / 2);
+        }
 
         // Start button
         switch(gamepad->gamepadType){ 
             case GAMEPAD_NS:{
-                drawFunc = (gamepad->gpNsState.buttons & GAMEPAD_NS_BUTTON_START) ? &plotCircleFilled : &plotCircle;
+                drawFunc = (gamepad->gpNsState.buttons & GAMEPAD_NS_BUTTON_PLUS) ? &plotCircleFilled : &plotCircle;
                 break;
             }
             case GAMEPAD_GENERIC:
@@ -574,10 +598,17 @@ void gamepadMainLoop(int64_t elapsedUs __attribute__((unused)))
                 break;
             }
         }
+        x = (gamepad->disp->w / 2) + START_BTN_RADIUS + START_BTN_SEP;
         drawFunc(gamepad->disp,
-                 (gamepad->disp->w / 2) + START_BTN_RADIUS + START_BTN_SEP,
-                 (gamepad->disp->h / 4) + Y_OFF,
+                 x,
+                 y,
                  START_BTN_RADIUS, c333);
+
+        if(gamepad->gamepadType == GAMEPAD_NS)
+        {
+            const char* buttonName = getButtonName(GAMEPAD_NS_BUTTON_PLUS);
+            drawText(gamepad->disp, &gamepad->ibmFont, c444, buttonName, x - textWidth(&gamepad->ibmFont, buttonName) / 2, y - gamepad->ibmFont.h / 2);
+        }
 
         // Button A
         switch(gamepad->gamepadType){
@@ -803,17 +834,17 @@ void gamepadButtonCb(buttonEvt_t* evt)
             if(evt->state & START)
             {
                 if(evt->state & DOWN){
-                    gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_MODE;
+                    gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_HOME;
                 } else {
-                    gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_START;
+                    gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_PLUS;
                 }
             }
             if(evt->state & SELECT)
             {
                 if(evt->state & DOWN){
-                    gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_C;
+                    gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_CAPTURE;
                 } else {
-                    gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_SELECT;
+                    gamepad->gpNsState.buttons |= GAMEPAD_NS_BUTTON_MINUS;
                 }
             }
 
@@ -1035,18 +1066,30 @@ static const char* getButtonName(hid_gamepad_button_bm_t button)
         {
             return "ZR";
         }
-        case GAMEPAD_NS_BUTTON_SELECT:
+        case GAMEPAD_NS_BUTTON_MINUS:
         {
-            return "Select";
+            return "-";
         }
-        case GAMEPAD_NS_BUTTON_START:
+        case GAMEPAD_NS_BUTTON_PLUS:
         {
-            return "Start";
+            return "+";
+        }
+        case GAMEPAD_NS_BUTTON_HOME:
+        {
+            return "HOME";
+        }
+        case GAMEPAD_NS_BUTTON_CAPTURE:
+        {
+            return "Capture";
         }
         case GAMEPAD_NS_BUTTON_THUMBL:
+        {
+            return "Left Stick";
+        }
         case GAMEPAD_NS_BUTTON_THUMBR:
-        case GAMEPAD_NS_BUTTON_MODE:
-        case GAMEPAD_NS_BUTTON_C:
+        {
+            return "Right Stick";
+        }
         case GAMEPAD_NS_BUTTON_Z:
         default:
         {
