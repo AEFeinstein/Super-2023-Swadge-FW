@@ -716,7 +716,7 @@ void nvsManagerTopLevelCb(const char* opt)
 void nvsManagerSetUpManageDataMenu(bool resetPos)
 {
     // Set up the menu
-    resetMeleeMenu(nvsManager->menu, modeNvsManager.modeName, nvsManagerManageDataCb);
+    resetMeleeMenu(nvsManager->menu, str_manage_data, nvsManagerManageDataCb);
 
     for(size_t i = 0; i < nvsManager->nvsStats.used_entries; i++)
     {
