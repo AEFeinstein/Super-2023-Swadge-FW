@@ -2304,60 +2304,63 @@ void ttTitleDisplay(void)
                           2.0,
                           tiltrads->stateTime, c112);
 
-    // Y FOR
-    int16_t noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_y_for, 0, GRID_X);
-    int16_t noStressScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 15 + 3);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_y_for, noStressScoresTextX, noStressScoresTextY);
-
-    // NO-STRESS-
-    noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_no_stress, 0, GRID_X);
-    noStressScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 14 + 2);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_no_stress, noStressScoresTextX, noStressScoresTextY);
-
-    // TRIS
-    noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_tris, 0, GRID_X);
-    noStressScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 13 + 1);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_tris, noStressScoresTextX, noStressScoresTextY);
-
-    // SCORES
-    noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_scores, 0, GRID_X);
-    noStressScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 12);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_scores, noStressScoresTextX, noStressScoresTextY);
-
-    // X TO PLAY
-    int16_t noStressPlayTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_x_to_play, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
-    int16_t noStressPlayTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 15 + 3);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_x_to_play, noStressPlayTextX, noStressPlayTextY);
-
-    // NO-STRESS-
-    noStressPlayTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_no_stress, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
-    noStressPlayTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 14 + 2);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_no_stress, noStressPlayTextX, noStressPlayTextY);
-
-    // TRIS
-    noStressPlayTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_tris, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
-    noStressPlayTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 13 + 1);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_tris, noStressPlayTextX, noStressPlayTextY);
 
     // SELECT FOR
     int16_t scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_select_for, 0, GRID_X);
-    int16_t scoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 7 + 1);
+    int16_t scoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 12 + 1);
     drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_select_for, scoresTextX, scoresTextY);
 
     // SCORES
     scoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_scores, 0, GRID_X);
-    scoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 6);
+    scoresTextY += tiltrads->ibm_vga8.h + 1;
     drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_scores, scoresTextX, scoresTextY);
 
     // START TO
     int16_t playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_start_to, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
-    int16_t playTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 7 + 1);
+    int16_t playTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 12 + 1);
     drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_start_to, playTextX, playTextY);
 
     // PLAY
     playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_play, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
-    playTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 6);
+    playTextY += tiltrads->ibm_vga8.h + 1;
     drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_play, playTextX, playTextY);
+
+
+    // Y FOR
+    int16_t noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_y_for, 0, GRID_X);
+    int16_t noStressScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 6 + 3);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_y_for, noStressScoresTextX, noStressScoresTextY);
+
+    // NO-STRESS-
+    noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_no_stress, 0, GRID_X);
+    noStressScoresTextY += tiltrads->ibm_vga8.h + 1;
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_no_stress, noStressScoresTextX, noStressScoresTextY);
+
+    // TRIS
+    noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_tris, 0, GRID_X);
+    noStressScoresTextY += tiltrads->ibm_vga8.h + 1;
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_tris, noStressScoresTextX, noStressScoresTextY);
+
+    // SCORES
+    noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_scores, 0, GRID_X);
+    noStressScoresTextY += tiltrads->ibm_vga8.h + 1;
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_scores, noStressScoresTextX, noStressScoresTextY);
+
+    // X TO PLAY
+    int16_t noStressPlayTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_x_to_play, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
+    int16_t noStressPlayTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 6 + 3);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_x_to_play, noStressPlayTextX, noStressPlayTextY);
+
+    // NO-STRESS-
+    noStressPlayTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_no_stress, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
+    noStressPlayTextY += tiltrads->ibm_vga8.h + 1;
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_no_stress, noStressPlayTextX, noStressPlayTextY);
+
+    // TRIS
+    noStressPlayTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_tris, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
+    noStressPlayTextY += tiltrads->ibm_vga8.h + 1;
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_tris, noStressPlayTextX, noStressPlayTextY);
+
 
     // Clear the grid data. (may not want to do this every frame)
     refreshTetradsGrid(TUTORIAL_GRID_COLS, TUTORIAL_GRID_ROWS, tiltrads->tutorialTetradsGrid, tiltrads->landedTetrads, &(tiltrads->tutorialTetrad),
