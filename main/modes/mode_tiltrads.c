@@ -139,8 +139,8 @@
 // Any const strings go here.
 
 static const char str_y_for[] ="Y FOR";
-static const char str_no_stress[] = "NO-STRESS-";
-static const char str_tris[] = "TRIS";
+static const char str_no_stress[] = "NO-STRESS";
+static const char str_tris[] = "MODE";
 static const char str_x_to_play[] = "X TO PLAY";
 static const char str_select_for[] = "SELECT FOR";
 static const char str_scores[] = "SCORES";
