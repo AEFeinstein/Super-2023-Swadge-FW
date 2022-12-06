@@ -21,8 +21,6 @@
 
 #define NO_BACKTRACK UINT32_MAX
 
-static const char space[] = " ";
-
 typedef enum
 {
     ADD_SIBLING = 1,
@@ -150,8 +148,6 @@ typedef struct
     markdownParams_t params;
     mdLinePlan_t linePlan;
 
-    int16_t curLineHeight;
-    int16_t lineY;
     int16_t x, y;
     font_t* font;
 
@@ -163,12 +159,6 @@ typedef struct
     void* data[16];
     uint8_t next;
 } mdPrintState_t;
-
-
-static const mdText_t SPACE_TEXT = {
-    .start = space,
-    .end = space + 1,
-};
 
 
 static void parseMarkdownInner(const char* text, _markdownText_t* out);
@@ -1237,10 +1227,11 @@ static void leavingNode(const mdNode_t* node, mdPrintState_t* state)
             {
                 case HEADER:
                 {
-                    MDLOG("Finding previous font!!!!\n");
-                    state->y += textLineHeight(state->font, state->params.style);
-                    state->x = state->params.xMin;
+                    //state->y += textLineHeight(state->font, state->params.style);
+                    //state->x = state->params.xMin;
                     state->font = findPreviousFont(node, state);
+                    mdOpt_t* newOption = findPreviousOption(node, ALIGN);
+                    state->params.align = (newOption != NULL) ? newOption->align : state->defaults.align;
                     break;
                 }
 
@@ -1258,10 +1249,9 @@ static void leavingNode(const mdNode_t* node, mdPrintState_t* state)
             }
             else if (node->option.type == STYLE)
             {
-
                 textStyle_t newStyle = findPreviousStyles(node, state);
                 // Check if the current style is italic, and the new style is not
-                if (node->option.style & STYLE_ITALIC && !(newStyle & STYLE_ITALIC))
+                /*if (node->option.style & STYLE_ITALIC && !(newStyle & STYLE_ITALIC))
                 {
                     // If that's the case, we need to account for the extra width of italics!
                     state->x += textWidthAttrs(state->font, "", state->params.style);
@@ -1272,7 +1262,7 @@ static void leavingNode(const mdNode_t* node, mdPrintState_t* state)
                         state->x = state->params.xMin;
                         state->y += textLineHeight(state->font, state->params.style);
                     }
-                }
+                }*/
 
                 // Actually set the new style
                 state->params.style = newStyle;
@@ -1360,19 +1350,26 @@ static bool drawPlannedLine(display_t* disp, mdPrintState_t* state)
 {
     if (state->linePlan.pending && state->linePlan.partCount > 0)
     {
+        MDLOG("\nDrawing planned line with %zu parts, width %d, and height %d!\n", state->linePlan.partCount, state->linePlan.totalWidth, state->linePlan.lineHeight);
         state->linePlan.pending = false;
 
         int16_t startX = state->x;
         int16_t startY = state->y;
 
         // Set up the initial X depending on the alignment setting
-        if (state->linePlan.align & ALIGN_CENTER)
+        if ((state->linePlan.align & ALIGN_CENTER) == ALIGN_CENTER)
         {
             startX = (state->params.xMax - state->params.xMin - state->linePlan.totalWidth) / 2;
+            MDLOG("Centering text with offset %d\n", startX);
         }
-        else if (state->linePlan.align & ALIGN_RIGHT)
+        else if ((state->linePlan.align & ALIGN_RIGHT) == ALIGN_RIGHT)
         {
             startX = state->params.xMax - state->linePlan.totalWidth;
+            MDLOG("Right-aligning text with offset %d\n", startX);
+        }
+        else
+        {
+            MDLOG("Left-aligning text with offset %d\n", startX);
         }
 
         int16_t x = startX;
@@ -1406,7 +1403,7 @@ static bool drawPlannedLine(display_t* disp, mdPrintState_t* state)
                     drawTextWordWrapExtra(disp, part->font, part->color,
                                           // If this is the first node in the line, we may need to start drawing at an offset
                                           // due to partial printing on the previous line
-                                          (i == 0 ? state->linePlan.firstTextOffset : part->node->text.start),
+                                          (i == 0 ? state->linePlan.firstTextOffset : 0) + part->node->text.start,
                                           // Actual X and Y, since we're really drawing
                                           &x, &y,
                                           state->params.xMin, state->params.yMin,
@@ -1450,8 +1447,8 @@ static bool drawPlannedLine(display_t* disp, mdPrintState_t* state)
             }
         }
 
-        state->x = x;
-        state->y = y;
+        state->x = state->params.xMin;
+        state->y += state->linePlan.lineHeight;
 
         resetPlan(&state->linePlan);
 
@@ -1475,96 +1472,144 @@ static const char* planLine(display_t* disp, const mdNode_t* node, mdPrintState_
     // - If we're handling alignment, we can measure the length of the entire line at once and
     // God, this is going to make the printing even slower... that's 2+ word wrap calls per text...
 
-    const char* remainingText;
-    mdText_t* text;
-
-    if (node->type == TEXT)
-    {
-        text = &node->text;
-    }
-    else if (node->type == DECORATION && node->decoration == WORD_BREAK)
-    {
-        text = &SPACE_TEXT;
-    }
-    else if (node->type == IMAGE)
-    {
-        // TODO should this do something here?
-        return NULL;
-    }
-    else
-    {
-        return NULL;
-    }
-
-    remainingText = text->start;
+    MDLOG("Planning line with initial offset %zu\n", state->textPos);
 
     // Check if the previous part was in italics, and this one isn't
     if (state->linePlan.partCount > 0 && (state->linePlan.parts[state->linePlan.partCount - 1].textStyle & TEXT_ITALIC) && !(state->params.style & TEXT_ITALIC))
     {
         int16_t extraWidth = textWidthAttrs(state->linePlan.parts[state->linePlan.partCount - 1].font, "", state->linePlan.parts[state->linePlan.partCount - 1].textStyle);
         state->linePlan.totalWidth += extraWidth;
+        MDLOG("Adding %d extra space to line plan for italics, total=%d\n", extraWidth, state->linePlan.totalWidth);
     }
 
-    while (remainingText != NULL)
+    // Handle word breaks
+    if (node->type == DECORATION && node->decoration == WORD_BREAK)
     {
-        int16_t lineHeight = textLineHeight(state->font, state->params.style);
-
-        // We're drawing after all the existing text, so take that into account
-        // If there's no pending line, this will be zero
-        int16_t x = state->linePlan.totalWidth;
-        // We're just measuring the height here
-        int16_t y = 0;
-
-        // We need to check if the text we're planning to draw will go past the end of the existing line
-        remainingText = drawTextWordWrapExtra(NULL, state->font, state->params.color, remainingText, &x, &y, 0, 0, state->params.xMax - state->params.xMin, lineHeight, state->params.style, text->end);
-
-        // If this will be the first part of the line, set the initial parameters
-        if (!state->linePlan.pending)
+        // For a word break, we can just ignore it if we're at the start of the line
+        if (state->linePlan.pending)
         {
-            state->linePlan.firstTextOffset = state->textPos;
-            state->linePlan.align = state->params.align;
+            state->linePlan.totalWidth += state->font->chars[0].w + 1;
         }
 
-        // We need a new line part either way
-        mdLinePartInfo_t* part = pushLinePart(state);
+        // We really don't care if this makes the width exceed the actual max just yet
+        // The next time we try to plan a line, we will immediately find that the text
+        // does not fit and draw the planned line. Also, we can't really
 
-        // Attach this node to the part
-        part->node = node;
-        part->textStyle = state->params.style;
-        part->color = state->params.color;
-        part->font = state->font;
+        return NULL;
+    }
+    else if (node->type == TEXT)
+    {
+        // TODO: I think there's something wrong with state->textPos here...
+        // We can discard textPos as soon as we initialize it here
+        // But then we use it to set firstTextOffset =
+        const char* remainingText = node->text.start + state->textPos;
+        state->textPos = 0;
 
-        // Since we started measuring at the original totalWidth, x will already be set to the new value
-        // TODO We should be able to use state->linePlan.totalWidth instead of x
-        state->linePlan.totalWidth = x;
-
-        // Check if some or all of the text fits
-        if (remainingText == NULL || remainingText != text->start)
+        while (remainingText != NULL)
         {
-            // More text fits, now we need to update the line height!
-            state->linePlan.lineHeight = MAX(state->linePlan.lineHeight, lineHeight);
+            int16_t lineHeight = textLineHeight(state->font, state->params.style);
+            const char* textStart = remainingText;
 
-            // Check if the line still fits...
-            if (state->y + state->linePlan.lineHeight > state->params.yMax)
+            // We're drawing after all the existing text, so take that into account
+            // If there's no pending line, this will be zero
+            int16_t x = state->linePlan.totalWidth;
+            // We're just measuring the height here
+            int16_t y = 0;
+
+            MDLOG("Measuring text of length %zu with Y bounds (0, %d)\n", node->text.end - node->text.start, lineHeight);
+
+            // We need to check if the text we're planning to draw will go past the end of the existing line
+            // After this, remainingText will point to all text that did not fit on the line
+            // And `x` will either point to the
+            remainingText = drawTextWordWrapExtra(NULL, state->font, state->params.color, remainingText,
+                                                &x, &y, 0, 0,
+                                                state->params.xMax - state->params.xMin, lineHeight,
+                                                state->params.style, node->text.end);
+
+            MDLOG("Measured %zu characters: '%s'\n", (remainingText == NULL ? node->text.end - textStart : remainingText - textStart),
+                  strndebug(textStart, remainingText == NULL ? node->text.end : remainingText));
+
+            // If this will be the first part of the line, set the initial parameters
+            if (!state->linePlan.pending)
             {
-                // The line no longer fits! WE HAVE TO GO BACK
-                // We know there's a first part since we have just added ourselves
-                state->backtrackIndex = state->linePlan.parts[0].node->index;
+                MDLOG("First part of line, setting firstTextOffset=%zu and align=%d\n", state->textPos, state->params.align);
+                state->linePlan.firstTextOffset = remainingText - node->text.start;
+                state->linePlan.align = state->params.align;
+            }
 
-                // I don't think we actually change textPos, so this may be completely unnecessary
-                // (we also don't really use the actual return value anymore either)
-                return state->textPos = state->linePlan.firstTextOffset;
+            // We need a new line part either way
+            mdLinePartInfo_t* part = pushLinePart(state);
+
+            // Attach this node to the part
+            part->node = node;
+            part->textStyle = state->params.style;
+            part->color = state->params.color;
+            part->font = state->font;
+
+            // Since we started measuring at the original totalWidth, x will already be set to the new value
+            // TODO We should be able to use state->linePlan.totalWidth instead of x
+            MDLOG("Planned width is %d, original is %d (added %d)\n", x, state->linePlan.totalWidth, x - state->linePlan.totalWidth);
+            MDLOG("Y shouldn't have changed, it was %d and is now %d\n", 0, y);
+            if (x > state->linePlan.totalWidth)
+            {
+                state->linePlan.totalWidth = x;
+            }
+            else
+            {
+                state->linePlan.totalWidth += textWidthExtra(state->font, textStart, state->params.style, remainingText);
+                MDLOG("Adding partial line length, now %d\n", state->linePlan.totalWidth);
+            }
+
+            // Check if some or all of the text fits
+            if (remainingText == NULL || (remainingText != node->text.start))
+            {
+                // More text fits, now we need to update the line height!
+                if (lineHeight > state->linePlan.lineHeight)
+                {
+                    MDLOG("Increasing planned line height from %d to %d\n", state->linePlan.lineHeight, lineHeight);
+                    state->linePlan.lineHeight = lineHeight;
+
+                    // Check if the line still fits...
+                    if (state->y + state->linePlan.lineHeight > state->params.yMax)
+                    {
+                        // The line no longer fits! WE HAVE TO GO BACK
+                        // We know there's a first part since we have just added ourselves
+                        state->backtrackIndex = state->linePlan.parts[0].node->index;
+
+                        MDLOG("Line must be backtracked to node %d, offset %zu due to height change (%d + %d > %d)\n",
+                            state->backtrackIndex, state->linePlan.firstTextOffset,
+                            state->y, state->linePlan.lineHeight, state->params.yMax);
+
+                        // I don't think we actually change textPos, so this may be completely unnecessary
+                        // (we also don't really use the actual return value anymore either)
+                        return node->text.start + (state->textPos = state->linePlan.firstTextOffset);
+                    }
+                }
+            }
+
+            // If any of the text didn't fit on this line, the line is done
+            if (remainingText != NULL)
+            {
+                MDLOG("Line is complete! Drawing\n\n");
+                drawPlannedLine(disp, state);
+            }
+
+            if (state->y + lineHeight - 1 > state->params.yMax)
+            {
+                MDLOG("Returning early from planLine because height exceeds bounds: %d + %d > %d\n", state->y, lineHeight, state->params.yMax);
+                state->textPos = remainingText - node->text.start;
+                return remainingText;
             }
         }
 
-        // If any of the text didn't fit on this line, the line is done
-        if (remainingText != NULL)
-        {
-            drawPlannedLine(disp, state);
-        }
+        // Return NULL to indicate that all this node's text was successfully draw
+        return NULL;
+    }
+    else if (node->type == IMAGE)
+    {
+        // TODO
     }
 
-    // Return NULL to indicate that all this node's text was successfully draw
     return NULL;
 }
 
@@ -1583,8 +1628,10 @@ static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode
                 state->x = state->params.xMin;
                 state->y = state->params.yMin;
 
-                // return true to indicate there's more to be drawn
+                // don't save the return value as state->textPos anymore,
+                // since we may have to deal with backtracking
 
+                // return true to indicate there's more pages to be drawn
                 return true;
             }
 
@@ -1636,6 +1683,8 @@ static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode
             {
                 case HORIZONTAL_RULE:
                 {
+                    drawPlannedLine(disp, state);
+
                     if (disp != NULL)
                     {
                         plotLine(disp, state->params.xMin, state->y, state->params.xMax, state->y, state->params.color, 0);
@@ -1645,38 +1694,36 @@ static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode
 
                 case WORD_BREAK:
                 planLine(disp, node, state);
-                /*if (state->x != state->params.xMin)
-                {
-                    // TODO: Check if last node was italics and increase spacing accordingly if so
-                    // textWidthAttrs(state->font, "", state->params.style)
-                    state->x += state->font->chars[0].w + 1;
-                    if (state->x >= state->params.xMax)
-                    {
-                        //
-                        state->x = state->params.xMin;
-                        state->y += state->font->h + 1;
-                    }
-                }*/
                 break;
 
                 case LINE_BREAK:
                 {
-                    drawPlannedLine(disp, state);
-                    state->x = state->params.xMin;
-                    state->y += textLineHeight(state->font, state->params.style);
+                    if (!drawPlannedLine(disp, state))
+                    {
+                        state->x = state->params.xMin;
+                        state->y += textLineHeight(state->font, state->params.style);
+                    }
                     break;
                 }
 
                 case PARAGRAPH_BREAK:
                 {
-                    drawPlannedLine(disp, state);
-                    state->x = state->params.xMin;
-                    state->y += textLineHeight(state->font, state->params.style) * 2;
+                    if (drawPlannedLine(disp, state))
+                    {
+                        // A line was drawn, so we only need to add one extra line
+                        state->y += textLineHeight(state->font, state->params.style);
+                    }
+                    else
+                    {
+                        // There was no pending line to draw, so add two lines
+                        state->x = state->params.xMin;
+                        state->y += textLineHeight(state->font, state->params.style) * 2;
+                    }
                     break;
                 }
 
                 case PAGE_BREAK:
-                // TODO: drawPlannedLine()
+                drawPlannedLine(disp, state);
                 state->x = state->params.xMin;
                 state->y = state->params.yMin;
                 break;
@@ -1685,15 +1732,16 @@ static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode
                 break;
 
                 case HEADER:
-                if (state->x != state->params.xMin)
                 {
+                    drawPlannedLine(disp, state);
                     // Add a line break but only if we're not at the beginning of a line
                     // drawPlannedLine()
-                    state->x = state->params.xMin;
-                    state->y += textLineHeight(state->font, state->params.style);
+                    //state->x = state->params.xMin;
+                    //state->y += textLineHeight(state->font, state->params.style);
+                    state->font = state->params.headerFont;
+                    state->params.align = ALIGN_CENTER;
+                    break;
                 }
-                state->font = state->params.headerFont;
-                break;
             }
         }
 
@@ -1720,8 +1768,6 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
         .font = NULL,
         .data = { NULL },
         .textPos = 0,
-        .curLineHeight = 0,
-        .lineY = INT16_MIN,
         .backtrackIndex = NO_BACKTRACK,
     };
 

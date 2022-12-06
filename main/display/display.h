@@ -140,6 +140,7 @@ uint16_t textLineHeight(const font_t* font, uint8_t textAttrs);
 uint16_t textHeight(const font_t* font, const char* text, int16_t width, int16_t maxHeight);
 uint16_t textHeightAttrs(const font_t* font, const char* text, int16_t startX, int16_t startY, int16_t width, int16_t maxHeight, uint8_t textAttrs);
 uint16_t textWidthAttrs(const font_t* font, const char* text, uint8_t textAttrs);
+uint16_t textWidthExtra(const font_t* font, const char* text, uint8_t textAttrs, const char* textEnd);
 void freeFont(font_t* font);
 
 // If you want to do your own thing.

@@ -114,6 +114,8 @@ node_t* paginateText(markdownText_t* markdown, list_t* container)
 
 void manualLoadText(bool reverse)
 {
+    // TODO: Clear the screen and draw a little hourglass
+
     ESP_LOGD("Manual", "Loading text");
     if (manual->markdown != NULL)
     {

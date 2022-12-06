@@ -934,6 +934,25 @@ uint16_t textWidthAttrs(const font_t* font, const char* text, uint8_t textAttrs)
     return textWidth(font, text) + ((textAttrs & TEXT_ITALIC) ? font->h / abs(SLANT(font)) : 0) + ((textAttrs & TEXT_BOLD) ? 1 : 0);
 }
 
+uint16_t textWidthExtra(const font_t* font, const char* text, uint8_t textAttrs, const char* textEnd)
+{
+    uint16_t width = 0;
+    while(text != textEnd)
+    {
+        if((*text) >= ' ')
+        {
+            width += (font->chars[(*text) - ' '].w + 1);
+        }
+        text++;
+    }
+    // Delete trailing space
+    if(0 < width)
+    {
+        width--;
+    }
+    return width + ((textAttrs & TEXT_ITALIC) ? font->h / abs(SLANT(font)) : 0) + ((textAttrs & TEXT_BOLD) ? 1 : 0);
+}
+
 static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, paletteColor_t color, const char* text,
                              int16_t *xOff, int16_t *yOff, int16_t xMin, int16_t yMin, int16_t xMax, int16_t yMax,
                              uint8_t textAttrs, const char* textEnd)
