@@ -167,6 +167,7 @@ const char str_used_space[] = "Used space:";
 const char str_namespaces[] = "Namespaces:";
 const char str_free_space[] = "Free space:";
 const char str_capacity[] = "Capacity:";
+const char str_1_entry[] = "1 entry";
 const char str_entries_format[] = "%zu entries";
 
 // Manage key
@@ -397,7 +398,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             fillDisplayArea(nvsManager->disp, CORNER_OFFSET, yOff, CORNER_OFFSET + nvsManager->ibm_vga8.h, yOff + nvsManager->ibm_vga8.h, color_summary_used);
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_used_space, CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y, yOff);
             snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->nvsStats.used_entries);
-            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, buf, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf) - CORNER_OFFSET, yOff);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, nvsManager->nvsStats.used_entries == 1 ? str_1_entry : buf, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf) - CORNER_OFFSET, yOff);
             
             // Namespaces
             yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
@@ -412,7 +413,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             fillDisplayArea(nvsManager->disp, CORNER_OFFSET, yOff, CORNER_OFFSET + nvsManager->ibm_vga8.h, yOff + nvsManager->ibm_vga8.h, color_summary_free);
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_free_space, CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y, yOff);
             snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->nvsStats.free_entries);
-            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, buf, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf) - CORNER_OFFSET, yOff);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, nvsManager->nvsStats.free_entries == 1 ? str_1_entry : buf, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf) - CORNER_OFFSET, yOff);
 
             yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y + 1;
             plotLine(nvsManager->disp, CORNER_OFFSET, yOff, nvsManager->disp->w - CORNER_OFFSET, yOff, color_summary_h_rule, 0);
@@ -527,7 +528,11 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             // Used space
             yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_used_space, CORNER_OFFSET, yOff);
-            if(usedEntries > 0)
+            if(usedEntries == 1)
+            {
+                drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_used_entries, str_1_entry, afterLongestLabel, yOff);
+            }
+            else if(usedEntries > 1)
             {
                 char buf[ENTRIES_BUF_SIZE];
                 snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, usedEntries);
