@@ -16,11 +16,13 @@
 // Constant Data
 //==============================================================================
 
+// If no arrow defines are defined, only display arrows when there are more items than fit on the screen. Even then, do not display "wraparound" arrows
+
 /* If defined, display the top arrow when a menu with more rows than fit on the screen is scrolled to the top,
  * and display the bottom arrow when such a menu is scrolled to the bottom.
  * These are used to indicate that the user can wrap-around to the other end of the menu.
  */
-//#define SHOW_TOP_AND_BOTTOM_ARROWS
+//#define SHOW_WRAPAROUND_ARROWS
 
 // If defined, override other arrow defines, and always display arrows
 #define ALWAYS_SHOW_ARROWS
@@ -333,11 +335,16 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
         menu->firstRowOnScreen = menu->selectedRow - MAX_ROWS_ON_SCREEN + 1;
     }
 
-#define ARROW_WIDTH  15 // Must be odd
-#define ARROW_HEIGHT 9
-    int16_t arrowFlatSideX1 = MAX_ROW_OFFSET;
+#define ARROW_WIDTH            15 // Must be odd
+#define ARROW_HEIGHT            9
+#define ARROW_BAR_INSET         1
+#define ARROW_BAR_SHRINK_RADIUS 2
+    int16_t arrowFlatSideX1 = (menu->usePerRowXOffsets ? MAX_ROW_OFFSET : MIN_ROW_OFFSET) + TEXT_Y_GAP;
     int16_t arrowFlatSideX2 = arrowFlatSideX1 + ARROW_WIDTH - 1;
     int16_t arrowPointX = (arrowFlatSideX1 + arrowFlatSideX2) / 2;
+
+    int16_t arrowBarX1 = arrowFlatSideX1 + ARROW_BAR_SHRINK_RADIUS;
+    int16_t arrowBarX2 = arrowFlatSideX2 - ARROW_BAR_SHRINK_RADIUS;
 
     int16_t yIdx = FIRST_ITEM_Y;
     int16_t rowGap = menu->font->h + 2 * TEXT_Y_GAP + 3;
@@ -384,25 +391,48 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     }
 
     // Draw up arrow
-#ifndef ALWAYS_SHOW_ARROWS
-#ifdef SHOW_TOP_AND_BOTTOM_ARROWS
-    if(menu->numRows > MAX_ROWS_ON_SCREEN && !menu->animating)
-#else
-    if(menu->firstRowOnScreen > 0 && !menu->animating)
-#endif
-#endif
+    if(!menu->animating)
     {
-        int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 3;
-        int16_t arrowPointY = arrowFlatSideY - ARROW_HEIGHT + 1; //= round(arrowFlatSideY - (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
-        plotLine(d, arrowFlatSideX1, arrowFlatSideY, arrowFlatSideX2, arrowFlatSideY, boundaryColor, 0);
-        plotLine(d, arrowFlatSideX1, arrowFlatSideY - 1, arrowPointX, arrowPointY, boundaryColor, 0);
-        plotLine(d, arrowFlatSideX2, arrowFlatSideY - 1, arrowPointX, arrowPointY, boundaryColor, 0);
+#ifndef ALWAYS_SHOW_ARROWS
+#ifdef SHOW_WRAPAROUND_ARROWS
+        if(menu->numRows > MAX_ROWS_ON_SCREEN)
+#else
+        if(menu->firstRowOnScreen > 0)
+#endif
+#endif
+        {
+            int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 3;
+            int16_t arrowPointY = arrowFlatSideY - ARROW_HEIGHT + 1; //= round(arrowFlatSideY - (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
+            plotLine(d, arrowFlatSideX1, arrowFlatSideY, arrowFlatSideX2, arrowFlatSideY, boundaryColor, 0);
+            plotLine(d, arrowFlatSideX1, arrowFlatSideY - 1, arrowPointX, arrowPointY, boundaryColor, 0);
+            plotLine(d, arrowFlatSideX2, arrowFlatSideY - 1, arrowPointX, arrowPointY, boundaryColor, 0);
 
-        // Fill the arrow shape
-        oddEvenFill(d,
-                    arrowFlatSideX1, arrowPointY,
-                    arrowFlatSideX2 + 1, arrowFlatSideY,
-                    boundaryColor, unselectedFillColor);
+            // Fill the arrow shape
+            oddEvenFill(d,
+                        arrowFlatSideX1, arrowPointY,
+                        arrowFlatSideX2 + 1, arrowFlatSideY,
+                        boundaryColor, unselectedFillColor);
+
+            // Draw a bar if this is a wraparound arrow
+#if defined(ALWAYS_SHOW_ARROWS) || defined(SHOW_WRAPAROUND_ARROWS)
+            if(menu->firstRowOnScreen == 0)
+            {
+#if !defined(ALWAYS_SHOW_ARROWS) && defined(SHOW_WRAPAROUND_ARROWS)
+                if(menu->numRows > MAX_ROWS_ON_SCREEN)
+#endif
+                {
+                    plotLine(d, arrowBarX1, arrowPointY + ARROW_BAR_INSET - 1, arrowBarX2, arrowPointY + ARROW_BAR_INSET - 1, boundaryColor, 0);
+                    plotLine(d, arrowBarX1, arrowPointY + ARROW_BAR_INSET - 2, arrowBarX2, arrowPointY + ARROW_BAR_INSET - 2, boundaryColor, 0);
+                    plotLine(d, arrowBarX1, arrowPointY + ARROW_BAR_INSET - 3, arrowBarX2, arrowPointY + ARROW_BAR_INSET - 3, boundaryColor, 0);
+
+                    plotLine(d, arrowBarX1 + 1, arrowPointY + ARROW_BAR_INSET - 2, arrowBarX2 - 1, arrowPointY + ARROW_BAR_INSET - 2, unselectedFillColor, 0);
+#if ARROW_BAR_INSET >= 2
+                    plotLine(d, arrowPointX - ARROW_BAR_INSET + 2, arrowPointY + ARROW_BAR_INSET - 1, arrowPointX + ARROW_BAR_INSET - 2, arrowPointY + ARROW_BAR_INSET - 1, unselectedFillColor, 0);
+#endif
+                }
+            }
+#endif
+        }
     }
 
     uint8_t startRow = menu->firstRowOnScreen;
@@ -508,25 +538,48 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     }
 
     // Draw down arrow
-#ifndef ALWAYS_SHOW_ARROWS
-#ifdef SHOW_TOP_AND_BOTTOM_ARROWS
-    if(menu->numRows > MAX_ROWS_ON_SCREEN && !menu->animating)
-#else
-    if(menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN && !menu->animating)
-#endif
-#endif
+    if(!menu->animating)
     {
-        int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 1 + bottomArrowBump;
-        int16_t arrowPointY = arrowFlatSideY + ARROW_HEIGHT - 1; //round(arrowFlatSideY + (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
-        plotLine(d, arrowFlatSideX1, arrowFlatSideY, arrowFlatSideX2, arrowFlatSideY, boundaryColor, 0);
-        plotLine(d, arrowFlatSideX1, arrowFlatSideY + 1, arrowPointX, arrowPointY, boundaryColor, 0);
-        plotLine(d, arrowFlatSideX2, arrowFlatSideY + 1, arrowPointX, arrowPointY, boundaryColor, 0);
+#ifndef ALWAYS_SHOW_ARROWS
+#ifdef SHOW_WRAPAROUND_ARROWS
+        if((menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN || menu->firstRowOnScreen > 0))
+#else
+        if(menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN)
+#endif
+#endif
+        {
+            int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 1 + bottomArrowBump;
+            int16_t arrowPointY = arrowFlatSideY + ARROW_HEIGHT - 1; //round(arrowFlatSideY + (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
+            plotLine(d, arrowFlatSideX1, arrowFlatSideY, arrowFlatSideX2, arrowFlatSideY, boundaryColor, 0);
+            plotLine(d, arrowFlatSideX1, arrowFlatSideY + 1, arrowPointX, arrowPointY, boundaryColor, 0);
+            plotLine(d, arrowFlatSideX2, arrowFlatSideY + 1, arrowPointX, arrowPointY, boundaryColor, 0);
 
-        // Fill the arrow shape
-        oddEvenFill(d,
-                    arrowFlatSideX1, arrowFlatSideY + 1,
-                    arrowFlatSideX2 + 1, arrowPointY,
-                    boundaryColor, unselectedFillColor);
+            // Fill the arrow shape
+            oddEvenFill(d,
+                        arrowFlatSideX1, arrowFlatSideY + 1,
+                        arrowFlatSideX2 + 1, arrowPointY,
+                        boundaryColor, unselectedFillColor);
+
+            // Draw a bar if this is a wraparound arrow
+#if defined(ALWAYS_SHOW_ARROWS) || defined(SHOW_WRAPAROUND_ARROWS)
+            if(menu->numRows <= menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN)
+            {
+#if !defined(ALWAYS_SHOW_ARROWS) && defined(SHOW_WRAPAROUND_ARROWS)
+                if(menu->numRows > MAX_ROWS_ON_SCREEN)
+#endif
+                {
+                    plotLine(d, arrowBarX1, arrowPointY - ARROW_BAR_INSET + 1, arrowBarX2, arrowPointY - ARROW_BAR_INSET + 1, boundaryColor, 0);
+                    plotLine(d, arrowBarX1, arrowPointY - ARROW_BAR_INSET + 2, arrowBarX2, arrowPointY - ARROW_BAR_INSET + 2, boundaryColor, 0);
+                    plotLine(d, arrowBarX1, arrowPointY - ARROW_BAR_INSET + 3, arrowBarX2, arrowPointY - ARROW_BAR_INSET + 3, boundaryColor, 0);
+
+                    plotLine(d, arrowBarX1 + 1, arrowPointY - ARROW_BAR_INSET + 2, arrowBarX2 - 1, arrowPointY - ARROW_BAR_INSET + 2, unselectedFillColor, 0);
+#if ARROW_BAR_INSET >= 2
+                    plotLine(d, arrowPointX - ARROW_BAR_INSET + 2, arrowPointY - ARROW_BAR_INSET + 1, arrowPointX + ARROW_BAR_INSET - 2, arrowPointY - ARROW_BAR_INSET + 1, unselectedFillColor, 0);
+#endif
+                }
+            }
+#endif
+        }
     }
 
     if( menu->allowLEDControl )
