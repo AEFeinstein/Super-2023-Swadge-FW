@@ -518,10 +518,10 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             }
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_type, typeName[0] == '\0' ? typeAsHex : typeName, afterLongestLabel, yOff);
 
+            // Prepare for getting the value, and pagination
             if (nvsManager->loadedRow != nvsManager->menu->selectedRow)
             {
 
-                case NVS_TYPE_U32:
                 nvsManager->curPage = NULL;
                 clear(&nvsManager->pages);
 
@@ -679,14 +679,13 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y + 1;
             plotLine(nvsManager->disp, 0, yOff, nvsManager->disp->w, yOff, color_summary_h_rule, 0);
 
+            //////////////////////////////////////////////
             // Value
+            //////////////////////////////////////////////
             yOff += LINE_BREAK_Y + 1;
             int16_t xOff = CORNER_OFFSET;
             int16_t newYOff = nvsManager->disp->h - CORNER_OFFSET - nvsManager->ibm_vga8.h - LINE_BREAK_Y * 2 - 2;
-
             const char* nextText;
-
-
             if (nvsManager->curPage == NULL)
             {
                 // Add the beginning of the text as the first page
