@@ -114,6 +114,146 @@ bool eraseNvs(void)
 }
 
 /**
+ * @brief Read an unsigned 8 bit value from NVS with a given string key
+ *
+ * @param key The key for the value to read
+ * @param outVal The value that was read
+ * @return true if the value was read, false if it was not
+ */
+bool readNvsU8(const char* key, uint8_t* outVal)
+{
+    // Open the file
+    FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
+    if(NULL != nvsFile)
+    {
+        // Get the file size
+        fseek(nvsFile, 0L, SEEK_END);
+        size_t fsize = ftell(nvsFile);
+        fseek(nvsFile, 0L, SEEK_SET);
+
+        // Read the file
+        char fbuf[fsize + 1];
+        fbuf[fsize] = 0;
+        if(fsize == fread(fbuf, 1, fsize, nvsFile))
+        {
+            // Close the file
+            fclose(nvsFile);
+
+            // Parse the JSON
+            cJSON * json = cJSON_Parse(fbuf);
+            cJSON * jsonIter = json;
+
+            // Find the requested key
+            char *current_key = NULL;
+            cJSON_ArrayForEach(jsonIter, json)
+            {
+                current_key = jsonIter->string;
+                if (current_key != NULL)
+                {
+                    // If the key matches
+                    if(0 == strcmp(current_key, key))
+                    {
+                        // Return the value
+                        *outVal = (uint8_t)cJSON_GetNumberValue(jsonIter);
+                        cJSON_Delete(json);
+                        return true;
+                    }
+                }
+            }
+            cJSON_Delete(json);
+        }
+        else
+        {
+            fclose(nvsFile);
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief Write an unsigned 8 bit value to NVS with a given string key
+ *
+ * @param key The key for the value to write
+ * @param val The value to write
+ * @return true if the value was written, false if it was not
+ */
+bool writeNvsU8(const char* key, uint8_t val)
+{
+    // Open the file
+    FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
+    if(NULL != nvsFile)
+    {
+        // Get the file size
+        fseek(nvsFile, 0L, SEEK_END);
+        size_t fsize = ftell(nvsFile);
+        fseek(nvsFile, 0L, SEEK_SET);
+
+        // Read the file
+        char fbuf[fsize + 1];
+        fbuf[fsize] = 0;
+        if(fsize == fread(fbuf, 1, fsize, nvsFile))
+        {
+            // Close the file
+            fclose(nvsFile);
+
+            // Parse the JSON
+            cJSON * json = cJSON_Parse(fbuf);
+
+            // Check if the key alredy exists
+            cJSON * jsonIter;
+            bool keyExists = false;
+            cJSON_ArrayForEach(jsonIter, json)
+            {
+                if(0 == strcmp(jsonIter->string, key))
+                {
+                    keyExists = true;
+                }
+            }
+
+            // Add or replace the item
+            cJSON * jsonVal = cJSON_CreateNumber(val);
+            if(keyExists)
+            {
+                cJSON_ReplaceItemInObject(json, key, jsonVal);
+            }
+            else
+            {
+                cJSON_AddItemToObject(json, key, jsonVal);
+            }
+
+            // Write the new JSON back to the file
+            FILE * nvsFileW = fopen(NVS_JSON_FILE, "wb");
+            if(NULL != nvsFileW)
+            {
+                char * jsonStr = cJSON_Print(json);
+                fprintf(nvsFileW, "%s", jsonStr);
+                fclose(nvsFileW);
+
+                free(jsonStr);
+                cJSON_Delete(json);
+
+                return true;
+            }
+            else
+            {
+                // Couldn't open file to write
+            }
+            cJSON_Delete(json);
+        }
+        else
+        {
+            // Couldn't read file
+            fclose(nvsFile);
+        }
+    }
+    else
+    {
+        // couldn't open file to read
+    }
+    return false;
+}
+
+/**
  * @brief Read an unsigned 32 bit value from NVS with a given string key
  *
  * @param key The key for the value to read

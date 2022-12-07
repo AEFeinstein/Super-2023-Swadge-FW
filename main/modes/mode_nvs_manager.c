@@ -473,6 +473,17 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             bool foundType = true;
             switch(entryInfo.type)
             {
+                case NVS_TYPE_U8:
+                {
+                    uint8_t val;
+                    readSuccess = readNvsU8(entryInfo.key, &val);
+                    if(readSuccess)
+                    {
+                        snprintf(num, MAX_INT_STRING_LENGTH, str_u_dec_format, val);
+                        usedEntries = 1;
+                    }
+                    break;
+                }
                 case NVS_TYPE_U32:
                 {
                     uint32_t val;
@@ -521,7 +532,6 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                     }
                     break;
                 }
-                case NVS_TYPE_U8:
                 case NVS_TYPE_I8:
                 case NVS_TYPE_U16:
                 case NVS_TYPE_I16:
@@ -800,11 +810,11 @@ const char* getNvsTypeName(nvs_type_t type)
 {
     switch(type)
     {
-#ifdef USING_MORE_THAN_I32_AND_BLOB
         case NVS_TYPE_U8:
         {
             return "8-bit unsigned integer";
         }
+#ifdef USING_MORE_THAN_I32_AND_BLOB
         case NVS_TYPE_I8:
         {
             return "8-bit signed integer";

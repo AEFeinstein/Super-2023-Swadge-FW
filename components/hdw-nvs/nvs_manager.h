@@ -18,6 +18,10 @@
 #define NVS_PART_NAME_MAX_SIZE              16   /*!< maximum length of partition name (excluding null terminator) */
 #define NVS_KEY_NAME_MAX_SIZE               16   /*!< Maximal length of NVS key name (including null terminator) */
 
+//==============================================================================
+// Enums, Structs
+//==============================================================================
+
 #ifdef EMU
 /**
  * @brief Types of variables
@@ -58,11 +62,19 @@ typedef struct {
 #endif
 
 //==============================================================================
+// Const Variables
+//==============================================================================
+
+//const char NVS_NAMESPACE_NAME[] = "storage";
+
+//==============================================================================
 // Function Prototypes
 //==============================================================================
 
 bool initNvs(bool firstTry);
 bool eraseNvs(void);
+bool readNvsU8(const char* key, uint8_t* outVal);
+bool writeNvsU8(const char* key, uint8_t val);
 bool readNvsU32(const char* key, uint32_t* outVal);
 bool writeNvsU32(const char* key, uint32_t val);
 bool readNvs32(const char* key, int32_t* outVal);
