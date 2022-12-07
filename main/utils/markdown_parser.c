@@ -1533,7 +1533,7 @@ static const char* planLine(display_t* disp, const mdNode_t* node, mdPrintState_
             if (!state->linePlan.pending)
             {
                 MDLOG("First part of line, setting firstTextOffset=%zu and align=%d\n", state->textPos, state->params.align);
-                state->linePlan.firstTextOffset = remainingText - node->text.start;
+                state->linePlan.firstTextOffset = textStart - node->text.start;
                 state->linePlan.align = state->params.align;
             }
 
