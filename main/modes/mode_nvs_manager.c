@@ -133,6 +133,22 @@ typedef struct
     int32_t touchPosition;
     int32_t touchIntensity;
 
+    // Paginated text cache
+    list_t pages;
+    node_t* curPage;
+    uint16_t loadedRow;
+
+
+    // Cached NVS info
+
+    // Just points to blobStr or numStr
+    const char* pageStr;
+
+    const char* blobStr;
+    char numStr[MAX_INT_STRING_LENGTH];
+
+    size_t usedEntries;
+
     // NVS
     nvs_stats_t nvsStats;
     nvs_entry_info_t* nvsKeys;
@@ -206,6 +222,8 @@ void  nvsManagerEnterMode(display_t* disp)
     loadFont("radiostars.font", &nvsManager->radiostars);
     loadFont("mm.font", &nvsManager->mm);
 
+    nvsManager->loadedRow = UINT16_MAX;
+
     // TODO: handle errors
     readAllNvsEntryInfos(&nvsManager->nvsStats, &nvsManager->nvsKeys);
 
@@ -229,6 +247,14 @@ void  nvsManagerExitMode(void)
     {
         free(nvsManager->nvsKeys);
     }
+
+    if (nvsManager->blobStr != NULL)
+    {
+        free(nvsManager->blobStr);
+        nvsManager->blobStr = NULL;
+    }
+
+    clear(&nvsManager->pages);
 
     free(nvsManager);
 }
@@ -331,16 +357,43 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
 
                 meleeMenuButton(nvsManager->menu, evt->button);
             }
-            
+
             break;
         }
         case NVS_MANAGE_KEY:
         {
-            if(evt->down && evt->button == BTN_B)
+            if(evt->down)
             {
-                nvsManagerSetUpManageDataMenu(false);
-            }
+                switch (evt->button)
+                {
+                    case BTN_B:
+                        nvsManagerSetUpManageDataMenu(false);
+                    break;
 
+                    case UP:
+                    case LEFT:
+                    {
+                        if (nvsManager->curPage != NULL && nvsManager->curPage->prev != NULL)
+                        {
+                            nvsManager->curPage = nvsManager->curPage->prev;
+                        }
+                        break;
+                    }
+
+                    case DOWN:
+                    case RIGHT:
+                    {
+                        if (nvsManager->curPage != NULL && nvsManager->curPage->next != NULL)
+                        {
+                            nvsManager->curPage = nvsManager->curPage->next;
+                        }
+                        break;
+                    }
+
+                    default:
+                    break;
+                }
+            }
             break;
         }
         default:
@@ -400,7 +453,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_used_space, CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y, yOff);
             snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->nvsStats.used_entries);
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, nvsManager->nvsStats.used_entries == 1 ? str_1_entry : buf, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf) - CORNER_OFFSET, yOff);
-            
+
             // Namespaces
             yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_namespaces, CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y, yOff);
@@ -465,98 +518,157 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             }
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_type, typeName[0] == '\0' ? typeAsHex : typeName, afterLongestLabel, yOff);
 
-            // Get the value
-            char num[MAX_INT_STRING_LENGTH];
-            char* blobAsHex = NULL;
-            size_t usedEntries = 0;
-            bool readSuccess;
-            bool foundType = true;
-            switch(entryInfo.type)
+            if (nvsManager->loadedRow != nvsManager->menu->selectedRow)
             {
-                case NVS_TYPE_U8:
-                {
-                    uint8_t val;
-                    readSuccess = readNvsU8(entryInfo.key, &val);
-                    if(readSuccess)
-                    {
-                        snprintf(num, MAX_INT_STRING_LENGTH, str_u_dec_format, val);
-                        usedEntries = 1;
-                    }
-                    break;
-                }
+
                 case NVS_TYPE_U32:
+                nvsManager->curPage = NULL;
+                clear(&nvsManager->pages);
+
+                if (nvsManager->blobStr != NULL)
                 {
-                    uint32_t val;
-                    readSuccess = readNvsU32(entryInfo.key, &val);
-                    if(readSuccess)
-                    {
-                        snprintf(num, MAX_INT_STRING_LENGTH, str_u_dec_format, val);
-                        usedEntries = 1;
-                    }
-                    break;
+                    free(nvsManager->blobStr);
+                    nvsManager->blobStr = NULL;
                 }
-                case NVS_TYPE_I32:
+
+                nvsManager->loadedRow = nvsManager->menu->selectedRow;
+                nvsManager->usedEntries = 0;
+
+                // Get the value
+                bool readSuccess;
+                bool foundType = true;
+
+                switch(entryInfo.type)
                 {
-                    int32_t val;
-                    readSuccess = readNvs32(entryInfo.key, &val);
-                    if(readSuccess)
+                    case NVS_TYPE_U8:
                     {
-                        snprintf(num, MAX_INT_STRING_LENGTH, str_i_dec_format, val);
-                        usedEntries = 1;
-                    }
-                    break;
-                }
-                case NVS_TYPE_BLOB:
-                {
-                    size_t length;
-                    readSuccess = readNvsBlob(entryInfo.key, NULL, &length);
-                    if(readSuccess)
-                    {
-                        char* blob = calloc(1, length);
-                        readSuccess = readNvsBlob(entryInfo.key, blob, &length);
+                        uint8_t val;
+                        readSuccess = readNvsU8(entryInfo.key, &val);
                         if(readSuccess)
                         {
-                            blobAsHex = blobToStrWithPrefix(blob, length);
-                            /**
-                             * When the ESP32 is storing blobs, it uses 1 entry to index chunks,
-                             * 1 entry per chunk, then 1 entry for every 32 bytes of data, rounding up.
-                             * 
-                             * I don't know how to find out how many chunks the ESP32 would split
-                             * certain length blobs into, so for now I'm assuming 1 chunk per blob.
-                             * 
-                             * TODO: find a way to get number of entries or chunks in the blob
-                             */
-                            usedEntries = 2 + ceil((float) length / NVS_ENTRY_BYTES);
+                            snprintf(nvsManager->numStr, MAX_INT_STRING_LENGTH, str_u_dec_format, val);
+                            nvsManager->usedEntries = 1;
                         }
-                        free(blob);
+                        break;
                     }
-                    break;
+                    case NVS_TYPE_U32:
+                    {
+                        uint32_t val;
+                        readSuccess = readNvsU32(entryInfo.key, &val);
+                        if(readSuccess)
+                        {
+                            snprintf(nvsManager->numStr, MAX_INT_STRING_LENGTH, str_u_dec_format, val);
+                            nvsManager->usedEntries = 1;
+                        }
+                        break;
+                    }
+                    case NVS_TYPE_I32:
+                    {
+                        int32_t val;
+                        readSuccess = readNvs32(entryInfo.key, &val);
+                        if(readSuccess)
+                        {
+                            snprintf(nvsManager->numStr, MAX_INT_STRING_LENGTH, str_i_dec_format, val);
+                            nvsManager->usedEntries = 1;
+                        }
+                        break;
+                    }
+                    case NVS_TYPE_BLOB:
+                    {
+                        size_t length;
+                        readSuccess = readNvsBlob(entryInfo.key, NULL, &length);
+                        if(readSuccess)
+                        {
+                            char* blob = calloc(1, length);
+                            readSuccess = readNvsBlob(entryInfo.key, blob, &length);
+                            if(readSuccess)
+                            {
+                                nvsManager->blobStr = blobToStrWithPrefix(blob, length);
+                                /**
+                                 * When the ESP32 is storing blobs, it uses 1 entry to index chunks,
+                                 * 1 entry per chunk, then 1 entry for every 32 bytes of data, rounding up.
+                                 *
+                                 * I don't know how to find out how many chunks the ESP32 would split
+                                 * certain length blobs into, so for now I'm assuming 1 chunk per blob.
+                                 *
+                                 * TODO: find a way to get number of entries or chunks in the blob
+                                 */
+                                nvsManager->usedEntries = 2 + ceil((float) length / NVS_ENTRY_BYTES);
+                            }
+                            free(blob);
+                        }
+                        break;
+                    }
+                    case NVS_TYPE_I8:
+                    case NVS_TYPE_U16:
+                    case NVS_TYPE_I16:
+                    case NVS_TYPE_U64:
+                    case NVS_TYPE_I64:
+                    case NVS_TYPE_STR:
+                    case NVS_TYPE_ANY:
+                    default:
+                    {
+                        foundType = false;
+                        break;
+                    }
                 }
-                case NVS_TYPE_I8:
-                case NVS_TYPE_U16:
-                case NVS_TYPE_I16:
-                case NVS_TYPE_U64:
-                case NVS_TYPE_I64:
-                case NVS_TYPE_STR:
-                case NVS_TYPE_ANY:
-                default:
+
+                if(foundType)
                 {
-                    foundType = false;
-                    break;
+                    if(readSuccess)
+                    {
+                        switch(entryInfo.type)
+                        {
+                            case NVS_TYPE_U8:
+                            case NVS_TYPE_I8:
+                            case NVS_TYPE_U16:
+                            case NVS_TYPE_I16:
+                            case NVS_TYPE_U32:
+                            case NVS_TYPE_I32:
+                            case NVS_TYPE_U64:
+                            case NVS_TYPE_I64:
+                            {
+                                nvsManager->pageStr = nvsManager->numStr;
+                                break;
+                            }
+
+                            case NVS_TYPE_BLOB:
+                            {
+                                nvsManager->pageStr = nvsManager->blobStr;
+                                break;
+                            }
+
+                            case NVS_TYPE_STR:
+                            case NVS_TYPE_ANY:
+                            default:
+                            {
+                                nvsManager->pageStr = str_unknown_type;
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        nvsManager->pageStr = str_read_failed;
+                    }
+                }
+                else
+                {
+                    nvsManager->pageStr = str_unknown_type;
                 }
             }
 
             // Used space
             yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_used_space, CORNER_OFFSET, yOff);
-            if(usedEntries == 1)
+            if(nvsManager->usedEntries == 1)
             {
                 drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_used_entries, str_1_entry, afterLongestLabel, yOff);
             }
-            else if(usedEntries > 1)
+            else if(nvsManager->usedEntries > 1)
             {
                 char buf[ENTRIES_BUF_SIZE];
-                snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, usedEntries);
+                snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->usedEntries);
                 drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_used_entries, buf, afterLongestLabel, yOff);
             }
             else
@@ -571,50 +683,27 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             yOff += LINE_BREAK_Y + 1;
             int16_t xOff = CORNER_OFFSET;
             int16_t newYOff = nvsManager->disp->h - CORNER_OFFSET - nvsManager->ibm_vga8.h - LINE_BREAK_Y * 2 - 2;
-            const char* valueStr;
-            if(foundType)
+
+            const char* nextText;
+
+
+            if (nvsManager->curPage == NULL)
             {
-                if(readSuccess)
-                {
-                    switch(entryInfo.type)
-                    {
-                        case NVS_TYPE_U8:
-                        case NVS_TYPE_I8:
-                        case NVS_TYPE_U16:
-                        case NVS_TYPE_I16:
-                        case NVS_TYPE_U32:
-                        case NVS_TYPE_I32:
-                        case NVS_TYPE_U64:
-                        case NVS_TYPE_I64:
-                        {
-                            valueStr = num;
-                            break;
-                        }
-                        case NVS_TYPE_BLOB:
-                        {
-                            valueStr = blobAsHex;
-                            break;
-                        }
-                        case NVS_TYPE_STR:
-                        case NVS_TYPE_ANY:
-                        default:
-                        {
-                           valueStr = str_unknown_type;
-                           break;
-                        }
-                    }
-                }
-                else
-                {
-                    valueStr = str_read_failed;
-                }
+                // Add the beginning of the text as the first page
+                push(&nvsManager->pages, nvsManager->pageStr);
+                nvsManager->curPage = nvsManager->pages.first;
             }
-            else
+
+            // Now, draw the text, which will always be in the current page
+            nextText = drawTextWordWrap(nvsManager->disp, &nvsManager->ibm_vga8, color_value, (const char*)(nvsManager->curPage->val),
+                                                        &xOff, &yOff, nvsManager->disp->w - CORNER_OFFSET, newYOff);
+
+            if (nextText != NULL && nvsManager->curPage->next == NULL)
             {
-                valueStr = str_unknown_type;
+                // Save the next page if it hasn't already been saved
+                push(&nvsManager->pages, nextText);
             }
-            const char* nextText = drawTextWordWrap(nvsManager->disp, &nvsManager->ibm_vga8, color_value, valueStr,
-                                                    &xOff, &yOff, nvsManager->disp->w - CORNER_OFFSET, newYOff);
+
             if(nextText != NULL)
             {
                 drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_value, "...", nvsManager->disp->w - CORNER_OFFSET, yOff);
@@ -622,14 +711,6 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
 
             yOff = newYOff + LINE_BREAK_Y + 1;
             plotLine(nvsManager->disp, 0, yOff, nvsManager->disp->w, yOff, color_summary_h_rule, 0);
-
-            // Controls
-
-
-            if(blobAsHex != NULL)
-            {
-                free(blobAsHex);
-            }
             break;
         }
     }
@@ -782,13 +863,14 @@ void nvsManagerManageDataCb(const char* opt)
     }
     else
     {
+        nvsManager->loadedRow = UINT16_MAX;
         nvsManager->screen = NVS_MANAGE_KEY;
     }
 }
 
 /**
  * @brief Convert a blob to a hex string, with "0x" prefix
- * 
+ *
  * @param value The blob
  * @param length The length of the blob
  * @return char* An allocated hex string, must be free()'d when done
