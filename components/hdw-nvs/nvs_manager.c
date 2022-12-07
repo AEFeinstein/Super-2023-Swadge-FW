@@ -104,16 +104,17 @@ bool eraseNvs(void)
 }
 
 /**
- * @brief Read an unsigned 32 bit value from NVS with a given string key
+ * @brief Read an unsigned 8 bit value from a given namespace in NVS with a given string key
  *
+ * @param namespace The namespace containing the key for the value to read
  * @param key The key for the value to read
  * @param outVal The value that was read
  * @return true if the value was read, false if it was not
  */
-bool readNvsU8(const char* key, uint8_t* outVal)
+bool readNamespacedNvsU8(const char* namespace, const char* key, uint8_t* outVal)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READONLY, &handle);
+    esp_err_t openErr = nvs_open(namespace, NVS_READONLY, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -158,16 +159,17 @@ bool readNvsU8(const char* key, uint8_t* outVal)
 }
 
 /**
- * @brief Write an unsigned 8 bit value to NVS with a given string key
+ * @brief Write an unsigned 8 bit value to a given namespace in NVS with a given string key
  *
+ * @param namespace The namespace to contain the key for the value to write
  * @param key The key for the value to write
  * @param val The value to write
  * @return true if the value was written, false if it was not
  */
-bool writeNvsU8(const char* key, uint8_t val)
+bool writeNamespacedNvsU8(const char* namespace, const char* key, uint8_t val)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READWRITE, &handle);
+    esp_err_t openErr = nvs_open(namespace, NVS_READWRITE, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -215,16 +217,17 @@ bool writeNvsU8(const char* key, uint8_t val)
 }
 
 /**
- * @brief Read an unsigned 32 bit value from NVS with a given string key
+ * @brief Read an unsigned 32 bit value from a given namespace in NVS with a given string key
  *
+ * @param namespace The namespace containing the key for the value to read
  * @param key The key for the value to read
  * @param outVal The value that was read
  * @return true if the value was read, false if it was not
  */
-bool readNvsU32(const char* key, uint32_t* outVal)
+bool readNamespacedNvsU32(const char* namespace, const char* key, uint32_t* outVal)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READONLY, &handle);
+    esp_err_t openErr = nvs_open(namespace, NVS_READONLY, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -269,16 +272,17 @@ bool readNvsU32(const char* key, uint32_t* outVal)
 }
 
 /**
- * @brief Write an unsigned 32 bit value to NVS with a given string key
+ * @brief Write an unsigned 32 bit value to a given namespace in NVS with a given string key
  *
+ * @param namespace The namespace to contain the key for the value to write
  * @param key The key for the value to write
  * @param val The value to write
  * @return true if the value was written, false if it was not
  */
-bool writeNvsU32(const char* key, uint32_t val)
+bool writeNamespacedNvsU32(const char* namespace, const char* key, uint32_t val)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READWRITE, &handle);
+    esp_err_t openErr = nvs_open(namespace, NVS_READWRITE, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -326,16 +330,17 @@ bool writeNvsU32(const char* key, uint32_t val)
 }
 
 /**
- * @brief Read a 32 bit value from NVS with a given string key
+ * @brief Read a 32 bit value from a given namespace in NVS with a given string key
  *
+ * @param namespace The namespace containing the key for the value to read
  * @param key The key for the value to read
  * @param outVal The value that was read
  * @return true if the value was read, false if it was not
  */
-bool readNvs32(const char* key, int32_t* outVal)
+bool readNamespacedNvs32(const char* namespace, const char* key, int32_t* outVal)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READONLY, &handle);
+    esp_err_t openErr = nvs_open(namespace, NVS_READONLY, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -380,16 +385,17 @@ bool readNvs32(const char* key, int32_t* outVal)
 }
 
 /**
- * @brief Write a 32 bit value to NVS with a given string key
+ * @brief Write a 32 bit value to a given namespace in NVS with a given string key
  *
+ * @param namespace The namespace to contain the key for the value to write
  * @param key The key for the value to write
  * @param val The value to write
  * @return true if the value was written, false if it was not
  */
-bool writeNvs32(const char* key, int32_t val)
+bool writeNamespacedNvs32(const char* namespace, const char* key, int32_t val)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READWRITE, &handle);
+    esp_err_t openErr = nvs_open(namespace, NVS_READWRITE, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -437,17 +443,18 @@ bool writeNvs32(const char* key, int32_t val)
 }
 
 /**
- * @brief Read a blob from NVS with a given string key
+ * @brief Read a blob from a given namespace in NVS with a given string key
  * 
+ * @param namespace The namespace containing the key for the value to read
  * @param key The key for the value to read
  * @param out_value The value will be written to this memory. It must be allocated before calling readNvsBlob()
  * @param length The length of the value that was read
  * @return true if the value was read, false if it was not
  */
-bool readNvsBlob(const char* key, void* out_value, size_t* length)
+bool readNamespacedNvsBlob(const char* namespace, const char* key, void* out_value, size_t* length)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READONLY, &handle);
+    esp_err_t openErr = nvs_open(namespace, NVS_READONLY, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -492,17 +499,18 @@ bool readNvsBlob(const char* key, void* out_value, size_t* length)
 }
 
 /**
- * @brief Write a blob to NVS with a given string key
+ * @brief Write a blob to a given namespace in NVS with a given string key
  *
+ * @param namespace The namespace to contain the key for the value to write
  * @param key The key for the value to write
  * @param value The blob value to write
  * @param length The length of the blob
  * @return true if the value was written, false if it was not
  */
-bool writeNvsBlob(const char* key, const void* value, size_t length)
+bool writeNamespacedNvsBlob(const char* namespace, const char* key, const void* value, size_t length)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READWRITE, &handle);
+    esp_err_t openErr = nvs_open(namespace, NVS_READWRITE, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -550,15 +558,16 @@ bool writeNvsBlob(const char* key, const void* value, size_t length)
 }
 
 /**
- * @brief Delete the value with the given key from NVS
+ * @brief Delete the value with the given key from a given namespace in NVS
  *
+ * @param namespace The namespace containing the key to be deleted
  * @param key The NVS key to be deleted
  * @return true if the value was deleted, false if it was not
  */
-bool eraseNvsKey(const char* key)
+bool eraseNamespacedNvsKey(const char* namespace, const char* key)
 {
     nvs_handle_t handle;
-    esp_err_t openErr = nvs_open(NVS_NAMESPACE_NAME, NVS_READWRITE, &handle);
+    esp_err_t openErr = nvs_open(namespace, NVS_READWRITE, &handle);
     switch(openErr)
     {
         case ESP_OK:
@@ -631,13 +640,14 @@ bool readNvsStats(nvs_stats_t* outStats)
 }
 
 /**
- * @brief Read info about each used entry in NVS
+ * @brief Read info about each used entry in a given namespace in NVS
  *
+ * @param namespace The namespace to get entry infos from. NULL to get entry infos from all namespaces
  * @param outStats If non-NULL, the NVS stats struct will be written to this memory. It must be allocated before calling readAllNvsEntryInfos()
- * @param outEntries A pointer to an array of NVS entry info structs will be written to this memory. If there is already an allocated array, it will be freed and reallocated.
+ * @param outEntries A pointer to an array of NVS entry info structs will be written to this memory. If there is already an allocated array, it will be freed and reallocated
  * @return true if the entry infos were read, false if they were not
  */
-bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntries)
+bool readAllNamespacedNvsEntryInfos(const char* namespace, nvs_stats_t* outStats, nvs_entry_info_t** outEntries)
 {
     // If the user doesn't want to receive the stats, only use them internally
     bool freeOutStats = false;
@@ -663,7 +673,7 @@ bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntries)
     *outEntries = calloc(outStats->used_entries, sizeof(nvs_entry_info_t));
 
     // Example of listing all the key-value pairs of any type under specified partition and namespace
-    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, NULL, NVS_TYPE_ANY);
+    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, namespace, NVS_TYPE_ANY);
     size_t i = 0;
     while (it != NULL) {
             nvs_entry_info(it, &((*outEntries)[i]));

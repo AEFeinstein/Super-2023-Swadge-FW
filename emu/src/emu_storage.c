@@ -116,11 +116,12 @@ bool eraseNvs(void)
 /**
  * @brief Read an unsigned 8 bit value from NVS with a given string key
  *
+ * @param namespace UNIMPLEMENTED
  * @param key The key for the value to read
  * @param outVal The value that was read
  * @return true if the value was read, false if it was not
  */
-bool readNvsU8(const char* key, uint8_t* outVal)
+bool readNamespacedNvsU8(const char* namespace, const char* key, uint8_t* outVal)
 {
     // Open the file
     FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
@@ -173,11 +174,12 @@ bool readNvsU8(const char* key, uint8_t* outVal)
 /**
  * @brief Write an unsigned 8 bit value to NVS with a given string key
  *
+ * @param namespace UNIMPLEMENTED
  * @param key The key for the value to write
  * @param val The value to write
  * @return true if the value was written, false if it was not
  */
-bool writeNvsU8(const char* key, uint8_t val)
+bool writeNamespacedNvsU8(const char* namespace, const char* key, uint8_t val)
 {
     // Open the file
     FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
@@ -256,11 +258,12 @@ bool writeNvsU8(const char* key, uint8_t val)
 /**
  * @brief Read an unsigned 32 bit value from NVS with a given string key
  *
+ * @param namespace UNIMPLEMENTED
  * @param key The key for the value to read
  * @param outVal The value that was read
  * @return true if the value was read, false if it was not
  */
-bool readNvsU32(const char* key, uint32_t* outVal)
+bool readNamespacedNvsU32(const char* namespace, const char* key, uint32_t* outVal)
 {
     // Open the file
     FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
@@ -313,11 +316,12 @@ bool readNvsU32(const char* key, uint32_t* outVal)
 /**
  * @brief Write an unsigned 32 bit value to NVS with a given string key
  *
+ * @param namespace UNIMPLEMENTED
  * @param key The key for the value to write
  * @param val The value to write
  * @return true if the value was written, false if it was not
  */
-bool writeNvsU32(const char* key, uint32_t val)
+bool writeNamespacedNvsU32(const char* namespace, const char* key, uint32_t val)
 {
     // Open the file
     FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
@@ -396,11 +400,12 @@ bool writeNvsU32(const char* key, uint32_t val)
 /**
  * @brief Read a 32 bit value from NVS with a given string key
  *
+ * @param namespace UNIMPLEMENTED
  * @param key The key for the value to read
  * @param outVal The value that was read
  * @return true if the value was read, false if it was not
  */
-bool readNvs32(const char* key, int32_t* outVal)
+bool readNamespacedNvs32(const char* namespace, const char* key, int32_t* outVal)
 {
     // Open the file
     FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
@@ -453,11 +458,12 @@ bool readNvs32(const char* key, int32_t* outVal)
 /**
  * @brief Write a 32 bit value to NVS with a given string key
  *
+ * @param namespace UNIMPLEMENTED
  * @param key The key for the value to write
  * @param val The value to write
  * @return true if the value was written, false if it was not
  */
-bool writeNvs32(const char* key, int32_t val)
+bool writeNamespacedNvs32(const char* namespace, const char* key, int32_t val)
 {
     // Open the file
     FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
@@ -536,12 +542,13 @@ bool writeNvs32(const char* key, int32_t val)
 /**
  * @brief Read a blob from NVS with a given string key
  *
+ * @param namespace UNIMPLEMENTED
  * @param key The key for the value to read
  * @param out_value The value will be written to this memory. It must be allocated before calling readNvsBlob()
  * @param length If out_value is `NULL`, this will be set to the length of the given key. Otherwise, it is the length of the blob to read.
  * @return true if the value was read, false if it was not
  */
-bool readNvsBlob(const char* key, void* out_value, size_t* length)
+bool readNamespacedNvsBlob(const char* namespace, const char* key, void* out_value, size_t* length)
 {
     // Open the file
     FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
@@ -605,12 +612,13 @@ bool readNvsBlob(const char* key, void* out_value, size_t* length)
 /**
  * @brief Write a blob to NVS with a given string key
  *
+ * @param namespace UNIMPLEMENTED
  * @param key The key for the value to write
  * @param value The blob value to write
  * @param length The length of the blob
  * @return true if the value was written, false if it was not
  */
-bool writeNvsBlob(const char* key, const void* value, size_t length)
+bool writeNamespacedNvsBlob(const char* namespace, const char* key, const void* value, size_t length)
 {
     // Open the file
     FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
@@ -691,10 +699,11 @@ bool writeNvsBlob(const char* key, const void* value, size_t length)
 /**
  * @brief Delete the value with the given key from NVS
  *
+ * @param namespace UNIMPLEMENTED
  * @param key The NVS key to be deleted
  * @return true if the value was deleted, false if it was not
  */
-bool eraseNvsKey(const char* key)
+bool eraseNamespacedNvsKey(const char* namespace, const char* key)
 {
     // Open the file
     FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
@@ -858,15 +867,15 @@ bool readNvsStats(nvs_stats_t* outStats)
     return false;
 }
 
-
 /**
  * @brief Read info about each used entry in NVS
  *
+ * @param namespace UNIMPLEMENTED
  * @param outStats If non-NULL, the NVS stats struct will be written to this memory. It must be allocated before calling readAllNvsEntryInfos()
  * @param outEntries A pointer to an array of NVS entry info structs will be written to this memory. If there is already an allocated array, it will be freed and reallocated.
  * @return true if the entry infos were read, false if they were not
  */
-bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntries)
+bool readAllNamespacedNvsEntryInfos(const char* namespace, nvs_stats_t* outStats, nvs_entry_info_t** outEntries)
 {
     // Open the file
     FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");

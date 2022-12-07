@@ -543,7 +543,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                     case NVS_TYPE_U8:
                     {
                         uint8_t val;
-                        readSuccess = readNvsU8(entryInfo.key, &val);
+                        readSuccess = readNamespacedNvsU8(entryInfo.namespace_name, entryInfo.key, &val);
                         if(readSuccess)
                         {
                             snprintf(nvsManager->numStr, MAX_INT_STRING_LENGTH, str_u_dec_format, val);
@@ -554,7 +554,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                     case NVS_TYPE_U32:
                     {
                         uint32_t val;
-                        readSuccess = readNvsU32(entryInfo.key, &val);
+                        readSuccess = readNamespacedNvsU32(entryInfo.namespace_name, entryInfo.key, &val);
                         if(readSuccess)
                         {
                             snprintf(nvsManager->numStr, MAX_INT_STRING_LENGTH, str_u_dec_format, val);
@@ -565,7 +565,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                     case NVS_TYPE_I32:
                     {
                         int32_t val;
-                        readSuccess = readNvs32(entryInfo.key, &val);
+                        readSuccess = readNamespacedNvs32(entryInfo.namespace_name, entryInfo.key, &val);
                         if(readSuccess)
                         {
                             snprintf(nvsManager->numStr, MAX_INT_STRING_LENGTH, str_i_dec_format, val);
@@ -576,11 +576,11 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                     case NVS_TYPE_BLOB:
                     {
                         size_t length;
-                        readSuccess = readNvsBlob(entryInfo.key, NULL, &length);
+                        readSuccess = readNamespacedNvsBlob(entryInfo.namespace_name, entryInfo.key, NULL, &length);
                         if(readSuccess)
                         {
                             char* blob = calloc(1, length);
-                            readSuccess = readNvsBlob(entryInfo.key, blob, &length);
+                            readSuccess = readNamespacedNvsBlob(entryInfo.namespace_name, entryInfo.key, blob, &length);
                             if(readSuccess)
                             {
                                 nvsManager->blobStr = blobToStrWithPrefix(blob, length);
