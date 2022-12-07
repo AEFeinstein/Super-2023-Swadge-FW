@@ -14,13 +14,26 @@
 
 #define MANUAL_FONT_UI "ibm_vga8.font"
 #define MANUAL_FONT_HEADER "mm.font"
+#define MANUAL_TOP_MARGIN 13
 #define MANUAL_BOTTOM_MARGIN 24
+#define MANUAL_SIDE_MARGIN 13
 
 void manualEnterMode(display_t* disp);
 void manualExitMode(void);
 void manualMainLoop(int64_t elapsedUs);
 void manualButtonCb(buttonEvt_t* evt);
 void manualBgDrawCb(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum);
+
+void manualNextPage(void);
+void manualPrevPage(void);
+
+typedef enum
+{
+    NONE,
+    NEXT_PAGE,
+    PREV_PAGE,
+    RELOAD_PAGE,
+} nav_t;
 
 typedef struct
 {
@@ -38,6 +51,7 @@ const chapter_t chapters[] =
 {
     {.file = "manual_intro.txt", .title = "Introduction"},
     {.file = "manual_stresstest.txt", .title = "Test page please ignore"},
+    {.file = "manual_lipsum.txt", .title = "Lorem Ipsum"},
     {.file = "halfApress.txt", .title = "Half A-Press"},
 };
 
@@ -73,11 +87,14 @@ typedef struct
     markdownContinue_t* mdPosition;
     markdownParams_t mdParams;
 
-    chapter_t* chapter;
+    const chapter_t* chapter;
 
     char* text;
     list_t pages;
     node_t* curPage;
+
+    nav_t navigate;
+    bool reload;
 } manual_t;
 
 manual_t* manual;
@@ -114,8 +131,6 @@ node_t* paginateText(markdownText_t* markdown, list_t* container)
 
 void manualLoadText(bool reverse)
 {
-    // TODO: Clear the screen and draw a little hourglass
-
     ESP_LOGD("Manual", "Loading text");
     if (manual->markdown != NULL)
     {
@@ -158,6 +173,9 @@ void manualEnterMode(display_t* disp)
     manual->fgColor = c555;
     manual->bgColor = c000;
 
+    manual->navigate = RELOAD_PAGE;
+    manual->reload = true;
+
     loadFont(MANUAL_FONT_UI, &manual->uiFont);
     manual->bodyFont = manual->uiFont;
     loadFont(MANUAL_FONT_HEADER, &manual->headerFont);
@@ -166,8 +184,8 @@ void manualEnterMode(display_t* disp)
 
     markdownParams_t params =
     {
-        .xMin = 13, .yMin = 13,
-        .xMax = manual->disp->w - 13, .yMax = manual->disp->h - MANUAL_BOTTOM_MARGIN,
+        .xMin = MANUAL_SIDE_MARGIN, .yMin = MANUAL_TOP_MARGIN,
+        .xMax = manual->disp->w - MANUAL_SIDE_MARGIN, .yMax = manual->disp->h - MANUAL_BOTTOM_MARGIN,
         .bodyFont = &manual->bodyFont,
         .headerFont = &manual->headerFont,
         .color = manual->fgColor,
@@ -176,7 +194,6 @@ void manualEnterMode(display_t* disp)
     memcpy(&manual->mdParams, &params, sizeof(markdownParams_t));
 
     manual->chapter = chapters;
-    manualLoadText(false);
 }
 
 void manualExitMode(void)
@@ -209,37 +226,94 @@ void manualExitMode(void)
 
 void manualMainLoop(int64_t elapsedUs)
 {
-    fillDisplayArea(manual->disp, 0, 0, manual->disp->w, manual->disp->h, manual->bgColor);
+#define hasNext (manual->curPage->next != NULL || manual->chapter < lastChapter)
+#define hasPrev (manual->curPage->prev != NULL)
 
-    page_t* curPage = manual->curPage->val;
+    if (manual->navigate != NONE)
+    {
+        if (manual->reload)
+        {
+            if (manual->navigate == NEXT_PAGE)
+            {
+                manualNextPage();
+            }
+            else if (manual->navigate == PREV_PAGE)
+            {
+                manualPrevPage();
+            }
+            else if (manual->navigate == RELOAD_PAGE)
+            {
+                manualLoadText(false);
+            }
 
-    bool hasMore = drawMarkdown(manual->disp, manual->markdown, &manual->mdParams, &curPage->mdPos, false);
+            // Clear the screen
+            fillDisplayArea(manual->disp, 0, 0, manual->disp->w, manual->disp->h, manual->bgColor);
 
-    //const char* remainingText = richTextDraw(&manual->richText, manual->text + curPage->offset);
+            page_t* curPage = manual->curPage->val;
+            drawMarkdown(manual->disp, manual->markdown, &manual->mdParams, &curPage->mdPos, false);
+
+            manual->navigate = NONE;
+            manual->reload = false;
+        }
+        else
+        {
+            if (manual->navigate == RELOAD_PAGE
+                || (manual->navigate == NEXT_PAGE && hasNext)
+                || (manual->navigate == PREV_PAGE && hasPrev))
+            {
+                // Just draw the waiting icon and set us up to reload on the next frame
+                manual->reload = true;
+
+    #define HOURGLASS_W 20
+    #define HOURGLASS_H 37
+
+                plotCircleFilled(manual->disp, manual->disp->w / 2, manual->disp->h / 2, HOURGLASS_H / 2 + 6, manual->bgColor);
+                plotCircle(manual->disp, manual->disp->w / 2, manual->disp->h / 2, HOURGLASS_H / 2 + 6, manual->fgColor);
+                int16_t x0, x1;
+                int16_t y0, y1;
+
+                x0 = (manual->disp->w - HOURGLASS_W) / 2;
+                x1 = x0 + HOURGLASS_W;
+                y0 = (manual->disp->h - HOURGLASS_H) / 2;
+                y1 = y0 + HOURGLASS_H;
+
+                // Top-Left -> Bottom Right
+                plotLine(manual->disp, x0, y0, x1, y1, manual->fgColor, 0);
+                // Top-Left -> Top Right
+                plotLine(manual->disp, x0, y0, x1, y0, manual->fgColor, 0);
+                // Top-Right -> Bottom Left
+                plotLine(manual->disp, x1, y0, x0, y1, manual->fgColor, 0);
+                // Bottom-Left -> Bottom-Right
+                plotLine(manual->disp, x0, y1, x1, y1, manual->fgColor, 0);
+            }
+            else
+            {
+                manual->navigate = NONE;
+            }
+        }
+    }
+
+    fillDisplayArea(manual->disp, 0, 0, manual->disp->w, MANUAL_TOP_MARGIN, manual->bgColor);
+    fillDisplayArea(manual->disp, 0, 0, MANUAL_SIDE_MARGIN, manual->disp->h, manual->bgColor);
+    fillDisplayArea(manual->disp, manual->disp->w - MANUAL_SIDE_MARGIN + 1, 0, manual->disp->w, manual->disp->h, manual->bgColor);
+    fillDisplayArea(manual->disp, 0, manual->disp->h - MANUAL_BOTTOM_MARGIN + 1, manual->disp->w, manual->disp->h, manual->bgColor);
 
     plotLine(manual->disp, 0, manual->disp->h - MANUAL_BOTTOM_MARGIN + 1, manual->disp->w, manual->disp->h - MANUAL_BOTTOM_MARGIN + 1, manual->fgColor, 0);
 
     //  || manual->curPage->next != NULL || curPage->chapter < lastChapter
-    if (manual->curPage->next != NULL || manual->chapter < lastChapter)
+    if (hasNext)
     {
-        // Store the page for later if we haven't already done that
-        /*if (manual->curPage->next == NULL)
-        {
-            page_t* newPage = malloc(sizeof(page_t));
-            newPage->chapter = curPage->chapter;
-            //newPage->offset = remainingText - manual->text;
-            push(&manual->pages, newPage);
-        }*/
-
         // Draw a "next page" arrow
         drawWsg(manual->disp, &manual->arrowWsg, manual->disp->w - 40 - manual->arrowWsg.w, manual->disp->h - (MANUAL_BOTTOM_MARGIN - manual->arrowWsg.h) / 2 - manual->arrowWsg.h, false, false, 90);
     }
 
-    if (manual->curPage->prev != NULL)
+    if (hasPrev)
     {
         // Draw a "prev page" arrow
         drawWsg(manual->disp, &manual->arrowWsg, 40, manual->disp->h - (MANUAL_BOTTOM_MARGIN - manual->arrowWsg.h) / 2 - manual->arrowWsg.h, false, false, 270);
     }
+
+
 }
 
 void manualNextChapter(void)
@@ -299,11 +373,11 @@ void manualButtonCb(buttonEvt_t* evt)
             break;
 
             case LEFT:
-                manualPrevPage();
+                manual->navigate = PREV_PAGE;
             break;
 
             case RIGHT:
-                manualNextPage();
+                manual->navigate = NEXT_PAGE;
             break;
 
             case BTN_A:
