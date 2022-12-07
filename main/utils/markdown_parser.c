@@ -1249,23 +1249,8 @@ static void leavingNode(const mdNode_t* node, mdPrintState_t* state)
             }
             else if (node->option.type == STYLE)
             {
-                textStyle_t newStyle = findPreviousStyles(node, state);
-                // Check if the current style is italic, and the new style is not
-                /*if (node->option.style & STYLE_ITALIC && !(newStyle & STYLE_ITALIC))
-                {
-                    // If that's the case, we need to account for the extra width of italics!
-                    state->x += textWidthAttrs(state->font, "", state->params.style);
-
-                    // Check if we need to wrap
-                    if (state->x > state->params.xMax)
-                    {
-                        state->x = state->params.xMin;
-                        state->y += textLineHeight(state->font, state->params.style);
-                    }
-                }*/
-
-                // Actually set the new style
-                state->params.style = newStyle;
+                // Just set the new style
+                state->params.style = findPreviousStyles(node, state);
             }
             else
             {
@@ -1504,6 +1489,15 @@ static const char* planLine(display_t* disp, const mdNode_t* node, mdPrintState_
         // But then we use it to set firstTextOffset =
         const char* remainingText = node->text.start + state->textPos;
         state->textPos = 0;
+
+        // TODO: OPTIMIZATION!
+        // - Measure the entire text using `drawTextWordWrapExtra(NULL, ...)`
+        // - Because the height is uniform, we can just determine the number of lines to draw
+        // - Measure and add the remainder to the plan
+        // - Draw the planned line as usual
+        // - Then draw all but the last remaining line without involving the line planner
+        // - (but then we can't do centering... worry about thta later, it's not too much harder)
+        // - Add the remainder to the plan as usual
 
         while (remainingText != NULL)
         {
