@@ -137,7 +137,9 @@ DEFINES_LIST = \
 	CONFIG_TFT_MIN_BRIGHTNESS=10 \
 	SOC_TIMER_GROUP_TIMERS_PER_GROUP=2 \
 	SOC_TIMER_GROUPS=2 \
-	GIT_SHA1=${GIT_HASH}
+	GIT_SHA1=${GIT_HASH} \
+	HAS_XINERAMA=1 \
+	FULL_SCREEN_STEAL_FOCUS=1
 
 DEFINES = $(patsubst %, -D%, $(DEFINES_LIST))
 
@@ -172,7 +174,7 @@ ifeq ($(HOST_OS),Windows)
     LIBS = opengl32 gdi32 user32 winmm WSock32
 endif
 ifeq ($(HOST_OS),Linux)
-    LIBS = m X11 asound pulse rt GL GLX pthread
+    LIBS = m X11 asound pulse rt GL GLX pthread Xext Xinerama
 endif
 
 # These are directories to look for library files in

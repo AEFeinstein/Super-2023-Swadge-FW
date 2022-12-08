@@ -17,7 +17,7 @@
 #include "fighter_menu.h"
 #include "jumper_menu.h"
 #include "meleeMenu.h"
-#include "mode_bee.h"
+#include "mode_copypasta.h"
 #include "mode_colorchord.h"
 #include "mode_credits.h"
 #include "mode_dance.h"
@@ -34,6 +34,15 @@
 #include "mode_tunernome.h"
 #include "picross_menu.h"
 // #include "picross_select.h"
+#if defined(EMU)
+#include "emu_main.h"
+#endif
+
+//==============================================================================
+// Defines
+//==============================================================================
+
+#define GIT_SHA1_LENGTH 7
 
 //==============================================================================
 // Functions Prototypes
@@ -80,10 +89,10 @@ typedef struct
     uint8_t menuSelection;
     uint32_t battVal;
     wsg_t batt[4];
-    wsg_t usb;
+    // wsg_t usb;
     int32_t autoLightDanceTimer;
     bool debugMode;
-    char gitStr[32];
+    char gitStr[6 + GIT_SHA1_LENGTH];
 } mainMenu_t;
 
 //==============================================================================
@@ -110,7 +119,7 @@ swadgeMode modeMainMenu =
     .overrideUsb = false,
 };
 
-const char mainMenuTitle[] = "Swadge 1.0";
+const char mainMenuTitle[] = "Swadge 1.1";
 const char mainMenuGames[] = "Games";
 const char mainMenuTools[] = "Tools";
 const char mainMenuMusic[] = "Music";
@@ -127,6 +136,9 @@ char mainMenuMicGain[] = "Mic Gain: 1";
 char mainMenuScreensaverTimeout[] = "Screensaver: 20s";
 char mainMenuScreensaverOff[] = "Screensaver: Off";
 const char mainMenuCredits[] = "Credits";
+#if defined(EMU)
+const char mainMenuExit[] = "Exit";
+#endif
 
 static const int16_t cheatCode[11] = {UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, BTN_B, BTN_A, START};
 
@@ -172,9 +184,9 @@ void mainMenuEnterMode(display_t* disp)
     loadWsg("batt2.wsg", &mainMenu->batt[1]);
     loadWsg("batt3.wsg", &mainMenu->batt[2]);
     loadWsg("batt4.wsg", &mainMenu->batt[3]);
-    loadWsg("usb.wsg", &mainMenu->usb);
+    // loadWsg("usb.wsg", &mainMenu->usb);
 
-    sprintf(mainMenu->gitStr, "Git: %s", GIT_SHA1);
+    snprintf(mainMenu->gitStr, sizeof(mainMenu->gitStr), "Git: %s", GIT_SHA1);
 
     // Initialize the menu
     mainMenu->menu = initMeleeMenu(mainMenuTitle, &mainMenu->meleeMenuFont, mainMenuTopLevelCb);
@@ -190,7 +202,7 @@ void mainMenuExitMode(void)
     freeWsg(&mainMenu->batt[1]);
     freeWsg(&mainMenu->batt[2]);
     freeWsg(&mainMenu->batt[3]);
-    freeWsg(&mainMenu->usb);
+    // freeWsg(&mainMenu->usb);
     deinitMeleeMenu(mainMenu->menu);
     freeFont(&mainMenu->meleeMenuFont);
     freeFont(&mainMenu->ibmFont);
@@ -281,6 +293,12 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                     mainMenu->debugMode = true;
                     buzzer_play_bgm(&secretSong);
                     mainMenuSetUpSecretMenu(true);
+                    return;
+                }
+
+                // Do not forward the A or START in the cheat code to the rest of the mode
+                if(evt->button == BTN_A || evt->button == START)
+                {
                     return;
                 }
             }
@@ -410,6 +428,9 @@ void mainMenuSetUpTopMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, mainMenuMusic);
     addRowToMeleeMenu(mainMenu->menu, mainMenuSettings);
     addRowToMeleeMenu(mainMenu->menu, mainMenuCredits);
+#if defined(EMU)
+    addRowToMeleeMenu(mainMenu->menu, mainMenuExit);
+#endif
 
     // Set the position
     if(resetPos)
@@ -450,6 +471,12 @@ void mainMenuTopLevelCb(const char* opt)
     {
         switchToSwadgeMode(&modeCredits);
     }
+#if defined(EMU)
+    else if (mainMenuExit == opt)
+    {
+        emu_quit();
+    }
+#endif
 }
 
 /**
@@ -783,7 +810,7 @@ void mainMenuSetUpSecretMenu(bool resetPos)
 {
     // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuSecret, mainMenuSecretCb);
-    addRowToMeleeMenu(mainMenu->menu, modeBee.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeCopyPasta.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeTest.modeName);
     addRowToMeleeMenu(mainMenu->menu, mainMenu->gitStr);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
@@ -806,10 +833,10 @@ void mainMenuSecretCb(const char* opt)
     mainMenu->secretPos = mainMenu->menu->selectedRow;
 
     // Handle the option
-    if(modeBee.modeName == opt)
+    if(modeCopyPasta.modeName == opt)
     {
-        // Start bee stuff
-        switchToSwadgeMode(&modeBee);
+        // Start copyPastas
+        switchToSwadgeMode(&modeCopyPasta);
     }
     if(modeTest.modeName == opt)
     {

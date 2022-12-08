@@ -145,21 +145,37 @@ void setPxScaled(display_t* disp, int x, int y, paletteColor_t col, int xTr, int
     plotRectFilledScaled(disp, x, y, x + 1, y + 1, col, xTr, yTr, xScale, yScale);
 }
 
-void paintDrawWsgTemp(display_t* disp, const wsg_t* wsg, pxStack_t* saveTo, uint16_t xOffset, uint16_t yOffset, colorMapFn_t colorSwap)
+bool paintDrawWsgTemp(display_t* disp, const wsg_t* wsg, pxStack_t* saveTo, uint16_t xOffset, uint16_t yOffset, colorMapFn_t colorSwap)
 {
     size_t i = 0;
+
+    // Make sure there's enough space to save the pixels to the stack
+    if (!maybeGrowPxStack(saveTo, wsg->h * wsg->w))
+    {
+        return false;
+    }
+
     for (uint16_t y = 0; y < wsg->h; y++)
     {
         for (uint16_t x = 0; x < wsg->w; x++, i++)
         {
             if (wsg->px[i] != cTransparent)
             {
-                pushPx(saveTo, disp, xOffset + x, yOffset + y);
+                if (!pushPx(saveTo, disp, xOffset + x, yOffset + y))
+                {
+                    // There wasn't enough space to save the pixel!!!
+                    // This definitely shouldn't have happened because we already
+                    // reserved the space for it...
+                    // Oh well. Stop drawing pixels that we can't take back!
+                    return false;
+                }
 
                 disp->setPx(xOffset + x, yOffset + y, colorSwap ? colorSwap(disp->getPx(xOffset + x, yOffset + y)) : wsg->px[i]);
             }
         }
     }
+
+    return true;
 }
 
 // Calculate the maximum possible [square] scale, given the display's dimensions and the image dimensions, plus any margins required

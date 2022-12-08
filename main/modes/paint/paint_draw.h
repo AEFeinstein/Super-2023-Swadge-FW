@@ -7,6 +7,7 @@
 
 #include "paint_common.h"
 #include "paint_brush.h"
+#include "paint_help.h"
 
 extern paintDraw_t* paintState;
 
@@ -52,6 +53,14 @@ bool paintTutorialCheckTrigger(const paintHelpTrigger_t* trigger);
 void paintPositionDrawCanvas(void);
 
 void paintHandleDpad(uint16_t state);
+void paintFreeUndos(void);
+void paintStoreUndo(paintCanvas_t* canvas);
+bool paintMaybeSacrificeUndoForHeap(void);
+bool paintCanUndo(void);
+bool paintCanRedo(void);
+void paintApplyUndo(paintCanvas_t* canvas);
+void paintUndo(paintCanvas_t* canvas);
+void paintRedo(paintCanvas_t* canvas);
 void paintDoTool(uint16_t x, uint16_t y, paletteColor_t col);
 void paintSwapFgBgColors(void);
 void paintEnterSelectMode(void);
@@ -68,10 +77,6 @@ void paintNextTool(void);
 void paintSetBrushWidth(uint8_t width);
 void paintDecBrushWidth(uint8_t dec);
 void paintIncBrushWidth(uint8_t inc);
-
-// Cursor helper functions
-void enableCursor(void);
-void disableCursor(void);
 
 // Artist helpers
 paintArtist_t* getArtist(void);

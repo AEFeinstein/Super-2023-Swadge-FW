@@ -394,6 +394,15 @@ const song_t jumpBlumpJump =
     .shouldLoop = false
 };
 
+static const char str_score[] = "SCORE";
+static const char str_hi_score[] = "HI SCORE";
+static const char str_paused[] = "PAUSED";
+static const char str_jump[] = "JUMP!";
+static const char str_ready[] = "READY";
+static const char str_game_over[] = "GAME OVER";
+static const char str_awesome[] = "AWESOME!";
+static const char str_sweet[] = "SWEET!";
+
 //==============================================================================
 // Functions
 //==============================================================================
@@ -1850,16 +1859,16 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline, 
     }
 
 #if RIGHT_JUSTIFY_DONUT_SCORES != 0
-    drawText(d, prompt, c555, "SCORE", maxScoreWidth - textWidth(prompt, "SCORE") + 18, 10);
+    drawText(d, prompt, c555, str_score, maxScoreWidth - textWidth(prompt, str_score) + 18, 10);
     drawText(d, scoreFont, c555, textBuffer, maxScoreWidth - scoreWidth + 18, 30);
 
-    drawText(d, prompt, c555, "HI SCORE", d->w - textWidth(prompt, "HI SCORE") - 18, 10);
+    drawText(d, prompt, c555, str_hi_score, d->w - textWidth(prompt, str_hi_score) - 18, 10);
     drawText(d, scoreFont, c555, textBuffer2, d->w - hiScoreWidth - 18, 30);
 #else
-    drawText(d, prompt, c555, "SCORE", 18, 10);
+    drawText(d, prompt, c555, str_score, 18, 10);
     drawText(d, scoreFont, c555, textBuffer, 18, 30);
 
-    drawText(d, prompt, c555, "HI SCORE", d->w - maxScoreWidth - 18, 10);
+    drawText(d, prompt, c555, str_hi_score, d->w - maxScoreWidth - 18, 10);
     drawText(d, scoreFont, c555, textBuffer2, d->w - maxScoreWidth - 18, 30);
 #endif
 
@@ -1870,8 +1879,8 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline, 
 
     if (j->currentPhase == JUMPER_PAUSE)
     {
-        drawText(d, outline, c000, "PAUSED", 100, 128);
-        drawText(d, font, c555, "PAUSED", 100, 128);   
+        drawText(d, outline, c000, str_paused, 100, 128);
+        drawText(d, font, c555, str_paused, 100, 128);   
     }
 
     //Show countdown sequence
@@ -1879,8 +1888,8 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline, 
     {
         if (j->scene->seconds <= 0)
         {
-            drawText(d, outline, c000, "JUMP!", 100, 128);
-            drawText(d, font, c555, "JUMP!", 100, 128);            
+            drawText(d, outline, c000, str_jump, 100, 128);
+            drawText(d, font, c555, str_jump, 100, 128);            
         }
         else if (j->scene->seconds <= 3 )
         {
@@ -1890,8 +1899,8 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline, 
         }
         else
         {
-            drawText(d, outline, c000, "READY", 100, 128);
-            drawText(d, font, c555, "READY", 100, 128);
+            drawText(d, outline, c000, str_ready, 100, 128);
+            drawText(d, font, c555, str_ready, 100, 128);
         }
     }
 
@@ -1899,28 +1908,28 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline, 
     {
         if (j->scene->seconds <= 0 && j->scene->seconds > -2)
         {
-            drawText(d, outline, c000, "JUMP!", 100, 128);
-            drawText(d, font, c555, "JUMP!", 100, 128);
+            drawText(d, outline, c000, str_jump, 100, 128);
+            drawText(d, font, c555, str_jump, 100, 128);
         }
     }
 
     if (j->currentPhase == JUMPER_GAME_OVER)
     {
-        drawText(d, outline, c000, "GAME OVER", 80, 128);
-        drawText(d, font, c555, "GAME OVER", 80, 128);
+        drawText(d, outline, c000, str_game_over, 80, 128);
+        drawText(d, font, c555, str_game_over, 80, 128);
     }
 
     if (j->currentPhase == JUMPER_WINSTAGE)
     {
         if (j->scene->combo >= j->scene->perfect)
         {
-            drawText(d, outline, c000, "AWESOME!", 90, 128);
-            drawText(d, font, c555, "AWESOME!", 90, 128);
+            drawText(d, outline, c000, str_awesome, 90, 128);
+            drawText(d, font, c555, str_awesome, 90, 128);
         }
         else
         {
-            drawText(d, outline, c000, "SWEET!", 100, 128);
-            drawText(d, font, c555, "SWEET!", 100, 128);
+            drawText(d, outline, c000, str_sweet, 100, 128);
+            drawText(d, font, c555, str_sweet, 100, 128);
         }
     }
     

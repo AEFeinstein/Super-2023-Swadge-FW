@@ -567,9 +567,10 @@ void setFighterMainMenu(bool resetPos)
 #if defined(EMU)
     // Local VS is for the emulator only!
     addRowToMeleeMenu(fm->menu, str_localVs);
-#endif
+#else
     addRowToMeleeMenu(fm->menu, str_wirelessMulti);
     addRowToMeleeMenu(fm->menu, str_wireMulti);
+#endif
     addRowToMeleeMenu(fm->menu, str_hrContest);
     addRowToMeleeMenu(fm->menu, str_vsCpu);
     addRowToMeleeMenu(fm->menu, str_records);

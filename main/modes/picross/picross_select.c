@@ -21,6 +21,8 @@
 //====
 picrossLevelSelect_t* ls;
 
+static const char str_win[] = "You Are Win!";
+
 //===
 //Function Prototypes
 //
@@ -234,8 +236,8 @@ void drawLevelSelectScreen(display_t* d,font_t* font)
 
     if(ls->allLevelsComplete)
     {
-        drawText(d,ls->game_font,c000,"You Are Win!",53,103);
-        drawText(d,ls->game_font,c555,"You Are Win!",50,100);
+        drawText(d,ls->game_font,c000,str_win,53,103);
+        drawText(d,ls->game_font,c555,str_win,50,100);
     }
 }
 
