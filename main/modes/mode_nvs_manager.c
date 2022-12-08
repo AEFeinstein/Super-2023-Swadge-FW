@@ -41,7 +41,7 @@
 
 #define CORNER_OFFSET 14
 //#define TOP_TEXT_X_MARGIN CORNER_OFFSET / 2
-#define LINE_BREAK_Y 5
+#define LINE_BREAK_Y 4
 #define MAX_INT_STRING_LENGTH 21
 #define ENTRIES_BUF_SIZE MAX_INT_STRING_LENGTH + 8
 
@@ -116,11 +116,12 @@ swadgeMode modeNvsManager =
 // The state data
 typedef struct
 {
-    // Display and fonts
+    // Display, fonts, wsgs
     display_t* disp;
     font_t ibm_vga8;
     font_t radiostars;
     font_t mm;
+    wsg_t ibm_vga8_arrow;
 
     // Menu
     meleeMenu_t* menu;
@@ -140,6 +141,7 @@ typedef struct
     // Paginated text cache
     list_t pages;
     node_t* curPage;
+    uint32_t curPageNum;
     uint16_t loadedRow;
     // Just points to blobStr or numStr
     char* pageStr;
@@ -213,6 +215,7 @@ const char str_unknown_type[] = "Error: Unknown type";
 const char str_hex_format[] = "0x%x";
 //const char str_u_dec_format[] = "%u";
 const char str_i_dec_format[] = "%d";
+const char str_page_format[] = "Page %u";
 
 /*============================================================================
  * Functions
@@ -231,6 +234,8 @@ void  nvsManagerEnterMode(display_t* disp)
     loadFont("ibm_vga8.font", &nvsManager->ibm_vga8);
     loadFont("radiostars.font", &nvsManager->radiostars);
     loadFont("mm.font", &nvsManager->mm);
+
+    loadWsg("arrow10.wsg", &nvsManager->ibm_vga8_arrow);
 
     nvsManager->loadedRow = UINT16_MAX;
 
@@ -252,6 +257,8 @@ void  nvsManagerExitMode(void)
     freeFont(&nvsManager->ibm_vga8);
     freeFont(&nvsManager->radiostars);
     freeFont(&nvsManager->mm);
+
+    freeWsg(&nvsManager->ibm_vga8_arrow);
 
     if(nvsManager->nvsKeys != NULL)
     {
@@ -409,6 +416,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                         if (nvsManager->curPage != NULL && nvsManager->curPage->prev != NULL)
                         {
                             nvsManager->curPage = nvsManager->curPage->prev;
+                            nvsManager->curPageNum--;
                         }
                         break;
                     }
@@ -419,6 +427,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                         if (nvsManager->curPage != NULL && nvsManager->curPage->next != NULL)
                         {
                             nvsManager->curPage = nvsManager->curPage->next;
+                            nvsManager->curPageNum++;
                         }
                         break;
                     }
@@ -577,6 +586,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             {
 
                 nvsManager->curPage = NULL;
+                nvsManager->curPageNum = 0;
                 clear(&nvsManager->pages);
 
                 if (nvsManager->blobStr != NULL)
@@ -718,13 +728,14 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             //////////////////////////////////////////////
             yOff += LINE_BREAK_Y + 1;
             int16_t xOff = CORNER_OFFSET;
-            int16_t newYOff = nvsManager->disp->h - CORNER_OFFSET - nvsManager->ibm_vga8.h - LINE_BREAK_Y * 2 - 2;
-            const char* nextText;
+            int16_t newYOff = nvsManager->disp->h - CORNER_OFFSET - nvsManager->ibm_vga8.h * 2 - LINE_BREAK_Y * 3 - 2;
+            char* nextText;
             if (nvsManager->curPage == NULL)
             {
                 // Add the beginning of the text as the first page
                 push(&nvsManager->pages, nvsManager->pageStr);
                 nvsManager->curPage = nvsManager->pages.first;
+                nvsManager->curPageNum = 1;
             }
 
             // Now, draw the text, which will always be in the current page
@@ -737,13 +748,28 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                 push(&nvsManager->pages, nextText);
             }
 
-            if(nextText != NULL)
+            // if(nextText != NULL)
+            // {
+            //     drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_value, "...", nvsManager->disp->w - CORNER_OFFSET, yOff);
+            // }
+
+            // Pagination controls, page number
+            yOff = newYOff + LINE_BREAK_Y;
+            if(nvsManager->curPage->next != NULL || nvsManager->curPage->prev != NULL)
             {
-                drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_value, "...", nvsManager->disp->w - CORNER_OFFSET, yOff);
+                drawWsg(nvsManager->disp, &nvsManager->ibm_vga8_arrow, CORNER_OFFSET, yOff, false, false, 270);
+                char buf[ENTRIES_BUF_SIZE];
+                snprintf(buf, ENTRIES_BUF_SIZE, str_page_format, nvsManager->curPageNum);
+                drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, buf, (nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf)) / 2, yOff);
+                drawWsg(nvsManager->disp, &nvsManager->ibm_vga8_arrow, nvsManager->disp->w - nvsManager->ibm_vga8_arrow.h - CORNER_OFFSET, yOff, false, false, 90);
             }
 
-            yOff = newYOff + LINE_BREAK_Y + 1;
+            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y + 1;
             plotLine(nvsManager->disp, 0, yOff, nvsManager->disp->w, yOff, color_summary_h_rule, 0);
+
+            // Controls
+
+
             break;
         }
     }
