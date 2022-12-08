@@ -521,6 +521,15 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
         }
         case NVS_WARNING:
         {
+            led_t leds[NUM_LEDS];
+            for(uint8_t i = 0; i < NUM_LEDS; i++)
+            {
+                leds[i].r = 0xFF;
+                leds[i].g = 0x00;
+                leds[i].b = 0x00;
+            }
+            setLeds(leds, NUM_LEDS);
+
             fillDisplayArea(nvsManager->disp, 0, 0, nvsManager->disp->w, nvsManager->disp->h, color_warning_bg);
 
             int16_t yOff = CORNER_OFFSET;
