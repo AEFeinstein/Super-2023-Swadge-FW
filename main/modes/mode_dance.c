@@ -103,6 +103,7 @@ static const ledDanceArg ledDances[] =
     {.func = dancePureRandom,    .arg = 0, .name = "Random LEDs"},
     {.func = danceChristmas,     .arg = 1, .name = "Holiday 1"},
     {.func = danceChristmas,     .arg = 0, .name = "Holiday 2"},
+    {.func = danceFlashlight,    .arg = 0, .name = "Flashlight"},
     {.func = danceNone,          .arg = 0, .name = "None"},
     {.func = danceRandomDance,   .arg = 0, .name = "Shuffle All"},
 };
@@ -464,8 +465,7 @@ void dancePollTouch(void)
     {
         uint8_t index = ((centroid * (sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1) + 512) / 1024);
 
-        // Flip it so fast is up and slow is down
-        danceState->danceSpeed = sizeof(danceSpeeds) / sizeof(*danceSpeeds) - 1 - index;
+        danceState->danceSpeed = index;
         danceState->buttonPressedTimer = 0;
     }
 }
@@ -517,11 +517,11 @@ void danceRedrawScreen(void)
         yOff += danceState->infoFont.h + 16;
         if (danceSpeeds[danceState->danceSpeed] > DANCE_SPEED_MULT)
         {
-            snprintf(text, sizeof(text), "X~Y: Speed: 1/%dx", danceSpeeds[danceState->danceSpeed] / DANCE_SPEED_MULT);
+            snprintf(text, sizeof(text), "Y~X: Speed: 1/%dx", danceSpeeds[danceState->danceSpeed] / DANCE_SPEED_MULT);
         }
         else
         {
-            snprintf(text, sizeof(text), "X~Y: Speed: %dx",  DANCE_SPEED_MULT / danceSpeeds[danceState->danceSpeed]);
+            snprintf(text, sizeof(text), "Y~X: Speed: %dx",  DANCE_SPEED_MULT / danceSpeeds[danceState->danceSpeed]);
         }
         width = textWidth(&(danceState->infoFont), text);
         drawText(danceState->disp, &(danceState->infoFont), c555,
@@ -1299,6 +1299,47 @@ void danceRainbowSolid(uint32_t tElapsedUs, uint32_t arg __attribute__((unused))
 }
 
 /**
+ * Turn on all LEDs and Make Purely White
+ *
+ * @param tElapsedUs The time elapsed since last call, in microseconds
+ * @param reset      true to reset this dance's variables
+ */
+void danceFlashlight(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)), bool reset)
+{
+    static uint32_t tAccumulated = 0;
+
+    if(reset)
+    {
+        tAccumulated = 70000;
+        return;
+    }
+
+    // Declare some LEDs, all off
+    led_t leds[NUM_LEDS] = {{0}};
+    bool ledsUpdated = false;
+
+    tAccumulated += tElapsedUs;
+    while(tAccumulated >= 70000)
+    {
+        tAccumulated -= 70000;
+        ledsUpdated = true;
+
+        uint8_t i;
+        for(i = 0; i < NUM_LEDS; i++)
+        {
+            leds[i].r = 0xFF;
+            leds[i].g = 0xFF;
+            leds[i].b = 0xFF;
+        }
+    }
+    // Output the LED data, actually turning them on
+    if(ledsUpdated)
+    {
+        setLeds(leds, NUM_LEDS);
+    }
+}
+
+/**
  * Pick a random dance mode and call it at its period for 4.5s. Then pick
  * another random dance and repeat
  *
@@ -1319,14 +1360,14 @@ void danceRandomDance(uint32_t tElapsedUs, uint32_t arg __attribute__((unused)),
 
     if(-1 == random_choice)
     {
-        random_choice = danceRand(getNumDances() - 2); // exclude the random mode, excluding random & none
+        random_choice = danceRand(getNumDances() - 3); // exclude the random mode, excluding random & none
     }
 
     tAccumulated += tElapsedUs;
     while(tAccumulated >= 4500000)
     {
         tAccumulated -= 4500000;
-        random_choice = danceRand(getNumDances() - 2); // exclude the random & none mode
+        random_choice = danceRand(getNumDances() - 3); // exclude the random & none mode
         ledDances[random_choice].func(0, ledDances[random_choice].arg, true);
     }
 

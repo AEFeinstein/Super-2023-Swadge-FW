@@ -19,9 +19,8 @@ idf_component_register(
         "modes/fighter/mode_fighter.c"
         "modes/jumper/jumper_menu.c"
         "modes/jumper/mode_jumper.c"
-        "modes/mode_bee.c"
-        "modes/secret_text.c"
         "modes/mode_colorchord.c"
+        "modes/mode_copypasta.c"
         "modes/mode_credits.c"
         "modes/mode_dance.c"
         "modes/mode_diceroller.c"
@@ -38,6 +37,7 @@ idf_component_register(
         "modes/paint/paint_common.c"
         "modes/paint/paint_draw.c"
         "modes/paint/paint_gallery.c"
+        "modes/paint/paint_help.c"
         "modes/paint/paint_nvs.c"
         "modes/paint/paint_share.c"
         "modes/paint/paint_song.c"
@@ -100,3 +100,13 @@ endfunction()
 # the target with 'idf.py -p PORT flash'.
 spiffs_file_preprocessor()
 spiffs_create_partition_image(storage ../spiffs_image FLASH_IN_PROJECT)
+
+
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE VERSION_SHA1 )
+
+string(STRIP ${VERSION_SHA1} VERSION_SHA1)
+
+add_definitions( -DGIT_SHA1="${VERSION_SHA1}" )

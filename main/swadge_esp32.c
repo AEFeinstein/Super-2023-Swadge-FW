@@ -115,6 +115,31 @@ void simulateBtn(void (*fnButtonCallback)(buttonEvt_t* evt), buttonBit_t btn, ui
 // Variables
 //==============================================================================
 
+#if defined(EMU)
+// Keep the emu in a single mode
+int lockMode = false;
+int monkeyAround = false;
+int fullscreen = false;
+int hideLeds = false;
+int64_t fuzzerModeTestTime = 120 * 1000000;
+int64_t resetToMenuTimer = 0;
+int64_t fuzzButtonDelay = 100 * 1000; // 100ms
+int8_t fuzzButtonProbability = 100; // 100 percent
+// Up, Down, Left, Right, A, B, Start, Select
+char keyButtonsP1[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i'};
+char keyButtonsP2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
+char keyTouchP1[] = {'1', '2', '3', '4', '5'};
+// allocated for symmetry but unused
+char keyTouchP2[] = {'6', '7', '8', '9', '0'};
+
+char fuzzKeysP1[] = {'w', 's', 'a', 'd', 'l', 'k', 'o', 'i'};
+char fuzzKeysP2[] = {'t', 'g', 'f', 'h', 'm', 'n', 'r', 'y'};
+char fuzzTouchP1[] = {'1', '2', '3', '4', '5'};
+char fuzzTouchP2[] = {'6', '7', '8', '9', '0'};
+uint8_t fuzzKeyCount = 8;
+uint8_t fuzzTouchCount = 5;
+#endif
+
 static RTC_DATA_ATTR swadgeMode* pendingSwadgeMode = NULL;
 static swadgeMode* cSwadgeMode = &modeMainMenu;
 static bool isSandboxMode = false;
@@ -821,8 +846,12 @@ void mainSwadgeTask(void* arg __attribute((unused)))
                     tLastMainLoopCall = tNowUs;
                 }
 
+#if defined(EMU)
+                if (!lockMode && 0 != time_exit_pressed)
+#else
                 // If start & select are being held
                 if(0 != time_exit_pressed)
+#endif
                 {
                     // Figure out for how long
                     int64_t tHeldUs = tNowUs - time_exit_pressed;
@@ -958,10 +987,13 @@ void cleanupOnExit(void)
  */
 void switchToSwadgeMode(swadgeMode* mode)
 {
-#if !defined(MONKEY_AROUND)
-    pendingSwadgeMode = mode;
-    isSandboxMode = false;
+#if defined(EMU)
+    if (!monkeyAround || lockMode)
 #endif
+    {
+        pendingSwadgeMode = mode;
+        isSandboxMode = false;
+    }
 }
 
 /**
@@ -971,10 +1003,13 @@ void switchToSwadgeMode(swadgeMode* mode)
  */
 void switchToSwadgeModeFuzzer(swadgeMode* mode)
 {
-#if defined(MONKEY_AROUND)
-    pendingSwadgeMode = mode;
-    isSandboxMode = false;
+#if defined(EMU)
+    if (monkeyAround && !lockMode)
 #endif
+    {
+        pendingSwadgeMode = mode;
+        isSandboxMode = false;
+    }
 }
 
 /**

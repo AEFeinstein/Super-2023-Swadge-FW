@@ -90,8 +90,8 @@ void drawNavigation()
     t = ((tut->d->w) - t)/2;
     drawText(tut->d,&tut->titleFont,c555,textBuffer1,t, 16);
     
-    char textBuffer2[18];
-    sprintf(textBuffer2, "picross.hdyar.com");
+    char textBuffer2[20];
+    sprintf(textBuffer2, "swadge.com/picross/");
     int16_t x = textWidth(&tut->smallFont,textBuffer2);
     x = ((tut->d->w) - x)/2;
     drawText(tut->d,&tut->smallFont,c555,textBuffer2,x,tut->d->h - 20);

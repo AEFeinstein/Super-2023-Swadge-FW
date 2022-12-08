@@ -89,6 +89,7 @@ void paintGallerySetup(display_t* disp, bool screensaver)
     paintGallery->gallerySpeed = US_PER_MS * transitionTimeMap[paintGallery->gallerySpeedIndex];
 
     paintGallery->portableDances = initPortableDance(danceIndexKey);
+    portableDanceDisableDance(paintGallery->portableDances, "Flashlight");
 
     if (!(paintGallery->index & PAINT_ENABLE_LEDS))
     {
@@ -193,7 +194,7 @@ void paintGalleryDrawUi(void)
     paintGalleryAddInfoText(text, 1, false, 0, 0);
 
     // Draw the controls
-    snprintf(text, sizeof(text), "X~Y: LED Brightness: %d", getLedBrightness());
+    snprintf(text, sizeof(text), "Y~X: LED Brightness: %d", getLedBrightness());
     paintGalleryAddInfoText(text, 2, false, 0, 0);
 
 
@@ -366,7 +367,7 @@ void paintGalleryModePollTouch(void)
     {
         // Bar is touched, convert the centroid into 8 segments (0-7)
         // But also reverse it so up is bright and down is less bright
-        uint8_t curTouchSegment = 7 - ((centroid * 7 + 512) / 1024);
+        uint8_t curTouchSegment = ((centroid * 7 + 512) / 1024);
 
         if (curTouchSegment != getLedBrightness())
         {

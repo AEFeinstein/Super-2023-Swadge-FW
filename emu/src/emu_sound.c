@@ -201,6 +201,26 @@ void buzzer_init(gpio_num_t bzrGpio,
 }
 
 /**
+ * @brief Set the emulated buzzer's bgm mute status
+ * 
+ * @param isBgmMuted True if background music is muted, false otherwise
+ */
+void buzzer_set_bgm_is_muted(bool isBgmMuted)
+{
+    emuBgmMuted = isBgmMuted;
+}
+
+/**
+ * @brief Set the emulated buzzer's sfx mute status
+ * 
+ * @param isSfxMuted True if sound effects are muted, false otherwise
+ */
+void buzzer_set_sfx_is_muted(bool isSfxMuted)
+{
+    emuSfxMuted = isSfxMuted;
+}
+
+/**
  * @brief Play a song on the emulated buzzer
  *
  * @param song A song to play
@@ -317,7 +337,14 @@ void buzzer_check_next_note(void)
 	}
 
 	bool sfxIsActive = buzzer_track_check_next_note(&emuBzrSfx, true);
-	buzzer_track_check_next_note(&emuBzrBgm, !sfxIsActive);
+	bool bgmIsActive = buzzer_track_check_next_note(&emuBzrBgm, !sfxIsActive);
+
+    // If nothing is playing, but there is BGM (i.e. SFX finished)
+    if((false == sfxIsActive) && (false == bgmIsActive) && (NULL != emuBzrBgm.song))
+    {
+        // Immediately start playing BGM to get back on track faster
+        playNote(emuBzrBgm.song->notes[emuBzrBgm.note_index].note);
+    }
 }
 
 /**

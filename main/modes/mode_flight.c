@@ -34,10 +34,9 @@
 #include "mode_flight.h"
 #include "flight/3denv.h"
 
-// TODO     linkedInfo_t* invYmnu;
-// XXX TODO HOW TO DO SAVE DATA
-static flightSimSaveData_t savedata;
-static int didFlightsimDataLoad;
+/*============================================================================
+ * Defines
+ *==========================================================================*/
 
 // Thruster speed, etc.
 #define THRUSTER_ACCEL   2
@@ -46,35 +45,6 @@ static int didFlightsimDataLoad;
 #define FLIGHT_SPEED_DEC 12
 #define FLIGHT_MAX_SPEED 50
 #define FLIGHT_MIN_SPEED 8
-
-flightSimSaveData_t * getFlightSaveData(void);
-void setFlightSaveData( flightSimSaveData_t * sd );
-
-flightSimSaveData_t * getFlightSaveData(void)
-{
-    if( !didFlightsimDataLoad )
-    {
-        size_t size = sizeof(savedata);
-        bool r = readNvsBlob( "flightsim", &savedata, &size );
-        if( !r || size != sizeof( savedata ) )
-        {
-            memset( &savedata, 0, sizeof( savedata ) );
-        }
-        didFlightsimDataLoad = 1;
-    }
-    return &savedata;
-}
-
-void setFlightSaveData( flightSimSaveData_t * sd )
-{
-    if( sd != &savedata )
-        memcpy( &savedata, sd, sizeof( savedata ) );
-    writeNvsBlob( "flightsim", &savedata, sizeof( savedata ) );
-}
-
-/*============================================================================
- * Defines, Structs, Enums
- *==========================================================================*/
 
 //XXX TODO: Refactor - these should probably be unified.
 #define MAXRINGS 15
@@ -87,10 +57,16 @@ void setFlightSaveData( flightSimSaveData_t * sd )
 #define CNDRAW_BLACK 0
 #define CNDRAW_WHITE 18 // actually greenish
 #define PROMPT_COLOR 92
+#define MAX_COLOR cTransparent
 
+#define flightGetCourseTimeUs() ( flight->paused ? (flight->timeOfPause - flight->timeOfStart) : ((uint32_t)esp_timer_get_time() - flight->timeOfStart) )
 
 #define TFT_WIDTH 280
 #define TFT_HEIGHT 240
+
+/*============================================================================
+ * Structs, Enums
+ *==========================================================================*/
 
 typedef enum
 {
@@ -130,6 +106,7 @@ typedef struct
     display_t * disp;
     int frames, tframes;
     uint8_t buttonState;
+    bool paused;
 
     int16_t planeloc[3];
     int32_t planeloc_fine[3];
@@ -152,8 +129,9 @@ typedef struct
     int ondonut;
     uint32_t timeOfStart;
     uint32_t timeGot100Percent;
+    uint32_t timeAccumulatedAtPause;
+    uint32_t timeOfPause;
     int wintime;
-    bool inverty;
     uint8_t menuEntryForInvertY;
 
     flLEDAnimation ledAnimation;
@@ -161,15 +139,23 @@ typedef struct
 
     char highScoreNameBuffer[FLIGHT_HIGH_SCORE_NAME_LEN];
     uint8_t beangotmask[MAXRINGS];
+
+    // TODO     linkedInfo_t* invYmnu;
+    // XXX TODO HOW TO DO SAVE DATA
+    flightSimSaveData_t savedata;
+    int didFlightsimDataLoad;
+
+    int16_t ModelviewMatrix[16];
+    int16_t ProjectionMatrix[16];
+    int renderlinecolor;
 } flight_t;
-
-
-int renderlinecolor = CNDRAW_WHITE;
 
 /*============================================================================
  * Prototypes
  *==========================================================================*/
 
+bool getFlightSaveData(flight_t* flightPtr);
+bool setFlightSaveData( flightSimSaveData_t * sd );
 static void flightRender(int64_t elapsedUs);
 static void flightBackground(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum );
 static void flightEnterMode(display_t * disp);
@@ -202,6 +188,10 @@ static const char fl_flight_env[] = "Atrium Course";
 static const char fl_flight_invertY0_env[] = "Y Invert: Off";
 static const char fl_flight_invertY1_env[] = "Y Invert: On";
 static const char fl_flight_perf[] = "Free Flight";
+static const char fl_100_percent[] = "100% 100% 100%";
+static const char fl_turn_around[] = "TURN AROUND";
+static const char fl_you_win[] = "YOU   WIN!";
+static const char fl_paused[] = "PAUSED";
 static const char str_quit[] = "Exit";
 static const char str_high_scores[] = "High Scores";
 
@@ -226,6 +216,29 @@ flight_t* flight;
  * Functions
  *==========================================================================*/
 
+bool getFlightSaveData(flight_t* flightPtr)
+{
+    if( !flightPtr->didFlightsimDataLoad )
+    {
+        size_t size = sizeof(flightPtr->savedata);
+        bool r = readNvsBlob( "flightsim", &flightPtr->savedata, &size );
+        if( !r || size != sizeof( flightPtr->savedata ) )
+        {
+            memset( &flightPtr->savedata, 0, sizeof( flightPtr->savedata ) );
+
+            // Set defaults here!
+            flightPtr->savedata.flightInvertY = 0;
+        }
+        flightPtr->didFlightsimDataLoad = 1;
+    }
+    return flightPtr->didFlightsimDataLoad;
+}
+
+bool setFlightSaveData( flightSimSaveData_t * sd )
+{
+    return writeNvsBlob( "flightsim", sd, sizeof( flightSimSaveData_t ) );
+}
+
 static void flightBackground(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum )
 {
     fillDisplayArea( disp, x, y, x+w, h+y, CNDRAW_BLACK );
@@ -245,6 +258,7 @@ static void flightEnterMode(display_t * disp)
 
     flight->mode = FLIGHT_MENU;
     flight->disp = disp;
+    flight->renderlinecolor = CNDRAW_WHITE;
 
     const uint16_t * data = model3d;//(uint16_t*)getAsset( "3denv.obj", &retlen );
     data+=2; //header
@@ -264,11 +278,11 @@ static void flightEnterMode(display_t * disp)
     flight->menu = initMeleeMenu(fl_title, &flight->meleeMenuFont, flightMenuCb);
     flight->menu->allowLEDControl = 0; // we manage the LEDs
 
-    flight->inverty = getFlightSaveData()->flightInvertY;
+    getFlightSaveData(flight);
 
     addRowToMeleeMenu(flight->menu, fl_flight_env);
     addRowToMeleeMenu(flight->menu, fl_flight_perf);
-    flight->menuEntryForInvertY = addRowToMeleeMenu( flight->menu, flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env );
+    flight->menuEntryForInvertY = addRowToMeleeMenu( flight->menu, flight->savedata.flightInvertY?fl_flight_invertY1_env:fl_flight_invertY0_env );
     addRowToMeleeMenu(flight->menu, str_high_scores);
     addRowToMeleeMenu(flight->menu, str_quit);
 }
@@ -307,15 +321,17 @@ static void flightMenuCb(const char* menuItem)
     }
     else if ( fl_flight_invertY0_env == menuItem )
     {
-        // XXX TODO SAVE DEFAULT FOR FLIGHT DATA
-        flight->inverty = 1;
+        flight->savedata.flightInvertY = 1;
         flight->menu->rows[flight->menuEntryForInvertY] = fl_flight_invertY1_env;
+
+        setFlightSaveData( &flight->savedata );
     }
     else if ( fl_flight_invertY1_env == menuItem )
     {
-        // XXX TODO SAVE DEFAULT FOR FLIGHT DATA
-        flight->inverty = 0;
+        flight->savedata.flightInvertY = 0;
         flight->menu->rows[flight->menuEntryForInvertY] = fl_flight_invertY0_env;
+
+        setFlightSaveData( &flight->savedata );
     }
     else if ( str_high_scores == menuItem )
     {
@@ -332,7 +348,7 @@ static void flightEndGame()
     if( flightTimeHighScorePlace( flight->wintime, flight->beans == MAX_BEANS ) < NUM_FLIGHTSIM_TOP_SCORES )
     {
         flight->mode = FLIGHT_HIGH_SCORE_ENTRY;
-        textEntryStart( flight->disp, FLIGHT_HIGH_SCORE_NAME_LEN+1, flight->highScoreNameBuffer );
+        textEntryStart( flight->disp, &flight->ibm, FLIGHT_HIGH_SCORE_NAME_LEN+1, flight->highScoreNameBuffer );
     }
     else
     {
@@ -409,6 +425,8 @@ static void flightStartGame( flightModeScreen mode )
     flight->mode = mode;
     flight->frames = 0;
 
+    flight->paused = false;
+
 	if( mode == FLIGHT_PERFTEST )
 	{
 		setFrameRateUs( 0 );
@@ -420,8 +438,9 @@ static void flightStartGame( flightModeScreen mode )
 
     flight->ondonut = 0; //Set to 14 to b-line it to the end for testing.
     flight->beans = 0; //Set to MAX_BEANS for 100% instant.
-    flight->timeOfStart = (uint32_t)esp_timer_get_time();//-1000000*190; (Do this to force extra coursetime)
+    flight->timeOfStart = (uint32_t)esp_timer_get_time();//-1000000*190; // (Do this to force extra coursetime)
     flight->timeGot100Percent = 0;
+    flight->timeOfPause = 0;
     flight->wintime = 0;
     flight->speed = 0;
 
@@ -453,13 +472,13 @@ static void flightStartGame( flightModeScreen mode )
 static void flightUpdate(void* arg __attribute__((unused)))
 {
     display_t * disp = flight->disp;
-    static const char * EnglishNumberSuffix[] = { "st", "nd", "rd", "th" };
+    static const char* const EnglishNumberSuffix[] = { "st", "nd", "rd", "th" };
     switch(flight->mode)
     {
         default:
         case FLIGHT_MENU:
         {
-               drawMeleeMenu(flight->disp, flight->menu);
+            drawMeleeMenu(flight->disp, flight->menu);
             break;
         }
         case FLIGHT_PERFTEST:
@@ -482,7 +501,6 @@ static void flightUpdate(void* arg __attribute__((unused)))
             fillDisplayArea( disp, 0, 0, disp->w, disp->h, CNDRAW_BLACK );
 
             char buffer[32];
-            flightSimSaveData_t * sd = getFlightSaveData();
             int line;
 
             drawText( flight->disp, &flight->ibm, CNDRAW_WHITE, "ANY %", 47+20, 30 );
@@ -496,8 +514,8 @@ static void flightUpdate(void* arg __attribute__((unused)))
 
                 for( anyp = 0; anyp < 2; anyp++ )
                 {
-                    int cs = sd->timeCentiseconds[line+anyp*NUM_FLIGHTSIM_TOP_SCORES];
-                    char * name = sd->displayName[line+anyp*NUM_FLIGHTSIM_TOP_SCORES];
+                    int cs = flight->savedata.timeCentiseconds[line+anyp*NUM_FLIGHTSIM_TOP_SCORES];
+                    char * name = flight->savedata.displayName[line+anyp*NUM_FLIGHTSIM_TOP_SCORES];
                     char namebuff[FLIGHT_HIGH_SCORE_NAME_LEN+1];    //Force pad of null.
                     memcpy( namebuff, name, FLIGHT_HIGH_SCORE_NAME_LEN );
                     namebuff[FLIGHT_HIGH_SCORE_NAME_LEN] = 0;
@@ -544,9 +562,6 @@ int16_t tdDist( const int16_t * a, const int16_t * b );
 
 
 //From https://github.com/cnlohr/channel3/blob/master/user/3d.c
-
-int16_t ModelviewMatrix[16];
-int16_t ProjectionMatrix[16];
 
 uint16_t tdSQRT( uint32_t inval )
 {
@@ -637,10 +652,10 @@ void Perspective( int fovx, int aspect, int zNear, int zFar, int16_t * out )
 
 void SetupMatrix( void )
 {
-    tdIdentity( ProjectionMatrix );
-    tdIdentity( ModelviewMatrix );
+    tdIdentity( flight->ProjectionMatrix );
+    tdIdentity( flight->ModelviewMatrix );
 
-    Perspective( 1200, 128 /* 0.5 */, 50, 8192, ProjectionMatrix );
+    Perspective( 1200, 128 /* 0.5 */, 50, 8192, flight->ProjectionMatrix );
 }
 
 void tdMultiply( int16_t * fin1, int16_t * fin2, int16_t * fout )
@@ -753,8 +768,8 @@ void td4Transform( int16_t * pin, int16_t * f, int16_t * pout )
 int LocalToScreenspace( const int16_t * coords_3v, int16_t * o1, int16_t * o2 )
 {
     int16_t tmppt[4] = { coords_3v[0], coords_3v[1], coords_3v[2], 256 };
-    td4Transform( tmppt, ModelviewMatrix, tmppt );
-    td4Transform( tmppt, ProjectionMatrix, tmppt );
+    td4Transform( tmppt, flight->ModelviewMatrix, tmppt );
+    td4Transform( tmppt, flight->ProjectionMatrix, tmppt );
     if( tmppt[3] >= -4 ) { return -1; }
     int calcx = ((256 * tmppt[0] / tmppt[3])/16+(TFT_WIDTH/2));
     int calcy = ((256 * tmppt[1] / tmppt[3])/8+(TFT_HEIGHT/2));
@@ -783,8 +798,8 @@ int tdModelVisibilitycheck( const tdModel * m )
 
     //For computing visibility check
     int16_t tmppt[4] = { m->center[0], m->center[1], m->center[2], 256 }; //No multiplier seems to work right here.
-    td4Transform( tmppt, ModelviewMatrix, tmppt );
-    td4Transform( tmppt, ProjectionMatrix, tmppt );
+    td4Transform( tmppt, flight->ModelviewMatrix, tmppt );
+    td4Transform( tmppt, flight->ProjectionMatrix, tmppt );
     if( tmppt[3] < -2 )
     {
         int scx = ((256 * tmppt[0] / tmppt[3])/16+(TFT_WIDTH/2));
@@ -846,7 +861,7 @@ void tdDrawModel( display_t * disp, const tdModel * m )
 
             if( cv1[2] != 2 && cv2[2] != 2 )
             {
-                speedyLine( disp, cv1[0], cv1[1], cv2[0], cv2[1], renderlinecolor );
+                speedyLine( disp, cv1[0], cv1[1], cv2[0], cv2[1], flight->renderlinecolor );
             }
         }
     }
@@ -944,8 +959,8 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
 // #endif
 
 
-    tdRotateEA( ProjectionMatrix, tflight->hpr[1]/11, tflight->hpr[0]/11, 0 );
-    tdTranslate( ModelviewMatrix, -tflight->planeloc[0], -tflight->planeloc[1], -tflight->planeloc[2] );
+    tdRotateEA( flight->ProjectionMatrix, tflight->hpr[1]/11, tflight->hpr[0]/11, 0 );
+    tdTranslate( flight->ModelviewMatrix, -tflight->planeloc[0], -tflight->planeloc[1], -tflight->planeloc[2] );
 
     struct ModelRangePair mrp[tflight->enviromodels];
     int mdlct = 0;
@@ -996,7 +1011,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
                 {
                     flightLEDAnimate( FLIGHT_LED_ENDING );
                     tflight->frames = 0;
-                    tflight->wintime = ((uint32_t)esp_timer_get_time() - tflight->timeOfStart)/10000;
+                    tflight->wintime = flightGetCourseTimeUs() / 10000;
                     tflight->mode = FLIGHT_GAME_OVER;
                 }
             }
@@ -1067,15 +1082,15 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
             {
                 // Originally, (tflight->frames&1)?CNDRAW_WHITE:CNDRAW_BLACK;
                 // Now, let's go buck wild.
-                renderlinecolor = (tflight->frames*7)&127;
+                flight->renderlinecolor = (tflight->frames*7)&127;
             }
             if( draw == 3 )
             {
-                //renderlinecolor = (tflight->frames&1)?CNDRAW_BLACK:CNDRAW_WHITE;
-                renderlinecolor = ((tflight->frames+i))&127;
+                //flight->renderlinecolor = (tflight->frames&1)?CNDRAW_BLACK:CNDRAW_WHITE;
+                flight->renderlinecolor = ((tflight->frames+i))&127;
             }
             tdDrawModel( disp, m );
-            renderlinecolor = CNDRAW_WHITE;
+            flight->renderlinecolor = CNDRAW_WHITE;
         }
     }
 
@@ -1102,7 +1117,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
             fillDisplayArea(disp, 0, 0, TFT_WIDTH, flight->radiostars.h + 1, CNDRAW_BLACK);
 
             //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
-            int elapsed = ((uint32_t)esp_timer_get_time()-tflight->timeOfStart)/10000;
+            int elapsed = flightGetCourseTimeUs() / 10000;
 
             snprintf(framesStr, sizeof(framesStr), "%d/%d, %d", tflight->ondonut, MAX_DONUTS, tflight->beans );
             // width = textWidth(&flight->radiostars, framesStr);
@@ -1130,10 +1145,17 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
         fillDisplayArea(disp, TFT_WIDTH - width-50, TFT_HEIGHT - flight->radiostars.h - 1, TFT_WIDTH, TFT_HEIGHT, CNDRAW_BLACK);
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - width + 1-50, TFT_HEIGHT - flight->radiostars.h );
 
+        if(flight->paused)
+        {
+            width = textWidth(&flight->ibm, fl_paused);
+            fillDisplayArea(disp, (TFT_WIDTH - width) / 2 - 2, TFT_HEIGHT / 4 - 2, (TFT_WIDTH + width) / 2 + 2, TFT_HEIGHT / 4 + flight->ibm.h + 2, CNDRAW_BLACK);
+            drawText(disp, &flight->ibm, PROMPT_COLOR, fl_paused, (TFT_WIDTH - width) / 2, TFT_HEIGHT / 4);
+        }
+
         if(flight->oob)
         {
-            width = textWidth(&flight->ibm, "TURN AROUND");
-            drawText(disp, &flight->ibm, PROMPT_COLOR, "TURN AROUND", (TFT_WIDTH - width) / 2, (TFT_HEIGHT - flight->ibm.h) / 2);
+            width = textWidth(&flight->ibm, fl_turn_around);
+            drawText(disp, &flight->ibm, PROMPT_COLOR, fl_turn_around, (TFT_WIDTH - width) / 2, (TFT_HEIGHT - 6 * flight->ibm.h) / 2);
         }
 
         // Draw crosshairs.
@@ -1146,21 +1168,20 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
     {
         char framesStr[32] = {0};
         //ets_snprintf(framesStr, sizeof(framesStr), "%02x %dus", tflight->buttonState, (stop-start)/160);
-        snprintf(framesStr, sizeof(framesStr), "YOU  WIN:" );
-        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+75, 50);
-        snprintf(framesStr, sizeof(framesStr), "TIME:%d.%02d", tflight->wintime/100,tflight->wintime%100 );
-        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, ((tflight->wintime>10000)?14:20)+75, 18+50);
-        snprintf(framesStr, sizeof(framesStr), "BEANS:%2d",tflight->beans );
-        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 20+75, 36+50);
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, fl_you_win, (disp->w - textWidth(&flight->radiostars, fl_you_win)) / 2, 50);
+        snprintf(framesStr, sizeof(framesStr), "TIME: %d.%02d", tflight->wintime/100,tflight->wintime%100 );
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, (disp->w - textWidth(&flight->radiostars, framesStr)) / 2/*((tflight->wintime>10000)?14:20)+75*/, 18+50);
+        snprintf(framesStr, sizeof(framesStr), "BEANS: %2d",tflight->beans );
+        drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, (disp->w - textWidth(&flight->radiostars, framesStr)) / 2, 36+50);
     }
 
     if( tflight->beans >= MAX_BEANS )
     {
         if( tflight->timeGot100Percent == 0 )
-            tflight->timeGot100Percent = ((uint32_t)esp_timer_get_time() - tflight->timeOfStart);
+            tflight->timeGot100Percent = flightGetCourseTimeUs();
 
-        int crazy = (((uint32_t)esp_timer_get_time() - tflight->timeOfStart)-tflight->timeGot100Percent) < 3000000;
-        drawText( disp, &flight->ibm, crazy?( tflight->tframes * 9 ):PROMPT_COLOR, "100% 100% 100%", 10+75, 52+50 );
+        int crazy = (flightGetCourseTimeUs() - tflight->timeGot100Percent) < 3000000;
+        drawText( disp, &flight->ibm, crazy?( tflight->tframes * 9 % MAX_COLOR ):PROMPT_COLOR, fl_100_percent, (TFT_WIDTH - textWidth(&flight->ibm, fl_100_percent)) / 2, (TFT_HEIGHT - 4 * flight->ibm.h) / 2 + 2);
     }
 
     //If perf test, force full frame refresh
@@ -1184,6 +1205,11 @@ static void flightGameUpdate( flight_t * tflight )
         flightEndGame();
     }
 
+    if( flight->paused )
+    {
+        return;
+    }
+
     if( tflight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_PERFTEST )
     {
         int dpitch = 0;
@@ -1194,7 +1220,10 @@ static void flightGameUpdate( flight_t * tflight )
         if( bs & 1 ) dyaw += THRUSTER_ACCEL;
         if( bs & 2 ) dyaw -= THRUSTER_ACCEL;
 
-        if( tflight->inverty ) dyaw *= -1;
+        if( tflight->savedata.flightInvertY ) dyaw *= -1;
+
+        // If flying upside down, invert left/right. (Optional see flip note below)
+        if( tflight->hpr[1] >= 990 && tflight->hpr[1] < 2970 ) dpitch *= -1;
 
         if( dpitch )
         {
@@ -1228,6 +1257,10 @@ static void flightGameUpdate( flight_t * tflight )
         if( tflight->hpr[1] >= 3960 ) tflight->hpr[1] -= 3960;
         if( tflight->hpr[1] < 0 ) tflight->hpr[1] += 3960;
 
+        // Optional: Prevent us from doing a flip.
+        // if( tflight->hpr[1] > 1040 && tflight->hpr[1] < 1980 ) tflight->hpr[1] = 1040;
+        // if( tflight->hpr[1] < 2990 && tflight->hpr[1] > 1980 ) tflight->hpr[1] = 2990;
+
         if( bs & 16 ) tflight->speed++;
         else tflight->speed--;
         if( tflight->speed < flight_min_speed ) tflight->speed = flight_min_speed;
@@ -1236,8 +1269,9 @@ static void flightGameUpdate( flight_t * tflight )
 
     //If game over, just keep status quo.
 
-    flight->planeloc_fine[0] += (tflight->speed * getSin1024( tflight->hpr[0]/11 ) );
-    flight->planeloc_fine[2] += (tflight->speed * getCos1024( tflight->hpr[0]/11 ) );
+    int yawDivisor = getCos1024( tflight->hpr[1]/11 );
+    flight->planeloc_fine[0] += (tflight->speed * getSin1024( tflight->hpr[0]/11 ) * yawDivisor ) >> 10;
+    flight->planeloc_fine[2] += (tflight->speed * getCos1024( tflight->hpr[0]/11 ) * yawDivisor ) >> 10;
     flight->planeloc_fine[1] -= (tflight->speed * getSin1024( tflight->hpr[1]/11 ) );
 
     tflight->planeloc[0] = flight->planeloc_fine[0]>>FLIGHT_SPEED_DEC;
@@ -1248,34 +1282,34 @@ static void flightGameUpdate( flight_t * tflight )
     tflight->oob = false;
     if(tflight->planeloc[0] < -1900)
     {
-        tflight->planeloc[0] = -1900;
+        flight->planeloc_fine[0] = -(1900<<FLIGHT_SPEED_DEC);
         tflight->oob = true;
     }
     else if(tflight->planeloc[0] > 1900)
     {
-        tflight->planeloc[0] = 1900;
+        flight->planeloc_fine[0] = 1900<<FLIGHT_SPEED_DEC;
         tflight->oob = true;
     }
 
     if(tflight->planeloc[1] < -800)
     {
-        tflight->planeloc[1] = -800;
+        flight->planeloc_fine[1] = -(800<<FLIGHT_SPEED_DEC);
         tflight->oob = true;
     }
     else if(tflight->planeloc[1] > 3500)
     {
-        tflight->planeloc[1] = 3500;
+        flight->planeloc_fine[1] = 3500<<FLIGHT_SPEED_DEC;
         tflight->oob = true;
     }
 
     if(tflight->planeloc[2] < -1300)
     {
-        tflight->planeloc[2] = -1300;
+        flight->planeloc_fine[2] = -(1300<<FLIGHT_SPEED_DEC);
         tflight->oob = true;
     }
     else if(tflight->planeloc[2] > 3700)
     {
-        tflight->planeloc[2] = 3700;
+        flight->planeloc_fine[2] = 3700<<FLIGHT_SPEED_DEC;
         tflight->oob = true;
     }
 }
@@ -1305,12 +1339,10 @@ void flightButtonCallback( buttonEvt_t* evt )
                 // If we are left-and-right on Y not inverted then we invert y or not.
                 if( ( button & ( LEFT | RIGHT ) ) && flight->menu->selectedRow == flight->menuEntryForInvertY )
                 {
-                    flight->inverty ^= 1;
-                    flight->menu->rows[flight->menuEntryForInvertY] = flight->inverty?fl_flight_invertY1_env:fl_flight_invertY0_env;
+                    flight->savedata.flightInvertY ^= 1;
+                    flight->menu->rows[flight->menuEntryForInvertY] = flight->savedata.flightInvertY?fl_flight_invertY1_env:fl_flight_invertY0_env;
 
-                    flightSimSaveData_t * sd = getFlightSaveData();
-                    sd->flightInvertY = flight->inverty;
-                    setFlightSaveData( sd );
+                    setFlightSaveData( &flight->savedata );
                 }
             }
             break;
@@ -1342,11 +1374,31 @@ void flightButtonCallback( buttonEvt_t* evt )
             }
             break;
         }
-        case FLIGHT_GAME_OVER:
         case FLIGHT_PERFTEST:
         case FLIGHT_GAME:
         {
+            if(evt->down && evt->button == START)
+            {
+                // If we're about to pause, save current course time
+                if(!flight->paused)
+                {
+                    flight->timeOfPause = (uint32_t)esp_timer_get_time();
+                }
+                // If we're about to resume, subtract time spent paused from start time
+                else
+                {
+                    flight->timeOfStart += ((uint32_t)esp_timer_get_time() - flight->timeOfPause);
+                }
+
+                flight->paused = !flight->paused;
+            }
+
+            // Intentional fallthrough
+        }
+        case FLIGHT_GAME_OVER:
+        {
             flight->buttonState = state;
+
             break;
         }
     }
@@ -1365,11 +1417,10 @@ void flightButtonCallback( buttonEvt_t* evt )
  */
 static int flightTimeHighScorePlace( int wintime, bool is100percent )
 {
-    flightSimSaveData_t * sd = getFlightSaveData();
     int i;
     for( i = 0; i < NUM_FLIGHTSIM_TOP_SCORES; i++ )
     {
-        int cs = sd->timeCentiseconds[i+is100percent*NUM_FLIGHTSIM_TOP_SCORES];
+        int cs = flight->savedata.timeCentiseconds[i+is100percent*NUM_FLIGHTSIM_TOP_SCORES];
         if( !cs || cs > wintime ) break;
     }
     return i;
@@ -1387,26 +1438,24 @@ static void flightTimeHighScoreInsert( int insertplace, bool is100percent, char 
 {
     if( insertplace >= NUM_FLIGHTSIM_TOP_SCORES || insertplace < 0 ) return;
 
-    flightSimSaveData_t * sd = getFlightSaveData();
     int i;
     for( i = NUM_FLIGHTSIM_TOP_SCORES-1; i > insertplace; i-- )
     {
-        memcpy( sd->displayName[i+is100percent*NUM_FLIGHTSIM_TOP_SCORES],
-            sd->displayName[(i-1)+is100percent*NUM_FLIGHTSIM_TOP_SCORES],
+        memcpy( flight->savedata.displayName[i+is100percent*NUM_FLIGHTSIM_TOP_SCORES],
+            flight->savedata.displayName[(i-1)+is100percent*NUM_FLIGHTSIM_TOP_SCORES],
             NUM_FLIGHTSIM_TOP_SCORES );
-        sd->timeCentiseconds[i+is100percent*NUM_FLIGHTSIM_TOP_SCORES] =
-            sd->timeCentiseconds[i-1+is100percent*NUM_FLIGHTSIM_TOP_SCORES];
+        flight->savedata.timeCentiseconds[i+is100percent*NUM_FLIGHTSIM_TOP_SCORES] =
+            flight->savedata.timeCentiseconds[i-1+is100percent*NUM_FLIGHTSIM_TOP_SCORES];
     }
     int namelen = strlen( name );
     if( namelen > FLIGHT_HIGH_SCORE_NAME_LEN ) namelen = FLIGHT_HIGH_SCORE_NAME_LEN;
-    memcpy( sd->displayName[insertplace+is100percent*NUM_FLIGHTSIM_TOP_SCORES],
+    memcpy( flight->savedata.displayName[insertplace+is100percent*NUM_FLIGHTSIM_TOP_SCORES],
         name, namelen );
 
     //Zero pad if less than 4 chars.
     if( namelen < FLIGHT_HIGH_SCORE_NAME_LEN )
-        sd->displayName[insertplace+is100percent*NUM_FLIGHTSIM_TOP_SCORES][namelen] = 0;
+        flight->savedata.displayName[insertplace+is100percent*NUM_FLIGHTSIM_TOP_SCORES][namelen] = 0;
 
-    sd->timeCentiseconds[insertplace+is100percent*NUM_FLIGHTSIM_TOP_SCORES] = timeCentiseconds;
-    setFlightSaveData( sd );
+    flight->savedata.timeCentiseconds[insertplace+is100percent*NUM_FLIGHTSIM_TOP_SCORES] = timeCentiseconds;
+    setFlightSaveData( &flight->savedata );
 }
-

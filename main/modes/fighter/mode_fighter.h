@@ -203,6 +203,8 @@ typedef struct
     uint16_t landingLag;
     /* how floaty a jump is */
     int32_t gravity;
+    /* weight is a scalar for knockback */
+    int32_t weight;
     /* A negative velocity applied when jumping.
      * The more negative, the higher the jump
      */
@@ -228,8 +230,9 @@ typedef struct
     uint8_t stockIconIdx;
     /* Input Tracking */
     int32_t prevBtnState;
-    int32_t btnState;
-    int32_t btnPressesSinceLast;
+    int32_t btnStateBuf[10];
+    int16_t bsBufHead;
+    int16_t bsBufTail;
     /* Current state tracking */
     fighterState_t state;
     bool isAerialAttack;
@@ -250,6 +253,8 @@ typedef struct
     offsetSprite_t* currentSprite;
     uint32_t hitstopTimer;
     uint8_t hitstopShake;
+    vector_t deferredKnockback;
+    int32_t deferredHitsun;
 } fighter_t;
 
 typedef struct

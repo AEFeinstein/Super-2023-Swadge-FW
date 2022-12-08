@@ -25,10 +25,13 @@
 // Constants
 //==============================================================================
 
+#define RIGHT_JUSTIFY_DONUT_SCORES 0
+
 #define TO_SECONDS 1000000
 
 static const uint8_t rowOffset[] = {5, 10, 15, 10, 5};
 static const uint32_t aiResponseTime[] = { 2000000, 1000000, 900000, 800000, 700000, 600000, 500000, 400000, 300000, 200000 }; // level 1 will have a time of 3
+
 //===
 // Structs
 //===
@@ -45,12 +48,12 @@ void jumperKillPlayer(void);
 void jumperDoLEDs(int64_t elapsedUs);
 void jumperDoEvilDonut(int64_t elapsedUs);
 void jumperDoBlump(int64_t elapsedUs);
-void jumperSetupState(uint8_t stageIndex);
+void jumperSetupState(uint16_t stageIndex);
 bool jumperDoEnemyLand(uint8_t blockIndex);
 void jumperClearBlock(uint8_t blockIndex);
 void jumperDrawScene(display_t* d);
 void jumperDrawEffects(display_t* d);
-void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline);
+void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline, font_t* smaller_prompt);
 
 //==============================================================================
 // Variables
@@ -391,9 +394,19 @@ const song_t jumpBlumpJump =
     .shouldLoop = false
 };
 
+static const char str_score[] = "SCORE";
+static const char str_hi_score[] = "HI SCORE";
+static const char str_paused[] = "PAUSED";
+static const char str_jump[] = "JUMP!";
+static const char str_ready[] = "READY";
+static const char str_game_over[] = "GAME OVER";
+static const char str_awesome[] = "AWESOME!";
+static const char str_sweet[] = "SWEET!";
+
 //==============================================================================
 // Functions
 //==============================================================================
+
 /**
  * Initialize all data needed for the jumper game
  *
@@ -411,12 +424,14 @@ void jumperStartGame(display_t* disp, font_t* mmFont, bool ledEnabled)
     loadFont("early_gameboy_fill.font", &(j->fill_font));
     loadFont("early_gameboy_outline.font", &(j->outline_font));
     loadFont("early_gameboy.font", &(j->game_font));
+    loadFont("radiostars.font", &(j->smaller_game_font));
 
     j->multiplier = calloc(3, sizeof(jumperMultiplier_t));
 
     j->scene = calloc(1, sizeof(jumperStage_t));
     j->scene->combo = 1;
     j->scene->score = 0;
+    j->scene->smallerScoreFont = false;
     j->scene->lives = 3;
     j->scene->currentPowerup = calloc(1, sizeof(jumperPowerup_t));
     loadWsg("livesdonut.wsg", &j->livesIcon);
@@ -488,7 +503,7 @@ void jumperStartGame(display_t* disp, font_t* mmFont, bool ledEnabled)
 }
 
 
-void jumperSetupState(uint8_t stageIndex)
+void jumperSetupState(uint16_t stageIndex)
 {
     j->currentPhase = JUMPER_COUNTDOWN;
     j->scene->time = 5000000;
@@ -578,7 +593,7 @@ void jumperSetupState(uint8_t stageIndex)
             j->scene->blocks[22] = BLOCK_EVILSTANDARD;
             j->scene->perfect = 24;
             break;
-        case 10:
+        case 0: // Level 10
             j->scene->blocks[7] = BLOCK_EVILSTANDARD;
             j->scene->blocks[8] = BLOCK_EVILSTANDARD;
             j->scene->blocks[6] = BLOCK_WARBLESTANDARD;
@@ -1602,6 +1617,7 @@ void jumperPlayerInput(void)
         {
             j->currentPhase = JUMPER_GAMING;
             j->scene->pauseRelease = false;
+            buzzer_play_bgm(&jumpGameLoop);
         }
         return;
     }
@@ -1619,6 +1635,7 @@ void jumperPlayerInput(void)
     {
         j->currentPhase = JUMPER_PAUSE;
         j->scene->pauseRelease = false;
+        buzzer_stop();
         return;
     }
 
@@ -1634,7 +1651,7 @@ void jumperPlayerInput(void)
     }
 
 
-    if (player->jumpReady && player->jumping == false)
+    if (player->jumpReady && player->jumping == false && player->state != CHARACTER_DYING && player->state != CHARACTER_DEAD)
     {
         player->sx = player->x;
         player->sy = player->y;
@@ -1762,7 +1779,7 @@ void jumperDrawScene(display_t* d)
     }
 
     jumperDrawEffects(d);
-    jumperDrawHud(d, &j->game_font, &j->fill_font, &j->outline_font);
+    jumperDrawHud(d, &j->game_font, &j->fill_font, &j->outline_font, &j->smaller_game_font);
 
 }
 
@@ -1793,35 +1810,67 @@ void jumperDrawEffects(display_t* d)
     
     }
 
-    if (j->blump->respawnBlock != 255) drawWsg(d, &j->target,12 +  j->scene->blockOffset_x + ((j->blump->respawnBlock % 6) * 38),
+    if (j->blump->respawnBlock != 255 && (j->blump->respawnTime/100000 % 3) != 0) drawWsg(d, &j->target,6 +  j->scene->blockOffset_x + ((j->blump->respawnBlock % 6) * 38),
                 20 + j->scene->blockOffset_y, false, false, 0);
                 
 
-    if (j->evilDonut->respawnBlock != 255) drawWsg(d, &j->target,12 +  j->scene->blockOffset_x + ((j->evilDonut->respawnBlock % 6) * 38),
+    if (j->evilDonut->respawnBlock != 255 && (j->evilDonut->respawnTime/100000 % 3) != 0) drawWsg(d, &j->target,6 +  j->scene->blockOffset_x + ((j->evilDonut->respawnBlock % 6) * 38),
                 20 + j->scene->blockOffset_y, false, false, 0);
 }
 
-void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
+void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline, font_t* smaller_prompt)
 {
     char textBuffer[12];
-    snprintf(textBuffer, sizeof(textBuffer) - 1, "LVL %d", j->scene->level);
+    char textBuffer2[12];
+    snprintf(textBuffer, sizeof(textBuffer) - 1, "%d", j->scene->level);
 
-    if (j->scene->level < 10)
-    {
-        drawText(d, font, c555, textBuffer, 190, 220);
-    }
-    else
-    {
-        drawText(d, font, c555, textBuffer, 174, 220);
-    }
+    // Use floor(log10(...) + 1) to calculate number of digits in the level number
+    // This is used to properly space "LVL" from the digits
+    drawText(d, font, c555, "LVL ",
+        d->w - (textWidth(font, "LVL ") + textWidth(font, "2") * floor(log10(j->scene->level) + 1)) - 25,
+        220);
+    drawText(d, font, c555, textBuffer,
+        d->w - textWidth(font, textBuffer) - 25,
+        220);
 
-    drawText(d, prompt, c555, "SCORE", 28, 10);
     snprintf(textBuffer, sizeof(textBuffer) - 1, "%u", j->scene->score);
-    drawText(d, prompt, c555, textBuffer, 28, 30);
+    snprintf(textBuffer2, sizeof(textBuffer2) - 1, "%u", j->highScore);
 
-    drawText(d, prompt, c555, "HI SCORE", 168, 10);
-    snprintf(textBuffer, sizeof(textBuffer) - 1, "%u", j->highScore);
-    drawText(d, prompt, c555, textBuffer, 204, 30);
+    font_t* scoreFont;
+    int16_t scoreWidth;
+    int16_t hiScoreWidth;
+    int16_t maxScoreWidth;
+
+    if(!j->scene->smallerScoreFont)
+    {
+        scoreFont = prompt;
+        scoreWidth = textWidth(prompt, textBuffer);
+        hiScoreWidth = textWidth(prompt, textBuffer2);
+        maxScoreWidth = textWidth(prompt, "222222222");
+    }
+
+    if(j->scene->smallerScoreFont || scoreWidth > maxScoreWidth || hiScoreWidth > maxScoreWidth)
+    {
+        j->scene->smallerScoreFont = true;
+        scoreFont = smaller_prompt;
+        scoreWidth = textWidth(smaller_prompt, textBuffer);
+        hiScoreWidth = textWidth(smaller_prompt, textBuffer2);
+        maxScoreWidth = textWidth(smaller_prompt, "2022222222");
+    }
+
+#if RIGHT_JUSTIFY_DONUT_SCORES != 0
+    drawText(d, prompt, c555, str_score, maxScoreWidth - textWidth(prompt, str_score) + 18, 10);
+    drawText(d, scoreFont, c555, textBuffer, maxScoreWidth - scoreWidth + 18, 30);
+
+    drawText(d, prompt, c555, str_hi_score, d->w - textWidth(prompt, str_hi_score) - 18, 10);
+    drawText(d, scoreFont, c555, textBuffer2, d->w - hiScoreWidth - 18, 30);
+#else
+    drawText(d, prompt, c555, str_score, 18, 10);
+    drawText(d, scoreFont, c555, textBuffer, 18, 30);
+
+    drawText(d, prompt, c555, str_hi_score, d->w - maxScoreWidth - 18, 10);
+    drawText(d, scoreFont, c555, textBuffer2, d->w - maxScoreWidth - 18, 30);
+#endif
 
     for (int i = 0; i < j->scene->lives; i++)
     {
@@ -1830,8 +1879,8 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
 
     if (j->currentPhase == JUMPER_PAUSE)
     {
-        drawText(d, outline, c000, "PAUSED", 100, 128);
-        drawText(d, font, c555, "PAUSED", 100, 128);   
+        drawText(d, outline, c000, str_paused, 100, 128);
+        drawText(d, font, c555, str_paused, 100, 128);   
     }
 
     //Show countdown sequence
@@ -1839,8 +1888,8 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
     {
         if (j->scene->seconds <= 0)
         {
-            drawText(d, outline, c000, "JUMP!", 100, 128);
-            drawText(d, font, c555, "JUMP!", 100, 128);            
+            drawText(d, outline, c000, str_jump, 100, 128);
+            drawText(d, font, c555, str_jump, 100, 128);            
         }
         else if (j->scene->seconds <= 3 )
         {
@@ -1850,8 +1899,8 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
         }
         else
         {
-            drawText(d, outline, c000, "READY", 100, 128);
-            drawText(d, font, c555, "READY", 100, 128);
+            drawText(d, outline, c000, str_ready, 100, 128);
+            drawText(d, font, c555, str_ready, 100, 128);
         }
     }
 
@@ -1859,28 +1908,28 @@ void jumperDrawHud(display_t* d, font_t* prompt, font_t* font, font_t* outline)
     {
         if (j->scene->seconds <= 0 && j->scene->seconds > -2)
         {
-            drawText(d, outline, c000, "JUMP!", 100, 128);
-            drawText(d, font, c555, "JUMP!", 100, 128);
+            drawText(d, outline, c000, str_jump, 100, 128);
+            drawText(d, font, c555, str_jump, 100, 128);
         }
     }
 
     if (j->currentPhase == JUMPER_GAME_OVER)
     {
-        drawText(d, outline, c000, "GAME OVER", 80, 128);
-        drawText(d, font, c555, "GAME OVER", 80, 128);
+        drawText(d, outline, c000, str_game_over, 80, 128);
+        drawText(d, font, c555, str_game_over, 80, 128);
     }
 
     if (j->currentPhase == JUMPER_WINSTAGE)
     {
         if (j->scene->combo >= j->scene->perfect)
         {
-            drawText(d, outline, c000, "AWESOME!", 90, 128);
-            drawText(d, font, c555, "AWESOME!", 90, 128);
+            drawText(d, outline, c000, str_awesome, 90, 128);
+            drawText(d, font, c555, str_awesome, 90, 128);
         }
         else
         {
-            drawText(d, outline, c000, "SWEET!", 100, 128);
-            drawText(d, font, c555, "SWEET!", 100, 128);
+            drawText(d, outline, c000, str_sweet, 100, 128);
+            drawText(d, font, c555, str_sweet, 100, 128);
         }
     }
     
@@ -1929,6 +1978,7 @@ void jumperExitGame(void)
         freeWsg(&j->powerup[1]);
         freeWsg(&j->powerup[2]);
         freeWsg(&j->powerup[3]);
+        freeFont(&(j->smaller_game_font));
         freeFont(&(j->game_font));
         freeFont(&(j->outline_font));
         freeFont(&(j->fill_font));

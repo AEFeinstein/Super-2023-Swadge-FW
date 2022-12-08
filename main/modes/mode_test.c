@@ -26,7 +26,7 @@
 #define AB_SEP 6
 #define DPAD_SEP 15
 
-#define ACCEL_BAR_H      8
+#define ACCEL_BAR_HEIGHT 8
 #define ACCEL_BAR_SEP    1
 #define MAX_ACCEL_BAR_W 60
 
@@ -342,25 +342,25 @@ void testMainLoop(int64_t elapsedUs __attribute__((unused)))
     int16_t barWidth = ((test->accel.x + 256) * MAX_ACCEL_BAR_W) / 512;
     if(barWidth >= 0)
     {
-        fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
+        fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_HEIGHT, accelColor);
     }
-    barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
+    barY += (ACCEL_BAR_HEIGHT + ACCEL_BAR_SEP);
 
     // Plot Y accel
     barWidth = ((test->accel.y + 256) * MAX_ACCEL_BAR_W) / 512;
     if(barWidth >= 0)
     {
-        fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
+        fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_HEIGHT, accelColor);
     }
-    barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
+    barY += (ACCEL_BAR_HEIGHT + ACCEL_BAR_SEP);
 
     // Plot Z accel
     barWidth = ((test->accel.z + 256) * MAX_ACCEL_BAR_W) / 512;
     if(barWidth >= 0)
     {
-        fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_H, accelColor);
+        fillDisplayArea(test->disp, test->disp->w - barWidth, barY, test->disp->w, barY + ACCEL_BAR_HEIGHT, accelColor);
     }
-    barY += (ACCEL_BAR_H + ACCEL_BAR_SEP);
+    barY += (ACCEL_BAR_HEIGHT + ACCEL_BAR_SEP);
 
     // Plot some text depending on test status
     char dbgStr[32] = {0};

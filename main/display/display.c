@@ -597,7 +597,7 @@ void drawWsgTile(display_t* disp, const wsg_t* wsg, int32_t xOff, int32_t yOff)
 
         int wWidth = wsg->w;
         int dWidth = disp->w;
-        const paletteColor_t* pxWsg = &wsg->px[(wsg->h - (yEnd - yStart)) * wWidth];
+        const paletteColor_t* pxWsg = &wsg->px[(yOff < 0) ? (wsg->h - (yEnd - yStart)) * wWidth : 0];
         paletteColor_t* pxDisp = &disp->pxFb[yStart * dWidth + xOff];
 
         // Bound in the X direction

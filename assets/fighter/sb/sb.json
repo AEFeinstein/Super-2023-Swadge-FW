@@ -1,6 +1,7 @@
 {
    "name":"Sandbag",
    "gravity":8192,
+   "weight":1024,
    "run_decel":13000,
    "size_x":22,
    "size_y":26,

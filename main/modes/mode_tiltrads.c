@@ -42,6 +42,7 @@
 #define BTN_GAME_HARD_DROP UP
 #define BTN_GAME_ROTATE_CW BTN_A
 #define BTN_GAME_ROTATE_ACW BTN_B
+#define BTN_GAME_PAUSE START
 
 // Controls (scores)
 #define BTN_SCORES_CLEAR_SCORES SELECT
@@ -1186,9 +1187,11 @@ const song_t gameMusic = {
         {.note = A_5, .timeMs = 188},
         {.note = F_5, .timeMs = 188},
         {.note = A_5, .timeMs = 188},
+        {.note = SILENCE, .timeMs = 188},
+        {.note = SILENCE, .timeMs = 188},
     },
-    .numNotes = 266,
-    .shouldLoop = false
+    .numNotes = 268,
+    .shouldLoop = true
 };
 
 const song_t gameStartSting  =
@@ -1345,6 +1348,7 @@ typedef struct
     int64_t dropTimer;  // The timer for dropping the current tetrad one level.
     int64_t dropTime; // The amount of time it takes for a tetrad to drop. Changes based on the level.
     int64_t dropFXTime; // This is specifically used for handling the perspective effect correctly with regards to increasing dropSpeed.
+    bool isPaused;
     
     // Score related vars
     uint32_t linesClearedTotal; // The number of lines cleared total.
@@ -1795,6 +1799,20 @@ void ttTitleInput(void)
 
 void ttGameInput(void)
 {
+    if (ttIsButtonPressed(BTN_GAME_PAUSE))
+    {
+        tiltrads->isPaused = !tiltrads->isPaused;
+
+        if(tiltrads->isPaused)
+        {
+            buzzer_stop();
+        }
+        else
+        {
+            //buzzer_play_bgm(&gameMusic);
+        }
+    }
+
     // Reset the check for if the active tetrad moved, dropped, or landed.
     tiltrads->activeTetradChange = false;
 
@@ -1802,7 +1820,7 @@ void ttGameInput(void)
     refreshTetradsGrid(GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid, tiltrads->landedTetrads, &(tiltrads->activeTetrad), false);
 
     // Only respond to input when the clear animation isn't running.
-    if (!tiltrads->inClearAnimation)
+    if (!tiltrads->inClearAnimation && !tiltrads->isPaused)
     {
         // Rotate piece.
         if(ttIsButtonPressed(BTN_GAME_ROTATE_CW))
@@ -1942,230 +1960,233 @@ void ttGameUpdate(void)
     // Refresh the tetrads grid.
     refreshTetradsGrid(GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid, tiltrads->landedTetrads, &(tiltrads->activeTetrad), false);
 
-    // Land tetrad.
-    // Update score.
-    // Start clear animation.
-    // End clear animation.
-    // Clear lines.
-    // Spawn new active tetrad.
-
-    if (tiltrads->inClearAnimation)
+    if (!tiltrads->isPaused)
     {
-        tiltrads->clearTimer += tiltrads->deltaTime;
+        // Land tetrad.
+        // Update score.
+        // Start clear animation.
+        // End clear animation.
+        // Clear lines.
+        // Spawn new active tetrad.
 
-        double clearProgress = (double)tiltrads->clearTimer / (double)tiltrads->clearTime;
-        singlePulseLEDs(NUM_LEDS, clearColor, clearProgress);
-
-        if (tiltrads->clearTimer >= tiltrads->clearTime)
+        if (tiltrads->inClearAnimation)
         {
-            stopClearAnimation();
+            tiltrads->clearTimer += tiltrads->deltaTime;
 
-            // Actually clear the lines.
-            clearLines(GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid, tiltrads->landedTetrads);
+            double clearProgress = (double)tiltrads->clearTimer / (double)tiltrads->clearTime;
+            singlePulseLEDs(NUM_LEDS, clearColor, clearProgress);
 
-            // Spawn the next tetrad.
-            spawnNextTetrad(&(tiltrads->activeTetrad), tiltrads->randomizer, tiltrads->tetradCounter, GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid);
-
-            // Reset the drop info to whatever is appropriate for the current level.
-            tiltrads->dropTime = getDropTime(tiltrads->currentLevel);
-            tiltrads->dropTimer = 0;
-
-            // There's a new active tetrad, so that's a change.
-            tiltrads->activeTetradChange = true;
-        }
-    }
-    else
-    {
-#ifndef NO_STRESS_TRIS
-        tiltrads->dropTimer += tiltrads->deltaTime;
-#endif
-
-        // Update the LED FX.
-        // Progress is the drop time for this row. (Too fast)
-        //double dropProgress = (double)tiltrads->dropTimer / (double)tiltrads->dropTime;
-
-        // Progress is how close it is to landing on the floor. (Too nebulous or unhelpful?)
-        double totalFallTime = (GRID_ROWS - 1) * tiltrads->dropTime;
-        int32_t fallDistance = getFallDistance(&(tiltrads->activeTetrad), GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid);
-
-        double totalFallProgress = totalFallTime - (((fallDistance + 1) * tiltrads->dropTime) - tiltrads->dropTimer);
-        double countdownProgress = totalFallProgress / totalFallTime;
-
-        // NOTE: this check is here because under unknown circumstances the math above can produce bad countdownProgress values, causing a slight flicker when a tetrad lands.
-        // Ideally the math above should be fixed, but this is an acceptable fix for now.
-        if (countdownProgress >= 0.0 && countdownProgress <= 1.0)
-        {
-            countdownLEDs(NUM_LEDS, tetradColors[tiltrads->activeTetrad.type - 1], countdownProgress);
-        }
-
-        if (tiltrads->dropTimer >= tiltrads->dropTime)
-        {
-            tiltrads->dropTimer = 0;
-
-            // The active tetrad has either dropped or landed, redraw required either way.
-            tiltrads->activeTetradChange = true;
-
-            if (ttIsButtonDown(BTN_GAME_SOFT_DROP))
+            if (tiltrads->clearTimer >= tiltrads->clearTime)
             {
-                tiltrads->score += SCORE_SOFT_DROP;
+                stopClearAnimation();
+
+                // Actually clear the lines.
+                clearLines(GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid, tiltrads->landedTetrads);
+
+                // Spawn the next tetrad.
+                spawnNextTetrad(&(tiltrads->activeTetrad), tiltrads->randomizer, tiltrads->tetradCounter, GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid);
+
+                // Reset the drop info to whatever is appropriate for the current level.
+                tiltrads->dropTime = getDropTime(tiltrads->currentLevel);
+                tiltrads->dropTimer = 0;
+
+                // There's a new active tetrad, so that's a change.
+                tiltrads->activeTetradChange = true;
+            }
+        }
+        else
+        {
+    #ifndef NO_STRESS_TRIS
+            tiltrads->dropTimer += tiltrads->deltaTime;
+    #endif
+
+            // Update the LED FX.
+            // Progress is the drop time for this row. (Too fast)
+            //double dropProgress = (double)tiltrads->dropTimer / (double)tiltrads->dropTime;
+
+            // Progress is how close it is to landing on the floor. (Too nebulous or unhelpful?)
+            double totalFallTime = (GRID_ROWS - 1) * tiltrads->dropTime;
+            int32_t fallDistance = getFallDistance(&(tiltrads->activeTetrad), GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid);
+
+            double totalFallProgress = totalFallTime - (((fallDistance + 1) * tiltrads->dropTime) - tiltrads->dropTimer);
+            double countdownProgress = totalFallProgress / totalFallTime;
+
+            // NOTE: this check is here because under unknown circumstances the math above can produce bad countdownProgress values, causing a slight flicker when a tetrad lands.
+            // Ideally the math above should be fixed, but this is an acceptable fix for now.
+            if (countdownProgress >= 0.0 && countdownProgress <= 1.0)
+            {
+                countdownLEDs(NUM_LEDS, tetradColors[tiltrads->activeTetrad.type - 1], countdownProgress);
             }
 
-            // If we couldn't drop, then we've landed.
-            if (!dropTetrad(&(tiltrads->activeTetrad), GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid))
+            if (tiltrads->dropTimer >= tiltrads->dropTime)
             {
-                tiltrads->landTetradFX = true;
+                tiltrads->dropTimer = 0;
 
-                // Land the current tetrad.
-                tetrad_t* landedTetrad = malloc(sizeof(tetrad_t));
-                landedTetrad->type = tiltrads->activeTetrad.type;
-                landedTetrad->gridValue = tiltrads->activeTetrad.gridValue;
-                landedTetrad->rotation = tiltrads->activeTetrad.rotation;
-                landedTetrad->topLeft = tiltrads->activeTetrad.topLeft;
+                // The active tetrad has either dropped or landed, redraw required either way.
+                tiltrads->activeTetradChange = true;
 
-                coord_t origin;
-                origin.c = 0;
-                origin.r = 0;
-                copyGrid(origin, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE, tiltrads->activeTetrad.shape, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE,
-                         landedTetrad->shape);
-
-                push(tiltrads->landedTetrads, landedTetrad);
-
-                tiltrads->tetradCounter++;
-
-                // Check for any clears now that the new tetrad has landed.
-                uint32_t linesClearedThisDrop = checkLineClears(GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid, tiltrads->landedTetrads);
-
-                int32_t landingSFX;
-
-                switch( linesClearedThisDrop )
+                if (ttIsButtonDown(BTN_GAME_SOFT_DROP))
                 {
-                    case 1:
-                        tiltrads->score += SCORE_SINGLE * (tiltrads->currentLevel + 1);
-                        buzzer_play_sfx(&singleLineClearSFX);
-                        break;
-                    case 2:
-                        tiltrads->score += SCORE_DOUBLE * (tiltrads->currentLevel + 1);
-                        buzzer_play_sfx(&doubleLineClearSFX);
-                        break;
-                    case 3:
-                        tiltrads->score += SCORE_TRIPLE * (tiltrads->currentLevel + 1);
-                        buzzer_play_sfx(&tripleLineClearSFX);
-                        break;
-                    case 4:
-                        tiltrads->score += SCORE_QUAD * (tiltrads->currentLevel + 1);
-                        buzzer_play_sfx(&quadLineClearSFX);
-                        break;
-                    case 0:
-                        // Full grid height is GRID_ROWS, we have NUM_LAND_FX SFX, offset results by an amount so that sfx[15] correctly plays at the playfield floor and the first row above it.
-                        landingSFX = getLowestActiveRow(landedTetrad) - ((GRID_ROWS - NUM_LAND_FX) - 1);
-                        if (landingSFX < 0)
-                        {
-                            landingSFX = 0;
-                        }
-                        if (landingSFX > NUM_LAND_FX - 1)
-                        {
-                            landingSFX = NUM_LAND_FX - 1;
-                        }
-                        buzzer_play_sfx(landSFX[landingSFX]);
-                        break;
-                    default:    // Are more than 4 line clears possible? I don't think so.
-                        break;
+                    tiltrads->score += SCORE_SOFT_DROP;
                 }
 
-                // This code assumes building combo, and combos are sums of lines cleared.
-                if (tiltrads->linesClearedLastDrop > 0 && linesClearedThisDrop > 0)
+                // If we couldn't drop, then we've landed.
+                if (!dropTetrad(&(tiltrads->activeTetrad), GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid))
                 {
-                    tiltrads->comboCount += linesClearedThisDrop;
-                    tiltrads->score += SCORE_COMBO * tiltrads->comboCount * (tiltrads->currentLevel + 1);
-                }
-                else
-                {
-                    tiltrads->comboCount = 0;
-                }
+                    tiltrads->landTetradFX = true;
 
-                // Increase total number of lines cleared.
-                tiltrads->linesClearedTotal += linesClearedThisDrop;
+                    // Land the current tetrad.
+                    tetrad_t* landedTetrad = malloc(sizeof(tetrad_t));
+                    landedTetrad->type = tiltrads->activeTetrad.type;
+                    landedTetrad->gridValue = tiltrads->activeTetrad.gridValue;
+                    landedTetrad->rotation = tiltrads->activeTetrad.rotation;
+                    landedTetrad->topLeft = tiltrads->activeTetrad.topLeft;
 
-                // Update the level if necessary.
-                tiltrads->currentLevel = tiltrads->linesClearedTotal / LINE_CLEARS_PER_LEVEL;
+                    coord_t origin;
+                    origin.c = 0;
+                    origin.r = 0;
+                    copyGrid(origin, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE, tiltrads->activeTetrad.shape, TETRAD_GRID_SIZE, TETRAD_GRID_SIZE,
+                            landedTetrad->shape);
 
-                // Keep track of the last number of line clears.
-                tiltrads->linesClearedLastDrop = linesClearedThisDrop;
+                    push(tiltrads->landedTetrads, landedTetrad);
 
-                if (linesClearedThisDrop > 0)
-                {
-                    // Start the clear animation.
-                    startClearAnimation(linesClearedThisDrop);
-                }
-                else
-                {
-                    // Spawn the next tetrad.
-                    spawnNextTetrad(&(tiltrads->activeTetrad), tiltrads->randomizer, tiltrads->tetradCounter, GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid);
+                    tiltrads->tetradCounter++;
 
-                    // Reset the drop info to whatever is appropriate for the current level.
-                    tiltrads->dropTime = getDropTime(tiltrads->currentLevel);
-                    tiltrads->dropTimer = 0;
-                }
-            }
+                    // Check for any clears now that the new tetrad has landed.
+                    uint32_t linesClearedThisDrop = checkLineClears(GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid, tiltrads->landedTetrads);
 
-            // Clear out empty tetrads.
-            node_t* current = tiltrads->landedTetrads->last;
-            for (int32_t t = tiltrads->landedTetrads->length - 1; t >= 0; t--)
-            {
-                tetrad_t* currentTetrad = (tetrad_t*)current->val;
-                bool empty = true;
+                    int32_t landingSFX;
 
-                // Go from bottom-to-top on each position of the tetrad.
-                for (int32_t tr = TETRAD_GRID_SIZE - 1; tr >= 0; tr--)
-                {
-                    for (int32_t tc = 0; tc < TETRAD_GRID_SIZE; tc++)
+                    switch( linesClearedThisDrop )
                     {
-                        if (currentTetrad->shape[tr][tc] != EMPTY)
-                        {
-                            empty = false;
-                        }
+                        case 1:
+                            tiltrads->score += SCORE_SINGLE * (tiltrads->currentLevel + 1);
+                            buzzer_play_sfx(&singleLineClearSFX);
+                            break;
+                        case 2:
+                            tiltrads->score += SCORE_DOUBLE * (tiltrads->currentLevel + 1);
+                            buzzer_play_sfx(&doubleLineClearSFX);
+                            break;
+                        case 3:
+                            tiltrads->score += SCORE_TRIPLE * (tiltrads->currentLevel + 1);
+                            buzzer_play_sfx(&tripleLineClearSFX);
+                            break;
+                        case 4:
+                            tiltrads->score += SCORE_QUAD * (tiltrads->currentLevel + 1);
+                            buzzer_play_sfx(&quadLineClearSFX);
+                            break;
+                        case 0:
+                            // Full grid height is GRID_ROWS, we have NUM_LAND_FX SFX, offset results by an amount so that sfx[15] correctly plays at the playfield floor and the first row above it.
+                            landingSFX = getLowestActiveRow(landedTetrad) - ((GRID_ROWS - NUM_LAND_FX) - 1);
+                            if (landingSFX < 0)
+                            {
+                                landingSFX = 0;
+                            }
+                            if (landingSFX > NUM_LAND_FX - 1)
+                            {
+                                landingSFX = NUM_LAND_FX - 1;
+                            }
+                            buzzer_play_sfx(landSFX[landingSFX]);
+                            break;
+                        default:    // Are more than 4 line clears possible? I don't think so.
+                            break;
+                    }
+
+                    // This code assumes building combo, and combos are sums of lines cleared.
+                    if (tiltrads->linesClearedLastDrop > 0 && linesClearedThisDrop > 0)
+                    {
+                        tiltrads->comboCount += linesClearedThisDrop;
+                        tiltrads->score += SCORE_COMBO * tiltrads->comboCount * (tiltrads->currentLevel + 1);
+                    }
+                    else
+                    {
+                        tiltrads->comboCount = 0;
+                    }
+
+                    // Increase total number of lines cleared.
+                    tiltrads->linesClearedTotal += linesClearedThisDrop;
+
+                    // Update the level if necessary.
+                    tiltrads->currentLevel = tiltrads->linesClearedTotal / LINE_CLEARS_PER_LEVEL;
+
+                    // Keep track of the last number of line clears.
+                    tiltrads->linesClearedLastDrop = linesClearedThisDrop;
+
+                    if (linesClearedThisDrop > 0)
+                    {
+                        // Start the clear animation.
+                        startClearAnimation(linesClearedThisDrop);
+                    }
+                    else
+                    {
+                        // Spawn the next tetrad.
+                        spawnNextTetrad(&(tiltrads->activeTetrad), tiltrads->randomizer, tiltrads->tetradCounter, GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid);
+
+                        // Reset the drop info to whatever is appropriate for the current level.
+                        tiltrads->dropTime = getDropTime(tiltrads->currentLevel);
+                        tiltrads->dropTimer = 0;
                     }
                 }
 
-                // Adjust the current counter.
-                current = current->prev;
-
-                // Remove the empty tetrad.
-                if (empty)
+                // Clear out empty tetrads.
+                node_t* current = tiltrads->landedTetrads->last;
+                for (int32_t t = tiltrads->landedTetrads->length - 1; t >= 0; t--)
                 {
-                    tetrad_t* emptyTetrad = removeIdx(tiltrads->landedTetrads, t);
-                    free(emptyTetrad);
+                    tetrad_t* currentTetrad = (tetrad_t*)current->val;
+                    bool empty = true;
+
+                    // Go from bottom-to-top on each position of the tetrad.
+                    for (int32_t tr = TETRAD_GRID_SIZE - 1; tr >= 0; tr--)
+                    {
+                        for (int32_t tc = 0; tc < TETRAD_GRID_SIZE; tc++)
+                        {
+                            if (currentTetrad->shape[tr][tc] != EMPTY)
+                            {
+                                empty = false;
+                            }
+                        }
+                    }
+
+                    // Adjust the current counter.
+                    current = current->prev;
+
+                    // Remove the empty tetrad.
+                    if (empty)
+                    {
+                        tetrad_t* emptyTetrad = removeIdx(tiltrads->landedTetrads, t);
+                        free(emptyTetrad);
+                    }
                 }
-            }
 
-            refreshTetradsGrid(GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid, tiltrads->landedTetrads, &(tiltrads->activeTetrad), false);
+                refreshTetradsGrid(GRID_COLS, GRID_ROWS, tiltrads->tetradsGrid, tiltrads->landedTetrads, &(tiltrads->activeTetrad), false);
 
-            // Handle cascade from tetrads that can now fall freely.
-            /*bool possibleCascadeClear = false;
-            for (int32_t t = 0; t < numLandedTetrads; t++)
-            {
-                // If a tetrad could drop, then more clears might have happened.
-                if (dropTetrad(&(landedTetrads[t]), GRID_COLS, GRID_ROWS, tetradsGrid))
+                // Handle cascade from tetrads that can now fall freely.
+                /*bool possibleCascadeClear = false;
+                for (int32_t t = 0; t < numLandedTetrads; t++)
                 {
-                    possibleCascadeClear = true;
+                    // If a tetrad could drop, then more clears might have happened.
+                    if (dropTetrad(&(landedTetrads[t]), GRID_COLS, GRID_ROWS, tetradsGrid))
+                    {
+                        possibleCascadeClear = true;
+                    }
                 }
+
+
+                if (possibleCascadeClear)
+                {
+                    // Check for any clears now that this new.
+                    checkLineClears(GRID_COLS, GRID_ROWS, tetradsGrid, landedTetrads);
+                }*/
             }
-
-
-            if (possibleCascadeClear)
-            {
-                // Check for any clears now that this new.
-                checkLineClears(GRID_COLS, GRID_ROWS, tetradsGrid, landedTetrads);
-            }*/
         }
+
+        // Drop FX time advances by the normal amount.
+        tiltrads->dropFXTime += tiltrads->deltaTime;
+        // Drop FX time advances by deltaTime * SOFT_DROP_FX_FACTOR(2) when the soft drop button is being held down. (Happens in softDropTetrad)
+
+        // Drop FX time advances a little bit more according to the currentLevel.
+        tiltrads->dropFXTime += (tiltrads->deltaTime * getDropFXTimeFactor(tiltrads->currentLevel));
     }
-
-    // Drop FX time advances by the normal amount.
-    tiltrads->dropFXTime += tiltrads->deltaTime;
-    // Drop FX time advances by deltaTime * SOFT_DROP_FX_FACTOR(2) when the soft drop button is being held down. (Happens in softDropTetrad)
-
-    // Drop FX time advances a little bit more according to the currentLevel.
-    tiltrads->dropFXTime += (tiltrads->deltaTime * getDropFXTimeFactor(tiltrads->currentLevel));
 
     // Check if we have a new high score.
     tiltrads->newHighScore = tiltrads->score > tiltrads->highScores[0];
@@ -2281,8 +2302,8 @@ void ttGameDisplay(void)
     // Draw the BG FX.
     // Goal: noticeable speed-ups when level increases and when soft drop is being held or released.
     plotPerspectiveEffect(tiltrads->disp, GRID_X, 0, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w - 1, 0, tiltrads->disp->h, 3, 3,
-                          5.0,
-                          tiltrads->dropFXTime, c112);
+                        5.0,
+                        tiltrads->dropFXTime, c112);
 
     // Draw the active tetrad.
     plotTetrad(tiltrads->disp, xFromGridCol(GRID_X, tiltrads->activeTetrad.topLeft.c, GRID_UNIT_SIZE),
@@ -2416,6 +2437,34 @@ void ttGameDisplay(void)
     playTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "UP/DOWN", xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
     playTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * botIncrement);
     drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "UP/DOWN", playTextX, playTextY);
+
+    if (tiltrads->isPaused)
+    {
+        // Draw a centered bordered window.
+        int16_t leftWindowXMargin = 82;
+        int16_t rightWindowXMargin = 80;
+        int16_t windowYMarginTop = 99;
+        int16_t windowYMarginBot = 99;
+
+        int16_t titleTextYOffset = 3;
+        int16_t controlTextYOffset = tiltrads->disp->h - windowYMarginBot - tiltrads->ibm_vga8.h - 2;
+        int16_t controlTextXPadding = 2;
+
+        // Draw a centered bordered window.
+        fillDisplayArea(tiltrads->disp, leftWindowXMargin, windowYMarginTop, tiltrads->disp->w - rightWindowXMargin, tiltrads->disp->h - windowYMarginBot, c000);
+        plotRect(tiltrads->disp, leftWindowXMargin, windowYMarginTop, tiltrads->disp->w - rightWindowXMargin, tiltrads->disp->h - windowYMarginBot, c540);
+
+        // PAUSED
+        int16_t headerTextX = getCenteredTextX(&(tiltrads->ibm_vga8), "PAUSED", 0, tiltrads->disp->w);
+        drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "PAUSED", headerTextX, windowYMarginTop + titleTextYOffset);
+
+        // START TO RESUME (centered)
+        //drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "START TO RESUME", (tiltrads->disp->w + leftWindowXMargin - rightWindowXMargin - textWidth(&(tiltrads->ibm_vga8), "START TO RESUME")) / 2 + controlTextXPadding, controlTextYOffset);
+
+        // START TO RESUME (cheating)
+        drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "START", leftWindowXMargin + controlTextXPadding, controlTextYOffset);
+        drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "TO RESUME", tiltrads->disp->w - rightWindowXMargin - textWidth(&(tiltrads->ibm_vga8), "TO RESUME") - controlTextXPadding, controlTextYOffset);
+    }
 }
 
 void ttScoresDisplay(void)
@@ -2547,8 +2596,8 @@ void ttGameoverDisplay(void)
         snprintf(scoreStr, sizeof(scoreStr), "%d", tiltrads->score);
         drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, scoreStr, tiltrads->gameoverScoreX, windowYMarginTop + scoreTextYOffset);
 
-        // SELECT FOR   START TO
-        // TITLE         RESTART
+        // SELECT    START
+        // TITLE   RESTART
         drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "SELECT", leftWindowXMargin + controlTextXPadding, controlTextYOffset - tiltrads->ibm_vga8.h - 1);
         drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, "TITLE", leftWindowXMargin + controlTextXPadding, controlTextYOffset);
 

@@ -244,6 +244,9 @@ void picrossSetupPuzzle(bool cont)
     p->vFontPad = (p->drawScale - p->hintFont.h)/2;
     //Calculate the shift to move the font square to the center of the level square.
     //fontShiftLeft = p->hont_font->w
+
+    //Check the level immediately, in case there are any empty rows or columns whose hints we need to gray out at the start
+    picrossCheckLevel();
 }
 
 //Scans the levelWSG and creates the finished version of the puzzle in the proper data format (2D array of enum).
@@ -1311,6 +1314,11 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
                 j++;
             }
         }
+
+        if(j == 0)
+        {
+            drawNumberAtCoord(d,font,hintColor,0,-1,hint.index,0,0);
+        }
     }else{
         uint8_t j = 0;
          //if current col, draw background square
@@ -1324,11 +1332,16 @@ void drawHint(display_t* d,font_t* font, picrossHint_t hint)
         //draw the line of hints
         for(uint8_t i = 0;i<PICROSS_MAX_HINTCOUNT;i++)
         {
-            h = hint.hints[PICROSS_MAX_HINTCOUNT-1-i];      
+            h = hint.hints[PICROSS_MAX_HINTCOUNT-1-i];
             if(h != 0){
                 drawNumberAtCoord(d,font,hintColor,h,hint.index,-j-1,0,0);
                 j++;
             }
+        }
+
+        if(j == 0)
+        {
+            drawNumberAtCoord(d,font,hintColor,0,hint.index,-1,0,0);
         }
     }
 }
@@ -1370,7 +1383,7 @@ int8_t getHintShift(uint8_t hint)
     switch(hint)
     {
         case 0:
-            return 0;
+            return p->vFontPad + 2;
         case 1:
             return p->vFontPad + 2;
         case 2:

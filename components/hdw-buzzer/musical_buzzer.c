@@ -147,6 +147,26 @@ void buzzer_init(gpio_num_t bzrGpio,
 }
 
 /**
+ * @brief Set the buzzer's bgm mute status
+ * 
+ * @param isBgmMuted True if background music is muted, false otherwise
+ */
+void buzzer_set_bgm_is_muted(bool isBgmMuted)
+{
+    bzr.isBgmMuted = isBgmMuted;
+}
+
+/**
+ * @brief Set the buzzer's sfx mute status
+ * 
+ * @param isSfxMuted True if sound effects are muted, false otherwise
+ */
+void buzzer_set_sfx_is_muted(bool isSfxMuted)
+{
+    bzr.isSfxMuted = isSfxMuted;
+}
+
+/**
  * @brief Start playing a background music on the buzzer. This has lower priority
  * than sound effects
  * 
@@ -280,7 +300,14 @@ static bool IRAM_ATTR buzzer_check_next_note_isr(void * ptr)
     // Try playing SFX first
     bool sfxIsActive = buzzer_track_check_next_note(&bzr.sfx, true, cTime);
     // Then play BGM if SFX isn't active
-    buzzer_track_check_next_note(&bzr.bgm, !sfxIsActive, cTime);
+    bool bgmIsActive = buzzer_track_check_next_note(&bzr.bgm, !sfxIsActive, cTime);
+
+    // If nothing is playing, but there is BGM (i.e. SFX finished)
+    if((false == sfxIsActive) && (false == bgmIsActive) && (NULL != bzr.bgm.song))
+    {
+        // Immediately start playing BGM to get back on track faster
+        playNote(bzr.bgm.song->notes[bzr.bgm.note_index].note);
+    }
     return false;
 }
 

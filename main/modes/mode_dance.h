@@ -57,6 +57,7 @@ const char* portableDanceGetName(portableDance_t* dance);
 
 
 void danceComet(uint32_t tElapsedUs, uint32_t arg, bool reset);
+void danceFlashlight(uint32_t tElapsedUs, uint32_t arg, bool reset);
 void danceRise(uint32_t tElapsedUs, uint32_t arg, bool reset);
 void dancePulse(uint32_t tElapsedUs, uint32_t arg, bool reset);
 void danceSmoothRainbow(uint32_t tElapsedUs, uint32_t arg, bool reset);

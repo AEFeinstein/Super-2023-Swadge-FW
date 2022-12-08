@@ -79,10 +79,10 @@ double sinDeg(double degrees);
 #define DR_MAXHIST 6
 
 const int MAXDICE = 6;
-const int COUNTCOUNT = 7;
-const int8_t validSides[] = {4, 6, 8, 10, 12, 20, 100};
+const int COUNTCOUNT = 8;
+const int8_t validSides[] = {2, 4, 6, 8, 10, 12, 20, 100};
 //const int8_t polygonSides[] = {3, 4, 3, 4, 5, 3, 6};
-const int8_t polygonSides[] = {3, 4, 6, 4, 10, 6, 6};
+const int8_t polygonSides[] = {10, 3, 4, 6, 4, 10, 6, 6};
 
 const int32_t rollAnimationPeriod = 1000000; //1 Second Spin
 //const int32_t fakeValRerollPeriod = 200000; //200 ms
@@ -91,6 +91,7 @@ const int32_t fakeValRerollPeriod = 90919;//(rollAnimationPeriod / (ticksPerRoll
 const float spinScaler = 1;
 
 const char DR_NAMESTRING[] = "Dice Roller";
+static const char str_next_roll_format[] = "Next roll is %dd%d";
 
 const paletteColor_t diceBackgroundColor = c112;
 const paletteColor_t diceTextColor = c550;
@@ -192,7 +193,7 @@ void diceEnterMode(display_t* disp)
     diceRoller->rollerNum = 0;
 
     diceRoller->requestCount = 1;
-    diceRoller->sideIndex = 5;
+    diceRoller->sideIndex = 6;
     diceRoller->requestSides = validSides[diceRoller->sideIndex];
     
     
@@ -673,7 +674,7 @@ void drawRegularPolygon(int xCenter, int yCenter, int8_t sides, float rotDeg, in
 
 void drawSelectionText(int w,int h,char* rollStr, int bfrSize)
 {
-    snprintf(rollStr,bfrSize,"Next roll is %dd%d",diceRoller->requestCount,diceRoller->requestSides);
+    snprintf(rollStr, bfrSize, str_next_roll_format, diceRoller->requestCount, diceRoller->requestSides);
 
     drawText(
         diceRoller->disp,
@@ -720,7 +721,7 @@ void drawSelectionPointerSprite(int w,int h,char* rollStr,int bfrSize)
     // int xPointerSelectionOffset = 16; 
     int yPointerOffset = 17;
     //printf("rollStrSize: %d\n",(int)sizeof(rollStr));
-    snprintf(rollStr,bfrSize,"Next roll is %dd%d",diceRoller->requestCount,diceRoller->requestSides);
+    snprintf(rollStr, bfrSize, str_next_roll_format, diceRoller->requestCount, diceRoller->requestSides);
     int centerToEndPix = textWidth(&diceRoller->ibm_vga8,rollStr)/2;
     snprintf(rollStr,bfrSize,"%dd%d",diceRoller->requestCount,diceRoller->requestSides);
     int endToNumStartPix = textWidth(&diceRoller->ibm_vga8,rollStr);

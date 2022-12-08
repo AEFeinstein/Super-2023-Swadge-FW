@@ -6,27 +6,77 @@
 */
 
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include "inttypes.h"
+
 #include <esp_log.h>
+#include <esp_random.h>
 
 #include "linked_list.h"
 
-/*
-#define dbgList(l) do{ \
-        ESP_LOGD("LL", "   %s::%d, len:%d, ", __func__, __LINE__, l->length); \
-        node_t* currentNode = l->first; \
-        while (currentNode != NULL) \
-        { \
-            ESP_LOGD("LL", "%p ", currentNode); \
-            currentNode = currentNode->next; \
-        } \
-    } while(0)
-*/
-#define dbgList(l)
+/* Uncomment just one of these */
+// #define VALIDATE_LIST(func, line, nl, list, target) validateList(func, line, nl, list, target)
+#define VALIDATE_LIST(func, line, nl, list, target)
+
+void validateList(const char * func, int line, bool nl, list_t * list, node_t * target);
+
+/**
+ * @brief Debug print and validate the list
+ * 
+ * @param func The calling function
+ * @param line The calling line
+ * @param nl true to print a newline before the list, false to not
+ * @param list The list to validate
+ * @param target The target for the operation, may be NULL
+ */
+void validateList(const char * func, int line, bool nl, list_t * list, node_t * target)
+{
+    if(nl)
+    {
+        printf("\n");
+    }
+    ESP_LOGD("VL", "%s::%d, len: %d (%p)", func, line, list->length, target);
+    node_t* currentNode = list->first;
+    node_t* prev = NULL;
+    int countedLen = 0;
+
+    if(NULL != list->first && NULL != list->first->prev)
+    {
+        ESP_LOGE("VL", "Node before first not NULL");
+        exit(1);
+    }
+
+    if(NULL != list->last && NULL != list->last->next)
+    {
+        ESP_LOGE("VL", "Node after last not NULL");
+        exit(1);
+    }
+
+    while (currentNode != NULL)
+    {
+        ESP_LOGD("VL", "%p -> %p -> %p", currentNode->prev, currentNode, currentNode->next);
+        if(prev != currentNode->prev)
+        {
+            ESP_LOGE("VL", "Linkage error %p != %p", currentNode->prev, prev);
+            exit(1);
+        }
+        prev = currentNode;
+        currentNode = currentNode->next;
+        countedLen++;
+    }
+
+    if(countedLen != list->length)
+    {
+        ESP_LOGE("VL", "List mismatch, list says %d, counted %d", list->length, countedLen);
+        exit(1);
+    }
+}
 
 // Add to the end of the list.
 void push(list_t* list, void* val)
 {
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, true, list, val);
     node_t* newLast = malloc(sizeof(node_t));
     newLast->val = val;
     newLast->next = NULL;
@@ -43,13 +93,13 @@ void push(list_t* list, void* val)
         list->last = newLast;
     }
     list->length++;
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, false, list, val);
 }
 
 // Remove from the end of the list.
 void* pop(list_t* list)
 {
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, true, list, NULL);
     void* retval = NULL;
 
     // Get a direct pointer to the node we're removing.
@@ -78,14 +128,14 @@ void* pop(list_t* list)
         list->length--;
     }
 
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, false, list, NULL);
     return retval;
 }
 
 // Add to the front of the list.
 void unshift(list_t* list, void* val)
 {
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, true, list, val);
     node_t* newFirst = malloc(sizeof(node_t));
     newFirst->val = val;
     newFirst->next = list->first;
@@ -102,13 +152,13 @@ void unshift(list_t* list, void* val)
         list->first = newFirst;
     }
     list->length++;
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, false, list, val);
 }
 
 // Remove from the front of the list.
 void* shift(list_t* list)
 {
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, true, list, NULL);
     void* retval = NULL;
 
     // Get a direct pointer to the node we're removing.
@@ -137,7 +187,7 @@ void* shift(list_t* list)
         list->length--;
     }
 
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, false, list, NULL);
     return retval;
 }
 
@@ -145,7 +195,7 @@ void* shift(list_t* list)
 // Add at an index in the list.
 void add(list_t* list, void* val, int index)
 {
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, true, list, val);
     // If the index we're trying to add to the start of the list.
     if (index == 0)
     {
@@ -181,23 +231,23 @@ void add(list_t* list, void* val, int index)
     {
         push(list, val);
     }
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, false, list, val);
 }
 
 // Remove at an index in the list.
 void* removeIdx(list_t* list, int index)
 {
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, true, list, (void*)((intptr_t)index));
     // If the list is null or empty, dont touch it
     if(NULL == list || list->length == 0)
     {
-        dbgList(list);
+        VALIDATE_LIST(__func__, __LINE__, false, list, (void*)((intptr_t)index));
         return NULL;
     }
     // If the index we're trying to remove from is the start of the list.
     else if (index == 0)
     {
-        dbgList(list);
+        VALIDATE_LIST(__func__, __LINE__, false, list, (void*)((intptr_t)index));
         return shift(list);
     }
     // Else if the index we're trying to remove from is before the end of the list.
@@ -224,13 +274,13 @@ void* removeIdx(list_t* list, int index)
         target = NULL;
 
         list->length--;
-        dbgList(list);
+        VALIDATE_LIST(__func__, __LINE__, false, list, (void*)((intptr_t)index));
         return retval;
     }
     // Else just remove the node at the end of the list.
     else
     {
-        dbgList(list);
+        VALIDATE_LIST(__func__, __LINE__, false, list, (void*)((intptr_t)index));
         return pop(list);
     }
 }
@@ -246,23 +296,23 @@ void* removeIdx(list_t* list, int index)
  */
 void* removeEntry(list_t* list, node_t* entry)
 {
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, true, list, entry);
     // If the list is null or empty, dont touch it
     if(NULL == list || list->length == 0)
     {
-        dbgList(list);
+        VALIDATE_LIST(__func__, __LINE__, false, list, entry);
         return NULL;
     }
     // If the entry we're trying to remove is the fist one, shift it
     else if(list->first == entry)
     {
-        dbgList(list);
+        VALIDATE_LIST(__func__, __LINE__, false, list, entry);
         return shift(list);
     }
     // If the entry we're trying to remove is the last one, pop it
     else if(list->last == entry)
     {
-        dbgList(list);
+        VALIDATE_LIST(__func__, __LINE__, false, list, entry);
         return pop(list);
     }
     // Otherwise it's somewhere in the middle, or doesn't exist
@@ -291,7 +341,7 @@ void* removeEntry(list_t* list, node_t* entry)
                 // Free the unlinked node, decrement the list
                 free(curr);
                 list->length--;
-                dbgList(list);
+                VALIDATE_LIST(__func__, __LINE__, false, list, entry);
 
                 // Return the removed value
                 return retval;
@@ -299,21 +349,116 @@ void* removeEntry(list_t* list, node_t* entry)
 
             // Iterate to the next node
             curr = curr->next;
+            prev = curr->prev;
         }
     }
     // Nothing to be removed
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, false, list, entry);
     return NULL;
 }
 
 // Remove all items from the list.
 void clear(list_t* list)
 {
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, true, list, NULL);
     while (list->first != NULL)
     {
         pop(list);
     }
-    dbgList(list);
+    VALIDATE_LIST(__func__, __LINE__, false, list, NULL);
 }
 
+/**
+ * @brief Exercise the linked list code by doing lots of random operations
+ */
+void listTester(void)
+{
+    list_t testList = 
+    {
+        .first = NULL,
+        .last = NULL,
+        .length = 0
+    };
+    list_t * l = &testList;
+
+    // Seed the list
+    for(int i = 0; i < 25; i++)
+    {
+        push(l, NULL);
+    }    
+
+    for(int64_t i = 0; i < 100000000; i++)
+    {
+        if(0 == i % 10000)
+        {
+            printf("link tester %" PRIu64 "\n", i);
+        }
+        switch(esp_random() % 8)
+        {
+            case 0:
+            {
+                push(l, NULL);
+                break;
+            }
+            case 1:
+            {
+                pop(l);
+                break;
+            }
+            case 2:
+            {
+                unshift(l, NULL);
+                break;
+            }
+            case 3:
+            {
+                shift(l);
+                break;
+            }
+            case 4:
+            {
+                // Add to random valid index
+                int idx = 0;
+                if(l->length)
+                {
+                    idx = esp_random() % l->length;
+                }
+                add(l, NULL, idx);
+                break;
+            }
+            case 5:
+            {
+                // Remove from random valid index
+                int idx = 0;
+                if(l->length)
+                {
+                    idx = esp_random() % l->length;
+                }
+                removeIdx(l, idx);
+                break;
+            }
+            case 6:
+            {
+                // Remove random valid node
+                int idx = 0;
+                if(l->length)
+                {
+                    idx = esp_random() % l->length;
+                }
+                node_t * node = l->first;
+                while(idx--)
+                {
+                    node = node->next;
+                }
+                removeEntry(l, node);
+                break;
+            }
+            case 7:
+            {
+                // clear(l);
+                break;
+            }
+        }
+    }
+    ESP_LOGD("LV", "List validated");
+}

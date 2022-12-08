@@ -41,7 +41,7 @@ SRC_DIRS_RECURSIVE = emu/src main/display main/modes main/colorchord main/utils
 # This is a list of directories to scan for c files not recursively
 SRC_DIRS_FLAT = main
 # This is a list of files to compile directly. There's no scanning here
-SRC_FILES = components/hdw-spiffs/heatshrink_decoder.c components/hdw-spiffs/spiffs_json.c
+SRC_FILES = components/hdw-spiffs/heatshrink_decoder.c components/hdw-spiffs/spiffs_json.c components/hdw-spiffs/spiffs_txt.c
 # This is all the source directories combined
 SRC_DIRS = $(shell $(FIND) $(SRC_DIRS_RECURSIVE) -type d) $(SRC_DIRS_FLAT)
 # This is all the source files combined
@@ -113,6 +113,9 @@ CFLAGS_WARNINGS_EXTRA = \
 # Defines
 ################################################################################
 
+# Create a variable with the git hash and branch name
+GIT_HASH  = \"$(shell git rev-parse --short HEAD)\"
+
 # Used by the ESP SDK
 DEFINES_LIST = \
 	CONFIG_GC9307_240x280=y \
@@ -134,6 +137,9 @@ DEFINES_LIST = \
 	CONFIG_TFT_MIN_BRIGHTNESS=10 \
 	SOC_TIMER_GROUP_TIMERS_PER_GROUP=2 \
 	SOC_TIMER_GROUPS=2 \
+	GIT_SHA1=${GIT_HASH} \
+	HAS_XINERAMA=1 \
+	FULL_SCREEN_STEAL_FOCUS=1
 
 DEFINES = $(patsubst %, -D%, $(DEFINES_LIST))
 
@@ -168,7 +174,7 @@ ifeq ($(HOST_OS),Windows)
     LIBS = opengl32 gdi32 user32 winmm WSock32
 endif
 ifeq ($(HOST_OS),Linux)
-    LIBS = m X11 asound pulse rt GL GLX pthread
+    LIBS = m X11 asound pulse rt GL GLX pthread Xext Xinerama
 endif
 
 # These are directories to look for library files in

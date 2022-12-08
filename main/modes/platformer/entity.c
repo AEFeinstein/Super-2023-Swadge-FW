@@ -101,6 +101,7 @@ void updatePlayer(entity_t *self)
         if (self->gameData->btnState & UP)
         {
             self->yspeed -= 8;
+            self->falling = true;
 
             if (self->yspeed < -16)
             {
@@ -110,6 +111,7 @@ void updatePlayer(entity_t *self)
         else if (self->gameData->btnState & DOWN)
         {
             self->yspeed += 8;
+            self->falling = true;
 
             if (self->yspeed > 32)
             {
@@ -215,6 +217,11 @@ void updateTestObject(entity_t *self)
 
 void updateHitBlock(entity_t *self)
 {
+    if(self->homeTileY > self->tilemap->mapHeight){
+        destroyEntity(self, false);
+        return;
+    }
+   
     self->x += self->xspeed;
     self->y += self->yspeed;
 
@@ -226,17 +233,17 @@ void updateHitBlock(entity_t *self)
     }
     if (self->animationTimer > 12)
     {
-        uint8_t aboveTile = self->tilemap->map[(self->homeTileY - 1) * self->tilemap->mapWidth + self->homeTileX];
-        uint8_t belowTile = self->tilemap->map[(self->homeTileY + 1) * self->tilemap->mapWidth + self->homeTileX];
+        uint8_t aboveTile = (self->homeTileY == 0) ? 0 : self->tilemap->map[(self->homeTileY - 1) * self->tilemap->mapWidth + self->homeTileX];
+        uint8_t belowTile = (self->homeTileY == (self->tilemap->mapHeight - 1))? 0 : self->tilemap->map[(self->homeTileY + 1) * self->tilemap->mapWidth + self->homeTileX];
         entity_t *createdEntity = NULL;
 
         switch (aboveTile)
         {
             case TILE_CTNR_COIN:
+            case TILE_CTNR_10COIN:
             {
                 addCoins(self->gameData, 1);
                 scorePoints(self->gameData, 10);
-                buzzer_play_sfx(&sndCoin);
                 self->jumpPower = TILE_CONTAINER_2;
                 break;
             }
@@ -265,7 +272,6 @@ void updateHitBlock(entity_t *self)
                 if(self->gameData->extraLifeCollected){
                     addCoins(self->gameData, 1);
                     scorePoints(self->gameData, 10);
-                    buzzer_play_sfx(&sndCoin);
                 } else {
                     createdEntity = createEntity(self->entityManager, ENTITY_1UP, (self->homeTileX * TILE_SIZE) + HALF_TILE_SIZE, ((self->homeTileY + ((self->yspeed < 0 && (!isSolid(belowTile) && belowTile != TILE_BOUNCE_BLOCK))?1:-1)) * TILE_SIZE) + HALF_TILE_SIZE);
                     createdEntity->homeTileX = 0;
@@ -613,6 +619,7 @@ void playerCollisionHandler(entity_t *self, entity_t *other)
                     self->yspeed = -60;
                     self->spriteIndex = SP_PLAYER_HURT;
                     self->gameData->changeState = ST_DEAD;
+                    self->gravityEnabled = true;
                     self->falling = true;
                 } else {
                     self->xspeed = 0;
@@ -855,7 +862,6 @@ bool playerTileCollisionHandler(entity_t *self, uint8_t tileId, uint8_t tx, uint
         setTile(self->tilemap, tx, ty, TILE_EMPTY);
         addCoins(self->gameData, 1);
         scorePoints(self->gameData, 50);
-        buzzer_play_sfx(&sndCoin);
         break;
     }
     case TILE_LADDER:
@@ -1703,7 +1709,6 @@ void playerOverlapTileHandler(entity_t* self, uint8_t tileId, uint8_t tx, uint8_
             setTile(self->tilemap, tx, ty, TILE_EMPTY);
             addCoins(self->gameData, 1);
             scorePoints(self->gameData, 50);
-            buzzer_play_sfx(&sndCoin);
             break;
         }
         case TILE_LADDER:{

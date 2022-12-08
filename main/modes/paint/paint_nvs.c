@@ -7,6 +7,10 @@
 #include "paint_ui.h"
 #include "paint_util.h"
 
+static const char KEY_PAINT_INDEX[] = "pnt_idx";
+static const char KEY_PAINT_SLOT_PALETTE[] = "paint_%02d_pal";
+static const char KEY_PAINT_SLOT_DIM[] = "paint_%02d_dim";
+static const char KEY_PAINT_SLOT_CHUNK[] = "paint_%02dc%05u";
 
 // void paintDebugIndex(int32_t index)
 // {
@@ -47,7 +51,7 @@ void paintLoadIndex(int32_t* index)
     // |xxxxxvvv  |Recent?|  |Inuse? |
     // 0000 0000  0000 0000  0000 0000
 
-    if (!readNvs32("pnt_idx", index))
+    if (!readNvs32(KEY_PAINT_INDEX, index))
     {
         PAINT_LOGW("No metadata! Setting defaults");
         *index = PAINT_DEFAULTS;
@@ -57,7 +61,7 @@ void paintLoadIndex(int32_t* index)
 
 void paintSaveIndex(int32_t index)
 {
-    if (writeNvs32("pnt_idx", index))
+    if (writeNvs32(KEY_PAINT_INDEX, index))
     {
         PAINT_LOGD("Saved index: %04x", index);
     }
@@ -111,43 +115,42 @@ void paintSetRecentSlot(int32_t* index, uint8_t slot)
     paintSaveIndex(*index);
 }
 
-bool paintSave(int32_t* index, const paintCanvas_t* canvas, uint8_t slot)
+/**
+ * Returns the number of bytes needed to store the image pixel data
+ */
+size_t paintGetStoredSize(const paintCanvas_t* canvas)
 {
-    // palette in reverse for quick transformation
-    uint8_t paletteIndex[256];
+    return (canvas->w * canvas->h + 1) / 2;
+}
 
-    // NVS blob key name
-    char key[16];
+bool paintDeserialize(paintCanvas_t* dest, const uint8_t* data, size_t offset, size_t count)
+{
+    uint16_t x0, y0, x1, y1;
+    for (uint16_t n = 0; n < count; n++)
+    {
+        if (offset * 2 + (n * 2) >= dest->w * dest->h)
+        {
+            // If we've just read the last pixel, exit early
+            return false;
+        }
 
-    // pointer to converted image segment
-    uint8_t* imgChunk = NULL;
+        // no need for logic to exit the final chunk early, since each chunk's size is given to us
+        // calculate the canvas coordinates given the pixel indices
+        x0 = (offset * 2 + (n * 2)) % dest->w;
+        y0 = (offset * 2 + (n * 2)) / dest->w;
+        x1 = (offset * 2 + (n * 2 + 1)) % dest->w;
+        y1 = (offset * 2 + (n * 2 + 1)) / dest->w;
 
-    // Save the palette map, this lets us compact the image by 50%
-    snprintf(key, 16, "paint_%02d_pal", slot);
-    PAINT_LOGD("paletteColor_t size: %zu, max colors: %d", sizeof(paletteColor_t), PAINT_MAX_COLORS);
-    PAINT_LOGD("Palette will take up %zu bytes", sizeof(canvas->palette));
-    if (writeNvsBlob(key, canvas->palette, sizeof(canvas->palette)))
-    {
-        PAINT_LOGD("Saved palette to slot %s", key);
-    }
-    else
-    {
-        PAINT_LOGE("Could't save palette to slot %s", key);
-        return false;
+        setPxScaled(dest->disp, x0, y0, dest->palette[data[n] >> 4], dest->x, dest->y, dest->xScale, dest->yScale);
+        setPxScaled(dest->disp, x1, y1, dest->palette[data[n] & 0xF], dest->x, dest->y, dest->xScale, dest->yScale);
     }
 
-    // Save the canvas dimensions
-    uint32_t packedSize = canvas->w << 16 | canvas->h;
-    snprintf(key, 16, "paint_%02d_dim", slot);
-    if (writeNvs32(key, packedSize))
-    {
-        PAINT_LOGD("Saved dimensions to slot %s", key);
-    }
-    else
-    {
-        PAINT_LOGE("Couldn't save dimensions to slot %s",key);
-        return false;
-    }
+    return offset * 2 + (count * 2) < dest->w * dest->h;
+}
+
+size_t paintSerialize(uint8_t* dest, const paintCanvas_t* canvas, size_t offset, size_t count)
+{
+    uint8_t paletteIndex[cTransparent + 1];
 
     // Build the reverse-palette map
     for (uint16_t i = 0; i < PAINT_MAX_COLORS; i++)
@@ -155,19 +158,39 @@ bool paintSave(int32_t* index, const paintCanvas_t* canvas, uint8_t slot)
         paletteIndex[((uint8_t)canvas->palette[i])] = i;
     }
 
-    // Allocate space for the chunk
-    uint32_t totalPx = canvas->h * canvas->w;
-    uint32_t finalChunkSize = totalPx % PAINT_SAVE_CHUNK_SIZE / 2;
-
-    // don't skip the entire last chunk if it falls on a boundary
-    if (finalChunkSize == 0)
+    uint16_t x0, y0, x1, y1;
+    // build the chunk
+    for (uint16_t n = 0; n < count; n++)
     {
-        finalChunkSize = PAINT_SAVE_CHUNK_SIZE;
+        if (offset * 2 + (n * 2) >= canvas->w * canvas->h)
+        {
+            // If we've just stored the last pixel, return false to indicate that we're done
+            return n;
+        }
+
+        // calculate the real coordinates given the pixel indices
+        // (we store 2 pixels in each byte)
+        // that's 100% more pixel, per pixel!
+        x0 = canvas->x + (offset * 2 + (n * 2)) % canvas->w * canvas->xScale;
+        y0 = canvas->y + (offset * 2 + (n * 2)) / canvas->w * canvas->yScale;
+        x1 = canvas->x + (offset * 2 + (n * 2 + 1)) % canvas->w * canvas->xScale;
+        y1 = canvas->y + (offset * 2 + (n * 2 + 1)) / canvas->w * canvas->yScale;
+
+        // we only need to save the top-left pixel of each scaled pixel, since they're the same unless something is very broken
+        dest[n] = paletteIndex[(uint8_t)canvas->disp->getPx(x0, y0)] << 4 | paletteIndex[(uint8_t)canvas->disp->getPx(x1, y1)];
     }
 
-    // Add double the chunk size (pixels per chunk, really), minus one, so that if there are e.g. 2049 pixels,
-    // it would become 4096 and round up to 2 chunks instead of 1
-    uint8_t chunkCount = (totalPx + (PAINT_SAVE_CHUNK_SIZE * 2) - 1) / (PAINT_SAVE_CHUNK_SIZE * 2);
+    return count;
+}
+
+bool paintSave(int32_t* index, const paintCanvas_t* canvas, uint8_t slot)
+{
+    // NVS blob key name
+    char key[16];
+
+    // pointer to converted image segment
+    uint8_t* imgChunk = NULL;
+
     if ((imgChunk = malloc(sizeof(uint8_t) * PAINT_SAVE_CHUNK_SIZE)) != NULL)
     {
         PAINT_LOGD("Allocated %d bytes for image chunk", PAINT_SAVE_CHUNK_SIZE);
@@ -178,46 +201,57 @@ bool paintSave(int32_t* index, const paintCanvas_t* canvas, uint8_t slot)
         return false;
     }
 
-    PAINT_LOGD("We will use %d chunks of size %dB (%d), plus one of %uB == %dB to save the image", chunkCount - 1, PAINT_SAVE_CHUNK_SIZE, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE, finalChunkSize, (chunkCount - 1) * PAINT_SAVE_CHUNK_SIZE + finalChunkSize);
-    PAINT_LOGD("The image is %d x %d px == %upx, at 2px/B that's %uB", canvas->w, canvas->h, totalPx, totalPx / 2);
-
-    uint16_t x0, y0, x1, y1;
-    // Write all the chunks
-    for (uint32_t i = 0; i < chunkCount; i++)
+    // Save the palette map, this lets us compact the image by 50%
+    snprintf(key, 16, KEY_PAINT_SLOT_PALETTE, slot);
+    PAINT_LOGD("paletteColor_t size: %zu, max colors: %d", sizeof(paletteColor_t), PAINT_MAX_COLORS);
+    PAINT_LOGD("Palette will take up %zu bytes", sizeof(canvas->palette));
+    if (writeNvsBlob(key, canvas->palette, sizeof(canvas->palette)))
     {
-        // build the chunk
-        for (uint16_t n = 0; n < PAINT_SAVE_CHUNK_SIZE; n++)
-        {
-            // exit the last chunk early if needed
-            if (i + 1 == chunkCount && n == finalChunkSize)
-            {
-                break;
-            }
+        PAINT_LOGD("Saved palette to slot %s", key);
+    }
+    else
+    {
+        PAINT_LOGE("Could't save palette to slot %s", key);
+        free(imgChunk);
+        return false;
+    }
 
-            // calculate the real coordinates given the pixel indices
-            // (we store 2 pixels in each byte)
-            // that's 100% more pixel, per pixel!
-            x0 = canvas->x + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) % canvas->w * canvas->xScale;
-            y0 = canvas->y + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) / canvas->w * canvas->yScale;
-            x1 = canvas->x + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) % canvas->w * canvas->xScale;
-            y1 = canvas->y + ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) / canvas->w * canvas->yScale;
+    // Save the canvas dimensions
+    uint32_t packedSize = canvas->w << 16 | canvas->h;
+    snprintf(key, 16, KEY_PAINT_SLOT_DIM, slot);
+    if (writeNvs32(key, packedSize))
+    {
+        PAINT_LOGD("Saved dimensions to slot %s", key);
+    }
+    else
+    {
+        PAINT_LOGE("Couldn't save dimensions to slot %s",key);
+        free(imgChunk);
+        return false;
+    }
 
-            // we only need to save the top-left pixel of each scaled pixel, since they're the same unless something is very broken
-            imgChunk[n] = paletteIndex[(uint8_t)canvas->disp->getPx(x0, y0)] << 4 | paletteIndex[(uint8_t)canvas->disp->getPx(x1, y1)];
-        }
+    size_t offset = 0;
+    size_t written = 0;
+    uint32_t chunkNumber = 0;
 
+    // Write until we're done
+    while (0 != (written = paintSerialize(imgChunk, canvas, offset, PAINT_SAVE_CHUNK_SIZE)))
+    {
         // save the chunk
-        snprintf(key, 16, "paint_%02dc%05u", slot, i);
-        if (writeNvsBlob(key, imgChunk, (i + 1 < chunkCount) ? PAINT_SAVE_CHUNK_SIZE : finalChunkSize))
+        snprintf(key, 16, KEY_PAINT_SLOT_CHUNK, slot, chunkNumber);
+        if (writeNvsBlob(key, imgChunk, written))
         {
-            PAINT_LOGD("Saved blob %u of %d", i+1, chunkCount);
+            PAINT_LOGD("Saved blob %u with %zu bytes", chunkNumber, written);
         }
         else
         {
-            PAINT_LOGE("Unable to save blob %u of %d", i+1, chunkCount);
+            PAINT_LOGE("Unable to save blob %u", chunkNumber);
             free(imgChunk);
             return false;
         }
+
+        offset += written;
+        chunkNumber++;
     }
 
     paintSetSlotInUse(index, slot);
@@ -238,6 +272,17 @@ bool paintLoad(int32_t* index, paintCanvas_t* canvas, uint8_t slot)
     // pointer to converted image segment
     uint8_t* imgChunk = NULL;
 
+    // Allocate space for the chunk
+    if ((imgChunk = malloc(PAINT_SAVE_CHUNK_SIZE)) != NULL)
+    {
+        PAINT_LOGD("Allocated %d bytes for image chunk", PAINT_SAVE_CHUNK_SIZE);
+    }
+    else
+    {
+        PAINT_LOGE("malloc failed for %d bytes", PAINT_SAVE_CHUNK_SIZE);
+        return false;
+    }
+
     // read the palette and load it into the recentColors
     // read the dimensions and do the math
     // read the pixels
@@ -247,15 +292,17 @@ bool paintLoad(int32_t* index, paintCanvas_t* canvas, uint8_t slot)
     if (!paintGetSlotInUse(*index, slot))
     {
         PAINT_LOGW("Attempted to load from uninitialized slot %d", slot);
+        free(imgChunk);
         return false;
     }
 
     // Load the palette map
-    snprintf(key, 16, "paint_%02d_pal", slot);
+    snprintf(key, 16, KEY_PAINT_SLOT_PALETTE, slot);
 
     if (!readNvsBlob(key, NULL, &paletteSize))
     {
         PAINT_LOGE("Couldn't read size of palette in slot %s", key);
+        free(imgChunk);
         return false;
     }
 
@@ -267,6 +314,7 @@ bool paintLoad(int32_t* index, paintCanvas_t* canvas, uint8_t slot)
     else
     {
         PAINT_LOGE("Could't read palette from slot %s", key);
+        free(imgChunk);
         return false;
     }
 
@@ -274,63 +322,43 @@ bool paintLoad(int32_t* index, paintCanvas_t* canvas, uint8_t slot)
     {
         PAINT_LOGE("Slot %d has 0 dimension! Stopping load and clearing slot", slot);
         paintClearSlot(index, slot);
+        free(imgChunk);
         return false;
     }
 
-    // Allocate space for the chunk
-    uint32_t totalPx = canvas->h * canvas->w;
-    uint8_t chunkCount = (totalPx + (PAINT_SAVE_CHUNK_SIZE * 2) - 1) / (PAINT_SAVE_CHUNK_SIZE * 2);
-    if ((imgChunk = malloc(PAINT_SAVE_CHUNK_SIZE)) != NULL)
-    {
-        PAINT_LOGD("Allocated %d bytes for image chunk", PAINT_SAVE_CHUNK_SIZE);
-    }
-    else
-    {
-        PAINT_LOGE("malloc failed for %d bytes", PAINT_SAVE_CHUNK_SIZE);
-        return false;
-    }
-
-    size_t lastChunkSize;
-    uint16_t x0, y0, x1, y1;
     // Read all the chunks
-    for (uint16_t i = 0; i < chunkCount; i++)
-    {
-        snprintf(key, 16, "paint_%02dc%05u", slot, i);
+    size_t lastChunkSize = 0;
+    uint32_t chunkNumber = 0;
+    size_t offset = 0;
 
-        // get the chunk size
-        if (!readNvsBlob(key, NULL, &lastChunkSize))
+    do
+    {
+        offset += lastChunkSize;
+        snprintf(key, 16, KEY_PAINT_SLOT_CHUNK, slot, chunkNumber);
+        // panic
+        if (!readNvsBlob(key, NULL, &lastChunkSize) || lastChunkSize > PAINT_SAVE_CHUNK_SIZE)
         {
-            PAINT_LOGE("Unable to read size of blob %u in slot %s", i, key);
-            continue;
+            PAINT_LOGE("Unable to read size of blob %u in slot %s", chunkNumber, key);
+            free(imgChunk);
+            return false;
         }
 
         // read the chunk
         if (readNvsBlob(key, imgChunk, &lastChunkSize))
         {
-            PAINT_LOGD("Read blob %d of %u (%zu bytes)", i+1, chunkCount, lastChunkSize);
+            PAINT_LOGD("Read blob %d (%zu bytes)", chunkNumber, lastChunkSize);
         }
         else
         {
-            PAINT_LOGE("Unable to read blob %d of %u", i+1, chunkCount);
-            // don't panic if we miss one chunk, maybe it's ok...
-            continue;
+            PAINT_LOGE("Unable to read blob %d", chunkNumber);
+            // do panic if we miss one chunk, it's probably not ok...
+            free(imgChunk);
+            return false;
         }
 
-
-        // build the chunk
-        for (uint16_t n = 0; n < lastChunkSize; n++)
-        {
-            // no need for logic to exit the final chunk early, since each chunk's size is given to us
-            // calculate the canvas coordinates given the pixel indices
-            x0 = ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) % canvas->w;
-            y0 = ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2)) / canvas->w;
-            x1 = ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) % canvas->w;
-            y1 = ((i * PAINT_SAVE_CHUNK_SIZE * 2) + (n * 2 + 1)) / canvas->w;
-
-            setPxScaled(canvas->disp, x0, y0, canvas->palette[imgChunk[n] >> 4], canvas->x, canvas->y, canvas->xScale, canvas->yScale);
-            setPxScaled(canvas->disp, x1, y1, canvas->palette[imgChunk[n] & 0xF], canvas->x, canvas->y, canvas->xScale, canvas->yScale);
-        }
-    }
+        chunkNumber++;
+        // paintDeserialize() will return true if there's more to be read
+    } while (paintDeserialize(canvas, imgChunk, offset, lastChunkSize));
 
     free(imgChunk);
     imgChunk = NULL;
@@ -344,7 +372,7 @@ bool paintLoadDimensions(paintCanvas_t* canvas, uint8_t slot)
     // Read the canvas dimensions
     PAINT_LOGD("Reading dimensions");
     int32_t packedSize;
-    snprintf(key, 16, "paint_%02d_dim", slot);
+    snprintf(key, 16, KEY_PAINT_SLOT_DIM, slot);
     if (readNvs32(key, &packedSize))
     {
         canvas->h = (uint32_t)packedSize & 0xFFFF;
@@ -405,13 +433,13 @@ void paintDeleteSlot(int32_t* index, uint8_t slot)
     }
 
     // Delete the palette
-    snprintf(key, 16, "paint_%02d_pal", slot);
+    snprintf(key, 16, KEY_PAINT_SLOT_PALETTE, slot);
     if (!eraseNvsKey(key))
     {
         PAINT_LOGE("Couldn't delete palette of slot %d", slot);
     }
 
-    snprintf(key, 16, "paint_%02d_dim", slot);
+    snprintf(key, 16, KEY_PAINT_SLOT_DIM, slot);
     if (!eraseNvsKey(key))
     {
         PAINT_LOGE("Couldn't delete dimensions of slot %d", slot);
@@ -421,7 +449,7 @@ void paintDeleteSlot(int32_t* index, uint8_t slot)
     uint8_t i = 0;
     do
     {
-        snprintf(key, 16, "paint_%02dc%05d", slot, i++);
+        snprintf(key, 16, KEY_PAINT_SLOT_CHUNK, slot, i++);
     } while (eraseNvsKey(key));
 
     PAINT_LOGI("Erased %d chunks of slot %d", i - 1, slot);
@@ -436,7 +464,7 @@ void paintDeleteSlot(int32_t* index, uint8_t slot)
 
 bool paintDeleteIndex(void)
 {
-    if (eraseNvsKey("pnt_idx"))
+    if (eraseNvsKey(KEY_PAINT_INDEX))
     {
         PAINT_LOGI("Erased index!");
         return true;
