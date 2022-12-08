@@ -41,6 +41,7 @@
 
 #define CORNER_OFFSET 14
 //#define TOP_TEXT_X_MARGIN CORNER_OFFSET / 2
+#define SUMMARY_LINE_BREAK_Y 8
 #define LINE_BREAK_Y 4
 #define MAX_INT_STRING_LENGTH 21
 #define ENTRIES_BUF_SIZE MAX_INT_STRING_LENGTH + 8
@@ -473,56 +474,56 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             int16_t yOff = CORNER_OFFSET;
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_non_volatile_storage, CORNER_OFFSET, yOff);
 
-            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y + 1;
+            yOff += nvsManager->ibm_vga8.h + SUMMARY_LINE_BREAK_Y + 1;
             plotLine(nvsManager->disp, CORNER_OFFSET, yOff, nvsManager->disp->w - CORNER_OFFSET, yOff, color_summary_h_rule, 0);
 
             // Partition type
-            yOff += LINE_BREAK_Y + 1;
+            yOff += SUMMARY_LINE_BREAK_Y + 1;
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_type, CORNER_OFFSET, yOff);
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_local_flash_part, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, str_local_flash_part) - CORNER_OFFSET, yOff);
 
             // Partition file system
-            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+            yOff += nvsManager->ibm_vga8.h + SUMMARY_LINE_BREAK_Y;
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_file_system, CORNER_OFFSET, yOff);
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_nvs, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, str_nvs) - CORNER_OFFSET, yOff);
 
-            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y + 1;
+            yOff += nvsManager->ibm_vga8.h + SUMMARY_LINE_BREAK_Y + 1;
             plotLine(nvsManager->disp, CORNER_OFFSET, yOff, nvsManager->disp->w - CORNER_OFFSET, yOff, color_summary_h_rule, 0);
 
             // Used space
-            yOff += LINE_BREAK_Y + 1;
+            yOff += SUMMARY_LINE_BREAK_Y + 1;
             fillDisplayArea(nvsManager->disp, CORNER_OFFSET, yOff, CORNER_OFFSET + nvsManager->ibm_vga8.h, yOff + nvsManager->ibm_vga8.h, color_summary_used);
-            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_used_space, CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y, yOff);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_used_space, CORNER_OFFSET + nvsManager->ibm_vga8.h + SUMMARY_LINE_BREAK_Y, yOff);
             snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->nvsStats.used_entries);
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, nvsManager->nvsStats.used_entries == 1 ? str_1_entry : buf, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf) - CORNER_OFFSET, yOff);
 
             // Namespaces
-            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
-            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_namespaces, CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y, yOff);
+            yOff += nvsManager->ibm_vga8.h + SUMMARY_LINE_BREAK_Y;
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_namespaces, CORNER_OFFSET + nvsManager->ibm_vga8.h + SUMMARY_LINE_BREAK_Y, yOff);
             snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->nvsStats.namespace_count);
             int16_t tWidth = textWidth(&nvsManager->ibm_vga8, buf);
             snprintf(buf, ENTRIES_BUF_SIZE, "%zu", nvsManager->nvsStats.namespace_count);
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, buf, nvsManager->disp->w - tWidth - CORNER_OFFSET, yOff);
 
             // Free space
-            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+            yOff += nvsManager->ibm_vga8.h + SUMMARY_LINE_BREAK_Y;
             fillDisplayArea(nvsManager->disp, CORNER_OFFSET, yOff, CORNER_OFFSET + nvsManager->ibm_vga8.h, yOff + nvsManager->ibm_vga8.h, color_summary_free);
-            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_free_space, CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y, yOff);
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_free_space, CORNER_OFFSET + nvsManager->ibm_vga8.h + SUMMARY_LINE_BREAK_Y, yOff);
             snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->nvsStats.free_entries);
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, nvsManager->nvsStats.free_entries == 1 ? str_1_entry : buf, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf) - CORNER_OFFSET, yOff);
 
-            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y + 1;
+            yOff += nvsManager->ibm_vga8.h + SUMMARY_LINE_BREAK_Y + 1;
             plotLine(nvsManager->disp, CORNER_OFFSET, yOff, nvsManager->disp->w - CORNER_OFFSET, yOff, color_summary_h_rule, 0);
 
             // Capacity
-            yOff += LINE_BREAK_Y + 1;
-            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_capacity, CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y, yOff);
+            yOff += SUMMARY_LINE_BREAK_Y + 1;
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_capacity, CORNER_OFFSET + nvsManager->ibm_vga8.h + SUMMARY_LINE_BREAK_Y, yOff);
             snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->nvsStats.total_entries);
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, buf, nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf) - CORNER_OFFSET, yOff);
 
-            yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
-            int16_t xStart = CORNER_OFFSET + nvsManager->ibm_vga8.h + LINE_BREAK_Y;
-            int16_t xEnd = nvsManager->disp->w - CORNER_OFFSET - nvsManager->ibm_vga8.h - LINE_BREAK_Y;
+            yOff += nvsManager->ibm_vga8.h + SUMMARY_LINE_BREAK_Y;
+            int16_t xStart = CORNER_OFFSET + nvsManager->ibm_vga8.h + SUMMARY_LINE_BREAK_Y;
+            int16_t xEnd = nvsManager->disp->w - CORNER_OFFSET - nvsManager->ibm_vga8.h - SUMMARY_LINE_BREAK_Y;
             fillDisplayArea(nvsManager->disp, xStart, yOff, xStart + roundf((float_t)nvsManager->nvsStats.used_entries / nvsManager->nvsStats.total_entries * (xEnd - xStart)), yOff + nvsManager->ibm_vga8.h, color_summary_used);
             fillDisplayArea(nvsManager->disp, xEnd - roundf((float_t)nvsManager->nvsStats.free_entries / nvsManager->nvsStats.total_entries * (xEnd - xStart)), yOff, xEnd, yOff + nvsManager->ibm_vga8.h, color_summary_free);
 
