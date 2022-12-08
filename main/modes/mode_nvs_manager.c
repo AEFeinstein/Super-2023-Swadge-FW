@@ -84,6 +84,8 @@ typedef enum
     NVS_MENU,
     // Summary of used, free, and total entries in NVS
     NVS_SUMMARY,
+    // Warn users about the potential dangers of managing keys
+    NVS_WARNING,
     // Manage key/value pairs in NVS
     NVS_MANAGE_DATA,
     // Manage a specific key/value pair
@@ -114,6 +116,7 @@ swadgeMode modeNvsManager =
 // The state data
 typedef struct
 {
+    // Display and fonts
     display_t* disp;
     font_t ibm_vga8;
     font_t radiostars;
@@ -121,12 +124,13 @@ typedef struct
 
     // Menu
     meleeMenu_t* menu;
-    uint8_t topLevelPos;
+    uint16_t topLevelPos;
     uint16_t manageDataPos;
     // The screen within NVS manager that the user is in
     nvsScreen_t screen;
     bool eraseDataSelected;
     bool eraseDataConfirm;
+    bool warningAccepted;
 
     // Track touch
     bool touchHeld;
@@ -137,21 +141,21 @@ typedef struct
     list_t pages;
     node_t* curPage;
     uint16_t loadedRow;
-
-
-    // Cached NVS info
-
     // Just points to blobStr or numStr
-    const char* pageStr;
+    char* pageStr;
 
-    const char* blobStr;
-    char numStr[MAX_INT_STRING_LENGTH];
+    ///////////////////
+    // Cached NVS info
+    ///////////////////
 
-    size_t usedEntries;
-
-    // NVS
+    // General NVS info
     nvs_stats_t nvsStats;
     nvs_entry_info_t* nvsKeys;
+
+    // Per-key NVS info
+    char* blobStr;
+    char numStr[MAX_INT_STRING_LENGTH];
+    size_t usedEntries;
 } nvsManager_t;
 
 nvsManager_t* nvsManager;
@@ -185,6 +189,12 @@ const char str_free_space[] = "Free space:";
 const char str_capacity[] = "Capacity:";
 const char str_1_entry[] = "1 entry";
 const char str_entries_format[] = "%zu entries";
+
+// Warning
+const paletteColor_t color_warning_bg = c200;
+const paletteColor_t color_warning_text = c555;
+const char str_warning[] = "WARNING:";
+const char str_warning_text[] = "Modifying, erasing, or receiving individual key/value pairs may cause certain modes or features of your Swadge to become unusable until a Factory Reset is performed, or may result in loss of save data.\n\n\nIf you acknowledge these risks and wish to proceed anyway, press Select.\n\n Press any other button to return.";
 
 // Manage key
 // Menu border colors: c112, c211, c021, c221, c102, c210,
@@ -345,6 +355,29 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
 
             break;
         }
+        case NVS_WARNING:
+        {
+            if(evt->down)
+            {
+                switch(evt->button)
+                {
+                    case SELECT:
+                    {
+                        nvsManager->warningAccepted = true;
+                        nvsManagerSetUpManageDataMenu(true);
+                        break;
+                    }
+                    case BTN_B:
+                    default:
+                    {
+                        nvsManager->screen = NVS_MENU;
+                        break;
+                    }
+                }
+            }
+
+            break;
+        }
         case NVS_MANAGE_DATA:
         {
             if(evt->down)
@@ -484,6 +517,18 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             fillDisplayArea(nvsManager->disp, xStart, yOff, xStart + roundf((float_t)nvsManager->nvsStats.used_entries / nvsManager->nvsStats.total_entries * (xEnd - xStart)), yOff + nvsManager->ibm_vga8.h, color_summary_used);
             fillDisplayArea(nvsManager->disp, xEnd - roundf((float_t)nvsManager->nvsStats.free_entries / nvsManager->nvsStats.total_entries * (xEnd - xStart)), yOff, xEnd, yOff + nvsManager->ibm_vga8.h, color_summary_free);
 
+            break;
+        }
+        case NVS_WARNING:
+        {
+            fillDisplayArea(nvsManager->disp, 0, 0, nvsManager->disp->w, nvsManager->disp->h, color_warning_bg);
+
+            int16_t yOff = CORNER_OFFSET;
+            drawText(nvsManager->disp, &nvsManager->mm, color_warning_text, str_warning, (nvsManager->disp->w - textWidth(&nvsManager->mm, str_warning)) / 2, yOff);
+
+            yOff += nvsManager->mm.h + nvsManager->ibm_vga8.h * 2 + 3;
+            int16_t xOff = CORNER_OFFSET;
+            drawTextWordWrap(nvsManager->disp, &nvsManager->ibm_vga8, color_warning_text, str_warning_text, &xOff, &yOff, nvsManager->disp->w - CORNER_OFFSET, nvsManager->disp->h - CORNER_OFFSET);
             break;
         }
         case NVS_MANAGE_KEY:
@@ -774,7 +819,14 @@ void nvsManagerTopLevelCb(const char* opt)
     }
     else if(str_manage_data == opt)
     {
-        nvsManagerSetUpManageDataMenu(true);
+        if(!nvsManager->warningAccepted)
+        {
+            nvsManager->screen = NVS_WARNING;
+        }
+        else
+        {
+            nvsManagerSetUpManageDataMenu(true);
+        }
     }
     else if(str_factory_reset == opt)
     {
