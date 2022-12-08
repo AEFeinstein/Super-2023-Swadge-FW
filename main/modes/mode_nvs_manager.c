@@ -211,7 +211,7 @@ const char str_unknown[] = "Unknown";
 const char str_read_failed[] = "Error: Failed to read data";
 const char str_unknown_type[] = "Error: Unknown type";
 const char str_hex_format[] = "0x%x";
-const char str_u_dec_format[] = "%u";
+//const char str_u_dec_format[] = "%u";
 const char str_i_dec_format[] = "%d";
 
 /*============================================================================
@@ -585,28 +585,6 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
 
                 switch(entryInfo.type)
                 {
-                    case NVS_TYPE_U8:
-                    {
-                        uint8_t val;
-                        readSuccess = readNvsU8(entryInfo.key, &val);
-                        if(readSuccess)
-                        {
-                            snprintf(nvsManager->numStr, MAX_INT_STRING_LENGTH, str_u_dec_format, val);
-                            nvsManager->usedEntries = 1;
-                        }
-                        break;
-                    }
-                    case NVS_TYPE_U32:
-                    {
-                        uint32_t val;
-                        readSuccess = readNvsU32(entryInfo.key, &val);
-                        if(readSuccess)
-                        {
-                            snprintf(nvsManager->numStr, MAX_INT_STRING_LENGTH, str_u_dec_format, val);
-                            nvsManager->usedEntries = 1;
-                        }
-                        break;
-                    }
                     case NVS_TYPE_I32:
                     {
                         int32_t val;
@@ -644,9 +622,11 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                         }
                         break;
                     }
+                    case NVS_TYPE_U8:
                     case NVS_TYPE_I8:
                     case NVS_TYPE_U16:
                     case NVS_TYPE_I16:
+                    case NVS_TYPE_U32:
                     case NVS_TYPE_U64:
                     case NVS_TYPE_I64:
                     case NVS_TYPE_STR:
@@ -943,11 +923,11 @@ const char* getNvsTypeName(nvs_type_t type)
 {
     switch(type)
     {
+#ifdef USING_MORE_THAN_I32_AND_BLOB
         case NVS_TYPE_U8:
         {
             return "8-bit unsigned integer";
         }
-#ifdef USING_MORE_THAN_I32_AND_BLOB
         case NVS_TYPE_I8:
         {
             return "8-bit signed integer";
@@ -960,11 +940,11 @@ const char* getNvsTypeName(nvs_type_t type)
         {
             return "16-bit signed integer";
         }
-#endif
         case NVS_TYPE_U32:
         {
             return "32-bit unsigned integer";
         }
+#endif
         case NVS_TYPE_I32:
         {
             return "32-bit signed integer";
