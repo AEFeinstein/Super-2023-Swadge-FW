@@ -157,7 +157,7 @@ typedef struct
     uint32_t curPageNum;
     uint16_t loadedRow;
     // Just points to blobStr or numStr
-    char* pageStr;
+    const char* pageStr;
 
     ///////////////////
     // Cached NVS info
@@ -438,6 +438,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
 
                                 // Intentional fallthrough
                             }
+                            case NVS_ACTION_BACK:
                             default:
                             {
                                 nvsManagerSetUpManageDataMenu(false);
@@ -560,6 +561,10 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                             case NVS_ACTION_BACK:
                             {
                                 nvsManagerSetUpManageDataMenu(false);
+                                break;
+                            }
+                            default:
+                            {
                                 break;
                             }
                         }
@@ -863,7 +868,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             yOff += LINE_BREAK_Y + 1;
             int16_t xOff = CORNER_OFFSET;
             int16_t newYOff = nvsManager->disp->h - CORNER_OFFSET - nvsManager->ibm_vga8.h * 2 - LINE_BREAK_Y * 3 - 2;
-            char* nextText;
+            const char* nextText;
             if (nvsManager->curPage == NULL)
             {
                 // Add the beginning of the text as the first page
@@ -904,7 +909,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             // Controls
             yOff += LINE_BREAK_Y + 1;
             drawWsg(nvsManager->disp, &nvsManager->ibm_vga8_arrow, CORNER_OFFSET, yOff, false, false, 270);
-            char* actionStr;
+            const char* actionStr;
             switch(nvsManager->manageKeyActionIndex)
             {
                 case NVS_ACTION_ERASE:
@@ -930,6 +935,11 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                 case NVS_ACTION_BACK:
                 {
                     actionStr = str_back;
+                    break;
+                }
+                default:
+                {
+                    actionStr = "";
                     break;
                 }
             }
