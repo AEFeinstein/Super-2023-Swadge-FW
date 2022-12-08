@@ -78,7 +78,7 @@ const char* getNvsTypeName(nvs_type_t type);
  * Structs
  *============================================================================*/
 
-/// @brief Defines each separate screen in the NVS manager mode.
+/// @brief Defines each separate screen in the NVS manager mode
 typedef enum
 {
     // Top menu
@@ -92,6 +92,17 @@ typedef enum
     // Manage a specific key/value pair
     NVS_MANAGE_KEY,
 } nvsScreen_t;
+
+/// @brief Defines each action the user can take while viewing a key/value pair in NVS manager
+typedef enum
+{
+    // Erase the key
+    NVS_ACTION_ERASE,
+    // Send the key to another Swadge
+    //NVS_ACTION_SEND,
+    // Go back (this will always be the last option, so it can be used as a maximum value)
+    NVS_ACTION_BACK,
+} nvsManageKeyAction_t;
 
 /*==============================================================================
  * Variables
@@ -128,6 +139,7 @@ typedef struct
     meleeMenu_t* menu;
     uint16_t topLevelPos;
     uint16_t manageDataPos;
+    nvsManageKeyAction_t manageKeyActionIndex;
     // The screen within NVS manager that the user is in
     nvsScreen_t screen;
     bool eraseDataSelected;
@@ -153,7 +165,7 @@ typedef struct
 
     // General NVS info
     nvs_stats_t nvsStats;
-    nvs_entry_info_t* nvsKeys;
+    nvs_entry_info_t* nvsEntryInfos;
 
     // Per-key NVS info
     char* blobStr;
@@ -213,6 +225,8 @@ const char str_namespace[] = "Namespace: ";
 const char str_unknown[] = "Unknown";
 const char str_read_failed[] = "Error: Failed to read data";
 const char str_unknown_type[] = "Error: Unknown type";
+const char str_erase[] = "Erase";
+//const char str_send[] = "Send";
 const char str_hex_format[] = "0x%x";
 //const char str_u_dec_format[] = "%u";
 const char str_i_dec_format[] = "%d";
@@ -241,7 +255,7 @@ void  nvsManagerEnterMode(display_t* disp)
     nvsManager->loadedRow = UINT16_MAX;
 
     // TODO: handle errors
-    readAllNvsEntryInfos(&nvsManager->nvsStats, &nvsManager->nvsKeys);
+    readAllNvsEntryInfos(&nvsManager->nvsStats, &nvsManager->nvsEntryInfos);
 
     // Initialize the menu
     nvsManager->menu = initMeleeMenu(modeNvsManager.modeName, &nvsManager->mm, nvsManagerTopLevelCb);
@@ -261,9 +275,9 @@ void  nvsManagerExitMode(void)
 
     freeWsg(&nvsManager->ibm_vga8_arrow);
 
-    if(nvsManager->nvsKeys != NULL)
+    if(nvsManager->nvsEntryInfos != NULL)
     {
-        free(nvsManager->nvsKeys);
+        free(nvsManager->nvsEntryInfos);
     }
 
     if (nvsManager->blobStr != NULL)
@@ -328,6 +342,8 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                         if (nvsManager->eraseDataSelected)
                         {
                             nvsManager->eraseDataSelected = false;
+                            // This is done later in the function
+                            // nvsManager->eraseDataConfirm = false;
                             nvsManagerSetUpTopMenu(false);
                         }
 
@@ -408,11 +424,28 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                 switch (evt->button)
                 {
                     case BTN_B:
-                        nvsManagerSetUpManageDataMenu(false);
-                    break;
+                    {
+                        switch(nvsManager->manageKeyActionIndex)
+                        {
+                            case NVS_ACTION_ERASE:
+                            {
+                                if (nvsManager->eraseDataSelected)
+                                {
+                                    nvsManager->eraseDataSelected = false;
+                                    nvsManager->eraseDataConfirm = false;
+                                    break;
+                                }
 
+                                // Intentional fallthrough
+                            }
+                            default:
+                            {
+                                nvsManagerSetUpManageDataMenu(false);
+                            }
+                        }
+                        break;
+                    }
                     case UP:
-                    case LEFT:
                     {
                         if (nvsManager->curPage != NULL && nvsManager->curPage->prev != NULL)
                         {
@@ -421,9 +454,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                         }
                         break;
                     }
-
                     case DOWN:
-                    case RIGHT:
                     {
                         if (nvsManager->curPage != NULL && nvsManager->curPage->next != NULL)
                         {
@@ -432,9 +463,111 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                         }
                         break;
                     }
+                    case LEFT:
+                    {
+                        switch(nvsManager->manageKeyActionIndex)
+                        {
+                            case NVS_ACTION_ERASE:
+                            {
+                                if(nvsManager->eraseDataConfirm)
+                                {
+                                    nvsManager->eraseDataConfirm = false;
+                                    break;
+                                }
+                                else if(nvsManager->eraseDataSelected)
+                                {
+                                    nvsManager->eraseDataConfirm = true;
+                                    break;
+                                }
 
+                                // Intentional fallthrough
+                            }
+                            case NVS_ACTION_BACK:
+                            default:
+                            {
+                                nvsManager->manageKeyActionIndex = (nvsManager->manageKeyActionIndex + 1) % NVS_ACTION_BACK;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    case RIGHT:
+                    {
+                        switch(nvsManager->manageKeyActionIndex)
+                        {
+                            case NVS_ACTION_ERASE:
+                            {
+                                if(nvsManager->eraseDataConfirm)
+                                {
+                                    nvsManager->eraseDataConfirm = false;
+                                    break;
+                                }
+                                else if(nvsManager->eraseDataSelected)
+                                {
+                                    nvsManager->eraseDataConfirm = true;
+                                    break;
+                                }
+
+                                // Intentional fallthrough
+                            }
+                            case NVS_ACTION_BACK:
+                            default:
+                            {
+                                if(nvsManager->manageKeyActionIndex == 0)
+                                {
+                                    nvsManager->manageKeyActionIndex = NVS_ACTION_BACK;
+                                }
+                                else
+                                {
+                                    nvsManager->manageKeyActionIndex--;
+                                }
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    case BTN_A:
+                    {
+                        switch(nvsManager->manageKeyActionIndex)
+                        {
+                            case NVS_ACTION_ERASE:
+                            {
+                                if(!nvsManager->eraseDataSelected)
+                                {
+                                    nvsManager->eraseDataSelected = true;
+                                }
+                                else
+                                {
+                                    if(nvsManager->eraseDataConfirm)
+                                    {
+                                        eraseNvsKey(nvsManager->nvsEntryInfos[nvsManager->loadedRow].key);
+                                        nvsManager->eraseDataSelected = false;
+                                        nvsManager->eraseDataConfirm = false;
+                                        readAllNvsEntryInfos(&nvsManager->nvsStats, &nvsManager->nvsEntryInfos);
+                                        nvsManagerSetUpManageDataMenu(false);
+                                    }
+                                    else
+                                    {
+                                        nvsManager->eraseDataSelected = false;
+                                    }
+                                }
+                                break;
+                            }
+                            // case NVS_ACTION_SEND:
+                            // {
+                            //     break;
+                            // }
+                            case NVS_ACTION_BACK:
+                            {
+                                nvsManagerSetUpManageDataMenu(false);
+                                break;
+                            }
+                        }
+                    }
                     default:
-                    break;
+                    {
+                        break;
+                    }
                 }
             }
             break;
@@ -558,7 +691,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             memset(leds, 0, NUM_LEDS * sizeof(led_t));
             setLeds(leds, NUM_LEDS);
 
-            nvs_entry_info_t entryInfo = nvsManager->nvsKeys[nvsManager->menu->selectedRow];
+            nvs_entry_info_t entryInfo = nvsManager->nvsEntryInfos[nvsManager->menu->selectedRow];
 
             // Key
             int16_t yOff = CORNER_OFFSET;
@@ -758,18 +891,50 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             yOff = newYOff + LINE_BREAK_Y;
             if(nvsManager->curPage->next != NULL || nvsManager->curPage->prev != NULL)
             {
-                drawWsg(nvsManager->disp, &nvsManager->ibm_vga8_arrow, CORNER_OFFSET, yOff, false, false, 270);
+                drawWsg(nvsManager->disp, &nvsManager->ibm_vga8_arrow, CORNER_OFFSET, yOff, false, false, 0);
                 char buf[ENTRIES_BUF_SIZE];
                 snprintf(buf, ENTRIES_BUF_SIZE, str_page_format, nvsManager->curPageNum);
                 drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, buf, (nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, buf)) / 2, yOff);
-                drawWsg(nvsManager->disp, &nvsManager->ibm_vga8_arrow, nvsManager->disp->w - nvsManager->ibm_vga8_arrow.h - CORNER_OFFSET, yOff, false, false, 90);
+                drawWsg(nvsManager->disp, &nvsManager->ibm_vga8_arrow, nvsManager->disp->w - nvsManager->ibm_vga8_arrow.w - CORNER_OFFSET, yOff, false, true, 0);
             }
 
             yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y + 1;
             plotLine(nvsManager->disp, 0, yOff, nvsManager->disp->w, yOff, color_summary_h_rule, 0);
 
             // Controls
-
+            yOff += LINE_BREAK_Y + 1;
+            drawWsg(nvsManager->disp, &nvsManager->ibm_vga8_arrow, CORNER_OFFSET, yOff, false, false, 270);
+            char* actionStr;
+            switch(nvsManager->manageKeyActionIndex)
+            {
+                case NVS_ACTION_ERASE:
+                {
+                    if(nvsManager->eraseDataConfirm)
+                    {
+                        actionStr = str_confirm_yes;
+                    }
+                    else if(nvsManager->eraseDataSelected)
+                    {
+                        actionStr = str_confirm_no;
+                    }
+                    else
+                    {
+                        actionStr = str_erase;
+                    }
+                    break;
+                }
+                // case NVS_ACTION_SEND:
+                // {
+                //     actionStr = str_send;
+                // }
+                case NVS_ACTION_BACK:
+                {
+                    actionStr = str_back;
+                    break;
+                }
+            }
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, actionStr, (nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, actionStr)) / 2, yOff);
+            drawWsg(nvsManager->disp, &nvsManager->ibm_vga8_arrow, nvsManager->disp->w - nvsManager->ibm_vga8_arrow.h - CORNER_OFFSET, yOff, false, false, 90);
 
             break;
         }
@@ -894,9 +1059,9 @@ void nvsManagerSetUpManageDataMenu(bool resetPos)
 
     for(size_t i = 0; i < nvsManager->nvsStats.used_entries; i++)
     {
-        if(nvsManager->nvsKeys[i].key[0] != '\0')
+        if(nvsManager->nvsEntryInfos[i].key[0] != '\0')
         {
-            addRowToMeleeMenu(nvsManager->menu, nvsManager->nvsKeys[i].key);
+            addRowToMeleeMenu(nvsManager->menu, nvsManager->nvsEntryInfos[i].key);
         }
     }
 
@@ -909,6 +1074,8 @@ void nvsManagerSetUpManageDataMenu(bool resetPos)
     }
     nvsManager->menu->selectedRow = nvsManager->manageDataPos;
     nvsManager->menu->usePerRowXOffsets = false;
+    nvsManager->eraseDataSelected = false;
+    nvsManager->eraseDataConfirm = false;
 
     nvsManager->screen = NVS_MANAGE_DATA;
 }
@@ -931,6 +1098,7 @@ void nvsManagerManageDataCb(const char* opt)
     else
     {
         nvsManager->loadedRow = UINT16_MAX;
+        nvsManager->manageKeyActionIndex = 0;
         nvsManager->screen = NVS_MANAGE_KEY;
     }
 }
