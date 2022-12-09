@@ -404,6 +404,15 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                 // If not on the main menu
                 if(mainMenuTitle != mainMenu->menu->title)
                 {
+                    // If we're in the secret menu, reset related variables
+                    if(mainMenuSecret == mainMenu->menu->title)
+                    {
+                        mainMenu->menuSelection = 0;
+                        mainMenu->btnState = 0;
+                        mainMenu->prevBtnState = 0;
+                        mainMenu->debugMode = false;
+                    }
+
                     // Go back to the main menu
                     mainMenuSetUpTopMenu(false);
                     return;
