@@ -139,7 +139,8 @@ typedef struct
     meleeMenu_t* menu;
     uint16_t topLevelPos;
     uint16_t manageDataPos;
-    nvsManageKeyAction_t manageKeyActionIndex;
+    nvsManageKeyAction_t manageKeyAction;
+    bool lockManageKeyAction;
     // The screen within NVS manager that the user is in
     nvsScreen_t screen;
     bool eraseDataSelected;
@@ -425,7 +426,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                 {
                     case BTN_B:
                     {
-                        switch(nvsManager->manageKeyActionIndex)
+                        switch(nvsManager->manageKeyAction)
                         {
                             case NVS_ACTION_ERASE:
                             {
@@ -465,36 +466,9 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                         break;
                     }
                     case LEFT:
-                    {
-                        switch(nvsManager->manageKeyActionIndex)
-                        {
-                            case NVS_ACTION_ERASE:
-                            {
-                                if(nvsManager->eraseDataConfirm)
-                                {
-                                    nvsManager->eraseDataConfirm = false;
-                                    break;
-                                }
-                                else if(nvsManager->eraseDataSelected)
-                                {
-                                    nvsManager->eraseDataConfirm = true;
-                                    break;
-                                }
-
-                                // Intentional fallthrough
-                            }
-                            case NVS_ACTION_BACK:
-                            default:
-                            {
-                                nvsManager->manageKeyActionIndex = (nvsManager->manageKeyActionIndex + 1) % NVS_ACTION_BACK;
-                                break;
-                            }
-                        }
-                        break;
-                    }
                     case RIGHT:
                     {
-                        switch(nvsManager->manageKeyActionIndex)
+                        switch(nvsManager->manageKeyAction)
                         {
                             case NVS_ACTION_ERASE:
                             {
@@ -514,13 +488,25 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                             case NVS_ACTION_BACK:
                             default:
                             {
-                                if(nvsManager->manageKeyActionIndex == 0)
+                                if(nvsManager->lockManageKeyAction)
                                 {
-                                    nvsManager->manageKeyActionIndex = NVS_ACTION_BACK;
+                                    break;
                                 }
-                                else
+
+                                if(evt->button == LEFT)
                                 {
-                                    nvsManager->manageKeyActionIndex--;
+                                    nvsManager->manageKeyAction = (nvsManager->manageKeyAction + 1) % NVS_ACTION_BACK;
+                                }
+                                else // button == RIGHT
+                                {
+                                    if(nvsManager->manageKeyAction == 0)
+                                    {
+                                        nvsManager->manageKeyAction = NVS_ACTION_BACK;
+                                    }
+                                    else
+                                    {
+                                        nvsManager->manageKeyAction--;
+                                    }
                                 }
                                 break;
                             }
@@ -529,7 +515,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                     }
                     case BTN_A:
                     {
-                        switch(nvsManager->manageKeyActionIndex)
+                        switch(nvsManager->manageKeyAction)
                         {
                             case NVS_ACTION_ERASE:
                             {
@@ -721,6 +707,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_type, typeName[0] == '\0' ? typeAsHex : typeName, afterLongestLabel, yOff);
 
             // Prepare for getting the value, and pagination
+            bool readSuccess = false;
             if (nvsManager->loadedRow != nvsManager->menu->selectedRow)
             {
 
@@ -738,7 +725,6 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                 nvsManager->usedEntries = 0;
 
                 // Get the value
-                bool readSuccess;
                 bool foundType = true;
 
                 switch(entryInfo.type)
@@ -908,9 +894,18 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
 
             // Controls
             yOff += LINE_BREAK_Y + 1;
-            drawWsg(nvsManager->disp, &nvsManager->ibm_vga8_arrow, CORNER_OFFSET, yOff, false, false, 270);
+            // If the read failed or the key's namespace isn't the one we have access to, hide all actions except "Back"
+            if(nvsManager->pageStr == str_read_failed || strcmp(entryInfo.namespace_name, NVS_NAMESPACE_NAME))
+            {
+                nvsManager->manageKeyAction = NVS_ACTION_BACK;
+                nvsManager->lockManageKeyAction = true;
+            }
+            if(!nvsManager->lockManageKeyAction)
+            {
+                drawWsg(nvsManager->disp, &nvsManager->ibm_vga8_arrow, CORNER_OFFSET, yOff, false, false, 270);
+            }
             const char* actionStr;
-            switch(nvsManager->manageKeyActionIndex)
+            switch(nvsManager->manageKeyAction)
             {
                 case NVS_ACTION_ERASE:
                 {
@@ -944,7 +939,10 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                 }
             }
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, actionStr, (nvsManager->disp->w - textWidth(&nvsManager->ibm_vga8, actionStr)) / 2, yOff);
-            drawWsg(nvsManager->disp, &nvsManager->ibm_vga8_arrow, nvsManager->disp->w - nvsManager->ibm_vga8_arrow.h - CORNER_OFFSET, yOff, false, false, 90);
+            if(!nvsManager->lockManageKeyAction)
+            {
+                drawWsg(nvsManager->disp, &nvsManager->ibm_vga8_arrow, nvsManager->disp->w - nvsManager->ibm_vga8_arrow.h - CORNER_OFFSET, yOff, false, false, 90);
+            }
 
             break;
         }
@@ -1108,7 +1106,8 @@ void nvsManagerManageDataCb(const char* opt)
     else
     {
         nvsManager->loadedRow = UINT16_MAX;
-        nvsManager->manageKeyActionIndex = 0;
+        nvsManager->manageKeyAction = 0;
+        nvsManager->lockManageKeyAction = false;
         nvsManager->screen = NVS_MANAGE_KEY;
     }
 }
