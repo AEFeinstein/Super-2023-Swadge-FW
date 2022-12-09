@@ -87,7 +87,7 @@ typedef struct
     uint8_t secretPos;
     int16_t btnState;
     int16_t prevBtnState;
-    uint8_t menuSelection;
+    uint8_t cheatCodeIdx;
     uint32_t battVal;
     wsg_t batt[4];
     // wsg_t usb;
@@ -293,16 +293,16 @@ void mainMenuButtonCb(buttonEvt_t* evt)
         if(!mainMenu->debugMode)
         {
             if  (
-                    (mainMenu->btnState & cheatCode[mainMenu->menuSelection])
+                    (mainMenu->btnState & cheatCode[mainMenu->cheatCodeIdx])
                     &&
-                    !(mainMenu->prevBtnState & cheatCode[mainMenu->menuSelection])
+                    !(mainMenu->prevBtnState & cheatCode[mainMenu->cheatCodeIdx])
                 )
             {
-                mainMenu->menuSelection++;
+                mainMenu->cheatCodeIdx++;
 
-                if(mainMenu->menuSelection > 10)
+                if(mainMenu->cheatCodeIdx > 10)
                 {
-                    mainMenu->menuSelection = 0;
+                    mainMenu->cheatCodeIdx = 0;
                     mainMenu->debugMode = true;
                     buzzer_play_bgm(&secretSong);
                     mainMenuSetUpSecretMenu(true);
@@ -317,7 +317,7 @@ void mainMenuButtonCb(buttonEvt_t* evt)
             }
             else
             {
-                mainMenu->menuSelection = 0;
+                mainMenu->cheatCodeIdx = 0;
             }
         }
 
@@ -438,7 +438,7 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                     // If we're in the secret menu, reset related variables
                     if(mainMenuSecret == mainMenu->menu->title)
                     {
-                        mainMenu->menuSelection = 0;
+                        mainMenu->cheatCodeIdx = 0;
                         mainMenu->btnState = 0;
                         mainMenu->prevBtnState = 0;
                         mainMenu->debugMode = false;
@@ -922,7 +922,7 @@ void mainMenuSecretCb(const char* opt)
     }
     else if(mainMenuBack == opt)
     {
-        mainMenu->menuSelection = 0;
+        mainMenu->cheatCodeIdx = 0;
         mainMenu->btnState = 0;
         mainMenu->prevBtnState = 0;
         mainMenu->debugMode = false;
