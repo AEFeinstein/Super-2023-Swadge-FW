@@ -215,11 +215,12 @@ bool writeNvs32(const char* key, int32_t val)
 }
 
 /**
- * @brief Read a blob from NVS with a given string key
+ * @brief Read a blob from NVS with a given string key. Typically, this should be called once with NULL passed for out_value,
+ * to get the value for length, then memory for out_value should be allocated, then this should be called again.
  * 
  * @param key The key for the value to read
  * @param out_value The value will be written to this memory. It must be allocated before calling readNvsBlob()
- * @param length The length of the value that was read
+ * @param length If out_value is `NULL`, this will be set to the length of the given key. Otherwise, it is the length of the blob to read.
  * @return true if the value was read, false if it was not
  */
 bool readNvsBlob(const char* key, void* out_value, size_t* length)
@@ -409,13 +410,15 @@ bool readNvsStats(nvs_stats_t* outStats)
 }
 
 /**
- * @brief Read info about each used entry in NVS
+ * @brief Read info about each used entry in NVS. Typically, this should be called once with NULL passed for outEntryInfos,
+ * to get the value for numEntryInfos, then memory for outEntryInfos should be allocated, then this should be called again
  *
- * @param outStats If non-NULL, the NVS stats struct will be written to this memory. It must be allocated before calling readAllNvsEntryInfos()
- * @param outEntries A pointer to an array of NVS entry info structs will be written to this memory. If there is already an allocated array, it will be freed and reallocated.
+ * @param outStats If not `NULL`, the NVS stats struct will be written to this memory. It must be allocated before calling readAllNvsEntryInfos()
+ * @param outEntryInfos A pointer to an array of NVS entry info structs will be written to this memory
+ * @param numEntryInfos If outEntryInfos is `NULL`, this will be set to the length of the given key. Otherwise, it is the number of entry infos to read
  * @return true if the entry infos were read, false if they were not
  */
-bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntries)
+bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntryInfos, size_t* numEntryInfos)
 {
     // If the user doesn't want to receive the stats, only use them internally
     bool freeOutStats = false;
@@ -434,17 +437,14 @@ bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntries)
         return false;
     }
 
-    if(*outEntries != NULL)
-    {
-        free(*outEntries);
-    }
-    *outEntries = calloc(outStats->used_entries, sizeof(nvs_entry_info_t));
-
     // Example of listing all the key-value pairs of any type under specified partition and namespace
     nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, NULL, NVS_TYPE_ANY);
     size_t i = 0;
-    while (it != NULL) {
-            nvs_entry_info(it, &((*outEntries)[i]));
+    while (it != NULL && (outEntryInfos == NULL || i < *numEntryInfos)) {
+            if(outEntryInfos != NULL)
+            {
+                nvs_entry_info(it, &((*outEntryInfos)[i]));
+            }
             it = nvs_entry_next(it);
             i++;
     };
@@ -455,6 +455,11 @@ bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntries)
     if(freeOutStats)
     {
         free(outStats);
+    }
+
+    if(outEntryInfos == NULL)
+    {
+        *numEntryInfos = i;
     }
     return true;
 }

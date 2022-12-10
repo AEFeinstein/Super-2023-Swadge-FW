@@ -71,6 +71,7 @@ void nvsManagerSetUpTopMenu(bool resetPos);
 void nvsManagerTopLevelCb(const char* opt);
 void nvsManagerSetUpManageDataMenu(bool resetPos);
 void nvsManagerManageDataCb(const char* opt);
+bool nvsManagerReadAllNvsEntryInfos();
 char* blobToStrWithPrefix(const void * value, size_t length);
 const char* getNvsTypeName(nvs_type_t type);
 
@@ -167,11 +168,12 @@ typedef struct
     // General NVS info
     nvs_stats_t nvsStats;
     nvs_entry_info_t* nvsEntryInfos;
+    size_t nvsNumEntryInfos;
 
     // Per-key NVS info
     char* blobStr;
     char numStr[MAX_INT_STRING_LENGTH];
-    size_t usedEntries;
+    size_t keyUsedEntries;
 } nvsManager_t;
 
 nvsManager_t* nvsManager;
@@ -256,7 +258,7 @@ void  nvsManagerEnterMode(display_t* disp)
     nvsManager->loadedRow = UINT16_MAX;
 
     // TODO: handle errors
-    readAllNvsEntryInfos(&nvsManager->nvsStats, &nvsManager->nvsEntryInfos);
+    nvsManagerReadAllNvsEntryInfos();
 
     // Initialize the menu
     nvsManager->menu = initMeleeMenu(modeNvsManager.modeName, &nvsManager->mm, nvsManagerTopLevelCb);
@@ -530,7 +532,8 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                                         eraseNvsKey(nvsManager->nvsEntryInfos[nvsManager->loadedRow].key);
                                         nvsManager->eraseDataSelected = false;
                                         nvsManager->eraseDataConfirm = false;
-                                        readAllNvsEntryInfos(&nvsManager->nvsStats, &nvsManager->nvsEntryInfos);
+                                        // TODO: handle errors
+                                        nvsManagerReadAllNvsEntryInfos();
                                         nvsManagerSetUpManageDataMenu(false);
                                     }
                                     else
@@ -722,7 +725,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                 }
 
                 nvsManager->loadedRow = nvsManager->menu->selectedRow;
-                nvsManager->usedEntries = 0;
+                nvsManager->keyUsedEntries = 0;
 
                 // Get the value
                 bool foundType = true;
@@ -736,7 +739,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                         if(readSuccess)
                         {
                             snprintf(nvsManager->numStr, MAX_INT_STRING_LENGTH, str_i_dec_format, val);
-                            nvsManager->usedEntries = 1;
+                            nvsManager->keyUsedEntries = 1;
                         }
                         break;
                     }
@@ -760,7 +763,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                                  *
                                  * TODO: find a way to get number of entries or chunks in the blob
                                  */
-                                nvsManager->usedEntries = 2 + ceil((float) length / NVS_ENTRY_BYTES);
+                                nvsManager->keyUsedEntries = 2 + ceil((float) length / NVS_ENTRY_BYTES);
                             }
                             free(blob);
                         }
@@ -830,14 +833,14 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             // Used space
             yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_used_space, CORNER_OFFSET, yOff);
-            if(nvsManager->usedEntries == 1)
+            if(nvsManager->keyUsedEntries == 1)
             {
                 drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_used_entries, str_1_entry, afterLongestLabel, yOff);
             }
-            else if(nvsManager->usedEntries > 1)
+            else if(nvsManager->keyUsedEntries > 1)
             {
                 char buf[ENTRIES_BUF_SIZE];
-                snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->usedEntries);
+                snprintf(buf, ENTRIES_BUF_SIZE, str_entries_format, nvsManager->keyUsedEntries);
                 drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_used_entries, buf, afterLongestLabel, yOff);
             }
             else
@@ -1065,7 +1068,7 @@ void nvsManagerSetUpManageDataMenu(bool resetPos)
     // Set up the menu
     resetMeleeMenu(nvsManager->menu, str_manage_data, nvsManagerManageDataCb);
 
-    for(size_t i = 0; i < nvsManager->nvsStats.used_entries; i++)
+    for(size_t i = 0; i < nvsManager->nvsNumEntryInfos; i++)
     {
         if(nvsManager->nvsEntryInfos[i].key[0] != '\0')
         {
@@ -1110,6 +1113,34 @@ void nvsManagerManageDataCb(const char* opt)
         nvsManager->lockManageKeyAction = false;
         nvsManager->screen = NVS_MANAGE_KEY;
     }
+}
+
+bool nvsManagerReadAllNvsEntryInfos()
+{
+    // Save the existing number of allocated entry infos so we know if we can reuse the old allocation
+    size_t oldNvsNumEntryInfos = nvsManager->nvsNumEntryInfos;
+
+    // Get the number of entry infos so we can allocate the memory
+    if(!readAllNvsEntryInfos(&nvsManager->nvsStats, NULL, &nvsManager->nvsNumEntryInfos))
+    {
+        return false;
+    }
+
+    // If nvsEntryInfos is already allocated and it's not going to be big enough, free it first
+    if(nvsManager->nvsEntryInfos != NULL && oldNvsNumEntryInfos < nvsManager->nvsNumEntryInfos)
+    {
+        free(nvsManager->nvsEntryInfos);
+        nvsManager->nvsEntryInfos = NULL;
+    }
+
+    // If we just freed nvsEntryInfos or it wasn't allocated to begin with, allocate it
+    if(nvsManager->nvsEntryInfos == NULL)
+    {
+        nvsManager->nvsEntryInfos = calloc(nvsManager->nvsNumEntryInfos, sizeof(nvs_entry_info_t));
+    }
+
+    // Do the actual read of entry infos
+    return readAllNvsEntryInfos(&nvsManager->nvsStats, &nvsManager->nvsEntryInfos, &nvsManager->nvsNumEntryInfos);
 }
 
 /**

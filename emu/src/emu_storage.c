@@ -254,8 +254,9 @@ bool writeNvs32(const char* key, int32_t val)
 }
 
 /**
- * @brief Read a blob from NVS with a given string key
- *
+ * @brief Read a blob from NVS with a given string key. Typically, this should be called once with NULL passed for out_value,
+ * to get the value for length, then memory for out_value should be allocated, then this should be called again.
+ * 
  * @param key The key for the value to read
  * @param out_value The value will be written to this memory. It must be allocated before calling readNvsBlob()
  * @param length If out_value is `NULL`, this will be set to the length of the given key. Otherwise, it is the length of the blob to read.
@@ -580,13 +581,15 @@ bool readNvsStats(nvs_stats_t* outStats)
 
 
 /**
- * @brief Read info about each used entry in NVS
+ * @brief Read info about each used entry in NVS. Typically, this should be called once with NULL passed for outEntryInfos,
+ * to get the value for numEntryInfos, then memory for outEntryInfos should be allocated, then this should be called again
  *
- * @param outStats If non-NULL, the NVS stats struct will be written to this memory. It must be allocated before calling readAllNvsEntryInfos()
- * @param outEntries A pointer to an array of NVS entry info structs will be written to this memory. If there is already an allocated array, it will be freed and reallocated.
+ * @param outStats If not `NULL`, the NVS stats struct will be written to this memory. It must be allocated before calling readAllNvsEntryInfos()
+ * @param outEntryInfos A pointer to an array of NVS entry info structs will be written to this memory
+ * @param numEntryInfos If outEntryInfos is `NULL`, this will be set to the length of the given key. Otherwise, it is the number of entry infos to read
  * @return true if the entry infos were read, false if they were not
  */
-bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntries)
+bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntryInfos, size_t* numEntryInfos)
 {
     // Open the file
     FILE * nvsFile = fopen(NVS_JSON_FILE, "rb");
@@ -626,49 +629,51 @@ bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntries)
                 return false;
             }
 
-            if(*outEntries != NULL)
-            {
-                free(*outEntries);
-            }
-            *outEntries = calloc(outStats->used_entries, sizeof(nvs_entry_info_t));
-
             int i = 0;
             char* current_key;
             cJSON_ArrayForEach(jsonIter, json)
             {
+                if(outEntryInfos != NULL && i >= *numEntryInfos)
+                {
+                    break;
+                }
+
                 current_key = jsonIter->string;
                 if (current_key != NULL)
                 {
-                    switch(jsonIter->type)
+                    if(outEntryInfos != NULL)
                     {
-                        case cJSON_Number:
+                        switch(jsonIter->type)
                         {
+                            case cJSON_Number:
+                            {
 #ifdef USING_U32
-                            //cJSON cannot store any integer larger than 2^53 or smaller than -(2^53), since those are the limits of a double
-                            int64_t val = (int64_t)cJSON_GetNumberValue(jsonIter);
-                            if(val > INT32_MAX)
-                            {
-                                (&((*outEntries)[i]))->type = NVS_TYPE_U32;
-                            }
-                            else
+                                //cJSON cannot store any integer larger than 2^53 or smaller than -(2^53), since those are the limits of a double
+                                int64_t val = (int64_t)cJSON_GetNumberValue(jsonIter);
+                                if(val > INT32_MAX)
+                                {
+                                    (&((*outEntryInfos)[i]))->type = NVS_TYPE_U32;
+                                }
+                                else
 #endif
-                            {
-                                (&((*outEntries)[i]))->type = NVS_TYPE_I32;
+                                {
+                                    (&((*outEntryInfos)[i]))->type = NVS_TYPE_I32;
+                                }
+                                break;
                             }
-                            break;
+                            case cJSON_String:
+                            {
+                                (&((*outEntryInfos)[i]))->type = NVS_TYPE_BLOB;
+                                break;
+                            }
+                            default:
+                            {
+                                break;
+                            }
                         }
-                        case cJSON_String:
-                        {
-                            (&((*outEntries)[i]))->type = NVS_TYPE_BLOB;
-                            break;
-                        }
-                        default:
-                        {
-                            break;
-                        }
+                        snprintf((&((*outEntryInfos)[i]))->namespace_name, NVS_KEY_NAME_MAX_SIZE, "%s", NVS_NAMESPACE_NAME);
+                        snprintf((&((*outEntryInfos)[i]))->key,            NVS_KEY_NAME_MAX_SIZE, "%s", current_key);
                     }
-                    snprintf((&((*outEntries)[i]))->namespace_name, NVS_KEY_NAME_MAX_SIZE, "%s", NVS_NAMESPACE_NAME);
-                    snprintf((&((*outEntries)[i]))->key,            NVS_KEY_NAME_MAX_SIZE, "%s", current_key);
                     i++;
                 }
             }
@@ -676,7 +681,11 @@ bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntries)
             {
                 free(outStats);
             }
-            return true;
+
+            if(outEntryInfos == NULL)
+            {
+                *numEntryInfos = i;
+            }
 
             cJSON_Delete(json);
             return true;

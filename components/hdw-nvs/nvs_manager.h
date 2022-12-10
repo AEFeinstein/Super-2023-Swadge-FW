@@ -79,6 +79,6 @@ bool readNvsBlob(const char* key, void* out_value, size_t* length);
 bool writeNvsBlob(const char* key, const void* value, size_t length);
 bool eraseNvsKey(const char* key);
 bool readNvsStats(nvs_stats_t* outStats);
-bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntries);
+bool readAllNvsEntryInfos(nvs_stats_t* outStats, nvs_entry_info_t** outEntryInfos, size_t* numEntryInfos);
 
 #endif
