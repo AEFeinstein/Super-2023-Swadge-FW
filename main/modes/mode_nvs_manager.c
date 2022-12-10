@@ -28,7 +28,9 @@
 #include "mode_test.h"
 #include "nvs_manager.h"
 #include "settingsManager.h"
+#ifdef NVS_MANAGER_TOUCH
 #include "touch_sensor.h"
+#endif
 #if defined(EMU)
 #include "emu_main.h"
 #endif
@@ -38,6 +40,8 @@
 /*==============================================================================
  * Defines
  *============================================================================*/
+
+//#define NVS_MANAGER_TOUCH
 
 #define CORNER_OFFSET 14
 //#define TOP_TEXT_X_MARGIN CORNER_OFFSET / 2
@@ -65,12 +69,16 @@
 void nvsManagerEnterMode(display_t* disp);
 void nvsManagerExitMode(void);
 void nvsManagerButtonCallback(buttonEvt_t* evt);
+#ifdef NVS_MANAGER_TOUCH
 void nvsManagerTouchCallback(touch_event_t* evt);
+#endif
 void nvsManagerMainLoop(int64_t elapsedUs);
 void nvsManagerSetUpTopMenu(bool resetPos);
 void nvsManagerTopLevelCb(const char* opt);
 void nvsManagerSetUpManageDataMenu(bool resetPos);
 void nvsManagerManageDataCb(const char* opt);
+void nvsManagerSetUpReceiveMenu(bool resetPos);
+void nvsManagerReceiveMenuCb(const char* opt);
 bool nvsManagerReadAllNvsEntryInfos();
 char* blobToStrWithPrefix(const void * value, size_t length);
 const char* getNvsTypeName(nvs_type_t type);
@@ -89,9 +97,15 @@ typedef enum
     // Warn users about the potential dangers of managing keys
     NVS_WARNING,
     // Manage key/value pairs in NVS
-    NVS_MANAGE_DATA,
+    NVS_MANAGE_DATA_MENU,
     // Manage a specific key/value pair
     NVS_MANAGE_KEY,
+    // Send a key/value pair or all data
+    NVS_SEND,
+    // Menu to choose what and how to receive
+    NVS_RECEIVE_MENU,
+    // Receive a key/value pair or all data
+    NVS_RECEIVE,
 } nvsScreen_t;
 
 /// @brief Defines each action the user can take while viewing a key/value pair in NVS manager
@@ -100,7 +114,7 @@ typedef enum
     // Erase the key
     NVS_ACTION_ERASE,
     // Send the key to another Swadge
-    //NVS_ACTION_SEND,
+    NVS_ACTION_SEND,
     // Go back (this will always be the last option, so it can be used as a maximum value)
     NVS_ACTION_BACK,
 } nvsManageKeyAction_t;
@@ -116,9 +130,13 @@ swadgeMode modeNvsManager =
     .fnEnterMode = nvsManagerEnterMode,
     .fnExitMode = nvsManagerExitMode,
     .fnButtonCallback = nvsManagerButtonCallback,
+#ifdef NVS_MANAGER_TOUCH
     .fnTouchCallback = nvsManagerTouchCallback,
+#else
+    .fnTouchCallback = NULL,
+#endif
     .fnMainLoop = nvsManagerMainLoop,
-    .wifiMode = NO_WIFI,
+    .wifiMode = ESP_NOW,
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
     .fnAccelerometerCallback = NULL,
@@ -140,6 +158,7 @@ typedef struct
     meleeMenu_t* menu;
     uint16_t topLevelPos;
     uint16_t manageDataPos;
+    uint16_t receiveMenuPos;
     nvsManageKeyAction_t manageKeyAction;
     bool lockManageKeyAction;
     // The screen within NVS manager that the user is in
@@ -148,10 +167,12 @@ typedef struct
     bool eraseDataConfirm;
     bool warningAccepted;
 
+#ifdef NVS_MANAGER_TOUCH
     // Track touch
     bool touchHeld;
     int32_t touchPosition;
     int32_t touchIntensity;
+#endif
 
     // Paginated text cache
     list_t pages;
@@ -185,6 +206,8 @@ nvsManager_t* nvsManager;
 // Top menu
 const char str_summary[] = "Summary";
 const char str_manage_data[] = "Manage Data";
+const char str_send_all[] = "Send All";
+const char str_receive[] = "Receive";
 const char str_factory_reset[] = "Factory Reset";
 const char str_confirm_no[] = "Confirm: No!";
 const char str_confirm_yes[] = "Confirm: Yes";
@@ -229,11 +252,16 @@ const char str_unknown[] = "Unknown";
 const char str_read_failed[] = "Error: Failed to read data";
 const char str_unknown_type[] = "Error: Unknown type";
 const char str_erase[] = "Erase";
-//const char str_send[] = "Send";
+const char str_send[] = "Send";
 const char str_hex_format[] = "0x%x";
 //const char str_u_dec_format[] = "%u";
 const char str_i_dec_format[] = "%d";
 const char str_page_format[] = "Page %u";
+
+// Send/receive
+const char str_receive_all[] = "Receive All";
+const char str_receive_multi[] = "Receive Multi";
+const char str_receive_one[] = "Receive One";
 
 /*============================================================================
  * Functions
@@ -294,6 +322,7 @@ void  nvsManagerExitMode(void)
     free(nvsManager);
 }
 
+#ifdef NVS_MANAGER_TOUCH
 /**
  * This function is called when a button press is pressed. Buttons are
  * handled by interrupts and queued up for this callback, so there are no
@@ -306,6 +335,7 @@ void  nvsManagerTouchCallback(touch_event_t* evt)
     nvsManager->touchHeld = evt->state != 0;
     nvsManager->touchPosition = roundf((evt->position * nvsManager->disp->w) / 255);
 }
+#endif
 
 /**
  * @brief Button callback function, plays notes and switches parameters
@@ -314,25 +344,25 @@ void  nvsManagerTouchCallback(touch_event_t* evt)
  */
 void  nvsManagerButtonCallback(buttonEvt_t* evt)
 {
-    switch (nvsManager->screen)
+    switch(nvsManager->screen)
     {
         case NVS_MENU:
         {
-            if (evt->down)
+            if(evt->down)
             {
                 const char* selectedOption = nvsManager->menu->rows[nvsManager->menu->selectedRow];
 
-                switch (evt->button)
+                switch(evt->button)
                 {
                     case LEFT:
                     case RIGHT:
                     {
-                        if (str_confirm_no == selectedOption)
+                        if(str_confirm_no == selectedOption)
                         {
                             nvsManager->eraseDataConfirm = true;
                             nvsManagerSetUpTopMenu(false);
                         }
-                        else if (str_confirm_yes == selectedOption)
+                        else if(str_confirm_yes == selectedOption)
                         {
                             nvsManager->eraseDataConfirm = false;
                             nvsManagerSetUpTopMenu(false);
@@ -342,7 +372,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                     }
                     case BTN_B:
                     {
-                        if (nvsManager->eraseDataSelected)
+                        if(nvsManager->eraseDataSelected)
                         {
                             nvsManager->eraseDataSelected = false;
                             // This is done later in the function
@@ -360,7 +390,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                     }
                 }
 
-                if (nvsManager->eraseDataSelected && str_confirm_no != selectedOption &&
+                if(nvsManager->eraseDataSelected && str_confirm_no != selectedOption &&
                     str_confirm_yes != selectedOption)
                 {
                     // If the confirm-erase option is not selected, reset eraseDataConfirm and redraw the menu
@@ -405,7 +435,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
 
             break;
         }
-        case NVS_MANAGE_DATA:
+        case NVS_MANAGE_DATA_MENU:
         {
             if(evt->down)
             {
@@ -432,7 +462,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                         {
                             case NVS_ACTION_ERASE:
                             {
-                                if (nvsManager->eraseDataSelected)
+                                if(nvsManager->eraseDataSelected)
                                 {
                                     nvsManager->eraseDataSelected = false;
                                     nvsManager->eraseDataConfirm = false;
@@ -451,7 +481,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                     }
                     case UP:
                     {
-                        if (nvsManager->curPage != NULL && nvsManager->curPage->prev != NULL)
+                        if(nvsManager->curPage != NULL && nvsManager->curPage->prev != NULL)
                         {
                             nvsManager->curPage = nvsManager->curPage->prev;
                             nvsManager->curPageNum--;
@@ -460,7 +490,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                     }
                     case DOWN:
                     {
-                        if (nvsManager->curPage != NULL && nvsManager->curPage->next != NULL)
+                        if(nvsManager->curPage != NULL && nvsManager->curPage->next != NULL)
                         {
                             nvsManager->curPage = nvsManager->curPage->next;
                             nvsManager->curPageNum++;
@@ -529,6 +559,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                                 {
                                     if(nvsManager->eraseDataConfirm)
                                     {
+                                        // TODO: handle errors
                                         eraseNvsKey(nvsManager->nvsEntryInfos[nvsManager->loadedRow].key);
                                         nvsManager->eraseDataSelected = false;
                                         nvsManager->eraseDataConfirm = false;
@@ -543,10 +574,10 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                                 }
                                 break;
                             }
-                            // case NVS_ACTION_SEND:
-                            // {
-                            //     break;
-                            // }
+                            case NVS_ACTION_SEND:
+                            {
+                                break;
+                            }
                             case NVS_ACTION_BACK:
                             {
                                 nvsManagerSetUpManageDataMenu(false);
@@ -566,6 +597,32 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
             }
             break;
         }
+        case NVS_SEND:
+        {
+            break;
+        }
+        case NVS_RECEIVE_MENU:
+        {
+            if(evt->down)
+            {
+                if(evt->button == BTN_B)
+                {
+                    nvsManagerSetUpTopMenu(false);
+                    break;
+                }
+                else
+                {
+                    meleeMenuButton(nvsManager->menu, evt->button);
+                    break;
+                }
+            }
+
+            break;
+        }
+        case NVS_RECEIVE:
+        {
+            break;
+        }
         default:
         {
             break;
@@ -581,7 +638,8 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
     switch(nvsManager->screen)
     {
         case NVS_MENU:
-        case NVS_MANAGE_DATA:
+        case NVS_MANAGE_DATA_MENU:
+        case NVS_RECEIVE_MENU:
         {
             // Draw the menu
             drawMeleeMenu(nvsManager->disp, nvsManager->menu);
@@ -926,10 +984,10 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                     }
                     break;
                 }
-                // case NVS_ACTION_SEND:
-                // {
-                //     actionStr = str_send;
-                // }
+                case NVS_ACTION_SEND:
+                {
+                    actionStr = str_send;
+                }
                 case NVS_ACTION_BACK:
                 {
                     actionStr = str_back;
@@ -949,6 +1007,13 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
 
             break;
         }
+        case NVS_SEND:
+        case NVS_RECEIVE:
+        default:
+        {
+            nvsManager->disp->clearPx();
+            break;
+        }
     }
 }
 
@@ -963,6 +1028,8 @@ void nvsManagerSetUpTopMenu(bool resetPos)
     resetMeleeMenu(nvsManager->menu, modeNvsManager.modeName, nvsManagerTopLevelCb);
     addRowToMeleeMenu(nvsManager->menu, str_summary);
     addRowToMeleeMenu(nvsManager->menu, str_manage_data);
+    addRowToMeleeMenu(nvsManager->menu, str_send_all);
+    addRowToMeleeMenu(nvsManager->menu, str_receive);
 
     // Add the row for factory resetting the Swadge
     if (nvsManager->eraseDataSelected)
@@ -1020,6 +1087,14 @@ void nvsManagerTopLevelCb(const char* opt)
             nvsManagerSetUpManageDataMenu(true);
         }
     }
+    else if(str_send_all == opt)
+    {
+        nvsManager->screen = NVS_SEND;
+    }
+    else if(str_receive == opt)
+    {
+        nvsManagerSetUpReceiveMenu(true);
+    }
     else if(str_factory_reset == opt)
     {
         nvsManager->eraseDataSelected = true;
@@ -1027,6 +1102,9 @@ void nvsManagerTopLevelCb(const char* opt)
     }
     else if (str_confirm_yes == opt)
     {
+        // If this succeeds, we shouldn't let someone back into the main menu, so switch to test mode immediately
+        // If this fails, we have no idea what state NVS is in, so send them back to the main menu and pray
+        // The emulator will encounter issues too unless it's immediately closed
         if(eraseNvs())
         {
 #ifdef EMU
@@ -1088,7 +1166,7 @@ void nvsManagerSetUpManageDataMenu(bool resetPos)
     nvsManager->eraseDataSelected = false;
     nvsManager->eraseDataConfirm = false;
 
-    nvsManager->screen = NVS_MANAGE_DATA;
+    nvsManager->screen = NVS_MANAGE_DATA_MENU;
 }
 
 /**
@@ -1112,6 +1190,59 @@ void nvsManagerManageDataCb(const char* opt)
         nvsManager->manageKeyAction = 0;
         nvsManager->lockManageKeyAction = false;
         nvsManager->screen = NVS_MANAGE_KEY;
+    }
+}
+
+/**
+ * Set up the receive menu
+ *
+ * @param resetPos true to reset the position to 0, false to leave it where it is
+ */
+void nvsManagerSetUpReceiveMenu(bool resetPos)
+{
+    // Set up the menu
+    resetMeleeMenu(nvsManager->menu, str_receive, nvsManagerReceiveMenuCb);
+    addRowToMeleeMenu(nvsManager->menu, str_receive_all);
+    addRowToMeleeMenu(nvsManager->menu, str_receive_multi);
+    addRowToMeleeMenu(nvsManager->menu, str_receive_one);
+    addRowToMeleeMenu(nvsManager->menu, str_back);
+
+    // Set the position
+    if(resetPos)
+    {
+        nvsManager->receiveMenuPos = 0;
+    }
+    nvsManager->menu->selectedRow = nvsManager->receiveMenuPos;
+
+    nvsManager->screen = NVS_RECEIVE_MENU;
+}
+
+/**
+ * Callback for the receive menu
+ *
+ * @param opt The menu option which was selected
+ */
+void nvsManagerReceiveMenuCb(const char* opt)
+{
+    // Save the position
+    nvsManager->receiveMenuPos = nvsManager->menu->selectedRow;
+
+    // Handle the option
+    if(str_receive_all == opt)
+    {
+        nvsManager->screen = NVS_RECEIVE;
+    }
+    else if(str_receive_multi == opt)
+    {
+        nvsManager->screen = NVS_RECEIVE;
+    }
+    else if(str_receive_one == opt)
+    {
+        nvsManager->screen = NVS_RECEIVE;
+    }
+    else if(str_back == opt)
+    {
+        nvsManagerSetUpTopMenu(false);
     }
 }
 
