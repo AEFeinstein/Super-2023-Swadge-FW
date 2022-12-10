@@ -27,6 +27,7 @@
 #include "mode_main_menu.h"
 #include "mode_test.h"
 #include "nvs_manager.h"
+#include "p2pConnection.h"
 #include "settingsManager.h"
 #ifdef NVS_MANAGER_TOUCH
 #include "touch_sensor.h"
@@ -73,6 +74,8 @@ void nvsManagerButtonCallback(buttonEvt_t* evt);
 void nvsManagerTouchCallback(touch_event_t* evt);
 #endif
 void nvsManagerMainLoop(int64_t elapsedUs);
+void nvsManagerEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
+void nvsManagerEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 void nvsManagerSetUpTopMenu(bool resetPos);
 void nvsManagerTopLevelCb(const char* opt);
 void nvsManagerSetUpManageDataMenu(bool resetPos);
@@ -137,8 +140,8 @@ swadgeMode modeNvsManager =
 #endif
     .fnMainLoop = nvsManagerMainLoop,
     .wifiMode = ESP_NOW,
-    .fnEspNowRecvCb = NULL,
-    .fnEspNowSendCb = NULL,
+    .fnEspNowRecvCb = nvsManagerEspNowRecvCb,
+    .fnEspNowSendCb = nvsManagerEspNowSendCb,
     .fnAccelerometerCallback = NULL,
     .fnAudioCallback = NULL,
     .overrideUsb = false
@@ -195,6 +198,9 @@ typedef struct
     char* blobStr;
     char numStr[MAX_INT_STRING_LENGTH];
     size_t keyUsedEntries;
+
+    // P2P
+    p2pInfo p2p;
 } nvsManager_t;
 
 nvsManager_t* nvsManager;
@@ -305,6 +311,8 @@ void  nvsManagerExitMode(void)
     freeFont(&nvsManager->mm);
 
     freeWsg(&nvsManager->ibm_vga8_arrow);
+
+    p2pDeinit(&nvsManager->p2p);
 
     if(nvsManager->nvsEntryInfos != NULL)
     {
@@ -1015,6 +1023,34 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             break;
         }
     }
+}
+
+/**
+ * This function is called whenever an ESP-NOW packet is received.
+ *
+ * @param mac_addr The MAC address which sent this data
+ * @param data     A pointer to the data received
+ * @param len      The length of the data received
+ * @param rssi     The RSSI for this packet, from 1 (weak) to ~90 (touching)
+ */
+void nvsManagerEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
+{
+    // Forward to p2p
+    p2pRecvCb(&nvsManager->p2p, mac_addr, (const uint8_t*)data, len, rssi);
+}
+
+/**
+ * This function is called whenever an ESP-NOW packet is sent.
+ * It is just a status callback whether or not the packet was actually sent.
+ * This will be called after calling espNowSend()
+ *
+ * @param mac_addr The MAC address which the data was sent to
+ * @param status   The status of the transmission
+ */
+void nvsManagerEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
+{
+    // Forward to p2p
+    p2pSendCb(&nvsManager->p2p, mac_addr, status);
 }
 
 /**
