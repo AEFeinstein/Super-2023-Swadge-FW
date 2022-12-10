@@ -35,9 +35,7 @@
 #define BTN_TITLE_START_SCORES SELECT
 #define BTN_TITLE_START_GAME START
 #define BTN_TITLE_START_GAME_ALT BTN_A
-#define BTN_TITLE_START_NO_STRESS_TRIS_SCORES 0 // Y
-#define BTN_TITLE_START_NO_STRESS_TRIS_GAME 4 // X
-//#define BTN_TITLE_EXIT_MODE BTN_B
+#define BTN_TITLE_TOGGLE_NO_STRESS_TRIS BTN_B
 
 // Controls (game)
 #define BTN_GAME_SOFT_DROP DOWN
@@ -138,10 +136,10 @@
 
 // Any const strings go here.
 
-static const char str_y_for[] ="Y FOR";
+static const char str_b_for[] ="B FOR";
 static const char str_no_stress[] = "NO-STRESS";
+static const char str_normal[] = "NORMAL";
 static const char str_tris[] = "MODE";
-static const char str_x_to_play[] = "X TO PLAY";
 static const char str_select_for[] = "SELECT FOR";
 static const char str_scores[] = "SCORES";
 static const char str_start_to[] = "START TO";
@@ -1841,26 +1839,17 @@ void ttTitleInput(void)
     // Start game.
     if(ttIsButtonPressed(BTN_TITLE_START_GAME) || ttIsButtonPressed(BTN_TITLE_START_GAME_ALT))
     {
-        tiltrads->noStressTris = false;
         ttChangeState(TT_GAME);
     }
     // Go to score screen.
     else if(ttIsButtonPressed(BTN_TITLE_START_SCORES))
     {
-        tiltrads->noStressTris = false;
         ttChangeState(TT_SCORES);
     }
     // Start game of no-stress-tris.
-    else if(ttIsTouchPressed(BTN_TITLE_START_NO_STRESS_TRIS_GAME))
+    else if(ttIsButtonPressed(BTN_TITLE_TOGGLE_NO_STRESS_TRIS))
     {
-        tiltrads->noStressTris = true;
-        ttChangeState(TT_GAME);
-    }
-    // Go to no-stress-tris score screen.
-    else if(ttIsTouchPressed(BTN_TITLE_START_NO_STRESS_TRIS_SCORES))
-    {
-        tiltrads->noStressTris = true;
-        ttChangeState(TT_SCORES);
+        tiltrads->noStressTris = !tiltrads->noStressTris;
     }
 
     /*
@@ -2326,41 +2315,20 @@ void ttTitleDisplay(void)
     drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_play, playTextX, playTextY);
 
 
-    // Y FOR
-    int16_t noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_y_for, 0, GRID_X);
+    // B FOR
+    int16_t noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_b_for, 0, GRID_X);
     int16_t noStressScoresTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 6 + 3);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_y_for, noStressScoresTextX, noStressScoresTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_b_for, noStressScoresTextX, noStressScoresTextY);
 
-    // NO-STRESS-
-    noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_no_stress, 0, GRID_X);
+    // NO-STRESS or NORMAL
+    noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), tiltrads->noStressTris ? str_normal : str_no_stress, 0, GRID_X);
     noStressScoresTextY += tiltrads->ibm_vga8.h + 1;
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_no_stress, noStressScoresTextX, noStressScoresTextY);
+    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, tiltrads->noStressTris ? str_normal : str_no_stress, noStressScoresTextX, noStressScoresTextY);
 
-    // TRIS
+    // MODE
     noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_tris, 0, GRID_X);
     noStressScoresTextY += tiltrads->ibm_vga8.h + 1;
     drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_tris, noStressScoresTextX, noStressScoresTextY);
-
-    // SCORES
-    noStressScoresTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_scores, 0, GRID_X);
-    noStressScoresTextY += tiltrads->ibm_vga8.h + 1;
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_scores, noStressScoresTextX, noStressScoresTextY);
-
-    // X TO PLAY
-    int16_t noStressPlayTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_x_to_play, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
-    int16_t noStressPlayTextY = tiltrads->disp->h - (tiltrads->ibm_vga8.h * 6 + 3);
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_x_to_play, noStressPlayTextX, noStressPlayTextY);
-
-    // NO-STRESS-
-    noStressPlayTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_no_stress, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
-    noStressPlayTextY += tiltrads->ibm_vga8.h + 1;
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_no_stress, noStressPlayTextX, noStressPlayTextY);
-
-    // TRIS
-    noStressPlayTextX = getCenteredTextX(&(tiltrads->ibm_vga8), str_tris, xFromGridCol(GRID_X, GRID_COLS, GRID_UNIT_SIZE), tiltrads->disp->w);
-    noStressPlayTextY += tiltrads->ibm_vga8.h + 1;
-    drawText(tiltrads->disp, &(tiltrads->ibm_vga8), c540, str_tris, noStressPlayTextX, noStressPlayTextY);
-
 
     // Clear the grid data. (may not want to do this every frame)
     refreshTetradsGrid(TUTORIAL_GRID_COLS, TUTORIAL_GRID_ROWS, tiltrads->tutorialTetradsGrid, tiltrads->landedTetrads, &(tiltrads->tutorialTetrad),
@@ -2378,6 +2346,12 @@ void ttTitleDisplay(void)
     int16_t titleTextX = getCenteredTextX(&(tiltrads->radiostars), str_tiltrads, 0, tiltrads->disp->w);
     int16_t titleTextY = DISPLAY_HALF_HEIGHT - tiltrads->radiostars.h - 2;
     drawText(tiltrads->disp, &(tiltrads->radiostars), c540, str_tiltrads, titleTextX, titleTextY);
+
+    if (tiltrads->noStressTris) 
+    {
+        titleTextX = getCenteredTextX(&(tiltrads->radiostars), str_no_stress, 0, tiltrads->disp->w);
+        drawText(tiltrads->disp, &(tiltrads->radiostars), tiltrads->stateFrames % c555, str_no_stress, titleTextX, titleTextY - tiltrads->radiostars.h - 2);
+    }
 
     // COLOR (rotating color fx)
     titleTextX = getCenteredTextX(&(tiltrads->radiostars), str_color, 0, tiltrads->disp->w);
