@@ -103,7 +103,7 @@ spiffs_create_partition_image(storage ../spiffs_image FLASH_IN_PROJECT)
 
 
 execute_process(
-    COMMAND git rev-parse --short HEAD
+    COMMAND git rev-parse --short=7 HEAD
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     OUTPUT_VARIABLE VERSION_SHA1 )
 
