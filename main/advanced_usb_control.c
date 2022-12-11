@@ -33,7 +33,6 @@ uint8_t* advanced_usb_printf_buffer = NULL;
 int      advanced_usb_printf_head, advanced_usb_printf_tail;
 
 uint32_t * advanced_usb_read_offset;
-static uint8_t terminal_redirected;
 static uint8_t did_init_flash_function;
 
 void dummy_fn( void ) { }
@@ -89,7 +88,7 @@ static int advanced_usb_write_log( void* cookie, const char* data, int size )
     // Drop extra characters on the floor.
     while( next != advanced_usb_printf_tail && idx < size )
     {
-        advanced_usb_printf_buffer[next] = data[idx++];
+        advanced_usb_printf_buffer[advanced_usb_printf_head] = data[idx++];
         advanced_usb_printf_head = next;
         next = ( advanced_usb_printf_head + 1 ) % AUPB_SIZE;
     }
@@ -126,30 +125,22 @@ int handle_advanced_usb_terminal_get( int reqlen, uint8_t * data )
         advanced_usb_printf_buffer = heap_caps_calloc(AUPB_SIZE, sizeof(uint8_t), MALLOC_CAP_SPIRAM);
     }
 
-    if( !terminal_redirected )
-    {
-        ULOG("redirecting stdout");
-        esp_log_set_vprintf( advanced_usb_write_log_printf );
-        ULOG("stdout redirected");
-        terminal_redirected = 1;
-    }
-    int togo = ( advanced_usb_printf_head - advanced_usb_printf_tail +
-        sizeof( advanced_usb_printf_buffer ) ) % AUPB_SIZE;
+    int togo = ( advanced_usb_printf_head - advanced_usb_printf_tail + AUPB_SIZE ) % AUPB_SIZE;
 
     data[0] = 171;
 
     int mark = 1;
     if( togo )
     {
-        if( togo > reqlen-1 ) togo = reqlen-1;
-        while( mark++ != togo )
+        if( togo > reqlen-2 ) togo = reqlen-2;
+        while( mark <= togo )
         {
-            data[mark] = advanced_usb_printf_buffer[advanced_usb_printf_tail++];
+            data[++mark] = advanced_usb_printf_buffer[advanced_usb_printf_tail++];
             if( advanced_usb_printf_tail == AUPB_SIZE )
                 advanced_usb_printf_tail = 0;
         }
     }
-    return mark;
+    return mark+1;
 }
 
 /**

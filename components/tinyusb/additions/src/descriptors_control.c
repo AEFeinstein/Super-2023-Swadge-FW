@@ -133,7 +133,7 @@ uint8_t const *tud_hid_descriptor_report_cb(uint8_t itf)
 
 void tusb_set_descriptor(tusb_desc_device_t *dev_desc, const char **str_desc)
 {
-    ESP_LOGI(TAG, "\n"
+    ESP_LOGV(TAG, "\n"
              "┌─────────────────────────────────┐\n"
              "│  USB Device Descriptor Summary  │\n"
              "├───────────────────┬─────────────┤\n"
