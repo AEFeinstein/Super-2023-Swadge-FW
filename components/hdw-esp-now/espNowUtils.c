@@ -68,6 +68,7 @@ struct {
     gpio_num_t rxGpio;
     gpio_num_t txGpio;
     uint32_t uartNum;
+    wifiMode_t mode;
 
     // A ringbuffer for esp-now serial communication
     char ringBuf[ESP_NOW_SERIAL_RINGBUF_SIZE];
@@ -98,7 +99,7 @@ void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
  * @param uart The UART to use for serial communication
  */
 void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
-    gpio_num_t rx, gpio_num_t tx, uart_port_t uart)
+    gpio_num_t rx, gpio_num_t tx, uart_port_t uart, wifiMode_t mode)
 {
     // Save callback functions
     en.hostEspNowRecvCb = recvCb;
@@ -108,9 +109,13 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
     en.rxGpio = rx;
     en.txGpio = tx;
     en.uartNum = uart;
+    en.mode = mode;
 
-    // Create a queue to move packets from the receive callback to the main task
-    en.esp_now_queue = xQueueCreate(10, sizeof(p2pPacket_t));
+    if (ESP_NOW_IMMEDIATE != mode)
+    {
+        // Create a queue to move packets from the receive callback to the main task
+        en.esp_now_queue = xQueueCreate(10, sizeof(p2pPacket_t));
+    }
 
     esp_err_t err;
 
@@ -331,32 +336,38 @@ void espNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, int data_len)
 {
     // Negative index to get the ESP NOW header
     // espNowHeader_t * hdr = (espNowHeader_t *)&data[-sizeof(espNowHeader_t)];
-
     // Negative index further to get the WIFI header
     wifi_pkt_rx_ctrl_t* pkt = (wifi_pkt_rx_ctrl_t*)&data[-sizeof(espNowHeader_t) - sizeof(wifi_pkt_rx_ctrl_t)];
 
-    /* The receiving callback function also runs from the Wi-Fi task. So, do not
-     * do lengthy operations in the callback function. Instead, post the
-     * necessary data to a queue and handle it from a lower priority task.
-     */
-    p2pPacket_t packet;
-
-    // Copy the MAC
-    memcpy(&packet.mac, mac_addr, sizeof(uint8_t) * 6);
-
-    // Make sure the data fits, then copy it
-    if(data_len > sizeof(packet.data))
+    if (ESP_NOW_IMMEDIATE == en.mode)
     {
-        data_len = sizeof(packet.data);
+        en.hostEspNowRecvCb(mac_addr, (const char *)data, data_len, pkt->rssi);
     }
-    packet.len = data_len;
-    memcpy(&packet.data, data, data_len);
+    else
+    {
+        /* The receiving callback function also runs from the Wi-Fi task. So, do not
+         * do lengthy operations in the callback function. Instead, post the
+         * necessary data to a queue and handle it from a lower priority task.
+         */
+        p2pPacket_t packet;
 
-    // Copy the RSSI
-    packet.rssi = pkt->rssi;
+        // Copy the MAC
+        memcpy(&packet.mac, mac_addr, sizeof(uint8_t) * 6);
 
-    // Queue this packet
-    xQueueSendFromISR(en.esp_now_queue, &packet, NULL);
+        // Make sure the data fits, then copy it
+        if(data_len > sizeof(packet.data))
+        {
+            data_len = sizeof(packet.data);
+        }
+        packet.len = data_len;
+        memcpy(&packet.data, data, data_len);
+
+        // Copy the RSSI
+        packet.rssi = pkt->rssi;
+
+        // Queue this packet
+        xQueueSendFromISR(en.esp_now_queue, &packet, NULL);
+    }
 }
 
 /**
@@ -459,7 +470,7 @@ void checkEspNowRxQueue(void)
             rBufTmpHead = (rBufTmpHead + 1) % sizeof(en.ringBuf);
         }
     }
-    else
+    else if (en.mode != ESP_NOW_IMMEDIATE)
     {
         p2pPacket_t packet;
         if (xQueueReceive(en.esp_now_queue, &packet, 0))

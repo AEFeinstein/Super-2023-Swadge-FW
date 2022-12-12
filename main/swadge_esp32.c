@@ -562,20 +562,20 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     if(true)
 #else
     // Only init wifi on actual hardware if requested (saves power)
-    if(ESP_NOW == cSwadgeMode->wifiMode)
+    if(NO_WIFI != cSwadgeMode->wifiMode)
 #endif
     {
         if(cSwadgeMode->overrideUsb)
         {
             // This can communicate over wifi or UART
             espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb,
-                GPIO_NUM_19, GPIO_NUM_20, UART_NUM_1);
+                GPIO_NUM_19, GPIO_NUM_20, UART_NUM_1, cSwadgeMode->wifiMode);
         }
         else
         {
             // This can communicate over wifi only
             espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb,
-                GPIO_NUM_NC, GPIO_NUM_NC, UART_NUM_MAX);
+                GPIO_NUM_NC, GPIO_NUM_NC, UART_NUM_MAX, cSwadgeMode->wifiMode);
         }
         wifiInit = true;
     }
@@ -611,8 +611,8 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             int64_t tElapsedUs = tNowUs - tLastLoopUs;
             tLastLoopUs = tNowUs;
 
-            // Process ESP NOW
-            if(ESP_NOW == cSwadgeMode->wifiMode)
+            // Process ESP NOW.  For immediate mode, do not process RX queue, but we might be using serial.
+            if(NO_WIFI != cSwadgeMode->wifiMode)
             {
                 checkEspNowRxQueue();
             }
