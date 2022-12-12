@@ -116,7 +116,10 @@
         "emu_gpio.c": "c",
         "mode_picross.h": "c",
         "xlocnum": "c",
-        "xlocale": "c"
+        "xlocale": "c",
+        "picross_select.h": "c",
+        "picross_menu.h": "c",
+        "aabb_utils.h": "c"
     },
     "idf.adapterTargetName": "esp32s2",
     "makefile.makefilePath": "./emu.mk"

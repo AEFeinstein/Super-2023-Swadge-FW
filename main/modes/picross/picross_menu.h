@@ -9,6 +9,7 @@ extern const char picrossCurrentPuzzleIndexKey[];
 extern const char picrossSavedOptionsKey[];
 extern const char picrossCompletedLevelData[];
 extern const char picrossProgressData[];
+extern const char picrossMarksData[];
 
 void setPicrossMainMenu(bool resetPos);
 void returnToPicrossMenu(void);
