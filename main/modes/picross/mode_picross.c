@@ -45,8 +45,8 @@ void drawNumberAtCoord(display_t* d, font_t* font, paletteColor_t color, uint8_t
 int8_t getHintShift(uint8_t hint);
 void saveCompletedOnSelectedLevel(bool completed);
 void enterSpace(uint8_t x,uint8_t y,picrossSpaceType_t newSpace);
-bool toggleMark(uint8_t x,uint8_t y);
-bool setMark(uint8_t x,uint8_t y, bool mark);
+bool toggleTentativeMark(uint8_t x,uint8_t y);
+bool setTentativeMark(uint8_t x,uint8_t y, bool mark);
 void picrossVictoryLEDs(uint32_t tElapsedUs, uint32_t arg, bool reset);
 //==============================================================================
 // Variables
@@ -102,7 +102,7 @@ void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* select
     p->input->blinkError = false;
     p->input->blinkAnimTimer = 0;
     p->input->startHeldType = OUTOFBOUNDS;
-    p->input->startMarkType = false;
+    p->input->startTentativeMarkType = false;
     p->input->inputBoxColor = c005;//now greenish for more pop against marked. old burnt orange: c430. old green: c043
         //lets test this game against various forms of colorblindness. I'm concerned about deuteranopia. Input square is my largest concern. 
     p->input->inputBoxDefaultColor = p->input->inputBoxColor;//inputBoxColor gets changed during runtime, so we cache the desired.
@@ -882,7 +882,7 @@ void picrossUserInput(int64_t elapsedUs)
     }
 
     if(input->touchState && !(input->prevTouchState)) {
-        input->startMarkType = toggleMark(input->x, input->y);
+        input->startTentativeMarkType = toggleTentativeMark(input->x, input->y);
     }
 
 
@@ -909,7 +909,7 @@ void picrossUserInput(int64_t elapsedUs)
                 enterSpace(input->x,input->y,SPACE_EMPTY);
             }
         } else if(input->touchState) {
-            setMark(input->x,input->y,input->startMarkType);
+            setTentativeMark(input->x,input->y,input->startTentativeMarkType);
         }
     }    
 
@@ -957,16 +957,16 @@ void picrossUserInput(int64_t elapsedUs)
 
 // Toggles the tentative mark at the given slot
 // Returns whether to add or remove marks if button is held + input moves
-bool toggleMark(uint8_t x,uint8_t y) {
-    return setMark(x,y,!p->marks[x][y]);
+bool toggleTentativeMark(uint8_t x,uint8_t y) {
+    return setTentativeMark(x,y,!p->tentativeMarks[x][y]);
 }
 
 // Will set mark to provided value, unless the space is filled by something else
 // Returns whether to add or remove marks for button held action
-bool setMark(uint8_t x, uint8_t y, bool mark){
+bool setTentativeMark(uint8_t x, uint8_t y, bool mark){
     if(p->puzzle->level[x][y] == SPACE_EMPTY) {
-        p->marks[x][y] = mark;
-        return p->marks[x][y];
+        p->tentativeMarks[x][y] = mark;
+        return p->tentativeMarks[x][y];
     }
 
     // If marking a space that cannot be marked, I think that it makes the most sense to
@@ -978,7 +978,7 @@ bool setMark(uint8_t x, uint8_t y, bool mark){
  {
     // Clear tentative marks if newSpace is filled/marked empty
     if(newSpace != SPACE_EMPTY) {
-        p->marks[x][y] = false;
+        p->tentativeMarks[x][y] = false;
     }
     //this gets called frequently even if newSpace is current. 
     if(p->puzzle->level[x][y] != newSpace)
@@ -1121,7 +1121,7 @@ void drawPicrossScene(display_t* d)
                     }
                 }
 
-                if(p->marks[i][j] == true) {
+                if(p->tentativeMarks[i][j] == true) {
                     // Following convention of how X marks always use emptySpaceCol instead of hoverSpaceCol 
                     int boxSize = box.x1-box.x0;
                     drawBox(d, box, emptySpaceCol, true, 0);
@@ -1605,8 +1605,8 @@ void savePicrossProgress()
     picrossProgressData_t* progress = calloc(1, size);
     
     //save tentative marks
-    size_t markSize = sizeof(p->marks);
-    bool marks[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE];
+    size_t markSize = sizeof(p->tentativeMarks);
+    bool tentativeMarks[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE];
 
     //I know im doing things a kind of brute-force way here, copying over every value 1 by 1. I should be, i dunno, just swapping pointers around? and...freeing up the old pointer?
     //also, we dont need to save OUTOFBOUNDS for smaller levels, since it shouldnt get read. while debugging and poking around at what its saving, I prefer not having garbage getting saved.
@@ -1617,14 +1617,14 @@ void savePicrossProgress()
         {
             if(x < p->puzzle->width && y < p->puzzle->height){
                 progress->level[x][y] = p->puzzle->level[x][y];
-                marks[x][y] = p->marks[x][y];
+                tentativeMarks[x][y] = p->tentativeMarks[x][y];
             }else{
                 progress->level[x][y] = OUTOFBOUNDS;
             }
         }
     }
     writeNvsBlob(picrossProgressData,progress,size);
-    writeNvsBlob(picrossMarksData,marks,markSize);
+    writeNvsBlob(picrossMarksData,tentativeMarks,markSize);
 
     free(progress);
 }
@@ -1639,11 +1639,11 @@ void loadPicrossProgress()
     size_t size = sizeof(progress);//why is size 0
     readNvsBlob(picrossProgressData,&progress,&size);
     
-    bool marks[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE];
-    size_t marksSize = sizeof(marks);
-    if (!readNvsBlob(picrossMarksData, &marks, &marksSize)) {
+    bool tentativeMarks[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE];
+    size_t marksSize = sizeof(tentativeMarks);
+    if (!readNvsBlob(picrossMarksData, &tentativeMarks, &marksSize)) {
         // Backwards compatibility for 1.0 saves
-        memset(marks, 0, sizeof(marks));
+        memset(tentativeMarks, 0, sizeof(tentativeMarks));
     }
 
     for(int y = 0;y<p->puzzle->height;y++)
@@ -1651,7 +1651,7 @@ void loadPicrossProgress()
         for(int x = 0;x<p->puzzle->width;x++)
         {
             p->puzzle->level[x][y] = progress.level[x][y];
-            p->marks[x][y] = marks[x][y];
+            p->tentativeMarks[x][y] = tentativeMarks[x][y];
         }
     }
 }

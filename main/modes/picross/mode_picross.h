@@ -46,7 +46,7 @@ typedef struct
 typedef struct
 {
     picrossSpaceType_t startHeldType;
-    bool startMarkType;
+    bool startTentativeMarkType;
     uint8_t x;
     uint8_t y;
     uint8_t hoverBlockSizeX;
@@ -128,7 +128,7 @@ typedef struct
     led_t offLEDS[NUM_LEDS];
     uint8_t ledAnimCount;//victory dance
     uint32_t animtAccumulated;//victory dance
-    bool marks[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE];
+    bool tentativeMarks[PICROSS_MAX_LEVELSIZE][PICROSS_MAX_LEVELSIZE];
 } picrossGame_t;
 
 void picrossStartGame(display_t* disp, font_t* mmFont, picrossLevelDef_t* selectedLevel, bool cont);
