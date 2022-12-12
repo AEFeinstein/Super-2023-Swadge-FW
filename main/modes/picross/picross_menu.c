@@ -438,15 +438,9 @@ void picrossButtonCb(buttonEvt_t* evt)
 
 
 void picrossTouchCb(touch_event_t* evt) {
-    switch(pm->screen)
-    {
-        case PICROSS_GAME:
-        {
-            picrossGameTouchCb(evt);
-            break;
-        }
-        
-    }
+    if(pm->screen == PICROSS_GAME) {
+        picrossGameTouchCb(evt);
+    }  
 }
 
 /////////////////////////

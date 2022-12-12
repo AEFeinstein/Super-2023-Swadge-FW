@@ -1122,8 +1122,9 @@ void drawPicrossScene(display_t* d)
                 }
 
                 if(p->marks[i][j] == true) {
+                    // Following convention of how X marks always use emptySpaceCol instead of hoverSpaceCol 
                     int boxSize = box.x1-box.x0;
-                    drawBox(d, box, c555, true, 0);
+                    drawBox(d, box, emptySpaceCol, true, 0);
                     plotCircleFilled(d, box.x0+(boxSize/2), box.y0+(boxSize/2), boxSize/3, c531);
                     plotCircleFilled(d, box.x0+(boxSize/2), box.y0+(boxSize/2), (boxSize/3)-3, emptySpaceCol);
                 }
