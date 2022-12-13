@@ -4968,6 +4968,8 @@ void CNFGGLXSetup( )
 	CNFGVisualID = vis->visualid;
 	CNFGDepth = vis->depth;
 	CNFGCtx = glXCreateContext( CNFGDisplay, vis, NULL, True );
+	if(cfgs) XFree(cfgs);
+	if(vis) XFree(vis);
 }
 
 #endif
@@ -5195,6 +5197,9 @@ void CNFGSetupFullscreen( const char * WindowName, int screen_no )
 void CNFGTearDown()
 {
 	HandleDestroy();
+#ifdef CNFGOGL
+	glXDestroyContext(CNFGDisplay, CNFGCtx);
+#endif
 	if( xi ) free( xi );
 	if ( CNFGClassHint ) XFree( CNFGClassHint );
 	if ( CNFGGC ) XFreeGC( CNFGDisplay, CNFGGC );
