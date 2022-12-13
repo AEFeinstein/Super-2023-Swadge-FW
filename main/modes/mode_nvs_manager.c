@@ -16,10 +16,13 @@
 #include <limits.h>
 #include <math.h>
 
+#include <esp32/rom/crc.h>
+
 #include "bresenham.h"
 #include "display.h"
 #include "embeddednf.h"
 #include "embeddedout.h"
+#include "espNowUtils.h"
 #include "esp_timer.h"
 #include "led_util.h"
 #include "linked_list.h"
@@ -51,6 +54,8 @@
 #define MAX_INT_STRING_LENGTH 21
 #define ENTRIES_BUF_SIZE MAX_INT_STRING_LENGTH + 8
 
+#define NVS_VER_LEN 7
+
 /// Helper macro to return an integer clamped within a range (MIN to MAX)
 //#define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
 /// Helper macro to return the highest of two integers
@@ -67,6 +72,7 @@
  * Prototypes
  *============================================================================*/
 
+// Standard mode functions
 void nvsManagerEnterMode(display_t* disp);
 void nvsManagerExitMode(void);
 void nvsManagerButtonCallback(buttonEvt_t* evt);
@@ -74,39 +80,48 @@ void nvsManagerButtonCallback(buttonEvt_t* evt);
 void nvsManagerTouchCallback(touch_event_t* evt);
 #endif
 void nvsManagerMainLoop(int64_t elapsedUs);
+
+// ESP-NOW functions
 void nvsManagerEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 void nvsManagerEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
+void nvsManagerP2pConnect();
+void nvsManagerP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt);
+void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len);
+void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t* data, uint8_t dataLen);
+
+// Menu functions
 void nvsManagerSetUpTopMenu(bool resetPos);
 void nvsManagerTopLevelCb(const char* opt);
 void nvsManagerSetUpManageDataMenu(bool resetPos);
 void nvsManagerManageDataCb(const char* opt);
 void nvsManagerSetUpReceiveMenu(bool resetPos);
 void nvsManagerReceiveMenuCb(const char* opt);
+void nvsManagerSetUpSendConnMenu(bool resetPos);
+void nvsManagerSendConnMenuCb(const char* opt);
+void nvsManagerSetUpRecvConnMenu(bool resetPos);
+void nvsManagerRecvConnMenuCb(const char* opt);
+
 bool nvsManagerReadAllNvsEntryInfos();
 char* blobToStrWithPrefix(const void * value, size_t length);
 const char* getNvsTypeName(nvs_type_t type);
 
 /*==============================================================================
- * Structs
+ * Enums
  *============================================================================*/
 
 /// @brief Defines each separate screen in the NVS manager mode
 typedef enum
 {
-    // Top menu
+    // Top menu and other menus
     NVS_MENU,
     // Summary of used, free, and total entries in NVS
     NVS_SUMMARY,
     // Warn users about the potential dangers of managing keys
     NVS_WARNING,
-    // Manage key/value pairs in NVS
-    NVS_MANAGE_DATA_MENU,
     // Manage a specific key/value pair
     NVS_MANAGE_KEY,
     // Send a key/value pair or all data
     NVS_SEND,
-    // Menu to choose what and how to receive
-    NVS_RECEIVE_MENU,
     // Receive a key/value pair or all data
     NVS_RECEIVE,
 } nvsScreen_t;
@@ -120,32 +135,86 @@ typedef enum
     NVS_ACTION_SEND,
     // Go back (this will always be the last option, so it can be used as a maximum value)
     NVS_ACTION_BACK,
-} nvsManageKeyAction_t;
+} nvsKeyAction_t;
+
+/// @brief Defines each receive mode in NVS manager
+typedef enum
+{
+    // Receive all NVS key/value pairs from another Swadge
+    NVS_RECV_MODE_ALL,
+    // Receive several NVS key/value pairs from another Swadge
+    NVS_RECV_MODE_MULTI,
+    // Receive one NVS key/value pair from another Swadge
+    NVS_RECV_MODE_ONE,
+} nvsReceiveMode_t;
+
+/// @brief Defines each packet type in NVS manager
+typedef enum
+{
+    // Handshake to choose latest common protocol version. 4-byte CRC32, 7-byte version
+    NVS_PACKET_VERSION,
+    // 4-byte CRC32, 2-byte number of key/value pairs sender has to send, 4-byte total number of NVS entries occupied by pairs
+    NVS_PACKET_NUM_PAIRS_AND_ENTRIES,
+    // Metatada about the key/value pair being sent. 4-byte CRC32, 16-byte namespace, 1-byte NVS data type, 4-byte number of data bytes in value, 16-byte key
+    NVS_PACKET_PAIR_HEADER,
+    // 4-byte CRC32, up to (P2P_MAX_DATA_LEN - 4) bytes data
+    NVS_PACKET_VALUE_DATA,
+    // Confirm CRC32 OK
+    NVS_PACKET_ACK,
+    // Indicate CRC32 not OK, request resend of previous packet
+    NVS_PACKET_NAK,
+    // Indicate unrecoverable p2p error. Both Swadges end session and clean up. 4-byte CRC32, 1-byte error ID
+    NVS_PACKET_ERROR,
+} nvsPacketType_t;
+
+/// @brief Defines each p2p error type in NVS manager
+typedef enum
+{
+    // Sent by newer NVS manager when support for communicating with old versions has been removed, and the older NVS manager's protocol is too old
+    NVS_ERROR_NO_COMMON_VERSION,
+    // Receiving Swadge does not have enough total entries (free + used) in NVS to fit everything the sender wants to send
+    NVS_ERROR_INSUFFICIENT_SPACE,
+    // Either Swadge has received a packet that passed CRC32, but contained unexpected data or packet type for the current state
+    NVS_ERROR_UNEXPECTED_PACKET,
+    // Either Swadge has been unable to verify CRC32 checksums from the other Swadge too many times
+    NVS_ERROR_TOO_MANY_CRC_FAILS,
+    // User has aborted the transfer from either side
+    NVS_ERROR_USER_ABORT,
+    // Any error not defined otherwise
+    NVS_OTHER_ERROR,
+} nvsCommErrorType_t;
+
+/// @brief Defines each state of p2p in NVS manager
+typedef enum
+{
+    NVS_STATE_NOT_CONNECTED,
+    NVS_STATE_WAITING_FOR_PKT_VER,
+    NVS_STATE_SENT_PKT_VER,
+} nvsCommState_t;
 
 /*==============================================================================
- * Variables
+ * Structs
  *============================================================================*/
 
-// The swadge mode
-swadgeMode modeNvsManager =
+typedef struct
 {
-    .modeName = "Save Data Mgr",
-    .fnEnterMode = nvsManagerEnterMode,
-    .fnExitMode = nvsManagerExitMode,
-    .fnButtonCallback = nvsManagerButtonCallback,
-#ifdef NVS_MANAGER_TOUCH
-    .fnTouchCallback = nvsManagerTouchCallback,
-#else
-    .fnTouchCallback = NULL,
-#endif
-    .fnMainLoop = nvsManagerMainLoop,
-    .wifiMode = ESP_NOW,
-    .fnEspNowRecvCb = nvsManagerEspNowRecvCb,
-    .fnEspNowSendCb = nvsManagerEspNowSendCb,
-    .fnAccelerometerCallback = NULL,
-    .fnAudioCallback = NULL,
-    .overrideUsb = false
-};
+    char version[7];
+} nvsPacketVersion;
+
+typedef struct
+{
+    uint16_t numEntries;
+} nvsPacketNumEntries;
+
+typedef struct
+{
+    uint8_t 
+} nvsPacketEntryHeader;
+
+typedef struct
+{
+    uint8_t error;
+} nvsPacketError;
 
 // The state data
 typedef struct
@@ -162,13 +231,14 @@ typedef struct
     uint16_t topLevelPos;
     uint16_t manageDataPos;
     uint16_t receiveMenuPos;
-    nvsManageKeyAction_t manageKeyAction;
+    nvsKeyAction_t manageKeyAction;
     bool lockManageKeyAction;
     // The screen within NVS manager that the user is in
     nvsScreen_t screen;
     bool eraseDataSelected;
     bool eraseDataConfirm;
     bool warningAccepted;
+    void (*fnReturnMenu)(bool resetPos);
 
 #ifdef NVS_MANAGER_TOUCH
     // Track touch
@@ -201,7 +271,35 @@ typedef struct
 
     // P2P
     p2pInfo p2p;
+    nvsReceiveMode_t receiveMode;
+    bool wired;
+    uint32_t timeSincePacket;
 } nvsManager_t;
+
+/*==============================================================================
+ * Variables
+ *============================================================================*/
+
+// The swadge mode
+swadgeMode modeNvsManager =
+{
+    .modeName = "Save Data Mgr",
+    .fnEnterMode = nvsManagerEnterMode,
+    .fnExitMode = nvsManagerExitMode,
+    .fnButtonCallback = nvsManagerButtonCallback,
+#ifdef NVS_MANAGER_TOUCH
+    .fnTouchCallback = nvsManagerTouchCallback,
+#else
+    .fnTouchCallback = NULL,
+#endif
+    .fnMainLoop = nvsManagerMainLoop,
+    .wifiMode = ESP_NOW,
+    .fnEspNowRecvCb = nvsManagerEspNowRecvCb,
+    .fnEspNowSendCb = nvsManagerEspNowSendCb,
+    .fnAccelerometerCallback = NULL,
+    .fnAudioCallback = NULL,
+    .overrideUsb = true
+};
 
 nvsManager_t* nvsManager;
 
@@ -265,9 +363,13 @@ const char str_i_dec_format[] = "%d";
 const char str_page_format[] = "Page %u";
 
 // Send/receive
+const char NVS_VERSION[] = "221212a"; // Must be seven chars! yymmddl. Use strcmp, NOT ==
 const char str_receive_all[] = "Receive All";
 const char str_receive_multi[] = "Receive Multi";
 const char str_receive_one[] = "Receive One";
+const char str_connection[] = "Connection";
+const char str_wireless[] = "Wireless";
+const char str_wired[] = "Wired";
 
 /*============================================================================
  * Functions
@@ -380,11 +482,26 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                     }
                     case BTN_B:
                     {
-                        if(nvsManager->eraseDataSelected)
+                        if(nvsManager->menu->title == modeNvsManager.modeName)
                         {
-                            nvsManager->eraseDataSelected = false;
-                            // This is done later in the function
-                            // nvsManager->eraseDataConfirm = false;
+                            if(nvsManager->eraseDataSelected)
+                            {
+                                nvsManager->eraseDataSelected = false;
+                                // This is done later in the function
+                                // nvsManager->eraseDataConfirm = false;
+                                nvsManagerSetUpTopMenu(false);
+                            }
+                        }
+                        else if(nvsManager->menu->title == str_connection)
+                        {
+                            nvsManager->fnReturnMenu(false);
+                        }
+                        else if(nvsManager->menu->title == str_receive_all || nvsManager->menu->title == str_receive_multi || nvsManager->menu->title == str_receive_one)
+                        {
+                            nvsManagerSetUpReceiveMenu(false);
+                        }
+                        else
+                        {
                             nvsManagerSetUpTopMenu(false);
                         }
 
@@ -398,7 +515,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                     }
                 }
 
-                if(nvsManager->eraseDataSelected && str_confirm_no != selectedOption &&
+                if(nvsManager->menu->title == modeNvsManager.modeName && nvsManager->eraseDataSelected && str_confirm_no != selectedOption &&
                     str_confirm_yes != selectedOption)
                 {
                     // If the confirm-erase option is not selected, reset eraseDataConfirm and redraw the menu
@@ -439,21 +556,6 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                         break;
                     }
                 }
-            }
-
-            break;
-        }
-        case NVS_MANAGE_DATA_MENU:
-        {
-            if(evt->down)
-            {
-                if(evt->button == BTN_B)
-                {
-                    nvsManagerSetUpTopMenu(false);
-                    break;
-                }
-
-                meleeMenuButton(nvsManager->menu, evt->button);
             }
 
             break;
@@ -607,21 +709,19 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
         }
         case NVS_SEND:
         {
-            break;
-        }
-        case NVS_RECEIVE_MENU:
-        {
             if(evt->down)
             {
-                if(evt->button == BTN_B)
+                switch(evt->button)
                 {
-                    nvsManagerSetUpTopMenu(false);
-                    break;
-                }
-                else
-                {
-                    meleeMenuButton(nvsManager->menu, evt->button);
-                    break;
+                    case BTN_B:
+                    {
+                        nvsManagerSetUpSendConnMenu(false);
+                        break;
+                    }
+                    default:
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -629,6 +729,22 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
         }
         case NVS_RECEIVE:
         {
+            if(evt->down)
+            {
+                switch(evt->button)
+                {
+                    case BTN_B:
+                    {
+                        nvsManagerSetUpRecvConnMenu(false);
+                        break;
+                    }
+                    default:
+                    {
+                        break;
+                    }
+                }
+            }
+
             break;
         }
         default:
@@ -646,8 +762,6 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
     switch(nvsManager->screen)
     {
         case NVS_MENU:
-        case NVS_MANAGE_DATA_MENU:
-        case NVS_RECEIVE_MENU:
         {
             // Draw the menu
             drawMeleeMenu(nvsManager->disp, nvsManager->menu);
@@ -1053,6 +1167,230 @@ void nvsManagerEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t statu
     p2pSendCb(&nvsManager->p2p, mac_addr, status);
 }
 
+void nvsManagerP2pConnect()
+{
+    // Initialize p2p
+    p2pDeinit(&(nvsManager->p2p));
+    p2pInitialize(&(nvsManager->p2p), nvsManager->screen == NVS_SEND ? 'N' : 'O', nvsManagerP2pConCbFn, nvsManagerP2pMsgRxCbFn, -35);
+    p2pSetAsymmetric(&paintShare->p2pInfo, nvsManager->screen == NVS_SEND ? 'O' : 'N');
+    // Start the connection
+    p2pStartConnection(&nvsManager->p2p);
+
+    // Turn off LEDs
+    led_t leds[NUM_LEDS] = {0};
+    setLeds(leds, NUM_LEDS);
+}
+
+/**
+ * @brief This is the p2p connection callback
+ *
+ * @param p2p The p2p struct for this connection
+ * @param evt The connection event that occurred
+ */
+void nvsManagerP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt)
+{
+    switch(evt)
+    {
+        case CON_STARTED:
+        case RX_GAME_START_ACK:
+        case RX_GAME_START_MSG:
+        {
+            break;
+        }
+        case CON_ESTABLISHED:
+        {
+            
+            break;
+        }
+        case CON_LOST:
+        {
+            nvsManagerP2pConnect();
+
+            // We don't want to time out while waiting for a connection
+            nvsManager->timeSincePacket = 0;
+            if (isSender())
+            {
+                nvsManager->shareState = SHARE_SEND_WAIT_FOR_CONN;
+            }
+            else
+            {
+                nvsManager->shareState = SHARE_RECV_WAIT_FOR_CONN;
+            }
+            break;
+        }
+    }
+}
+
+/**
+ * @brief This is the p2p message receive callback
+ *
+ * @param p2p The p2p struct for this connection
+ * @param payload The payload for the message
+ * @param len The length of the message
+ */
+void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
+{
+    switch(nvsManager->screen)
+    {
+        case NVS_SEND:
+        {
+            // Check what was received
+            switch(payload[0])
+            {
+                case NVS_PACKET_VERSION:
+                {
+                    if(0 == memcmp(&payload[1], FTR_VERSION, VER_LEN))
+                    {
+                        // Connection established, show character select screen
+                        setFighterMultiplayerCharSelMenu(true);
+                    }
+                    else
+                    {
+                        // Version mismatch, show warning
+                        nvsManager->ftrConnectingStringTop = str_version_mismatch;
+                        nvsManager->ftrConnectingStringBottom = str_visit_swadge_com;
+                    }
+
+                    // Reply with version
+                    if(GOING_SECOND == p2pGetPlayOrder(p2p))
+                    {
+                        nvsManagerSendVersionToOther();
+                    }
+                    break;
+                }
+                case NVS_PACKET_NUM_PAIRS_AND_ENTRIES:
+                {
+                    break;
+                }
+                case NVS_PACKET_PAIR_HEADER:
+                {
+                    break;
+                }
+                case NVS_PACKET_VALUE_DATA:
+                {
+                    break;
+                }
+                case NVS_PACKET_ACK:
+                {
+                    break;
+                }
+                case NVS_PACKET_NAK:
+                {
+                    break;
+                }
+                case NVS_PACKET_ERROR:
+                {
+                    break;
+                }
+            }
+            break;
+        }
+        case FIGHTER_GAME:
+        {
+            if(BUTTON_INPUT_MSG == payload[0])
+            {
+                // Receive button inputs, so save them
+                fighterRxButtonInput(payload[1]);
+            }
+            break;
+        }
+        case NVS_RECEIVE:
+        {
+
+        }
+        case NVS_MENU:
+        case NVS_WARNING:
+        case NVS_SUMMARY:
+        case NVS_WARNING:
+        {
+            // These screens don't receive packets
+            break;
+        }
+    }
+}
+
+/**
+ * @brief This is the p2p message sent callback
+ *
+ * @param p2p The p2p struct for this connection
+ * @param status The status of the transmission
+ * @param data Data received in the ACK, may be NULL
+ * @param dataLen Length of the data received in the ACK, may be 0
+ */
+void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t* data, uint8_t dataLen)
+{
+    // Check what was ACKed or failed
+    switch(status)
+    {
+        case MSG_ACKED:
+        {
+            // After character or stage selection, check if the game can begin
+            if (nvsManager->lastSentMsg == CHAR_SEL_MSG || nvsManager->lastSentMsg == STAGE_SEL_MSG)
+            {
+                fighterCheckGameBegin();
+            }
+            // If a button input message was acked while playing the game
+            else if((nvsManager->lastSentMsg == BUTTON_INPUT_MSG) && (FIGHTER_GAME == nvsManager->screen))
+            {
+                // If there is any data
+                if(dataLen > 0)
+                {
+                    // If this is a scene
+                    if(MP_COMPOSED_SCENE_MSG == data[0])
+                    {
+                        // Pull composed scene out of the ack, setup for render
+                        fighterRxScene((const fighterScene_t*) data, dataLen);
+                        // Then send buttons again
+                        fighterSendButtonsToOther(fighterGetButtonState());
+                    }
+                    // Or if this is a game over
+                    else if(MP_GAME_OVER_MSG == data[0])
+                    {
+                        // Show the result
+                        const fighterMpGameResult_t* res = (const fighterMpGameResult_t*)data;
+                        initFighterMpResult(nvsManager->disp, &nvsManager->mmFont, res->roundTimeMs,
+                                            res->other, res->otherKOs, res->otherDmg,
+                                            res->self, res->selfKOs, res->selfDmg, MULTIPLAYER);
+                        nvsManager->screen = FIGHTER_MP_RESULT;
+
+                        // Deinit the game
+                        fighterExitGame();
+                    }
+                }
+                else
+                {
+                    // There was no data in the ACK, but keep the loop
+                    // alive by sending button state again
+                    fighterSendButtonsToOther(fighterGetButtonState());
+                }
+            }
+            break;
+        }
+        case MSG_FAILED:
+        {
+            setFighterMainMenu(false);
+            break;
+        }
+    }
+}
+
+/**
+ * @brief Send a packet to the other swadge with this NVS manager's version
+ */
+void nvsManagerSendVersionToOther(void)
+{
+    uint8_t payload[1 + NVS_VER_LEN] = {VERSION_MSG};
+    memcpy(&payload[1], NVS_VERSION, NVS_VER_LEN);
+    // Send button state to the other swawdge
+    p2pSendMsg(&fm->p2p, payload, sizeof(payload), nvsManagerP2pMsgTxCbFn);
+    fm->lastSentMsg = VERSION_MSG;
+}
+
+uint32_t nvsCalcCrc32(const uint8_t* buffer, size_t length)
+{
+    return (~crc32_le((uint32_t)~(0xffffffff), buffer, length))^0xffffffff;
+}
+
 /**
  * Set up the top level menu
  *
@@ -1125,7 +1463,8 @@ void nvsManagerTopLevelCb(const char* opt)
     }
     else if(str_send_all == opt)
     {
-        nvsManager->screen = NVS_SEND;
+        nvsManager->fnReturnMenu = nvsManagerSetUpTopMenu;
+        nvsManagerSetUpSendConnMenu(true);
     }
     else if(str_receive == opt)
     {
@@ -1201,8 +1540,6 @@ void nvsManagerSetUpManageDataMenu(bool resetPos)
     nvsManager->menu->usePerRowXOffsets = false;
     nvsManager->eraseDataSelected = false;
     nvsManager->eraseDataConfirm = false;
-
-    nvsManager->screen = NVS_MANAGE_DATA_MENU;
 }
 
 /**
@@ -1249,8 +1586,6 @@ void nvsManagerSetUpReceiveMenu(bool resetPos)
         nvsManager->receiveMenuPos = 0;
     }
     nvsManager->menu->selectedRow = nvsManager->receiveMenuPos;
-
-    nvsManager->screen = NVS_RECEIVE_MENU;
 }
 
 /**
@@ -1266,19 +1601,122 @@ void nvsManagerReceiveMenuCb(const char* opt)
     // Handle the option
     if(str_receive_all == opt)
     {
-        nvsManager->screen = NVS_RECEIVE;
+        nvsManager->receiveMode = NVS_RECV_MODE_ALL;
+        nvsManagerSetUpRecvConnMenu(true);
     }
     else if(str_receive_multi == opt)
     {
-        nvsManager->screen = NVS_RECEIVE;
+        nvsManager->receiveMode = NVS_RECV_MODE_MULTI;
+        nvsManagerSetUpRecvConnMenu(true);
     }
     else if(str_receive_one == opt)
     {
-        nvsManager->screen = NVS_RECEIVE;
+        nvsManager->receiveMode = NVS_RECV_MODE_ALL;
+        nvsManagerSetUpRecvConnMenu(true);
     }
     else if(str_back == opt)
     {
         nvsManagerSetUpTopMenu(false);
+    }
+}
+
+/**
+ * Set up the sending connection menu
+ *
+ * @param resetPos true to reset the position to 0, false to leave it where it is
+ */
+void nvsManagerSetUpSendConnMenu(bool resetPos)
+{
+    // Set up the menu
+    resetMeleeMenu(nvsManager->menu, str_connection, nvsManagerSendConnMenuCb);
+    addRowToMeleeMenu(nvsManager->menu, str_wireless);
+    addRowToMeleeMenu(nvsManager->menu, str_wired);
+    addRowToMeleeMenu(nvsManager->menu, str_back);
+
+    // Set the position
+    if(resetPos)
+    {
+        nvsManager->connMenuPos = 0;
+    }
+    nvsManager->menu->selectedRow = nvsManager->connMenuPos;
+}
+
+/**
+ * Callback for the sending connection menu
+ *
+ * @param opt The menu option which was selected
+ */
+void nvsManagerSendConnMenuCb(const char* opt)
+{
+    // Save the position
+    nvsManager->connMenuPos = nvsManager->menu->selectedRow;
+
+    // Handle the option
+    if(str_wireless == opt)
+    {
+        nvsManager->wired = false;
+        espNowUseWireless();
+        nvsManager->screen = NVS_SEND;
+    }
+    else if(str_wired == opt)
+    {
+        nvsManager->wired = true;
+        espNowUseWired();
+        nvsManager->screen = NVS_SEND;
+    }
+    else if(str_back == opt)
+    {
+        nvsManagerSetUpTopMenu(false);
+    }
+}
+
+/**
+ * Set up the receiving connection menu
+ *
+ * @param resetPos true to reset the position to 0, false to leave it where it is
+ */
+void nvsManagerSetUpRecvConnMenu(bool resetPos)
+{
+    // Set up the menu
+    resetMeleeMenu(nvsManager->menu, str_connection, nvsManagerRecvConnMenuCb);
+    addRowToMeleeMenu(nvsManager->menu, str_wireless);
+    addRowToMeleeMenu(nvsManager->menu, str_wired);
+    addRowToMeleeMenu(nvsManager->menu, str_back);
+
+    // Set the position
+    if(resetPos)
+    {
+        nvsManager->connMenuPos = 0;
+    }
+    nvsManager->menu->selectedRow = nvsManager->connMenuPos;
+}
+
+/**
+ * Callback for the receiving connection menu
+ *
+ * @param opt The menu option which was selected
+ */
+void nvsManagerRecvConnMenuCb(const char* opt)
+{
+    // Save the position
+    nvsManager->connMenuPos = nvsManager->menu->selectedRow;
+
+    // Handle the option
+    if(str_wireless == opt)
+    {
+        nvsManager->wired = false;
+        espNowUseWireless();
+        nvsManager->screen = NVS_RECEIVE;
+    }
+    else if(str_wired == opt)
+    {
+        nvsManager->wired = true;
+        espNowUseWired();
+        nvsManager->screen = NVS_RECEIVE;
+    }
+    else if(str_back == opt)
+    {
+        nvsManagerSetUpRecvConnMenu(false);
     }
 }
 
