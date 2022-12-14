@@ -27,9 +27,9 @@
 #include "i2c-conf.h"
 #include "ssd1306.h"
 #include "hdw-tft.h"
-#include "crashwrap.h"
 
 #ifndef EMU
+	#include "crashwrap.h"
     #include "soc/rtc_cntl_reg.h"
 #endif
 
