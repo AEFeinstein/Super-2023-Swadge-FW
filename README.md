@@ -165,7 +165,7 @@ Or if your system uses the `dnf` package manager, use these commands:
 
 ```bash
 sudo dnf group install "C Development Tools and Libraries" "Development Tools"
-sudo dnf install libX11-devel libXinerama-devel libXext-devel mesa-libGLU-devel alsa-lib-devel pulseaudio-libs-devel libudev-devel cmake libasan
+sudo dnf install libX11-devel libXinerama-devel libXext-devel mesa-libGLU-devel alsa-lib-devel pulseaudio-libs-devel libudev-devel cmake libasan8
 ```
 
 ## macOS
