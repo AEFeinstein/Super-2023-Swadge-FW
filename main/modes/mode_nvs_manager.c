@@ -16,7 +16,7 @@
 #include <limits.h>
 #include <math.h>
 
-#include <esp32/rom/crc.h>
+//#include <esp32/rom/crc.h>
 
 #include "bresenham.h"
 #include "display.h"
@@ -55,13 +55,24 @@
 #define ENTRIES_BUF_SIZE MAX_INT_STRING_LENGTH + 8
 
 #define NVS_VER_LEN 7
-#define NVS_MAX_ERROR_MESSAGE_LEN ESP_NOW_MAX_DATA_LEN - sizeof(nvsPacket_t) - sizeof(uint32_t) - sizeof(nvsCommError_t)
+#define NVS_MAX_ERROR_MESSAGE_LEN ESP_NOW_MAX_DATA_LEN - sizeof(nvsPacket_t) - sizeof(nvsCommError_t)
 
 /// Helper macro to return an integer clamped within a range (MIN to MAX)
 //#define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
 /// Helper macro to return the highest of two integers
 //#define MAX(X, Y) ( ((X) > (Y)) ? (X) : (Y) )
 //#define lengthof(x) (sizeof(x) / sizeof(x[0]))
+
+/**
+ * When the ESP32 is storing blobs, it uses 1 entry to index chunks,
+ * 1 entry per chunk, then 1 entry for every 32 bytes of data, rounding up.
+ *
+ * I don't know how to find out how many chunks the ESP32 would split
+ * certain length blobs into, so for now I'm assuming 1 chunk per blob.
+ *
+ * TODO: find a way to get number of entries or chunks in the blob
+ */
+#define getNumBlobEntries(length) 2 + ceil((float) length / NVS_ENTRY_BYTES)
 
 /*==============================================================================
  * Enums
@@ -89,8 +100,8 @@ void nvsManagerP2pConnect();
 void nvsManagerP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt);
 void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len);
 void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t* data, uint8_t dataLen);
-uint32_t nvsCalcCrc32(const uint8_t* buffer, size_t length);
-void nvsManagerSendVersionToOther(void);
+//uint32_t nvsCalcCrc32(const uint8_t* buffer, size_t length);
+void nvsManagerSendVersion(void);
 uint8_t* nvsManagerEncodePacketVersion(nvsPacketVersion_t packetAsStruct, size_t* outLength);
 nvsPacketDecodeError_t nvsManagerDecodePacketVersion(uint8_t* packetAsBytes, size_t length, nvsPacketVersion_t* outPacketAsStruct);
 uint8_t* nvsManagerEncodePacketNumPairsEntries(nvsPacketNumPairsEntries_t packetAsStruct, size_t* outLength);
@@ -152,6 +163,15 @@ typedef enum
     NVS_ACTION_BACK,
 } nvsKeyAction_t;
 
+/// @brief Defines each send mode in NVS manager
+typedef enum
+{
+    // Send all NVS key/value pairs to another Swadge
+    NVS_SEND_MODE_ALL,
+    // Send one NVS key/value pair yo another Swadge
+    NVS_SEND_MODE_ONE,
+} nvsSendMode_t;
+
 /// @brief Defines each receive mode in NVS manager
 typedef enum
 {
@@ -166,17 +186,15 @@ typedef enum
 /// @brief Defines each packet type in NVS manager
 typedef enum
 {
-    // Handshake to choose latest common protocol version. 4-byte CRC32, 7-byte version
+    // Handshake to choose latest common protocol version. 7-byte version
     NVS_PACKET_VERSION,
-    // 4-byte CRC32, 2-byte number of key/value pairs sender has to send, 2-byte total number of NVS entries occupied by pairs
+    // 2-byte number of key/value pairs sender has to send, 2-byte total number of NVS entries occupied by pairs
     NVS_PACKET_NUM_PAIRS_AND_ENTRIES,
-    // Metatada about the key/value pair being sent. 4-byte CRC32, 16-byte namespace, 1-byte NVS data type, 4-byte number of data bytes in value, 16-byte key
+    // Metatada about the key/value pair being sent. 16-byte namespace, 1-byte NVS data type, 4-byte number of data bytes in value, 16-byte key
     NVS_PACKET_PAIR_HEADER,
-    // 4-byte CRC32, up to (P2P_MAX_DATA_LEN - 4) bytes data
+    // Up to (P2P_MAX_DATA_LEN - 1) bytes data
     NVS_PACKET_VALUE_DATA,
-    // Confirm CRC32 OK or not OK, request resend of previous packet
-    NVS_PACKET_ACK_NAK,
-    // Indicate unrecoverable p2p error. Both Swadges end session and clean up. 4-byte CRC32, 1-byte error ID
+    // Indicate unrecoverable p2p error. Both Swadges end session and clean up. 1-byte error ID, NVS_MAX_ERROR_MESSAGE_LEN bytes text
     NVS_PACKET_ERROR,
 } nvsPacket_t;
 
@@ -189,10 +207,8 @@ typedef enum
     NVS_ERROR_INSUFFICIENT_SPACE,
     // Receiving Swadge is set to the wrong receive mode for number of key/value pairs the sender wants to send
     NVS_ERROR_WRONG_RECEIVE_MODE,
-    // Either Swadge has received a packet that passed CRC32, but contained unexpected data or packet type for the current state
+    // Either Swadge has received a packet that contained unexpected data or packet type for the current state
     NVS_ERROR_UNEXPECTED_PACKET,
-    // Either Swadge has been unable to verify CRC32 checksums from the other Swadge too many times
-    NVS_ERROR_TOO_MANY_CRC_FAILS,
     // User has aborted the transfer from either side
     NVS_ERROR_USER_ABORT,
 } nvsCommError_t;
@@ -202,10 +218,8 @@ typedef enum
 {
     // No error was encountered while decoding the packet
     NVS_OK = 0,
-    // Packet passed CRC32, but contained unexpected data or packet type for the packet decoding function
+    // Packet contained unexpected data or packet type for the packet decoding function
     NVS_PKTERR_UNEXPECTED = NVS_ERROR_UNEXPECTED_PACKET,
-    // Either Swadge has been unable to verify CRC32 checksums from the other Swadge too many times
-    NVS_PKTERR_CRC_FAIL = NVS_ERROR_TOO_MANY_CRC_FAILS,
 } nvsPacketDecodeError_t;
 
 /// @brief Defines each state of p2p in NVS manager
@@ -235,12 +249,11 @@ typedef enum
     NVS_STATE_FAILED,
 } nvsCommState_t;
 
-/// @brief Defines each state of per-packet p2p CRC32 verification in NVS manager
+/// @brief Defines each state of per-packet p2p ACKs in NVS manager
 typedef enum
 {
     NVS_PSTATE_NOTHING_SENT_YET,
-    NVS_PSTATE_WAIT_FOR_ESP_ACK,
-    NVS_PSTATE_WAIT_FOR_CRC_ACK,
+    NVS_PSTATE_WAIT_FOR_ACK,
     NVS_PSTATE_SUCCESS,
 } nvsPacketState_t;
 
@@ -334,6 +347,7 @@ typedef struct
 
     // P2P
     p2pInfo p2p;
+    nvsSendMode_t sendMode;
     nvsReceiveMode_t receiveMode;
     bool wired;
     uint32_t timeSincePacket;
@@ -755,6 +769,9 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                             }
                             case NVS_ACTION_SEND:
                             {
+                                nvsManager->sendMode = NVS_SEND_MODE_ONE;
+                                nvsManager->fnReturnMenu = nvsManagerSetUpManageDataMenu;
+                                nvsManagerSetUpSendConnMenu(true);
                                 break;
                             }
                             case NVS_ACTION_BACK:
@@ -983,12 +1000,13 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                 {
                     case NVS_TYPE_I32:
                     {
+                        nvsManager->keyUsedEntries = 1;
+
                         int32_t val;
                         readSuccess = readNvs32(entryInfo.key, &val);
                         if(readSuccess)
                         {
                             snprintf(nvsManager->numStr, MAX_INT_STRING_LENGTH, str_i_dec_format, val);
-                            nvsManager->keyUsedEntries = 1;
                         }
                         break;
                     }
@@ -998,21 +1016,13 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                         readSuccess = readNvsBlob(entryInfo.key, NULL, &length);
                         if(readSuccess)
                         {
+                            nvsManager->keyUsedEntries = getNumBlobEntries(length);
+
                             char* blob = calloc(1, length);
                             readSuccess = readNvsBlob(entryInfo.key, blob, &length);
                             if(readSuccess)
                             {
                                 nvsManager->blobStr = blobToStrWithPrefix(blob, length);
-                                /**
-                                 * When the ESP32 is storing blobs, it uses 1 entry to index chunks,
-                                 * 1 entry per chunk, then 1 entry for every 32 bytes of data, rounding up.
-                                 *
-                                 * I don't know how to find out how many chunks the ESP32 would split
-                                 * certain length blobs into, so for now I'm assuming 1 chunk per blob.
-                                 *
-                                 * TODO: find a way to get number of entries or chunks in the blob
-                                 */
-                                nvsManager->keyUsedEntries = 2 + ceil((float) length / NVS_ENTRY_BYTES);
                             }
                             free(blob);
                         }
@@ -1025,6 +1035,10 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                     case NVS_TYPE_U32:
                     case NVS_TYPE_U64:
                     case NVS_TYPE_I64:
+                    {
+                        nvsManager->keyUsedEntries = 1;
+                        // Intentional fallthrough
+                    }
                     case NVS_TYPE_STR:
                     case NVS_TYPE_ANY:
                     default:
@@ -1147,7 +1161,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             // Controls
             yOff += LINE_BREAK_Y + 1;
             // If the read failed or the key's namespace isn't the one we have access to, hide all actions except "Back"
-            if(nvsManager->pageStr == str_read_failed || strcmp(entryInfo.namespace_name, NVS_NAMESPACE_NAME))
+            if(nvsManager->pageStr == str_read_failed || strncmp(entryInfo.namespace_name, NVS_NAMESPACE_NAME, NVS_KEY_NAME_MAX_SIZE))
             {
                 nvsManager->manageKeyAction = NVS_ACTION_BACK;
                 nvsManager->lockManageKeyAction = true;
@@ -1286,7 +1300,7 @@ void nvsManagerP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt)
             {
                 case NVS_SEND:
                 {
-                    nvsManagerSendVersionToOther();
+                    nvsManagerSendVersion();
                     nvsManager->commState = NVS_STATE_WAITING_FOR_VERSION;
                 }
                 case NVS_RECEIVE:
@@ -1347,11 +1361,6 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                                 {
                                     break;
                                 }
-                                case NVS_PKTERR_CRC_FAIL:
-                                {
-                                    // TODO: send nak, count naks, send error if too many naks. do all the nak counting in another function
-                                    break;
-                                }
                                 case NVS_PKTERR_UNEXPECTED:
                                 {
                                     // TODO: tell the user that the programmer messed up
@@ -1362,8 +1371,7 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                             // Other Swadge's version is newer, other Swadge knows that and will use our version
                             if(memcmp(&packet.version, NVS_VERSION, NVS_VER_LEN) > 0)
                             {
-                                // TODO: send crc ack
-                                nvsManager->packetState = WAIT_FOR
+                                // TODO: send num pairs and entries
                             }
                             // Our version is newer, check if we support other Swadge's version
                             else
@@ -1374,25 +1382,6 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
 
                             break;
                         } // NVS_PACKET_VERSION
-                        case NVS_PACKET_ACK_NAK:
-                        {
-                            nvsPacketAckNak_t packet;
-                            nvsPacketDecodeError_t err = nvsManagerDecodePacketAckNak(payload, len, &packet);
-                            switch(err)
-                            {
-                                case NVS_OK:
-                                {
-                                    break;
-                                }
-                                case NVS_PKTERR_CRC_FAIL:
-                                case NVS_PKTERR_UNEXPECTED:
-                                {
-                                    // TODO: tell the user that the programmer messed up
-                                    break;
-                                }
-                            }
-                            break;
-                        }// NVS_PACKET_ACK_NAK
                         case NVS_PACKET_ERROR:
                         {
                             break;
@@ -1443,19 +1432,13 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
     {
         case MSG_ACKED:
         {
-            if(nvsManager->packetState != NVS_PSTATE_WAIT_FOR_ESP_ACK)
+            if(nvsManager->packetState != NVS_PSTATE_WAIT_FOR_ACK)
             {
                 // TODO: send unexpected packet error
-                break;
-            }
-
-            if(nvsManager->lastPacketSent[0] == NVS_PACKET_ACK_NAK)
-            {
-                nvsManager->packetState = NVS_PSTATE_SUCCESS;
             }
             else
             {
-                nvsManager->packetState = NVS_PSTATE_WAIT_FOR_CRC_ACK;
+                nvsManager->packetState = NVS_PSTATE_SUCCESS;
             }
 
             break;
@@ -1468,43 +1451,46 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
     }
 }
 
-uint32_t nvsCalcCrc32(const uint8_t* buffer, size_t length)
-{
-    return (~crc32_le((uint32_t)~(0xffffffff), buffer, length))^0xffffffff;
-}
+// uint32_t nvsCalcCrc32(const uint8_t* buffer, size_t length)
+// {
+//     return (~crc32_le((uint32_t)~(0xffffffff), buffer, length))^0xffffffff;
+// }
 
 /**
  * @brief Send a packet to the other swadge with this NVS manager's version
  */
-void nvsManagerSendVersionToOther(void)
+void nvsManagerSendVersion(void)
 {
+    // Populate struct with data
     nvsPacketVersion_t versionPacket;
-    size_t length;
     memcpy(&(versionPacket.version), &NVS_VERSION, NVS_VER_LEN);
+
+    size_t length;
     uint8_t* payload = nvsManagerEncodePacketVersion(versionPacket, &length);
 
     // Send packet to the other Swadge
     p2pSendMsg(&nvsManager->p2p, payload, length, nvsManagerP2pMsgTxCbFn);
+
+    // Save sent packet
+    if(nvsManager->lastPacketSent != NULL)
+    {
+        free(nvsManager->lastPacketSent);
+    }
     nvsManager->lastPacketSent = payload;
-    nvsManager->packetState = NVS_PSTATE_WAIT_FOR_ESP_ACK;
+    nvsManager->lastPacketLen = length;
+
+    nvsManager->packetState = NVS_PSTATE_WAIT_FOR_ACK;
 }
 
 uint8_t* nvsManagerEncodePacketVersion(nvsPacketVersion_t packetAsStruct, size_t* outLength)
 {
     // Allocate space
-    outLength* = sizeof(nvsPacket_t) + sizeof(uint32_t) + sizeof(nvsPacketVersion_t);
+    outLength* = sizeof(nvsPacket_t) + sizeof(nvsPacketVersion_t);
     uint8_t* payload = calloc(1, outLength*);
 
-    // Set up data for CRC32 calculation
-    payload[sizeof(uint32_t)] = NVS_PACKET_VERSION;
-    memcpy(&payload[sizeof(nvsPacket_t) + sizeof(uint32_t)], &packetAsStruct.version, NVS_VER_LEN);
-
-    // Do CRC32 calculation
-    uint32_t crc = nvsCalcCrc32(&payload[sizeof(uint32_t)], outLength* - sizeof(uint32_t));
-
-    // Move packet type into proper location and copy CRC32 into packet
-    payload[0] = payload[sizeof(uint32_t)];
-    memcpy(&payload[sizeof(nvsPacket_t)], crc, sizeof(uint32_t));
+    // Copy data into packet
+    payload[0] = NVS_PACKET_VERSION;
+    memcpy(&payload[sizeof(nvsPacket_t)], &packetAsStruct, sizeof(nvsPacketVersion_t));
 
     return payload;
 }
@@ -1516,26 +1502,148 @@ nvsPacketDecodeError_t nvsManagerDecodePacketVersion(uint8_t* packetAsBytes, siz
         return NVS_PKTERR_UNEXPECTED;
     }
 
-    // Copy CRC32 out of packet
-    uint32_t crc;
-    memcpy(&crc, &packetAsBytes[sizeof(nvsPacket_t)], sizeof(uint32_t));
-
-    // Move packet type into position for CRC32 calculation, and do calculation
-    payload[sizeof(uint32_t)] = payload[0];
-    if(crc != nvsCalcCrc32(&payload[sizeof(uint32_t)], outLength* - sizeof(uint32_t)))
-    {
-        return NVS_PKTERR_CRC_FAIL;
-    }
-
     // Copy data out of packet
-    memcpy(&(outPacketAsStruct->version), &payload[length - sizeof(nvsPacketVersion_t)], sizeof(nvsPacketVersion_t));
+    memcpy(&outPacketAsStruct, &payload[sizeof(nvsPacket_t)], sizeof(nvsPacketVersion_t));
 
     return NVS_OK;
 }
 
-uint8_t* nvsManagerEncodePacketNumPairsEntries(nvsPacketNumPairsEntries_t packetAsStruct, size_t* outLength);
-nvsPacketDecodeError_t nvsManagerDecodePacketNumPairsEntries(uint8_t* packetAsBytes, size_t length, nvsPacketNumPairsEntries_t* outPacketAsStruct);
-uint8_t* nvsManagerEncodePacketPairHeader(nvsPacketPairHeader_t packetAsStruct, size_t* outLength);
+/**
+ * @brief Send a packet to the other swadge with the number of NVS key/value pairs we want to send and total occupied entries by those pairs
+ */
+void nvsManagerSendNumPairsEntries(void)
+{
+    // Populate struct with data
+    nvsPacketNumPairsEntries_t packetAsStruct;
+    switch(nvsManager->sendMode)
+    {
+        case NVS_SEND_MODE_ALL:
+        {
+            packetAsStruct.numPairs = 0;
+            packetAsStruct.numEntries = 0;
+
+            for(int i = 0; i < nvsManager->nvsNumEntryInfos; i++)
+            {
+                nvs_entry_info_t entryInfo = nvsManager->nvsEntryInfos[i];
+
+                // Only prepare to send real key/value pairs in the namespace we have access to
+                if(entryInfo.key[0] != '\0' && !strncmp(entryInfo.namespace_name, NVS_NAMESPACE_NAME, NVS_KEY_NAME_MAX_SIZE))
+                {
+                    switch(entryInfo.type)
+                    {
+                        case NVS_TYPE_I32:
+                        {
+                            int32_t val;
+                            bool readSuccess = readNvs32(entryInfo.key, &val);
+                            if(readSuccess)
+                            {
+                                // We'll actually be able to read the value when the time comes to send it
+                                packetAsStruct.numPairs++;
+                                packetAsStruct.numEntries++;
+                            }
+                            break;
+                        }
+                        case NVS_TYPE_BLOB:
+                        {
+                            size_t length;
+                            bool readSuccess = readNvsBlob(entryInfo.key, NULL, &length);
+                            if(readSuccess)
+                            {
+                                char* blob = calloc(1, length);
+                                readSuccess = readNvsBlob(entryInfo.key, blob, &length);
+                                if(readSuccess)
+                                {
+                                    // We'll actually be able to read the value when the time comes to send it
+                                    packetAsStruct.numPairs++;
+                                    packetAsStruct.numEntries += getNumBlobEntries(length);
+                                }
+                                free(blob);
+                            }
+                            break;
+                        }
+                        case NVS_TYPE_U8:
+                        case NVS_TYPE_I8:
+                        case NVS_TYPE_U16:
+                        case NVS_TYPE_I16:
+                        case NVS_TYPE_U32:
+                        case NVS_TYPE_U64:
+                        case NVS_TYPE_I64:
+                        case NVS_TYPE_STR:
+                        case NVS_TYPE_ANY:
+                        default:
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            break;
+        }
+        case NVS_SEND_MODE_ONE:
+        {
+            packetAsStruct.numPairs = 1;
+            packetAsStruct.numEntries = nvsManager->keyUsedEntries;
+            break;
+        }
+    }
+
+    size_t length;
+    uint8_t* payload = nvsManagerEncodePacketNumPairsEntries(packetAsStruct, &length);
+
+    // Send packet to the other Swadge
+    p2pSendMsg(&nvsManager->p2p, payload, length, nvsManagerP2pMsgTxCbFn);
+
+    // Save sent packet
+    if(nvsManager->lastPacketSent != NULL)
+    {
+        free(nvsManager->lastPacketSent);
+    }
+    nvsManager->lastPacketSent = payload;
+    nvsManager->lastPacketLen = length;
+
+    nvsManager->packetState = NVS_PSTATE_WAIT_FOR_ACK;
+}
+
+uint8_t* nvsManagerEncodePacketNumPairsEntries(nvsPacketNumPairsEntries_t packetAsStruct, size_t* outLength)
+{
+    // Allocate space
+    outLength* = sizeof(nvsPacket_t) + sizeof(nvsPacketNumPairsEntries_t);
+    uint8_t* payload = calloc(1, outLength*);
+
+    // Copy data into packet
+    payload[0] = NVS_PACKET_NUM_PAIRS_AND_ENTRIES;
+    memcpy(&payload[sizeof(nvsPacket_t)], &packetAsStruct, sizeof(nvsPacketNumPairsEntries_t));
+
+    return payload;
+}
+
+nvsPacketDecodeError_t nvsManagerDecodePacketNumPairsEntries(uint8_t* packetAsBytes, size_t length, nvsPacketNumPairsEntries_t* outPacketAsStruct)
+{
+    if(packetAsBytes[0] != NVS_PACKET_NUM_PAIRS_AND_ENTRIES)
+    {
+        return NVS_PKTERR_UNEXPECTED;
+    }
+
+    // Copy data out of packet
+    memcpy(&outPacketAsStruct, &payload[sizeof(nvsPacket_t)], sizeof(nvsPacketNumPairsEntries_t));
+
+    return NVS_OK;
+}
+
+uint8_t* nvsManagerEncodePacketPairHeader(nvsPacketPairHeader_t packetAsStruct, size_t* outLength)
+{
+    // Allocate space
+    outLength* = sizeof(nvsPacket_t) + sizeof(nvsPacketPairHeader_t);
+    uint8_t* payload = calloc(1, outLength*);
+
+    // Copy data into packet
+    payload[0] = NVS_PACKET_PAIR_HEADER;
+    memcpy(&payload[sizeof(nvsPacket_t)], &packetAsStruct, sizeof(nvsPacketPairHeader_t));
+
+    return payload;
+}
+
 nvsPacketDecodeError_t nvsManagerDecodePacketPairHeader(uint8_t* packetAsBytes, size_t length, nvsPacketPairHeader_t* outPacketAsStruct);
 uint8_t* nvsManagerEncodePacketValueData(uint8_t* data, size_t dataLength, size_t* outLength);
 nvsPacketDecodeError_t nvsManagerDecodePacketValueData(uint8_t* packetAsBytes, size_t length, uint8_t* data, size_t* outDataLength);
@@ -1617,6 +1725,7 @@ void nvsManagerTopLevelCb(const char* opt)
     }
     else if(str_send_all == opt)
     {
+        nvsManager->sendMode = NVS_SEND_MODE_ALL;
         nvsManager->fnReturnMenu = nvsManagerSetUpTopMenu;
         nvsManagerSetUpSendConnMenu(true);
     }
@@ -1819,12 +1928,14 @@ void nvsManagerSendConnMenuCb(const char* opt)
         nvsManager->wired = false;
         espNowUseWireless();
         nvsManager->screen = NVS_SEND;
+        nvsManagerP2pConnect();
     }
     else if(str_wired == opt)
     {
         nvsManager->wired = true;
         espNowUseWired();
         nvsManager->screen = NVS_SEND;
+        nvsManagerP2pConnect();
     }
     else if(str_back == opt)
     {
@@ -1869,12 +1980,14 @@ void nvsManagerRecvConnMenuCb(const char* opt)
         nvsManager->wired = false;
         espNowUseWireless();
         nvsManager->screen = NVS_RECEIVE;
+        nvsManagerP2pConnect();
     }
     else if(str_wired == opt)
     {
         nvsManager->wired = true;
         espNowUseWired();
         nvsManager->screen = NVS_RECEIVE;
+        nvsManagerP2pConnect();
     }
     else if(str_back == opt)
     {
