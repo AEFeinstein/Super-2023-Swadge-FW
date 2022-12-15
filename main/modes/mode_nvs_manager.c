@@ -166,6 +166,7 @@ typedef enum
     NVS_ERROR_USER_ABORT,
 } nvsCommError_t;
 
+/*
 /// @brief Defines each packet decode error type in NVS manager, including a 0 "OK" value
 typedef enum
 {
@@ -174,6 +175,7 @@ typedef enum
     // Packet contained unexpected data or packet type for the packet decoding function
     NVS_PKTERR_UNEXPECTED = NVS_ERROR_UNEXPECTED_PACKET,
 } nvsPacketDecodeError_t;
+*/
 
 /// @brief Defines each state of p2p in NVS manager
 typedef enum
@@ -365,19 +367,19 @@ void nvsManagerDeinitIncomingNvsImage(void);
 //uint32_t nvsCalcCrc32(const uint8_t* buffer, size_t length);
 void nvsManagerSendVersion(void);
 uint8_t* nvsManagerEncodePacketVersion(nvsPacketVersion_t packetAsStruct, size_t* outLength);
-nvsPacketDecodeError_t nvsManagerDecodePacketVersion(const uint8_t* packetAsBytes, size_t length, nvsPacketVersion_t* outPacketAsStruct);
+void nvsManagerDecodePacketVersion(const uint8_t* packetAsBytes, size_t length, nvsPacketVersion_t* outPacketAsStruct);
 void nvsManagerSendNumPairsEntries(void);
 uint8_t* nvsManagerEncodePacketNumPairsEntries(nvsPacketNumPairsEntries_t packetAsStruct, size_t* outLength);
-nvsPacketDecodeError_t nvsManagerDecodePacketNumPairsEntries(const uint8_t* packetAsBytes, size_t length, nvsPacketNumPairsEntries_t* outPacketAsStruct);
+void nvsManagerDecodePacketNumPairsEntries(const uint8_t* packetAsBytes, size_t length, nvsPacketNumPairsEntries_t* outPacketAsStruct);
 void nvsManagerSendPairHeader(nvs_entry_info_t* entryInfo);
 uint8_t* nvsManagerEncodePacketPairHeader(nvsPacketPairHeader_t packetAsStruct, size_t* outLength);
-nvsPacketDecodeError_t nvsManagerDecodePacketPairHeader(const uint8_t* packetAsBytes, size_t length, nvsPacketPairHeader_t* outPacketAsStruct);
+void nvsManagerDecodePacketPairHeader(const uint8_t* packetAsBytes, size_t length, nvsPacketPairHeader_t* outPacketAsStruct);
 void nvsManagerSendValueData(uint8_t* data, size_t dataLength);
 uint8_t* nvsManagerEncodePacketValueData(uint8_t* data, size_t dataLength, size_t* outLength);
-nvsPacketDecodeError_t nvsManagerDecodePacketValueData(const uint8_t* packetAsBytes, size_t length, uint8_t* outData, size_t* outDataLength);
+void nvsManagerDecodePacketValueData(const uint8_t* packetAsBytes, size_t length, uint8_t* outData, size_t* outDataLength);
 void nvsManagerSendError(nvsCommError_t error, const char* message);
 uint8_t* nvsManagerEncodePacketError(nvsPacketError_t packetAsStruct, size_t* outLength);
-nvsPacketDecodeError_t nvsManagerDecodePacketError(const uint8_t* packetAsBytes, size_t length, nvsPacketError_t* outPacketAsStruct);
+void nvsManagerDecodePacketError(const uint8_t* packetAsBytes, size_t length, nvsPacketError_t* outPacketAsStruct);
 void nvsManagerComposeUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool receivedAck, char** outMessage);
 void nvsManagerComposeAndSendUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool receivedAck);
 
@@ -1842,17 +1844,11 @@ uint8_t* nvsManagerEncodePacketVersion(nvsPacketVersion_t packetAsStruct, size_t
     return payload;
 }
 
-nvsPacketDecodeError_t nvsManagerDecodePacketVersion(const uint8_t* packetAsBytes, size_t length, nvsPacketVersion_t* outPacketAsStruct)
+void nvsManagerDecodePacketVersion(const uint8_t* packetAsBytes, size_t length, nvsPacketVersion_t* outPacketAsStruct)
 {
-    if(packetAsBytes[0] != NVS_PACKET_VERSION)
-    {
-        return NVS_PKTERR_UNEXPECTED;
-    }
 
     // Copy data out of packet
-    memcpy(&outPacketAsStruct, &packetAsBytes[sizeof(nvsPacket_t)], sizeof(nvsPacketVersion_t));
-
-    return NVS_OK;
+    memcpy(outPacketAsStruct, &packetAsBytes[sizeof(nvsPacket_t)], sizeof(nvsPacketVersion_t));
 }
 
 /**
@@ -1959,17 +1955,10 @@ uint8_t* nvsManagerEncodePacketNumPairsEntries(nvsPacketNumPairsEntries_t packet
     return payload;
 }
 
-nvsPacketDecodeError_t nvsManagerDecodePacketNumPairsEntries(const uint8_t* packetAsBytes, size_t length, nvsPacketNumPairsEntries_t* outPacketAsStruct)
+void nvsManagerDecodePacketNumPairsEntries(const uint8_t* packetAsBytes, size_t length, nvsPacketNumPairsEntries_t* outPacketAsStruct)
 {
-    if(packetAsBytes[0] != NVS_PACKET_NUM_PAIRS_AND_ENTRIES)
-    {
-        return NVS_PKTERR_UNEXPECTED;
-    }
-
     // Copy data out of packet
     memcpy(outPacketAsStruct, &packetAsBytes[sizeof(nvsPacket_t)], sizeof(nvsPacketNumPairsEntries_t));
-
-    return NVS_OK;
 }
 
 /**
@@ -2027,17 +2016,10 @@ uint8_t* nvsManagerEncodePacketPairHeader(nvsPacketPairHeader_t packetAsStruct, 
     return payload;
 }
 
-nvsPacketDecodeError_t nvsManagerDecodePacketPairHeader(const uint8_t* packetAsBytes, size_t length, nvsPacketPairHeader_t* outPacketAsStruct)
+void nvsManagerDecodePacketPairHeader(const uint8_t* packetAsBytes, size_t length, nvsPacketPairHeader_t* outPacketAsStruct)
 {
-    if(packetAsBytes[0] != NVS_PACKET_PAIR_HEADER)
-    {
-        return NVS_PKTERR_UNEXPECTED;
-    }
-
     // Copy data out of packet
     memcpy(outPacketAsStruct, &packetAsBytes[sizeof(nvsPacket_t)], sizeof(nvsPacketPairHeader_t));
-
-    return NVS_OK;
 }
 
 /**
@@ -2082,19 +2064,12 @@ uint8_t* nvsManagerEncodePacketValueData(uint8_t* data, size_t dataLength, size_
     return payload;
 }
 
-nvsPacketDecodeError_t nvsManagerDecodePacketValueData(const uint8_t* packetAsBytes, size_t length, uint8_t* outData, size_t* outDataLength)
+void nvsManagerDecodePacketValueData(const uint8_t* packetAsBytes, size_t length, uint8_t* outData, size_t* outDataLength)
 {
-    if(packetAsBytes[0] != NVS_PACKET_VALUE_DATA)
-    {
-        return NVS_PKTERR_UNEXPECTED;
-    }
-
     *outDataLength = length - sizeof(nvsPacket_t);
 
     // Copy data out of packet
     memcpy(outData, &packetAsBytes[sizeof(nvsPacket_t)], *outDataLength);
-
-    return NVS_OK;
 }
 
 void nvsManagerSendError(nvsCommError_t error, const char* message)
@@ -2135,17 +2110,10 @@ uint8_t* nvsManagerEncodePacketError(nvsPacketError_t packetAsStruct, size_t* ou
     return payload;
 }
 
-nvsPacketDecodeError_t nvsManagerDecodePacketError(const uint8_t* packetAsBytes, size_t length, nvsPacketError_t* outPacketAsStruct)
+void nvsManagerDecodePacketError(const uint8_t* packetAsBytes, size_t length, nvsPacketError_t* outPacketAsStruct)
 {
-    if(packetAsBytes[0] != NVS_PACKET_ERROR)
-    {
-        return NVS_PKTERR_UNEXPECTED;
-    }
-
     // Copy data out of packet
     memcpy(outPacketAsStruct, &packetAsBytes[sizeof(nvsPacket_t)], sizeof(nvsPacketError_t));
-
-    return NVS_OK;
 }
 
 void nvsManagerComposeUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool receivedAck, char** outMessage)
