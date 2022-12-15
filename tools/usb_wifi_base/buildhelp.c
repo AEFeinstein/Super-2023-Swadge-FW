@@ -170,6 +170,7 @@ int main( int argc, char ** argv )
 			appendcflag( "-I../../components/hdw-qma6981" );
 			appendcflag( "-I../../main/display" );
 			appendcflag( "-I../../components/hdw-btn" );
+			appendcflag( "-I../../components/hdw-esp-now" );
 			appendcflag( "-I../../components/hdw-touch" );
 			appendcflag( "-I../../components/hdw-led" );
 			appendcflag( "-I../../main" );
