@@ -1620,7 +1620,7 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
                             }
                             
                             break;
-                        }
+                        } // NVS_STATE_SENT_VALUE_DATA
                         case NVS_STATE_WAITING_FOR_VERSION:
                         {
                             // Next packet we receive should be `NVS_PACKET_VERSION`. Packet state change already done above, so nothing to do for now
@@ -1632,7 +1632,6 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
                         case NVS_STATE_WAITING_FOR_PAIR_HEADER:
                         case NVS_STATE_WAITING_FOR_VALUE_DATA:
                         case NVS_STATE_DONE:
-                        case NVS_STATE_FAILED:
                         default:
                         {
                             // Bad state on this Swadge
@@ -1645,20 +1644,45 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
                     } // switch(nvsManager->commState)
 
                     break;
-                }
+                } // NVS_SEND
                 case NVS_RECEIVE:
                 {
                     switch(nvsManager->commState)
                     {
                         // TODO: receiver actions and states advanced by ACKs
+                        case NVS_STATE_WAITING_FOR_NUM_PAIRS_ENTRIES:
+                        {
+                            // We just sent our `NVS_PACKET_VERSION` and were waiting for the ACK.
+                            // Next packet we receive should be `NVS_PACKET_NUM_PAIRS_AND_ENTRIES`. Packet state change already done above, so nothing to do for now
+                            break;
+                        }
+                        case NVS_STATE_WAITING_FOR_VERSION:
+                        case NVS_STATE_NOT_CONNECTED:
+                        case NVS_STATE_WAITING_FOR_CONNECTION:
+                        case NVS_STATE_SENT_NUM_PAIRS_ENTRIES:
+                        case NVS_STATE_SENT_PAIR_HEADER:
+                        case NVS_STATE_SENT_VALUE_DATA:
+                        case NVS_STATE_WAITING_FOR_PAIR_HEADER:
+                        case NVS_STATE_WAITING_FOR_VALUE_DATA:
+                        case NVS_STATE_DONE:
+                        default:
+                        {
+                            // Bad state on this Swadge
+                            char* message = NULL;
+                            nvsManagerComposeUnexpectedPacketErrorMessage(0, true, &message);
+                            nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, message);
+                            free(message);
+                            break;
+                        }
                     } // switch(nvsManager->commState)
 
                     break;
-                }
+                } // NVS_RECEIVE
                 case NVS_MENU:
                 case NVS_SUMMARY:
                 case NVS_WARNING:
                 case NVS_MANAGE_KEY:
+                default:
                 {
                     // Bad state on this Swadge
                     char* message = NULL;
