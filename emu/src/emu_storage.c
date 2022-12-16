@@ -24,8 +24,6 @@
 
 #define NVS_JSON_FILE emuNvsFilename
 
-// This comes from partitions.csv, and must be changed in both places simultaneously
-#define NVS_PARTITION_SIZE 0x6000
 #define NVS_OVERHEAD_ENTRIES   12
 
 char* emuNvsFilename = "nvs.json";

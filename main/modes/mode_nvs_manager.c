@@ -67,7 +67,7 @@
 #define MIN(X, Y) ( ((X) < (Y)) ? (X) : (Y) )
 /// Helper macro to return the highest of two integers
 //#define MAX(X, Y) ( ((X) > (Y)) ? (X) : (Y) )
-//#define lengthof(x) (sizeof(x) / sizeof(x[0]))
+#define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
 /**
  * When the ESP32 is storing blobs, it uses 1 entry to index chunks,
@@ -128,7 +128,7 @@ typedef enum
 {
     // Receive all NVS key/value pairs from another Swadge
     NVS_RECV_MODE_ALL,
-    // Receive several NVS key/value pairs from another Swadge
+    // Receive several individual NVS key/value pairs from another Swadge. Pairs will be applied to NVS after each transaction, and comms will be restarted without making the user enter settings again
     NVS_RECV_MODE_MULTI,
     // Receive one NVS key/value pair from another Swadge
     NVS_RECV_MODE_ONE,
@@ -268,6 +268,7 @@ typedef struct
     uint16_t manageDataPos;
     uint16_t receiveMenuPos;
     uint16_t connMenuPos;
+    uint16_t applyMenuPos;
     nvsKeyAction_t manageKeyAction;
     bool lockManageKeyAction;
     nvsScreen_t screen; // The screen within NVS manager that the user is in
@@ -319,6 +320,7 @@ typedef struct
     nvsCommState_t commState;
     nvsPacketState_t packetState;
     char commError[NVS_MAX_ERROR_MESSAGE_LEN];
+    bool commErrorIsFromHere;
 
     uint8_t* lastPacketSent;
     size_t lastPacketLen;
@@ -358,6 +360,7 @@ void nvsManagerMainLoop(int64_t elapsedUs);
 void nvsManagerEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 void nvsManagerEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 void nvsManagerP2pConnect(void);
+void nvsManagerP2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len, p2pMsgTxCbFn msgTxCbFn);
 void nvsManagerP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt);
 void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len);
 void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t* data, uint8_t dataLen);
@@ -394,6 +397,8 @@ void nvsManagerSetUpSendConnMenu(bool resetPos);
 void nvsManagerSendConnMenuCb(const char* opt);
 void nvsManagerSetUpRecvConnMenu(bool resetPos);
 void nvsManagerRecvConnMenuCb(const char* opt);
+void nvsManagerSetUpRecvApplyMenu(bool resetPos);
+void nvsManagerRecvApplyMenuCb(const char* opt);
 
 bool nvsManagerReadAllNvsEntryInfos(void);
 char* blobToStrWithPrefix(const void * value, size_t length);
@@ -459,16 +464,24 @@ const char str_hex_format[] = "0x%x";
 const char str_i_dec_format[] = "%d";
 const char str_page_format[] = "Page %u";
 
-// Send/receive
+// Send/receive internals
 const char NVS_VERSION[] = "221212a"; // Must be seven chars! yymmddl. No NULL char. Use memcmp, NOT ==, and NOT strcmp.
+
+// Send/receive menus
 const char str_receive_all[] = "Receive All";
 const char str_receive_multi[] = "Receive Multi";
 const char str_receive_one[] = "Receive One";
 const char str_connection[] = "Connection";
 const char str_wireless[] = "Wireless";
 const char str_wired[] = "Wired";
+const char str_apply_data[] = "Apply Data";
+const char str_choose_one[] = "Factory Reset first?:";
+const char str_reset_first[] = "Reset first";
+const char str_apply_wo_reset[] = "Apply w/o reset";
+
+// Send/receive errors
 const char str_no_sendable_pairs[] = "Unable to find any sendable key/value pairs";
-const char str_insufficient_space[] = "Insufficient total space in NVS partition";
+const char str_empty_key[] = "Received empty key";
 const char str_ack_of[] = "ACK of ";
 const char str_ack[] = "ACK";
 const char str_nothing[] = "nothing";
@@ -479,8 +492,31 @@ const char str_value_data[] = "value data";
 const char str_error[] = "error";
 const char str_unknown_lowercase[] = "unknown";
 const char str_packet[] = " packet";
-const char str_first_version_error_format[] = "Received NVS manager protocol version %s, which is earlier than first version %s";
-const char str_unexpected_packet_msg_format[] = "Expected %s%s%s, but received %s%s";
+const char str_insufficient_space[] = "Insufficient total space in NVS partition";
+const char str_zero_pairs[] = "Received 0 pairs";
+const char str_zero_entries[] = "Received 0 entries";
+const char str_few[] = "few";
+const char str_many[] = "many";
+const char str_first_version_error_format[] = "Received NVS manager protocol version %s, which is earlier than first version %s"; // received version, first version
+const char str_unexpected_packet_msg_format[] = "Expected %s%s%s, but received %s%s"; // str_ack_of|"", what was expected, str_packet|"", str_ack|what was received, str_packet|""
+const char str_not_enough_packets_format[] = "Received too small number of packets (%u) for number of pairs (%u)"; // number packets, number pairs
+const char str_less_entries_than_pairs_format[] = "Received smaller number entries (%u) than number of pairs (%u)"; // number entries, number pairs
+const char str_inaccessible_namespace_format[] = "Expected namespace \"%s\", but received namespace \"%s\""; // expected namespace, received namespace
+const char str_unknown_type_format[] = "Received unknown NVS data type 0x%x"; // nvs_type_t
+const char str_too_x_bytes_for_type_format[] = "Received too %s bytes (%u) for NVS data type (%s)"; // str_few|str_more, received bytes, NVS type string from `getNvsTypeName`
+const char str_value_data_too_x_bytes[] = "Value data packet contained too %s bytes (expected %zu, but received %zu)"; // str_few|str_more, expected byes, received bytes
+
+// Send/receive screen text
+const char str_not_connected[] = "Not connected";
+const char str_connecting[] = "Connecting";
+const char str_exchanging_version_info[] = "Exchanging version info";
+const char str_sending_format[] = "Sending %s";
+const char str_receiving_format[] = "Receiving %s";
+const char str_done[] = "Done";
+const char str_other_swadge_sent_error[] = "Other Swadge sent error:";
+const char str_any_button_to_return[] = "Press any button to return";
+const char str_any_button_to_continue[] = "Press any button to continue";
+const char str_b_to_cancel[] = "Press B to cancel";
 
 /*==============================================================================
  * Variables
@@ -877,11 +913,30 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                 {
                     case BTN_B:
                     {
+                        p2pDeinit(&nvsManager->p2p);
                         nvsManagerSetUpSendConnMenu(false);
+                        break;
+                    }
+                    case BTN_A:
+                    {
+                        // If failed, reconnect. If done, exit. Otherwise, do nothing
+                        if(nvsManager->commState == NVS_STATE_FAILED)
+                        {
+                            nvsManagerP2pConnect();
+                        }
+                        else if(nvsManager->commState == NVS_STATE_DONE)
+                        {
+                            nvsManagerSetUpSendConnMenu(false);
+                        }
+
                         break;
                     }
                     default:
                     {
+                        if(nvsManager->commState == NVS_STATE_DONE || nvsManager->commState == NVS_STATE_FAILED)
+                        {
+                            nvsManagerSetUpSendConnMenu(false);
+                        }
                         break;
                     }
                 }
@@ -897,7 +952,16 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                 {
                     case BTN_B:
                     {
+                        p2pDeinit(&nvsManager->p2p);
                         nvsManagerSetUpRecvConnMenu(false);
+                        break;
+                    }
+                    case BTN_A:
+                    {
+                        if(nvsManager->receiveMode == NVS_RECV_MODE_ALL && nvsManager->commState == NVS_STATE_DONE)
+                        {
+                            nvsManagerSetUpRecvApplyMenu(true);
+                        }
                         break;
                     }
                     default:
@@ -1248,6 +1312,223 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
         }
         case NVS_SEND:
         case NVS_RECEIVE:
+        {
+            led_t leds[NUM_LEDS];
+            memset(leds, 0, NUM_LEDS * sizeof(led_t));
+            setLeds(leds, NUM_LEDS);
+
+            nvsManager->disp->clearPx();
+            
+            // Title
+            int16_t yOff = CORNER_OFFSET;
+            const char* strToDisplay;
+            if(nvsManager->screen == NVS_SEND)
+            {
+                switch(nvsManager->sendMode)
+                {
+                    case NVS_SEND_MODE_ALL:
+                    {
+                        strToDisplay = str_send_all;
+                        break;
+                    }
+                    case NVS_SEND_MODE_ONE:
+                    {
+                        strToDisplay = str_send;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                switch(nvsManager->receiveMode)
+                {
+                    case NVS_RECV_MODE_ALL:
+                    {
+                        strToDisplay = str_receive_all;
+                        break;
+                    }
+                    case NVS_RECV_MODE_MULTI:
+                    {
+                        strToDisplay = str_receive_multi;
+                        break;
+                    }
+                    case NVS_RECV_MODE_ONE:
+                    {
+                        strToDisplay = str_receive_one;
+                        break;
+                    }
+                }
+            }
+            drawText(nvsManager->disp, &nvsManager->mm, color_summary_text, strToDisplay, (nvsManager->disp->w - textWidth(&nvsManager->mm, strToDisplay)) / 2, yOff);
+
+            yOff += nvsManager->mm.h + SUMMARY_LINE_BREAK_Y + 1;
+            plotLine(nvsManager->disp, CORNER_OFFSET, yOff, nvsManager->disp->w - CORNER_OFFSET, yOff, color_summary_h_rule, 0);
+
+            // Comm state
+            yOff += SUMMARY_LINE_BREAK_Y + 1;
+            bool showProgressBar = true;
+            bool showText = true;
+            if(nvsManager->screen == NVS_SEND)
+            {
+                switch(nvsManager->commState)
+                {
+                    case NVS_STATE_NOT_CONNECTED:
+                    {
+                        strToDisplay = str_not_connected;
+                        break;
+                    }
+                    case NVS_STATE_WAITING_FOR_CONNECTION:
+                    {
+                        strToDisplay = str_connecting;
+                        break;
+                    }
+                    case NVS_STATE_WAITING_FOR_VERSION:
+                    {
+                        strToDisplay = str_exchanging_version_info;
+                        break;
+                    }
+                    case NVS_STATE_SENT_NUM_PAIRS_ENTRIES:
+                    {
+                        strToDisplay = "";
+                        break;
+                    }
+                    case NVS_STATE_SENT_PAIR_HEADER:
+                    case NVS_STATE_SENT_VALUE_DATA:
+                    {
+                        strToDisplay = NULL;
+                        break;
+                    }
+                    case NVS_STATE_DONE:
+                    {
+                        showText = false;
+                        showProgressBar = false;
+                        break;
+                    }
+                    case NVS_STATE_FAILED:
+                    {
+                        showProgressBar = false;
+                        break;
+                    }
+                    case NVS_STATE_WAITING_FOR_NUM_PAIRS_ENTRIES:
+                    case NVS_STATE_WAITING_FOR_PAIR_HEADER:
+                    case NVS_STATE_WAITING_FOR_VALUE_DATA:
+                    default:
+                    {
+                        showText = false;
+                        showProgressBar = false;
+                        break;
+                    }
+                } // switch(nvsManager->commState)
+            } // if(nvsManager->screen == NVS_SEND)
+            else
+            {
+                switch(nvsManager->commState)
+                {
+                    case NVS_STATE_NOT_CONNECTED:
+                    {
+                        strToDisplay = str_not_connected;
+                        break;
+                    }
+                    case NVS_STATE_WAITING_FOR_CONNECTION:
+                    {
+                        strToDisplay = str_connecting;
+                        break;
+                    }
+                    case NVS_STATE_WAITING_FOR_VERSION:
+                    {
+                        strToDisplay = str_exchanging_version_info;
+                        break;
+                    }
+                    case NVS_STATE_WAITING_FOR_NUM_PAIRS_ENTRIES:
+                    {
+                        strToDisplay = "";
+                        break;
+                    }
+                    case NVS_STATE_WAITING_FOR_PAIR_HEADER:
+                    case NVS_STATE_WAITING_FOR_VALUE_DATA:
+                    {
+                        strToDisplay = NULL;
+                        break;
+                    }
+                    case NVS_STATE_DONE:
+                    {
+                        strToDisplay = str_done;
+                        showProgressBar = false;
+                        break;
+                    }
+                    case NVS_STATE_FAILED:
+                    {
+                        showProgressBar = false;
+                        break;
+                    }
+                    case NVS_STATE_SENT_NUM_PAIRS_ENTRIES:
+                    case NVS_STATE_SENT_PAIR_HEADER:
+                    case NVS_STATE_SENT_VALUE_DATA:
+                    default:
+                    {
+                        showText = false;
+                        showProgressBar = false;
+                        break;
+                    }
+                } // switch(nvsManager->commState)
+            } // if(nvsManager->screen != NVS_SEND)
+            if(showText)
+            {
+#define keyStrLen lengthof(str_receiving_format) + NVS_KEY_NAME_MAX_SIZE - 3 /*"%s" and format string's null terminator*/
+                char keyStr[keyStrLen];
+                if(strToDisplay == NULL)
+                {
+                    snprintf(keyStr, keyStrLen, nvsManager->screen == NVS_SEND ? str_sending_format : str_receiving_format,
+                             nvsManager->nvsEntryInfos[nvsManager->totalNumPairs - nvsManager->numPairsRemaining].key);
+                }
+                drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, strToDisplay != NULL ? strToDisplay : keyStr, CORNER_OFFSET, yOff);
+
+                yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+
+                // TODO: draw a progress bar - steal from paint?
+            }
+
+            // TODO: show user any done or error messages
+            if(nvsManager->commState == NVS_STATE_FAILED)
+            {
+                if(!nvsManager->commErrorIsFromHere)
+                {
+                    drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_other_swadge_sent_error, CORNER_OFFSET, yOff);
+
+                    yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+                }
+
+                int16_t xOff = CORNER_OFFSET;
+                drawTextWordWrap(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, nvsManager->commError, &xOff, &yOff, nvsManager->disp->w - CORNER_OFFSET, nvsManager->disp->h - CORNER_OFFSET);
+                if(xOff == CORNER_OFFSET)
+                {
+                    yOff += LINE_BREAK_Y - 1;
+                }
+                else
+                {
+                    yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+                }
+            }
+
+            // Bottom text for control(s)
+            yOff = nvsManager->disp->h - CORNER_OFFSET - nvsManager->ibm_vga8.h;
+            drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_b_to_cancel, CORNER_OFFSET, yOff);
+
+            if(nvsManager->commState == NVS_STATE_DONE)
+            {
+                yOff -= LINE_BREAK_Y - nvsManager->ibm_vga8.h;
+                if(nvsManager->screen == NVS_SEND || nvsManager->receiveMode != NVS_RECV_MODE_ALL)
+                {
+                    drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_any_button_to_return, CORNER_OFFSET, yOff);
+                }
+                else
+                {
+                    drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_any_button_to_continue, CORNER_OFFSET, yOff);
+                }
+            }
+            // TODO: one-time verification of incoming image
+            break;
+        }
         default:
         {
             nvsManager->disp->clearPx();
@@ -1288,6 +1569,7 @@ void nvsManagerP2pConnect(void)
 {
     // Reset state variables
     // Don't change `nvsManager->sendMode`, `nvsManager->receiveMode`, or `nvsManager->wired`, they should already be set properly
+    nvsManager->commErrorIsFromHere = false;
     nvsManager->timeSincePacket = 0;
     nvsManager->commState = NVS_STATE_WAITING_FOR_CONNECTION;
     nvsManager->packetState = NVS_PSTATE_NOTHING_SENT_YET;
@@ -1340,6 +1622,17 @@ void nvsManagerP2pConnect(void)
     setLeds(leds, NUM_LEDS);
 }
 
+// Check for packets in the receive queue, and process them, before sending packet
+void nvsManagerP2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len, p2pMsgTxCbFn msgTxCbFn)
+{
+    checkEspNowRxQueue();
+
+    if(nvsManager->commState != NVS_STATE_FAILED && nvsManager->commState != NVS_STATE_DONE)
+    {
+        p2pSendMsg(p2p, payload, len, msgTxCbFn);
+    }
+}
+
 /**
  * @brief This is the p2p connection callback
  *
@@ -1383,14 +1676,43 @@ void nvsManagerP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt)
                     p2pDeinit(&nvsManager->p2p);
                     break;
                 }
-            }
+            } // switch(nvsManager->screen)
+
             break;
         }
         case CON_LOST:
         {
-            // TODO: handle mid-transfer failure
-            // Retry connection
-            nvsManagerP2pConnect();
+            switch(nvsManager->commState)
+            {
+                case NVS_STATE_NOT_CONNECTED:
+                case NVS_STATE_DONE:
+                {
+                    // Silently close connection
+                    p2pDeinit(&nvsManager->p2p);
+                    break;
+                }
+                case NVS_STATE_WAITING_FOR_CONNECTION:
+                {
+                    // Retry connection
+                    nvsManagerP2pConnect();
+                    break;
+                }
+                case NVS_STATE_WAITING_FOR_VERSION:
+                case NVS_STATE_SENT_NUM_PAIRS_ENTRIES:
+                case NVS_STATE_SENT_PAIR_HEADER:
+                case NVS_STATE_SENT_VALUE_DATA:
+                case NVS_STATE_WAITING_FOR_NUM_PAIRS_ENTRIES:
+                case NVS_STATE_WAITING_FOR_PAIR_HEADER:
+                case NVS_STATE_WAITING_FOR_VALUE_DATA:
+                case NVS_STATE_FAILED: // We shouldn't be here, but if we are, set other state appropriately and close connection
+                default:
+                {
+                    // Fail, and let the main loop pick up the pieces according to state and give the user options
+                    nvsManagerFailP2p();
+                    break;
+                }
+            } // switch(nvsManager->commState)
+
             break;
         }
     }
@@ -1414,6 +1736,8 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
         nvsManagerFailP2p();
         return;
     }
+
+    nvsManager->numPacketsRemaining--;
 
     switch(nvsManager->screen)
     {
@@ -1537,6 +1861,35 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                     if(packetAsStruct.numEntries > nvsManager->nvsStats.total_entries)
                     {
                         nvsManagerSendError(NVS_ERROR_INSUFFICIENT_SPACE, str_insufficient_space);
+                        break;
+                    }
+
+                    if(packetAsStruct.numPairs == 0)
+                    {
+                        nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, str_zero_pairs);
+                        break;
+                    }
+
+                    if(packetAsStruct.numEntries == 0)
+                    {
+                        nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, str_zero_entries);
+                        break;
+                    }
+
+                    if(packetAsStruct.numPackets < NVS_TOTAL_PACKETS_UP_TO_INCL_NUM_PAIRS_ENTRIES + 1 /*ACK for PACKET_NUM_PAIRS_AND_ENTRIES*/ + NVS_MIN_PACKETS_PER_PAIR * packetAsStruct.numPairs)
+                    {
+                        char message[NVS_MAX_ERROR_MESSAGE_LEN];
+                        snprintf(message, NVS_MAX_ERROR_MESSAGE_LEN, str_not_enough_packets_format, packetAsStruct.numPackets, packetAsStruct.numPairs);
+                        nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, message);
+                        break;
+                    }
+
+                    if(packetAsStruct.numEntries < packetAsStruct.numPairs)
+                    {
+                        char message[NVS_MAX_ERROR_MESSAGE_LEN];
+                        snprintf(message, NVS_MAX_ERROR_MESSAGE_LEN, str_less_entries_than_pairs_format, packetAsStruct.numEntries, packetAsStruct.numPairs);
+                        nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, message);
+                        break;
                     }
 
                     nvsManager->totalNumPairs = packetAsStruct.numPairs;
@@ -1559,11 +1912,123 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                         break;
                     }
 
+                    nvsPacketPairHeader_t packetAsStruct;
+                    nvsManagerDecodePacketPairHeader(payload, len, &packetAsStruct);
+
+                    // Check for empty key
+                    if(packetAsStruct.key[0] == '\0')
+                    {
+                        nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, str_empty_key);
+                        break;
+                    }
+
+                    // Check for inaccessible namespace
+                    if(strncmp(packetAsStruct.namespace, NVS_NAMESPACE_NAME, NVS_KEY_NAME_MAX_SIZE))
+                    {
+                        char message[NVS_MAX_ERROR_MESSAGE_LEN];
+                        snprintf(message, NVS_MAX_ERROR_MESSAGE_LEN, str_inaccessible_namespace_format, NVS_NAMESPACE_NAME, packetAsStruct.namespace);
+                        nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, message);
+                        break;
+                    }
+
+                    // Check for unknown NVS type
+                    if(getNvsTypeName(packetAsStruct.nvsType))
+                    {
+                        char message[NVS_MAX_ERROR_MESSAGE_LEN];
+                        snprintf(message, NVS_MAX_ERROR_MESSAGE_LEN, str_unknown_type_format, packetAsStruct.nvsType);
+                        nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, message);
+                        break;
+                    }
+
+                    // Check for too few bytes
+                    if((packetAsStruct.nvsType == NVS_TYPE_I32 && packetAsStruct.numValueBytes < sizeof(int32_t)) ||
+                       (packetAsStruct.nvsType == NVS_TYPE_BLOB && packetAsStruct.numValueBytes < 1))
+                    {
+                        char message[NVS_MAX_ERROR_MESSAGE_LEN];
+                        snprintf(message, NVS_MAX_ERROR_MESSAGE_LEN, str_too_x_bytes_for_type_format, str_few, packetAsStruct.numValueBytes, getNvsTypeName(packetAsStruct.nvsType));
+                        nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, message);
+                        break;
+                    }
+                    // Check for too many bytes
+                    else if((packetAsStruct.nvsType == NVS_TYPE_I32 && packetAsStruct.numValueBytes > sizeof(int32_t)) ||
+                            (packetAsStruct.nvsType == NVS_TYPE_BLOB && packetAsStruct.numValueBytes > NVS_MAX_BLOB_BYTES))
+                    {
+                        char message[NVS_MAX_ERROR_MESSAGE_LEN];
+                        snprintf(message, NVS_MAX_ERROR_MESSAGE_LEN, str_too_x_bytes_for_type_format, str_many, packetAsStruct.numValueBytes, getNvsTypeName(packetAsStruct.nvsType));
+                        nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, message);
+                        break;
+                    }
+
+                    // Copy key/value pair info into incoming NVS image
                     nvs_entry_info_t* entryInfo = &(nvsManager->incomingNvsEntryInfos[nvsManager->totalNumPairs - nvsManager->numPairsRemaining]);
+                    memcpy(&entryInfo->namespace_name, &packetAsStruct.namespace, NVS_KEY_NAME_MAX_SIZE);
+                    entryInfo->type = packetAsStruct.nvsType;
+                    nvsManager->totalNumBytesInPair = packetAsStruct.numValueBytes;
+                    nvsManager->numBytesRemainingInPair = nvsManager->totalNumBytesInPair;
+                    memcpy(&entryInfo->key, &packetAsStruct.key, NVS_KEY_NAME_MAX_SIZE);
+
+                    // Allocate memory for the incoming value next packet
+                    nvsValue_t* value = &(nvsManager->incomingNvsValues[nvsManager->totalNumPairs - nvsManager->numPairsRemaining]);
+                    value->data = heap_caps_calloc(sizeof(char), nvsManager->totalNumBytesInPair, MALLOC_CAP_SPIRAM);
+                    value->numBytes = nvsManager->totalNumBytesInPair;
+
+                    nvsManager->commState = NVS_STATE_WAITING_FOR_VALUE_DATA;
+
                     break;
                 }
                 case NVS_STATE_WAITING_FOR_VALUE_DATA:
                 {
+                    if(payload[0] != NVS_PACKET_VALUE_DATA || nvsManager->packetState != NVS_PSTATE_NOTHING_SENT_YET)
+                    {
+                        nvsManagerComposeAndSendUnexpectedPacketErrorMessage(payload[0], false);
+                        break;
+                    }
+
+                    // Get data length for integrity checks
+                    size_t dataLength;
+                    nvsManagerDecodePacketValueData(payload, len, NULL, &dataLength);
+
+                    size_t expectedDataLength = MIN(nvsManager->numBytesRemainingInPair, NVS_MAX_DATA_BYTES_PER_PACKET);
+
+                    // Check for too few bytes
+                    if(dataLength < expectedDataLength)
+                    {
+                        char message[NVS_MAX_ERROR_MESSAGE_LEN];
+                        snprintf(message, NVS_MAX_ERROR_MESSAGE_LEN, str_value_data_too_x_bytes, str_few, expectedDataLength, dataLength);
+                        nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, message);
+                        break;
+                    }
+                    // Check for too many bytes
+                    else if(dataLength > expectedDataLength)
+                    {
+                        char message[NVS_MAX_ERROR_MESSAGE_LEN];
+                        snprintf(message, NVS_MAX_ERROR_MESSAGE_LEN, str_value_data_too_x_bytes, str_many, expectedDataLength, dataLength);
+                        nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, message);
+                        break;
+                    }
+
+                    // Copy data to incoming NVS image
+                    nvsManagerDecodePacketValueData(payload, len, (uint8_t*) &(nvsManager->incomingNvsValues[nvsManager->totalNumPairs - nvsManager->numPairsRemaining].data[nvsManager->totalNumBytesInPair - nvsManager->numBytesRemainingInPair]), &dataLength);
+
+                    nvsManager->numBytesRemainingInPair -= dataLength;
+
+                    if(nvsManager->numBytesRemainingInPair == 0)
+                    {
+                        nvsManager->numPairsRemaining--;
+
+                        if(nvsManager->numPairsRemaining == 0)
+                        {
+                            // NVS_RECV_MODE_MULTI will be handled in the main loop
+
+                            nvsManager->commState = NVS_STATE_DONE;
+                            p2pDeinit(&nvsManager->p2p);
+
+                            break;
+                        }
+
+                        nvsManager->commState = NVS_STATE_WAITING_FOR_PAIR_HEADER;
+                    }
+
                     break;
                 }
                 case NVS_STATE_NOT_CONNECTED:
@@ -1668,7 +2133,6 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
                             {
                                 size_t dataLength = MIN(nvsManager->numBytesRemainingInPair, NVS_MAX_DATA_BYTES_PER_PACKET);
                                 nvsManagerSendValueData(nvsManager->blob != NULL ? (uint8_t*) &(nvsManager->blob[nvsManager->totalNumBytesInPair - nvsManager->numBytesRemainingInPair]) : (uint8_t*) &nvsManager->num, dataLength);
-                                break;
                             }
                             
                             break;
@@ -1747,7 +2211,11 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
         } // MSG_ACKED
         case MSG_FAILED:
         {
-            p2pSendMsg(&nvsManager->p2p, nvsManager->lastPacketSent, nvsManager->lastPacketLen, nvsManagerP2pMsgTxCbFn);
+            // P2P has already retried sending this message, and it has not been ACK'd for 3 seconds, so let's not retry this again
+            //nvsManagerP2pSendMsg(&nvsManager->p2p, nvsManager->lastPacketSent, nvsManager->lastPacketLen, nvsManagerP2pMsgTxCbFn);
+
+            // Fail, and let the main loop pick up the pieces according to state and give the user options
+            nvsManagerFailP2p();
             break;
         }
     } // switch(status)
@@ -1764,8 +2232,9 @@ void nvsManagerInitIncomingNvsImage(uint32_t numPairs)
 {
     nvsManagerDeinitIncomingNvsImage();
 
-    nvsManager->numIncomingEntryInfos = numPairs;
     nvsManager->incomingNvsEntryInfos = heap_caps_calloc(numPairs, sizeof(nvs_entry_info_t), MALLOC_CAP_SPIRAM);
+    nvsManager->numIncomingEntryInfos = numPairs;
+    nvsManager->incomingNvsValues = heap_caps_calloc(numPairs, sizeof(nvsValue_t), MALLOC_CAP_SPIRAM);
 }
 
 void nvsManagerDeinitIncomingNvsImage(void)
@@ -1790,6 +2259,29 @@ void nvsManagerDeinitIncomingNvsImage(void)
         free(nvsManager->incomingNvsValues);
         nvsManager->incomingNvsValues = NULL;
     }
+
+    nvsManager->numIncomingEntryInfos = 0;
+}
+
+void applyIncomingNvsImage(void)
+{
+    for(uint32_t i = 0; i < nvsManager->totalNumPairs - nvsManager->numPairsRemaining; i++)
+    {
+        nvs_entry_info_t* entryInfo = &nvsManager->incomingNvsEntryInfos[i];
+        if(entryInfo->type == NVS_TYPE_I32)
+        {
+            writeNvs32(entryInfo->key, nvsManager->incomingNvsValues[i].data);
+            // TODO: handle errors
+        }
+        else
+        {
+            writeNvsBlob(entryInfo->key, nvsManager->incomingNvsValues[i].data, nvsManager->incomingNvsValues[i].numBytes);
+            // TODO: handle errors
+        }
+    }
+
+    // TODO: handle errors
+    nvsManagerReadAllNvsEntryInfos();
 }
 
 // uint32_t nvsCalcCrc32(const uint8_t* buffer, size_t length)
@@ -1810,7 +2302,7 @@ void nvsManagerSendVersion(void)
     uint8_t* payload = nvsManagerEncodePacketVersion(packetAsStruct, &length);
 
     // Send packet to the other Swadge
-    p2pSendMsg(&nvsManager->p2p, payload, length, nvsManagerP2pMsgTxCbFn);
+    nvsManagerP2pSendMsg(&nvsManager->p2p, payload, length, nvsManagerP2pMsgTxCbFn);
 
     // Save sent packet
     if(nvsManager->lastPacketSent != NULL)
@@ -1923,7 +2415,7 @@ void nvsManagerSendNumPairsEntries(void)
         uint8_t* payload = nvsManagerEncodePacketNumPairsEntries(packetAsStruct, &length);
 
         // Send packet to the other Swadge
-        p2pSendMsg(&nvsManager->p2p, payload, length, nvsManagerP2pMsgTxCbFn);
+        nvsManagerP2pSendMsg(&nvsManager->p2p, payload, length, nvsManagerP2pMsgTxCbFn);
 
         // Save sent packet
         if(nvsManager->lastPacketSent != NULL)
@@ -1985,7 +2477,7 @@ void nvsManagerSendPairHeader(nvs_entry_info_t* entryInfo)
     uint8_t* payload = nvsManagerEncodePacketPairHeader(packetAsStruct, &length);
 
     // Send packet to the other Swadge
-    p2pSendMsg(&nvsManager->p2p, payload, length, nvsManagerP2pMsgTxCbFn);
+    nvsManagerP2pSendMsg(&nvsManager->p2p, payload, length, nvsManagerP2pMsgTxCbFn);
 
     // Save sent packet
     if(nvsManager->lastPacketSent != NULL)
@@ -2034,7 +2526,7 @@ void nvsManagerSendValueData(uint8_t* data, size_t dataLength)
     uint8_t* payload = nvsManagerEncodePacketValueData(data, dataLength, &length);
 
     // Send packet to the other Swadge
-    p2pSendMsg(&nvsManager->p2p, payload, length, nvsManagerP2pMsgTxCbFn);
+    nvsManagerP2pSendMsg(&nvsManager->p2p, payload, length, nvsManagerP2pMsgTxCbFn);
 
     // Save sent packet
     if(nvsManager->lastPacketSent != NULL)
@@ -2064,12 +2556,25 @@ uint8_t* nvsManagerEncodePacketValueData(uint8_t* data, size_t dataLength, size_
     return payload;
 }
 
+/**
+ * @brief Decode `NVS_PACKET_VALUE_DATA`. Can be called with `outData` set to `NULL` to get only `outDataLength`,
+ * for allocating buffers or checking against expected length, prior to calling again with a pointer passed to `outData`
+ * 
+ * @param packetAsBytes payload as received from P2P RX callback function
+ * @param length length as received from P2P RX callback function
+ * @param outData location to write value data to, or `NULL` to skip writing data
+ * @param outDataLength return number of data bytes contained in packet
+ */
 void nvsManagerDecodePacketValueData(const uint8_t* packetAsBytes, size_t length, uint8_t* outData, size_t* outDataLength)
 {
     *outDataLength = length - sizeof(nvsPacket_t);
 
-    // Copy data out of packet
-    memcpy(outData, &packetAsBytes[sizeof(nvsPacket_t)], *outDataLength);
+    // Allow the function to be called to get `outDataLength` only, without copying data
+    if(outData != NULL)
+    {
+        // Copy data out of packet
+        memcpy(outData, &packetAsBytes[sizeof(nvsPacket_t)], *outDataLength);
+    }
 }
 
 void nvsManagerSendError(nvsCommError_t error, const char* message)
@@ -2083,7 +2588,7 @@ void nvsManagerSendError(nvsCommError_t error, const char* message)
     uint8_t* payload = nvsManagerEncodePacketError(packetAsStruct, &length);
 
     // Send packet to the other Swadge
-    p2pSendMsg(&nvsManager->p2p, payload, length, nvsManagerP2pMsgTxCbFn);
+    nvsManagerP2pSendMsg(&nvsManager->p2p, payload, length, nvsManagerP2pMsgTxCbFn);
 
     // Save sent packet
     if(nvsManager->lastPacketSent != NULL)
@@ -2092,6 +2597,10 @@ void nvsManagerSendError(nvsCommError_t error, const char* message)
     }
     nvsManager->lastPacketSent = payload;
     nvsManager->lastPacketLen = length;
+
+    // Save comm error
+    memcpy(nvsManager->commError, message, NVS_MAX_ERROR_MESSAGE_LEN);
+    nvsManager->commErrorIsFromHere = true;
 
     // End communication
     nvsManagerFailP2p();
@@ -2598,6 +3107,78 @@ void nvsManagerRecvConnMenuCb(const char* opt)
     else if(str_back == opt)
     {
         nvsManagerSetUpRecvConnMenu(false);
+    }
+}
+
+/**
+ * Set up the menu to apply changes after receiving
+ *
+ * @param resetPos true to reset the position to 0, false to leave it where it is
+ */
+void nvsManagerSetUpRecvApplyMenu(bool resetPos)
+{
+    // Set up the menu
+    resetMeleeMenu(nvsManager->menu, str_apply_data, nvsManagerRecvApplyMenuCb);
+    addRowToMeleeMenu(nvsManager->menu, str_choose_one);
+    addRowToMeleeMenu(nvsManager->menu, str_reset_first);
+    addRowToMeleeMenu(nvsManager->menu, str_apply_wo_reset);
+    addRowToMeleeMenu(nvsManager->menu, str_back);
+
+    // Set the position
+    if(resetPos)
+    {
+        nvsManager->applyMenuPos = 0;
+    }
+    nvsManager->menu->selectedRow = nvsManager->applyMenuPos;
+
+    nvsManager->screen = NVS_MENU;
+}
+
+/**
+ * Callback for the menu to apply changes after receiving
+ *
+ * @param opt The menu option which was selected
+ */
+void nvsManagerRecvApplyMenuCb(const char* opt)
+{
+    // Save the position
+    nvsManager->applyMenuPos = nvsManager->menu->selectedRow;
+
+    // Handle the option
+    if(str_reset_first == opt)
+    {
+        if(eraseNvs())
+        {
+            applyIncomingNvsImage();
+            // TODO: handle errors
+#ifdef EMU
+            exit(0);
+#else
+            // TODO: exit more gracefully
+            switchToSwadgeMode(&modeMainMenu);
+#endif
+        }
+        else
+        {
+#ifdef EMU
+            exit(1);
+#else
+            // TODO: handle errors
+#endif
+        }
+    }
+    else if(str_apply_wo_reset == opt)
+    {
+        applyIncomingNvsImage();
+        // TODO: handle errors
+
+        // TODO: exit more gracefully
+        nvsManagerSetUpTopMenu(true);
+    }
+    else if(str_back == opt)
+    {
+        // We do NOT change anything when returning!
+        nvsManager->screen = NVS_RECEIVE;
     }
 }
 
