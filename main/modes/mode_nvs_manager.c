@@ -516,6 +516,7 @@ const char str_exchanging_version_info[] = "Exchanging version info";
 const char str_sending_format[] = "Sending %s";
 const char str_receiving_format[] = "Receiving %s";
 const char str_done[] = "Done";
+const char str_failed[] = "Failed";
 const char str_other_swadge_sent_error[] = "Other Swadge sent error:";
 const char str_any_button_to_return[] = "Press any button to return";
 const char str_any_button_to_continue[] = "Press any button to continue";
@@ -1427,12 +1428,13 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                     }
                     case NVS_STATE_DONE:
                     {
-                        showText = false;
+                        strToDisplay = str_done;
                         showProgressBar = false;
                         break;
                     }
                     case NVS_STATE_FAILED:
                     {
+                        strToDisplay = str_failed;
                         showProgressBar = false;
                         break;
                     }
@@ -1485,6 +1487,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                     }
                     case NVS_STATE_FAILED:
                     {
+                        strToDisplay = str_failed;
                         showProgressBar = false;
                         break;
                     }
@@ -2312,7 +2315,7 @@ bool applyIncomingNvsImage(void)
         nvs_entry_info_t* entryInfo = &nvsManager->incomingNvsEntryInfos[i];
         if(entryInfo->type == NVS_TYPE_I32)
         {
-            if(!writeNvs32(entryInfo->key, nvsManager->incomingNvsValues[i].data))
+            if(!writeNvs32(entryInfo->key, *((int32_t*) nvsManager->incomingNvsValues[i].data)))
             {
                 foundProblems = true;
             }
@@ -2679,6 +2682,11 @@ void nvsManagerComposeUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool 
     if(*outMessage != NULL)
     {
         free(*outMessage);
+        *outMessage = NULL;
+    }
+
+    if(*outMessage == NULL)
+    {
         *outMessage = calloc(sizeof(char), NVS_MAX_ERROR_MESSAGE_LEN);
     }
 
