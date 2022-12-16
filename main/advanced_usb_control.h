@@ -1,6 +1,7 @@
 #ifndef _ADVANCED_USB_CONTROL_H
 
 #include <stdint.h>
+#include <stdarg.h>
 
 /* Advanced USB Control System
 
@@ -107,7 +108,9 @@ void advanced_usb_tick();
 int handle_advanced_usb_control_get( int reqlen, uint8_t * data );
 int handle_advanced_usb_terminal_get( int reqlen, uint8_t * data );
 void handle_advanced_usb_control_set( int datalen, const uint8_t * data );
+int advanced_usb_write_log_printf(const char *fmt, va_list args);
 void advanced_usb_setup();
+int uprintf( const char * fmt, ... );
 
 #endif
 

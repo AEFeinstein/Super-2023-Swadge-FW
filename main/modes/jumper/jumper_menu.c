@@ -192,7 +192,7 @@ void setJumperMainMenu(void)
 {
     resetMeleeMenu(jm->menu, str_jumpTitle, jumperMainMenuCb); //ledEnabled
     addRowToMeleeMenu(jm->menu, str_jump);
-    jm->menu->allowLEDControl = 1;
+    jm->menu->allowLEDControl = true;
     addRowToMeleeMenu(jm->menu, (jm->ledEnabled ? str_LEDOn : str_LEDOff));
     addRowToMeleeMenu(jm->menu, str_exit);
 

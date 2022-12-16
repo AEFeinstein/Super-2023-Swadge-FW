@@ -9,15 +9,9 @@
 #include "btn.h"
 #include "touch_sensor.h"
 #include "display.h"
+#include "espNowUtils.h"
 
 #define NUM_LEDS 8
-
-typedef enum __attribute__((packed))
-{
-    NO_WIFI,
-    ESP_NOW
-}
-wifiMode_t;
 
 /**
  * A struct of all the function pointers necessary for a swadge mode. If a mode
