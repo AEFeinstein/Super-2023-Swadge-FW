@@ -341,6 +341,8 @@ typedef struct
     nvs_entry_info_t* incomingNvsEntryInfos;
     uint32_t numIncomingEntryInfos;
     nvsValue_t* incomingNvsValues;
+    bool appliedAnyData;
+    bool appliedLatestData;
 } nvsManager_t;
 
 /*==============================================================================
@@ -367,6 +369,7 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
 void nvsManagerFailP2p(void);
 void nvsManagerInitIncomingNvsImage(uint32_t numPairs);
 void nvsManagerDeinitIncomingNvsImage(void);
+bool applyIncomingNvsImage(void);
 //uint32_t nvsCalcCrc32(const uint8_t* buffer, size_t length);
 void nvsManagerSendVersion(void);
 uint8_t* nvsManagerEncodePacketVersion(nvsPacketVersion_t packetAsStruct, size_t* outLength);
@@ -517,6 +520,7 @@ const char str_other_swadge_sent_error[] = "Other Swadge sent error:";
 const char str_any_button_to_return[] = "Press any button to return";
 const char str_any_button_to_continue[] = "Press any button to continue";
 const char str_b_to_cancel[] = "Press B to cancel";
+const char str_received_data_applied_successfully[] = "Received data applied successfully";
 
 /*==============================================================================
  * Variables
@@ -1488,7 +1492,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                 // TODO: draw a progress bar - steal from paint?
             }
 
-            // TODO: show user any done or error messages
+            // Error, if failed
             if(nvsManager->commState == NVS_STATE_FAILED)
             {
                 if(!nvsManager->commErrorIsFromHere)
@@ -1510,6 +1514,27 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                 }
             }
 
+            if(nvsManager->commState == NVS_STATE_DONE && nvsManager->screen == NVS_RECEIVE && nvsManager->receiveMode == NVS_RECV_MODE_ONE)
+            {
+                if(!nvsManager->appliedAnyData)
+                {
+                    if(!applyIncomingNvsImage())
+                    {
+                        nvsManager->commState = NVS_STATE_FAILED;
+                    }
+                    nvsManager->appliedAnyData = true;
+                    nvsManager->appliedLatestData = true;
+                }
+            }
+
+            if(nvsManager->commState == NVS_STATE_DONE && nvsManager->screen == NVS_RECEIVE && nvsManager->appliedLatestData)
+            {
+                yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
+                drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_received_data_applied_successfully, CORNER_OFFSET, yOff);
+            }
+
+            // TODO: show how many pairs NVS_RECV_MODE_MULTI applied
+
             // Bottom text for control(s)
             yOff = nvsManager->disp->h - CORNER_OFFSET - nvsManager->ibm_vga8.h;
             drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_b_to_cancel, CORNER_OFFSET, yOff);
@@ -1517,7 +1542,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             if(nvsManager->commState == NVS_STATE_DONE)
             {
                 yOff -= LINE_BREAK_Y - nvsManager->ibm_vga8.h;
-                if(nvsManager->screen == NVS_SEND || nvsManager->receiveMode != NVS_RECV_MODE_ALL)
+                if(nvsManager->screen == NVS_SEND || nvsManager->receiveMode != NVS_RECV_MODE_ONE)
                 {
                     drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_any_button_to_return, CORNER_OFFSET, yOff);
                 }
@@ -1525,8 +1550,9 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                 {
                     drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, str_any_button_to_continue, CORNER_OFFSET, yOff);
                 }
+
+                // TODO: one-time verification of incoming image
             }
-            // TODO: one-time verification of incoming image
             break;
         }
         default:
@@ -1609,6 +1635,9 @@ void nvsManagerP2pConnect(void)
     {
         nvsManager->sendableEntryInfoIndices = heap_caps_calloc(nvsManager->nvsNumEntryInfos, sizeof(nvsManager->curSendableEntryInfoIndicesIdx), MALLOC_CAP_SPIRAM);
     }
+
+    nvsManagerDeinitIncomingNvsImage();
+    nvsManager->appliedLatestData = false;
 
     // Initialize p2p
     p2pDeinit(&(nvsManager->p2p));
@@ -2263,25 +2292,34 @@ void nvsManagerDeinitIncomingNvsImage(void)
     nvsManager->numIncomingEntryInfos = 0;
 }
 
-void applyIncomingNvsImage(void)
+bool applyIncomingNvsImage(void)
 {
+    bool foundProblems = false;
+
     for(uint32_t i = 0; i < nvsManager->totalNumPairs - nvsManager->numPairsRemaining; i++)
     {
         nvs_entry_info_t* entryInfo = &nvsManager->incomingNvsEntryInfos[i];
         if(entryInfo->type == NVS_TYPE_I32)
         {
-            writeNvs32(entryInfo->key, nvsManager->incomingNvsValues[i].data);
+            if(!writeNvs32(entryInfo->key, nvsManager->incomingNvsValues[i].data))
+            {
+                foundProblems = true;
+            }
             // TODO: handle errors
         }
         else
         {
-            writeNvsBlob(entryInfo->key, nvsManager->incomingNvsValues[i].data, nvsManager->incomingNvsValues[i].numBytes);
+            if(!writeNvsBlob(entryInfo->key, nvsManager->incomingNvsValues[i].data, nvsManager->incomingNvsValues[i].numBytes))
+            {
+                foundProblems = true;
+            }
             // TODO: handle errors
         }
     }
 
     // TODO: handle errors
     nvsManagerReadAllNvsEntryInfos();
+    return foundProblems;
 }
 
 // uint32_t nvsCalcCrc32(const uint8_t* buffer, size_t length)
@@ -3039,6 +3077,7 @@ void nvsManagerSendConnMenuCb(const char* opt)
     if(str_wireless == opt)
     {
         nvsManager->wired = false;
+        nvsManager->appliedAnyData = false;
         espNowUseWireless();
         nvsManager->screen = NVS_SEND;
         nvsManagerP2pConnect();
@@ -3046,6 +3085,7 @@ void nvsManagerSendConnMenuCb(const char* opt)
     else if(str_wired == opt)
     {
         nvsManager->wired = true;
+        nvsManager->appliedAnyData = false;
         espNowUseSerial(nvsManager->screen == NVS_RECEIVE);
         nvsManager->screen = NVS_SEND;
         nvsManagerP2pConnect();
