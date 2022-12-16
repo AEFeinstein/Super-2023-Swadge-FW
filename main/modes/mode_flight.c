@@ -75,7 +75,7 @@ typedef enum
     FLIGHT_GAME_OVER,
     FLIGHT_HIGH_SCORE_ENTRY,
     FLIGHT_SHOW_HIGH_SCORES,
-    FLIGHT_PERFTEST,
+    FLIGHT_FREEFLIGHT,
 } flightModeScreen;
 
 typedef struct
@@ -99,6 +99,79 @@ typedef enum
     FLIGHT_LED_DONUT,
     FLIGHT_LED_ENDING,
 } flLEDAnimation;
+
+//////////////////////////////////////////////////////////////////////////////
+// Multiplayer
+
+#define FLIGHT_MODE_FIRST_BYTE 'f'  // A flight peer
+#define MAX_PEERS 103 // Best if it's a prime number.
+#define MAX_NETWORK_MODELS 83
+
+typedef struct
+{
+	uint32_t timeOffsetOfPeerFromNow;
+	uint8_t  mac[6];
+	uint16_t ticksSinceSeen;
+} multiplayerpeer_t __attribute__((packed)); //
+
+typedef struct	// 20 bytes
+{
+	uint32_t timeOfUpdate;  // In our timestamp
+	uint16_t posAt[3];
+	uint8_t  velAt[3];
+	uint8_t  rotAt[3];
+	uint8_t  rotAtRel[3];
+	uint8_t  flags;
+} peership_t __attribute__((packed));
+
+typedef struct 
+{
+	uint32_t timeOfLaunch; // In our timestamp.
+	int16_t launchLocation[3];
+	int16_t launchDirection[3];
+	uint8_t flags;  // If 0, disabled.
+} boolet_t __attribute__((packed));
+
+typedef struct
+{
+	uint32_t timeOfUpdate;
+	uint32_t binencprop;      //If == 0, is disabled.  Otherwise, encoding starts at lsb.  First: # of bones, then the way the bones are interconnected.
+	uint16_t root[3];
+	uint8_t  velocity[3];
+	uint8_t  bones[0*3];  //Does not need to be all that long.
+} network_model_t __attribute__((packed));
+
+// From H.264, U, UE(ExpGolomb, k=0)
+// Ways to store several values in a 32-bit number.
+
+static uint32_t ReadUQ( uint32_t * rin, uint32_t bits )
+{
+	uint32_t ri = *rin;
+	*rin = ri >> bits;
+	return ri & ((1<<bits)-1);
+}
+
+static uint32_t ReadBitQ( uint32_t * rin )
+{
+	uint32_t ri = *rin;
+	*rin = ri>>1;
+	return ri & 1;
+}
+
+static uint32_t ReadUEQ( uint32_t * rin )
+{
+	if( !*rin ) return 0; //0 is invalid for reading Exp-Golomb Codes
+	// Based on https://stackoverflow.com/a/11921312/2926815
+    uint32_t zeros = 0;
+	while( ReadBitQ( rin ) == 0 ) zeroes++;
+	uint32_t ret = 1 << zeroes;
+    for (uint32_t i = zeros - 1; i >= 0; i--)
+        ret |= ReadBitQ( rin ) << i;
+    return ret - 1;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
 
 typedef struct
 {
@@ -140,14 +213,18 @@ typedef struct
     char highScoreNameBuffer[FLIGHT_HIGH_SCORE_NAME_LEN];
     uint8_t beangotmask[MAXRINGS];
 
-    // TODO     linkedInfo_t* invYmnu;
-    // XXX TODO HOW TO DO SAVE DATA
     flightSimSaveData_t savedata;
     int didFlightsimDataLoad;
 
     int16_t ModelviewMatrix[16];
     int16_t ProjectionMatrix[16];
     int renderlinecolor;
+
+
+	// Boolets for multiplayer.
+	multiplayerpeer_t  allPeers[MAX_PEERS]; //12x103 bytes.
+	network_model_t * networkModels[MAX_NETWORK_MODELS];
+
 } flight_t;
 
 /*============================================================================
@@ -253,6 +330,16 @@ static void flightEnterMode(display_t * disp)
     flight = malloc(sizeof(flight_t));
     memset(flight, 0, sizeof(flight_t));
 
+
+	{
+		multiplayerpeer_t * i = &flight->allPeers;
+		multiplayerpeer_t * end = i + MAX_PEERS;
+		for( ; i != end; i++ )
+		{
+			i->ticksSinceSeen = 0xffff;
+		}
+	}
+
     // Hmm this seems not to be obeyed, at least not well?
     setFrameRateUs( DEFAULT_FRAMETIME );
 
@@ -313,7 +400,10 @@ static void flightMenuCb(const char* menuItem)
     
     if( fl_flight_perf == menuItem )
     {
-        flightStartGame(FLIGHT_PERFTEST);
+		espNowInit(&sandboxRxESPNow, &sandboxTxESPNow, GPIO_NUM_NC,
+			GPIO_NUM_NC, UART_NUM_MAX, ESP_NOW_IMMEDIATE);
+
+        flightStartGame(FLIGHT_FREEFLIGHT);
     }
     else if (fl_flight_env == menuItem)
     {
@@ -345,6 +435,11 @@ static void flightMenuCb(const char* menuItem)
 
 static void flightEndGame()
 {
+	if (FLIGHT_FREEFLIGHT == flight->mode)
+	{
+        espNowDeinit();
+	}
+
     if( flightTimeHighScorePlace( flight->wintime, flight->beans == MAX_BEANS ) < NUM_FLIGHTSIM_TOP_SCORES )
     {
         flight->mode = FLIGHT_HIGH_SCORE_ENTRY;
@@ -427,7 +522,7 @@ static void flightStartGame( flightModeScreen mode )
 
     flight->paused = false;
 
-	if( mode == FLIGHT_PERFTEST )
+	if( mode == FLIGHT_FREEFLIGHT )
 	{
 		setFrameRateUs( 0 );
 	}
@@ -481,7 +576,7 @@ static void flightUpdate(void* arg __attribute__((unused)))
             drawMeleeMenu(flight->disp, flight->menu);
             break;
         }
-        case FLIGHT_PERFTEST:
+        case FLIGHT_FREEFLIGHT:
         case FLIGHT_GAME:
         {
             // Increment the frame count
@@ -917,14 +1012,14 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
 {
 
 #ifndef EMU
-    if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('R');
+    if( flight->mode == FLIGHT_FREEFLIGHT ) uart_tx_one_char('R');
 #endif
     flightUpdate( 0 );
 
     flight_t * tflight = flight;
     display_t * disp = tflight->disp;
     tflight->tframes++;
-    if( tflight->mode != FLIGHT_GAME && tflight->mode != FLIGHT_GAME_OVER && tflight->mode != FLIGHT_PERFTEST ) return;
+    if( tflight->mode != FLIGHT_GAME && tflight->mode != FLIGHT_GAME_OVER && tflight->mode != FLIGHT_FREEFLIGHT ) return;
 
     // First clear the OLED
 
@@ -949,9 +1044,9 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
 
 // #ifndef EMU
 //     uint32_t start = getCycleCount();
-// //  if( flight->mode == FLIGHT_PERFTEST )
+// //  if( flight->mode == FLIGHT_FREEFLIGHT )
 // //        portDISABLE_INTERRUPTS();
-//     if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('1');
+//     if( flight->mode == FLIGHT_FREEFLIGHT ) uart_tx_one_char('1');
 
 // #else
 //     cndrawPerfcounter = 0;
@@ -975,7 +1070,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
 
         int label = m->label;
         int draw = 1;
-        if( (flight->mode != FLIGHT_PERFTEST) && label )
+        if( (flight->mode != FLIGHT_FREEFLIGHT) && label )
         {
             draw = 0;
             if( label >= 100 && (label - 100) == tflight->ondonut )
@@ -1027,7 +1122,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
     }
 
 // #ifndef EMU
-//     if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('2');
+//     if( flight->mode == FLIGHT_FREEFLIGHT ) uart_tx_one_char('2');
 //     uint32_t mid1 = getCycleCount();
 // #else
 //     uint32_t mid1 = cndrawPerfcounter;
@@ -1037,7 +1132,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
     qsort( mrp, mdlct, sizeof( struct ModelRangePair ), mdlctcmp );
 
 // #ifndef EMU
-//     if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('3');
+//     if( flight->mode == FLIGHT_FREEFLIGHT ) uart_tx_one_char('3');
 //     uint32_t mid2 = getCycleCount();
 // #else
 //     uint32_t mid2 = cndrawPerfcounter;
@@ -1076,7 +1171,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
         //draw = 3 = other flashing
         if( draw == 1 )
             tdDrawModel( disp, m );
-        else if( (flight->mode != FLIGHT_PERFTEST) && (draw == 2 || draw == 3) )
+        else if( (flight->mode != FLIGHT_FREEFLIGHT) && (draw == 2 || draw == 3) )
         {
             if( draw == 2 )
             {
@@ -1098,21 +1193,21 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
 // #ifndef EMU
 //         //OVERCLOCK_SECTION_DISABLE();
 //         //GPIO_OUTPUT_SET(GPIO_ID_PIN(1), 1 );
-//     if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('4');
+//     if( flight->mode == FLIGHT_FREEFLIGHT ) uart_tx_one_char('4');
 //     uint32_t stop = getCycleCount();
-// //    if( flight->mode == FLIGHT_PERFTEST )
+// //    if( flight->mode == FLIGHT_FREEFLIGHT )
 // //        portENABLE_INTERRUPTS();
 // #else
 //     uint32_t stop = cndrawPerfcounter;
 // #endif
 
 
-    if( flight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_PERFTEST )
+    if( flight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_FREEFLIGHT )
     {
         char framesStr[32] = {0};
         int16_t width;
 
-        if( flight->mode != FLIGHT_PERFTEST )
+        if( flight->mode != FLIGHT_FREEFLIGHT )
         {
             fillDisplayArea(disp, 0, 0, TFT_WIDTH, flight->radiostars.h + 1, CNDRAW_BLACK);
 
@@ -1128,7 +1223,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
             drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, 0 );
         }
         
-        // if( flight->mode == FLIGHT_PERFTEST )
+        // if( flight->mode == FLIGHT_FREEFLIGHT )
         // {
         //     snprintf(framesStr, sizeof(framesStr), "%d", mid1 - start );
         //     drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - 110, flight->radiostars.h+1 );
@@ -1188,7 +1283,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
     //Otherwise, don't force full-screen refresh
 
 #ifndef EMU    
-    if( flight->mode == FLIGHT_PERFTEST ) uart_tx_one_char('5');
+    if( flight->mode == FLIGHT_FREEFLIGHT ) uart_tx_one_char('5');
 #endif
     return;
 }
@@ -1197,7 +1292,7 @@ static void flightGameUpdate( flight_t * tflight )
 {
     uint8_t bs = tflight->buttonState;
 
-    const int flight_min_speed = (flight->mode==FLIGHT_PERFTEST)?0:FLIGHT_MIN_SPEED;
+    const int flight_min_speed = (flight->mode==FLIGHT_FREEFLIGHT)?0:FLIGHT_MIN_SPEED;
 
     //If we're at the ending screen and the user presses a button end game.
     if( tflight->mode == FLIGHT_GAME_OVER && ( bs & 16 ) && flight->frames > 199 )
@@ -1210,7 +1305,7 @@ static void flightGameUpdate( flight_t * tflight )
         return;
     }
 
-    if( tflight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_PERFTEST )
+    if( tflight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_FREEFLIGHT )
     {
         int dpitch = 0;
         int dyaw = 0;
@@ -1374,7 +1469,7 @@ void flightButtonCallback( buttonEvt_t* evt )
             }
             break;
         }
-        case FLIGHT_PERFTEST:
+        case FLIGHT_FREEFLIGHT:
         case FLIGHT_GAME:
         {
             if(evt->down && evt->button == START)
@@ -1459,3 +1554,118 @@ static void flightTimeHighScoreInsert( int insertplace, bool is100percent, char 
     flight->savedata.timeCentiseconds[insertplace+is100percent*NUM_FLIGHTSIM_TOP_SCORES] = timeCentiseconds;
     setFlightSaveData( &flight->savedata );
 }
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Multiplayer
+
+typedef struct
+{
+	uint32_t timeOnPeer;
+	uint32_t assetCounts; // models, ships, boolets in UEQ.
+} network_packet_t __attribute__((packed));
+
+void fnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
+{
+	int i;
+	flight_t * flt = flight;
+	char pcode = *(data++);
+	if( ( pcode != FLIGHT_MODE_FIRST_BYTE ) || len < 8 ) return;
+
+	const network_packet_t * np = (const network_packet_t*)(data); data += sizeof( network_packet_t );
+
+	// find peer and compute time delta..
+	int hash = (*(const uint32_t*)mac_addr) + (*(const uint16_t*)(mac_addr+4));
+	hash ^= ( (hash>>11) * 51 ) ^ ( (hash>>22) * 37); // I just made this up.  Probably best to use something good.
+	hash %= MAX_PEERS;
+
+	uint32_t now = esp_timer_get_time();
+
+	multiplayerpeer_t * allPeers = flt->allPeers;
+	multiplayerpeer_t * thisPeer = 0;
+	const int maxPeersToSearch = 12;
+	for( i = 0; i < maxPeersToSearch; i++ ) // Only search 12 peers, if our hash map is this full, it's not worth it.
+	{
+		thisPeer = allPeers + hash;
+		if( checkpeer->ticks_since_seen == 0xffff )
+		{
+			thisPeer->timeOffsetOfPeerFromNow = np->timeOnPeer - now;
+			memcpy( thisPeer->mac, mac, 6 );
+			break;
+		}
+		if( memcmp( thisPeer->mac, mac, 6 ) == 0 ) break;
+	}
+	if( i == maxPeersToSearch ) return; // Haven't found our peer in time. Abort.
+
+	// Refine time offset.  TODO: Use asymmetric filter.
+	int32_t estTimeOffsetError = np->timeOnPeer - (thisPeer->timeOffsetOfPeerFromNow + now);
+	thisPeer->timeOffsetOfPeerFromNow += estTimeOffsetError>>3;
+	thisPeer->ticks_since_seen = 0;
+
+	// Compute "now" in peer time.
+	uint32_t peerSendInOurTime = np->timeOnPeer - thisPeer->timeOffsetOfPeerFromNow;
+
+	uint32_t assetCounts = np->assetCounts;
+	// assetCounts => models, ships, boolets
+
+	{
+		network_model_t ** netModels = &flight->networkModels[0];
+		int modelCount = ReadUEQ( &assetCounts, 8 );
+		for( i = 0; i < modelCount; i++ )
+		{
+			uint32_t codeword = (*(const uint32_t*)data);  data += 4;
+			uint32_t res_codeword = codeword;
+			uint32_t id = ReadU( &codeword, 8 );
+			uint32_t bones = ReadU( &codeword, 5 );
+
+			network_model_t * m = &netModels[id];
+			// First, try to find model.
+			if( !m )
+				m = malloc( sizeof( network_model_t ) + bones * 3 );
+
+			m->timeOfUpdate = peerSendInOurTime;
+			m->binencprop = res_codeword;
+			memcpy( m->root, data, sizeof( network_model_t ) - 8 + bones * 3 );
+		}
+	}
+	{
+		int shipCount = ReadUEQ( &assetCounts, 8 );
+		for( i = 0; i < modelCount; i++ )
+		{
+			//XXX XXX XXX
+			peership_t
+		}
+	}
+}
+
+
+typedef struct	// 20 bytes
+{
+	uint32_t timeOfUpdate;  // In our timestamp
+	uint16_t posAt[3];
+	uint8_t  velAt[3];
+	uint8_t  rotAt[3];
+	uint8_t  rotAtRel[3];
+	uint8_t  flags __attribute__((packed));
+} peership_t;
+
+typedef struct 
+{
+	uint32_t timeOfLaunch; // In our timestamp.
+	int16_t launchLocation[3];
+	int16_t launchDirection[3];
+	uint8_t flags __attribute__((packed));  // If 0, disabled.
+} boolet_t;
+
+typedef struct
+{
+	uint32_t timeOfUpdate;
+	uint32_t binencprop;      //If == 0, is disabled.  Otherwise, encoding starts at lsb.  First: # of bones, then the way the bones are interconnected.
+	uint16_t root[3];
+	uint8_t  velocity[3];
+	uint8_t  bones[12*3];  //Does not need to be all that long.
+} network_model_t __attribute__((packed));
+
