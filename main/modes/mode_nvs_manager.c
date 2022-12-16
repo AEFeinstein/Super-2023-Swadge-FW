@@ -486,6 +486,7 @@ const char str_apply_wo_reset[] = "Apply w/o reset";
 // Send/receive errors
 const char str_no_sendable_pairs[] = "Unable to find any sendable key/value pairs";
 const char str_empty_key[] = "Received empty key";
+const char str_wrong_receive_mode[] = "Wrong recieve mode (Sender is set to Send All, so Receiver should be set to Receive All)";
 const char str_ack_of[] = "ACK of ";
 const char str_ack[] = "ACK";
 const char str_nothing[] = "nothing";
@@ -1933,6 +1934,12 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                         char message[NVS_MAX_ERROR_MESSAGE_LEN];
                         snprintf(message, NVS_MAX_ERROR_MESSAGE_LEN, str_less_entries_than_pairs_format, packetAsStruct.numEntries, packetAsStruct.numPairs);
                         nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, message);
+                        break;
+                    }
+
+                    if(packetAsStruct.numPairs > 1 && nvsManager->receiveMode != NVS_RECV_MODE_ALL)
+                    {
+                        nvsManagerSendError(NVS_ERROR_WRONG_RECEIVE_MODE, str_wrong_receive_mode);
                         break;
                     }
 
