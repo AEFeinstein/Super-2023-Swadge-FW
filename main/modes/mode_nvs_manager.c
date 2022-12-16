@@ -1321,7 +1321,8 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
             memset(leds, 0, NUM_LEDS * sizeof(led_t));
             setLeds(leds, NUM_LEDS);
 
-            nvsManager->disp->clearPx();
+            // Set background to red if comms failed
+            fillDisplayArea(nvsManager->disp, 0, 0, nvsManager->disp->w, nvsManager->disp->h, nvsManager->commState == NVS_STATE_FAILED ? color_warning_bg : c000);
             
             // Title
             int16_t yOff = CORNER_OFFSET;
@@ -1367,6 +1368,28 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
 
             yOff += nvsManager->mm.h + SUMMARY_LINE_BREAK_Y + 1;
             plotLine(nvsManager->disp, CORNER_OFFSET, yOff, nvsManager->disp->w - CORNER_OFFSET, yOff, color_summary_h_rule, 0);
+
+            // Actually apply received data
+            if(nvsManager->commState == NVS_STATE_DONE && nvsManager->screen == NVS_RECEIVE && nvsManager->receiveMode != NVS_RECV_MODE_ALL)
+            {
+                if(!nvsManager->appliedLatestData)
+                {
+                    if(!applyIncomingNvsImage())
+                    {
+                        nvsManager->commState = NVS_STATE_FAILED;
+                    }
+                    nvsManager->appliedAnyData = true;
+                    nvsManager->appliedLatestData = true;
+                }
+            }
+
+            // TODO: give user option to apply partially received data from NVS_RECV_MODE_ALL
+
+            // Restart connection if this is NVS_RECV_MODE_MULTI
+            if(nvsManager->appliedLatestData && nvsManager->commState == NVS_STATE_DONE && nvsManager->screen == NVS_RECEIVE && nvsManager->receiveMode == NVS_RECV_MODE_MULTI)
+            {
+                nvsManagerP2pConnect();
+            }
 
             // Comm state
             yOff += SUMMARY_LINE_BREAK_Y + 1;
@@ -1514,19 +1537,7 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                 }
             }
 
-            if(nvsManager->commState == NVS_STATE_DONE && nvsManager->screen == NVS_RECEIVE && nvsManager->receiveMode == NVS_RECV_MODE_ONE)
-            {
-                if(!nvsManager->appliedAnyData)
-                {
-                    if(!applyIncomingNvsImage())
-                    {
-                        nvsManager->commState = NVS_STATE_FAILED;
-                    }
-                    nvsManager->appliedAnyData = true;
-                    nvsManager->appliedLatestData = true;
-                }
-            }
-
+            // Success message
             if(nvsManager->commState == NVS_STATE_DONE && nvsManager->screen == NVS_RECEIVE && nvsManager->appliedLatestData)
             {
                 yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
