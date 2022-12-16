@@ -1799,14 +1799,8 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                     nvsPacketVersion_t packet;
                     nvsManagerDecodePacketVersion(payload, len, &packet);
 
-                    // Other Swadge's version is newer, other Swadge knows that and will use our version
-                    // If other Swadge was unable to use our version, it would have sent NVS_ERROR_NO_COMMON_VERSION instead of its version
-                    if(memcmp(&packet.version, NVS_VERSION, NVS_VER_LEN) > 0)
-                    {
-                        nvsManagerSendNumPairsEntries();
-                    }
-                    // Our version is newer, check if we support other Swadge's version
-                    else
+                     // Our version is newer, check if we support other Swadge's version
+                    if(memcmp(packet.version, NVS_VERSION, NVS_VER_LEN) < 0)
                     {
                         // This is the first protocol version, so how could there be an older one?
                         char message[NVS_MAX_ERROR_MESSAGE_LEN];
@@ -1816,6 +1810,12 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                         memcpy(myVer, NVS_VERSION, NVS_VER_LEN);
                         snprintf(message, NVS_MAX_ERROR_MESSAGE_LEN, str_first_version_error_format, otherVer, myVer);
                         nvsManagerSendError(NVS_ERROR_NO_COMMON_VERSION, message);
+                    }
+                    // Either other Swadge's version is newer and other Swadge knows that and will use our version, or versions are identical
+                    // If other Swadge was unable to use our version, it would have sent NVS_ERROR_NO_COMMON_VERSION instead of its version
+                    else
+                    {
+                        nvsManagerSendNumPairsEntries();
                     }
 
                     break;
@@ -1870,13 +1870,8 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                     nvsPacketVersion_t packet;
                     nvsManagerDecodePacketVersion(payload, len, &packet);
 
-                    // Other Swadge's version is newer, other Swadge doesn't know yet
-                    if(memcmp(&packet.version, NVS_VERSION, NVS_VER_LEN) > 0)
-                    {
-                        nvsManagerSendVersion();
-                    }
                     // Our version is newer, check if we support other Swadge's version
-                    else
+                    if(memcmp(packet.version, NVS_VERSION, NVS_VER_LEN) < 0)
                     {
                         // This is the first protocol version, so how could there be an older one?
                         char message[NVS_MAX_ERROR_MESSAGE_LEN];
@@ -1886,6 +1881,11 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                         memcpy(myVer, NVS_VERSION, NVS_VER_LEN);
                         snprintf(message, NVS_MAX_ERROR_MESSAGE_LEN, str_first_version_error_format, otherVer, myVer);
                         nvsManagerSendError(NVS_ERROR_NO_COMMON_VERSION, message);
+                    }
+                    // Either other Swadge's version is newer and other Swadge doesn't know yet, or versions are identical
+                    else
+                    {
+                        nvsManagerSendVersion();
                     }
 
                     break;
