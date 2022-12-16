@@ -366,6 +366,7 @@ void nvsManagerP2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len, p2
 void nvsManagerP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt);
 void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len);
 void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t* data, uint8_t dataLen);
+void nvsManagerStopP2p(void);
 void nvsManagerFailP2p(void);
 void nvsManagerInitIncomingNvsImage(uint32_t numPairs);
 void nvsManagerDeinitIncomingNvsImage(void);
@@ -593,7 +594,7 @@ void  nvsManagerExitMode(void)
 
     freeWsg(&nvsManager->ibm_vga8_arrow);
 
-    p2pDeinit(&nvsManager->p2p);
+    nvsManagerStopP2p();
 
     if(nvsManager->nvsEntryInfos != NULL)
     {
@@ -918,7 +919,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                 {
                     case BTN_B:
                     {
-                        p2pDeinit(&nvsManager->p2p);
+                        nvsManagerStopP2p();
                         nvsManagerSetUpSendConnMenu(false);
                         break;
                     }
@@ -957,7 +958,7 @@ void  nvsManagerButtonCallback(buttonEvt_t* evt)
                 {
                     case BTN_B:
                     {
-                        p2pDeinit(&nvsManager->p2p);
+                        nvsManagerStopP2p();
                         nvsManagerSetUpRecvConnMenu(false);
                         break;
                     }
@@ -1716,7 +1717,7 @@ void nvsManagerP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt)
                     // How did we get here?
                     nvsManager->commState = NVS_STATE_NOT_CONNECTED;
                     nvsManager->packetState = NVS_PSTATE_NOTHING_SENT_YET;
-                    p2pDeinit(&nvsManager->p2p);
+                    nvsManagerStopP2p();
                     break;
                 }
             } // switch(nvsManager->screen)
@@ -1731,7 +1732,7 @@ void nvsManagerP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt)
                 case NVS_STATE_DONE:
                 {
                     // Silently close connection
-                    p2pDeinit(&nvsManager->p2p);
+                    nvsManagerStopP2p();
                     break;
                 }
                 case NVS_STATE_WAITING_FOR_CONNECTION:
@@ -2064,7 +2065,7 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                             // NVS_RECV_MODE_MULTI will be handled in the main loop
 
                             nvsManager->commState = NVS_STATE_DONE;
-                            p2pDeinit(&nvsManager->p2p);
+                            nvsManagerStopP2p();
 
                             break;
                         }
@@ -2160,7 +2161,7 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
                                 {
                                     // Woohoo! Communication with the other Swadge was successful, time to clean up
                                     nvsManager->commState = NVS_STATE_DONE;
-                                    p2pDeinit(&nvsManager->p2p);
+                                    nvsManagerStopP2p();
                                 }
                                 else
                                 {
@@ -2264,11 +2265,18 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
     } // switch(status)
 }
 
+void nvsManagerStopP2p(void)
+{
+    nvsManager->p2p.cnc.isActive = false;
+    nvsManager->p2p.cnc.isConnected = false;
+    p2pDeinit(&nvsManager->p2p);
+}
+
 void nvsManagerFailP2p(void)
 {
     nvsManager->commState = NVS_STATE_FAILED;
     nvsManager->packetState = NVS_PSTATE_NOTHING_SENT_YET;
-    p2pDeinit(&nvsManager->p2p);
+    nvsManagerStopP2p();
 }
 
 void nvsManagerInitIncomingNvsImage(uint32_t numPairs)
