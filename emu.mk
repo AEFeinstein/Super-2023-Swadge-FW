@@ -114,7 +114,7 @@ CFLAGS_WARNINGS_EXTRA = \
 ################################################################################
 
 # Create a variable with the git hash and branch name
-GIT_HASH  = \"$(shell git rev-parse --short HEAD)\"
+GIT_HASH  = \"$(shell git rev-parse --short=7 HEAD)\"
 
 # Used by the ESP SDK
 DEFINES_LIST = \

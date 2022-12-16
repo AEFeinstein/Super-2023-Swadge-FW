@@ -32,6 +32,7 @@
 #include "mode_test.h"
 #include "mode_tiltrads.h"
 #include "mode_tunernome.h"
+#include "nvs_manager.h"
 #include "picross_menu.h"
 #include "mode_manual.h"
 // #include "picross_select.h"
@@ -87,12 +88,13 @@ typedef struct
     uint8_t secretPos;
     int16_t btnState;
     int16_t prevBtnState;
-    uint8_t menuSelection;
+    uint8_t cheatCodeIdx;
     uint32_t battVal;
     wsg_t batt[4];
     // wsg_t usb;
     int32_t autoLightDanceTimer;
     bool debugMode;
+    bool showSecretsMenu;
     char gitStr[6 + GIT_SHA1_LENGTH];
 } mainMenu_t;
 
@@ -137,6 +139,9 @@ char mainMenuLedBrightness[] = "LED Brightness: 1";
 char mainMenuMicGain[] = "Mic Gain: 1";
 char mainMenuScreensaverTimeout[] = "Screensaver: 20s";
 char mainMenuScreensaverOff[] = "Screensaver: Off";
+char mainMenuShowSecretsMenuOn[] = "ShowOnMenu: On";
+char mainMenuShowSecretsMenuOff[] = "ShowOnMenu: Off";
+char mainMenuShowSecretsMenuKey[] = "show_secrets";
 const char mainMenuCredits[] = "Credits";
 #if defined(EMU)
 const char mainMenuExit[] = "Exit";
@@ -188,6 +193,14 @@ void mainMenuEnterMode(display_t* disp)
     loadWsg("batt4.wsg", &mainMenu->batt[3]);
     // loadWsg("usb.wsg", &mainMenu->usb);
 
+    // Load setting to show secrets menu on main menu
+    int32_t val;
+    if(readNvs32(mainMenuShowSecretsMenuKey, &val))
+    {
+        mainMenu->showSecretsMenu = (bool) val;
+    }
+    // If the key doesn't exist, don't create it yet. We set its default value the first time the secret menu is opened
+
     snprintf(mainMenu->gitStr, sizeof(mainMenu->gitStr), "Git: %s", GIT_SHA1);
 
     // Initialize the menu
@@ -236,19 +249,19 @@ void mainMenuMainLoop(int64_t elapsedUs)
     // 872 is full
     if (mainMenu->battVal == 0 || mainMenu->battVal > 741)
     {
-        toDraw = &mainMenu->batt[3];        
+        toDraw = &mainMenu->batt[3];
     }
     else if (mainMenu->battVal > 695)
     {
-        toDraw = &mainMenu->batt[2];        
+        toDraw = &mainMenu->batt[2];
     }
     else if (mainMenu->battVal > 652)
     {
-        toDraw = &mainMenu->batt[1];        
+        toDraw = &mainMenu->batt[1];
     }
     else // 452 is dead
     {
-        toDraw = &mainMenu->batt[0];        
+        toDraw = &mainMenu->batt[0];
     }
 
     drawWsg(mainMenu->disp, toDraw, 212, 3, false, false, 0);
@@ -256,7 +269,7 @@ void mainMenuMainLoop(int64_t elapsedUs)
 
 /**
  * @brief Save the battery voltage
- * 
+ *
  * @param vBatt The battery voltage
  */
 void mainMenuBatteryCb(uint32_t vBatt)
@@ -282,16 +295,16 @@ void mainMenuButtonCb(buttonEvt_t* evt)
         if(!mainMenu->debugMode)
         {
             if  (
-                    (mainMenu->btnState & cheatCode[mainMenu->menuSelection])
+                    (mainMenu->btnState & cheatCode[mainMenu->cheatCodeIdx])
                     &&
-                    !(mainMenu->prevBtnState & cheatCode[mainMenu->menuSelection])
+                    !(mainMenu->prevBtnState & cheatCode[mainMenu->cheatCodeIdx])
                 )
             {
-                mainMenu->menuSelection++;
+                mainMenu->cheatCodeIdx++;
 
-                if(mainMenu->menuSelection > 10)
+                if(mainMenu->cheatCodeIdx > 10)
                 {
-                    mainMenu->menuSelection = 0;
+                    mainMenu->cheatCodeIdx = 0;
                     mainMenu->debugMode = true;
                     buzzer_play_bgm(&secretSong);
                     mainMenuSetUpSecretMenu(true);
@@ -306,7 +319,7 @@ void mainMenuButtonCb(buttonEvt_t* evt)
             }
             else
             {
-                mainMenu->menuSelection = 0;
+                mainMenu->cheatCodeIdx = 0;
             }
         }
 
@@ -399,6 +412,24 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                     // Redraw menu options
                     mainMenuSetUpSettingsMenu(false);
                 }
+                else if(mainMenuSecret == mainMenu->menu->title)
+                {
+                    // Save the position
+                    mainMenu->secretPos = mainMenu->menu->selectedRow;
+
+                    if(mainMenuShowSecretsMenuOn == mainMenu->menu->rows[mainMenu->menu->selectedRow])
+                    {
+                        mainMenu->showSecretsMenu = false;
+                        writeNvs32(mainMenuShowSecretsMenuKey, mainMenu->showSecretsMenu);
+                        mainMenuSetUpSecretMenu(false);
+                    }
+                    else if(mainMenuShowSecretsMenuOff == mainMenu->menu->rows[mainMenu->menu->selectedRow])
+                    {
+                        mainMenu->showSecretsMenu = true;
+                        writeNvs32(mainMenuShowSecretsMenuKey, mainMenu->showSecretsMenu);
+                        mainMenuSetUpSecretMenu(false);
+                    }
+                }
                 break;
             }
             case BTN_B:
@@ -406,6 +437,15 @@ void mainMenuButtonCb(buttonEvt_t* evt)
                 // If not on the main menu
                 if(mainMenuTitle != mainMenu->menu->title)
                 {
+                    // If we're in the secret menu, reset related variables
+                    if(mainMenuSecret == mainMenu->menu->title)
+                    {
+                        mainMenu->cheatCodeIdx = 0;
+                        mainMenu->btnState = 0;
+                        mainMenu->prevBtnState = 0;
+                        mainMenu->debugMode = false;
+                    }
+
                     // Go back to the main menu
                     mainMenuSetUpTopMenu(false);
                     return;
@@ -430,6 +470,10 @@ void mainMenuSetUpTopMenu(bool resetPos)
     addRowToMeleeMenu(mainMenu->menu, mainMenuMusic);
     addRowToMeleeMenu(mainMenu->menu, mainMenuSettings);
     addRowToMeleeMenu(mainMenu->menu, mainMenuManual);
+    if(mainMenu->showSecretsMenu)
+    {
+        addRowToMeleeMenu(mainMenu->menu, mainMenuSecret);
+    }
     addRowToMeleeMenu(mainMenu->menu, mainMenuCredits);
 #if defined(EMU)
     addRowToMeleeMenu(mainMenu->menu, mainMenuExit);
@@ -473,6 +517,10 @@ void mainMenuTopLevelCb(const char* opt)
     else if (mainMenuManual == opt)
     {
         switchToSwadgeMode(&modeManual);
+    }
+    else if(mainMenuSecret == opt)
+    {
+        mainMenuSetUpSecretMenu(true);
     }
     else if (mainMenuCredits == opt)
     {
@@ -815,10 +863,27 @@ void mainMenuSettingsCb(const char* opt)
  */
 void mainMenuSetUpSecretMenu(bool resetPos)
 {
+    // Load setting to show secrets menu on main menu
+    int32_t val;
+    if(!readNvs32(mainMenuShowSecretsMenuKey, &val))
+    {
+        mainMenu->showSecretsMenu = true;
+        writeNvs32(mainMenuShowSecretsMenuKey, mainMenu->showSecretsMenu);
+    }
+    // If the read was successful, mainMenuSetUpTopMenu() already got the value, so no need to set it again
+
     // Set up the menu
     resetMeleeMenu(mainMenu->menu, mainMenuSecret, mainMenuSecretCb);
     addRowToMeleeMenu(mainMenu->menu, modeCopyPasta.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeTest.modeName);
+    if(mainMenu->showSecretsMenu)
+    {
+        addRowToMeleeMenu(mainMenu->menu, mainMenuShowSecretsMenuOn);
+    }
+    else
+    {
+        addRowToMeleeMenu(mainMenu->menu, mainMenuShowSecretsMenuOff);
+    }
     addRowToMeleeMenu(mainMenu->menu, mainMenu->gitStr);
     addRowToMeleeMenu(mainMenu->menu, mainMenuBack);
     // Set the position
@@ -845,14 +910,26 @@ void mainMenuSecretCb(const char* opt)
         // Start copyPastas
         switchToSwadgeMode(&modeCopyPasta);
     }
-    if(modeTest.modeName == opt)
+    else if(modeTest.modeName == opt)
     {
         // Start test mode
         switchToSwadgeMode(&modeTest);
     }
+    else if(mainMenuShowSecretsMenuOn == opt)
+    {
+        mainMenu->showSecretsMenu = false;
+        writeNvs32(mainMenuShowSecretsMenuKey, mainMenu->showSecretsMenu);
+        mainMenuSetUpSecretMenu(false);
+    }
+    else if(mainMenuShowSecretsMenuOff == opt)
+    {
+        mainMenu->showSecretsMenu = true;
+        writeNvs32(mainMenuShowSecretsMenuKey, mainMenu->showSecretsMenu);
+        mainMenuSetUpSecretMenu(false);
+    }
     else if(mainMenuBack == opt)
     {
-        mainMenu->menuSelection = 0;
+        mainMenu->cheatCodeIdx = 0;
         mainMenu->btnState = 0;
         mainMenu->prevBtnState = 0;
         mainMenu->debugMode = false;
