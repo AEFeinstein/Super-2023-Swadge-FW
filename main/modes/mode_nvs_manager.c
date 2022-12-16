@@ -1976,7 +1976,7 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                     }
 
                     // Check for unknown NVS type
-                    if(getNvsTypeName(packetAsStruct.nvsType))
+                    if(getNvsTypeName(packetAsStruct.nvsType)[0] == '\0')
                     {
                         char message[NVS_MAX_ERROR_MESSAGE_LEN];
                         snprintf(message, NVS_MAX_ERROR_MESSAGE_LEN, str_unknown_type_format, packetAsStruct.nvsType);
