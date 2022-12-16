@@ -3318,7 +3318,7 @@ bool nvsManagerReadNvsKeyValuePair(nvs_entry_info_t* entryInfo, int32_t* outNum,
         }
         case NVS_TYPE_BLOB:
         {
-            if(outNum == NULL)
+            if(outNum != NULL)
             {
                 *outNum = 0;
             }
@@ -3357,7 +3357,7 @@ bool nvsManagerReadNvsKeyValuePair(nvs_entry_info_t* entryInfo, int32_t* outNum,
         case NVS_TYPE_U64:
         case NVS_TYPE_I64:
         {
-            if(outNum == NULL)
+            if(outNum != NULL)
             {
                 *outNum = 0;
             }
@@ -3375,7 +3375,7 @@ bool nvsManagerReadNvsKeyValuePair(nvs_entry_info_t* entryInfo, int32_t* outNum,
         case NVS_TYPE_ANY:
         default:
         {
-            if(outNum == NULL)
+            if(outNum != NULL)
             {
                 *outNum = 0;
             }
