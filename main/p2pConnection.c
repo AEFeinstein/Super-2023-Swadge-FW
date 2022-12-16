@@ -117,7 +117,7 @@ void p2pInitialize(p2pInfo* p2p, uint8_t modeId, p2pConCbFn conCbFn,
     // need to be.
     p2p->connectionRssi = connectionRssi;
 
-    // Set the three character message ID
+    // Set the single character message ID
     p2p->modeId = modeId;
     p2p->incomingModeId = modeId;
 
