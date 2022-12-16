@@ -134,7 +134,13 @@
         "utility": "c",
         "xmemory": "c",
         "xstddef": "c",
-        "xtr1common": "c"
+        "xtr1common": "c",
+        "bit": "c",
+        "charconv": "c",
+        "cstdint": "c",
+        "esp_heap_caps.h": "c",
+        "deque": "c",
+        "iterator": "c"
     },
     "idf.adapterTargetName": "esp32s2",
     "makefile.makefilePath": "./emu.mk"
