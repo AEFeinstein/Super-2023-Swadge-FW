@@ -103,26 +103,25 @@ typedef enum
 //////////////////////////////////////////////////////////////////////////////
 // Multiplayer
 
-#define FLIGHT_MODE_FIRST_BYTE 'f'  // A flight peer
+#define FLIGHT_MODE_FIRST_BYTE_PEER 'f'  // A flight peer
+#define FLIGHT_MODE_FIRST_BYTE_SERVER 's'  // A flight peer
 #define MAX_PEERS 103 // Best if it's a prime number.
 #define MAX_NETWORK_MODELS 83
 
-typedef struct
+typedef struct  // 32 bytes.
 {
 	uint32_t timeOffsetOfPeerFromNow;
 	uint8_t  mac[6];
-	uint16_t ticksSinceSeen;
-} multiplayerpeer_t __attribute__((packed)); //
+	uint16_t validForTicks;
 
-typedef struct	// 20 bytes
-{
+	// Not valid for server.
 	uint32_t timeOfUpdate;  // In our timestamp
 	uint16_t posAt[3];
 	uint8_t  velAt[3];
 	uint8_t  rotAt[3];
 	uint8_t  rotAtRel[3];
-	uint8_t  flags;
-} peership_t __attribute__((packed));
+	uint8_t  flags; // If Zero, Disabled.
+} multiplayerpeer_t __attribute__((packed));
 
 typedef struct 
 {
@@ -135,7 +134,7 @@ typedef struct
 typedef struct
 {
 	uint32_t timeOfUpdate;
-	uint32_t binencprop;      //If == 0, is disabled.  Otherwise, encoding starts at lsb.  First: # of bones, then the way the bones are interconnected.
+	uint32_t binencprop;      //Encoding starts at lsb.  First: # of bones, then the way the bones are interconnected.
 	uint16_t root[3];
 	uint8_t  velocity[3];
 	uint8_t  bones[0*3];  //Does not need to be all that long.
@@ -222,8 +221,9 @@ typedef struct
 
 
 	// Boolets for multiplayer.
-	multiplayerpeer_t  allPeers[MAX_PEERS]; //12x103 bytes.
+	multiplayerpeer_t  allPeers[MAX_PEERS]; //32x103 = 3296 bytes.
 	network_model_t * networkModels[MAX_NETWORK_MODELS];
+	int nNetworkServerLastSeen; // When seeing a server resets.
 
 } flight_t;
 
@@ -248,6 +248,7 @@ int tdModelVisibilitycheck( const tdModel * m );
 void tdDrawModel( display_t * disp, const tdModel * m );
 static int flightTimeHighScorePlace( int wintime, bool is100percent );
 static void flightTimeHighScoreInsert( int insertplace, bool is100percent, char * name, int timeCentiseconds );
+static void FlightNetworkDraw( uint32_t now, struct ModelRangePair ** mrp );
 
 //Forward libc declarations.
 #ifndef EMU
@@ -330,16 +331,6 @@ static void flightEnterMode(display_t * disp)
     flight = malloc(sizeof(flight_t));
     memset(flight, 0, sizeof(flight_t));
 
-
-	{
-		multiplayerpeer_t * i = &flight->allPeers;
-		multiplayerpeer_t * end = i + MAX_PEERS;
-		for( ; i != end; i++ )
-		{
-			i->ticksSinceSeen = 0xffff;
-		}
-	}
-
     // Hmm this seems not to be obeyed, at least not well?
     setFrameRateUs( DEFAULT_FRAMETIME );
 
@@ -400,7 +391,7 @@ static void flightMenuCb(const char* menuItem)
     
     if( fl_flight_perf == menuItem )
     {
-		espNowInit(&sandboxRxESPNow, &sandboxTxESPNow, GPIO_NUM_NC,
+		espNowInit(&FlightfnEspNowRecvCb, &FlightfnEspNowSendCb, GPIO_NUM_NC,
 			GPIO_NUM_NC, UART_NUM_MAX, ESP_NOW_IMMEDIATE);
 
         flightStartGame(FLIGHT_FREEFLIGHT);
@@ -1025,40 +1016,13 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
 
     SetupMatrix();
 
-
-    // static uint32_t fps;
-    static uint32_t nowframes;
-    static uint32_t lasttimeframe;
-    if( nowframes == 0 )
-    {
-        lasttimeframe = esp_timer_get_time();
-        nowframes = 1;
-    }
-    if( ((uint32_t)esp_timer_get_time()) - lasttimeframe > 1000000 )
-    {
-        // fps = nowframes;
-        nowframes = 1;
-        lasttimeframe+=1000000;
-    }
-    nowframes++;
-
-// #ifndef EMU
-//     uint32_t start = getCycleCount();
-// //  if( flight->mode == FLIGHT_FREEFLIGHT )
-// //        portDISABLE_INTERRUPTS();
-//     if( flight->mode == FLIGHT_FREEFLIGHT ) uart_tx_one_char('1');
-
-// #else
-//     cndrawPerfcounter = 0;
-//     uint32_t start = cndrawPerfcounter;
-// #endif
-
+	uint32_t now = esp_timer_get_time();
 
     tdRotateEA( flight->ProjectionMatrix, tflight->hpr[1]/11, tflight->hpr[0]/11, 0 );
     tdTranslate( flight->ModelviewMatrix, -tflight->planeloc[0], -tflight->planeloc[1], -tflight->planeloc[2] );
 
     struct ModelRangePair mrp[tflight->enviromodels];
-    int mdlct = 0;
+	struct ModelRangePair * mrptr = mrp;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 ////GAME LOGIC GOES HERE (FOR COLLISIONS/////////////////////////////////////////////////
@@ -1116,10 +1080,12 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
 
         int r = tdModelVisibilitycheck( m );
         if( r < 0 ) continue;
-        mrp[mdlct].model = m;
-        mrp[mdlct].mrange = r;
-        mdlct++;
+		mrptr->model = m;
+        mrptr->mrange = r;
+        mrptr++;
     }
+
+	FlightNetworkDraw( now, &mrptr );
 
 // #ifndef EMU
 //     if( flight->mode == FLIGHT_FREEFLIGHT ) uart_tx_one_char('2');
@@ -1127,6 +1093,9 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
 // #else
 //     uint32_t mid1 = cndrawPerfcounter;
 // #endif
+
+    int mdlct = mrptr - mrp;
+
 
     //Painter's algorithm
     qsort( mrp, mdlct, sizeof( struct ModelRangePair ), mdlctcmp );
@@ -1562,18 +1531,96 @@ static void flightTimeHighScoreInsert( int insertplace, bool is100percent, char 
 //////////////////////////////////////////////////////////////////////////////
 // Multiplayer
 
+static void FlightNetworkDraw(uint32_t now, struct ModelRangePair ** mrp );
+{
+	struct ModelRangePair * mrptr = *mrp;
+
+	flight_t * flt = flight;
+
+	if( flt->nNetworkServerLastSeen > 0 ) flt->nNetworkServerLastSeen--;
+
+	{
+		multiplayerpeer_t * p = flt->allPeers
+		multiplayerpeer_t * end = p + MAX_PEERS;
+		for( ; p != end; p++ )
+		{
+			int ticks = p->validForTicks;
+			if( ticks )
+			{
+				// Render peer/ship.
+
+				int32_t deltaTime = now - p->timeOfUpdate;
+	// Not valid for server.
+	uint32_t timeOfUpdate;  // In our timestamp
+	uint16_t posAt[3];
+	uint8_t  velAt[3];
+	uint8_t  rotAt[3];
+	uint8_t  rotAtRel[3];
+	uint8_t  flags; // If Zero, Disabled.
+
+
+
+				ticks--;
+				if( ticks == 0 )
+				{
+					// destroy.
+					p->flags = 0;
+				}
+				p->validForTicks = ticks;
+			}
+		}
+	}
+/* XXX TODO TODO TODO
+
+  --> So, we are currently pairing peers and ships.  Feels weird.
+      Probably fine for non-server mode.
+   But, in server-mode, probably need to do something clever here */
+
+
+	{
+		network_model_t * m = flt->networkModels;
+		network_model_t * end = m + MAX_NETWORK_MODELS;
+		for( ; m != end; m++ )
+		{
+			if( m->binencprop )
+			{
+				int32_t delta = now - timeOfUpdate;
+				if( delta > 10000000 )
+				{
+					// Destroy model.
+					m->binencprop = 0;
+				}
+			}
+		}
+	}
+
+	//XTOS_SET_INTLEVEL(XCHAL_EXCM_LEVEL);   // Disable Interrupts
+	//XTOS_SET_INTLEVEL(0);  //re-enable interrupts.
+
+	*mrp = mrptr;
+}
+
+
 typedef struct
 {
 	uint32_t timeOnPeer;
 	uint32_t assetCounts; // models, ships, boolets in UEQ.
 } network_packet_t __attribute__((packed));
 
-void fnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
+
+void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
 {
 	int i;
 	flight_t * flt = flight;
 	char pcode = *(data++);
-	if( ( pcode != FLIGHT_MODE_FIRST_BYTE ) || len < 8 ) return;
+
+	if( !( pcode == FLIGHT_MODE_FIRST_BYTE_SERVER || (flt->nNetworkMode == 1 &&  pcode == FLIGHT_MODE_FIRST_BYTE_PEER ) ) || len < 8 ) return;
+
+	// If we get a server packet, switch to server mode for a while.
+	if( pcode == FLIGHT_MODE_FIRST_BYTE_SERVER )
+	{
+		flt->nNetworkServerLastSeen = 300;
+	}
 
 	const network_packet_t * np = (const network_packet_t*)(data); data += sizeof( network_packet_t );
 
@@ -1590,7 +1637,7 @@ void fnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8
 	for( i = 0; i < maxPeersToSearch; i++ ) // Only search 12 peers, if our hash map is this full, it's not worth it.
 	{
 		thisPeer = allPeers + hash;
-		if( checkpeer->ticks_since_seen == 0xffff )
+		if( checkpeer->validForTicks )
 		{
 			thisPeer->timeOffsetOfPeerFromNow = np->timeOnPeer - now;
 			memcpy( thisPeer->mac, mac, 6 );
@@ -1603,7 +1650,7 @@ void fnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8
 	// Refine time offset.  TODO: Use asymmetric filter.
 	int32_t estTimeOffsetError = np->timeOnPeer - (thisPeer->timeOffsetOfPeerFromNow + now);
 	thisPeer->timeOffsetOfPeerFromNow += estTimeOffsetError>>3;
-	thisPeer->ticks_since_seen = 0;
+	thisPeer->validForTicks = 300;
 
 	// Compute "now" in peer time.
 	uint32_t peerSendInOurTime = np->timeOnPeer - thisPeer->timeOffsetOfPeerFromNow;
