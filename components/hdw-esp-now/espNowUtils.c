@@ -26,7 +26,7 @@
 //==============================================================================
 
 #define ESPNOW_CHANNEL 11
-#define WIFI_RATE WIFI_PHY_RATE_MCS7_SGI
+#define WIFI_RATE WIFI_PHY_RATE_MCS6_SGI
 
 // Three random bytes used as 'start' bytes for packets over serial
 #define FRAMING_START_1 251
@@ -282,6 +282,16 @@ void espNowUseWireless(void)
         {
             ESP_LOGD("ESPNOW", "esp now fail (%s)", esp_err_to_name(err));
         }
+
+        //Appears to set gain "offset" like what it reports as gain?  Does not actually impact real gain.
+        //But when paired with the second write command, it seems to have the intended impact.
+        //This number is in ~1/2dB.  So this accounts for a 10dB muting.
+        const int igi_reduction = 20;
+        volatile uint32_t * test = (uint32_t*)0x6001c02c; //Should be the "RSSI Offset" but seems to do more.
+        *test = (*test & 0xffffff00) + igi_reduction; 
+        //No idea  Somehow applies setting of 0x6001c02c  (Ok, actually I don't know what the right-most value should be but 0xff in the MSB seems to work?
+        test = (uint32_t*)0x6001c0a0;
+        *test = (*test & 0xffffff) | 0xff00000000; 
     }
 }
 
