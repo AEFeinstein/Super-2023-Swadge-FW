@@ -43,8 +43,8 @@
 #define THRUSTER_MAX     32 //NOTE: THRUSTER_MAX must be divisble by THRUSTER_ACCEL
 #define THRUSTER_DECAY   2
 #define FLIGHT_SPEED_DEC 12
-#define FLIGHT_MAX_SPEED 50
-#define FLIGHT_MAX_SPEED_FREE 30
+#define FLIGHT_MAX_SPEED 80
+#define FLIGHT_MAX_SPEED_FREE 50
 #define FLIGHT_MIN_SPEED 8
 
 #define BOOLET_SPEED_DIVISOR 11
@@ -226,8 +226,11 @@ typedef struct
     int16_t speed;
     int16_t pitchmoment;
     int16_t yawmoment;
+	int8_t lastSpeed[3];
     bool perfMotion;
     bool oob;
+	uint32_t lastFlightUpdate;
+
 
     int enviromodels;
     const tdModel ** environment;
@@ -275,6 +278,7 @@ typedef struct
 	int timeOfLastShot;
 	int myHealth;
 	uint32_t timeOfDeath;
+	uint32_t lastNetUpdate;
 
 	modelRangePair_t * mrp;
 } flight_t;
@@ -1384,6 +1388,9 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
 
 static void flightGameUpdate( flight_t * tflight )
 {
+    uint32_t now = esp_timer_get_time();
+	uint32_t delta = now - tflight->lastFlightUpdate;
+	tflight->lastFlightUpdate = now;
     uint8_t bs = tflight->buttonState;
 
     const int flight_min_speed = (flight->mode==FLIGHT_FREEFLIGHT)?0:FLIGHT_MIN_SPEED;
@@ -1402,7 +1409,6 @@ static void flightGameUpdate( flight_t * tflight )
 	int dead = 0;
 	if( tflight->mode == FLIGHT_FREEFLIGHT && tflight->myHealth <= 0)
 	{
-	    uint32_t now = esp_timer_get_time();
 		if( (uint32_t)(now - tflight->timeOfDeath) > 2000000 )
 		{
 			flight->nNetworkMode = 1;
@@ -1480,9 +1486,22 @@ static void flightGameUpdate( flight_t * tflight )
     //If game over, just keep status quo.
 
     int yawDivisor = getCos1024( tflight->hpr[1]/11 );
-    flight->planeloc_fine[0] += (tflight->speed * getSin1024( tflight->hpr[0]/11 ) * yawDivisor ) >> 10;
-    flight->planeloc_fine[2] += (tflight->speed * getCos1024( tflight->hpr[0]/11 ) * yawDivisor ) >> 10;
-    flight->planeloc_fine[1] -= (tflight->speed * getSin1024( tflight->hpr[1]/11 ) );
+
+	// game target is/was 25000 us per frame.
+	int rspeed = ( tflight->speed);
+
+	int32_t speedPU[3];
+	speedPU[0] = (((rspeed * getSin1024( tflight->hpr[0]/11 ) * yawDivisor ))>>10)>>7;  // >>7 is "to taste"
+	speedPU[2] = (((rspeed * getCos1024( tflight->hpr[0]/11 ) * yawDivisor ))>>10)>>7;
+	speedPU[1] = (rspeed * -getSin1024( tflight->hpr[1]/11 ) )>>7;
+
+    flight->planeloc_fine[0] += ((int32_t)delta * speedPU[0])>>8; // Also, to taste.
+    flight->planeloc_fine[1] += ((int32_t)delta * speedPU[1])>>8;
+    flight->planeloc_fine[2] += ((int32_t)delta * speedPU[2])>>8;
+
+	flight->lastSpeed[0] = speedPU[0]>>4;  // This is crucial.  It's the difference between the divisor above and FLIGHT_SPEED_DEC!
+	flight->lastSpeed[1] = speedPU[1]>>4;
+	flight->lastSpeed[2] = speedPU[2]>>4;
 
     tflight->planeloc[0] = flight->planeloc_fine[0]>>FLIGHT_SPEED_DEC;
     tflight->planeloc[1] = flight->planeloc_fine[1]>>FLIGHT_SPEED_DEC;
@@ -2025,9 +2044,10 @@ static void FlightNetworkFrameCall( flight_t * tflight, display_t* disp, uint32_
         }while(1);
     }
 
-	// Not enabled yet.
-	if( 0 )
+	// Only update at 10Hz.
+	if( now > tflight->lastNetUpdate + 100000 )
 	{
+		tflight->lastNetUpdate = now;
 		int NumActiveBoolets = 0;
 		int i;
 		for( i = 0; i < BOOLETSPERPLAYER; i++ )
@@ -2054,14 +2074,31 @@ static void FlightNetworkFrameCall( flight_t * tflight, display_t* disp, uint32_
 
 		*(pp++) = 0; // "shipNo"
 		memcpy( pp, tflight->planeloc, sizeof( tflight->planeloc ) ); pp += sizeof( tflight->planeloc );
+		memcpy( pp, tflight->lastSpeed, sizeof( tflight->lastSpeed ) ); pp += sizeof( tflight->lastSpeed ); //mirrors velAt real speed = ( this * microsecond >> 16 )
 
-		//XXX TODO PICK UP HERE.
+		int8_t orot[3];
+		orot[0] = tflight->hpr[0]>>4;
+		orot[1] = tflight->hpr[1]>>4;
+		orot[2] = tflight->hpr[2]>>4;
+		memcpy( pp, orot, sizeof( orot ) ); pp += sizeof( orot );
+		uint16_t flags = 1 | ((tflight->myHealth>0)?2:0);
+		memcpy( pp, &flags, sizeof( flags ) ); pp += sizeof( flags );
 
-       //     memcpy( tp->velAt, data, sizeof( tp->velAt ) ); data+=sizeof( tp->velAt );
-       //     memcpy( tp->rotAt, data, sizeof( tp->rotAt ) ); data+=sizeof( tp->rotAt );
-       //     memcpy( &tp->flags, data, sizeof( tp->flags ) ); data+=sizeof( tp->flags ); tp->flags |= 1;
-       // }
-    }
+		// Now, need to send boolets.
+		for( i = 0; i < BOOLETSPERPLAYER; i++ )
+		{
+			boolet_t * b = &tflight->myBoolets[i];
+			if( b->flags == 0 ) continue; 
+			*(pp++) = i; // Local "bulletID"
+			memcpy( pp, &b->timeOfLaunch, sizeof(b->timeOfLaunch) ); pp += sizeof( b->timeOfLaunch );
+			memcpy( pp, b->launchLocation, sizeof(b->launchLocation) ); pp += sizeof( b->launchLocation );
+			memcpy( pp, b->launchRotation, sizeof(b->launchRotation) ); pp += sizeof( b->launchRotation );
+			memcpy( pp, &b->flags, sizeof(b->flags) ); pp += sizeof( b->flags );
+		}
+
+		int len = pp - espnow_buffer;
+		//espNowSend(espnow_buffer, len); //Don't enable yet.
+	}
 
 /*
     //XTOS_SET_INTLEVEL(XCHAL_EXCM_LEVEL);   // Disable Interrupts
@@ -2234,7 +2271,7 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
             data += sizeof(b->launchLocation);
             memcpy( b->launchRotation, data, sizeof(b->launchRotation) );
             data += sizeof(b->launchRotation);
-            b->flags = *data; data++;
+            memcpy( &b->flags, data, sizeof(b->flags) ); data+=sizeof(b->flags);
         }
     }
 }
