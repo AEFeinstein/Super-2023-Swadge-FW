@@ -5,6 +5,8 @@
  *      Author: bryce
  */
 
+#define DEBUG
+
 /*==============================================================================
  * Includes
  *============================================================================*/
@@ -39,6 +41,9 @@
 #if defined(EMU)
 #include "emu_main.h"
 #endif
+#ifdef DEBUG
+#include "esp_log.h"
+#endif
 
 #include "mode_nvs_manager.h"
 
@@ -59,7 +64,7 @@
 #define NVS_MAX_DATA_BYTES_PER_PACKET P2P_MAX_DATA_LEN - sizeof(nvsPacket_t)
 #define NVS_MAX_ERROR_MESSAGE_LEN P2P_MAX_DATA_LEN - sizeof(nvsPacket_t) - sizeof(nvsCommError_t)
 #define NVS_TOTAL_PACKETS_UP_TO_INCL_NUM_PAIRS_ENTRIES 5 // Does not include the ACK for NVS_PACKET_NUM_PAIRS_AND_ENTRIES
-#define NVS_MIN_PACKETS_PER_PAIR 4
+#define NVS_MIN_PACKETS_PER_PAIR 8
 
 /// Helper macro to return an integer clamped within a range (MIN to MAX)
 //#define CLAMP(X, MIN, MAX) ( ((X) > (MAX)) ? (MAX) : ( ((X) < (MIN)) ? (MIN) : (X)) )
@@ -80,7 +85,7 @@
  */
 #define getNumBlobEntries(length) 2 + ceil((float) length / NVS_ENTRY_BYTES)
 
-#define getNumPacketsNeededToSendPair(bytes) NVS_MIN_PACKETS_PER_PAIR + 2 /*NVS_PACKET_DATA_VALUE and ACK*/ * (ceil(bytes / (float) NVS_MAX_DATA_BYTES_PER_PACKET) - 1 /*already counted in NVS_MIN_PACKETS_PER_PAIR*/)
+#define getNumPacketsNeededToSendPair(bytes) (NVS_MIN_PACKETS_PER_PAIR + 4 /*NVS_PACKET_READY, ACK, NVS_PACKET_DATA_VALUE, ACK*/ * (ceil(bytes / (float) NVS_MAX_DATA_BYTES_PER_PACKET) - 1 /*first data value loop already counted in NVS_MIN_PACKETS_PER_PAIR*/))
 
 /*==============================================================================
  * Enums
@@ -145,6 +150,8 @@ typedef enum
     NVS_PACKET_PAIR_HEADER,
     // Up to (P2P_MAX_DATA_LEN - 1) bytes data
     NVS_PACKET_VALUE_DATA,
+    // Signal readiness for next packet in sequence
+    NVS_PACKET_READY,
     // Indicate unrecoverable p2p error. Both Swadges end session and clean up. 1-byte error ID, NVS_MAX_ERROR_MESSAGE_LEN bytes text
     NVS_PACKET_ERROR,
 } nvsPacket_t;
@@ -384,11 +391,12 @@ void nvsManagerDecodePacketPairHeader(const uint8_t* packetAsBytes, size_t lengt
 void nvsManagerSendValueData(uint8_t* data, size_t dataLength);
 uint8_t* nvsManagerEncodePacketValueData(uint8_t* data, size_t dataLength, size_t* outLength);
 void nvsManagerDecodePacketValueData(const uint8_t* packetAsBytes, size_t length, uint8_t* outData, size_t* outDataLength);
+void nvsManagerSendReady(void);
 void nvsManagerSendError(nvsCommError_t error, const char* message);
 uint8_t* nvsManagerEncodePacketError(nvsPacketError_t packetAsStruct, size_t* outLength);
 void nvsManagerDecodePacketError(const uint8_t* packetAsBytes, size_t length, nvsPacketError_t* outPacketAsStruct);
-void nvsManagerComposeUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool receivedAck, char** outMessage);
-void nvsManagerComposeAndSendUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool receivedAck);
+void nvsManagerComposeUnexpectedPacketErrorMessage(nvsPacket_t receivedPacketType, bool receivedAck, char** outMessage);
+void nvsManagerComposeAndSendUnexpectedPacketErrorMessage(nvsPacket_t receivedPacketType, bool receivedAck);
 
 // Menu functions
 void nvsManagerSetUpTopMenu(bool resetPos);
@@ -404,10 +412,19 @@ void nvsManagerRecvConnMenuCb(const char* opt);
 void nvsManagerSetUpRecvApplyMenu(bool resetPos);
 void nvsManagerRecvApplyMenuCb(const char* opt);
 
+/// NVS functions
 bool nvsManagerReadAllNvsEntryInfos(void);
 char* blobToStrWithPrefix(const void * value, size_t length);
 bool nvsManagerReadNvsKeyValuePair(nvs_entry_info_t* entryInfo, int32_t* outNum, char** outBlobPtr, uint16_t* outEntries, size_t* outBytes);
 const char* getNvsTypeName(nvs_type_t type);
+
+//Debug functions
+#ifdef DEBUG
+void printSendPacketDebug(const uint8_t* payload);
+void printRecvPacketDebug(const uint8_t* payload);
+void printSendStateDebug(void);
+void printRecvStateDebug(void);
+#endif
 
 /*==============================================================================
  * Const Variables
@@ -494,6 +511,7 @@ const char str_version[] = "version";
 const char str_num_pairs_entries[] = "num pairs and entries";
 const char str_pair_header[] = "pair header";
 const char str_value_data[] = "value data";
+const char str_ready[] = "ready";
 const char str_error[] = "error";
 const char str_unknown_lowercase[] = "unknown";
 const char str_packet[] = " packet";
@@ -1513,7 +1531,11 @@ void  nvsManagerMainLoop(int64_t elapsedUs)
                     snprintf(keyStr, keyStrLen, nvsManager->screen == NVS_SEND ? str_sending_format : str_receiving_format,
                              nvsManager->nvsEntryInfos[nvsManager->totalNumPairs - nvsManager->numPairsRemaining].key);
                 }
-                drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, strToDisplay != NULL ? strToDisplay : keyStr, CORNER_OFFSET, yOff);
+                int16_t afterText = drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, strToDisplay != NULL ? strToDisplay : keyStr, CORNER_OFFSET, yOff);
+                if(nvsManager->commState == NVS_STATE_WAITING_FOR_CONNECTION)
+                {
+                    drawText(nvsManager->disp, &nvsManager->ibm_vga8, color_summary_text, nvsManager->wired ? str_wired : str_wireless, afterText + textWidth(&nvsManager->ibm_vga8, " "), yOff);
+                }
 
                 yOff += nvsManager->ibm_vga8.h + LINE_BREAK_Y;
 
@@ -1637,7 +1659,6 @@ void nvsManagerP2pConnect(void)
         nvsManager->totalNumPairs = 0;
         nvsManager->totalNumBytesInPair = 0;
         nvsManager->totalNumPackets = 0;
-        nvsManager->numPairsRemaining = 0;
     }
     nvsManager->numPairsRemaining = nvsManager->totalNumPairs;
     nvsManager->numBytesRemainingInPair = nvsManager->totalNumBytesInPair;
@@ -1651,6 +1672,7 @@ void nvsManagerP2pConnect(void)
     {
         nvsManager->sendableEntryInfoIndices = heap_caps_calloc(nvsManager->nvsNumEntryInfos, sizeof(nvsManager->curSendableEntryInfoIndicesIdx), MALLOC_CAP_SPIRAM);
     }
+    nvsManager->curSendableEntryInfoIndicesIdx = 0;
 
     nvsManagerDeinitIncomingNvsImage();
     nvsManager->appliedLatestData = false;
@@ -1667,13 +1689,13 @@ void nvsManagerP2pConnect(void)
     setLeds(leds, NUM_LEDS);
 }
 
-// Check for packets in the receive queue, and process them, before sending packet
 void nvsManagerP2pSendMsg(p2pInfo* p2p, const uint8_t* payload, uint16_t len, p2pMsgTxCbFn msgTxCbFn)
 {
-    checkEspNowRxQueue();
-
     if(nvsManager->commState != NVS_STATE_FAILED && nvsManager->commState != NVS_STATE_DONE)
     {
+#ifdef DEBUG
+        printSendPacketDebug(payload);
+#endif
         p2pSendMsg(p2p, payload, len, msgTxCbFn);
     }
 }
@@ -1772,6 +1794,10 @@ void nvsManagerP2pConCbFn(p2pInfo* p2p, connectionEvt_t evt)
  */
 void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
 {
+#ifdef DEBUG
+    printRecvPacketDebug(payload);
+#endif
+
     if(payload[0] == NVS_PACKET_ERROR && (nvsManager->screen == NVS_SEND || nvsManager->screen == NVS_RECEIVE))
     {
         nvsPacketError_t packetAsStruct;
@@ -1822,6 +1848,65 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
 
                     break;
                 } // NVS_STATE_WAITING_FOR_VERSION
+                case NVS_STATE_SENT_NUM_PAIRS_ENTRIES:
+                {
+                    if(payload[0] != NVS_PACKET_READY || nvsManager->packetState != NVS_PSTATE_SUCCESS)
+                    {
+                        nvsManagerComposeAndSendUnexpectedPacketErrorMessage(payload[0], false);
+                        break;
+                    }
+
+                    // If NVS_SEND_MODE_ONE, nvsManager->loadedRow is set in nvsManagerConnect
+                    // If NVS_SEND_MODE_ALL, nvsManager->loadedRow is set in nvsManagerSendNumPairsEntries()
+                    nvsManagerSendPairHeader(&(nvsManager->nvsEntryInfos[nvsManager->loadedRow]));
+                    break;
+                }
+                case NVS_STATE_SENT_PAIR_HEADER:
+                {
+                    if(payload[0] != NVS_PACKET_READY || nvsManager->packetState != NVS_PSTATE_SUCCESS)
+                    {
+                        nvsManagerComposeAndSendUnexpectedPacketErrorMessage(payload[0], false);
+                        break;
+                    }
+
+                    size_t dataLength = MIN(nvsManager->numBytesRemainingInPair, NVS_MAX_DATA_BYTES_PER_PACKET);
+                    nvsManagerSendValueData(nvsManager->blob != NULL ? (uint8_t*) &(nvsManager->blob[nvsManager->totalNumBytesInPair - nvsManager->numBytesRemainingInPair]) : (uint8_t*) &nvsManager->num, dataLength);
+                    break;
+                }
+                case NVS_STATE_SENT_VALUE_DATA:
+                {
+                    if(payload[0] != NVS_PACKET_READY || nvsManager->packetState != NVS_PSTATE_SUCCESS)
+                    {
+                        nvsManagerComposeAndSendUnexpectedPacketErrorMessage(payload[0], false);
+                        break;
+                    }
+
+                    if(nvsManager->numBytesRemainingInPair == 0)
+                    {
+                        if(nvsManager->numPairsRemaining == 0)
+                        {
+                            // Comms should already be done, why are we receiving a packet?
+                            nvsManagerComposeAndSendUnexpectedPacketErrorMessage(payload[0], false);
+                            break;
+                        }
+                        else
+                        {
+                            // Increment to next readable/sendable key/value pair
+                            nvsManager->curSendableEntryInfoIndicesIdx++;
+                            nvsManager->loadedRow = nvsManager->sendableEntryInfoIndices[nvsManager->curSendableEntryInfoIndicesIdx];
+
+                            // Send pair header packet
+                            nvsManagerSendPairHeader(&(nvsManager->nvsEntryInfos[nvsManager->loadedRow]));
+                        }
+                    }
+                    else
+                    {
+                        size_t dataLength = MIN(nvsManager->numBytesRemainingInPair, NVS_MAX_DATA_BYTES_PER_PACKET);
+                        nvsManagerSendValueData(nvsManager->blob != NULL ? (uint8_t*) &(nvsManager->blob[nvsManager->totalNumBytesInPair - nvsManager->numBytesRemainingInPair]) : (uint8_t*) &nvsManager->num, dataLength);
+                    }
+                    
+                    break;
+                }
                 case NVS_STATE_DONE:
                 {
                     // Bad state, but likely on the other Swadge
@@ -1840,9 +1925,6 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                 }
                 case NVS_STATE_NOT_CONNECTED:
                 case NVS_STATE_WAITING_FOR_CONNECTION:
-                case NVS_STATE_SENT_NUM_PAIRS_ENTRIES:
-                case NVS_STATE_SENT_PAIR_HEADER:
-                case NVS_STATE_SENT_VALUE_DATA:
                 case NVS_STATE_WAITING_FOR_NUM_PAIRS_ENTRIES:
                 case NVS_STATE_WAITING_FOR_PAIR_HEADER:
                 case NVS_STATE_WAITING_FOR_VALUE_DATA:
@@ -1951,13 +2033,13 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                     nvsManagerInitIncomingNvsImage(nvsManager->totalNumPairs);
 
                     nvsManager->commState = NVS_STATE_WAITING_FOR_PAIR_HEADER;
-                    nvsManager->packetState = NVS_PSTATE_NOTHING_SENT_YET;
+                    nvsManagerSendReady();
 
                     break;
                 }
                 case NVS_STATE_WAITING_FOR_PAIR_HEADER:
                 {
-                    if(payload[0] != NVS_PACKET_PAIR_HEADER || nvsManager->packetState != NVS_PSTATE_NOTHING_SENT_YET)
+                    if(payload[0] != NVS_PACKET_PAIR_HEADER || nvsManager->packetState != NVS_PSTATE_SUCCESS)
                     {
                         nvsManagerComposeAndSendUnexpectedPacketErrorMessage(payload[0], false);
                         break;
@@ -2024,12 +2106,13 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
                     value->numBytes = nvsManager->totalNumBytesInPair;
 
                     nvsManager->commState = NVS_STATE_WAITING_FOR_VALUE_DATA;
+                    nvsManagerSendReady();
 
                     break;
                 }
                 case NVS_STATE_WAITING_FOR_VALUE_DATA:
                 {
-                    if(payload[0] != NVS_PACKET_VALUE_DATA || nvsManager->packetState != NVS_PSTATE_NOTHING_SENT_YET)
+                    if(payload[0] != NVS_PACKET_VALUE_DATA || nvsManager->packetState != NVS_PSTATE_SUCCESS)
                     {
                         nvsManagerComposeAndSendUnexpectedPacketErrorMessage(payload[0], false);
                         break;
@@ -2079,6 +2162,9 @@ void nvsManagerP2pMsgRxCbFn(p2pInfo* p2p, const uint8_t* payload, uint8_t len)
 
                         nvsManager->commState = NVS_STATE_WAITING_FOR_PAIR_HEADER;
                     }
+
+                    // If we reach this, we should be ready for either the next `NVS_PACKET_VALUE_DATA` or the next `NVS_PACKET_PAIR_HEADER`
+                    nvsManagerSendReady();
 
                     break;
                 }
@@ -2131,6 +2217,9 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
     {
         case MSG_ACKED:
         {
+#ifdef DEBUG
+            ESP_LOGD("NM", "Receiving ACK");
+#endif
             if(nvsManager->packetState != NVS_PSTATE_WAIT_FOR_ACK)
             {
                 nvsManagerComposeAndSendUnexpectedPacketErrorMessage(0, true);
@@ -2139,58 +2228,32 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
 
             // ACK was expected
 
-            nvsManager->numPacketsRemaining--;
-
             nvsManager->packetState = NVS_PSTATE_SUCCESS;
             
             switch(nvsManager->screen)
             {
                 case NVS_SEND:
                 {
+                    nvsManager->numPacketsRemaining--;
+
                     switch(nvsManager->commState)
                     {
-                        case NVS_STATE_SENT_NUM_PAIRS_ENTRIES:
+                        case NVS_STATE_WAITING_FOR_VERSION: // Next packet we receive should be `NVS_PACKET_VERSION`
+                        case NVS_STATE_SENT_NUM_PAIRS_ENTRIES: // Next packet we receive should be `NVS_PACKET_READY`
+                        case NVS_STATE_SENT_PAIR_HEADER: // Next packet we receive should be `NVS_PACKET_READY`
                         {
-                            nvsManagerSendPairHeader(&(nvsManager->nvsEntryInfos[nvsManager->loadedRow]));
-                            break;
-                        }
-                        case NVS_STATE_SENT_PAIR_HEADER:
-                        {
-                            size_t dataLength = MIN(nvsManager->numBytesRemainingInPair, NVS_MAX_DATA_BYTES_PER_PACKET);
-                            nvsManagerSendValueData(nvsManager->blob != NULL ? (uint8_t*) &(nvsManager->blob[nvsManager->totalNumBytesInPair - nvsManager->numBytesRemainingInPair]) : (uint8_t*) &nvsManager->num, dataLength);
+                            // Packet state change already done above, so nothing to do for now
                             break;
                         }
                         case NVS_STATE_SENT_VALUE_DATA:
                         {
-                            if(nvsManager->numBytesRemainingInPair == 0)
+                            if(nvsManager->numBytesRemainingInPair == 0 && nvsManager->numPairsRemaining == 0)
                             {
-                                if(nvsManager->numPairsRemaining == 0)
-                                {
-                                    // Woohoo! Communication with the other Swadge was successful, time to clean up
-                                    nvsManager->commState = NVS_STATE_DONE;
-                                    nvsManagerStopP2p();
-                                }
-                                else
-                                {
-                                    // Increment to next readable/sendable key/value pair
-                                    nvsManager->curSendableEntryInfoIndicesIdx++;
-                                    nvsManager->loadedRow = nvsManager->sendableEntryInfoIndices[nvsManager->curSendableEntryInfoIndicesIdx];
-
-                                    // Send pair header packet
-                                    nvsManagerSendPairHeader(&(nvsManager->nvsEntryInfos[nvsManager->loadedRow]));
-                                }
-                            }
-                            else
-                            {
-                                size_t dataLength = MIN(nvsManager->numBytesRemainingInPair, NVS_MAX_DATA_BYTES_PER_PACKET);
-                                nvsManagerSendValueData(nvsManager->blob != NULL ? (uint8_t*) &(nvsManager->blob[nvsManager->totalNumBytesInPair - nvsManager->numBytesRemainingInPair]) : (uint8_t*) &nvsManager->num, dataLength);
+                                // Woohoo! Communication with the other Swadge was successful, time to clean up
+                                nvsManager->commState = NVS_STATE_DONE;
+                                nvsManagerStopP2p();
                             }
                             
-                            break;
-                        } // NVS_STATE_SENT_VALUE_DATA
-                        case NVS_STATE_WAITING_FOR_VERSION:
-                        {
-                            // Next packet we receive should be `NVS_PACKET_VERSION`. Packet state change already done above, so nothing to do for now
                             break;
                         }
                         case NVS_STATE_FAILED:
@@ -2219,22 +2282,30 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
                     {
                         case NVS_STATE_WAITING_FOR_NUM_PAIRS_ENTRIES:
                         {
-                            // We just sent our `NVS_PACKET_VERSION` and were waiting for the ACK.
-                            // Next packet we receive should be `NVS_PACKET_NUM_PAIRS_AND_ENTRIES`. Packet state change already done above, so nothing to do for now
+                            // We just sent our `NVS_PACKET_VERSION` and were waiting for the ACK
+                            // Next packet we receive should be the one our state says we're waiting for
+                            // Packet state change already done above, and still unknown totalNumPackets, so nothing to do for now
+                            break;
+                        }
+                        case NVS_STATE_WAITING_FOR_PAIR_HEADER: // We just sent our `NVS_PACKET_READY` and were waiting for the ACK
+                        case NVS_STATE_WAITING_FOR_VALUE_DATA: // We just sent our `NVS_PACKET_READY` and were waiting for the ACK
+                        {
+                            // Next packet we receive should be the one our state says we're waiting for
+                            // Packet state change already done above
+
+                            nvsManager->numPacketsRemaining--;
                             break;
                         }
                         case NVS_STATE_FAILED:
                         {
                             break;
                         }
-                        case NVS_STATE_WAITING_FOR_VERSION:
                         case NVS_STATE_NOT_CONNECTED:
                         case NVS_STATE_WAITING_FOR_CONNECTION:
+                        case NVS_STATE_WAITING_FOR_VERSION:
                         case NVS_STATE_SENT_NUM_PAIRS_ENTRIES:
                         case NVS_STATE_SENT_PAIR_HEADER:
                         case NVS_STATE_SENT_VALUE_DATA:
-                        case NVS_STATE_WAITING_FOR_PAIR_HEADER:
-                        case NVS_STATE_WAITING_FOR_VALUE_DATA:
                         case NVS_STATE_DONE:
                         default:
                         {
@@ -2429,7 +2500,7 @@ void nvsManagerSendNumPairsEntries(void)
             packetAsStruct.numPairs = 0;
             packetAsStruct.numEntries = 0;
             nvsManager->numPacketsRemaining = 0;
-            nvsManager->loadedRow = 0;
+            nvsManager->loadedRow = UINT16_MAX;
 
             for(uint32_t i = 0; i < nvsManager->nvsNumEntryInfos; i++)
             {
@@ -2461,7 +2532,7 @@ void nvsManagerSendNumPairsEntries(void)
 
             nvsManager->totalNumPairs = packetAsStruct.numPairs;
             nvsManager->numPairsRemaining = packetAsStruct.numPairs;
-            nvsManager->totalNumPackets = NVS_TOTAL_PACKETS_UP_TO_INCL_NUM_PAIRS_ENTRIES + nvsManager->numPacketsRemaining;
+            nvsManager->totalNumPackets = NVS_TOTAL_PACKETS_UP_TO_INCL_NUM_PAIRS_ENTRIES + 1 /*ACK for NVS_PACKET_NUM_PAIRS_ENTRIES*/ + nvsManager->numPacketsRemaining;
 
             break;
         }
@@ -2530,7 +2601,7 @@ void nvsManagerSendPairHeader(nvs_entry_info_t* entryInfo)
 {
     if(nvsManager->sendMode == NVS_SEND_MODE_ALL)
     {
-        nvsManagerReadNvsKeyValuePair(&(nvsManager->nvsEntryInfos[nvsManager->loadedRow]), &nvsManager->num, &nvsManager->blob, &nvsManager->keyUsedEntries, &nvsManager->totalNumBytesInPair);
+        nvsManagerReadNvsKeyValuePair(entryInfo, &nvsManager->num, &nvsManager->blob, &nvsManager->keyUsedEntries, &nvsManager->totalNumBytesInPair);
     }
 
     // Populate struct with data
@@ -2554,7 +2625,6 @@ void nvsManagerSendPairHeader(nvs_entry_info_t* entryInfo)
     nvsManager->lastPacketSent = payload;
     nvsManager->lastPacketLen = length;
 
-    nvsManager->numPairsRemaining--;
     nvsManager->numBytesRemainingInPair = nvsManager->totalNumBytesInPair;
     nvsManager->numPacketsRemaining--;
 
@@ -2604,6 +2674,10 @@ void nvsManagerSendValueData(uint8_t* data, size_t dataLength)
     nvsManager->lastPacketLen = length;
 
     nvsManager->numBytesRemainingInPair -= dataLength;
+    if(nvsManager->numBytesRemainingInPair == 0)
+    {
+        nvsManager->numPairsRemaining--;
+    }
     nvsManager->numPacketsRemaining--;
 
     nvsManager->commState = NVS_STATE_SENT_VALUE_DATA;
@@ -2642,6 +2716,27 @@ void nvsManagerDecodePacketValueData(const uint8_t* packetAsBytes, size_t length
         // Copy data out of packet
         memcpy(outData, &packetAsBytes[sizeof(nvsPacket_t)], *outDataLength);
     }
+}
+
+// Sends a packet signaling readiness for the next packet in the sequence. Sets `nvsManager->packetState`, but does not set `nvsManager->commState`
+void nvsManagerSendReady(void)
+{
+    size_t length = sizeof(nvsPacket_t);
+    uint8_t* payload = calloc(1, length);
+    payload[0] = NVS_PACKET_READY;
+
+    // Send packet to the other Swadge
+    nvsManagerP2pSendMsg(&nvsManager->p2p, payload, length, nvsManagerP2pMsgTxCbFn);
+
+    // Save sent packet
+    if(nvsManager->lastPacketSent != NULL)
+    {
+        free(nvsManager->lastPacketSent);
+    }
+    nvsManager->lastPacketSent = payload;
+    nvsManager->lastPacketLen = length;
+
+    nvsManager->packetState = NVS_PSTATE_WAIT_FOR_ACK;
 }
 
 void nvsManagerSendError(nvsCommError_t error, const char* message)
@@ -2692,7 +2787,7 @@ void nvsManagerDecodePacketError(const uint8_t* packetAsBytes, size_t length, nv
     memcpy(outPacketAsStruct, &packetAsBytes[sizeof(nvsPacket_t)], sizeof(nvsPacketError_t));
 }
 
-void nvsManagerComposeUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool receivedAck, char** outMessage)
+void nvsManagerComposeUnexpectedPacketErrorMessage(nvsPacket_t receivedPacketType, bool receivedAck, char** outMessage)
 {
     if(*outMessage != NULL)
     {
@@ -2732,7 +2827,7 @@ void nvsManagerComposeUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool 
             }
             else
             {
-                expectedPacket = str_nothing;
+                expectedPacket = str_ready;
             }
             break;
         }
@@ -2744,7 +2839,7 @@ void nvsManagerComposeUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool 
             }
             else
             {
-                expectedPacket = str_nothing;
+                expectedPacket = str_ready;
             }
             break;
         }
@@ -2756,7 +2851,7 @@ void nvsManagerComposeUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool 
             }
             else
             {
-                expectedPacket = str_nothing;
+                expectedPacket = str_ready;
             }
             break;
         }
@@ -2781,7 +2876,7 @@ void nvsManagerComposeUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool 
         }
     }
 
-    switch(packetType)
+    switch(receivedPacketType)
     {
         case NVS_PACKET_VERSION:
         {
@@ -2803,6 +2898,11 @@ void nvsManagerComposeUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool 
             receivedPacket = str_value_data;
             break;
         }
+        case NVS_PACKET_READY:
+        {
+            receivedPacket = str_ready;
+            break;
+        }
         case NVS_PACKET_ERROR:
         {
             receivedPacket = str_error;
@@ -2820,13 +2920,23 @@ void nvsManagerComposeUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool 
              expectedPacket,
              expectedPacket == str_nothing ? "" : str_packet,
              receivedAck ? str_ack : receivedPacket,
-             receivedAck || receivedPacket == str_nothing ? "" : str_packet);
+             (receivedAck || (receivedPacket == str_nothing)) ? "" : str_packet);
 }
 
-void nvsManagerComposeAndSendUnexpectedPacketErrorMessage(nvsPacket_t packetType, bool receivedAck)
+void nvsManagerComposeAndSendUnexpectedPacketErrorMessage(nvsPacket_t receivedPacketType, bool receivedAck)
 {
+#ifdef DEBUG
+    if(nvsManager->screen == NVS_SEND)
+    {
+        printSendStateDebug();
+    }
+    else
+    {
+        printRecvStateDebug();
+    }
+#endif
     char* message = NULL;
-    nvsManagerComposeUnexpectedPacketErrorMessage(packetType, receivedAck, &message);
+    nvsManagerComposeUnexpectedPacketErrorMessage(receivedPacketType, receivedAck, &message);
     nvsManagerSendError(NVS_ERROR_UNEXPECTED_PACKET, message);
     free(message);
 }
@@ -3472,3 +3582,27 @@ const char* getNvsTypeName(nvs_type_t type)
         }
     }
 }
+
+#ifdef DEBUG
+void printSendPacketDebug(const uint8_t* payload)
+{
+    ESP_LOGD("NM", "Sending packet type %u", payload[0]);
+}
+
+void printRecvPacketDebug(const uint8_t* payload)
+{
+    ESP_LOGD("NM", "Receiving packet type %u", payload[0]);
+}
+
+void printSendStateDebug(void)
+{
+    ESP_LOGD("NM", "screen:%u, sendMode:%u, commState:%u, pState:%u, lastPktType:%u, lastPktLen:%zu, totalPairs:%u, totalBytes:%zu, totalPkts:%u, pairsRemain:%u, bytesRemain:%zu, pktsRemain:%u, sendEntryInfoIdcesIdx:%u, sendEntryInfoIdx:%u, key:%s",
+             nvsManager->screen, nvsManager->sendMode, nvsManager->commState, nvsManager->packetState, (uint8_t) nvsManager->lastPacketSent[0], nvsManager->lastPacketLen, nvsManager->totalNumPairs, nvsManager->totalNumBytesInPair, nvsManager->totalNumPackets, nvsManager->numPairsRemaining, nvsManager->numBytesRemainingInPair, nvsManager->numPacketsRemaining, nvsManager->curSendableEntryInfoIndicesIdx, nvsManager->sendableEntryInfoIndices != NULL ? nvsManager->sendableEntryInfoIndices[nvsManager->curSendableEntryInfoIndicesIdx] : UINT32_MAX, nvsManager->sendableEntryInfoIndices != NULL ? nvsManager->nvsEntryInfos[nvsManager->sendableEntryInfoIndices[nvsManager->curSendableEntryInfoIndicesIdx]].key : "");
+}
+
+void printRecvStateDebug(void)
+{
+    ESP_LOGD("NM", "screen:%u, recvMode:%u, commState:%u, pState:%u, lastPktType:%u, lastPktLen:%zu, totalPairs:%u, totalBytes:%zu, totalPkts:%u, pairsRemain:%u, bytesRemain:%zu, pktsRemain:%u, incomingEntryInfoIdx:%u, key:%s",
+             nvsManager->screen, nvsManager->receiveMode, nvsManager->commState, nvsManager->packetState, (uint8_t) nvsManager->lastPacketSent[0], nvsManager->lastPacketLen, nvsManager->totalNumPairs, nvsManager->totalNumBytesInPair, nvsManager->totalNumPackets, nvsManager->numPairsRemaining, nvsManager->numBytesRemainingInPair, nvsManager->numPacketsRemaining, nvsManager->totalNumPackets - nvsManager->numPacketsRemaining, nvsManager->incomingNvsEntryInfos != NULL ? nvsManager->incomingNvsEntryInfos[nvsManager->totalNumPackets - nvsManager->numPacketsRemaining].key : "");
+}
+#endif
