@@ -57,10 +57,14 @@
 // Target 40 FPS.
 #define DEFAULT_FRAMETIME 25000
 #define CROSSHAIR_COLOR 200
+#define BOOLET_COLOR 198 //Very bright yellow-orange
 #define CNDRAW_BLACK 0
 #define CNDRAW_WHITE 18 // actually greenish
 #define PROMPT_COLOR 92
 #define MAX_COLOR cTransparent
+
+#define BOOLET_MAX_LIFETIME 8000000
+#define BOOLET_HIT_DIST_SQUARED 625
 
 #define flightGetCourseTimeUs() ( flight->paused ? (flight->timeOfPause - flight->timeOfStart) : ((uint32_t)esp_timer_get_time() - flight->timeOfStart) )
 
@@ -129,7 +133,7 @@ typedef struct  // 28 bytes.
     int16_t posAt[3];
     int8_t  velAt[3];
     int8_t  rotAt[3];    // Right now, only HPR where R = 0
-    uint16_t  flags; // If zero, don't render.
+    uint16_t  flags; // If zero, don't render.  Note flags&1 has reserved meaning locally..  if flags & 2, render as dead.
 } multiplayerpeer_t;
 
 typedef struct  // Rounds up to 16 bytes.
@@ -137,7 +141,7 @@ typedef struct  // Rounds up to 16 bytes.
     uint32_t timeOfLaunch; // In our timestamp.
     int16_t launchLocation[3];
     int16_t launchRotation[2]; // Pitch and Yaw
-    uint16_t flags;  // If 0, disabled.  1's bit = draw.
+    uint16_t flags;  // If 0, disabled.  Otherwise, is a randomized ID.
 } boolet_t;
 
 typedef struct
@@ -183,6 +187,26 @@ static uint32_t ReadUEQ( uint32_t * rin )
     for (int i = zeroes - 1; i >= 0; i--)
         ret |= ReadBitQ( rin ) << i;
     return ret - 1;
+}
+
+static void WriteUQ( uint32_t * v, uint32_t number, int bits )
+{
+	uint32_t newv = *v;
+	newv <<= bits;
+	*v = newv | number;
+}
+
+static void WriteUEQ( uint32_t * v, uint32_t number )
+{
+	int numvv = number+1;
+	int gqbits = 0;
+	while ( numvv >>= 1)
+	{
+		gqbits++;
+	}
+
+	*v <<= gqbits;
+	WriteUQ( v,number+1, gqbits );
 }
 
 
@@ -245,7 +269,14 @@ typedef struct
     int nNetworkMode;
 
     boolet_t myBoolets[BOOLETSPERPLAYER];
+	uint16_t booletHitHistory[BOOLETSPERPLAYER];
+	int booletHitHistoryHead;
     int myBooletHead;
+	int timeOfLastShot;
+	int myHealth;
+	uint32_t timeOfDeath;
+
+	modelRangePair_t * mrp;
 } flight_t;
 
 /*============================================================================
@@ -269,7 +300,7 @@ int tdModelVisibilitycheck( const tdModel * m );
 void tdDrawModel( display_t * disp, const tdModel * m );
 static int flightTimeHighScorePlace( int wintime, bool is100percent );
 static void flightTimeHighScoreInsert( int insertplace, bool is100percent, char * name, int timeCentiseconds );
-static void FlightNetworkDraw( flight_t * tflight, display_t* disp, uint32_t now, modelRangePair_t ** mrp );
+static void FlightNetworkFrameCall( flight_t * tflight, display_t* disp, uint32_t now, modelRangePair_t ** mrp );
 static void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
 static void FlightfnEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
 
@@ -370,6 +401,9 @@ static void flightEnterMode(display_t * disp)
     data+=2; //header
     flight->enviromodels = *(data++);
     flight->environment = malloc( sizeof(const tdModel *) * flight->enviromodels );
+
+	flight->mrp = malloc( sizeof(modelRangePair_t) * ( flight->enviromodels+MAX_PEERS+MAX_BOOLETS+MAX_NETWORK_MODELS ) );
+
     int i;
     for( i = 0; i < flight->enviromodels; i++ )
     {
@@ -408,6 +442,10 @@ static void flightExitMode(void)
     {
         free( flight->environment );
     }
+	if( flight->mrp )
+	{
+		free( flight->mrp );
+	}
     free(flight);
 }
 
@@ -567,12 +605,14 @@ static void flightStartGame( flightModeScreen mode )
     //Starting location/orientation
     if( mode == FLIGHT_FREEFLIGHT )
     {
+		srand( flight->timeOfStart );
         flight->planeloc[0] = (rand()%1500)-200;
         flight->planeloc[1] = (rand()%500)+500;
         flight->planeloc[2] = (rand()%900)+2000;
         flight->hpr[0] = 2061;
         flight->hpr[1] = 190;
         flight->hpr[2] = 0;
+		flight->myHealth = 100;
     }
     else
     {
@@ -582,6 +622,7 @@ static void flightStartGame( flightModeScreen mode )
         flight->hpr[0] = 2061;
         flight->hpr[1] = 190;
         flight->hpr[2] = 0;
+		flight->myHealth = 0; // Not used in regular mode.
     }
     flight->planeloc_fine[0] = flight->planeloc[0] << FLIGHT_SPEED_DEC;
     flight->planeloc_fine[1] = flight->planeloc[1] << FLIGHT_SPEED_DEC;
@@ -1082,7 +1123,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
     tdRotateEA( flight->ProjectionMatrix, tflight->hpr[1]/11, tflight->hpr[0]/11, 0 );
     tdTranslate( flight->ModelviewMatrix, -tflight->planeloc[0], -tflight->planeloc[1], -tflight->planeloc[2] );
 
-    modelRangePair_t mrp[tflight->enviromodels+MAX_PEERS+MAX_BOOLETS+MAX_NETWORK_MODELS];
+    modelRangePair_t * mrp = tflight->mrp;
     modelRangePair_t * mrptr = mrp;
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -1147,7 +1188,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
     }
 
     if( tflight->nNetworkMode )
-        FlightNetworkDraw( tflight, disp, now, &mrptr );
+        FlightNetworkFrameCall( tflight, disp, now, &mrptr );
 
 // #ifndef EMU
 //     if( flight->mode == FLIGHT_FREEFLIGHT ) uart_tx_one_char('2');
@@ -1283,6 +1324,16 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
         fillDisplayArea(disp, TFT_WIDTH - width-50, TFT_HEIGHT - flight->radiostars.h - 1, TFT_WIDTH, TFT_HEIGHT, CNDRAW_BLACK);
         drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, TFT_WIDTH - width + 1-50, TFT_HEIGHT - flight->radiostars.h );
 
+
+		if( flight->mode == FLIGHT_FREEFLIGHT )
+		{
+			// Display health in free-flight mode.
+		    snprintf(framesStr, sizeof(framesStr), "%d", tflight->myHealth);
+		    width = textWidth(&flight->radiostars, framesStr);
+		    fillDisplayArea(disp, 0, TFT_HEIGHT - flight->radiostars.h - 1, width+50, TFT_HEIGHT, CNDRAW_BLACK);
+		    drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 48, TFT_HEIGHT - flight->radiostars.h );
+		}
+
         if(flight->paused)
         {
             width = textWidth(&flight->ibm, fl_paused);
@@ -1348,7 +1399,20 @@ static void flightGameUpdate( flight_t * tflight )
         return;
     }
 
-    if( tflight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_FREEFLIGHT )
+	int dead = 0;
+	if( tflight->mode == FLIGHT_FREEFLIGHT && tflight->myHealth <= 0)
+	{
+	    uint32_t now = esp_timer_get_time();
+		if( (uint32_t)(now - tflight->timeOfDeath) > 2000000 )
+		{
+			flight->nNetworkMode = 1;
+			flightStartGame(FLIGHT_FREEFLIGHT);
+			return;
+		}
+		dead = 1;
+	}
+
+    if( ( tflight->mode == FLIGHT_GAME || tflight->mode == FLIGHT_FREEFLIGHT ) && !dead )
     {
         int dpitch = 0;
         int dyaw = 0;
@@ -1541,23 +1605,29 @@ void flightButtonCallback( buttonEvt_t* evt )
 
             if( evt->down && evt->button == BTN_B )
             {
-                // Fire a boolet.
-                boolet_t * tb = &flight->myBoolets[flight->myBooletHead];
-                flight->myBooletHead = ( flight->myBooletHead + 1 ) % BOOLETSPERPLAYER;
-                tb->flags = 1;
-                tb->timeOfLaunch = esp_timer_get_time();
+				uint32_t now = esp_timer_get_time();
+				uint32_t timeSinceShot = now - flight->timeOfLastShot;
+				if( timeSinceShot > 300000 ) // Limit fire rate.
+				{  
+		            // Fire a boolet.
+		            boolet_t * tb = &flight->myBoolets[flight->myBooletHead];
+		            flight->myBooletHead = ( flight->myBooletHead + 1 ) % BOOLETSPERPLAYER;
+		            tb->flags = (rand()%65535)+1;
+		            tb->timeOfLaunch = now;
+					flight->timeOfLastShot = now;
 
-                int eo_sign = (flight->myBooletHead&1)?1:-1;
-                int16_t rightleft[3];
-                rightleft[0] = -eo_sign*(getCos1024( flight->hpr[0]/11 ) ) >> 6;
-                rightleft[2] =  eo_sign*(getSin1024( flight->hpr[0]/11 ) ) >> 6;
-                rightleft[1] =  0;
+		            int eo_sign = (flight->myBooletHead&1)?1:-1;
+		            int16_t rightleft[3];
+		            rightleft[0] = -eo_sign*(getCos1024( flight->hpr[0]/11 ) ) >> 6;
+		            rightleft[2] =  eo_sign*(getSin1024( flight->hpr[0]/11 ) ) >> 6;
+		            rightleft[1] =  0;
 
-                tb->launchLocation[0] = flight->planeloc[0] + rightleft[0];
-                tb->launchLocation[1] = flight->planeloc[1] + rightleft[1];
-                tb->launchLocation[2] = flight->planeloc[2] + rightleft[2];
-                tb->launchRotation[0] = flight->hpr[0];
-                tb->launchRotation[1] = flight->hpr[1];
+		            tb->launchLocation[0] = flight->planeloc[0] + rightleft[0];
+		            tb->launchLocation[1] = flight->planeloc[1] + rightleft[1];
+		            tb->launchLocation[2] = flight->planeloc[2] + rightleft[2];
+		            tb->launchRotation[0] = flight->hpr[0];
+		            tb->launchRotation[1] = flight->hpr[1];
+				}
             }
 
             flight->buttonState = state;
@@ -1686,7 +1756,7 @@ static void TModOrDrawBoolet( flight_t * tflight, tdModel * tmod, int16_t * mat,
         if( LocalToScreenspace( start, &sx, &sy ) < 0 ) return;
         if( LocalToScreenspace( end, &ex, &ey ) < 0 ) return;
 
-        speedyLine( tflight->disp, sx, sy+1, ex, ey-1, 180 ); //Boolet color
+        speedyLine( tflight->disp, sx, sy+1, ex, ey-1, BOOLET_COLOR );
     }
 }
 
@@ -1798,7 +1868,7 @@ static void TModOrDrawCustomNetModel( flight_t * tflight, tdModel * tmod, int16_
 }
 
 
-static void FlightNetworkDraw( flight_t * tflight, display_t* disp, uint32_t now, modelRangePair_t ** mrp )
+static void FlightNetworkFrameCall( flight_t * tflight, display_t* disp, uint32_t now, modelRangePair_t ** mrp )
 {
     modelRangePair_t * mrptr = *mrp;
 
@@ -1880,7 +1950,7 @@ static void FlightNetworkDraw( flight_t * tflight, display_t* disp, uint32_t now
             {
                 if( b->flags == 0 ) continue;
                 int32_t delta = now - b->timeOfLaunch;
-                if( delta > 8000000 )
+                if( delta > BOOLET_MAX_LIFETIME )
                 {
                     b->flags = 0;
                     continue;
@@ -1898,6 +1968,46 @@ static void FlightNetworkDraw( flight_t * tflight, display_t* disp, uint32_t now
                     mrptr->mrange = r;
                     mrptr++;
                 }
+
+				// Handle collision logic.
+				if( gen_ofs == 0 )
+				{
+					int deltas[3];
+					deltas[0] = tmod.center[0] - flight->planeloc[0];
+					deltas[1] = tmod.center[1] - flight->planeloc[1];
+					deltas[2] = tmod.center[2] - flight->planeloc[2];
+					int dt = deltas[0]*deltas[0] + deltas[1]*deltas[1] + deltas[2]*deltas[2];
+					if( dt < BOOLET_HIT_DIST_SQUARED && tflight->myHealth > 0 )
+					{
+						// First check to make sure it's not a boolet we shot.
+						int i;
+						for( i = 0; i < BOOLETSPERPLAYER; i++ )
+						{
+							if( b->flags == tflight->myBoolets[i].flags ) break;
+						}
+						if( i == BOOLETSPERPLAYER )
+						{
+							for( i = 0; i < BOOLETSPERPLAYER; i++ )
+							{
+								if( b->flags == tflight->booletHitHistory[i] ) break;
+							}
+							if( i == BOOLETSPERPLAYER )
+							{
+								//We made contact.
+								// Record boolet.
+								tflight->booletHitHistory[tflight->booletHitHistoryHead] = b->flags;
+								tflight->booletHitHistoryHead = tflight->booletHitHistoryHead+1;
+								if( tflight->booletHitHistoryHead == BOOLETSPERPLAYER ) tflight->booletHitHistoryHead = 0;
+
+								tflight->myHealth-=10;
+								if( tflight->myHealth<= 0)
+								{
+									tflight->timeOfDeath = now;
+								}
+							}
+						}
+					}
+				}
             }
             if( gen_ofs == 0 )
             {
@@ -1914,6 +2024,45 @@ static void FlightNetworkDraw( flight_t * tflight, display_t* disp, uint32_t now
             }
         }while(1);
     }
+
+	// Not enabled yet.
+	if( 0 )
+	{
+		int NumActiveBoolets = 0;
+		int i;
+		for( i = 0; i < BOOLETSPERPLAYER; i++ )
+		{
+			if( tflight->myBoolets[i].flags != 0 ) NumActiveBoolets++; 
+		}
+
+		uint8_t espnow_buffer[256];
+		uint8_t *pp = espnow_buffer;
+		*(pp++) = FLIGHT_MODE_FIRST_BYTE_PEER;
+		*((uint32_t*)pp) = now; pp+=4;
+
+		uint32_t contents = 0;
+		WriteUEQ( &contents, 1 );
+		WriteUEQ( &contents, 0 );
+		WriteUEQ( &contents, 1 );
+		WriteUEQ( &contents, NumActiveBoolets );
+		*((uint32_t*)pp) = contents;
+		// XXX TODO: Here, we need to update peers with our position + boolets + status (alive/dead)
+
+		// There are no models.
+
+		// There is a ship - us.
+
+		*(pp++) = 0; // "shipNo"
+		memcpy( pp, tflight->planeloc, sizeof( tflight->planeloc ) ); pp += sizeof( tflight->planeloc );
+
+		//XXX TODO PICK UP HERE.
+
+       //     memcpy( tp->velAt, data, sizeof( tp->velAt ) ); data+=sizeof( tp->velAt );
+       //     memcpy( tp->rotAt, data, sizeof( tp->rotAt ) ); data+=sizeof( tp->rotAt );
+       //     memcpy( &tp->flags, data, sizeof( tp->flags ) ); data+=sizeof( tp->flags ); tp->flags |= 1;
+       // }
+    }
+
 /*
     //XTOS_SET_INTLEVEL(XCHAL_EXCM_LEVEL);   // Disable Interrupts
     //XTOS_SET_INTLEVEL(0);  //re-enable interrupts.
@@ -1984,7 +2133,7 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
             thisPeer = allPeers + foundfree;
             thisPeer->timeOffsetOfPeerFromNow = np->timeOnPeer - now;
             memcpy( thisPeer->mac, mac_addr, 6 );
-            thisPeer->flags = 1;
+            thisPeer->flags |= 1;
             peerId = hash;
         }
         else if( i == maxPeersToSearch )
@@ -2064,7 +2213,7 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
             memcpy( tp->posAt, data, sizeof( tp->posAt ) ); data+=sizeof( tp->posAt );
             memcpy( tp->velAt, data, sizeof( tp->velAt ) ); data+=sizeof( tp->velAt );
             memcpy( tp->rotAt, data, sizeof( tp->rotAt ) ); data+=sizeof( tp->rotAt );
-            memcpy( &tp->flags, data, sizeof( tp->flags ) ); data+=sizeof( tp->flags );
+            memcpy( &tp->flags, data, sizeof( tp->flags ) ); data+=sizeof( tp->flags ); tp->flags |= 1;
         }
     }
     {
