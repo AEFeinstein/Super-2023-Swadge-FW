@@ -46,6 +46,8 @@
 #define FLIGHT_MAX_SPEED 50
 #define FLIGHT_MIN_SPEED 8
 
+#define BOOLET_SPEED_DIVISOR 15
+
 //XXX TODO: Refactor - these should probably be unified.
 #define MAXRINGS 15
 #define MAX_DONUTS 14
@@ -68,6 +70,7 @@
  * Structs, Enums
  *==========================================================================*/
 
+
 typedef enum
 {
     FLIGHT_MENU,
@@ -89,6 +92,11 @@ typedef struct
     int16_t indices_and_vertices[1];
 } tdModel;
 
+typedef struct
+{
+    const tdModel * model;
+    int       mrange;
+} modelRangePair_t;
 
 typedef enum
 {
@@ -106,6 +114,8 @@ typedef enum
 #define FLIGHT_MODE_FIRST_BYTE_PEER 'f'  // A flight peer
 #define FLIGHT_MODE_FIRST_BYTE_SERVER 's'  // A flight peer
 #define MAX_PEERS 103 // Best if it's a prime number.
+#define BOOLETSPERPLAYER 4
+#define MAX_BOOLETS (MAX_PEERS*BOOLETSPERPLAYER)
 #define MAX_NETWORK_MODELS 83
 
 typedef struct  // 32 bytes.
@@ -116,29 +126,29 @@ typedef struct  // 32 bytes.
 
 	// Not valid for server.
 	uint32_t timeOfUpdate;  // In our timestamp
-	uint16_t posAt[3];
-	uint8_t  velAt[3];
-	uint8_t  rotAt[3];
-	uint8_t  rotAtRel[3];
-	uint8_t  flags; // If Zero, Disabled.
-} multiplayerpeer_t __attribute__((packed));
+	int16_t posAt[3];
+	int8_t  velAt[3];
+	int8_t  rotAt[3];    // Right now, only HPR where R = 0
+	uint8_t  flags; // Not yet defined.
+} multiplayerpeer_t;
 
-typedef struct 
+typedef struct  // Rounds up to 16 bytes.
 {
 	uint32_t timeOfLaunch; // In our timestamp.
 	int16_t launchLocation[3];
-	int16_t launchDirection[3];
-	uint8_t flags;  // If 0, disabled.
-} boolet_t __attribute__((packed));
+	int16_t launchRotation[2]; // Pitch and Yaw
+	uint16_t flags;  // If 0, disabled.  1's bit = draw.
+} boolet_t;
 
 typedef struct
 {
 	uint32_t timeOfUpdate;
 	uint32_t binencprop;      //Encoding starts at lsb.  First: # of bones, then the way the bones are interconnected.
-	uint16_t root[3];
-	uint8_t  velocity[3];
-	uint8_t  bones[0*3];  //Does not need to be all that long.
-} network_model_t __attribute__((packed));
+	int16_t root[3];
+	uint8_t  radius;
+	int8_t  velocity[3];
+	int8_t  bones[0*3];  //Does not need to be all that long.
+} network_model_t;
 
 // From H.264, U, UE(ExpGolomb, k=0)
 // Ways to store several values in a 32-bit number.
@@ -161,10 +171,10 @@ static uint32_t ReadUEQ( uint32_t * rin )
 {
 	if( !*rin ) return 0; //0 is invalid for reading Exp-Golomb Codes
 	// Based on https://stackoverflow.com/a/11921312/2926815
-    uint32_t zeros = 0;
+    uint32_t zeroes = 0;
 	while( ReadBitQ( rin ) == 0 ) zeroes++;
 	uint32_t ret = 1 << zeroes;
-    for (uint32_t i = zeros - 1; i >= 0; i--)
+    for (int i = zeroes - 1; i >= 0; i--)
         ret |= ReadBitQ( rin ) << i;
     return ret - 1;
 }
@@ -191,6 +201,7 @@ typedef struct
 
     int enviromodels;
     const tdModel ** environment;
+	const tdModel * otherShip;
 
     meleeMenu_t * menu;
     font_t ibm;
@@ -221,10 +232,13 @@ typedef struct
 
 
 	// Boolets for multiplayer.
-	multiplayerpeer_t  allPeers[MAX_PEERS]; //32x103 = 3296 bytes.
+	multiplayerpeer_t allPeers[MAX_PEERS]; //32x103 = 3296 bytes.
+	boolet_t allBoolets[MAX_BOOLETS];  // ~8kB
 	network_model_t * networkModels[MAX_NETWORK_MODELS];
 	int nNetworkServerLastSeen; // When seeing a server resets.
+	int nNetworkMode;
 
+	boolet_t myBoolets[BOOLETSPERPLAYER];
 } flight_t;
 
 /*============================================================================
@@ -248,7 +262,14 @@ int tdModelVisibilitycheck( const tdModel * m );
 void tdDrawModel( display_t * disp, const tdModel * m );
 static int flightTimeHighScorePlace( int wintime, bool is100percent );
 static void flightTimeHighScoreInsert( int insertplace, bool is100percent, char * name, int timeCentiseconds );
-static void FlightNetworkDraw( uint32_t now, struct ModelRangePair ** mrp );
+static void FlightNetworkDraw( flight_t * tflight, display_t* disp, uint32_t now, modelRangePair_t ** mrp );
+static void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi);
+static void FlightfnEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
+
+static void TModOrDrawBoolet( flight_t * tflight, tdModel * tmod, int16_t * mat, boolet_t * b, uint32_t now );
+static void TModOrDrawPlayer( flight_t * tflight, tdModel * tmod, int16_t * mat, multiplayerpeer_t * b, uint32_t now );
+static void TModOrDrawCustomNetModel( flight_t * tflight, tdModel * tmod, int16_t * mat, network_model_t * b, uint32_t now );
+
 
 //Forward libc declarations.
 #ifndef EMU
@@ -349,6 +370,8 @@ static void flightEnterMode(display_t * disp)
         data += 8 + m->nrvertnums + m->nrfaces * m->indices_per_face;
     }
 
+	flight->otherShip = (const tdModel * )(ship3d + 3);
+
     loadFont("ibm_vga8.font", &flight->ibm);
     loadFont("radiostars.font", &flight->radiostars);
     loadFont("mm.font", &flight->meleeMenuFont);
@@ -394,10 +417,13 @@ static void flightMenuCb(const char* menuItem)
 		espNowInit(&FlightfnEspNowRecvCb, &FlightfnEspNowSendCb, GPIO_NUM_NC,
 			GPIO_NUM_NC, UART_NUM_MAX, ESP_NOW_IMMEDIATE);
 
+		flight->nNetworkMode = 1;
+
         flightStartGame(FLIGHT_FREEFLIGHT);
     }
     else if (fl_flight_env == menuItem)
     {
+		flight->nNetworkMode = 0;
         flightStartGame(FLIGHT_GAME);
     }
     else if ( fl_flight_invertY0_env == menuItem )
@@ -515,7 +541,8 @@ static void flightStartGame( flightModeScreen mode )
 
 	if( mode == FLIGHT_FREEFLIGHT )
 	{
-		setFrameRateUs( 0 );
+		//setFrameRateUs( 0 ); // For profiling only.
+		setFrameRateUs( DEFAULT_FRAMETIME );
 	}
 	else
 	{
@@ -638,9 +665,12 @@ void Perspective( int fovx, int aspect, int zNear, int zFar, int16_t * out );
 int LocalToScreenspace( const int16_t * coords_3v, int16_t * o1, int16_t * o2 );
 void SetupMatrix( void );
 void tdMultiply( int16_t * fin1, int16_t * fin2, int16_t * fout );
+void tdRotateNoMulEA( int16_t * f, int16_t x, int16_t y, int16_t z );
 void tdRotateEA( int16_t * f, int16_t x, int16_t y, int16_t z );
 // void tdScale( int16_t * f, int16_t x, int16_t y, int16_t z );
-void td4Transform( int16_t * pin, int16_t * f, int16_t * pout );
+void td4Transform( int16_t * pout, const int16_t * restrict f, const int16_t * pin );
+void tdPtTransform( int16_t * pout, const int16_t * restrict f, const int16_t * restrict pin );
+void tdPt3Transform( int16_t * pout, const int16_t * restrict f, const int16_t * restrict pin );
 void tdTranslate( int16_t * f, int16_t x, int16_t y, int16_t z );
 // void Draw3DSegment( display_t * disp, const int16_t * c1, const int16_t * c2 );
 uint16_t tdSQRT( uint32_t inval );
@@ -774,18 +804,16 @@ void tdMultiply( int16_t * fin1, int16_t * fin2, int16_t * fout )
 
 void tdTranslate( int16_t * f, int16_t x, int16_t y, int16_t z )
 {
-    int16_t ftmp[16];
-    tdIdentity(ftmp);
-    ftmp[m03] += x;
-    ftmp[m13] += y;
-    ftmp[m23] += z;
-    tdMultiply( f, ftmp, f );
+//    int16_t ftmp[16];
+//    tdIdentity(ftmp);
+    f[m03] += x;
+    f[m13] += y;
+    f[m23] += z;
+//    tdMultiply( f, ftmp, f );
 }
 
-void tdRotateEA( int16_t * f, int16_t x, int16_t y, int16_t z )
+void tdRotateNoMulEA( int16_t * f, int16_t x, int16_t y, int16_t z )
 {
-    int16_t ftmp[16];
-
     //x,y,z must be negated for some reason
     const int16_t * stable = sin1024;
     int16_t cx = stable[((x>=270)?(x-270):(x+90))]>>2;
@@ -797,26 +825,31 @@ void tdRotateEA( int16_t * f, int16_t x, int16_t y, int16_t z )
 
     //Row major
     //manually transposed
-    ftmp[m00] = (cy*cz)>>8;
-    ftmp[m10] = ((((sx*sy)>>8)*cz)-(cx*sz))>>8;
-    ftmp[m20] = ((((cx*sy)>>8)*cz)+(sx*sz))>>8;
-    ftmp[m30] = 0;
+    f[m00] = (cy*cz)>>8;
+    f[m10] = ((((sx*sy)>>8)*cz)-(cx*sz))>>8;
+    f[m20] = ((((cx*sy)>>8)*cz)+(sx*sz))>>8;
+    f[m30] = 0;
 
-    ftmp[m01] = (cy*sz)>>8;
-    ftmp[m11] = ((((sx*sy)>>8)*sz)+(cx*cz))>>8;
-    ftmp[m21] = ((((cx*sy)>>8)*sz)-(sx*cz))>>8;
-    ftmp[m31] = 0;
+    f[m01] = (cy*sz)>>8;
+    f[m11] = ((((sx*sy)>>8)*sz)+(cx*cz))>>8;
+    f[m21] = ((((cx*sy)>>8)*sz)-(sx*cz))>>8;
+    f[m31] = 0;
 
-    ftmp[m02] = -sy;
-    ftmp[m12] = (sx*cy)>>8;
-    ftmp[m22] = (cx*cy)>>8;
-    ftmp[m32] = 0;
+    f[m02] = -sy;
+    f[m12] = (sx*cy)>>8;
+    f[m22] = (cx*cy)>>8;
+    f[m32] = 0;
 
-    ftmp[m03] = 0;
-    ftmp[m13] = 0;
-    ftmp[m23] = 0;
-    ftmp[m33] = 1;
+    f[m03] = 0;
+    f[m13] = 0;
+    f[m23] = 0;
+    f[m33] = 1;
+}
 
+void tdRotateEA( int16_t * f, int16_t x, int16_t y, int16_t z )
+{
+    int16_t ftmp[16];
+	tdRotateNoMulEA( ftmp, x, y, z );
     tdMultiply( f, ftmp, f );
 }
 
@@ -838,7 +871,7 @@ void tdRotateEA( int16_t * f, int16_t x, int16_t y, int16_t z )
 // //    f[m23] = (f[m23] * z)>>8;
 // }
 
-void td4Transform( int16_t * pin, int16_t * f, int16_t * pout )
+void td4Transform( int16_t * pout, const int16_t * restrict f, const int16_t * pin )
 {
     int16_t ptmp[3];
     ptmp[0] = (pin[0] * f[m00] + pin[1] * f[m01] + pin[2] * f[m02] + pin[3] * f[m03])>>8;
@@ -850,11 +883,25 @@ void td4Transform( int16_t * pin, int16_t * f, int16_t * pout )
     pout[2] = ptmp[2];
 }
 
+void tdPtTransform( int16_t * pout, const int16_t * restrict f, const int16_t * restrict pin )
+{
+    pout[0] = (pin[0] * f[m00] + pin[1] * f[m01] + pin[2] * f[m02] + 256 * f[m03])>>8;
+    pout[1] = (pin[0] * f[m10] + pin[1] * f[m11] + pin[2] * f[m12] + 256 * f[m13])>>8;
+    pout[2] = (pin[0] * f[m20] + pin[1] * f[m21] + pin[2] * f[m22] + 256 * f[m23])>>8;
+    pout[3] = (pin[0] * f[m30] + pin[1] * f[m31] + pin[2] * f[m32] + 256 * f[m33])>>8;
+}
+
+void tdPt3Transform( int16_t * pout, const int16_t * restrict f, const int16_t * restrict pin )
+{
+    pout[0] = (pin[0] * f[m00] + pin[1] * f[m01] + pin[2] * f[m02] + 256 * f[m03])>>8;
+    pout[1] = (pin[0] * f[m10] + pin[1] * f[m11] + pin[2] * f[m12] + 256 * f[m13])>>8;
+    pout[2] = (pin[0] * f[m20] + pin[1] * f[m21] + pin[2] * f[m22] + 256 * f[m23])>>8;
+}
 
 int LocalToScreenspace( const int16_t * coords_3v, int16_t * o1, int16_t * o2 )
 {
-    int16_t tmppt[4] = { coords_3v[0], coords_3v[1], coords_3v[2], 256 };
-    td4Transform( tmppt, flight->ModelviewMatrix, tmppt );
+	int16_t tmppt[4];
+    tdPtTransform( tmppt, flight->ModelviewMatrix, coords_3v );
     td4Transform( tmppt, flight->ProjectionMatrix, tmppt );
     if( tmppt[3] >= -4 ) { return -1; }
     int calcx = ((256 * tmppt[0] / tmppt[3])/16+(TFT_WIDTH/2));
@@ -879,12 +926,14 @@ int LocalToScreenspace( const int16_t * coords_3v, int16_t * o1, int16_t * o2 )
 //     //plotLine( sx0, sy0, sx1, sy1, CNDRAW_WHITE );
 // }
 
+
+// Only needs center and radius.
 int tdModelVisibilitycheck( const tdModel * m )
 {
 
     //For computing visibility check
-    int16_t tmppt[4] = { m->center[0], m->center[1], m->center[2], 256 }; //No multiplier seems to work right here.
-    td4Transform( tmppt, flight->ModelviewMatrix, tmppt );
+	int16_t tmppt[4];
+    tdPtTransform( tmppt, flight->ModelviewMatrix, m->center );
     td4Transform( tmppt, flight->ProjectionMatrix, tmppt );
     if( tmppt[3] < -2 )
     {
@@ -916,11 +965,13 @@ void tdDrawModel( display_t * disp, const tdModel * m )
     int nri = m->nrfaces*m->indices_per_face;
     const int16_t * verticesmark = (const int16_t*)&m->indices_and_vertices[nri];
 
+#if 0
+	// By the time we get here, we're sure we want to render.
     if( tdModelVisibilitycheck( m ) < 0 )
     {
         return;
     }
-
+#endif
 
     //This looks a little odd, but what we're doing is caching our vertex computations
     //so we don't have to re-compute every time round.
@@ -978,19 +1029,11 @@ void tdDrawModel( display_t * disp, const tdModel * m )
     }
 }
 
-
-struct ModelRangePair
-{
-    const tdModel * model;
-    int       mrange;
-};
-
-//Do not put this in icache.
 int mdlctcmp( const void * va, const void * vb );
 int mdlctcmp( const void * va, const void * vb )
 {
-    const struct ModelRangePair * a = (const struct ModelRangePair *)va;
-    const struct ModelRangePair * b = (const struct ModelRangePair *)vb;
+    const modelRangePair_t * a = (const modelRangePair_t *)va;
+    const modelRangePair_t * b = (const modelRangePair_t *)vb;
     return b->mrange - a->mrange;
 }
 
@@ -1021,8 +1064,8 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
     tdRotateEA( flight->ProjectionMatrix, tflight->hpr[1]/11, tflight->hpr[0]/11, 0 );
     tdTranslate( flight->ModelviewMatrix, -tflight->planeloc[0], -tflight->planeloc[1], -tflight->planeloc[2] );
 
-    struct ModelRangePair mrp[tflight->enviromodels];
-	struct ModelRangePair * mrptr = mrp;
+    modelRangePair_t mrp[tflight->enviromodels+MAX_PEERS+MAX_BOOLETS+MAX_NETWORK_MODELS];
+	modelRangePair_t * mrptr = mrp;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 ////GAME LOGIC GOES HERE (FOR COLLISIONS/////////////////////////////////////////////////
@@ -1085,7 +1128,8 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
         mrptr++;
     }
 
-	FlightNetworkDraw( now, &mrptr );
+	if( tflight->nNetworkMode )
+		FlightNetworkDraw( tflight, disp, now, &mrptr );
 
 // #ifndef EMU
 //     if( flight->mode == FLIGHT_FREEFLIGHT ) uart_tx_one_char('2');
@@ -1098,7 +1142,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
 
 
     //Painter's algorithm
-    qsort( mrp, mdlct, sizeof( struct ModelRangePair ), mdlctcmp );
+    qsort( mrp, mdlct, sizeof( modelRangePair_t ), mdlctcmp );
 
 // #ifndef EMU
 //     if( flight->mode == FLIGHT_FREEFLIGHT ) uart_tx_one_char('3');
@@ -1110,52 +1154,64 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
     for( i = 0; i < mdlct; i++ )
     {
         const tdModel * m = mrp[i].model;
-        int label = m->label;
-        int draw = 1;
-        if( label )
-        {
-            draw = 0;
-            if( label >= 100 && label < 999 )
-            {
-                draw = 2; //All donuts flash on.
-            }
-            if( label >= 1000 )
-            {
-                draw = 3; //All beans flash-invert
-            }
-            if( label == 999 ) //gazebo
-            {
-                draw = (tflight->ondonut==MAX_DONUTS)?2:1; //flash on last donut.
-            }
-        }
+		if( (intptr_t)m < 0x3000 )
+		{
+			// It's a special thing.  Don't draw the normal way.
+			//0x0000 - 0x1000 = Boolets.
+			if( (intptr_t)m < 0x800 ) TModOrDrawBoolet( tflight, 0, 0, &tflight->allBoolets[(intptr_t)m], now );
+			else if( (intptr_t)m < 0x1000 ) TModOrDrawBoolet( tflight, 0, 0, &tflight->myBoolets[(intptr_t)m-0x800], now );
+			else if( (intptr_t)m < 0x2000 ) TModOrDrawPlayer( tflight, 0, 0, &tflight->allPeers[((intptr_t)m)-0x1000], now );
+			else TModOrDrawCustomNetModel( tflight, 0, 0, tflight->networkModels[((intptr_t)m) - 0x2000], now );
+		}
+		else
+		{
+		    int label = m->label;
+		    int draw = 1;
+		    if( label )
+		    {
+		        draw = 0;
+		        if( label >= 100 && label < 999 )
+		        {
+		            draw = 2; //All donuts flash on.
+		        }
+		        if( label >= 1000 )
+		        {
+		            draw = 3; //All beans flash-invert
+		        }
+		        if( label == 999 ) //gazebo
+		        {
+		            draw = (tflight->ondonut==MAX_DONUTS)?2:1; //flash on last donut.
+		        }
+		    }
 
-        //XXX TODO:
-        // Flash light when you get a bean or a ring.
-        // Do laptiming per ring for fastest time.
-        // Fix time counting and presentation
+		    //XXX TODO:
+		    // Flash light when you get a bean or a ring.
+		    // Do laptiming per ring for fastest time.
+		    // Fix time counting and presentation
 
-        //draw = 0 = invisible
-        //draw = 1 = regular
-        //draw = 2 = flashing
-        //draw = 3 = other flashing
-        if( draw == 1 )
-            tdDrawModel( disp, m );
-        else if( (flight->mode != FLIGHT_FREEFLIGHT) && (draw == 2 || draw == 3) )
-        {
-            if( draw == 2 )
-            {
-                // Originally, (tflight->frames&1)?CNDRAW_WHITE:CNDRAW_BLACK;
-                // Now, let's go buck wild.
-                flight->renderlinecolor = (tflight->frames*7)&127;
-            }
-            if( draw == 3 )
-            {
-                //flight->renderlinecolor = (tflight->frames&1)?CNDRAW_BLACK:CNDRAW_WHITE;
-                flight->renderlinecolor = ((tflight->frames+i))&127;
-            }
-            tdDrawModel( disp, m );
-            flight->renderlinecolor = CNDRAW_WHITE;
-        }
+		    //draw = 0 = invisible
+		    //draw = 1 = regular
+		    //draw = 2 = flashing
+		    //draw = 3 = other flashing
+		    if( draw == 1 )
+		        tdDrawModel( disp, m );
+		    else if( (flight->mode != FLIGHT_FREEFLIGHT) && (draw == 2 || draw == 3) )
+		    {
+		        if( draw == 2 )
+		        {
+		            // Originally, (tflight->frames&1)?CNDRAW_WHITE:CNDRAW_BLACK;
+		            // Now, let's go buck wild.
+		            flight->renderlinecolor = (tflight->frames*7)&127;
+		        }
+		        if( draw == 3 )
+		        {
+		            //flight->renderlinecolor = (tflight->frames&1)?CNDRAW_BLACK:CNDRAW_WHITE;
+		            flight->renderlinecolor = ((tflight->frames+i))&127;
+		        }
+		        tdDrawModel( disp, m );
+		        flight->renderlinecolor = CNDRAW_WHITE;
+		    }
+		}
     }
 
 
@@ -1457,12 +1513,12 @@ void flightButtonCallback( buttonEvt_t* evt )
                 flight->paused = !flight->paused;
             }
 
-            // Intentional fallthrough
+            flight->buttonState = state;
+            break;
         }
         case FLIGHT_GAME_OVER:
         {
             flight->buttonState = state;
-
             break;
         }
     }
@@ -1526,21 +1582,120 @@ static void flightTimeHighScoreInsert( int insertplace, bool is100percent, char 
 
 
 
-
-
 //////////////////////////////////////////////////////////////////////////////
 // Multiplayer
 
-static void FlightNetworkDraw(uint32_t now, struct ModelRangePair ** mrp );
+static void TModOrDrawBoolet( flight_t * tflight, tdModel * tmod, int16_t * mat, boolet_t * b, uint32_t now )
 {
-	struct ModelRangePair * mrptr = *mrp;
+	int32_t delta = now - b->timeOfLaunch;
+	int16_t * pa = b->launchLocation;
+	int16_t * lr = b->launchRotation;
+	int yawDivisor = getCos1024( lr[1]/11 );
+	int deltaWS = delta>>BOOLET_SPEED_DIVISOR;
 
-	flight_t * flt = flight;
+	int32_t direction[3];
+	direction[0] = (( getSin1024( lr[0]/11 ) * yawDivisor ) >> 10);
+	direction[2] = (( getCos1024( lr[0]/11 ) * yawDivisor ) >> 10);
+	direction[1] = -getSin1024( lr[1]/11 );
 
-	if( flt->nNetworkServerLastSeen > 0 ) flt->nNetworkServerLastSeen--;
+	int32_t deltas[3];
+	deltas[0] = (deltaWS * direction[0] ) >> 10;
+	deltas[2] = (deltaWS * direction[2] ) >> 10;
+	deltas[1] = (deltaWS * direction[1] ) >> 10;
+
+	int16_t cstuff[3];
+
+	int16_t * center = tmod?tmod->center:cstuff;
+	center[0] = pa[0]+deltas[0];
+	center[2] = pa[2]+deltas[2];
+	center[1] = pa[1]+deltas[1];
+
+	if( tmod )
+	{
+		tmod->radius = 50;
+	}
+	else
+	{
+		// Control length of boolet line.
+		direction[0]>>=2;
+		direction[1]>>=2;
+		direction[2]>>=2;
+
+		// Actually "Draw" the boolet.
+		int16_t end[3];
+		int16_t start[3];
+		end[0] = center[0] + (direction[0]);
+		end[1] = center[1] + (direction[1]);
+		end[2] = center[2] + (direction[2]);
+
+		start[0] = center[0] - (direction[0]);
+		start[1] = center[1] - (direction[1]);
+		start[2] = center[2] - (direction[2]);
+
+		int16_t sx, sy, ex, ey;
+		// We now have "start" and "end"
+
+		if( LocalToScreenspace( start, &sx, &sy ) < 0 ) return;
+		if( LocalToScreenspace( end, &ex, &ey ) < 0 ) return;
+		speedyLine( tflight->disp, sx, sy, ex, ey, 4 );		
+	}
+}
+
+static void TModOrDrawPlayer( flight_t * tflight, tdModel * tmod, int16_t * mat, multiplayerpeer_t * b, uint32_t now )
+{
+/*
+	const tdModel * s = tflight->otherShip;
+	int nri = s->nrfaces*s->indices_per_face;
+	if( !m )
+	{
+		int size_of_header_and_indices = 16 + nri*2;
+		memcpy( &m, s, size_of_header_and_indices ); // Copy header + indices.
+	}
+	int16_t * mverticesmark = (int16_t*)&m.indices_and_vertices[nri];
+	const int16_t * sverticesmark = (const int16_t*)&s.indices_and_vertices[nri];
+
+	int16_t LocalXForm[16];
 
 	{
-		multiplayerpeer_t * p = flt->allPeers
+		int8_t * ra = p->rotAt;
+		tdRotateNoMulEA( LocalXForm, (ra[0]*360)>>8, (ra[1]*360)>>8, (ra[2]*360)>>8 );
+
+	}
+
+	int16_t * pa = p->posAt;
+	int8_t * va = p->velAt;
+
+//	int16_t * center = tmod?tmod->center:;
+	LocalXForm[m03] = pa[0] + ((va[0] * deltaTime)>>16);
+	LocalXForm[m13] = pa[1] + ((va[1] * deltaTime)>>16);
+	LocalXForm[m23] = pa[2] + ((va[2] * deltaTime)>>16);
+
+	tdPt3Transform( m->center, LocalXForm, s->center );	
+
+	int i;
+	int lv = s->nrvertnums;
+	for( i = 0; i < lv; i+=3 )
+	{
+		tdPt3Transform( mverticesmark + i, LocalXForm, sverticesmark + i );
+	}
+*/
+}
+
+static void TModOrDrawCustomNetModel( flight_t * tflight, tdModel * tmod, int16_t * mat, network_model_t * b, uint32_t now )
+{
+}
+
+
+static void FlightNetworkDraw( flight_t * tflight, display_t* disp, uint32_t now, modelRangePair_t ** mrp )
+{
+	modelRangePair_t * mrptr = *mrp;
+
+	if( tflight->nNetworkServerLastSeen > 0 )
+		tflight->nNetworkServerLastSeen--;
+
+	{
+		multiplayerpeer_t * ap = tflight->allPeers;
+		multiplayerpeer_t * p = ap;
 		multiplayerpeer_t * end = p + MAX_PEERS;
 		for( ; p != end; p++ )
 		{
@@ -1548,17 +1703,27 @@ static void FlightNetworkDraw(uint32_t now, struct ModelRangePair ** mrp );
 			if( ticks )
 			{
 				// Render peer/ship.
+				// tdRotateEA( tflight->ModelviewMatrix, now % 360, now % 360, 0 );  //Switch to BAMs
+				int32_t deltaTime = (now - p->timeOfUpdate);
 
-				int32_t deltaTime = now - p->timeOfUpdate;
-	// Not valid for server.
-	uint32_t timeOfUpdate;  // In our timestamp
-	uint16_t posAt[3];
-	uint8_t  velAt[3];
-	uint8_t  rotAt[3];
-	uint8_t  rotAtRel[3];
-	uint8_t  flags; // If Zero, Disabled.
+				int16_t * pa = p->posAt;
+				int8_t * va = p->velAt;
+				tdModel m;
 
+				// This isn't "exactly" right since we assume the 
+				m.center[0] = pa[0] + ((va[0] * deltaTime)>>16);
+				m.center[1] = pa[1] + ((va[1] * deltaTime)>>16);
+				m.center[2] = pa[2] + ((va[2] * deltaTime)>>16);
+				m.radius = tflight->otherShip->radius;
 
+				// Make sure ship will be visible, if so tack it on to the list of things to be rendered.
+				int r = tdModelVisibilitycheck( &m );
+				if( r >= 0 )
+				{
+					mrptr->model = (const tdModel *)(intptr_t)(0x1000 + (p - ap));
+					mrptr->mrange = r;
+					mrptr++;
+				}
 
 				ticks--;
 				if( ticks == 0 )
@@ -1570,33 +1735,122 @@ static void FlightNetworkDraw(uint32_t now, struct ModelRangePair ** mrp );
 			}
 		}
 	}
-/* XXX TODO TODO TODO
-
-  --> So, we are currently pairing peers and ships.  Feels weird.
-      Probably fine for non-server mode.
-   But, in server-mode, probably need to do something clever here */
-
 
 	{
-		network_model_t * m = flt->networkModels;
-		network_model_t * end = m + MAX_NETWORK_MODELS;
-		for( ; m != end; m++ )
+		network_model_t ** nmbegin = &flight->networkModels[0];
+		network_model_t ** nm = nmbegin;
+		network_model_t ** end = nm + MAX_NETWORK_MODELS;
+		for( ; nm != end; nm++ )
 		{
-			if( m->binencprop )
+			network_model_t * m = *nm;
+			if( m )
 			{
-				int32_t delta = now - timeOfUpdate;
+				int32_t delta = now - m->timeOfUpdate;
 				if( delta > 10000000 )
 				{
 					// Destroy model.
-					m->binencprop = 0;
+					free( m );
+					*nm = 0;
+					continue;
+				}
+
+				int16_t * pa = m->root;
+				int8_t * va = m->velocity;
+				tdModel tmod;
+
+				// This isn't "exactly" right since we assume the 
+				tmod.center[0] = pa[0] + ((va[0] * delta)>>16);
+				tmod.center[1] = pa[1] + ((va[1] * delta)>>16);
+				tmod.center[2] = pa[2] + ((va[2] * delta)>>16);
+				tmod.radius = m->radius;  // Arbitrary.
+
+				// Make sure ship will be visible, if so transform it.
+				int r = tdModelVisibilitycheck( &tmod );
+				if( r >= 0 )
+				{
+					mrptr->model = (const tdModel *)(intptr_t)(0x2000 + (nm - nmbegin));
+					mrptr->mrange = r;
+					mrptr++;
 				}
 			}
 		}
 	}
 
+	// Also render boolets.
+	{
+		boolet_t * allb = &tflight->allBoolets[0];
+		boolet_t * b = allb;
+		boolet_t * booletEnd = b + MAX_BOOLETS;
+		int gen_ofs = 0;
+		do
+		{
+			for( ; b != booletEnd; b++ )
+			{
+				if( b->flags == 0 ) continue;
+				int32_t delta = now - b->timeOfLaunch;
+				if( delta > 8000000 )
+				{
+					b->flags = 0;
+					continue;
+				}
+
+				tdModel tmod;
+
+				TModOrDrawBoolet( tflight, &tmod, 0, b, now );
+
+				// Make sure ship will be visible, if so transform it.
+				int r = tdModelVisibilitycheck( &tmod );
+				if( r >= 0 )
+				{
+					mrptr->model = (const tdModel *)(intptr_t)(0x0000 + (b - allb + gen_ofs));
+					mrptr->mrange = r;
+					mrptr++;
+				}
+			}
+			if( gen_ofs == 0 )
+			{
+				// Redo above loop, but with my boolets.
+				allb = &tflight->myBoolets[0];
+				b = allb;
+				booletEnd = b + BOOLETSPERPLAYER;
+				gen_ofs = 0x800;
+				continue;
+			}
+			else
+			{
+				break;
+			}
+		}while(1);
+	}
+/*
+
+typedef struct  // Rounds up to 20 bytes.
+{
+	uint32_t timeOfLaunch; // In our timestamp.
+	int16_t launchLocation[3];
+	int16_t launchRotation[3];
+	uint16_t flags;  // If 0, disabled.  1's bit = draw.
+} boolet_t;
+
+
+
+
+	boolet_t allBoolets[MAX_PEERS*4];
+launchRotation
+
+			int readID = *(data++);
+			int shipNo = isPeer?(peerId*2+(readID&1)):readID;
+			multiplayerpeer_t * tp = allPeers + shipNo;
+			tp->timeOfUpdate = peerSendInOurTime;
+			tp->validForTicks = 300;
+			// Pos, Vel, Rot.
+			memcpy( tp->posAt, data, 12 ); data+=12;
+			data += 4; // Reserved.
+		}
+
 	//XTOS_SET_INTLEVEL(XCHAL_EXCM_LEVEL);   // Disable Interrupts
 	//XTOS_SET_INTLEVEL(0);  //re-enable interrupts.
-
+*/
 	*mrp = mrptr;
 }
 
@@ -1604,8 +1858,8 @@ static void FlightNetworkDraw(uint32_t now, struct ModelRangePair ** mrp );
 typedef struct
 {
 	uint32_t timeOnPeer;
-	uint32_t assetCounts; // models, ships, boolets in UEQ.
-} network_packet_t __attribute__((packed));
+	uint32_t assetCounts; // protVer, models, ships, boolets in UEQ.
+} __attribute__((packed)) network_packet_t;
 
 
 void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
@@ -1614,38 +1868,58 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
 	flight_t * flt = flight;
 	char pcode = *(data++);
 
-	if( !( pcode == FLIGHT_MODE_FIRST_BYTE_SERVER || (flt->nNetworkMode == 1 &&  pcode == FLIGHT_MODE_FIRST_BYTE_PEER ) ) || len < 8 ) return;
+	if( !( pcode == FLIGHT_MODE_FIRST_BYTE_SERVER || (flt->nNetworkServerLastSeen && pcode == FLIGHT_MODE_FIRST_BYTE_PEER ) ) || len < 8 ) return;
 
+	int isPeer = pcode == FLIGHT_MODE_FIRST_BYTE_PEER;
 	// If we get a server packet, switch to server mode for a while.
-	if( pcode == FLIGHT_MODE_FIRST_BYTE_SERVER )
+	if( !isPeer )
 	{
+		if( !flt->nNetworkServerLastSeen )
+		{
+			// Switched to server mode.  Need to clear out all peers.
+			memset( flt->allPeers, 0, sizeof( flt->allPeers ) );
+		}
 		flt->nNetworkServerLastSeen = 300;
 	}
 
 	const network_packet_t * np = (const network_packet_t*)(data); data += sizeof( network_packet_t );
 
-	// find peer and compute time delta..
-	int hash = (*(const uint32_t*)mac_addr) + (*(const uint16_t*)(mac_addr+4));
-	hash ^= ( (hash>>11) * 51 ) ^ ( (hash>>22) * 37); // I just made this up.  Probably best to use something good.
-	hash %= MAX_PEERS;
-
 	uint32_t now = esp_timer_get_time();
 
-	multiplayerpeer_t * allPeers = flt->allPeers;
+	// find peer and compute time delta..
+	int hash;
+
 	multiplayerpeer_t * thisPeer = 0;
-	const int maxPeersToSearch = 12;
-	for( i = 0; i < maxPeersToSearch; i++ ) // Only search 12 peers, if our hash map is this full, it's not worth it.
+	multiplayerpeer_t * allPeers = flt->allPeers;
+
+	int peerId = 0;
+
+	if( isPeer )
 	{
-		thisPeer = allPeers + hash;
-		if( checkpeer->validForTicks )
+		hash = (*(const uint32_t*)mac_addr) + (*(const uint16_t*)(mac_addr+4));
+		hash ^= ( (hash>>11) * 51 ) ^ ( (hash>>22) * 37); // I just made this up.  Probably best to use something good.
+		hash %= MAX_PEERS;
+		const int maxPeersToSearch = 12;
+		//XXX WARNING XXX XXX TODO: What about when there was a collision but then that peer disappeared.
+		for( i = 0; i < maxPeersToSearch; i++ ) // Only search 12 peers, if our hash map is this full, it's not worth it.
 		{
-			thisPeer->timeOffsetOfPeerFromNow = np->timeOnPeer - now;
-			memcpy( thisPeer->mac, mac, 6 );
-			break;
+			thisPeer = allPeers + hash;
+			if( thisPeer->validForTicks )
+			{
+				thisPeer->timeOffsetOfPeerFromNow = np->timeOnPeer - now;
+				memcpy( thisPeer->mac, mac_addr, 6 );
+				break;
+			}
+			if( memcmp( thisPeer->mac, mac_addr, 6 ) == 0 ) break;
 		}
-		if( memcmp( thisPeer->mac, mac, 6 ) == 0 ) break;
+		if( i == maxPeersToSearch ) return; // Haven't found our peer in time. Abort.
+		peerId = i;
 	}
-	if( i == maxPeersToSearch ) return; // Haven't found our peer in time. Abort.
+	else
+	{
+		// Server.  Force thisPeer = 0.
+		thisPeer = allPeers;
+	}
 
 	// Refine time offset.  TODO: Use asymmetric filter.
 	int32_t estTimeOffsetError = np->timeOnPeer - (thisPeer->timeOffsetOfPeerFromNow + now);
@@ -1656,63 +1930,77 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
 	uint32_t peerSendInOurTime = np->timeOnPeer - thisPeer->timeOffsetOfPeerFromNow;
 
 	uint32_t assetCounts = np->assetCounts;
-	// assetCounts => models, ships, boolets
+
+	int protVer = ReadUEQ( &assetCounts );
+
+	if( protVer != 1 ) return; // Try not to rev version.
+
+	// assetCounts => models, ships, boolets, all in UEQ.
 
 	{
 		network_model_t ** netModels = &flight->networkModels[0];
-		int modelCount = ReadUEQ( &assetCounts, 8 );
+		int modelCount = ReadUEQ( &assetCounts );
 		for( i = 0; i < modelCount; i++ )
 		{
 			uint32_t codeword = (*(const uint32_t*)data);  data += 4;
 			uint32_t res_codeword = codeword;
-			uint32_t id = ReadU( &codeword, 8 );
-			uint32_t bones = ReadU( &codeword, 5 );
+			uint32_t id = ReadUQ( &codeword, 8 );
+			uint32_t bones = ReadUQ( &codeword, 5 );
 
-			network_model_t * m = &netModels[id];
+			network_model_t * m = netModels[id];
 			// First, try to find model.
-			if( !m )
-				m = malloc( sizeof( network_model_t ) + bones * 3 );
+			if( !m ) m = malloc( sizeof( network_model_t ) + bones * 3 );
+
+			//XXX XXX XXX What about if the size of a model changes?!?
 
 			m->timeOfUpdate = peerSendInOurTime;
 			m->binencprop = res_codeword;
-			memcpy( m->root, data, sizeof( network_model_t ) - 8 + bones * 3 );
+			int sizetoread = sizeof( network_model_t ) - 8 + bones * 3;
+			memcpy( m->root, data, sizetoread );
+			data += sizetoread;
+
+			netModels[id] = m;
 		}
 	}
 	{
-		int shipCount = ReadUEQ( &assetCounts, 8 );
-		for( i = 0; i < modelCount; i++ )
+		int shipCount = ReadUEQ( &assetCounts );
+		for( i = 0; i < shipCount; i++ )
 		{
-			//XXX XXX XXX
-			peership_t
+			int readID = *(data++);
+			int shipNo = isPeer?peerId:readID;
+			multiplayerpeer_t * tp = allPeers + shipNo;
+			tp->timeOfUpdate = peerSendInOurTime;
+			tp->validForTicks = 300;
+			// Pos, Vel, Rot, RotVel + flags.
+			memcpy( tp->posAt, data, 16 ); data+=16;
+			data += 4; // Reserved.
+		}
+	}
+
+	{
+		int booletCount = ReadUEQ( &assetCounts );
+		boolet_t * allBoolets = &flt->allBoolets[0];
+		for( i = 0; i < booletCount; i++ )
+		{
+			//XXX TODO
+
+/*	boolet_t allBoolets[MAX_PEERS*4];
+
+
+			int readID = *(data++);
+			int shipNo = isPeer?(peerId*2+(readID&1)):readID;
+			multiplayerpeer_t * tp = allPeers + shipNo;
+			tp->timeOfUpdate = peerSendInOurTime;
+			tp->validForTicks = 300;
+			// Pos, Vel, Rot.
+			memcpy( tp->posAt, data, 12 ); data+=12;
+			data += 4; // Reserved.
+*/
 		}
 	}
 }
 
-
-typedef struct	// 20 bytes
+static void FlightfnEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
-	uint32_t timeOfUpdate;  // In our timestamp
-	uint16_t posAt[3];
-	uint8_t  velAt[3];
-	uint8_t  rotAt[3];
-	uint8_t  rotAtRel[3];
-	uint8_t  flags __attribute__((packed));
-} peership_t;
-
-typedef struct 
-{
-	uint32_t timeOfLaunch; // In our timestamp.
-	int16_t launchLocation[3];
-	int16_t launchDirection[3];
-	uint8_t flags __attribute__((packed));  // If 0, disabled.
-} boolet_t;
-
-typedef struct
-{
-	uint32_t timeOfUpdate;
-	uint32_t binencprop;      //If == 0, is disabled.  Otherwise, encoding starts at lsb.  First: # of bones, then the way the bones are interconnected.
-	uint16_t root[3];
-	uint8_t  velocity[3];
-	uint8_t  bones[12*3];  //Does not need to be all that long.
-} network_model_t __attribute__((packed));
+}
 
