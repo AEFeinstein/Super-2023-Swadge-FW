@@ -289,6 +289,10 @@ void espNowUseWireless(void)
         const int igi_reduction = 20;
         volatile uint32_t * test = (uint32_t*)0x6001c02c; //Should be the "RSSI Offset" but seems to do more.
         *test = (*test & 0xffffff00) + igi_reduction; 
+
+        // Make sure the first takes effect.
+        vTaskDelay( 0 );
+
         //No idea  Somehow applies setting of 0x6001c02c  (Ok, actually I don't know what the right-most value should be but 0xff in the MSB seems to work?
         test = (uint32_t*)0x6001c0a0;
         *test = (*test & 0xffffff) | 0xff00000000; 
@@ -605,6 +609,9 @@ void espNowDeinit(void)
     {
         esp_now_unregister_recv_cb();
         esp_now_unregister_send_cb();
+        esp_now_del_peer( espNowBroadcastMac );
         esp_now_deinit();
+        esp_wifi_stop();
+        esp_wifi_deinit();
     }
 }
