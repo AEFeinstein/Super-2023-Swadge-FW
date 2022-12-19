@@ -110,6 +110,23 @@ int advanced_usb_write_log_printf(const char *fmt, va_list args)
     return l;
 }
 
+/**
+ * @brief vaprintf standin for USB logging.
+ * 
+ * @param fmt vaprintf format
+ * @param args vaprintf args
+ * @return size Number of characters that were written.
+ */
+int uprintf( const char * fmt, ... )
+{
+    va_list args;
+    va_start(args, fmt);
+    int r = advanced_usb_write_log_printf(fmt, args);
+    va_end(args);
+    return r;
+}
+
+
 
 /**
  * @brief USB request to get text in buffer
@@ -196,7 +213,7 @@ void IRAM_ATTR handle_advanced_usb_control_set( int datalen, const uint8_t * dat
         // Switch Swadge Mode
         {
             ULOG( "SwadgeMode Value: 0x%08x", value );
-			overrideToSwadgeMode( (swadgeMode*)(value?(swadgeMode*)value:&dummy_swadge_mode) );
+            overrideToSwadgeMode( (swadgeMode*)(value?(swadgeMode*)value:&dummy_swadge_mode) );
         }
         break;
     case AUSB_CMD_ALLOC_SCRATCH:
