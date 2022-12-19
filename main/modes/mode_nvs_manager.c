@@ -38,9 +38,6 @@
 #ifdef NVS_MANAGER_TOUCH
 #include "touch_sensor.h"
 #endif
-#if defined(EMU)
-#include "emu_main.h"
-#endif
 #ifdef DEBUG
 #include "esp_log.h"
 #endif
@@ -3327,7 +3324,7 @@ void nvsManagerRecvApplyMenuCb(const char* opt)
         {
             applyIncomingNvsImage();
             // TODO: handle errors
-            
+
             // TODO: exit more gracefully
             switchToSwadgeMode(&modeMainMenu);
         }
