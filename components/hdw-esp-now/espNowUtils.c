@@ -125,7 +125,7 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
     conf.ampdu_tx_enable = 0;
     if (ESP_OK != (err = esp_wifi_init(&conf)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't init wifi %s", esp_err_to_name(err));
+        ESP_LOGW("ESPNOW", "Couldn't init wifi %s", esp_err_to_name(err));
         return;
     }
 
@@ -134,14 +134,14 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
 
     if (ESP_OK != (err = esp_wifi_set_storage(WIFI_STORAGE_RAM)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't set wifi storage %s", esp_err_to_name(err));
+        ESP_LOGW("ESPNOW", "Couldn't set wifi storage %s", esp_err_to_name(err));
         return;
     }
 
     // Set up all the wifi station mode configs
     if(ESP_OK != (err = esp_wifi_set_mode(WIFI_MODE_STA)))
     {
-        ESP_LOGD("ESPNOW", "Could not set as station mode");
+        ESP_LOGW("ESPNOW", "Could not set as station mode");
         return;
     }
 
@@ -169,13 +169,13 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
     };
     if(ESP_OK != (err = esp_wifi_set_config(ESP_IF_WIFI_STA, &config)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't set station config");
+        ESP_LOGW("ESPNOW", "Couldn't set station config");
         return;
     }
 
     if(ESP_OK != (err = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't set protocol %s", esp_err_to_name(err));
+        ESP_LOGW("ESPNOW", "Couldn't set protocol %s", esp_err_to_name(err));
         return;
     }
 
@@ -195,19 +195,19 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
 
     if(ESP_OK != (err = esp_wifi_config_80211_tx_rate(ESP_IF_WIFI_STA, WIFI_RATE)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't set PHY rate %s", esp_err_to_name(err));
+        ESP_LOGW("ESPNOW", "Couldn't set PHY rate %s", esp_err_to_name(err));
         return;
     }
 
     if(ESP_OK != (err = esp_wifi_start()))
     {
-        ESP_LOGD("ESPNOW", "Couldn't start wifi %s", esp_err_to_name(err));
+        ESP_LOGW("ESPNOW", "Couldn't start wifi %s", esp_err_to_name(err));
         return;
     }
 
     if(ESP_OK != (err = esp_wifi_config_espnow_rate(ESP_IF_WIFI_STA, WIFI_RATE)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't set PHY rate %s", esp_err_to_name(err));
+        ESP_LOGW("ESPNOW", "Couldn't set PHY rate %s", esp_err_to_name(err));
         return;
     }
 
@@ -221,16 +221,23 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
     // Set data rate
     if(ESP_OK != (err = esp_wifi_internal_set_fix_rate(ESP_IF_WIFI_STA, true, WIFI_RATE)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't set data rate");
+        ESP_LOGW("ESPNOW", "Couldn't set data rate");
         return;
     }
 
     // Don't scan in STA mode
     if(ESP_OK != (err = esp_wifi_scan_stop()))
     {
-        ESP_LOGD("ESPNOW", "Couldn't stop scanning");
+        ESP_LOGW("ESPNOW", "Couldn't stop scanning");
         return;
     }
+
+    // Commented out but for future consideration.
+    //if(ESP_OK != esp_wifi_set_max_tx_power(84)) //78 ~= 19.5dB
+    //{
+    //    ESP_LOGW("ESPNOW", "Couldn't set max power");
+    //    return;
+    //}
 
     // This starts ESP-NOW
     en.isSerial = true;
