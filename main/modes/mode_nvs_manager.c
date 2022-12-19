@@ -2220,11 +2220,12 @@ void nvsManagerP2pMsgTxCbFn(p2pInfo* p2p, messageStatus_t status, const uint8_t*
 #ifdef DEBUG
             ESP_LOGD("NM", "Receiving ACK");
 #endif
-            if(nvsManager->packetState != NVS_PSTATE_WAIT_FOR_ACK)
-            {
-                nvsManagerComposeAndSendUnexpectedPacketErrorMessage(0, true);
-                break;
-            }
+            // ACKs are too inconsistent to use this
+            // if(nvsManager->packetState != NVS_PSTATE_WAIT_FOR_ACK)
+            // {
+            //     nvsManagerComposeAndSendUnexpectedPacketErrorMessage(0, true);
+            //     break;
+            // }
 
             // ACK was expected
 
