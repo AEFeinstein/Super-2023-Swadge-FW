@@ -114,6 +114,7 @@ typedef enum
     FLIGHT_LED_ENDING,
 	FLIGHT_LED_GOT_HIT,
 	FLIGHT_LED_DIED,
+	FLIGHT_GOT_KILL,
 } flLEDAnimation;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -528,15 +529,22 @@ static void flightUpdateLEDs(flight_t * tflight)
         leds[1] = leds[6] = SafeEHSVtoHEXhelper(0, 255, 60 - 40*abs(ledAnimationTime-6), 1 );
         leds[2] = leds[5] = SafeEHSVtoHEXhelper(0, 255, 60 - 40*abs(ledAnimationTime-10), 1 );
         leds[3] = leds[4] = SafeEHSVtoHEXhelper(0, 255, 60 - 40*abs(ledAnimationTime-14), 1 );
-        if( ledAnimationTime == 30 ) flightLEDAnimate( FLIGHT_LED_NONE );
+        if( ledAnimationTime == 40 ) flightLEDAnimate( FLIGHT_LED_NONE );
 		break;
 	case FLIGHT_LED_DIED:
-        leds[0] = leds[7] = SafeEHSVtoHEXhelper(0, 255, 200-10*ledAnimationTime, 1 );
-        leds[1] = leds[6] = SafeEHSVtoHEXhelper(0, 255, 200-10*ledAnimationTime, 1 );
-        leds[2] = leds[5] = SafeEHSVtoHEXhelper(0, 255, 200-10*ledAnimationTime, 1 );
-        leds[3] = leds[4] = SafeEHSVtoHEXhelper(0, 255, 200-10*ledAnimationTime, 1 );
+        leds[0] = leds[7] = SafeEHSVtoHEXhelper(0, 255, 200-5*ledAnimationTime, 1 );
+        leds[1] = leds[6] = SafeEHSVtoHEXhelper(0, 255, 200-5*ledAnimationTime, 1 );
+        leds[2] = leds[5] = SafeEHSVtoHEXhelper(0, 255, 200-5*ledAnimationTime, 1 );
+        leds[3] = leds[4] = SafeEHSVtoHEXhelper(0, 255, 200-5*ledAnimationTime, 1 );
         if( ledAnimationTime == 50 ) flightLEDAnimate( FLIGHT_LED_NONE );
 		break;
+    case FLIGHT_GOT_KILL:
+        leds[0] = leds[7] = SafeEHSVtoHEXhelper(ledAnimationTime*8+0, 255, 200-5*ledAnimationTime, 1 );
+        leds[1] = leds[6] = SafeEHSVtoHEXhelper(ledAnimationTime*8+60, 255, 200-5*ledAnimationTime, 1 );
+        leds[2] = leds[5] = SafeEHSVtoHEXhelper(ledAnimationTime*8+120, 255, 200-5*ledAnimationTime, 1 );
+        leds[3] = leds[4] = SafeEHSVtoHEXhelper(ledAnimationTime*8+180, 255, 200-5*ledAnimationTime, 1 );
+        if( ledAnimationTime == 50 ) flightLEDAnimate( FLIGHT_LED_NONE );
+        break;
     case FLIGHT_LED_BEAN:
         leds[0] = leds[7] = SafeEHSVtoHEXhelper(ledAnimationTime*16, 128, 150 - 40*abs(ledAnimationTime-2), 1 );
         leds[1] = leds[6] = SafeEHSVtoHEXhelper(ledAnimationTime*16, 128, 150 - 40*abs(ledAnimationTime-6), 1 );
@@ -2344,7 +2352,7 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
                         if( b->flags == tp->auxPeerFlags )
                         {
                             // It was one of our boolets!
-		                    flightLEDAnimate( FLIGHT_LED_DONUT );
+		                    flightLEDAnimate( FLIGHT_GOT_KILL );
                             flt->kills++;
                             break;
                         }
