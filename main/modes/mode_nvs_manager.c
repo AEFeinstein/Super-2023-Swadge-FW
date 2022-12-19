@@ -3040,22 +3040,13 @@ void nvsManagerTopLevelCb(const char* opt)
     {
         // If this succeeds, we shouldn't let someone back into the main menu, so switch to test mode immediately
         // If this fails, we have no idea what state NVS is in, so send them back to the main menu and pray
-        // The emulator will encounter issues too unless it's immediately closed
         if(eraseNvs())
         {
-#ifdef EMU
-            emu_quit();
-#else
             switchToSwadgeMode(&modeTest);
-#endif
         }
         else
         {
-#ifdef EMU
-            exit(1);
-#else
             switchToSwadgeMode(&modeMainMenu);
-#endif
         }
         nvsManager->eraseDataConfirm = false;
         nvsManager->eraseDataSelected = false;
@@ -3336,20 +3327,13 @@ void nvsManagerRecvApplyMenuCb(const char* opt)
         {
             applyIncomingNvsImage();
             // TODO: handle errors
-#ifdef EMU
-            exit(0);
-#else
+            
             // TODO: exit more gracefully
             switchToSwadgeMode(&modeMainMenu);
-#endif
         }
         else
         {
-#ifdef EMU
-            exit(1);
-#else
             // TODO: handle errors
-#endif
         }
     }
     else if(str_apply_wo_reset == opt)
