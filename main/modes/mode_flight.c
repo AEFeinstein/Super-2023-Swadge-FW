@@ -40,12 +40,16 @@
 
 // Thruster speed, etc.
 #define THRUSTER_ACCEL   2
-#define THRUSTER_MAX     32 //NOTE: THRUSTER_MAX must be divisble by THRUSTER_ACCEL
+#define THRUSTER_MAX     42 //NOTE: THRUSTER_MAX must be divisble by THRUSTER_ACCEL
 #define THRUSTER_DECAY   2
 #define FLIGHT_SPEED_DEC 12
-#define FLIGHT_MAX_SPEED 70
-#define FLIGHT_MAX_SPEED_FREE 45
-#define FLIGHT_MIN_SPEED 8
+#define FLIGHT_MAX_SPEED 96
+#define FLIGHT_MAX_SPEED_FREE 50
+#define FLIGHT_MIN_SPEED 10
+
+#define VIEWPORT_PERSPECTIVE 600
+#define VIEWPORT_DIV  4
+#define OOBMUX 1.3333  //based on 48 bams/m
 
 #define BOOLET_SPEED_DIVISOR 11
 
@@ -65,7 +69,7 @@
 #define MAX_COLOR cTransparent
 
 #define BOOLET_MAX_LIFETIME 8000000
-#define BOOLET_HIT_DIST_SQUARED 1089 // 33x33
+#define BOOLET_HIT_DIST_SQUARED 2400 // 60x60
 
 #define flightGetCourseTimeUs() ( flight->paused ? (flight->timeOfPause - flight->timeOfStart) : ((uint32_t)esp_timer_get_time() - flight->timeOfStart) )
 
@@ -121,11 +125,11 @@ typedef enum
 // Multiplayer
 
 #define FLIGHT_MODE_FIRST_BYTE_PEER 'f'  // A flight peer
-#define FLIGHT_MODE_FIRST_BYTE_SERVER 's'  // A flight peer
-#define MAX_PEERS 73 // Best if it's a prime number.
+#define FLIGHT_MODE_FIRST_BYTE_SERVER 's'  // A flight server
+#define MAX_PEERS 103 // Best if it's a prime number.
 #define BOOLETSPERPLAYER 4
 #define MAX_BOOLETS (MAX_PEERS*BOOLETSPERPLAYER)
-#define MAX_NETWORK_MODELS 63
+#define MAX_NETWORK_MODELS 77
 
 typedef struct  // 32 bytes.
 {
@@ -345,7 +349,14 @@ bool setFlightSaveData( flightSimSaveData_t * sd )
 
 static void flightBackground(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum )
 {
-    fillDisplayArea( disp, x, y, x+w, h+y, CNDRAW_BLACK );
+	int bgcolor = CNDRAW_BLACK;
+
+	if( flight->myHealth == 0 && flight->mode == FLIGHT_FREEFLIGHT )
+	{
+		bgcolor = 72;
+	}
+
+    fillDisplayArea( disp, x, y, x+w, h+y, bgcolor );
 }
 
 /**
@@ -378,7 +389,7 @@ static void flightEnterMode(display_t * disp)
         data += 8 + m->nrvertnums + m->nrfaces * m->indices_per_face;
     }
 
-    flight->otherShip = (const tdModel * )(ship3d + 3);
+    flight->otherShip = (const tdModel * )(ship3d + 3);  //+ header(3)
 
     loadFont("ibm_vga8.font", &flight->ibm);
     loadFont("radiostars.font", &flight->radiostars);
@@ -592,9 +603,9 @@ static void flightStartGame( flightModeScreen mode )
     if( mode == FLIGHT_FREEFLIGHT )
     {
         srand( flight->timeOfStart );
-        flight->planeloc[0] = (rand()%1500)-200;
-        flight->planeloc[1] = (rand()%500)+500;
-        flight->planeloc[2] = (rand()%900)+2000;
+        flight->planeloc[0] = (int16_t)(((rand()%1500)-200)*OOBMUX);
+        flight->planeloc[1] = (int16_t)(((rand()%500)+500)*OOBMUX);
+        flight->planeloc[2] = (int16_t)(((rand()%900)+2000)*OOBMUX);
         flight->hpr[0] = 2061;
         flight->hpr[1] = 190;
         flight->hpr[2] = 0;
@@ -603,9 +614,9 @@ static void flightStartGame( flightModeScreen mode )
     }
     else
     {
-        flight->planeloc[0] = 24*48;
-        flight->planeloc[1] = 18*48; //Start pos * 48 since 48 is the fixed scale.
-        flight->planeloc[2] = 60*48;    
+        flight->planeloc[0] = (int16_t)(24*48*OOBMUX);
+        flight->planeloc[1] = (int16_t)(18*48*OOBMUX); //Start pos * 48 since 48 is the fixed scale.
+        flight->planeloc[2] = (int16_t)(60*48*OOBMUX);    
         flight->hpr[0] = 2061;
         flight->hpr[1] = 190;
         flight->hpr[2] = 0;
@@ -755,6 +766,8 @@ int16_t tdDist( const int16_t * a, const int16_t * b )
     return tdSQRT( dx*dx+dy*dy+dz*dz );
 }
 
+#define speedyHash( seed ) (( seed = (seed * 1103515245) + 12345 ), seed>>16 )
+
 void tdIdentity( int16_t * matrix )
 {
     matrix[0] = 256; matrix[1] = 0; matrix[2] = 0; matrix[3] = 0;
@@ -817,7 +830,7 @@ void SetupMatrix( void )
     tdIdentity( flight->ProjectionMatrix );
     tdIdentity( flight->ModelviewMatrix );
 
-    Perspective( 1200, 256 /* 1.0 */, 50, 8192, flight->ProjectionMatrix );
+    Perspective( VIEWPORT_PERSPECTIVE, 256 /* 1.0 */, 50, 8192, flight->ProjectionMatrix );
 }
 
 void tdMultiply( int16_t * fin1, int16_t * fin2, int16_t * fout )
@@ -950,8 +963,8 @@ int LocalToScreenspace( const int16_t * coords_3v, int16_t * o1, int16_t * o2 )
     tdPtTransform( tmppt, flight->ModelviewMatrix, coords_3v );
     td4Transform( tmppt, flight->ProjectionMatrix, tmppt );
     if( tmppt[3] >= -4 ) { return -1; }
-    int calcx = ((256 * tmppt[0] / tmppt[3])/8+(TFT_WIDTH/2));
-    int calcy = ((256 * tmppt[1] / tmppt[3])/8+(TFT_HEIGHT/2));
+    int calcx = ((256 * tmppt[0] / tmppt[3])/VIEWPORT_DIV+(TFT_WIDTH/2));
+    int calcy = ((256 * tmppt[1] / tmppt[3])/VIEWPORT_DIV+(TFT_HEIGHT/2));
     if( calcx < -16000 || calcx > 16000 || calcy < -16000 || calcy > 16000 ) return -2;
     *o1 = calcx;
     *o2 = calcy;
@@ -983,10 +996,10 @@ int tdModelVisibilitycheck( const tdModel * m )
     td4Transform( tmppt, flight->ProjectionMatrix, tmppt );
     if( tmppt[3] < -2 )
     {
-        int scx = ((256 * tmppt[0] / tmppt[3])/8+(TFT_WIDTH/2));
-        int scy = ((256 * tmppt[1] / tmppt[3])/8+(TFT_HEIGHT/2));
+        int scx = ((256 * tmppt[0] / tmppt[3])/VIEWPORT_DIV+(TFT_WIDTH/2));
+        int scy = ((256 * tmppt[1] / tmppt[3])/VIEWPORT_DIV+(TFT_HEIGHT/2));
        // int scz = ((65536 * tmppt[2] / tmppt[3]));
-        int scd = ((-256 * 2 * m->radius / tmppt[3])/8);
+        int scd = ((-256 * 2 * m->radius / tmppt[3])/VIEWPORT_DIV);
         scd += 3; //Slack
         if( scx < -scd || scy < -scd || scx >= TFT_WIDTH + scd || scy >= TFT_HEIGHT + scd )
         {
@@ -1100,8 +1113,6 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
     display_t * disp = tflight->disp;
     tflight->tframes++;
     if( tflight->mode != FLIGHT_GAME && tflight->mode != FLIGHT_GAME_OVER && tflight->mode != FLIGHT_FREEFLIGHT ) return;
-
-    // First clear the OLED
 
     SetupMatrix();
 
@@ -1502,36 +1513,36 @@ static void flightGameUpdate( flight_t * tflight )
 
     // Bound the area
     tflight->oob = false;
-    if(tflight->planeloc[0] < -1900)
+    if(tflight->planeloc[0] < -(int)(1900*OOBMUX))
     {
-        flight->planeloc_fine[0] = -(1900<<FLIGHT_SPEED_DEC);
+        flight->planeloc_fine[0] = -((int)(1900*OOBMUX)<<FLIGHT_SPEED_DEC);
         tflight->oob = true;
     }
-    else if(tflight->planeloc[0] > 1900)
+    else if(tflight->planeloc[0] > (int)(1900*OOBMUX))
     {
-        flight->planeloc_fine[0] = 1900<<FLIGHT_SPEED_DEC;
-        tflight->oob = true;
-    }
-
-    if(tflight->planeloc[1] < -800)
-    {
-        flight->planeloc_fine[1] = -(800<<FLIGHT_SPEED_DEC);
-        tflight->oob = true;
-    }
-    else if(tflight->planeloc[1] > 3500)
-    {
-        flight->planeloc_fine[1] = 3500<<FLIGHT_SPEED_DEC;
+        flight->planeloc_fine[0] = ((int)(1900*OOBMUX))<<FLIGHT_SPEED_DEC;
         tflight->oob = true;
     }
 
-    if(tflight->planeloc[2] < -1300)
+    if(tflight->planeloc[1] < -((int)(800*OOBMUX)))
     {
-        flight->planeloc_fine[2] = -(1300<<FLIGHT_SPEED_DEC);
+        flight->planeloc_fine[1] = -(((int)(800*OOBMUX))<<FLIGHT_SPEED_DEC);
         tflight->oob = true;
     }
-    else if(tflight->planeloc[2] > 3700)
+    else if(tflight->planeloc[1] > (int)(3500*OOBMUX))
     {
-        flight->planeloc_fine[2] = 3700<<FLIGHT_SPEED_DEC;
+        flight->planeloc_fine[1] = ((int)(3500*OOBMUX))<<FLIGHT_SPEED_DEC;
+        tflight->oob = true;
+    }
+
+    if(tflight->planeloc[2] < -((int)(1300*OOBMUX)))
+    {
+        flight->planeloc_fine[2] = -(((int)(1300*OOBMUX))<<FLIGHT_SPEED_DEC);
+        tflight->oob = true;
+    }
+    else if(tflight->planeloc[2] > ((int)(3700*OOBMUX)))
+    {
+        flight->planeloc_fine[2] = ((int)(3700*OOBMUX))<<FLIGHT_SPEED_DEC;
         tflight->oob = true;
     }
 }
@@ -1599,7 +1610,7 @@ void flightButtonCallback( buttonEvt_t* evt )
         case FLIGHT_FREEFLIGHT:
         case FLIGHT_GAME:
         {
-            if(evt->down && evt->button == START)
+            if(evt->down && evt->button == START && flight->mode != FLIGHT_FREEFLIGHT)
             {
                 // If we're about to pause, save current course time
                 if(!flight->paused)
@@ -1885,14 +1896,57 @@ static void TModOrDrawPlayer( flight_t * tflight, tdModel * tmod, int16_t * mat,
 
     int i;
     int lv = s->nrvertnums;
-    for( i = 0; i < lv; i+=3 )
-    {
-        tdPt3Transform( mverticesmark + i, LocalXForm, sverticesmark + i );
-    }
-	int backupColor = flight->renderlinecolor;
-	flight->renderlinecolor = ( p->basePeerFlags & 2) ? 180 : 5; //If dead, show red.
-    tdDrawModel( tflight->disp, m );
-	flight->renderlinecolor = backupColor;
+
+	int fd = p->framesDead;
+	int hashseed = p->auxPeerFlags;
+	if( fd )
+	{
+	    int nri = s->nrfaces*s->indices_per_face;
+
+		// if dead, blow ship apart.
+
+		// This is a custom function so that we can de-weld the vertices.
+		// If they remained welded, then it could not blow apart.
+	    for( i = 0; i < nri; i+=2 )
+    	{
+			display_t * disp = tflight->disp;
+			int16_t npos[3];
+			int16_t ntmp[3];
+            int i1 = s->indices_and_vertices[i];
+            int i2 = s->indices_and_vertices[i+1];
+
+			const int16_t * origs = sverticesmark + i1;
+			int16_t sx1, sy1, sx2, sy2;
+
+			npos[0] = (origs)[0] + ((((int16_t)speedyHash( hashseed )) * fd)>>13);
+			npos[1] = (origs)[1] + ((((int16_t)speedyHash( hashseed )) * fd)>>13);
+			npos[2] = (origs)[2] + ((((int16_t)speedyHash( hashseed )) * fd)>>13);
+    	    tdPt3Transform( ntmp, LocalXForm, npos );
+		    int oktorender = !LocalToScreenspace( ntmp, &sx1, &sy1 );
+
+			origs = sverticesmark + i2;
+			npos[0] = (origs)[0] + ((((int16_t)speedyHash( hashseed )) * fd)>>13);
+			npos[1] = (origs)[1] + ((((int16_t)speedyHash( hashseed )) * fd)>>13);
+			npos[2] = (origs)[2] + ((((int16_t)speedyHash( hashseed )) * fd)>>13);
+    	    tdPt3Transform( ntmp, LocalXForm, npos );
+		    oktorender &= !LocalToScreenspace( ntmp, &sx2, &sy2 );
+
+            if( oktorender )
+                speedyLine( disp, sx1, sy1, sx2, sy2, 180 );
+		}
+		if( fd < 255 ) p->framesDead = fd + 1;
+	}
+	else
+	{
+	    for( i = 0; i < lv; i+=3 )
+    	{
+    	    tdPt3Transform( mverticesmark + i, LocalXForm, sverticesmark + i );
+    	}
+		int backupColor = flight->renderlinecolor;
+		flight->renderlinecolor = 5; //If dead, show red.
+		tdDrawModel( tflight->disp, m );
+		flight->renderlinecolor = backupColor;
+	}
 }
 
 static void TModOrDrawCustomNetModel( flight_t * tflight, tdModel * tmod, int16_t * mat, network_model_t * m, uint32_t now )
@@ -1917,7 +1971,8 @@ static void TModOrDrawCustomNetModel( flight_t * tflight, tdModel * tmod, int16_
     croot[1] = pa[1] + ((va[1] * delta)>>16);
     croot[2] = pa[2] + ((va[2] * delta)>>16);
     int16_t rootcx, rootcy;
-    LocalToScreenspace( croot, &rootcx, &rootcy );
+	int rootisvalid = !LocalToScreenspace( croot, &rootcx, &rootcy );
+	int oldisvalid = rootisvalid;
 
     int16_t last[3];
     memcpy( last, croot, sizeof( croot ) );
@@ -1925,7 +1980,8 @@ static void TModOrDrawCustomNetModel( flight_t * tflight, tdModel * tmod, int16_
 
     //Otherwise, actually draw.
     uint32_t binencprop = m->binencprop;
-    int numBones = ReadUEQ( &binencprop );
+	/* int mid = */ReadUQ( &binencprop, 8 );
+    int numBones = ReadUQ( &binencprop, 4 ) + 1;
     int8_t * bpos = m->bones;
     int i;
     for( i = 0; i < numBones; i++ )
@@ -1938,6 +1994,7 @@ static void TModOrDrawCustomNetModel( flight_t * tflight, tdModel * tmod, int16_
             memcpy( last, croot, sizeof( croot ) );
             lastcx = rootcx;
             lastcy = rootcy;
+			draw = ReadUQ( &binencprop, 1 );
         }
         
         int16_t newcx, newcy;
@@ -1946,11 +2003,12 @@ static void TModOrDrawCustomNetModel( flight_t * tflight, tdModel * tmod, int16_
         new[1] = last[1] + bpos[1];
         new[2] = last[2] + bpos[2];
         bpos+=3;
-        LocalToScreenspace( new, &newcx, &newcy );
+        int newisvalid = !LocalToScreenspace( new, &newcx, &newcy );
 
-        if( draw )
+        if( draw && newisvalid && oldisvalid )
             speedyLine( tflight->disp, lastcx, lastcy, newcx, newcy, 35 );        
 
+		oldisvalid = newisvalid;
         lastcx = newcx;
         lastcy = newcy;
         memcpy( last, new, sizeof( last ) );
@@ -2292,8 +2350,10 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
             uint32_t codeword = (*(const uint32_t*)data);  data += 4;
             uint32_t res_codeword = codeword;
             uint32_t id = ReadUQ( &codeword, 8 );
-            uint32_t bones = ReadUQ( &codeword, 5 );
+            uint32_t bones = ReadUQ( &codeword, 4 ) + 1;
 
+			// Just a quick and dirty way to prevent a buffer overflow.
+			if( id >= MAX_NETWORK_MODELS ) id = 0;
             network_model_t * m;
 
             m = netModels[id];
@@ -2325,6 +2385,9 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
         {
             int readID = *(data++);
             int shipNo = isPeer?peerId:readID;
+
+			if( shipNo >= MAX_PEERS ) shipNo = 0;
+
             multiplayerpeer_t * tp = allPeers + shipNo;
             tp->timeOfUpdate = peerSendInOurTime;
 
@@ -2380,6 +2443,10 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
                 // Fixed locations.
                 booletID += peerId*BOOLETSPERPLAYER;
             }
+			else
+			{
+				if( booletID >= MAX_BOOLETS ) booletID = 0;
+			}
             boolet_t * b = allBoolets + booletID;
             b->timeOfLaunch = *((const uint32_t*)data) - thisPeer->timeOffsetOfPeerFromNow;
             data += 4;

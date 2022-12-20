@@ -11,7 +11,7 @@
 
 //Used for vertex welding.
 #define EPSILON  1
-#define FIXEDSCALE 48
+#define FIXEDSCALE 64 // was 48
 
 #define MAXV (1048576)
 #define MAXI (1048576*3)
