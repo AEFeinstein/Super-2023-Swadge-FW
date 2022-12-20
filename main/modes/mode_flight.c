@@ -116,20 +116,21 @@ typedef enum
     FLIGHT_LED_BEAN,
     FLIGHT_LED_DONUT,
     FLIGHT_LED_ENDING,
-	FLIGHT_LED_GOT_HIT,
-	FLIGHT_LED_DIED,
-	FLIGHT_GOT_KILL,
+    FLIGHT_LED_GOT_HIT,
+    FLIGHT_LED_DIED,
+    FLIGHT_GOT_KILL,
 } flLEDAnimation;
 
 //////////////////////////////////////////////////////////////////////////////
 // Multiplayer
 
-#define FLIGHT_MODE_FIRST_BYTE_PEER 'f'  // A flight peer
-#define FLIGHT_MODE_FIRST_BYTE_SERVER 's'  // A flight server
+#define FSNET_CODE_SERVER 0x73534653
+#define FSNET_CODE_PEER 0x66534653
+
 #define MAX_PEERS 103 // Best if it's a prime number.
 #define BOOLETSPERPLAYER 4
 #define MAX_BOOLETS (MAX_PEERS*BOOLETSPERPLAYER)
-#define MAX_NETWORK_MODELS 77
+#define MAX_NETWORK_MODELS 81
 
 typedef struct  // 32 bytes.
 {
@@ -144,6 +145,7 @@ typedef struct  // 32 bytes.
     uint8_t  basePeerFlags; // If zero, don't render.  Note flags&1 has reserved meaning locally for presence..  if flags & 2, render as dead.
     uint16_t  auxPeerFlags; // If dead, is ID of boolet which killed "me"
     uint8_t  framesDead;
+    uint8_t  reqColor;
 } multiplayerpeer_t;
 
 typedef struct  // Rounds up to 16 bytes.
@@ -160,8 +162,10 @@ typedef struct
     uint32_t binencprop;      //Encoding starts at lsb.  First: # of bones, then the way the bones are interconnected.
     int16_t root[3];
     uint8_t  radius;
+    uint8_t  reqColor;
     int8_t  velocity[3];
     int8_t  bones[0*3];  //Does not need to be all that long.
+
 } network_model_t;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -238,6 +242,9 @@ typedef struct
     int deaths;
 
     modelRangePair_t * mrp;
+
+    uint8_t bgcolor;
+    uint8_t was_hit_by_boolet;
 } flight_t;
 
 /*============================================================================
@@ -349,14 +356,14 @@ bool setFlightSaveData( flightSimSaveData_t * sd )
 
 static void flightBackground(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum )
 {
-	int bgcolor = CNDRAW_BLACK;
+    flight->bgcolor = CNDRAW_BLACK;
 
-	if( flight->myHealth == 0 && flight->mode == FLIGHT_FREEFLIGHT )
-	{
-		bgcolor = 72;
-	}
+    if( flight->myHealth == 0 && flight->mode == FLIGHT_FREEFLIGHT )
+    {
+        flight->bgcolor = 72;
+    }
 
-    fillDisplayArea( disp, x, y, x+w, h+y, bgcolor );
+    fillDisplayArea( disp, x, y, x+w, h+y, flight->bgcolor );
 }
 
 /**
@@ -534,20 +541,20 @@ static void flightUpdateLEDs(flight_t * tflight)
         leds[3] = leds[4] = SafeEHSVtoHEXhelper(0, 0, 60 - 40*abs(ledAnimationTime-14), 1 );
         if( ledAnimationTime == 50 ) flightLEDAnimate( FLIGHT_LED_NONE );
         break;
-	case FLIGHT_LED_GOT_HIT:
+    case FLIGHT_LED_GOT_HIT:
         leds[0] = leds[7] = SafeEHSVtoHEXhelper(0, 255, 60 - 40*abs(ledAnimationTime-2), 1 );
         leds[1] = leds[6] = SafeEHSVtoHEXhelper(0, 255, 60 - 40*abs(ledAnimationTime-6), 1 );
         leds[2] = leds[5] = SafeEHSVtoHEXhelper(0, 255, 60 - 40*abs(ledAnimationTime-10), 1 );
         leds[3] = leds[4] = SafeEHSVtoHEXhelper(0, 255, 60 - 40*abs(ledAnimationTime-14), 1 );
         if( ledAnimationTime == 40 ) flightLEDAnimate( FLIGHT_LED_NONE );
-		break;
-	case FLIGHT_LED_DIED:
+        break;
+    case FLIGHT_LED_DIED:
         leds[0] = leds[7] = SafeEHSVtoHEXhelper(0, 255, 200-5*ledAnimationTime, 1 );
         leds[1] = leds[6] = SafeEHSVtoHEXhelper(0, 255, 200-5*ledAnimationTime, 1 );
         leds[2] = leds[5] = SafeEHSVtoHEXhelper(0, 255, 200-5*ledAnimationTime, 1 );
         leds[3] = leds[4] = SafeEHSVtoHEXhelper(0, 255, 200-5*ledAnimationTime, 1 );
         if( ledAnimationTime == 50 ) flightLEDAnimate( FLIGHT_LED_NONE );
-		break;
+        break;
     case FLIGHT_GOT_KILL:
         leds[0] = leds[7] = SafeEHSVtoHEXhelper(ledAnimationTime*8+0, 255, 200-5*ledAnimationTime, 1 );
         leds[1] = leds[6] = SafeEHSVtoHEXhelper(ledAnimationTime*8+60, 255, 200-5*ledAnimationTime, 1 );
@@ -1082,7 +1089,7 @@ void tdDrawModel( display_t * disp, const tdModel * m )
                 int Vx = cv2[0] - cv1[0];
                 int Vy = cv2[1] - cv1[1];
                 if( Ux*Vy-Uy*Vx >= 0 )
-                    outlineTriangle( disp, cv1[0], cv1[1], cv2[0], cv2[1], cv3[0], cv3[1], CNDRAW_BLACK, CNDRAW_WHITE );
+                    outlineTriangle( disp, cv1[0], cv1[1], cv2[0], cv2[1], cv3[0], cv3[1], flight->bgcolor, flight->renderlinecolor );
             }
         }
     }
@@ -1415,7 +1422,7 @@ static void flightGameUpdate( flight_t * tflight )
     {
         if( (uint32_t)(now - tflight->timeOfDeath) > 2000000 )
         {
-			tflight->deaths++;
+            tflight->deaths++;
             flightStartGame(FLIGHT_FREEFLIGHT);
             return;
         }
@@ -1897,56 +1904,56 @@ static void TModOrDrawPlayer( flight_t * tflight, tdModel * tmod, int16_t * mat,
     int i;
     int lv = s->nrvertnums;
 
-	int fd = p->framesDead;
-	int hashseed = p->auxPeerFlags;
-	if( fd )
-	{
-	    int nri = s->nrfaces*s->indices_per_face;
+    int fd = p->framesDead;
+    int hashseed = p->auxPeerFlags;
+    if( fd )
+    {
+        int nri = s->nrfaces*s->indices_per_face;
 
-		// if dead, blow ship apart.
+        // if dead, blow ship apart.
 
-		// This is a custom function so that we can de-weld the vertices.
-		// If they remained welded, then it could not blow apart.
-	    for( i = 0; i < nri; i+=2 )
-    	{
-			display_t * disp = tflight->disp;
-			int16_t npos[3];
-			int16_t ntmp[3];
+        // This is a custom function so that we can de-weld the vertices.
+        // If they remained welded, then it could not blow apart.
+        for( i = 0; i < nri; i+=2 )
+        {
+            display_t * disp = tflight->disp;
+            int16_t npos[3];
+            int16_t ntmp[3];
             int i1 = s->indices_and_vertices[i];
             int i2 = s->indices_and_vertices[i+1];
 
-			const int16_t * origs = sverticesmark + i1;
-			int16_t sx1, sy1, sx2, sy2;
+            const int16_t * origs = sverticesmark + i1;
+            int16_t sx1, sy1, sx2, sy2;
 
-			npos[0] = (origs)[0] + ((((int16_t)speedyHash( hashseed )) * fd)>>13);
-			npos[1] = (origs)[1] + ((((int16_t)speedyHash( hashseed )) * fd)>>13);
-			npos[2] = (origs)[2] + ((((int16_t)speedyHash( hashseed )) * fd)>>13);
-    	    tdPt3Transform( ntmp, LocalXForm, npos );
-		    int oktorender = !LocalToScreenspace( ntmp, &sx1, &sy1 );
+            npos[0] = (origs)[0] + ((((int16_t)speedyHash( hashseed )) * fd)>>14);
+            npos[1] = (origs)[1] + ((((int16_t)speedyHash( hashseed )) * fd)>>14);
+            npos[2] = (origs)[2] + ((((int16_t)speedyHash( hashseed )) * fd)>>14);
+            tdPt3Transform( ntmp, LocalXForm, npos );
+            int oktorender = !LocalToScreenspace( ntmp, &sx1, &sy1 );
 
-			origs = sverticesmark + i2;
-			npos[0] = (origs)[0] + ((((int16_t)speedyHash( hashseed )) * fd)>>13);
-			npos[1] = (origs)[1] + ((((int16_t)speedyHash( hashseed )) * fd)>>13);
-			npos[2] = (origs)[2] + ((((int16_t)speedyHash( hashseed )) * fd)>>13);
-    	    tdPt3Transform( ntmp, LocalXForm, npos );
-		    oktorender &= !LocalToScreenspace( ntmp, &sx2, &sy2 );
+            origs = sverticesmark + i2;
+            npos[0] = (origs)[0] + ((((int16_t)speedyHash( hashseed )) * fd)>>14);
+            npos[1] = (origs)[1] + ((((int16_t)speedyHash( hashseed )) * fd)>>14);
+            npos[2] = (origs)[2] + ((((int16_t)speedyHash( hashseed )) * fd)>>14);
+            tdPt3Transform( ntmp, LocalXForm, npos );
+            oktorender &= !LocalToScreenspace( ntmp, &sx2, &sy2 );
 
             if( oktorender )
-                speedyLine( disp, sx1, sy1, sx2, sy2, 180 );
-		}
-		if( fd < 255 ) p->framesDead = fd + 1;
-	}
-	else
-	{
-	    for( i = 0; i < lv; i+=3 )
-    	{
-    	    tdPt3Transform( mverticesmark + i, LocalXForm, sverticesmark + i );
-    	}
-		int backupColor = flight->renderlinecolor;
-		flight->renderlinecolor = 5; //If dead, show red.
-		tdDrawModel( tflight->disp, m );
-		flight->renderlinecolor = backupColor;
-	}
+                speedyLine( disp, sx1, sy1, sx2, sy2, 180 ); //Override color of explosions to red.
+        }
+        if( fd < 255 ) p->framesDead = fd + 1;
+    }
+    else
+    {
+        for( i = 0; i < lv; i+=3 )
+        {
+            tdPt3Transform( mverticesmark + i, LocalXForm, sverticesmark + i );
+        }
+        int backupColor = flight->renderlinecolor;
+        flight->renderlinecolor = p->reqColor;
+        tdDrawModel( tflight->disp, m );
+        flight->renderlinecolor = backupColor;
+    }
 }
 
 static void TModOrDrawCustomNetModel( flight_t * tflight, tdModel * tmod, int16_t * mat, network_model_t * m, uint32_t now )
@@ -1971,8 +1978,8 @@ static void TModOrDrawCustomNetModel( flight_t * tflight, tdModel * tmod, int16_
     croot[1] = pa[1] + ((va[1] * delta)>>16);
     croot[2] = pa[2] + ((va[2] * delta)>>16);
     int16_t rootcx, rootcy;
-	int rootisvalid = !LocalToScreenspace( croot, &rootcx, &rootcy );
-	int oldisvalid = rootisvalid;
+    int rootisvalid = !LocalToScreenspace( croot, &rootcx, &rootcy );
+    int oldisvalid = rootisvalid;
 
     int16_t last[3];
     memcpy( last, croot, sizeof( croot ) );
@@ -1980,10 +1987,11 @@ static void TModOrDrawCustomNetModel( flight_t * tflight, tdModel * tmod, int16_
 
     //Otherwise, actually draw.
     uint32_t binencprop = m->binencprop;
-	/* int mid = */ReadUQ( &binencprop, 8 );
+    /* int mid = */ReadUQ( &binencprop, 8 );
     int numBones = ReadUQ( &binencprop, 4 ) + 1;
     int8_t * bpos = m->bones;
     int i;
+    uint8_t rcolor = m->reqColor;
     for( i = 0; i < numBones; i++ )
     {
         int draw = ReadUQ( &binencprop, 1 );
@@ -1994,7 +2002,7 @@ static void TModOrDrawCustomNetModel( flight_t * tflight, tdModel * tmod, int16_
             memcpy( last, croot, sizeof( croot ) );
             lastcx = rootcx;
             lastcy = rootcy;
-			draw = ReadUQ( &binencprop, 1 );
+            draw = ReadUQ( &binencprop, 1 );
         }
         
         int16_t newcx, newcy;
@@ -2006,9 +2014,9 @@ static void TModOrDrawCustomNetModel( flight_t * tflight, tdModel * tmod, int16_
         int newisvalid = !LocalToScreenspace( new, &newcx, &newcy );
 
         if( draw && newisvalid && oldisvalid )
-            speedyLine( tflight->disp, lastcx, lastcy, newcx, newcy, 35 );        
+            speedyLine( tflight->disp, lastcx, lastcy, newcx, newcy, rcolor );        
 
-		oldisvalid = newisvalid;
+        oldisvalid = newisvalid;
         lastcx = newcx;
         lastcy = newcy;
         memcpy( last, new, sizeof( last ) );
@@ -2147,11 +2155,12 @@ static void FlightNetworkFrameCall( flight_t * tflight, display_t* disp, uint32_
                                 tflight->booletHitHistoryHead = tflight->booletHitHistoryHead+1;
                                 if( tflight->booletHitHistoryHead == BOOLETSPERPLAYER ) tflight->booletHitHistoryHead = 0;
 
-				                flightLEDAnimate( FLIGHT_LED_GOT_HIT );
+                                flightLEDAnimate( FLIGHT_LED_GOT_HIT );
+                                tflight->was_hit_by_boolet = 1;
                                 tflight->myHealth-=10;
                                 if( tflight->myHealth<= 0)
                                 {
-					                flightLEDAnimate( FLIGHT_LED_DIED );
+                                    flightLEDAnimate( FLIGHT_LED_DIED );
                                     tflight->killedByBooletID = b->flags;
                                     tflight->timeOfDeath = now;
                                 }
@@ -2189,7 +2198,7 @@ static void FlightNetworkFrameCall( flight_t * tflight, display_t* disp, uint32_
 
         uint8_t espnow_buffer[256];
         uint8_t *pp = espnow_buffer;
-        *(pp++) = FLIGHT_MODE_FIRST_BYTE_PEER;
+        *((uint32_t*)pp) = FSNET_CODE_PEER; pp+=4;
         *((uint32_t*)pp) = now; pp+=4;
 
         uint32_t contents = 0;
@@ -2218,6 +2227,8 @@ static void FlightNetworkFrameCall( flight_t * tflight, display_t* disp, uint32_
         uint8_t flags = 1 | ((tflight->myHealth>0)?0:2);
         memcpy( pp, &flags, sizeof( flags ) ); pp += sizeof( flags );
         memcpy( pp, &tflight->killedByBooletID, sizeof( tflight->killedByBooletID ) ); pp += sizeof( tflight->killedByBooletID );
+        *(pp++) = tflight->was_hit_by_boolet?92:5; // Purple:Blue
+        tflight->was_hit_by_boolet = 0;
 
         // Now, need to send boolets.
         for( i = 0; i < BOOLETSPERPLAYER; i++ )
@@ -2259,11 +2270,11 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
 
     if( flt->nNetworkMode == 0 ) return;
 
-    char pcode = *(data++);
+    uint32_t pcode = *((uint32_t*)data);  data+= 4;
 
-    if( !( pcode == FLIGHT_MODE_FIRST_BYTE_SERVER || (!flt->nNetworkServerLastSeen && pcode == FLIGHT_MODE_FIRST_BYTE_PEER ) ) || len < 8 ) return;
+    if( !( pcode == FSNET_CODE_SERVER || (!flt->nNetworkServerLastSeen && pcode == FSNET_CODE_PEER ) ) || len < 8 ) return;
 
-    int isPeer = pcode == FLIGHT_MODE_FIRST_BYTE_PEER;
+    int isPeer = pcode == FSNET_CODE_PEER;
     // If we get a server packet, switch to server mode for a while.
     if( !isPeer )
     {
@@ -2352,8 +2363,8 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
             uint32_t id = ReadUQ( &codeword, 8 );
             uint32_t bones = ReadUQ( &codeword, 4 ) + 1;
 
-			// Just a quick and dirty way to prevent a buffer overflow.
-			if( id >= MAX_NETWORK_MODELS ) id = 0;
+            // Just a quick and dirty way to prevent a buffer overflow.
+            if( id >= MAX_NETWORK_MODELS ) id = 0;
             network_model_t * m;
 
             m = netModels[id];
@@ -2374,6 +2385,7 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
             m->binencprop = res_codeword;
             memcpy( m->root, data, sizeof(m->root) ); data += sizeof(m->root); 
             m->radius = (*data++);
+            m->reqColor = (*data++);
             memcpy( m->velocity, data, sizeof(m->velocity) ); data += sizeof(m->velocity); 
             memcpy( m->bones, data, bones * 3 ); data += bones * 3;
         }
@@ -2386,7 +2398,7 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
             int readID = *(data++);
             int shipNo = isPeer?peerId:readID;
 
-			if( shipNo >= MAX_PEERS ) shipNo = 0;
+            if( shipNo >= MAX_PEERS ) shipNo = 0;
 
             multiplayerpeer_t * tp = allPeers + shipNo;
             tp->timeOfUpdate = peerSendInOurTime;
@@ -2397,9 +2409,10 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
             memcpy( tp->rotAt, data, sizeof( tp->rotAt ) ); data+=sizeof( tp->rotAt );
             memcpy( &tp->basePeerFlags, data, sizeof( tp->basePeerFlags ) ); data+=sizeof( tp->basePeerFlags ); tp->basePeerFlags |= 1;
             memcpy( &tp->auxPeerFlags, data, sizeof( tp->auxPeerFlags ) ); data+=sizeof( tp->auxPeerFlags );
+            tp->reqColor = *(data++);
 
-			//uprintf( "%d %d %d - %d %d %d - %d %d %d %08x %08x\n", tp->posAt[0],tp->posAt[1],tp->posAt[2],tp->velAt[0], tp->velAt[1], tp->velAt[2], 
-			//	tp->rotAt[0], tp->rotAt[1], tp->rotAt[2], tp->basePeerFlags, tp->auxPeerFlags );
+            //uprintf( "%d %d %d - %d %d %d - %d %d %d %08x %08x\n", tp->posAt[0],tp->posAt[1],tp->posAt[2],tp->velAt[0], tp->velAt[1], tp->velAt[2], 
+            //    tp->rotAt[0], tp->rotAt[1], tp->rotAt[2], tp->basePeerFlags, tp->auxPeerFlags );
 
             if( tp->basePeerFlags & 2 )
             {
@@ -2414,7 +2427,7 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
                         if( b->flags == tp->auxPeerFlags )
                         {
                             // It was one of our boolets!
-		                    flightLEDAnimate( FLIGHT_GOT_KILL );
+                            flightLEDAnimate( FLIGHT_GOT_KILL );
                             flt->kills++;
                             break;
                         }
@@ -2443,10 +2456,10 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
                 // Fixed locations.
                 booletID += peerId*BOOLETSPERPLAYER;
             }
-			else
-			{
-				if( booletID >= MAX_BOOLETS ) booletID = 0;
-			}
+            else
+            {
+                if( booletID >= MAX_BOOLETS ) booletID = 0;
+            }
             boolet_t * b = allBoolets + booletID;
             b->timeOfLaunch = *((const uint32_t*)data) - thisPeer->timeOffsetOfPeerFromNow;
             data += 4;
