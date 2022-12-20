@@ -213,7 +213,6 @@ typedef struct
     int16_t ProjectionMatrix[16];
     int renderlinecolor;
 
-
     // Boolets for multiplayer.
     multiplayerpeer_t allPeers[MAX_PEERS]; //32x103 = 3296 bytes.
     boolet_t allBoolets[MAX_BOOLETS];  // ~8kB
@@ -818,7 +817,7 @@ void SetupMatrix( void )
     tdIdentity( flight->ProjectionMatrix );
     tdIdentity( flight->ModelviewMatrix );
 
-    Perspective( 1200, 128 /* 0.5 */, 50, 8192, flight->ProjectionMatrix );
+    Perspective( 1200, 256 /* 1.0 */, 50, 8192, flight->ProjectionMatrix );
 }
 
 void tdMultiply( int16_t * fin1, int16_t * fin2, int16_t * fout )
@@ -951,7 +950,7 @@ int LocalToScreenspace( const int16_t * coords_3v, int16_t * o1, int16_t * o2 )
     tdPtTransform( tmppt, flight->ModelviewMatrix, coords_3v );
     td4Transform( tmppt, flight->ProjectionMatrix, tmppt );
     if( tmppt[3] >= -4 ) { return -1; }
-    int calcx = ((256 * tmppt[0] / tmppt[3])/16+(TFT_WIDTH/2));
+    int calcx = ((256 * tmppt[0] / tmppt[3])/8+(TFT_WIDTH/2));
     int calcy = ((256 * tmppt[1] / tmppt[3])/8+(TFT_HEIGHT/2));
     if( calcx < -16000 || calcx > 16000 || calcy < -16000 || calcy > 16000 ) return -2;
     *o1 = calcx;
@@ -984,7 +983,7 @@ int tdModelVisibilitycheck( const tdModel * m )
     td4Transform( tmppt, flight->ProjectionMatrix, tmppt );
     if( tmppt[3] < -2 )
     {
-        int scx = ((256 * tmppt[0] / tmppt[3])/16+(TFT_WIDTH/2));
+        int scx = ((256 * tmppt[0] / tmppt[3])/8+(TFT_WIDTH/2));
         int scy = ((256 * tmppt[1] / tmppt[3])/8+(TFT_HEIGHT/2));
        // int scz = ((65536 * tmppt[2] / tmppt[3]));
         int scd = ((-256 * 2 * m->radius / tmppt[3])/8);
