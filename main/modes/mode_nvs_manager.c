@@ -505,7 +505,7 @@ const char str_connection[] = "Connection";
 const char str_wireless[] = "Wireless";
 const char str_wired[] = "Wired";
 const char str_apply_data[] = "Apply Data";
-const char str_choose_one[] = "Factory Reset first?:";
+const char str_choose_one[] = "Factory Reset?:";
 const char str_reset_first[] = "Reset first";
 const char str_apply_wo_reset[] = "Apply w/o reset";
 
