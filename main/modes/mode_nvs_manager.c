@@ -29,9 +29,6 @@
 #include "nvs_manager.h"
 #include "settingsManager.h"
 #include "touch_sensor.h"
-#if defined(EMU)
-#include "emu_main.h"
-#endif
 
 #include "mode_nvs_manager.h"
 
