@@ -10,6 +10,7 @@
 extern "C" {
 #endif
 
+#include <stddef.h>
 #include "esp_err.h"
 // #include "esp_intr_alloc.h"
 // #include "soc/soc_caps.h"
