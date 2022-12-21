@@ -958,6 +958,7 @@ void nvsManagerSetUpTopMenu(bool resetPos)
 {
     // Set up the menu
     resetMeleeMenu(nvsManager->menu, modeNvsManager.modeName, nvsManagerTopLevelCb);
+    nvsManager->menu->enableScrolling = false;
     addRowToMeleeMenu(nvsManager->menu, str_summary);
     addRowToMeleeMenu(nvsManager->menu, str_manage_data);
 
@@ -1058,6 +1059,7 @@ void nvsManagerSetUpManageDataMenu(bool resetPos)
 {
     // Set up the menu
     resetMeleeMenu(nvsManager->menu, str_manage_data, nvsManagerManageDataCb);
+    nvsManager->menu->enableScrolling = true;
 
     for(size_t i = 0; i < nvsManager->nvsNumEntryInfos; i++)
     {
