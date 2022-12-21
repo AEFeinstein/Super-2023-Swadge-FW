@@ -38,7 +38,7 @@ static const led_t borderLedColors[NUM_ROW_COLORS_AND_OFFSETS] =
     {.r = 0x10, .g = 0x10, .b = 0x20},
     {.r = 0x20, .g = 0x10, .b = 0x10},
     {.r = 0x00, .g = 0x20, .b = 0x10},
-    {.r = 0x20, .g = 0x20, .b = 0x00},
+    {.r = 0x20, .g = 0x20, .b = 0x10},
     {.r = 0x10, .g = 0x00, .b = 0x20},
     {.r = 0x20, .g = 0x10, .b = 0x00},
 };
@@ -143,7 +143,7 @@ void deinitMeleeMenu(meleeMenu_t* menu)
 int addRowToMeleeMenu(meleeMenu_t* menu, const char* label)
 {
     // Make sure there's space for this row
-    if(menu->numRows < MAX_ROWS)
+    if(menu->numRows < (menu->enableScrolling ? MAX_ROWS : MAX_ROWS_ON_SCREEN))
     {
         // Try to allocate more rows if we need to
         if(menu->numRowsAllocated < menu->numRows + 1)
@@ -185,13 +185,16 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
                 menu->selectedRow--;
             }
 
-            if(menu->selectedRow < menu->firstRowOnScreen)
+            if(menu->enableScrolling)
             {
-                menu->firstRowOnScreen--;
-            }
-            else if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
-            {
-                menu->firstRowOnScreen = menu->numRows - MAX_ROWS_ON_SCREEN;
+                if(menu->selectedRow < menu->firstRowOnScreen)
+                {
+                    menu->firstRowOnScreen--;
+                }
+                else if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCROLLABLE_SCREEN - 1)
+                {
+                    menu->firstRowOnScreen = menu->numRows - MAX_ROWS_ON_SCROLLABLE_SCREEN;
+                }
             }
 
             break;
@@ -209,13 +212,16 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
                 menu->selectedRow++;
             }
 
-            if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
+            if(menu->enableScrolling)
             {
-                menu->firstRowOnScreen++;
-            }
-            else if(menu->selectedRow < menu->firstRowOnScreen)
-            {
-                menu->firstRowOnScreen = 0;
+                if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCROLLABLE_SCREEN - 1)
+                {
+                    menu->firstRowOnScreen++;
+                }
+                else if(menu->selectedRow < menu->firstRowOnScreen)
+                {
+                    menu->firstRowOnScreen = 0;
+                }
             }
 
             break;
@@ -285,6 +291,18 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
 #define TEXT_Y_GAP  2
     // The Y offset of the first menu item
 #define FIRST_ITEM_Y (BORDER_GAP + 1 + menu->font->h + 2 * TEXT_Y_GAP + 2 * BORDER_WIDTH + 1)
+    // The width of the arrows
+#define ARROW_WIDTH            15 // Must be odd
+    // The height of each arrow
+#define ARROW_HEIGHT            9
+    // The number of pixels into the arrow the wraparound indicator "bar" is drawn ( e.g. >| )
+#define ARROW_BAR_INSET         1
+    // The width to shrink the bar by on each side, compared to the arrow
+#define ARROW_BAR_SHRINK_RADIUS 2
+    // The rate at which menu animations change speed
+#define ANIM_ACCEL 2
+    // The maximum speed at which the menu will animate
+#define ANIM_MAXSPEED 12
 
     // Draw the title and note where it ends
     int16_t textEnd = drawText(d, menu->font, c222, menu->title, BORDER_GAP + 1 + TITLE_X_GAP, BORDER_GAP + 1);
@@ -323,22 +341,12 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
                     d->w - BORDER_GAP, BORDER_GAP + BORDER_WIDTH,
                     borderColor);
 
-    // Adjust entries displayed on screen to include the selected row
-    if(menu->selectedRow < menu->firstRowOnScreen)
-    {
-        // Equivalent to shifting the view up until the selected row is on-screen
-        menu->firstRowOnScreen = menu->selectedRow;
-    }
-    else if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
-    {
-        // Equivalent to shifting the view down until the selected row is on-screen
-        menu->firstRowOnScreen = menu->selectedRow - MAX_ROWS_ON_SCREEN + 1;
-    }
+    uint8_t startRow = menu->firstRowOnScreen;
+    uint8_t endRow = menu->firstRowOnScreen + (menu->enableScrolling ? MAX_ROWS_ON_SCROLLABLE_SCREEN : MAX_ROWS_ON_SCREEN);
+    int16_t yIdx = FIRST_ITEM_Y;
+    int16_t rowGap = menu->font->h + 2 * TEXT_Y_GAP + 3;
+    int16_t bottomArrowBump = 0;
 
-#define ARROW_WIDTH            15 // Must be odd
-#define ARROW_HEIGHT            9
-#define ARROW_BAR_INSET         1
-#define ARROW_BAR_SHRINK_RADIUS 2
     int16_t arrowFlatSideX1 = (menu->usePerRowXOffsets ? MAX_ROW_OFFSET : MIN_ROW_OFFSET) + TEXT_Y_GAP;
     int16_t arrowFlatSideX2 = arrowFlatSideX1 + ARROW_WIDTH - 1;
     int16_t arrowPointX = (arrowFlatSideX1 + arrowFlatSideX2) / 2;
@@ -346,185 +354,189 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     int16_t arrowBarX1 = arrowFlatSideX1 + ARROW_BAR_SHRINK_RADIUS;
     int16_t arrowBarX2 = arrowFlatSideX2 - ARROW_BAR_SHRINK_RADIUS;
 
-    int16_t yIdx = FIRST_ITEM_Y;
-    int16_t rowGap = menu->font->h + 2 * TEXT_Y_GAP + 3;
-
-
-#define ANIM_ACCEL 2
-#define ANIM_MAXSPEED 12
-
-    if (menu->selectedRow != menu->lastSelectedRow)
+    if(menu->enableScrolling)
     {
-        // SOMEBODY TOUCHED MY STUFF
-
-        menu->firstRowOnScreen = menu->lastFirstRow;
-        if (menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN > menu->numRows)
+        // Adjust entries displayed on screen to include the selected row
+        if(menu->selectedRow < menu->firstRowOnScreen)
         {
-            if (menu->numRows > MAX_ROWS_ON_SCREEN)
-            {
-                // firstRowOnScreen was set in a way that would create an impossible
-                // scroll situation, so reset it to a reasonable value
-                menu->firstRowOnScreen = menu->numRows - MAX_ROWS_ON_SCREEN;
-            }
-            else
-            {
-                // there just aren't enough rows, so this should always be 0 anyway
-                menu->firstRowOnScreen = 0;
-            }
+            // Equivalent to shifting the view up until the selected row is on-screen
+            menu->firstRowOnScreen = menu->selectedRow;
+        }
+        else if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCROLLABLE_SCREEN - 1)
+        {
+            // Equivalent to shifting the view down until the selected row is on-screen
+            menu->firstRowOnScreen = menu->selectedRow - MAX_ROWS_ON_SCROLLABLE_SCREEN + 1;
         }
 
-        menu->animateStartRow = menu->firstRowOnScreen;
-        menu->lastSelectedRow = menu->selectedRow;
-    }
+        if (menu->selectedRow != menu->lastSelectedRow)
+        {
+            // SOMEBODY TOUCHED MY STUFF
 
-    if (menu->animateStartRow == UINT8_MAX)
-    {
-        menu->animateStartRow = menu->firstRowOnScreen;
-    }
+            menu->firstRowOnScreen = menu->lastFirstRow;
+            if (menu->firstRowOnScreen + MAX_ROWS_ON_SCROLLABLE_SCREEN > menu->numRows)
+            {
+                if (menu->numRows > MAX_ROWS_ON_SCROLLABLE_SCREEN)
+                {
+                    // firstRowOnScreen was set in a way that would create an impossible
+                    // scroll situation, so reset it to a reasonable value
+                    menu->firstRowOnScreen = menu->numRows - MAX_ROWS_ON_SCROLLABLE_SCREEN;
+                }
+                else
+                {
+                    // there just aren't enough rows, so this should always be 0 anyway
+                    menu->firstRowOnScreen = 0;
+                }
+            }
 
-    // Start animating
-    if (!menu->animating && menu->animateStartRow != menu->firstRowOnScreen)
-    {
-        menu->animating = true;
-        menu->animateSpeed = 0;
-        menu->animateOffset = 0;
-    }
+            menu->animateStartRow = menu->firstRowOnScreen;
+            menu->lastSelectedRow = menu->selectedRow;
+        } // if (menu->selectedRow != menu->lastSelectedRow)
 
-    // Draw up arrow
-    if(!menu->animating)
-    {
+        if (menu->animateStartRow == UINT8_MAX)
+        {
+            menu->animateStartRow = menu->firstRowOnScreen;
+        }
+
+        // Start animating
+        if (!menu->animating && menu->animateStartRow != menu->firstRowOnScreen)
+        {
+            menu->animating = true;
+            menu->animateSpeed = 0;
+            menu->animateOffset = 0;
+        }
+
+        // Draw up arrow
+        if(!menu->animating)
+        {
 #ifndef ALWAYS_SHOW_ARROWS
 #ifdef SHOW_WRAPAROUND_ARROWS
-        if(menu->numRows > MAX_ROWS_ON_SCREEN)
+            if(menu->numRows > MAX_ROWS_ON_SCROLLABLE_SCREEN)
 #else
-        if(menu->firstRowOnScreen > 0)
+            if(menu->firstRowOnScreen > 0)
 #endif
 #endif
-        {
-            int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 3;
-            int16_t arrowPointY = arrowFlatSideY - ARROW_HEIGHT + 1; //= round(arrowFlatSideY - (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
-            plotLine(d, arrowFlatSideX1, arrowFlatSideY, arrowFlatSideX2, arrowFlatSideY, boundaryColor, 0);
-            plotLine(d, arrowFlatSideX1, arrowFlatSideY - 1, arrowPointX, arrowPointY, boundaryColor, 0);
-            plotLine(d, arrowFlatSideX2, arrowFlatSideY - 1, arrowPointX, arrowPointY, boundaryColor, 0);
+            {
+                int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 3;
+                int16_t arrowPointY = arrowFlatSideY - ARROW_HEIGHT + 1; //= round(arrowFlatSideY - (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
+                plotLine(d, arrowFlatSideX1, arrowFlatSideY, arrowFlatSideX2, arrowFlatSideY, boundaryColor, 0);
+                plotLine(d, arrowFlatSideX1, arrowFlatSideY - 1, arrowPointX, arrowPointY, boundaryColor, 0);
+                plotLine(d, arrowFlatSideX2, arrowFlatSideY - 1, arrowPointX, arrowPointY, boundaryColor, 0);
 
-            // Fill the arrow shape
-            oddEvenFill(d,
-                        arrowFlatSideX1, arrowPointY,
-                        arrowFlatSideX2 + 1, arrowFlatSideY,
-                        boundaryColor, unselectedFillColor);
+                // Fill the arrow shape
+                oddEvenFill(d,
+                            arrowFlatSideX1, arrowPointY,
+                            arrowFlatSideX2 + 1, arrowFlatSideY,
+                            boundaryColor, unselectedFillColor);
 
-            // Draw a bar if this is a wraparound arrow
+                // Draw a bar if this is a wraparound arrow
 #if defined(ALWAYS_SHOW_ARROWS) || defined(SHOW_WRAPAROUND_ARROWS)
-            if(menu->firstRowOnScreen == 0)
-            {
+                if(menu->firstRowOnScreen == 0)
+                {
 #if !defined(ALWAYS_SHOW_ARROWS) && defined(SHOW_WRAPAROUND_ARROWS)
-                if(menu->numRows > MAX_ROWS_ON_SCREEN)
+                    if(menu->numRows > MAX_ROWS_ON_SCROLLABLE_SCREEN)
 #endif
-                {
-                    plotLine(d, arrowBarX1, arrowPointY + ARROW_BAR_INSET - 1, arrowBarX2, arrowPointY + ARROW_BAR_INSET - 1, boundaryColor, 0);
-                    plotLine(d, arrowBarX1, arrowPointY + ARROW_BAR_INSET - 2, arrowBarX2, arrowPointY + ARROW_BAR_INSET - 2, boundaryColor, 0);
-                    plotLine(d, arrowBarX1, arrowPointY + ARROW_BAR_INSET - 3, arrowBarX2, arrowPointY + ARROW_BAR_INSET - 3, boundaryColor, 0);
+                    {
+                        plotLine(d, arrowBarX1, arrowPointY + ARROW_BAR_INSET - 1, arrowBarX2, arrowPointY + ARROW_BAR_INSET - 1, boundaryColor, 0);
+                        plotLine(d, arrowBarX1, arrowPointY + ARROW_BAR_INSET - 2, arrowBarX2, arrowPointY + ARROW_BAR_INSET - 2, boundaryColor, 0);
+                        plotLine(d, arrowBarX1, arrowPointY + ARROW_BAR_INSET - 3, arrowBarX2, arrowPointY + ARROW_BAR_INSET - 3, boundaryColor, 0);
 
-                    plotLine(d, arrowBarX1 + 1, arrowPointY + ARROW_BAR_INSET - 2, arrowBarX2 - 1, arrowPointY + ARROW_BAR_INSET - 2, unselectedFillColor, 0);
+                        plotLine(d, arrowBarX1 + 1, arrowPointY + ARROW_BAR_INSET - 2, arrowBarX2 - 1, arrowPointY + ARROW_BAR_INSET - 2, unselectedFillColor, 0);
 #if ARROW_BAR_INSET >= 2
-                    plotLine(d, arrowPointX - ARROW_BAR_INSET + 2, arrowPointY + ARROW_BAR_INSET - 1, arrowPointX + ARROW_BAR_INSET - 2, arrowPointY + ARROW_BAR_INSET - 1, unselectedFillColor, 0);
+                        plotLine(d, arrowPointX - ARROW_BAR_INSET + 2, arrowPointY + ARROW_BAR_INSET - 1, arrowPointX + ARROW_BAR_INSET - 2, arrowPointY + ARROW_BAR_INSET - 1, unselectedFillColor, 0);
 #endif
+                    } // if(menu->numRows > MAX_ROWS_ON_SCROLLABLE_SCREEN)
+                } // if(menu->firstRowOnScreen == 0)
+#endif
+            }
+        } // if(!menu->animating)
+
+        if (menu->animating)
+        {
+            // By "going down" I mean increasing Y
+            bool goingDown = menu->animateStartRow < menu->firstRowOnScreen;
+
+            menu->animateSpeed += ANIM_ACCEL * (goingDown ? -1 : 1);
+
+            if (menu->animateSpeed > ANIM_MAXSPEED)
+            {
+                menu->animateSpeed = ANIM_MAXSPEED;
+            }
+            else if (menu->animateSpeed < -ANIM_MAXSPEED)
+            {
+                menu->animateSpeed = -ANIM_MAXSPEED;
+            }
+
+            menu->animateOffset += menu->animateSpeed;
+
+            if ((goingDown && menu->animateOffset <= -rowGap) || (!goingDown && menu->animateOffset >= rowGap))
+            {
+                if (goingDown) {
+                    if (menu->animateStartRow < menu->numRows)
+                    {
+                        menu->animateStartRow++;
+                        menu->animateOffset += rowGap;
+                    }
+                }
+                else
+                {
+                    if (menu->animateStartRow > 0)
+                    {
+                        menu->animateOffset -= rowGap;
+                        menu->animateStartRow--;
+                    }
                 }
             }
-#endif
-        }
-    }
 
-    uint8_t startRow = menu->firstRowOnScreen;
-    uint8_t endRow = menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN;
-    int16_t bottomArrowBump = 0;
+            if (menu->animateStartRow == menu->firstRowOnScreen)
+            {
+                // We have reached our destination (or gone past it)
+                menu->animateOffset = 0;
+                menu->animateSpeed = 0;
+                menu->animating = false;
 
-    if (menu->animating)
-    {
-        // By "going down" I mean increasing Y
-        bool goingDown = menu->animateStartRow < menu->firstRowOnScreen;
-
-        menu->animateSpeed += ANIM_ACCEL * (goingDown ? -1 : 1);
-
-        if (menu->animateSpeed > ANIM_MAXSPEED)
-        {
-            menu->animateSpeed = ANIM_MAXSPEED;
-        }
-        else if (menu->animateSpeed < -ANIM_MAXSPEED)
-        {
-            menu->animateSpeed = -ANIM_MAXSPEED;
-        }
-
-        menu->animateOffset += menu->animateSpeed;
-
-        if ((goingDown && menu->animateOffset <= -rowGap) || (!goingDown && menu->animateOffset >= rowGap))
-        {
-            if (goingDown) {
-                if (menu->animateStartRow < menu->numRows)
-                {
-                    menu->animateStartRow++;
-                    menu->animateOffset += rowGap;
-                }
+                //yIdx = FIRST_ITEM_Y;
             }
             else
             {
-                if (menu->animateStartRow > 0)
+                startRow = menu->animateStartRow;
+                endRow = startRow + MAX_ROWS_ON_SCROLLABLE_SCREEN;
+                int16_t topOffset = yIdx;
+                int16_t bottomOffset = yIdx + rowGap * (endRow - startRow);
+
+                if (goingDown)
                 {
-                    menu->animateOffset -= rowGap;
-                    menu->animateStartRow--;
+                    startRow++;
+                    yIdx += rowGap;
+                    topOffset += 3 * rowGap;
                 }
-            }
-        }
+                else
+                {
+                    endRow--;
+                    bottomOffset -= rowGap * 2;
+                    bottomArrowBump = rowGap;
+                }
 
-        if (menu->animateStartRow == menu->firstRowOnScreen)
-        {
-            // We have reached our destination (or gone past it)
-            menu->animateOffset = 0;
-            menu->animateSpeed = 0;
-            menu->animating = false;
+                if (endRow < menu->numRows)
+                {
+                    // draw an extra menu item at the bottom of the screen (at endRow)
+                    drawMeleeMenuText(d, menu->font, menu->rows[endRow],
+                                    menu->usePerRowXOffsets ? rowOffsets[(endRow) % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
+                                    bottomOffset + rowGap + menu->animateOffset * 2,
+                                    //yIdx + (rowGap) * (endRow - startRow),// + (rowGap + menu->animateOffset) * 2,
+                                    (endRow == menu->selectedRow));
+                }
 
-            //yIdx = FIRST_ITEM_Y;
-        }
-        else
-        {
-            startRow = menu->animateStartRow;
-            endRow = startRow + MAX_ROWS_ON_SCREEN;
-            int16_t topOffset = yIdx;
-            int16_t bottomOffset = yIdx + rowGap * (endRow - startRow);
-
-            if (goingDown)
-            {
-                startRow++;
-                yIdx += rowGap;
-                topOffset += 3 * rowGap;
-            }
-            else
-            {
-                endRow--;
-                bottomOffset -= rowGap * 2;
-                bottomArrowBump = rowGap;
-            }
-
-            if (endRow < menu->numRows)
-            {
-                // draw an extra menu item at the bottom of the screen (at endRow)
-                drawMeleeMenuText(d, menu->font, menu->rows[endRow],
-                                  menu->usePerRowXOffsets ? rowOffsets[(endRow) % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
-                                  bottomOffset + rowGap + menu->animateOffset * 2,
-                                  //yIdx + (rowGap) * (endRow - startRow),// + (rowGap + menu->animateOffset) * 2,
-                                  (endRow == menu->selectedRow));
-            }
-
-            if (startRow > 0)
-            {
-                // draw an extra menu item at the top of the screen (before startRow)
-                drawMeleeMenuText(d, menu->font, menu->rows[startRow - 1],
-                                  menu->usePerRowXOffsets ? rowOffsets[(startRow - 1) % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
-                                  topOffset + 3 * (menu->animateOffset - rowGap),
-                                  (startRow - 1 == menu->selectedRow));
-            }
-        }
-    }
+                if (startRow > 0)
+                {
+                    // draw an extra menu item at the top of the screen (before startRow)
+                    drawMeleeMenuText(d, menu->font, menu->rows[startRow - 1],
+                                    menu->usePerRowXOffsets ? rowOffsets[(startRow - 1) % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
+                                    topOffset + 3 * (menu->animateOffset - rowGap),
+                                    (startRow - 1 == menu->selectedRow));
+                } // if (startRow > 0)
+            } // if( !(menu->animateStartRow == menu->firstRowOnScreen) )
+        } // if (menu->animating)
+    } // if(menu->enableScrolling)
 
     // Draw the entries
     for(uint8_t row = startRow; row < menu->numRows && row < endRow; row++)
@@ -537,50 +549,53 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
         yIdx += rowGap;
     }
 
-    // Draw down arrow
-    if(!menu->animating)
+    if(menu->enableScrolling)
     {
+        // Draw down arrow
+        if(!menu->animating)
+        {
 #ifndef ALWAYS_SHOW_ARROWS
 #ifdef SHOW_WRAPAROUND_ARROWS
-        if((menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN || menu->firstRowOnScreen > 0))
+            if((menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCROLLABLE_SCREEN || menu->firstRowOnScreen > 0))
 #else
-        if(menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN)
+            if(menu->numRows > menu->firstRowOnScreen + MAX_ROWS_ON_SCROLLABLE_SCREEN)
 #endif
 #endif
-        {
-            int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 1 + bottomArrowBump;
-            int16_t arrowPointY = arrowFlatSideY + ARROW_HEIGHT - 1; //round(arrowFlatSideY + (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
-            plotLine(d, arrowFlatSideX1, arrowFlatSideY, arrowFlatSideX2, arrowFlatSideY, boundaryColor, 0);
-            plotLine(d, arrowFlatSideX1, arrowFlatSideY + 1, arrowPointX, arrowPointY, boundaryColor, 0);
-            plotLine(d, arrowFlatSideX2, arrowFlatSideY + 1, arrowPointX, arrowPointY, boundaryColor, 0);
-
-            // Fill the arrow shape
-            oddEvenFill(d,
-                        arrowFlatSideX1, arrowFlatSideY + 1,
-                        arrowFlatSideX2 + 1, arrowPointY,
-                        boundaryColor, unselectedFillColor);
-
-            // Draw a bar if this is a wraparound arrow
-#if defined(ALWAYS_SHOW_ARROWS) || defined(SHOW_WRAPAROUND_ARROWS)
-            if(menu->numRows <= menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN)
             {
-#if !defined(ALWAYS_SHOW_ARROWS) && defined(SHOW_WRAPAROUND_ARROWS)
-                if(menu->numRows > MAX_ROWS_ON_SCREEN)
-#endif
-                {
-                    plotLine(d, arrowBarX1, arrowPointY - ARROW_BAR_INSET + 1, arrowBarX2, arrowPointY - ARROW_BAR_INSET + 1, boundaryColor, 0);
-                    plotLine(d, arrowBarX1, arrowPointY - ARROW_BAR_INSET + 2, arrowBarX2, arrowPointY - ARROW_BAR_INSET + 2, boundaryColor, 0);
-                    plotLine(d, arrowBarX1, arrowPointY - ARROW_BAR_INSET + 3, arrowBarX2, arrowPointY - ARROW_BAR_INSET + 3, boundaryColor, 0);
+                int16_t arrowFlatSideY = yIdx - TEXT_Y_GAP - 1 + bottomArrowBump;
+                int16_t arrowPointY = arrowFlatSideY + ARROW_HEIGHT - 1; //round(arrowFlatSideY + (ARROW_WIDTH * sqrt(3.0f)) / 2.0f);
+                plotLine(d, arrowFlatSideX1, arrowFlatSideY, arrowFlatSideX2, arrowFlatSideY, boundaryColor, 0);
+                plotLine(d, arrowFlatSideX1, arrowFlatSideY + 1, arrowPointX, arrowPointY, boundaryColor, 0);
+                plotLine(d, arrowFlatSideX2, arrowFlatSideY + 1, arrowPointX, arrowPointY, boundaryColor, 0);
 
-                    plotLine(d, arrowBarX1 + 1, arrowPointY - ARROW_BAR_INSET + 2, arrowBarX2 - 1, arrowPointY - ARROW_BAR_INSET + 2, unselectedFillColor, 0);
+                // Fill the arrow shape
+                oddEvenFill(d,
+                            arrowFlatSideX1, arrowFlatSideY + 1,
+                            arrowFlatSideX2 + 1, arrowPointY,
+                            boundaryColor, unselectedFillColor);
+
+                // Draw a bar if this is a wraparound arrow
+#if defined(ALWAYS_SHOW_ARROWS) || defined(SHOW_WRAPAROUND_ARROWS)
+                if(menu->numRows <= menu->firstRowOnScreen + MAX_ROWS_ON_SCROLLABLE_SCREEN)
+                {
+#if !defined(ALWAYS_SHOW_ARROWS) && defined(SHOW_WRAPAROUND_ARROWS)
+                    if(menu->numRows > MAX_ROWS_ON_SCROLLABLE_SCREEN)
+#endif
+                    {
+                        plotLine(d, arrowBarX1, arrowPointY - ARROW_BAR_INSET + 1, arrowBarX2, arrowPointY - ARROW_BAR_INSET + 1, boundaryColor, 0);
+                        plotLine(d, arrowBarX1, arrowPointY - ARROW_BAR_INSET + 2, arrowBarX2, arrowPointY - ARROW_BAR_INSET + 2, boundaryColor, 0);
+                        plotLine(d, arrowBarX1, arrowPointY - ARROW_BAR_INSET + 3, arrowBarX2, arrowPointY - ARROW_BAR_INSET + 3, boundaryColor, 0);
+
+                        plotLine(d, arrowBarX1 + 1, arrowPointY - ARROW_BAR_INSET + 2, arrowBarX2 - 1, arrowPointY - ARROW_BAR_INSET + 2, unselectedFillColor, 0);
 #if ARROW_BAR_INSET >= 2
-                    plotLine(d, arrowPointX - ARROW_BAR_INSET + 2, arrowPointY - ARROW_BAR_INSET + 1, arrowPointX + ARROW_BAR_INSET - 2, arrowPointY - ARROW_BAR_INSET + 1, unselectedFillColor, 0);
+                        plotLine(d, arrowPointX - ARROW_BAR_INSET + 2, arrowPointY - ARROW_BAR_INSET + 1, arrowPointX + ARROW_BAR_INSET - 2, arrowPointY - ARROW_BAR_INSET + 1, unselectedFillColor, 0);
 #endif
-                }
+                    } // if(menu->numRows > MAX_ROWS_ON_SCROLLABLE_SCREEN)
+                } // if(menu->numRows <= menu->firstRowOnScreen + MAX_ROWS_ON_SCROLLABLE_SCREEN)
+#endif
             }
-#endif
-        }
-    }
+        } // if(!menu->animating)
+    } // if(menu->enableScrolling)
 
     if( menu->allowLEDControl )
     {

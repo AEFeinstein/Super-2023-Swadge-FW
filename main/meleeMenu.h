@@ -13,7 +13,8 @@
 //==============================================================================
 
 #define MAX_ROWS 65535
-#define MAX_ROWS_ON_SCREEN 5
+#define MAX_ROWS_ON_SCREEN 6
+#define MAX_ROWS_ON_SCROLLABLE_SCREEN 5
 #define NUM_ROW_COLORS_AND_OFFSETS 6
 
 //==============================================================================
@@ -34,6 +35,7 @@ typedef struct
     uint16_t selectedRow;
     bool allowLEDControl;
     bool usePerRowXOffsets;
+    bool enableScrolling;
 
     bool animating;
     int16_t animateSpeed;
