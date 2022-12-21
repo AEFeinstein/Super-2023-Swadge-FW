@@ -56,7 +56,7 @@ int socketFd;
  * @param sendCb A callback to call when data is received
  */
 void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
-    gpio_num_t rx, gpio_num_t tx, uart_port_t uart)
+    gpio_num_t rx, gpio_num_t tx, uart_port_t uart, wifiMode_t mode)
 {
     // Save callbacks
     hostEspNowRecvCb = recvCb;

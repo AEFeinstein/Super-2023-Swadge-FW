@@ -26,7 +26,7 @@
 //==============================================================================
 
 #define ESPNOW_CHANNEL 11
-#define WIFI_RATE WIFI_PHY_RATE_MCS7_SGI
+#define WIFI_RATE WIFI_PHY_RATE_MCS6_SGI
 
 // Three random bytes used as 'start' bytes for packets over serial
 #define FRAMING_START_1 251
@@ -68,6 +68,7 @@ struct {
     gpio_num_t rxGpio;
     gpio_num_t txGpio;
     uint32_t uartNum;
+    wifiMode_t mode;
 
     // A ringbuffer for esp-now serial communication
     char ringBuf[ESP_NOW_SERIAL_RINGBUF_SIZE];
@@ -98,7 +99,7 @@ void espNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status);
  * @param uart The UART to use for serial communication
  */
 void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
-    gpio_num_t rx, gpio_num_t tx, uart_port_t uart)
+    gpio_num_t rx, gpio_num_t tx, uart_port_t uart, wifiMode_t mode)
 {
     // Save callback functions
     en.hostEspNowRecvCb = recvCb;
@@ -108,9 +109,13 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
     en.rxGpio = rx;
     en.txGpio = tx;
     en.uartNum = uart;
+    en.mode = mode;
 
-    // Create a queue to move packets from the receive callback to the main task
-    en.esp_now_queue = xQueueCreate(10, sizeof(p2pPacket_t));
+    if (ESP_NOW_IMMEDIATE != mode)
+    {
+        // Create a queue to move packets from the receive callback to the main task
+        en.esp_now_queue = xQueueCreate(10, sizeof(p2pPacket_t));
+    }
 
     esp_err_t err;
 
@@ -120,7 +125,7 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
     conf.ampdu_tx_enable = 0;
     if (ESP_OK != (err = esp_wifi_init(&conf)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't init wifi %s", esp_err_to_name(err));
+        ESP_LOGW("ESPNOW", "Couldn't init wifi %s", esp_err_to_name(err));
         return;
     }
 
@@ -129,14 +134,14 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
 
     if (ESP_OK != (err = esp_wifi_set_storage(WIFI_STORAGE_RAM)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't set wifi storage %s", esp_err_to_name(err));
+        ESP_LOGW("ESPNOW", "Couldn't set wifi storage %s", esp_err_to_name(err));
         return;
     }
 
     // Set up all the wifi station mode configs
     if(ESP_OK != (err = esp_wifi_set_mode(WIFI_MODE_STA)))
     {
-        ESP_LOGD("ESPNOW", "Could not set as station mode");
+        ESP_LOGW("ESPNOW", "Could not set as station mode");
         return;
     }
 
@@ -164,13 +169,13 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
     };
     if(ESP_OK != (err = esp_wifi_set_config(ESP_IF_WIFI_STA, &config)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't set station config");
+        ESP_LOGW("ESPNOW", "Couldn't set station config");
         return;
     }
 
     if(ESP_OK != (err = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't set protocol %s", esp_err_to_name(err));
+        ESP_LOGW("ESPNOW", "Couldn't set protocol %s", esp_err_to_name(err));
         return;
     }
 
@@ -190,19 +195,19 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
 
     if(ESP_OK != (err = esp_wifi_config_80211_tx_rate(ESP_IF_WIFI_STA, WIFI_RATE)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't set PHY rate %s", esp_err_to_name(err));
+        ESP_LOGW("ESPNOW", "Couldn't set PHY rate %s", esp_err_to_name(err));
         return;
     }
 
     if(ESP_OK != (err = esp_wifi_start()))
     {
-        ESP_LOGD("ESPNOW", "Couldn't start wifi %s", esp_err_to_name(err));
+        ESP_LOGW("ESPNOW", "Couldn't start wifi %s", esp_err_to_name(err));
         return;
     }
 
     if(ESP_OK != (err = esp_wifi_config_espnow_rate(ESP_IF_WIFI_STA, WIFI_RATE)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't set PHY rate %s", esp_err_to_name(err));
+        ESP_LOGW("ESPNOW", "Couldn't set PHY rate %s", esp_err_to_name(err));
         return;
     }
 
@@ -216,16 +221,23 @@ void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
     // Set data rate
     if(ESP_OK != (err = esp_wifi_internal_set_fix_rate(ESP_IF_WIFI_STA, true, WIFI_RATE)))
     {
-        ESP_LOGD("ESPNOW", "Couldn't set data rate");
+        ESP_LOGW("ESPNOW", "Couldn't set data rate");
         return;
     }
 
     // Don't scan in STA mode
     if(ESP_OK != (err = esp_wifi_scan_stop()))
     {
-        ESP_LOGD("ESPNOW", "Couldn't stop scanning");
+        ESP_LOGW("ESPNOW", "Couldn't stop scanning");
         return;
     }
+
+    // Commented out but for future consideration.
+    //if(ESP_OK != esp_wifi_set_max_tx_power(84)) //78 ~= 19.5dB
+    //{
+    //    ESP_LOGW("ESPNOW", "Couldn't set max power");
+    //    return;
+    //}
 
     // This starts ESP-NOW
     en.isSerial = true;
@@ -277,6 +289,20 @@ void espNowUseWireless(void)
         {
             ESP_LOGD("ESPNOW", "esp now fail (%s)", esp_err_to_name(err));
         }
+
+        //Appears to set gain "offset" like what it reports as gain?  Does not actually impact real gain.
+        //But when paired with the second write command, it seems to have the intended impact.
+        //This number is in ~1/2dB.  So this accounts for a 10dB muting.
+        const int igi_reduction = 20;
+        volatile uint32_t * test = (uint32_t*)0x6001c02c; //Should be the "RSSI Offset" but seems to do more.
+        *test = (*test & 0xffffff00) + igi_reduction; 
+
+        // Make sure the first takes effect.
+        vTaskDelay( 0 );
+
+        //No idea  Somehow applies setting of 0x6001c02c  (Ok, actually I don't know what the right-most value should be but 0xff in the MSB seems to work?
+        test = (uint32_t*)0x6001c0a0;
+        *test = (*test & 0xffffff) | 0xff00000000; 
     }
 }
 
@@ -331,32 +357,38 @@ void espNowRecvCb(const uint8_t* mac_addr, const uint8_t* data, int data_len)
 {
     // Negative index to get the ESP NOW header
     // espNowHeader_t * hdr = (espNowHeader_t *)&data[-sizeof(espNowHeader_t)];
-
     // Negative index further to get the WIFI header
     wifi_pkt_rx_ctrl_t* pkt = (wifi_pkt_rx_ctrl_t*)&data[-sizeof(espNowHeader_t) - sizeof(wifi_pkt_rx_ctrl_t)];
 
-    /* The receiving callback function also runs from the Wi-Fi task. So, do not
-     * do lengthy operations in the callback function. Instead, post the
-     * necessary data to a queue and handle it from a lower priority task.
-     */
-    p2pPacket_t packet;
-
-    // Copy the MAC
-    memcpy(&packet.mac, mac_addr, sizeof(uint8_t) * 6);
-
-    // Make sure the data fits, then copy it
-    if(data_len > sizeof(packet.data))
+    if (ESP_NOW_IMMEDIATE == en.mode)
     {
-        data_len = sizeof(packet.data);
+        en.hostEspNowRecvCb(mac_addr, (const char *)data, data_len, pkt->rssi);
     }
-    packet.len = data_len;
-    memcpy(&packet.data, data, data_len);
+    else
+    {
+        /* The receiving callback function also runs from the Wi-Fi task. So, do not
+         * do lengthy operations in the callback function. Instead, post the
+         * necessary data to a queue and handle it from a lower priority task.
+         */
+        p2pPacket_t packet;
 
-    // Copy the RSSI
-    packet.rssi = pkt->rssi;
+        // Copy the MAC
+        memcpy(&packet.mac, mac_addr, sizeof(uint8_t) * 6);
 
-    // Queue this packet
-    xQueueSendFromISR(en.esp_now_queue, &packet, NULL);
+        // Make sure the data fits, then copy it
+        if(data_len > sizeof(packet.data))
+        {
+            data_len = sizeof(packet.data);
+        }
+        packet.len = data_len;
+        memcpy(&packet.data, data, data_len);
+
+        // Copy the RSSI
+        packet.rssi = pkt->rssi;
+
+        // Queue this packet
+        xQueueSendFromISR(en.esp_now_queue, &packet, NULL);
+    }
 }
 
 /**
@@ -459,7 +491,7 @@ void checkEspNowRxQueue(void)
             rBufTmpHead = (rBufTmpHead + 1) % sizeof(en.ringBuf);
         }
     }
-    else
+    else if (en.mode != ESP_NOW_IMMEDIATE)
     {
         p2pPacket_t packet;
         if (xQueueReceive(en.esp_now_queue, &packet, 0))
@@ -584,6 +616,9 @@ void espNowDeinit(void)
     {
         esp_now_unregister_recv_cb();
         esp_now_unregister_send_cb();
+        esp_now_del_peer( espNowBroadcastMac );
         esp_now_deinit();
+        esp_wifi_stop();
+        esp_wifi_deinit();
     }
 }
