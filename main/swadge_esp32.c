@@ -29,6 +29,7 @@
 #include "hdw-tft.h"
 
 #ifndef EMU
+	#include "crashwrap.h"
     #include "soc/rtc_cntl_reg.h"
 #endif
 
@@ -317,6 +318,19 @@ void app_main(void)
                               MALLOC_CAP_INTERNAL | MALLOC_CAP_DEFAULT | MALLOC_CAP_IRAM_8BIT | MALLOC_CAP_RETENTION | MALLOC_CAP_RTCRAM);
 #endif
 
+#if !defined(EMU)
+    esp_reset_reason_t rr = esp_reset_reason();
+    ESP_LOGD("MAIN", "Reset Reason: %d", rr );
+
+    /* Initialize internal NVS. Do this first to get test mode status and crashwrap */
+    initNvs(true);
+
+    esp_log_set_vprintf( advanced_usb_write_log_printf );
+    checkAndInstallCrashwrap();
+#endif
+
+
+
     /* The ESP32-C3 can enumerate as a USB CDC device using pins 18 and 19
      * https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/api-guides/usb-serial-jtag-console.html
      *
@@ -346,9 +360,6 @@ void app_main(void)
  */
 void mainSwadgeTask(void* arg __attribute((unused)))
 {
-    /* Initialize internal NVS. Do this first to get test mode status */
-    initNvs(true);
-
 #if !defined(EMU)
     /* Check why this ESP woke up */
     switch (esp_sleep_get_wakeup_cause())
@@ -551,20 +562,20 @@ void mainSwadgeTask(void* arg __attribute((unused)))
     if(true)
 #else
     // Only init wifi on actual hardware if requested (saves power)
-    if(ESP_NOW == cSwadgeMode->wifiMode)
+    if(NO_WIFI != cSwadgeMode->wifiMode)
 #endif
     {
         if(cSwadgeMode->overrideUsb)
         {
             // This can communicate over wifi or UART
             espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb,
-                GPIO_NUM_19, GPIO_NUM_20, UART_NUM_1);
+                GPIO_NUM_19, GPIO_NUM_20, UART_NUM_1, cSwadgeMode->wifiMode);
         }
         else
         {
             // This can communicate over wifi only
             espNowInit(&swadgeModeEspNowRecvCb, &swadgeModeEspNowSendCb,
-                GPIO_NUM_NC, GPIO_NUM_NC, UART_NUM_MAX);
+                GPIO_NUM_NC, GPIO_NUM_NC, UART_NUM_MAX, cSwadgeMode->wifiMode);
         }
         wifiInit = true;
     }
@@ -600,8 +611,8 @@ void mainSwadgeTask(void* arg __attribute((unused)))
             int64_t tElapsedUs = tNowUs - tLastLoopUs;
             tLastLoopUs = tNowUs;
 
-            // Process ESP NOW
-            if(ESP_NOW == cSwadgeMode->wifiMode)
+            // Process ESP NOW.  For immediate mode, do not process RX queue, but we might be using serial.
+            if(NO_WIFI != cSwadgeMode->wifiMode)
             {
                 checkEspNowRxQueue();
             }

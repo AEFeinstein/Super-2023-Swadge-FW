@@ -234,22 +234,21 @@ typedef enum
 /// Switch Gamepad Buttons Bitmap
 typedef enum
 {
-  GAMEPAD_NS_BUTTON_Y      = 0x01, //TU_BIT(0),  ///< A/South button
-  GAMEPAD_NS_BUTTON_B      = 0x02, //TU_BIT(1),  ///< B/East button
-  GAMEPAD_NS_BUTTON_A      = 0x04, //TU_BIT(2),  ///< C button
-  GAMEPAD_NS_BUTTON_X      = 0x08, //TU_BIT(3),  ///< X/North button
-  GAMEPAD_NS_BUTTON_TL      = 0x10, //TU_BIT(4),  ///< Y/West button
-  GAMEPAD_NS_BUTTON_TR      = 0x20, //TU_BIT(5),  ///< Z button //CAPTURE
-  GAMEPAD_NS_BUTTON_TL2     = 0x40, //TU_BIT(6),  ///< L1 button
-  GAMEPAD_NS_BUTTON_TR2     = 0x80, //TU_BIT(7),  ///< R1 button
-  GAMEPAD_NS_BUTTON_SELECT    = 0x100, //TU_BIT(8),  ///< L2 button
-  GAMEPAD_NS_BUTTON_START    = 0x200, //TU_BIT(9),  ///< R2 button
-  GAMEPAD_NS_BUTTON_THUMBL = 0x400, //TU_BIT(10), ///< Select button
-  GAMEPAD_NS_BUTTON_THUMBR  = 0x800, //TU_BIT(11), ///< Start button
-  GAMEPAD_NS_BUTTON_MODE   = 0x1000, //TU_BIT(12), ///< Mode button //UNUSED?
-  GAMEPAD_NS_BUTTON_C = 0x2000, //TU_BIT(13), ///< L3 button
-  GAMEPAD_NS_BUTTON_Z = 0x4000, //TU_BIT(14), ///< R3 button
-//GAMEPAD_NS_BUTTON_       = TU_BIT(15), ///< Undefined button
+  GAMEPAD_NS_BUTTON_Y       = 0x01,
+  GAMEPAD_NS_BUTTON_B       = 0x02,
+  GAMEPAD_NS_BUTTON_A       = 0x04,
+  GAMEPAD_NS_BUTTON_X       = 0x08,
+  GAMEPAD_NS_BUTTON_TL      = 0x10,
+  GAMEPAD_NS_BUTTON_TR      = 0x20,
+  GAMEPAD_NS_BUTTON_TL2     = 0x40,
+  GAMEPAD_NS_BUTTON_TR2     = 0x80,
+  GAMEPAD_NS_BUTTON_MINUS   = 0x100,
+  GAMEPAD_NS_BUTTON_PLUS    = 0x200,
+  GAMEPAD_NS_BUTTON_THUMBL  = 0x400,
+  GAMEPAD_NS_BUTTON_THUMBR  = 0x800,
+  GAMEPAD_NS_BUTTON_HOME    = 0x1000,
+  GAMEPAD_NS_BUTTON_CAPTURE = 0x2000,
+  GAMEPAD_NS_BUTTON_Z       = 0x4000, ///UNUSED?
 }hid_gamepad_ns_button_bm_t;
 
 /// Standard Gamepad HAT/DPAD Buttons (from Linux input event codes)
