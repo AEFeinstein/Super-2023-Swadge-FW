@@ -5,6 +5,18 @@
  *      Author: bryce
  */
 
+// mandatory to-dos to get comms working properly
+// TODO: fix totalNumPackets, numPacketsRemaining being something like 4 million when they should be on the order of tens to thousands at MOST
+// TODO: investigate sendEntryInfoIdces[n] being 0 when it should not be
+// TODO: investigate incomingEntryInfoIdx ending up at 29 somewhere
+// TODO: send NVS_ERROR_USER_ABORT errors at appropriate points
+
+// optional to-dos to increase other modes' robustness
+// TODO: paint data recovery in the event one or more NVS keys are missing
+// TODO: sort scores in tiltrads on each NVS load
+// TODO: memset progress data in picross to 0 when NVS read fails
+
+// TODO: disable this when finished debugging
 #define DEBUG
 
 /*==============================================================================
