@@ -2,9 +2,7 @@
 
 ## General
 
-- Added scrolling to menus
-- Reduced menu rows on screen from 6 to 5
-- Added NVS manager mode to secrets menu
+- Added Save Data Manager mode to secrets menu
 - Prevented secret code from doing things unintentionally
 - Added more content to first item in secrets menu
 - Added setting to display secrets menu on main menu
@@ -28,7 +26,9 @@ No changes
 
 ## Flyin Donut
 
-- Added VRChat mode
+- Renamed "Free Flight" to "Free Solo/VS"
+- Added multiplayer functionality to "Free Solo/VS"
+- Added VRChat integration (exclusively at VRChat portals) to "Free Solo/VS"
 - Added pause (Start)
 - Fixed bug where Y invert setting would not be saved if changed with A or Start
 - Replace high-score keyboard caps lock, shift, tab, and backspace symbols with larger ones
@@ -76,3 +76,7 @@ No changes
 ## Credits
 
 No changes
+
+## Save Data Manager
+
+- New mode!
