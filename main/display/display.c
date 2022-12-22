@@ -9,7 +9,6 @@
 #include <esp_heap_caps.h>
 
 #include "display.h"
-#include "bresenham.h"
 #include "heatshrink_decoder.h"
 
 #include "../../components/hdw-spiffs/spiffs_manager.h"
@@ -19,6 +18,8 @@
 //==============================================================================
 
 #define CLAMP(x,l,u) ((x) < l ? l : ((x) > u ? u : (x)))
+#define MIN(x,y) ((x)<(y)?(x):(y))
+#define MAX(x,y) ((x)>(y)?(x):(y))
 #define SLANT(font) ((font->h + 3) / 4)
 
 //==============================================================================
@@ -887,12 +888,22 @@ int16_t drawTextAttrs(display_t* disp, const font_t* font, paletteColor_t color,
 
     if (textAttrs & TEXT_STRIKE)
     {
-        plotLine(disp, xStart, yOff + font->h / 2, xOff, yOff + font->h / 2, color, 0);
+        int16_t x1 = MAX(xStart, xOff);
+        SETUP_FOR_TURBO( disp );
+        for (int16_t x = MIN(xStart, xOff); x < x1; x++)
+        {
+            TURBO_SET_PIXEL_BOUNDS(disp, x, yOff + font->h / 2, color);
+        }
     }
 
     if (textAttrs & TEXT_UNDERLINE)
     {
-        plotLine(disp, xStart, yOff + font->h + 1, xOff, yOff + font->h + 1, color, 0);
+        int16_t x1 = MAX(xStart, xOff);
+        SETUP_FOR_TURBO( disp );
+        for (int16_t x = MIN(xStart, xOff); x < x1; x++)
+        {
+            TURBO_SET_PIXEL_BOUNDS(disp, x, yOff + font->h + 1, color);
+        }
     }
 
     return xOff;
