@@ -351,6 +351,10 @@ static inline bool tud_hid_mouse_report(uint8_t report_id, uint8_t buttons, int8
     HID_REPORT_ID    ( 0xac                                   ) \
     HID_USAGE        ( HID_USAGE_DESKTOP_GAMEPAD              ) ,\
     HID_FEATURE      ( HID_DATA | HID_ARRAY | HID_ABSOLUTE    ) ,\
+    HID_REPORT_COUNT ( (CONFIG_TINYUSB_HID_BUFSIZE-1)         ) ,\
+    HID_REPORT_ID    ( 0xad                                   ) \
+    HID_USAGE        ( HID_USAGE_DESKTOP_GAMEPAD              ) ,\
+    HID_FEATURE      ( HID_DATA | HID_ARRAY | HID_ABSOLUTE    ) ,\
   HID_COLLECTION_END
 
 // HID Generic Input & Output
