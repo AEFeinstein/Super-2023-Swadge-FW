@@ -206,7 +206,7 @@ typedef struct
     uint32_t timeAccumulatedAtPause;
     uint32_t timeOfPause;
     int wintime;
-    uint8_t menuEntryForInvertY;
+    uint16_t menuEntryForInvertY;
 
     flLEDAnimation ledAnimation;
     uint8_t        ledAnimationTime;
@@ -403,7 +403,7 @@ static void flightEnterMode(display_t * disp)
     loadFont("mm.font", &flight->meleeMenuFont);
 
     flight->menu = initMeleeMenu(fl_title, &flight->meleeMenuFont, flightMenuCb);
-    flight->menu->allowLEDControl = 0; // we manage the LEDs
+    flight->menu->allowLEDControl = false; // we manage the LEDs
 
     getFlightSaveData(flight);
 

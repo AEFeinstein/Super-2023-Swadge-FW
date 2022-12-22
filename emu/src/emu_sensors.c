@@ -25,6 +25,12 @@
 #include "emu_sensors.h"
 
 //==============================================================================
+// Defines
+//==============================================================================
+
+//#define QUIT_EMU_KEY_ENABLED
+
+//==============================================================================
 // Variables
 //==============================================================================
 
@@ -123,11 +129,13 @@ bool checkButtonQueue(buttonEvt_t* evt)
  */
 void emuSensorHandleKey( int keycode, int bDown )
 {
+#ifdef QUIT_EMU_KEY_ENABLED
 	if (keycode == CNFG_KEY_ESCAPE)
 	{
 		emu_quit();
 		return;
 	}
+#endif
 
     // Check keycode against initialized keys
 	for(uint8_t idx = 0; idx < ARRAY_SIZE(inputKeys); idx++)
