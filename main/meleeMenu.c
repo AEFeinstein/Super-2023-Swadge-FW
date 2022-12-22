@@ -300,9 +300,9 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     // The width to shrink the bar by on each side, compared to the arrow
 #define ARROW_BAR_SHRINK_RADIUS 2
     // The rate at which menu animations change speed
-#define ANIM_ACCEL 2
+#define ANIM_ACCEL 4
     // The maximum speed at which the menu will animate
-#define ANIM_MAXSPEED 12
+#define ANIM_MAXSPEED 30
 
     // Draw the title and note where it ends
     int16_t textEnd = drawText(d, menu->font, c222, menu->title, BORDER_GAP + 1 + TITLE_X_GAP, BORDER_GAP + 1);
