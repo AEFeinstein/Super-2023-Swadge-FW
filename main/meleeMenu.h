@@ -38,6 +38,7 @@ typedef struct
     bool enableScrolling;
 
     bool animating;
+    bool animatingWraparound;
     int16_t animateSpeed;
     int16_t animateOffset;
     uint16_t animateStartRow;

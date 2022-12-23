@@ -179,6 +179,7 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
             if(0 == menu->selectedRow)
             {
                 menu->selectedRow = menu->numRows - 1;
+                menu->animatingWraparound = true;
             }
             else
             {
@@ -206,6 +207,7 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
             if(menu->selectedRow == menu->numRows - 1)
             {
                 menu->selectedRow = 0;
+                menu->animatingWraparound = true;
             }
             else
             {
@@ -452,8 +454,8 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
 
         if (menu->animating)
         {
-            // By "going down" I mean increasing Y
-            bool goingDown = menu->animateStartRow < menu->firstRowOnScreen;
+            // By "going down" I mean increasing Y; i.e. the menu items will move downward on the screen
+            bool goingDown = (menu->animateStartRow < menu->firstRowOnScreen) ^ menu->animatingWraparound;
 
             menu->animateSpeed += ANIM_ACCEL * (goingDown ? -1 : 1);
 
@@ -493,6 +495,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
                 menu->animateOffset = 0;
                 menu->animateSpeed = 0;
                 menu->animating = false;
+                menu->animatingWraparound = false;
 
                 //yIdx = FIRST_ITEM_Y;
             }
