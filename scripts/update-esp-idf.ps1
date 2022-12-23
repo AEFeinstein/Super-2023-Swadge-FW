@@ -6,10 +6,17 @@
 #Remove-Item -force
 
 # Only delete esp-idf\ in ~\esp\
-Remove-Item ~\esp\esp-idf\ -Force -Recurse
+$FileName = "~\esp\esp-idf\"
+if (Test-Path $FileName) {
+    Remove-Item $FileName -Force -Recurse
+}
 
 # Delete ~\.espressif\ and everything in it
-Remove-Item ~\.espressif\ -Force -Recurse
+$FileName = "~\.espressif\"
+if (Test-Path $FileName) {
+    Remove-Item $FileName -Force -Recurse
+}
 
 # Re-run the esp-idf setup
+cd $PSScriptRoot
 .\setup-esp-idf.ps1

@@ -2,6 +2,8 @@
 
 while($true)
 {
+	cd $PSScriptRoot
+	cd ..
     .\swadge_emulator.exe --start-mode "Swadge Bros" --lock --fullscreen
     if(0 -eq $LASTEXITCODE)
     {

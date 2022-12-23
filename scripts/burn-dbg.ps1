@@ -4,6 +4,8 @@ $ErrorActionPreference = "Stop"
 taskkill.exe /IM "putty.exe" /F
 
 # exit when any command fails, then build
+cd $PSScriptRoot
+cd ..
 idf.py -p COM8 -b 2000000 build flash
 cmd.exe /C "START /B putty.exe -serial COM8 -sercfg 115200"
 
