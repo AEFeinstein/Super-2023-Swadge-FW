@@ -101,7 +101,7 @@ git submodule update --init --recursive
 Next, you'll want to run the following PowerShell from the repository script to download, install, and update msys2 in one shot. Feel free to replace `C:\` with a different path if you want. Note that there may be a more up-to-date installer than the one used in this script.
 
 ```powershell
-.\setup-msys2.ps1
+.\scripts\setup-msys2.ps1
 ```
 
 > Alternatively, install msys2 with [their installer](https://www.msys2.org/). Once you have an msys2 shell, the command to install required packages for building from an msys2 terminal after installing msys2 is:
@@ -123,7 +123,7 @@ When it's all set up, it should look something like this:
 To set up the ESP32 toolchain, you can run the following powershell script from the repository. It will install the IDF in `~/esp/esp-idf` and the tools in `~/.espressif`. I don't recommend changing those paths.
 
 ```powershell
-.\setup-esp-idf.ps1
+.\scripts\setup-esp-idf.ps1
 ```
 
 Note that `export.ps1`, which is called in that script, does not make any permanent changes and it must be run each time you open a new terminal for a build.
@@ -149,10 +149,10 @@ cd ~/esp/esp-idf
 git submodule update --init --recursive
 
 # Install tools
-./install.sh
+./scripts/install.sh
 
 # Export paths and variables
-./export.sh
+./scripts/export.sh
 ```
 
 To set up the emulator build environment, you'll need to install the following packages. If your system uses the `apt` package manager, use this command:
@@ -693,7 +693,7 @@ Set-ExecutionPolicy -Scope CurrentUser Unrestricted
 To update the ESP32 toolchain, you can run the following powershell script from the repository. It will only work if you have installed the IDF in `~/esp/esp-idf` and the tools in `~/.espressif`.
 
 ```powershell
-.\update-esp-idf.ps1
+.\scripts\update-esp-idf.ps1
 ```
 
 ## Linux
@@ -703,7 +703,7 @@ To update the ESP32 toolchain, you can run the following powershell script from 
 To update the ESP32 build environment, you can run the following bash script from the repository. It will only work if you have installed the IDF in `~/esp/esp-idf` and the tools in `~/.espressif`.
 
 ```bash
-./update-esp-idf.sh
+./scripts/update-esp-idf.sh
 ```
 
 # Troubleshooting
