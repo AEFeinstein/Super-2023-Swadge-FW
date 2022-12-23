@@ -15,6 +15,8 @@
 
 #include "linked_list.h"
 
+//#define DEBUG
+
 /* Uncomment just one of these */
 // #define VALIDATE_LIST(func, line, nl, list, target) validateList(func, line, nl, list, target)
 #define VALIDATE_LIST(func, line, nl, list, target)
@@ -32,11 +34,13 @@ void validateList(const char * func, int line, bool nl, list_t * list, node_t * 
  */
 void validateList(const char * func, int line, bool nl, list_t * list, node_t * target)
 {
+#ifdef DEBUG
     if(nl)
     {
         printf("\n");
     }
     ESP_LOGD("VL", "%s::%d, len: %d (%p)", func, line, list->length, target);
+#endif
     node_t* currentNode = list->first;
     node_t* prev = NULL;
     int countedLen = 0;
@@ -55,7 +59,9 @@ void validateList(const char * func, int line, bool nl, list_t * list, node_t * 
 
     while (currentNode != NULL)
     {
+#ifdef DEBUG
         ESP_LOGD("VL", "%p -> %p -> %p", currentNode->prev, currentNode, currentNode->next);
+#endif
         if(prev != currentNode->prev)
         {
             ESP_LOGE("VL", "Linkage error %p != %p", currentNode->prev, prev);
