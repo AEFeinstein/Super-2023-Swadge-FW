@@ -19,6 +19,8 @@
 #define MANUAL_SIDE_MARGIN 13
 
 // #define DEBUG
+// This was originally needed before debug prints were put behind `#ifdef DEBUG` statements
+// #define WAITING_ICON
 
 void manualEnterMode(display_t* disp);
 void manualExitMode(void);
@@ -268,6 +270,7 @@ void manualMainLoop(int64_t elapsedUs)
                 // Just draw the waiting icon and set us up to reload on the next frame
                 manual->reload = true;
 
+#ifdef WAITING_ICON
     #define HOURGLASS_W 20
     #define HOURGLASS_H 37
 
@@ -289,6 +292,7 @@ void manualMainLoop(int64_t elapsedUs)
                 plotLine(manual->disp, x1, y0, x0, y1, manual->fgColor, 0);
                 // Bottom-Left -> Bottom-Right
                 plotLine(manual->disp, x0, y1, x1, y1, manual->fgColor, 0);
+#endif
             }
             else
             {
