@@ -509,12 +509,32 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
                 if (goingDown)
                 {
                     startRow++;
+                    if (startRow > menu->numRows) {
+                        startRow = 0;
+
+                        menu->animateStartRow = 0;
+                        menu->firstRowOnScreen = 0;
+                        menu->animateOffset = 0;
+                        menu->animateSpeed = 0;
+                        menu->animating = false;
+                        menu->animatingWraparound = false;
+                    }
                     yIdx += rowGap;
                     topOffset += 3 * rowGap;
                 }
                 else
                 {
                     endRow--;
+                    if (endRow < MAX_ROWS_ON_SCROLLABLE_SCREEN) {
+                        endRow = menu->numRows;
+
+                        menu->animateStartRow = menu->numRows - MAX_ROWS_ON_SCROLLABLE_SCREEN;
+                        menu->firstRowOnScreen = menu->numRows - MAX_ROWS_ON_SCROLLABLE_SCREEN;
+                        menu->animateOffset = 0;
+                        menu->animateSpeed = 0;
+                        menu->animating = false;
+                        menu->animatingWraparound = false;
+                    }
                     bottomOffset -= rowGap * 2;
                     bottomArrowBump = rowGap;
                 }
