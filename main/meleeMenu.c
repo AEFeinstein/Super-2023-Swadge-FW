@@ -114,7 +114,7 @@ void resetMeleeMenu(meleeMenu_t* menu, const char* title, meleeMenuCb cbFunc)
     menu->numRows = 0;
     menu->firstRowOnScreen = 0;
     // I'm just as unhappy about this as you are
-    menu->animateStartRow = UINT8_MAX;
+    menu->animateStartRow = UINT16_MAX;
     menu->selectedRow = 0;
     menu->lastSelectedRow = 0;
     menu->cbFunc = cbFunc;
@@ -392,7 +392,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
             menu->lastSelectedRow = menu->selectedRow;
         } // if (menu->selectedRow != menu->lastSelectedRow)
 
-        if (menu->animateStartRow == UINT8_MAX)
+        if (menu->animateStartRow == UINT16_MAX)
         {
             menu->animateStartRow = menu->firstRowOnScreen;
         }
