@@ -18,6 +18,8 @@
 #define MANUAL_BOTTOM_MARGIN 24
 #define MANUAL_SIDE_MARGIN 13
 
+// #define DEBUG
+
 void manualEnterMode(display_t* disp);
 void manualExitMode(void);
 void manualMainLoop(int64_t elapsedUs);
@@ -131,7 +133,9 @@ node_t* paginateText(markdownText_t* markdown, list_t* container)
 
 void manualLoadText(bool reverse)
 {
+    #ifdef DEBUG
     ESP_LOGD("Manual", "Loading text");
+    #endif
     if (manual->markdown != NULL)
     {
         freeMarkdown(manual->markdown);
@@ -396,5 +400,7 @@ void manualButtonCb(buttonEvt_t* evt)
 
 void manualBgDrawCb(display_t* disp, int16_t x, int16_t y, int16_t w, int16_t h, int16_t up, int16_t upNum)
 {
+    #ifdef DEBUG
     ESP_LOGD("Manual", "manualBgDrawCb(x=%d, y=%d, w=%d, h=%d, up=%d, upNum=%d)", x, y, w, h, up, upNum);
+    #endif
 }
