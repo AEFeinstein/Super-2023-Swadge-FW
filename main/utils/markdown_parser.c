@@ -11,7 +11,12 @@
 #include "display.h"
 #include "bresenham.h"
 
+#ifdef DEBUG
 #define MDLOG(...) printf(__VA_ARGS__)
+#else
+#define MDLOG(...)
+#endif
+
 //ESP_LOGD("Markdown", __VA_ARGS__)
 #define MIN(x,y) ((x)<(y)?(x):(y))
 #define MAX(x,y) ((x)>(y)?(x):(y))
@@ -21,7 +26,7 @@
 
 #define NO_BACKTRACK UINT32_MAX
 
-// #define DEBUG
+#define DEBUG
 
 typedef enum
 {
@@ -209,6 +214,7 @@ static mdNode_t* newNode(_markdownText_t* data, mdNode_t* parent, mdNode_t* prev
 }
 
 static const char* strndebug(const char* start, const char* end) {
+#ifdef DEBUG
     static char buffer[64];
 
     if (start == NULL || end == NULL || end < start)
@@ -237,6 +243,9 @@ static const char* strndebug(const char* start, const char* end) {
     }
     buffer[sizeof(buffer) - 1] = '\0';
     return buffer;
+#else
+    return "";
+#endif
 }
 
 #define PRINT_INDENT(...) for(uint8_t i = 0; i < indent; i++) printf("  "); printf(__VA_ARGS__)
@@ -446,18 +455,21 @@ static void printNodeDetailed(const mdNode_t* node, int indent)
 // after curNode is set up, checks if you can just merge it with lastNode instead
 static bool mergeTextNodes(mdNode_t** curNode, mdNode_t** lastNode)
 {
+#ifdef DEBUG
     char buf1[64];
     char buf2[64];
     char buf3[64];
+#endif
     if ((*curNode)->type == TEXT && *lastNode != NULL && (*lastNode)->type == TEXT && (*lastNode)->text.end == (*curNode)->text.start)
     {
+#ifdef DEBUG
         strncpy(buf1, strndebug((*lastNode)->text.start, (*lastNode)->text.end), sizeof(buf1)-1);
         strncpy(buf2, strndebug((*curNode)->text.start, (*curNode)->text.end), sizeof(buf2)-1);
         strncpy(buf3, strndebug((*lastNode)->text.start, (*curNode)->text.end), sizeof(buf3)-1);
         buf1[63] = '\0';
         buf2[63] = '\0';
         buf3[63] = '\0';
-#ifdef DEBUG
+
         MDLOG("Merging text nodes '%s' and '%s' into '%s'\n", buf1, buf2, buf3);
 #endif
         // these nodes are contiguous, so just add onto them
@@ -490,9 +502,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
         // Most actions will just add a sibling, so do that by default
         action = ADD_SIBLING;
 
-#ifdef DEBUG
         MDLOG("Parsing at %c (\\x%02x)\n", *text, *text);
-#endif
         textStart = text;
 
         switch (*text)
@@ -521,9 +531,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                     {
                         // regular escape
                         // create a text node for the single character after the escape
-#ifdef DEBUG
                         MDLOG("Escaping regular character %c (\\x%02x)\n", *text, *text);
-#endif
                         curNode->type = TEXT;
                         curNode->text.start = text;
                         curNode->text.end = ++text;
@@ -755,9 +763,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
             {
                 if (START_OF_LINE())
                 {
-#ifdef DEBUG
                     MDLOG("Start of line, using header");
-#endif
                     curNode->type = DECORATION;
                     curNode->decoration = HEADER;
                     ++text;
@@ -766,9 +772,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                 }
                 else
                 {
-#ifdef DEBUG
                     MDLOG("Not at start of line, marking as text");
-#endif
                     curNode->type = TEXT;
                     curNode->text.start = text;
                     curNode->text.end = ++text;
@@ -992,11 +996,10 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
             // and we aren't doing that, so that's probably why Bad Things are happening
             // this effectively "pops out" a level of the parse stack
 
-#ifdef DEBUG
             MDLOG("Moving to parent\n");
 
             MDLOG("Old parent:\n");
-            
+
             printNode(curNode->parent, 2);
 
             MDLOG("Old parent next:\n");
@@ -1004,12 +1007,9 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
 
             MDLOG("Current node:\n");
             printNode(curNode, 2);
-#endif
             if (curNode == curNode->parent)
             {
-#ifdef DEBUG
                 MDLOG("This node is its own child, oh dear\n");
-#endif
             }
 
             if (curNode->parent->child == curNode)
@@ -1017,9 +1017,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                 // we are the first child of our parent
                 // this means our parent will no longer have a child
                 // man these comments are getting weird
-#ifdef DEBUG
                 MDLOG("Child removed");
-#endif
                 curNode->parent->child = NULL;
             }
 
@@ -1039,7 +1037,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
             {
                 curNode->parent = curNode->parent->parent;
             }
-            
+
 #ifdef DEBUG
             MDLOG("New parent:\n");
             printNode(curNode->parent, 2);
@@ -1074,9 +1072,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
         }
     }
 
-#ifdef DEBUG
     MDLOG("Dangling(?) node: \n");
-#endif
 
     printNodeDetailed(curNode, 0);
 
@@ -1100,27 +1096,21 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
         {
             curNode->child->parent = NULL;
         }
-        
-#ifdef DEBUG
+
         MDLOG("Freeing dangling node\n");
-#endif
         free(curNode);
     }
 }
 
 markdownText_t* parseMarkdown(const char* text)
 {
-#ifdef DEBUG
     MDLOG("Preparing to parse markdown\n");
-#endif
 
     _markdownText_t* result = calloc(1, sizeof(_markdownText_t));
 
     result->text = text;
 
-#ifdef DEBUG
     MDLOG("Allocated stuff\n");
-#endif
     parseMarkdownInner(text, result);
 
     return result;
@@ -1132,9 +1122,7 @@ static void freeSiblings(mdNode_t* tree)
 {
     stackFrames++;
 
-#ifdef DEBUG
     MDLOG("Stack level: %d\n", stackFrames);
-#endif
 
     mdNode_t* tmp;
     while (tree != NULL)
@@ -1155,9 +1143,7 @@ static void freeTree(mdNode_t* tree)
 {
     stackFrames++;
 
-#ifdef DEBUG
     MDLOG("Stack level: %d\n", stackFrames);
-#endif
 
     // don't use any local variables to hopefully prevent stack overflow
     // otherwise this function would be a pain to implement
@@ -1189,9 +1175,7 @@ void freeMarkdown(markdownText_t* markdown)
 {
     _markdownText_t* ptr = markdown;
 
-#ifdef DEBUG
     MDLOG("Freeing Markdown\n------------\n\n");
-#endif
     if (ptr != NULL)
     {
         freeTree(ptr->tree);
@@ -1244,9 +1228,7 @@ static const font_t* findPreviousFont(const mdNode_t* node, mdPrintState_t* stat
 
     if (font != NULL)
     {
-#ifdef DEBUG
         MDLOG("I don't know what font to return!!!\n");
-#endif
         // TODO
     }
 
@@ -1373,9 +1355,7 @@ static bool drawPlannedLine(display_t* disp, mdPrintState_t* state)
 {
     if (state->linePlan.pending && state->linePlan.partCount > 0)
     {
-#ifdef DEBUG
         MDLOG("\nDrawing planned line with %zu parts, width %d, and height %d!\n", state->linePlan.partCount, state->linePlan.totalWidth, state->linePlan.lineHeight);
-#endif
         state->linePlan.pending = false;
 
         int16_t startX = state->x;
@@ -1385,22 +1365,16 @@ static bool drawPlannedLine(display_t* disp, mdPrintState_t* state)
         if ((state->linePlan.align & ALIGN_CENTER) == ALIGN_CENTER)
         {
             startX = (state->params.xMax - state->linePlan.totalWidth) / 2 + state->params.xMin;
-#ifdef DEBUG
             MDLOG("Centering text with offset %d\n", startX);
-#endif
         }
         else if ((state->linePlan.align & ALIGN_RIGHT) == ALIGN_RIGHT)
         {
             startX = state->params.xMax - state->linePlan.totalWidth;
-#ifdef DEBUG
             MDLOG("Right-aligning text with offset %d\n", startX);
-#endif
         }
         else
         {
-#ifdef DEBUG
             MDLOG("Left-aligning text with offset %d\n", startX);
-#endif
         }
 
         int16_t x = startX;
@@ -1503,18 +1477,14 @@ static const char* planLine(display_t* disp, const mdNode_t* node, mdPrintState_
     // - If we're handling alignment, we can measure the length of the entire line at once and
     // God, this is going to make the printing even slower... that's 2+ word wrap calls per text...
 
-#ifdef DEBUG
     MDLOG("Planning line with initial offset %zu\n", state->textPos);
-#endif
 
     // Check if the previous part was in italics, and this one isn't
     if (state->linePlan.partCount > 0 && (state->linePlan.parts[state->linePlan.partCount - 1].textStyle & TEXT_ITALIC) && !(state->params.style & TEXT_ITALIC))
     {
         int16_t extraWidth = textWidthAttrs(state->linePlan.parts[state->linePlan.partCount - 1].font, "", state->linePlan.parts[state->linePlan.partCount - 1].textStyle);
         state->linePlan.totalWidth += extraWidth;
-#ifdef DEBUG
         MDLOG("Adding %d extra space to line plan for italics, total=%d\n", extraWidth, state->linePlan.totalWidth);
-#endif
     }
 
     // Handle word breaks
@@ -1560,9 +1530,7 @@ static const char* planLine(display_t* disp, const mdNode_t* node, mdPrintState_
             // We're just measuring the height here
             int16_t y = 0;
 
-#ifdef DEBUG
             MDLOG("Measuring text of length %zu with Y bounds (0, %d)\n", node->text.end - node->text.start, lineHeight);
-#endif
 
             // We need to check if the text we're planning to draw will go past the end of the existing line
             // After this, remainingText will point to all text that did not fit on the line
@@ -1572,17 +1540,13 @@ static const char* planLine(display_t* disp, const mdNode_t* node, mdPrintState_
                                                 state->params.xMax - state->params.xMin, lineHeight,
                                                 state->params.style, node->text.end);
 
-#ifdef DEBUG
             MDLOG("Measured %zu characters: '%s'\n", (remainingText == NULL ? node->text.end - textStart : remainingText - textStart),
                   strndebug(textStart, remainingText == NULL ? node->text.end : remainingText));
-#endif
 
             // If this will be the first part of the line, set the initial parameters
             if (!state->linePlan.pending)
             {
-#ifdef DEBUG
                 MDLOG("First part of line, setting firstTextOffset=%zu and align=%d\n", state->textPos, state->params.align);
-#endif
                 state->linePlan.firstTextOffset = textStart - node->text.start;
                 state->linePlan.align = state->params.align;
             }
@@ -1598,10 +1562,8 @@ static const char* planLine(display_t* disp, const mdNode_t* node, mdPrintState_
 
             // Since we started measuring at the original totalWidth, x will already be set to the new value
             // TODO We should be able to use state->linePlan.totalWidth instead of x
-#ifdef DEBUG
             MDLOG("Planned width is %d, original is %d (added %d)\n", x, state->linePlan.totalWidth, x - state->linePlan.totalWidth);
             MDLOG("Y shouldn't have changed, it was %d and is now %d\n", 0, y);
-#endif DEBUG
             if (x > state->linePlan.totalWidth)
             {
                 state->linePlan.totalWidth = x;
@@ -1609,9 +1571,7 @@ static const char* planLine(display_t* disp, const mdNode_t* node, mdPrintState_
             else
             {
                 state->linePlan.totalWidth += textWidthExtra(state->font, textStart, state->params.style, remainingText);
-#ifdef DEBUG
                 MDLOG("Adding partial line length, now %d\n", state->linePlan.totalWidth);
-#endif
             }
 
             // Check if some or all of the text fits
@@ -1620,9 +1580,7 @@ static const char* planLine(display_t* disp, const mdNode_t* node, mdPrintState_
                 // More text fits, now we need to update the line height!
                 if (lineHeight > state->linePlan.lineHeight)
                 {
-#ifdef DEBUG
                     MDLOG("Increasing planned line height from %d to %d\n", state->linePlan.lineHeight, lineHeight);
-#endif
                     state->linePlan.lineHeight = lineHeight;
 
                     // Check if the line still fits...
@@ -1632,11 +1590,9 @@ static const char* planLine(display_t* disp, const mdNode_t* node, mdPrintState_
                         // We know there's a first part since we have just added ourselves
                         state->backtrackIndex = state->linePlan.parts[0].node->index;
 
-#ifdef DEBUG
                         MDLOG("Line must be backtracked to node %d, offset %zu due to height change (%d + %d > %d)\n",
                             state->backtrackIndex, state->linePlan.firstTextOffset,
                             state->y, state->linePlan.lineHeight, state->params.yMax);
-#endif
 
                         // I don't think we actually change textPos, so this may be completely unnecessary
                         // (we also don't really use the actual return value anymore either)
@@ -1648,17 +1604,13 @@ static const char* planLine(display_t* disp, const mdNode_t* node, mdPrintState_
             // If any of the text didn't fit on this line, the line is done
             if (remainingText != NULL)
             {
-#ifdef DEBUG
                 MDLOG("Line is complete! Drawing\n\n");
-#endif
                 drawPlannedLine(disp, state);
             }
 
             if (state->y + lineHeight - 1 > state->params.yMax)
             {
-#ifdef DEBUG
                 MDLOG("Returning early from planLine because height exceeds bounds: %d + %d > %d\n", state->y, lineHeight, state->params.yMax);
-#endif
                 state->textPos = remainingText - node->text.start;
                 return remainingText;
             }
@@ -1855,9 +1807,7 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
         navigateToNode(node, index, &node, &prev);
     }
 
-#ifdef DEBUG
     MDLOG("Printing Markdown\n-----------\n\n");
-#endif
 
     while (node != NULL)
     {
