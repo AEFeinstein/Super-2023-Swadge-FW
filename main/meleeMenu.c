@@ -65,6 +65,8 @@ static const paletteColor_t unselectedFillColor = c000;
 static void drawMeleeMenuText(display_t* d, font_t* font, const char* text,
                               int16_t xPos, int16_t yPos, bool isSelected);
 
+static void updateFirstRowOnScreen(meleeMenu_t* menu);
+
 uint8_t maybeGrowRowsArray(meleeMenu_t* menu, size_t originalCount, size_t additionalCount);
 
 //==============================================================================
@@ -163,6 +165,46 @@ int addRowToMeleeMenu(meleeMenu_t* menu, const char* label)
     return -1;
 }
 
+static void updateFirstRowOnScreen(meleeMenu_t* menu)
+{
+    // lines from the drawMeleeMenu() function
+    if (menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN > menu->numRows)
+    {
+        if (menu->numRows > MAX_ROWS_ON_SCREEN)
+        {
+            // firstRowOnScreen was set in a way that would create an impossible
+            // scroll situation, so reset it to a reasonable value
+            menu->firstRowOnScreen = menu->numRows - MAX_ROWS_ON_SCREEN;
+        }
+        else
+        {
+            // there just aren't enough rows, so this should always be 0 anyway
+            menu->firstRowOnScreen = 0;
+        }
+    }
+
+    ////////////
+    // from up:
+    if(menu->selectedRow < menu->firstRowOnScreen)
+    {
+        menu->firstRowOnScreen--;
+    }
+    else if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
+    {
+        menu->firstRowOnScreen = menu->numRows - MAX_ROWS_ON_SCREEN;
+    }
+    ////////////
+    // from down:
+    if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
+    {
+        menu->firstRowOnScreen++;
+    }
+    else if(menu->selectedRow < menu->firstRowOnScreen)
+    {
+        menu->firstRowOnScreen = 0;
+    }
+}
+
 /**
  * Process button events for the given menu
  *
@@ -179,20 +221,14 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
             if(0 == menu->selectedRow)
             {
                 menu->selectedRow = menu->numRows - 1;
+                menu->wrapping = true;
             }
             else
             {
                 menu->selectedRow--;
             }
 
-            if(menu->selectedRow < menu->firstRowOnScreen)
-            {
-                menu->firstRowOnScreen--;
-            }
-            else if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
-            {
-                menu->firstRowOnScreen = menu->numRows - MAX_ROWS_ON_SCREEN;
-            }
+            updateFirstRowOnScreen(menu);
 
             break;
         }
@@ -202,6 +238,7 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
             // Scroll down, with wraparound
             if(menu->selectedRow == menu->numRows - 1)
             {
+                menu->wrapping = true;
                 menu->selectedRow = 0;
             }
             else
@@ -209,14 +246,7 @@ void meleeMenuButton(meleeMenu_t* menu, buttonBit_t btn)
                 menu->selectedRow++;
             }
 
-            if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
-            {
-                menu->firstRowOnScreen++;
-            }
-            else if(menu->selectedRow < menu->firstRowOnScreen)
-            {
-                menu->firstRowOnScreen = 0;
-            }
+            updateFirstRowOnScreen(menu);
 
             break;
         }
@@ -324,10 +354,10 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
                     borderColor);
 
     // Adjust entries displayed on screen to include the selected row
-    if(menu->selectedRow < menu->firstRowOnScreen)
+    if(menu->selectedRow <= menu->firstRowOnScreen)
     {
-        // Equivalent to shifting the view up until the selected row is on-screen
-        menu->firstRowOnScreen = menu->selectedRow;
+        // Equivalent to shifting the view up until the selected row is on-screene
+        menu->firstRowOnScreen = (menu->selectedRow == 0) ? 0 : menu->selectedRow - 1;
     }
     else if(menu->selectedRow > menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN - 1)
     {
@@ -358,20 +388,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
         // SOMEBODY TOUCHED MY STUFF
 
         menu->firstRowOnScreen = menu->lastFirstRow;
-        if (menu->firstRowOnScreen + MAX_ROWS_ON_SCREEN > menu->numRows)
-        {
-            if (menu->numRows > MAX_ROWS_ON_SCREEN)
-            {
-                // firstRowOnScreen was set in a way that would create an impossible
-                // scroll situation, so reset it to a reasonable value
-                menu->firstRowOnScreen = menu->numRows - MAX_ROWS_ON_SCREEN;
-            }
-            else
-            {
-                // there just aren't enough rows, so this should always be 0 anyway
-                menu->firstRowOnScreen = 0;
-            }
-        }
+        updateFirstRowOnScreen(menu);
 
         menu->animateStartRow = menu->firstRowOnScreen;
         menu->lastSelectedRow = menu->selectedRow;
@@ -443,6 +460,11 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     {
         // By "going down" I mean increasing Y
         bool goingDown = menu->animateStartRow < menu->firstRowOnScreen;
+        if (menu->wrapping)
+        {
+            // flip the direction if we're wrapping around
+            goingDown = !goingDown;
+        }
 
         menu->animateSpeed += ANIM_ACCEL * (goingDown ? -1 : 1);
 
@@ -459,19 +481,25 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
 
         if ((goingDown && menu->animateOffset <= -rowGap) || (!goingDown && menu->animateOffset >= rowGap))
         {
-            if (goingDown) {
-                if (menu->animateStartRow < menu->numRows)
+            if (menu->animateStartRow != menu->firstRowOnScreen)
+            {
+                if (goingDown)
                 {
-                    menu->animateStartRow++;
+
+                    menu->animateStartRow = (menu->animateStartRow + 1) % menu->numRows;
                     menu->animateOffset += rowGap;
                 }
-            }
-            else
-            {
-                if (menu->animateStartRow > 0)
+                else
                 {
+                    if (menu->animateStartRow == 0)
+                    {
+                        menu->animateStartRow = menu->numRows - 1;
+                    }
+                    else
+                    {
+                        menu->animateStartRow--;
+                    }
                     menu->animateOffset -= rowGap;
-                    menu->animateStartRow--;
                 }
             }
         }
@@ -482,6 +510,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
             menu->animateOffset = 0;
             menu->animateSpeed = 0;
             menu->animating = false;
+            menu->wrapping = false;
 
             //yIdx = FIRST_ITEM_Y;
         }
@@ -505,23 +534,23 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
                 bottomArrowBump = rowGap;
             }
 
-            if (endRow < menu->numRows)
+            //if (endRow < menu->numRows)
             {
                 // draw an extra menu item at the bottom of the screen (at endRow)
-                drawMeleeMenuText(d, menu->font, menu->rows[endRow],
-                                  menu->usePerRowXOffsets ? rowOffsets[(endRow) % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
+                drawMeleeMenuText(d, menu->font, menu->rows[endRow % menu->numRows],
+                                  menu->usePerRowXOffsets ? rowOffsets[(endRow % menu->numRows) % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
                                   bottomOffset + rowGap + menu->animateOffset * 2,
                                   //yIdx + (rowGap) * (endRow - startRow),// + (rowGap + menu->animateOffset) * 2,
-                                  (endRow == menu->selectedRow));
+                                  ((endRow % menu->numRows) == menu->selectedRow));
             }
 
-            if (startRow > 0)
+            //if (startRow > 0)
             {
                 // draw an extra menu item at the top of the screen (before startRow)
-                drawMeleeMenuText(d, menu->font, menu->rows[startRow - 1],
-                                  menu->usePerRowXOffsets ? rowOffsets[(startRow - 1) % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
+                drawMeleeMenuText(d, menu->font, menu->rows[(startRow + menu->numRows - 1) % menu->numRows],
+                                  menu->usePerRowXOffsets ? rowOffsets[((startRow + menu->numRows - 1) % menu->numRows) % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
                                   topOffset + 3 * (menu->animateOffset - rowGap),
-                                  (startRow - 1 == menu->selectedRow));
+                                  (((startRow + menu->numRows - 1) % menu->numRows) == menu->selectedRow));
             }
         }
     }
@@ -529,10 +558,10 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     // Draw the entries
     for(uint8_t row = startRow; row < menu->numRows && row < endRow; row++)
     {
-        drawMeleeMenuText(d, menu->font, menu->rows[row],
-                          menu->usePerRowXOffsets ? rowOffsets[row % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
+        drawMeleeMenuText(d, menu->font, menu->rows[row % menu->numRows],
+                          menu->usePerRowXOffsets ? rowOffsets[(row % menu->numRows) % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
                           yIdx + menu->animateOffset,
-                          (row == menu->selectedRow));
+                          ((row % menu->numRows) == menu->selectedRow));
 
         yIdx += rowGap;
     }

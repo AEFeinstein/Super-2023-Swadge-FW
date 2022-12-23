@@ -36,6 +36,7 @@ typedef struct
     bool usePerRowXOffsets;
 
     bool animating;
+    bool wrapping;
     int16_t animateSpeed;
     int16_t animateOffset;
     uint16_t animateStartRow;
