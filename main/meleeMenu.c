@@ -539,7 +539,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     } // if(menu->enableScrolling)
 
     // Draw the entries
-    for(uint8_t row = startRow; row < menu->numRows && row < endRow; row++)
+    for(uint16_t row = startRow; row < menu->numRows && row < endRow; row++)
     {
         drawMeleeMenuText(d, menu->font, menu->rows[row],
                           menu->usePerRowXOffsets ? rowOffsets[row % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,
