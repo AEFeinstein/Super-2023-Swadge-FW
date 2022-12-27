@@ -7,14 +7,22 @@
 #include "heatshrink_encoder.h"
 #include "fileUtils.h"
 
+/**
+ * @brief Removes all instances of a given char from a string. Modifies the string in-place and sets a new null terminator, if needed
+ * 
+ * @param str string to remove chars from
+ * @param len number of chars in the string, including null terminator
+ * @param c char to remove
+ * @return long number of chars in the new string, including null terminator
+ */
 long remove_chars(char* str, long len, char c) {
     char *strReadPtr = str, *strWritePtr = str;
     long newLen = 1;
     for(long i = 0; i < len && *strReadPtr; i++)
     {
         *strWritePtr = *strReadPtr++;
-        strWritePtr += (*strWritePtr != c);
         newLen += (*strWritePtr != c);
+        strWritePtr += (*strWritePtr != c);
     }
     *strWritePtr = '\0';
 
@@ -50,4 +58,10 @@ void process_txt(const char *infile, const char *outdir)
     FILE* outFile = fopen(outFilePath, "wb");
     fwrite(txtInStr, newSz, 1, outFile);
     fclose(outFile);
+
+    char rmv = 't';
+    char tst[] = "test string";
+    printf("remove '%c' from \"%s\"\n", rmv, tst);
+    long newlen = remove_chars(tst, strlen(tst), rmv);
+    printf("returned len: %d, strlen(): %d, str: \"%s\"\n", newlen, strlen(tst), tst);
 }
