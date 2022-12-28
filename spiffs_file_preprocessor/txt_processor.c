@@ -58,10 +58,4 @@ void process_txt(const char *infile, const char *outdir)
     FILE* outFile = fopen(outFilePath, "wb");
     fwrite(txtInStr, newSz, 1, outFile);
     fclose(outFile);
-
-    char rmv = 't';
-    char tst[] = "test string";
-    printf("remove '%c' from \"%s\"\n", rmv, tst);
-    long newlen = remove_chars(tst, strlen(tst), rmv);
-    printf("returned len: %d, strlen(): %d, str: \"%s\"\n", newlen, strlen(tst), tst);
 }
