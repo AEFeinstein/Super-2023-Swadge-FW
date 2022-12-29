@@ -119,7 +119,8 @@
         "xlocale": "c",
         "picross_select.h": "c",
         "picross_menu.h": "c",
-        "aabb_utils.h": "c"
+        "aabb_utils.h": "c",
+        "*.inc": "c"
     },
     "idf.adapterTargetName": "esp32s2",
     "makefile.makefilePath": "./emu.mk"

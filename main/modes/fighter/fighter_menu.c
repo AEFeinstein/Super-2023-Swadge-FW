@@ -74,17 +74,17 @@ typedef struct
     const char* ftrConnectingStringBottom;
 
     // Menu positions
-    uint8_t mainMenuPos;
-    uint8_t wireMultiMenuPos;
-    uint8_t hrMenuPos;
-    uint8_t vsCpuCharHmnSelPos;
-    uint8_t vsCpuCharCpuSelPos;
-    uint8_t vsCpuStageSelPos;
-    uint8_t multiplayerCharSelPos;
-    uint8_t multiplayerStageSelPos;
-    uint8_t localVsP1Pos;
-    uint8_t localVsP2Pos;
-    uint8_t localVsStagePos;
+    uint16_t mainMenuPos;
+    uint16_t wireMultiMenuPos;
+    uint16_t hrMenuPos;
+    uint16_t vsCpuCharHmnSelPos;
+    uint16_t vsCpuCharCpuSelPos;
+    uint16_t vsCpuStageSelPos;
+    uint16_t multiplayerCharSelPos;
+    uint16_t multiplayerStageSelPos;
+    uint16_t localVsP1Pos;
+    uint16_t localVsP2Pos;
+    uint16_t localVsStagePos;
 } fighterMenu_t;
 
 typedef struct

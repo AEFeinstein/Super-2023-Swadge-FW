@@ -19,6 +19,18 @@
 #include <driver/uart.h>
 
 //==============================================================================
+// Types
+//==============================================================================
+
+typedef enum __attribute__((packed))
+{
+    NO_WIFI,
+    ESP_NOW,           // Calls back on main thread.
+    ESP_NOW_IMMEDIATE, // Calls back from interrupt.
+}
+wifiMode_t;
+
+//==============================================================================
 // Structs
 //==============================================================================
 
@@ -44,7 +56,7 @@ typedef void (*hostEspNowRecvCb_t)(const uint8_t* mac_addr, const char* data, ui
 typedef void (*hostEspNowSendCb_t)(const uint8_t* mac_addr, esp_now_send_status_t status);
 
 void espNowInit(hostEspNowRecvCb_t recvCb, hostEspNowSendCb_t sendCb,
-    gpio_num_t rx, gpio_num_t tx, uart_port_t uart);
+    gpio_num_t rx, gpio_num_t tx, uart_port_t uart, wifiMode_t mode);
 void espNowDeinit(void);
 
 void espNowUseWireless(void);

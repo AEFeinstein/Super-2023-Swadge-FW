@@ -1589,7 +1589,7 @@ void applyLEDBrightness(uint8_t numLEDs, double brightness);
 // Mode struct hook
 swadgeMode modeTiltrads =
 {
-    .modeName = "Tiltrads",
+    .modeName = "Tiltrads Color",
     .fnEnterMode = ttInit,
     .fnExitMode = ttDeInit,
     .fnMainLoop = ttUpdate,

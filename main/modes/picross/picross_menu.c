@@ -37,8 +37,8 @@ typedef struct
     picrossLevelDef_t levels[PICROSS_LEVEL_COUNT];
     picrossScreen_t screen;
     int32_t savedIndex;
-    uint8_t mainMenuPos;
-    uint8_t settingsPos;
+    uint16_t mainMenuPos;
+    uint16_t settingsPos;
     int32_t options;//bit 0: hints
 } picrossMenu_t;
 //==============================================================================
