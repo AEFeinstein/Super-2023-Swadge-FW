@@ -117,6 +117,9 @@
         "mode_picross.h": "c",
         "xlocnum": "c",
         "xlocale": "c",
+        "picross_select.h": "c",
+        "picross_menu.h": "c",
+        "aabb_utils.h": "c",
         "*.inc": "c"
     },
     "idf.adapterTargetName": "esp32s2",
