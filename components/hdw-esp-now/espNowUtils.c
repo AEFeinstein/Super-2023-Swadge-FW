@@ -292,7 +292,7 @@ void espNowUseWireless(void)
 
         //Appears to set gain "offset" like what it reports as gain?  Does not actually impact real gain.
         //But when paired with the second write command, it seems to have the intended impact.
-        //This number is in ~1/2dB.  So this accounts for a 10dB muting.
+        //This number is in ~1/2dB.  So 20 accounts for a 10dB muting; 25, 12.5dB; 30, 15dB
         const int igi_reduction = 20;
         volatile uint32_t * test = (uint32_t*)0x6001c02c; //Should be the "RSSI Offset" but seems to do more.
         *test = (*test & 0xffffff00) + igi_reduction; 
