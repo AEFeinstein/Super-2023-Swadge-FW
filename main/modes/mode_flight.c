@@ -224,6 +224,7 @@ typedef struct
 
     // Boolets for multiplayer.
     multiplayerpeer_t allPeers[MAX_PEERS]; //32x103 = 3296 bytes.
+    multiplayerpeer_t serverPeer;
     boolet_t allBoolets[MAX_BOOLETS];  // ~8kB
     network_model_t * networkModels[MAX_NETWORK_MODELS];
     int nNetworkServerExclusiveMode; // When seeing a server resets.
@@ -2327,7 +2328,7 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
     else
     {
         // Server.  Force thisPeer = 0.
-        thisPeer = allPeers;
+        thisPeer = &flt->serverPeer;
     }
 
     // Refine time offset.  TODO: Use asymmetric filter.
