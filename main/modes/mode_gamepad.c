@@ -88,7 +88,7 @@ typedef struct
 
     meleeMenu_t* menu;
     gamepadScreen_t screen;
-    uint8_t settingsPos;
+    uint16_t settingsPos;
 
     hid_gamepad_report_t gpState;
     hid_gamepad_ns_report_t gpNsState;

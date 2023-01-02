@@ -25,6 +25,7 @@
 #include "mode_flight.h"
 #include "mode_gamepad.h"
 #include "mode_jukebox.h"
+#include "mode_nvs_manager.h"
 #include "mode_paint.h"
 #include "mode_picross.h"
 #include "mode_platformer.h"
@@ -79,12 +80,12 @@ typedef struct
     font_t meleeMenuFont;
     font_t ibmFont;
     meleeMenu_t* menu;
-    uint8_t topLevelPos;
-    uint8_t gamesPos;
-    uint8_t toolsPos;
-    uint8_t musicPos;
-    uint8_t settingsPos;
-    uint8_t secretPos;
+    uint16_t topLevelPos;
+    uint16_t gamesPos;
+    uint16_t toolsPos;
+    uint16_t musicPos;
+    uint16_t settingsPos;
+    uint16_t secretPos;
     int16_t btnState;
     int16_t prevBtnState;
     uint8_t cheatCodeIdx;
@@ -869,6 +870,7 @@ void mainMenuSetUpSecretMenu(bool resetPos)
     resetMeleeMenu(mainMenu->menu, mainMenuSecret, mainMenuSecretCb);
     addRowToMeleeMenu(mainMenu->menu, modeCopyPasta.modeName);
     addRowToMeleeMenu(mainMenu->menu, modeTest.modeName);
+    addRowToMeleeMenu(mainMenu->menu, modeNvsManager.modeName);
     if(mainMenu->showSecretsMenu)
     {
         addRowToMeleeMenu(mainMenu->menu, mainMenuShowSecretsMenuOn);
@@ -907,6 +909,11 @@ void mainMenuSecretCb(const char* opt)
     {
         // Start test mode
         switchToSwadgeMode(&modeTest);
+    }
+    else if(modeNvsManager.modeName == opt)
+    {
+        // Start NVS manager
+        switchToSwadgeMode(&modeNvsManager);
     }
     else if(mainMenuShowSecretsMenuOn == opt)
     {

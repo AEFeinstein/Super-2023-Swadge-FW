@@ -37,8 +37,8 @@ typedef struct
     picrossLevelDef_t levels[PICROSS_LEVEL_COUNT];
     picrossScreen_t screen;
     int32_t savedIndex;
-    uint8_t mainMenuPos;
-    uint8_t settingsPos;
+    uint16_t mainMenuPos;
+    uint16_t settingsPos;
     int32_t options;//bit 0: hints
 } picrossMenu_t;
 //==============================================================================
@@ -49,6 +49,7 @@ void picrossEnterMode(display_t* disp);
 void picrossExitMode(void);
 void picrossMainLoop(int64_t elapsedUs);
 void picrossButtonCb(buttonEvt_t* evt);
+void picrossTouchCb(touch_event_t* evt);
 void loadLevels(void);
 void picrossMainMenuCb(const char* opt);
 void picrossMenuOptionsCb(const char* opt);
@@ -62,6 +63,7 @@ const char picrossCurrentPuzzleIndexKey[] = "pic_cur_ind";
 const char picrossSavedOptionsKey[]       = "pic_opts"; 
 const char picrossCompletedLevelData[]    = "pic_victs";//todo: rename to Key suffix
 const char picrossProgressData[]          = "pic_prog";//todo: rename to key suffix
+const char picrossMarksData[]             = "pic_marks";
 
 //Main menu strings
 static char str_picrossTitle[] = "\x7f-cross"; // \x7f is interpreted as the pi char
@@ -91,7 +93,7 @@ swadgeMode modePicross =
     .fnExitMode = picrossExitMode,
     .fnMainLoop = picrossMainLoop,
     .fnButtonCallback = picrossButtonCb,
-    .fnTouchCallback = NULL,
+    .fnTouchCallback = picrossTouchCb,
     .wifiMode = NO_WIFI,
     .fnEspNowRecvCb = NULL,
     .fnEspNowSendCb = NULL,
@@ -432,6 +434,13 @@ void picrossButtonCb(buttonEvt_t* evt)
         }
             //No wifi mode stuff
     }
+}
+
+
+void picrossTouchCb(touch_event_t* evt) {
+    if(pm->screen == PICROSS_GAME) {
+        picrossGameTouchCb(evt);
+    }  
 }
 
 /////////////////////////

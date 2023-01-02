@@ -25,7 +25,6 @@
 #include "linked_list.h"
 #include "mode_main_menu.h"
 #include "musical_buzzer.h"
-#include "swadgeMode.h"
 #include "settingsManager.h"
 
 #include "mode_tunernome.h"

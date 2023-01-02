@@ -213,7 +213,7 @@ swadgeMode modePaintReceive =
 
 static bool isSender(void)
 {
-    return paintShare->isSender;;
+    return paintShare->isSender;
 }
 
 void paintShareInitP2p(void)

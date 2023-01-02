@@ -9,6 +9,7 @@
 #define _MODE_TUNERNOME_H_
 
 #include "musical_buzzer.h"
+#include "swadgeMode.h"
 
 extern swadgeMode modeTunernome;
 
