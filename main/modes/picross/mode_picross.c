@@ -1124,7 +1124,12 @@ void drawPicrossScene(display_t* d)
                 if(p->tentativeMarks[i][j] == true) {
                     // Following convention of how X marks always use emptySpaceCol instead of hoverSpaceCol 
                     int boxSize = box.x1-box.x0;
-                    int lineWidth = (boxSize/5);
+                    int lineWidth;
+                    if (boxSize < 12) {
+                        lineWidth = (boxSize/5) + 1;
+                    } else { 
+                        lineWidth = (boxSize/5);
+                    }
                     int outerPadding = (boxSize/4);
                     box_t innerBox =
                         {
