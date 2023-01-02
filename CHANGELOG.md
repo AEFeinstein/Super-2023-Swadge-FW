@@ -21,7 +21,7 @@ No changes
 
 ## π-cross
 
-- Added tentative fill (press the touchpad!)
+- Added tentative fill (press the Touchpad!)
 - Reduced power usage by disabling wireless
 
 ## Flyin Donut
@@ -34,10 +34,11 @@ No changes
 - Replace high-score keyboard caps lock, shift, tab, and backspace symbols with larger ones
 - Make high-score keyboard caps lock and shift buttons act more like a real keyboard
 
-## Tiltrads
+## Tiltrads Color
 
 - Added no-stress mode
 - Added pause (Start)
+- Changed name on menu and in Jukebox from "Tiltrads" to "Tiltrads Color"
 
 ## Gamepad
 
