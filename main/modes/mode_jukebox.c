@@ -2602,7 +2602,7 @@ static const jukeboxCategory musicCategories[] =
     {.categoryName = "Swadge Land", .numSongs = lengthof(platformerMusic), .songs = platformerMusic},
     {.categoryName = "Donut Jump", .numSongs = lengthof(jumperMusic), .songs = jumperMusic},
     {.categoryName = "\x7f-cross", .numSongs = lengthof(picrossMusic), .songs = picrossMusic},
-    {.categoryName = "Tiltrads", .numSongs = lengthof(tiltradsMusic), .songs = tiltradsMusic},
+    {.categoryName = "Tiltrads Color", .numSongs = lengthof(tiltradsMusic), .songs = tiltradsMusic},
     {.categoryName = "MFPaint", .numSongs = lengthof(paintMusic), .songs = paintMusic},
     {.categoryName = "Jukebox", .numSongs = lengthof(jukeboxMusic), .songs = jukeboxMusic},
     {.categoryName = "Credits", .numSongs = lengthof(creditsMusic), .songs = creditsMusic},
@@ -2692,7 +2692,7 @@ static const jukeboxSong tunernomesfx[] =
 static const jukeboxCategory sfxCategories[] =
 {
     {.categoryName = "Swadge Bros", .numSongs = lengthof(fighterSfx), .songs = fighterSfx},
-    {.categoryName = "Tiltrads", .numSongs = lengthof(tiltradsSfx), .songs = tiltradsSfx},
+    {.categoryName = "Tiltrads Color", .numSongs = lengthof(tiltradsSfx), .songs = tiltradsSfx},
     {.categoryName = "Swadge Land", .numSongs = lengthof(platformerSfx), .songs = platformerSfx},
     {.categoryName = "Donut Jump", .numSongs = lengthof(jumperSfx), .songs = jumperSfx},
     {.categoryName = "Tunernome", .numSongs = lengthof(tunernomesfx), .songs = tunernomesfx},
