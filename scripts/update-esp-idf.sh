@@ -6,4 +6,6 @@ rm -rf ~/esp/esp-idf/
 rm -rf ~/.espressif/
 
 # Re-run the esp-idf setup
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+cd SCRIPT_DIR
 ./setup-esp-idf.sh

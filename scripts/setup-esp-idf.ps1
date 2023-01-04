@@ -1,6 +1,6 @@
 # Make an esp folder only if it does not yet exist, and move into it regardless
-$Filename="~/esp"
-if (-not(test-path $Filename)){mkdir $FileName}
+$FileName="~/esp"
+if (-not(test-path $FileName)){mkdir $FileName}
 cd ~/esp
 
 # Clone the IDF and move into it

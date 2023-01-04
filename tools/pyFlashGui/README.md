@@ -52,16 +52,16 @@ For the script to actually flash firmware, the following files must be in the sa
 
 | File | Relative Path |
 | ------------- | ------------- |
-| ``bootloader.bin`` | ``../build/bootloader/bootloader.bin`` |
-| ``swadge-esp32.bin`` | ``../build/swadge-esp32.bin`` |
-| ``partition-table.bin`` | ``../build/partition_table/partition-table.bin`` |
-| ``storage.bin`` | ``../build/storage.bin`` |
+| ``bootloader.bin`` | ``../../build/bootloader/bootloader.bin`` |
+| ``swadge-esp32.bin`` | ``../../build/swadge-esp32.bin`` |
+| ``partition-table.bin`` | ``../../build/partition_table/partition-table.bin`` |
+| ``storage.bin`` | ``../../build/storage.bin`` |
 
 Assuming you've checked out the whole repository, set up the IDF, and are in the `Super-2023-Swadge-FW` folder, then this should build and place the files:
 
 ```bash
 idf.py build
-cp ./build/bootloader/bootloader.bin ./build/swadge-esp32.bin ./build/partition_table/partition-table.bin ./build/storage.bin ./pyFlashGui/
+cp ./build/bootloader/bootloader.bin ./build/swadge-esp32.bin ./build/partition_table/partition-table.bin ./build/storage.bin ./tools/pyFlashGui/
 ```
 
 # Instructions
