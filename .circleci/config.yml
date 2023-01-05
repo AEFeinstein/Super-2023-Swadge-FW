@@ -106,7 +106,7 @@ jobs:
             $CheckFile = Test-Path -Path $file
             if (!($CheckFile))  {exit 1 } 
             # zip everything up and move it to where circleci expects
-            zip << pipeline.parameters.firmware-artifact >> -j build\bootloader\bootloader.bin build\partition_table\partition-table.bin build\swadge-esp32.bin build\storage.bin build\dfu.bin version.txt .\pyFlashGui\pyFlashGui.py
+            zip << pipeline.parameters.firmware-artifact >> -j build\swadge-esp32.elf build\bootloader\bootloader.bin build\partition_table\partition-table.bin build\swadge-esp32.bin build\storage.bin build\dfu.bin version.txt .\pyFlashGui\pyFlashGui.py
             # Move the zips to where circleci expects it so that it gets uploaded as an artifact
             cp << pipeline.parameters.firmware-artifact >> C:\Users\circleci\project\
       - store_artifacts:
