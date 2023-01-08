@@ -51,7 +51,7 @@ int gotrx = 0;
 int lasta;
 
 int oktosend = 0;
-
+int slave_clear_to_send = 1;
 void menuCb(const char* opt)
 {
 }
@@ -72,6 +72,7 @@ void sandboxRxESPNow(const uint8_t* mac_addr, const char* data, uint8_t len, int
 {
 	prx++;
 	pigi += -rssi;
+	if( len < 5 ) return;
 
 	trx++;
 	lasta = data[0];
@@ -118,18 +119,24 @@ uint32_t stime;
 void sandboxTxESPNow(const uint8_t* mac_addr, esp_now_send_status_t status)
 {
 	//uprintf( "TASS %d %d\n", tas, status );
-	if( tas < NUM_TESTS )
+	if( is_host )
 	{
-		oktosend = 1;
-	}
+		if( tas < NUM_TESTS )
+		{
+			oktosend = 1;
+		}
 
-	if( status == 0 && tss < 255 )
+		if( status == 0 && tss < 255 )
+		{
+			uint32_t end = esp_timer_get_time();
+			tstimes[tss] = (end-stime)/100; // in tenths of milliseconds.
+			tss++;
+		}
+	}
+	else
 	{
-		uint32_t end = esp_timer_get_time();
-		tstimes[tss] = (end-stime)/100; // in tenths of milliseconds.
-		tss++;
+		slave_clear_to_send = 1;
 	}
-
 //	uprintf( "ESP-NOW>%d %d\n", status, end-stime );
 }
 
@@ -146,6 +153,7 @@ void sandbox_main(display_t * disp_in)
 	pigi = 0;
 	tas = 0;
 	tss = 0;
+	slave_clear_to_send = 1;
 
 
 	uprintf( "Installing espnow.\n" );
@@ -194,12 +202,13 @@ void sandbox_tick()
 	{
 		static int waitframe = 0;
 		waitframe++;
-		if( (waitframe & 0x1f) == 0 )
+		if( (waitframe & 0x7) == 0 && slave_clear_to_send )
 		{
 			uint8_t buff[40] = { 0 };
 			buff[0] = 0xbb;
 			buff[1] = gotrx;
 			buff[2] = lasttest;
+			slave_clear_to_send = 0;
 			espNowSend((char*)buff, 10);	
 			sprintf( sts, "%d", lasttest );
 			drawText( disp, &meleeMenuFont, 215, "x", 200, 90);

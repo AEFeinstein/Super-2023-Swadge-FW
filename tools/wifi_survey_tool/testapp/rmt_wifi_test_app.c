@@ -17,7 +17,7 @@ int main()
 	uint8_t data[257];
 	uint8_t rdata[257];
 	int survey;
-	for( survey = -20; survey < 120; survey+=5 )
+	for( survey = -20; survey < 95; survey+=5 )
 	{
 		data[0] = 173;
 		data[1] = 5;
@@ -54,13 +54,13 @@ int main()
 			tas = rdata[6];
 			tss = rdata[7];
 			lasttr = rdata[8];  // PEER RX PERCENT
-			lasttrt = rdata[9]; // PEER TEST NUBMER
+			lasttrt = (int8_t)rdata[9]; // PEER TEST NUBMER
 
 
 			int i;
 			//for( i = 0; i < 220; i++ ) printf( "%02x ", rdata[i] ); printf( "\n" );
 
-			fprintf( stderr, "PRX: %d PIGI: %d TAS: %d TSS: %d TRT: %d TRTD: %d\n", prx, pigi, tas, tss, lasttr, lasttrt );
+			fprintf( stderr, "PRX: %d PIGI: %d TAS: %d TSS: %d TRT: %d TRTD: %d\n", prx, -pigi, tas, tss, lasttr, lasttrt );
 			if( lastone ) break;
 			if( tas == 100 ) lastone = 1;
 		}
