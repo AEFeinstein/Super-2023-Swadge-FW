@@ -44,6 +44,8 @@ int trx = 0;
 int this_test = -1;
 int current_tx_igi;
 int this_rx = 0;
+int lastrxa = 0;
+int lastrxtest = 0;
 int8_t lasttest = 0;
 int gotrx = 0;
 int lasta;
@@ -101,6 +103,11 @@ void sandboxRxESPNow(const uint8_t* mac_addr, const char* data, uint8_t len, int
 			this_test = data[1];
 		}
 	}
+	if( data[0] == 0xbb && is_host )
+	{
+		lastrxa = data[1];
+		lastrxtest = data[2];
+	}
 
 //	uprintf( "ESP-NOW<%d %d [%02x %02x %02x %02x %02x %02x] [%02x %02x %02x] \n", len, rssi, mac_addr[0],
 //		mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5], data[0], data[1], data[2] );
@@ -116,7 +123,7 @@ void sandboxTxESPNow(const uint8_t* mac_addr, esp_now_send_status_t status)
 		oktosend = 1;
 	}
 
-	if( status == 0 )
+	if( status == 0 && tss < 255 )
 	{
 		uint32_t end = esp_timer_get_time();
 		tstimes[tss] = (end-stime)/100; // in tenths of milliseconds.
@@ -174,29 +181,42 @@ void sandbox_tick()
 		buff[2] = tas;
 		stime = esp_timer_get_time();
 		tas++;
-		espNowSend((char*)buff, TEST_LEN); //Don't enable yet.
+		espNowSend((char*)buff, TEST_LEN);
 	}
-
 
 	int i, j;
 	if( menu )
 	    drawMeleeMenu(disp, menu);
 
-	char sts[128];
+	char sts[80];
+
+	if( !is_host )
+	{
+		static int waitframe = 0;
+		waitframe++;
+		if( (waitframe & 0x1f) == 0 )
+		{
+			uint8_t buff[40] = { 0 };
+			buff[0] = 0xbb;
+			buff[1] = gotrx;
+			buff[2] = lasttest;
+			espNowSend((char*)buff, 10);	
+			sprintf( sts, "%d", lasttest );
+			drawText( disp, &meleeMenuFont, 215, "x", 200, 90);
+		}
+	}
+
 	sprintf( sts, "TOT RX: %d", trx );
 	drawText( disp, &meleeMenuFont, 215, sts, 40, 60);
 	sprintf( sts, "IGT: %d %d", lasttest, current_tx_igi );
-	drawText( disp, &meleeMenuFont, 215,
-                 sts, 40, 90);
+	drawText( disp, &meleeMenuFont, 215, sts, 40, 90);
 	sprintf( sts, "RX PCT: %d", gotrx );
-	drawText( disp, &meleeMenuFont, 215,
-                 sts, 40, 120);
+	drawText( disp, &meleeMenuFont, 215, sts, 40, 120);
 	sprintf( sts, "LAST: %d", lasta );
-	drawText( disp, &meleeMenuFont, 215,
-                 sts, 40, 150);
+	drawText( disp, &meleeMenuFont, 215, sts, 40, 150);
 	sprintf( sts, "THIS RX: %d", this_rx );
-	drawText( disp, &meleeMenuFont, 215,
-                 sts, 40, 180);
+	drawText( disp, &meleeMenuFont, 215, sts, 40, 180);
+
 
 
 	
@@ -228,7 +248,9 @@ int16_t sandboxAdvancedUSB(uint8_t * buffer, uint16_t length, uint8_t isGet )
 		memcpy( buffer+4, &pigi, 2 );
 		memcpy( buffer+6, &tas, 1 );
 		memcpy( buffer+7, &tss, 1 );
-		memcpy( buffer+8, tstimes, NUM_TESTS * 2 );
+		buffer[8] = lastrxa;
+		buffer[9] = lastrxtest;
+		memcpy( buffer+10, tstimes, NUM_TESTS * 2 );
 
 		return 255;
 	}
