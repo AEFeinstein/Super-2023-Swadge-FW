@@ -8,6 +8,8 @@
 #ifndef MODES_MODE_SLIDE_WHISTLE_H_
 #define MODES_MODE_SLIDE_WHISTLE_H_
 
+#include "swadgeMode.h"
+
 extern swadgeMode modeSlideWhistle;
 
 

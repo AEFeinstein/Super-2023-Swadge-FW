@@ -114,7 +114,7 @@ void resetMeleeMenu(meleeMenu_t* menu, const char* title, meleeMenuCb cbFunc)
     menu->numRows = 0;
     menu->firstRowOnScreen = 0;
     // I'm just as unhappy about this as you are
-    menu->animateStartRow = UINT8_MAX;
+    menu->animateStartRow = UINT16_MAX;
     menu->selectedRow = 0;
     menu->lastSelectedRow = 0;
     menu->cbFunc = cbFunc;
@@ -300,9 +300,9 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     // The width to shrink the bar by on each side, compared to the arrow
 #define ARROW_BAR_SHRINK_RADIUS 2
     // The rate at which menu animations change speed
-#define ANIM_ACCEL 2
+#define ANIM_ACCEL 4
     // The maximum speed at which the menu will animate
-#define ANIM_MAXSPEED 12
+#define ANIM_MAXSPEED 30
 
     // Draw the title and note where it ends
     int16_t textEnd = drawText(d, menu->font, c222, menu->title, BORDER_GAP + 1 + TITLE_X_GAP, BORDER_GAP + 1);
@@ -392,7 +392,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
             menu->lastSelectedRow = menu->selectedRow;
         } // if (menu->selectedRow != menu->lastSelectedRow)
 
-        if (menu->animateStartRow == UINT8_MAX)
+        if (menu->animateStartRow == UINT16_MAX)
         {
             menu->animateStartRow = menu->firstRowOnScreen;
         }
@@ -539,7 +539,7 @@ void drawMeleeMenu(display_t* d, meleeMenu_t* menu)
     } // if(menu->enableScrolling)
 
     // Draw the entries
-    for(uint8_t row = startRow; row < menu->numRows && row < endRow; row++)
+    for(uint16_t row = startRow; row < menu->numRows && row < endRow; row++)
     {
         drawMeleeMenuText(d, menu->font, menu->rows[row],
                           menu->usePerRowXOffsets ? rowOffsets[row % NUM_ROW_COLORS_AND_OFFSETS] : MIN_ROW_OFFSET,

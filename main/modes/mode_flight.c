@@ -127,10 +127,11 @@ typedef enum
 #define FSNET_CODE_SERVER 0x73534653
 #define FSNET_CODE_PEER 0x66534653
 
-#define MAX_PEERS 103 // Best if it's a prime number.
+#define MAX_PEERS 103 // Best if it's a prime number. Better if it's more than you will ever see, since this is used as a hashtable.
 #define BOOLETSPERPLAYER 4
-#define MAX_BOOLETS (MAX_PEERS*BOOLETSPERPLAYER)
-#define MAX_NETWORK_MODELS 81
+#define MAX_BOOLETS_FROM_HOST 96 //96 = 24(guns)*4 boolets each.
+#define MAX_BOOLETS (MAX_PEERS*BOOLETSPERPLAYER+MAX_BOOLETS_FROM_HOST) 
+#define MAX_NETWORK_MODELS 108 //84 + 24(guns)
 
 typedef struct  // 32 bytes.
 {
@@ -223,9 +224,10 @@ typedef struct
 
     // Boolets for multiplayer.
     multiplayerpeer_t allPeers[MAX_PEERS]; //32x103 = 3296 bytes.
+    multiplayerpeer_t serverPeer;
     boolet_t allBoolets[MAX_BOOLETS];  // ~8kB
     network_model_t * networkModels[MAX_NETWORK_MODELS];
-    int nNetworkServerLastSeen; // When seeing a server resets.
+    int nNetworkServerExclusiveMode; // When seeing a server resets.
     int nNetworkMode;
 
     boolet_t myBoolets[BOOLETSPERPLAYER];
@@ -302,7 +304,7 @@ static const char fl_title[]  = "Flyin Donut";
 static const char fl_flight_env[] = "Atrium Course";
 static const char fl_flight_invertY0_env[] = "Y Invert: Off";
 static const char fl_flight_invertY1_env[] = "Y Invert: On";
-static const char fl_flight_perf[] = "Free Flight";
+static const char fl_flight_perf[] = "Free Solo/VS";
 static const char fl_100_percent[] = "100% 100% 100%";
 static const char fl_turn_around[] = "TURN AROUND";
 static const char fl_you_win[] = "YOU   WIN!";
@@ -1336,11 +1338,7 @@ static void flightRender(int64_t elapsedUs __attribute__((unused)))
 
             snprintf(framesStr, sizeof(framesStr), "K:%d", tflight->kills);
             width = textWidth(&flight->radiostars, framesStr);
-            drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 90, TFT_HEIGHT - flight->radiostars.h );
-
-            snprintf(framesStr, sizeof(framesStr), "D:%d", tflight->deaths);
-            width = textWidth(&flight->radiostars, framesStr);
-            drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, 144, TFT_HEIGHT - flight->radiostars.h );
+            drawText(disp, &flight->radiostars, PROMPT_COLOR, framesStr, (280-width)/2, TFT_HEIGHT - flight->radiostars.h );
         }
 
         snprintf(framesStr, sizeof(framesStr), "%d", tflight->speed);
@@ -1643,7 +1641,7 @@ void flightButtonCallback( buttonEvt_t* evt )
                     boolet_t * tb = &flight->myBoolets[flight->myBooletHead];
                     flight->myBooletHead = ( flight->myBooletHead + 1 ) % BOOLETSPERPLAYER;
                     tb->flags = (rand()%65535)+1;
-                    tb->timeOfLaunch = now;
+                    tb->timeOfLaunch = now + 50000; //Post-date shots to reduce prevelancy of close-range shots being missed.
                     flight->timeOfLastShot = now;
 
                     int eo_sign = (flight->myBooletHead&1)?1:-1;
@@ -2028,8 +2026,8 @@ static void FlightNetworkFrameCall( flight_t * tflight, display_t* disp, uint32_
 {
     modelRangePair_t * mrptr = *mrp;
 
-    if( tflight->nNetworkServerLastSeen > 0 )
-        tflight->nNetworkServerLastSeen--;
+    if( tflight->nNetworkServerExclusiveMode > 0 )
+        tflight->nNetworkServerExclusiveMode--;
 
     {
         multiplayerpeer_t * ap = tflight->allPeers;
@@ -2264,29 +2262,23 @@ typedef struct
 
 void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len, int8_t rssi)
 {
-    //uprintf( "RX RSSI %d\n", rssi );
+    const char* dataend = data + len;
     int i;
     flight_t * flt = flight;
 
     if( flt->nNetworkMode == 0 ) return;
 
+    if( data + 4 > dataend ) return;
     uint32_t pcode = *((uint32_t*)data);  data+= 4;
 
-    if( !( pcode == FSNET_CODE_SERVER || (!flt->nNetworkServerLastSeen && pcode == FSNET_CODE_PEER ) ) || len < 8 ) return;
+    if( !( pcode == FSNET_CODE_SERVER || (!flt->nNetworkServerExclusiveMode && pcode == FSNET_CODE_PEER ) ) || len < 8 ) return;
 
-    int isPeer = pcode == FSNET_CODE_PEER;
-    // If we get a server packet, switch to server mode for a while.
-    if( !isPeer )
-    {
-        if( !flt->nNetworkServerLastSeen )
-        {
-            // Switched to server mode.  Need to clear out all peers.
-            memset( flt->allPeers, 0, sizeof( flt->allPeers ) );
-        }
-        flt->nNetworkServerLastSeen = 300;
-    }
+    int isPeer = (pcode == FSNET_CODE_PEER);
 
+    if( data + sizeof( network_packet_t ) > dataend ) return;
     const network_packet_t * np = (const network_packet_t*)(data); data += sizeof( network_packet_t );
+
+    if( data > dataend ) return;
 
     uint32_t now = esp_timer_get_time();
 
@@ -2336,7 +2328,7 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
     else
     {
         // Server.  Force thisPeer = 0.
-        thisPeer = allPeers;
+        thisPeer = &flt->serverPeer;
     }
 
     // Refine time offset.  TODO: Use asymmetric filter.
@@ -2350,14 +2342,30 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
 
     int protVer = ReadUEQ( &assetCounts );
     if( protVer != 1 ) return; // Try not to rev version.
+    int modelCount = ReadUEQ( &assetCounts );
+    int shipCount = ReadUEQ( &assetCounts );
+    int booletCount = ReadUEQ( &assetCounts );
+    // If we get a server packet, switch to server mode for a while.
+    if( !isPeer )
+    {
+        if( ReadUQ( &assetCounts, 1 ) == 0 ) // If this bit is a 1, then don't block other messages.
+        {
+            if( !flt->nNetworkServerExclusiveMode )
+            {
+                // Switched to server mode.  Need to clear out all peers.
+                memset( flt->allPeers, 0, sizeof( flt->allPeers ) );
+            }
+            flt->nNetworkServerExclusiveMode = 300;
+        }
+    }
 
     // assetCounts => models, ships, boolets, all in UEQ.
-
     {
         network_model_t ** netModels = &flight->networkModels[0];
-        int modelCount = ReadUEQ( &assetCounts );
         for( i = 0; i < modelCount; i++ )
         {
+            if( data + 4 > dataend ) return;
+
             uint32_t codeword = (*(const uint32_t*)data);  data += 4;
             uint32_t res_codeword = codeword;
             uint32_t id = ReadUQ( &codeword, 8 );
@@ -2383,6 +2391,9 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
 
             m->timeOfUpdate = peerSendInOurTime;
             m->binencprop = res_codeword;
+
+            if( data + sizeof(m->root) + 2 + sizeof(m->velocity) + bones * 3 > dataend ) return;
+
             memcpy( m->root, data, sizeof(m->root) ); data += sizeof(m->root); 
             m->radius = (*data++);
             m->reqColor = (*data++);
@@ -2391,10 +2402,10 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
         }
     }
     {
-        int shipCount = ReadUEQ( &assetCounts );
-
         for( i = 0; i < shipCount; i++ )
         {
+            if( data + 1 + sizeof( allPeers[0].velAt ) + sizeof( allPeers[0].posAt ) + sizeof( allPeers[0].rotAt ) + sizeof( allPeers[0].basePeerFlags ) + sizeof( allPeers[0].auxPeerFlags ) + 1 > dataend ) return;
+
             int readID = *(data++);
             int shipNo = isPeer?peerId:readID;
 
@@ -2443,23 +2454,28 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
         }
     }
     {
-        int booletCount = ReadUEQ( &assetCounts );
-
         boolet_t * allBoolets = &flt->allBoolets[0];
         for( i = 0; i < booletCount; i++ )
         {
+            if( data + 1 + 4 + sizeof(allBoolets[0].launchLocation) + sizeof(allBoolets[0].launchRotation) + sizeof(allBoolets[0].flags) > dataend ) return;
             int booletID = *(data++);
             if( isPeer )
             {
-                if( booletID >= BOOLETSPERPLAYER ) booletID = BOOLETSPERPLAYER;
+                if( booletID >= BOOLETSPERPLAYER ) booletID = 0;
 
                 // Fixed locations.
                 booletID += peerId*BOOLETSPERPLAYER;
             }
             else
             {
+                // If not in exclusive-network mode, then we start after peer boolets.
+                if( !flt->nNetworkServerExclusiveMode )
+                {
+                    booletID += MAX_PEERS*BOOLETSPERPLAYER;
+                }
                 if( booletID >= MAX_BOOLETS ) booletID = 0;
             }
+
             boolet_t * b = allBoolets + booletID;
             b->timeOfLaunch = *((const uint32_t*)data) - thisPeer->timeOffsetOfPeerFromNow;
             data += 4;
@@ -2467,9 +2483,12 @@ void FlightfnEspNowRecvCb(const uint8_t* mac_addr, const char* data, uint8_t len
             data += sizeof(b->launchLocation);
             memcpy( b->launchRotation, data, sizeof(b->launchRotation) );
             data += sizeof(b->launchRotation);
-            memcpy( &b->flags, data, sizeof(b->flags) ); data+=sizeof(b->flags);
+            memcpy( &b->flags, data, sizeof(b->flags) );
+            data += sizeof(b->flags);
         }
     }
+
+
 }
 
 static void FlightfnEspNowSendCb(const uint8_t* mac_addr, esp_now_send_status_t status)

@@ -1094,8 +1094,8 @@ static const char* drawTextWordWrapInner(display_t* disp, const font_t* font, pa
 /// @brief Draws text, breaking on word boundaries, until the given bounds are filled or all text is drawn.
 ///
 /// Text will be drawn, starting at `(xOff, yOff)`, wrapping to the next line at ' ' or '-' when the next
-/// word would exceed `xMax`, or immediately when a newline ('\n') is encountered. Carriage returns and
-/// tabs ('\r', '\t') are not supported. When the bottom of the next character would exceed `yMax`, no more
+/// word would exceed `xMax`, or immediately when a newline ('\\n') is encountered. Carriage returns and
+/// tabs ('\\r', '\\t') are not supported. When the bottom of the next character would exceed `yMax`, no more
 /// text is drawn and a pointer to the next undrawn character within `text` is returned. If all text has
 /// been written, NULL is returned.
 ///

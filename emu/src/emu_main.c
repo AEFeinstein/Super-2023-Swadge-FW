@@ -171,7 +171,7 @@ void HandleMotion( int x UNUSED, int y UNUSED, int mask UNUSED)
 /**
  * @brief Free memory on exit
  */
-void HandleDestroy()
+void HandleDestroy(void)
 {
     // Stop the main loop
     isRunning = false;
