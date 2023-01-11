@@ -1431,11 +1431,6 @@ static bool drawPlannedLine(display_t* disp, mdPrintState_t* state)
                         if (x != startX)
                         {
                             x += part->font->chars[0].w + 1;
-                            if (x >= state->params.xMax)
-                            {
-                                x = state->params.xMin;
-                                y += state->linePlan.lineHeight;
-                            }
                         }
                     }
                     break;
@@ -1494,6 +1489,15 @@ static const char* planLine(display_t* disp, const mdNode_t* node, mdPrintState_
         if (state->linePlan.pending)
         {
             state->linePlan.totalWidth += state->font->chars[0].w + 1;
+
+            // We need a new line part either way
+            mdLinePartInfo_t* part = pushLinePart(state);
+
+            // Attach this node to the part
+            part->node = node;
+            part->textStyle = state->params.style;
+            part->color = state->params.color;
+            part->font = state->font;
         }
 
         // We really don't care if this makes the width exceed the actual max just yet
