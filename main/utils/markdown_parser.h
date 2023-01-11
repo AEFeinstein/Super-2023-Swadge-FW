@@ -52,8 +52,8 @@ typedef struct
     textAlign_t align;
     textBreak_t breakMode;
     paletteColor_t color;
-    font_t* bodyFont;
-    font_t* headerFont;
+    const font_t* bodyFont;
+    const font_t* headerFont;
 } markdownParams_t;
 
 markdownText_t* parseMarkdown(const char* text);

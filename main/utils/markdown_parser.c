@@ -122,7 +122,7 @@ typedef struct
     // we can technically figure out the style from the tree, but we have plenty of SPIRAM and not a lot of speed
     textStyle_t textStyle;
     paletteColor_t color;
-    font_t* font;
+    const font_t* font;
 } mdLinePartInfo_t;
 
 typedef struct
@@ -156,7 +156,7 @@ typedef struct
     mdLinePlan_t linePlan;
 
     int16_t x, y;
-    font_t* font;
+    const font_t* font;
 
     size_t textPos;
     uint32_t backtrackIndex;
@@ -1224,6 +1224,10 @@ static const font_t* findPreviousFont(const mdNode_t* node, mdPrintState_t* stat
             font = &(node->option.font);
             break;
         }
+        else if (node->type == DECORATION && node->decoration == HEADER)
+        {
+            return state->params.headerFont;
+        }
     }
 
     if (font != NULL)
@@ -1809,6 +1813,27 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
         state.textPos = ((_markdownContinue_t*)*pos)->textPos;
 
         navigateToNode(node, index, &node, &prev);
+
+        mdOpt_t* lastOpt = findPreviousOption(node, ALIGN);
+        if (lastOpt != NULL)
+        {
+            state.params.align = lastOpt->align;
+        }
+
+        lastOpt = findPreviousOption(node, BREAK);
+        if (lastOpt != NULL)
+        {
+            state.params.breakMode = lastOpt->breakMode;
+        }
+
+        lastOpt = findPreviousOption(node, COLOR);
+        if (lastOpt != NULL)
+        {
+            state.params.color = lastOpt->color;
+        }
+
+        state.params.style = findPreviousStyles(node, &state);
+        state.font = findPreviousFont(node, &state);
     }
 
     MDLOG("Printing Markdown\n-----------\n\n");
