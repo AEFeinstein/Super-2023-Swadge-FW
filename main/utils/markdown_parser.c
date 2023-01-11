@@ -1364,7 +1364,7 @@ static bool drawPlannedLine(display_t* disp, mdPrintState_t* state)
         // Set up the initial X depending on the alignment setting
         if ((state->linePlan.align & ALIGN_CENTER) == ALIGN_CENTER)
         {
-            startX = (state->params.xMax - state->linePlan.totalWidth) / 2 + state->params.xMin;
+            startX = (state->params.xMax - state->params.xMin - state->linePlan.totalWidth) / 2 + state->params.xMin;
             MDLOG("Centering text with offset %d\n", startX);
         }
         else if ((state->linePlan.align & ALIGN_RIGHT) == ALIGN_RIGHT)
