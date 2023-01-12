@@ -766,7 +766,7 @@ static void parseMarkdownInner(const char* text, _markdownText_t* out)
                     MDLOG("Start of line, using header");
                     curNode->type = DECORATION;
                     curNode->decoration = HEADER;
-                    ++text;
+                    while (*(++text) == ' ');
 
                     action = ADD_CHILD;
                 }
