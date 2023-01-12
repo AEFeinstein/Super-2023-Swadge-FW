@@ -167,6 +167,11 @@ typedef struct
     uint8_t next;
 } mdPrintState_t;
 
+static mdOpt_t headerOpts = {
+    .type = ALIGN,
+    .align = ALIGN_CENTER,
+};
+
 
 static void parseMarkdownInner(const char* text, _markdownText_t* out);
 
@@ -1191,6 +1196,10 @@ static const mdOpt_t* findPreviousOption(const mdNode_t* node, mdOptType_t type)
         if (node->type == OPTION && node->option.type == type)
         {
             return &(node->option);
+        }
+        else if (type == ALIGN && node->type == DECORATION && node->decoration == HEADER)
+        {
+            return &headerOpts;
         }
     }
 
