@@ -1755,10 +1755,12 @@ static bool drawMarkdownNode(display_t* disp, const mdNode_t* node, const mdNode
                 }
 
                 case PAGE_BREAK:
-                drawPlannedLine(disp, state);
-                state->x = state->params.xMin;
-                state->y = state->params.yMin;
-                break;
+                {
+                    drawPlannedLine(disp, state);
+                    state->x = state->params.xMax + 1;
+                    state->y = state->params.yMax + 1;
+                    break;
+                }
 
                 case BULLET:
                 break;
