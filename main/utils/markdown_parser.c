@@ -12,6 +12,8 @@
 #include "font.h"
 #include "bresenham.h"
 
+//#define DEBUG
+
 #ifdef DEBUG
 #define MDLOG(...) printf(__VA_ARGS__)
 #else
@@ -26,8 +28,6 @@
 //#define MD_MALLOC(size) malloc(size)
 
 #define NO_BACKTRACK UINT32_MAX
-
-#define DEBUG
 
 typedef enum
 {

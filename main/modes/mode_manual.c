@@ -50,10 +50,7 @@ typedef struct
 
 const chapter_t chapters[] =
 {
-    {.file = "manual_intro.txt", .title = "Introduction"},
-    {.file = "manual_stresstest.txt", .title = "Test page please ignore"},
-    {.file = "manual_lipsum.txt", .title = "Lorem Ipsum"},
-    {.file = "halfApress.txt", .title = "Half A-Press"},
+    {.file = "manual_intro.md", .title = "Introduction"},
 };
 
 const chapter_t* lastChapter = chapters + sizeof(chapters) / sizeof(chapters[0]) - 1;
