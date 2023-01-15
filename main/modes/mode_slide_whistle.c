@@ -18,6 +18,7 @@
 
 #include "bresenham.h"
 #include "display.h"
+#include "font.h"
 #include "embeddednf.h"
 #include "embeddedout.h"
 #include "esp_timer.h"

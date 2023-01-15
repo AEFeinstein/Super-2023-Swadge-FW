@@ -22,6 +22,7 @@
 #include "entityManager.h"
 #include "leveldef.h"
 #include "led_util.h"
+#include "font.h"
 #include "palette.h"
 #include "nvs_manager.h"
 #include "platformer_sounds.h"

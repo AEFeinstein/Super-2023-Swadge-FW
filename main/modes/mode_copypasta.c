@@ -13,6 +13,7 @@
 #include "mode_main_menu.h"
 #include "musical_buzzer.h"
 #include "esp_random.h"
+#include "font.h"
 
 //==============================================================================
 // Defines

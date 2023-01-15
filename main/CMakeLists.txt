@@ -7,6 +7,7 @@ idf_component_register(
         "display/bresenham.c"
         "display/cndraw.c"
         "display/display.c"
+        "display/font.c"
         "display/palette.c"
         "meleeMenu.c"
         "modes/fighter/aabb_utils.c"

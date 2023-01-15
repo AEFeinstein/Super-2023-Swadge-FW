@@ -4,6 +4,7 @@
 #include "swadgeMode.h"
 #include "aabb_utils.h"
 #include "musical_buzzer.h"
+#include "font.h"
 
 extern const song_t jumpDeathTune;
 extern const song_t jumpGameOverTune;

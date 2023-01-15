@@ -9,6 +9,7 @@
 
 #include "palette.h"
 #include "display.h"
+#include "font.h"
 #include "bresenham.h"
 
 #ifdef DEBUG

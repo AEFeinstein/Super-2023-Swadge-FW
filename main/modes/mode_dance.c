@@ -20,6 +20,7 @@
 #include "mode_dance.h"
 #include "embeddedout.h"
 #include "bresenham.h"
+#include "font.h"
 #include "swadge_util.h"
 #include "settingsManager.h"
 #include "linked_list.h"

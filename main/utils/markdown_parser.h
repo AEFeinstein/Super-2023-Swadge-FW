@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "display.h"
+#include "font.h"
 #include "palette.h"
 
 typedef enum

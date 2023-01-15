@@ -4,6 +4,7 @@
 #include "swadgeMode.h"
 #include "aabb_utils.h"
 #include "picross_consts.h"
+#include "font.h"
 
 typedef struct {
     int8_t index;
