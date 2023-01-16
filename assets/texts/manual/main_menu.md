@@ -2,7 +2,7 @@
 
 \lC\c505_Every journey has a beginning!_\C\L
 
-There are three main categories – **Tools**, **Music**, and **Games** – and you can find them all here!
+There are three main categories - **Tools**, **Music**, and **Games** - and you can find them all here!
 
 To return to the Main Menu
 at any time, hold down

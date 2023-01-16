@@ -22,7 +22,7 @@ Find a "Gaming" or "Music" power-up to increase your HP.
 
 Touch a Warp Vortex and you'll be taken either to a bonus room or to the next part of the level.
 
-Some Container Blocks may be invisible until activated. But you might just uncover a 1UP Heart for finding one…
+Some Container Blocks may be invisible until activated. But you might just uncover a 1UP Heart for finding one...
 
 Coins will grant an extra life for each 100 coins collected. Your current coin count is denoted by "C" in the top of the screen.
 

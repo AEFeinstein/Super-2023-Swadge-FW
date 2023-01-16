@@ -8,7 +8,7 @@
 
 Swadge Bros has three main modes: Multiplayer (wireless or wired), VS. CPU, and Home Run Contest.
 
-The controls are the same for all modes. The Directional Buttons move the fighter, the A button jumps, and the B button attacks. The direction of the Directional Buttons influences the attack which is performed. There are five attacks on the ground: neutral, forward tilt, dash, up tilt, and down tilt. There are five more attacks in the air: neutral air, forward air, back air, up air, and down air. During recovery, if a fighter has no jumps left, they will get a bonus ‘ledge jump.'
+The controls are the same for all modes. The Directional Buttons move the fighter, the A button jumps, and the B button attacks. The direction of the Directional Buttons influences the attack which is performed. There are five attacks on the ground: neutral, forward tilt, dash, up tilt, and down tilt. There are five more attacks in the air: neutral air, forward air, back air, up air, and down air. During recovery, if a fighter has no jumps left, they will get a bonus 'ledge jump.'
 
 In the multiplayer modes, either hold two Swadges close to each other to pair wirelessly, or connect two with a USB C-C cable. Once connected, select your fighter. One Swadge, randomly chosen, will select the stage. Duke it out until one fighter is left standing! Records are kept for multiplayer matches.
 
