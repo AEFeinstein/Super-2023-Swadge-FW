@@ -1906,6 +1906,9 @@ bool drawMarkdown(display_t* disp, const markdownText_t* markdown, const markdow
         }
     }
 
+    // Draw the remaining planned line if there is one
+    drawPlannedLine(disp, &state);
+
     if (savePos && pos != NULL)
     {
         if (*pos != NULL)
