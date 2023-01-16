@@ -51,6 +51,21 @@ typedef struct
 const chapter_t chapters[] =
 {
     {.file = "manual_intro.md", .title = "Introduction"},
+    {.file = "main_menu.md", .title = "Main Menu"},
+    {.file = "gamepad.md", .title = "Gamepad"},
+    {.file = "light_dances.md", .title = "Light Dances"},
+    {.file = "mfpaint.md", .title = "MFPaint"},
+    {.file = "dice_roller.md", .title = "Dice Roller"},
+    {.file = "tunernome.md", .title = "Tunernome"},
+    {.file = "colorchord.md", .title = "Colorchord"},
+    {.file = "techno_slide_whistle.md", .title = "TechnoSlideWhistle"},
+    {.file = "jukebox.md", .title = "Jukebox"},
+    {.file = "swadge_bros.md", .title = "Swadge Bros"},
+    {.file = "super_swadge_land.md", .title = "Super Swadge Land"},
+    {.file = "donut_jump.md", .title = "Donut Jump"},
+    {.file = "pi_cross.md", .title = "Pi-Cross"},
+    {.file = "flyin_donut.md", .title = "Flyin' Donut"},
+    {.file = "tiltrads_color.md", .title = "Tiltrads Color"},
 };
 
 const chapter_t* lastChapter = chapters + sizeof(chapters) / sizeof(chapters[0]) - 1;
