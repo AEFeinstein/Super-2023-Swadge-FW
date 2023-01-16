@@ -184,7 +184,7 @@ void manualEnterMode(display_t* disp)
     manual->disp = disp;
 
     manual->fgColor = c555;
-    manual->bgColor = c000;
+    manual->bgColor = c012;
 
     manual->navigate = RELOAD_PAGE;
     manual->reload = true;
