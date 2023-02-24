@@ -16,7 +16,8 @@
 #include "mode_tiltrads.h"
 #include "esp_timer.h" // Timer functions
 #include "esp_log.h" // Debug logging functions
-#include "display.h" // Display functions and draw text
+#include "display.h" // Display functions
+#include "font.h" // Draw text
 #include "bresenham.h"  // Draw shapes
 #include "linked_list.h" // Custom linked list
 #include "nvs_manager.h" // Saving and loading high scores and last scores

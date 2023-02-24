@@ -73,7 +73,7 @@ static int processFile(const char * fpath, const struct stat * st __attribute__(
             {
                 process_bin(fpath, outDirName);
             }
-            else if(endsWith(fpath, ".txt"))
+            else if(endsWith(fpath, ".txt") || endsWith(fpath, ".md"))
             {
                 process_txt(fpath, outDirName);
             }

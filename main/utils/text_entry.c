@@ -4,6 +4,7 @@
 
 #include "text_entry.h"
 #include "display.h"
+#include "font.h"
 #include "bresenham.h"
 #include "btn.h"
 #include <string.h>

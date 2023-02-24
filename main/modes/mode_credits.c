@@ -10,6 +10,7 @@
 #include "mode_credits.h"
 #include "mode_main_menu.h"
 #include "musical_buzzer.h"
+#include "font.h"
 
 //==============================================================================
 // Defines

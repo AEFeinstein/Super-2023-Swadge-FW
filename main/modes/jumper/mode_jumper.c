@@ -17,6 +17,7 @@
 #include "aabb_utils.h"
 #include "settingsManager.h"
 #include "swadge_util.h"
+#include "font.h"
 
 #include "mode_jumper.h"
 #include "jumper_menu.h"

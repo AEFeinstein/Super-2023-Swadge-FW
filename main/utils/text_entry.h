@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "display.h"
+#include "font.h"
 
 void textEntryStart( display_t * usedisp, font_t * usefont, int max_len, char* buffer );
 bool textEntryDraw( void );

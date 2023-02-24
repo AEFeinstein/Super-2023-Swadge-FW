@@ -10,6 +10,7 @@
 #include "settingsManager.h"
 #include "embeddedout.h"
 #include "bresenham.h"
+#include "font.h"
 #include "musical_buzzer.h"
 #include "led_util.h"
 #include "swadge_util.h"

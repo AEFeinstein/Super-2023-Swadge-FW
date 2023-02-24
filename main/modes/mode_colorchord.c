@@ -13,6 +13,7 @@
 #include "settingsManager.h"
 #include "bresenham.h"
 #include "swadge_util.h"
+#include "font.h"
 
 // For colorchord
 #include "embeddedout.h"

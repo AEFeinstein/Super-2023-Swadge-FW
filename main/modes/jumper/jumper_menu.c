@@ -7,6 +7,7 @@
 
 #include "swadgeMode.h"
 #include "meleeMenu.h"
+#include "font.h"
 
 #include "jumper_menu.h"
 #include "mode_jumper.h"

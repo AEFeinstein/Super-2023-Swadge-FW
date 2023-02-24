@@ -8,6 +8,7 @@
 #include "aabb_utils.h"
 #include "musical_buzzer.h"
 #include "swadgeMode.h"
+#include "font.h"
 
 //==============================================================================
 // Defines

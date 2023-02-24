@@ -18,6 +18,7 @@
 #include "nvs_manager.h"
 #include "bresenham.h"
 #include "display.h"
+#include "font.h"
 #include "embeddednf.h"
 #include "embeddedout.h"
 #include "musical_buzzer.h"

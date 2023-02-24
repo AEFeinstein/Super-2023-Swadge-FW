@@ -7,6 +7,7 @@ idf_component_register(
         "display/bresenham.c"
         "display/cndraw.c"
         "display/display.c"
+        "display/font.c"
         "display/palette.c"
         "meleeMenu.c"
         "modes/fighter/aabb_utils.c"
@@ -28,6 +29,7 @@ idf_component_register(
         "modes/mode_gamepad.c"
         "modes/mode_jukebox.c"
         "modes/mode_main_menu.c"
+        "modes/mode_manual.c"
         "modes/mode_nvs_manager.c"
         "modes/mode_slide_whistle.c"
         "modes/mode_test.c"
@@ -61,6 +63,7 @@ idf_component_register(
         "swadge_esp32.c"
         "swadge_util.c"
         "utils/linked_list.c"
+        "utils/markdown_parser.c"
         "utils/text_entry.c"
     INCLUDE_DIRS
         "."

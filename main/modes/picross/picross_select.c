@@ -15,6 +15,7 @@
 #include "picross_select.h"
 #include "picross_menu.h"
 #include "bresenham.h"
+#include "font.h"
 
 //====
 // globals, basically
